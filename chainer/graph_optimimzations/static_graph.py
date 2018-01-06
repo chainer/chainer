@@ -5,22 +5,11 @@ import chainer.function_node
 
 import numpy as np # fixme: remove after debug
 
-# fixme: add an attribute/property to all function nodes that support static graph so
-# that we can raise an exception if a function that does not support it is called
-# from a static chain.
 
-# fixme: check that all array copies use x[:] = y.
-
-# fixme: clean up documentation and API.
 
 # todo: add test that use the same random seed with two models: a static chain
 # and a (non-static) chain. Enable `chainer.config.cudnn_deterministic` and
 # run both models and check that the outputs are identical.
-
-# todo: modify optimizers so that they never attempt to change the grad/data
-# reference of a Parmaeter, such as setting to None.
-# They should only copy zeros into the parameter
-# when necessary, and copy updated parameter values into the .data attributes.
 
 
 class StaticScheduleFunction(chainer.function_node.FunctionNode):
@@ -82,9 +71,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             for n, var in enumerate(in_vars):
                 var.data = self._in_arrays[n]
                 self._input_var_array_to_static_array_index[id(var.data)] = n
-
-            #for n in range(len(in_vars)):
-            #    self._input_var_array_to_static_array_index[id(in_vars[n].data)] = n
         else:
             # This is a backward schedule, so just zero all of the static arrays
             # for now.
@@ -94,7 +80,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         self._backward_grad_outputs = None
         self._chain_return_vars = None
         self._is_forward = is_forward
-        self._out_arrays = None # fixme: remove undescore.
+        self._out_arrays = None
         self._out_var_to_tuple_index = None
 
     def is_forward_schedule(self):
@@ -102,7 +88,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
         """
         return self._is_forward
-
 
     def copy_input_var_dynamic_to_static(self, x):
         """Copy an input to FunctionNode.forward() to a static array.
@@ -126,42 +111,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                 # the initializer.
                 self._in_arrays[index][:] = x.data
             x.data = self._in_arrays[index]
-
-    # fixme: remove
-    def copy_input_arrays_dynamic_to_static(self, x):
-        """Copy an input to FunctionNode.forward() to a static array.
-
-        If ``x`` corresponds to the data attribute of an input variable to the
-        static subgraph corresponding to this schedule, copy it into the
-        corresponding static array of this schedule. Otherwise, do nothing.
-
-        Args:
-            x (ndarray): An input array argument to FunctionNode.forward().
-
-        Return:
-            (index, ndarray): If a copy was performed, return the index within the
-            input tuple of variables to this schedule's static subgraph. Also
-            Return the static array.
-            Otherwise, return (``None``, ``None``).
-        """
-        if id(x) in self._input_var_array_to_static_array_index:
-            index = self._input_var_array_to_static_array_index[id(x)]
-            if not self.is_forward_schedule():
-                # We only need to copy if this is a backward schedule because
-                # for a forward schedule, the copy was already performed in
-                # the initializer.
-                self._in_arrays[index][:] = x
-            return index, self._in_arrays[index]
-        return None, None
-
-    def contains_backward_schedule_funct(self):
-        """Check whether a backward schedule function exists.
-
-        Returns:
-            bool: True if a backward schedule function has already been
-            created. Otherwise, returns False.
-        """
-        return self._backward_schedule_func is not None
 
     def create_backward_schedule_func(self, out_vars):
         """Create the backward schedule function.
@@ -220,9 +169,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                 # map each positional index of the variable in the function's output tuple
                 # to its corresponding static array.
 
-                # In @static_backward, these inputs can be checked and added to
-                # the dict(): ._input_var_array_to_static_array_index of the backward schedule.
-
                 # Now find the positional index of var in the creator function's output tuple.
                 var_id = id(var.node)
                 for func_arg_index in range(len(creator_func.outputs)):
@@ -278,7 +224,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             # Since this is a forward schedule, the forward pass has already completed
             # and we can therefore use the `data` attributes from `out_vars` as
             # the static output arrays.
-            #self._out_arrays = tuple([y.data for y in out_vars])
             self._out_arrays = [y.data for y in out_vars]
         else:
             # Note that this method is called at the end of the forward pass of
@@ -289,9 +234,8 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             # will be replaced by actual arrays in the backward pass.
             self._out_arrays = [None,] * len(out_vars)
 
-    # fixme: rename to "append_function"
-    def append_forward_function(self, forward):
-        """Append a function to the forward static schedule.
+    def append_function(self, forward):
+        """Append a function to the (forward) static schedule.
 
         Args:
             forward: The function to append to the schedule. The function
@@ -303,17 +247,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
         self._static_schedule_forward.append(forward)
 
-    # fixme: remove this? no longer used?
-    def append_backward_function(self, backward):
-        """Append a function to the backward static schedule.
-
-        Args:
-            backward: The function to append to the schedule. The function
-            should not take any arguments and should not return any results.
-
-        """
-        self._static_schedule_backward.append(backward)
-
     def forward(self, inputs):
         if not self._is_forward:
             self._schedule_manager.end_forward()
@@ -321,8 +254,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         # Note: This method will be invoked every iteration starting from the second
         # iteration. That is because the corresponding define-by-run code runs instead
         # during the first iteration.
-        #if self._backward_grad_outputs is None:
-        #    self._backward_grad_outputs = tuple([x.grad for x in self._chain_return_vars])
         # Copy any external input arrays into the statically-allocated arrays:
         assert len(self._in_arrays) == len(inputs)
         for n in range(len(inputs)):
@@ -338,9 +269,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         # potentially be performed without any dependency on Python.
         # - Optimize the schedule code in Cython, calling optimized C/C++ code.
         [x() for x in self._static_schedule_forward]
-        # Retain all inputs? (fixme)
-        #self.retain_inputs(range(len(inputs)))
-        #return self._out_arrays
 
         # Return a copy of the static arrays here because it is possible that the
         # static chain containing this schedule is repeated several times in the
@@ -445,11 +373,10 @@ def static_schedule_func(func):
         # are captured by the closure.
         no_arg_func()
 
-        #schedule_function = getattr(_thread_local, 'schedule_func', None)
         schedule_function = chainer.config.schedule_func
         # If trace mode is on, add to schedule.
         if schedule_function is not None:
-            schedule_function.append_forward_function(no_arg_func)
+            schedule_function.append_function(no_arg_func)
             # Add the schedule function as an attribute of the FunctionNode instance
             # that contains the wrapped function as a method
             # This attribute will be needed by the corresponding @static_backward
@@ -464,7 +391,7 @@ def static_schedule_func(func):
                     instance.node._supports_static_optimizations = True
             else:
                 instance._supports_static_optimizations = True
-            print('Adding function to the forward static schedule.')
+            print('Adding function to static schedule: ', func)
             #print('static_forward: instance: ', instance)
             instance.schedule_func = schedule_function
 
@@ -548,7 +475,6 @@ class ScheduleManager(object):
 
             return sched
 
-
     def end_forward(self):
         """Make in-use schedules available for use in next iteration.
 
@@ -560,7 +486,6 @@ class ScheduleManager(object):
             for key in self.in_use_count:
                 self.in_use_count[key] = 0
             self._end_forward = True
-
 
 
 def static_graph(func):
@@ -683,24 +608,10 @@ def static_graph(func):
         Wrapped ``__call__()`` method with static chain support.
     """
     def wrapped_func(*args, **kwargs):
-        # fixme: check if 'test mode' configuration is active
-        # (`chainer.config.train` is False). If so, always
-        # reuse schedule if possible. If in 'training mode', always use
-        # a distinct schedule or execute define-by-run code on each call
-        # until a backward pass is performed. If you want to perform multiple
-        # forward passes before calling backward during training, set
-        # attribute `iteration_finished`=True at end of each forward pass.
-
-        # fixme: check if `configuration.config.train` flag has changed. If so, run define-by-run code.
-        # (this is needed so that links like BN, dropout will work correctly)
-
         chain = args[0]
         in_vars = args[1:]
         # Since it is allowed for in_vars to be either variables or arrays,
         # we force to variables.
-        #in_vars = tuple([chainer.as_variable(x) for x in in_vars]) # fixme: this sets requires_grad=False
-        #for var in in_vars:
-        #    var.requires_grad = True
         new_in_vars = []
         for x in in_vars:
             if not isinstance(x, chainer.Variable):
@@ -708,8 +619,6 @@ def static_graph(func):
             else:
                 new_in_vars.append(x)
         in_vars = tuple(new_in_vars)
-
-
 
         if not hasattr(chain, 'schedule_manager'):
             chain.schedule_manager = ScheduleManager()
@@ -742,9 +651,6 @@ def static_graph(func):
                 new_args.append(var)
             args = tuple(new_args)
 
-
-
-            #chain.static_schedule = StaticScheduleFunction(in_vars)
             with chainer.using_config('schedule_func', chain.static_schedule):
                 out_vars = func(*args, **kwargs)
 
@@ -757,7 +663,6 @@ def static_graph(func):
             chain.static_schedule.create_out_arrays(tuple_out_vars)
             backward_sched = chain.static_schedule.create_backward_schedule_func(tuple_out_vars)
             backward_sched.create_out_arrays(in_vars)
-            #print("Arguments were: %s, %s" % (args, kwargs))
             return out_vars
 
     return wrapped_func

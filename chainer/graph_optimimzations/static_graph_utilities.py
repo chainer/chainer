@@ -2,6 +2,9 @@ import contextlib
 
 import chainer
 
+# These function are intended to by called from chainer.FunctionNode and
+# chainer.Variable. They should not be directly called from user code.
+
 
 def is_static_func(func):
     """Check if the function node is included in a static schedule.
@@ -62,25 +65,21 @@ def mark_static_vars(input_vars):
 
 
 def static_forward_optimizations(func, in_vars):
-    """
+    """Perform checks needed for creation of a static schedule.
 
-    fixme
+    For each variable ``x`` in ``in_vars``, check if ``x`` is an
+    input variable to a static chain. If so, then save the
+    information to the function so that it can be used during the
+    backward pass schedule creation.
 
-    For each variable ``x`` in ``in_vars``, check if ``x`` is either an
-    input variable to a static chain (during forward pass) or a gradients
-    variable corresponding to an output variable of a static chain (during
-    backward pass). If so, copy ``x.data`` into a static array of the
-    schedule object and modify the ``x.data`` reference to refer to this
-    static array.
+    This function should be called from the ``FunctionNode`` apply() method
+    just after func.forward() is called.
 
     Args:
         in_vars (iterable of chainer.Variable):
         func (FunctionNode):
     """
 
-    # Check if any of the input variables correspond to input
-    # variables to a static chain. If so, replace these arrays
-    # with statically-allocated arrays of the static schedule.
     schedule_function = chainer.config.schedule_func
     if schedule_function is not None:
         #for var in in_vars:
@@ -101,45 +100,6 @@ def static_forward_optimizations(func, in_vars):
                 "The following function was called inside a static chain but it does not support static optimizations: ",
                 func)
 
-
-
-# fixme: remove.
-def static_forward_optimizations_old(func, in_data):
-    # Check if any of the input arrays correspond to input
-    # variables to a static chain. If so, replace these arrays
-    # with statically-allocated arrays of the static schedule.
-    schedule_function = chainer.config.schedule_func
-    if schedule_function is not None:
-
-        in_arrays = list(in_data)
-        # Check if any of the input arrays correspond to a (dynamically
-        # allocated) data attribute of an in variable to this subgraph.
-        for func_arg_index in range(len(in_arrays)):
-            in_array = in_arrays[func_arg_index]
-            chain_arg_index, static_array = schedule_function.copy_input_arrays_dynamic_to_static(in_array)
-            if chain_arg_index is not None:
-                # Replace with the static array in arguments list.
-                assert in_arrays[func_arg_index].shape == static_array.shape
-                in_arrays[func_arg_index] = static_array
-                # Add this index information to the func_node so that it can be used in
-                # backward() to copy corresponding gradient outputs into static arrays.
-                forward_static_arrays_info = getattr(func, '_forward_static_arrays_info', None)
-                if forward_static_arrays_info is None:
-                    forward_static_arrays_info = list()
-                    func._forward_static_arrays_info = forward_static_arrays_info
-                forward_static_arrays_info.append((func_arg_index, chain_arg_index))
-
-        mod_in_data = tuple(in_arrays)
-        outputs = func.forward(mod_in_data)
-        # trace mode is on, so check that func is compatible:
-        if not func._supports_static_optimizations:
-            raise RuntimeError(
-                "The following function was called inside a static chain but it does not support static optimizations: ",
-                func)
-        return outputs
-
-    else:
-        return func.forward(in_data)
 
 def check_func_backward_outputs(func, grad_outputs):
     """Update schedule information if conditions are satisfied.
@@ -163,15 +123,12 @@ def check_func_backward_outputs(func, grad_outputs):
     if backward_static_arrays_info is not None:
         forward_schedule = get_static_schedule(func)
         backward_schedule = forward_schedule.get_backward_schedule_func()
-        print('Found _backward_static_arrays_info during static_bakcward().')
+        #print('Found _backward_static_arrays_info during static_bakcward().')
         for func_arg_index, chain_arg_index in backward_static_arrays_info:
             input_var = grad_outputs[func_arg_index]
             # Modify the data attribute of input_var to refer to a statically allocated array.
             backward_schedule._in_arrays[chain_arg_index][:] = input_var.data
             input_var.data = backward_schedule._in_arrays[chain_arg_index]
-
-            #data = grad_outputs[func_arg_index].data
-            #backward_schedule._input_var_array_to_static_array_index[id(data)] = chain_arg_index
 
 
 def check_func_backward_inputs(func, grad_inputs):
@@ -197,7 +154,7 @@ def check_func_backward_inputs(func, grad_inputs):
     if forward_static_arrays_info is not None:
         forward_schedule = get_static_schedule(func)
         backward_schedule = forward_schedule.get_backward_schedule_func()
-        print('Found static_arrays_list in backward(): ', forward_static_arrays_info)
+        #print('Found static_arrays_list in backward(): ', forward_static_arrays_info)
         for func_arg_index, chain_arg_index in forward_static_arrays_info:
             # Need to make the chain_arg_index'th output array of the schedule refer
             # to the array of the variable in chain_arg_index'th position of the
