@@ -374,6 +374,10 @@ def _is_git_root(path):
     return os.path.isdir(os.path.join(path, '.git'))
 
 
+def _is_wheel_directory(path):
+    return os.path.isdir(path + '-' + __version__ + '.dist-info')
+
+
 _source_root = None
 
 
@@ -384,7 +388,7 @@ def _find_source_root(source_abs_path):
     if _source_root is None:
         dir = os.path.dirname(source_abs_path)
         while True:
-            if _is_egg_directory(dir) or _is_git_root(dir):
+            if _is_egg_directory(dir) or _is_git_root(dir) or _is_wheel_directory(dir):
                 # Reached the root directory
                 _source_root = dir
                 break
