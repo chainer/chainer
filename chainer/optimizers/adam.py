@@ -46,7 +46,7 @@ class AdamRule(optimizer.UpdateRule):
         eps (float): Small value for the numerical stability.
         eta (float): Schedule multiplier, can be used for warm restarts.
         weight_decay_rate (float): Weight decay rate.
-        amsgrad (bool): Weather to use the AMSGrad variant of Adam.
+        amsgrad (bool): Whether to use the AMSGrad variant of Adam.
 
     """
 
@@ -181,7 +181,7 @@ class Adam(optimizer.GradientMethod):
         eps (float): Small value for the numerical stability.
         eta (float): Schedule multiplier, can be used for warm restarts.
         weight_decay_rate (float): Weight decay rate.
-        amsgrad (bool): Weather to use AMSGrad variant of Adam.
+        amsgrad (bool): Whether to use AMSGrad variant of Adam.
 
     """
 
