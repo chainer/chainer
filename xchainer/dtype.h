@@ -87,7 +87,7 @@ constexpr Dtype TypeToDtype = PrimitiveType<T>::kDtype;
 // Invokes a function by passing PrimitiveType<T> corresponding to given dtype value.
 //
 // For example,
-//     VisitDtype(f, Dtype::kInt32, args...);
+//     VisitDtype(Dtype::kInt32, f, args...);
 // is equivalent to
 //     f(PrimtiveType<int>, args...);
 // Note that the dtype argument can be a runtime value. This function can be used for dynamic dispatching based on dtype values.
@@ -95,7 +95,7 @@ constexpr Dtype TypeToDtype = PrimitiveType<T>::kDtype;
 // Note (beam2d): This function should be constexpr, but GCC 5.x does not allow it because of the throw statement, so currently not marked
 // as constexpr.
 template <typename F, typename... Args>
-auto VisitDtype(F&& f, Dtype dtype, Args&&... args) {
+auto VisitDtype(Dtype dtype, F&& f, Args&&... args) {
     switch (dtype) {
         case Dtype::kBool:
             return std::forward<F>(f)(PrimitiveType<bool>{}, std::forward<Args>(args)...);
@@ -120,22 +120,22 @@ auto VisitDtype(F&& f, Dtype dtype, Args&&... args) {
 
 // Gets the single character identifier compatible to NumPy's char code
 inline char GetCharCode(Dtype dtype) {
-    return VisitDtype([](auto pt) { return decltype(pt)::kCharCode; }, dtype);
+    return VisitDtype(dtype, [](auto pt) { return decltype(pt)::kCharCode; });
 }
 
 // Gets the element size of the dtype in bytes.
 inline int64_t GetElementSize(Dtype dtype) {
-    return VisitDtype([](auto pt) { return decltype(pt)::kElementSize; }, dtype);
+    return VisitDtype(dtype, [](auto pt) { return decltype(pt)::kElementSize; });
 }
 
 // Gets the kind of dtype.
 inline DtypeKind GetKind(Dtype dtype) {
-    return VisitDtype([](auto pt) { return decltype(pt)::kKind; }, dtype);
+    return VisitDtype(dtype, [](auto pt) { return decltype(pt)::kKind; });
 }
 
 // const char* representation of dtype compatible to NumPy's dtype name.
 inline const char* GetDtypeName(Dtype dtype) {
-    return VisitDtype([](auto pt) { return decltype(pt)::GetName(); }, dtype);
+    return VisitDtype(dtype, [](auto pt) { return decltype(pt)::GetName(); });
 }
 
 // Gets the dtype of given name.

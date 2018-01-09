@@ -13,7 +13,7 @@ class AllDtypeTest : public ::testing::TestWithParam<Dtype> {};
 // Check if mapping from dtype to primitive type (provided by VisitDtype) and the opposite mapping by PrimitiveType<T> are consistent.
 TEST_P(AllDtypeTest, DtypeMapping) {
     const Dtype dtype = GetParam();
-    ASSERT_EQ(dtype, VisitDtype([](auto pt) { return decltype(pt)::kDtype; }, dtype));
+    ASSERT_EQ(dtype, VisitDtype(dtype, [](auto pt) { return decltype(pt)::kDtype; }));
 }
 
 // Check if GetDtypeName() and GetDtype(std::string) are inverses of each other.
