@@ -56,6 +56,8 @@ Update of Docker Images
 Chainer official Docker images (see :doc:`install` for details) are now updated to use CUDA 8.0 and cuDNN 6.0.
 This change was introduced because CUDA 7.5 does not support NVIDIA Pascal GPUs.
 
+To use these images, you may need to upgrade the NVIDIA driver on your host.
+See `Requirements of nvidia-docker <https://github.com/NVIDIA/nvidia-docker/wiki/CUDA#requirements>`_ for details.
 
 Chainer v3
 ==========
