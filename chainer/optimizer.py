@@ -376,6 +376,14 @@ class Optimizer(object):
         Args:
             link (~chainer.Link): Target link object.
 
+        Returns:
+            The optimizer instance.
+
+        .. note::
+           As of v4.0.0, this function returns the optimizer instance itself
+           so that you can instantiate and setup the optimizer in one line,
+           e.g., ``optimizer = SomeOptimizer().setup(model)``.
+
         """
         if not isinstance(link, link_module.Link):
             raise TypeError('optimization target must be a link')
