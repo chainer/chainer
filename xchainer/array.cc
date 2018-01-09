@@ -145,6 +145,10 @@ Array Array::operator*(const Array& rhs) const {
 }
 
 void Array::Add(const Array& rhs, Array& out) const {
+    if ((&out == this || &out == &rhs) && out.requires_grad_) {
+        throw XchainerError("In-place operation (Add) is not supported for an array with requires_grad=true.");
+    }
+
     // TODO: dtype conversion
     CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
@@ -177,6 +181,10 @@ void Array::Add(const Array& rhs, Array& out) const {
 }
 
 void Array::Mul(const Array& rhs, Array& out) const {
+    if ((&out == this || &out == &rhs) && out.requires_grad_) {
+        throw XchainerError("In-place operation (Mul) is not supported for an array with requires_grad=true.");
+    }
+
     // TODO: dtype conversion
     CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
