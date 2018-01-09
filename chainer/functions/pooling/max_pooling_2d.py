@@ -4,6 +4,8 @@ import chainer
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.pooling import pooling_2d
+from chainer.graph_optimizations.static_graph import static_schedule_func
+from chainer.graph_optimizations.static_graph_utilities import is_trace_mode
 from chainer.utils import conv
 
 
@@ -11,7 +13,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
 
     """Max pooling over a set of 2d planes."""
 
-    def forward_cpu(self, x):
+    def _dynamic_forward_cpu(self, x):
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
 
@@ -25,12 +27,21 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         # hits its bug when kh * kw >= 32.
         self.indexes = col.argmax(axis=2)
         y = col.max(axis=2)
+        return y
+
+    @static_schedule_func
+    def _static_forward_cpu(self, x, y):
+        y[:] = self._dynamic_forward_cpu(x)
+
+    def forward_cpu(self, x):
+        y = self._dynamic_forward_cpu(x)
+        if is_trace_mode():
+            self._static_forward_cpu(x, y)
+
         return y,
 
-    def forward_gpu(self, x):
-        if chainer.should_use_cudnn('>=auto'):
-            self.retain_inputs((0,))
-            return super(MaxPooling2D, self).forward_gpu(x)
+    def _dynamic_forward_gpu(self, x):
+
 
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
@@ -81,6 +92,20 @@ class MaxPooling2D(pooling_2d.Pooling2D):
                                  h, w, y_h, y_w, self.kh, self.kw,
                                  self.sy, self.sx, self.ph, self.pw,
                                  y, self.indexes)
+        return y
+
+    @static_schedule_func
+    def _static_forward_gpu(self, x, y):
+        y[:] = self._dynamic_forward_gpu(x)
+
+    def forward_gpu(self, x):
+        if chainer.should_use_cudnn('>=auto'):
+            self.retain_inputs((0,))
+            return super(MaxPooling2D, self).forward_gpu(x)
+        y = self._dynamic_forward_gpu(x)
+        if is_trace_mode():
+            self._static_forward_gpu(x, y)
+
         return y,
 
     def backward(self, indexes, gy):
@@ -109,7 +134,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
             self._in_dtype = mpool2d._in_dtype
         self.mpool2d = mpool2d
 
-    def forward_cpu(self, gy):
+    def _dynamic_forward_cpu(self, gy):
         n, c, out_h, out_w = gy[0].shape
         h, w = self._in_shape[2:]
         kh, kw = self.kh, self.kw
@@ -126,12 +151,20 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         gcol = numpy.swapaxes(gcol, 3, 5)
 
         gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw, h, w)
+        return gx
+
+    @static_schedule_func
+    def _static_forward_cpu(self, gy, gx):
+        gx[:] = self._dynamic_forward_cpu(gy)
+
+    def forward_cpu(self, gy):
+        gx = self._dynamic_forward_cpu(gy)
+        if is_trace_mode():
+            self._static_forward_cpu(gy, gx)
+
         return gx,
 
-    def forward_gpu(self, gy):
-        if self._used_cudnn:
-            x, = self.mpool2d.get_retained_inputs()
-            return self.mpool2d.backward_gpu((x.data,), gy)
+    def _dynamic_forward_gpu_cuda(self, gy):
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
         gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
@@ -167,6 +200,32 @@ class MaxPooling2DGrad(function_node.FunctionNode):
                             h, w, y_h, y_w, self.kh, self.kw,
                             self.sy, self.sx, self.ph, self.pw,
                             gx)
+        return gx
+
+    @static_schedule_func
+    def _static_forward_gpu_cuda(self, gy, gx):
+        gx[:] = self._dynamic_forward_gpu(gy)
+
+    def _dynamic_forward_cudnn(self, x, gy):
+        gx, = self.mpool2d.backward_gpu((x.data,), gy)
+        return gx
+
+    @static_schedule_func
+    def _static_forward_cudnn(self, x, gy, gx):
+        gx[:] = self._dynamic_forward_cudnn(x, gy)
+
+    def forward_gpu(self, gy):
+        if self._used_cudnn:
+            x, = self.mpool2d.get_retained_inputs()
+            gx = self._dynamic_forward_cudnn(x, gy)
+            if is_trace_mode():
+                self._static_forward_cudnn(x, gy, gx)
+            return gx,
+
+        gx = self._dynamic_forward_gpu_cuda(gy)
+        if is_trace_mode():
+            self._static_forward_gpu_cuda(gy, gx)
+
         return gx,
 
     def backward(self, indexes, ggx):
@@ -189,7 +248,7 @@ class MaxPooling2DWithIndexes(function_node.FunctionNode):
         else:
             self.mpool2d = mpool2d
 
-    def forward_cpu(self, x):
+    def _dynamic_forward_cpu(self, x):
         col = conv.im2col_cpu(
             x[0], self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             pval=-float('inf'), cover_all=self.cover_all)
@@ -198,39 +257,72 @@ class MaxPooling2DWithIndexes(function_node.FunctionNode):
         col = col.transpose(0, 1, 3, 4, 2).reshape(-1, kh * kw)
         indexes = self.indexes.ravel()
         col = col[numpy.arange(len(indexes)), indexes]
-        return col.reshape(n, c, out_h, out_w),
+        y = col.reshape(n, c, out_h, out_w)
+        return y
+
+    @static_schedule_func
+    def _static_forward_cpu(self, x, y):
+        y[:] = self._dynamic_forward_cpu(x)
+
+    def forward_cpu(self, x):
+        y = self._dynamic_forward_cpu(x)
+        if is_trace_mode():
+            self._static_forward_cpu(x, y)
+
+        return y,
+
+    def _dynamic_forward_cudnn(self, inputs):
+        x, = self.mpool2d.get_retained_inputs()
+        y = self._forward_gpu_compute_indexes_again((x.data, inputs[0]))
+        return y
+
+    @static_schedule_func
+    def _static_forward_cudnn(self, inputs, y):
+        y[:] = self._dynamic_forward_cudnn(inputs)
+
+    def _dynamic_forward_cuda(self, inputs):
+        x, = inputs
+        n, c, h, w = x.shape
+        y_h = conv.get_conv_outsize(
+            h, self.kh, self.sy, self.ph, self.cover_all)
+        assert y_h > 0, 'Height in the output should be positive.'
+        y_w = conv.get_conv_outsize(
+            w, self.kw, self.sx, self.pw, self.cover_all)
+        assert y_w > 0, 'Width in the output should be positive.'
+        y = cuda.cupy.empty((n, c, y_h, y_w), dtype=x.dtype)
+
+        cuda.elementwise(
+            'raw T in, raw S indexes, int32 h, int32 w, int32 out_h,'
+            'int32 out_w, int32 kh, int32 kw, int32 sy, int32 sx,'
+            'int32 ph, int32 pw', 'T out',
+            '''
+            int c0    = i / (out_h * out_w);
+            int out_y = i / out_w % out_h;
+            int out_x = i % out_w;
+            int index = indexes[i];
+            int max_y = max(0, out_y * sy - ph + index / kw);
+            int max_x = max(0, out_x * sx - pw + index % kw);
+            out = in[max_x + w * (max_y + h * c0)];
+            ''', 'max_pool_grad_fwd')(
+            x.reduced_view(), self.indexes.reduced_view(), h, w,
+            y_h, y_w, self.kh, self.kw, self.sy, self.sx, self.ph,
+            self.pw, y)
+        return y
+
+    @static_schedule_func
+    def _static_forward_cuda(self, inputs, y):
+        y[:] = self._dynamic_forward_cuda(inputs)
 
     def forward_gpu(self, inputs):
         if self._used_cudnn:
-            x, = self.mpool2d.get_retained_inputs()
-            return self._forward_gpu_compute_indexes_again((x.data, inputs[0]))
+            y = self._dynamic_forward_cudnn(inputs)
+            if is_trace_mode():
+                self._static_forward_cudnn(inputs, y)
+            return y,
         else:
-            x, = inputs
-            n, c, h, w = x.shape
-            y_h = conv.get_conv_outsize(
-                h, self.kh, self.sy, self.ph, self.cover_all)
-            assert y_h > 0, 'Height in the output should be positive.'
-            y_w = conv.get_conv_outsize(
-                w, self.kw, self.sx, self.pw, self.cover_all)
-            assert y_w > 0, 'Width in the output should be positive.'
-            y = cuda.cupy.empty((n, c, y_h, y_w), dtype=x.dtype)
-
-            cuda.elementwise(
-                'raw T in, raw S indexes, int32 h, int32 w, int32 out_h,'
-                'int32 out_w, int32 kh, int32 kw, int32 sy, int32 sx,'
-                'int32 ph, int32 pw', 'T out',
-                '''
-                int c0    = i / (out_h * out_w);
-                int out_y = i / out_w % out_h;
-                int out_x = i % out_w;
-                int index = indexes[i];
-                int max_y = max(0, out_y * sy - ph + index / kw);
-                int max_x = max(0, out_x * sx - pw + index % kw);
-                out = in[max_x + w * (max_y + h * c0)];
-                ''', 'max_pool_grad_fwd')(
-                    x.reduced_view(), self.indexes.reduced_view(), h, w,
-                    y_h, y_w, self.kh, self.kw, self.sy, self.sx, self.ph,
-                    self.pw, y)
+            y = self._dynamic_forward_cuda(inputs)
+            if is_trace_mode():
+                self._static_forward_cudnn(inputs, y)
             return y,
 
     def _forward_gpu_compute_indexes_again(self, inputs):
@@ -274,7 +366,7 @@ class MaxPooling2DWithIndexes(function_node.FunctionNode):
             ''', 'max_pool_grad_fwd_calc_indexes')(
                 x.reduced_view(), ggx.reduced_view(), h, w, y_h, y_w, self.kh,
                 self.kw, self.sy, self.sx, self.ph, self.pw, y)
-        return y,
+        return y
 
 
 def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True):

@@ -3,6 +3,7 @@ from __future__ import print_function
 import chainer
 import chainer.functions as F
 import chainer.links as L
+from chainer.graph_optimizations.static_graph import static_graph
 
 
 class Block(chainer.Chain):
@@ -79,6 +80,7 @@ class VGG(chainer.Chain):
             self.bn_fc1 = L.BatchNormalization(512)
             self.fc2 = L.Linear(None, class_labels, nobias=True)
 
+    @static_graph
     def __call__(self, x):
         # 64 channel blocks:
         h = self.block1_1(x)

@@ -186,7 +186,7 @@ class ReLUGrad3(function_node.FunctionNode):
 
     @static_schedule_func
     def _static_forward_gpu(self, inputs, ret):
-        ret[:] = self._dynamic_forward_gpu(inputs)
+        ret[:] = chainer/functions/activation/relu.pyself._dynamic_forward_gpu(inputs)
 
     def forward_gpu(self, inputs):
         #assert chainer.should_use_cudnn('==always')

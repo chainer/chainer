@@ -446,6 +446,10 @@ class Variable(object):
         grad (numpy.ndarray or cupy.ndarray): Initial gradient array.
         requires_grad (bool): Boolean indicating whether ``grad`` will be set
             in backward calculation.
+            
+    Attributes:
+        is_static: If this parmameter is used inside a static chain, it will
+            be set to ``True``. Otherwise, it will be ``False``.
 
     """  # NOQA
 
@@ -470,6 +474,7 @@ Actual: {0}'''.format(type(data))
         self._requires_grad = requires_grad
         self._node = VariableNode(self, name)
         self._grad_var = None if grad is None else Variable(grad)
+        self.is_static = False
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -735,6 +740,16 @@ Actual: {0}'''.format(type(data))
 
     def cleargrad(self):
         """Clears the gradient array."""
+        if self.is_static:
+            # If self._grad_var.data already exists, fill with zeros.
+            # Otherwise, do same thing as non-static version.
+            self._grad_var.data.fill(0)
+            #if gv is not None:
+            #    if gv.data is not None:
+            #        #gv.unchain()
+            #        gv.data.fill(0)
+            return
+
         self._grad_var = None
 
     def zerograd(self):
@@ -950,8 +965,10 @@ Actual: {0}'''.format(type(data))
             # forward pass.
             if is_static_func(func):
                 check_func_backward_outputs(func, out_grad)
-                if not retain_grad:
-                    raise RuntimeError("variable.backward() using a static chain should set retain_grad=True.")
+                # Force retain_grad mode for any functions in a static chain.
+                retain_grad = True
+                #if not retain_grad:
+                #    raise RuntimeError("variable.backward() using a static chain should set retain_grad=True.")
 
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
@@ -963,7 +980,7 @@ Actual: {0}'''.format(type(data))
 
             cuda.get_device_from_array(*in_data).use()
             for hook in hooks:
-                # todo (vogel): support this in static sub-graphs
+                # fixme (vogel): support this in static sub-graphs
                 hook.backward_preprocess(func, in_data, out_grad_data)
 
             # Collect the current input gradients.
@@ -1013,7 +1030,7 @@ Actual: {0}'''.format(type(data))
 
             assert len(gxs) == len(in_grad)
             for hook in hooks:
-                # todo (vogel): support this in static sub-graphs
+                # fixme (vogel): support this in static sub-graphs
                 hook.backward_postprocess(func, in_data, out_grad_data)
 
             if is_debug:

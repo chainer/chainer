@@ -6,6 +6,8 @@ from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_node
 import chainer.functions
+from chainer.graph_optimizations.static_graph import static_schedule_func
+from chainer.graph_optimizations.static_graph_utilities import is_trace_mode
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
@@ -115,6 +117,17 @@ class Convolution2DFunction(function_node.FunctionNode):
             raise RuntimeError('Width in the output should be positive.')
         return out_h, out_w
 
+    def _dynamic_forward_cpu(self, x, W, b):
+        if self.group > 1:
+            y = self._forward_grouped_convolution(x, W, b)
+        else:
+            y = self._forward_cpu_core(x, W, b)
+        return y
+
+    @static_schedule_func
+    def _static_forward_cpu(self, x, W, b, y):
+        y[:] = self._dynamic_forward_cpu(x, W, b)
+
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W
 
@@ -123,10 +136,14 @@ class Convolution2DFunction(function_node.FunctionNode):
         else:
             x, W, b = inputs
 
-        if self.group > 1:
-            y = self._forward_grouped_convolution(x, W, b)
-        else:
-            y = self._forward_cpu_core(x, W, b)
+        #if self.group > 1:
+        #    y = self._forward_grouped_convolution(x, W, b)
+        #else:
+        #    y = self._forward_cpu_core(x, W, b)
+        #return y,
+        y = self._dynamic_forward_cpu(x, W, b)
+        if is_trace_mode():
+            self._static_forward_cpu(x, W, b, y)
         return y,
 
     def _forward_cpu_core(self, x, W, b):
@@ -141,30 +158,25 @@ class Convolution2DFunction(function_node.FunctionNode):
         y = numpy.rollaxis(y, 3, 1)
         return y
 
-    def forward_gpu(self, inputs):
-        self.retain_inputs((0, 1))  # retain only x and W
-        if len(inputs) == 2:
-            (x, W), b = inputs, None
-        else:
-            x, W, b = inputs
+    def _dynamic_forward_gpu(self, x, W, b, out_h, out_w):
 
         out_c, _, kh, kw = W.shape
         n, _, h, w = x.shape
 
-        out_h, out_w = self._get_out_size(inputs)
+
         y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
 
         use_cudnn = (
-            chainer.should_use_cudnn('>=auto')
-            and not self.cover_all
-            and x.dtype == W.dtype
-            and ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)
-            and (self.group <= 1 or _cudnn_version >= 7000)
+                chainer.should_use_cudnn('>=auto')
+                and not self.cover_all
+                and x.dtype == W.dtype
+                and ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)
+                and (self.group <= 1 or _cudnn_version >= 7000)
         )
 
         if use_cudnn:
             # cuDNN implementation
-            return self._forward_cudnn(x, W, b, y)
+            y = self._forward_cudnn(x, W, b, y)
 
         else:
             if self.group > 1:
@@ -172,6 +184,50 @@ class Convolution2DFunction(function_node.FunctionNode):
             else:
                 y = self._forward_gpu_core(x, W, b)
 
+        return y
+
+    @static_schedule_func
+    def _static_forward_gpu(self, x, W, b, out_h, out_w, y):
+        y[:] = self._dynamic_forward_gpu(x, W, b, out_h, out_w)
+
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))  # retain only x and W
+        if len(inputs) == 2:
+            (x, W), b = inputs, None
+        else:
+            x, W, b = inputs
+
+        out_h, out_w = self._get_out_size(inputs)
+        # todo (vogel): optimize to avoid allocating results array.
+
+        #out_c, _, kh, kw = W.shape
+        #n, _, h, w = x.shape
+
+        #out_h, out_w = self._get_out_size(inputs)
+        #y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
+
+        #use_cudnn = (
+        #    chainer.should_use_cudnn('>=auto')
+        #    and not self.cover_all
+        #    and x.dtype == W.dtype
+        #    and ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)
+        #    and (self.group <= 1 or _cudnn_version >= 7000)
+        #)
+
+        #if use_cudnn:
+        #    # cuDNN implementation
+        #    return self._forward_cudnn(x, W, b, y)
+
+        #else:
+        #    if self.group > 1:
+        #        y = self._forward_grouped_convolution(x, W, b)
+        #    else:
+        #        y = self._forward_gpu_core(x, W, b)
+
+        #return y,
+        y = self._dynamic_forward_gpu(x, W, b, out_h, out_w)
+        if is_trace_mode():
+            self._static_forward_gpu(x, W, b, out_h, out_w, y)
         return y,
 
     def _forward_gpu_core(self, x, W, b):
@@ -275,7 +331,7 @@ class Convolution2DFunction(function_node.FunctionNode):
                 handle, one.data, bias_desc.value, b.data.ptr,
                 one.data, y_desc.value, y.data.ptr)
 
-        return y,
+        return y
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
@@ -313,10 +369,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.W_dtype = W_node.dtype
         self.group = conv2d.group
 
-    def forward_cpu(self, inputs):
-        self.retain_inputs((0, 1))
-        x, gy = inputs
-
+    def _forward_dynamic_cpu(self, x, gy):
         # NumPy raises an error when the array is not contiguous.
         # See: https://github.com/chainer/chainer/issues/2744
         # TODO(niboshi): Remove this code when NumPy is fixed.
@@ -328,6 +381,31 @@ class Convolution2DGradW(function_node.FunctionNode):
             gW = self._forward_grouped_convolution(x, gy)
         else:
             gW = self._forward_cpu_core(x, gy)
+        return gW
+
+    @static_schedule_func
+    def _forward_static_cpu(self, x, gy, gW):
+        gW[:] = self._forward_dynamic_cpu(x, gy)
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+
+        # NumPy raises an error when the array is not contiguous.
+        # See: https://github.com/chainer/chainer/issues/2744
+        # TODO(niboshi): Remove this code when NumPy is fixed.
+        #if (not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+        #        1 in gy.shape):
+        #    gy = numpy.ascontiguousarray(gy)
+
+        #if self.group > 1:
+        #    gW = self._forward_grouped_convolution(x, gy)
+        #else:
+        #    gW = self._forward_cpu_core(x, gy)
+        #return gW,
+        gW = self._forward_dynamic_cpu(x, gy)
+        if is_trace_mode():
+            self._forward_static_cpu(x, gy, gW)
         return gW,
 
     def _forward_cpu_core(self, x, gy):
@@ -337,6 +415,18 @@ class Convolution2DGradW(function_node.FunctionNode):
         gW = numpy.tensordot(gy, col, ((0, 2, 3), (0, 4, 5))
                              ).astype(self.W_dtype, copy=False)
         return gW
+
+    @static_schedule_func
+    def _static_forward_cudnn(self, x, gy, gW):
+        gW[:] = self._forward_cudnn(x, gy)
+
+    @static_schedule_func
+    def _static_forward_grouped_convolution(self, x, gy, gW):
+        gW[:] = self._forward_grouped_convolution(x, gy)
+
+    @static_schedule_func
+    def _static_forward_gpu_core(self, x, gy, gW):
+        gW[:] = self._forward_gpu_core(x, gy)
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))
@@ -354,13 +444,20 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         if use_cudnn:
             # cuDNN implementation
-            return self._forward_cudnn(x, gy)
+            gW = self._forward_cudnn(x, gy)
+            if is_trace_mode():
+                self._static_forward_cudnn(x, gy, gW)
+            return gW,
 
         else:
             if self.group > 1:
                 gW = self._forward_grouped_convolution(x, gy)
+                if is_trace_mode():
+                    self._static_forward_grouped_convolution(x, gy, gW)
             else:
                 gW = self._forward_gpu_core(x, gy)
+                if is_trace_mode():
+                    self._static_forward_gpu_core(x, gy, gW)
             return gW,
 
     def _forward_gpu_core(self, x, gy):
@@ -460,7 +557,7 @@ class Convolution2DGradW(function_node.FunctionNode):
             gy.data.ptr, conv_desc.value, algo, workspace.data.ptr,
             workspace_size, zero.data, filter_desc.value, gW.data.ptr)
 
-        return gW,
+        return gW
 
     def backward(self, indexes, grad_outputs):
         x, gy = self.get_retained_inputs()
