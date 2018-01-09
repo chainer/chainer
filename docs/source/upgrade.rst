@@ -74,6 +74,8 @@ We are going to migrate more old-style functions to new-style in upcoming minor 
 This does not break the existing code.
 Old-style functions (classes inheriting from :class:`Function`) are still supported in v3 and future versions of Chainer.
 
+If you are going to write new functions, it is encouraged to use :class:`FunctionNode` to support double backward.
+
 .. attention::
 
    Users relying on undocumented function APIs (directly instantiating old-style classes) may experience an error like ``TypeError: 'SomeFunction' object is not callable`` after upgrading to v3.
