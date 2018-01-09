@@ -94,7 +94,7 @@ The resulting ``y`` is also a :class:`Variable` object, whose value can be extra
 .. doctest::
 
    >>> y.data
-   array([ 16.], dtype=float32)
+   array([ 16. ], dtype=float32)
 
 What ``y`` holds is not only the result value.
 It also holds the history of computation (i.e., computational graph), which enables to compute its differentiation.
