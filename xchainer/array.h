@@ -20,11 +20,18 @@ public:
     Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, int64_t offset = 0);
 
     static Array Empty(const Shape& shape, Dtype dtype);
+    static Array Full(const Shape& shape, Dtype dtype, const Scalar& scalar);
+    static Array Full(const Shape& shape, const Scalar& scalar);
+    static Array Zeros(const Shape& shape, Dtype dtype);
+    static Array Ones(const Shape& shape, Dtype dtype);
 
     // Creates an array which has the same shape and dtype as the other array.
     // The new array is allocated in the current device. The device of the other array
     // is ignored.
     static Array EmptyLike(const Array& array);
+    static Array FullLike(const Array& array, const Scalar& scalar);
+    static Array ZerosLike(const Array& array);
+    static Array OnesLike(const Array& array);
 
     Dtype dtype() const { return dtype_; }
 
