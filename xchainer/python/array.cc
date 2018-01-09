@@ -119,7 +119,7 @@ py::buffer_info MakeNumpyArrayFromArray(Array& self) {
         throw DimensionError("cannot convert non-contiguous Array to NumPy array");
     }
 
-    size_t itemsize{GetElementSize(self.dtype())};
+    int64_t itemsize{GetElementSize(self.dtype())};
     const Shape& shape = self.shape();
 
     // compute C-contiguous strides
