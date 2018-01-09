@@ -47,10 +47,8 @@ This kind of error usually occurs by mistake (for example, not performing ``to_g
 
 .. attention::
 
-   As the argument validation is strictened, call of new-style functions (inheriting :class:`FunctionNode` class) intentionally mixing NumPy/CuPy arrays in arguments will not work in Chainer v4.
+   As the argument validation is strictened, call of functions intentionally mixing NumPy/CuPy arrays in arguments will not work in Chainer v4.
    Please transfer all arrays to the same device before calling functions.
-
-Note that old-style function classes (inheriting :class:`Function`) are not affected.
 
 Reproducibility Improvement with MultiProcessIterator
 -----------------------------------------------------
