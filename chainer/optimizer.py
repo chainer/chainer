@@ -385,7 +385,8 @@ class Optimizer(object):
 
     """
 
-    _hooks = None
+    _pre_update_hooks = None
+    _post_update_hooks = None
 
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
@@ -476,12 +477,16 @@ class Optimizer(object):
         if timing not in ('pre', 'post', 'auto'):
             raise ValueError("timing must be one of ('pre', 'post', 'auto')")
         if timing == 'auto':
-            timing = getattr(hook, 'timing', 'pre')
+            timing = getattr(hook, 'timing', None)
+            if timing not in ('pre', 'post'):
+                warnings.warn("Hook timing attribute not in ('pre', 'post'), "
+                              "defaulting timing to 'pre'.")
+                timing = 'pre'
 
         if name is None:
             name = hook.name
         if name in self._pre_update_hooks or name in self._post_update_hooks:
-            raise ValueError('hook "{}" already exists'.format(name))
+            raise KeyError('hook "{}" already exists'.format(name))
 
         if timing == 'pre':
             self._pre_update_hooks[name] = hook
