@@ -64,7 +64,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         self._chain_in_vars = in_vars
 
         # fixme: remove underscore.
-        self._in_arrays = tuple([x.data.copy() for x in in_vars])
+        self._in_arrays = tuple([x.data.copy() if isinstance(x, chainer.Variable) else x.copy() for x in in_vars])
 
         # This maps the id of an array (from the data attribute of an a variable
         # that is an input of the sub-graph corresponding to this static schedule)

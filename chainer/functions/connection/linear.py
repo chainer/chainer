@@ -71,7 +71,7 @@ class LinearFunction(function_node.FunctionNode):
 
     @static_schedule_func
     def static_add_bias(self, y, bias):
-        y[:] += bias
+        y += bias
 
     def forward(self, inputs):
         x = inputs[0]

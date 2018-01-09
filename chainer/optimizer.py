@@ -578,11 +578,15 @@ class GradientMethod(Optimizer):
         if lossfun is not None:
             use_cleargrads = getattr(self, '_use_cleargrads', True)
             loss = lossfun(*args, **kwds)
-            if use_cleargrads:
-                self.target.cleargrads()
-            else:
+            if self.t == 0:
                 self.target.zerograds()
-            loss.backward()
+            # if use_cleargrads:
+            #     self.target.cleargrads()
+            # else:
+            #     self.target.zerograds()
+            for param in self.target.params():
+                param.grad *= 0
+            loss.backward(retain_grad=True)
             del loss
 
         self.reallocate_cleared_grads()

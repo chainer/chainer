@@ -32,7 +32,7 @@ class ReLU(function_node.FunctionNode):
 
     @static_schedule_func
     def _static_forward_cpu(self, x, y):
-        y[:] = self._dynamic_forward_cpu(x, y)
+        y[:] = self._dynamic_forward_cpu(x)
 
     def forward_cpu(self, x):
         #self.retain_outputs((0,))

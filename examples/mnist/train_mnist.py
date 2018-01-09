@@ -10,6 +10,8 @@ import chainer.links as L
 from chainer import training
 from chainer.training import extensions
 
+from chainer.graph_optimizations.static_graph import static_graph
+
 
 # Network definition
 class MLP(chainer.Chain):
@@ -18,10 +20,11 @@ class MLP(chainer.Chain):
         super(MLP, self).__init__()
         with self.init_scope():
             # the size of the inputs to each layer will be inferred
-            self.l1 = L.Linear(None, n_units)  # n_in -> n_units
-            self.l2 = L.Linear(None, n_units)  # n_units -> n_units
-            self.l3 = L.Linear(None, n_out)  # n_units -> n_out
+            self.l1 = L.Linear(784, n_units)  # n_in -> n_units
+            self.l2 = L.Linear(n_units, n_units)  # n_units -> n_units
+            self.l3 = L.Linear(n_units, n_out)  # n_units -> n_out
 
+    @static_graph
     def __call__(self, x):
         h1 = F.relu(self.l1(x))
         h2 = F.relu(self.l2(h1))
@@ -93,14 +96,14 @@ def main():
     trainer.extend(extensions.LogReport())
 
     # Save two plot images to the result dir
-    if args.plot and extensions.PlotReport.available():
-        trainer.extend(
-            extensions.PlotReport(['main/loss', 'validation/main/loss'],
-                                  'epoch', file_name='loss.png'))
-        trainer.extend(
-            extensions.PlotReport(
-                ['main/accuracy', 'validation/main/accuracy'],
-                'epoch', file_name='accuracy.png'))
+    # if args.plot and extensions.PlotReport.available():
+    #     trainer.extend(
+    #         extensions.PlotReport(['main/loss', 'validation/main/loss'],
+    #                               'epoch', file_name='loss.png'))
+    #     trainer.extend(
+    #         extensions.PlotReport(
+    #             ['main/accuracy', 'validation/main/accuracy'],
+    #             'epoch', file_name='accuracy.png'))
 
     # Print selected entries of the log to stdout
     # Here "main" refers to the target link of the "main" optimizer again, and
