@@ -383,6 +383,7 @@ class Optimizer(object):
         self.t = 0
         self.epoch = 0
         self._hooks = collections.OrderedDict()
+        return self
 
     def update(self, lossfun=None, *args, **kwds):
         """Updates the parameters.
@@ -525,12 +526,10 @@ class GradientMethod(Optimizer):
 
     """
 
-    def __init__(self, link=None):
+    def __init__(self):
         super(GradientMethod, self).__init__()
         self.hyperparam = Hyperparameter()
         self._use_fp32_update = False
-        if isinstance(link, link_module.Link):
-            self.setup(link)
 
     def setup(self, link):
         super(GradientMethod, self).setup(link)

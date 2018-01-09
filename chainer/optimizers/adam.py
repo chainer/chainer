@@ -151,10 +151,8 @@ class Adam(optimizer.GradientMethod):
                  beta2=_default_hyperparam.beta2,
                  eps=_default_hyperparam.eps,
                  eta=_default_hyperparam.eta,
-                 weight_decay_rate=_default_hyperparam.weight_decay_rate,
-                 model=None):
-        super(Adam, self).__init__(model)
-
+                 weight_decay_rate=_default_hyperparam.weight_decay_rate):
+        super(Adam, self).__init__()
         self.hyperparam.alpha = alpha
         self.hyperparam.beta1 = beta1
         self.hyperparam.beta2 = beta2
