@@ -582,6 +582,7 @@ class GradientMethod(Optimizer):
                 self.target.cleargrads()
             else:
                 self.target.zerograds()
+            loss.backward()
             del loss
 
         self.reallocate_cleared_grads()
