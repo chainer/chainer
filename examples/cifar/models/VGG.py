@@ -3,7 +3,7 @@ from __future__ import print_function
 import chainer
 import chainer.functions as F
 import chainer.links as L
-from chainer.graph_optimimzations.static_graph import static_graph
+from chainer.graph_optimizations.static_graph import static_graph
 
 
 class Block(chainer.Chain):

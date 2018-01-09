@@ -5,8 +5,8 @@ from chainer.backends import cuda
 from chainer import function
 from chainer import function_node
 from chainer.functions.math import matmul as _matmul
-from chainer.graph_optimimzations.static_graph import static_schedule_func
-from chainer.graph_optimimzations.static_graph_utilities import is_trace_mode
+from chainer.graph_optimizations.static_graph import static_schedule_func
+from chainer.graph_optimizations.static_graph_utilities import is_trace_mode
 from chainer import utils
 from chainer.utils import type_check
 from chainer import variable

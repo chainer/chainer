@@ -5,7 +5,7 @@ from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
 
-from chainer.graph_optimimzations.static_graph import static_schedule_func
+from chainer.graph_optimizations.static_graph import static_schedule_func
 
 
 class LinearFunction(function_node.FunctionNode):

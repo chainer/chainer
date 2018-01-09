@@ -80,6 +80,7 @@ setup(
               'chainer.links.model.vision',
               'chainer.links.normalization',
               'chainer.links.theano',
+              'chainer.graph_optimizations',
               'chainer.optimizers',
               'chainer.serializers',
               'chainer.testing',

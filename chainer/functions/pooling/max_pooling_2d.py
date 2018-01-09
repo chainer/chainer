@@ -4,8 +4,8 @@ import chainer
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.pooling import pooling_2d
-from chainer.graph_optimimzations.static_graph import static_schedule_func
-from chainer.graph_optimimzations.static_graph_utilities import is_trace_mode
+from chainer.graph_optimizations.static_graph import static_schedule_func
+from chainer.graph_optimizations.static_graph_utilities import is_trace_mode
 from chainer.utils import conv
 
 

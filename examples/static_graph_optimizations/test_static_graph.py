@@ -19,8 +19,8 @@ import chainer.links.model.classifier as classifier
 #from chainer import static_graph
 
 
-#from chainer.graph_optimimzations import static_graph
-from chainer.graph_optimimzations.static_graph import static_graph
+#from chainer.graph_optimizations import static_graph
+from chainer.graph_optimizations.static_graph import static_graph
 
 # Network definition (borrowed from the existing Chainer MNIST example).
 class MLP(chainer.Chain):
