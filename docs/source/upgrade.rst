@@ -50,13 +50,6 @@ This kind of error usually occurs by mistake (for example, not performing ``to_g
    As the argument validation is strictened, call of functions intentionally mixing NumPy/CuPy arrays in arguments will not work in Chainer v4.
    Please transfer all arrays to the same device before calling functions.
 
-Reproducibility Improvement with MultiProcessIterator
------------------------------------------------------
-
-Prior to v4, NumPy random states are shared between threads when using :class:`chainer.iterators.MultiprocessIterator`.
-This release fixed this issue by using a separate random state for a sub thread to improve reproducibility of experiments.
-See the discussion in `#3575 <https://github.com/chainer/chainer/pull/3575>`_ for more details.
-
 Update of Docker Images
 -----------------------
 
