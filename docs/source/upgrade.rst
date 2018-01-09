@@ -84,7 +84,7 @@ If you are going to write new functions, it is encouraged to use :class:`Functio
 Changed Behavior of matmul Function
 -----------------------------------
 
-The behavior of :func:`chainer.functions.matmul` has been changed to behave like ``matmul`` function of NumPy.
+The behavior of :func:`chainer.functions.matmul` has been changed to behave like the corresponding NumPy function (:func:`numpy.matmul`).
 See the discussion in `#2426 <https://github.com/chainer/chainer/pull/2426>`_ for more details.
 
 .. attention::
