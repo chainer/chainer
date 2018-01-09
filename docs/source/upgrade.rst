@@ -43,7 +43,7 @@ Suppose the following code:
 
 Prior to v4, the above code raises an exception like ``ValueError: object __array__ method not producing an array``, which was difficult to understand.
 In v4, the error message would become ``ValueError: numpy and cupy arrays are mixed in the forward input (Maximum)``.
-This kind of error usually occur by mistake (for example, not performing ``to_gpu`` for some variables).
+This kind of error usually occurs by mistake (for example, not performing ``to_gpu`` for some variables).
 
 .. attention::
 
@@ -94,7 +94,7 @@ See the discussion in `#2426 <https://github.com/chainer/chainer/pull/2426>`_ fo
 
 .. attention::
 
-   Codes using :func:`chainer.functions.matmul` may require modification to work with Chainer v3.
+   The existing code using :func:`chainer.functions.matmul` may require modification to work with Chainer v3.
 
 Also note that :func:`chainer.functions.batch_matmul` is now deprecated by this change.
 You can rewrite it using :func:`chainer.functions.matmul`.
@@ -107,7 +107,7 @@ See the discussion in `#2955 <https://github.com/chainer/chainer/pull/2955>`_ fo
 
 .. attention::
 
-   Codes using ``use_cudnn`` argument of :func:`chainer.functions.spatial_transformer_grid` and :func:`chainer.functions.spatial_transformer_sampler` require modification to work with Chainer v3.
+   The existing code using ``use_cudnn`` argument of :func:`chainer.functions.spatial_transformer_grid` and :func:`chainer.functions.spatial_transformer_sampler` require modification to work with Chainer v3.
    Please use the configuration context (e.g., ``with chainer.using_config('use_cudnn', 'auto'):``) to enable or disable use of cuDNN.
    See :ref:`configuration` for details.
 
