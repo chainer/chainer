@@ -408,6 +408,7 @@ class Optimizer(object):
         self.epoch = 0
         self._pre_update_hooks = collections.OrderedDict()
         self._post_update_hooks = collections.OrderedDict()
+        return self
 
     def update(self, lossfun=None, *args, **kwds):
         """Updates the parameters.
@@ -574,12 +575,10 @@ class GradientMethod(Optimizer):
 
     """
 
-    def __init__(self, link=None):
+    def __init__(self):
         super(GradientMethod, self).__init__()
         self.hyperparam = Hyperparameter()
         self._use_fp32_update = False
-        if isinstance(link, link_module.Link):
-            self.setup(link)
 
     def setup(self, link):
         super(GradientMethod, self).setup(link)
@@ -731,6 +730,9 @@ class WeightDecay(object):
 
     Attributes:
         rate (float): Coefficient for the weight decay.
+        timing (string): Specifies when this hook should be called by the
+                         Optimizer/UpdateRule. Valid values are 'pre'
+                         (before any updates) and 'post' (after any updates).
 
     """
     name = 'WeightDecay'
@@ -764,6 +766,9 @@ class Lasso(object):
 
     Attributes:
         rate (float): Coefficient for the weight decay.
+        timing (string): Specifies when this hook should be called by the
+                         Optimizer/UpdateRule. Valid values are 'pre'
+                         (before any updates) and 'post' (after any updates).
 
     """
     name = 'Lasso'
@@ -799,6 +804,9 @@ class GradientClipping(object):
 
     Attributes:
         threshold (float): L2 norm threshold of gradient norm.
+        timing (string): Specifies when this hook should be called by the
+                         Optimizer/UpdateRule. Valid values are 'pre'
+                         (before any updates) and 'post' (after any updates).
 
     """
     name = 'GradientClipping'
@@ -845,6 +853,12 @@ class GradientNoise(object):
         noise_func (function): Noise generating function which by default
             is given by `Adding Gradient Noise Improves Learning for Very Deep\
             Networks <https://arxiv.org/pdf/1511.06807>`_.
+
+    Attributes:
+        timing (string): Specifies when this hook should be called by the
+                         Optimizer/UpdateRule. Valid values are 'pre'
+                         (before any updates) and 'post' (after any updates).
+
     """
     name = 'GradientNoise'
     call_for_each_param = True
@@ -883,6 +897,9 @@ class GradientHardClipping(object):
     Attributes:
         lower_bound (float): The lower bound of the gradient value.
         upper_bound (float): The upper bound of the gradient value.
+        timing (string): Specifies when this hook should be called by the
+                         Optimizer/UpdateRule. Valid values are 'pre'
+                         (before any updates) and 'post' (after any updates).
 
     """
     name = 'GradientHardClipping'

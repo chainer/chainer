@@ -328,7 +328,14 @@ class CaffeFunction(link.Chain):
         else:
             raise RuntimeError('Stochastic pooling is not supported')
 
-        fw = _SingleArgumentFunction(func, ksize, stride=stride, pad=pad)
+        if param.global_pooling and not ksize:
+            # if global_pooling is set but no kernel size, the kernel size
+            # is computed dynamically to cover the whole input feature map
+            def _func(x, stride, pad):
+                return func(x, x.shape[2:], stride=stride, pad=pad)
+            fw = _SingleArgumentFunction(_func, stride=stride, pad=pad)
+        else:
+            fw = _SingleArgumentFunction(func, ksize, stride=stride, pad=pad)
         self.forwards[layer.name] = fw
         self._add_layer(layer)
 
