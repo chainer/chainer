@@ -168,7 +168,7 @@ Scalar VectorDot(const Array& x, const Array& y) { return Sum(x * y); }
 void Set(Array& out, int64_t flat_index, Scalar value) {
     if (out.dtype() == Dtype::kFloat32) {
         static_cast<float*>(out.data().get())[flat_index] = static_cast<float>(value);
-    } else if (out.dtype() == Dtype::kFloat32) {
+    } else if (out.dtype() == Dtype::kFloat64) {
         static_cast<double*>(out.data().get())[flat_index] = static_cast<double>(value);
     } else {
         assert(false);
@@ -178,7 +178,7 @@ void Set(Array& out, int64_t flat_index, Scalar value) {
 Scalar Get(const Array& out, int64_t flat_index) {
     if (out.dtype() == Dtype::kFloat32) {
         return static_cast<const float*>(out.data().get())[flat_index];
-    } else if (out.dtype() == Dtype::kFloat32) {
+    } else if (out.dtype() == Dtype::kFloat64) {
         return static_cast<const double*>(out.data().get())[flat_index];
     } else {
         assert(false);
