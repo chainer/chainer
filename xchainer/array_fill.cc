@@ -12,7 +12,7 @@ void Fill(Array& out, Scalar value) {
         auto c_value = static_cast<T>(value);
 
         int64_t size = out.total_size();
-        auto ptr = static_cast<T*>(out.data().get());
+        auto* ptr = static_cast<T*>(out.data().get());
         for (int64_t i = 0; i < size; ++i) {
             ptr[i] = c_value;
         }
