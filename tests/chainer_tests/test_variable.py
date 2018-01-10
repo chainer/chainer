@@ -1323,7 +1323,7 @@ class TestTranspose(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x))
 
 
-class _TestUnnamedVariableToStringBase(object):
+class UnnamedVariableToStringTestBase(object):
 
     def setUp(self):
         if self.x_shape is None:
@@ -1368,7 +1368,7 @@ class _TestUnnamedVariableToStringBase(object):
 )
 @testing.with_requires('numpy<1.14')
 class TestUnnamedVariableToStringLegacy(
-        _TestUnnamedVariableToStringBase, unittest.TestCase):
+        UnnamedVariableToStringTestBase, unittest.TestCase):
     # Textual representation of arrays in NumPy 1.13 or earlier.
     pass
 
@@ -1390,7 +1390,7 @@ class TestUnnamedVariableToStringLegacy(
 )
 @testing.with_requires('numpy>=1.14')
 class TestUnnamedVariableToStringModern(
-        _TestUnnamedVariableToStringBase, unittest.TestCase):
+        UnnamedVariableToStringTestBase, unittest.TestCase):
     # Textual representation of arrays in NumPy 1.14 or later.
     pass
 
@@ -1425,7 +1425,7 @@ class TestUnnamedVariableDim2Size0ToString(unittest.TestCase):
         self.assertEqual(str(self.x), self.str)
 
 
-class _TestNamedVariableToStringBase(object):
+class NamedVariableToStringTestBase(object):
 
     def setUp(self):
         if self.x_shape is None:
@@ -1464,7 +1464,7 @@ class _TestNamedVariableToStringBase(object):
 )
 @testing.with_requires('numpy<1.14')
 class TestNamedVariableToStringLegacy(
-        _TestNamedVariableToStringBase, unittest.TestCase):
+        NamedVariableToStringTestBase, unittest.TestCase):
     # Textual representation of arrays in NumPy 1.13 or earlier.
     pass
 
@@ -1480,7 +1480,7 @@ class TestNamedVariableToStringLegacy(
 )
 @testing.with_requires('numpy>=1.14')
 class TestNamedVariableToStringModern(
-        _TestNamedVariableToStringBase, unittest.TestCase):
+        NamedVariableToStringTestBase, unittest.TestCase):
     # Textual representation of arrays in NumPy 1.14 or later.
     pass
 
