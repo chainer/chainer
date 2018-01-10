@@ -35,9 +35,9 @@ void Add(const Array& lhs, const Array& rhs, Array& out) {
         const int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         const int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-        const T* ldata = static_cast<const T*>(lhs.data().get());
-        const T* rdata = static_cast<const T*>(rhs.data().get());
-        T* odata = static_cast<T*>(out.data().get());
+        auto* ldata = static_cast<const T*>(lhs.data().get());
+        auto* rdata = static_cast<const T*>(rhs.data().get());
+        auto* odata = static_cast<T*>(out.data().get());
         AddKernel<<<grid_size, block_size>>>(ldata, rdata, odata, total_size);
     });
 }
@@ -52,9 +52,9 @@ void Mul(const Array& lhs, const Array& rhs, Array& out) {
         const int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         const int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-        const T* ldata = static_cast<const T*>(lhs.data().get());
-        const T* rdata = static_cast<const T*>(rhs.data().get());
-        T* odata = static_cast<T*>(out.data().get());
+        auto* ldata = static_cast<const T*>(lhs.data().get());
+        auto* rdata = static_cast<const T*>(rhs.data().get());
+        auto* odata = static_cast<T*>(out.data().get());
         MulKernel<<<grid_size, block_size>>>(ldata, rdata, odata, total_size);
     });
 }

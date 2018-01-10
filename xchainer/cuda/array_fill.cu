@@ -27,7 +27,7 @@ void Fill(Array& out, Scalar value) {
         const int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         const int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-        T* odata = static_cast<T*>(out.data().get());
+        auto* odata = static_cast<T*>(out.data().get());
         FillKernel<<<grid_size, block_size>>>(odata, static_cast<T>(value), total_size);
     });
 }
