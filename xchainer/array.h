@@ -81,7 +81,7 @@ public:
     std::string ToString() const;
 
 private:
-    void Identity(const Array& rhs, Array& out) const;
+    void Copy(const Array& rhs, Array& out) const;
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 

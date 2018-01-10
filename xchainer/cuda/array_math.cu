@@ -25,7 +25,7 @@ __global__ void MulKernel(const T* ldata, const T* rdata, T* odata, int64_t tota
 
 }  // namespace
 
-void Identity(const Array& rhs, Array& out) {
+void Copy(const Array& rhs, Array& out) {
     cuda::CheckError(cudaMemcpy(out.data().get(), rhs.data().get(), rhs.total_bytes(), cudaMemcpyDeviceToDevice));
 }
 

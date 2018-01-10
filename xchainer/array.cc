@@ -109,7 +109,7 @@ Array::Array(const Array& other)
     } else {
         throw DeviceError("invalid device");
     }
-    Identity(other, *this);
+    Copy(other, *this);
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype) {
@@ -164,7 +164,7 @@ Array Array::operator*(const Array& rhs) const {
     return out;
 }
 
-void Array::Identity(const Array& rhs, Array& out) const {
+void Array::Copy(const Array& rhs, Array& out) const {
     // TODO: dtype conversion
     CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
@@ -182,10 +182,10 @@ void Array::Identity(const Array& rhs, Array& out) const {
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
-        xchainer::Identity(rhs, out);
+        xchainer::Copy(rhs, out);
 #ifdef XCHAINER_ENABLE_CUDA
     } else if (device == MakeDevice("cuda")) {
-        xchainer::cuda::Identity(rhs, out);
+        xchainer::cuda::Copy(rhs, out);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
         throw DeviceError("invalid device");
