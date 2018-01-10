@@ -67,6 +67,10 @@ endif()
 # gsl-lite is a header-only library, we do not need to build and run tests
 # add_subdirectory(${CMAKE_BINARY_DIR}/gsl-lite)
 
+# optional-lite
+get_third_party(optional-lite)
+include_directories(${CMAKE_BINARY_DIR}/optional-lite/include)
+
 # Test
 if(ENABLE_TEST)
     get_third_party(gtest)

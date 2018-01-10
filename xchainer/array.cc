@@ -95,7 +95,25 @@ Array Array::Empty(const Shape& shape, Dtype dtype) {
     return {shape, dtype, data};
 }
 
+Array Array::Full(const Shape& shape, Dtype dtype, const Scalar& scalar) {
+    Array array = Empty(shape, dtype);
+    array.Fill(scalar);
+    return array;
+}
+
+Array Array::Full(const Shape& shape, const Scalar& scalar) { return Full(shape, scalar.dtype(), scalar); }
+
+Array Array::Zeros(const Shape& shape, Dtype dtype) { return Full(shape, dtype, 0); }
+
+Array Array::Ones(const Shape& shape, Dtype dtype) { return Full(shape, dtype, 1); }
+
 Array Array::EmptyLike(const Array& array) { return Empty(array.shape(), array.dtype()); }
+
+Array Array::FullLike(const Array& array, const Scalar& scalar) { return Full(array.shape(), array.dtype(), scalar); }
+
+Array Array::ZerosLike(const Array& array) { return Zeros(array.shape(), array.dtype()); }
+
+Array Array::OnesLike(const Array& array) { return Ones(array.shape(), array.dtype()); }
 
 Array Array::DeepCopy() const {
     auto bytes = total_bytes();
@@ -211,9 +229,6 @@ void Array::Mul(const Array& rhs, Array& out) const {
 }
 
 void Array::Fill(Scalar value) {
-    // TODO(niboshi): dtype conversion
-    CheckEqual(dtype_, value.dtype());
-
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
         xchainer::Fill(*this, value);
