@@ -191,8 +191,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
     CheckEqual(shape_, rhs.shape());
 
     if (requires_grad_ || rhs.requires_grad()) {
-        // deep copy for in-place operation to keep original input
-        const Array& lhs = (this == &out) ? DeepCopy() : *this;
+        const Array& lhs = *this;
         std::shared_ptr<const ArrayNode> lhs_node = node();
         std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
