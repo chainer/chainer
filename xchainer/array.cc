@@ -172,7 +172,7 @@ void Array::Identity(const Array& rhs, Array& out) const {
         auto rhs_func = [](const Array& gout) { return gout; };
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{rhs_func};
         std::shared_ptr<OpNode> op_node =
-            std::make_shared<OpNode>("identiy", std::vector<std::shared_ptr<const ArrayNode>>{rhs_node}, backward_functions);
+            std::make_shared<OpNode>("identity", std::vector<std::shared_ptr<const ArrayNode>>{rhs_node}, backward_functions);
         out_node->set_next_node(op_node);
     }
 
