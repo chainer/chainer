@@ -200,7 +200,7 @@ class Adam(optimizer.GradientMethod):
         self.hyperparam.eps = eps
         self.hyperparam.eta = eta
         self.hyperparam.weight_decay_rate = weight_decay_rate
-        self.amsgrad = amsgrad
+        self.hyperparam.amsgrad = amsgrad
 
     alpha = optimizer.HyperparameterProxy('alpha')
     beta1 = optimizer.HyperparameterProxy('beta1')
