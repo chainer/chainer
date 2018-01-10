@@ -23,24 +23,24 @@ public:
     }
 
     template <typename T>
-    void CheckAllClose(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<T> bdata, T atol, T rtol) {
+    void CheckAllClose(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<T> bdata, double atol, double rtol) {
         Array a = MakeArray<T>(shape, adata);
         Array b = MakeArray<T>(shape, bdata);
-        ASSERT_TRUE(AllClose(a, b, atol, rtol));
+        ASSERT_TRUE(AllClose(a, b, rtol, atol));
     }
 
     template <typename T>
-    void CheckNotAllClose(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<T> bdata, T atol, T rtol) {
+    void CheckNotAllClose(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<T> bdata, double atol, double rtol) {
         Array a = MakeArray<T>(shape, adata);
         Array b = MakeArray<T>(shape, bdata);
-        ASSERT_FALSE(AllClose(a, b, atol, rtol));
+        ASSERT_FALSE(AllClose(a, b, rtol, atol));
     }
 
-    template <typename T, typename U, typename V, typename W>
-    void CheckAllCloseThrow(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<U> bdata, V atol, W rtol) {
+    template <typename T, typename U>
+    void CheckAllCloseThrow(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<U> bdata, double atol, double rtol) {
         Array a = MakeArray<T>(shape, adata);
         Array b = MakeArray<U>(shape, bdata);
-        ASSERT_THROW(AllClose(a, b, atol, rtol), DtypeError);
+        ASSERT_THROW(AllClose(a, b, rtol, atol), DtypeError);
     }
 };
 
@@ -116,14 +116,12 @@ TEST_F(NumericTest, AllClose) {
 }
 
 TEST_F(NumericTest, AllCloseMixed) {
-    CheckAllCloseThrow<bool, int8_t, int8_t, int32_t>({3}, {true, false, true}, {1, 2, 3}, 1, 2);
-    CheckAllCloseThrow<int16_t, int8_t, int8_t, int8_t>({3}, {1, 2, 3}, {4, 5, 6}, 7, 8);
-    CheckAllCloseThrow<int8_t, int32_t, int8_t, int8_t>({3}, {1, 2, 3}, {4, 5, 6}, 7, 8);
-    CheckAllCloseThrow<int8_t, int8_t, int64_t, int8_t>({3}, {1, 2, 3}, {4, 5, 6}, 7, 8);
-    CheckAllCloseThrow<int8_t, int8_t, int8_t, int16_t>({3}, {1, 2, 3}, {4, 5, 6}, 7, 8);
-    CheckAllCloseThrow<int64_t, int8_t, int32_t, int8_t>({3}, {1, 2, 3}, {1, 2, 3}, 1, 2);
-    CheckAllCloseThrow<int32_t, float, int32_t, int32_t>({3}, {1, 2, 3}, {1.f, 2.f, 3.f}, 1, 2);
-    CheckAllCloseThrow<double, double, double, float>({3}, {1., 2., 3.}, {1., 2., 3.}, 1., 2.f);
+    CheckAllCloseThrow<bool, int8_t>({3}, {true, false, true}, {1, 2, 3}, 1, 2);
+    CheckAllCloseThrow<int16_t, int8_t>({3}, {1, 2, 3}, {4, 5, 6}, 7, 8);
+    CheckAllCloseThrow<int8_t, int32_t>({3}, {1, 2, 3}, {4, 5, 6}, 7, 8);
+    CheckAllCloseThrow<int64_t, int8_t>({3}, {1, 2, 3}, {1, 2, 3}, 1, 2);
+    CheckAllCloseThrow<int32_t, float>({3}, {1, 2, 3}, {1.f, 2.f, 3.f}, 1, 2);
+    CheckAllCloseThrow<double, int32_t>({3}, {1., 2., 3.}, {1, 2, 3}, 1., 2.);
 }
 
 }  // namespace testing

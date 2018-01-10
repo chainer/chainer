@@ -6,7 +6,7 @@
 namespace xchainer {
 namespace testing {
 
-bool AllClose(const Array& a, const Array& b, const Scalar& atol, const Scalar& rtol);
+bool AllClose(const Array& a, const Array& b, double rtol, double atol);
 
 }  // namespace testing
 }  // namespace xchainer
