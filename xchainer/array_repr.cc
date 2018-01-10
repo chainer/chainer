@@ -165,9 +165,8 @@ struct ArrayReprImpl {
         }
     }
 
-    template <Dtype dtype>
+    template <typename T>
     void operator()(const Array& array, std::shared_ptr<const void> buffer, std::ostream& os) const {
-        using T = DtypeToType<dtype>;
         Formatter<T> formatter;
         auto data = std::static_pointer_cast<const T>(buffer);
 
@@ -223,28 +222,28 @@ struct ArrayReprImpl {
 std::ostream& operator<<(std::ostream& os, const Array& array) {
     switch (array.dtype()) {
         case Dtype::kBool:
-            ArrayReprImpl{}.operator()<Dtype::kBool>(array, array.data(), os);
+            ArrayReprImpl{}.operator()<bool>(array, array.data(), os);
             break;
         case Dtype::kInt8:
-            ArrayReprImpl{}.operator()<Dtype::kInt8>(array, array.data(), os);
+            ArrayReprImpl{}.operator()<int8_t>(array, array.data(), os);
             break;
         case Dtype::kInt16:
-            ArrayReprImpl{}.operator()<Dtype::kInt16>(array, array.data(), os);
+            ArrayReprImpl{}.operator()<int16_t>(array, array.data(), os);
             break;
         case Dtype::kInt32:
-            ArrayReprImpl{}.operator()<Dtype::kInt32>(array, array.data(), os);
+            ArrayReprImpl{}.operator()<int32_t>(array, array.data(), os);
             break;
         case Dtype::kInt64:
-            ArrayReprImpl{}.operator()<Dtype::kInt64>(array, array.data(), os);
+            ArrayReprImpl{}.operator()<int64_t>(array, array.data(), os);
             break;
         case Dtype::kUInt8:
-            ArrayReprImpl{}.operator()<Dtype::kUInt8>(array, array.data(), os);
+            ArrayReprImpl{}.operator()<uint8_t>(array, array.data(), os);
             break;
         case Dtype::kFloat32:
-            ArrayReprImpl{}.operator()<Dtype::kFloat32>(array, array.data(), os);
+            ArrayReprImpl{}.operator()<float>(array, array.data(), os);
             break;
         case Dtype::kFloat64:
-            ArrayReprImpl{}.operator()<Dtype::kFloat64>(array, array.data(), os);
+            ArrayReprImpl{}.operator()<double>(array, array.data(), os);
             break;
         default:
             assert(0);
