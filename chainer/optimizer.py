@@ -382,7 +382,7 @@ class Optimizer(object):
         .. note::
            As of v4.0.0, this function returns the optimizer instance itself
            so that you can instantiate and setup the optimizer in one line,
-           e.g., ``optimizer = SomeOptimizer().setup(model)``.
+           e.g., ``optimizer = SomeOptimizer().setup(link)``.
 
         """
         if not isinstance(link, link_module.Link):
