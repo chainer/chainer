@@ -1,4 +1,4 @@
-#include "xchainer/testing/numeric.h"
+#include "xchainer/numeric.h"
 
 #include <gtest/gtest.h>
 
