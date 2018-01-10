@@ -1,8 +1,8 @@
 #include "xchainer/dtype.h"
 
+#include <cstring>
 #include <ostream>
 #include <sstream>
-#include <unordered_map>
 
 namespace xchainer {
 
@@ -31,7 +31,14 @@ const char* GetDtypeName(Dtype dtype) {
 }
 
 Dtype GetDtype(const std::string& name) {
-    static const std::unordered_map<std::string, Dtype> kMapping = {
+    // We define an ad-hoc POD struct to comply with the coding guideline.
+    // Note that std::tuple is not a POD type.
+    struct Pair {
+        const char* name;
+        Dtype dtype;
+    };
+
+    static const Pair kMapping[] = {
         // full name
         {"bool", Dtype::kBool},
         {"int8", Dtype::kInt8},
@@ -51,12 +58,15 @@ Dtype GetDtype(const std::string& name) {
         {"f", Dtype::kFloat32},
         {"d", Dtype::kFloat64},
     };
+    static_assert(std::is_pod<decltype(kMapping)>::value, "static variable must be POD to comply with the coding guideline");
 
-    auto it = kMapping.find(name);
-    if (it == kMapping.end()) {
-        throw DtypeError("unknown dtype name: \"" + name + '"');
+    const char* cname = name.c_str();
+    for (const Pair& pair : kMapping) {
+        if (0 == std::strcmp(pair.name, cname)) {
+            return pair.dtype;
+        }
     }
-    return it->second;
+    throw DtypeError("unknown dtype name: \"" + name + '"');
 }
 
 std::vector<Dtype> GetAllDtypes() {
