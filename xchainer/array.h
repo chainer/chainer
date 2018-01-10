@@ -20,7 +20,7 @@ public:
     Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, int64_t offset = 0);
 
     // Deep copy ctor and copy assignment
-    Array(const Array& rhs);
+    Array(const Array& other);
 
     // TODO(hvy): Copy assignment operator is deleted to avoid performance drops due to possible unwanted copies and heavy refactorings
     // later on until the behavior is better agreed upon

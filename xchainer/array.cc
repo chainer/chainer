@@ -89,9 +89,13 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool r
     }
 }
 
-Array::Array(const Array& rhs)
-    : shape_(rhs.shape_), is_contiguous_(rhs.is_contiguous_), dtype_(rhs.dtype_), requires_grad_(rhs.requires_grad_), offset_(rhs.offset_) {
-    auto bytes = rhs.total_bytes();
+Array::Array(const Array& other)
+    : shape_(other.shape_),
+      is_contiguous_(other.is_contiguous_),
+      dtype_(other.dtype_),
+      requires_grad_(other.requires_grad_),
+      offset_(other.offset_) {
+    auto bytes = other.total_bytes();
     if (GetCurrentDevice() == MakeDevice("cpu")) {
         data_ = std::make_unique<uint8_t[]>(bytes);
 #ifdef XCHAINER_ENABLE_CUDA
@@ -105,7 +109,7 @@ Array::Array(const Array& rhs)
     } else {
         throw DeviceError("invalid device");
     }
-    Identity(rhs, *this);
+    Identity(other, *this);
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype) {
