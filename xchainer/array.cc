@@ -163,6 +163,10 @@ Array Array::operator*(const Array& rhs) const {
 }
 
 void Array::Add(const Array& rhs, Array& out) const {
+    if ((&out == this || &out == &rhs) && out.requires_grad_) {
+        throw XchainerError("In-place operation (Add) is not supported for an array with requires_grad=true.");
+    }
+
     // TODO: dtype conversion
     CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
@@ -195,14 +199,17 @@ void Array::Add(const Array& rhs, Array& out) const {
 }
 
 void Array::Mul(const Array& rhs, Array& out) const {
+    if ((&out == this || &out == &rhs) && out.requires_grad_) {
+        throw XchainerError("In-place operation (Mul) is not supported for an array with requires_grad=true.");
+    }
+
     // TODO: dtype conversion
     CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
     CheckEqual(shape_, rhs.shape());
 
     if (requires_grad_ || rhs.requires_grad()) {
-        // deep copy for in-place operation to keep original input
-        const Array& lhs = (this == &out) ? DeepCopy() : *this;
+        const Array& lhs = *this;
         std::shared_ptr<const ArrayNode> lhs_node = node();
         std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();

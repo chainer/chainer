@@ -31,15 +31,15 @@ protected:
 
 public:
     template <typename T>
-    Array MakeArray(std::initializer_list<int64_t> shape, std::shared_ptr<void> data) {
-        return {shape, TypeToDtype<T>, data, true};
+    Array MakeArray(std::initializer_list<int64_t> shape, std::shared_ptr<void> data, bool requires_grad = false) {
+        return {shape, TypeToDtype<T>, data, requires_grad};
     }
 
     template <typename T>
-    Array MakeArray(std::initializer_list<int64_t> shape, std::initializer_list<T> data) {
+    Array MakeArray(std::initializer_list<int64_t> shape, std::initializer_list<T> data, bool requires_grad = false) {
         auto a = std::make_unique<T[]>(data.size());
         std::copy(data.begin(), data.end(), a.get());
-        return {shape, TypeToDtype<T>, std::move(a), true};
+        return {shape, TypeToDtype<T>, std::move(a), requires_grad};
     }
 
     template <typename T>
@@ -604,8 +604,8 @@ TEST_P(ArrayTest, ComputationalGraph) {
     {
         // c = a + b
         // o = a * c
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, true);
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, true);
         {
             auto a_node = a.node();
             auto b_node = b.node();
@@ -658,53 +658,17 @@ TEST_P(ArrayTest, ComputationalGraph) {
     }
 }
 
-TEST_P(ArrayTest, ComputationalGraphInplace) {
+TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
     {
-        // a += b
-        // a *= b
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-        auto a_node_1 = a.node();
-        {
-            auto a_node = a_node_1;
-            auto b_node = b.node();
-            ASSERT_NE(a_node, nullptr);
-            ASSERT_NE(b_node, nullptr);
-            auto a_op_node = a_node->next_node();
-            auto b_op_node = b_node->next_node();
-            ASSERT_EQ(a_op_node, nullptr);
-            ASSERT_EQ(b_op_node, nullptr);
-        }
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, true);
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, true);
+        EXPECT_THROW({ a += b; }, XchainerError);
+    }
 
-        a += b;
-        auto a_node_2 = a.node();
-        {
-            auto a_node = a_node_2;
-            auto b_node = b.node();
-            ASSERT_NE(a_node, nullptr);
-            ASSERT_NE(a_node, a_node_1) << "a's node is not renewed";
-            ASSERT_NE(b_node, nullptr);
-            auto a_op_node = a_node->next_node();
-            auto b_op_node = b_node->next_node();
-            ASSERT_NE(a_op_node, nullptr);
-            ASSERT_EQ(b_op_node, nullptr);
-            ASSERT_EQ(a_op_node->name(), "add");
-        }
-
-        a *= b;
-        {
-            auto a_node = a.node();
-            auto b_node = b.node();
-            ASSERT_NE(a_node, nullptr);
-            ASSERT_NE(a_node, a_node_1) << "a's node is not renewed";
-            ASSERT_NE(a_node, a_node_2) << "a's node is not renewed";
-            ASSERT_NE(b_node, nullptr);
-            auto a_op_node = a_node->next_node();
-            auto b_op_node = b_node->next_node();
-            ASSERT_NE(a_op_node, nullptr);
-            ASSERT_EQ(b_op_node, nullptr);
-            ASSERT_EQ(a_op_node->name(), "mul");
-        }
+    {
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, true);
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, true);
+        EXPECT_THROW({ a *= b; }, XchainerError);
     }
 }
 
@@ -715,8 +679,8 @@ TEST_P(ArrayTest, DeepCopy) {
 }
 
 TEST_P(ArrayTest, AddBackward) {
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, true);
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, true);
     Array o = a + b;
 
     auto op_node = o.node()->next_node();
@@ -728,23 +692,9 @@ TEST_P(ArrayTest, AddBackward) {
     AssertEqual<bool>(gb, go);
 }
 
-TEST_P(ArrayTest, IAddBackward) {
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-    a += b;
-
-    auto op_node = a.node()->next_node();
-    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
-    Array ga = op_node->backward_functions()[0](go);
-    Array gb = op_node->backward_functions()[1](go);
-
-    AssertEqual<bool>(ga, go);
-    AssertEqual<bool>(gb, go);
-}
-
 TEST_P(ArrayTest, MulBackward) {
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, true);
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, true);
     Array o = a * b;
 
     auto op_node = o.node()->next_node();
@@ -754,21 +704,6 @@ TEST_P(ArrayTest, MulBackward) {
 
     AssertEqual<bool>(ga, go * b);
     AssertEqual<bool>(gb, go * a);
-}
-
-TEST_P(ArrayTest, IMulBackward) {
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-    Array orig_a = a.DeepCopy();
-    a *= b;
-
-    auto op_node = a.node()->next_node();
-    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
-    Array ga = op_node->backward_functions()[0](go);
-    Array gb = op_node->backward_functions()[1](go);
-
-    AssertEqual<bool>(ga, go * b);
-    AssertEqual<bool>(gb, go * orig_a);
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(
