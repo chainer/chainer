@@ -102,9 +102,28 @@ class TestOptimizerHooks(unittest.TestCase):
         h_pre = WeightSaveHook()
         h_post = WeightSaveHook()
         self.create()
-        self.optimizer.add_hook(h_pre)
+        self.optimizer.add_hook(h_pre, timing='pre')
         self.optimizer.add_hook(h_post, name='WeightSaveHookPost',
                                 timing='post')
+
+        x = chainer.Variable(np.array(5., dtype=np.float32))
+        self.optimizer.update(self.target, x)
+        w_post = np.copy(self.target.w.data)
+
+        self.assertEqual(w_pre, h_pre.value)
+        self.assertEqual(w_post, h_post.value)
+        self.assertNotEqual(h_pre.value, h_post.value)
+
+    def test_hooks_auto(self):
+        w_pre = np.copy(self.target.w.data)
+        h_pre = WeightSaveHook()
+        h_pre.timing = 'pre'
+        h_post = WeightSaveHook()
+        h_post.timing = 'post'
+        self.create()
+        self.optimizer.add_hook(h_pre, timing='auto')
+        self.optimizer.add_hook(h_post, name='WeightSaveHookPost',
+                                timing='auto')
 
         x = chainer.Variable(np.array(5., dtype=np.float32))
         self.optimizer.update(self.target, x)

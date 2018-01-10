@@ -158,6 +158,8 @@ class UpdateRule(object):
                 timimg property of the hook will decide the timing.
                 If 'pre', the hook will be called before any updates.
                 If 'post', the hook will be called after any updates.
+                If 'auto' and the timing property of the hook is not
+                available, timing will default to 'pre'.
 
         """
         if not callable(hook):
@@ -505,10 +507,12 @@ class Optimizer(object):
         except KeyError:
             del self._post_update_hooks[name]
 
-    def call_hooks(self, hooks=None):
+    def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
-        if hooks is None:
+        if timing == 'pre':
             hooks = self._pre_update_hooks
+        else:
+            hooks = self._post_update_hooks
         for hook in six.itervalues(hooks):
             self._call_hook(hook)
 
