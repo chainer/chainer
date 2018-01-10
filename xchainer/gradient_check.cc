@@ -128,16 +128,6 @@ Array operator/(const Array& lhs, const Array& rhs) {
     return out;
 }
 
-Array FullLike(const Array& other, Scalar value) {
-    Array array = Array::EmptyLike(other);
-    array.Fill(value);
-    return array;
-}
-
-Array OnesLike(const Array& other) { return FullLike(other, Scalar(1, other.dtype())); }
-
-Array ZerosLike(const Array& other) { return FullLike(other, Scalar(0, other.dtype())); }
-
 template <typename T>
 T SumImpl(const Array& array) {
     int64_t size = array.total_size();
@@ -219,7 +209,7 @@ Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, con
 
     Arrays grads;
     for (int i = 0; i < nin; ++i) {
-        Array grad_i = ZerosLike(inputs.at(i));
+        Array grad_i = Array::ZerosLike(inputs.at(i));
         int64_t size = grad_i.total_size();
 
         for (int64_t in_flat_index = 0; in_flat_index < size; ++in_flat_index) {
@@ -227,7 +217,7 @@ Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, con
             Arrays ys0 = eval(i, in_flat_index, eps_scalar, -1);
             Arrays ys1 = eval(i, in_flat_index, eps_scalar, 1);
 
-            Array denom = FullLike(eps.at(i), Get(eps.at(i), in_flat_index)) * FullLike(eps.at(i), Scalar(2, dtype));
+            Array denom = Array::FullLike(eps.at(i), Get(eps.at(i), in_flat_index)) * Array::FullLike(eps.at(i), Scalar(2, dtype));
 
             for (int j = 0; j < nout; ++j) {
                 Array dy = ys1.at(j) - ys0.at(j);
