@@ -20,12 +20,10 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol) {
         using T = typename decltype(pt)::type;
 
         auto total_size = a.shape().total_size();
-        auto adata = static_cast<const T*>(a.data().get());
-        auto bdata = static_cast<const T*>(b.data().get());
-        auto at = static_cast<const T>(atol);
-        auto rt = static_cast<const T>(rtol);
+        auto* adata = static_cast<const T*>(a.data().get());
+        auto* bdata = static_cast<const T*>(b.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
-            if (std::abs(adata[i] - bdata[i]) > at + rt * std::abs(bdata[i])) {
+            if (std::abs(adata[i] - bdata[i]) > atol + rtol * std::abs(bdata[i])) {
                 return false;
             }
         }
