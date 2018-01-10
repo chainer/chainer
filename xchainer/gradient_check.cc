@@ -28,91 +28,33 @@ void Synchronize() {
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
-template <typename T>
-void SubtractImpl(const Array& lhs, const Array& rhs, Array& out) {
-    Synchronize();
-    auto ldata = static_cast<const T*>(lhs.data().get());
-    auto rdata = static_cast<const T*>(rhs.data().get());
-    auto odata = static_cast<T*>(out.data().get());
-    int64_t total_size = lhs.total_size();
-    for (int64_t i = 0; i < total_size; ++i) {
-        odata[i] = ldata[i] - rdata[i];
-    }
-}
-
-template <typename T>
-void DivideImpl(const Array& lhs, const Array& rhs, Array& out) {
-    Synchronize();
-    auto ldata = static_cast<const T*>(lhs.data().get());
-    auto rdata = static_cast<const T*>(rhs.data().get());
-    auto odata = static_cast<T*>(out.data().get());
-    int64_t total_size = lhs.total_size();
-    for (int64_t i = 0; i < total_size; ++i) {
-        odata[i] = ldata[i] / rdata[i];
-    }
-}
-
 Array& Subtract(const Array& lhs, const Array& rhs, Array& out) {
-    switch (lhs.dtype()) {
-        case Dtype::kBool:
-            SubtractImpl<bool>(lhs, rhs, out);
-            break;
-        case Dtype::kInt8:
-            SubtractImpl<int8_t>(lhs, rhs, out);
-            break;
-        case Dtype::kInt16:
-            SubtractImpl<int16_t>(lhs, rhs, out);
-            break;
-        case Dtype::kInt32:
-            SubtractImpl<int32_t>(lhs, rhs, out);
-            break;
-        case Dtype::kInt64:
-            SubtractImpl<int64_t>(lhs, rhs, out);
-            break;
-        case Dtype::kUInt8:
-            SubtractImpl<uint8_t>(lhs, rhs, out);
-            break;
-        case Dtype::kFloat32:
-            SubtractImpl<float>(lhs, rhs, out);
-            break;
-        case Dtype::kFloat64:
-            SubtractImpl<double>(lhs, rhs, out);
-            break;
-        default:
-            assert(false);  // should never be reached
-    }
+    VisitDtype(lhs.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Synchronize();
+        auto* ldata = static_cast<const T*>(lhs.data().get());
+        auto* rdata = static_cast<const T*>(rhs.data().get());
+        auto* odata = static_cast<T*>(out.data().get());
+        int64_t total_size = lhs.total_size();
+        for (int64_t i = 0; i < total_size; ++i) {
+            odata[i] = ldata[i] - rdata[i];
+        }
+    });
     return out;
 }
 
 Array& Divide(const Array& lhs, const Array& rhs, Array& out) {
-    switch (lhs.dtype()) {
-        case Dtype::kBool:
-            DivideImpl<bool>(lhs, rhs, out);
-            break;
-        case Dtype::kInt8:
-            DivideImpl<int8_t>(lhs, rhs, out);
-            break;
-        case Dtype::kInt16:
-            DivideImpl<int16_t>(lhs, rhs, out);
-            break;
-        case Dtype::kInt32:
-            DivideImpl<int32_t>(lhs, rhs, out);
-            break;
-        case Dtype::kInt64:
-            DivideImpl<int64_t>(lhs, rhs, out);
-            break;
-        case Dtype::kUInt8:
-            DivideImpl<uint8_t>(lhs, rhs, out);
-            break;
-        case Dtype::kFloat32:
-            DivideImpl<float>(lhs, rhs, out);
-            break;
-        case Dtype::kFloat64:
-            DivideImpl<double>(lhs, rhs, out);
-            break;
-        default:
-            assert(false);  // should never be reached
-    }
+    VisitDtype(lhs.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Synchronize();
+        auto* ldata = static_cast<const T*>(lhs.data().get());
+        auto* rdata = static_cast<const T*>(rhs.data().get());
+        auto* odata = static_cast<T*>(out.data().get());
+        int64_t total_size = lhs.total_size();
+        for (int64_t i = 0; i < total_size; ++i) {
+            odata[i] = ldata[i] / rdata[i];
+        }
+    });
     return out;
 }
 
