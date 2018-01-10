@@ -1,13 +1,12 @@
 #include "xchainer/numeric.h"
 
-#include <cassert>
+#include <cmath>
 
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
-namespace testing {
 
 bool AllClose(const Array& a, const Array& b, double rtol, double atol) {
     if (a.shape() != b.shape()) {
@@ -31,5 +30,4 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol) {
     });
 }
 
-}  // namespace testing
 }  // namespace xchainer

@@ -11,7 +11,6 @@
 #include "xchainer/shape.h"
 
 namespace xchainer {
-namespace testing {
 
 class NumericTest : public ::testing::Test {
 public:
@@ -124,5 +123,4 @@ TEST_F(NumericTest, AllCloseMixed) {
     CheckAllCloseThrow<double, int32_t>({3}, {1., 2., 3.}, {1, 2, 3}, 2., 1.);
 }
 
-}  // namespace testing
 }  // namespace xchainer
