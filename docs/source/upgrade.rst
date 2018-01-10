@@ -121,7 +121,7 @@ Following is the complete list of the configuration entries that have correspond
 
 These configurations can be modified in two ways.
 
-- Simply subsituting a new value to an entry, like ``chainer.config.train = False``.
+- Simply substituting a new value to an entry, like ``chainer.config.train = False``.
 - Using the ``chainer.using_config`` context manager.
   It can be used with the ``with`` statement of Python as follows::
 
@@ -253,7 +253,7 @@ However, building an AST requires constructions of many Python objects, which ad
 In Chainer v2, the :meth:`Function.type_check_forward` method is called once or twice.
 At the first call, the type checking APIs run in *light-weight mode*, where it does not build an AST and just checks the condition.
 The second call is made only if there is a test that fails, where it builds an AST.
-This change makes the ordinary path of running the type checking much faster, while keeping the kindful error messages.
+This change makes the ordinary path of running the type checking much faster, while keeping the kind error messages.
 
 
 Methods to release unneeded arrays are added
@@ -477,7 +477,7 @@ The interfaces of GRU and LSTM are aligned
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In Chainer v1, :class:`~chainer.links.GRU` was *stateless*, as opposed to the current implementation.
-To align with the naming convension of LSTM links, we have changed the naming convension from Chainer v2 so that the shorthand name points the stateful links.
+To align with the naming convention of LSTM links, we have changed the naming convention from Chainer v2 so that the shorthand name points the stateful links.
 **If you are using** :class:`~links.GRU`**, you have to update your code.**
 You can use :class:`~chainer.links.StatelessGRU` for stateless version, whose implementation is identical to ``chainer.linksGRU`` in v1.
 

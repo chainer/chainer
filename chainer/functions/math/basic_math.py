@@ -1,9 +1,9 @@
 import numpy
 
 import chainer
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
 from chainer import function_node
+import chainer.functions
 from chainer.functions.math import matmul as _matmul
 from chainer import utils
 from chainer.utils import type_check
@@ -23,7 +23,8 @@ def _convert_value_to_string(value):
         return 'constant array'
     else:
         raise ValueError(
-            'value must be scalar, ndarray, or Variable')
+            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
+            'or a `Variable`.\nActual: {}'.format(type(value)))
 
 
 def _check_constant_type(value):
@@ -33,7 +34,8 @@ def _check_constant_type(value):
         return
     else:
         raise ValueError(
-            'value must be scalar, ndarray, or Variable')
+            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
+            'or a `Variable`.\nActual: {}'.format(type(value)))
 
 
 def _preprocess_const(x, value):
@@ -705,7 +707,7 @@ class MatMulVarVar(_matmul.MatMul):
         return '_ @ _'
 
 
-class MatMulVarConst(function.Function):
+class MatMulVarConst(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -740,21 +742,22 @@ class MatMulVarConst(function.Function):
             )
 
     def forward(self, x):
-        self.retain_inputs(())
-        self._x_shape = x[0].shape
+        self.retain_inputs((0,))
         return utils.force_array(_matmul._matmul(x[0], self.value)),
 
-    def backward(self, x, gy):
+    def backward(self, indexes, gy):
+        x = self.get_retained_inputs()
         if gy[0].ndim == 0:
-            gx0 = gy[0] * self.value
+            gx0 = chainer.functions.broadcast_to(
+                gy[0], self.value.shape) * self.value
         else:
-            gx0 = _matmul._matmul(
-                gy[0], self.value, transb=True, transout=False
-            ).reshape(self._x_shape)
+            gx0 = chainer.functions.reshape(
+                chainer.functions.matmul(gy[0], self.value, False, True),
+                x[0].shape)
         return gx0,
 
 
-class MatMulConstVar(function.Function):
+class MatMulConstVar(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -789,17 +792,18 @@ class MatMulConstVar(function.Function):
             )
 
     def forward(self, x):
-        self.retain_inputs(())
-        self._x_shape = x[0].shape
+        self.retain_inputs((0,))
         return utils.force_array(_matmul._matmul(self.value, x[0])),
 
     def backward(self, x, gy):
+        x = self.get_retained_inputs()
         if gy[0].ndim == 0:
-            gx1 = gy[0] * self.value
+            gx1 = chainer.functions.broadcast_to(
+                gy[0], self.value.shape) * self.value
         else:
-            gx1 = _matmul._matmul(
-                self.value, gy[0], transa=True, transout=False
-            ).reshape(self._x_shape)
+            gx1 = chainer.functions.reshape(
+                chainer.functions.matmul(self.value, gy[0], True, False),
+                x[0].shape)
         return gx1,
 
 
@@ -811,9 +815,9 @@ def matmul(self, rhs):  # lhs @ rhs
     """
 
     if isinstance(rhs, variable.Variable):
-        return MatMulVarVar()(self, rhs)
+        return MatMulVarVar().apply((self, rhs))[0]
     _check_constant_type(rhs)
-    return MatMulVarConst(rhs)(self)
+    return MatMulVarConst(rhs).apply((self,))[0]
 
 
 def rmatmul(self, rhs):  # rhs @ lhs
@@ -824,9 +828,9 @@ def rmatmul(self, rhs):  # rhs @ lhs
     """
 
     if isinstance(rhs, variable.Variable):
-        return MatMulVarVar()(rhs, self)
+        return MatMulVarVar().apply((rhs, self))[0]
     _check_constant_type(rhs)
-    return MatMulConstVar(rhs)(self)
+    return MatMulConstVar(rhs).apply((self,))[0]
 
 
 def install_variable_arithmetics():

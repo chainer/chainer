@@ -36,15 +36,16 @@ matrix:
       if: (branch = master OR branch = v3) AND (NOT type in (pull_request))
 
 before_install:
+  # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
   - if [[ $TRAVIS_OS_NAME = "osx" ]]; then
       brew update >/dev/null;
       brew outdated pyenv || brew upgrade --quiet pyenv;
-      brew install homebrew/boneyard/pyenv-pip-rehash;
 
       PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" pyenv install -ks $PYTHON_VERSION;
       pyenv global $PYTHON_VERSION;
       python --version;
 
+      brew cask uninstall oclint;
       brew install homebrew/science/hdf5;
     fi
 
@@ -52,10 +53,7 @@ install:
   - pip install -U pip wheel
   - python setup.py sdist
   - pip install dist/*.tar.gz
-  - pip install h5py pillow
-  - travis_wait pip install theano
-  - pip install pytest hacking mock
-  - pip install autopep8
+  - travis_wait pip install -U -e .[travis]
 
 script:
   - flake8
