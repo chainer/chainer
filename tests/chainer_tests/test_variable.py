@@ -1481,7 +1481,7 @@ class TestNamedVariableToStringLegacy(
 @testing.with_requires('numpy>=1.14')
 class TestNamedVariableToStringModern(
         _TestNamedVariableToStringBase, unittest.TestCase):
-    # Textual representation of arrays in NumPy 1.13 or earlier.
+    # Textual representation of arrays in NumPy 1.14 or later.
     pass
 
 
