@@ -1,7 +1,5 @@
 #include "xchainer/array_fill.h"
 
-#include <cassert>
-
 #include "xchainer/array.h"
 #include "xchainer/dtype.h"
 #include "xchainer/scalar.h"

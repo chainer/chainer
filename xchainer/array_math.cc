@@ -1,7 +1,5 @@
 #include "xchainer/array_math.h"
 
-#include <cassert>
-
 #include "xchainer/array.h"
 
 namespace xchainer {

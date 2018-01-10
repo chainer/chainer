@@ -1,6 +1,5 @@
 #include "xchainer/array_repr.h"
 
-#include <cassert>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
