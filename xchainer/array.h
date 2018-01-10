@@ -19,6 +19,10 @@ class Array {
 public:
     Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, int64_t offset = 0);
 
+    // TODO(hvy): Copy assignment operator is deleted to avoid performance drops due to possible unwanted copies and heavy refactorings
+    // later on until the behavior is better agreed upon
+    Array& operator=(const Array&) = delete;
+
     static Array Empty(const Shape& shape, Dtype dtype);
     static Array Full(const Shape& shape, Dtype dtype, const Scalar& scalar);
     static Array Full(const Shape& shape, const Scalar& scalar);
