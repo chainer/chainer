@@ -66,7 +66,7 @@ Array MakeArray(const Shape& shape, Dtype dtype, py::list list) {
     std::shared_ptr<void> ptr = std::make_unique<uint8_t[]>(bytes);
     VisitDtype(dtype, [&](auto pt) {
         using T = typename decltype(pt)::type;
-        std::transform(list.begin(), list.end(), reinterpret_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
+        std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
     return Array{shape, dtype, ptr};
 }
