@@ -23,7 +23,7 @@ public:
 
     void set_grad(Array grad) { grad_.emplace(std::move(grad)); };
 
-    void ClearGrad() { grad_ = nonstd::nullopt; }
+    void ClearGrad() { grad_.reset(); }
 
 private:
     std::shared_ptr<OpNode> next_node_;
