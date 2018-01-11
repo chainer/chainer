@@ -109,7 +109,7 @@ Array::Array(const Array& other)
     } else {
         throw DeviceError("invalid device");
     }
-    Copy(other, *this);
+    other.Copy(*this);
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype) {
@@ -164,23 +164,22 @@ Array Array::operator*(const Array& rhs) const {
     return out;
 }
 
-void Array::Copy(const Array& src, Array& out) const {
-    if (src.requires_grad()) {
-        std::shared_ptr<const ArrayNode> src_node = src.node();
+void Array::Copy(Array& out) const {
+    if (requires_grad_) {
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-        auto src_func = [](const Array& gout) { return gout; };
-        auto backward_functions = std::vector<std::function<Array(const Array&)>>{src_func};
+        auto func = [](const Array& gout) { return gout; };
+        auto backward_functions = std::vector<std::function<Array(const Array&)>>{func};
         std::shared_ptr<OpNode> op_node =
-            std::make_shared<OpNode>("identity", std::vector<std::shared_ptr<const ArrayNode>>{src_node}, backward_functions);
+            std::make_shared<OpNode>("copy", std::vector<std::shared_ptr<const ArrayNode>>{node_}, backward_functions);
         out_node->set_next_node(op_node);
     }
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
-        xchainer::Copy(src, out);
+        xchainer::Copy(*this, out);
 #ifdef XCHAINER_ENABLE_CUDA
     } else if (device == MakeDevice("cuda")) {
-        xchainer::cuda::Copy(src, out);
+        xchainer::cuda::Copy(*this, out);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
         throw DeviceError("invalid device");
