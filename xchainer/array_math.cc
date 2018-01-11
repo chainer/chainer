@@ -1,8 +1,12 @@
 #include "xchainer/array_math.h"
 
+#include <cstring>
+
 #include "xchainer/array.h"
 
 namespace xchainer {
+
+void Copy(const Array& src, Array& out) { std::memcpy(out.data().get(), src.data().get(), src.total_bytes()); }
 
 void Add(const Array& lhs, const Array& rhs, Array& out) {
     VisitDtype(lhs.dtype(), [&](auto pt) {

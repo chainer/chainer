@@ -270,6 +270,15 @@ TEST_P(ArrayTest, ArrayCtor) { CheckArray<false>(); }
 
 TEST_P(ArrayTest, ConstArrayCtor) { CheckArray<true>(); }
 
+TEST_P(ArrayTest, SetRequiresGrad) {
+    Array x = MakeArray<bool>({1}, {true});
+    EXPECT_FALSE(x.requires_grad());
+    x.set_requires_grad(true);
+    EXPECT_TRUE(x.requires_grad());
+    x.set_requires_grad(false);
+    EXPECT_FALSE(x.requires_grad());
+}
+
 TEST_P(ArrayTest, Grad) {
     Array x = MakeArray<bool>({1}, {true});
     EXPECT_FALSE(x.grad());
@@ -685,10 +694,13 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
     }
 }
 
-TEST_P(ArrayTest, DeepCopy) {
+TEST_P(ArrayTest, CopyCtor) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = a.DeepCopy();
+    Array b = a;
     AssertEqual<bool>(a, b);
+
+    // Deep copy, therefore assert different addresses to data
+    ASSERT_NE(a.data().get(), b.data().get());
 }
 
 TEST_P(ArrayTest, AddBackward) {

@@ -25,6 +25,10 @@ __global__ void MulKernel(const T* ldata, const T* rdata, T* odata, int64_t tota
 
 }  // namespace
 
+void Copy(const Array& src, Array& out) {
+    cuda::CheckError(cudaMemcpy(out.data().get(), src.data().get(), src.total_bytes(), cudaMemcpyDeviceToDevice));
+}
+
 // TODO(sonots): support stream
 void Add(const Array& lhs, const Array& rhs, Array& out) {
     VisitDtype(lhs.dtype(), [&](auto pt) {
