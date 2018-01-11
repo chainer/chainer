@@ -270,6 +270,18 @@ TEST_P(ArrayTest, ArrayCtor) { CheckArray<false>(); }
 
 TEST_P(ArrayTest, ConstArrayCtor) { CheckArray<true>(); }
 
+TEST_P(ArrayTest, Grad) {
+    Array x = MakeArray<bool>({1}, {true});
+    ASSERT_THROW(x.grad(), XchainerError);
+
+    Array g = MakeArray<bool>({1}, {true});
+    x.set_grad(g);
+    AssertEqual<bool>(g, x.grad());
+
+    x.ClearGrad();
+    ASSERT_THROW(x.grad(), XchainerError);
+}
+
 TEST_P(ArrayTest, Empty) {
     CheckEmpty<bool>();
     CheckEmpty<int8_t>();

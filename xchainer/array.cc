@@ -89,6 +89,19 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool r
     }
 }
 
+const Array& Array::grad() const {
+    if (node_->grad()) {
+        return *node_->grad();
+    } else {
+        throw XchainerError("no gradient");
+    }
+}
+
+void Array::set_grad(const Array& grad) { node_->set_grad(grad); }
+void Array::set_grad(Array&& grad) { node_->set_grad(std::move(grad)); }
+
+void Array::ClearGrad() { node_->ClearGrad(); }
+
 Array Array::Empty(const Shape& shape, Dtype dtype) {
     size_t size = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
     std::shared_ptr<void> data = Allocate(GetCurrentDevice(), size);
