@@ -4,8 +4,8 @@
 #include <cstring>
 #include <iostream>
 
-#include "error.h"
-#include "testing/numeric.h"
+#include "xchainer/error.h"
+#include "xchainer/numeric.h"
 
 namespace xchainer {
 
@@ -19,13 +19,13 @@ void Backprop(const Arrays& inputs, const Arrays& grad_outputs) {
 
     for (size_t i = 0; i < inputs.size(); ++i) {
         // inputs[i].node()->grad() = Array::EmptyLike(grad_outputs[i]);
-        inputs[i].node()->grad() = std::make_shared<Array>(grad_outputs[i].DeepCopy());
+        inputs[i].node()->grad() = std::make_shared<Array>(grad_outputs[i]);
     }
 }
 
 Arrays CalculateNumericalGradient(ForwardFunction func, const Arrays& inputs, const Arrays& grad_outputs, const Arrays& eps) {
     Arrays grads;
-    std::transform(inputs.begin(), inputs.end(), std::back_inserter(grads), [](const Array& x) { return x.DeepCopy(); });
+    std::transform(inputs.begin(), inputs.end(), std::back_inserter(grads), [](const Array& x) { return x; });
     return grads;
 }
 
@@ -64,14 +64,13 @@ void CheckBackwardComputation(const ForwardFunction& func, const std::vector<Arr
 
     // TODO(hvy): keep a copy/reference to the computed input gradients
     std::vector<Array> grads;
-    std::transform(inputs.begin(), inputs.end(), std::back_inserter(grads),
-                   [](const Array& input) { return input.node()->grad()->DeepCopy(); });
+    std::transform(inputs.begin(), inputs.end(), std::back_inserter(grads), [](const Array& input) { return *input.node()->grad(); });
 
     // TODO(hvy): call numerical_grad with given function and eps (specified per element) to get the numerical gradient
     std::vector<Array> numerical_grads = test::CalculateNumericalGradient(func, inputs, grad_outputs, eps);
 
     for (size_t i = 0; i < grads.size(); ++i) {
-        if (!testing::AllClose(grads[i], numerical_grads[i], atol, rtol)) {
+        if (!AllClose(grads[i], numerical_grads[i], atol, rtol)) {
             // TODO(hvy): write proper message
             throw AssertionError("too large errors");
         }

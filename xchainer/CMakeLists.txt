@@ -4,8 +4,6 @@ endif()
 if(${BUILD_PYTHON})
     add_subdirectory(python)
 endif()
-add_subdirectory(testing)
-
 
 install(FILES
     array.h
@@ -41,7 +39,6 @@ add_library(xchainer SHARED
 
 target_link_libraries(xchainer
     PRIVATE
-    xchainer_testing
     -Wl,--whole-archive)
 if(${CUDA_FOUND})
     target_link_libraries(xchainer PRIVATE xchainer_cuda)
