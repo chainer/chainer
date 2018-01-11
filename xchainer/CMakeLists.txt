@@ -26,6 +26,7 @@ add_library(xchainer SHARED
     array_repr.cc
     device.cc
     dtype.cc
+    numeric.cc
     scalar.cc
     shape.cc
     )
@@ -47,6 +48,7 @@ if(ENABLE_TEST)
         array_test.cc
         device_test.cc
         dtype_test.cc
+        numeric_test.cc
         scalar_test.cc
         shape_test.cc
         )
