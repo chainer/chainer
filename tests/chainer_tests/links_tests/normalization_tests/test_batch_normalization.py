@@ -400,7 +400,7 @@ class TestChannalSizeInference(unittest.TestCase):
         assert self.link.beta.shape == (16,)
         assert self.link.gamma.shape == (16,)
         assert self.link.avg_mean.shape == (16,)
-        assert self.link.avg_mean.shape == (16,)
+        assert self.link.avg_var.shape == (16,)
 
     def test_no_gamma(self):
         assert not hasattr(self.link_no_gamma, 'gamma')
