@@ -13,6 +13,7 @@ install(FILES
     device.h
     dtype.h
     error.h
+    memory.h
     scalar.h
     shape.h
     xchainer.h
@@ -27,6 +28,7 @@ add_library(xchainer SHARED
     device.cc
     dtype.cc
     gradient_check.cc
+    memory.cc
     numeric.cc
     scalar.cc
     shape.cc

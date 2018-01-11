@@ -17,78 +17,20 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
+#include "xchainer/memory.h"
 #include "xchainer/op_node.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
 
-namespace {
-
-#ifdef XCHAINER_ENABLE_CUDA
-std::shared_ptr<void> AllocateCudaManaged(size_t size) {
-    std::shared_ptr<void> ptr{};
-    {
-        void* raw_ptr = nullptr;
-        auto raw_ptr_scope = gsl::finally([&]() {
-            if (raw_ptr != nullptr && ptr == nullptr) {
-                cudaFree(raw_ptr);
-            }
-        });
-        cuda::CheckError(cudaMallocManaged(&raw_ptr, size, cudaMemAttachGlobal));
-        ptr.reset(raw_ptr, cudaFree);
-    }
-    return ptr;
-}
-#endif  // XCHAINER_ENABLE_CUDA
-
-std::shared_ptr<void> Allocate(const Device& device, size_t size) {
-    if (device == MakeDevice("cpu")) {
-        return std::make_unique<uint8_t[]>(size);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device == MakeDevice("cuda")) {
-        return AllocateCudaManaged(size);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
-}
-
-void MemoryCopy(const Device& device, void* dst_ptr, const void* src_ptr, size_t size) {
-    if (device == MakeDevice("cpu")) {
-        std::memcpy(dst_ptr, src_ptr, size);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device == MakeDevice("cuda")) {
-        cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, size, cudaMemcpyHostToDevice));
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
-}
-
-}  // namespace
-
 Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad, int64_t offset)
     : shape_(std::move(shape)),
       is_contiguous_(true),
       dtype_(dtype),
-      data_(nullptr),
+      data_(std::move(data)),
       requires_grad_(requires_grad),
       offset_(offset),
-      node_(std::make_shared<ArrayNode>()) {
-    assert(IsValidDtype(dtype_));
-    Device device = GetCurrentDevice();
-    if (device == MakeDevice("cpu")) {
-        data_ = std::move(data);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device == MakeDevice("cuda")) {
-        auto size = static_cast<size_t>(shape_.total_size() * GetElementSize(dtype));
-        data_ = AllocateCudaManaged(size);
-        MemoryCopy(device, data_.get(), data.get(), size);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
-}
+      node_(std::make_shared<ArrayNode>()) {}
 
 Array::Array(const Array& other)
     : shape_(other.shape_),
