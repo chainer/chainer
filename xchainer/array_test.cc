@@ -15,6 +15,7 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
+#include "xchainer/memory.h"
 #include "xchainer/op_node.h"
 
 namespace xchainer {
@@ -32,14 +33,16 @@ protected:
 public:
     template <typename T>
     Array MakeArray(std::initializer_list<int64_t> shape, std::shared_ptr<void> data, bool requires_grad = false) {
-        return {shape, TypeToDtype<T>, data, requires_grad};
+        Array arr = Array::FromBuffer(shape, TypeToDtype<T>, data);
+        arr.set_requires_grad(requires_grad);
+        return arr;
     }
 
     template <typename T>
     Array MakeArray(std::initializer_list<int64_t> shape, std::initializer_list<T> data, bool requires_grad = false) {
         auto a = std::make_unique<T[]>(data.size());
         std::copy(data.begin(), data.end(), a.get());
-        return {shape, TypeToDtype<T>, std::move(a), requires_grad};
+        return MakeArray<T>(shape, std::move(a), requires_grad);
     }
 
     template <typename T>

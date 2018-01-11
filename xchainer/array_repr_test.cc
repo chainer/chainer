@@ -15,7 +15,7 @@ void CheckArrayReprWithCurrentDevice(const std::vector<T>& data_vec, Shape shape
     // Copy to a contiguous memory block because std::vector<bool> is not packed as a sequence of bool's.
     std::shared_ptr<T> data_ptr = std::make_unique<T[]>(data_vec.size());
     std::copy(data_vec.begin(), data_vec.end(), data_ptr.get());
-    Array array = {shape, TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data_ptr)};
+    Array array = Array::FromBuffer(shape, TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data_ptr));
 
     // std::string version
     EXPECT_EQ(ArrayRepr(array), expected);
