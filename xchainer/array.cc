@@ -45,6 +45,8 @@ void Array::set_grad(Array grad) { node_->set_grad(std::move(grad)); }
 
 void Array::ClearGrad() noexcept { node_->ClearGrad(); }
 
+Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) { return {shape, dtype, data}; }
+
 Array Array::Empty(const Shape& shape, Dtype dtype) {
     auto size = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
     std::shared_ptr<void> data = Allocate(GetCurrentDevice(), size);

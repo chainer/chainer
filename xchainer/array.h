@@ -29,6 +29,8 @@ public:
     // later on until the behavior is better agreed upon
     Array& operator=(const Array&) = delete;
 
+    static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data);
+
     static Array Empty(const Shape& shape, Dtype dtype);
     static Array Full(const Shape& shape, Scalar scalar, Dtype dtype);
     static Array Full(const Shape& shape, Scalar scalar);
