@@ -57,6 +57,8 @@ public:
 
     bool requires_grad() const { return requires_grad_; }
 
+    void set_requires_grad(bool requires_grad) { requires_grad_ = requires_grad; }
+
     int64_t offset() const { return offset_; }
 
     const std::shared_ptr<ArrayNode>& node() { return node_; }
