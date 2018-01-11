@@ -19,8 +19,6 @@ class ArrayNode;
 // The main data structure of multi-dimensional array.
 class Array {
 public:
-    Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, int64_t offset = 0);
-
     // Deep copy ctor and copy assignment
     Array(const Array& other);
 
@@ -51,8 +49,6 @@ public:
 
     const Shape& shape() const { return shape_; }
 
-    bool is_contiguous() const { return is_contiguous_; }
-
     int64_t total_size() const { return shape_.total_size(); }
 
     int64_t element_bytes() const { return GetElementSize(dtype_); }
@@ -66,6 +62,8 @@ public:
     bool requires_grad() const { return requires_grad_; }
 
     void set_requires_grad(bool requires_grad) { requires_grad_ = requires_grad; }
+
+    bool is_contiguous() const { return is_contiguous_; }
 
     int64_t offset() const { return offset_; }
 
@@ -91,19 +89,26 @@ public:
     std::string ToString() const;
 
 private:
+    Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, bool is_contiguous = true,
+          int64_t offset = 0, std::shared_ptr<ArrayNode> node = std::make_shared<ArrayNode>())
+        : shape_(std::move(shape)),
+          dtype_(dtype),
+          data_(std::move(data)),
+          requires_grad_(requires_grad),
+          is_contiguous_(is_contiguous),
+          offset_(offset),
+          node_(std::move(node)) {}
+
     void Copy(Array& out) const;
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 
     Shape shape_;
-    bool is_contiguous_;
-
     Dtype dtype_;
-
     std::shared_ptr<void> data_;
     bool requires_grad_;
+    bool is_contiguous_;
     int64_t offset_;
-
     std::shared_ptr<ArrayNode> node_;
 };
 

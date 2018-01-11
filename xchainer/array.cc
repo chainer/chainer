@@ -23,15 +23,6 @@
 
 namespace xchainer {
 
-Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad, int64_t offset)
-    : shape_(std::move(shape)),
-      is_contiguous_(true),
-      dtype_(dtype),
-      data_(std::move(data)),
-      requires_grad_(requires_grad),
-      offset_(offset),
-      node_(std::make_shared<ArrayNode>()) {}
-
 Array::Array(const Array& other)
     : shape_(other.shape_),
       is_contiguous_(other.is_contiguous_),
