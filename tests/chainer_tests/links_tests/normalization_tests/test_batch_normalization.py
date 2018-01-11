@@ -390,8 +390,13 @@ class TestChannalSizeInference(unittest.TestCase):
         self.link_no_beta = links.BatchNormalization(None, use_beta=False)
         self.x = numpy.random.randn(1, 16).astype('f')
 
+    def test_no_inference(self):
+        bn = links.BatchNormalization(16)
+        assert hasattr(bn, 'avg_mean')
+        assert hasattr(bn, 'avg_var')
+
     def test_inference(self):
-        self.link(self.x, test=True)
+        self.link(self.x)
         assert self.link.beta.shape == (16,)
         assert self.link.gamma.shape == (16,)
         assert self.link.avg_mean.shape == (16,)

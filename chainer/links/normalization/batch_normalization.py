@@ -97,6 +97,9 @@ class BatchNormalization(link.Link):
                 beta_initializer.dtype = self._dtype
                 self.beta = variable.Parameter(beta_initializer)
 
+        if self._size is not None:
+            self._initialize_params(self._size)
+
     def _initialize_params(self, shape):
         self.avg_mean = numpy.zeros(shape, dtype=self._dtype)
         self.register_persistent('avg_mean')
@@ -131,12 +134,9 @@ class BatchNormalization(link.Link):
                 statistics.
 
         """
-        if self.gamma.data is None:
-            if self._size is not None:
-                self._initialize_params(self._size)
-            else:
-                shape = tuple(x.shape[i] for i in self._axis)
-                self._initialize_params(shape)
+        if not hasattr(self, 'avg_mean'):
+            shape = tuple(x.shape[i] for i in self._axis)
+            self._initialize_params(shape)
 
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '
