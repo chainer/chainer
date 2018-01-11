@@ -3,9 +3,7 @@ import contextlib
 import chainer
 import chainer.function_node
 
-import numpy as np # fixme: remove after debug
-
-
+#import numpy as np # fixme: remove after debug
 
 # todo: add test that use the same random seed with two models: a static chain
 # and a (non-static) chain. Enable `chainer.config.cudnn_deterministic` and
@@ -42,6 +40,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
     of the define-by-run code. See `static_graph` for details.
 
     Args:
+        schedule_manager (): fixme
         in_vars (tuple of Variable): The tuple of input variables that is supplied to
             `__call__()` method of the chain that this schedule corresponds to.
 

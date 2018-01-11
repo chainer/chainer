@@ -82,8 +82,6 @@ def static_forward_optimizations(func, in_vars):
 
     schedule_function = chainer.config.schedule_func
     if schedule_function is not None:
-        #for var in in_vars:
-        #    schedule_function.copy_input_arrays_dynamic_to_static(var)
         for func_arg_index, var in enumerate(in_vars):
             if id(var.data) in schedule_function._input_var_array_to_static_array_index:
                 chain_arg_index = schedule_function._input_var_array_to_static_array_index[id(var.data)]
