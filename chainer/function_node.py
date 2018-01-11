@@ -7,8 +7,8 @@ import numpy
 import six
 
 import chainer
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer import function_hook
 from chainer.utils import type_check
 from chainer import variable
@@ -176,6 +176,25 @@ class FunctionNode(object):
     def _impl_name(self):
         return self.__class__.__name__
 
+    def __call__(self, *args, **kwargs):
+        if self.__class__.__module__.startswith('chainer.'):
+            msg = '''\
+Chainer's built-in function class object ({}) which is derived from \
+chainer.FunctionNode has been called as if it were a callable. \
+Use FunctionNode.apply() method instead.
+Furthermore, it's not recommended to use built-in function classes directly; \
+use corresponding function aliases (those with snake_case name, such as \
+F.convolution_nd) instead.\
+'''.format(self.__class__.__name__)
+        else:
+            msg = '''\
+A function class object ({}) which is derived from \
+chainer.FunctionNode has been called as if it were a callable. \
+Use apply() method instead.\
+'''.format(self.__class__.__name__)
+
+        raise RuntimeError(msg)
+
     def apply(self, inputs):
         """Computes output variables and grows the computational graph.
 
@@ -203,7 +222,20 @@ class FunctionNode(object):
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
-        if chainer.is_debug():
+        # Check for input array types
+        xp = cuda.get_array_module(*in_data)
+        if not all([x is None or isinstance(x, xp.ndarray)
+                    for x in in_data]):
+            raise ValueError(
+                'numpy and cupy arrays are mixed in the forward input '
+                '({}).\n'
+                '{}'.format(
+                    self.label,
+                    ', '.join(str(type(x)) for x in in_data)))
+
+        is_debug = chainer.is_debug()
+        if is_debug:
+            # Keep stack trace for debug
             self.stack = traceback.extract_stack()
 
         if configuration.config.type_check:
@@ -223,13 +255,28 @@ class FunctionNode(object):
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             outputs = self.forward(in_data)
-            assert type(outputs) is tuple
+
+        # Check for output array types
+        if not isinstance(outputs, tuple):
+            raise TypeError(
+                'forward output must be a tuple ({})\n'
+                'Actual: {}'.format(self.label, type(outputs)))
+
+        xp = cuda.get_array_module(*outputs)
+        if not all([x is None or isinstance(x, xp.ndarray)
+                    for x in outputs]):
+            raise ValueError(
+                'numpy and cupy arrays are mixed in the forward output '
+                '({}).\n'
+                '{}'.format(
+                    self.label,
+                    ', '.join(str(type(x)) for x in outputs)))
 
         for hook in hooks:
             hook.forward_postprocess(self, in_data)
 
         # NaN check of output values
-        if chainer.is_debug():
+        if is_debug:
             if any(out.dtype.kind == 'f' and
                    cuda.get_array_module(out).isnan(out).any()
                    for out in outputs):
@@ -427,7 +474,7 @@ class FunctionNode(object):
             target_input_indexes (tuple of int): Indices of the input variables
                 w.r.t. which the gradients are required. It is guaranteed that
                 this tuple contains at least one element.
-            grad_outputs (tuple of :class:`~chainer.Variable`\ s): Gradients
+            grad_outputs (tuple of :class:`~chainer.Variable`\\ s): Gradients
                 w.r.t. the output variables.
                 If the gradient w.r.t. an output variable is not
                 given, the corresponding element is ``None``.

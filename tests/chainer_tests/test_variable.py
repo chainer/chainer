@@ -722,6 +722,22 @@ class TestVariableBasic(unittest.TestCase):
                 pass
 
 
+class TestVariableDataAssign(unittest.TestCase):
+
+    def test_variable_data_assign(self):
+        x = chainer.Variable(np.ones((3, 2), np.float32))
+        chainer.functions.sin(x)
+        x.data = np.ones((2, 4), np.float64)
+        assert x.data.shape == (2, 4)
+        assert x.data.dtype == np.float64
+        assert x.shape == (2, 4)
+        assert x.dtype == np.float64
+        assert x.node.shape == (2, 4)
+        assert x.node.dtype == np.float64
+        assert x.node.data.shape == (2, 4)
+        assert x.node.data.dtype == np.float64
+
+
 class TestParameter(unittest.TestCase):
 
     def setUp(self):
@@ -1024,6 +1040,15 @@ class TestDebugPrint(unittest.TestCase):
         msg = 'grad: mean={mean:.8f}, std={std:.8f}'.format(mean=mean, std=std)
         self.assertIn(msg, result)
 
+    def check_debug_print_empty(self, v):
+        result = v.debug_print()
+        self.assertIn('device: None', result)
+        self.assertIn('backend: None', result)
+        self.assertIn('shape: None', result)
+        self.assertIn('dtype: None', result)
+        self.assertIn('statistics: None', result)
+        self.assertIn('grad: None', result)
+
     def test_debug_print_cpu(self):
         v = chainer.Variable(self.arr)
         result = v.debug_print()
@@ -1044,6 +1069,10 @@ class TestDebugPrint(unittest.TestCase):
 
         self.check_debug_print(v, mean=float(cuda.cupy.mean(v.data)),
                                std=float(cuda.cupy.std(v.data)))
+
+    def test_debug_print_empty(self):
+        v = chainer.Variable()
+        self.check_debug_print_empty(v)
 
 
 class TestVariableSetCreator(unittest.TestCase):
@@ -1294,22 +1323,7 @@ class TestTranspose(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x))
 
 
-@testing.parameterize(
-    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
-     'str': 'variable(None)'},
-    {'x_shape': (2, 2,), 'dtype': np.float16,
-     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
-     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (2, 2,), 'dtype': np.float32,
-     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
-     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (2, 2,), 'dtype': np.float64,
-     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
-     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (3,),  'dtype': np.float32,
-     'repr': 'variable([ 0.,  1.,  2.])', 'str': 'variable([ 0.  1.  2.])'},
-)
-class TestUnnamedVariableToString(unittest.TestCase):
+class UnnamedVariableToStringTestBase(object):
 
     def setUp(self):
         if self.x_shape is None:
@@ -1335,6 +1349,50 @@ class TestUnnamedVariableToString(unittest.TestCase):
     def test_str_gpu(self):
         self.x.to_gpu()
         self.assertEqual(str(self.x), self.str)
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
+     'str': 'variable(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float16,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float64,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (3,),  'dtype': np.float32,
+     'repr': 'variable([ 0.,  1.,  2.])', 'str': 'variable([ 0.  1.  2.])'},
+)
+@testing.with_requires('numpy<1.14')
+class TestUnnamedVariableToStringLegacy(
+        UnnamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.13 or earlier.
+    pass
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
+     'str': 'variable(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float16,
+     'repr': 'variable([[0., 1.],\n          [2., 3.]])',
+     'str': 'variable([[0. 1.]\n          [2. 3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable([[0., 1.],\n          [2., 3.]])',
+     'str': 'variable([[0. 1.]\n          [2. 3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float64,
+     'repr': 'variable([[0., 1.],\n          [2., 3.]])',
+     'str': 'variable([[0. 1.]\n          [2. 3.]])'},
+    {'x_shape': (3,),  'dtype': np.float32,
+     'repr': 'variable([0., 1., 2.])', 'str': 'variable([0. 1. 2.])'},
+)
+@testing.with_requires('numpy>=1.14')
+class TestUnnamedVariableToStringModern(
+        UnnamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.14 or later.
+    pass
 
 
 class TestUnnamedVariableDim2Size0ToString(unittest.TestCase):
@@ -1367,16 +1425,7 @@ class TestUnnamedVariableDim2Size0ToString(unittest.TestCase):
         self.assertEqual(str(self.x), self.str)
 
 
-@testing.parameterize(
-    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
-     'str': 'variable x(None)'},
-    {'x_shape': (2, 2,), 'dtype': np.float32,
-     'repr': 'variable x([[ 0.,  1.],\n            [ 2.,  3.]])',
-     'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
-    {'x_shape': (), 'dtype': np.float32,
-     'repr': 'variable x(0.0)', 'str': 'variable x(0.0)'},
-)
-class TestNamedVariableToString(unittest.TestCase):
+class NamedVariableToStringTestBase(object):
 
     def setUp(self):
         if self.x_shape is None:
@@ -1402,6 +1451,38 @@ class TestNamedVariableToString(unittest.TestCase):
     def test_str_gpu(self):
         self.x.to_gpu()
         self.assertEqual(str(self.x), self.str)
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
+     'str': 'variable x(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable x([[ 0.,  1.],\n            [ 2.,  3.]])',
+     'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
+    {'x_shape': (), 'dtype': np.float32,
+     'repr': 'variable x(0.0)', 'str': 'variable x(0.0)'},
+)
+@testing.with_requires('numpy<1.14')
+class TestNamedVariableToStringLegacy(
+        NamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.13 or earlier.
+    pass
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
+     'str': 'variable x(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable x([[0., 1.],\n            [2., 3.]])',
+     'str': 'variable x([[0. 1.]\n            [2. 3.]])'},
+    {'x_shape': (), 'dtype': np.float32,
+     'repr': 'variable x(0.)', 'str': 'variable x(0.)'},
+)
+@testing.with_requires('numpy>=1.14')
+class TestNamedVariableToStringModern(
+        NamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.14 or later.
+    pass
 
 
 class TestNamedVariableDim2Size0ToString(unittest.TestCase):

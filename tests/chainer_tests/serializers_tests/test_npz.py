@@ -4,6 +4,7 @@ import unittest
 
 import mock
 import numpy
+import six
 
 import chainer
 from chainer import cuda
@@ -222,13 +223,20 @@ class TestNpzDeserializerIgnoreNames(unittest.TestCase):
         self.assertIs(ret, yy)
 
 
+@testing.parameterize(*testing.product({'file_type': ['filename', 'bytesio']}))
 class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
 
     def setUp(self):
-        fd, path = tempfile.mkstemp()
-        os.close(fd)
-        self.temp_file_path = path
+        if self.file_type == 'filename':
+            fd, path = tempfile.mkstemp()
+            os.close(fd)
+            self.file = path
+        elif self.file_type == 'bytesio':
+            self.file = six.BytesIO()
+        else:
+            assert False
 
+        # Create and save a link
         child = link.Chain()
         with child.init_scope():
             child.linear = links.Linear(2, 3)
@@ -236,19 +244,23 @@ class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
         with parent.init_scope():
             parent.linear = links.Linear(3, 2)
             parent.child = child
-        npz.save_npz(self.temp_file_path, parent)
+        npz.save_npz(self.file, parent)
         self.source = parent
 
-        self.npzfile = numpy.load(path)
+        if self.file_type == 'bytesio':
+            self.file.seek(0)
+
+        self.npzfile = numpy.load(self.file)
         self.deserializer = npz.NpzDeserializer(self.npzfile, strict=False)
 
     def tearDown(self):
         if hasattr(self, 'npzfile'):
             self.npzfile.close()
-        if hasattr(self, 'temp_file_path'):
-            os.remove(self.temp_file_path)
+        if self.file_type == 'filename':
+            os.remove(self.file)
 
     def test_deserialize_hierarchy(self):
+        # Load a link
         child = link.Chain()
         with child.init_scope():
             child.linear2 = links.Linear(2, 3)
@@ -258,8 +270,10 @@ class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
             target.child = child
         target_child_W = numpy.copy(child.linear2.W.data)
         target_child_b = numpy.copy(child.linear2.b.data)
+
         self.deserializer.load(target)
 
+        # Check
         numpy.testing.assert_array_equal(
             self.source.linear.W.data, target.linear.W.data)
         numpy.testing.assert_array_equal(
@@ -331,34 +345,51 @@ class TestNpzDeserializerIgnoreNamesGroupHierachy(unittest.TestCase):
             target.child.linear2.b.data, target_child_b)
 
 
-@testing.parameterize(*testing.product({'compress': [False, True]}))
+@testing.parameterize(*testing.product({
+    'compress': [False, True],
+    'file_type': ['filename', 'bytesio'],
+}))
 class TestSaveNpz(unittest.TestCase):
 
     def setUp(self):
-        fd, path = tempfile.mkstemp()
-        os.close(fd)
-        self.temp_file_path = path
+        if self.file_type == 'filename':
+            fd, path = tempfile.mkstemp()
+            os.close(fd)
+            self.file = path
+        elif self.file_type == 'bytesio':
+            self.file = six.BytesIO()
+        else:
+            assert False
 
     def tearDown(self):
-        if hasattr(self, 'temp_file_path'):
-            os.remove(self.temp_file_path)
+        if self.file_type == 'filename':
+            os.remove(self.file)
 
     def test_save(self):
         obj = mock.MagicMock()
-        npz.save_npz(self.temp_file_path, obj, self.compress)
+        npz.save_npz(self.file, obj, self.compress)
 
         self.assertEqual(obj.serialize.call_count, 1)
         (serializer,), _ = obj.serialize.call_args
         self.assertIsInstance(serializer, npz.DictionarySerializer)
 
 
-@testing.parameterize(*testing.product({'compress': [False, True]}))
+@testing.parameterize(*testing.product({
+    'compress': [False, True],
+    'file_type': ['filename', 'bytesio'],
+}))
 class TestLoadNpz(unittest.TestCase):
 
     def setUp(self):
-        fd, path = tempfile.mkstemp()
-        os.close(fd)
-        self.temp_file_path = path
+        if self.file_type == 'filename':
+            fd, path = tempfile.mkstemp()
+            os.close(fd)
+            self.file = path
+        elif self.file_type == 'bytesio':
+            self.file = six.BytesIO()
+        else:
+            assert False
+
         child = link.Chain()
         with child.init_scope():
             child.child_linear = links.Linear(2, 3)
@@ -366,18 +397,21 @@ class TestLoadNpz(unittest.TestCase):
         with parent.init_scope():
             parent.parent_linear = links.Linear(3, 2)
             parent.child = child
-        npz.save_npz(path, parent, self.compress)
+        npz.save_npz(self.file, parent, self.compress)
+
+        if self.file_type == 'bytesio':
+            self.file.seek(0)
 
         self.source_child = child
         self.source_parent = parent
 
     def tearDown(self):
-        if hasattr(self, 'temp_file_path'):
-            os.remove(self.temp_file_path)
+        if self.file_type == 'filename':
+            os.remove(self.file)
 
     def test_load_with_strict(self):
         obj = mock.MagicMock()
-        npz.load_npz(self.temp_file_path, obj)
+        npz.load_npz(self.file, obj)
 
         self.assertEqual(obj.serialize.call_count, 1)
         (serializer,), _ = obj.serialize.call_args
@@ -386,7 +420,7 @@ class TestLoadNpz(unittest.TestCase):
 
     def test_load_without_strict(self):
         obj = mock.MagicMock()
-        npz.load_npz(self.temp_file_path, obj, strict=False)
+        npz.load_npz(self.file, obj, strict=False)
 
         self.assertEqual(obj.serialize.call_count, 1)
         (serializer,), _ = obj.serialize.call_args
@@ -397,7 +431,7 @@ class TestLoadNpz(unittest.TestCase):
         target = link.Chain()
         with target.init_scope():
             target.child_linear = links.Linear(2, 3)
-        npz.load_npz(self.temp_file_path, target, 'child/')
+        npz.load_npz(self.file, target, 'child/')
         numpy.testing.assert_array_equal(
             self.source_child.child_linear.W.data, target.child_linear.W.data)
 
@@ -405,19 +439,27 @@ class TestLoadNpz(unittest.TestCase):
         target = link.Chain()
         with target.init_scope():
             target.parent_linear = links.Linear(3, 2)
-        npz.load_npz(self.temp_file_path, target, path='')
+        npz.load_npz(self.file, target, path='')
         numpy.testing.assert_array_equal(
             self.source_parent.parent_linear.W.data,
             target.parent_linear.W.data)
 
 
-@testing.parameterize(*testing.product({'compress': [False, True]}))
+@testing.parameterize(*testing.product({
+    'compress': [False, True],
+    'file_type': ['filename', 'bytesio'],
+}))
 class TestGroupHierachy(unittest.TestCase):
 
     def setUp(self):
-        fd, path = tempfile.mkstemp()
-        os.close(fd)
-        self.temp_file_path = path
+        if self.file_type == 'filename':
+            fd, path = tempfile.mkstemp()
+            os.close(fd)
+            self.file = path
+        elif self.file_type == 'bytesio':
+            self.file = six.BytesIO()
+        else:
+            assert False
 
         child = link.Chain()
         with child.init_scope():
@@ -437,76 +479,95 @@ class TestGroupHierachy(unittest.TestCase):
 
         self.savez = numpy.savez_compressed if self.compress else numpy.savez
 
+    def tearDown(self):
+        if self.file_type == 'filename':
+            os.remove(self.file)
+
     def _save(self, target, obj, name):
         serializer = npz.DictionarySerializer(target, name)
         serializer.save(obj)
 
-    def tearDown(self):
-        if hasattr(self, 'temp_file_path'):
-            os.remove(self.temp_file_path)
+    def _savez(self, file, d):
+        if self.file_type == 'filename':
+            f = open(self.file, 'wb')
+        elif self.file_type == 'bytesio':
+            f = self.file
+        else:
+            assert False
 
-    def _check_chain_group(self, file, state, prefix=''):
+        self.savez(f, **d)
+
+        if self.file_type == 'bytesio':
+            self.file.seek(0)
+
+    def _save_npz(self, file, obj, compress):
+        npz.save_npz(file, obj, compress)
+        if self.file_type == 'bytesio':
+            self.file.seek(0)
+
+    def _check_chain_group(self, npzfile, state, prefix=''):
         keys = ('child/linear/W',
                 'child/linear/b',
                 'child/Wc') + state
-        self.assertSetEqual(set(file.keys()), {prefix + x for x in keys})
+        self.assertSetEqual(set(npzfile.keys()), {prefix + x for x in keys})
 
-    def _check_optimizer_group(self, file, state, prefix=''):
+    def _check_optimizer_group(self, npzfile, state, prefix=''):
         keys = ('child/linear/W/msg',
                 'child/linear/W/msdx',
                 'child/linear/b/msg',
                 'child/linear/b/msdx',
                 'child/Wc/msg',
                 'child/Wc/msdx') + state
-        self.assertEqual(set(file.keys()),
+        self.assertEqual(set(npzfile.keys()),
                          {prefix + x for x in keys})
 
     def test_save_chain(self):
         d = {}
         self._save(d, self.parent, 'test/')
-        with open(self.temp_file_path, 'wb') as f:
-            self.savez(f, **d)
-        with numpy.load(self.temp_file_path) as f:
+        self._savez(self.file, d)
+
+        with numpy.load(self.file) as f:
             self._check_chain_group(f, ('Wp',), 'test/')
 
     def test_save_optimizer(self):
         d = {}
         self._save(d, self.optimizer, 'test/')
-        with open(self.temp_file_path, 'wb') as f:
-            self.savez(f, **d)
-        with numpy.load(self.temp_file_path) as f:
+        self._savez(self.file, d)
+
+        with numpy.load(self.file) as npzfile:
             self._check_optimizer_group(
-                f, ('Wp/msg', 'Wp/msdx', 'epoch', 't'), 'test/')
+                npzfile, ('Wp/msg', 'Wp/msdx', 'epoch', 't'), 'test/')
 
     def test_save_chain2(self):
-        npz.save_npz(self.temp_file_path, self.parent, self.compress)
-        with numpy.load(self.temp_file_path) as f:
-            self._check_chain_group(f, ('Wp',))
+        self._save_npz(self.file, self.parent, self.compress)
+        with numpy.load(self.file) as npzfile:
+            self._check_chain_group(npzfile, ('Wp',))
 
     def test_save_optimizer2(self):
-        npz.save_npz(self.temp_file_path, self.optimizer, self.compress)
-        with numpy.load(self.temp_file_path) as f:
-            self._check_optimizer_group(f, ('Wp/msg', 'Wp/msdx', 'epoch', 't'))
+        self._save_npz(self.file, self.optimizer, self.compress)
+        with numpy.load(self.file) as npzfile:
+            self._check_optimizer_group(
+                npzfile, ('Wp/msg', 'Wp/msdx', 'epoch', 't'))
 
     def test_load_optimizer_with_strict(self):
         for param in self.parent.params():
             param.data.fill(1)
-        npz.save_npz(self.temp_file_path, self.parent, self.compress)
+        self._save_npz(self.file, self.parent, self.compress)
         for param in self.parent.params():
             param.data.fill(0)
-        npz.load_npz(self.temp_file_path, self.parent)
+        npz.load_npz(self.file, self.parent)
         for param in self.parent.params():
             self.assertTrue((param.data == 1).all())
 
     def test_load_optimizer_without_strict(self):
         for param in self.parent.params():
             param.data.fill(1)
-        npz.save_npz(self.temp_file_path, self.parent, self.compress)
+        self._save_npz(self.file, self.parent, self.compress)
         # Remove a param
         del self.parent.child.linear.b
         for param in self.parent.params():
             param.data.fill(0)
-        npz.load_npz(self.temp_file_path, self.parent, strict=False)
+        npz.load_npz(self.file, self.parent, strict=False)
         for param in self.parent.params():
             self.assertTrue((param.data == 1).all())
         self.assertFalse(hasattr(self.parent.child.linear, 'b'))

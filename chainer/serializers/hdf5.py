@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import serializer
 
 
@@ -74,6 +74,15 @@ def save_hdf5(filename, obj, compression=4):
         obj: Object to be serialized. It must support serialization protocol.
         compression (int): Gzip compression level.
 
+    .. note::
+        Currently :func:`save_hdf5` only supports writing to an actual file on
+        file system due to a limitation of HD5F library.
+        See `h5py/h5py#687 <https://github.com/h5py/h5py/issues/687>`_ for
+        details.
+
+    .. seealso::
+        :func:`chainer.serializers.load_hdf5`
+
     """
     _check_available()
     with h5py.File(filename, 'w') as f:
@@ -146,6 +155,15 @@ def load_hdf5(filename, obj):
     Args:
         filename (str): Name of the file to be loaded.
         obj: Object to be deserialized. It must support serialization protocol.
+
+    .. note::
+        Currently :func:`load_hdf5` only supports loading an actual file on
+        file system due to a limitation of HD5F library.
+        See `h5py/h5py#687 <https://github.com/h5py/h5py/issues/687>`_ for
+        details.
+
+    .. seealso::
+        :func:`chainer.serializers.save_hdf5`
 
     """
     _check_available()

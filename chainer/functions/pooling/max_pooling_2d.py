@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
@@ -89,7 +89,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
     def create_pool_desc(self):
         return cuda.cudnn.create_pooling_descriptor(
             (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
-            cuda.cudnn.cudnn.CUDNN_POOLING_MAX)
+            cuda.cuda.cudnn.CUDNN_POOLING_MAX)
 
 
 class MaxPooling2DGrad(function_node.FunctionNode):

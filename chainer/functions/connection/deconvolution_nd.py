@@ -2,8 +2,10 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+from chainer import configuration
 from chainer import function
+from chainer.functions.connection import deconvolution_2d
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
@@ -11,7 +13,8 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cudnn.cudnn
+    libcudnn = cuda.cuda.cudnn
+    _cudnn_version_ = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
@@ -120,8 +123,8 @@ class DeconvolutionND(function.Function):
         x_desc = cudnn.create_tensor_descriptor(x)
         y_desc = cudnn.create_tensor_descriptor(y)
         self.filter_desc = cudnn.create_filter_descriptor(W)
-        self.conv_desc = cudnn.create_convolution_descriptor(
-            self.pad, self.stride, x.dtype)
+        conv_param = self.pad, self.stride, x.dtype
+        self.conv_desc = cudnn.create_convolution_descriptor(*conv_param)
         if b is not None:
             b_index = (None, colon) + (None,) * ndim
             self.bias_desc = cudnn.create_tensor_descriptor(b[b_index])
@@ -132,10 +135,17 @@ class DeconvolutionND(function.Function):
         zero = numpy.array(0, dtype=oz_dtype).ctypes
         workspace_size = cuda.get_max_workspace_size()
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-        algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-            handle, self.filter_desc.value, x_desc.value,
-            self.conv_desc.value, y_desc.value, _bwd_data_pref,
-            workspace_size)
+        if configuration.config.autotune and _cudnn_version_ >= 5000:
+            algo = deconvolution_2d.get_algorithm(W, x, y, conv_param, handle,
+                                                  self.filter_desc, x_desc,
+                                                  self.conv_desc, y_desc,
+                                                  workspace)
+        else:
+            algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+                handle, self.filter_desc.value, x_desc.value,
+                self.conv_desc.value, y_desc.value, _bwd_data_pref,
+                workspace_size)
+
         libcudnn.convolutionBackwardData_v3(
             handle, one.data, self.filter_desc.value, W.data.ptr,
             x_desc.value, x.data.ptr, self.conv_desc.value,
@@ -323,6 +333,11 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
 
        d_n = \\lfloor (l_n + 2p_n - k_n) / s_n \\rfloor + 1 \\ \\ \
        (n = 1, ..., N)
+
+    Deconvolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \

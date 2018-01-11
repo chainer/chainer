@@ -1,6 +1,8 @@
 import numpy
 
-from chainer import cuda
+import six
+
+from chainer.backends import cuda
 from chainer import serializer
 
 
@@ -51,25 +53,32 @@ class DictionarySerializer(serializer.Serializer):
         return ret
 
 
-def save_npz(filename, obj, compression=True):
+def save_npz(file, obj, compression=True):
     """Saves an object to the file in NPZ format.
 
     This is a short-cut function to save only one object into an NPZ file.
 
     Args:
-        filename (str): Target file name.
+        file (str or file-like): Target file to write to.
         obj: Object to be serialized. It must support serialization protocol.
         compression (bool): If ``True``, compression in the resulting zip file
             is enabled.
 
+    .. seealso::
+        :func:`chainer.serializers.load_npz`
+
     """
+    if isinstance(file, six.string_types):
+        with open(file, 'wb') as f:
+            save_npz(f, obj, compression)
+        return
+
     s = DictionarySerializer()
     s.save(obj)
-    with open(filename, 'wb') as f:
-        if compression:
-            numpy.savez_compressed(f, **s.target)
-        else:
-            numpy.savez(f, **s.target)
+    if compression:
+        numpy.savez_compressed(file, **s.target)
+    else:
+        numpy.savez(file, **s.target)
 
 
 class NpzDeserializer(serializer.Deserializer):
@@ -143,14 +152,14 @@ class NpzDeserializer(serializer.Deserializer):
         return value
 
 
-def load_npz(filename, obj, path='', strict=True):
+def load_npz(file, obj, path='', strict=True):
     """Loads an object from the file in NPZ format.
 
     This is a short-cut function to load from an `.npz` file that contains only
     one object.
 
     Args:
-        filename (str): Name of the file to be loaded.
+        file (str or file-like): File to be loaded.
         obj: Object to be deserialized. It must support serialization protocol.
         path (str): The path in the hierarchy of the serialized data under
             which the data is to be loaded. The default behavior (blank) will
@@ -159,7 +168,10 @@ def load_npz(filename, obj, path='', strict=True):
             expected value is not found in the given NPZ file. Otherwise,
             it ignores the value and skip deserialization.
 
+    .. seealso::
+        :func:`chainer.serializers.save_npz`
+
     """
-    with numpy.load(filename) as f:
+    with numpy.load(file) as f:
         d = NpzDeserializer(f, path=path, strict=strict)
         d.load(obj)

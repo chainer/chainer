@@ -5,7 +5,7 @@ import operator
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.pooling import average_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
 from chainer import utils
@@ -108,7 +108,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
     def create_pool_desc(self):
         return cuda.cudnn.create_pooling_descriptor(
             self.ksize, self.stride, self.pad,
-            cuda.cudnn.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
+            cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
 
 
 def average_pooling_nd(x, ksize, stride=None, pad=0):
