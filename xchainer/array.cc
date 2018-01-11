@@ -25,25 +25,12 @@ namespace xchainer {
 
 Array::Array(const Array& other)
     : shape_(other.shape_),
-      is_contiguous_(other.is_contiguous_),
       dtype_(other.dtype_),
       requires_grad_(other.requires_grad_),
+      is_contiguous_(other.is_contiguous_),
       offset_(other.offset_),
       node_(std::make_shared<ArrayNode>()) {
-    auto bytes = other.total_bytes();
-    if (GetCurrentDevice() == MakeDevice("cpu")) {
-        data_ = std::make_unique<uint8_t[]>(bytes);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-        // TODO(sonots): Better to use abstraction layer such as Allocate or MemoryCopy,
-        // but they do not support all cases such as device to device, yet. We need refactoring.
-        void* ret_ptr = nullptr;
-        cuda::CheckError(cudaMallocManaged(&ret_ptr, bytes, cudaMemAttachGlobal));
-        data_ = std::shared_ptr<void>(ret_ptr, ::cudaFree);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
+    data_ = Allocate(other.total_bytes());
     other.Copy(*this);
 }
 
@@ -120,16 +107,7 @@ void Array::Copy(Array& out) const {
         out_node->set_next_node(op_node);
     }
 
-    Device device = GetCurrentDevice();
-    if (device == MakeDevice("cpu")) {
-        xchainer::Copy(*this, out);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device == MakeDevice("cuda")) {
-        xchainer::cuda::Copy(*this, out);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
+    MemoryCopy(out.data().get(), data_.get(), total_bytes());
 }
 
 void Array::Add(const Array& rhs, Array& out) const {

@@ -84,17 +84,6 @@ public:
         }
     }
 
-    bool IsPointerCudaManaged(const void* ptr) {
-#ifdef XCHAINER_ENABLE_CUDA
-        cudaPointerAttributes attr = {};
-        cuda::CheckError(cudaPointerGetAttributes(&attr, ptr));
-        return attr.isManaged != 0;
-#else
-        (void)ptr;
-        return false;
-#endif  // XCHAINER_ENABLE_CUDA
-    }
-
     template <bool is_const>
     void CheckArray() {
         using TargetArray = std::conditional_t<is_const, const Array, Array>;
@@ -117,7 +106,7 @@ public:
             EXPECT_EQ(data, x_data);
         } else if (GetCurrentDevice() == MakeDevice("cuda")) {
             EXPECT_NE(data, x_data);
-            EXPECT_TRUE(IsPointerCudaManaged(x_data.get()));
+            EXPECT_TRUE(IsPointerCudaMemory(x_data.get()));
         } else {
             FAIL() << "invalid device";
         }
@@ -134,7 +123,7 @@ public:
         if (GetCurrentDevice() == MakeDevice("cpu")) {
             //
         } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_TRUE(IsPointerCudaManaged(x.data().get()));
+            EXPECT_TRUE(IsPointerCudaMemory(x.data().get()));
         } else {
             FAIL() << "invalid device";
         }
@@ -153,7 +142,7 @@ public:
         if (GetCurrentDevice() == MakeDevice("cpu")) {
             //
         } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_TRUE(IsPointerCudaManaged(x.data().get()));
+            EXPECT_TRUE(IsPointerCudaMemory(x.data().get()));
         } else {
             FAIL() << "invalid device";
         }
