@@ -272,11 +272,11 @@ TEST_P(ArrayTest, ConstArrayCtor) { CheckArray<true>(); }
 
 TEST_P(ArrayTest, SetRequiresGrad) {
     Array x = MakeArray<bool>({1}, {true});
-    ASSERT_FALSE(x.requires_grad());
+    EXPECT_FALSE(x.requires_grad());
     x.set_requires_grad(true);
-    ASSERT_TRUE(x.requires_grad());
+    EXPECT_TRUE(x.requires_grad());
     x.set_requires_grad(false);
-    ASSERT_FALSE(x.requires_grad());
+    EXPECT_FALSE(x.requires_grad());
 }
 
 TEST_P(ArrayTest, Empty) {
