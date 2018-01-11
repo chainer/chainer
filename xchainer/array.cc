@@ -94,13 +94,7 @@ const std::shared_ptr<ArrayNode>& Array::RenewNode() {
     return node_;
 }
 
-const Array& Array::grad() const {
-    if (node_->grad()) {
-        return *node_->grad();
-    } else {
-        throw XchainerError("no gradient");
-    }
-}
+const nonstd::optional<Array>& Array::grad() const { return node_->grad(); }
 
 void Array::set_grad(Array grad) { node_->set_grad(std::move(grad)); }
 

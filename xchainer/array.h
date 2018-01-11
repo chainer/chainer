@@ -5,6 +5,7 @@
 #include <utility>
 
 #include <gsl/gsl>
+#include <nonstd/optional.hpp>
 
 #include "xchainer/array_repr.h"
 #include "xchainer/dtype.h"
@@ -66,7 +67,7 @@ public:
 
     const std::shared_ptr<ArrayNode>& RenewNode();
 
-    const Array& grad() const;
+    const nonstd::optional<Array>& grad() const;
 
     void set_grad(Array grad);
 

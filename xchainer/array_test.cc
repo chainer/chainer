@@ -272,14 +272,15 @@ TEST_P(ArrayTest, ConstArrayCtor) { CheckArray<true>(); }
 
 TEST_P(ArrayTest, Grad) {
     Array x = MakeArray<bool>({1}, {true});
-    ASSERT_THROW(x.grad(), XchainerError);
+    ASSERT_FALSE(x.grad());
 
     Array g = MakeArray<bool>({1}, {true});
     x.set_grad(g);
-    AssertEqual<bool>(g, x.grad());
+    ASSERT_TRUE(x.grad());
+    AssertEqual<bool>(g, *x.grad());
 
     x.ClearGrad();
-    ASSERT_THROW(x.grad(), XchainerError);
+    ASSERT_FALSE(x.grad());
 }
 
 TEST_P(ArrayTest, Empty) {
