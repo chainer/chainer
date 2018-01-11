@@ -21,8 +21,7 @@ public:
 
     const nonstd::optional<Array>& grad() const { return grad_; }
 
-    void set_grad(const Array& grad) { grad_.emplace(grad); };
-    void set_grad(Array&& grad) { grad_.emplace(grad); };
+    void set_grad(Array grad) { grad_.emplace(std::move(grad)); };
 
     void ClearGrad() { grad_ = nonstd::nullopt; }
 

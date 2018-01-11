@@ -102,8 +102,7 @@ const Array& Array::grad() const {
     }
 }
 
-void Array::set_grad(const Array& grad) { node_->set_grad(grad); }
-void Array::set_grad(Array&& grad) { node_->set_grad(std::move(grad)); }
+void Array::set_grad(Array grad) { node_->set_grad(std::move(grad)); }
 
 void Array::ClearGrad() { node_->ClearGrad(); }
 

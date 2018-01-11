@@ -68,8 +68,7 @@ public:
 
     const Array& grad() const;
 
-    void set_grad(const Array& grad);
-    void set_grad(Array&& grad);
+    void set_grad(Array grad);
 
     void ClearGrad();
 
