@@ -510,6 +510,8 @@ class Optimizer(object):
 
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
+        if timing not in ('pre', 'post'):
+            raise ValueError("timing must be either 'pre' or 'post'")
         if timing == 'pre':
             hooks = self._pre_update_hooks
         else:
@@ -602,10 +604,14 @@ class GradientMethod(Optimizer):
                     xp = cuda.get_array_module(param.data)
                     param.grad = xp.zeros_like(param.data)
 
-    def call_hooks(self, hooks=None):
+    def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
-        if hooks is None:
+        if timing not in ('pre', 'post'):
+            raise ValueError("timing must be either 'pre' or 'post'")
+        if timing == 'pre':
             hooks = self._pre_update_hooks
+        else:
+            hooks = self._post_update_hooks
         for hook in six.itervalues(hooks):
             self._call_hook(hook)
             self.reallocate_cleared_grads()
