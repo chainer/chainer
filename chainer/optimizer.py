@@ -643,7 +643,7 @@ class GradientMethod(Optimizer):
 
         self.reallocate_cleared_grads()
 
-        self.call_hooks(self._pre_update_hooks)
+        self.call_hooks('pre')
 
         self.t += 1
         for param in self.target.params():
@@ -651,7 +651,7 @@ class GradientMethod(Optimizer):
 
         self.reallocate_cleared_grads()
 
-        self.call_hooks(self._post_update_hooks)
+        self.call_hooks('post')
 
     def use_cleargrads(self, use=True):
         """Enables or disables use of :func:`~chainer.Link.cleargrads` in `update`.
@@ -740,6 +740,9 @@ class WeightDecay(object):
                          Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
 
+    .. versionadded:: 4.0.0
+       The *timing* parameter.
+
     """
     name = 'WeightDecay'
     call_for_each_param = True
@@ -775,6 +778,9 @@ class Lasso(object):
         timing (string): Specifies when this hook should be called by the
                          Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
+
+    .. versionadded:: 4.0.0
+       The *timing* parameter.
 
     """
     name = 'Lasso'
@@ -813,6 +819,9 @@ class GradientClipping(object):
         timing (string): Specifies when this hook should be called by the
                          Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
+
+    .. versionadded:: 4.0.0
+       The *timing* parameter.
 
     """
     name = 'GradientClipping'
@@ -865,6 +874,9 @@ class GradientNoise(object):
                          Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
 
+    .. versionadded:: 4.0.0
+       The *timing* parameter.
+
     """
     name = 'GradientNoise'
     call_for_each_param = True
@@ -906,6 +918,9 @@ class GradientHardClipping(object):
         timing (string): Specifies when this hook should be called by the
                          Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
+
+    .. versionadded:: 4.0.0
+       The *timing* parameter.
 
     """
     name = 'GradientHardClipping'
