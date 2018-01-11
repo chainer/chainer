@@ -89,6 +89,11 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool r
     }
 }
 
+const std::shared_ptr<ArrayNode>& Array::RenewNode() {
+    node_ = std::make_shared<ArrayNode>();
+    return node_;
+}
+
 const Array& Array::grad() const {
     if (node_->grad()) {
         return *node_->grad();
