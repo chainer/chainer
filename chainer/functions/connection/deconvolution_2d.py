@@ -212,9 +212,6 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         N, xC, xH, xW = x.shape
         xCg = int(xC / G)
         _, yCg, kH, kW = W.shape
-        yC = yCg * G
-        yH = self.outh
-        yW = self.outw
 
         xp = cuda.get_array_module(x)
 
@@ -233,8 +230,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 _y = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
             _ys.append(_y)
 
-        y = xp.stack(_ys, axis=1)  # (N, G, yCg, yH, yW)
-        y = y.reshape(N, yC, yH, yW)
+        y = xp.concatenate(_ys, axis=1)  # (N, yC, yH, yW)
         return y
 
     def _forward_cudnn(self, x, W, b):
