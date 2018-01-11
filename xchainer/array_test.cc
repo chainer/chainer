@@ -221,7 +221,7 @@ public:
         ASSERT_NE(x.data(), nullptr);
         ASSERT_EQ(x.shape(), Shape({3, 2}));
         ASSERT_EQ(x.dtype(), dtype);
-        T expected = static_cast<T>(0);
+        T expected{0};
         AssertDataEqual(expected, x);
     }
 
@@ -234,7 +234,7 @@ public:
         ASSERT_NE(x.data(), x_orig.data());
         ASSERT_EQ(x.shape(), x_orig.shape());
         ASSERT_EQ(x.dtype(), x_orig.dtype());
-        T expected = static_cast<T>(0);
+        T expected{0};
         AssertDataEqual(expected, x);
     }
 
@@ -245,7 +245,7 @@ public:
         ASSERT_NE(x.data(), nullptr);
         ASSERT_EQ(x.shape(), Shape({3, 2}));
         ASSERT_EQ(x.dtype(), dtype);
-        T expected = static_cast<T>(1);
+        T expected{1};
         AssertDataEqual(expected, x);
     }
 
@@ -258,7 +258,7 @@ public:
         ASSERT_NE(x.data(), x_orig.data());
         ASSERT_EQ(x.shape(), x_orig.shape());
         ASSERT_EQ(x.dtype(), x_orig.dtype());
-        T expected = static_cast<T>(1);
+        T expected{1};
         AssertDataEqual(expected, x);
     }
 
@@ -304,115 +304,115 @@ TEST_P(ArrayTest, EmptyLike) {
 TEST_P(ArrayTest, Fill) {
     CheckFill(true);
     CheckFill(false);
-    CheckFill(static_cast<int8_t>(0));
-    CheckFill(static_cast<int8_t>(-1));
-    CheckFill(static_cast<int8_t>(5));
-    CheckFill(static_cast<int8_t>(-128));
-    CheckFill(static_cast<int8_t>(127));
-    CheckFill(static_cast<int16_t>(0));
-    CheckFill(static_cast<int16_t>(-3));
-    CheckFill(static_cast<int32_t>(0));
-    CheckFill(static_cast<int32_t>(-3));
-    CheckFill(static_cast<int64_t>(0));
-    CheckFill(static_cast<int64_t>(-3));
-    CheckFill(static_cast<uint8_t>(0));
-    CheckFill(static_cast<uint8_t>(255));
-    CheckFill(static_cast<float>(0.f));
-    CheckFill(static_cast<float>(std::numeric_limits<float>::infinity()));
-    CheckFill(static_cast<float>(std::nanf("")));
-    CheckFill(static_cast<double>(0.f));
-    CheckFill(static_cast<double>(std::numeric_limits<double>::infinity()));
-    CheckFill(static_cast<double>(std::nan("")));
+    CheckFill(int8_t{0});
+    CheckFill(int8_t{-1});
+    CheckFill(int8_t{5});
+    CheckFill(int8_t{-128});
+    CheckFill(int8_t{127});
+    CheckFill(int16_t{0});
+    CheckFill(int16_t{-3});
+    CheckFill(int32_t{0});
+    CheckFill(int32_t{-3});
+    CheckFill(int64_t{0});
+    CheckFill(int64_t{-3});
+    CheckFill(uint8_t{0});
+    CheckFill(uint8_t{255});
+    CheckFill(float{0});
+    CheckFill(float{std::numeric_limits<float>::infinity()});
+    CheckFill(float{std::nanf("")});
+    CheckFill(double{0});
+    CheckFill(double{std::numeric_limits<double>::infinity()});
+    CheckFill(double{std::nan("")});
 
-    CheckFill(true, Scalar(1));
-    CheckFill(true, Scalar(2));
-    CheckFill(true, Scalar(-1));
-    CheckFill(false, Scalar(0));
-    CheckFill(static_cast<int8_t>(1), Scalar(1));
-    CheckFill(static_cast<int8_t>(1), Scalar(1L));
-    CheckFill(static_cast<int8_t>(1), Scalar(static_cast<uint8_t>(1)));
-    CheckFill(static_cast<int8_t>(1), Scalar(true));
-    CheckFill(static_cast<int8_t>(1), Scalar(1.0f));
-    CheckFill(static_cast<int8_t>(1), Scalar(1.0));
-    CheckFill(static_cast<int16_t>(1), Scalar(1));
-    CheckFill(static_cast<int16_t>(1), Scalar(1L));
-    CheckFill(static_cast<int16_t>(1), Scalar(static_cast<uint8_t>(1)));
-    CheckFill(static_cast<int16_t>(1), Scalar(true));
-    CheckFill(static_cast<int16_t>(1), Scalar(1.0f));
-    CheckFill(static_cast<int16_t>(1), Scalar(1.0));
-    CheckFill(static_cast<int32_t>(1), Scalar(1));
-    CheckFill(static_cast<int32_t>(1), Scalar(1L));
-    CheckFill(static_cast<int32_t>(1), Scalar(static_cast<uint8_t>(1)));
-    CheckFill(static_cast<int32_t>(1), Scalar(true));
-    CheckFill(static_cast<int32_t>(1), Scalar(1.0f));
-    CheckFill(static_cast<int32_t>(1), Scalar(1.0));
-    CheckFill(static_cast<int64_t>(1), Scalar(1));
-    CheckFill(static_cast<int64_t>(1), Scalar(1L));
-    CheckFill(static_cast<int64_t>(1), Scalar(static_cast<uint8_t>(1)));
-    CheckFill(static_cast<int64_t>(1), Scalar(true));
-    CheckFill(static_cast<int64_t>(1), Scalar(1.0f));
-    CheckFill(static_cast<int64_t>(1), Scalar(1.0));
-    CheckFill(static_cast<uint8_t>(1), Scalar(1));
-    CheckFill(static_cast<uint8_t>(1), Scalar(1L));
-    CheckFill(static_cast<uint8_t>(1), Scalar(static_cast<uint8_t>(1)));
-    CheckFill(static_cast<uint8_t>(1), Scalar(true));
-    CheckFill(static_cast<uint8_t>(1), Scalar(1.0f));
-    CheckFill(static_cast<uint8_t>(1), Scalar(1.0));
-    CheckFill(static_cast<float>(1), Scalar(1));
-    CheckFill(static_cast<float>(1), Scalar(1L));
-    CheckFill(static_cast<float>(1), Scalar(static_cast<uint8_t>(1)));
-    CheckFill(static_cast<float>(1), Scalar(true));
-    CheckFill(static_cast<float>(1), Scalar(1.0f));
-    CheckFill(static_cast<float>(1), Scalar(1.0));
-    CheckFill(static_cast<double>(1), Scalar(1));
-    CheckFill(static_cast<double>(1), Scalar(1L));
-    CheckFill(static_cast<double>(1), Scalar(static_cast<uint8_t>(1)));
-    CheckFill(static_cast<double>(1), Scalar(true));
-    CheckFill(static_cast<double>(1), Scalar(1.0f));
-    CheckFill(static_cast<double>(1), Scalar(1.0));
+    CheckFill(true, Scalar(int32_t{1}));
+    CheckFill(true, Scalar(int32_t{2}));
+    CheckFill(true, Scalar(int32_t{-1}));
+    CheckFill(false, Scalar(int32_t{0}));
+    CheckFill(int8_t{1}, Scalar(int32_t{1}));
+    CheckFill(int8_t{1}, Scalar(int64_t{1}));
+    CheckFill(int8_t{1}, Scalar(uint8_t{1}));
+    CheckFill(int8_t{1}, Scalar(true));
+    CheckFill(int8_t{1}, Scalar(1.0f));
+    CheckFill(int8_t{1}, Scalar(1.0));
+    CheckFill(int16_t{1}, Scalar(int32_t{1}));
+    CheckFill(int16_t{1}, Scalar(int64_t{1}));
+    CheckFill(int16_t{1}, Scalar(uint8_t{1}));
+    CheckFill(int16_t{1}, Scalar(true));
+    CheckFill(int16_t{1}, Scalar(1.0f));
+    CheckFill(int16_t{1}, Scalar(1.0));
+    CheckFill(int32_t{1}, Scalar(int32_t{1}));
+    CheckFill(int32_t{1}, Scalar(int64_t{1}));
+    CheckFill(int32_t{1}, Scalar(uint8_t{1}));
+    CheckFill(int32_t{1}, Scalar(true));
+    CheckFill(int32_t{1}, Scalar(1.0f));
+    CheckFill(int32_t{1}, Scalar(1.0));
+    CheckFill(int64_t{1}, Scalar(int32_t{1}));
+    CheckFill(int64_t{1}, Scalar(int64_t{1}));
+    CheckFill(int64_t{1}, Scalar(uint8_t{1}));
+    CheckFill(int64_t{1}, Scalar(true));
+    CheckFill(int64_t{1}, Scalar(1.0f));
+    CheckFill(int64_t{1}, Scalar(1.0));
+    CheckFill(uint8_t{1}, Scalar(int32_t{1}));
+    CheckFill(uint8_t{1}, Scalar(int64_t{1}));
+    CheckFill(uint8_t{1}, Scalar(uint8_t{1}));
+    CheckFill(uint8_t{1}, Scalar(true));
+    CheckFill(uint8_t{1}, Scalar(1.0f));
+    CheckFill(uint8_t{1}, Scalar(1.0));
+    CheckFill(float{1}, Scalar(int32_t{1}));
+    CheckFill(float{1}, Scalar(int64_t{1}));
+    CheckFill(float{1}, Scalar(uint8_t{1}));
+    CheckFill(float{1}, Scalar(true));
+    CheckFill(float{1}, Scalar(1.0f));
+    CheckFill(float{1}, Scalar(1.0));
+    CheckFill(double{1}, Scalar(int32_t{1}));
+    CheckFill(double{1}, Scalar(int64_t{1}));
+    CheckFill(double{1}, Scalar(uint8_t{1}));
+    CheckFill(double{1}, Scalar(true));
+    CheckFill(double{1}, Scalar(1.0f));
+    CheckFill(double{1}, Scalar(1.0));
 }
 
 TEST_P(ArrayTest, FullWithGivenDtype) {
     CheckFullWithGivenDtype(true);
-    CheckFullWithGivenDtype(static_cast<int8_t>(2));
-    CheckFullWithGivenDtype(static_cast<int16_t>(2));
-    CheckFullWithGivenDtype(static_cast<int32_t>(2));
-    CheckFullWithGivenDtype(static_cast<int64_t>(2));
-    CheckFullWithGivenDtype(static_cast<uint8_t>(2));
-    CheckFullWithGivenDtype(static_cast<float>(2.0f));
-    CheckFullWithGivenDtype(static_cast<double>(2.0f));
+    CheckFullWithGivenDtype(int8_t{2});
+    CheckFullWithGivenDtype(int16_t{2});
+    CheckFullWithGivenDtype(int32_t{2});
+    CheckFullWithGivenDtype(int64_t{2});
+    CheckFullWithGivenDtype(uint8_t{2});
+    CheckFullWithGivenDtype(float{2.0f});
+    CheckFullWithGivenDtype(double{2.0});
 
-    CheckFullWithGivenDtype(true, Scalar(1));
-    CheckFullWithGivenDtype(true, Scalar(2));
-    CheckFullWithGivenDtype(true, Scalar(-1));
-    CheckFullWithGivenDtype(false, Scalar(0));
+    CheckFullWithGivenDtype(true, Scalar(int32_t{1}));
+    CheckFullWithGivenDtype(true, Scalar(int32_t{2}));
+    CheckFullWithGivenDtype(true, Scalar(int32_t{-1}));
+    CheckFullWithGivenDtype(false, Scalar(int32_t{0}));
 }
 
 TEST_P(ArrayTest, FullWithScalarDtype) {
     CheckFullWithScalarDtype(true);
-    CheckFullWithScalarDtype(static_cast<int8_t>(2));
-    CheckFullWithScalarDtype(static_cast<int16_t>(2));
-    CheckFullWithScalarDtype(static_cast<int32_t>(2));
-    CheckFullWithScalarDtype(static_cast<int64_t>(2));
-    CheckFullWithScalarDtype(static_cast<uint8_t>(2));
-    CheckFullWithScalarDtype(static_cast<float>(2.0f));
-    CheckFullWithScalarDtype(static_cast<double>(2.0f));
+    CheckFullWithScalarDtype(int8_t{2});
+    CheckFullWithScalarDtype(int16_t{2});
+    CheckFullWithScalarDtype(int32_t{2});
+    CheckFullWithScalarDtype(int64_t{2});
+    CheckFullWithScalarDtype(uint8_t{2});
+    CheckFullWithScalarDtype(float{2.0f});
+    CheckFullWithScalarDtype(double{2.0});
 }
 
 TEST_P(ArrayTest, FullLike) {
     CheckFullLike(true);
-    CheckFullLike(static_cast<int8_t>(2));
-    CheckFullLike(static_cast<int16_t>(2));
-    CheckFullLike(static_cast<int32_t>(2));
-    CheckFullLike(static_cast<int64_t>(2));
-    CheckFullLike(static_cast<uint8_t>(2));
-    CheckFullLike(static_cast<float>(2.0f));
-    CheckFullLike(static_cast<double>(2.0f));
+    CheckFullLike(int8_t{2});
+    CheckFullLike(int16_t{2});
+    CheckFullLike(int32_t{2});
+    CheckFullLike(int64_t{2});
+    CheckFullLike(uint8_t{2});
+    CheckFullLike(float{2.0f});
+    CheckFullLike(double{2.0});
 
-    CheckFullLike(true, Scalar(1));
-    CheckFullLike(true, Scalar(2));
-    CheckFullLike(true, Scalar(-1));
-    CheckFullLike(false, Scalar(0));
+    CheckFullLike(true, Scalar(int32_t{1}));
+    CheckFullLike(true, Scalar(int32_t{2}));
+    CheckFullLike(true, Scalar(int32_t{-1}));
+    CheckFullLike(false, Scalar(int32_t{0}));
 }
 
 TEST_P(ArrayTest, Zeros) {

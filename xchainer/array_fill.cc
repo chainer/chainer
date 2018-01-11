@@ -9,7 +9,7 @@ namespace xchainer {
 void Fill(Array& out, Scalar value) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        auto c_value = static_cast<T>(value);
+        T c_value{value};
 
         int64_t size = out.total_size();
         auto* ptr = static_cast<T*>(out.data().get());
