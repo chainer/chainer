@@ -69,4 +69,31 @@ void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t size) {
     }
 }
 
+std::shared_ptr<void> MemoryFromBuffer(const std::shared_ptr<void>& src_ptr, size_t size) {
+#ifdef XCHAINER_ENABLE_CUDA
+    Device device = GetCurrentDevice();
+    if (device == MakeDevice("cpu")) {
+        if (IsPointerCudaMemory(src_ptr.get())) {
+            std::shared_ptr<void> dst_ptr = Allocate(size);
+            cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), size, cudaMemcpyDeviceToHost));
+            return dst_ptr;
+        } else {
+            return src_ptr;
+        }
+    } else if (device == MakeDevice("cuda")) {
+        if (IsPointerCudaMemory(src_ptr.get())) {
+            return src_ptr;
+        } else {
+            std::shared_ptr<void> dst_ptr = Allocate(size);
+            cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), size, cudaMemcpyHostToDevice));
+            return dst_ptr;
+        }
+    } else {
+        throw DeviceError("invalid device");
+    }
+#else
+    return src_ptr;
+#endif  // XCHAINER_ENABLE_CUDA
+}
+
 }  // namespace
