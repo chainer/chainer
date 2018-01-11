@@ -272,15 +272,15 @@ TEST_P(ArrayTest, ConstArrayCtor) { CheckArray<true>(); }
 
 TEST_P(ArrayTest, Grad) {
     Array x = MakeArray<bool>({1}, {true});
-    ASSERT_FALSE(x.grad());
+    EXPECT_FALSE(x.grad());
 
     Array g = MakeArray<bool>({1}, {true});
     x.set_grad(g);
-    ASSERT_TRUE(x.grad());
+    EXPECT_TRUE(x.grad());
     AssertEqual<bool>(g, *x.grad());
 
     x.ClearGrad();
-    ASSERT_FALSE(x.grad());
+    EXPECT_FALSE(x.grad());
 }
 
 TEST_P(ArrayTest, Empty) {
