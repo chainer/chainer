@@ -25,8 +25,8 @@ __global__ void MulKernel(const T* ldata, const T* rdata, T* odata, int64_t tota
 
 }  // namespace
 
-void Copy(const Array& rhs, Array& out) {
-    cuda::CheckError(cudaMemcpy(out.data().get(), rhs.data().get(), rhs.total_bytes(), cudaMemcpyDeviceToDevice));
+void Copy(const Array& src, Array& out) {
+    cuda::CheckError(cudaMemcpy(out.data().get(), src.data().get(), src.total_bytes(), cudaMemcpyDeviceToDevice));
 }
 
 // TODO(sonots): support stream

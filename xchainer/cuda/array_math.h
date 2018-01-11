@@ -5,7 +5,7 @@
 namespace xchainer {
 namespace cuda {
 
-void Copy(const Array& rhs, Array& out);
+void Copy(const Array& src, Array& out);
 void Add(const Array& lhs, const Array& rhs, Array& out);
 void Mul(const Array& lhs, const Array& rhs, Array& out);
 
