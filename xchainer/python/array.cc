@@ -68,7 +68,7 @@ Array MakeArray(const Shape& shape, Dtype dtype, py::list list) {
         using T = typename decltype(pt)::type;
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
-    return Array{shape, dtype, ptr};
+    return Array::FromBuffer(shape, dtype, ptr);
 }
 
 std::unique_ptr<Array> MakeArray(py::array array) {
@@ -84,7 +84,7 @@ std::unique_ptr<Array> MakeArray(py::array array) {
     // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
     std::shared_ptr<void> data(std::make_shared<py::array>(std::move(array)), array.mutable_data());
 
-    return std::make_unique<Array>(shape, dtype, data);
+    return std::make_unique<Array>(Array::FromBuffer(shape, dtype, data));
 }
 
 py::buffer_info MakeNumpyArrayFromArray(Array& self) {
