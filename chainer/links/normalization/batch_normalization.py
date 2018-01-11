@@ -82,11 +82,6 @@ class BatchNormalization(link.Link):
         self._axis = (axis,) if isinstance(axis, int) else tuple(axis)
         self._dtype = dtype
 
-        self.avg_mean = numpy.zeros(self._size, dtype=self._dtype)
-        self.register_persistent('avg_mean')
-        self.avg_var = numpy.zeros(self._size, dtype=self._dtype)
-        self.register_persistent('avg_var')
-
         with self.init_scope():
             if use_gamma:
                 if initial_gamma is None:
@@ -102,12 +97,11 @@ class BatchNormalization(link.Link):
                 beta_initializer.dtype = self._dtype
                 self.beta = variable.Parameter(beta_initializer)
 
-        if self._size is not None:
-            self._initialize_params(self._size)
-
     def _initialize_params(self, shape):
         self.avg_mean = numpy.zeros(shape, dtype=self._dtype)
+        self.register_persistent('avg_mean')
         self.avg_var = numpy.zeros(shape, dtype=self._dtype)
+        self.register_persistent('avg_var')
         if hasattr(self, 'gamma'):
             self.gamma.initialize(shape)
         if hasattr(self, 'beta'):
@@ -137,7 +131,7 @@ class BatchNormalization(link.Link):
                 statistics.
 
         """
-        if not self.avg_mean.shape:
+        if self.gamma.data is None:
             if self._size is not None:
                 self._initialize_params(self._size)
             else:
