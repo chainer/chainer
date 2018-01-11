@@ -186,8 +186,8 @@ def hinge(x, t, norm='L1', reduce='mean'):
         >>> F.hinge(x, t)
         variable(2.5)
         >>> F.hinge(x, t, reduce='no')
-        variable([[ 0. ,  0. ,  1.5],
-                  [ 0. ,  3. ,  0.5]])
+        variable([[0. , 0. , 1.5],
+                  [0. , 3. , 0.5]])
         >>> F.hinge(x, t, norm='L2')
         variable(5.75)
 

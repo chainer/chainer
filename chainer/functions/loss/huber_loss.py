@@ -111,8 +111,8 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
         >>> y.shape
         (2, 3)
         >>> y
-        variable([[ 0.   ,  0.   ,  0.125],
-                  [ 4.5  ,  0.   ,  0.   ]])
+        variable([[0.   , 0.   , 0.125],
+                  [4.5  , 0.   , 0.   ]])
 
         Example with reduction along the second axis.
 
@@ -120,7 +120,7 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
         >>> y.shape
         (2,)
         >>> y
-        variable([ 0.125,  4.5  ])
+        variable([0.125, 4.5  ])
 
     """
     return HuberLoss(delta=delta, reduce=reduce)(x, t)

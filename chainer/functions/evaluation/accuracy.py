@@ -87,14 +87,14 @@ y(i, j, k, ...)`.
         >>> t = np.array([1, 0, 2, 1], 'i')
         >>> F.accuracy(y, t).data \
 # 100% accuracy because all samples are correct
-        array(1.0)
+        array(1.)
         >>> t = np.array([1, 0, 0, 0], 'i')
         >>> F.accuracy(y, t).data \
 # 50% accuracy because 1st and 2nd samples are correct.
         array(0.5)
         >>> F.accuracy(y, t, ignore_label=0).data \
 # 100% accuracy because of ignoring the 2nd, 3rd and 4th samples.
-        array(1.0)
+        array(1.)
 
     """
     return Accuracy(ignore_label=ignore_label)(y, t)

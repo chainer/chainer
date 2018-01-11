@@ -85,23 +85,23 @@ def sum(x, axis=None, keepdims=False):
 
         >>> x = np.arange(6).reshape(2,3).astype('f')
         >>> x
-        array([[ 0.,  1.,  2.],
-               [ 3.,  4.,  5.]], dtype=float32)
+        array([[0., 1., 2.],
+               [3., 4., 5.]], dtype=float32)
         >>> y = F.sum(x)
         >>> y.shape
         ()
         >>> y.data
-        array(15.0, dtype=float32)
+        array(15., dtype=float32)
         >>> y = F.sum(x, axis=1)
         >>> y.shape
         (2,)
         >>> y.data
-        array([  3.,  12.], dtype=float32)
+        array([ 3., 12.], dtype=float32)
         >>> y = F.sum(x, keepdims=True)
         >>> y.shape
         (1, 1)
         >>> y.data
-        array([[ 15.]], dtype=float32)
+        array([[15.]], dtype=float32)
 
     """
     y, = Sum(axis, keepdims).apply((x,))
