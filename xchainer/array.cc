@@ -90,15 +90,15 @@ Array& Array::operator*=(const Array& rhs) {
 }
 
 Array Array::operator+(const Array& rhs) const {
-    bool requires_grad = (requires_grad_ || rhs.requires_grad());
-    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes()), requires_grad, 0};
+    Array out = Array::EmptyLike(*this);
+    out.set_requires_grad(requires_grad_ || rhs.requires_grad());
     Add(rhs, out);
     return out;
 }
 
 Array Array::operator*(const Array& rhs) const {
-    bool requires_grad = (requires_grad_ || rhs.requires_grad());
-    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes()), requires_grad, 0};
+    Array out = Array::EmptyLike(*this);
+    out.set_requires_grad(requires_grad_ || rhs.requires_grad());
     Mul(rhs, out);
     return out;
 }
