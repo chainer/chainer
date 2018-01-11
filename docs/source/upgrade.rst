@@ -8,57 +8,6 @@ This is a list of changes introduced in each release that users should be aware 
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
 
-Chainer v4
-==========
-
-Introduction of Backend Namespace
----------------------------------
-
-We introduced ``chainer.backends`` subpackage for future support of various backend libraries other than NumPy and CuPy.
-By this change, ``chainer.cuda`` module is now moved to ``chainer.backends.cuda``.
-
-This does not break the existing code; you can safely continue to use ``chainer.cuda`` (e.g., ``from chainer import cuda``) but it is now encouraged to use ``from chainer.backends import cuda`` instead.
-
-Namespace Changes for Updaters
-------------------------------
-
-:class:`chainer.training.StandardUpdater` and :class:`chainer.training.ParallelUpdater` are now moved to :class:`chainer.training.updaters.StandardUpdater` and :class:`chainer.training.updaters.ParallelUpdater` respectively, to align with the namespace convention of other subpackages.
-See the discussion in `#2982 <https://github.com/chainer/chainer/pull/2982>`_ for more details.
-
-This change does not break the existing code; you can safely continue to use updater classes directly under ``chainer.training`` but it is now encouraged to use ``chainer.training.updaters`` instead.
-
-Prohibition of Mixed Use of Arrays on Different Devices in Function Arguments
------------------------------------------------------------------------------
-
-Argument validation of functions is now strictened to check device consistency of argument variables to provide better error messages to users.
-Suppose the following code:
-
-.. code-block:: py
-
-   v1 = chainer.Variable(np.arange(10, dtype=np.float32))      # CPU
-   v2 = chainer.Variable(cupy.arange(10, dtype=cupy.float32))  # GPU
-
-   # The line below raises an exception, because arguments are on different device.
-   F.maximum(v1, v2)
-
-Prior to v4, the above code raises an exception like ``ValueError: object __array__ method not producing an array``, which was difficult to understand.
-In v4, the error message would become ``ValueError: numpy and cupy arrays are mixed in the forward input (Maximum)``.
-This kind of error usually occurs by mistake (for example, not performing ``to_gpu`` for some variables).
-
-.. attention::
-
-   As the argument validation is strictened, call of functions intentionally mixing NumPy/CuPy arrays in arguments will not work in Chainer v4.
-   Please transfer all arrays to the same device before calling functions.
-
-Update of Docker Images
------------------------
-
-Chainer official Docker images (see :doc:`install` for details) are now updated to use CUDA 8.0 and cuDNN 6.0.
-This change was introduced because CUDA 7.5 does not support NVIDIA Pascal GPUs.
-
-To use these images, you may need to upgrade the NVIDIA driver on your host.
-See `Requirements of nvidia-docker <https://github.com/NVIDIA/nvidia-docker/wiki/CUDA#requirements>`_ for details.
-
 Chainer v3
 ==========
 
