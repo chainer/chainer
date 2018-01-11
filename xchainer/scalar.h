@@ -52,7 +52,7 @@ public:
             case Dtype::kFloat64:
                 return -float64_;
             default:
-                assert(0);  // should never be reached
+                assert(false);  // should never be reached
         }
         return 0;
     }
@@ -98,7 +98,7 @@ private:
             case Dtype::kFloat64:
                 return float64_;
             default:
-                assert(0);  // should never be reached
+                assert(false);  // should never be reached
         }
         return T{};
     }
