@@ -167,8 +167,8 @@ Array Array::operator*(const Array& rhs) const {
 void Array::Copy(Array& out) const {
     if (requires_grad_) {
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-        auto func = [](const Array& gout) { return gout; };
-        auto backward_functions = std::vector<std::function<Array(const Array&)>>{func};
+        auto in_func = [](const Array& gout) { return gout; };
+        auto backward_functions = std::vector<std::function<Array(const Array&)>>{in_func};
         std::shared_ptr<OpNode> op_node =
             std::make_shared<OpNode>("copy", std::vector<std::shared_ptr<const ArrayNode>>{node_}, backward_functions);
         out_node->set_next_node(op_node);
