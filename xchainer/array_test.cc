@@ -270,6 +270,15 @@ TEST_P(ArrayTest, ArrayCtor) { CheckArray<false>(); }
 
 TEST_P(ArrayTest, ConstArrayCtor) { CheckArray<true>(); }
 
+TEST_P(ArrayTest, SetRequiresGrad) {
+    Array x = MakeArray<bool>({1}, {true});
+    EXPECT_FALSE(x.requires_grad());
+    x.set_requires_grad(true);
+    EXPECT_TRUE(x.requires_grad());
+    x.set_requires_grad(false);
+    EXPECT_FALSE(x.requires_grad());
+}
+
 TEST_P(ArrayTest, Empty) {
     CheckEmpty<bool>();
     CheckEmpty<int8_t>();
