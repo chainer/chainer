@@ -1,6 +1,5 @@
 #include "xchainer/array_repr.h"
 
-#include <cassert>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
@@ -220,34 +219,7 @@ struct ArrayReprImpl {
 }  // namespace
 
 std::ostream& operator<<(std::ostream& os, const Array& array) {
-    switch (array.dtype()) {
-        case Dtype::kBool:
-            ArrayReprImpl{}.operator()<bool>(array, array.data(), os);
-            break;
-        case Dtype::kInt8:
-            ArrayReprImpl{}.operator()<int8_t>(array, array.data(), os);
-            break;
-        case Dtype::kInt16:
-            ArrayReprImpl{}.operator()<int16_t>(array, array.data(), os);
-            break;
-        case Dtype::kInt32:
-            ArrayReprImpl{}.operator()<int32_t>(array, array.data(), os);
-            break;
-        case Dtype::kInt64:
-            ArrayReprImpl{}.operator()<int64_t>(array, array.data(), os);
-            break;
-        case Dtype::kUInt8:
-            ArrayReprImpl{}.operator()<uint8_t>(array, array.data(), os);
-            break;
-        case Dtype::kFloat32:
-            ArrayReprImpl{}.operator()<float>(array, array.data(), os);
-            break;
-        case Dtype::kFloat64:
-            ArrayReprImpl{}.operator()<double>(array, array.data(), os);
-            break;
-        default:
-            assert(0);
-    }
+    VisitDtype(array.dtype(), [&](auto pt) { ArrayReprImpl{}.operator()<typename decltype(pt)::type>(array, array.data(), os); });
     return os;
 }
 

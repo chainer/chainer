@@ -62,39 +62,12 @@ Array MakeArray(const Shape& shape, Dtype dtype, py::list list) {
         throw DimensionError("Invalid data length");
     }
 
+    // Allocate a buffer and copy data
     std::shared_ptr<void> ptr = std::make_unique<uint8_t[]>(bytes);
-    auto func = [&](auto dummy) {
-        using T = decltype(dummy);
-        std::transform(list.begin(), list.end(), reinterpret_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
-    };
-    switch (dtype) {
-        case Dtype::kBool:
-            func(static_cast<bool>(0));
-            break;
-        case Dtype::kInt8:
-            func(static_cast<int8_t>(0));
-            break;
-        case Dtype::kInt16:
-            func(static_cast<int16_t>(0));
-            break;
-        case Dtype::kInt32:
-            func(static_cast<int32_t>(0));
-            break;
-        case Dtype::kInt64:
-            func(static_cast<int64_t>(0));
-            break;
-        case Dtype::kUInt8:
-            func(static_cast<uint8_t>(0));
-            break;
-        case Dtype::kFloat32:
-            func(static_cast<float>(0));
-            break;
-        case Dtype::kFloat64:
-            func(static_cast<double>(0));
-            break;
-        default:
-            assert(0);
-    }
+    VisitDtype(dtype, [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
+    });
     return Array{shape, dtype, ptr};
 }
 
@@ -156,41 +129,16 @@ void InitXchainerArray(pybind11::module& m) {
                                [](const Array& self) {  // This method is a stub for testing
                                    py::list list;
                                    auto size = self.total_size();
-                                   auto func = [&](auto dummy) {
-                                       using T = decltype(dummy);
+
+                                   // Copy data into the list
+                                   VisitDtype(self.dtype(), [&](auto pt) {
+                                       using T = typename decltype(pt)::type;
                                        const T& data = *std::static_pointer_cast<const T>(self.data());
                                        for (int64_t i = 0; i < size; ++i) {
                                            list.append((&data)[i]);
                                        }
-                                   };
-                                   switch (self.dtype()) {
-                                       case Dtype::kBool:
-                                           func(static_cast<bool>(0));
-                                           break;
-                                       case Dtype::kInt8:
-                                           func(static_cast<int8_t>(0));
-                                           break;
-                                       case Dtype::kInt16:
-                                           func(static_cast<int16_t>(0));
-                                           break;
-                                       case Dtype::kInt32:
-                                           func(static_cast<int32_t>(0));
-                                           break;
-                                       case Dtype::kInt64:
-                                           func(static_cast<int64_t>(0));
-                                           break;
-                                       case Dtype::kUInt8:
-                                           func(static_cast<uint8_t>(0));
-                                           break;
-                                       case Dtype::kFloat32:
-                                           func(static_cast<float>(0));
-                                           break;
-                                       case Dtype::kFloat64:
-                                           func(static_cast<double>(0));
-                                           break;
-                                       default:
-                                           assert(0);
-                                   }
+                                   });
+
                                    return list;
                                });
 }

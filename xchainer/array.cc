@@ -89,6 +89,29 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool r
     }
 }
 
+Array::Array(const Array& other)
+    : shape_(other.shape_),
+      is_contiguous_(other.is_contiguous_),
+      dtype_(other.dtype_),
+      requires_grad_(other.requires_grad_),
+      offset_(other.offset_) {
+    auto bytes = other.total_bytes();
+    if (GetCurrentDevice() == MakeDevice("cpu")) {
+        data_ = std::make_unique<uint8_t[]>(bytes);
+#ifdef XCHAINER_ENABLE_CUDA
+    } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+        // TODO(sonots): Better to use abstraction layer such as Allocate or MemoryCopy,
+        // but they do not support all cases such as device to device, yet. We need refactoring.
+        void* ret_ptr = nullptr;
+        cuda::CheckError(cudaMallocManaged(&ret_ptr, bytes, cudaMemAttachGlobal));
+        data_ = std::shared_ptr<void>(ret_ptr, ::cudaFree);
+#endif  // XCHAINER_ENABLE_CUDA
+    } else {
+        throw DeviceError("invalid device");
+    }
+    other.Copy(*this);
+}
+
 Array Array::Empty(const Shape& shape, Dtype dtype) {
     size_t size = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
     std::shared_ptr<void> data = Allocate(GetCurrentDevice(), size);
@@ -114,27 +137,6 @@ Array Array::FullLike(const Array& array, const Scalar& scalar) { return Full(ar
 Array Array::ZerosLike(const Array& array) { return Zeros(array.shape(), array.dtype()); }
 
 Array Array::OnesLike(const Array& array) { return Ones(array.shape(), array.dtype()); }
-
-Array Array::DeepCopy() const {
-    auto bytes = total_bytes();
-    if (GetCurrentDevice() == MakeDevice("cpu")) {
-        std::shared_ptr<void> ret_data = std::make_unique<uint8_t[]>(bytes);
-        std::memcpy(ret_data.get(), data_.get(), bytes);
-        return {shape_, dtype_, ret_data, requires_grad_, offset_};
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-        // TODO(sonots): Better to use abstraction layer such as Allocate or MemoryCopy,
-        // but they do not support all cases such as device to device, yet. We need refactoring.
-        void* ret_ptr = nullptr;
-        cuda::CheckError(cudaMallocManaged(&ret_ptr, bytes, cudaMemAttachGlobal));
-        std::shared_ptr<void> ret_data(ret_ptr, ::cudaFree);
-        cuda::CheckError(cudaMemcpy(ret_ptr, data_.get(), bytes, cudaMemcpyDeviceToDevice));
-        return {shape_, dtype_, ret_data, requires_grad_, offset_};
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
-}
 
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
@@ -162,7 +164,33 @@ Array Array::operator*(const Array& rhs) const {
     return out;
 }
 
+void Array::Copy(Array& out) const {
+    if (requires_grad_) {
+        std::shared_ptr<ArrayNode> out_node = out.RenewNode();
+        auto in_func = [](const Array& gout) { return gout; };
+        auto backward_functions = std::vector<std::function<Array(const Array&)>>{in_func};
+        std::shared_ptr<OpNode> op_node =
+            std::make_shared<OpNode>("copy", std::vector<std::shared_ptr<const ArrayNode>>{node_}, backward_functions);
+        out_node->set_next_node(op_node);
+    }
+
+    Device device = GetCurrentDevice();
+    if (device == MakeDevice("cpu")) {
+        xchainer::Copy(*this, out);
+#ifdef XCHAINER_ENABLE_CUDA
+    } else if (device == MakeDevice("cuda")) {
+        xchainer::cuda::Copy(*this, out);
+#endif  // XCHAINER_ENABLE_CUDA
+    } else {
+        throw DeviceError("invalid device");
+    }
+}
+
 void Array::Add(const Array& rhs, Array& out) const {
+    if ((&out == this || &out == &rhs) && out.requires_grad_) {
+        throw XchainerError("In-place operation (Add) is not supported for an array with requires_grad=true.");
+    }
+
     // TODO: dtype conversion
     CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
@@ -195,21 +223,33 @@ void Array::Add(const Array& rhs, Array& out) const {
 }
 
 void Array::Mul(const Array& rhs, Array& out) const {
+    if ((&out == this || &out == &rhs) && out.requires_grad_) {
+        throw XchainerError("In-place operation (Mul) is not supported for an array with requires_grad=true.");
+    }
+
     // TODO: dtype conversion
     CheckEqual(dtype_, rhs.dtype());
     // TODO: broadcasting
     CheckEqual(shape_, rhs.shape());
 
     if (requires_grad_ || rhs.requires_grad()) {
-        // deep copy for in-place operation to keep original input
-        const Array& lhs = (this == &out) ? DeepCopy() : *this;
         std::shared_ptr<const ArrayNode> lhs_node = node();
         std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
         std::function<Array(const Array&)> empty_func;
         // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
-        auto lhs_func = lhs.requires_grad() ? [rhs](const Array& gout) { return gout * rhs; } : empty_func;
-        auto rhs_func = rhs.requires_grad() ? [lhs](const Array& gout) { return gout * lhs; } : empty_func;
+        // TODO(hvy): capture rhs by view (value)
+        auto lhs_func = requires_grad_ ? [rhs](const Array& gout) { return gout * rhs; } : empty_func;
+        auto rhs_func = empty_func;
+        if (rhs.requires_grad()) {
+            if (this == &out) {
+                // deep copy for in-place operation to keep original input
+                Array lhs = *this;
+                rhs_func = [lhs](const Array& gout) { return gout * lhs; };
+            } else {
+                rhs_func = [this](const Array& gout) { return gout * (*this); };
+            }
+        }
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
         std::shared_ptr<OpNode> op_node =
             std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, backward_functions);
