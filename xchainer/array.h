@@ -91,8 +91,8 @@ public:
     std::string ToString() const;
 
 private:
-    Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, bool is_contiguous = true,
-          int64_t offset = 0, std::shared_ptr<ArrayNode> node = std::make_shared<ArrayNode>())
+    Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, bool is_contiguous = true, int64_t offset = 0,
+          std::shared_ptr<ArrayNode> node = std::make_shared<ArrayNode>())
         : shape_(std::move(shape)),
           dtype_(dtype),
           data_(std::move(data)),
