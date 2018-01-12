@@ -276,10 +276,9 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
         Array b = a;
         Array c = std::move(a);
-        ExpectEqual<float>(b, c);
-
         ASSERT_EQ(a.data(), nullptr);
         ASSERT_EQ(a.node(), nullptr);
+        ExpectEqual<float>(b, c);
     }
 }
 
