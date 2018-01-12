@@ -17,7 +17,7 @@ _dtypes_data = [
 
 def test_dtypes_covered(dtype):
     # This test ensures _dtypes_data covers all dtypes
-    assert any(tup[0] == dtype for tup in _dtypes_data), "Not all dtypes are covered in _dtypes_data in dtypes test."
+    assert any(tup[0] == dtype for tup in _dtypes_data), 'Not all dtypes are covered in _dtypes_data in dtypes test.'
 
 
 @pytest.mark.parametrize("dtype,name,char,itemsize", _dtypes_data)
