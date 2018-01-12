@@ -13,7 +13,7 @@ TEST(ShapeTest, Ctor) {
     {
         const Shape shape = {2, 3, 4};
         EXPECT_EQ(3, shape.ndim());
-        EXPECT_EQ(static_cast<size_t>(3), shape.size());
+        EXPECT_EQ(size_t{3}, shape.size());
         CheckSpanEqual({2, 3, 4}, shape.span());
         EXPECT_EQ(2 * 3 * 4, shape.total_size());
     }
