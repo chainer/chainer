@@ -9,6 +9,7 @@ Chainer is a rapidly growing neural network platform. The strengths of Chainer a
 
 * 100% pure Python -- Chainer is developed from the entirely in Python, allowing for inspection and customization of all code in python and understandable python messages at run time
 * Define by Run -- neural networks definitions are defined on-the-fly at run time, allowing for dynamic network changes
+* NumPy based syntax for working with arrays, thanks to CuPy implementation
 * Fully customizable -- since Chainer is pure python, all classes and methods can be adapted to allow for the latest cutting edge or specialized approaches
 * Broad and deep support -- Chainer is actively used for most of the current approaches for neural nets (CNN, RNN, RL, etc.), aggressively adds new approaches as they're developed, and provides support for many kinds of hardware as well as parallelization for multiple GPUs
 
@@ -46,13 +47,11 @@ Here's the whole picture of the code:
    from chainer.training import extensions
    
    import numpy as np
-   import sklearn.preprocessing as sp
    
    data_array = np.genfromtxt(
        'mushrooms.csv', delimiter=',', dtype=str, skip_header=1)
-   labelEncoder = sp.LabelEncoder()
    for col in range(data_array.shape[1]):
-       data_array[:, col] = labelEncoder.fit_transform(data_array[:, col])
+       data_array[:, col] = np.unique(data_array[:, col], return_inverse=True)[1]
    
    X = data_array[:, 1:].astype(np.float32)
    Y = data_array[:, 0].astype(np.int32)[:, None]
