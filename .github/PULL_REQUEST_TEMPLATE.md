@@ -7,3 +7,5 @@ Please double-check the following.
   - Did you write sufficient test code?
   - Did you write sufficient documentation?
 - Also take a look at [our compatibility policy](http://docs.chainer.org/en/stable/compatibility.html).
+
+Support is available on our [Slack Chat](https://bit.ly/chainer-slack).
