@@ -27,7 +27,7 @@ public:
     Array& operator=(const Array&) = delete;
 
     static Array Empty(const Shape& shape, Dtype dtype);
-    static Array Full(const Shape& shape, Dtype dtype, Scalar scalar);
+    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype);
     static Array Full(const Shape& shape, Scalar scalar);
     static Array Zeros(const Shape& shape, Dtype dtype);
     static Array Ones(const Shape& shape, Dtype dtype);

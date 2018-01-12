@@ -118,21 +118,21 @@ Array Array::Empty(const Shape& shape, Dtype dtype) {
     return {shape, dtype, data};
 }
 
-Array Array::Full(const Shape& shape, Dtype dtype, Scalar scalar) {
+Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype) {
     Array array = Empty(shape, dtype);
     array.Fill(scalar);
     return array;
 }
 
-Array Array::Full(const Shape& shape, Scalar scalar) { return Full(shape, scalar.dtype(), scalar); }
+Array Array::Full(const Shape& shape, Scalar scalar) { return Full(shape, scalar, scalar.dtype()); }
 
-Array Array::Zeros(const Shape& shape, Dtype dtype) { return Full(shape, dtype, 0); }
+Array Array::Zeros(const Shape& shape, Dtype dtype) { return Full(shape, 0, dtype); }
 
-Array Array::Ones(const Shape& shape, Dtype dtype) { return Full(shape, dtype, 1); }
+Array Array::Ones(const Shape& shape, Dtype dtype) { return Full(shape, 1, dtype); }
 
 Array Array::EmptyLike(const Array& array) { return Empty(array.shape(), array.dtype()); }
 
-Array Array::FullLike(const Array& array, Scalar scalar) { return Full(array.shape(), array.dtype(), scalar); }
+Array Array::FullLike(const Array& array, Scalar scalar) { return Full(array.shape(), scalar, array.dtype()); }
 
 Array Array::ZerosLike(const Array& array) { return Zeros(array.shape(), array.dtype()); }
 
