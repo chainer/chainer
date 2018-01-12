@@ -224,7 +224,7 @@ def static_forward_optimizations(func, in_vars, in_data, outputs):
                 forward_static_arrays_info.append((func_arg_index, chain_arg_index))
 
         if not func._supports_static_optimizations:
-            print("Warning: The following function was called inside a static chain but it does not support static optimizations. Trying to wrap it automatically: ",
+            print("Adding automatic static graph support to function: ",
                 func)
             # func does not support static optimizations, so let's try to wrap it
             # automatically.
@@ -242,11 +242,6 @@ def static_forward_optimizations(func, in_vars, in_data, outputs):
                     static_ar[:] = temp_out_data[ind]
 
             generic_static_forward(func, in_data, outputs)
-
-            #raise RuntimeError(
-            #    "The following function was called inside a static chain but it does not support static optimizations: ",
-            #    func)
-
 
 
 def static_forward_optimizations_old(func, in_vars):
@@ -325,9 +320,10 @@ def check_func_backward_inputs(func, grad_inputs):
 
     Args:
         func (FunctionNode): The supplied function node.
-        grad_inputs (tuple of Variable): The output gradients from the
+        grad_inputs (tuple of Variable or None): The output gradients from the
         backward method of ``func``. These correspond to the "inputs"
         of ``func`` in the forward pass.
+        One or more of the items in the tuple are allowed to be None.
 
     """
     # Check if func_node returns any variables that should have their
@@ -349,6 +345,10 @@ def check_func_backward_inputs(func, grad_inputs):
             # is needed for the output gradients from the static schedule.
 
             # assert backward_schedule._out_arrays[chain_arg_index] is None
-            backward_schedule._out_arrays[chain_arg_index] = grad_inputs[func_arg_index].data
+
             # Since the data array was allocated statically, we must return a copy.
-            grad_inputs[func_arg_index].data = grad_inputs[func_arg_index].data.copy()
+            # Note: In Chainer, it is allowed for one or more of the grad inputs
+            # to be None instead of a Variable.
+            if grad_inputs[func_arg_index] is not None:
+                backward_schedule._out_arrays[chain_arg_index] = grad_inputs[func_arg_index].data
+                grad_inputs[func_arg_index].data = grad_inputs[func_arg_index].data.copy()

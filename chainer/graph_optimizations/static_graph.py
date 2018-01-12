@@ -273,7 +273,8 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         # computation graph (such as when the static chain correspond to a single
         # time slice in an RNN).
 
-        return tuple([y.copy() for y in self._out_arrays])
+        #return tuple([y.copy() for y in self._out_arrays])
+        return tuple([None if y is None else y.copy() for y in self._out_arrays])
 
     def backward(self, target_input_indexes, grad_outputs):
         #fixme: inform schedule manager that forward pass has finished.
