@@ -175,7 +175,7 @@ public:
     template <typename T>
     void CheckFullWithGivenDtype(T expected, Scalar scalar) {
         Dtype dtype = TypeToDtype<T>;
-        Array x = Array::Full(Shape{3, 2}, dtype, scalar);
+        Array x = Array::Full(Shape{3, 2}, scalar, dtype);
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
