@@ -763,6 +763,14 @@ TEST_P(ArrayTest, CopyCtor) {
     EXPECT_TRUE(b.node());
 }
 
+TEST_P(ArrayTest, MakeView) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = a.MakeView();
+    ExpectEqual<bool>(a, b);
+    // View should point same addresses to data
+    EXPECT_EQ(a.data().get(), b.data().get());
+}
+
 TEST_P(ArrayTest, AddBackward) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, true);
     Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, true);

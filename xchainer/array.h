@@ -81,6 +81,8 @@ public:
 
     void ClearGrad() noexcept;
 
+    Array MakeView() const;
+
     Array& operator+=(const Array& rhs);
     Array& operator*=(const Array& rhs);
     Array operator+(const Array& rhs) const;

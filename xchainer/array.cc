@@ -87,6 +87,8 @@ Array Array::ZerosLike(const Array& array) { return Zeros(array.shape(), array.d
 
 Array Array::OnesLike(const Array& array) { return Ones(array.shape(), array.dtype()); }
 
+Array Array::MakeView() const { return {shape_, dtype_, data_, node_, requires_grad_, is_contiguous_, offset_}; }
+
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
     requires_grad_ = requires_grad_ || rhs.requires_grad();
