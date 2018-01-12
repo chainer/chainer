@@ -1,5 +1,7 @@
 #include "xchainer/memory.h"
 
+#include <cassert>
+
 #ifdef XCHAINER_ENABLE_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -26,18 +28,19 @@ bool IsPointerCudaMemory(const void* ptr) {
             cuda::CheckError(status);
             break;
     }
+    assert(false);  // should never be reached
 #else
     return false;
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
-std::shared_ptr<void> Allocate(const Device& device, size_t size) {
+std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) {
     if (device == MakeDevice("cpu")) {
-        return std::make_unique<uint8_t[]>(size);
+        return std::make_unique<uint8_t[]>(bytesize);
 #ifdef XCHAINER_ENABLE_CUDA
     } else if (device == MakeDevice("cuda")) {
         void* raw_ptr = nullptr;
-        cuda::CheckError(cudaMallocManaged(&raw_ptr, size, cudaMemAttachGlobal));
+        cuda::CheckError(cudaMallocManaged(&raw_ptr, bytesize, cudaMemAttachGlobal));
         return std::shared_ptr<void>{raw_ptr, cudaFree};
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
@@ -45,34 +48,34 @@ std::shared_ptr<void> Allocate(const Device& device, size_t size) {
     }
 }
 
-void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t size) {
+void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
 #ifdef XCHAINER_ENABLE_CUDA
     bool is_dst_cuda_memory = IsPointerCudaMemory(dst_ptr);
     bool is_src_cuda_memory = IsPointerCudaMemory(src_ptr);
     if (is_dst_cuda_memory) {
         if (is_src_cuda_memory) {
-            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, size, cudaMemcpyDeviceToDevice));
+            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyDeviceToDevice));
         } else {
-            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, size, cudaMemcpyHostToDevice));
+            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyHostToDevice));
         }
     } else {
         if (is_src_cuda_memory) {
-            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, size, cudaMemcpyDeviceToHost));
+            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyDeviceToHost));
         } else {
-            std::memcpy(dst_ptr, src_ptr, size);
+            std::memcpy(dst_ptr, src_ptr, bytesize);
         }
     }
 #else
-    std::memcpy(dst_ptr, src_ptr, size);
+    std::memcpy(dst_ptr, src_ptr, bytesize);
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
-std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_ptr<void>& src_ptr, size_t size) {
+std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
 #ifdef XCHAINER_ENABLE_CUDA
     if (device == MakeDevice("cpu")) {
         if (IsPointerCudaMemory(src_ptr.get())) {
-            std::shared_ptr<void> dst_ptr = Allocate(device, size);
-            cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), size, cudaMemcpyDeviceToHost));
+            std::shared_ptr<void> dst_ptr = Allocate(device, bytesize);
+            cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyDeviceToHost));
             return dst_ptr;
         } else {
             return src_ptr;
@@ -81,8 +84,8 @@ std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_p
         if (IsPointerCudaMemory(src_ptr.get())) {
             return src_ptr;
         } else {
-            std::shared_ptr<void> dst_ptr = Allocate(device, size);
-            cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), size, cudaMemcpyHostToDevice));
+            std::shared_ptr<void> dst_ptr = Allocate(device, bytesize);
+            cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
             return dst_ptr;
         }
     } else {
