@@ -198,8 +198,8 @@ class UpdateRule(object):
 
             if fp32_param.data is not None:
                 self._prepare(fp32_param)
-            if getattr(param, 'loss_scale', None) is not None:
-                fp32_param.grad /= param.loss_scale
+            if param._loss_scale is not None:
+                fp32_param.grad /= param._loss_scale
             for hook in six.itervalues(self._hooks):
                 hook(self, fp32_param)
             self.update_core(fp32_param)
@@ -209,8 +209,8 @@ class UpdateRule(object):
         else:
             if param.data is not None:
                 self._prepare(param)
-            if getattr(param, 'loss_scale', None) is not None:
-                param.grad /= param.loss_scale
+            if param._loss_scale is not None:
+                param.grad /= param._loss_scale
             for hook in six.itervalues(self._hooks):
                 hook(self, param)
             self.update_core(param)
@@ -503,6 +503,7 @@ class Optimizer(object):
                 rule.serialize(serializer[name])
 
     def set_loss_scale(self, loss_scale):
+        """Sets loss scaling factor."""
         self.loss_scale = loss_scale
 
 

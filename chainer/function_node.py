@@ -701,6 +701,14 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             the memory consumption (and possibly the computational time) to
             remember the intermediate gradient values for the second
             backpropagation.
+        loss_scale (float): Loss scaling factor. Loss scaling is a usefull
+            technique to mitigate vanishing gradient issue that tends to happen
+            when low precision data type like float16 is used during training.
+            If you set loss scaling factor, gradients of loss values are to be
+            multiplied by the factor before backprop starts. The factor is
+            propagated to whole gradients in a computational graph along the
+            backporp. The gradients of parameters are divided by the factor
+            just before the parameters are to be updated.
 
     Returns:
         A list of gradient variables w.r.t. the inputs.
@@ -878,7 +886,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
                 v = node.get_variable_or_none()
                 if v is not None:
                     v.grad_var = g
-                    v.loss_scale = loss_scale
+                    v._loss_scale = loss_scale
 
             creator = node.creator_node
             if creator is not None:
