@@ -26,7 +26,7 @@ enum class Dtype {
     kFloat64,
 };
 
-inline bool IsDtypeValid(Dtype dtype) {
+inline bool IsValidDtype(Dtype dtype) {
     using Underlying = std::underlying_type_t<Dtype>;
     auto value = static_cast<Underlying>(dtype);
     return 1 <= value && value <= static_cast<Underlying>(Dtype::kFloat64);
