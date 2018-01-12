@@ -30,7 +30,7 @@ Array::Array(const Array& other)
       is_contiguous_(other.is_contiguous_),
       offset_(other.offset_),
       node_(std::make_shared<ArrayNode>()) {
-    data_ = Allocate(other.total_bytes());
+    data_ = Allocate(GetCurrentDevice(), other.total_bytes());
     other.Copy(*this);
 }
 
@@ -47,7 +47,7 @@ void Array::ClearGrad() noexcept { node_->ClearGrad(); }
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
     size_t size = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
-    std::shared_ptr<void> device_data = MemoryFromBuffer(data, size);
+    std::shared_ptr<void> device_data = MemoryFromBuffer(GetCurrentDevice(), data, size);
     return {shape, dtype, device_data};
 }
 
