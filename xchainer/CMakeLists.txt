@@ -52,6 +52,7 @@ if(ENABLE_TEST)
         device_test.cc
         dtype_test.cc
         gradient_check_test.cc
+        memory_test.cc
         numeric_test.cc
         scalar_test.cc
         shape_test.cc
