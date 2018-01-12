@@ -40,7 +40,7 @@ and decorate `__call__()` with `@static_graph` to inform the framework that it i
 
 * Do not place any code with side effects inside `__call__()` when using `@static_graph`. For example, code that increments a counter, prints status messages etc. will not be included by default in the optimized static schedule and will therefore never be called again starting from the second iteration. If you want to place such code inside `__call__()` and have it actually get called again each iteration, you will need put it inside a function decorated with `@static_schedule_func` and call that function.
 
-* All existing Chainer functions will need to have their implementation slightly modified to support this feature (see below for details). todo: perhaps this can be automated? Currently only a small number of functions have been modified. If you try to run a model that calls an unsupported function, it will exit with an exception.
+* Some existing chainer functions and links might not be compatible with this feature yet. Examples of incompatible links are those that perform computations each iteration outside of chainer functions. Such code will cause problems because only chainer functions are automatically included in the generated static schedule.. 
 
 * Advanced optimizations such as kernel fusion are not yet implemented.
 
@@ -52,7 +52,11 @@ and decorate `__call__()` with `@static_graph` to inform the framework that it i
 
 #### How to add support to existing functions
 
-An existing function (instance of `FunctionNode`) can be modified to support static graph optimizations as follows. The basic idea is to wrap any code that needs to be called each iteration inside a function that is decorated with `@static_schedule_func`. Therefore, code that performs initialization such as initializing parameters does not need to (and should not) be wrapped.
+Most functions and links will not need to be modified at all in order to support this feature. However, some functions might see a performance benifit if static graph support is added manually, since it may allow less redundant code to be included in the static schedule. For example, any dynamic checking code that will return the same result every iteration does not need to be included in the static schedule. 
+
+An existing function (instance of `FunctionNode`) can be manually modified to support static graph optimizations as follows. If a function is not manually modified to support this feature, it should still work.
+
+The basic idea is to wrap any code that needs to be called each iteration inside a function that is decorated with `@static_schedule_func`. Therefore, code that performs initialization such as initializing parameters does not need to (and should not) be wrapped.
 
 Since the function is part of a static graph, any parameters and output arrays should ideally be statically allocated only once during the first iteration (while the define-by-run code is executing) and then reused starting from the second iteration. The `@static_schedule_func`-decorated functions that are called each iteration will perform the various deep learning computations, writing results in-place into these static arrays. Since the results are written in-place, there is no need for an `@static_schedule_func`-decorated function to explicitly return a result and so we disallow it. Rather, any results arrays should be passed as inputs along with other input arguments to the function. The following code shows the typical pattern for performing the forward computations in a `FunctionNode`:
 
@@ -90,3 +94,9 @@ def forward(self, inputs):
 ```
 
 It should not be necessary to modify the `backward()` implementation. As of Chainer v3 when double-backward (i.e., grad of grad) support was added, the `backward()` method of `FunctionNode` actually calls the `forward()` method of other `FunctionNode`s, and so it is only necessary to handle the forward case.
+
+#### How to add support to existing links
+
+Most existing links will work as-is and do not need to be modified. However, if a link needs to perform computations each iteration that are performed in code other than calling chainer functions, this code will need to be manually placed in a `@static_schedule_func`-decorated function or method of the link.
+
+If a link performs different computations depending on the training mode but is otherwise static, then it does not need to be modified.
