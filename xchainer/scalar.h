@@ -102,54 +102,20 @@ public:
         // TODO(niboshi): Support dtype conversion
         assert(dtype_ == rhs.dtype_);
 
-        switch (dtype_) {
-            case Dtype::kBool:
-                return Scalar(static_cast<bool>(*this) + static_cast<bool>(rhs));
-            case Dtype::kInt8:
-                return Scalar(static_cast<int8_t>(*this) + static_cast<int8_t>(rhs));
-            case Dtype::kInt16:
-                return Scalar(static_cast<int16_t>(*this) + static_cast<int16_t>(rhs));
-            case Dtype::kInt32:
-                return Scalar(static_cast<int32_t>(*this) + static_cast<int32_t>(rhs));
-            case Dtype::kInt64:
-                return Scalar(static_cast<int64_t>(*this) + static_cast<int64_t>(rhs));
-            case Dtype::kUInt8:
-                return Scalar(static_cast<uint8_t>(*this) + static_cast<uint8_t>(rhs));
-            case Dtype::kFloat32:
-                return Scalar(static_cast<float>(*this) + static_cast<float>(rhs));
-            case Dtype::kFloat64:
-                return Scalar(static_cast<double>(*this) + static_cast<double>(rhs));
-            default:
-                assert(false);  // should never be reached
-        }
-        return {0};
+        return VisitDtype(dtype_, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            return Scalar{static_cast<T>(*this) + static_cast<T>(rhs)};
+        });
     }
 
     Scalar operator*(const Scalar& rhs) const {
         // TODO(niboshi): Support dtype conversion
         assert(dtype_ == rhs.dtype_);
 
-        switch (dtype_) {
-            case Dtype::kBool:
-                return Scalar(static_cast<bool>(*this) * static_cast<bool>(rhs));
-            case Dtype::kInt8:
-                return Scalar(static_cast<int8_t>(*this) * static_cast<int8_t>(rhs));
-            case Dtype::kInt16:
-                return Scalar(static_cast<int16_t>(*this) * static_cast<int16_t>(rhs));
-            case Dtype::kInt32:
-                return Scalar(static_cast<int32_t>(*this) * static_cast<int32_t>(rhs));
-            case Dtype::kInt64:
-                return Scalar(static_cast<int64_t>(*this) * static_cast<int64_t>(rhs));
-            case Dtype::kUInt8:
-                return Scalar(static_cast<uint8_t>(*this) * static_cast<uint8_t>(rhs));
-            case Dtype::kFloat32:
-                return Scalar(static_cast<float>(*this) * static_cast<float>(rhs));
-            case Dtype::kFloat64:
-                return Scalar(static_cast<double>(*this) * static_cast<double>(rhs));
-            default:
-                assert(false);  // should never be reached
-        }
-        return {0};
+        return VisitDtype(dtype_, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            return Scalar{static_cast<T>(*this) * static_cast<T>(rhs)};
+        });
     }
 
 private:
