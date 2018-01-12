@@ -17,6 +17,49 @@ TEST(ScalarTest, Dtype) {
     EXPECT_EQ(Scalar(8.9).dtype(), Dtype::kFloat64);
 }
 
+template <typename T1, typename T2>
+void ExpectScalarEqual(T1 value1, T2 value2) {
+    EXPECT_EQ(Scalar(value1), Scalar(value2));
+    EXPECT_EQ(Scalar(value2), Scalar(value1));
+}
+
+TEST(ScalarTest, Equality) {
+    // TODO(niboshi): Add cases for different types
+    ExpectScalarEqual(int8_t{0}, int8_t{0});
+    ExpectScalarEqual(int16_t{0}, int16_t{0});
+    ExpectScalarEqual(int32_t{0}, int32_t{0});
+    ExpectScalarEqual(int64_t{0}, int64_t{0});
+    ExpectScalarEqual(uint8_t{0}, uint8_t{0});
+    ExpectScalarEqual(int8_t{1}, int8_t{1});
+    ExpectScalarEqual(int16_t{1}, int16_t{1});
+    ExpectScalarEqual(int32_t{1}, int32_t{1});
+    ExpectScalarEqual(int64_t{1}, int64_t{1});
+    ExpectScalarEqual(uint8_t{1}, uint8_t{1});
+    ExpectScalarEqual(1.5, 1.5);
+    ExpectScalarEqual(1.5f, 1.5f);
+    ExpectScalarEqual(-1.5, -1.5);
+    ExpectScalarEqual(-1.5f, -1.5f);
+    ExpectScalarEqual(true, true);
+    ExpectScalarEqual(false, false);
+}
+
+template <typename T1, typename T2>
+void ExpectScalarInequal(T1 value1, T2 value2) {
+    EXPECT_NE(Scalar(value1), Scalar(value2));
+    EXPECT_NE(Scalar(value2), Scalar(value1));
+}
+
+TEST(ScalarTest, Inequality) {
+    ExpectScalarInequal(0, 1);
+    ExpectScalarInequal(-1, 1);
+    ExpectScalarInequal(-1.0001, -1.0);
+    ExpectScalarInequal(-1.0001, -1);
+    ExpectScalarInequal(true, false);
+    ExpectScalarInequal(true, 1.1);
+    ExpectScalarInequal(1.0001, 1.0002);
+    ExpectScalarInequal(std::nan(""), std::nan(""));
+}
+
 TEST(ScalarTest, Cast) {
     EXPECT_TRUE(bool(Scalar(true)));
     EXPECT_TRUE(bool(Scalar(1)));
