@@ -118,13 +118,13 @@ Array Array::Empty(const Shape& shape, Dtype dtype) {
     return {shape, dtype, data};
 }
 
-Array Array::Full(const Shape& shape, Dtype dtype, const Scalar& scalar) {
+Array Array::Full(const Shape& shape, Dtype dtype, Scalar scalar) {
     Array array = Empty(shape, dtype);
     array.Fill(scalar);
     return array;
 }
 
-Array Array::Full(const Shape& shape, const Scalar& scalar) { return Full(shape, scalar.dtype(), scalar); }
+Array Array::Full(const Shape& shape, Scalar scalar) { return Full(shape, scalar.dtype(), scalar); }
 
 Array Array::Zeros(const Shape& shape, Dtype dtype) { return Full(shape, dtype, 0); }
 
@@ -132,7 +132,7 @@ Array Array::Ones(const Shape& shape, Dtype dtype) { return Full(shape, dtype, 1
 
 Array Array::EmptyLike(const Array& array) { return Empty(array.shape(), array.dtype()); }
 
-Array Array::FullLike(const Array& array, const Scalar& scalar) { return Full(array.shape(), array.dtype(), scalar); }
+Array Array::FullLike(const Array& array, Scalar scalar) { return Full(array.shape(), array.dtype(), scalar); }
 
 Array Array::ZerosLike(const Array& array) { return Zeros(array.shape(), array.dtype()); }
 
