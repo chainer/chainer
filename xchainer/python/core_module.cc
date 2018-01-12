@@ -22,7 +22,7 @@ void InitXchainerModule(pybind11::module& m) {
 }  // namespace
 }  // namespace xchainer
 
-PYBIND11_MODULE(_core, m) {
+PYBIND11_MODULE(_core, m) {  // NOLINT
     xchainer::InitXchainerModule(m);
     xchainer::InitXchainerDevice(m);
     xchainer::InitXchainerDtype(m);
