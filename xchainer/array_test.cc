@@ -270,6 +270,26 @@ TEST_P(ArrayTest, ArrayCtor) { CheckArray<false>(); }
 
 TEST_P(ArrayTest, ConstArrayCtor) { CheckArray<true>(); }
 
+TEST_P(ArrayTest, ArrayMoveCtor) {
+    { EXPECT_TRUE(std::is_nothrow_move_constructible<Array>::value); }
+    {
+        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = a;
+        Array c = std::move(a);
+        ExpectEqual<float>(b, c);
+
+        ASSERT_EQ(a.data(), nullptr);
+        ASSERT_EQ(a.node(), nullptr);
+    }
+}
+
+TEST_P(ArrayTest, ArrayMoveAssignmentOperator) {
+    {
+        // TOOD(hvy): Change the following expectations when copy assignment is implemented (not explicitly deleted)
+        EXPECT_FALSE(std::is_nothrow_move_assignable<Array>::value);
+    }
+}
+
 TEST_P(ArrayTest, SetRequiresGrad) {
     Array x = MakeArray<bool>({1}, {true});
     ASSERT_FALSE(x.requires_grad());
