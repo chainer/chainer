@@ -4,8 +4,6 @@ import numpy
 
 from chainer.backends import cuda
 from chainer import function_node
-from chainer.graph_optimizations.static_graph import static_schedule_func
-from chainer.graph_optimizations.static_graph_utilities import is_trace_mode
 from chainer.utils import conv
 from chainer.utils import type_check
 
@@ -42,7 +40,10 @@ class Pooling2D(function_node.FunctionNode):
             in_types[0].ndim == 4
         )
 
-    def _dynamic_forward_gpu_base(self, x):
+    def forward_gpu(self, x):
+        self.retain_inputs((0,))
+        self._used_cudnn = True
+
         # Implementation using cudnn
         x = cuda.cupy.ascontiguousarray(x[0])
         n, c, h, w = x.shape
@@ -65,21 +66,7 @@ class Pooling2D(function_node.FunctionNode):
         libcudnn.poolingForward(
             handle, pool_desc.value, one.data, x_desc.value,
             x.data.ptr, zero.data, y_desc.value, y.data.ptr)
-
-        return y
-
-    @static_schedule_func
-    def _static_forward_gpu_base(self, x, y):
-        y[:] = self._dynamic_forward_gpu(x)
-
-    def forward_gpu(self, x):
-        self.retain_inputs((0,))
-        self._used_cudnn = True
-
-        y = self._dynamic_forward_gpu_base(x)
         self.retain_outputs((0,))
-        if is_trace_mode():
-            self._static_forward_gpu_base(x, y)
         return y,
 
     def backward_gpu(self, x, gy):

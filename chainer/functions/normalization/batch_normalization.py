@@ -4,8 +4,6 @@ import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer import function_node
-from chainer.graph_optimizations.static_graph import static_schedule_func
-from chainer.graph_optimizations.static_graph_utilities import is_trace_mode
 from chainer.utils import argument
 from chainer.utils import type_check
 
@@ -48,7 +46,9 @@ class BatchNormalization(function_node.FunctionNode):
             gamma_type.shape == beta_type.shape,
         )
 
-    def _dynamic_forward(self, x, gamma, beta):
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gamma, beta = inputs
         xp = cuda.get_array_module(x)
         if self.running_mean is None:
             self.running_mean = xp.zeros_like(gamma)
@@ -141,19 +141,6 @@ class BatchNormalization(function_node.FunctionNode):
             self.running_var *= self.decay
             self.running_var += (1 - self.decay) * adjust * var
 
-        return y
-
-    @static_schedule_func
-    def _static_forward(self, x, gamma, beta, y):
-        y[:] = self._dynamic_forward(x, gamma, beta)
-
-    def forward(self, inputs):
-        self.retain_inputs((0, 1))
-        x, gamma, beta = inputs
-        y = self._dynamic_forward(x, gamma, beta)
-        if is_trace_mode():
-            self._static_forward(x, gamma, beta, y)
-
         return y,
 
     def backward(self, indexes, grad_outputs):
@@ -176,7 +163,9 @@ class BatchNormalizationGrad(function.Function):
         self.mean = mean
         self.inv_std = inv_std
 
-    def _dynamic_forward(self, x, gamma, gy):
+    def forward(self, inputs):
+        self.retain_inputs((0, 1, 2))
+        x, gamma, gy = inputs
         expander = self.expander
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
         xp = cuda.get_array_module(x)
@@ -234,19 +223,6 @@ class BatchNormalizationGrad(function.Function):
                                    gbeta[expander], inv_m)
         self.retain_outputs((0, 1))
         return gx, ggamma, gbeta
-
-    @static_schedule_func
-    def _static_forward(self, x, gamma, gy, gx, ggamma, gbeta):
-        gx[:], ggamma[:], gbeta[:] = self._dynamic_forward(x, gamma, gy)
-
-    def forward(self, inputs):
-        self.retain_inputs((0, 1, 2))
-        x, gamma, gy = inputs
-        gx, ggamma, gbeta = self._dynamic_forward(x, gamma, gy)
-        if is_trace_mode():
-            self._static_forward(x, gamma, gy, gx, ggamma, gbeta)
-        return gx, ggamma, gbeta
-
 
     def backward(self, inputs, grad_outputs):
         expander = self.expander
@@ -311,7 +287,9 @@ class FixedBatchNormalization(function_node.FunctionNode):
             var_type.shape == gamma_type.shape,
         )
 
-    def _dynamic_forward(self, x, gamma, beta, mean, var):
+    def forward(self, inputs):
+        self.retain_inputs((0, 1, 3, 4))
+        x, gamma, beta, mean, var = inputs
         xp = cuda.get_array_module(x)
 
         # expander inserts singleton dimensions to gamma and beta so that they
@@ -358,18 +336,6 @@ class FixedBatchNormalization(function_node.FunctionNode):
             self.inv_std = xp.sqrt(self.inv_var, dtype=self.inv_var.dtype)
             y = _apply_bn_fwd(xp, x, mean[expander], self.inv_std[expander],
                               gamma, beta)
-        return y
-
-    @static_schedule_func
-    def _static_forward(self, x, gamma, beta, mean, var, y):
-        y[:] = self._dynamic_forward(x, gamma, beta, mean, var)
-
-    def forward(self, inputs):
-        self.retain_inputs((0, 1, 3, 4))
-        x, gamma, beta, mean, var = inputs
-        y = self._dynamic_forward(x, gamma, beta, mean, var)
-        if is_trace_mode():
-            self._static_forward(x, gamma, beta, mean, var, y)
 
         return y,
 
@@ -390,7 +356,9 @@ class FixedBatchNormalizationGrad(function.Function):
         self.inv_std = inv_std  # may be None
         self.inv_var = inv_var  # may be None
 
-    def _dynamic_forward(self, x, gamma, mean, var, gy):
+    def forward(self, inputs):
+        self.retain_inputs((0, 1, 2, 4))
+        x, gamma, mean, var, gy = inputs
         expander = self.expander
         xp = cuda.get_array_module(x)
 
@@ -408,20 +376,6 @@ class FixedBatchNormalizationGrad(function.Function):
         gvar = - 0.5 * gamma * self.inv_var * ggamma
 
         self.retain_outputs((0, 1, 2, 3, 4))
-        return gx, ggamma, gbeta, gmean, gvar
-
-    @static_schedule_func
-    def _static_forward(self, x, gamma, mean, var, gy, gx, ggamma, gbeta, gmean, gvar):
-        gx[:], ggamma[:], gbeta[:], gmean[:], gvar[:] = self._dynamic_forward(x, gamma, mean, var, gy)
-
-    def forward(self, inputs):
-        self.retain_inputs((0, 1, 2, 4))
-        x, gamma, mean, var, gy = inputs
-        gx, ggamma, gbeta, gmean, gvar = \
-            self._dynamic_forward(x, gamma, mean, var, gy)
-        if is_trace_mode():
-            self._static_forward(x, gamma, mean, var, gy, gx, ggamma, gbeta, gmean, gvar)
-
         return gx, ggamma, gbeta, gmean, gvar
 
     def backward(self, inputs, grad_outputs):

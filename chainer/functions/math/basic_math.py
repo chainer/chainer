@@ -5,8 +5,6 @@ from chainer.backends import cuda
 from chainer import function
 from chainer import function_node
 from chainer.functions.math import matmul as _matmul
-from chainer.graph_optimizations.static_graph import static_schedule_func
-from chainer.graph_optimizations.static_graph_utilities import is_trace_mode
 from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
@@ -143,20 +141,8 @@ class Add(function_node.FunctionNode):
             in_types[0].shape == in_types[1].shape
         )
 
-    def _dynamic_forward(self, x):
-        return utils.force_array(x[0] + x[1])
-
-    @static_schedule_func
-    def _static_forward(self,x, y):
-        # todo (vogel): optimize to avoid reallocation.
-        y[:] = self._dynamic_forward(x)
-
     def forward(self, x):
-        #y = utils.force_array(x[0] + x[1])
-        y = self._dynamic_forward(x)
-        if is_trace_mode():
-            # Recompute, but do not reallocate the results array.
-            self._static_forward(x, y)
+        y = utils.force_array(x[0] + x[1])
         return y,
 
     def backward(self, indexes, gy):

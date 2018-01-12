@@ -3,7 +3,8 @@ import numpy
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
-from chainer.graph_optimizations.static_graph import static_schedule_func
+#from chainer.graph_optimizations.static_graph import static_schedule_func
+from chainer.graph_optimizations.static_graph_utilities import static_schedule_func
 
 
 class Transpose(function_node.FunctionNode):
@@ -17,7 +18,9 @@ class Transpose(function_node.FunctionNode):
 
     @static_schedule_func
     def static_transpose(self, x, y):
-        # todo: optimize later to prevent unnecessary allocation.
+        # todo: optimize later to prevent unnecessary allocation. It seems
+        # transpose function does not support passing in the output array
+        # to write result.
         y[:] = x.transpose(self.axes)
 
     @property

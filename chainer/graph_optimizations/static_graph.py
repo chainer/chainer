@@ -3,7 +3,6 @@ import contextlib
 import chainer
 import chainer.function_node
 
-#import numpy as np # fixme: remove after debug
 
 # todo: add test that use the same random seed with two models: a static chain
 # and a (non-static) chain. Enable `chainer.config.cudnn_deterministic` and
@@ -286,7 +285,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         return self.get_backward_schedule_func().apply(grad_outputs)
 
 
-def static_schedule_func(func):
+def static_schedule_func_fixme_remove(func):
     """Decorator to mark a function for inclusion in the forward schedule.
 
     This decorator is used to wrap a function `func` that is a forward-pass
@@ -381,6 +380,9 @@ def static_schedule_func(func):
             # This attribute will be needed by the corresponding @static_backward
             # function.
             instance = args[0]
+            # If the instance has a 'node' attribute, assume it is an old-style Function.
+            #if hasattr(instance, '_node'):
+            #    pass
             #assert isinstance(instance, chainer.function_node.FunctionNode)
             if not isinstance(instance, chainer.function_node.FunctionNode):
                 print("Warning: static_schedule_func was used to wrap an object that is not a FunctionNode: ",

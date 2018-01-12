@@ -261,7 +261,8 @@ Use apply() method instead.\
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             outputs = self.forward(in_data)
-            static_forward_optimizations(self, input_vars)
+            #static_forward_optimizations_old(self, input_vars)
+            static_forward_optimizations(self, input_vars, in_data, outputs)
 
         # Check for output array types
         if not isinstance(outputs, tuple):

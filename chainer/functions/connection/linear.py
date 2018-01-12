@@ -4,8 +4,7 @@ from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
-
-from chainer.graph_optimizations.static_graph import static_schedule_func
+from chainer.graph_optimizations.static_graph_utilities import static_schedule_func
 
 
 class LinearFunction(function_node.FunctionNode):
@@ -30,32 +29,8 @@ class LinearFunction(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[0],
             )
 
-    # fixme: remove
     @static_schedule_func
-    def static_linear_old(self, x, W, bias, y):
-        """y = x*W^T + bias
-
-        """
-        # NumPy raises an error when the array is not contiguous.
-        # See: https://github.com/chainer/chainer/issues/2744
-        # TODO(niboshi): Remove this code when NumPy is fixed.
-        if (isinstance(x, numpy.ndarray) and
-                not (x.flags.c_contiguous or x.flags.f_contiguous) and
-                1 in x.shape):
-            x = numpy.ascontiguousarray(x)
-        numpy.dot(x, W.T, out=y)
-        y += bias
-
-    # fixme: remove
-    @static_schedule_func
-    def static_linear_no_bias_old(self, x, W, y):
-        """y = x*W^T
-
-        """
-        numpy.dot(x, W.T, out=y)
-
-    @static_schedule_func
-    def static_linear_no_bias_naive(self, x, W, y):
+    def static_linear_no_bias(self, x, W, y, xp):
         # todo: this performs unnecessary memory allocations.
         # consider optimizing further.
 
@@ -66,8 +41,11 @@ class LinearFunction(function_node.FunctionNode):
                 not (x.flags.c_contiguous or x.flags.f_contiguous) and
                 1 in x.shape):
             x = numpy.ascontiguousarray(x)
-        # todo (vogel): optimize to prevent unnecessary allocation.
+
         y[:] = x.dot(W.T).astype(x.dtype, copy=False)
+        # Code below would be more efficient but does not work
+        # possibly due to dtype error in some cases.
+        #xp.dot(x, W.T, out=y)
 
     @static_schedule_func
     def static_add_bias(self, y, bias):
@@ -82,9 +60,6 @@ class LinearFunction(function_node.FunctionNode):
                              'type(W): {0}, type(x): {1}'
                              .format(type(W), type(x)))
 
-
-
-        # Notes:
         # In order to be compatible with the "static graph" feature, it is
         # required that all output arrays of this forward
         # function be allocated explicitly:
@@ -99,25 +74,10 @@ class LinearFunction(function_node.FunctionNode):
         # of output arrays during execution of the static schedule
         # because it would break the model.
 
-        self.static_linear_no_bias_naive(x, W, y)
+        self.static_linear_no_bias(x, W, y, xp)
         if len(inputs) == 3:
             bias = inputs[2]
             self.static_add_bias(y, bias)
-
-
-        ##########################33
-        # old code:
-
-        #if (isinstance(x, numpy.ndarray) and
-        #        not (x.flags.c_contiguous or x.flags.f_contiguous) and
-        #        1 in x.shape):
-        #    x = numpy.ascontiguousarray(x)
-
-        #y = x.dot(W.T).astype(x.dtype, copy=False)
-        #if len(inputs) == 3:
-        #    b = inputs[2]
-        #    y += b
-        #########################
 
         self.retain_inputs((0, 1))  # b is not retained
         return y,
