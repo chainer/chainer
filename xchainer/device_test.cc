@@ -18,7 +18,7 @@ constexpr Device kCuda = {"cuda"};
 TEST(DeviceTest, MakeDevice) {
     Device expect = {"abcde"};
     Device actual = MakeDevice("abcde");
-    ASSERT_EQ(expect, actual);
+    EXPECT_EQ(expect, actual);
 
     EXPECT_THROW(MakeDevice("12345678"), DeviceError);
 }
@@ -56,19 +56,19 @@ TEST(DeviceScopeTest, Ctor) {
     SetCurrentDevice("cuda");
     {
         DeviceScope scope("cpu");
-        ASSERT_EQ(kCpu, GetCurrentDevice());
+        EXPECT_EQ(kCpu, GetCurrentDevice());
     }
     ASSERT_EQ(kCuda, GetCurrentDevice());
     {
         DeviceScope scope;
-        ASSERT_EQ(kCuda, GetCurrentDevice());
+        EXPECT_EQ(kCuda, GetCurrentDevice());
         SetCurrentDevice("cpu");
     }
     ASSERT_EQ(kCuda, GetCurrentDevice());
     {
         DeviceScope scope("cpu");
         scope.Exit();
-        ASSERT_EQ(kCuda, GetCurrentDevice());
+        EXPECT_EQ(kCuda, GetCurrentDevice());
         SetCurrentDevice("cpu");
         // not recovered here because the scope has already existed
     }
