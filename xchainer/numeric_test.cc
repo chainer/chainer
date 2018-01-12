@@ -25,21 +25,21 @@ public:
     void CheckAllClose(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<T> bdata, double rtol, double atol) {
         Array a = MakeArray<T>(shape, adata);
         Array b = MakeArray<T>(shape, bdata);
-        ASSERT_TRUE(AllClose(a, b, rtol, atol));
+        EXPECT_TRUE(AllClose(a, b, rtol, atol));
     }
 
     template <typename T>
     void CheckNotAllClose(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<T> bdata, double rtol, double atol) {
         Array a = MakeArray<T>(shape, adata);
         Array b = MakeArray<T>(shape, bdata);
-        ASSERT_FALSE(AllClose(a, b, rtol, atol));
+        EXPECT_FALSE(AllClose(a, b, rtol, atol));
     }
 
     template <typename T, typename U>
     void CheckAllCloseThrow(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<U> bdata, double rtol, double atol) {
         Array a = MakeArray<T>(shape, adata);
         Array b = MakeArray<U>(shape, bdata);
-        ASSERT_THROW(AllClose(a, b, rtol, atol), DtypeError);
+        EXPECT_THROW(AllClose(a, b, rtol, atol), DtypeError);
     }
 };
 
