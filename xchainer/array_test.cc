@@ -87,56 +87,51 @@ public:
         }
     }
 
-    template <bool is_const>
-    void CheckArray() {
-        using TargetArray = std::conditional_t<is_const, const Array, Array>;
-
-        std::shared_ptr<void> data = std::make_unique<float[]>(2 * 3 * 4);
-        TargetArray x = MakeArray<float>({2, 3, 4}, data);
-
-        // Basic attributes
-        EXPECT_EQ(TypeToDtype<float>, x.dtype());
-        EXPECT_EQ(3, x.ndim());
-        EXPECT_EQ(2 * 3 * 4, x.total_size());
-        EXPECT_EQ(4, x.element_bytes());
-        EXPECT_EQ(2 * 3 * 4 * 4, x.total_bytes());
-        EXPECT_EQ(0, x.offset());
-        EXPECT_TRUE(x.is_contiguous());
-
-        // Array::data
-        std::shared_ptr<const void> x_data = x.data();
+    void ExpectDataExistsOnCurrentDevice(const Array& array) {
         if (GetCurrentDevice() == MakeDevice("cpu")) {
-            EXPECT_EQ(data, x_data);
+            EXPECT_FALSE(IsPointerCudaMemory(array.data().get()));
         } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_NE(data, x_data);
-            EXPECT_TRUE(IsPointerCudaMemory(x_data.get()));
+            EXPECT_TRUE(IsPointerCudaMemory(array.data().get()));
         } else {
             FAIL() << "invalid device";
         }
     }
 
-    template <typename T>
+    template <bool is_const, typename T>
     void CheckFromBuffer() {
+        using TargetArray = std::conditional_t<is_const, const Array, Array>;
+        T one{1};
+
         Shape shape = {3, 2};
         Dtype dtype = TypeToDtype<T>;
-        size_t bytesize = shape.total_size() * sizeof(T);
+        int64_t bytesize = shape.total_size() * sizeof(T);
         auto data = std::make_unique<T[]>(bytesize);
-        data[0] = static_cast<T>(1);
-        data[1] = static_cast<T>(1);
-        data[2] = static_cast<T>(1);
-        data[3] = static_cast<T>(1);
-        data[4] = static_cast<T>(1);
-        data[5] = static_cast<T>(1);
-        Array x = Array::FromBuffer(shape, dtype, std::move(data));
+        data[0] = one;
+        data[1] = one;
+        data[2] = one;
+        data[3] = one;
+        data[4] = one;
+        data[5] = one;
+        auto raw_ptr = data.get();
+        TargetArray x = Array::FromBuffer(shape, dtype, std::move(data));
 
+        // Basic attributes
         EXPECT_EQ(shape, x.shape());
         EXPECT_EQ(dtype, x.dtype());
-        ExpectDataEqual(static_cast<T>(1), x);
+        EXPECT_EQ(2, x.ndim());
+        EXPECT_EQ(3 * 2, x.total_size());
+        EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
+        EXPECT_EQ(bytesize, x.total_bytes());
+        EXPECT_EQ(0, x.offset());
+        EXPECT_TRUE(x.is_contiguous());
 
+        // Array::data
+        ExpectDataEqual(one, x);
+        ExpectDataExistsOnCurrentDevice(x);
         if (GetCurrentDevice() == MakeDevice("cpu")) {
-            EXPECT_FALSE(IsPointerCudaMemory(x.data().get()));
+            EXPECT_EQ(raw_ptr, x.data().get());
         } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_TRUE(IsPointerCudaMemory(x.data().get()));
+            EXPECT_NE(raw_ptr, x.data().get());
         } else {
             FAIL() << "invalid device";
         }
@@ -149,14 +144,7 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
-
-        if (GetCurrentDevice() == MakeDevice("cpu")) {
-            //
-        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_TRUE(IsPointerCudaMemory(x.data().get()));
-        } else {
-            FAIL() << "invalid device";
-        }
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -168,14 +156,7 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
-
-        if (GetCurrentDevice() == MakeDevice("cpu")) {
-            //
-        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_TRUE(IsPointerCudaMemory(x.data().get()));
-        } else {
-            FAIL() << "invalid device";
-        }
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -199,6 +180,7 @@ public:
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
         ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -214,6 +196,7 @@ public:
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), scalar.dtype());
         ExpectDataEqual(value, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -226,6 +209,7 @@ public:
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
         ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -242,6 +226,7 @@ public:
         EXPECT_EQ(x.dtype(), dtype);
         T expected{0};
         ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -255,6 +240,7 @@ public:
         EXPECT_EQ(x.dtype(), x_orig.dtype());
         T expected{0};
         ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -266,6 +252,7 @@ public:
         EXPECT_EQ(x.dtype(), dtype);
         T expected{1};
         ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -279,15 +266,12 @@ public:
         EXPECT_EQ(x.dtype(), x_orig.dtype());
         T expected{1};
         ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
 private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
-
-TEST_P(ArrayTest, ArrayCtor) { CheckArray<false>(); }
-
-TEST_P(ArrayTest, ConstArrayCtor) { CheckArray<true>(); }
 
 TEST_P(ArrayTest, ArrayMoveCtor) {
     { EXPECT_TRUE(std::is_nothrow_move_constructible<Array>::value); }
@@ -330,15 +314,26 @@ TEST_P(ArrayTest, Grad) {
     EXPECT_FALSE(x.grad());
 }
 
-TEST_P(ArrayTest, FromBuffer) {
-    CheckFromBuffer<bool>();
-    CheckFromBuffer<int8_t>();
-    CheckFromBuffer<int16_t>();
-    CheckFromBuffer<int32_t>();
-    CheckFromBuffer<int64_t>();
-    CheckFromBuffer<uint8_t>();
-    CheckFromBuffer<float>();
-    CheckFromBuffer<double>();
+TEST_P(ArrayTest, ArrayFromBuffer) {
+    CheckFromBuffer<false, bool>();
+    CheckFromBuffer<false, int8_t>();
+    CheckFromBuffer<false, int16_t>();
+    CheckFromBuffer<false, int32_t>();
+    CheckFromBuffer<false, int64_t>();
+    CheckFromBuffer<false, uint8_t>();
+    CheckFromBuffer<false, float>();
+    CheckFromBuffer<false, double>();
+}
+
+TEST_P(ArrayTest, ConstArrayFromBuffer) {
+    CheckFromBuffer<true, bool>();
+    CheckFromBuffer<true, int8_t>();
+    CheckFromBuffer<true, int16_t>();
+    CheckFromBuffer<true, int32_t>();
+    CheckFromBuffer<true, int64_t>();
+    CheckFromBuffer<true, uint8_t>();
+    CheckFromBuffer<true, float>();
+    CheckFromBuffer<true, double>();
 }
 
 TEST_P(ArrayTest, Empty) {
