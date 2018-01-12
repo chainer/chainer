@@ -28,7 +28,7 @@ std::ostream& operator<<(std::ostream& os, Scalar value) {
             os << static_cast<double>(value);
             break;
         default:
-            assert(0);  // should never be reached
+            assert(false);  // should never be reached
     }
     return os;
 }

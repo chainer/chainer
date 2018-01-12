@@ -5,8 +5,6 @@
 namespace xchainer {
 namespace cuda {
 
-namespace py = pybind11;  // standard convention
-
 void InitXchainerCudaHello(pybind11::module& m) { m.def("hello", &Hello); }
 
 }  // namespace cuda
