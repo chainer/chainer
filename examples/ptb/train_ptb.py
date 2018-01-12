@@ -15,6 +15,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 from chainer import training
+from chainer.graph_optimizations.static_graph import static_graph
 from chainer.training import extensions
 
 
@@ -36,6 +37,7 @@ class RNNForLM(chainer.Chain):
         self.l1.reset_state()
         self.l2.reset_state()
 
+    @static_graph
     def __call__(self, x):
         h0 = self.embed(x)
         h1 = self.l1(F.dropout(h0))
