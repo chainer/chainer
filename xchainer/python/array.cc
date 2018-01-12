@@ -76,7 +76,6 @@ std::unique_ptr<Array> MakeArray(py::array array) {
         throw DimensionError("cannot convert non-contiguous NumPy array to Array");
     }
 
-    // TODO(hvy): When Unified Memory Array creation and its Python binding is in-place, create the Array on the correct device
     Dtype dtype = NumpyDtypeToDtype(array.dtype());
     py::buffer_info info = array.request();
     Shape shape(info.shape);
