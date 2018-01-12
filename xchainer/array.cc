@@ -1,5 +1,6 @@
 #include "xchainer/array.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 
@@ -88,6 +89,7 @@ Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires
     } else {
         throw DeviceError("invalid device");
     }
+    node_->set_rank(0);
 }
 
 Array::Array(const Array& other)
@@ -180,11 +182,13 @@ Array Array::operator*(const Array& rhs) const {
 void Array::Copy(Array& out) const {
     if (requires_grad_) {
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
+        int64_t out_rank = node()->rank();
         auto in_func = [](const Array& gout) { return gout; };
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{in_func};
         std::shared_ptr<OpNode> op_node =
             std::make_shared<OpNode>("copy", std::vector<std::shared_ptr<const ArrayNode>>{node_}, backward_functions);
         out_node->set_next_node(op_node);
+        out_node->set_rank(out_rank + 1);
     }
 
     Device device = GetCurrentDevice();
@@ -214,6 +218,7 @@ void Array::Add(const Array& rhs, Array& out) const {
         std::shared_ptr<const ArrayNode> lhs_node = node();
         std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
+        int64_t out_rank = std::max(lhs_node->rank(), rhs_node->rank());
         std::function<Array(const Array&)> empty_func;
         auto lhs_func = lhs.requires_grad() ? [](const Array& gout) { return gout; } : empty_func;
         auto rhs_func = rhs.requires_grad() ? [](const Array& gout) { return gout; } : empty_func;
@@ -221,6 +226,7 @@ void Array::Add(const Array& rhs, Array& out) const {
         std::shared_ptr<OpNode> op_node =
             std::make_shared<OpNode>("add", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, backward_functions);
         out_node->set_next_node(op_node);
+        out_node->set_rank(out_rank + 1);
     }
 
     Device device = GetCurrentDevice();
@@ -249,6 +255,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
         std::shared_ptr<const ArrayNode> lhs_node = node();
         std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
+        int64_t out_rank = std::max(lhs_node->rank(), rhs_node->rank());
         std::function<Array(const Array&)> empty_func;
         // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
         // TODO(hvy): capture rhs by view (value)
@@ -269,6 +276,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
         std::shared_ptr<OpNode> op_node =
             std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, backward_functions);
         out_node->set_next_node(op_node);
+        out_node->set_rank(out_rank + 1);
     }
 
     Device device = GetCurrentDevice();
