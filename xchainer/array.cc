@@ -183,7 +183,7 @@ void Array::Copy(Array& out) const {
     if (requires_grad_) {
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
         int64_t out_rank = node()->rank();
-        auto next_nodes = std::vector<std::shared_ptr<const ArrayNode>>{node_};
+        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{node_};
         auto in_func = [](const Array& gout) { return gout; };
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{in_func};
         auto op_node = std::make_shared<OpNode>("copy", out_rank, next_nodes, backward_functions);
@@ -215,11 +215,11 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     if (requires_grad_ || rhs.requires_grad()) {
         const Array& lhs = *this;
-        std::shared_ptr<const ArrayNode> lhs_node = node();
-        std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
+        std::shared_ptr<ArrayNode> lhs_node = mutable_node();
+        std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node();
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
         int64_t out_rank = std::max(lhs_node->rank(), rhs_node->rank());
-        auto next_nodes = std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node};
+        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node, rhs_node};
         std::function<Array(const Array&)> empty_func;
         auto lhs_func = lhs.requires_grad() ? [](const Array& gout) { return gout; } : empty_func;
         auto rhs_func = rhs.requires_grad() ? [](const Array& gout) { return gout; } : empty_func;
@@ -252,11 +252,11 @@ void Array::Mul(const Array& rhs, Array& out) const {
     CheckEqual(shape_, rhs.shape());
 
     if (requires_grad_ || rhs.requires_grad()) {
-        std::shared_ptr<const ArrayNode> lhs_node = node();
-        std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
+        std::shared_ptr<ArrayNode> lhs_node = mutable_node();
+        std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node();
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
         int64_t out_rank = std::max(lhs_node->rank(), rhs_node->rank());
-        auto next_nodes = std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node};
+        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node, rhs_node};
         std::function<Array(const Array&)> empty_func;
         // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
         // TODO(hvy): capture rhs by view (value)

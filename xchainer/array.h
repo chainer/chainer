@@ -69,7 +69,7 @@ public:
 
     int64_t offset() const { return offset_; }
 
-    const std::shared_ptr<ArrayNode>& node() { return node_; }
+    const std::shared_ptr<ArrayNode>& mutable_node() const { return node_; }
 
     std::shared_ptr<const ArrayNode> node() const { return node_; }
 
