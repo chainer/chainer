@@ -116,6 +116,33 @@ public:
     }
 
     template <typename T>
+    void CheckFromBuffer() {
+        Shape shape = {3, 2};
+        Dtype dtype = TypeToDtype<T>;
+        size_t bytesize = shape.total_size() * sizeof(T);
+        auto data = std::make_unique<T[]>(bytesize);
+        data[0] = static_cast<T>(1);
+        data[1] = static_cast<T>(1);
+        data[2] = static_cast<T>(1);
+        data[3] = static_cast<T>(1);
+        data[4] = static_cast<T>(1);
+        data[5] = static_cast<T>(1);
+        Array x = Array::FromBuffer(shape, dtype, std::move(data));
+
+        EXPECT_EQ(shape, x.shape());
+        EXPECT_EQ(dtype, x.dtype());
+        ExpectDataEqual(static_cast<T>(1), x);
+
+        if (GetCurrentDevice() == MakeDevice("cpu")) {
+            EXPECT_FALSE(IsPointerCudaMemory(x.data().get()));
+        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+            EXPECT_TRUE(IsPointerCudaMemory(x.data().get()));
+        } else {
+            FAIL() << "invalid device";
+        }
+    }
+
+    template <typename T>
     void CheckEmpty() {
         Dtype dtype = TypeToDtype<T>;
         Array x = Array::Empty(Shape{3, 2}, dtype);
@@ -301,6 +328,17 @@ TEST_P(ArrayTest, Grad) {
 
     x.ClearGrad();
     EXPECT_FALSE(x.grad());
+}
+
+TEST_P(ArrayTest, FromBuffer) {
+    CheckFromBuffer<bool>();
+    CheckFromBuffer<int8_t>();
+    CheckFromBuffer<int16_t>();
+    CheckFromBuffer<int32_t>();
+    CheckFromBuffer<int64_t>();
+    CheckFromBuffer<uint8_t>();
+    CheckFromBuffer<float>();
+    CheckFromBuffer<double>();
 }
 
 TEST_P(ArrayTest, Empty) {
