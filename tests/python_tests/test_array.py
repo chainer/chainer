@@ -203,3 +203,12 @@ def test_array_init_invalid_length():
 
     with pytest.raises(xchainer.DimensionError):
         xchainer.Array((3, 2), xchainer.Dtype.int8, [1, 1, 1, 1, 1, 1, 1])
+
+
+def test_array_property_requires_grad():
+    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+    assert not array.requires_grad
+    array.requires_grad = True
+    assert array.requires_grad
+    array.requires_grad = False
+    assert not array.requires_grad
