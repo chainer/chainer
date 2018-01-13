@@ -687,7 +687,9 @@ TEST_P(ArrayTest, CopyCtor) {
     AssertEqual<bool>(a, b);
 
     // Deep copy, therefore assert different addresses to data
-    ASSERT_NE(a.data().get(), b.data().get());
+    EXPECT_NE(a.data().get(), b.data().get());
+    // Check its node is properly initialized
+    EXPECT_TRUE(b.node());
 }
 
 TEST_P(ArrayTest, AddBackward) {
