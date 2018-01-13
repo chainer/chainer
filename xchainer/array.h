@@ -17,7 +17,7 @@ namespace xchainer {
 // The main data structure of multi-dimensional array.
 class Array {
 public:
-    Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, int64_t offset = 0);
+    Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, int64_t offset = 0);
 
     // Deep copy ctor and copy assignment
     Array(const Array& other);
@@ -27,8 +27,8 @@ public:
     Array& operator=(const Array&) = delete;
 
     static Array Empty(const Shape& shape, Dtype dtype);
-    static Array Full(const Shape& shape, Dtype dtype, const Scalar& scalar);
-    static Array Full(const Shape& shape, const Scalar& scalar);
+    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype);
+    static Array Full(const Shape& shape, Scalar scalar);
     static Array Zeros(const Shape& shape, Dtype dtype);
     static Array Ones(const Shape& shape, Dtype dtype);
 
@@ -36,7 +36,7 @@ public:
     // The new array is allocated in the current device. The device of the other array
     // is ignored.
     static Array EmptyLike(const Array& array);
-    static Array FullLike(const Array& array, const Scalar& scalar);
+    static Array FullLike(const Array& array, Scalar scalar);
     static Array ZerosLike(const Array& array);
     static Array OnesLike(const Array& array);
 

@@ -13,7 +13,7 @@ namespace xchainer {
 
 namespace py = pybind11;
 
-Dtype NumpyDtypeToDtype(py::dtype npdtype) {
+Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
     switch (npdtype.kind()) {
         case 'b':
             return Dtype::kBool;
@@ -72,7 +72,7 @@ Array MakeArray(const Shape& shape, Dtype dtype, py::list list) {
 }
 
 std::unique_ptr<Array> MakeArray(py::array array) {
-    if (!(array.flags() & py::array::c_style)) {
+    if ((array.flags() & py::array::c_style) == 0) {
         throw DimensionError("cannot convert non-contiguous NumPy array to Array");
     }
 
@@ -117,6 +117,7 @@ void InitXchainerArray(pybind11::module& m) {
         .def(py::self + py::self)
         .def(py::self * py::self)
         .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
+        .def_property("requires_grad", &Array::requires_grad, &Array::set_requires_grad)
         .def_property_readonly("dtype", &Array::dtype)
         .def_property_readonly("element_bytes", &Array::element_bytes)
         .def_property_readonly("is_contiguous", &Array::is_contiguous)

@@ -79,17 +79,15 @@ def shape_data(request):
 
 
 @pytest.fixture
-def array_init_inputs(shape_data, dtype_data):
+def array_init_inputs(shape_data, dtype):
     shape_tup = shape_data['tuple']
-    dtype_name = dtype_data['name']
-    return shape_tup, dtype_name
+    return shape_tup, dtype
 
 
 def test_init(array_init_inputs):
-    shape_tup, dtype_name = array_init_inputs
+    shape_tup, dtype = array_init_inputs
 
     shape = xchainer.Shape(shape_tup)
-    dtype = xchainer.Dtype(dtype_name)
 
     data_list = _create_dummy_data(shape_tup, dtype)
 
@@ -99,12 +97,11 @@ def test_init(array_init_inputs):
 
 
 def test_numpy_init(array_init_inputs):
-    shape_tup, dtype_name = array_init_inputs
+    shape_tup, dtype = array_init_inputs
 
     shape = xchainer.Shape(shape_tup)
-    dtype = xchainer.Dtype(dtype_name)
 
-    numpy_dtype = getattr(numpy, dtype_name)
+    numpy_dtype = getattr(numpy, dtype.name)
 
     ndarray = _create_dummy_ndarray(shape_tup, numpy_dtype)
 
@@ -136,10 +133,9 @@ def test_numpy_init(array_init_inputs):
 
 
 def test_add_iadd(array_init_inputs):
-    shape_tup, dtype_name = array_init_inputs
+    shape_tup, dtype = array_init_inputs
 
     shape = xchainer.Shape(shape_tup)
-    dtype = xchainer.Dtype(dtype_name)
 
     lhs_data_list = _create_dummy_data(shape_tup, dtype, pattern=1)
     rhs_data_list = _create_dummy_data(shape_tup, dtype, pattern=2)
@@ -162,10 +158,9 @@ def test_add_iadd(array_init_inputs):
 
 
 def test_mul_imul(array_init_inputs):
-    shape_tup, dtype_name = array_init_inputs
+    shape_tup, dtype = array_init_inputs
 
     shape = xchainer.Shape(shape_tup)
-    dtype = xchainer.Dtype(dtype_name)
 
     lhs_data_list = _create_dummy_data(shape_tup, dtype, pattern=1)
     rhs_data_list = _create_dummy_data(shape_tup, dtype, pattern=2)
@@ -208,3 +203,12 @@ def test_array_init_invalid_length():
 
     with pytest.raises(xchainer.DimensionError):
         xchainer.Array((3, 2), xchainer.Dtype.int8, [1, 1, 1, 1, 1, 1, 1])
+
+
+def test_array_property_requires_grad():
+    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+    assert not array.requires_grad
+    array.requires_grad = True
+    assert array.requires_grad
+    array.requires_grad = False
+    assert not array.requires_grad

@@ -30,7 +30,7 @@ std::shared_ptr<void> AllocateCudaManaged(size_t size) {
     {
         void* raw_ptr = nullptr;
         auto raw_ptr_scope = gsl::finally([&]() {
-            if (raw_ptr && !ptr) {
+            if (raw_ptr != nullptr && ptr == nullptr) {
                 cudaFree(raw_ptr);
             }
         });
@@ -67,8 +67,8 @@ void MemoryCopy(const Device& device, void* dst_ptr, const void* src_ptr, size_t
 
 }  // namespace
 
-Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad, int64_t offset)
-    : shape_(shape),
+Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad, int64_t offset)
+    : shape_(std::move(shape)),
       is_contiguous_(true),
       dtype_(dtype),
       data_(nullptr),
@@ -80,7 +80,7 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool r
         data_ = std::move(data);
 #ifdef XCHAINER_ENABLE_CUDA
     } else if (device == MakeDevice("cuda")) {
-        size_t size = static_cast<size_t>(shape_.total_size() * GetElementSize(dtype));
+        auto size = static_cast<size_t>(shape_.total_size() * GetElementSize(dtype));
         data_ = AllocateCudaManaged(size);
         MemoryCopy(device, data_.get(), data.get(), size);
 #endif  // XCHAINER_ENABLE_CUDA
@@ -114,26 +114,26 @@ Array::Array(const Array& other)
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype) {
-    size_t size = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
+    auto size = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
     std::shared_ptr<void> data = Allocate(GetCurrentDevice(), size);
     return {shape, dtype, data};
 }
 
-Array Array::Full(const Shape& shape, Dtype dtype, const Scalar& scalar) {
+Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype) {
     Array array = Empty(shape, dtype);
     array.Fill(scalar);
     return array;
 }
 
-Array Array::Full(const Shape& shape, const Scalar& scalar) { return Full(shape, scalar.dtype(), scalar); }
+Array Array::Full(const Shape& shape, Scalar scalar) { return Full(shape, scalar, scalar.dtype()); }
 
-Array Array::Zeros(const Shape& shape, Dtype dtype) { return Full(shape, dtype, 0); }
+Array Array::Zeros(const Shape& shape, Dtype dtype) { return Full(shape, 0, dtype); }
 
-Array Array::Ones(const Shape& shape, Dtype dtype) { return Full(shape, dtype, 1); }
+Array Array::Ones(const Shape& shape, Dtype dtype) { return Full(shape, 1, dtype); }
 
 Array Array::EmptyLike(const Array& array) { return Empty(array.shape(), array.dtype()); }
 
-Array Array::FullLike(const Array& array, const Scalar& scalar) { return Full(array.shape(), array.dtype(), scalar); }
+Array Array::FullLike(const Array& array, Scalar scalar) { return Full(array.shape(), scalar, array.dtype()); }
 
 Array Array::ZerosLike(const Array& array) { return Zeros(array.shape(), array.dtype()); }
 
@@ -141,13 +141,13 @@ Array Array::OnesLike(const Array& array) { return Ones(array.shape(), array.dty
 
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
-    requires_grad_ |= rhs.requires_grad();
+    requires_grad_ = requires_grad_ || rhs.requires_grad();
     return *this;
 }
 
 Array& Array::operator*=(const Array& rhs) {
     Mul(rhs, *this);
-    requires_grad_ |= rhs.requires_grad();
+    requires_grad_ = requires_grad_ || rhs.requires_grad();
     return *this;
 }
 
@@ -192,9 +192,9 @@ void Array::Add(const Array& rhs, Array& out) const {
         throw XchainerError("In-place operation (Add) is not supported for an array with requires_grad=true.");
     }
 
-    // TODO: dtype conversion
+    // TODO(sonots): dtype conversion
     CheckEqual(dtype_, rhs.dtype());
-    // TODO: broadcasting
+    // TODO(sonots): broadcasting
     CheckEqual(shape_, rhs.shape());
 
     if (requires_grad_ || rhs.requires_grad()) {
@@ -228,9 +228,9 @@ void Array::Mul(const Array& rhs, Array& out) const {
         throw XchainerError("In-place operation (Mul) is not supported for an array with requires_grad=true.");
     }
 
-    // TODO: dtype conversion
+    // TODO(sonots): dtype conversion
     CheckEqual(dtype_, rhs.dtype());
-    // TODO: broadcasting
+    // TODO(sonots): broadcasting
     CheckEqual(shape_, rhs.shape());
 
     if (requires_grad_ || rhs.requires_grad()) {
