@@ -19,11 +19,11 @@ public:
 
     void set_next_node(std::shared_ptr<OpNode> next_node) { next_node_ = std::move(next_node); }
 
-    const nonstd::optional<Array>& grad() const { return grad_; }
+    const nonstd::optional<Array>& grad() const noexcept { return grad_; }
 
     void set_grad(Array grad) { grad_.emplace(std::move(grad)); };
 
-    void ClearGrad() { grad_.reset(); }
+    void ClearGrad() noexcept { grad_.reset(); }
 
 private:
     std::shared_ptr<OpNode> next_node_;

@@ -72,11 +72,11 @@ public:
 
     const std::shared_ptr<ArrayNode>& RenewNode();
 
-    const nonstd::optional<Array>& grad() const;
+    const nonstd::optional<Array>& grad() const noexcept;
 
     void set_grad(Array grad);
 
-    void ClearGrad();
+    void ClearGrad() noexcept;
 
     Array& operator+=(const Array& rhs);
     Array& operator*=(const Array& rhs);

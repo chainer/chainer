@@ -117,11 +117,11 @@ const std::shared_ptr<ArrayNode>& Array::RenewNode() {
     return node_;
 }
 
-const nonstd::optional<Array>& Array::grad() const { return node_->grad(); }
+const nonstd::optional<Array>& Array::grad() const noexcept { return node_->grad(); }
 
 void Array::set_grad(Array grad) { node_->set_grad(std::move(grad)); }
 
-void Array::ClearGrad() { node_->ClearGrad(); }
+void Array::ClearGrad() noexcept { node_->ClearGrad(); }
 
 Array Array::Empty(const Shape& shape, Dtype dtype) {
     size_t size = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
