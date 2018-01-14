@@ -144,7 +144,7 @@ def static_schedule_func(*dec_args, **dec_kwargs):
     delay_call = False
     zero_args = False
     if len(dec_args) == 1 and not dec_kwargs and callable(dec_args[0]):
-        func = dec_args[0]
+        callable_arg = dec_args[0]
         zero_args = True
     elif dec_kwargs:
         if 'delay_call' in dec_kwargs:
@@ -176,14 +176,13 @@ def static_schedule_func(*dec_args, **dec_kwargs):
                 instance = args[0]
                 # assert isinstance(instance, chainer.function_node.FunctionNode)
                 instance._supports_static_optimizations = True
-                print('Adding function to static schedule: ', func)
                 # print('static_forward: instance: ', instance)
                 instance.schedule_func = schedule_function
 
         return wrapped_func
 
     if zero_args:
-        return wrap(func)
+        return wrap(callable_arg)
     else:
         return wrap
 
@@ -224,59 +223,24 @@ def static_forward_optimizations(func, in_vars, in_data, outputs):
                 forward_static_arrays_info.append((func_arg_index, chain_arg_index))
 
         if not func._supports_static_optimizations:
-            print("Adding automatic static graph support to function: ",
-                func)
+            if schedule_function.verbosity_level >= 2:
+                print("Adding automatic static graph support to function: ",
+                    func)
             # func does not support static optimizations, so let's try to wrap it
             # automatically.
             @static_schedule_func(delay_call=True)
             def generic_static_forward(func, in_data, out_data):
                 """
-
+                    fixme
                 in_arrs: tuple of input arrays
                 out_arrs: tuple of output arrays
                 func: compatible with out_arrs = func(in_arrs)
                 """
                 temp_out_data = func.forward(in_data)
-                assert len(temp_out_data) == len(out_data)
                 for ind, static_ar in enumerate(out_data):
                     static_ar[:] = temp_out_data[ind]
 
             generic_static_forward(func, in_data, outputs)
-
-
-def static_forward_optimizations_old(func, in_vars):
-    """Perform checks needed for creation of a static schedule.
-
-    For each variable ``x`` in ``in_vars``, check if ``x`` is an
-    input variable to a static chain. If so, then save the
-    information to the function so that it can be used during the
-    backward pass schedule creation.
-
-    This function should be called from the ``FunctionNode`` apply() method
-    just after func.forward() is called.
-
-    Args:
-        in_vars (iterable of chainer.Variable):
-        func (FunctionNode):
-    """
-
-    schedule_function = chainer.config.schedule_func
-    if schedule_function is not None:
-        for func_arg_index, var in enumerate(in_vars):
-            if id(var.data) in schedule_function._input_var_array_to_static_array_index:
-                chain_arg_index = schedule_function._input_var_array_to_static_array_index[id(var.data)]
-                # Add this index information to the func_node so that it can be used in
-                # backward() to copy corresponding gradient outputs into static arrays.
-                forward_static_arrays_info = getattr(func, '_forward_static_arrays_info', None)
-                if forward_static_arrays_info is None:
-                    forward_static_arrays_info = list()
-                    func._forward_static_arrays_info = forward_static_arrays_info
-                forward_static_arrays_info.append((func_arg_index, chain_arg_index))
-
-        if not func._supports_static_optimizations:
-            raise RuntimeError(
-                "The following function was called inside a static chain but it does not support static optimizations: ",
-                func)
 
 
 def check_func_backward_outputs(func, grad_outputs):

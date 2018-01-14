@@ -37,7 +37,7 @@ class RNNForLM(chainer.Chain):
         self.l1.reset_state()
         self.l2.reset_state()
 
-    @static_graph
+    @static_graph(force_test_define_by_run=True)
     def __call__(self, x):
         h0 = self.embed(x)
         h1 = self.l1(F.dropout(h0))

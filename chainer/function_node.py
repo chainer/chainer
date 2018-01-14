@@ -254,6 +254,8 @@ Use apply() method instead.\
         hooks = hooks.values()  # avoid six for performance
 
         for hook in hooks:
+            # fixme: static graph support:
+            raise RuntimeError("hook.forward_preprocess(self, in_data)")
             hook.forward_preprocess(self, in_data)
 
         # Forward propagation
@@ -281,6 +283,8 @@ Use apply() method instead.\
                     ', '.join(str(type(x)) for x in outputs)))
 
         for hook in hooks:
+            # fixme: static graph support:
+            raise RuntimeError("hook.forward_postprocess(self, in_data)")
             hook.forward_postprocess(self, in_data)
 
         # NaN check of output values

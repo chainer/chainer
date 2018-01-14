@@ -981,6 +981,7 @@ Actual: {0}'''.format(type(data))
             cuda.get_device_from_array(*in_data).use()
             for hook in hooks:
                 # fixme (vogel): support this in static sub-graphs
+                raise RuntimeError("hook.backward_preprocess(func, in_data, out_grad_data)")
                 hook.backward_preprocess(func, in_data, out_grad_data)
 
             # Collect the current input gradients.
@@ -1031,6 +1032,7 @@ Actual: {0}'''.format(type(data))
             assert len(gxs) == len(in_grad)
             for hook in hooks:
                 # fixme (vogel): support this in static sub-graphs
+                raise RuntimeError("hook.backward_postprocess(func, in_data, out_grad_data)")
                 hook.backward_postprocess(func, in_data, out_grad_data)
 
             if is_debug:

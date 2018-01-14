@@ -3,7 +3,6 @@ import contextlib
 import chainer
 import chainer.function_node
 
-
 # todo: add test that use the same random seed with two models: a static chain
 # and a (non-static) chain. Enable `chainer.config.cudnn_deterministic` and
 # run both models and check that the outputs are identical.
@@ -46,7 +45,8 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         is_forward (bool): The type of static schedule (i.e., forward or backward).
     """
 
-    def __init__(self, schedule_manager, in_vars, is_forward=True):
+    def __init__(self, schedule_manager, in_vars, is_forward=True,
+                 verbosity_level=0):
         # todo: maybe need weak reference here for schedule_manager?
         self._schedule_manager = schedule_manager
         assert isinstance(in_vars, tuple)
@@ -54,6 +54,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         self._backward_schedule_func = None
         self._chain_in_vars = in_vars
         self._in_arrays = tuple([x.data.copy() for x in in_vars])
+        self.verbosity_level = verbosity_level
 
         # Maps the id of an array (from the data attribute of an a variable
         # that is an input of the sub-graph corresponding to this static schedule)
@@ -160,10 +161,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         for chain_arg_index in range(len(out_vars)):
             var = out_vars[chain_arg_index]
             creator_func = var.creator
-            #print('Creator function of current variable: ', creator_func)
-            if creator_func is None:
-                print("Warning: Trying to create backward schedule but creator function of output variable of static chain is None!")
-            else:
+            if creator_func is not None:
                 # map each positional index of the variable in the function's output tuple
                 # to its corresponding static array.
 
@@ -232,18 +230,20 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             # will be replaced by actual arrays in the backward pass.
             self._out_arrays = [None,] * len(out_vars)
 
-    def append_function(self, forward):
+    def append_function(self, func):
         """Append a function to the (forward) static schedule.
 
         Args:
-            forward: The function to append to the schedule. The function
+            func: The function to append to the schedule. The function
             should not take any arguments and should not return any results.
 
         """
         if not self._is_forward:
             self._schedule_manager.end_forward()
 
-        self._static_schedule_forward.append(forward)
+        if self.verbosity_level >= 2:
+            print('Adding function to static schedule: ', func)
+        self._static_schedule_forward.append(func)
 
     def forward(self, inputs):
         if not self._is_forward:
@@ -273,131 +273,12 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         # computation graph (such as when the static chain correspond to a single
         # time slice in an RNN).
 
-        #return tuple([y.copy() for y in self._out_arrays])
         return tuple([None if y is None else y.copy() for y in self._out_arrays])
 
     def backward(self, target_input_indexes, grad_outputs):
-        #fixme: inform schedule manager that forward pass has finished.
-
         # Note: This method will be invoked every iteration starting from the second
-        # iteration. That is because the corresponding define-by-run code runs instead
-        # during the first iteration.
-        #print('StaticScheduleFunction: backward()...')
+        # iteration.
         return self.get_backward_schedule_func().apply(grad_outputs)
-
-
-def static_schedule_func_fixme_remove(func):
-    """Decorator to mark a function for inclusion in the forward schedule.
-
-    This decorator is used to wrap a function `func` that is a forward-pass
-    method of a sub-class of Function. This will cause it to be added to
-    the forward static schedule when the `static_graph` feature is
-    enabled on a Chain that deeply calls it from the chain's
-    `__call__()` method.
-
-    The function to be wrapped should only return `None` because any return value
-    will be ignored. Instead of returning its results, any result arrays must
-    be supplied as input arguments and must have already have been initialized
-    to the appropriate dimensions and data types.
-
-    Usage:
-
-    Typical usage is to allocate any required arrays (Numpy or CuPy) in Python
-    code in an instance of FunctionNode (See `LinearFunction` function for an example).
-    Generally, this will involve first allocating storage for the results arrays
-    in the `forward()` method of a sub-class of Function. Then, the
-    FunctionNode.foward()
-     method should call another
-    (private) method that is wrapped using this decorator. The
-    decorated function will take all required input and output arrays as
-    arguments and will not return anything (that is, `None` will be implicitly 
-    returned). 
-    
-    Note that by following this usage convention, all input and output activations,
-    along with any parameter arrays will have been statically allocated by the
-    end of the first forward pass. Since the the forward-pass functions that
-    are used inside the forward static schedule (that is, the functions that
-    use this decorator) do not allocate any results arrays, this results in code that
-    looks like 'define-by-run' to the user, and which can be debugged during
-    the first iteration, but then becomes static in terms of memory allocations and
-    scheduling starting from the second iteration. Thus, we get the benefit of
-    both ease of use and optimized performance.
-
-    It is important that all of the required computations that occur during the
-    second  and later forward passes must be contained inside the functions 
-    that use this decorator. That is, any other code (that is not wrapped inside this
-    decorator) in the various FunctionNode and Link instances can be viewed as
-    setup code that only checks types, allocates result arrays, initializes
-    parameters etc., but does not perform any computations that must
-    be repeated after the first forward pass.
-
-    The reason for this is that after the first iteration (that is, starting
-    from the second forward pass), when the chain's `__call__()` is called,
-    the forward static schedule will be invoked and it will only call the
-    functions that were wrapped with this decorator. Note that this can potentially
-    lead to difficult to find bugs if one forgets to decorate a required function,
-    since the corresponding computations would no longer execute after the
-    first iteration. As a general rule, any code that is intended to exectue on
-    each iteration should be called by a function that uses this decorator.
-
-    Restrictions:
-
-    This feature currently assumes that the inputs to the wrapped function
-    Will continue to have the same shapes and types each time it is called.
-    There are currently no checks to ensure that this constraint is satisfied.
-    Such a type check may be added in the future. For example, the current code
-    will break if the mini-batch size changes at any point. 
-    todo: add checks for this and run the define-by-run code again whenever any
-    input sizes change. If such changes are frequent, we can consider caching multiple
-    static schedules and using the appropriate one for the current input sizes. 
-
-    Args:
-        func: A forward-pass method of a sub-class of FunctionNode that will be inserted
-            into the static forward schedule when `static_graph` is enabled. The function
-            must not return anything because any return values will be ignored.
-
-    Returns: The wrapped function.
-
-    """
-    def wrapped_func(*args, **kwargs):
-        # Save arguments, function, and results pointers/references to the schedule list:
-        def no_arg_func():
-            #print('In no_arg_func: Calling: ', func)
-            ret = func(*args, **kwargs)
-            if ret is not None:
-                raise RuntimeError("This function is not supposed to return anything: ", func)
-            #print("Arguments were: %s, %s" % (args, kwargs))
-
-        # no_arg_func() requires no arguments to call since the arguments of the decorated function
-        # are captured by the closure.
-        no_arg_func()
-
-        schedule_function = chainer.config.schedule_func
-        # If trace mode is on, add to schedule.
-        if schedule_function is not None:
-            schedule_function.append_function(no_arg_func)
-            # Add the schedule function as an attribute of the FunctionNode instance
-            # that contains the wrapped function as a method
-            # This attribute will be needed by the corresponding @static_backward
-            # function.
-            instance = args[0]
-            # If the instance has a 'node' attribute, assume it is an old-style Function.
-            #if hasattr(instance, '_node'):
-            #    pass
-            #assert isinstance(instance, chainer.function_node.FunctionNode)
-            if not isinstance(instance, chainer.function_node.FunctionNode):
-                print("Warning: static_schedule_func was used to wrap an object that is not a FunctionNode: ",
-                      instance)
-                if isinstance(instance, chainer.function.Function):
-                    print("It's an old-style Function.")
-                    instance.node._supports_static_optimizations = True
-            else:
-                instance._supports_static_optimizations = True
-            print('Adding function to static schedule: ', func)
-            #print('static_forward: instance: ', instance)
-            instance.schedule_func = schedule_function
-
-    return wrapped_func
 
 
 class ScheduleManager(object):
@@ -405,16 +286,24 @@ class ScheduleManager(object):
     """A manager of static schedules for a static chain.
 
     Args:
+        minimize_cache_size (bool): If `True`, attempt to reduce memory
+        usage by clearing the cached schedules whenever the training
+        mode changes (that is, whenever `chainer.config.train` changes
+        value) or whenever the mini-batch size changes.
 
 
     """
 
-    def __init__(self):
+    def __init__(self, minimize_cache_size=True, verbosity_level=0):
         # Maps a key string to a list of schedule functions.
         self.schedules = dict()
-
+        self._minimize_cache_size = minimize_cache_size
         self.in_use_count = dict()
         self._end_forward = False
+        self._prev_train_config = None
+        self._max_in_use_train = 0
+        self._train_count = 0
+        self._verbosity_level = verbosity_level
 
     def get_schedule(self, in_vars):
         """Get a static schedule.
@@ -431,12 +320,16 @@ class ScheduleManager(object):
         a distinct empty schedule. These returned schedules cannot be reused
         (that is, returned again) until the next iteration. Then end of the
         forward pass is signified by calling ``loss.backward()`` on a variable
-        that contains the supplied chain in its computation graph.
+        that contains the supplied chain in its computation graph. It is
+        therefore necessary to call ``loss.backward()`` each iteration after
+        the forward pass has completed. Otherwise, this method would always
+        return a distinct schedule object which would eventually cause an
+        out-of-memory error to occur.
 
-        If `chainer.config.train` is `False`, and this function is called multiple
-        times during the forward pass, then this function is allowed to return
-        the same schedule object multiple times provided that it is compatable
-        with the supplied input variables.
+        If `chainer.config.train` is `False` and this function is called multiple
+        times during the forward pass, then the same schedule object can be
+        returned multiple times provided that it is compatible with the
+        types and shapes of the input variables.
 
         Args:
             in_vars (tuple of :class:`~chainer.Variable`): The input variables to the chain.
@@ -446,26 +339,41 @@ class ScheduleManager(object):
         """
         if self._end_forward:
             self._end_forward = False
+        if self._minimize_cache_size:
+            if chainer.config.train != self._prev_train_config:
+                # Training config changed, so clear caches.
+                self._prev_train_config = chainer.config.train
+                if self._verbosity_level >= 2:
+                    print("Clearing schedule cache...")
+                self.schedules.clear()
+                self.in_use_count.clear()
+            # todo (vogel): Also check if minibatch size has changed and clear schedules.
+
         if chainer.config.train is False:
-            # Test mode is active, so always reuse any existing schedule that
-            # is compatable with in_vars.
             key_str = 'test:' + ''.join(str(x.shape) for x in in_vars)
+            # If the maximum number of in-use schedules in any iteration
+            # during training mode was exactly 1, assume it should also
+            # be 1 for test mode.
+
             if key_str in self.schedules:
                 sched_list = self.schedules[key_str]
                 sched = sched_list[0]
             else:
-                sched = StaticScheduleFunction(self, in_vars)
+                sched = StaticScheduleFunction(self, in_vars,
+                                               verbosity_level=self._verbosity_level)
                 self.schedules[key_str] = [sched]
             return sched
+
         else:
-            # Training mode is active, so always return a distinct schedule
-            # instance.
             key_str = 'train:' + ''.join(str(x.shape) for x in in_vars)
+            self._train_count += 1
+
             if key_str in self.schedules:
                 sched_list = self.schedules[key_str]
                 available_index = self.in_use_count[key_str]
                 if available_index >= len(sched_list):
-                    sched = StaticScheduleFunction(self, in_vars)
+                    sched = StaticScheduleFunction(self, in_vars,
+                                                   verbosity_level=self._verbosity_level)
                     sched_list.append(sched)
 
                 sched = sched_list[available_index]
@@ -475,13 +383,18 @@ class ScheduleManager(object):
                 self.schedules[key_str] = [sched]
                 self.in_use_count[key_str] = 1
 
-            return sched
+        return sched
 
     def end_forward(self):
         """Make in-use schedules available for use in next iteration.
 
-        If training mode is active, free all in-use schedules so that they
-        can be reused in the next iteration.
+        Set the in-use status of all schedules to "not in use" so that
+        they can be reused in the next iteration.
+
+        In the case that test mode is active
+        (`chainer.config.train` is `False`) and the static chain corresponding
+        to this manager was not called more than once in any iteration during
+        trainign mode, then this method will be called automatically.
 
         """
         if not self._end_forward:
@@ -489,8 +402,16 @@ class ScheduleManager(object):
                 self.in_use_count[key] = 0
             self._end_forward = True
 
+            if self._train_count > self._max_in_use_train:
+                self._max_in_use_train = self._train_count
+                if self._verbosity_level >= 2:
+                    print("Maximum in-use schedules per training iteration: ",
+                        self._max_in_use_train)
+            self._train_count = 0
+            #self._test_count = 0
 
-def static_graph(func):
+
+def static_graph(*args, **kwargs):
     """Decorator to mark a Chain's ``__call__()`` as a static sub-graph.
 
     This decorator marks the define-by-run code inside the `__call__()`
@@ -580,6 +501,9 @@ def static_graph(func):
     to reuse the same static schedule during a single forward pass because
     we assume that there is no need to compute gradients and hence no
     need to ever perform a backward pass during test mode.
+    It is also possible to disable static optimzations while in test mode
+    such as to maintain compatibility with some existing models that require
+    dynamic behavior in test mode.
 
     Important:
         Regarding parameters of a static chain: In the current
@@ -602,69 +526,120 @@ def static_graph(func):
         to C/C++ and/or an intermediate level graph representations is also
         possible and may be considered in the future.
 
+    This decorator can be supplied with the following optional keyword
+    arguments:
+
     Args:
-        func: The `__call__()` method of an instance of Chain
-        that is wrapped by this decorator.
+        force_test_define_by_run (bool): If `True`, disable static graph
+            optimizations during test mode (that is, when
+            `chainer.config.train` is False). This may be needed in order
+            for some existing RNN links such as LSTM to work correctly,
+            since some existing links do not correspond to a static graph
+            in some cases.
+            The default is `False`.
+
+        minimize_cache_size (bool): If `True`, minimize the number of cached
+            static schedules in order to reduce memory usage. The default
+            value is `False`. fixme: Don't enable yet due to memory bug or
+            slow garbage collection?
+
+        verbosity_level (int): Depending on the value, print additional
+            information:
+            0: Warnings only. (the default value)
+            1: Print when a function is added to a static schedule.
+            2: Detailed debugging information.
+
 
     Returns:
         Wrapped ``__call__()`` method with static chain support.
     """
-    def wrapped_func(*args, **kwargs):
-        chain = args[0]
-        in_vars = args[1:]
-        # Since it is allowed for in_vars to be either variables or arrays,
-        # we force to variables.
-        new_in_vars = []
-        for x in in_vars:
-            if not isinstance(x, chainer.Variable):
-                new_in_vars.append(chainer.Variable(x))
+    force_test_define_by_run = False
+    # fixme: make default True after memory bug/slow garbage collection is fixed.
+    minimize_cache_size = False
+    verbosity_level = 0
+    zero_args = False
+    if len(args) == 1 and not kwargs and callable(args[0]):
+        callable_arg = args[0]
+        zero_args = True
+    elif kwargs:
+        if 'force_test_define_by_run' in kwargs:
+            force_test_define_by_run = kwargs['force_test_define_by_run']
+        if 'minimize_cache_size' in kwargs:
+            minimize_cache_size = kwargs['minimize_cache_size']
+        if 'verbosity_level' in kwargs:
+            verbosity_level = kwargs['verbosity_level']
+
+    def wrap(func):
+        def wrapped_func(*inner_args, **kwargs):
+            chain = inner_args[0]
+            in_vars = inner_args[1:]
+            # Since it is allowed for in_vars to be either variables or arrays,
+            # we force to variables.
+            new_in_vars = []
+            for x in in_vars:
+                if not isinstance(x, chainer.Variable):
+                    new_in_vars.append(chainer.Variable(x))
+                else:
+                    new_in_vars.append(x)
+            in_vars = tuple(new_in_vars)
+
+            if chainer.config.train is False and force_test_define_by_run:
+                return func(*inner_args, **kwargs)
+
+            if not hasattr(chain, 'schedule_manager'):
+                chain.schedule_manager = ScheduleManager(
+                    minimize_cache_size=minimize_cache_size,
+                    verbosity_level=verbosity_level)
+
+            schedule_manager = chain.schedule_manager
+
+            chain.static_schedule = schedule_manager.get_schedule(in_vars)
+
+            if not chain.static_schedule.is_empty():
+                # Call the optimized static schedule code.
+                #print('This is the 2nd or greater iteration. Calling the optimized schedule...')
+                # Note: out_vars are dynamically allocated because FunctionNode.apply()
+                # will dynamically allocate variables on each call, which is the desired
+                # behavior.
+                out_vars = chain.static_schedule.apply(in_vars)
+                if len(out_vars) == 1:
+                    out_vars, = out_vars
             else:
-                new_in_vars.append(x)
-        in_vars = tuple(new_in_vars)
+                # This is the first iteration. Calling the define-by-run code.
+                assert isinstance(chain, chainer.Chain)
+                if verbosity_level >= 2:
+                    print('This is the first iteration. Calling the define-by-run code.: ', func)
+                # First check that this chain is not called from inside another
+                # static chain because it is not allowed.
+                if chainer.config.schedule_func is not None:
+                    raise RuntimeError("Not allowed to nest static chains: ", chain)
 
-        if not hasattr(chain, 'schedule_manager'):
-            chain.schedule_manager = ScheduleManager()
+                new_args = []
+                new_args.append(chain)
+                for var in new_in_vars:
+                    new_args.append(var)
 
-        schedule_manager = chain.schedule_manager
-        chain.static_schedule = schedule_manager.get_schedule(in_vars)
+                inner_args = tuple(new_args)
 
-        if not chain.static_schedule.is_empty():
-            # Call the optimized static schedule code.
-            #print('This is the 2nd or greater iteration. Calling the optimized schedule...')
-            # Note: out_vars are dynamically allocated because FunctionNode.apply()
-            # will dynamically allocate variables on each call, which is the desired
-            # behavior.
-            out_vars = chain.static_schedule.apply(in_vars)
-            if len(out_vars) == 1:
-                out_vars, = out_vars
-            return out_vars
-        else:
-            # This is the first iteration. Calling the define-by-run code.
-            assert isinstance(chain, chainer.Chain)
-            print('This is the first iteration. Calling the define-by-run code.: ', func)
-            # First check that this chain is not called from inside another
-            # static chain because it is not allowed.
-            if chainer.config.schedule_func is not None:
-                raise RuntimeError("Not allowed to nest static chains: ", chain)
+                with chainer.using_config('schedule_func', chain.static_schedule):
+                    out_vars = func(*inner_args, **kwargs)
 
-            new_args = []
-            new_args.append(chain)
-            for var in new_in_vars:
-                new_args.append(var)
-            args = tuple(new_args)
+                if verbosity_level >= 2:
+                    print('Creating a new backward schedule function.')
+                # Force out_vars to be a tuple of variables.
+                if isinstance(out_vars, chainer.Variable):
+                    tuple_out_vars = out_vars,
+                else:
+                    tuple_out_vars = out_vars
+                chain.static_schedule.create_out_arrays(tuple_out_vars)
+                backward_sched = chain.static_schedule.create_backward_schedule_func(tuple_out_vars)
+                backward_sched.create_out_arrays(in_vars)
 
-            with chainer.using_config('schedule_func', chain.static_schedule):
-                out_vars = func(*args, **kwargs)
-
-            print('Creating a new backward schedule function.')
-            # Force out_vars to be a tuple of variables.
-            if isinstance(out_vars, chainer.Variable):
-                tuple_out_vars = out_vars,
-            else:
-                tuple_out_vars = out_vars
-            chain.static_schedule.create_out_arrays(tuple_out_vars)
-            backward_sched = chain.static_schedule.create_backward_schedule_func(tuple_out_vars)
-            backward_sched.create_out_arrays(in_vars)
             return out_vars
 
-    return wrapped_func
+        return wrapped_func
+
+    if zero_args:
+        return wrap(callable_arg)
+    else:
+        return wrap
