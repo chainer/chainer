@@ -31,7 +31,7 @@ public:
 
 private:
     std::shared_ptr<OpNode> next_node_;
-    int64_t rank_;
+    int64_t rank_{0};
     nonstd::optional<Array> grad_;
 };
 

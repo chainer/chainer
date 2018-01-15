@@ -89,7 +89,6 @@ Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires
     } else {
         throw DeviceError("invalid device");
     }
-    node_->set_rank(0);
 }
 
 Array::Array(const Array& other)
