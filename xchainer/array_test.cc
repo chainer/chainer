@@ -110,16 +110,9 @@ public:
         Dtype dtype = TypeToDtype<T>;
         int64_t size = shape.total_size();
         int64_t bytesize = size * sizeof(T);
-
-        auto expected_data = std::make_unique<T[]>(size);
-        for (int i = 0; i< size; i++) {
-            expected_data[i] = static_cast<T>(i);
-        }
-
-        auto data = std::make_unique<T[]>(size);
-        std::memcpy(data.get(), expected_data.get(), bytesize);
-        auto raw_ptr = data.get();
-        TargetArray x = Array::FromBuffer(shape, dtype, std::move(data));
+        T raw_ptr[] = {0, 1, 2, 3, 4, 5};
+        auto data = std::shared_ptr<T>(raw_ptr, [](T* ptr) { (void)ptr; });
+        TargetArray x = Array::FromBuffer(shape, dtype, data);
 
         // Basic attributes
         EXPECT_EQ(shape, x.shape());
@@ -132,7 +125,7 @@ public:
         EXPECT_TRUE(x.is_contiguous());
 
         // Array::data
-        ExpectDataEqual<T>(expected_data.get(), x);
+        ExpectDataEqual<T>(raw_ptr, x);
         ExpectDataExistsOnCurrentDevice(x);
         if (GetCurrentDevice() == MakeDevice("cpu")) {
             EXPECT_EQ(raw_ptr, x.data().get());
