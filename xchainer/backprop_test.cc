@@ -1,10 +1,11 @@
 #include "xchainer/backprop.h"
 
+#include <vector>
+
 #ifdef XCHAINER_ENABLE_CUDA
 #include <cuda_runtime.h>
 #endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
-#include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/backprop.h"
