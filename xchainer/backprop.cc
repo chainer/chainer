@@ -37,7 +37,7 @@ public:
             AccumulateNextGradients(gxs);
 
             std::shared_ptr<const OpNode> op_node = TopOpNode();
-            PopOpNode();
+            PopOpNode();  // be careful when to pop the top node
             for (auto next_array_node : op_node->next_nodes()) {
                 PushNextOpNode(next_array_node);
             }
