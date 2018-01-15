@@ -18,8 +18,7 @@ void Backprop(const Arrays& inputs, const Arrays& grad_outputs) {
     }
 
     for (size_t i = 0; i < inputs.size(); ++i) {
-        // inputs[i].node()->grad() = Array::EmptyLike(grad_outputs[i]);
-        inputs[i].node()->grad() = std::make_shared<Array>(grad_outputs[i]);
+      // TODO(hvy): set gradients
     }
 }
 
@@ -38,16 +37,6 @@ void Zip(const T& lhs, const T& rhs, U op) {
     }
 }
 
-void SetGradients(const std::vector<Array>& arrays, const std::vector<Array>& grads) {
-    if (arrays.size() != grads.size()) {
-        throw DimensionError("gradients are arrays must be of equal size");
-    }
-    Zip(arrays, grads, [](const Array& array, const Array& grad) {
-        auto bytes = array.node()->grad()->total_size();
-        std::memcpy(array.node()->grad()->data().get(), grad.data().get(), bytes);
-    });
-}
-
 void CheckBackwardComputation(const ForwardFunction& func, const std::vector<Array>& inputs, const std::vector<Array>& grad_outputs,
                               const std::vector<Array>& eps, float atol, float rtol) {
     std::vector<Array> outputs = func(inputs);
@@ -64,7 +53,7 @@ void CheckBackwardComputation(const ForwardFunction& func, const std::vector<Arr
 
     // TODO(hvy): keep a copy/reference to the computed input gradients
     std::vector<Array> grads;
-    std::transform(inputs.begin(), inputs.end(), std::back_inserter(grads), [](const Array& input) { return *input.node()->grad(); });
+    // std::transform(inputs.begin(), inputs.end(), std::back_inserter(grads), [](const Array& input) { return *input.node()->grad(); });
 
     // TODO(hvy): call numerical_grad with given function and eps (specified per element) to get the numerical gradient
     std::vector<Array> numerical_grads = test::CalculateNumericalGradient(func, inputs, grad_outputs, eps);
