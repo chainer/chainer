@@ -15,49 +15,49 @@
 namespace xchainer {
 namespace {
 
-using PreviousNodeMap = std::unordered_map<const OpNode*, std::shared_ptr<ArrayNode>>;
+auto cmp = [](std::shared_ptr<const OpNode> lhs, std::shared_ptr<const OpNode> rhs) { return lhs->rank() < rhs->rank(); };
 
-}  // namespace
+class BackwardImpl {
+    using CandidateOpNodes = std::priority_queue<std::shared_ptr<const OpNode>, std::vector<std::shared_ptr<const OpNode>>, decltype(cmp)>;
+    using PreviousArrayNodeMap = std::unordered_map<std::shared_ptr<const OpNode>, std::shared_ptr<ArrayNode>>;
 
-void Backward(Array& output) {
-    std::shared_ptr<ArrayNode> node = output.mutable_node();
-    auto cmp = [](std::shared_ptr<const OpNode> lhs, std::shared_ptr<const OpNode> rhs) { return lhs->rank() < rhs->rank(); };
-    std::priority_queue<std::shared_ptr<const OpNode>, std::vector<std::shared_ptr<const OpNode>>, decltype(cmp)> candidate_nodes(cmp);
-    std::set<const OpNode*> seen_set;
-    PreviousNodeMap previous_node_map;
+public:
+    BackwardImpl() : candidate_op_nodes_(cmp) {};
 
-    // Initialize the output gradient if needed.
-    if (!node->grad()) {
-        node->set_grad(Array::OnesLike(output));
+    void run(Array& output) {
+        std::shared_ptr<ArrayNode> array_node = output.mutable_node();
+        if (!array_node->grad()) {
+            array_node->set_grad(Array::OnesLike(output));
+        }
+        BuildCandidateOpNodes(array_node);
+        ProcessOpNodes();
+    };
+
+private:
+    void BuildCandidateOpNodes(std::shared_ptr<ArrayNode> array_node) {
+        std::shared_ptr<const OpNode> op_node = array_node->next_node();
+        if (op_node) {
+            PushOpNode(op_node);
+            InsertPreviousArrayNode(op_node, array_node);
+            auto next_array_nodes = op_node->next_nodes();
+            auto backward_functions = op_node->backward_functions();
+            auto next_size = next_array_nodes.size();
+            for (decltype(next_size) i = 0; i < next_size; ++i) {
+                if (backward_functions[i]) {
+                    BuildCandidateOpNodes(next_array_nodes[i]);
+                }
+            }
+        }
     }
 
-    // Push the OpNode next to the output's ArrayNode to the priority queue.
-    std::shared_ptr<const OpNode> op_node = node->next_node();
-    if (op_node) {
-        const OpNode* op_node_ptr = op_node.get();
-        candidate_nodes.push(op_node);
-        seen_set.insert(op_node_ptr);
-        previous_node_map.emplace(op_node_ptr, node);
-    }
+    std::vector<nonstd::optional<Array>> ComputeNextGradients() {
+        std::shared_ptr<const OpNode> op_node = TopOpNode();
+        std::shared_ptr<ArrayNode> previous_array_node = PreviousArrayNode(op_node);
 
-    // Iteratively backprop.
-    while (!candidate_nodes.empty()) {
-        std::shared_ptr<const OpNode> op_node = candidate_nodes.top();
-        candidate_nodes.pop();
-
-        // TODO(takagi): Properly handle the case that the same array is passed multiple times as inputs in the same function (e.g. an
-        // expression like f(x, x))
-
-        // Get the OpNode's previous node.
-        auto it = previous_node_map.find(op_node.get());
-        assert(it != previous_node_map.end());
-        std::shared_ptr<ArrayNode> previous_node = it->second;
-
-        // Get the previous node's gradient.
-        const nonstd::optional<Array>& gy = previous_node->grad();
+        nonstd::optional<Array> gy = previous_array_node->grad();
         assert(gy);
+        previous_array_node->ClearGrad();
 
-        // Compute the OpNode's next gradients.
         std::vector<nonstd::optional<Array>> gxs;
         for (auto& backward_function : op_node->backward_functions()) {
             if (backward_function) {
@@ -67,37 +67,70 @@ void Backward(Array& output) {
                 gxs.emplace_back(nonstd::nullopt);
             }
         }
+        return gxs;
+    }
 
-        // Release the intermediate node's gradient.
-        previous_node->ClearGrad();
-
+    void AccumulateNextGradients(std::vector<nonstd::optional<Array>> gxs) {
+        std::shared_ptr<const OpNode> op_node = TopOpNode();
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = op_node->next_nodes();
         auto next_size = next_nodes.size();
         for (decltype(next_size) i = 0; i < next_size; ++i) {
             nonstd::optional<Array> gx = std::move(gxs[i]);
             std::shared_ptr<ArrayNode> next_node = next_nodes[i];
             if (gx) {
-                // Accumulate the Opnode's next gradient.
                 const nonstd::optional<Array>& grad = next_node->grad();
                 if (grad) {
                     next_node->set_grad(*grad + *gx);
                 } else {
                     next_node->set_grad(std::move(*gx));
                 }
-
-                // Push the next OpNode to the priority queue.
-                std::shared_ptr<const OpNode> next_op_node = next_node->next_node();
-                if (next_op_node) {
-                    const OpNode* next_op_node_ptr = next_op_node.get();
-                    if (seen_set.find(next_op_node_ptr) == seen_set.end()) {
-                        candidate_nodes.push(next_op_node);
-                        seen_set.insert(next_op_node_ptr);
-                        previous_node_map.emplace(next_op_node_ptr, next_node);
-                    }
-                }
             }
         }
     }
+
+    void ProcessOpNodes() {
+        while (!EmptyOpNodes()) {
+            std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients();
+            AccumulateNextGradients(gxs);
+            PopOpNode();
+        }
+    }
+
+    const std::shared_ptr<const OpNode>& TopOpNode() const {
+        return candidate_op_nodes_.top();
+    }
+
+    bool EmptyOpNodes() const noexcept {
+        return candidate_op_nodes_.empty();
+    }
+
+    void PushOpNode(std::shared_ptr<const OpNode> op_node) {
+        candidate_op_nodes_.push(std::move(op_node));
+    }
+
+    void PopOpNode() {
+        candidate_op_nodes_.pop();
+    }
+
+    std::shared_ptr<ArrayNode> PreviousArrayNode(std::shared_ptr<const OpNode> op_node) const {
+        auto it = previous_array_node_map_.find(op_node);
+        assert(it != previous_array_node_map_.end());
+        return it->second;
+    }
+
+    void InsertPreviousArrayNode(std::shared_ptr<const OpNode> op_node, std::shared_ptr<ArrayNode> array_node) {
+        previous_array_node_map_.emplace(std::move(op_node), std::move(array_node));
+    }
+
+    CandidateOpNodes candidate_op_nodes_;
+    PreviousArrayNodeMap previous_array_node_map_;
+};
+
+}  // namespace
+
+void Backward(Array& output) {
+    BackwardImpl impl;
+    impl.run(output);
 }
 
 }  // namespace xchainer
