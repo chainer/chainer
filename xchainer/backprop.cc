@@ -1,5 +1,6 @@
 #include "xchainer/backprop.h"
 
+#include <functional>
 #include <memory>
 #include <queue>
 #include <unordered_map>
@@ -14,14 +15,13 @@
 namespace xchainer {
 namespace {
 
-auto cmp = [](std::shared_ptr<const OpNode> lhs, std::shared_ptr<const OpNode> rhs) { return lhs->rank() < rhs->rank(); };
-
 class BackwardImpl {
-    using CandidateOpNodes = std::priority_queue<std::shared_ptr<const OpNode>, std::vector<std::shared_ptr<const OpNode>>, decltype(cmp)>;
+    using Comparer = std::function<bool(std::shared_ptr<const OpNode>, std::shared_ptr<const OpNode>)>;
+    using CandidateOpNodes = std::priority_queue<std::shared_ptr<const OpNode>, std::vector<std::shared_ptr<const OpNode>>, Comparer>;
     using PreviousArrayNodeMap = std::unordered_map<std::shared_ptr<const OpNode>, std::shared_ptr<ArrayNode>>;
 
 public:
-    BackwardImpl() : candidate_op_nodes_(cmp){};
+    BackwardImpl() : candidate_op_nodes_(BackwardImpl::Compare){};
 
     void run(Array& output) {
         std::shared_ptr<ArrayNode> array_node = output.mutable_node();
@@ -107,6 +107,8 @@ private:
     void InsertPreviousArrayNode(std::shared_ptr<const OpNode> op_node, std::shared_ptr<ArrayNode> array_node) {
         previous_array_node_map_.emplace(std::move(op_node), std::move(array_node));
     }
+
+    static bool Compare(std::shared_ptr<const OpNode> lhs, std::shared_ptr<const OpNode> rhs) { return lhs->rank() < rhs->rank(); };
 
     CandidateOpNodes candidate_op_nodes_;
     PreviousArrayNodeMap previous_array_node_map_;

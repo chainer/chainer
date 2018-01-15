@@ -115,6 +115,16 @@ TEST_P(BackpropTest, InputGradient) {
     CheckBackprop({1.0f}, {}, {2.0f}, fprop);
 }
 
+TEST_P(BackpropTest, OutputGradient) {
+    auto x = Array::Ones({1}, TypeToDtype<float>);
+    x.set_requires_grad(true);
+    auto y = x;
+    y.set_grad(Array::FullLike(y, 2.0f));
+    Backward(y);
+    auto e = Array::FullLike(x, 2.0f);
+    ExpectEqual<float>(e, *x.grad());
+}
+
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
                                                          std::string{"cuda"},
