@@ -60,8 +60,7 @@ private:
         std::vector<nonstd::optional<Array>> gxs;
         for (auto& backward_function : op_node->backward_functions()) {
             if (backward_function) {
-                Array gx = backward_function(*gy);
-                gxs.emplace_back(std::move(gx));
+                gxs.emplace_back(backward_function(*gy));
             } else {
                 gxs.emplace_back(nonstd::nullopt);
             }
