@@ -113,6 +113,8 @@ private:
 }  // namespace
 
 void Backward(Array& output) {
+    // TODO(takagi): Operations that have multiple outputs
+    // TODO(takagi): Begin backprop from multiple outputs
     BackwardImpl impl;
     impl.run(output);
 }
