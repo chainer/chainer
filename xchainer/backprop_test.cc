@@ -4,6 +4,7 @@
 #include <cuda_runtime.h>
 #endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
+#include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/backprop.h"
@@ -17,6 +18,15 @@
 namespace xchainer {
 namespace {
 
+std::vector<Array> MakeFullArrays(const Shape& shape, const std::vector<float>& values, bool requires_grad) {
+    std::vector<Array> ret;
+    for (float value : values) {
+        ret.push_back(Array::Full(shape, value));
+        ret.back().set_requires_grad(requires_grad);
+    }
+    return ret;
+}
+
 class BackpropTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
     virtual void SetUp() {
@@ -28,14 +38,14 @@ protected:
 
 public:
     template <typename T>
-    void AssertEqual(const Array& expected, const Array& actual) {
+    void AssertEqual(const Array& expected, const Array& actual) const {
         ASSERT_EQ(expected.dtype(), actual.dtype());
         ASSERT_EQ(expected.shape(), actual.shape());
         AssertDataEqual<T>(expected, actual);
     }
 
     template <typename T>
-    void AssertDataEqual(const Array& expected, const Array& actual) {
+    void AssertDataEqual(const Array& expected, const Array& actual) const {
 #ifdef XCHAINER_ENABLE_CUDA
         std::string device_name = ::testing::get<0>(GetParam());
         if (device_name == "cuda") {
@@ -50,28 +60,46 @@ public:
         }
     }
 
+    // Checks the correctness of Backward() applied to the output of a given function.
+    // Gradients are only computed w.r.t. target_inputs, and are compared to expected_grads.
+    template <typename Fprop>
+    void CheckBackprop(std::vector<Array>& target_inputs, std::vector<Array>& other_inputs, std::vector<Array>& expected_grads,
+                       Fprop&& fprop) const {
+        ASSERT_EQ(expected_grads.size(), target_inputs.size());
+        auto y = fprop(target_inputs, other_inputs);
+        Backward(y);
+        for (size_t i = 0; i < expected_grads.size(); ++i) {
+            AssertEqual<float>(expected_grads[i], *target_inputs[i].grad());
+        }
+    }
+
+    // Simple version. It makes and uses an array with one element for each input.
+    template <typename Fprop>
+    void CheckBackprop(std::vector<float> target_inputs, std::vector<float> other_inputs, std::vector<float> expected_grads,
+                       Fprop&& fprop) const {
+        auto xs = MakeFullArrays({1}, target_inputs, true);
+        auto other_xs = MakeFullArrays({1}, other_inputs, false);
+        auto expected_gxs = MakeFullArrays({1}, expected_grads, false);
+        CheckBackprop(xs, other_xs, expected_gxs, std::forward<Fprop>(fprop));
+    }
+
 private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
 
 TEST_P(BackpropTest, Backward) {
-    Array x = Array::Full({1}, 2.0f);
-    x.set_requires_grad(true);
+    CheckBackprop({2.0f}, {3.0f}, {7.0f}, [](auto& xs, auto& ys) { return xs[0] * (xs[0] + ys[0]); });
+}
 
-    Array y = Array::Full({1}, 3.0f);
-
-    Array z = x * (x + y);
-    Backward(z);
-
-    Array e1 = Array::Full({1}, 7.0f);
-    AssertEqual<float>(e1, *x.grad());
-
-    Array gx = *x.grad();
-    x.ClearGrad();
-    Backward(gx);
-
-    Array e2 = Array::Full({1}, 2.0f);
-    AssertEqual<float>(e2, *x.grad());
+TEST_P(BackpropTest, DoubleBackprop) {
+    auto fprop = [](auto& xs, auto& ys) {
+        auto z = xs[0] * (xs[0] + ys[0]);
+        Backward(z);
+        auto gx = *xs[0].grad();
+        xs[0].ClearGrad();
+        return gx;
+    };
+    CheckBackprop({2.0f}, {3.0f}, {2.0f}, fprop);
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
