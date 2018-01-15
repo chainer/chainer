@@ -63,8 +63,8 @@ TEST_P(BackpropTest, Backward) {
     Array z = x * (x + y);
     Backward(z);
 
-    Array e1 = Array::Full({1}, 7.0f);
-    AssertEqual<float>(e1, *x.grad());
+    Array e = Array::Full({1}, 7.0f);
+    AssertEqual<float>(e, *x.grad());
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
