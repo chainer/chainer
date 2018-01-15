@@ -44,20 +44,20 @@ TEST(ScalarTest, Equality) {
 }
 
 template <typename T1, typename T2>
-void ExpectScalarInequal(T1 value1, T2 value2) {
+void ExpectScalarNotEqual(T1 value1, T2 value2) {
     EXPECT_NE(Scalar(value1), Scalar(value2));
     EXPECT_NE(Scalar(value2), Scalar(value1));
 }
 
 TEST(ScalarTest, Inequality) {
-    ExpectScalarInequal(0, 1);
-    ExpectScalarInequal(-1, 1);
-    ExpectScalarInequal(-1.0001, -1.0);
-    ExpectScalarInequal(-1.0001, -1);
-    ExpectScalarInequal(true, false);
-    ExpectScalarInequal(true, 1.1);
-    ExpectScalarInequal(1.0001, 1.0002);
-    ExpectScalarInequal(std::nan(""), std::nan(""));
+    ExpectScalarNotEqual(0, 1);
+    ExpectScalarNotEqual(-1, 1);
+    ExpectScalarNotEqual(-1.0001, -1.0);
+    ExpectScalarNotEqual(-1.0001, -1);
+    ExpectScalarNotEqual(true, false);
+    ExpectScalarNotEqual(true, 1.1);
+    ExpectScalarNotEqual(1.0001, 1.0002);
+    ExpectScalarNotEqual(std::nan(""), std::nan(""));
 }
 
 TEST(ScalarTest, Cast) {
