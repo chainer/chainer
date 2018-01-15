@@ -573,6 +573,9 @@ def static_graph(*args, **kwargs):
         def wrapped_func(*inner_args, **kwargs):
             chain = inner_args[0]
             in_vars = inner_args[1:]
+
+            in_vars, __, __ = _flatten_args(in_vars)
+
             # Since it is allowed for in_vars to be either variables or arrays,
             # we force to variables.
             new_in_vars = []
@@ -602,8 +605,14 @@ def static_graph(*args, **kwargs):
                 # will dynamically allocate variables on each call, which is the desired
                 # behavior.
                 out_vars = chain.static_schedule.apply(in_vars)
+
                 if len(out_vars) == 1:
                     out_vars, = out_vars
+
+                print("_out_vars_unflatten_inds", chain._out_vars_unflatten_inds)
+                out_vars = _unflatten_args(out_vars, chain._out_vars_unflatten_inds)
+                print("second+ iter, out_vars", len(out_vars))
+
             else:
                 # This is the first iteration. Calling the define-by-run code.
                 assert isinstance(chain, chainer.Chain)
@@ -627,27 +636,17 @@ def static_graph(*args, **kwargs):
                 if verbosity_level >= 2:
                     print('Creating a new backward schedule function.')
 
-                def _flatten(xs):
-                    ys = []
-                    for x in xs:
-                        if isinstance(x, (list, tuple)):
-                            x = _flatten(x)
-                        else:
-                            x = [x]
-                        ys.extend([y for y in x])
-                    return ys
-
                 # Force out_vars to be a tuple of variables.
-                if isinstance(out_vars, (list, tuple)):
-                    tuple_out_vars = _flatten(out_vars)
-                else:
-                    tuple_out_vars = out_vars,
+                tuple_out_vars, chain._out_vars_unflatten_inds, __ = _flatten_args(out_vars)
+
                 tuple_out_vars = tuple(x if isinstance(x, chainer.Variable) else
                                        chainer.Variable(x) for x in
                                        tuple_out_vars)
                 chain.static_schedule.create_out_arrays(tuple_out_vars)
                 backward_sched = chain.static_schedule.create_backward_schedule_func(tuple_out_vars)
                 backward_sched.create_out_arrays(in_vars)
+
+                print("first iter, out_vars", len(out_vars))
 
             return out_vars
 
@@ -657,3 +656,39 @@ def static_graph(*args, **kwargs):
         return wrap(callable_arg)
     else:
         return wrap
+
+
+def _flatten_args(xs):
+    inds = []
+    ys = []
+    i = 0
+    if not isinstance(xs, (list, tuple)):
+        inds.append(('s', ))
+        return [xs], inds, 0
+    for x in xs:
+        if isinstance(x, (list, tuple)):
+            x, sub_inds, total = _flatten_args(x, )
+            inds.append(('i', i, i+total, sub_inds))
+            i += total
+        else:
+            x = [x]
+            inds.append(('f', i))
+            i += 1
+        ys.extend([y for y in x])
+    return tuple(ys), inds, i
+
+
+def _unflatten_args(xs, inds):
+    ys = []
+    for ind in inds:
+        code = ind[0]
+        if code == 'i':
+            return xs[0]
+        elif code == 'i':
+            i_start, i_end, sub_inds = ind[1:]
+            y = _unflatten_args(xs[i_start:i_end], sub_inds)
+        else:
+            i = ind[1]
+            y = xs[i]
+        ys.append(y)
+    return tuple(ys)
