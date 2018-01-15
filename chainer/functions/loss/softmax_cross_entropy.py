@@ -364,7 +364,7 @@ def softmax_cross_entropy(
         array([3, 0], dtype=int32)
         >>> y = F.softmax_cross_entropy(x, t)
         >>> y
-        variable(0.4401897192001343)
+        variable(0.44018972)
         >>> log_softmax = -F.log_softmax(x)
         >>> expected_loss = np.mean([log_softmax[row, column].data \
 for row, column in enumerate(t)])

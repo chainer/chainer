@@ -47,7 +47,7 @@ class TheanoFunction(link.Link):
        >>> b = chainer.Variable(np.array([2, 3], dtype='f'))
        >>> c, d = f(a, b)
        >>> c.data
-       array([ 3.,  5.], dtype=float32)
+       array([3., 5.], dtype=float32)
        >>> d.data
        array([-1., -1.], dtype=float32)
 
