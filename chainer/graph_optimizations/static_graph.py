@@ -606,12 +606,7 @@ def static_graph(*args, **kwargs):
                 # behavior.
                 out_vars = chain.static_schedule.apply(in_vars)
 
-                if len(out_vars) == 1:
-                    out_vars, = out_vars
-
-                print("_out_vars_unflatten_inds", chain._out_vars_unflatten_inds)
                 out_vars = _unflatten_args(out_vars, chain._out_vars_unflatten_inds)
-                print("second+ iter, out_vars", len(out_vars))
 
             else:
                 # This is the first iteration. Calling the define-by-run code.
@@ -645,8 +640,6 @@ def static_graph(*args, **kwargs):
                 chain.static_schedule.create_out_arrays(tuple_out_vars)
                 backward_sched = chain.static_schedule.create_backward_schedule_func(tuple_out_vars)
                 backward_sched.create_out_arrays(in_vars)
-
-                print("first iter, out_vars", len(out_vars))
 
             return out_vars
 
@@ -682,7 +675,7 @@ def _unflatten_args(xs, inds):
     ys = []
     for ind in inds:
         code = ind[0]
-        if code == 'i':
+        if code == 's':
             return xs[0]
         elif code == 'i':
             i_start, i_end, sub_inds = ind[1:]
