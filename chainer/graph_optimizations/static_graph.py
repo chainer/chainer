@@ -626,11 +626,25 @@ def static_graph(*args, **kwargs):
 
                 if verbosity_level >= 2:
                     print('Creating a new backward schedule function.')
+
+                def _flatten(xs):
+                    ys = []
+                    for x in xs:
+                        if isinstance(x, (list, tuple)):
+                            x = _flatten(x)
+                        else:
+                            x = [x]
+                        ys.extend([y for y in x])
+                    return ys
+
                 # Force out_vars to be a tuple of variables.
-                if isinstance(out_vars, chainer.Variable):
-                    tuple_out_vars = out_vars,
+                if isinstance(out_vars, (list, tuple)):
+                    tuple_out_vars = _flatten(out_vars)
                 else:
-                    tuple_out_vars = out_vars
+                    tuple_out_vars = out_vars,
+                tuple_out_vars = tuple(x if isinstance(x, chainer.Variable) else
+                                       chainer.Variable(x) for x in
+                                       tuple_out_vars)
                 chain.static_schedule.create_out_arrays(tuple_out_vars)
                 backward_sched = chain.static_schedule.create_backward_schedule_func(tuple_out_vars)
                 backward_sched.create_out_arrays(in_vars)
