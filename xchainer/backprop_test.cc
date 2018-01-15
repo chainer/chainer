@@ -103,6 +103,10 @@ TEST_P(BackpropTest, DoubleBackprop) {
     CheckBackprop({2.0f}, {3.0f}, {2.0f}, fprop);
 }
 
+TEST_P(BackpropTest, BackwardIdenticalInputs) {
+    CheckBackprop({2.0f}, {}, {2.0f}, [](auto& xs, __attribute__((unused)) auto& ys) { return xs[0] + xs[0]; });
+}
+
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
                                                          std::string{"cuda"},
