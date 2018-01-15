@@ -111,9 +111,7 @@ private:
     }
 
     std::shared_ptr<ArrayNode> PreviousArrayNode(std::shared_ptr<const OpNode> op_node) const {
-        auto it = previous_array_node_map_.find(op_node);
-        assert(it != previous_array_node_map_.end());
-        return it->second;
+        return previous_array_node_map_.at(op_node);
     }
 
     void InsertPreviousArrayNode(std::shared_ptr<const OpNode> op_node, std::shared_ptr<ArrayNode> array_node) {
