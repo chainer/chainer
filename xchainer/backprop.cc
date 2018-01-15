@@ -25,30 +25,26 @@ public:
 
     void run(Array& output) {
         std::shared_ptr<ArrayNode> array_node = output.mutable_node();
+
         if (!array_node->grad()) {
             array_node->set_grad(Array::OnesLike(output));
         }
-        BuildCandidateOpNodes(array_node);
-        ProcessOpNodes();
+
+        PushNextOpNode(array_node);
+
+        while (!EmptyOpNodes()) {
+            std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients();
+            AccumulateNextGradients(gxs);
+
+            std::shared_ptr<const OpNode> op_node = TopOpNode();
+            PopOpNode();
+            for (auto next_array_node : op_node->next_nodes()) {
+                PushNextOpNode(next_array_node);
+            }
+        }
     };
 
 private:
-    void BuildCandidateOpNodes(std::shared_ptr<ArrayNode> array_node) {
-        std::shared_ptr<const OpNode> op_node = array_node->next_node();
-        if (op_node) {
-            PushOpNode(op_node);
-            InsertPreviousArrayNode(op_node, array_node);
-            auto next_array_nodes = op_node->next_nodes();
-            auto backward_functions = op_node->backward_functions();
-            auto next_size = next_array_nodes.size();
-            for (decltype(next_size) i = 0; i < next_size; ++i) {
-                if (backward_functions[i]) {
-                    BuildCandidateOpNodes(next_array_nodes[i]);
-                }
-            }
-        }
-    }
-
     std::vector<nonstd::optional<Array>> ComputeNextGradients() {
         const std::shared_ptr<const OpNode>& op_node = TopOpNode();
         std::shared_ptr<ArrayNode> previous_array_node = PreviousArrayNode(op_node);
@@ -86,11 +82,18 @@ private:
         }
     }
 
-    void ProcessOpNodes() {
-        while (!EmptyOpNodes()) {
-            std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients();
-            AccumulateNextGradients(gxs);
-            PopOpNode();
+    void PushNextOpNode(std::shared_ptr<ArrayNode> array_node) {
+        std::shared_ptr<const OpNode> next_op_node = array_node->next_node();
+        if (next_op_node) {
+            PushOpNode(next_op_node);
+            InsertPreviousArrayNode(next_op_node, array_node);
+        }
+    }
+
+    void PushNextOpNodes(std::shared_ptr<const OpNode> op_node) {
+        gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node->next_nodes();
+        for (auto next_array_node : next_array_nodes) {
+            PushNextOpNode(next_array_node);
         }
     }
 
