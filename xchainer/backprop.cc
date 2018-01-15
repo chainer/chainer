@@ -39,7 +39,7 @@ public:
             std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients(op_node);
             AccumulateNextGradients(op_node, gxs);
 
-            for (auto next_array_node : op_node->next_nodes()) {
+            for (const auto& next_array_node : op_node->next_nodes()) {
                 PushNextOpNode(next_array_node);
             }
         }
