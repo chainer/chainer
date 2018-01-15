@@ -107,6 +107,14 @@ TEST_P(BackpropTest, BackwardIdenticalInputs) {
     CheckBackprop({2.0f}, {}, {2.0f}, [](auto& xs, __attribute__((unused)) auto& ys) { return xs[0] + xs[0]; });
 }
 
+TEST_P(BackpropTest, InputGradient) {
+    auto fprop = [](auto& xs, __attribute__((unused)) auto& ys) {
+        xs[0].set_grad(Array::OnesLike(xs[0]));
+        return xs[0];
+    };
+    CheckBackprop({1.0f}, {}, {2.0f}, fprop);
+}
+
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
                                                          std::string{"cuda"},
