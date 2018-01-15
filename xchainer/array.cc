@@ -23,19 +23,15 @@
 
 namespace xchainer {
 
-Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad, bool is_contiguous, int64_t offset,
-             std::shared_ptr<ArrayNode> node)
+Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad, bool is_contiguous,
+             int64_t offset)
     : shape_(std::move(shape)),
       dtype_(dtype),
       data_(std::move(data)),
       requires_grad_(requires_grad),
       is_contiguous_(is_contiguous),
       offset_(offset),
-      node_(std::move(node)) {
-    if (node_ == nullptr) {
-        node_ = std::make_shared<ArrayNode>();
-    }
-}
+      node_(std::move(node)) {}
 
 Array::Array(const Array& other)
     : shape_(other.shape_),
@@ -62,13 +58,13 @@ void Array::ClearGrad() noexcept { node_->ClearGrad(); }
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
     std::shared_ptr<void> device_data = MemoryFromBuffer(GetCurrentDevice(), data, bytesize);
-    return {shape, dtype, device_data};
+    return {shape, dtype, device_data, std::make_unique<ArrayNode>()};
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
     std::shared_ptr<void> data = Allocate(GetCurrentDevice(), bytesize);
-    return {shape, dtype, data};
+    return {shape, dtype, data, std::make_unique<ArrayNode>()};
 }
 
 Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype) {
