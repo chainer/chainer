@@ -32,7 +32,7 @@ public:
 
         PushNextOpNode(array_node);
 
-        while (!EmptyOpNodes()) {
+        while (!candidate_op_nodes_.empty()) {
             std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients();
             AccumulateNextGradients(gxs);
 
@@ -93,8 +93,6 @@ private:
     }
 
     const std::shared_ptr<const OpNode>& TopOpNode() const { return candidate_op_nodes_.top(); }
-
-    bool EmptyOpNodes() const noexcept { return candidate_op_nodes_.empty(); }
 
     void PushOpNode(std::shared_ptr<const OpNode> op_node) { candidate_op_nodes_.push(std::move(op_node)); }
 
