@@ -73,7 +73,7 @@ private:
         gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node->next_nodes();
         auto next_size = next_array_nodes.size();
         for (decltype(next_size) i = 0; i < next_size; ++i) {
-            nonstd::optional<Array> gx = std::move(gxs[i]);
+            const nonstd::optional<Array>& gx = gxs[i];
             std::shared_ptr<ArrayNode> next_array_node = next_array_nodes[i];
             if (gx) {
                 const nonstd::optional<Array>& grad = next_array_node->grad();
