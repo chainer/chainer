@@ -38,7 +38,7 @@ def _check_array(array, expected_dtype, expected_shape, expected_total_size, exp
     assert array.offset == 0
 
 
-def _check_array_equals_array(array_a, array_b):
+def _check_arrays_equal(array_a, array_b, expect_data_shared):
     assert array_a.dtype == array_b.dtype
     assert array_a.shape == array_b.shape
     assert array_a.element_bytes == array_b.element_bytes
@@ -47,6 +47,7 @@ def _check_array_equals_array(array_a, array_b):
     assert array_a.debug_flat_data == array_b.debug_flat_data
     assert array_a.is_contiguous == array_b.is_contiguous
     assert array_a.offset == array_b.offset
+    assert (array_a.debug_data_memory_address == array_b.debug_data_memory_address) == expect_data_shared
 
 
 def _check_array_equals_ndarray(array, ndarray):
@@ -165,7 +166,7 @@ def test_copy(array_init_inputs):
     array = xchainer.Array(shape, dtype, data_list)
     array_copy = array.copy()
 
-    _check_array_equals_array(array, array_copy)
+    _check_arrays_equal(array, array_copy, expect_data_shared=False)
 
 
 def test_add_iadd(array_init_inputs):
