@@ -95,7 +95,8 @@ Array::Array(const Array& other)
       is_contiguous_(other.is_contiguous_),
       dtype_(other.dtype_),
       requires_grad_(other.requires_grad_),
-      offset_(other.offset_) {
+      offset_(other.offset_),
+      node_(std::make_shared<ArrayNode>()) {
     auto bytes = other.total_bytes();
     if (GetCurrentDevice() == MakeDevice("cpu")) {
         data_ = std::make_unique<uint8_t[]>(bytes);
