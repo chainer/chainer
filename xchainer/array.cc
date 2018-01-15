@@ -247,7 +247,9 @@ void Array::Mul(const Array& rhs, Array& out) const {
                 Array lhs = *this;
                 rhs_func = [lhs](const Array& gout) { return gout * lhs; };
             } else {
-                rhs_func = [this](const Array& gout) { return gout * (*this); };
+                // TODO(takagi): capture lhs by view
+                Array lhs = *this;
+                rhs_func = [lhs](const Array& gout) { return gout * lhs; };
             }
         }
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};

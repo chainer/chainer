@@ -718,6 +718,16 @@ TEST_P(ArrayTest, MulBackward) {
     ExpectEqual<bool>(gb, go * a);
 }
 
+TEST_P(ArrayTest, MulBackwrdCapture) {
+    Array y = [this]() { Array x = MakeArray<float>({1}, {2.0f}, true);
+                         return x * x; } ();
+    auto op_node = y.node()->next_node();
+    auto rhs_func = op_node->backward_functions()[1];
+    Array gx = rhs_func(Array::OnesLike(y));
+    Array e = MakeArray<float>({1}, {4.0f});
+    ExpectEqual<bool>(e, gx);
+}
+
 INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
                                                       std::string{"cuda"},
