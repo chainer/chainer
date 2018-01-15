@@ -238,7 +238,7 @@ def static_forward_optimizations(func, in_vars, in_data, outputs):
                 """
                 temp_out_data = func.forward(in_data)
                 for ind, static_ar in enumerate(out_data):
-                    static_ar[:] = temp_out_data[ind]
+                    static_ar[...] = temp_out_data[ind]
 
             generic_static_forward(func, in_data, outputs)
 

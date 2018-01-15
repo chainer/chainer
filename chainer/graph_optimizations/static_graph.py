@@ -256,9 +256,10 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         assert len(self._in_arrays) == len(inputs)
         for n in range(len(inputs)):
             # Debug:
-            assert self._in_arrays[n].shape == inputs[n].shape
-            assert self._in_arrays[n][0].dtype == inputs[n][0].dtype
-            self._in_arrays[n][:] = inputs[n]
+            if inputs[n] is not None:
+                assert self._in_arrays[n].shape == inputs[n].shape
+                assert self._in_arrays[n][0].dtype == inputs[n][0].dtype
+                self._in_arrays[n][:] = inputs[n]
 
         # The following line should be the new performance bottleneck after the first iteration
         # has completed. Note that we have several options for the implementation:
