@@ -47,7 +47,7 @@ public:
 
 private:
     std::vector<nonstd::optional<Array>> ComputeNextGradients(std::shared_ptr<const OpNode> op_node) {
-        const std::shared_ptr<ArrayNode>& previous_array_node = PreviousArrayNode(op_node);
+        const std::shared_ptr<ArrayNode>& previous_array_node = previous_array_node_map_.at(op_node);
 
         const nonstd::optional<Array>& gy = previous_array_node->grad();
         assert(gy);
@@ -86,19 +86,9 @@ private:
     void PushNextOpNode(std::shared_ptr<ArrayNode> array_node) {
         const std::shared_ptr<const OpNode>& next_op_node = array_node->next_node();
         if (next_op_node) {
-            PushOpNode(next_op_node);
-            InsertPreviousArrayNode(next_op_node, array_node);
+            candidate_op_nodes_.push(next_op_node);
+            previous_array_node_map_.emplace(next_op_node, array_node);
         }
-    }
-
-    void PushOpNode(std::shared_ptr<const OpNode> op_node) { candidate_op_nodes_.push(std::move(op_node)); }
-
-    std::shared_ptr<ArrayNode> PreviousArrayNode(std::shared_ptr<const OpNode> op_node) const {
-        return previous_array_node_map_.at(op_node);
-    }
-
-    void InsertPreviousArrayNode(std::shared_ptr<const OpNode> op_node, std::shared_ptr<ArrayNode> array_node) {
-        previous_array_node_map_.emplace(std::move(op_node), std::move(array_node));
     }
 
     static bool Compare(std::shared_ptr<const OpNode> lhs, std::shared_ptr<const OpNode> rhs) { return lhs->rank() < rhs->rank(); };
