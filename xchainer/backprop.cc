@@ -66,7 +66,7 @@ private:
         return gxs;
     }
 
-    void AccumulateNextGradients(std::shared_ptr<const OpNode> op_node, std::vector<nonstd::optional<Array>> gxs) {
+    void AccumulateNextGradients(std::shared_ptr<const OpNode> op_node, const std::vector<nonstd::optional<Array>>& gxs) {
         gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node->next_nodes();
         auto next_size = next_array_nodes.size();
         for (decltype(next_size) i = 0; i < next_size; ++i) {
