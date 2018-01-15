@@ -217,9 +217,7 @@ class Convolution2DFunction(function_node.FunctionNode):
                 _y = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
             _ys.append(_y)
 
-        y = xp.stack(_ys, axis=1)  # (N, G, oCg, oH, oW)
-        _, _, _, oH, oW = y.shape
-        y = y.reshape(N, oC, oH, oW)
+        y = xp.concatenate(_ys, axis=1)  # (N, oC, oH, oW)
         return y
 
     def _forward_cudnn(self, x, W, b, y):
@@ -229,6 +227,11 @@ class Convolution2DFunction(function_node.FunctionNode):
             b = cuda.cupy.ascontiguousarray(b)
 
         use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
+
+        # cuDNN 7 supports dilation only in *_FWD_ALGO_IMPLICIT_GEMM, but
+        # it supports Tensor Cores only in *_FWD_ALGO_IMPLICIT_PRECOMP_GEMM.
+        if (use_tensor_core and (self.dx > 1 or self.dy > 1)):
+            use_tensor_core = False
 
         handle = cudnn.get_handle()
         x_desc = cudnn.create_tensor_descriptor(x)
@@ -256,9 +259,7 @@ class Convolution2DFunction(function_node.FunctionNode):
                 conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
 
         if use_tensor_core:
-            # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
-            # supports Tensor-Core in cuDNN7.
-            algo = libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM  # NOQA
+            algo = self._tensor_core_adjust_algo()
 
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
         one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -276,6 +277,11 @@ class Convolution2DFunction(function_node.FunctionNode):
                 one.data, y_desc.value, y.data.ptr)
 
         return y,
+
+    def _tensor_core_adjust_algo(self):
+        # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
+        # supports Tensor-Core in cuDNN7.
+        return libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
@@ -378,8 +384,6 @@ class Convolution2DGradW(function_node.FunctionNode):
         # iC, iH, iW: input channels, input height, input width
         # oC, oH, oW: output channels, output height, output width
         G = self.group
-        kH = self.kh
-        kW = self.kw
         N, iC, iH, iW = x.shape
         _, oC, oH, oW = gy.shape
         iCg = int(iC / G)
@@ -403,8 +407,7 @@ class Convolution2DGradW(function_node.FunctionNode):
                 _gW = self._forward_gpu_core(_x[g, ], _gy[g, ])
             _gWs.append(_gW)
 
-        gW = xp.stack(_gWs)  # (G, oCg, iCg, kH, kW)
-        gW = gW.reshape(oC, iCg, kH, kW)
+        gW = xp.concatenate(_gWs)  # (oC, iCg, kH, kW)
         return gW
 
     def _forward_cudnn(self, x, gy):
@@ -419,6 +422,11 @@ class Convolution2DGradW(function_node.FunctionNode):
         gy = cuda.cupy.ascontiguousarray(gy)
 
         use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
+
+        # cuDNN 7 supports dilation only in *_BWD_FILTER_ALGO_0, but
+        # it supports Tensor Cores only in *_BWD_FILTER_ALGO_1.
+        if (use_tensor_core and (self.dx > 1 or self.dy > 1)):
+            use_tensor_core = False
 
         handle = cudnn.get_handle()
         x_desc = cudnn.create_tensor_descriptor(x)
@@ -451,9 +459,7 @@ class Convolution2DGradW(function_node.FunctionNode):
                 filter_desc.value, _bwd_filter_pref, workspace_size)
 
         if use_tensor_core:
-            # Only CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1 supports
-            # Tensor-Core in cuDNN7.
-            algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
+            algo = self._tensor_core_adjust_algo()
 
         libcudnn.convolutionBackwardFilter_v3(
             handle, one.data, x_desc.value, x.data.ptr, gy_desc.value,
@@ -461,6 +467,11 @@ class Convolution2DGradW(function_node.FunctionNode):
             workspace_size, zero.data, filter_desc.value, gW.data.ptr)
 
         return gW,
+
+    def _tensor_core_adjust_algo(self):
+        # Only CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1 supports
+        # Tensor-Core in cuDNN7.
+        return libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
 
     def backward(self, indexes, grad_outputs):
         x, gy = self.get_retained_inputs()
