@@ -180,20 +180,8 @@ void Array::Mul(const Array& rhs, Array& out) const {
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
         std::function<Array(const Array&)> empty_func;
         // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
-        // TODO(hvy): capture rhs by view (value)
-        auto lhs_func = requires_grad_ ? [rhs](const Array& gout) { return gout * rhs; } : empty_func;
-        auto rhs_func = empty_func;
-        if (rhs.requires_grad()) {
-            if (this == &out) {
-                // deep copy for in-place operation to keep original input
-                Array lhs = *this;
-                rhs_func = [lhs](const Array& gout) { return gout * lhs; };
-            } else {
-                // TODO(takagi): capture lhs by view
-                Array lhs = *this;
-                rhs_func = [lhs](const Array& gout) { return gout * lhs; };
-            }
-        }
+        auto lhs_func = requires_grad_ ? [rhs_view = rhs.MakeView()](const Array& gout) { return gout * rhs_view; } : empty_func;
+        auto rhs_func = requires_grad_ ? [lhs_view = MakeView()](const Array& gout) { return gout * lhs_view; } : empty_func;
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
         std::shared_ptr<OpNode> op_node =
             std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, backward_functions);
