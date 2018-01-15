@@ -39,14 +39,14 @@ protected:
 
 public:
     template <typename T>
-    void AssertEqual(const Array& expected, const Array& actual) const {
-        ASSERT_EQ(expected.dtype(), actual.dtype());
-        ASSERT_EQ(expected.shape(), actual.shape());
-        AssertDataEqual<T>(expected, actual);
+    void ExpectEqual(const Array& expected, const Array& actual) const {
+        EXPECT_EQ(expected.dtype(), actual.dtype());
+        EXPECT_EQ(expected.shape(), actual.shape());
+        ExpectDataEqual<T>(expected, actual);
     }
 
     template <typename T>
-    void AssertDataEqual(const Array& expected, const Array& actual) const {
+    void ExpectDataEqual(const Array& expected, const Array& actual) const {
 #ifdef XCHAINER_ENABLE_CUDA
         std::string device_name = ::testing::get<0>(GetParam());
         if (device_name == "cuda") {
@@ -57,7 +57,7 @@ public:
         const T* expected_data = static_cast<const T*>(expected.data().get());
         const T* actual_data = static_cast<const T*>(actual.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
-            ASSERT_EQ(expected_data[i], actual_data[i]);
+            EXPECT_EQ(expected_data[i], actual_data[i]);
         }
     }
 
@@ -66,11 +66,11 @@ public:
     template <typename Fprop>
     void CheckBackprop(std::vector<Array>& target_inputs, std::vector<Array>& other_inputs, std::vector<Array>& expected_grads,
                        Fprop&& fprop) const {
-        ASSERT_EQ(expected_grads.size(), target_inputs.size());
+        EXPECT_EQ(expected_grads.size(), target_inputs.size());
         auto y = fprop(target_inputs, other_inputs);
         Backward(y);
         for (size_t i = 0; i < expected_grads.size(); ++i) {
-            AssertEqual<float>(expected_grads[i], *target_inputs[i].grad());
+            ExpectEqual<float>(expected_grads[i], *target_inputs[i].grad());
         }
     }
 
