@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <queue>
-#include <set>
 #include <unordered_map>
 
 #include <gsl/gsl>
