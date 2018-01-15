@@ -28,7 +28,7 @@ public:
 
 private:
     std::string name_;
-    int64_t rank_;
+    int64_t rank_{0};
     std::vector<std::shared_ptr<ArrayNode>> next_nodes_;
     std::vector<std::function<Array(const Array&)>> backward_functions_;
 };
