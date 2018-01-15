@@ -58,7 +58,7 @@ private:
         previous_array_node->ClearGrad();
 
         std::vector<nonstd::optional<Array>> gxs;
-        for (auto& backward_function : op_node->backward_functions()) {
+        for (const auto& backward_function : op_node->backward_functions()) {
             if (backward_function) {
                 gxs.emplace_back(backward_function(*gy));
             } else {
