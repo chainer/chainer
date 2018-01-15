@@ -54,17 +54,22 @@ public:
 
     template <typename T>
     void ExpectDataEqual(const Array& expected, const Array& actual) {
+        const T* expected_data = static_cast<const T*>(expected.data().get());
+        ExpectDataEqual(expected_data, actual);
+    }
+
+    template <typename T>
+    void ExpectDataEqual(const T* expected_data, const Array& actual) {
 #ifdef XCHAINER_ENABLE_CUDA
         std::string device_name = ::testing::get<0>(GetParam());
         if (device_name == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
-        auto total_size = expected.shape().total_size();
-        const T* expected_data = static_cast<const T*>(expected.data().get());
+        auto total_size = actual.shape().total_size();
         const T* actual_data = static_cast<const T*>(actual.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
-            EXPECT_EQ(expected_data[i], actual_data[i]);
+            EXPECT_EQ(expected_data[i], actual_data[i]) << "where i is " << i;
         }
     }
 
@@ -80,9 +85,9 @@ public:
         const T* actual_data = static_cast<const T*>(actual.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
             if (std::isnan(expected)) {
-                EXPECT_TRUE(std::isnan(actual_data[i]));
+                EXPECT_TRUE(std::isnan(actual_data[i])) << "where i is " << i;
             } else {
-                EXPECT_EQ(expected, actual_data[i]);
+                EXPECT_EQ(expected, actual_data[i]) << "where i is " << i;
             }
         }
     }
@@ -100,19 +105,19 @@ public:
     template <bool is_const, typename T>
     void CheckFromBuffer() {
         using TargetArray = std::conditional_t<is_const, const Array, Array>;
-        T one{1};
 
         Shape shape = {3, 2};
         Dtype dtype = TypeToDtype<T>;
         int64_t size = shape.total_size();
         int64_t bytesize = size * sizeof(T);
+
+        auto expected_data = std::make_unique<T[]>(size);
+        for (int i = 0; i< size; i++) {
+            expected_data[i] = static_cast<T>(i);
+        }
+
         auto data = std::make_unique<T[]>(size);
-        data[0] = one;
-        data[1] = one;
-        data[2] = one;
-        data[3] = one;
-        data[4] = one;
-        data[5] = one;
+        std::memcpy(data.get(), expected_data.get(), bytesize);
         auto raw_ptr = data.get();
         TargetArray x = Array::FromBuffer(shape, dtype, std::move(data));
 
@@ -127,7 +132,7 @@ public:
         EXPECT_TRUE(x.is_contiguous());
 
         // Array::data
-        ExpectDataEqual(one, x);
+        ExpectDataEqual<T>(expected_data.get(), x);
         ExpectDataExistsOnCurrentDevice(x);
         if (GetCurrentDevice() == MakeDevice("cpu")) {
             EXPECT_EQ(raw_ptr, x.data().get());
