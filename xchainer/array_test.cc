@@ -46,10 +46,15 @@ public:
     }
 
     template <typename T>
-    void ExpectEqual(const Array& expected, const Array& actual) {
+    void ExpectEqual(const Array& expected, const Array& actual, bool expect_data_shared = false) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
         ExpectDataEqual<T>(expected, actual);
+        if (expect_data_shared) {
+            EXPECT_EQ(expected.data().get(), actual.data().get());
+        } else {
+            EXPECT_NE(expected.data().get(), actual.data().get());
+        }
     }
 
     template <typename T>
@@ -303,12 +308,8 @@ private:
 TEST_P(ArrayTest, CopyCtor) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = a;
+    EXPECT_TRUE(b.node());  // Check its node is properly initialized
     ExpectEqual<bool>(a, b);
-
-    // Deep copy, therefore assert different addresses to data
-    EXPECT_NE(a.data().get(), b.data().get());
-    // Check its node is properly initialized
-    EXPECT_TRUE(b.node());
 }
 
 TEST_P(ArrayTest, ArrayMoveCtor) {
