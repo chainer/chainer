@@ -92,14 +92,7 @@ public:
 
 private:
     Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, bool is_contiguous = true, int64_t offset = 0,
-          std::shared_ptr<ArrayNode> node = std::make_shared<ArrayNode>())
-        : shape_(std::move(shape)),
-          dtype_(dtype),
-          data_(std::move(data)),
-          requires_grad_(requires_grad),
-          is_contiguous_(is_contiguous),
-          offset_(offset),
-          node_(std::move(node)) {}
+          std::shared_ptr<ArrayNode> node = nullptr);
 
     void Copy(Array& out) const;
     void Add(const Array& rhs, Array& out) const;
