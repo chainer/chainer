@@ -104,8 +104,9 @@ public:
 
         Shape shape = {3, 2};
         Dtype dtype = TypeToDtype<T>;
-        int64_t bytesize = shape.total_size() * sizeof(T);
-        auto data = std::make_unique<T[]>(bytesize);
+        int64_t size = shape.total_size();
+        int64_t bytesize = size * sizeof(T);
+        auto data = std::make_unique<T[]>(size);
         data[0] = one;
         data[1] = one;
         data[2] = one;
