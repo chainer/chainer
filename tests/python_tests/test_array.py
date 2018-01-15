@@ -38,6 +38,17 @@ def _check_array(array, expected_dtype, expected_shape, expected_total_size, exp
     assert array.offset == 0
 
 
+def _check_array_equals_array(array_a, array_b):
+    assert array_a.dtype == array_b.dtype
+    assert array_a.shape == array_b.shape
+    assert array_a.element_bytes == array_b.element_bytes
+    assert array_a.total_size == array_b.total_size
+    assert array_a.total_bytes == array_b.total_bytes
+    assert array_a.debug_flat_data == array_b.debug_flat_data
+    assert array_a.is_contiguous == array_b.is_contiguous
+    assert array_a.offset == array_b.offset
+
+
 def _check_array_equals_ndarray(array, ndarray):
     assert array.shape == ndarray.shape
     assert array.total_size == ndarray.size
@@ -142,6 +153,19 @@ def test_view(array_init_inputs):
     if len(data_list) > 0:
         array += array
         assert array.debug_flat_data == view.debug_flat_data
+
+
+def test_copy(array_init_inputs):
+    shape_tup, dtype = array_init_inputs
+
+    shape = xchainer.Shape(shape_tup)
+
+    data_list = _create_dummy_data(shape_tup, dtype)
+
+    array = xchainer.Array(shape, dtype, data_list)
+    array_copy = array.copy()
+
+    _check_array_equals_array(array, array_copy)
 
 
 def test_add_iadd(array_init_inputs):

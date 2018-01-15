@@ -300,6 +300,17 @@ private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
 
+TEST_P(ArrayTest, CopyCtor) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = a;
+    ExpectEqual<bool>(a, b);
+
+    // Deep copy, therefore assert different addresses to data
+    EXPECT_NE(a.data().get(), b.data().get());
+    // Check its node is properly initialized
+    EXPECT_TRUE(b.node());
+}
+
 TEST_P(ArrayTest, ArrayMoveCtor) {
     { EXPECT_TRUE(std::is_nothrow_move_constructible<Array>::value); }
     {
@@ -795,6 +806,24 @@ TEST_P(ArrayTest, CopyCtor) {
     EXPECT_EQ(0, b.offset());
 
     ExpectEqual<bool>(a, b);
+}
+
+TEST_P(ArrayTest, Copy) {
+    {
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array o = a.Copy();
+        ExpectEqual<bool>(a, o);
+    }
+    {
+        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array o = a.Copy();
+        ExpectEqual<int8_t>(a, o);
+    }
+    {
+        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array o = a.Copy();
+        ExpectEqual<float>(a, o);
+    }
 }
 
 TEST_P(ArrayTest, MakeView) {

@@ -117,6 +117,13 @@ Array Array::operator*(const Array& rhs) const {
     return out;
 }
 
+Array Array::Copy() const {
+    bool requires_grad = (requires_grad_);
+    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes()), requires_grad, 0};
+    Copy(out);
+    return out;
+}
+
 void Array::Copy(Array& out) const {
     if (requires_grad_) {
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();

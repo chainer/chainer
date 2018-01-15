@@ -88,6 +88,8 @@ public:
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
 
+    Array Copy() const;
+
     void Fill(Scalar value);
 
     std::string ToString() const;
