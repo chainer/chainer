@@ -21,7 +21,7 @@ class BackwardImpl {
     using PreviousArrayNodeMap = std::unordered_map<std::shared_ptr<const OpNode>, std::shared_ptr<ArrayNode>>;
 
 public:
-    BackwardImpl() : candidate_op_nodes_(cmp) {};
+    BackwardImpl() : candidate_op_nodes_(cmp){};
 
     void run(Array& output) {
         std::shared_ptr<ArrayNode> array_node = output.mutable_node();
@@ -94,21 +94,13 @@ private:
         }
     }
 
-    const std::shared_ptr<const OpNode>& TopOpNode() const {
-        return candidate_op_nodes_.top();
-    }
+    const std::shared_ptr<const OpNode>& TopOpNode() const { return candidate_op_nodes_.top(); }
 
-    bool EmptyOpNodes() const noexcept {
-        return candidate_op_nodes_.empty();
-    }
+    bool EmptyOpNodes() const noexcept { return candidate_op_nodes_.empty(); }
 
-    void PushOpNode(std::shared_ptr<const OpNode> op_node) {
-        candidate_op_nodes_.push(std::move(op_node));
-    }
+    void PushOpNode(std::shared_ptr<const OpNode> op_node) { candidate_op_nodes_.push(std::move(op_node)); }
 
-    void PopOpNode() {
-        candidate_op_nodes_.pop();
-    }
+    void PopOpNode() { candidate_op_nodes_.pop(); }
 
     std::shared_ptr<ArrayNode> PreviousArrayNode(std::shared_ptr<const OpNode> op_node) const {
         return previous_array_node_map_.at(op_node);
