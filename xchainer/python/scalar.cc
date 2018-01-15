@@ -2,6 +2,7 @@
 
 #include <pybind11/operators.h>
 
+#include "xchainer/dtype.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
@@ -50,5 +51,9 @@ void InitXchainerScalar(pybind11::module& m) {
             }
             return {};
         });
+
+    py::implicitly_convertible<py::bool_, Scalar>();
+    py::implicitly_convertible<py::int_, Scalar>();
+    py::implicitly_convertible<py::float_, Scalar>();
 }
 }  // namespace xchainer
