@@ -4,6 +4,6 @@
 
 namespace xchainer {
 
-    void Backward(Array& output);
+void Backward(Array& output);
 
 }  // namespace xchainer
