@@ -305,7 +305,7 @@ TEST_P(ArrayTest, Grad) {
     Array g = MakeArray<bool>({1}, {true});
     x.set_grad(g);
     EXPECT_TRUE(x.grad());
-    AssertEqual<bool>(g, *x.grad());
+    ExpectEqual<bool>(g, *x.grad());
 
     x.ClearGrad();
     EXPECT_FALSE(x.grad());
