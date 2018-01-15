@@ -37,5 +37,19 @@ TEST(DtypeTest, CheckEqual) {
     EXPECT_THROW(CheckEqual(Dtype::kInt8, Dtype::kUInt8), DtypeError);
 }
 
+TEST(DtypeTest, IsValidDtype) {
+    EXPECT_TRUE(IsValidDtype(Dtype::kBool));
+    EXPECT_TRUE(IsValidDtype(Dtype::kInt8));
+    EXPECT_TRUE(IsValidDtype(Dtype::kInt16));
+    EXPECT_TRUE(IsValidDtype(Dtype::kInt32));
+    EXPECT_TRUE(IsValidDtype(Dtype::kInt64));
+    EXPECT_TRUE(IsValidDtype(Dtype::kUInt8));
+    EXPECT_TRUE(IsValidDtype(Dtype::kFloat32));
+    EXPECT_TRUE(IsValidDtype(Dtype::kFloat64));
+    EXPECT_FALSE(IsValidDtype(static_cast<Dtype>(0)));
+    EXPECT_FALSE(IsValidDtype(static_cast<Dtype>(-1)));
+    EXPECT_FALSE(IsValidDtype(static_cast<Dtype>(static_cast<int>(Dtype::kFloat64) + 1)));
+}
+
 }  // namespace
 }  // namespace xchainer

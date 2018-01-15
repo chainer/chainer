@@ -75,6 +75,7 @@ Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires
       requires_grad_(requires_grad),
       offset_(offset),
       node_(std::make_shared<ArrayNode>()) {
+    assert(IsValidDtype(dtype_));
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
         data_ = std::move(data);
