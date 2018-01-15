@@ -70,17 +70,17 @@ private:
 
     void AccumulateNextGradients(std::vector<nonstd::optional<Array>> gxs) {
         std::shared_ptr<const OpNode> op_node = TopOpNode();
-        gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = op_node->next_nodes();
-        auto next_size = next_nodes.size();
+        gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node->next_nodes();
+        auto next_size = next_array_nodes.size();
         for (decltype(next_size) i = 0; i < next_size; ++i) {
             nonstd::optional<Array> gx = std::move(gxs[i]);
-            std::shared_ptr<ArrayNode> next_node = next_nodes[i];
+            std::shared_ptr<ArrayNode> next_array_node = next_array_nodes[i];
             if (gx) {
-                const nonstd::optional<Array>& grad = next_node->grad();
+                const nonstd::optional<Array>& grad = next_array_node->grad();
                 if (grad) {
-                    next_node->set_grad(*grad + *gx);
+                    next_array_node->set_grad(*grad + *gx);
                 } else {
-                    next_node->set_grad(std::move(*gx));
+                    next_array_node->set_grad(std::move(*gx));
                 }
             }
         }
