@@ -118,8 +118,7 @@ Array Array::operator*(const Array& rhs) const {
 }
 
 Array Array::Copy() const {
-    bool requires_grad = (requires_grad_);
-    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes()), requires_grad, 0};
+    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes()), requires_grad_, 0};
     Copy(out);
     return out;
 }
