@@ -504,12 +504,21 @@ class GradTestBase(object):
     shape = 3,
     x_names = ()
     y_names = ()
+    loss_scale = None
 
     def _init_attrs(self, names):
         ret = []
         for name in names:
             v = chainer.Variable(
                 numpy.random.randint(-4, 6, self.shape).astype('f'), name=name)
+            ret.append(v)
+            setattr(self, name, v)
+        return ret
+
+    def _init_ones(self, names):
+        ret = []
+        for name in names:
+            v = chainer.Variable(numpy.ones(self.shape, dtype='f'))
             ret.append(v)
             setattr(self, name, v)
         return ret
@@ -528,6 +537,9 @@ class GradTestBase(object):
         self.xs = self._init_attrs(self.x_names)
         self.gxs = self._init_attrs(self._to_grad_names(self.x_names))
         self.gys = self._init_attrs(self._to_grad_names(self.y_names))
+        if self.loss_scale is not None:
+            self._init_ones(self._to_grad_names(self.y_names))
+            self.gys = None
 
     def use_gpu(self):
         for value in six.itervalues(self.__dict__):
@@ -555,7 +567,8 @@ class GradTestBase(object):
     def check_grad(self):
         self.forward()
         ys = [getattr(self, name) for name in self.y_names]
-        gxs = chainer.grad(ys, self.xs, self.gys, self.gxs)
+        gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
+                           loss_scale=self.loss_scale)
 
         expected = self.expected_grad()
         for i, gx in enumerate(self.gxs):
@@ -583,7 +596,8 @@ class GradTestBase(object):
         self.forward()
         ys = [getattr(self, name) for name in self.y_names]
         gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
-                           enable_double_backprop=True)
+                           enable_double_backprop=True,
+                           loss_scale=self.loss_scale)
         y = sum(gxs)
         ggxs = chainer.grad([y], self.xs)
 
@@ -608,6 +622,9 @@ class GradTestBase(object):
         self.check_double_grad()
 
 
+@testing.parameterize(*testing.product({
+    'loss_scale': [None, 1, 10, 100, 1000],
+}))
 class TestGradSimple(GradTestBase, unittest.TestCase):
 
     x_names = 'x',
@@ -617,10 +634,16 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
         self.y = self.x * self.x
 
     def expected_grad(self):
-        return [2 * self.x * self.gy]
+        ret = [2 * self.x * self.gy]
+        if self.loss_scale is not None:
+            ret = [2 * self.x * self.gy * self.loss_scale]
+        return ret
 
     def expected_double_grad(self):
-        return [2 * self.gy]
+        ret = [2 * self.gy]
+        if self.loss_scale is not None:
+            ret = [2 * self.gy * self.loss_scale]
+        return ret
 
 
 class TestGradComplex(GradTestBase, unittest.TestCase):

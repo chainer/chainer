@@ -1572,4 +1572,38 @@ class TestAsVariable(unittest.TestCase):
         self.assertTrue(y.requires_grad)
 
 
+@testing.parameterize(*testing.product({
+    'in_shape': [(4, 3, 2)],
+    'dtype': [np.float16, np.float32, np.float64],
+    'loss_scale': [None, 1, 10, 100, 1000],
+}))
+class TestLossScale(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+        self.y = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+
+    def check_loss_scale(self, x_data, y_data):
+        x = chainer.Variable(x_data)
+        y = chainer.Variable(y_data)
+        z = x * y
+        loss = F.sum(z)
+        loss.backward(loss_scale=self.loss_scale)
+        if self.loss_scale is not None:
+            x.grad /= self.loss_scale
+            y.grad /= self.loss_scale
+        rtol, atol = 1e-4, 1e-5
+        if self.dtype is np.float16:
+            rtol, atol = 1e-1, 1e-2
+        testing.assert_allclose(x.data, y.grad, rtol=rtol, atol=atol)
+        testing.assert_allclose(y.data, x.grad, rtol=rtol, atol=atol)
+
+    def test_loss_scale_cpu(self):
+        self.check_loss_scale(self.x, self.y)
+
+    @attr.gpu
+    def test_loss_scale_gpu(self):
+        self.check_loss_scale(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
+
+
 testing.run_module(__name__, __file__)

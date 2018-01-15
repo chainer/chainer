@@ -536,6 +536,56 @@ class TestGradientMethod(unittest.TestCase):
         self.check_update()
 
 
+@testing.parameterize(*testing.product({
+    'shape': [(4, 3, 2)],
+    'dtype': [np.float16, np.float32, np.float64],
+    'loss_scale': [None, 1, 10, 100, 1000],
+}))
+class TestGradientMethodLossScale(unittest.TestCase):
+
+    def setUp(self):
+        param0_data = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        param0_grad = np.copy(param0_data)
+        param1_data = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        param1_grad = np.copy(param1_data)
+        self.target = chainer.ChainList(
+            SimpleLink(param0_data, param0_grad),
+            SimpleLink(param1_data, param1_grad))
+        lr = 1.0
+        if self.loss_scale is not None:
+            lr = self.loss_scale
+            for i in range(2):
+                self.target[i].param._loss_scale = self.loss_scale
+        self.optimizer = chainer.optimizers.SGD(lr)
+
+    def setup_cpu(self):
+        self.optimizer.setup(self.target)
+
+    def setup_gpu(self, device=None):
+        self.target.to_gpu(device)
+        self.optimizer.setup(self.target)
+
+    def check_update(self):
+        self.optimizer.update()
+        xp = cuda.get_array_module(self.target[0].param)
+        expected_data = xp.zeros(self.shape, dtype=self.dtype)
+        rtol, atol = 1e-4, 1e-5
+        if self.dtype is np.float16:
+            rtol, atol = 1e-1, 1e-2
+        for i in range(2):
+            testing.assert_allclose(self.target[i].param.data, expected_data,
+                                    rtol=rtol, atol=atol)
+
+    def test_update_cpu(self):
+        self.setup_cpu()
+        self.check_update()
+
+    @attr.gpu
+    def test_update_gpu(self):
+        self.setup_gpu()
+        self.check_update()
+
+
 class TestCleargradHook(unittest.TestCase):
 
     def setUp(self):
