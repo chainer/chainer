@@ -215,6 +215,11 @@ struct ArrayReprImpl {
             ++cur_line_size;
         });
 
+        // In case of an empty Array, print the header here
+        if (array.total_size() == 0) {
+            os << "array([";
+        }
+
         // Print the footer
         PrintNTimes(os, ']', ndim);
         os << ", dtype=" << array.dtype() << ')';
