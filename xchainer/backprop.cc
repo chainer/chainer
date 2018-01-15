@@ -50,7 +50,7 @@ private:
     }
 
     std::vector<nonstd::optional<Array>> ComputeNextGradients() {
-        std::shared_ptr<const OpNode> op_node = TopOpNode();
+        const std::shared_ptr<const OpNode>& op_node = TopOpNode();
         std::shared_ptr<ArrayNode> previous_array_node = PreviousArrayNode(op_node);
 
         nonstd::optional<Array> gy = previous_array_node->grad();
@@ -69,7 +69,7 @@ private:
     }
 
     void AccumulateNextGradients(std::vector<nonstd::optional<Array>> gxs) {
-        std::shared_ptr<const OpNode> op_node = TopOpNode();
+        const std::shared_ptr<const OpNode>& op_node = TopOpNode();
         gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node->next_nodes();
         auto next_size = next_array_nodes.size();
         for (decltype(next_size) i = 0; i < next_size; ++i) {
