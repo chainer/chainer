@@ -21,6 +21,9 @@ public:
     Scalar(float v) : float32_(v), dtype_(Dtype::kFloat32) {}
     Scalar(double v) : float64_(v), dtype_(Dtype::kFloat64) {}
 
+    template <typename T>
+    Scalar(T v, Dtype dtype) : Scalar(Scalar{v}.Cast(dtype)) {}
+
     Scalar(const Scalar&) = default;
     Scalar& operator=(const Scalar&) = default;
 
@@ -67,17 +70,6 @@ public:
     explicit operator double() const { return UnwrapAndCast<double>(); }
 
 private:
-    union {
-        bool bool_;
-        int8_t int8_;
-        int16_t int16_;
-        int32_t int32_;
-        int64_t int64_;
-        uint8_t uint8_;
-        float float32_;
-        double float64_;
-    };
-
     template <typename T>
     T UnwrapAndCast() const {
         switch (dtype_) {
@@ -102,6 +94,26 @@ private:
         }
         return T{};
     }
+
+    Scalar Cast(Dtype dtype) const {
+        auto do_cast = [this](auto pt_src, auto pt_dst) {
+            using T_DST = typename decltype(pt_dst)::type;
+            using T_SRC = typename decltype(pt_src)::type;
+            return Scalar{static_cast<T_DST>(this->UnwrapAndCast<T_SRC>())};
+        };
+        return VisitDtype(dtype, [this, do_cast](auto pt_dst) { return VisitDtype(dtype_, do_cast, pt_dst); });
+    }
+
+    union {
+        bool bool_;
+        int8_t int8_;
+        int16_t int16_;
+        int32_t int32_;
+        int64_t int64_;
+        uint8_t uint8_;
+        float float32_;
+        double float64_;
+    };
 
     Dtype dtype_;
 };
