@@ -72,8 +72,9 @@ class StandardUpdater(_updater.Updater):
         self.iteration = 0
 
         self.loss_scale = loss_scale
-        for optimizer in six.itervalues(self._optimizers):
-            optimizer.set_loss_scale(loss_scale)
+        if loss_scale is not None:
+            for optimizer in six.itervalues(self._optimizers):
+                optimizer.set_loss_scale(loss_scale)
 
     @property
     def epoch(self):
