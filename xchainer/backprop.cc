@@ -33,11 +33,12 @@ public:
         PushNextOpNode(array_node);
 
         while (!candidate_op_nodes_.empty()) {
-            std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients();
-            AccumulateNextGradients(gxs);
+            std::shared_ptr<const OpNode> op_node = candidate_op_nodes_.top();
+            candidate_op_nodes_.pop();
 
-            std::shared_ptr<const OpNode> op_node = TopOpNode();
-            PopOpNode();  // be careful when to pop the top node
+            std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients(op_node);
+            AccumulateNextGradients(op_node, gxs);
+
             for (auto next_array_node : op_node->next_nodes()) {
                 PushNextOpNode(next_array_node);
             }
@@ -45,8 +46,7 @@ public:
     };
 
 private:
-    std::vector<nonstd::optional<Array>> ComputeNextGradients() {
-        const std::shared_ptr<const OpNode>& op_node = TopOpNode();
+    std::vector<nonstd::optional<Array>> ComputeNextGradients(std::shared_ptr<const OpNode> op_node) {
         const std::shared_ptr<ArrayNode>& previous_array_node = PreviousArrayNode(op_node);
 
         const nonstd::optional<Array>& gy = previous_array_node->grad();
@@ -66,8 +66,7 @@ private:
         return gxs;
     }
 
-    void AccumulateNextGradients(std::vector<nonstd::optional<Array>> gxs) {
-        const std::shared_ptr<const OpNode>& op_node = TopOpNode();
+    void AccumulateNextGradients(std::shared_ptr<const OpNode> op_node, std::vector<nonstd::optional<Array>> gxs) {
         gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node->next_nodes();
         auto next_size = next_array_nodes.size();
         for (decltype(next_size) i = 0; i < next_size; ++i) {
@@ -92,11 +91,7 @@ private:
         }
     }
 
-    const std::shared_ptr<const OpNode>& TopOpNode() const { return candidate_op_nodes_.top(); }
-
     void PushOpNode(std::shared_ptr<const OpNode> op_node) { candidate_op_nodes_.push(std::move(op_node)); }
-
-    void PopOpNode() { candidate_op_nodes_.pop(); }
 
     std::shared_ptr<ArrayNode> PreviousArrayNode(std::shared_ptr<const OpNode> op_node) const {
         return previous_array_node_map_.at(op_node);
