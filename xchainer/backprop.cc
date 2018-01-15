@@ -90,13 +90,6 @@ private:
         }
     }
 
-    void PushNextOpNodes(std::shared_ptr<const OpNode> op_node) {
-        gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node->next_nodes();
-        for (auto next_array_node : next_array_nodes) {
-            PushNextOpNode(next_array_node);
-        }
-    }
-
     const std::shared_ptr<const OpNode>& TopOpNode() const { return candidate_op_nodes_.top(); }
 
     bool EmptyOpNodes() const noexcept { return candidate_op_nodes_.empty(); }
