@@ -719,9 +719,11 @@ TEST_P(ArrayTest, MulBackward) {
 }
 
 TEST_P(ArrayTest, MulBackwrdCapture) {
-    Array y = [this]() { Array x1 = MakeArray<float>({1}, {2.0f}, true);
-                         Array x2 = MakeArray<float>({1}, {3.0f}, true);
-                         return x1 * x2; } ();
+    Array y = [this]() {
+        Array x1 = MakeArray<float>({1}, {2.0f}, true);
+        Array x2 = MakeArray<float>({1}, {3.0f}, true);
+        return x1 * x2;
+    }();
     auto op_node = y.node()->next_node();
     auto lhs_func = op_node->backward_functions()[0];
     auto rhs_func = op_node->backward_functions()[1];
