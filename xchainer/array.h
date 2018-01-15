@@ -5,14 +5,16 @@
 #include <utility>
 
 #include <gsl/gsl>
+#include <nonstd/optional.hpp>
 
-#include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/dtype.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
+
+class ArrayNode;
 
 // The main data structure of multi-dimensional array.
 class Array {
@@ -68,10 +70,13 @@ public:
 
     std::shared_ptr<const ArrayNode> node() const { return node_; }
 
-    const std::shared_ptr<ArrayNode>& RenewNode() {
-        node_ = std::make_shared<ArrayNode>();
-        return node_;
-    }
+    const std::shared_ptr<ArrayNode>& RenewNode();
+
+    const nonstd::optional<Array>& grad() const noexcept;
+
+    void set_grad(Array grad);
+
+    void ClearGrad() noexcept;
 
     Array& operator+=(const Array& rhs);
     Array& operator*=(const Array& rhs);

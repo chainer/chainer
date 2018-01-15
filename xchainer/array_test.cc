@@ -279,6 +279,19 @@ TEST_P(ArrayTest, SetRequiresGrad) {
     ASSERT_FALSE(x.requires_grad());
 }
 
+TEST_P(ArrayTest, Grad) {
+    Array x = MakeArray<bool>({1}, {true});
+    EXPECT_FALSE(x.grad());
+
+    Array g = MakeArray<bool>({1}, {true});
+    x.set_grad(g);
+    EXPECT_TRUE(x.grad());
+    AssertEqual<bool>(g, *x.grad());
+
+    x.ClearGrad();
+    EXPECT_FALSE(x.grad());
+}
+
 TEST_P(ArrayTest, Empty) {
     CheckEmpty<bool>();
     CheckEmpty<int8_t>();

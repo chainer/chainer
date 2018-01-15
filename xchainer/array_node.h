@@ -2,6 +2,10 @@
 
 #include <memory>
 
+#include <nonstd/optional.hpp>
+
+#include "xchainer/array.h"
+
 namespace xchainer {
 
 class OpNode;
@@ -15,8 +19,15 @@ public:
 
     void set_next_node(std::shared_ptr<OpNode> next_node) { next_node_ = std::move(next_node); }
 
+    const nonstd::optional<Array>& grad() const noexcept { return grad_; }
+
+    void set_grad(Array grad) { grad_.emplace(std::move(grad)); };
+
+    void ClearGrad() noexcept { grad_.reset(); }
+
 private:
     std::shared_ptr<OpNode> next_node_;
+    nonstd::optional<Array> grad_;
 };
 
 }  // xchainer

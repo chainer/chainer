@@ -114,6 +114,17 @@ Array::Array(const Array& other)
     other.Copy(*this);
 }
 
+const std::shared_ptr<ArrayNode>& Array::RenewNode() {
+    node_ = std::make_shared<ArrayNode>();
+    return node_;
+}
+
+const nonstd::optional<Array>& Array::grad() const noexcept { return node_->grad(); }
+
+void Array::set_grad(Array grad) { node_->set_grad(std::move(grad)); }
+
+void Array::ClearGrad() noexcept { node_->ClearGrad(); }
+
 Array Array::Empty(const Shape& shape, Dtype dtype) {
     auto size = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
     std::shared_ptr<void> data = Allocate(GetCurrentDevice(), size);
