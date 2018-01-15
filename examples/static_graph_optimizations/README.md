@@ -20,6 +20,15 @@ In designing this feature, we wish to retain the ease of model implementation an
 * Starting from the second iteration, the execution mode will change so that optimized static schedule code will be used to execute any static chains, potentially making the runtime performance similar to that of a static graph framework. This switch from define-by-run to static mode should be invisible to the user. We assume that if a static sub-graph in the model is able to successfully execute as define-by-run for one iteration, that it is safe to then replace the define-by-run code with corresponding optimized code.
 * It should be possible to export the static sub-graph to optimized C or C++ code that can execute without any dependencies on Python. This is intended to support easier deployment of Chainer models to platforms that do not support Python. The current implementation does not support this capability, but it may be considered as future work.
 
+#### Examples
+
+The following existing Chainer examples currently support this feature:
+
+* MNIST
+
+* CIFAR
+
+* ptb
 
 
 #### Usage
@@ -36,7 +45,7 @@ and decorate `__call__()` with `@static_graph` to inform the framework that it i
 
 * This feature has not been tested with models that compute second order gradients.
 
-* The generated static schedules cannot yet be easily inspected. Such a feature might be useful for debugging.
+* The generated static schedules cannot yet be easily inspected. Such a feature might be useful for debugging and is being considered to add in the future.
 
 * Do not place any code with side effects inside `__call__()` when using `@static_graph`. For example, code that increments a counter, prints status messages etc. will not be included by default in the optimized static schedule and will therefore never be called again starting from the second iteration. If you want to place such code inside `__call__()` and have it actually get called again each iteration, you will need put it inside a function decorated with `@static_schedule_func` and call that function.
 
@@ -54,11 +63,9 @@ and decorate `__call__()` with `@static_graph` to inform the framework that it i
 
 Most functions and links will not need to be modified at all in order to support this feature. However, some functions might see a performance benifit if static graph support is added manually, since it may allow less redundant code to be included in the static schedule. For example, any dynamic checking code that will return the same result every iteration does not need to be included in the static schedule. 
 
-An existing function (instance of `FunctionNode`) can be manually modified to support static graph optimizations as follows. If a function is not manually modified to support this feature, it should still work.
+An existing function (that is, a subclass of `FunctionNode`) can be manually modified to support static graph optimizations as follows. The basic idea is to wrap any code that needs to be called each iteration inside a method that is decorated with `@static_schedule_func`. Therefore, code that performs initialization such as initializing parameters does not need to (and should not) be wrapped.
 
-The basic idea is to wrap any code that needs to be called each iteration inside a function that is decorated with `@static_schedule_func`. Therefore, code that performs initialization such as initializing parameters does not need to (and should not) be wrapped.
-
-Since the function is part of a static graph, any parameters and output arrays should ideally be statically allocated only once during the first iteration (while the define-by-run code is executing) and then reused starting from the second iteration. The `@static_schedule_func`-decorated functions that are called each iteration will perform the various deep learning computations, writing results in-place into these static arrays. Since the results are written in-place, there is no need for an `@static_schedule_func`-decorated function to explicitly return a result and so we disallow it. Rather, any results arrays should be passed as inputs along with other input arguments to the function. The following code shows the typical pattern for performing the forward computations in a `FunctionNode`:
+Since the function is part of a static graph, any parameters and output arrays should ideally be statically allocated only once during the first iteration (while the define-by-run code is executing) and then reused starting from the second iteration. The `@static_schedule_func`-decorated functions that are called each iteration will perform the various deep learning computations, writing results in-place into these static arrays. Since the results are written in-place, there is no need for an `@static_schedule_func`-decorated function to explicitly return a result and so we disallow it. Rather, any results arrays should be passed as inputs along with any other input arguments to the function. The following code shows the typical pattern for performing the forward computations in a `FunctionNode`:
 
 ```
 
