@@ -43,7 +43,7 @@ Array::Array(const Array& other)
       node_(std::make_shared<ArrayNode>()) {
     // Memory layout-related members are not copied in this copy ctor since new C-contiguous memory is allocated
     data_ = internal::Allocate(GetCurrentDevice(), other.total_bytes());
-    other.Copy(*this);
+    other.CopyTo(*this);
 }
 
 const std::shared_ptr<ArrayNode>& Array::RenewNode() {
@@ -119,11 +119,11 @@ Array Array::operator*(const Array& rhs) const {
 
 Array Array::Copy() const {
     Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes()), requires_grad_, 0};
-    Copy(out);
+    CopyTo(out);
     return out;
 }
 
-void Array::Copy(Array& out) const {
+void Array::CopyTo(Array& out) const {
     if (requires_grad_) {
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
         int64_t out_rank = node()->rank();
