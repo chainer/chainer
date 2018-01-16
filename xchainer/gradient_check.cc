@@ -71,7 +71,7 @@ Arrays& Identity(const Arrays& inputs, Arrays& outputs) {
         Array& out = outputs[i];
         if (in.requires_grad()) {
             std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-            op_node->push_back(in.node(), [](const Array& gout) { return gout; });
+            op_node->add_node(in.node(), [](const Array& gout) { return gout; });
             out_node->set_next_node(op_node);
         }
         internal::MemoryCopy(out.data().get(), in.data().get(), in.total_bytes());

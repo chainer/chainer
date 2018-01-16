@@ -25,9 +25,9 @@ public:
 
     std::string name() const { return name_; }
 
-    void push_back(std::shared_ptr<const ArrayNode> next_node, std::function<Array(const Array&)> backward_function) {
-        next_nodes_.push_back(std::move(next_node));
-        backward_functions_.push_back(std::move(backward_function));
+    void add_node(std::shared_ptr<const ArrayNode> next_node, std::function<Array(const Array&)> backward_function) {
+      next_nodes_.push_back(std::move(next_node));
+      backward_functions_.push_back(std::move(backward_function));
     }
 
     int64_t rank() const { return rank_; }
