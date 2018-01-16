@@ -89,7 +89,7 @@ private:
 };
 
 TEST_P(BackpropTest, Backward) {
-    CheckBackprop({2.0f}, {3.0f}, {7.0f}, [](auto& xs, auto& ys) { return xs[0] * (xs[0] + ys[0]); });
+    CheckBackprop({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
 }
 
 TEST_P(BackpropTest, BackwardNoGrad) {
@@ -110,6 +110,10 @@ TEST_P(BackpropTest, DoubleBackprop) {
         return gx;
     };
     CheckBackprop({2.0f}, {3.0f}, {2.0f}, fprop);
+}
+
+TEST_P(BackpropTest, BackwardInputToMultipleOps) {
+    CheckBackprop({2.0f}, {3.0f}, {7.0f}, [](auto& xs, auto& ys) { return xs[0] * (xs[0] + ys[0]); });
 }
 
 TEST_P(BackpropTest, BackwardIdenticalInputs) {
