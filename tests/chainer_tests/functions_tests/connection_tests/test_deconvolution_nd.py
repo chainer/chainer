@@ -169,7 +169,7 @@ class TestDeconvolutionND(unittest.TestCase):
 
         args = (x_data, W_data)
         if b_data is not None:
-            args = args + (b_data,)
+            args += (b_data,)
 
         def f(*args):
             return F.deconvolution_nd(*args, stride=self.stride, pad=self.pad,
@@ -232,8 +232,8 @@ class TestDeconvolutionND(unittest.TestCase):
         args = (x_data, W_data)
         grad_grads = (x_grad_grad, W_grad_grad)
         if b_data is not None:
-            args = args + (b_data,)
-            grad_grads = grad_grads + (b_grad_grad,)
+            args += (b_data,)
+            grad_grads += (b_grad_grad,)
 
         def f(*args):
             y = F.deconvolution_nd(
