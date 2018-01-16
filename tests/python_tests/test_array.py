@@ -205,6 +205,26 @@ def test_array_init_invalid_length():
         xchainer.Array((3, 2), xchainer.Dtype.int8, [1, 1, 1, 1, 1, 1, 1])
 
 
+def test_array_repr():
+    array = xchainer.Array((0,), xchainer.Dtype.bool, [])
+    assert str(array) == 'array([], dtype=bool)'
+
+    array = xchainer.Array((1,), xchainer.Dtype.bool, [False])
+    assert str(array) == 'array([False], dtype=bool)'
+
+    array = xchainer.Array((2, 3), xchainer.Dtype.int8, [0, 1, 2, 3, 4, 5])
+    assert str(array) == (
+        'array([[0, 1, 2],\n'
+        '       [3, 4, 5]], dtype=int8)'
+    )
+
+    array = xchainer.Array((2, 3), xchainer.Dtype.float32, [0, 1, 2, 3.25, 4, 5])
+    assert str(array) == (
+        'array([[0.  , 1.  , 2.  ],\n'
+        '       [3.25, 4.  , 5.  ]], dtype=float32)'
+    )
+
+
 def test_array_property_requires_grad():
     array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
     assert not array.requires_grad
