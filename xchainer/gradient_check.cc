@@ -201,12 +201,6 @@ void CheckBackwardComputation(const ForwardFunction& func, const std::vector<Arr
 
     std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps);
 
-    std::cout << "------------------------------------------" << std::endl;
-    for (const auto& ng : numerical_grads) {
-      std::cout << ng << std::endl;
-    }
-    std::cout << "------------------------------------------" << std::endl;
-
     /*
     for (size_t i = 0; i < grads.size(); ++i) {
         if (!AllClose(grads[i], numerical_grads[i], atol, rtol)) {
