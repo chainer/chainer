@@ -17,100 +17,30 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
+#include "xchainer/memory.h"
 #include "xchainer/op_node.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
 
-namespace {
-
-#ifdef XCHAINER_ENABLE_CUDA
-std::shared_ptr<void> AllocateCudaManaged(size_t size) {
-    std::shared_ptr<void> ptr{};
-    {
-        void* raw_ptr = nullptr;
-        auto raw_ptr_scope = gsl::finally([&]() {
-            if (raw_ptr != nullptr && ptr == nullptr) {
-                cudaFree(raw_ptr);
-            }
-        });
-        cuda::CheckError(cudaMallocManaged(&raw_ptr, size, cudaMemAttachGlobal));
-        ptr.reset(raw_ptr, cudaFree);
-    }
-    return ptr;
-}
-#endif  // XCHAINER_ENABLE_CUDA
-
-std::shared_ptr<void> Allocate(const Device& device, size_t size) {
-    if (device == MakeDevice("cpu")) {
-        return std::make_unique<uint8_t[]>(size);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device == MakeDevice("cuda")) {
-        return AllocateCudaManaged(size);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
-}
-
-void MemoryCopy(const Device& device, void* dst_ptr, const void* src_ptr, size_t size) {
-    if (device == MakeDevice("cpu")) {
-        std::memcpy(dst_ptr, src_ptr, size);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device == MakeDevice("cuda")) {
-        cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, size, cudaMemcpyHostToDevice));
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
-}
-
-}  // namespace
-
-Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad, int64_t offset)
+Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad, bool is_contiguous,
+             int64_t offset)
     : shape_(std::move(shape)),
-      is_contiguous_(true),
       dtype_(dtype),
-      data_(nullptr),
+      data_(std::move(data)),
       requires_grad_(requires_grad),
+      is_contiguous_(is_contiguous),
       offset_(offset),
-      node_(std::make_shared<ArrayNode>()) {
-    assert(IsValidDtype(dtype_));
-    Device device = GetCurrentDevice();
-    if (device == MakeDevice("cpu")) {
-        data_ = std::move(data);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device == MakeDevice("cuda")) {
-        auto size = static_cast<size_t>(shape_.total_size() * GetElementSize(dtype));
-        data_ = AllocateCudaManaged(size);
-        MemoryCopy(device, data_.get(), data.get(), size);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
-}
+      node_(std::move(node)) {}
 
 Array::Array(const Array& other)
     : shape_(other.shape_),
-      is_contiguous_(other.is_contiguous_),
       dtype_(other.dtype_),
       requires_grad_(other.requires_grad_),
+      is_contiguous_(other.is_contiguous_),
       offset_(other.offset_),
       node_(std::make_shared<ArrayNode>()) {
-    auto bytes = other.total_bytes();
-    if (GetCurrentDevice() == MakeDevice("cpu")) {
-        data_ = std::make_unique<uint8_t[]>(bytes);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-        // TODO(sonots): Better to use abstraction layer such as Allocate or MemoryCopy,
-        // but they do not support all cases such as device to device, yet. We need refactoring.
-        void* ret_ptr = nullptr;
-        cuda::CheckError(cudaMallocManaged(&ret_ptr, bytes, cudaMemAttachGlobal));
-        data_ = std::shared_ptr<void>(ret_ptr, ::cudaFree);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
+    data_ = internal::Allocate(GetCurrentDevice(), other.total_bytes());
     other.Copy(*this);
 }
 
@@ -125,10 +55,16 @@ void Array::set_grad(Array grad) { node_->set_grad(std::move(grad)); }
 
 void Array::ClearGrad() noexcept { node_->ClearGrad(); }
 
+Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
+    auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
+    std::shared_ptr<void> device_data = internal::MemoryFromBuffer(GetCurrentDevice(), data, bytesize);
+    return {shape, dtype, device_data, std::make_unique<ArrayNode>()};
+}
+
 Array Array::Empty(const Shape& shape, Dtype dtype) {
-    auto size = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
-    std::shared_ptr<void> data = Allocate(GetCurrentDevice(), size);
-    return {shape, dtype, data};
+    auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
+    std::shared_ptr<void> data = internal::Allocate(GetCurrentDevice(), bytesize);
+    return {shape, dtype, data, std::make_unique<ArrayNode>()};
 }
 
 Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype) {
@@ -164,15 +100,15 @@ Array& Array::operator*=(const Array& rhs) {
 }
 
 Array Array::operator+(const Array& rhs) const {
-    bool requires_grad = (requires_grad_ || rhs.requires_grad());
-    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes()), requires_grad, 0};
+    Array out = Array::EmptyLike(*this);
+    out.set_requires_grad(requires_grad_ || rhs.requires_grad());
     Add(rhs, out);
     return out;
 }
 
 Array Array::operator*(const Array& rhs) const {
-    bool requires_grad = (requires_grad_ || rhs.requires_grad());
-    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes()), requires_grad, 0};
+    Array out = Array::EmptyLike(*this);
+    out.set_requires_grad(requires_grad_ || rhs.requires_grad());
     Mul(rhs, out);
     return out;
 }
@@ -187,16 +123,7 @@ void Array::Copy(Array& out) const {
         out_node->set_next_node(op_node);
     }
 
-    Device device = GetCurrentDevice();
-    if (device == MakeDevice("cpu")) {
-        xchainer::Copy(*this, out);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device == MakeDevice("cuda")) {
-        xchainer::cuda::Copy(*this, out);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
+    internal::MemoryCopy(out.data().get(), data_.get(), total_bytes());
 }
 
 void Array::Add(const Array& rhs, Array& out) const {

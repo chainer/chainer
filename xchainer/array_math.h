@@ -4,7 +4,6 @@
 
 namespace xchainer {
 
-void Copy(const Array& src, Array& out);
 void Add(const Array& lhs, const Array& rhs, Array& out);
 void Mul(const Array& lhs, const Array& rhs, Array& out);
 

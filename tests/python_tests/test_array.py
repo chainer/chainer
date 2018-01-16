@@ -110,11 +110,6 @@ def test_numpy_init(array_init_inputs):
     _check_array(array, dtype, shape, _size(shape_tup), ndarray.ravel().tolist())
     _check_array_equals_ndarray(array, ndarray)
 
-    # inplace modification
-    if ndarray.size > 0:
-        ndarray *= _create_dummy_ndarray(shape_tup, numpy_dtype)
-        assert array.debug_flat_data == ndarray.ravel().tolist()
-
     _check_array_equals_ndarray(array, ndarray)
 
     # test possibly freed memory

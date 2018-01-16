@@ -18,7 +18,7 @@
 #include "xchainer/device.h"
 
 namespace xchainer {
-namespace gradient_detail {
+namespace gradient_internal {
 
 void Synchronize() {
 #ifdef XCHAINER_ENABLE_CUDA
@@ -175,5 +175,5 @@ Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, con
     return grads;
 }
 
-}  // namespace gradient_detail
+}  // namespace gradient_internal
 }  // namespace xchainer
