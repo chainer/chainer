@@ -94,9 +94,9 @@ public:
 
     void ExpectDataExistsOnCurrentDevice(const Array& array) {
         if (GetCurrentDevice() == MakeDevice("cpu")) {
-            EXPECT_FALSE(IsPointerCudaMemory(array.data().get()));
+            EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
         } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_TRUE(IsPointerCudaMemory(array.data().get()));
+            EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
         } else {
             FAIL() << "invalid device";
         }

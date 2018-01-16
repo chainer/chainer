@@ -40,7 +40,7 @@ Array::Array(const Array& other)
       is_contiguous_(other.is_contiguous_),
       offset_(other.offset_),
       node_(std::make_shared<ArrayNode>()) {
-    data_ = Allocate(GetCurrentDevice(), other.total_bytes());
+    data_ = internal::Allocate(GetCurrentDevice(), other.total_bytes());
     other.Copy(*this);
 }
 
@@ -57,13 +57,13 @@ void Array::ClearGrad() noexcept { node_->ClearGrad(); }
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
-    std::shared_ptr<void> device_data = MemoryFromBuffer(GetCurrentDevice(), data, bytesize);
+    std::shared_ptr<void> device_data = internal::MemoryFromBuffer(GetCurrentDevice(), data, bytesize);
     return {shape, dtype, device_data, std::make_unique<ArrayNode>()};
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
-    std::shared_ptr<void> data = Allocate(GetCurrentDevice(), bytesize);
+    std::shared_ptr<void> data = internal::Allocate(GetCurrentDevice(), bytesize);
     return {shape, dtype, data, std::make_unique<ArrayNode>()};
 }
 
@@ -123,7 +123,7 @@ void Array::Copy(Array& out) const {
         out_node->set_next_node(op_node);
     }
 
-    MemoryCopy(out.data().get(), data_.get(), total_bytes());
+    internal::MemoryCopy(out.data().get(), data_.get(), total_bytes());
 }
 
 void Array::Add(const Array& rhs, Array& out) const {

@@ -10,6 +10,7 @@
 #endif  // XCHAINER_ENABLE_CUDA
 
 namespace xchainer {
+namespace internal {
 namespace {
 
 template <typename T>
@@ -131,4 +132,5 @@ TEST(MemoryTest, MemoryFromBuffer) {
 #endif  // XCHAINER_ENABLE_CUDA
 
 }  // namespace
+}  // namespace internal
 }  // namespace xchainer

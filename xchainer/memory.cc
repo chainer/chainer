@@ -14,6 +14,7 @@
 #include "xchainer/error.h"
 
 namespace xchainer {
+namespace internal {
 
 bool IsPointerCudaMemory(const void* ptr) {
 #ifdef XCHAINER_ENABLE_CUDA
@@ -110,4 +111,5 @@ std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_p
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
+}  // namespace internal
 }  // namespace xchainer
