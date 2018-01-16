@@ -17,6 +17,7 @@ namespace {
 
 class BackwardImpl {
     using Comparer = bool (*)(const std::shared_ptr<const OpNode>&, const std::shared_ptr<const OpNode>&);
+    // TODO(takgi): Using raw pointers to OpNode as the keys is more efficient as far as it is safe
     using CandidateOpNodes = std::priority_queue<std::shared_ptr<const OpNode>, std::vector<std::shared_ptr<const OpNode>>, Comparer>;
     using PreviousArrayNodeMap = std::unordered_map<std::shared_ptr<const OpNode>, std::shared_ptr<ArrayNode>>;
 
