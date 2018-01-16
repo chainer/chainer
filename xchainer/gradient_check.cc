@@ -19,6 +19,7 @@
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/numeric.h"
+#include "xchainer/op_node.h"
 
 namespace xchainer {
 namespace gradient_internal {
@@ -61,6 +62,21 @@ Array& Divide(const Array& lhs, const Array& rhs, Array& out) {
     return out;
 }
 
+Arrays& Identity(const Arrays& inputs, Arrays& outputs) {
+    bool any_requires_grad = std::any_of(inputs.begin(), inputs.end(), [](auto& in) { return in.requires_grad(); });
+    std::shared_ptr<OpNode> op_node = any_requires_grad ? std::make_shared<OpNode>("identity") : nullptr;
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        const Array& in = inputs[i];
+        Array& out = outputs[i];
+        if (in.requires_grad()) {
+            std::shared_ptr<ArrayNode> out_node = out.RenewNode();
+            op_node->push_back(in.node(), [](const Array& gout) { return gout; });
+            out_node->set_next_node(op_node);
+        }
+    }
+    return outputs;
+}
+
 Array operator-(const Array& lhs, const Array& rhs) {
     Array out = Array::EmptyLike(lhs);
     Subtract(lhs, rhs, out);
@@ -71,6 +87,13 @@ Array operator/(const Array& lhs, const Array& rhs) {
     Array out = Array::EmptyLike(lhs);
     Divide(lhs, rhs, out);
     return out;
+}
+
+Arrays Identity(const Arrays& inputs) {
+    Arrays outputs;
+    std::transform(inputs.begin(), inputs.end(), std::back_inserter(outputs), [](const Array& input) { return Array::EmptyLike(input); });
+    Identity(inputs, outputs);
+    return outputs;
 }
 
 template <typename T>
@@ -178,37 +201,32 @@ Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, con
     return grads;
 }
 
-void CheckBackwardComputation(const ForwardFunction& func, const std::vector<Array>& inputs, const std::vector<Array>& grad_outputs,
-                              const std::vector<Array>& eps, float atol, float rtol) {
+void CheckBackwardComputation(std::function<Arrays(const Arrays&)> func, const std::vector<Array>& inputs,
+                              const std::vector<Array>& grad_outputs, const std::vector<Array>& eps, float atol, float rtol) {
+    auto outputs = Identity(func(inputs));
 
-    std::vector<Array> outputs = func(inputs);
-
-    // TODO(hvy): delete debug print
-    std::cout << "output size: " << outputs.size() << std::endl;
-    for (auto o : outputs) {
-        std::cout << "output: " << o.data() << " " << o.shape() << std::endl;
+    // TODO(hvy): debug
+    for (const auto& o : outputs) {
+      std::cout << o << std::endl;
     }
 
     // TODO(hvy): Uncomment the following line
-    // Backprop(outputs);
+    // Backward(outputs);
     for (auto& input : inputs) {
-      input.mutable_node()->set_grad(Array::OnesLike(input));
+        input.mutable_node()->set_grad(Array::OnesLike(input));
     }
 
-    // Keep a copy of the computed gradiens
-    std::vector<Array> grads;
-    std::transform(inputs.begin(), inputs.end(), std::back_inserter(grads), [](const Array& input) { return *input.grad(); });
-
+    std::vector<Array> backward_grads;
+    std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads), [](const Array& input) { return *input.grad(); });
     std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps);
 
-    /*
-    for (size_t i = 0; i < grads.size(); ++i) {
-        if (!AllClose(grads[i], numerical_grads[i], atol, rtol)) {
-            // TODO(hvy): write proper message
+    for (size_t i = 0; i < backward_grads.size(); ++i) {
+      /*
+        if (!AllClose(backward_grads[i], numerical_grads[i], atol, rtol)) {
             throw AssertionError("too large errors");
         }
+        */
     }
-    */
 }
 
 }  // namespace gradient_internal
