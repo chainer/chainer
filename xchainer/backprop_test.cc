@@ -116,7 +116,7 @@ TEST_P(BackpropTest, BackwardIdenticalInputs) {
     CheckBackprop({2.0f}, {}, {2.0f}, [](auto& xs, __attribute__((unused)) auto& ys) { return xs[0] + xs[0]; });
 }
 
-TEST_P(BackpropTest, InputGradient) {
+TEST_P(BackpropTest, BackwardGivenInputGrad) {
     auto fprop = [](auto& xs, __attribute__((unused)) auto& ys) {
         xs[0].set_grad(Array::OnesLike(xs[0]));
         return xs[0];
@@ -124,7 +124,7 @@ TEST_P(BackpropTest, InputGradient) {
     CheckBackprop({1.0f}, {}, {2.0f}, fprop);
 }
 
-TEST_P(BackpropTest, OutputGradient) {
+TEST_P(BackpropTest, BackwardGivenOutputGrad) {
     auto x = Array::Ones({1}, TypeToDtype<float>);
     x.set_requires_grad(true);
     auto y = x;
