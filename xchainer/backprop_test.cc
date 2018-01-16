@@ -123,13 +123,12 @@ TEST_P(BackpropTest, BackwardGivenInputGrad) {
 }
 
 TEST_P(BackpropTest, BackwardGivenOutputGrad) {
-    auto x = Array::Ones({1}, TypeToDtype<float>);
-    x.set_requires_grad(true);
-    auto y = x;
-    y.set_grad(Array::FullLike(y, 2.0f));
-    Backward(y);
-    auto e = Array::FullLike(x, 2.0f);
-    ExpectEqual<float>(e, *x.grad());
+    auto fprop = [](auto& xs, auto& ys) {
+        auto z = xs[0] * ys[0];
+        z.set_grad(Array::FullLike(z, 2.0f));
+        return z;
+    };
+    CheckBackprop({2.0f}, {3.0f}, {6.0f}, fprop);
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
