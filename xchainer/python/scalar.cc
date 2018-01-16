@@ -30,21 +30,12 @@ void InitXchainerScalar(pybind11::module& m) {
         .def("tolist", [](Scalar scalar) -> py::object {
             switch (GetKind(scalar.dtype())) {
                 case DtypeKind::kBool:
-                    return VisitDtype(scalar.dtype(), [scalar](auto pt) -> py::object {
-                        using T = typename decltype(pt)::type;
-                        return py::bool_{static_cast<T>(scalar)};
-                    });
+                    return py::bool_{static_cast<bool>(scalar)};
                 case DtypeKind::kInt:  // fallthrough
                 case DtypeKind::kUInt:
-                    return VisitDtype(scalar.dtype(), [scalar](auto pt) -> py::object {
-                        using T = typename decltype(pt)::type;
-                        return py::int_{static_cast<int64_t>(static_cast<T>(scalar))};
-                    });
+                    return py::int_{static_cast<int64_t>(scalar)};
                 case DtypeKind::kFloat:
-                    return VisitDtype(scalar.dtype(), [scalar](auto pt) -> py::object {
-                        using T = typename decltype(pt)::type;
-                        return py::float_{static_cast<double>(static_cast<T>(scalar))};
-                    });
+                    return py::float_{static_cast<double>(scalar)};
                 default:
                     assert(false);  // should never be reached
             }
