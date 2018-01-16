@@ -35,6 +35,12 @@ TEST(MemoryTest, IsPointerCudaMemory) {
         auto cuda_ptr = std::shared_ptr<void>{raw_ptr, cudaFree};
         EXPECT_TRUE(IsPointerCudaMemory(cuda_ptr.get()));
     }
+    {
+        void* raw_ptr = nullptr;
+        cuda::CheckError(cudaMalloc(&raw_ptr, size));
+        auto cuda_ptr = std::shared_ptr<void>{raw_ptr, cudaFree};
+        EXPECT_THROW(IsPointerCudaMemory(cuda_ptr.get()), XchainerError);
+    }
 }
 
 TEST(MemoryTest, Allocate) {

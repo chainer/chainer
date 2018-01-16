@@ -335,6 +335,20 @@ TEST_P(ArrayTest, ConstArrayFromBuffer) {
     CheckFromBuffer<true, double>();
 }
 
+#ifdef XCHAINER_ENABLE_CUDA
+TEST_P(ArrayTest, ExpectThrowFromNonManagedBuffer) {
+    Shape shape = {3, 2};
+    Dtype dtype = Dtype::kBool;
+    int64_t bytesize = shape.total_size() * sizeof(bool);
+
+    void* raw_ptr = nullptr;
+    cuda::CheckError(cudaMalloc(&raw_ptr, bytesize));
+    auto data = std::shared_ptr<void>{raw_ptr, cudaFree};
+
+    EXPECT_THROW(Array::FromBuffer(shape, dtype, data), XchainerError);
+}
+#endif  // XCHAINER_ENABLE_CUDA
+
 TEST_P(ArrayTest, Empty) {
     CheckEmpty<bool>();
     CheckEmpty<int8_t>();
