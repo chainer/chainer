@@ -22,7 +22,36 @@ public:
     Scalar(double v) : float64_(v), dtype_(Dtype::kFloat64) {}
 
     template <typename T>
-    Scalar(T v, Dtype dtype) : Scalar(Scalar{v}.Cast(dtype)) {}
+    Scalar(T v, Dtype dtype) : dtype_(dtype) {
+        switch (dtype) {
+            case Dtype::kBool:
+                bool_ = v;
+                break;
+            case Dtype::kInt8:
+                int8_ = v;
+                break;
+            case Dtype::kInt16:
+                int16_ = v;
+                break;
+            case Dtype::kInt32:
+                int32_ = v;
+                break;
+            case Dtype::kInt64:
+                int64_ = v;
+                break;
+            case Dtype::kUInt8:
+                uint8_ = v;
+                break;
+            case Dtype::kFloat32:
+                float32_ = v;
+                break;
+            case Dtype::kFloat64:
+                float64_ = v;
+                break;
+            default:
+                assert(0);  // should never be reached
+        }
+    }
 
     Scalar(const Scalar&) = default;
     Scalar& operator=(const Scalar&) = default;
@@ -127,15 +156,6 @@ private:
                 assert(false);  // should never be reached
         }
         return T{};
-    }
-
-    Scalar Cast(Dtype dtype) const {
-        auto do_cast = [this](auto pt_src, auto pt_dst) {
-            using T_DST = typename decltype(pt_dst)::type;
-            using T_SRC = typename decltype(pt_src)::type;
-            return Scalar{static_cast<T_DST>(this->UnwrapAndCast<T_SRC>())};
-        };
-        return VisitDtype(dtype, [this, do_cast](auto pt_dst) { return VisitDtype(dtype_, do_cast, pt_dst); });
     }
 
     union {
