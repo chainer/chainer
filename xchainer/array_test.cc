@@ -110,8 +110,8 @@ public:
         Dtype dtype = TypeToDtype<T>;
         int64_t size = shape.total_size();
         int64_t bytesize = size * sizeof(T);
-        T raw_ptr[] = {0, 1, 2, 3, 4, 5};
-        auto data = std::shared_ptr<T>(raw_ptr, [](T* ptr) { (void)ptr; });
+        T raw_data[] = {0, 1, 2, 3, 4, 5};
+        auto data = std::shared_ptr<T>(raw_data, [](T* ptr) { (void)ptr; });
         TargetArray x = Array::FromBuffer(shape, dtype, data);
 
         // Basic attributes
@@ -125,12 +125,12 @@ public:
         EXPECT_TRUE(x.is_contiguous());
 
         // Array::data
-        ExpectDataEqual<T>(raw_ptr, x);
+        ExpectDataEqual<T>(data.get(), x);
         ExpectDataExistsOnCurrentDevice(x);
         if (GetCurrentDevice() == MakeDevice("cpu")) {
-            EXPECT_EQ(raw_ptr, x.data().get());
+            EXPECT_EQ(data.get(), x.data().get());
         } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_NE(raw_ptr, x.data().get());
+            EXPECT_NE(data.get(), x.data().get());
         } else {
             FAIL() << "invalid device";
         }
