@@ -118,7 +118,8 @@ Array Array::operator*(const Array& rhs) const {
 }
 
 Array Array::Copy() const {
-    Array out = {shape_, dtype_, std::make_unique<uint8_t[]>(total_bytes()), requires_grad_, 0};
+    Array out = Array::EmptyLike(*this);
+    out.set_requires_grad(requires_grad_);
     CopyTo(out);
     return out;
 }
