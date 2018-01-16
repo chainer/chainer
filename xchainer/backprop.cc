@@ -16,7 +16,7 @@ namespace xchainer {
 namespace {
 
 class BackwardImpl {
-    using Comparer = std::function<bool(std::shared_ptr<const OpNode>, std::shared_ptr<const OpNode>)>;
+    using Comparer = bool(*)(const std::shared_ptr<const OpNode>&, const std::shared_ptr<const OpNode>&);
     using CandidateOpNodes = std::priority_queue<std::shared_ptr<const OpNode>, std::vector<std::shared_ptr<const OpNode>>, Comparer>;
     using PreviousArrayNodeMap = std::unordered_map<std::shared_ptr<const OpNode>, std::shared_ptr<ArrayNode>>;
 
@@ -91,7 +91,7 @@ private:
         }
     }
 
-    static bool Compare(std::shared_ptr<const OpNode> lhs, std::shared_ptr<const OpNode> rhs) { return lhs->rank() < rhs->rank(); };
+    static bool Compare(const std::shared_ptr<const OpNode>& lhs, const std::shared_ptr<const OpNode>& rhs) { return lhs->rank() < rhs->rank(); };
 
     CandidateOpNodes candidate_op_nodes_;
     PreviousArrayNodeMap previous_array_node_map_;
