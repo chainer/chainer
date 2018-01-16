@@ -47,7 +47,10 @@ def _check_arrays_equal(array_a, array_b, expect_data_shared):
     assert array_a._debug_flat_data == array_b._debug_flat_data
     assert array_a.is_contiguous == array_b.is_contiguous
     assert array_a.offset == array_b.offset
-    assert (array_a._debug_data_memory_address == array_b._debug_data_memory_address) == expect_data_shared
+
+    # Check memory addresses only if >0 bytes are allocated
+    if array_a.total_size > 0:
+        assert (array_a._debug_data_memory_address == array_b._debug_data_memory_address) == expect_data_shared
 
 
 def _check_array_equals_ndarray(array, ndarray):
