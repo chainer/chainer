@@ -9,6 +9,7 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer import configuration
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
@@ -951,11 +952,12 @@ Actual: {0}'''.format(type(data))
             in_data = tuple([x.data for x in inputs])
             # We need calculate the value of for the out_grad which accumulated
             # because now out_grad is used in backward calculation.
-            for y in outputs:
-                grad = get_grad(y)
-                if isinstance(grad, tuple):
-                    grad = chainer.functions.accumulate_add(grad)
-                    set_grad(y, grad)
+            if configuration.config.lazy_grad_sum:
+                for y in outputs:
+                    grad = get_grad(y)
+                    if isinstance(grad, tuple):
+                        grad = chainer.functions.accumulate_add(grad)
+                        set_grad(y, grad)
             out_grad = tuple([get_grad(y) for y in outputs])
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
@@ -1048,13 +1050,17 @@ Actual: {0}'''.format(type(data))
                     # Accumulate the duplicated gradients here. See the comment
                     # above the code that builds ``in_grad``.
                     cur_gx = grads[x]
-                    if x.creator is None:
-                        gx = chainer.functions.concat_variable(gx, cur_gx)
-                        gx = chainer.functions.accumulate_add(gx)
-                        grads[x] = gx
+                    if configuration.config.lazy_grad_sum:
+                        if x.creator is None:
+                            gx = chainer.functions.concat_variable(gx, cur_gx)
+                            gx = chainer.functions.accumulate_add(gx)
+                            grads[x] = gx
+                        else:
+                            grads[x] = chainer.functions.concat_variable(
+                                gx, cur_gx)
                     else:
-                        grads[x] = chainer.functions.concat_variable(
-                            gx, cur_gx)
+                        grads[x] = gx if cur_gx is None else gx + cur_gx
+
                 else:
                     grads[x] = gx
 
