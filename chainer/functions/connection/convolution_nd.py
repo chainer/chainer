@@ -6,7 +6,6 @@ import chainer
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_node
-import chainer.functions
 from chainer.functions.connection import convolution_2d
 from chainer.utils import conv
 from chainer.utils import conv_nd
