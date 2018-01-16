@@ -18,6 +18,7 @@
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 #include "xchainer/error.h"
+#include "xchainer/memory.h"
 #include "xchainer/numeric.h"
 #include "xchainer/op_node.h"
 
@@ -73,6 +74,7 @@ Arrays& Identity(const Arrays& inputs, Arrays& outputs) {
             op_node->push_back(in.node(), [](const Array& gout) { return gout; });
             out_node->set_next_node(op_node);
         }
+        internal::MemoryCopy(out.data().get(), in.data().get(), in.total_bytes());
     }
     return outputs;
 }
