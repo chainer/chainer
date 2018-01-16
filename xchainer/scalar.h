@@ -31,6 +31,20 @@ public:
 
     std::string ToString() const;
 
+    bool operator==(Scalar other) const {
+        // TODO(niboshi): Support different dtypes
+        if (dtype_ != other.dtype_) {
+            return false;
+        }
+
+        return VisitDtype(dtype_, [this, other](auto pt) {
+            using T = typename decltype(pt)::type;
+            return this->UnwrapAndCast<T>() == other.UnwrapAndCast<T>();
+        });
+    }
+
+    bool operator!=(Scalar other) const { return !operator==(other); }
+
     Scalar& operator+() { return *this; }
 
     Scalar operator+() const { return *this; }
@@ -68,6 +82,26 @@ public:
     explicit operator uint8_t() const { return UnwrapAndCast<uint8_t>(); }
     explicit operator float() const { return UnwrapAndCast<float>(); }
     explicit operator double() const { return UnwrapAndCast<double>(); }
+
+    Scalar operator+(const Scalar& rhs) const {
+        // TODO(niboshi): Support dtype conversion
+        assert(dtype_ == rhs.dtype_);
+
+        return VisitDtype(dtype_, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            return Scalar{static_cast<T>(*this) + static_cast<T>(rhs)};
+        });
+    }
+
+    Scalar operator*(const Scalar& rhs) const {
+        // TODO(niboshi): Support dtype conversion
+        assert(dtype_ == rhs.dtype_);
+
+        return VisitDtype(dtype_, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            return Scalar{static_cast<T>(*this) * static_cast<T>(rhs)};
+        });
+    }
 
 private:
     template <typename T>
