@@ -110,4 +110,4 @@ std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_p
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
-}  // namespace
+}  // namespace xchainer
