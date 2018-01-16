@@ -33,7 +33,7 @@ def _check_array(array, expected_dtype, expected_shape, expected_total_size, exp
     assert array.element_bytes == expected_dtype.itemsize
     assert array.total_size == expected_total_size
     assert array.total_bytes == expected_dtype.itemsize * expected_total_size
-    assert array.debug_flat_data == expected_data_list
+    assert array._debug_flat_data == expected_data_list
     assert array.is_contiguous
     assert array.offset == 0
 
@@ -44,10 +44,10 @@ def _check_arrays_equal(array_a, array_b, expect_data_shared):
     assert array_a.element_bytes == array_b.element_bytes
     assert array_a.total_size == array_b.total_size
     assert array_a.total_bytes == array_b.total_bytes
-    assert array_a.debug_flat_data == array_b.debug_flat_data
+    assert array_a._debug_flat_data == array_b._debug_flat_data
     assert array_a.is_contiguous == array_b.is_contiguous
     assert array_a.offset == array_b.offset
-    assert (array_a.debug_data_memory_address == array_b.debug_data_memory_address) == expect_data_shared
+    assert (array_a._debug_data_memory_address == array_b._debug_data_memory_address) == expect_data_shared
 
 
 def _check_array_equals_ndarray(array, ndarray):
@@ -56,7 +56,7 @@ def _check_array_equals_ndarray(array, ndarray):
     assert array.ndim == ndarray.ndim
     assert array.element_bytes == ndarray.itemsize
     assert array.total_bytes == ndarray.itemsize * ndarray.size
-    assert array.debug_flat_data == ndarray.ravel().tolist()
+    assert array._debug_flat_data == ndarray.ravel().tolist()
     assert array.is_contiguous == ndarray.flags['C_CONTIGUOUS']
 
 
@@ -122,12 +122,10 @@ def test_numpy_init(array_init_inputs):
     _check_array(array, dtype, shape, _size(shape_tup), ndarray.ravel().tolist())
     _check_array_equals_ndarray(array, ndarray)
 
-    _check_array_equals_ndarray(array, ndarray)
-
     # test possibly freed memory
     data_copy = ndarray.copy()
     del ndarray
-    assert array.debug_flat_data == data_copy.ravel().tolist()
+    assert array._debug_flat_data == data_copy.ravel().tolist()
 
     # recovered data should be equal
     data_recovered = numpy.array(array)
@@ -185,13 +183,13 @@ def test_add_iadd(array_init_inputs):
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 2] => [False, True]
 
     out = lhs + rhs
-    assert out.debug_flat_data == expected_data_list
-    assert lhs.debug_flat_data == lhs_data_list
-    assert rhs.debug_flat_data == rhs_data_list
+    assert out._debug_flat_data == expected_data_list
+    assert lhs._debug_flat_data == lhs_data_list
+    assert rhs._debug_flat_data == rhs_data_list
 
     lhs += rhs
-    assert lhs.debug_flat_data == expected_data_list
-    assert rhs.debug_flat_data == rhs_data_list
+    assert lhs._debug_flat_data == expected_data_list
+    assert rhs._debug_flat_data == rhs_data_list
 
 
 def test_mul_imul(array_init_inputs):
@@ -210,13 +208,13 @@ def test_mul_imul(array_init_inputs):
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 1] => [False, True]
 
     out = lhs * rhs
-    assert out.debug_flat_data == expected_data_list
-    assert lhs.debug_flat_data == lhs_data_list
-    assert rhs.debug_flat_data == rhs_data_list
+    assert out._debug_flat_data == expected_data_list
+    assert lhs._debug_flat_data == lhs_data_list
+    assert rhs._debug_flat_data == rhs_data_list
 
     lhs *= rhs
-    assert lhs.debug_flat_data == expected_data_list
-    assert rhs.debug_flat_data == rhs_data_list
+    assert lhs._debug_flat_data == expected_data_list
+    assert rhs._debug_flat_data == rhs_data_list
 
 
 def test_array_init_invalid_length():
