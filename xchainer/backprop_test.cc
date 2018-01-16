@@ -108,7 +108,15 @@ private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
 
-TEST_P(BackpropTest, Backward) {
+TEST_P(BackpropTest, BackwardDepthZero) {
+    CheckBackprop({2.0f}, {1.0f}, [](auto& xs) { return xs[0]; });
+}
+
+TEST_P(BackpropTest, BackwardDepthOne) {
+    CheckBackprop({2.0f, 3.0f}, {3.0f, 2.0f}, [](auto& xs) { return xs[0] * xs[1]; });
+}
+
+TEST_P(BackpropTest, BackwardDepthTwoOrMore) {
     CheckBackprop({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
 }
 
