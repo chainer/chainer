@@ -336,7 +336,7 @@ TEST_P(ArrayTest, ConstArrayFromBuffer) {
 }
 
 #ifdef XCHAINER_ENABLE_CUDA
-TEST_P(ArrayTest, ExpectThrowFromNonManagedBuffer) {
+TEST_P(ArrayTest, FromBufferFromNonManagedMemory) {
     Shape shape = {3, 2};
     Dtype dtype = Dtype::kBool;
     int64_t bytesize = shape.total_size() * sizeof(bool);
@@ -345,7 +345,8 @@ TEST_P(ArrayTest, ExpectThrowFromNonManagedBuffer) {
     cuda::CheckError(cudaMalloc(&raw_ptr, bytesize));
     auto data = std::shared_ptr<void>{raw_ptr, cudaFree};
 
-    EXPECT_THROW(Array::FromBuffer(shape, dtype, data), XchainerError);
+    EXPECT_THROW(Array::FromBuffer(shape, dtype, data), XchainerError)
+        << "FromBuffer must throw an exception if non-managed CUDA memory is given";
 }
 #endif  // XCHAINER_ENABLE_CUDA
 
