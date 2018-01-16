@@ -59,11 +59,8 @@ TEST(MemoryTest, Allocate) {
 TEST(MemoryTest, MemoryCopy) {
     size_t size = 3;
     size_t bytesize = size * sizeof(float);
-    auto data = std::make_unique<float[]>(size);
-    data[0] = 1;
-    data[1] = 2;
-    data[2] = 3;
-    std::shared_ptr<void> cpu_src = std::move(data);
+    float raw_data[] = {0, 1, 2};
+    std::shared_ptr<void> cpu_src(raw_data, [](float* ptr) { (void)ptr; });
     {
         // cpu to cpu
         std::shared_ptr<void> cpu_dst = std::make_unique<float[]>(size);
@@ -96,11 +93,8 @@ TEST(MemoryTest, MemoryCopy) {
 TEST(MemoryTest, MemoryFromBuffer) {
     size_t size = 3;
     size_t bytesize = size * sizeof(float);
-    auto data = std::make_unique<float[]>(size);
-    data[0] = 1;
-    data[1] = 2;
-    data[2] = 3;
-    std::shared_ptr<void> cpu_src = std::move(data);
+    float raw_data[] = {0, 1, 2};
+    std::shared_ptr<void> cpu_src(raw_data, [](float* ptr) { (void)ptr; });
     std::shared_ptr<void> gpu_src = Allocate(MakeDevice("cuda"), bytesize);
     MemoryCopy(gpu_src.get(), cpu_src.get(), size);
     {
