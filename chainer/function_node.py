@@ -308,6 +308,8 @@ Use apply() method instead.\
                     retained_data.append(outputs[index])
                 self._retained_output_data = tuple(retained_data)
 
+            self.lazy_grad_sum = configuration.config.lazy_grad_sum
+
         return ret
 
     def _check_data_type_forward(self, in_data):
