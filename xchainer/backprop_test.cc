@@ -72,6 +72,9 @@ public:
         for (size_t i = 0; i < expected_grads.size(); ++i) {
             ExpectEqual<float>(expected_grads[i], *target_inputs[i].grad());
         }
+        for (size_t i = 0; i < other_inputs.size(); ++i) {
+            EXPECT_FALSE(other_inputs[i].grad());
+        }
     }
 
     // Simple version. It makes and uses an array with one element for each input.
@@ -90,15 +93,6 @@ private:
 
 TEST_P(BackpropTest, Backward) {
     CheckBackprop({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
-}
-
-TEST_P(BackpropTest, BackwardNoGrad) {
-    auto x = Array::Full({1}, 2.0f);
-    auto y = Array::Full({1}, 3.0f);
-    auto z = x * y;
-    Backward(z);
-    EXPECT_FALSE(x.grad());
-    EXPECT_FALSE(y.grad());
 }
 
 TEST_P(BackpropTest, DoubleBackprop) {
