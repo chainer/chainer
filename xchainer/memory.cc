@@ -40,8 +40,13 @@ std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) {
 #ifdef XCHAINER_ENABLE_CUDA
     } else if (device == MakeDevice("cuda")) {
         void* raw_ptr = nullptr;
-        cuda::CheckError(cudaMallocManaged(&raw_ptr, bytesize, cudaMemAttachGlobal));
-        return std::shared_ptr<void>{raw_ptr, cudaFree};
+        // Be careful to be exception-safe, i.e., do not throw before creating shared_ptr
+        cudaError_t status = cudaMallocManaged(&raw_ptr, bytesize, cudaMemAttachGlobal);
+        if (status == cudaSuccess) {
+            return std::shared_ptr<void>{raw_ptr, cudaFree};
+        } else {
+            cuda::CheckError(status);
+        }
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
         throw DeviceError("invalid device");
