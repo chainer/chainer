@@ -9,7 +9,6 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
-from chainer import configuration
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
@@ -952,7 +951,7 @@ Actual: {0}'''.format(type(data))
             in_data = tuple([x.data for x in inputs])
             # We need calculate the value of for the out_grad which accumulated
             # because now out_grad is used in backward calculation.
-            if configuration.config.lazy_grad_sum:
+            if func.lazy_grad_sum:
                 for y in outputs:
                     grad = get_grad(y)
                     if isinstance(grad, tuple):
@@ -1050,7 +1049,7 @@ Actual: {0}'''.format(type(data))
                     # Accumulate the duplicated gradients here. See the comment
                     # above the code that builds ``in_grad``.
                     cur_gx = grads[x]
-                    if configuration.config.lazy_grad_sum:
+                    if func.lazy_grad_sum:
                         if x.creator is None:
                             gx = chainer.functions.concat_variable(gx, cur_gx)
                             gx = chainer.functions.accumulate_add(gx)
