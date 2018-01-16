@@ -92,6 +92,15 @@ TEST_P(BackpropTest, Backward) {
     CheckBackprop({2.0f}, {3.0f}, {7.0f}, [](auto& xs, auto& ys) { return xs[0] * (xs[0] + ys[0]); });
 }
 
+TEST_P(BackpropTest, BackwardNoGrad) {
+    auto x = Array::Full({1}, 2.0f);
+    auto y = Array::Full({1}, 3.0f);
+    auto z = x * y;
+    Backward(z);
+    EXPECT_FALSE(x.grad());
+    EXPECT_FALSE(y.grad());
+}
+
 TEST_P(BackpropTest, DoubleBackprop) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
