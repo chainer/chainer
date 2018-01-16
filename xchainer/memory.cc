@@ -52,6 +52,7 @@ std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) {
         } else {
             cuda::CheckError(status);
         }
+        assert(false);  // should never be reached
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
         throw DeviceError("invalid device");
