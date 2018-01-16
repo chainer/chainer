@@ -63,21 +63,38 @@ public:
 
     // Checks the correctness of Backward() applied to the output of a given function.
     // Gradients are only computed w.r.t. target_inputs, and are compared to expected_grads.
-    template <typename Fprop>
-    void CheckBackprop(std::vector<Array>& target_inputs, std::vector<Array>& other_inputs, std::vector<Array>& expected_grads,
-                       Fprop&& fprop) const {
+    template <typename Fprop, typename... Args>
+    void CheckBackpropImpl(std::vector<Array>& target_inputs, std::vector<Array>& expected_grads, Fprop&& fprop, Args&&... args) const {
         EXPECT_EQ(expected_grads.size(), target_inputs.size());
-        auto y = fprop(target_inputs, other_inputs);
+        auto y = fprop(target_inputs, args...);
         Backward(y);
         for (size_t i = 0; i < expected_grads.size(); ++i) {
             ExpectEqual<float>(expected_grads[i], *target_inputs[i].grad());
         }
+    }
+
+    template <typename Fprop>
+    void CheckBackprop(std::vector<Array>& target_inputs, std::vector<Array>& expected_grads, Fprop&& fprop) const {
+        CheckBackpropImpl(target_inputs, expected_grads, fprop);
+    }
+
+    template <typename Fprop>
+    void CheckBackprop(std::vector<Array>& target_inputs, std::vector<Array>& other_inputs, std::vector<Array>& expected_grads,
+                       Fprop&& fprop) const {
+        CheckBackpropImpl(target_inputs, expected_grads, fprop, other_inputs);
         for (size_t i = 0; i < other_inputs.size(); ++i) {
             EXPECT_FALSE(other_inputs[i].grad());
         }
     }
 
-    // Simple version. It makes and uses an array with one element for each input.
+    // Simple versions. It makes and uses an array with one element for each input.
+    template <typename Fprop>
+    void CheckBackprop(std::vector<float> target_inputs, std::vector<float> expected_grads, Fprop&& fprop) const {
+        auto xs = MakeFullArrays({1}, target_inputs, true);
+        auto expected_gxs = MakeFullArrays({1}, expected_grads, false);
+        CheckBackprop(xs, expected_gxs, std::forward<Fprop>(fprop));
+    }
+
     template <typename Fprop>
     void CheckBackprop(std::vector<float> target_inputs, std::vector<float> other_inputs, std::vector<float> expected_grads,
                        Fprop&& fprop) const {
@@ -111,15 +128,15 @@ TEST_P(BackpropTest, BackwardInputToMultipleOps) {
 }
 
 TEST_P(BackpropTest, BackwardIdenticalInputs) {
-    CheckBackprop({2.0f}, {}, {2.0f}, [](auto& xs, __attribute__((unused)) auto& ys) { return xs[0] + xs[0]; });
+    CheckBackprop({2.0f}, {2.0f}, [](auto& xs) { return xs[0] + xs[0]; });
 }
 
 TEST_P(BackpropTest, BackwardGivenInputGrad) {
-    auto fprop = [](auto& xs, __attribute__((unused)) auto& ys) {
+    auto fprop = [](auto& xs) {
         xs[0].set_grad(Array::OnesLike(xs[0]));
         return xs[0];
     };
-    CheckBackprop({1.0f}, {}, {2.0f}, fprop);
+    CheckBackprop({1.0f}, {2.0f}, fprop);
 }
 
 TEST_P(BackpropTest, BackwardGivenOutputGrad) {
