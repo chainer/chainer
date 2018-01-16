@@ -28,6 +28,20 @@ public:
 
     std::string ToString() const;
 
+    bool operator==(Scalar other) const {
+        // TODO(niboshi): Support different dtypes
+        if (dtype_ != other.dtype_) {
+            return false;
+        }
+
+        return VisitDtype(dtype_, [this, other](auto pt) {
+            using T = typename decltype(pt)::type;
+            return this->UnwrapAndCast<T>() == other.UnwrapAndCast<T>();
+        });
+    }
+
+    bool operator!=(Scalar other) const { return !operator==(other); }
+
     Scalar& operator+() { return *this; }
 
     Scalar operator+() const { return *this; }
