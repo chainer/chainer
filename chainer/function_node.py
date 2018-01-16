@@ -568,7 +568,6 @@ Use apply() method instead.\
                           gx + g_input
                           for gx, g_input in six.moves.zip(gxs, grad_inputs)])
 
-
     def get_retained_inputs(self):
         """Returns a tuple of retained input variables.
 
