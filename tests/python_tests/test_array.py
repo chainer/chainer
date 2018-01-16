@@ -133,10 +133,15 @@ def test_make_view(array_init_inputs):
     dtype = xchainer.Dtype(dtype_name)
     data_list = _create_dummy_data(shape_tup, dtype, pattern=1)
 
-    arr = xchainer.Array(shape, dtype, data_list)
-    view = arr.make_view()
+    array = xchainer.Array(shape, dtype, data_list)
+    view = array.make_view()
 
     _check_array(view, dtype, shape, _size(shape_tup), data_list)
+
+    # inplace modification
+    if len(data_list) > 0:
+        array += array
+        assert array.debug_flat_data == view.debug_flat_data
 
 
 def test_add_iadd(array_init_inputs):
