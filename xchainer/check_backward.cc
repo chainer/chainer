@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "xchainer/error.h"
+#include "xchainer/gradient_detail.h"
 #include "xchainer/numeric.h"
 
 namespace xchainer {
