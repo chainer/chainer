@@ -177,6 +177,24 @@ class TestLink(unittest.TestCase):
         self.assertIsNone(l0.u.data)
         self.assertIsInstance(l1.u.data, cupy.ndarray)
 
+    @attr.multi_gpu(2)
+    def test_copy_and_to_gpu_uninit_multi_gpu(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        l2 = l0.copy()
+        self.assertIsNone(l0.u.data)
+        self.assertIsNone(l1.u.data)
+        self.assertIsNone(l2.u.data)
+        l1.to_gpu()
+        l1.u.initialize((2, 3))
+        l2.to_gpu()
+        l2.u.initialize((2, 3))
+        self.assertIsNone(l0.u.data)
+        self.assertIsInstance(l1.u.data, cupy.ndarray)
+        self.assertIsInstance(l2.u.data, cupy.ndarray)
+        self.assertNotEqual(l1.u.data.data, l2.u.data.data)
+
     def _check_deepcopy(self, link):
         self.assertIsInstance(link._params, set)
         self.assertIsInstance(link._persistent, set)
