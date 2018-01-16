@@ -54,12 +54,17 @@ void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
     bool is_src_cuda_memory = IsPointerCudaMemory(src_ptr);
     if (is_dst_cuda_memory) {
         if (is_src_cuda_memory) {
+            // Copy from device to device is faster even in unified memory
             cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyDeviceToDevice));
         } else {
+            // For pre-6.x GPU architecture, we encountered SEGV with std::memcpy
+            // ref. https://github.com/pfnet/xchainer/pull/74
             cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyHostToDevice));
         }
     } else {
         if (is_src_cuda_memory) {
+            // For pre-6.x GPU architecture, we encountered SEGV with std::memcpy
+            // ref. https://github.com/pfnet/xchainer/pull/74
             cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyDeviceToHost));
         } else {
             std::memcpy(dst_ptr, src_ptr, bytesize);
