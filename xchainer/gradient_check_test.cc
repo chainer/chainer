@@ -14,7 +14,7 @@
 namespace xchainer {
 namespace {
 
-class NumericalGradientTest : public ::testing::Test {
+class GradientCheckTest : public ::testing::Test {
 public:
     using Arrays = std::vector<Array>;
 
@@ -63,7 +63,7 @@ public:
     }
 };
 
-TEST_F(NumericalGradientTest, NumericalGradientAdd) {
+TEST_F(GradientCheckTest, NumericalGradientAdd) {
     Shape shape{2, 3};
     float data1[]{1.f, 2.f, -3.f, 4.f, 0.5f, 3.f};
     float data2[]{0.f, 1.3f, 2.f, 3.f, -0.5f, 3.f};
@@ -91,7 +91,7 @@ TEST_F(NumericalGradientTest, NumericalGradientAdd) {
     CheckElementwiseNumericalGradient<float>(forward, inputs, grad_outputs, eps, expected_grads);
 }
 
-TEST_F(NumericalGradientTest, NumericalGradientMul) {
+TEST_F(GradientCheckTest, NumericalGradientMul) {
     Shape shape{2, 3};
     float data1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
     float data2[]{0.f, 1.f, 2.f, 3.f, 4.f, 5.f};
@@ -117,6 +117,34 @@ TEST_F(NumericalGradientTest, NumericalGradientMul) {
 
     // Check
     CheckElementwiseNumericalGradient<float>(forward, inputs, grad_outputs, eps, expected_grads);
+}
+
+TEST_F(GradientCheckTest, CorretcGradients) {
+    Shape shape{2, 3};
+    float data1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
+    float data2[]{0.f, 1.f, 2.f, 3.f, 4.f, 5.f};
+    float eps1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
+    float eps2[]{3.f, -2.f, 3.f, -4.f, 3.2f, 0.9f};
+    float grad_output_data[]{1.f, -2.f, 3.f, 0.f, 5.2f, 6.f};
+
+    Arrays inputs = {
+        MakeArray(shape, data1), MakeArray(shape, data2),
+    };
+    Arrays eps = {
+        MakeArray(shape, eps1), MakeArray(shape, eps2),
+    };
+    Arrays grad_outputs = {
+        MakeArray(shape, grad_output_data),
+    };
+
+    // Forward function
+    auto forward = [](const Arrays& inputs) { return Arrays{inputs[0] * inputs[1]}; };
+
+    float atol = 1e-5;
+    float rtol = 1e-4;
+
+    // EXPECT_NO_THROW(CheckBackwardComputation(func, {x1, x2}, {gy}, {e1, e2}, atol, rtol));
+    CheckBackwardComputation(forward, inputs, grad_outputs, eps, atol, rtol);
 }
 
 }  // namespace
