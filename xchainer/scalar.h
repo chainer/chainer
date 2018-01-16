@@ -21,6 +21,38 @@ public:
     Scalar(float v) : float32_(v), dtype_(Dtype::kFloat32) {}
     Scalar(double v) : float64_(v), dtype_(Dtype::kFloat64) {}
 
+    template <typename T>
+    Scalar(T v, Dtype dtype) : dtype_(dtype) {
+        switch (dtype) {
+            case Dtype::kBool:
+                bool_ = v;
+                break;
+            case Dtype::kInt8:
+                int8_ = v;
+                break;
+            case Dtype::kInt16:
+                int16_ = v;
+                break;
+            case Dtype::kInt32:
+                int32_ = v;
+                break;
+            case Dtype::kInt64:
+                int64_ = v;
+                break;
+            case Dtype::kUInt8:
+                uint8_ = v;
+                break;
+            case Dtype::kFloat32:
+                float32_ = v;
+                break;
+            case Dtype::kFloat64:
+                float64_ = v;
+                break;
+            default:
+                assert(0);  // should never be reached
+        }
+    }
+
     Scalar(const Scalar&) = default;
     Scalar& operator=(const Scalar&) = default;
 
@@ -79,6 +111,26 @@ public:
     explicit operator uint8_t() const { return UnwrapAndCast<uint8_t>(); }
     explicit operator float() const { return UnwrapAndCast<float>(); }
     explicit operator double() const { return UnwrapAndCast<double>(); }
+
+    Scalar operator+(const Scalar& rhs) const {
+        // TODO(niboshi): Support dtype conversion
+        assert(dtype_ == rhs.dtype_);
+
+        return VisitDtype(dtype_, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            return Scalar{static_cast<T>(*this) + static_cast<T>(rhs)};
+        });
+    }
+
+    Scalar operator*(const Scalar& rhs) const {
+        // TODO(niboshi): Support dtype conversion
+        assert(dtype_ == rhs.dtype_);
+
+        return VisitDtype(dtype_, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            return Scalar{static_cast<T>(*this) * static_cast<T>(rhs)};
+        });
+    }
 
 private:
     union {
