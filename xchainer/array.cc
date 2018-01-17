@@ -38,9 +38,10 @@ Array::Array(const Array& other)
     : shape_(other.shape_),
       dtype_(other.dtype_),
       requires_grad_(other.requires_grad_),
-      is_contiguous_(other.is_contiguous_),
-      offset_(other.offset_),
+      is_contiguous_(true),
+      offset_(0),
       node_(std::make_shared<ArrayNode>()) {
+    // Memory layout-related members are not copied in this copy ctor since new C-contiguous memory is allocated
     data_ = internal::Allocate(GetCurrentDevice(), other.total_bytes());
     other.Copy(*this);
 }

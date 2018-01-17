@@ -755,12 +755,18 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
 TEST_P(ArrayTest, CopyCtor) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = a;
-    ExpectEqual<bool>(a, b);
+
+    // Check its node is properly initialized
+    EXPECT_TRUE(b.node());
 
     // Deep copy, therefore assert different addresses to data
     EXPECT_NE(a.data().get(), b.data().get());
-    // Check its node is properly initialized
-    EXPECT_TRUE(b.node());
+
+    EXPECT_EQ(a.requires_grad(), b.requires_grad());
+    EXPECT_TRUE(b.is_contiguous());
+    EXPECT_EQ(0, b.offset());
+
+    ExpectEqual<bool>(a, b);
 }
 
 TEST_P(ArrayTest, AddBackward) {
