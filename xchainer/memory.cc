@@ -50,7 +50,7 @@ std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) {
         if (status == cudaSuccess) {
             return std::shared_ptr<void>{raw_ptr, cudaFree};
         } else {
-            cuda::CheckError(status);
+            cuda::Throw(status);
         }
         assert(false);  // should never be reached
 #endif                  // XCHAINER_ENABLE_CUDA
