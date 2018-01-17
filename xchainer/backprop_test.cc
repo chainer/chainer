@@ -19,15 +19,6 @@
 namespace xchainer {
 namespace {
 
-std::vector<Array> MakeFullArrays(const Shape& shape, const std::vector<float>& values, bool requires_grad) {
-    std::vector<Array> ret;
-    for (float value : values) {
-        ret.push_back(Array::Full(shape, value));
-        ret.back().set_requires_grad(requires_grad);
-    }
-    return ret;
-}
-
 class BackpropTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
     virtual void SetUp() {
@@ -38,6 +29,15 @@ protected:
     virtual void TearDown() { device_scope_.reset(); }
 
 public:
+    std::vector<Array> MakeFullArrays(const Shape& shape, const std::vector<float>& values, bool requires_grad) const {
+        std::vector<Array> ret;
+        for (float value : values) {
+            ret.push_back(Array::Full(shape, value));
+            ret.back().set_requires_grad(requires_grad);
+        }
+        return ret;
+    }
+
     template <typename T>
     void ExpectEqual(const Array& expected, const Array& actual) const {
         EXPECT_EQ(expected.dtype(), actual.dtype());
