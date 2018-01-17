@@ -34,12 +34,8 @@ Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, std::shared_p
       node_(std::move(node)) {}
 
 Array::Array(const Array& other)
-    : shape_(other.shape_),
-      dtype_(other.dtype_),
-      requires_grad_(other.requires_grad_),
-      is_contiguous_(other.is_contiguous_),
-      offset_(other.offset_),
-      node_(std::make_shared<ArrayNode>()) {
+    : shape_(other.shape_), dtype_(other.dtype_), requires_grad_(other.requires_grad_), node_(std::make_shared<ArrayNode>()) {
+    // Memory layout-related members are not copied in this copy ctor since new C-contiguous memory is allocated
     data_ = internal::Allocate(GetCurrentDevice(), other.total_bytes());
     other.Copy(*this);
 }
