@@ -623,7 +623,7 @@ class GradTestBase(object):
 
 
 @testing.parameterize(*testing.product({
-    'loss_scale': [None, 1, 10, 100, 1000],
+    'loss_scale': [None, 1, 10],
 }))
 class TestGradSimple(GradTestBase, unittest.TestCase):
 
@@ -634,16 +634,16 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
         self.y = self.x * self.x
 
     def expected_grad(self):
-        ret = [2 * self.x * self.gy]
+        grad = 2 * self.x * self.gy
         if self.loss_scale is not None:
-            ret = [2 * self.x * self.gy * self.loss_scale]
-        return ret
+            grad *= self.loss_scale
+        return [grad]
 
     def expected_double_grad(self):
-        ret = [2 * self.gy]
+        ggrad = 2 * self.gy
         if self.loss_scale is not None:
-            ret = [2 * self.gy * self.loss_scale]
-        return ret
+            ggrad *=  self.loss_scale
+        return [ggrad]
 
 
 class TestGradComplex(GradTestBase, unittest.TestCase):

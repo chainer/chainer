@@ -1575,7 +1575,7 @@ class TestAsVariable(unittest.TestCase):
 @testing.parameterize(*testing.product({
     'in_shape': [(4, 3, 2)],
     'dtype': [np.float16, np.float32, np.float64],
-    'loss_scale': [None, 1, 10, 100, 1000],
+    'loss_scale': [None, 1, 10],
 }))
 class TestLossScale(unittest.TestCase):
 
