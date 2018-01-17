@@ -49,9 +49,6 @@ public:
     void ExpectEqual(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
-        EXPECT_EQ(expected.requires_grad(), actual.requires_grad());
-        EXPECT_EQ(expected.is_contiguous(), actual.is_contiguous());
-        EXPECT_EQ(expected.offset(), actual.offset());
         ExpectDataEqual<T>(expected, actual);
     }
 
@@ -834,11 +831,11 @@ TEST_P(ArrayTest, MulBackwrdCapture) {
     Array gy = MakeArray<float>({1}, {1.0f});
 
     Array gx1 = lhs_func(gy);
-    Array e1 = MakeArray<float>({1}, {3.0f}, true);
+    Array e1 = MakeArray<float>({1}, {3.0f});
     ExpectEqual<bool>(e1, gx1);
 
     Array gx2 = rhs_func(gy);
-    Array e2 = MakeArray<float>({1}, {2.0f}, true);
+    Array e2 = MakeArray<float>({1}, {2.0f});
     ExpectEqual<bool>(e2, gx2);
 }
 
