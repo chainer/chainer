@@ -26,6 +26,7 @@ public:
         std::copy(data.begin(), data.end(), a.get());
         return Array::FromBuffer(shape, TypeToDtype<T>, std::move(a));
     }
+
     template <typename T>
     Array MakeArray(const Shape& shape, const T* data) {
         int64_t size = shape.total_size();
@@ -33,22 +34,36 @@ public:
         std::copy(data, data + size, a.get());
         return Array::FromBuffer(shape, TypeToDtype<T>, std::move(a));
     }
+
+    template <typename T>
+    void CheckCheckBackwardComputation(T forward) {
+        Shape shape{2, 3};
+        float data1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
+        float data2[]{0.f, 1.f, 2.f, 3.f, 4.f, 5.f};
+        float eps1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
+        float eps2[]{3.f, -2.f, 3.f, -4.f, 3.2f, 0.9f};
+        float grad_output_data[]{1.f, -2.f, 3.f, 0.f, 5.2f, 6.f};
+        float atol = 1e-5;
+        float rtol = 1e-4;
+
+        Arrays inputs = {
+            MakeArray(shape, data1), MakeArray(shape, data2),
+        };
+        Arrays eps = {
+            MakeArray(shape, eps1), MakeArray(shape, eps2),
+        };
+        Arrays grad_outputs = {
+            MakeArray(shape, grad_output_data),
+        };
+
+        CheckBackwardComputation(forward, inputs, grad_outputs, eps, atol, rtol);
+    }
 };
 
 TEST_F(CheckBackwardTest, CorrectBackward) {
-    Shape shape{2, 3};
-    float data1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
-    float data2[]{0.f, 1.f, 2.f, 3.f, 4.f, 5.f};
-    float eps1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
-    float eps2[]{3.f, -2.f, 3.f, -4.f, 3.2f, 0.9f};
-    float grad_output_data[]{1.f, -2.f, 3.f, 0.f, 5.2f, 6.f};
-    float atol = 1e-5;
-    float rtol = 1e-4;
-
     auto forward = [](const Arrays& inputs) -> Arrays {
         const Array& lhs = inputs[0];
         const Array& rhs = inputs[1];
-
         bool requires_grad = true;
 
         Array out = Array::EmptyLike(lhs);
@@ -77,27 +92,15 @@ TEST_F(CheckBackwardTest, CorrectBackward) {
             auto* odata = static_cast<T*>(out.data().get());
 
             for (int64_t i = 0; i < total_size; i++) {
-                odata[i] = ldata[i] + rdata[i];
+                odata[i] = ldata[i] * rdata[i];
             }
         });
 
         return {out};
     };
-    Arrays inputs = {
-        MakeArray(shape, data1), MakeArray(shape, data2),
-    };
-    Arrays eps = {
-        MakeArray(shape, eps1), MakeArray(shape, eps2),
-    };
-    Arrays grad_outputs = {
-        MakeArray(shape, grad_output_data),
-    };
 
-    CheckBackwardComputation(forward, inputs, grad_outputs, eps, atol, rtol);
+    CheckCheckBackwardComputation(forward);
 }
 
-TEST_F(CheckBackwardTest, IncorretcBackward) {
-    // TODO(hvy): Test an incorrectly implemented backward function
-}
 }  // namespace
 }  // namespace xchainer
