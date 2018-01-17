@@ -74,7 +74,7 @@ class TestBatchRenormalization(unittest.TestCase):
         self.assertEqual(y.data.dtype, self.dtype)
 
         sigma_batch = numpy.sqrt(self.var)
-        running_sigma = numpy.sqrt(self.running_var)
+        running_sigma = numpy.sqrt(self.running_var + self.eps)
         r = numpy.clip(sigma_batch / running_sigma, 1.0 / self.rmax, self.rmax)
         d = numpy.clip((self.mean - self.running_mean) / running_sigma,
                        -self.dmax, self.dmax)
@@ -86,7 +86,7 @@ class TestBatchRenormalization(unittest.TestCase):
             y_expect, y.data, **self.check_forward_options)
 
     @condition.retry(3)
-    def donttest_forward_cpu(self):
+    def test_forward_cpu(self):
         self.check_forward(self.args)
 
     @attr.gpu
