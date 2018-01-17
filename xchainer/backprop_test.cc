@@ -112,6 +112,13 @@ TEST_P(BackpropTest, Backward) {
     CheckBackprop({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
 }
 
+TEST_P(BackpropTest, BackwardSoleArrayNode) {
+    auto x = Array::Full({1}, 2.0f);
+    Backward(x);
+    auto e = Array::OnesLike(x);
+    ExpectEqual<float>(e, *x.grad());
+}
+
 TEST_P(BackpropTest, DoubleBackprop) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
