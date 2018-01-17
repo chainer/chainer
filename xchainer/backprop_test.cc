@@ -65,7 +65,7 @@ public:
     // Gradients are only computed w.r.t. target_inputs, and are compared to expected_grads.
     template <typename Fprop, typename... Args>
     void CheckBackpropImpl(std::vector<Array>& target_inputs, std::vector<Array>& expected_grads, Fprop&& fprop, Args&&... args) const {
-        EXPECT_EQ(expected_grads.size(), target_inputs.size());
+        ASSERT_EQ(expected_grads.size(), target_inputs.size());
         auto y = fprop(target_inputs, args...);
         Backward(y);
         for (size_t i = 0; i < expected_grads.size(); ++i) {
