@@ -248,15 +248,20 @@ def test_array_property_requires_grad():
 
 def test_array_grad():
     array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
-    grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
-    assert not array.grad
+    assert array.grad is None
 
+    grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
     array.grad = grad
+    assert array.grad is not None
     assert array.grad.debug_flat_data == grad.debug_flat_data
 
-    # inplace modification
-    grad += grad
-    assert array.grad.debug_flat_data != grad.debug_flat_data
+    array.grad = None
+    assert array.grad is None
 
+def test_array_clear_grad():
+    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+    assert array.grad is None
+    array.grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
+    assert array.grad is not None
     array.cleargrad()
-    assert not array.grad
+    assert array.grad is None
