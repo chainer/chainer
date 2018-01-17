@@ -264,7 +264,7 @@ def test_array_grad_identity():
     grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
     array.grad = grad
 
-    # Arrays are not identical.
+    # Arrays are not identical (as opposed to ordinal Python semantics).
     assert array.grad is not grad
 
     # Arrays' data are identical.
