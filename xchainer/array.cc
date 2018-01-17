@@ -1,5 +1,6 @@
 #include "xchainer/array.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 
@@ -116,11 +117,13 @@ Array Array::operator*(const Array& rhs) const {
 void Array::Copy(Array& out) const {
     if (requires_grad_) {
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
+        int64_t out_rank = node()->rank();
+        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{node_};
         auto in_func = [](const Array& gout) { return gout; };
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{in_func};
-        std::shared_ptr<OpNode> op_node =
-            std::make_shared<OpNode>("copy", std::vector<std::shared_ptr<const ArrayNode>>{node_}, backward_functions);
+        auto op_node = std::make_shared<OpNode>("copy", out_rank, next_nodes, backward_functions);
         out_node->set_next_node(op_node);
+        out_node->set_rank(out_rank + 1);
     }
 
     internal::MemoryCopy(out.data().get(), data_.get(), total_bytes());
@@ -138,16 +141,18 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     if (requires_grad_ || rhs.requires_grad()) {
         const Array& lhs = *this;
-        std::shared_ptr<const ArrayNode> lhs_node = node();
-        std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
+        std::shared_ptr<ArrayNode> lhs_node = mutable_node();
+        std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node();
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
+        int64_t out_rank = std::max(lhs_node->rank(), rhs_node->rank());
+        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node, rhs_node};
         std::function<Array(const Array&)> empty_func;
         auto lhs_func = lhs.requires_grad() ? [](const Array& gout) { return gout; } : empty_func;
         auto rhs_func = rhs.requires_grad() ? [](const Array& gout) { return gout; } : empty_func;
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
-        std::shared_ptr<OpNode> op_node =
-            std::make_shared<OpNode>("add", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, backward_functions);
+        auto op_node = std::make_shared<OpNode>("add", out_rank, next_nodes, backward_functions);
         out_node->set_next_node(op_node);
+        out_node->set_rank(out_rank + 1);
     }
 
     Device device = GetCurrentDevice();
@@ -173,9 +178,11 @@ void Array::Mul(const Array& rhs, Array& out) const {
     CheckEqual(shape_, rhs.shape());
 
     if (requires_grad_ || rhs.requires_grad()) {
-        std::shared_ptr<const ArrayNode> lhs_node = node();
-        std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
+        std::shared_ptr<ArrayNode> lhs_node = mutable_node();
+        std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node();
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
+        int64_t out_rank = std::max(lhs_node->rank(), rhs_node->rank());
+        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node, rhs_node};
         std::function<Array(const Array&)> empty_func;
         // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
         // TODO(hvy): capture rhs by view (value)
@@ -193,9 +200,9 @@ void Array::Mul(const Array& rhs, Array& out) const {
             }
         }
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
-        std::shared_ptr<OpNode> op_node =
-            std::make_shared<OpNode>("mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, backward_functions);
+        auto op_node = std::make_shared<OpNode>("mul", out_rank, next_nodes, backward_functions);
         out_node->set_next_node(op_node);
+        out_node->set_rank(out_rank + 1);
     }
 
     Device device = GetCurrentDevice();
