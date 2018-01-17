@@ -189,7 +189,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
         std::function<Array(const Array&)> empty_func;
         // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
         auto lhs_func = requires_grad_ ? [rhs_view = rhs.MakeView()](const Array& gout) { return gout * rhs_view; } : empty_func;
-        auto rhs_func = requires_grad_ ? [lhs_view = MakeView()](const Array& gout) { return gout * lhs_view; } : empty_func;
+        auto rhs_func = rhs.requires_grad_ ? [lhs_view = MakeView()](const Array& gout) { return gout * lhs_view; } : empty_func;
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
         auto op_node = std::make_shared<OpNode>("mul", out_rank, next_nodes, backward_functions);
         out_node->set_next_node(op_node);
