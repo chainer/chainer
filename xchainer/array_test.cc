@@ -121,8 +121,9 @@ public:
         EXPECT_EQ(3 * 2, x.total_size());
         EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
         EXPECT_EQ(bytesize, x.total_bytes());
-        EXPECT_EQ(0, x.offset());
+        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
 
         // Array::data
         ExpectDataEqual<T>(data.get(), x);
@@ -143,6 +144,9 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataExistsOnCurrentDevice(x);
     }
 
@@ -155,6 +159,9 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataExistsOnCurrentDevice(x);
     }
 
@@ -178,6 +185,9 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnCurrentDevice(x);
     }
@@ -194,6 +204,9 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), scalar.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataEqual(value, x);
         ExpectDataExistsOnCurrentDevice(x);
     }
@@ -207,6 +220,9 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnCurrentDevice(x);
     }
@@ -223,6 +239,9 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnCurrentDevice(x);
@@ -237,6 +256,9 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnCurrentDevice(x);
@@ -249,6 +271,9 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnCurrentDevice(x);
@@ -263,6 +288,9 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnCurrentDevice(x);
