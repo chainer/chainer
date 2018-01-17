@@ -1,6 +1,7 @@
 #include <pybind11/pybind11.h>
 
 #include "xchainer/array.h"
+#include "xchainer/backprop.h"
 
 #include "xchainer/python/array.h"
 #include "xchainer/python/common.h"
@@ -23,7 +24,8 @@ void InitXchainerModule(pybind11::module& m) {
     m.doc() = "xChainer";
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
 
-    m.def("empty", &Array::Empty)
+    m.def("backward", &Backward)
+        .def("empty", &Array::Empty)
         .def("full", py::overload_cast<const Shape&, Scalar, Dtype>(&Array::Full))
         .def("full", py::overload_cast<const Shape&, Scalar>(&Array::Full))
         .def("zeros", &Array::Zeros)
