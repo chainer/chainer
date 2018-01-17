@@ -19,6 +19,10 @@ public:
 
     void set_next_node(std::shared_ptr<OpNode> next_node) { next_node_ = std::move(next_node); }
 
+    int64_t rank() const { return rank_; }
+
+    void set_rank(int64_t rank) { rank_ = rank; }
+
     const nonstd::optional<Array>& grad() const noexcept { return grad_; }
 
     void set_grad(Array grad) { grad_.emplace(std::move(grad)); };
@@ -27,6 +31,7 @@ public:
 
 private:
     std::shared_ptr<OpNode> next_node_;
+    int64_t rank_{0};
     nonstd::optional<Array> grad_;
 };
 

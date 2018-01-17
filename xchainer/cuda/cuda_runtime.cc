@@ -19,9 +19,11 @@ RuntimeError::RuntimeError(cudaError_t error) : XchainerError(BuildErrorMessage(
 
 void CheckError(cudaError_t error) {
     if (error != cudaSuccess) {
-        throw RuntimeError(error);
+        Throw(error);
     }
 }
+
+void Throw(cudaError_t error) { throw RuntimeError(error); }
 
 }  // namespace cuda
 }  // namespace xchainer

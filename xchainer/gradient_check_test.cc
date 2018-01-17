@@ -22,7 +22,7 @@ public:
     Array MakeArray(std::initializer_list<int64_t> shape, std::initializer_list<T> data) {
         auto a = std::make_unique<T[]>(data.size());
         std::copy(data.begin(), data.end(), a.get());
-        return {shape, TypeToDtype<T>, std::move(a)};
+        return Array::FromBuffer(shape, TypeToDtype<T>, std::move(a));
     }
 
     template <typename T>
@@ -30,7 +30,7 @@ public:
         int64_t size = shape.total_size();
         auto a = std::make_unique<T[]>(size);
         std::copy(data, data + size, a.get());
-        return {shape, TypeToDtype<T>, std::move(a)};
+        return Array::FromBuffer(shape, TypeToDtype<T>, std::move(a));
     }
 
     template <typename T>

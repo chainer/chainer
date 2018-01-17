@@ -17,6 +17,8 @@ private:
 
 void CheckError(cudaError_t error);
 
+void Throw(cudaError_t error);
+
 // Occupancy
 #ifdef __CUDACC__
 

@@ -19,8 +19,6 @@ class ArrayNode;
 // The main data structure of multi-dimensional array.
 class Array {
 public:
-    Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, int64_t offset = 0);
-
     // Deep copy ctor and copy assignment
     Array(const Array& other);
 
@@ -30,6 +28,8 @@ public:
     // TODO(hvy): Copy assignment operator is deleted to avoid performance drops due to possible unwanted copies and heavy refactorings
     // later on until the behavior is better agreed upon
     Array& operator=(const Array&) = delete;
+
+    static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data);
 
     static Array Empty(const Shape& shape, Dtype dtype);
     static Array Full(const Shape& shape, Scalar scalar, Dtype dtype);
@@ -51,8 +51,6 @@ public:
 
     const Shape& shape() const { return shape_; }
 
-    bool is_contiguous() const { return is_contiguous_; }
-
     int64_t total_size() const { return shape_.total_size(); }
 
     int64_t element_bytes() const { return GetElementSize(dtype_); }
@@ -67,9 +65,11 @@ public:
 
     void set_requires_grad(bool requires_grad) { requires_grad_ = requires_grad; }
 
+    bool is_contiguous() const { return is_contiguous_; }
+
     int64_t offset() const { return offset_; }
 
-    const std::shared_ptr<ArrayNode>& node() { return node_; }
+    const std::shared_ptr<ArrayNode>& mutable_node() const { return node_; }
 
     std::shared_ptr<const ArrayNode> node() const { return node_; }
 
@@ -91,19 +91,19 @@ public:
     std::string ToString() const;
 
 private:
+    Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad = false,
+          bool is_contiguous = true, int64_t offset = 0);
+
     void Copy(Array& out) const;
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 
     Shape shape_;
-    bool is_contiguous_;
-
     Dtype dtype_;
-
     std::shared_ptr<void> data_;
     bool requires_grad_;
+    bool is_contiguous_;
     int64_t offset_;
-
     std::shared_ptr<ArrayNode> node_;
 };
 

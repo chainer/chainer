@@ -15,6 +15,7 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
+#include "xchainer/memory.h"
 #include "xchainer/op_node.h"
 
 namespace xchainer {
@@ -32,14 +33,16 @@ protected:
 public:
     template <typename T>
     Array MakeArray(std::initializer_list<int64_t> shape, std::shared_ptr<void> data, bool requires_grad = false) {
-        return {shape, TypeToDtype<T>, data, requires_grad};
+        Array arr = Array::FromBuffer(shape, TypeToDtype<T>, data);
+        arr.set_requires_grad(requires_grad);
+        return arr;
     }
 
     template <typename T>
     Array MakeArray(std::initializer_list<int64_t> shape, std::initializer_list<T> data, bool requires_grad = false) {
         auto a = std::make_unique<T[]>(data.size());
         std::copy(data.begin(), data.end(), a.get());
-        return {shape, TypeToDtype<T>, std::move(a), requires_grad};
+        return MakeArray<T>(shape, std::move(a), requires_grad);
     }
 
     template <typename T>
@@ -51,17 +54,22 @@ public:
 
     template <typename T>
     void ExpectDataEqual(const Array& expected, const Array& actual) {
+        const T* expected_data = static_cast<const T*>(expected.data().get());
+        ExpectDataEqual(expected_data, actual);
+    }
+
+    template <typename T>
+    void ExpectDataEqual(const T* expected_data, const Array& actual) {
 #ifdef XCHAINER_ENABLE_CUDA
         std::string device_name = ::testing::get<0>(GetParam());
         if (device_name == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
-        auto total_size = expected.shape().total_size();
-        const T* expected_data = static_cast<const T*>(expected.data().get());
+        auto total_size = actual.shape().total_size();
         const T* actual_data = static_cast<const T*>(actual.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
-            EXPECT_EQ(expected_data[i], actual_data[i]);
+            EXPECT_EQ(expected_data[i], actual_data[i]) << "where i is " << i;
         }
     }
 
@@ -77,47 +85,53 @@ public:
         const T* actual_data = static_cast<const T*>(actual.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
             if (std::isnan(expected)) {
-                EXPECT_TRUE(std::isnan(actual_data[i]));
+                EXPECT_TRUE(std::isnan(actual_data[i])) << "where i is " << i;
             } else {
-                EXPECT_EQ(expected, actual_data[i]);
+                EXPECT_EQ(expected, actual_data[i]) << "where i is " << i;
             }
         }
     }
 
-    bool IsPointerCudaManaged(const void* ptr) {
-#ifdef XCHAINER_ENABLE_CUDA
-        cudaPointerAttributes attr = {};
-        cuda::CheckError(cudaPointerGetAttributes(&attr, ptr));
-        return attr.isManaged != 0;
-#else
-        (void)ptr;
-        return false;
-#endif  // XCHAINER_ENABLE_CUDA
+    void ExpectDataExistsOnCurrentDevice(const Array& array) {
+        if (GetCurrentDevice() == MakeDevice("cpu")) {
+            EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
+        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+            EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
+        } else {
+            FAIL() << "invalid device";
+        }
     }
 
-    template <bool is_const>
-    void CheckArray() {
+    template <bool is_const, typename T>
+    void CheckFromBuffer() {
         using TargetArray = std::conditional_t<is_const, const Array, Array>;
 
-        std::shared_ptr<void> data = std::make_unique<float[]>(2 * 3 * 4);
-        TargetArray x = MakeArray<float>({2, 3, 4}, data);
+        Shape shape = {3, 2};
+        Dtype dtype = TypeToDtype<T>;
+        int64_t size = shape.total_size();
+        int64_t bytesize = size * sizeof(T);
+        T raw_data[] = {0, 1, 2, 3, 4, 5};
+        auto data = std::shared_ptr<T>(raw_data, [](T* ptr) { (void)ptr; });
+        TargetArray x = Array::FromBuffer(shape, dtype, data);
 
         // Basic attributes
-        EXPECT_EQ(TypeToDtype<float>, x.dtype());
-        EXPECT_EQ(3, x.ndim());
-        EXPECT_EQ(2 * 3 * 4, x.total_size());
-        EXPECT_EQ(4, x.element_bytes());
-        EXPECT_EQ(2 * 3 * 4 * 4, x.total_bytes());
-        EXPECT_EQ(0, x.offset());
+        EXPECT_EQ(shape, x.shape());
+        EXPECT_EQ(dtype, x.dtype());
+        EXPECT_EQ(2, x.ndim());
+        EXPECT_EQ(3 * 2, x.total_size());
+        EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
+        EXPECT_EQ(bytesize, x.total_bytes());
+        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
 
         // Array::data
-        std::shared_ptr<const void> x_data = x.data();
+        ExpectDataEqual<T>(data.get(), x);
+        ExpectDataExistsOnCurrentDevice(x);
         if (GetCurrentDevice() == MakeDevice("cpu")) {
-            EXPECT_EQ(data, x_data);
+            EXPECT_EQ(data.get(), x.data().get());
         } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_NE(data, x_data);
-            EXPECT_TRUE(IsPointerCudaManaged(x_data.get()));
+            EXPECT_NE(data.get(), x.data().get());
         } else {
             FAIL() << "invalid device";
         }
@@ -130,14 +144,10 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
-
-        if (GetCurrentDevice() == MakeDevice("cpu")) {
-            //
-        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_TRUE(IsPointerCudaManaged(x.data().get()));
-        } else {
-            FAIL() << "invalid device";
-        }
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -149,14 +159,10 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
-
-        if (GetCurrentDevice() == MakeDevice("cpu")) {
-            //
-        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_TRUE(IsPointerCudaManaged(x.data().get()));
-        } else {
-            FAIL() << "invalid device";
-        }
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -179,7 +185,11 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -194,7 +204,11 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), scalar.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataEqual(value, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -206,7 +220,11 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -221,8 +239,12 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -234,8 +256,12 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -245,8 +271,12 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
     template <typename T>
@@ -258,17 +288,17 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
     }
 
 private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
-
-TEST_P(ArrayTest, ArrayCtor) { CheckArray<false>(); }
-
-TEST_P(ArrayTest, ConstArrayCtor) { CheckArray<true>(); }
 
 TEST_P(ArrayTest, ArrayMoveCtor) {
     { EXPECT_TRUE(std::is_nothrow_move_constructible<Array>::value); }
@@ -310,6 +340,43 @@ TEST_P(ArrayTest, Grad) {
     x.ClearGrad();
     EXPECT_FALSE(x.grad());
 }
+
+TEST_P(ArrayTest, ArrayFromBuffer) {
+    CheckFromBuffer<false, bool>();
+    CheckFromBuffer<false, int8_t>();
+    CheckFromBuffer<false, int16_t>();
+    CheckFromBuffer<false, int32_t>();
+    CheckFromBuffer<false, int64_t>();
+    CheckFromBuffer<false, uint8_t>();
+    CheckFromBuffer<false, float>();
+    CheckFromBuffer<false, double>();
+}
+
+TEST_P(ArrayTest, ConstArrayFromBuffer) {
+    CheckFromBuffer<true, bool>();
+    CheckFromBuffer<true, int8_t>();
+    CheckFromBuffer<true, int16_t>();
+    CheckFromBuffer<true, int32_t>();
+    CheckFromBuffer<true, int64_t>();
+    CheckFromBuffer<true, uint8_t>();
+    CheckFromBuffer<true, float>();
+    CheckFromBuffer<true, double>();
+}
+
+#ifdef XCHAINER_ENABLE_CUDA
+TEST_P(ArrayTest, FromBufferFromNonManagedMemory) {
+    Shape shape = {3, 2};
+    Dtype dtype = Dtype::kBool;
+    int64_t bytesize = shape.total_size() * sizeof(bool);
+
+    void* raw_ptr = nullptr;
+    cuda::CheckError(cudaMalloc(&raw_ptr, bytesize));
+    auto data = std::shared_ptr<void>{raw_ptr, cudaFree};
+
+    EXPECT_THROW(Array::FromBuffer(shape, dtype, data), XchainerError)
+        << "FromBuffer must throw an exception if non-managed CUDA memory is given";
+}
+#endif  // XCHAINER_ENABLE_CUDA
 
 TEST_P(ArrayTest, Empty) {
     CheckEmpty<bool>();
@@ -716,12 +783,18 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
 TEST_P(ArrayTest, CopyCtor) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = a;
-    ExpectEqual<bool>(a, b);
+
+    // Check its node is properly initialized
+    EXPECT_TRUE(b.node());
 
     // Deep copy, therefore assert different addresses to data
     EXPECT_NE(a.data().get(), b.data().get());
-    // Check its node is properly initialized
-    EXPECT_TRUE(b.node());
+
+    EXPECT_EQ(a.requires_grad(), b.requires_grad());
+    EXPECT_TRUE(b.is_contiguous());
+    EXPECT_EQ(0, b.offset());
+
+    ExpectEqual<bool>(a, b);
 }
 
 TEST_P(ArrayTest, AddBackward) {
