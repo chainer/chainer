@@ -233,7 +233,13 @@ def test_array_grad():
     array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
     grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
     assert not array.grad
+
     array.grad = grad
     assert array.grad.debug_flat_data == grad.debug_flat_data
+
+    # inplace modification
+    grad += grad
+    assert array.grad.debug_flat_data != grad.debug_flat_data
+
     array.clear_grad()
     assert not array.grad
