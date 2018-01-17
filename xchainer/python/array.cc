@@ -111,7 +111,7 @@ void InitXchainerArray(pybind11::module& m) {
         .def(py::init(py::overload_cast<const Shape&, Dtype, py::list>(&MakeArray)))
         .def(py::init(py::overload_cast<py::array>(&MakeArray)))
         .def_buffer(&MakeNumpyArrayFromArray)
-        .def("make_view", &Array::MakeView)
+        .def("view", &Array::MakeView)
         .def(py::self += py::self)
         .def(py::self *= py::self)
         .def(py::self + py::self)

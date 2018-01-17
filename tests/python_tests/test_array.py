@@ -127,14 +127,14 @@ def test_numpy_init(array_init_inputs):
     _check_array_equals_ndarray(array, data_recovered)
 
 
-def test_make_view(array_init_inputs):
+def test_view(array_init_inputs):
     shape_tup, dtype_name = array_init_inputs
     shape = xchainer.Shape(shape_tup)
     dtype = xchainer.Dtype(dtype_name)
     data_list = _create_dummy_data(shape_tup, dtype, pattern=1)
 
     array = xchainer.Array(shape, dtype, data_list)
-    view = array.make_view()
+    view = array.view()
 
     _check_array(view, dtype, shape, _size(shape_tup), data_list)
 
