@@ -116,7 +116,7 @@ void InitXchainerArray(pybind11::module& m) {
         .def(py::self + py::self)
         .def(py::self * py::self)
         .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
-        .def("clear_grad", &Array::ClearGrad)
+        .def("cleargrad", &Array::ClearGrad)
         .def_property("requires_grad", &Array::requires_grad, &Array::set_requires_grad)
         .def_property("grad",
                       [](const Array& self) -> py::object {

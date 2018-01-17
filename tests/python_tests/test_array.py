@@ -241,5 +241,5 @@ def test_array_grad():
     grad += grad
     assert array.grad.debug_flat_data != grad.debug_flat_data
 
-    array.clear_grad()
+    array.cleargrad()
     assert not array.grad
