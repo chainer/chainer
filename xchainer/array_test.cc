@@ -49,6 +49,9 @@ public:
     void ExpectEqual(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
+        EXPECT_EQ(expected.requires_grad(), actual.requires_grad());
+        EXPECT_EQ(expected.is_contiguous(), actual.is_contiguous());
+        EXPECT_EQ(expected.offset(), actual.offset());
         ExpectDataEqual<T>(expected, actual);
     }
 
@@ -121,8 +124,9 @@ public:
         EXPECT_EQ(3 * 2, x.total_size());
         EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
         EXPECT_EQ(bytesize, x.total_bytes());
-        EXPECT_EQ(0, x.offset());
+        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
 
         // Array::data
         ExpectDataEqual<T>(data.get(), x);
@@ -143,6 +147,9 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataExistsOnCurrentDevice(x);
     }
 
@@ -155,6 +162,9 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataExistsOnCurrentDevice(x);
     }
 
@@ -178,6 +188,9 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnCurrentDevice(x);
     }
@@ -194,6 +207,9 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), scalar.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataEqual(value, x);
         ExpectDataExistsOnCurrentDevice(x);
     }
@@ -207,6 +223,9 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnCurrentDevice(x);
     }
@@ -223,6 +242,9 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnCurrentDevice(x);
@@ -237,6 +259,9 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnCurrentDevice(x);
@@ -249,6 +274,9 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnCurrentDevice(x);
@@ -263,6 +291,9 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_FALSE(x.requires_grad());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnCurrentDevice(x);
@@ -803,11 +834,11 @@ TEST_P(ArrayTest, MulBackwrdCapture) {
     Array gy = MakeArray<float>({1}, {1.0f});
 
     Array gx1 = lhs_func(gy);
-    Array e1 = MakeArray<float>({1}, {3.0f});
+    Array e1 = MakeArray<float>({1}, {3.0f}, true);
     ExpectEqual<bool>(e1, gx1);
 
     Array gx2 = rhs_func(gy);
-    Array e2 = MakeArray<float>({1}, {2.0f});
+    Array e2 = MakeArray<float>({1}, {2.0f}, true);
     ExpectEqual<bool>(e2, gx2);
 }
 
