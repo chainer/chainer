@@ -77,7 +77,7 @@ TEST_F(CheckBackwardTest, CorrectBackward) {
             auto* odata = static_cast<T*>(out.data().get());
 
             for (int64_t i = 0; i < total_size; i++) {
-                odata[i] = ldata[i] * rdata[i];
+                odata[i] = ldata[i] + rdata[i];
             }
         });
 
@@ -93,7 +93,7 @@ TEST_F(CheckBackwardTest, CorrectBackward) {
         MakeArray(shape, grad_output_data),
     };
 
-    EXPECT_NO_THROW(xchainer::testing::CheckBackwardComputation(forward, inputs, grad_outputs, eps, atol, rtol));
+    CheckBackwardComputation(forward, inputs, grad_outputs, eps, atol, rtol);
 }
 
 TEST_F(CheckBackwardTest, IncorretcBackward) {

@@ -5,17 +5,17 @@
 #include <memory>
 #include <vector>
 
+#include <gtest/gtest.h>
+
 #include "xchainer/array.h"
-#include "xchainer/array_node.h"  // TODO(hvy): delete this line?
+#include "xchainer/array_node.h"
 #include "xchainer/backprop.h"
 #include "xchainer/error.h"
 #include "xchainer/gradient_check.h"
 #include "xchainer/numeric.h"
 
 namespace xchainer {
-namespace testing {
-
-// TODO (hvy): Hide inside anonymous namespace
+namespace {
 
 Arrays BackwardGradients(std::function<Arrays(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs) {
     Arrays outputs = func(inputs);
@@ -25,16 +25,19 @@ Arrays BackwardGradients(std::function<Arrays(const Arrays&)> func, const Arrays
         outputs[i].mutable_node()->set_grad(grad_outputs[i]);
     }
 
-    // TODO(hvy): Only supporting functions with single outputs, support any number of outputs instead
+    // TODO(hvy): Currently only supporting functions with single outputs, support any number of outputs instead
     if (outputs.size() > 1) {
         throw NotImplementedError("Number of inputs must match the number of epsilon");
     }
-
     Backward(outputs[0]);
+
     Arrays backward_grads;
     std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads), [](const Array& input) { return *input.grad(); });
+
     return backward_grads;
 }
+
+}  // namespace
 
 void CheckBackwardComputation(std::function<Arrays(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs,
                               const Arrays& eps, float atol, float rtol) {
@@ -42,13 +45,20 @@ void CheckBackwardComputation(std::function<Arrays(const Arrays&)> func, const A
     const Arrays numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps);
     assert(backward_grads.size() == numerical_grads.size());
 
-    for (size_t i = 0; i < backward_grads.size(); ++i) {
+    const int nin = backward_grads.size();
+    for (int i = 0; i < nin; ++i) {
         if (!AllClose(backward_grads[i], numerical_grads[i], atol, rtol)) {
-            // TODO(hyv): Use EXCEPT_* or FAIL and print proper outputs
-            throw GradientCheckError("too large error");
+            ADD_FAILURE() << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
+                          << "Atol: " << atol << "\n"
+                          << "Rtol: " << rtol << "\n"
+                          << "Eps (perturbation):\n"
+                          << eps[i] << "\n"
+                          << "Backward gradients:\n"
+                          << backward_grads[i] << "\n"
+                          << "Numerical gradients:\n"
+                          << numerical_grads[i];
         }
     }
 }
 
-}  // namespace testing
 }  // namespace xchainer

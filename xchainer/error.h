@@ -28,12 +28,6 @@ public:
     using XchainerError::XchainerError;
 };
 
-// Error on gradient check failures such as too large numercal gradient errors after backward
-class GradientCheckError : public XchainerError {
-public:
-    using XchainerError::XchainerError;
-};
-
 // Error on calling not-yet-implemented functionality
 class NotImplementedError : public XchainerError {
 public:

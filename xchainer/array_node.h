@@ -8,7 +8,6 @@
 
 namespace xchainer {
 
-class Array;
 class OpNode;
 
 class ArrayNode {
