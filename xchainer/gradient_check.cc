@@ -1,10 +1,8 @@
 #include "xchainer/gradient_check.h"
 
 #include <algorithm>
-#include <cassert>
 #include <functional>
 #include <iostream>
-#include <stdexcept>
 #include <vector>
 
 #ifdef XCHAINER_ENABLE_CUDA
@@ -12,17 +10,12 @@
 #endif  // XCHAINER_ENABLE_CUDA
 
 #include "xchainer/array.h"
-#include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
-#include "xchainer/backprop.h"
+#include "xchainer/error.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
-#include "xchainer/error.h"
-#include "xchainer/memory.h"
-#include "xchainer/numeric.h"
-#include "xchainer/op_node.h"
 
 namespace xchainer {
 namespace gradient_internal {
@@ -65,22 +58,6 @@ Array& Divide(const Array& lhs, const Array& rhs, Array& out) {
     return out;
 }
 
-Arrays& Identity(const Arrays& inputs, Arrays& outputs) {
-    bool any_requires_grad = std::any_of(inputs.begin(), inputs.end(), [](auto& in) { return in.requires_grad(); });
-    std::shared_ptr<OpNode> op_node = any_requires_grad ? std::make_shared<OpNode>("identity") : nullptr;
-    for (size_t i = 0; i < inputs.size(); ++i) {
-        const Array& in = inputs[i];
-        Array& out = outputs[i];
-        if (in.requires_grad()) {
-            std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-            op_node->add_node(in.mutable_node(), [](const Array& gout) -> Array { return gout; });
-            out_node->set_next_node(op_node);
-        }
-        internal::MemoryCopy(out.data().get(), in.data().get(), in.total_bytes());
-    }
-    return outputs;
-}
-
 Array operator-(const Array& lhs, const Array& rhs) {
     Array out = Array::EmptyLike(lhs);
     Subtract(lhs, rhs, out);
@@ -91,13 +68,6 @@ Array operator/(const Array& lhs, const Array& rhs) {
     Array out = Array::EmptyLike(lhs);
     Divide(lhs, rhs, out);
     return out;
-}
-
-Arrays Identity(const Arrays& inputs) {
-    Arrays outputs;
-    std::transform(inputs.begin(), inputs.end(), std::back_inserter(outputs), [](const Array& input) { return Array::EmptyLike(input); });
-    Identity(inputs, outputs);
-    return outputs;
 }
 
 template <typename T>
