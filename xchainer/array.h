@@ -102,8 +102,8 @@ private:
     Dtype dtype_;
     std::shared_ptr<void> data_;
     bool requires_grad_;
-    bool is_contiguous_ = true;
-    int64_t offset_ = 0;
+    bool is_contiguous_;
+    int64_t offset_;
     std::shared_ptr<ArrayNode> node_;
 };
 
