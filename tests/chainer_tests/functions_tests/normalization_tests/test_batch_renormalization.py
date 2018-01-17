@@ -161,7 +161,8 @@ class TestFixedBatchRenormalization(unittest.TestCase):
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_renormalization(
-            self.expander, self.gamma, self.beta, self.x, self.mean, self.var + self.eps,
+            self.expander, self.gamma, self.beta, self.x, self.mean,
+            self.var + self.eps,
             1, 0)
 
         testing.assert_allclose(
