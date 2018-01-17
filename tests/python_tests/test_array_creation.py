@@ -51,6 +51,8 @@ def test_empty_like(shape, dtype):
     a = xchainer.empty_like(t)
     check_basic_creation(a, shape, dtype)
 
+    # TODO(niboshi): Check memory is not shared
+
 
 def test_zeros(shape, dtype):
     a = xchainer.zeros(shape, dtype)
@@ -68,6 +70,8 @@ def test_zeros_like(shape, dtype):
     value = False if dtype == xchainer.bool else 0
     assert all([el == value for el in a.debug_flat_data])
 
+    # TODO(niboshi): Check memory is not shared
+
 
 def test_ones(shape, dtype):
     a = xchainer.ones(shape, dtype)
@@ -84,6 +88,8 @@ def test_ones_like(shape, dtype):
 
     value = True if dtype == xchainer.bool else 1
     assert all([el == value for el in a.debug_flat_data])
+
+    # TODO(niboshi): Check memory is not shared
 
 
 def check_full(shape, value, dtype):
@@ -136,6 +142,8 @@ def check_full_like(shape, value, dtype):
         assert all([math.isnan(el) for el in a.debug_flat_data])
     else:
         assert a.debug_flat_data == [value] * a.total_size
+
+    # TODO(niboshi): Check memory is not shared
 
 
 def test_full_full_like_0(shape, dtype):
