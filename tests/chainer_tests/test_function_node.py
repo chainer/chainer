@@ -642,7 +642,7 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
     def expected_double_grad(self):
         ggrad = 2 * self.gy
         if self.loss_scale is not None:
-            ggrad *=  self.loss_scale
+            ggrad *= self.loss_scale
         return [ggrad]
 
 
