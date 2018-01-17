@@ -9,13 +9,12 @@
 #include "xchainer/array.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/device.h"
-#include "xchainer/op_node.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
 namespace {
 
-class GradientCheckTest : public ::testing::Test {
+class NumericalGradientTest : public ::testing::Test {
 public:
     using Arrays = std::vector<Array>;
 
@@ -64,7 +63,7 @@ public:
     }
 };
 
-TEST_F(GradientCheckTest, NumericalGradientAdd) {
+TEST_F(NumericalGradientTest, NumericalGradientAdd) {
     Shape shape{2, 3};
     float data1[]{1.f, 2.f, -3.f, 4.f, 0.5f, 3.f};
     float data2[]{0.f, 1.3f, 2.f, 3.f, -0.5f, 3.f};
@@ -92,7 +91,7 @@ TEST_F(GradientCheckTest, NumericalGradientAdd) {
     CheckElementwiseNumericalGradient<float>(forward, inputs, grad_outputs, eps, expected_grads);
 }
 
-TEST_F(GradientCheckTest, NumericalGradientMul) {
+TEST_F(NumericalGradientTest, NumericalGradientMul) {
     Shape shape{2, 3};
     float data1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
     float data2[]{0.f, 1.f, 2.f, 3.f, 4.f, 5.f};

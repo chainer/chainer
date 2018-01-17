@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #include <memory>
 #include <vector>
 
@@ -18,4 +17,4 @@ Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, con
 
 using gradient_internal::CalculateNumericalGradient;
 
-}  // namespace xchainer
+}  // namespce xchainer
