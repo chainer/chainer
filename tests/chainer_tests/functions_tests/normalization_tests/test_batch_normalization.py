@@ -215,12 +215,13 @@ class TestFixedBatchNormalization(unittest.TestCase):
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_normalization(
-            self.expander, self.gamma, self.beta, self.x, self.mean, self.var)
+            self.expander, self.gamma, self.beta, self.x, self.mean,
+            self.var + self.eps)
 
         testing.assert_allclose(
             y_expect, y.data, **self.check_forward_options)
 
-    def donttest_forward_cpu(self):
+    def test_forward_cpu(self):
         self.check_forward(self.args)
 
     @attr.gpu
