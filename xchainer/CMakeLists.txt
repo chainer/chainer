@@ -27,7 +27,6 @@ add_library(xchainer SHARED
     array_math.cc
     array_repr.cc
     backprop.cc
-    check_backward.cc
     device.cc
     dtype.cc
     gradient_check.cc
@@ -53,7 +52,6 @@ if(ENABLE_TEST)
         array_repr_test.cc
         array_test.cc
         backprop_test.cc
-        check_backward_test.cc
         device_test.cc
         dtype_test.cc
         gradient_check_test.cc

@@ -140,8 +140,8 @@ TEST_F(GradientCheckTest, CorretcBackward) {
         out.set_requires_grad(requires_grad);
 
         if (requires_grad) {
-            std::shared_ptr<const ArrayNode> lhs_node = lhs.node();
-            std::shared_ptr<const ArrayNode> rhs_node = rhs.node();
+            std::shared_ptr<ArrayNode> lhs_node = lhs.mutable_node();
+            std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node();
             std::shared_ptr<ArrayNode> out_node = out.RenewNode();
 
             std::function<Array(const Array&)> empty_func;
@@ -149,7 +149,7 @@ TEST_F(GradientCheckTest, CorretcBackward) {
             auto rhs_func = requires_grad ? [lhs](const Array& gout) { return gout * lhs; } : empty_func;
             auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
             std::shared_ptr<OpNode> op_node =
-                std::make_shared<OpNode>("test_mul", std::vector<std::shared_ptr<const ArrayNode>>{lhs_node, rhs_node}, backward_functions);
+                std::make_shared<OpNode>("test_mul", 0, std::vector<std::shared_ptr<ArrayNode>>{lhs_node, rhs_node}, backward_functions);
             out_node->set_next_node(op_node);
         }
 
@@ -162,7 +162,7 @@ TEST_F(GradientCheckTest, CorretcBackward) {
             auto* odata = static_cast<T*>(out.data().get());
 
             for (int64_t i = 0; i < total_size; i++) {
-                odata[i] = ldata[i] * rdata[i];
+                odata[i] = ldata[i] + rdata[i];
             }
         });
 
