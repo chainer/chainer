@@ -1,7 +1,7 @@
 #include "xchainer/gradient_check.h"
 
 #include <algorithm>
-#include <cstring>
+#include <cassert>
 #include <functional>
 #include <iostream>
 #include <stdexcept>
@@ -203,35 +203,6 @@ Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, con
     }
 
     return grads;
-}
-
-void CheckBackwardComputation(std::function<Arrays(const Arrays&)> func, const std::vector<Array>& inputs,
-                              const std::vector<Array>& grad_outputs, const std::vector<Array>& eps, float atol, float rtol) {
-    // Extend the computational graph by an identity operation so that all outputs are guaranteed to be derived from the same operation
-    // We then only need to start the backprop
-    Arrays outputs = Identity(func(inputs));
-
-    // Set the output gradients from which backprop will begin
-    if (outputs.size() != grad_outputs.size()) {
-        // TODO(hvy): Test me
-        throw std::invalid_argument("Number of given output gradients does not match the actual number of outputs");
-    }
-    size_t nout = outputs.size();
-    for (size_t i = 0; i < nout; ++i) {
-        outputs[i].mutable_node()->set_grad(grad_outputs[i]);
-    }
-
-    Backward(outputs[0]);
-
-    std::vector<Array> backward_grads;
-    std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads), [](const Array& input) { return *input.grad(); });
-    std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps);
-
-    for (size_t i = 0; i < backward_grads.size(); ++i) {
-        if (!AllClose(backward_grads[i], numerical_grads[i], atol, rtol)) {
-            throw AssertionError("too large errors");
-        }
-    }
 }
 
 }  // namespace gradient_internal
