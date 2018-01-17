@@ -46,15 +46,28 @@ public:
     }
 
     template <typename T>
-    void ExpectEqual(const Array& expected, const Array& actual, bool expect_data_shared = false) {
+    void ExpectEqualCopy(const Array& expected, const Array& actual) {
+        EXPECT_EQ(expected.dtype(), actual.dtype());
+        EXPECT_EQ(expected.shape(), actual.shape());
+
+        // Deep copy, therefore assert different addresses to data
+        EXPECT_NE(expected.data().get(), actual.data().get());
+
+        EXPECT_EQ(expected.requires_grad(), actual.requires_grad());
+        EXPECT_TRUE(actual.is_contiguous());
+        EXPECT_EQ(0, actual.offset());
+
+        // Check its node is properly initialized
+        EXPECT_TRUE(actual.node());
+
+        ExpectDataEqual<T>(expected, actual);
+    }
+
+    template <typename T>
+    void ExpectEqual(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
         ExpectDataEqual<T>(expected, actual);
-        if (expect_data_shared) {
-            EXPECT_EQ(expected.data().get(), actual.data().get());
-        } else {
-            EXPECT_NE(expected.data().get(), actual.data().get());
-        }
     }
 
     template <typename T>
@@ -308,8 +321,7 @@ private:
 TEST_P(ArrayTest, CopyCtor) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = a;
-    EXPECT_TRUE(b.node());  // Check its node is properly initialized
-    ExpectEqual<bool>(a, b);
+    ExpectEqualCopy<bool>(a, b);
 }
 
 TEST_P(ArrayTest, ArrayMoveCtor) {
@@ -320,7 +332,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
         Array c = std::move(a);
         ASSERT_EQ(a.data(), nullptr);
         ASSERT_EQ(a.node(), nullptr);
-        ExpectEqual<float>(b, c);
+        ExpectEqualCopy<float>(b, c);
     }
 }
 
@@ -792,38 +804,21 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
     }
 }
 
-TEST_P(ArrayTest, CopyCtor) {
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = a;
-
-    // Check its node is properly initialized
-    EXPECT_TRUE(b.node());
-
-    // Deep copy, therefore assert different addresses to data
-    EXPECT_NE(a.data().get(), b.data().get());
-
-    EXPECT_EQ(a.requires_grad(), b.requires_grad());
-    EXPECT_TRUE(b.is_contiguous());
-    EXPECT_EQ(0, b.offset());
-
-    ExpectEqual<bool>(a, b);
-}
-
 TEST_P(ArrayTest, Copy) {
     {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array o = a.Copy();
-        ExpectEqual<bool>(a, o);
+        ExpectEqualCopy<bool>(a, o);
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array o = a.Copy();
-        ExpectEqual<int8_t>(a, o);
+        ExpectEqualCopy<bool>(a, o);
     }
     {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
         Array o = a.Copy();
-        ExpectEqual<float>(a, o);
+        ExpectEqualCopy<bool>(a, o);
     }
 }
 

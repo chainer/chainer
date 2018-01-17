@@ -154,7 +154,7 @@ def test_view(array_init_inputs):
     # inplace modification
     if len(data_list) > 0:
         array += array
-        assert array.debug_flat_data == view.debug_flat_data
+        assert array._debug_flat_data == view._debug_flat_data
 
 
 def test_copy(array_init_inputs):
