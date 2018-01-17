@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <sstream>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -41,23 +42,30 @@ Arrays BackwardGradients(std::function<Arrays(const Arrays&)> func, const Arrays
 
 void CheckBackwardComputation(std::function<Arrays(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs,
                               const Arrays& eps, float atol, float rtol) {
-    const Arrays backward_grads = BackwardGradients(func, inputs, grad_outputs);
     const Arrays numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps);
+    const Arrays backward_grads = BackwardGradients(func, inputs, grad_outputs);
     assert(backward_grads.size() == numerical_grads.size());
 
+    std::ostringstream failure_os;
     const int nin = backward_grads.size();
     for (int i = 0; i < nin; ++i) {
         if (!AllClose(backward_grads[i], numerical_grads[i], atol, rtol)) {
-            ADD_FAILURE() << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
-                          << "Atol: " << atol << "\n"
-                          << "Rtol: " << rtol << "\n"
-                          << "Eps (perturbation):\n"
-                          << eps[i] << "\n"
-                          << "Backward gradients:\n"
-                          << backward_grads[i] << "\n"
-                          << "Numerical gradients:\n"
-                          << numerical_grads[i];
+            failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
+                       << "Atol: " << atol << "\n"
+                       << "Rtol: " << rtol << "\n"
+                       << "Eps (perturbation):\n"
+                       << eps[i] << "\n"
+                       << "Backward gradients:\n"
+                       << backward_grads[i] << "\n"
+                       << "Numerical gradients:\n"
+                       << numerical_grads[i];
         }
+    }
+
+    // Do nothing if all backward-numerical gradient pairs were close, else generate a nonfatal failure
+    std::string failure_message = failure_os.str();
+    if (failure_message.size() > 0) {
+        ADD_FAILURE() << failure_message;
     }
 }
 
