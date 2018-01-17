@@ -136,6 +136,8 @@ void Array::CopyTo(Array& out) const {
         out_node->set_rank(out_rank + 1);
     }
 
+    // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
+    // is_contiguous_ and offset_ into account
     internal::MemoryCopy(out.data().get(), data_.get(), total_bytes());
 }
 
