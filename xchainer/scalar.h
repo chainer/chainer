@@ -133,17 +133,6 @@ public:
     }
 
 private:
-    union {
-        bool bool_;
-        int8_t int8_;
-        int16_t int16_;
-        int32_t int32_;
-        int64_t int64_;
-        uint8_t uint8_;
-        float float32_;
-        double float64_;
-    };
-
     template <typename T>
     T UnwrapAndCast() const {
         switch (dtype_) {
@@ -168,6 +157,17 @@ private:
         }
         return T{};
     }
+
+    union {
+        bool bool_;
+        int8_t int8_;
+        int16_t int16_;
+        int32_t int32_;
+        int64_t int64_;
+        uint8_t uint8_;
+        float float32_;
+        double float64_;
+    };
 
     Dtype dtype_;
 };

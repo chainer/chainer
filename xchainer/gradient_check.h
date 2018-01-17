@@ -17,4 +17,4 @@ Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, con
 
 using gradient_internal::CalculateNumericalGradient;
 
-}  // namespce xchainer
+}  // namespace xchainer
