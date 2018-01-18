@@ -356,7 +356,7 @@ class TestFunctionForwardDebug(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'return_value': (numpy.array([float('nan')], numpy.float32),),
+    {'return_value': (numpy.array(float('nan'), numpy.float32),),
      'valid': False},
     {'return_value': (None,), 'valid': True},
 )
@@ -365,7 +365,7 @@ class TestFunctionBackwardDebug(unittest.TestCase):
     def setUp(self):
         self.original_debug = chainer.is_debug()
         chainer.set_debug(True)
-        self.one = numpy.array([1], numpy.float32)
+        self.one = numpy.array(1, numpy.float32)
         self.f = chainer.Function()
 
     def tearDown(self):
