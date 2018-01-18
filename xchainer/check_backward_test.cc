@@ -92,8 +92,8 @@ Arrays CorrectBinaryFunc(const Arrays& inputs) {
     const Array& lhs = inputs[0];
     const Array& rhs = inputs[1];
 
-    CheckEqual(lhs.dtype() == rhs.dtype());
-    CheckEqual(lhs.shape() == rhs.shape());
+    CheckEqual(lhs.dtype(), rhs.dtype());
+    CheckEqual(lhs.shape(), rhs.shape());
 
     Array out = Array::EmptyLike(lhs);
     out.set_requires_grad(lhs.requires_grad() || rhs.requires_grad());
@@ -133,8 +133,8 @@ Arrays BrokenBinaryFunc(const Arrays& inputs) {
     const Array& lhs = inputs[0];
     const Array& rhs = inputs[1];
 
-    CheckEqual(lhs.dtype() == rhs.dtype());
-    CheckEqual(lhs.shape() == rhs.shape());
+    CheckEqual(lhs.dtype(), rhs.dtype());
+    CheckEqual(lhs.shape(), rhs.shape());
 
     Array out = Array::EmptyLike(lhs);
     out.set_requires_grad(lhs.requires_grad() || rhs.requires_grad());
@@ -244,8 +244,8 @@ TEST_F(CheckBackwardTest, BinaryBackward) {
 
     float data1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
     float data2[]{0.f, 1.f, 2.f, 3.f, 4.f, 5.f};
-    float eps1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
-    float eps2[]{3.f, -2.f, 3.f, -4.f, 3.2f, 0.9f};
+    float eps_data1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
+    float eps_data2[]{3.f, -2.f, 3.f, -4.f, 3.2f, 0.9f};
     float grad_output_data[]{1.f, -2.f, 3.f, 0.f, 5.2f, 6.f};
 
     double atol = 1e-5;
@@ -257,7 +257,7 @@ TEST_F(CheckBackwardTest, BinaryBackward) {
     for (int i = 0; i < nperm; ++i) {
         {
             Arrays inputs = {MakeArray(shape, data1), MakeArray(shape, data2)};
-            Arrays eps = {MakeArray(shape, eps1), MakeArray(shape, eps2)};
+            Arrays eps = {MakeArray(shape, eps_data1), MakeArray(shape, eps_data2)};
             Arrays grad_outputs = {MakeArray(shape, grad_output_data)};
             inputs[0].set_requires_grad(requires_grads[i][0]);
             inputs[1].set_requires_grad(requires_grads[i][1]);
@@ -265,7 +265,7 @@ TEST_F(CheckBackwardTest, BinaryBackward) {
         }
         {
             Arrays inputs = {MakeArray(shape, data1), MakeArray(shape, data2)};
-            Arrays eps = {MakeArray(shape, eps1), MakeArray(shape, eps2)};
+            Arrays eps = {MakeArray(shape, eps_data1), MakeArray(shape, eps_data2)};
             Arrays grad_outputs = {MakeArray(shape, grad_output_data)};
             inputs[0].set_requires_grad(requires_grads[i][0]);
             inputs[1].set_requires_grad(requires_grads[i][1]);
