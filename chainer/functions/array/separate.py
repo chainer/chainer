@@ -14,9 +14,10 @@ class Separate(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         x_type = in_types[0]
-        type_check.expect(
-            -self.axis <= x_type.ndim,
-            x_type.ndim < self.axis)
+        if self.axis >= 0:
+            type_check.expect(self.axis < x_type.ndim)
+        else:
+            type_check.expect(-self.axis <= x_type.ndim)
 
     def forward(self, inputs):
         x, = inputs
@@ -31,7 +32,7 @@ class Separate(function_node.FunctionNode):
         grad_outputs = [
             self._xp.zeros(self._shape, dtype=self._dtype)
             if g is None else g for g in grad_outputs]
-        return stack.stack(grad_outputs, self.axis)
+        return stack.stack(grad_outputs, self.axis),
 
 
 def separate(x, axis=0):
@@ -81,4 +82,4 @@ def separate(x, axis=0):
         array([0., 3.], dtype=float32)
 
     """
-    return Separate(axis).apply(x)
+    return Separate(axis).apply((x,))
