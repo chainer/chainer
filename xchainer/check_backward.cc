@@ -30,7 +30,7 @@ OptionalArrays BackwardGradients(std::function<Arrays(const Arrays&)> func, cons
 
     // TODO(hvy): Currently only supporting functions with single outputs, support any number of outputs instead
     if (outputs.size() > 1) {
-        throw NotImplementedError("Number of inputs must match the number of epsilon");
+        throw NotImplementedError("Functions with more than one output are not supported");
     }
     Backward(outputs[0]);
 
