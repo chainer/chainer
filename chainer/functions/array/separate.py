@@ -1,12 +1,22 @@
 from chainer import cuda
 from chainer import function_node
 from chainer.functions.array import stack
+from chainer.utils import type_check
 
 
 class Separate(function_node.FunctionNode):
 
+    """Function that separates a given array."""
+
     def __init__(self, axis):
         self.axis = axis
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 1)
+        x_type = in_types[0]
+        type_check.expect(
+            -self.axis <= x_type.ndim,
+            x_type.ndim < self.axis)
 
     def forward(self, inputs):
         x, = inputs
