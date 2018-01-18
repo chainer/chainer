@@ -46,7 +46,7 @@ void CheckBackwardComputation(std::function<Arrays(const Arrays&)> func, const A
                               const Arrays& eps, double atol, double rtol) {
     const Arrays numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps);
     const OptionalArrays backward_grads = BackwardGradients(func, inputs, grad_outputs);
-    assert(backward_grads.size() == numerical_grads.size());
+    ASSERT_EQ(backward_grads.size(), numerical_grads.size());
 
     std::ostringstream failure_os;
     const int nin = backward_grads.size();
