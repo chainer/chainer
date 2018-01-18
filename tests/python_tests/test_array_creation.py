@@ -59,7 +59,7 @@ def test_zeros(shape, dtype):
     check_basic_creation(a, shape, dtype)
 
     value = False if dtype == xchainer.bool else 0
-    assert all([el == value for el in a.debug_flat_data])
+    assert all([el == value for el in a._debug_flat_data])
 
 
 def test_zeros_like(shape, dtype):
@@ -68,7 +68,7 @@ def test_zeros_like(shape, dtype):
     check_basic_creation(a, shape, dtype)
 
     value = False if dtype == xchainer.bool else 0
-    assert all([el == value for el in a.debug_flat_data])
+    assert all([el == value for el in a._debug_flat_data])
 
     # TODO(niboshi): Check memory is not shared
 
@@ -78,7 +78,7 @@ def test_ones(shape, dtype):
     check_basic_creation(a, shape, dtype)
 
     value = True if dtype == xchainer.bool else 1
-    assert all([el == value for el in a.debug_flat_data])
+    assert all([el == value for el in a._debug_flat_data])
 
 
 def test_ones_like(shape, dtype):
@@ -87,7 +87,7 @@ def test_ones_like(shape, dtype):
     check_basic_creation(a, shape, dtype)
 
     value = True if dtype == xchainer.bool else 1
-    assert all([el == value for el in a.debug_flat_data])
+    assert all([el == value for el in a._debug_flat_data])
 
     # TODO(niboshi): Check memory is not shared
 
@@ -97,9 +97,9 @@ def check_full(shape, value, dtype):
     check_basic_creation(a, shape, dtype)
 
     if math.isnan(value):
-        assert all([math.isnan(el) for el in a.debug_flat_data])
+        assert all([math.isnan(el) for el in a._debug_flat_data])
     else:
-        assert a.debug_flat_data == [value] * a.total_size
+        assert a._debug_flat_data == [value] * a.total_size
 
 
 def check_full_with_scalar(shape, scalar):
@@ -109,9 +109,9 @@ def check_full_with_scalar(shape, scalar):
     check_basic_creation(a, shape, scalar.dtype)
 
     if scalar.dtype in (xchainer.float32, xchainer.float64) and math.isnan(float(scalar)):
-        assert all([math.isnan(el) for el in a.debug_flat_data])
+        assert all([math.isnan(el) for el in a._debug_flat_data])
     else:
-        assert a.debug_flat_data == [scalar.tolist()] * a.total_size
+        assert a._debug_flat_data == [scalar.tolist()] * a.total_size
 
 
 def check_full_with_py_scalar(shape, value):
@@ -128,9 +128,9 @@ def check_full_with_py_scalar(shape, value):
     check_basic_creation(a, shape, dtype)
 
     if isinstance(value, float) and math.isnan(value):
-        assert all([math.isnan(el) for el in a.debug_flat_data])
+        assert all([math.isnan(el) for el in a._debug_flat_data])
     else:
-        assert a.debug_flat_data == [value] * a.total_size
+        assert a._debug_flat_data == [value] * a.total_size
 
 
 def check_full_like(shape, value, dtype):
@@ -139,9 +139,9 @@ def check_full_like(shape, value, dtype):
     check_basic_creation(a, shape, dtype)
 
     if math.isnan(value):
-        assert all([math.isnan(el) for el in a.debug_flat_data])
+        assert all([math.isnan(el) for el in a._debug_flat_data])
     else:
-        assert a.debug_flat_data == [value] * a.total_size
+        assert a._debug_flat_data == [value] * a.total_size
 
     # TODO(niboshi): Check memory is not shared
 

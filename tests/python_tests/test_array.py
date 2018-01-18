@@ -279,7 +279,7 @@ def test_array_grad():
     grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
     array.grad = grad
     assert array.grad is not None
-    assert array.grad.debug_flat_data == grad.debug_flat_data
+    assert array.grad._debug_flat_data == grad._debug_flat_data
 
     array.grad = None
     assert array.grad is None
@@ -295,4 +295,4 @@ def test_array_grad_identity():
 
     # Arrays' data are identical.
     grad += grad
-    assert array.grad.debug_flat_data == grad.debug_flat_data
+    assert array.grad._debug_flat_data == grad._debug_flat_data
