@@ -2,6 +2,21 @@ from chainer.functions.array import reshape
 from chainer.functions.array import split_axis
 
 
+class Separate(function_node.FunctionNode):
+
+    def __init__(self, axis):
+        self.axis = axis
+
+    def forward(self, inputs):
+        x, = inputs
+        xp = cuda.get_array_module(x)
+        ys = self._xp.split(x, x.shape[axis], self.axis)
+        return tuple([xp.squeeze(y, self.axis) for y in ys])
+
+    def backward(self, indexes, grad_outputs):
+        return stack.stack(grad_outputs, self.axis)
+
+
 def separate(x, axis=0):
     """Separates an array along a given axis.
 
@@ -49,7 +64,4 @@ def separate(x, axis=0):
         array([0., 3.], dtype=float32)
 
     """
-    shape = list(x.shape)
-    del shape[axis]
-    ys = split_axis.split_axis(x, x.shape[axis], axis, force_tuple=True)
-    return tuple(reshape.reshape(y, shape) for y in ys)
+    return Separate(axis).apply(x)
