@@ -298,7 +298,7 @@ def test_array_grad_no_deepcopy():
     grad2 = array.grad
 
     grad1 *= xchainer.Array(shape, dtype, [2, 2, 2])
-    assert grad2.debug_flat_data == [10, 14, 16], 'grad getter must not incur a copy'
+    assert grad2._debug_flat_data == [10, 14, 16], 'grad getter must not incur a copy'
 
 
 def test_array_cleargrad():
@@ -316,7 +316,7 @@ def test_array_cleargrad():
     array.grad = None
     assert array.grad is None, 'grad must be cleared'
 
-    assert saved_grad.debug_flat_data == [5, 7, 8], 'Clearing grad must not affect previously retrieved grad'
+    assert saved_grad._debug_flat_data == [5, 7, 8], 'Clearing grad must not affect previously retrieved grad'
 
 
 def test_array_grad_identity():
