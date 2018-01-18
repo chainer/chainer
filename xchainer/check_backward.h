@@ -7,9 +7,8 @@
 
 namespace xchainer {
 
-using Arrays = std::vector<Array>;
-
-void CheckBackwardComputation(std::function<Arrays(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs,
-                              const Arrays& eps, double atol = 1e-5, double rtol = 1e-4);
+void CheckBackwardComputation(std::function<std::vector<Array>(const std::vector<Array>&)> func, const std::vector<Array>& inputs,
+                              const std::vector<Array>& grad_outputs, const std::vector<Array>& eps, double atol = 1e-5,
+                              double rtol = 1e-4);
 
 }  // namespace xchainer
