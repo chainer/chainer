@@ -150,7 +150,7 @@ class ConnectionistTemporalClassification(function.Function):
                                 at = value;
                                 bt = xvalue;
                             }
-                            value = at + log(1 + exp(bt - at));
+                            value = at + log1p(exp(bt - at));
                         }
                     }
                     z = value;
