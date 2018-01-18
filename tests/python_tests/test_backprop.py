@@ -47,7 +47,7 @@ def test_backward_identity():
 
     def fprop(xs_, extra_xs_):
         x, = xs_
-        y = x
+        y = x.copy()
         return y,
 
     check_backprop(xs, expected_gxs, fprop, ())
