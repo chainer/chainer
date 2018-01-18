@@ -68,7 +68,7 @@ void CheckBackwardComputation(std::function<Arrays(const Arrays&)> func, const A
 
     // Do nothing if all backward-numerical gradient pairs were close, else generate a nonfatal failure
     std::string failure_message = failure_os.str();
-    if (failure_message.size() > 0) {
+    if (!failure_message.empty()) {
         ADD_FAILURE() << failure_message;
     }
 }
