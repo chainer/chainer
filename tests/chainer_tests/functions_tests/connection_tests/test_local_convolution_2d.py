@@ -44,8 +44,8 @@ class TestLocalConvolution2DFunction(unittest.TestCase):
     def check_forward(self, x_data, W_data, b_data):
         # If all the filters are the same,
         # the operation is equivalent to convolution_2d
-        for i in moves.range(W_data.shape[0]):
-            for j in moves.range(W_data.shape[1]):
+        for i in moves.range(W_data.shape[1]):
+            for j in moves.range(W_data.shape[2]):
                 W_data[:, i, j, ...] = W_data[:, 0, 0, ...]
         args1 = (x_data, W_data)
         args2 = (x_data, W_data[:, 0, 0, ...])

@@ -58,7 +58,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
                                   j * stride_col + W.shape[5])
                 x_flatten = xp.reshape(x[..., slice_row, slice_col],
                                        (-1, feature_dim))
-                W_flatten = xp.reshape(W[i, j, ...],
+                W_flatten = xp.reshape(W[:, i, j, ...],
                                        (-1, feature_dim))
                 output[..., i, j] = xp.dot(x_flatten, W_flatten.T)
 
