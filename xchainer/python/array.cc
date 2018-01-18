@@ -71,7 +71,7 @@ Array MakeArray(const Shape& shape, Dtype dtype, py::list list) {
     return Array::FromBuffer(shape, dtype, ptr);
 }
 
-std::unique_ptr<Array> MakeArray(py::array array) {
+Array MakeArray(py::array array) {
     if ((array.flags() & py::array::c_style) == 0) {
         throw DimensionError("cannot convert non-contiguous NumPy array to Array");
     }
@@ -83,7 +83,7 @@ std::unique_ptr<Array> MakeArray(py::array array) {
     // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
     std::shared_ptr<void> data(std::make_shared<py::array>(std::move(array)), array.mutable_data());
 
-    return std::make_unique<Array>(Array::FromBuffer(shape, dtype, data));
+    return Array::FromBuffer(shape, dtype, data);
 }
 
 py::buffer_info MakeNumpyArrayFromArray(Array& self) {
