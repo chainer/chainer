@@ -35,9 +35,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
             type_check.expect(
                 b_type.dtype == x_type.dtype,
                 b_type.ndim == 3,
-                b_type.shape == (w_type.shape[2],
-                                 w_type.shape[0],
-                                 w_type.shape[1])
+                b_type.shape == w_type.shape[:3]
             )
 
     def forward(self, inputs):
@@ -47,10 +45,10 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
         stride_row, stride_col = self.sy, self.sx
-        output_row, output_col = W.shape[0], W.shape[1]
+        output_row, output_col = W.shape[1], W.shape[2]
         feature_dim = W.shape[3] * W.shape[4] * W.shape[5]
         xp = cuda.get_array_module(*inputs)
-        output = xp.empty((x.shape[0], W.shape[2], output_row, output_col,),
+        output = xp.empty((x.shape[0], W.shape[0], output_row, output_col,),
                           dtype=x.dtype)
         for i in moves.range(output_row):
             for j in moves.range(output_col):
@@ -78,7 +76,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
         gy = gyvar.data
         xp = cuda.get_array_module(x, W)
         stride_row, stride_col = self.sy, self.sx
-        output_row, output_col = W.shape[0], W.shape[1]
+        output_row, output_col = W.shape[1], W.shape[2]
         ret = []
         if 0 in indices:
             gx = xp.zeros_like(x)
@@ -89,7 +87,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
                     slice_col = slice(j * stride_col,
                                       j * stride_col + W.shape[5])
                     # ochans * ichans * krows * kcols
-                    W_slice = W[i, j, ...]
+                    W_slice = W[:, i, j, ...]
                     # nsamps * ochans
                     gy_slice = gy[..., i, j]
                     # -> nsamps * ichans * krows * kcols
@@ -110,7 +108,7 @@ class LocalConvolution2DFunction(function_node.FunctionNode):
                     x_slice = x[:, :, slice_row, slice_col]
                     # nsamps * outchans * 1 * 1
                     gy_slice = gy[:, :, i, j]
-                    gW[i, j, :, :, :, :] = xp.tensordot(
+                    gW[:, i, j, :, :, :] = xp.tensordot(
                         gy_slice, x_slice, axes=[(0,), (0,)]
                     )
             ret.append(chainer.functions.cast(variable.as_variable(gW),
@@ -147,7 +145,7 @@ def local_convolution_2d(x, W, b=None, stride=1):
         x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
             Input variable of shape :math:`(n, c_I, h, w)`.
         W (~chainer.Variable): Weight variable of shape
-            :math:`(h_O, w_O, c_O, c_I, k_H, k_W)`.
+            :math:`(c_O, h_O, w_O, c_I, k_H, k_W)`.
         b (~chainer.Variable):
             Bias variable of shape :math:`(h_O,w_O,c_O)` (optional).
         stride (int or pair of ints): Stride of filter applications.

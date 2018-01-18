@@ -81,7 +81,7 @@ class LocalConvolution2D(link.Link):
         ih, iw = _pair(in_size)
         oh = _conv_output_length(ih, kh, self.stride[0])
         ow = _conv_output_length(iw, kw, self.stride[1])
-        W_shape = (oh, ow, self.out_channels, in_channels, kh, kw)
+        W_shape = (self.out_channels, oh, ow, in_channels, kh, kw)
         bias_shape = (self.out_channels, oh, ow,)
         self.W.initialize(W_shape)
         if not self.nobias:

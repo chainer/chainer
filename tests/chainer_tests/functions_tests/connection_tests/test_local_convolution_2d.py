@@ -26,7 +26,7 @@ class TestLocalConvolution2DFunction(unittest.TestCase):
         self.stride = 1
         self.W = numpy.random.normal(
             0, numpy.sqrt(1. / (kh * kw * in_channels)),
-            (oh, ow, out_channels, in_channels, kh, kw)).astype(self.W_dtype)
+            (out_channels, oh, ow, in_channels, kh, kw)).astype(self.W_dtype)
         self.b = numpy.random.uniform(
             -1, 1, (out_channels, oh, ow,)).astype(self.x_dtype)
 
@@ -46,9 +46,9 @@ class TestLocalConvolution2DFunction(unittest.TestCase):
         # the operation is equivalent to convolution_2d
         for i in moves.range(W_data.shape[0]):
             for j in moves.range(W_data.shape[1]):
-                W_data[i, j, ...] = W_data[0, 0, ...]
+                W_data[:, i, j, ...] = W_data[:, 0, 0, ...]
         args1 = (x_data, W_data)
-        args2 = (x_data, W_data[0, 0, ...])
+        args2 = (x_data, W_data[:, 0, 0, ...])
         if b_data is not None:
             for i in moves.range(b_data.shape[1]):
                 for j in moves.range(b_data.shape[2]):
