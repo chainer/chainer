@@ -209,7 +209,7 @@ class ConnectionistTemporalClassification(function.Function):
             backward_prob = _log_dot(backward_prob[:, None, :], brr, xp)
             prob[-i - 1] += xp.take(
                 backward_prob[:, ::-1], backward_prob_index)
-            backward_prob = xp.take(y_inv, r_index) + backward_prob
+            backward_prob += xp.take(y_inv, r_index)
 
         # move to front.
         return _move_inputs(prob, -self.input_length, xp)
