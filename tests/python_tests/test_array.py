@@ -281,7 +281,7 @@ def test_array_grad():
     # Test setter and getter
     array.grad = grad
     assert array.grad is not None
-    assert array.grad.debug_flat_data == grad.debug_flat_data
+    assert array.grad._debug_flat_data == grad._debug_flat_data
 
 
 def test_array_grad_no_deepcopy():
@@ -329,4 +329,4 @@ def test_array_grad_identity():
 
     # Arrays' data are identical.
     grad += grad
-    assert array.grad.debug_flat_data == grad.debug_flat_data
+    assert array.grad._debug_flat_data == grad._debug_flat_data
