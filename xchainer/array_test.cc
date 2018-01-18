@@ -32,14 +32,14 @@ protected:
 
 public:
     template <typename T>
-    Array MakeArray(std::initializer_list<int64_t> shape, std::shared_ptr<void> data, bool requires_grad = false) {
+    Array MakeArray(const Shape& shape, std::shared_ptr<void> data, bool requires_grad = false) {
         Array arr = Array::FromBuffer(shape, TypeToDtype<T>, data);
         arr.set_requires_grad(requires_grad);
         return arr;
     }
 
     template <typename T>
-    Array MakeArray(std::initializer_list<int64_t> shape, std::initializer_list<T> data, bool requires_grad = false) {
+    Array MakeArray(const Shape& shape, std::initializer_list<T> data, bool requires_grad = false) {
         auto a = std::make_unique<T[]>(data.size());
         std::copy(data.begin(), data.end(), a.get());
         return MakeArray<T>(shape, std::move(a), requires_grad);
@@ -329,16 +329,40 @@ TEST_P(ArrayTest, SetRequiresGrad) {
 }
 
 TEST_P(ArrayTest, Grad) {
-    Array x = MakeArray<bool>({1}, {true});
-    EXPECT_FALSE(x.grad());
+    Shape shape{2, 3};
+    using T = float;
 
-    Array g = MakeArray<bool>({1}, {true});
-    x.set_grad(g);
-    EXPECT_TRUE(x.grad());
-    ExpectEqual<bool>(g, *x.grad());
+    Array x = MakeArray<T>(shape, {5, 3, 2, 1, 4, 6});
+    Array g = MakeArray<T>(shape, {8, 4, 6, 3, 2, 1});
 
-    x.ClearGrad();
-    EXPECT_FALSE(x.grad());
+    EXPECT_FALSE(x.grad()) << "grad must be initially unset";
+
+    // Set and get grad
+    {
+        x.set_grad(g);
+
+        EXPECT_TRUE(x.grad());
+        ExpectEqual<T>(g, *x.grad());
+    }
+
+    // Get grad multiple times
+    {
+        const nonstd::optional<Array>& grad1 = x.grad();
+        const nonstd::optional<Array>& grad2 = x.grad();
+        EXPECT_EQ(&*grad1, &*grad2) << "Multiple retrieval of grad must return the same arrays";
+    }
+
+    // ClearGrad
+    {
+        Array grad = *x.grad();  // Make a deep copy to secure data
+
+        x.ClearGrad();
+
+        EXPECT_FALSE(x.grad()) << "grad must be cleared after calling ClearGrad()";
+
+        // ClearGrad() must not affect previously retrieved grad array
+        ExpectEqual<T>(grad, g);
+    }
 }
 
 TEST_P(ArrayTest, ArrayFromBuffer) {
