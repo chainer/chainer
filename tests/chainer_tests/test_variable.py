@@ -1323,22 +1323,7 @@ class TestTranspose(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x))
 
 
-@testing.parameterize(
-    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
-     'str': 'variable(None)'},
-    {'x_shape': (2, 2,), 'dtype': np.float16,
-     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
-     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (2, 2,), 'dtype': np.float32,
-     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
-     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (2, 2,), 'dtype': np.float64,
-     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
-     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (3,),  'dtype': np.float32,
-     'repr': 'variable([ 0.,  1.,  2.])', 'str': 'variable([ 0.  1.  2.])'},
-)
-class TestUnnamedVariableToString(unittest.TestCase):
+class UnnamedVariableToStringTestBase(object):
 
     def setUp(self):
         if self.x_shape is None:
@@ -1364,6 +1349,50 @@ class TestUnnamedVariableToString(unittest.TestCase):
     def test_str_gpu(self):
         self.x.to_gpu()
         self.assertEqual(str(self.x), self.str)
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
+     'str': 'variable(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float16,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float64,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (3,),  'dtype': np.float32,
+     'repr': 'variable([ 0.,  1.,  2.])', 'str': 'variable([ 0.  1.  2.])'},
+)
+@testing.with_requires('numpy<1.14')
+class TestUnnamedVariableToStringLegacy(
+        UnnamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.13 or earlier.
+    pass
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
+     'str': 'variable(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float16,
+     'repr': 'variable([[0., 1.],\n          [2., 3.]])',
+     'str': 'variable([[0. 1.]\n          [2. 3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable([[0., 1.],\n          [2., 3.]])',
+     'str': 'variable([[0. 1.]\n          [2. 3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float64,
+     'repr': 'variable([[0., 1.],\n          [2., 3.]])',
+     'str': 'variable([[0. 1.]\n          [2. 3.]])'},
+    {'x_shape': (3,),  'dtype': np.float32,
+     'repr': 'variable([0., 1., 2.])', 'str': 'variable([0. 1. 2.])'},
+)
+@testing.with_requires('numpy>=1.14')
+class TestUnnamedVariableToStringModern(
+        UnnamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.14 or later.
+    pass
 
 
 class TestUnnamedVariableDim2Size0ToString(unittest.TestCase):
@@ -1396,16 +1425,7 @@ class TestUnnamedVariableDim2Size0ToString(unittest.TestCase):
         self.assertEqual(str(self.x), self.str)
 
 
-@testing.parameterize(
-    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
-     'str': 'variable x(None)'},
-    {'x_shape': (2, 2,), 'dtype': np.float32,
-     'repr': 'variable x([[ 0.,  1.],\n            [ 2.,  3.]])',
-     'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
-    {'x_shape': (), 'dtype': np.float32,
-     'repr': 'variable x(0.0)', 'str': 'variable x(0.0)'},
-)
-class TestNamedVariableToString(unittest.TestCase):
+class NamedVariableToStringTestBase(object):
 
     def setUp(self):
         if self.x_shape is None:
@@ -1431,6 +1451,38 @@ class TestNamedVariableToString(unittest.TestCase):
     def test_str_gpu(self):
         self.x.to_gpu()
         self.assertEqual(str(self.x), self.str)
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
+     'str': 'variable x(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable x([[ 0.,  1.],\n            [ 2.,  3.]])',
+     'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
+    {'x_shape': (), 'dtype': np.float32,
+     'repr': 'variable x(0.0)', 'str': 'variable x(0.0)'},
+)
+@testing.with_requires('numpy<1.14')
+class TestNamedVariableToStringLegacy(
+        NamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.13 or earlier.
+    pass
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
+     'str': 'variable x(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable x([[0., 1.],\n            [2., 3.]])',
+     'str': 'variable x([[0. 1.]\n            [2. 3.]])'},
+    {'x_shape': (), 'dtype': np.float32,
+     'repr': 'variable x(0.)', 'str': 'variable x(0.)'},
+)
+@testing.with_requires('numpy>=1.14')
+class TestNamedVariableToStringModern(
+        NamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.14 or later.
+    pass
 
 
 class TestNamedVariableDim2Size0ToString(unittest.TestCase):
@@ -1518,6 +1570,40 @@ class TestAsVariable(unittest.TestCase):
         y = chainer.as_variable(x)
         self.assertIs(x, y)
         self.assertTrue(y.requires_grad)
+
+
+@testing.parameterize(*testing.product({
+    'in_shape': [(4, 3, 2)],
+    'dtype': [np.float16, np.float32, np.float64],
+    'loss_scale': [None, 1, 10],
+}))
+class TestLossScale(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+        self.y = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+
+    def check_loss_scale(self, x_data, y_data):
+        x = chainer.Variable(x_data)
+        y = chainer.Variable(y_data)
+        z = x * y
+        loss = F.sum(z)
+        loss.backward(loss_scale=self.loss_scale)
+        if self.loss_scale is not None:
+            x.grad /= self.loss_scale
+            y.grad /= self.loss_scale
+        rtol, atol = 1e-4, 1e-5
+        if self.dtype is np.float16:
+            rtol, atol = 1e-1, 1e-2
+        testing.assert_allclose(x.data, y.grad, rtol=rtol, atol=atol)
+        testing.assert_allclose(y.data, x.grad, rtol=rtol, atol=atol)
+
+    def test_loss_scale_cpu(self):
+        self.check_loss_scale(self.x, self.y)
+
+    @attr.gpu
+    def test_loss_scale_gpu(self):
+        self.check_loss_scale(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
 
 
 testing.run_module(__name__, __file__)

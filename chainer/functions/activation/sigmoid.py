@@ -113,7 +113,7 @@ def sigmoid(x):
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
         >>> F.sigmoid(x)
-        variable([ 0.11920291,  0.5       ,  0.88079709])
+        variable([0.11920291, 0.5       , 0.8807971 ])
 
     """
     y, = Sigmoid().apply((x,))

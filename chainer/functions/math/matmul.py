@@ -187,8 +187,8 @@ def matmul(a, b, transa=False, transb=False):
         >>> a = np.array([[1, 0], [0, 1]], 'f')
         >>> b = np.array([[4, 1], [2, 2]], 'f')
         >>> F.matmul(a, b).data
-        array([[ 4.,  1.],
-               [ 2.,  2.]], dtype=float32)
+        array([[4., 1.],
+               [2., 2.]], dtype=float32)
 
     """
     return MatMul(transa=transa, transb=transb).apply((a, b))[0]
