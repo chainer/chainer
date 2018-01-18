@@ -79,8 +79,8 @@ public:
     }
 
     template <typename Fprop>
-    void CheckBackprop(std::vector<Array>& target_inputs, std::vector<Array>& other_inputs, std::vector<Array>& expected_grads,
-                       Fprop&& fprop) const {
+    void CheckBackpropExtraInputs(std::vector<Array>& target_inputs, std::vector<Array>& other_inputs, std::vector<Array>& expected_grads,
+                                  Fprop&& fprop) const {
         CheckBackpropImpl(target_inputs, expected_grads, fprop, other_inputs);
         for (size_t i = 0; i < other_inputs.size(); ++i) {
             EXPECT_FALSE(other_inputs[i].grad());
@@ -89,19 +89,19 @@ public:
 
     // Simple versions. It makes and uses an array with one element for each input.
     template <typename Fprop>
-    void CheckBackprop(std::vector<float> target_inputs, std::vector<float> expected_grads, Fprop&& fprop) const {
+    void CheckBackpropSingleElement(std::vector<float> target_inputs, std::vector<float> expected_grads, Fprop&& fprop) const {
         auto xs = MakeFullArrays({1}, target_inputs, true);
         auto expected_gxs = MakeFullArrays({1}, expected_grads, false);
         CheckBackprop(xs, expected_gxs, std::forward<Fprop>(fprop));
     }
 
     template <typename Fprop>
-    void CheckBackprop(std::vector<float> target_inputs, std::vector<float> other_inputs, std::vector<float> expected_grads,
-                       Fprop&& fprop) const {
+    void CheckBackpropSingleElementExtraInputs(std::vector<float> target_inputs, std::vector<float> other_inputs,
+                                               std::vector<float> expected_grads, Fprop&& fprop) const {
         auto xs = MakeFullArrays({1}, target_inputs, true);
         auto other_xs = MakeFullArrays({1}, other_inputs, false);
         auto expected_gxs = MakeFullArrays({1}, expected_grads, false);
-        CheckBackprop(xs, other_xs, expected_gxs, std::forward<Fprop>(fprop));
+        CheckBackpropExtraInputs(xs, other_xs, expected_gxs, std::forward<Fprop>(fprop));
     }
 
 private:
@@ -109,7 +109,7 @@ private:
 };
 
 TEST_P(BackpropTest, Backward) {
-    CheckBackprop({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
+    CheckBackpropSingleElementExtraInputs({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
 }
 
 TEST_P(BackpropTest, BackwardSoleArrayNode) {
@@ -127,15 +127,15 @@ TEST_P(BackpropTest, DoubleBackprop) {
         xs[0].ClearGrad();
         return gx;
     };
-    CheckBackprop({2.0f}, {3.0f}, {2.0f}, fprop);
+    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop);
 }
 
 TEST_P(BackpropTest, BackwardInputToMultipleOps) {
-    CheckBackprop({2.0f}, {3.0f}, {7.0f}, [](auto& xs, auto& ys) { return xs[0] * (xs[0] + ys[0]); });
+    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {7.0f}, [](auto& xs, auto& ys) { return xs[0] * (xs[0] + ys[0]); });
 }
 
 TEST_P(BackpropTest, BackwardIdenticalInputs) {
-    CheckBackprop({2.0f}, {2.0f}, [](auto& xs) { return xs[0] + xs[0]; });
+    CheckBackpropSingleElement({2.0f}, {2.0f}, [](auto& xs) { return xs[0] + xs[0]; });
 }
 
 TEST_P(BackpropTest, BackwardGivenInputGrad) {
@@ -143,7 +143,7 @@ TEST_P(BackpropTest, BackwardGivenInputGrad) {
         xs[0].set_grad(Array::OnesLike(xs[0]));
         return xs[0];
     };
-    CheckBackprop({1.0f}, {2.0f}, fprop);
+    CheckBackpropSingleElement({1.0f}, {2.0f}, fprop);
 }
 
 TEST_P(BackpropTest, BackwardGivenOutputGrad) {
@@ -152,7 +152,7 @@ TEST_P(BackpropTest, BackwardGivenOutputGrad) {
         z.set_grad(Array::FullLike(z, 2.0f));
         return z;
     };
-    CheckBackprop({2.0f}, {3.0f}, {6.0f}, fprop);
+    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {6.0f}, fprop);
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
