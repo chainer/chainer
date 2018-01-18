@@ -2,7 +2,7 @@ Wrapper Functions
 =================
 
 Wrapper functions are backward-able functions (probably differentiable), that take an array or a Chainer :class:`Variable` as an argument and return a Chainer :class:`Variable`, or a tuple of a Chainer :class:`Variable`.
-Wrapper functions should not have learnable parameters when used in models and should not be members of the :class:`Chain`. This is to prevent the functions from changing output due to adjustment of learned parameters during training.
+Wrapper functions should not have learnable parameters when used in models and are usually not members of the :class:`Chain`. Even if they do have learnable parameters, these are ignored by Chainer training, to prevent the functions from changing output due to adjustment of learned parameters during training.
 
 Args:
     inputs: Tuple of input :class:`Variable`, :class:`numpy.ndarray` or
