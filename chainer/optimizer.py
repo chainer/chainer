@@ -198,6 +198,8 @@ class UpdateRule(object):
 
             if fp32_param.data is not None:
                 self._prepare(fp32_param)
+            if param._loss_scale is not None:
+                fp32_param.grad /= param._loss_scale
             for hook in six.itervalues(self._hooks):
                 hook(self, fp32_param)
             self.update_core(fp32_param)
@@ -207,6 +209,8 @@ class UpdateRule(object):
         else:
             if param.data is not None:
                 self._prepare(param)
+            if param._loss_scale is not None:
+                param.grad /= param._loss_scale
             for hook in six.itervalues(self._hooks):
                 hook(self, param)
             self.update_core(param)
@@ -366,6 +370,7 @@ class Optimizer(object):
     """
 
     _hooks = None
+    _loss_scale = None
 
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
@@ -499,6 +504,10 @@ class Optimizer(object):
             if rule is not None:
                 rule.serialize(serializer[name])
 
+    def set_loss_scale(self, loss_scale):
+        """Sets loss scaling factor."""
+        self._loss_scale = loss_scale
+
 
 class GradientMethod(Optimizer):
     """Base class of all single gradient-based optimizers.
@@ -582,7 +591,7 @@ class GradientMethod(Optimizer):
                 self.target.cleargrads()
             else:
                 self.target.zerograds()
-            loss.backward()
+            loss.backward(loss_scale=self._loss_scale)
             del loss
 
         self.reallocate_cleared_grads()
