@@ -18,7 +18,9 @@
 namespace xchainer {
 namespace {
 
-Arrays BackwardGradients(std::function<Arrays(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs) {
+using OptionalArrays = std::vector<nonstd::optional<Array>>;
+
+OptionalArrays BackwardGradients(std::function<Arrays(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs) {
     Arrays outputs = func(inputs);
 
     const int nout = outputs.size();
@@ -32,8 +34,8 @@ Arrays BackwardGradients(std::function<Arrays(const Arrays&)> func, const Arrays
     }
     Backward(outputs[0]);
 
-    Arrays backward_grads;
-    std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads), [](const Array& input) { return *input.grad(); });
+    OptionalArrays backward_grads;
+    std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads), [](const Array& input) { return input.grad(); });
 
     return backward_grads;
 }
@@ -43,22 +45,24 @@ Arrays BackwardGradients(std::function<Arrays(const Arrays&)> func, const Arrays
 void CheckBackwardComputation(std::function<Arrays(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs,
                               const Arrays& eps, float atol, float rtol) {
     const Arrays numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps);
-    const Arrays backward_grads = BackwardGradients(func, inputs, grad_outputs);
+    const OptionalArrays backward_grads = BackwardGradients(func, inputs, grad_outputs);
     assert(backward_grads.size() == numerical_grads.size());
 
     std::ostringstream failure_os;
     const int nin = backward_grads.size();
     for (int i = 0; i < nin; ++i) {
-        if (!AllClose(backward_grads[i], numerical_grads[i], atol, rtol)) {
-            failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
-                       << "Atol: " << atol << "\n"
-                       << "Rtol: " << rtol << "\n"
-                       << "Eps (perturbation):\n"
-                       << eps[i] << "\n"
-                       << "Backward gradients:\n"
-                       << backward_grads[i] << "\n"
-                       << "Numerical gradients:\n"
-                       << numerical_grads[i];
+        if (backward_grads[i]) {  // All inputs do not necessarily require gradients
+            if (!AllClose(*backward_grads[i], numerical_grads[i], atol, rtol)) {
+                failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
+                           << "Atol: " << atol << "\n"
+                           << "Rtol: " << rtol << "\n"
+                           << "Eps (perturbation):\n"
+                           << eps[i] << "\n"
+                           << "Backward gradients:\n"
+                           << *backward_grads[i] << "\n"
+                           << "Numerical gradients:\n"
+                           << numerical_grads[i];
+            }
         }
     }
 
