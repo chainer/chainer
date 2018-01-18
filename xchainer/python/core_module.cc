@@ -3,12 +3,12 @@
 #include "xchainer/array.h"
 
 #include "xchainer/python/array.h"
+#include "xchainer/python/common.h"
 #include "xchainer/python/device.h"
 #include "xchainer/python/dtype.h"
 #include "xchainer/python/error.h"
 #include "xchainer/python/scalar.h"
 #include "xchainer/python/shape.h"
-#include "xchainer/python/type_caster.h"  // need to include in every compilation unit of the Python extension module
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/python/cuda/hello.h"
 #endif  // XCHAINER_ENABLE_CUDA

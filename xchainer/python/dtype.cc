@@ -2,7 +2,7 @@
 
 #include "xchainer/dtype.h"
 
-#include "xchainer/python/type_caster.h"  // need to include in every compilation unit of the Python extension module
+#include "xchainer/python/common.h"
 
 namespace xchainer {
 
