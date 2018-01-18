@@ -43,7 +43,7 @@ OptionalArrays BackwardGradients(std::function<Arrays(const Arrays&)> func, cons
 }  // namespace
 
 void CheckBackwardComputation(std::function<Arrays(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs,
-                              const Arrays& eps, float atol, float rtol) {
+                              const Arrays& eps, double atol, double rtol) {
     const Arrays numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps);
     const OptionalArrays backward_grads = BackwardGradients(func, inputs, grad_outputs);
     assert(backward_grads.size() == numerical_grads.size());
