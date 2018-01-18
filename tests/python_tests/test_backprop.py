@@ -1,10 +1,6 @@
 import xchainer
 
 
-def full(shape, value, dtype):
-    return xchainer.full(shape, value, dtype)
-
-
 def assert_arrays_equal(array1, array2):
     assert array1.dtype == array2.dtype
     assert array1.shape == array2.shape
@@ -37,10 +33,8 @@ def test_backward_identity():
     shape = (1,)
     dtype = xchainer.float32
 
-    xs = (
-        full(shape, 5, dtype),)
-    expected_gxs = (
-        full(shape, 1, dtype),)
+    xs = (xchainer.full(shape, 5, dtype),)
+    expected_gxs = (xchainer.full(shape, 1, dtype),)
 
     for x in xs:
         x.requires_grad = True
@@ -58,11 +52,11 @@ def test_backward_add():
     dtype = xchainer.float32
 
     xs = (
-        full(shape, 3, dtype),
-        full(shape, 5, dtype),)
+        xchainer.full(shape, 3, dtype),
+        xchainer.full(shape, 5, dtype),)
     expected_gxs = (
-        full(shape, 1, dtype),
-        full(shape, 1, dtype),)
+        xchainer.full(shape, 1, dtype),
+        xchainer.full(shape, 1, dtype),)
 
     for x in xs:
         x.requires_grad = True
@@ -80,11 +74,11 @@ def test_backward_mul():
     dtype = xchainer.float32
 
     xs = (
-        full(shape, 3, dtype),
-        full(shape, 5, dtype),)
+        xchainer.full(shape, 3, dtype),
+        xchainer.full(shape, 5, dtype),)
     expected_gxs = (
-        full(shape, 5, dtype),
-        full(shape, 3, dtype),)
+        xchainer.full(shape, 5, dtype),
+        xchainer.full(shape, 3, dtype),)
 
     for x in xs:
         x.requires_grad = True
@@ -102,13 +96,13 @@ def test_backward_add_mull():
     dtype = xchainer.float32
 
     xs = (
-        full(shape, 2, dtype),
-        full(shape, 9, dtype),
-        full(shape, 5, dtype),)
+        xchainer.full(shape, 2, dtype),
+        xchainer.full(shape, 9, dtype),
+        xchainer.full(shape, 5, dtype),)
     expected_gxs = (
-        full(shape, 14, dtype),
-        full(shape, 2, dtype),
-        full(shape, 2, dtype))
+        xchainer.full(shape, 14, dtype),
+        xchainer.full(shape, 2, dtype),
+        xchainer.full(shape, 2, dtype))
 
     for x in xs:
         x.requires_grad = True
@@ -126,13 +120,12 @@ def test_backward_add_mul_extra_inputs():
     dtype = xchainer.float32
 
     xs = (
-        full(shape, 2, dtype),
-        full(shape, 3, dtype))
-    extra_xs = (
-        full(shape, 4, dtype),)
+        xchainer.full(shape, 2, dtype),
+        xchainer.full(shape, 3, dtype))
+    extra_xs = (xchainer.full(shape, 4, dtype),)
     expected_gxs = (
-        full(shape, 3, dtype),
-        full(shape, 6, dtype))
+        xchainer.full(shape, 3, dtype),
+        xchainer.full(shape, 6, dtype))
 
     for x in xs:
         x.requires_grad = True
@@ -150,8 +143,8 @@ def test_backward_sole_array_node():
     shape = (1,)
     dtype = xchainer.float32
 
-    x = full(shape, 2, dtype)
-    expected_gx = full(shape, 1, dtype)
+    x = xchainer.full(shape, 2, dtype)
+    expected_gx = xchainer.full(shape, 1, dtype)
 
     x.requires_grad = True
 
@@ -164,12 +157,9 @@ def test_double_backprop():
     shape = (1,)
     dtype = xchainer.float32
 
-    xs = (
-        full(shape, 2, dtype),)
-    extra_xs = (
-        full(shape, 3, dtype),)
-    expected_gxs = (
-        full(shape, 2, dtype),)
+    xs = (xchainer.full(shape, 2, dtype),)
+    extra_xs = (xchainer.full(shape, 3, dtype),)
+    expected_gxs = (xchainer.full(shape, 2, dtype),)
 
     for x in xs:
         x.requires_grad = True
@@ -190,12 +180,9 @@ def test_backward_input_to_multiple_ops():
     shape = (1,)
     dtype = xchainer.float32
 
-    xs = (
-        full(shape, 2, dtype),)
-    extra_xs = (
-        full(shape, 3, dtype),)
-    expected_gxs = (
-        full(shape, 7, dtype),)
+    xs = (xchainer.full(shape, 2, dtype),)
+    extra_xs = (xchainer.full(shape, 3, dtype),)
+    expected_gxs = (xchainer.full(shape, 7, dtype),)
 
     for x in xs:
         x.requires_grad = True
@@ -213,10 +200,8 @@ def test_backward_identical_inputs():
     shape = (1,)
     dtype = xchainer.float32
 
-    xs = (
-        full(shape, 2, dtype),)
-    expected_gxs = (
-        full(shape, 2, dtype),)
+    xs = (xchainer.full(shape, 2, dtype),)
+    expected_gxs = (xchainer.full(shape, 2, dtype),)
 
     for x in xs:
         x.requires_grad = True
@@ -233,17 +218,15 @@ def test_backward_given_input_grad():
     shape = (1,)
     dtype = xchainer.float32
 
-    xs = (
-        full(shape, 1, dtype),)
-    expected_gxs = (
-        full(shape, 2, dtype),)
+    xs = (xchainer.full(shape, 1, dtype),)
+    expected_gxs = (xchainer.full(shape, 2, dtype),)
 
     for x in xs:
         x.requires_grad = True
 
     def fprop(xs_, extra_xs_):
         x, = xs_
-        x.grad = full(shape, 1, dtype)
+        x.grad = xchainer.full(shape, 1, dtype)
         y = x.copy()
         return y,
 
@@ -254,12 +237,9 @@ def test_backward_given_output_grad():
     shape = (1,)
     dtype = xchainer.float32
 
-    xs = (
-        full(shape, 2, dtype),)
-    extra_xs = (
-        full(shape, 3, dtype),)
-    expected_gxs = (
-        full(shape, 6, dtype),)
+    xs = (xchainer.full(shape, 2, dtype),)
+    extra_xs = (xchainer.full(shape, 3, dtype),)
+    expected_gxs = (xchainer.full(shape, 6, dtype),)
 
     for x in xs:
         x.requires_grad = True
@@ -268,7 +248,7 @@ def test_backward_given_output_grad():
         x, = xs_
         t, = extra_xs_
         y = x * t
-        y.grad = full(shape, 2, dtype)
+        y.grad = xchainer.full(shape, 2, dtype)
         return y,
 
     check_backprop(xs, expected_gxs, fprop, extra_xs)
