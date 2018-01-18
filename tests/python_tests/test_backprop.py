@@ -244,7 +244,7 @@ def test_backward_given_input_grad():
     def fprop(xs_, extra_xs_):
         x, = xs_
         x.grad = full(shape, 1, dtype)
-        y = x
+        y = x.copy()
         return y,
 
     check_backprop(xs, expected_gxs, fprop, ())
