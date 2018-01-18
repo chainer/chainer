@@ -248,15 +248,49 @@ def test_array_property_requires_grad():
 
 def test_array_grad():
     array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
-    assert array.grad is None
+    assert array.grad is None, 'grad must be initially unset'
 
     grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
+
+    # Test setter and getter
     array.grad = grad
     assert array.grad is not None
     assert array.grad.debug_flat_data == grad.debug_flat_data
 
+
+def test_array_grad_no_deepcopy():
+    shape = (3, 1)
+    dtype = xchainer.int8
+    array = xchainer.Array(shape, dtype, [2, 5, 1])
+    grad = xchainer.Array(shape, dtype, [5, 7, 8])
+
+    # Set grad
+    array.grad = grad
+
+    # Retrieve grad twice and assert they share the same underlying data
+    grad1 = array.grad
+    grad2 = array.grad
+
+    grad1 *= xchainer.Array(shape, dtype, [2, 2, 2])
+    assert grad2.debug_flat_data == [10, 14, 16], 'grad getter must not incur a copy'
+
+
+def test_array_cleargrad():
+    shape = (3, 1)
+    dtype = xchainer.int8
+    array = xchainer.Array(shape, dtype, [2, 5, 1])
+    grad = xchainer.Array(shape, dtype, [5, 7, 8])
+
+    # Set grad, get it and save it
+    array.grad = grad
+    del grad
+    saved_grad = array.grad
+
+    # Clear grad
     array.grad = None
-    assert array.grad is None
+    assert array.grad is None, 'grad must be cleared'
+
+    assert saved_grad.debug_flat_data == [5, 7, 8], 'Clearing grad must not affect previously retrieved grad'
 
 
 def test_array_grad_identity():
