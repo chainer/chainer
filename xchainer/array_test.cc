@@ -354,14 +354,14 @@ TEST_P(ArrayTest, Grad) {
 
     // ClearGrad
     {
-        Array grad = *x.grad();  // Make a deep copy to secure data
+        Array grad_view = x.grad()->MakeView();  // Make a view of grad
 
         x.ClearGrad();
 
         EXPECT_FALSE(x.grad()) << "grad must be cleared after calling ClearGrad()";
 
-        // ClearGrad() must not affect previously retrieved grad array
-        ExpectEqual<T>(grad, g);
+        // ClearGrad() must not affect previously retrieved view to grad
+        ExpectEqual<T>(grad_view, g);
     }
 }
 
