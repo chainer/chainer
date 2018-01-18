@@ -127,4 +127,5 @@ class TestMultiZippedImageDataset(unittest.TestCase):
             self.assertEqual(img.dtype, self.dtype)
             self.assertEqual(img.shape, fmt)
 
+
 testing.run_module(__name__, __file__)

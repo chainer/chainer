@@ -7,10 +7,10 @@ try:
 except ImportError as e:
     available = False
     _import_error = e
+import bisect
+import io
 import six
 import zipfile
-import io
-import bisect
 
 from chainer.dataset import dataset_mixin
 
@@ -173,6 +173,7 @@ class MultiZippedImageDataset(dataset_mixin.DatasetMixin):
         zipfilenames (list of strings): List of zipped archive filename.
         dtype: Data type of resulting image arrays.
     """
+
     def __init__(self, zipfilenames, dtype=numpy.float32):
         self._zfs = [ZippedImageDataset(fn, dtype) for fn in zipfilenames]
         self._zpaths_accumlens = [0]
@@ -189,6 +190,7 @@ class MultiZippedImageDataset(dataset_mixin.DatasetMixin):
 
         lidx = i - self._zpaths_accumlens[tgt]
         return self._zfs[tgt].get_example(lidx)
+
 
 class ZippedImageDataset(dataset_mixin.DatasetMixin):
     """Dataset of images built from a zip file.
@@ -227,7 +229,7 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
         # we need to keep lock as small as possible
         # in addition, PIL may seek() on the file -- zipfile won't support it
 
-        if self._zf == None or self._zf_pid != os.getpid():
+        if self._zf is None or self._zf_pid != os.getpid():
             self._zf_pid = os.getpid()
             self._zf = zipfile.ZipFile(self._zipfilename)
 
