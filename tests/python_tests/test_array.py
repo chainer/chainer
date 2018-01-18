@@ -264,8 +264,7 @@ def test_array_grad_identity():
     grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
     array.grad = grad
 
-    # NOTE(takagi): This assertion is not a specification, but just a note. Arrays are not identical here as opposed to ordinal Python
-    # semantics.
+    # This assertion is not a specification, but just a note. Arrays are not identical here as opposed to ordinal Python semantics.
     assert array.grad is not grad
 
     # Arrays' data are identical.
