@@ -2,6 +2,8 @@
 
 #include "xchainer/dtype.h"
 
+#include "xchainer/python/common.h"
+
 namespace xchainer {
 
 namespace py = pybind11;  // standard convention

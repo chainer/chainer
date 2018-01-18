@@ -244,3 +244,29 @@ def test_array_property_requires_grad():
     assert array.requires_grad
     array.requires_grad = False
     assert not array.requires_grad
+
+
+def test_array_grad():
+    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+    assert array.grad is None
+
+    grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
+    array.grad = grad
+    assert array.grad is not None
+    assert array.grad.debug_flat_data == grad.debug_flat_data
+
+    array.grad = None
+    assert array.grad is None
+
+
+def test_array_grad_identity():
+    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+    grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
+    array.grad = grad
+
+    # This assertion is not a specification, but just a note. Arrays are not identical here as opposed to ordinal Python semantics.
+    assert array.grad is not grad
+
+    # Arrays' data are identical.
+    grad += grad
+    assert array.grad.debug_flat_data == grad.debug_flat_data

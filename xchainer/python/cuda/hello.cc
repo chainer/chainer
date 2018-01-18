@@ -2,6 +2,8 @@
 
 #include "xchainer/cuda/hello.h"
 
+#include "xchainer/python/common.h"
+
 namespace xchainer {
 namespace cuda {
 

@@ -9,6 +9,8 @@
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 
+#include "xchainer/python/common.h"
+
 namespace xchainer {
 
 namespace py = pybind11;
@@ -118,6 +120,14 @@ void InitXchainerArray(pybind11::module& m) {
         .def(py::self * py::self)
         .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
         .def_property("requires_grad", &Array::requires_grad, &Array::set_requires_grad)
+        .def_property("grad", &Array::grad,
+                      [](Array& self, Array* grad) {
+                          if (grad) {
+                              self.set_grad(grad->MakeView());
+                          } else {
+                              self.ClearGrad();
+                          }
+                      })
         .def_property_readonly("dtype", &Array::dtype)
         .def_property_readonly("element_bytes", &Array::element_bytes)
         .def_property_readonly("is_contiguous", &Array::is_contiguous)
