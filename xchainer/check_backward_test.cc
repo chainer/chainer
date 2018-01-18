@@ -54,9 +54,46 @@ Arrays CorrectUnaryFunc(const Arrays& inputs) {
     return {out};
 }
 
+Arrays BrokenUnaryFunc(const Arrays& inputs) {
+    const Array& lhs = inputs[0];
+
+    Array out = Array::EmptyLike(lhs);
+    out.set_requires_grad(lhs.requires_grad());
+
+    if (out.requires_grad()) {
+        std::shared_ptr<ArrayNode> lhs_node = lhs.mutable_node();
+        std::shared_ptr<ArrayNode> out_node = out.RenewNode();
+        int64_t out_rank = lhs_node->rank();
+        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node};
+        std::function<Array(const Array&)> empty_func;
+        auto lhs_func = lhs.requires_grad() ? [](const Array& gout) { return gout * gout; } : empty_func;
+        auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func};
+        std::shared_ptr<OpNode> op_node = std::make_shared<OpNode>("broken_unary", out_rank, next_nodes, backward_functions);
+        out_node->set_next_node(op_node);
+        out_node->set_rank(out_rank + 1);
+    }
+
+    VisitDtype(lhs.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        int64_t total_size = lhs.total_size();
+        auto* ldata = static_cast<const T*>(lhs.data().get());
+        auto* odata = static_cast<T*>(out.data().get());
+
+        for (int64_t i = 0; i < total_size; i++) {
+            odata[i] = ldata[i];
+        }
+    });
+
+    return {out};
+}
+
 Arrays CorrectBinaryFunc(const Arrays& inputs) {
     const Array& lhs = inputs[0];
     const Array& rhs = inputs[1];
+
+    CheckEqual(lhs.dtype() == rhs.dtype());
+    CheckEqual(lhs.shape() == rhs.shape());
 
     Array out = Array::EmptyLike(lhs);
     out.set_requires_grad(lhs.requires_grad() || rhs.requires_grad());
@@ -92,43 +129,12 @@ Arrays CorrectBinaryFunc(const Arrays& inputs) {
     return {out};
 }
 
-Arrays BrokenUnaryFunc(const Arrays& inputs) {
-    const Array& lhs = inputs[0];
-
-    Array out = Array::EmptyLike(lhs);
-    out.set_requires_grad(lhs.requires_grad());
-
-    if (out.requires_grad()) {
-        std::shared_ptr<ArrayNode> lhs_node = lhs.mutable_node();
-        std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-        int64_t out_rank = lhs_node->rank();
-        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node};
-        std::function<Array(const Array&)> empty_func;
-        auto lhs_func = lhs.requires_grad() ? [](const Array& gout) { return gout * gout; } : empty_func;
-        auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func};
-        std::shared_ptr<OpNode> op_node = std::make_shared<OpNode>("broken_unary", out_rank, next_nodes, backward_functions);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(out_rank + 1);
-    }
-
-    VisitDtype(lhs.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-
-        int64_t total_size = lhs.total_size();
-        auto* ldata = static_cast<const T*>(lhs.data().get());
-        auto* odata = static_cast<T*>(out.data().get());
-
-        for (int64_t i = 0; i < total_size; i++) {
-            odata[i] = ldata[i];
-        }
-    });
-
-    return {out};
-}
-
 Arrays BrokenBinaryFunc(const Arrays& inputs) {
     const Array& lhs = inputs[0];
     const Array& rhs = inputs[1];
+
+    CheckEqual(lhs.dtype() == rhs.dtype());
+    CheckEqual(lhs.shape() == rhs.shape());
 
     Array out = Array::EmptyLike(lhs);
     out.set_requires_grad(lhs.requires_grad() || rhs.requires_grad());
