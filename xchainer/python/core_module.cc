@@ -11,11 +11,24 @@
 #endif  // XCHAINER_ENABLE_CUDA
 
 namespace xchainer {
+
+namespace py = pybind11;
+
 namespace {
 
 void InitXchainerModule(pybind11::module& m) {
     m.doc() = "xChainer";
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
+
+    m.def("empty", &Array::Empty)
+        .def("full", py::overload_cast<const Shape&, Scalar, Dtype>(&Array::Full))
+        .def("full", py::overload_cast<const Shape&, Scalar>(&Array::Full))
+        .def("zeros", &Array::Zeros)
+        .def("ones", &Array::Ones)
+        .def("empty_like", &Array::EmptyLike)
+        .def("full_like", &Array::FullLike)
+        .def("zeros_like", &Array::ZerosLike)
+        .def("ones_like", &Array::OnesLike);
 }
 }  // namespace
 }  // namespace xchainer
