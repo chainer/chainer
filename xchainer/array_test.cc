@@ -341,7 +341,7 @@ TEST_P(ArrayTest, Grad) {
     {
         x.set_grad(g);
 
-        EXPECT_TRUE(x.grad());
+        ASSERT_TRUE(x.grad());
         ExpectEqual<T>(g, *x.grad());
     }
 
