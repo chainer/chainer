@@ -471,6 +471,35 @@ class TestAveragePooling(TestCaffeFunctionBaseMock):
             self.inputs[0], 2, stride=4, pad=6)
 
 
+class TestGlobalPooling(TestCaffeFunctionBaseMock):
+
+    func_name = 'chainer.functions.max_pooling_2d'
+    in_shapes = [(3, 2, 3, 4)]
+    out_shapes = [(3, 2, 3, 4)]
+
+    data = {
+        'layer': [
+            {
+                'name': 'l1',
+                'type': 'Pooling',
+                'bottom': ['x'],
+                'top': ['y'],
+                'pooling_param': {
+                    'pool': 0,  # MAX
+                    'global_pooling': True,
+                }
+            }
+        ]
+    }
+
+    def test_global_pooling(self):
+        self.init_func()
+        self.assertEqual(len(self.func.layers), 1)
+        self.call(['x'], ['y'])
+        self.mock.assert_called_once_with(
+            self.inputs[0], (3, 4), stride=1, pad=0)
+
+
 class TestStochasticPooling(TestCaffeFunctionBase):
 
     data = {

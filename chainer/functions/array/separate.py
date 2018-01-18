@@ -27,8 +27,8 @@ def separate(x, axis=0):
 
         >>> x = np.arange(6).reshape((2, 3)).astype('f')
         >>> x
-        array([[ 0.,  1.,  2.],
-               [ 3.,  4.,  5.]], dtype=float32)
+        array([[0., 1., 2.],
+               [3., 4., 5.]], dtype=float32)
         >>> x.shape
         (2, 3)
         >>> y = F.separate(x) # split along axis=0
@@ -39,14 +39,14 @@ def separate(x, axis=0):
         >>> y[0].shape
         (3,)
         >>> y[0].data
-        array([ 0.,  1.,  2.], dtype=float32)
+        array([0., 1., 2.], dtype=float32)
         >>> y = F.separate(x, axis=1)
         >>> len(y)
         3
         >>> y[0].shape
         (2,)
         >>> y[0].data
-        array([ 0.,  3.], dtype=float32)
+        array([0., 3.], dtype=float32)
 
     """
     shape = list(x.shape)

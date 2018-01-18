@@ -108,7 +108,7 @@ def tanh(x):
         >>> x
         array([-1.,  1.,  3.], dtype=float32)
         >>> F.tanh(x).data
-        array([-0.76159418,  0.76159418,  0.99505478], dtype=float32)
+        array([-0.7615942,  0.7615942,  0.9950548], dtype=float32)
 
     """
     return Tanh().apply((x,))[0]
