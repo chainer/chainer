@@ -1,5 +1,6 @@
-from chainer.functions.array import reshape
-from chainer.functions.array import split_axis
+from chainer import cuda
+from chainer import function_node
+from chainer.functions.array import stack
 
 
 class Separate(function_node.FunctionNode):
@@ -10,7 +11,7 @@ class Separate(function_node.FunctionNode):
     def forward(self, inputs):
         x, = inputs
         xp = cuda.get_array_module(x)
-        ys = self._xp.split(x, x.shape[axis], self.axis)
+        ys = self._xp.split(x, x.shape[self.axis], self.axis)
         return tuple([xp.squeeze(y, self.axis) for y in ys])
 
     def backward(self, indexes, grad_outputs):
