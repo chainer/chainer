@@ -259,20 +259,16 @@ TEST_F(CheckBackwardTest, BinaryBackward) {
             Arrays inputs = {MakeArray(shape, data1), MakeArray(shape, data2)};
             Arrays eps = {MakeArray(shape, eps1), MakeArray(shape, eps2)};
             Arrays grad_outputs = {MakeArray(shape, grad_output_data)};
-
             inputs[0].set_requires_grad(requires_grads[i][0]);
             inputs[1].set_requires_grad(requires_grads[i][1]);
-
             CheckCorrectBackwardComputation(inputs, grad_outputs, eps, atol, rtol);
         }
         {
             Arrays inputs = {MakeArray(shape, data1), MakeArray(shape, data2)};
             Arrays eps = {MakeArray(shape, eps1), MakeArray(shape, eps2)};
             Arrays grad_outputs = {MakeArray(shape, grad_output_data)};
-
             inputs[0].set_requires_grad(requires_grads[i][0]);
             inputs[1].set_requires_grad(requires_grads[i][1]);
-
             CheckBrokenBackwardComputation(inputs, grad_outputs, eps, atol, rtol);
         }
     }
