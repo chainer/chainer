@@ -2,6 +2,8 @@
 
 #include "xchainer/cuda/hello.h"
 
+#include "xchainer/python/type_caster.h"  // need to include in every compilation unit of the Python extension module
+
 namespace xchainer {
 namespace cuda {
 

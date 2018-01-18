@@ -2,24 +2,14 @@
 
 #include <algorithm>
 
-#include <nonstd/optional.hpp>
-
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>
-#include <pybind11/stl.h>
 
 #include "xchainer/array.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 
-// Optional type caster
-// http://pybind11.readthedocs.io/en/stable/advanced/cast/stl.html
-namespace pybind11 {
-namespace detail {
-template <typename T>
-struct type_caster<nonstd::optional<T>> : optional_caster<nonstd::optional<T>> {};
-}
-}
+#include "xchainer/python/type_caster.h"  // need to include in every compilation unit of the Python extension module
 
 namespace xchainer {
 
