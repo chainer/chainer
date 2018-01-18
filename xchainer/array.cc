@@ -43,7 +43,7 @@ Array::Array(const Array& other)
       node_(std::make_shared<ArrayNode>()) {
     // Memory layout-related members are not copied in this copy ctor since new C-contiguous memory is allocated
     data_ = internal::Allocate(GetCurrentDevice(), other.total_bytes());
-    other.Copy(*this);
+    other.CopyTo(*this);
 }
 
 const std::shared_ptr<ArrayNode>& Array::RenewNode() {
@@ -117,7 +117,14 @@ Array Array::operator*(const Array& rhs) const {
     return out;
 }
 
-void Array::Copy(Array& out) const {
+Array Array::Copy() const {
+    Array out = Array::EmptyLike(*this);
+    out.set_requires_grad(requires_grad_);
+    CopyTo(out);
+    return out;
+}
+
+void Array::CopyTo(Array& out) const {
     if (requires_grad_) {
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
         int64_t out_rank = node()->rank();
@@ -129,6 +136,8 @@ void Array::Copy(Array& out) const {
         out_node->set_rank(out_rank + 1);
     }
 
+    // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
+    // is_contiguous_ and offset_ into account
     internal::MemoryCopy(out.data().get(), data_.get(), total_bytes());
 }
 

@@ -88,6 +88,8 @@ public:
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
 
+    Array Copy() const;
+
     void Fill(Scalar value);
 
     std::string ToString() const;
@@ -96,7 +98,7 @@ private:
     Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad = false,
           bool is_contiguous = true, int64_t offset = 0);
 
-    void Copy(Array& out) const;
+    void CopyTo(Array& out) const;
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 

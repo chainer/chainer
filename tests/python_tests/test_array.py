@@ -33,9 +33,24 @@ def _check_array(array, expected_dtype, expected_shape, expected_total_size, exp
     assert array.element_bytes == expected_dtype.itemsize
     assert array.total_size == expected_total_size
     assert array.total_bytes == expected_dtype.itemsize * expected_total_size
-    assert array.debug_flat_data == expected_data_list
+    assert array._debug_flat_data == expected_data_list
     assert array.is_contiguous
     assert array.offset == 0
+
+
+def _check_arrays_equal_copy(array_a, array_b):
+    assert array_a.dtype == array_b.dtype
+    assert array_a.shape == array_b.shape
+    assert array_a.element_bytes == array_b.element_bytes
+    assert array_a.total_size == array_b.total_size
+    assert array_a.total_bytes == array_b.total_bytes
+    assert array_a._debug_flat_data == array_b._debug_flat_data
+    assert array_b.is_contiguous
+    assert 0 == array_b.offset
+
+    # Check memory addresses only if >0 bytes are allocated
+    if array_a.total_size > 0:
+        assert array_a._debug_data_memory_address != array_b._debug_data_memory_address
 
 
 def _check_array_equals_ndarray(array, ndarray):
@@ -44,7 +59,7 @@ def _check_array_equals_ndarray(array, ndarray):
     assert array.ndim == ndarray.ndim
     assert array.element_bytes == ndarray.itemsize
     assert array.total_bytes == ndarray.itemsize * ndarray.size
-    assert array.debug_flat_data == ndarray.ravel().tolist()
+    assert array._debug_flat_data == ndarray.ravel().tolist()
     assert array.is_contiguous == ndarray.flags['C_CONTIGUOUS']
 
 
@@ -110,12 +125,10 @@ def test_numpy_init(array_init_inputs):
     _check_array(array, dtype, shape, _size(shape_tup), ndarray.ravel().tolist())
     _check_array_equals_ndarray(array, ndarray)
 
-    _check_array_equals_ndarray(array, ndarray)
-
     # test possibly freed memory
     data_copy = ndarray.copy()
     del ndarray
-    assert array.debug_flat_data == data_copy.ravel().tolist()
+    assert array._debug_flat_data == data_copy.ravel().tolist()
 
     # recovered data should be equal
     data_recovered = numpy.array(array)
@@ -141,7 +154,20 @@ def test_view(array_init_inputs):
     # inplace modification
     if len(data_list) > 0:
         array += array
-        assert array.debug_flat_data == view.debug_flat_data
+        assert array._debug_flat_data == view._debug_flat_data
+
+
+def test_copy(array_init_inputs):
+    shape_tup, dtype = array_init_inputs
+
+    shape = xchainer.Shape(shape_tup)
+
+    data_list = _create_dummy_data(shape_tup, dtype)
+
+    array = xchainer.Array(shape, dtype, data_list)
+    array_copy = array.copy()
+
+    _check_arrays_equal_copy(array, array_copy)
 
 
 def test_add_iadd(array_init_inputs):
@@ -160,13 +186,13 @@ def test_add_iadd(array_init_inputs):
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 2] => [False, True]
 
     out = lhs + rhs
-    assert out.debug_flat_data == expected_data_list
-    assert lhs.debug_flat_data == lhs_data_list
-    assert rhs.debug_flat_data == rhs_data_list
+    assert out._debug_flat_data == expected_data_list
+    assert lhs._debug_flat_data == lhs_data_list
+    assert rhs._debug_flat_data == rhs_data_list
 
     lhs += rhs
-    assert lhs.debug_flat_data == expected_data_list
-    assert rhs.debug_flat_data == rhs_data_list
+    assert lhs._debug_flat_data == expected_data_list
+    assert rhs._debug_flat_data == rhs_data_list
 
 
 def test_mul_imul(array_init_inputs):
@@ -185,13 +211,13 @@ def test_mul_imul(array_init_inputs):
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 1] => [False, True]
 
     out = lhs * rhs
-    assert out.debug_flat_data == expected_data_list
-    assert lhs.debug_flat_data == lhs_data_list
-    assert rhs.debug_flat_data == rhs_data_list
+    assert out._debug_flat_data == expected_data_list
+    assert lhs._debug_flat_data == lhs_data_list
+    assert rhs._debug_flat_data == rhs_data_list
 
     lhs *= rhs
-    assert lhs.debug_flat_data == expected_data_list
-    assert rhs.debug_flat_data == rhs_data_list
+    assert lhs._debug_flat_data == expected_data_list
+    assert rhs._debug_flat_data == rhs_data_list
 
 
 def test_array_init_invalid_length():

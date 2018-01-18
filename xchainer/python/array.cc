@@ -1,6 +1,7 @@
 #include "xchainer/python/array.h"
 
 #include <algorithm>
+#include <cstdint>
 
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>
@@ -119,6 +120,7 @@ void InitXchainerArray(pybind11::module& m) {
         .def(py::self + py::self)
         .def(py::self * py::self)
         .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
+        .def("copy", &Array::Copy)
         .def_property("requires_grad", &Array::requires_grad, &Array::set_requires_grad)
         .def_property("grad", &Array::grad,
                       [](Array& self, Array* grad) {
@@ -136,22 +138,23 @@ void InitXchainerArray(pybind11::module& m) {
         .def_property_readonly("shape", &Array::shape)
         .def_property_readonly("total_bytes", &Array::total_bytes)
         .def_property_readonly("total_size", &Array::total_size)
-        .def_property_readonly("debug_flat_data",
-                               [](const Array& self) {  // This method is a stub for testing
-                                   py::list list;
-                                   auto size = self.total_size();
+        .def_property_readonly("_debug_data_memory_address",  // These methods starting with `_debug_` are stubs for testing
+                               [](const Array& self) { return reinterpret_cast<std::uintptr_t>(self.data().get()); })
+        .def_property_readonly("_debug_flat_data", [](const Array& self) {
+            py::list list;
+            auto size = self.total_size();
 
-                                   // Copy data into the list
-                                   VisitDtype(self.dtype(), [&](auto pt) {
-                                       using T = typename decltype(pt)::type;
-                                       const T& data = *std::static_pointer_cast<const T>(self.data());
-                                       for (int64_t i = 0; i < size; ++i) {
-                                           list.append((&data)[i]);
-                                       }
-                                   });
+            // Copy data into the list
+            VisitDtype(self.dtype(), [&](auto pt) {
+                using T = typename decltype(pt)::type;
+                const T& data = *std::static_pointer_cast<const T>(self.data());
+                for (int64_t i = 0; i < size; ++i) {
+                    list.append((&data)[i]);
+                }
+            });
 
-                                   return list;
-                               });
+            return list;
+        });
 }
 
 }  // namespace xchainer
