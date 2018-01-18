@@ -20,11 +20,17 @@ class Separate(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
-        ys = self._xp.split(x, x.shape[self.axis], self.axis)
-        return tuple([xp.squeeze(y, self.axis) for y in ys])
+        self._xp = cuda.get_array_module(x)
+        xs = self._xp.split(x, x.shape[self.axis], self.axis)
+        ys = [self._xp.squeeze(y, self.axis) for y in xs]
+        self._shape = ys[0].shape
+        self._dtype = x.dtype
+        return tuple(ys)
 
     def backward(self, indexes, grad_outputs):
+        grad_outputs = [
+            self._xp.zeros(self._shape, dtype=self._dtype)
+            if g is None else g for g in grad_outputs]
         return stack.stack(grad_outputs, self.axis)
 
 
