@@ -36,7 +36,8 @@ Indices and tables
 
 .. toctree::
    :maxdepth: 1
-   :caption: Other Support
+   :caption: Community
 
-   Slack Chat <https://bit.ly/chainer-slack>
+   Slack Chat <https://bit.ly/join-chainer-slack>
    Forums <https://groups.google.com/forum/#!forum/chainer>
+   Examples in Awesome Chainer <https://github.com/chainer-community/awesome-chainer>
