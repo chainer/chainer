@@ -122,8 +122,7 @@ void InitXchainerArray(pybind11::module& m) {
         .def_property("requires_grad", &Array::requires_grad, &Array::set_requires_grad)
         .def_property("grad",
                       [](Array& self) -> nonstd::optional<Array> {
-                          const auto& grad = self.grad();
-                          if (grad) {
+                          if (const auto& grad = self.grad()) {
                               return grad->MakeView();
                           } else {
                               return nonstd::nullopt;
