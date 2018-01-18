@@ -919,6 +919,7 @@ Actual: {0}'''.format(type(data))
 
         # Initialize error by 1, if this is a loss variable
         if self.data.size == 1 and self._grad_var is None:
+            assert self.data.ndim == 0
             with cuda.get_device_from_array(self.data) as device:
                 if device is cuda.DummyDevice:
                     self.grad = numpy.ones_like(self.data)
