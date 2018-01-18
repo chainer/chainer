@@ -10,10 +10,19 @@ from chainer.utils import type_check
 from chainer import variable
 
 
+_logsumexp_impl = cuda.cupy.ReductionKernel(
+    'T x, T vmax', 'T y',
+    'exp(x - vmax)', 'a + b', 'y = log(a)', '0',
+    'logsumexp_impl')
+
+
 def _logsumexp(a, xp, axis=None):
     vmax = xp.amax(a, axis=axis, keepdims=True)
-    vmax += xp.log(xp.sum(xp.exp(a - vmax),
-                          axis=axis, keepdims=True, dtype=a.dtype))
+    if xp is numpy:
+        vmax += xp.log(xp.sum(xp.exp(a - vmax),
+                              axis=axis, keepdims=True, dtype=a.dtype))
+    else:
+        vmax += _logsumexp_impl(a, vmax, axis=axis, keepdims=True)
     return xp.squeeze(vmax, axis=axis)
 
 
