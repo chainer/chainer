@@ -859,8 +859,8 @@ Actual: {0}'''.format(type(data))
         where further backprop does not take place at such inputs.
 
         This method uses :data:`grad` as the initial error array. User can
-        manually set a gradient array before calling this method. If
-        :data:`data` contains only one element (i.e., it is scalar) and
+        manually set a gradient array before calling this method.
+        If the shape of :data:`data` is ``()`` (i.e., it is scalar) and
         :data:`grad` is ``None``, then this method automatically complements
         1.0 as the initial error. This is useful on starting backprop from
         some scalar loss value.
@@ -919,7 +919,15 @@ Actual: {0}'''.format(type(data))
 
         # Initialize error by 1, if this is a loss variable
         if self.data.size == 1 and self._grad_var is None:
-            assert self.data.ndim == 0
+            if self.data.ndim != 0:
+                warnings.warn(
+                    'Treating as a scalar a variable with only one element'
+                    ' in Variable.backward is deprecated. A scalar variable'
+                    ' must be a 0-dimensional array. Apply'
+                    ' chainer.functions.squeeze to obtain a scalar variable.'
+                    ' If the size of this variable accidentally becomes one,'
+                    ' set zero to grad.',
+                    DeprecationWarning)
             with cuda.get_device_from_array(self.data) as device:
                 if device is cuda.DummyDevice:
                     self.grad = numpy.ones_like(self.data)
