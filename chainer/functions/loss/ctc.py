@@ -12,7 +12,7 @@ from chainer import variable
 
 _logsumexp_impl = cuda.cupy.ReductionKernel(
     'T x, T vmax', 'T y',
-    'exp(x - vmax)', 'a + b', 'y = log(a)', '0',
+    'exp(x - vmax)', 'a + b', 'y += log(a)', '0',
     'logsumexp_impl')
 
 
@@ -22,7 +22,7 @@ def _logsumexp(a, xp, axis=None):
         vmax += xp.log(xp.sum(xp.exp(a - vmax),
                               axis=axis, keepdims=True, dtype=a.dtype))
     else:
-        vmax += _logsumexp_impl(a, vmax, axis=axis, keepdims=True)
+        _logsumexp_impl(a, vmax, vmax, axis=axis, keepdims=True)
     return xp.squeeze(vmax, axis=axis)
 
 
