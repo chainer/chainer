@@ -38,19 +38,19 @@ def _check_array(array, expected_dtype, expected_shape, expected_total_size, exp
     assert array.offset == 0
 
 
-def _check_arrays_equal(array_a, array_b, expect_data_shared):
+def _check_arrays_equal_copy(array_a, array_b):
     assert array_a.dtype == array_b.dtype
     assert array_a.shape == array_b.shape
     assert array_a.element_bytes == array_b.element_bytes
     assert array_a.total_size == array_b.total_size
     assert array_a.total_bytes == array_b.total_bytes
     assert array_a._debug_flat_data == array_b._debug_flat_data
-    assert array_a.is_contiguous == array_b.is_contiguous
-    assert array_a.offset == array_b.offset
+    assert array_b.is_contiguous
+    assert 0 == array_b.offset
 
     # Check memory addresses only if >0 bytes are allocated
     if array_a.total_size > 0:
-        assert (array_a._debug_data_memory_address == array_b._debug_data_memory_address) == expect_data_shared
+        assert array_a._debug_data_memory_address != array_b._debug_data_memory_address
 
 
 def _check_array_equals_ndarray(array, ndarray):
@@ -167,7 +167,7 @@ def test_copy(array_init_inputs):
     array = xchainer.Array(shape, dtype, data_list)
     array_copy = array.copy()
 
-    _check_arrays_equal(array, array_copy, expect_data_shared=False)
+    _check_arrays_equal_copy(array, array_copy)
 
 
 def test_add_iadd(array_init_inputs):
