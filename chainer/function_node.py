@@ -126,6 +126,7 @@ class FunctionNode(object):
     _output_indexes_to_retain = None
     _retained_output_data = None
     _local_function_hooks = None
+    lazy_grad_sum = False
 
     @property
     def local_function_hooks(self):
@@ -550,7 +551,7 @@ Use apply() method instead.\
                 'number of gradients returned by %s (%s) is incorrect.'
                 % (self._impl_name, self.label))
 
-        if configuration.config.lazy_grad_sum:
+        if self.lazy_grad_sum:
             gxs_output = ()
             for i, (gx, g_input) in enumerate(six.moves.zip(gxs, grad_inputs)):
                 sum_gx = chainer.functions.concat_variable(gx, g_input)
@@ -863,8 +864,10 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
             continue
 
         # Do backward
-        with configuration.using_config('lazy_grad_sum', False):
-            new_gxs = func.backward_accumulate(input_indexes, gys, gxs)
+        gys = [gy if not isinstance(gy, tuple) else
+               chainer.functions.accumulate_add(gy)
+               for gy in gys]
+        new_gxs = func.backward_accumulate(input_indexes, gys, gxs)
 
         # Delete output gradients that are not required to return
         for y_ref in func.outputs:
@@ -883,7 +886,11 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
                 # Accumulate the duplicated gradients here
                 cur_gx = grads.get(node, None)
                 if cur_gx is not None:
-                    g = g + cur_gx
+                    if x.creator is None:
+                        g = chainer.functions.concat_variable(g, cur_gx)
+                        g = chainer.functions.accumulate_add(g)
+                    else:
+                        g = chainer.functions.concat_variable(g, cur_gx)
             else:
                 selected_inputs.add(node)
 
