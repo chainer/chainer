@@ -19,42 +19,7 @@
 namespace xchainer {
 namespace {
 
-std::vector<Array> CorrectUnaryFunc(const std::vector<Array>& inputs) {
-    const Array& lhs = inputs[0];
-
-    Array out = Array::EmptyLike(lhs);
-    out.set_requires_grad(lhs.requires_grad());
-
-    if (out.requires_grad()) {
-        std::shared_ptr<ArrayNode> lhs_node = lhs.mutable_node();
-        std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-        int64_t out_rank = lhs_node->rank();
-        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node};
-        std::function<Array(const Array&)> empty_func;
-        auto lhs_func = lhs.requires_grad() ? [lhs](const Array& gout) { return gout * lhs; } : empty_func;
-        auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func};
-        std::shared_ptr<OpNode> op_node = std::make_shared<OpNode>("correct_unary", out_rank, next_nodes, backward_functions);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(out_rank + 1);
-    }
-
-    VisitDtype(lhs.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-
-        int64_t total_size = lhs.total_size();
-        auto* ldata = static_cast<const T*>(lhs.data().get());
-        auto* odata = static_cast<T*>(out.data().get());
-        auto half = static_cast<T>(0.5);
-
-        for (int64_t i = 0; i < total_size; i++) {
-            odata[i] = ldata[i] * ldata[i] * half;
-        }
-    });
-
-    return {out};
-}
-
-std::vector<Array> BrokenUnaryFunc(const std::vector<Array>& inputs) {
+std::vector<Array> WrongBackwardUnaryFunc(const std::vector<Array>& inputs) {
     const Array& lhs = inputs[0];
 
     Array out = Array::EmptyLike(lhs);
@@ -88,48 +53,7 @@ std::vector<Array> BrokenUnaryFunc(const std::vector<Array>& inputs) {
     return {out};
 }
 
-std::vector<Array> CorrectBinaryFunc(const std::vector<Array>& inputs) {
-    const Array& lhs = inputs[0];
-    const Array& rhs = inputs[1];
-
-    CheckEqual(lhs.dtype(), rhs.dtype());
-    CheckEqual(lhs.shape(), rhs.shape());
-
-    Array out = Array::EmptyLike(lhs);
-    out.set_requires_grad(lhs.requires_grad() || rhs.requires_grad());
-
-    if (out.requires_grad()) {
-        std::shared_ptr<ArrayNode> lhs_node = lhs.mutable_node();
-        std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node();
-        std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-        int64_t out_rank = std::max(lhs_node->rank(), rhs_node->rank());
-        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node, rhs_node};
-        std::function<Array(const Array&)> empty_func;
-        auto lhs_func = lhs.requires_grad() ? [rhs](const Array& gout) { return gout * rhs; } : empty_func;
-        auto rhs_func = rhs.requires_grad() ? [lhs](const Array& gout) { return gout * lhs; } : empty_func;
-        auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
-        std::shared_ptr<OpNode> op_node = std::make_shared<OpNode>("correct_binary", out_rank, next_nodes, backward_functions);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(out_rank + 1);
-    }
-
-    VisitDtype(lhs.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-
-        int64_t total_size = lhs.total_size();
-        auto* ldata = static_cast<const T*>(lhs.data().get());
-        auto* rdata = static_cast<const T*>(rhs.data().get());
-        auto* odata = static_cast<T*>(out.data().get());
-
-        for (int64_t i = 0; i < total_size; i++) {
-            odata[i] = ldata[i] * rdata[i];
-        }
-    });
-
-    return {out};
-}
-
-std::vector<Array> BrokenBinaryFunc(const std::vector<Array>& inputs) {
+std::vector<Array> WrongBackwardBinaryFunc(const std::vector<Array>& inputs) {
     const Array& lhs = inputs[0];
     const Array& rhs = inputs[1];
 
@@ -182,13 +106,15 @@ public:
 
     void CheckCorrectBackwardComputation(const std::vector<Array>& inputs, const std::vector<Array>& grad_outputs,
                                          const std::vector<Array>& eps, double atol, double rtol) {
-        auto fprop = inputs.size() == 1 ? &CorrectUnaryFunc : &CorrectBinaryFunc;
+        // Forward propagation using overloaded operators that correctly implement their corresponding backward computations
+        auto fprop = inputs.size() == 1 ? [](const std::vector<Array>& inputs) -> std::vector<Array> { return {inputs[0]}; }
+        : [](const std::vector<Array>& inputs) -> std::vector<Array> { return {inputs[0] * inputs[1]}; };
         CheckBackwardComputation(fprop, inputs, grad_outputs, eps, atol, rtol);
     }
 
-    void CheckBrokenBackwardComputation(const std::vector<Array>& inputs, const std::vector<Array>& grad_outputs,
-                                        const std::vector<Array>& eps, double atol, double rtol) {
-        auto fprop = inputs.size() == 1 ? &BrokenUnaryFunc : &BrokenBinaryFunc;
+    void CheckWrongBackwardComputation(const std::vector<Array>& inputs, const std::vector<Array>& grad_outputs,
+                                       const std::vector<Array>& eps, double atol, double rtol) {
+        auto fprop = inputs.size() == 1 ? &WrongBackwardUnaryFunc : &WrongBackwardBinaryFunc;
         if (std::any_of(inputs.begin(), inputs.end(), [](const Array& input) { return input.requires_grad(); })) {
             // Catch the gtest failure expected to be generated by CheckBackwardComputation but without failing this test
             EXPECT_NONFATAL_FAILURE(CheckBackwardComputation(fprop, inputs, grad_outputs, eps, atol, rtol), "Backward check failure");
@@ -221,7 +147,7 @@ TEST_F(CheckBackwardTest, UnaryBackward) {
         std::vector<Array> eps = {MakeArray(shape, eps_data)};
         std::vector<Array> grad_outputs = {MakeArray(shape, grad_output_data)};
         inputs[0].set_requires_grad(false);
-        CheckBrokenBackwardComputation(inputs, grad_outputs, eps, atol, rtol);
+        CheckWrongBackwardComputation(inputs, grad_outputs, eps, atol, rtol);
     }
     {
         std::vector<Array> inputs = {MakeArray(shape, data)};
@@ -235,7 +161,7 @@ TEST_F(CheckBackwardTest, UnaryBackward) {
         std::vector<Array> eps = {MakeArray(shape, eps_data)};
         std::vector<Array> grad_outputs = {MakeArray(shape, grad_output_data)};
         inputs[0].set_requires_grad(true);
-        CheckBrokenBackwardComputation(inputs, grad_outputs, eps, atol, rtol);
+        CheckWrongBackwardComputation(inputs, grad_outputs, eps, atol, rtol);
     }
 }
 
@@ -269,7 +195,7 @@ TEST_F(CheckBackwardTest, BinaryBackward) {
             std::vector<Array> grad_outputs = {MakeArray(shape, grad_output_data)};
             inputs[0].set_requires_grad(requires_grads[i][0]);
             inputs[1].set_requires_grad(requires_grads[i][1]);
-            CheckBrokenBackwardComputation(inputs, grad_outputs, eps, atol, rtol);
+            CheckWrongBackwardComputation(inputs, grad_outputs, eps, atol, rtol);
         }
     }
 }
