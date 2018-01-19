@@ -21,12 +21,58 @@ public:
     Scalar(float v) : float32_(v), dtype_(Dtype::kFloat32) {}
     Scalar(double v) : float64_(v), dtype_(Dtype::kFloat64) {}
 
+    template <typename T>
+    Scalar(T v, Dtype dtype) : dtype_(dtype) {
+        switch (dtype) {
+            case Dtype::kBool:
+                bool_ = v;
+                break;
+            case Dtype::kInt8:
+                int8_ = v;
+                break;
+            case Dtype::kInt16:
+                int16_ = v;
+                break;
+            case Dtype::kInt32:
+                int32_ = v;
+                break;
+            case Dtype::kInt64:
+                int64_ = v;
+                break;
+            case Dtype::kUInt8:
+                uint8_ = v;
+                break;
+            case Dtype::kFloat32:
+                float32_ = v;
+                break;
+            case Dtype::kFloat64:
+                float64_ = v;
+                break;
+            default:
+                assert(0);  // should never be reached
+        }
+    }
+
     Scalar(const Scalar&) = default;
     Scalar& operator=(const Scalar&) = default;
 
     Dtype dtype() const { return dtype_; }
 
     std::string ToString() const;
+
+    bool operator==(Scalar other) const {
+        // TODO(niboshi): Support different dtypes
+        if (dtype_ != other.dtype_) {
+            return false;
+        }
+
+        return VisitDtype(dtype_, [this, other](auto pt) {
+            using T = typename decltype(pt)::type;
+            return this->UnwrapAndCast<T>() == other.UnwrapAndCast<T>();
+        });
+    }
+
+    bool operator!=(Scalar other) const { return !operator==(other); }
 
     Scalar& operator+() { return *this; }
 
@@ -52,7 +98,7 @@ public:
             case Dtype::kFloat64:
                 return -float64_;
             default:
-                assert(0);  // should never be reached
+                assert(false);  // should never be reached
         }
         return 0;
     }
@@ -66,18 +112,27 @@ public:
     explicit operator float() const { return UnwrapAndCast<float>(); }
     explicit operator double() const { return UnwrapAndCast<double>(); }
 
-private:
-    union {
-        bool bool_;
-        int8_t int8_;
-        int16_t int16_;
-        int32_t int32_;
-        int64_t int64_;
-        uint8_t uint8_;
-        float float32_;
-        double float64_;
-    };
+    Scalar operator+(const Scalar& rhs) const {
+        // TODO(niboshi): Support dtype conversion
+        assert(dtype_ == rhs.dtype_);
 
+        return VisitDtype(dtype_, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            return Scalar{static_cast<T>(*this) + static_cast<T>(rhs)};
+        });
+    }
+
+    Scalar operator*(const Scalar& rhs) const {
+        // TODO(niboshi): Support dtype conversion
+        assert(dtype_ == rhs.dtype_);
+
+        return VisitDtype(dtype_, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            return Scalar{static_cast<T>(*this) * static_cast<T>(rhs)};
+        });
+    }
+
+private:
     template <typename T>
     T UnwrapAndCast() const {
         switch (dtype_) {
@@ -98,10 +153,21 @@ private:
             case Dtype::kFloat64:
                 return float64_;
             default:
-                assert(0);  // should never be reached
+                assert(false);  // should never be reached
         }
         return T{};
     }
+
+    union {
+        bool bool_;
+        int8_t int8_;
+        int16_t int16_;
+        int32_t int32_;
+        int64_t int64_;
+        uint8_t uint8_;
+        float float32_;
+        double float64_;
+    };
 
     Dtype dtype_;
 };

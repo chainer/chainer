@@ -6,8 +6,6 @@
 
 namespace xchainer {
 
-void Copy(const Array& src, Array& out) { std::memcpy(out.data().get(), src.data().get(), src.total_bytes()); }
-
 void Add(const Array& lhs, const Array& rhs, Array& out) {
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;

@@ -1,18 +1,46 @@
 import pytest
 
+import xchainer
 
-_dtypes_data = [
-    {'name': 'bool', 'char': '?', 'itemsize': 1},
-    {'name': 'int8', 'char': 'b', 'itemsize': 1},
-    {'name': 'int16', 'char': 'h', 'itemsize': 2},
-    {'name': 'int32', 'char': 'i', 'itemsize': 4},
-    {'name': 'int64', 'char': 'q', 'itemsize': 8},
-    {'name': 'uint8', 'char': 'B', 'itemsize': 1},
-    {'name': 'float32', 'char': 'f', 'itemsize': 4},
-    {'name': 'float64', 'char': 'd', 'itemsize': 8},
+
+_dtypes = [
+    xchainer.bool,
+    xchainer.int8,
+    xchainer.int16,
+    xchainer.int32,
+    xchainer.int64,
+    xchainer.uint8,
+    xchainer.float32,
+    xchainer.float64,
 ]
 
 
-@pytest.fixture(params=_dtypes_data)
-def dtype_data(request):
+_float_dtypes = [
+    xchainer.float32,
+    xchainer.float64,
+]
+
+
+_signed_dtypes = [
+    xchainer.int8,
+    xchainer.int16,
+    xchainer.int32,
+    xchainer.int64,
+    xchainer.float32,
+    xchainer.float64,
+]
+
+
+@pytest.fixture(params=_dtypes)
+def dtype(request):
+    return request.param
+
+
+@pytest.fixture(params=_float_dtypes)
+def float_dtype(request):
+    return request.param
+
+
+@pytest.fixture(params=_signed_dtypes)
+def signed_dtype(request):
     return request.param

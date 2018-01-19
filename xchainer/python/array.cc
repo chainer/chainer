@@ -1,6 +1,7 @@
 #include "xchainer/python/array.h"
 
 #include <algorithm>
+#include <cstdint>
 
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>
@@ -9,11 +10,13 @@
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 
+#include "xchainer/python/common.h"
+
 namespace xchainer {
 
 namespace py = pybind11;
 
-Dtype NumpyDtypeToDtype(py::dtype npdtype) {
+Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
     switch (npdtype.kind()) {
         case 'b':
             return Dtype::kBool;
@@ -68,15 +71,14 @@ Array MakeArray(const Shape& shape, Dtype dtype, py::list list) {
         using T = typename decltype(pt)::type;
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
-    return Array{shape, dtype, ptr};
+    return Array::FromBuffer(shape, dtype, ptr);
 }
 
-std::unique_ptr<Array> MakeArray(py::array array) {
-    if (!(array.flags() & py::array::c_style)) {
+Array MakeArray(py::array array) {
+    if ((array.flags() & py::array::c_style) == 0) {
         throw DimensionError("cannot convert non-contiguous NumPy array to Array");
     }
 
-    // TODO(hvy): When Unified Memory Array creation and its Python binding is in-place, create the Array on the correct device
     Dtype dtype = NumpyDtypeToDtype(array.dtype());
     py::buffer_info info = array.request();
     Shape shape(info.shape);
@@ -84,7 +86,7 @@ std::unique_ptr<Array> MakeArray(py::array array) {
     // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
     std::shared_ptr<void> data(std::make_shared<py::array>(std::move(array)), array.mutable_data());
 
-    return std::make_unique<Array>(shape, dtype, data);
+    return Array::FromBuffer(shape, dtype, data);
 }
 
 py::buffer_info MakeNumpyArrayFromArray(Array& self) {
@@ -112,11 +114,29 @@ void InitXchainerArray(pybind11::module& m) {
         .def(py::init(py::overload_cast<const Shape&, Dtype, py::list>(&MakeArray)))
         .def(py::init(py::overload_cast<py::array>(&MakeArray)))
         .def_buffer(&MakeNumpyArrayFromArray)
+        .def("view", &Array::MakeView)
         .def(py::self += py::self)
         .def(py::self *= py::self)
         .def(py::self + py::self)
         .def(py::self * py::self)
         .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
+        .def("copy", &Array::Copy)
+        .def_property("requires_grad", &Array::requires_grad, &Array::set_requires_grad)
+        .def_property("grad",
+                      [](Array& self) -> nonstd::optional<Array> {
+                          if (const auto& grad = self.grad()) {
+                              return grad->MakeView();
+                          } else {
+                              return nonstd::nullopt;
+                          }
+                      },
+                      [](Array& self, Array* grad) {
+                          if (grad) {
+                              self.set_grad(grad->MakeView());
+                          } else {
+                              self.ClearGrad();
+                          }
+                      })
         .def_property_readonly("dtype", &Array::dtype)
         .def_property_readonly("element_bytes", &Array::element_bytes)
         .def_property_readonly("is_contiguous", &Array::is_contiguous)
@@ -125,22 +145,23 @@ void InitXchainerArray(pybind11::module& m) {
         .def_property_readonly("shape", &Array::shape)
         .def_property_readonly("total_bytes", &Array::total_bytes)
         .def_property_readonly("total_size", &Array::total_size)
-        .def_property_readonly("debug_flat_data",
-                               [](const Array& self) {  // This method is a stub for testing
-                                   py::list list;
-                                   auto size = self.total_size();
+        .def_property_readonly("_debug_data_memory_address",  // These methods starting with `_debug_` are stubs for testing
+                               [](const Array& self) { return reinterpret_cast<std::uintptr_t>(self.data().get()); })
+        .def_property_readonly("_debug_flat_data", [](const Array& self) {
+            py::list list;
+            auto size = self.total_size();
 
-                                   // Copy data into the list
-                                   VisitDtype(self.dtype(), [&](auto pt) {
-                                       using T = typename decltype(pt)::type;
-                                       const T& data = *std::static_pointer_cast<const T>(self.data());
-                                       for (int64_t i = 0; i < size; ++i) {
-                                           list.append((&data)[i]);
-                                       }
-                                   });
+            // Copy data into the list
+            VisitDtype(self.dtype(), [&](auto pt) {
+                using T = typename decltype(pt)::type;
+                const T& data = *std::static_pointer_cast<const T>(self.data());
+                for (int64_t i = 0; i < size; ++i) {
+                    list.append((&data)[i]);
+                }
+            });
 
-                                   return list;
-                               });
+            return list;
+        });
 }
 
 }  // namespace xchainer

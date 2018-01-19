@@ -5,8 +5,8 @@
 #include <utility>
 
 #include <gsl/gsl>
+#include <nonstd/optional.hpp>
 
-#include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/dtype.h"
 #include "xchainer/scalar.h"
@@ -14,21 +14,26 @@
 
 namespace xchainer {
 
+class ArrayNode;
+
 // The main data structure of multi-dimensional array.
 class Array {
 public:
-    Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool requires_grad = false, int64_t offset = 0);
-
     // Deep copy ctor and copy assignment
     Array(const Array& other);
+
+    Array(Array&& other) = default;
+    Array& operator=(Array&& other) = delete;
 
     // TODO(hvy): Copy assignment operator is deleted to avoid performance drops due to possible unwanted copies and heavy refactorings
     // later on until the behavior is better agreed upon
     Array& operator=(const Array&) = delete;
 
+    static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data);
+
     static Array Empty(const Shape& shape, Dtype dtype);
-    static Array Full(const Shape& shape, Dtype dtype, const Scalar& scalar);
-    static Array Full(const Shape& shape, const Scalar& scalar);
+    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype);
+    static Array Full(const Shape& shape, Scalar scalar);
     static Array Zeros(const Shape& shape, Dtype dtype);
     static Array Ones(const Shape& shape, Dtype dtype);
 
@@ -36,7 +41,7 @@ public:
     // The new array is allocated in the current device. The device of the other array
     // is ignored.
     static Array EmptyLike(const Array& array);
-    static Array FullLike(const Array& array, const Scalar& scalar);
+    static Array FullLike(const Array& array, Scalar scalar);
     static Array ZerosLike(const Array& array);
     static Array OnesLike(const Array& array);
 
@@ -45,8 +50,6 @@ public:
     int8_t ndim() const { return shape_.ndim(); }
 
     const Shape& shape() const { return shape_; }
-
-    bool is_contiguous() const { return is_contiguous_; }
 
     int64_t total_size() const { return shape_.total_size(); }
 
@@ -60,40 +63,51 @@ public:
 
     bool requires_grad() const { return requires_grad_; }
 
+    void set_requires_grad(bool requires_grad) { requires_grad_ = requires_grad; }
+
+    bool is_contiguous() const { return is_contiguous_; }
+
     int64_t offset() const { return offset_; }
 
-    const std::shared_ptr<ArrayNode>& node() { return node_; }
+    const std::shared_ptr<ArrayNode>& mutable_node() const { return node_; }
 
     std::shared_ptr<const ArrayNode> node() const { return node_; }
 
-    const std::shared_ptr<ArrayNode>& RenewNode() {
-        node_ = std::make_shared<ArrayNode>();
-        return node_;
-    }
+    const std::shared_ptr<ArrayNode>& RenewNode();
+
+    const nonstd::optional<Array>& grad() const noexcept;
+
+    void set_grad(Array grad);
+
+    void ClearGrad() noexcept;
+
+    Array MakeView() const;
 
     Array& operator+=(const Array& rhs);
     Array& operator*=(const Array& rhs);
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
 
+    Array Copy() const;
+
     void Fill(Scalar value);
 
     std::string ToString() const;
 
 private:
-    void Copy(Array& out) const;
+    Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad = false,
+          bool is_contiguous = true, int64_t offset = 0);
+
+    void CopyTo(Array& out) const;
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 
     Shape shape_;
-    bool is_contiguous_;
-
     Dtype dtype_;
-
     std::shared_ptr<void> data_;
     bool requires_grad_;
+    bool is_contiguous_;
     int64_t offset_;
-
     std::shared_ptr<ArrayNode> node_;
 };
 

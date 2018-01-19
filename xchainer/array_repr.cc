@@ -89,7 +89,7 @@ public:
 
     void Print(std::ostream& os, double value) {
         if (digits_after_e_ > 0) {
-            int width = 12 + has_minus_ + digits_after_e_;
+            int width = 12 + (has_minus_ ? 1 : 0) + digits_after_e_;
             if (has_minus_ && !std::signbit(value)) {
                 os << ' ';
                 --width;
@@ -115,7 +115,7 @@ private:
         double int_part;
         const double frac_part = std::modf(value, &int_part);
 
-        int64_t shifted_frac_part = static_cast<int64_t>((std::abs(frac_part) + 1) * 100'000'000);
+        auto shifted_frac_part = static_cast<int64_t>((std::abs(frac_part) + 1) * 100'000'000);
         while ((shifted_frac_part % 10) == 0) {
             shifted_frac_part /= 10;
         }
@@ -126,14 +126,16 @@ private:
     int digits_before_point_ = 1;
     int digits_after_point_ = 0;
     int digits_after_e_ = 0;
-    bool has_minus_;
+    bool has_minus_ = false;
 };
 
 class BoolFormatter {
 public:
-    void Scan(bool) {}
+    void Scan(bool value) { (void)value; }
 
-    void Print(std::ostream& os, bool value) const { os << (value ? " True" : "False"); }
+    void Print(std::ostream& os, bool value) const {
+        os << (value ? " True" : "False");  // NOLINTER
+    }
 };
 
 template <typename T>
@@ -142,12 +144,13 @@ using Formatter = std::conditional_t<std::is_same<T, bool>::value, BoolFormatter
 
 struct ArrayReprImpl {
     template <typename T, typename Visitor>
-    void VisitElements(const Array& array, std::shared_ptr<const T> data, Visitor&& visitor) const {
+    void VisitElements(const Array& array, Visitor&& visitor) const {
         // TODO(niboshi): Contiguousness is assumed.
         // TODO(niboshi): Replace with Indxer class.
         auto shape = array.shape();
         std::vector<int64_t> indexer;
         std::copy(shape.cbegin(), shape.cend(), std::back_inserter(indexer));
+        std::shared_ptr<const T> data = std::static_pointer_cast<const T>(array.data());
 
         for (int64_t i = 0; i < array.total_size(); ++i) {
             // Increment indexer
@@ -165,17 +168,19 @@ struct ArrayReprImpl {
     }
 
     template <typename T>
-    void operator()(const Array& array, std::shared_ptr<const void> buffer, std::ostream& os) const {
+    void operator()(const Array& array, std::ostream& os) const {
         Formatter<T> formatter;
-        auto data = std::static_pointer_cast<const T>(buffer);
 
         // Let formatter scan all elements to print.
-        VisitElements<T>(array, data, [&formatter](T value, const int64_t*) { formatter.Scan(value); });
+        VisitElements<T>(array, [&formatter](T value, const int64_t* index) {
+            (void)index;
+            formatter.Scan(value);
+        });
 
         // Print values using the formatter.
         const int8_t ndim = array.ndim();
         int cur_line_size = 0;
-        VisitElements<T>(array, data, [ndim, &cur_line_size, &formatter, &os](T value, const int64_t* index) {
+        VisitElements<T>(array, [ndim, &cur_line_size, &formatter, &os](T value, const int64_t* index) {
             int8_t trailing_zeros = 0;
             if (ndim > 0) {
                 for (auto it = index + ndim; --it >= index;) {
@@ -210,6 +215,11 @@ struct ArrayReprImpl {
             ++cur_line_size;
         });
 
+        // In case of an empty Array, print the header here
+        if (array.total_size() == 0) {
+            os << "array([";
+        }
+
         // Print the footer
         PrintNTimes(os, ']', ndim);
         os << ", dtype=" << array.dtype() << ')';
@@ -219,7 +229,7 @@ struct ArrayReprImpl {
 }  // namespace
 
 std::ostream& operator<<(std::ostream& os, const Array& array) {
-    VisitDtype(array.dtype(), [&](auto pt) { ArrayReprImpl{}.operator()<typename decltype(pt)::type>(array, array.data(), os); });
+    VisitDtype(array.dtype(), [&](auto pt) { ArrayReprImpl{}.operator()<typename decltype(pt)::type>(array, os); });
     return os;
 }
 

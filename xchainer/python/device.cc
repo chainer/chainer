@@ -5,6 +5,8 @@
 
 #include "xchainer/device.h"
 
+#include "xchainer/python/common.h"
+
 namespace xchainer {
 
 namespace py = pybind11;  // standard convention
@@ -13,7 +15,10 @@ class PyDeviceScope {
 public:
     explicit PyDeviceScope(Device target) : target_(target) {}
     void Enter() { scope_ = std::make_unique<DeviceScope>(target_); }
-    void Exit(py::args) { scope_.reset(); }
+    void Exit(py::args args) {
+        (void)args;
+        scope_.reset();
+    }
 
 private:
     // TODO(beam2d): better to replace it by "optional"...
@@ -28,7 +33,7 @@ void InitXchainerDevice(pybind11::module& m) {
         .def("__ne__", py::overload_cast<const Device&, const Device&>(&operator!=))
         .def("__repr__", [](Device device) {
             std::ostringstream os;
-            os << "<Device " << device.name << ">";
+            os << "<Device " << static_cast<char*>(device.name) << ">";
             return os.str();
         });
 

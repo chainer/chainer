@@ -6,6 +6,8 @@
 
 #include "xchainer/shape.h"
 
+#include "xchainer/python/common.h"
+
 namespace xchainer {
 
 namespace py = pybind11;
