@@ -320,11 +320,11 @@ First, define a model and optimizer instances:
 
 Recall that the ``MLP`` link implements the multi-layer perceptron, and the :class:`~chainer.links.Classifier` link wraps it to provide a classifier interface.
 We used :class:`~training.updaters.StandardUpdater` in the previous example.
-In order to enable data-parallel computation with multiple GPUs, we only have to replace it with :class:`~training.ParallelUpdater`.
+In order to enable data-parallel computation with multiple GPUs, we only have to replace it with :class:`~training.updaters.ParallelUpdater`.
 
 .. doctest::
 
-   updater = training.ParallelUpdater(train_iter, optimizer,
+   updater = training.updaters.ParallelUpdater(train_iter, optimizer,
                                       devices={'main': 0, 'second': 1})
 
 The ``devices`` option specifies which devices to use in data-parallel learning.
@@ -343,7 +343,7 @@ Data-parallel Computation on Multiple GPUs without Trainer
 We here introduce a way to write data-parallel computation without the help of :class:`~training.Trainer`.
 Most users can skip this section.
 If you are interested in how to write a data-parallel computation by yourself, this section should be informative.
-It is also helpful to, e.g., customize the :class:`~training.ParallelUpdater` class.
+It is also helpful to, e.g., customize the :class:`~training.updaters.ParallelUpdater` class.
 
 We again start from the MNIST example.
 At this time, we use a suffix like ``_0`` and ``_1`` to distinguish objects on each device.

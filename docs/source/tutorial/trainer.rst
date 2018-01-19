@@ -105,7 +105,7 @@ Now let's create the :class:`~chainer.training.Updater` object !
     optimizer.setup(model)
 
     # Get an updater that uses the Iterator and Optimizer
-    updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
+    updater = training.updaters.StandardUpdater(train_iter, optimizer, device=gpu_id)
 
 .. note::
 
@@ -118,7 +118,7 @@ Now let's create the :class:`~chainer.training.Updater` object !
     In :class:`~chainer.links.Classifier`, the :attr:`~chainer.links.Classifier.lossfun` is set to
     :meth:`~chainer.functions.softmax_cross_entropy` as default.
 
-    :class:`~chainer.training.StandardUpdater` is the simplest class among several updaters. There are also the :class:`~chainer.training.ParallelUpdater` and the :class:`~chainer.training.updaters.MultiprocessParallelUpdater` to utilize multiple GPUs. The :class:`~chainer.training.updaters.MultiprocessParallelUpdater` uses the NVIDIA NCCL library, so you need to install NCCL and re-install CuPy before using it.
+    :class:`~chainer.training.updaters.StandardUpdater` is the simplest class among several updaters. There are also the :class:`~chainer.training.updaters.ParallelUpdater` and the :class:`~chainer.training.updaters.MultiprocessParallelUpdater` to utilize multiple GPUs. The :class:`~chainer.training.updaters.MultiprocessParallelUpdater` uses the NVIDIA NCCL library, so you need to install NCCL and re-install CuPy before using it.
 
 5. Setup Trainer
 ''''''''''''''''
