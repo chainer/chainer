@@ -14,7 +14,6 @@ from chainer.dataset import iterator
 
 
 _response_time = 1.
-_short_time = 0.001
 _PrefetchState = namedtuple('_PrefetchState', (
     'current_position', 'epoch', 'is_new_epoch',
     'previous_epoch_detail', 'order'))
