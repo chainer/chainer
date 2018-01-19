@@ -5,6 +5,7 @@ import numpy
 import six
 
 from chainer.dataset import iterator
+from chainer.iterators import random_state
 
 
 class MultithreadIterator(iterator.Iterator):
@@ -43,6 +44,15 @@ class MultithreadIterator(iterator.Iterator):
         self.current_position = 0
         self.epoch = 0
 
+        # Create a RandomState for each batch index.
+        self._random_states = random_state.create_random_states(batch_size)
+        # To support serialization and reset, we need to backup
+        # the states as tuples until `__next__` is called.
+        self._random_state_tuples = [state.get_state()
+                                     for state in self._random_states]
+        # Whether the random states are accessed during prefetch.
+        self._random_dirties = [False] * batch_size
+
         self.n_threads = n_threads
         self._pool = None
 
@@ -79,10 +89,29 @@ class MultithreadIterator(iterator.Iterator):
         self._previous_epoch_detail = self.epoch_detail
 
         if self._next is None:
+            # this is required when reset or serialized
+            random_states = self._random_states
+            random_state_tuples = self._random_state_tuples
+            random_dirties = self._random_dirties
+            for batch_idx in six.moves.range(self.batch_size):
+                random_states[batch_idx].set_state(
+                    random_state_tuples[batch_idx])
+                random_dirties[batch_idx] = False
+
             # load for the first iteration
             self._invoke_prefetch()
 
         batch = self._get()
+
+        random_states = self._random_states
+        random_state_tuples = self._random_state_tuples
+        random_dirties = self._random_dirties
+        for batch_idx in six.moves.range(self.batch_size):
+            if random_dirties[batch_idx]:
+                random_state_tuples[batch_idx] = \
+                    random_states[batch_idx].get_state()
+                random_dirties[batch_idx] = False
+
         self._invoke_prefetch()  # prefetch for the next iteration
         return batch
 
@@ -106,10 +135,36 @@ class MultithreadIterator(iterator.Iterator):
             'previous_epoch_detail', self._previous_epoch_detail)
         self._next = None
 
+        random_state_tuples = self._random_state_tuples
+        try:
+            for batch_idx in six.moves.range(self.batch_size):
+                magic, key, pos, has_gauss, cached_gaussian = \
+                    random_state_tuples[batch_idx]
+                key_store = numpy.frombuffer(key, dtype=numpy.uint32)
+                key_store[:] = serializer(
+                    'batch_random/{}/key'.format(batch_idx), key_store)
+                pos = serializer(
+                    'batch_random/{}/pos'.format(batch_idx), pos)
+                has_gauss = serializer(
+                    'batch_random/{}/has_gauss'.format(batch_idx), has_gauss)
+                cached_gaussian = serializer(
+                    'batch_random/{}/cached_gaussian'.format(batch_idx),
+                    cached_gaussian)
+                random_state_tuples[batch_idx] = \
+                    magic, key, pos, has_gauss, cached_gaussian
+        except KeyError:
+            pass
+
     @staticmethod
     def _read(args):
-        dataset, index = args
-        return dataset[index]
+        dataset, dataset_idx, batch_idx, random_states, random_dirties = args
+
+        def get_state():
+            random_dirties[batch_idx] = True
+            return random_states[batch_idx]
+
+        with random_state.set_random_state(get_state):
+            return dataset[dataset_idx]
 
     def _invoke_prefetch(self):
         assert self._next is None
@@ -125,9 +180,12 @@ class MultithreadIterator(iterator.Iterator):
         dataset = self.dataset
         epoch = self.epoch
         is_new_epoch = False
-        for _ in six.moves.range(self.batch_size):
-            index = i if order is None else order[i]
-            args.append((dataset, index))
+        random_states = self._random_states
+        random_dirties = self._random_dirties
+        for batch_idx, _ in enumerate(six.moves.range(self.batch_size)):
+            dataset_idx = i if order is None else order[i]
+            args.append((dataset, dataset_idx, batch_idx,
+                         random_states, random_dirties))
             i += 1
             if i >= n:
                 epoch += 1

@@ -1,5 +1,6 @@
 from __future__ import division
 from collections import namedtuple
+import ctypes
 import multiprocessing
 from multiprocessing import sharedctypes
 import signal
@@ -11,12 +12,20 @@ import numpy
 import six
 
 from chainer.dataset import iterator
+from chainer.iterators import random_state
 
 
 _response_time = 1.
 _PrefetchState = namedtuple('_PrefetchState', (
     'current_position', 'epoch', 'is_new_epoch',
-    'previous_epoch_detail', 'order'))
+    'previous_epoch_detail', 'order', 'raw_random_idx'))
+
+
+class _RawRandomState(ctypes.Structure):
+    _fields_ = [('key', ctypes.c_uint32 * 624),
+                ('pos', ctypes.c_int),
+                ('has_gauss', ctypes.c_int),
+                ('cached_gaussian', ctypes.c_double)]
 
 
 class MultiprocessIterator(iterator.Iterator):
@@ -29,7 +38,7 @@ class MultiprocessIterator(iterator.Iterator):
     processes in the standard way using pickle.
 
     Note that this iterator effectively prefetches the examples for the next
-    batch asynchronously after the current batch is returned.
+    batches asynchronously by a background thread and worker processes.
 
     This iterator saves ``-1`` instead of ``None`` in snapshots since some
     serializers do not support ``None``.
@@ -66,12 +75,23 @@ class MultiprocessIterator(iterator.Iterator):
         self.n_prefetch = max(n_prefetch, 1)
         self.shared_mem = shared_mem
 
+        # Allocate shared memory to store RandomState's for each batch index.
+        # To support serialization and reset, we need to store the history of
+        # the states for the duration of `n_prefetch + 2`.
+        # (+1 for the oldest state, and +1 for the state modified by the last
+        # prefetch that is commiting its result via ``Comm.put()``.
+        # Allocation is done here for ease of serialization.
+        self._raw_random_states = sharedctypes.RawArray(
+            _RawRandomState, (n_prefetch + 2) * batch_size)
+        self._raw_random_idx = 0
+
         self._comm = _Communicator(self.n_prefetch)
         self.reset()
 
         self._prefetch_loop = _PrefetchLoop(
             self.dataset, self.batch_size, self.repeat, self.shuffle,
-            self.n_processes, self.n_prefetch, self.shared_mem, self._comm,
+            self.n_processes, self.n_prefetch, self.shared_mem,
+            self._raw_random_states, self._comm,
             self._interruption_testing)
         # defer launching prefetch thread until creating the worker pool,
         # not to leave a background thread in forked processes.
@@ -90,7 +110,8 @@ class MultiprocessIterator(iterator.Iterator):
             batch, prefetch_state = self._comm.get()
 
         (self.current_position, self.epoch, self.is_new_epoch,
-            self._previous_epoch_detail, self._order) = prefetch_state
+         self._previous_epoch_detail, self._order,
+         self._raw_random_idx) = prefetch_state
         if batch is None:
             raise StopIteration
         else:
@@ -160,6 +181,29 @@ class MultiprocessIterator(iterator.Iterator):
                     self._previous_epoch_detail, 0.)
             else:
                 self._previous_epoch_detail = -1.
+        raw_random_states = self._raw_random_states
+        raw_random_idx = self._raw_random_idx
+        try:
+            for batch_idx in six.moves.range(self.batch_size):
+                raw_state_in = raw_random_states[raw_random_idx + batch_idx]
+                raw_state_out = raw_random_states[batch_idx]
+                key_store = numpy.frombuffer(
+                    raw_state_out.key, dtype=numpy.uint32)
+                key_store[:] = serializer(
+                    'batch_random/{}/key'.format(batch_idx),
+                    numpy.asarray(raw_state_in.key, dtype=numpy.uint32))
+                raw_state_out.pos = serializer(
+                    'batch_random/{}/pos'.format(batch_idx),
+                    raw_state_in.pos)
+                raw_state_out.has_gauss = serializer(
+                    'batch_random/{}/has_gauss'.format(batch_idx),
+                    raw_state_in.has_gauss)
+                raw_state_out.cached_gaussian = serializer(
+                    'batch_random/{}/cached_gaussian'.format(batch_idx),
+                    raw_state_in.cached_gaussian)
+            self._raw_random_idx = 0
+        except KeyError:
+            pass
         self._set_prefetch_state()
 
     def reset(self):
@@ -185,7 +229,8 @@ class MultiprocessIterator(iterator.Iterator):
             epoch=self.epoch,
             is_new_epoch=self.is_new_epoch,
             previous_epoch_detail=self._previous_epoch_detail,
-            order=self._order)
+            order=self._order,
+            raw_random_idx=self._raw_random_idx)
         self._comm.reset(prefetch_state)
 
 
@@ -259,26 +304,36 @@ class _Communicator(object):
 class _PrefetchLoop(object):
 
     def __init__(self, dataset, batch_size, repeat, shuffle,
-                 n_processes, n_prefetch, mem_size, comm,
+                 n_processes, n_prefetch, mem_size,
+                 raw_random_states, comm,
                  _interruption_testing):
         self.dataset = dataset
         self.batch_size = batch_size
         self.repeat = repeat
         self.shuffle = shuffle
         self.n_processes = n_processes
+        self.n_prefetch = n_prefetch
         self.mem_size = mem_size
+        self.raw_random_states = raw_random_states
         self.comm = comm
 
         self._allocate_shared_memory()
         self._pool = None
 
+        # Initialize and store a RandomState for each batch index.
+        states = random_state.create_random_states(batch_size)
+        for i, state in enumerate(states):
+            raw_state = raw_random_states[i]
+            (magic, key, raw_state.pos,
+             raw_state.has_gauss,
+             raw_state.cached_gaussian) = state.get_state()
+            assert magic == 'MT19937'
+            key_store = numpy.frombuffer(raw_state.key, dtype=numpy.uint32)
+            key_store[:] = key
+
         # Use a distinct RandomState in the thread
         # for deterministic random number generation.
-        # To support 32-bit platform and numpy < 1.11,
-        # the seed is taken in a verbose manner.
-        seed = numpy.asscalar(
-            numpy.random.randint(-(1 << 31), 1 << 31, 1).astype('uint32'))
-        self._random = numpy.random.RandomState(seed)
+        self._random = random_state.derive_random_state()
 
         self._interruption_testing = _interruption_testing
 
@@ -290,11 +345,21 @@ class _PrefetchLoop(object):
         if status == _Communicator.STATUS_RESET:
             self.prefetch_state = prefetch_state
 
-        indices = self._proceed()
-        if indices is None:  # stop iteration
+        inputs = self._proceed()
+        if inputs is None:  # stop iteration
             batch = None
         else:
-            batch = [self.dataset[idx] for idx in indices]
+            state = numpy.random.RandomState()
+            indices, raw_random_idx, new_raw_random_idx = inputs
+            raw_random_states = self.raw_random_states
+            batch = []
+            for batch_idx, dataset_idx in enumerate(indices):
+                _load_random_state(
+                    state, raw_random_states, raw_random_idx + batch_idx)
+                with random_state.set_random_state(state):
+                    batch.append(self.dataset[dataset_idx])
+                _store_random_state(
+                    state, raw_random_states, new_raw_random_idx + batch_idx)
             self.mem_size = max(map(_measure, batch))
             self._allocate_shared_memory()
 
@@ -311,9 +376,11 @@ class _PrefetchLoop(object):
         self._pool = multiprocessing.Pool(
             processes=self.n_processes,
             initializer=_fetch_setup,
-            initargs=(self.dataset, self.mem_size, self.mem_bulk))
+            initargs=(self.dataset, self.mem_size, self.mem_bulk,
+                      self.raw_random_states))
         if self._interruption_testing:
-            pids = self._pool.map(_report_pid, range(self.n_processes))
+            pids = self._pool.map(
+                _report_pid, six.moves.range(self.n_processes))
             print(' '.join(map(str, pids)))
             sys.stdout.flush()
 
@@ -338,11 +405,15 @@ class _PrefetchLoop(object):
         elif status == _Communicator.STATUS_TERMINATE:
             return False  # stop loop
 
-        indices = self._proceed()
-        if indices is None:  # stop iteration
+        inputs = self._proceed()
+        if inputs is None:  # stop iteration
             batch = None
         else:
-            future = self._pool.map_async(_fetch_run, enumerate(indices))
+            indices, raw_random_idx, new_raw_random_idx = inputs
+            args = ((dataset_idx, batch_idx,
+                     raw_random_idx, new_raw_random_idx)
+                    for batch_idx, dataset_idx in enumerate(indices))
+            future = self._pool.map_async(_fetch_run, args)
             while True:
                 try:
                     data_all = future.get(_response_time)
@@ -360,7 +431,7 @@ class _PrefetchLoop(object):
     def _proceed(self):
         n = len(self.dataset)
         (pos, epoch, is_new_epoch,
-            previous_epoch_detail, order) = self.prefetch_state
+         previous_epoch_detail, order, raw_random_idx) = self.prefetch_state
 
         if pos < self.batch_size and epoch > 0 and not self.repeat:
             return None  # stop iteration
@@ -391,10 +462,14 @@ class _PrefetchLoop(object):
             epoch += 1
             is_new_epoch = True
 
+        new_raw_random_idx = raw_random_idx + self.batch_size
+        if new_raw_random_idx == (self.n_prefetch + 2) * self.batch_size:
+            new_raw_random_idx = 0
+
         self.prefetch_state = _PrefetchState(
             new_pos, epoch, is_new_epoch,
-            previous_epoch_detail, order)
-        return indices
+            previous_epoch_detail, order, new_raw_random_idx)
+        return indices, raw_random_idx, new_raw_random_idx
 
 
 # Using `parametarized` funciton (e.g. bound method) with Pool is tricky due to
@@ -406,21 +481,39 @@ class _PrefetchLoop(object):
 _fetch_dataset = None
 _fetch_mem_size = None
 _fetch_mem_bulk = None
+_fetch_random_state = None
+_fetch_raw_random_states = None
 
 
-def _fetch_setup(dataset, mem_size, mem_bulk):
-    global _fetch_dataset, _fetch_mem_size, _fetch_mem_bulk
+def _fetch_setup(dataset, mem_size, mem_bulk, raw_random_states):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
+    global _fetch_dataset, _fetch_mem_size, _fetch_mem_bulk
     _fetch_dataset = dataset
     _fetch_mem_size = mem_size
     _fetch_mem_bulk = mem_bulk
+    global _fetch_random_state, _fetch_raw_random_states
+    _fetch_random_state = numpy.random.RandomState()
+    _fetch_raw_random_states = raw_random_states
 
 
-def _fetch_run(inputs):
-    i, index = inputs
-    data = _fetch_dataset[index]
+# Some global variables are set at runtime.
+_fetch_batch_idx = None
+_fetch_current_raw_random_idx = None
+_fetch_raw_random_loaded = False
+
+
+def _fetch_run(args):
+    global _fetch_batch_idx, _fetch_current_raw_random_idx
+    dataset_idx, batch_idx, raw_random_idx, new_raw_random_idx = args
+    _fetch_batch_idx = batch_idx
+    _fetch_current_raw_random_idx = raw_random_idx + batch_idx
+
+    with random_state.set_random_state(_load_random_state_global):
+        data = _fetch_dataset[dataset_idx]
+    _store_random_state_global(new_raw_random_idx + batch_idx)
+
     if _fetch_mem_bulk is not None:
-        offset = i * _fetch_mem_size
+        offset = batch_idx * _fetch_mem_size
         limit = offset + _fetch_mem_size
         data = _pack(data, _fetch_mem_bulk, offset, limit)
     return data
@@ -428,6 +521,43 @@ def _fetch_run(inputs):
 
 def _report_pid(_):  # for testing
     return multiprocessing.current_process().pid
+
+
+def _load_random_state(random_state, raw_random_states, idx):
+    raw_state = raw_random_states[idx]
+    key = numpy.frombuffer(raw_state.key, dtype=numpy.uint32)
+    random_state.set_state((
+        'MT19937', key, raw_state.pos,
+        raw_state.has_gauss, raw_state.cached_gaussian))
+
+
+def _load_random_state_global():
+    global _fetch_raw_random_loaded
+    if not _fetch_raw_random_loaded:
+        _load_random_state(_fetch_random_state, _fetch_raw_random_states,
+                           _fetch_current_raw_random_idx)
+        _fetch_raw_random_loaded = True
+    return _fetch_random_state
+
+
+def _store_random_state(random_state, raw_random_states, idx):
+    raw_state = raw_random_states[idx]
+    (_, key, raw_state.pos,
+     raw_state.has_gauss,
+     raw_state.cached_gaussian) = random_state.get_state()
+    key_store = numpy.frombuffer(raw_state.key, dtype=numpy.uint32)
+    key_store[:] = key
+
+
+def _store_random_state_global(current_new_raw_random_idx):
+    global _fetch_raw_random_loaded
+    if _fetch_raw_random_loaded:
+        _store_random_state(_fetch_random_state, _fetch_raw_random_states,
+                            current_new_raw_random_idx)
+        _fetch_raw_random_loaded = False
+    else:
+        _fetch_raw_random_states[current_new_raw_random_idx] = \
+            _fetch_raw_random_states[_fetch_current_raw_random_idx]
 
 
 class _PackedNdarray(object):

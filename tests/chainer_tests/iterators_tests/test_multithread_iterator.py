@@ -1,5 +1,6 @@
 from __future__ import division
 import copy
+import time
 import unittest
 
 import numpy
@@ -325,6 +326,158 @@ class TestMultithreadIteratorSerialize(unittest.TestCase):
         self.assertEqual(sorted(batch1 + batch2 + batch3), dataset)
         self.assertAlmostEqual(it.epoch_detail, 6 / 6)
         self.assertAlmostEqual(it.previous_epoch_detail, 4 / 6)
+
+
+@testing.parameterize(*testing.product({
+    'n_threads': [1, 2],
+}))
+class TestMultithreadIteratorRandomState(unittest.TestCase):
+
+    def setUp(self):
+        self.options = {'shuffle': False,
+                        'n_threads': self.n_threads}
+        self._seed = 3141592653
+        self._random_bak = numpy.random.get_state()
+
+    def tearDown(self):
+        numpy.random.set_state(self._random_bak)
+
+    class RandomDataset(object):
+        def __init__(self, interleave=False, twice=False):
+            self.interleave = interleave
+            self.twice = twice
+
+        def __len__(self):
+            return 64
+
+        def __getitem__(self, i):
+            if self.interleave and i // 4 % 2 == 1:
+                return 0
+            else:
+                random = iterators.get_random_state()
+                if self.twice:
+                    return random.uniform(), random.uniform()
+                else:
+                    return random.uniform()
+
+    def test_random_state_different_numbers(self):
+        dataset = self.RandomDataset()
+        it = iterators.MultithreadIterator(dataset, 4, **self.options)
+
+        batch1 = it.next()
+        batch2 = it.next()
+        batch3 = it.next()
+        batch4 = it.next()
+
+        data = numpy.concatenate([batch1, batch2, batch3, batch4])
+        # To prevent accidental failure, we allow two elements to be same.
+        self.assertGreaterEqual(numpy.unique(data).size, 15)
+
+    def test_random_state_different_numbers_interleaved(self):
+        dataset = self.RandomDataset(interleave=True)
+        it = iterators.MultithreadIterator(dataset, 4, **self.options)
+
+        batch1 = it.next()
+        it.next()
+        batch2 = it.next()
+        it.next()
+        batch3 = it.next()
+        it.next()
+        batch4 = it.next()
+        it.next()
+
+        data = numpy.concatenate([batch1, batch2, batch3, batch4])
+        # To prevent accidental failure, we allow two elements to be same.
+        self.assertGreaterEqual(numpy.unique(data).size, 15)
+
+    def test_random_state_same_seed(self):
+        dataset1 = self.RandomDataset()
+        numpy.random.seed(self._seed)
+        it1 = iterators.MultithreadIterator(dataset1, 4, **self.options)
+
+        dataset2 = self.RandomDataset(interleave=True)
+        numpy.random.seed(self._seed)
+        it2 = iterators.MultithreadIterator(dataset2, 4, **self.options)
+
+        for _ in range(4):
+            batch1 = it1.next()
+            batch2 = it2.next()
+            it2.next()
+            self.assertEqual(batch1, batch2)
+
+    def test_random_state_keep_sequence_for_each_batch_idx(self):
+        dataset1 = self.RandomDataset()
+        numpy.random.seed(self._seed)
+        it1 = iterators.MultithreadIterator(dataset1, 4, **self.options)
+
+        dataset2 = self.RandomDataset(twice=True)
+        numpy.random.seed(self._seed)
+        it2 = iterators.MultithreadIterator(dataset2, 4, **self.options)
+
+        for _ in range(4):
+            batch1 = list(zip(it1.next(), it1.next()))
+            batch2 = it2.next()
+            self.assertEqual(batch1, batch2)
+
+    def test_random_state_reset(self):
+        dataset = self.RandomDataset()
+
+        numpy.random.seed(self._seed)
+        it1 = iterators.MultithreadIterator(dataset, 4, **self.options)
+        it1.next()
+        batch_a = it1.next()
+        it1.next()
+        it1.next()
+        batch_b = it1.next()
+
+        numpy.random.seed(self._seed)
+        it2 = iterators.MultithreadIterator(dataset, 4, **self.options)
+        it2.next()
+        time.sleep(0.2)
+
+        it2.reset()
+        assert batch_a == it2.next()
+
+        it2.next()
+        it2.next()
+        time.sleep(0.2)
+
+        it2.reset()
+        assert batch_b == it2.next()
+
+    def test_random_state_serialize(self):
+        dataset = self.RandomDataset()
+
+        numpy.random.seed(self._seed)
+        it1 = iterators.MultithreadIterator(dataset, 4, **self.options)
+        it1.next()
+        batch_a = it1.next()
+        it1.next()
+        it1.next()
+        batch_b = it1.next()
+
+        numpy.random.seed(self._seed)
+        it2 = iterators.MultithreadIterator(dataset, 4, **self.options)
+        it2.next()
+        time.sleep(0.2)
+
+        target = dict()
+        it2.serialize(DummySerializer(target))
+        assert batch_a == it2.next()
+        it2 = iterators.MultithreadIterator(dataset, 4, **self.options)
+        it2.serialize(DummyDeserializer(target))
+        assert batch_a == it2.next()
+
+        it2.next()
+        it2.next()
+        time.sleep(0.2)
+
+        target = dict()
+        it2.serialize(DummySerializer(target))
+        assert batch_b == it2.next()
+        it2 = iterators.MultithreadIterator(dataset, 4, **self.options)
+        it2.serialize(DummyDeserializer(target))
+        assert batch_b == it2.next()
 
 
 testing.run_module(__name__, __file__)
