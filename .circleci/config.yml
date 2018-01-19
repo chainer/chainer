@@ -1,20 +1,5 @@
 version: 2
 jobs:
-  clang-format:
-    docker:
-      - image: ubuntu:xenial
-    steps:
-      - checkout
-      - run: |
-          apt-get update
-          apt-get install -y clang-format
-
-      - run: |
-          clang-format --version
-
-      - run: |
-          find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
-
   build:
     docker:
       - image: ubuntu:xenial
@@ -58,6 +43,7 @@ jobs:
 
             g++ --version
             cmake --version
+            clang-format --version
             python --version
 
             echo
@@ -95,6 +81,12 @@ jobs:
             python setup.py build --debug --build-temp ./build --build-lib ./build develop
             pytest -m='not cuda' --cov --no-cov-on-fail --cov-fail-under=80 --cov-report html:build/coverage/python
 
+      # ClangFormat
+      - run:
+          name: ClangFormat
+          command: |
+            find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
+
       # C++ test
       - run:
           name: C++ test
@@ -107,11 +99,3 @@ jobs:
 
       - store_artifacts:
           path: build/coverage
-
-
-workflows:
-  version: 2
-  build_and_test:
-    jobs:
-      - clang-format
-      - build
