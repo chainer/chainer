@@ -123,7 +123,7 @@ class UpdateRule(object):
             update rule is not active (i.e., ``enabled = False``), the
             :meth:`update` method does not update the parameter.
         hyperparam (Hyperparameter): Hyperparameter of the update rule.
-        t (int): Number of updates made by this update rule.
+        ~UpdateRule.t (int): Number of updates made by this update rule.
 
     """
 
@@ -361,8 +361,9 @@ class Optimizer(object):
     update rule and the parameter).
 
     Attributes:
-        target: Target link object. It is set by the :meth:`setup` method.
-        t: Number of update steps. It must be incremented by the
+        ~Optimizer.target: Target link object.
+            It is set by the :meth:`setup` method.
+        ~Optimizer.t: Number of update steps. It must be incremented by the
             :meth:`update` method.
         ~Optimizer.epoch: Current epoch. It is incremented by the
             :meth:`new_epoch` method.

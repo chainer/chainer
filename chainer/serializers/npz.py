@@ -29,9 +29,10 @@ class DictionarySerializer(serializer.Serializer):
             indicates.
 
     Attributes:
-        target (dict): The target dictionary. Once the serialization completes,
-            this dictionary can be fed into :func:`numpy.savez` or
-            :func:`numpy.savez_compressed` to serialize it in the NPZ format.
+        ~DictionarySerializer.target (dict): The target dictionary.
+            Once the serialization completes, this dictionary can be fed into
+            :func:`numpy.savez` or :func:`numpy.savez_compressed` to serialize
+            it in the NPZ format.
 
     """
 
