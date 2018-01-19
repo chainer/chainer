@@ -54,7 +54,7 @@ else
 fi
 
 # Run clang-tidy.
-# xargs can split into multiple invocations of clang-tidy depending on the number of the number of input files.
+# xargs can split into multiple invocations of clang-tidy depending on the number of input files.
 # Currently it does not cause a problem because the awk script simply counts the matching lines line-by-line.
 # Keep that in mind when the script is to be modified.
 error=0
@@ -63,9 +63,10 @@ error=0
     /'"$grep_regex"'/ { n += 1 }
     END { exit n }' || error=$?
 
+# If xargs fails, return the maximum possible number
 if [ ${PIPESTATUS[1]} != 0 ]; then
     exit 255
 fi
 
-# Report errors
+# Report the number of errors
 exit "$error"
