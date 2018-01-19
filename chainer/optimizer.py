@@ -325,6 +325,9 @@ class Optimizer(object):
 
     """
 
+    target = None
+    t = 0
+    epoch = 0
     _hooks = None
 
     def setup(self, link):
