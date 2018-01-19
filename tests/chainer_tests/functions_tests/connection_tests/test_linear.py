@@ -14,6 +14,7 @@ from chainer.testing import attr
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'n_batch_axes': [1, 2]
 }))
 class TestNonparameterizedLinear(unittest.TestCase):
 
@@ -23,8 +24,11 @@ class TestNonparameterizedLinear(unittest.TestCase):
         self.b = numpy.random.uniform(
             -1, 1, 2).astype(self.x_dtype)
 
-        self.x = numpy.random.uniform(-1, 1, (4, 3)).astype(self.x_dtype)
-        self.gy = numpy.random.uniform(-1, 1, (4, 2)).astype(self.x_dtype)
+        batch_shape = (4,) + (2,) * (self.n_batch_axes - 1)
+        self.x = numpy.random.uniform(
+            -1, 1, batch_shape + (3,)).astype(self.x_dtype)
+        self.gy = numpy.random.uniform(
+            -1, 1, batch_shape + (2,)).astype(self.x_dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.x.shape).astype(
             self.x_dtype)
         self.ggW = numpy.random.uniform(-1, 1, self.W.shape).astype(
@@ -55,13 +59,19 @@ class TestNonparameterizedLinear(unittest.TestCase):
         x = chainer.Variable(x_data)
         W = chainer.Variable(W_data)
         if b_data is None:
-            y = functions.linear(x, W)
+            y = functions.linear(x, W, n_batch_axes=self.n_batch_axes)
         else:
             b = chainer.Variable(b_data)
-            y = functions.linear(x, W, b)
+            y = functions.linear(x, W, b, self.n_batch_axes)
         self.assertEqual(y.data.dtype, self.x_dtype)
         testing.assert_allclose(
             y_expect, y.data, **self.check_forward_options)
+
+        with self.assertRaisesRegexp(ValueError, 'n_batch_axes'):
+            functions.linear(x, W, n_batch_axes=0)
+
+        with self.assertRaisesRegexp(ValueError, 'n_batch_axes'):
+            functions.linear(x, W, n_batch_axes=-1)
 
     def test_forward_cpu(self):
         self.check_forward(self.x, self.W, self.b,
