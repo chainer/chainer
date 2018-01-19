@@ -60,7 +60,7 @@ fi
 error=0
 "${find_command[@]}" | xargs -0 clang-tidy | awk '
     { print }
-    /'"$grep_regex"'/ { n += 1 }
+    /'"$grep_regex"'/ { n = n == 255 ? 255 : n+1 }
     END { exit n }' || error=$?
 
 # If xargs fails, return the maximum possible number
