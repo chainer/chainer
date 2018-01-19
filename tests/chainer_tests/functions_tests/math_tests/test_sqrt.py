@@ -35,7 +35,7 @@ def rsqrt(x, dtype):
     F.rsqrt,
     func_expected=rsqrt,
     make_data=make_data,
-    forward_options={'atol': 1e-3},
+    forward_options={'atol': 1e-2},
     backward_options={'eps': 1e-2, 'atol': 1e-2, 'rtol': 1e-2},
     double_backward_options={'eps': 1e-2, 'atol': 1e-1, 'rtol': 1e-1},
 )
