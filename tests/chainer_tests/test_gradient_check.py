@@ -392,6 +392,45 @@ class TestCheckBackward(unittest.TestCase):
                                       no_grads=[False, True], dtype=self.dtype)
 
 
+class IdentNoneIsZero(chainer.Function):
+    """Identity function but following None-grad convention for RNNs"""
+
+    def forward(self, inputs):
+        return inputs
+
+    def backward(self, inputs, grads):
+        return tuple(
+            numpy.zeros_like(x) if g is None else g
+            for x, g in zip(inputs, grads)
+        )
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [None, numpy.float32, numpy.float64],
+    'size': [3, 1]
+}))
+class TestCheckBackwardNoneConvention(unittest.TestCase):
+    dtype = numpy.float64
+
+    def test_multiple_output(self):
+        size = self.size
+        x1 = numpy.arange(size).astype('f')
+        x2 = numpy.arange(size).astype('f')
+        g1 = numpy.ones(size, dtype='f')
+        g2 = numpy.ones(size, dtype='f')
+
+        def f(x, y):
+            s, t = IdentNoneIsZero()(x, y)
+            return s, t
+
+        gradient_check.check_backward(
+            f, (x1, x2), (g1, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+        gradient_check.check_backward(
+            f, (x1, x2), (g1, None), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+        gradient_check.check_backward(
+            f, (x1, x2), (None, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+
+
 class TestCheckBackwardFailure(unittest.TestCase):
 
     def _broken_func_1(self):
