@@ -155,37 +155,37 @@ private:
 };
 
 TEST_P(CheckBackwardUnaryTest, CorrectBackward) {
-    float input_data[]{1.f, 2.f, 3.f, 4.f, -1.f, 3.f};
-    float grad_output_data[]{1.f, -2.f, 3.f, 0.f, 5.2f, -1.f};
-    float eps_data[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
+    float input_data[]{1.f, 2.f, 3.f};
+    float grad_output_data[]{0.f, -2.f, 3.f};
+    float eps_data[]{1.f, 2.f, 3.f};
     const Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0]}; };
-    CheckBackwardComputation(true, fprop, {2, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4);
+    CheckBackwardComputation(true, fprop, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4);
 }
 
 TEST_P(CheckBackwardUnaryTest, IncorrectBackward) {
-    float input_data[]{-2.f, 3.f, 1.f, 6.f, 2.f, -1.f};
-    float grad_output_data[]{1.f, -2.f, 1.f, 0.f, 1.2f, 2.f};
-    float eps_data[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
-    CheckBackwardComputation(false, &IncorrectBackwardUnaryFunc, {2, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4);
+    float input_data[]{-2.f, 3.f, 1.f};
+    float grad_output_data[]{0.f, -2.f, 1.f};
+    float eps_data[]{1.f, 2.f, 3.f};
+    CheckBackwardComputation(false, &IncorrectBackwardUnaryFunc, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4);
 }
 
 TEST_P(CheckBackwardBinaryTest, CorrectBackward) {
-    float input_data1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
-    float input_data2[]{0.f, 1.f, 2.f, 3.f, 4.f, 5.f};
-    float eps_data1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
-    float eps_data2[]{3.f, -2.f, 3.f, -4.f, 3.2f, 0.9f};
-    float grad_output_data[]{1.f, -2.f, 3.f, 0.f, 5.2f, 6.f};
+    float input_data1[]{1.f, 2.f, 3.f};
+    float input_data2[]{0.f, 1.f, 2.f};
+    float eps_data1[]{1.f, 2.f, 3.f};
+    float eps_data2[]{3.f, -2.f, 3.f};
+    float grad_output_data[]{1.f, -2.f, 3.f};
     const Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[1]}; };
-    CheckBackwardComputation(true, fprop, {2, 3}, input_data1, input_data2, grad_output_data, eps_data1, eps_data2, 1e-5, 1e-4);
+    CheckBackwardComputation(true, fprop, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1, eps_data2, 1e-5, 1e-4);
 }
 
 TEST_P(CheckBackwardBinaryTest, IncorrectBackward) {
-    float input_data1[]{3.f, -2.f, 1.f, 2.f, -5.f, 9.f};
-    float input_data2[]{0.f, 1.4f, 2.f, -3.f, 4.f, 3.f};
-    float eps_data1[]{1.f, 2.f, 3.8f, -4.f, 5.f, 1.f};
-    float eps_data2[]{3.f, -2.f, -3.f, -1.f, 3.2f, 0.9f};
-    float grad_output_data[]{4.f, -2.f, 3.f, 0.f, -2.6f, 1.f};
-    CheckBackwardComputation(false, &IncorrectBackwardBinaryFunc, {2, 3}, input_data1, input_data2, grad_output_data, eps_data1, eps_data2,
+    float input_data1[]{3.f, -2.f, 1.f};
+    float input_data2[]{0.f, 1.4f, 2.f};
+    float eps_data1[]{1.f, 2.f, 3.8f};
+    float eps_data2[]{3.f, -2.f, -3.f};
+    float grad_output_data[]{4.f, -2.f, 3.f};
+    CheckBackwardComputation(false, &IncorrectBackwardBinaryFunc, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1, eps_data2,
                              1e-5, 1e-4);
 }
 
