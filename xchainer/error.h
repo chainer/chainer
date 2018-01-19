@@ -28,4 +28,10 @@ public:
     using XchainerError::XchainerError;
 };
 
+// Error on calling not-yet-implemented functionality
+class NotImplementedError : public XchainerError {
+public:
+    using XchainerError::XchainerError;
+};
+
 }  // namespace xchainer

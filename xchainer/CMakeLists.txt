@@ -51,6 +51,8 @@ if(ENABLE_TEST)
     set(srcs
         array_repr_test.cc
         array_test.cc
+        check_backward.cc
+        check_backward_test.cc
         backprop_test.cc
         device_test.cc
         dtype_test.cc
