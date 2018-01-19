@@ -29,7 +29,7 @@ def _read_image_as_array(path, dtype):
 def _postprocess_image(image):
     if image.ndim == 2:
         # image is greyscale
-        image = image[:, :, numpy.newaxis]
+        image = image[..., None]
     return image.transpose(2, 0, 1)
 
 
