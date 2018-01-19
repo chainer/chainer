@@ -63,5 +63,9 @@ error=0
     /'"$grep_regex"'/ { n += 1 }
     END { exit n }' || error=$?
 
+if [ ${PIPESTATUS[1]} != 0 ]; then
+    exit 255
+fi
+
 # Report errors
 exit "$error"
