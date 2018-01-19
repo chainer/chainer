@@ -95,7 +95,7 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
 }
 
 class CheckBackwardBaseTest : public ::testing::Test {
-public:
+protected:
     template <typename T>
     Array MakeArray(const Shape& shape, const T* data) const {
         int64_t size = shape.total_size();
@@ -118,7 +118,9 @@ protected:
 };
 
 class CheckBackwardUnaryTest : public CheckBackwardBaseTest, public ::testing::WithParamInterface<bool> {
-public:
+protected:
+    void SetUp() override { requires_grad = GetParam(); }
+
     template <typename T>
     void CheckBackwardComputation(bool expect_correct, const Fprop fprop, const Shape& shape, const T* input_data,
                                   const T* grad_output_data, const T* eps_data, double atol, double rtol) {
@@ -129,15 +131,14 @@ public:
         CheckBaseBackwardComputation(expect_correct, fprop, inputs, grad_outputs, eps, atol, rtol);
     }
 
-protected:
-    void SetUp() override { requires_grad = GetParam(); }
-
 private:
     bool requires_grad;
 };
 
 class CheckBackwardBinaryTest : public CheckBackwardBaseTest, public ::testing::WithParamInterface<::testing::tuple<bool, bool>> {
-public:
+protected:
+    void SetUp() override { requires_grads = {::testing::get<0>(GetParam()), ::testing::get<1>(GetParam())}; }
+
     template <typename T>
     void CheckBackwardComputation(bool expect_correct, const Fprop fprop, const Shape& shape, const T* input_data1, const T* input_data2,
                                   const T* grad_output_data, const T* eps_data1, const T* eps_data2, double atol, double rtol) {
@@ -148,9 +149,6 @@ public:
         inputs[1].set_requires_grad(requires_grads[1]);
         CheckBaseBackwardComputation(expect_correct, fprop, inputs, grad_outputs, eps, atol, rtol);
     }
-
-protected:
-    void SetUp() override { requires_grads = {::testing::get<0>(GetParam()), ::testing::get<1>(GetParam())}; }
 
 private:
     std::vector<bool> requires_grads;
