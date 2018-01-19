@@ -397,8 +397,8 @@ extractor. See the details of this model here:
 :class:`chainer.links.VGG16Layers`.
 
 In the case of ResNet models, there are three variations differing in the number
-of layers. We have :class:`chainer.links.ResNet50`,
-:class:`chainer.links.ResNet101`, and :class:`chainer.links.ResNet152` models
+of layers. We have :class:`chainer.links.ResNet50Layers`,
+:class:`chainer.links.ResNet101Layers`, and :class:`chainer.links.ResNet152Layers` models
 with easy parameter loading feature. ResNet's pre-trained parameters are not
 available for direct downloading, so you need to download the weight from the
 author's web page first, and then place it into the dir
@@ -412,7 +412,7 @@ the preparation is finished, the usage is the same as VGG16:
     model = ResNet152layers()
 
 Please see the details of usage and how to prepare the pre-trained weights for
-ResNet here: :class:`chainer.links.ResNet50`
+ResNet here: :class:`chainer.links.ResNet50Layers`
 
 References
 ..........
