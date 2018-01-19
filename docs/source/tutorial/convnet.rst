@@ -295,15 +295,15 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
     class ResNet152(chainer.Chain):
         def __init__(self, n_blocks=[3, 8, 36, 3]):
             w = chainer.initializers.HeNormal()
-            super(ResNet152, self).__init__(
-                conv1=L.Convolution2D(
-                    None, 64, 7, 2, 3, initialW=w, nobias=True),
-                bn1=L.BatchNormalization(64),
-                res2=ResBlock(n_blocks[0], 64, 64, 256, 1),
-                res3=ResBlock(n_blocks[1], 256, 128, 512),
-                res4=ResBlock(n_blocks[2], 512, 256, 1024),
-                res5=ResBlock(n_blocks[3], 1024, 512, 2048),
-                fc6=L.Linear(2048, 1000))
+            super(ResNet152, self).__init__()
+            with self.init_scope():
+                self.conv1 = L.Convolution2D(None, 64, 7, 2, 3, initialW=w, nobias=True)
+                self.bn1 = L.BatchNormalization(64)
+                self.res2 = ResBlock(n_blocks[0], 64, 64, 256, 1)
+                self.res3 = ResBlock(n_blocks[1], 256, 128, 512)
+                self.res4 = ResBlock(n_blocks[2], 512, 256, 1024)
+                self.res5 = ResBlock(n_blocks[3], 1024, 512, 2048)
+                self.fc6 = L.Linear(2048, 1000)
 
         def __call__(self, x):
             h = self.bn1(self.conv1(x))
@@ -321,7 +321,6 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
 
     class ResBlock(chainer.ChainList):
         def __init__(self, n_layers, n_in, n_mid, n_out, stride=2):
-            w = chainer.initializers.HeNormal()
             super(ResBlock, self).__init__()
             self.add_link(BottleNeck(n_in, n_mid, n_out, stride, True))
             for _ in range(n_layers - 1):
