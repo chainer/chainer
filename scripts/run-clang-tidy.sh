@@ -57,16 +57,22 @@ fi
 # xargs can split into multiple invocations of clang-tidy depending on the number of input files.
 # Currently it does not cause a problem because the awk script simply counts the matching lines line-by-line.
 # Keep that in mind when the script is to be modified.
-error=0
+
+set +e  # Temporarily disable error detection to capture errors in the pipes
 "${find_command[@]}" | xargs -0 clang-tidy | awk '
     { print }
     /'"$grep_regex"'/ { n = n == 255 ? 255 : n+1 }
-    END { exit n }' || error=$?
+    END { exit n }'
 
-# If xargs fails, return the maximum possible number
-if [ ${PIPESTATUS[1]} != 0 ]; then
+PIPESTATS=("${PIPESTATUS[@]}")
+set -e  # Restore error detection
+
+# If any command in the pipes (except awk) fails, return the maximum possible number
+if [ ${PIPESTATS[0]} != 0 -o ${PIPESTATS[1]} != 0 ]; then
+    echo "Some command in the pipes has failed.">&2
+    echo "PIPESTATUS: ${PIPESTATS[@]}" >&2
     exit 255
 fi
 
-# Report the number of errors
-exit "$error"
+# Report the number of clang-tidy errors (return code of awk)
+exit ${PIPESTATS[2]}
