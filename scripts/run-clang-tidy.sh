@@ -53,16 +53,12 @@ else
     grep_regex="^[^ ]+: error: .*"
 fi
 
-# Collect source files
-source_files=()
-while IFS= read -r -d $'\0' i; do
-    source_files+=("$i")
-done < <("${find_command[@]}")
-
-
-# Run clang-tidy
+# Run clang-tidy.
+# xargs can split into multiple invocations of clang-tidy depending on the number of the number of input files.
+# Currently it does not cause a problem because the awk script simply counts the matching lines line-by-line.
+# Keep that in mind when the script is to be modified.
 error=0
-clang-tidy "${source_files[@]}" | awk '
+"${find_command[@]}" | xargs -0 clang-tidy | awk '
     { print }
     /'"$grep_regex"'/ { n += 1 }
     END { exit n }' || error=$?
