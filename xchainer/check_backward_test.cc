@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <tuple>
 #include <vector>
 
 #include <gtest/gtest-spi.h>
@@ -135,9 +136,9 @@ private:
     bool requires_grad;
 };
 
-class CheckBackwardBinaryTest : public CheckBackwardBaseTest, public ::testing::WithParamInterface<::testing::tuple<bool, bool>> {
+class CheckBackwardBinaryTest : public CheckBackwardBaseTest, public ::testing::WithParamInterface<std::tuple<bool, bool>> {
 protected:
-    void SetUp() override { requires_grads = {::testing::get<0>(GetParam()), ::testing::get<1>(GetParam())}; }
+    void SetUp() override { requires_grads = {std::get<0>(GetParam()), std::get<1>(GetParam())}; }
 
     template <typename T>
     void CheckBackwardComputation(bool expect_correct, const Fprop fprop, const Shape& shape, const T* input_data1, const T* input_data2,
