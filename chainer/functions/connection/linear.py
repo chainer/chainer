@@ -11,7 +11,7 @@ from chainer.utils import type_check
 class LinearFunction(function_node.FunctionNode):
 
     def __init__(self, n_batch_axes=1):
-        super(LinearFunction, self).__init__(self)
+        super(LinearFunction, self).__init__()
         if n_batch_axes < 1:
             raise ValueError(
                 'n_batch_axes should be less than x.ndim and greater '
@@ -116,7 +116,7 @@ class LinearGradData(function_node.FunctionNode):
 class LinearGradWeight(function_node.FunctionNode):
 
     def __init__(self, n_batch_axes=1):
-        super(LinearGradWeight, self).__init__(self)
+        super(LinearGradWeight, self).__init__()
         if n_batch_axes < 1:
             raise ValueError(
                 'n_batch_axes should be less than x.ndim and greater '
