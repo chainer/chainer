@@ -27,7 +27,12 @@ class Stack(function_node.FunctionNode):
 
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
-        return xp.stack(inputs, axis=self.axis),
+        if hasattr(xp, 'stack'):
+            return xp.stack(inputs, axis=self.axis),
+        else:
+            # Old numpy does not have numpy.stack.
+            return xp.concatenate(
+                [xp.expand_dims(x, self.axis) for x in inputs], self.axis)
 
     def backward(self, inputs, grads):
         return separate.separate(grads[0], self.axis)
