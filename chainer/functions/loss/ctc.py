@@ -146,7 +146,8 @@ class ConnectionistTemporalClassification(function.Function):
                     'T z',
                     '''
                     T value = z;
-                    I c = i % b_max, b = i / b_max;
+                    I b = i / b_max;
+                    I c = i - b * b_max;
                     int ind[2] = {b, -1};
                     for (int index = 0; index < c_max; ++index) {
                         ind[1] = index;
