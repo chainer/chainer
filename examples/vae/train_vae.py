@@ -62,8 +62,9 @@ def main():
 
     # Set up an updater. StandardUpdater can explicitly specify a loss function
     # used in the training with 'loss_func' option
-    updater = training.updaters.StandardUpdater(train_iter, optimizer, device=args.gpu,
-                                       loss_func=model.get_loss_func())
+    updater = training.updaters.StandardUpdater(
+        train_iter, optimizer,
+        device=args.gpu, loss_func=model.get_loss_func())
 
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
     trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu,
