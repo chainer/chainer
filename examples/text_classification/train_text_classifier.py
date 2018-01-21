@@ -91,7 +91,7 @@ def main():
     optimizer.add_hook(chainer.optimizer.WeightDecay(1e-4))
 
     # Set up a trainer
-    updater = training.StandardUpdater(
+    updater = training.updaters.StandardUpdater(
         train_iter, optimizer,
         converter=convert_seq, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)

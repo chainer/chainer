@@ -107,7 +107,7 @@ def main():
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test_data, args.batchsize,
                                                  repeat=False, shuffle=False)
-    updater = training.StandardUpdater(
+    updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
