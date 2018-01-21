@@ -17,10 +17,10 @@ from chainer.training import extensions
 class CRF(chainer.Chain):
 
     def __init__(self, n_vocab, n_pos):
-        super(CRF, self).__init__(
-            feature=L.EmbedID(n_vocab, n_pos),
-            crf=L.CRF1d(n_pos),
-        )
+        super(CRF, self).__init__()
+        with self.init_scope():
+            self.feature = L.EmbedID(n_vocab, n_pos)
+            self.crf = L.CRF1d(n_pos)
 
     def __call__(self, xs, ys):
         # Before making a transpose, you need to sort two lists in descending
