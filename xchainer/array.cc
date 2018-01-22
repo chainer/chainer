@@ -38,8 +38,8 @@ ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool requires_grad, bool i
 
 }  // namespace internal
 
-Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad, bool is_contiguous,
-             int64_t offset)
+Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad,
+             bool is_contiguous, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, dtype, requires_grad, is_contiguous, std::move(data), offset, std::move(node))) {}
 
 Array::Array(const Array& other)
