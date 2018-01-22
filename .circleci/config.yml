@@ -41,9 +41,20 @@ jobs:
 
             echo "PWD: $PWD"
 
+            echo
+            echo "----- g++ -----"
             g++ --version
+
+            echo
+            echo "----- cmake -----"
             cmake --version
-            clang-format --version
+
+            echo
+            echo "----- clang-tidy -----"
+            clang-tidy --version
+
+            echo
+            echo "----- python -----"
             python --version
 
             echo
@@ -81,6 +92,47 @@ jobs:
             python setup.py build --debug --build-temp ./build --build-lib ./build develop
             pytest -m='not cuda' --cov --no-cov-on-fail --cov-fail-under=80 --cov-report html:build/coverage/python
 
+      # cmake
+      - run:
+          name: cmake
+          command: |
+            source activate testenv
+
+            mkdir -p build
+            pushd build
+            cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON ..
+            popd
+
+      # clang-tidy (normal source files)
+      - run:
+          name: clang-tidy (normal source files)
+          command: |
+            source activate testenv
+
+            pushd build
+            bash ../scripts/run-clang-tidy.sh normal
+            popd
+
+      # clang-tidy (test source files)
+      - run:
+          name: clang-tidy (test source files)
+          command: |
+            source activate testenv
+
+            pushd build
+            bash ../scripts/run-clang-tidy.sh test
+            popd
+
+      # make
+      - run:
+          name: make
+          command: |
+            source activate testenv
+
+            pushd build
+            make
+            popd
+
       # ClangFormat
       - run:
           name: ClangFormat
@@ -93,7 +145,17 @@ jobs:
           command: |
             source activate testenv
 
-            ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON .. && make clang-tidy && make && ctest -V )
+            pushd build
+            ctest -V
+            popd
+
+      # coverage
+      - run:
+          name: coverage
+          command: |
+            source activate testenv
+
+            # coverage
             lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
             genhtml build/coverage.info -o build/coverage/cpp
 
