@@ -4,24 +4,18 @@ jobs:
     docker:
       - image: ubuntu:xenial
     steps:
+
       # Setup
-      # - run:
-      #     name: Setup
-      #     command: |
-      #       apt-get update
-      #       apt-get install -y g++ cmake clang clang-format clang-tidy git python3-dev lcov wget
-      #       apt-get install openssh-client  # To avoid warning on checkout
-      #       apt-get install -y bzip2  # To install miniconda
-
-      #       # To avoid configuring PATH environment variable in every steps
-      #       echo 'export PATH="$HOME"/miniconda/bin:"$PATH"' >> $BASH_ENV
-
       - run:
           name: Setup
           command: |
             apt-get update
-            apt-get install -y git
-            apt-get install -y openssh-client
+            apt-get install -y g++ cmake clang clang-format clang-tidy git python3-dev lcov wget
+            apt-get install openssh-client  # To avoid warning on checkout
+            apt-get install -y bzip2  # To install miniconda
+
+            # To avoid configuring PATH environment variable in every steps
+            echo 'export PATH="$HOME"/miniconda/bin:"$PATH"' >> $BASH_ENV
 
       # Checkout
       - checkout
@@ -46,88 +40,152 @@ jobs:
                 git fetch -u origin ${FETCH_REFS}
 
                 # Checkout master and merge PR head ref. If conflicts occur, exit with non-zero.
+                echo "git checkout master"
                 git checkout master
                 git config user.name 'xchainer' # need to configure something to git merge
                 git config user.email 'xchainer@xchainer.org'
+                echo "git merge --no-commit \"pr/${CIRCLE_PR_NUMBER}/head\""
                 git merge --no-commit "pr/${CIRCLE_PR_NUMBER}/head"
             fi
 
       # Setup conda
-      # - run:
-      #     name: Setup conda
-      #     command: |
-      #       mkdir -p downloads
+      - run:
+          name: Setup conda
+          command: |
+            mkdir -p downloads
 
-      #       # conda
-      #       wget 'https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh' -O downloads/miniconda.sh
-      #       bash downloads/miniconda.sh -b -p "$HOME"/miniconda
-      #       conda config --set changeps1 no
-      #       conda update -y -q conda
-      #       conda create -y -q --name testenv python=3.6 pip
+            # conda
+            wget 'https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh' -O downloads/miniconda.sh
+            bash downloads/miniconda.sh -b -p "$HOME"/miniconda
+            conda config --set changeps1 no
+            conda update -y -q conda
+            conda create -y -q --name testenv python=3.6 pip
 
-      # # Environment info
-      # - run:
-      #     name: Environment info
-      #     command: |
-      #       source activate testenv
+      # Environment info
+      - run:
+          name: Environment info
+          command: |
+            source activate testenv
 
-      #       echo "PWD: $PWD"
+            echo "PWD: $PWD"
 
-      #       g++ --version
-      #       cmake --version
-      #       clang-format --version
-      #       python --version
+            echo
+            echo "----- g++ -----"
+            g++ --version
 
-      #       echo
-      #       echo "----- conda -----"
-      #       conda info -a
+            echo
+            echo "----- cmake -----"
+            cmake --version
 
-      # # Setup conda environment
-      # - run:
-      #     name: Setup conda environment
-      #     command: |
-      #       source activate testenv
+            echo
+            echo "----- clang-tidy -----"
+            clang-tidy --version
 
-      #       pip install -U hacking autopep8
-      #       pip install -U pytest pytest-cov coveralls
+            echo
+            echo "----- python -----"
+            python --version
 
-      # # Python PEP-8 check
-      # - run:
-      #     name: Python PEP-8 check
-      #     command: |
-      #       source activate testenv
+            echo
+            echo "----- conda -----"
+            conda info -a
 
-      #       flake8 --version
-      #       flake8 setup.py python tests
+      # Setup conda environment
+      - run:
+          name: Setup conda environment
+          command: |
+            source activate testenv
 
-      #       autopep8 --version
-      #       autopep8 setup.py python tests -r --global-config .pep8 --diff | tee check_autopep8
-      #       test ! -s check_autopep8
+            pip install -U hacking autopep8
+            pip install -U pytest pytest-cov coveralls
 
-      # # Python test
-      # - run:
-      #     name: Python test
-      #     command: |
-      #       source activate testenv
+      # Python PEP-8 check
+      - run:
+          name: Python PEP-8 check
+          command: |
+            source activate testenv
 
-      #       python setup.py build --debug --build-temp ./build --build-lib ./build develop
-      #       pytest -m='not cuda' --cov --no-cov-on-fail --cov-fail-under=80 --cov-report html:build/coverage/python
+            flake8 --version
+            flake8 setup.py python tests
 
-      # # ClangFormat
-      # - run:
-      #     name: ClangFormat
-      #     command: |
-      #       find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
+            autopep8 --version
+            autopep8 setup.py python tests -r --global-config .pep8 --diff | tee check_autopep8
+            test ! -s check_autopep8
 
-      # # C++ test
-      # - run:
-      #     name: C++ test
-      #     command: |
-      #       source activate testenv
+      # Python test
+      - run:
+          name: Python test
+          command: |
+            source activate testenv
 
-      #       ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON .. && make clang-tidy && make && ctest -V )
-      #       lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
-      #       genhtml build/coverage.info -o build/coverage/cpp
+            python setup.py build --debug --build-temp ./build --build-lib ./build develop
+            pytest -m='not cuda' --cov --no-cov-on-fail --cov-fail-under=80 --cov-report html:build/coverage/python
 
-      # - store_artifacts:
-      #     path: build/coverage
+      # cmake
+      - run:
+          name: cmake
+          command: |
+            source activate testenv
+
+            mkdir -p build
+            pushd build
+            cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON ..
+            popd
+
+      # clang-tidy (normal source files)
+      - run:
+          name: clang-tidy (normal source files)
+          command: |
+            source activate testenv
+
+            pushd build
+            bash ../scripts/run-clang-tidy.sh normal
+            popd
+
+      # clang-tidy (test source files)
+      - run:
+          name: clang-tidy (test source files)
+          command: |
+            source activate testenv
+
+            pushd build
+            bash ../scripts/run-clang-tidy.sh test
+            popd
+
+      # make
+      - run:
+          name: make
+          command: |
+            source activate testenv
+
+            pushd build
+            make
+            popd
+
+      # ClangFormat
+      - run:
+          name: ClangFormat
+          command: |
+            find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
+
+      # C++ test
+      - run:
+          name: C++ test
+          command: |
+            source activate testenv
+
+            pushd build
+            ctest -V
+            popd
+
+      # coverage
+      - run:
+          name: coverage
+          command: |
+            source activate testenv
+
+            # coverage
+            lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
+            genhtml build/coverage.info -o build/coverage/cpp
+
+      - store_artifacts:
+          path: build/coverage
