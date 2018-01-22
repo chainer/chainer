@@ -86,7 +86,7 @@ An :class:`~chainer.training.Extension` is kept in a dictionary which is a prope
 3. priority
 ^^^^^^^^^^^
 
-As a :class:`~chainer.training.Trainer` object can be assigned multiple :class:`~chainer.training.Extension`\ s, the execution order is defined according to the following three values:
+As a :class:`~chainer.training.Trainer` object can be assigned multiple :class:`~chainer.training.Extension` objects, the execution order is defined according to the following three values:
 
 - :data:`~chainer.training.extension.PRIORITY_WRITER`: The priority for extensions that write some records to the observation dictionary. It includes cases that the extension directly adds values to the observation dictionary, or the extension uses the chainer.report() function to report values to the observation dictionary. Extensions which write something to reporter should go first because other Extensions which read those values may be added.
 - :data:`~chainer.training.extension.PRIORITY_EDITOR`: The priority for extensions that edit the observation dictionary based on already reported values. Extensions which edit some values of reported ones should go after the extensions which write values to reporter but before extensions which read the final values.
