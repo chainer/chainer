@@ -23,39 +23,39 @@
 #include "xchainer/scalar.h"
 
 namespace xchainer {
+namespace internal {
 
-Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad, bool is_contiguous,
-             int64_t offset)
-    : shape_(std::move(shape)),
+// Private definition of ArrayBody
+ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool requires_grad, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+                     std::shared_ptr<ArrayNode> node)
+    : shape_(shape),
       dtype_(dtype),
-      data_(std::move(data)),
       requires_grad_(requires_grad),
       is_contiguous_(is_contiguous),
+      data_(std::move(data)),
       offset_(offset),
       node_(std::move(node)) {}
 
+}  // namespace internal
+
+Array::Array(Shape shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad, bool is_contiguous,
+             int64_t offset)
+    : body_(std::make_shared<internal::ArrayBody>(shape, dtype, requires_grad, is_contiguous, std::move(data), offset, std::move(node))) {}
+
 Array::Array(const Array& other)
-    : shape_(other.shape_),
-      dtype_(other.dtype_),
-      requires_grad_(other.requires_grad_),
-      is_contiguous_(true),
-      offset_(0),
-      node_(std::make_shared<ArrayNode>()) {
+    : Array(other.shape(), other.dtype(), internal::Allocate(GetCurrentDevice(), other.total_bytes()), std::make_shared<ArrayNode>(),
+            other.requires_grad(), true, 0) {
     // Memory layout-related members are not copied in this copy ctor since new C-contiguous memory is allocated
-    data_ = internal::Allocate(GetCurrentDevice(), other.total_bytes());
     other.CopyTo(*this);
 }
 
-const std::shared_ptr<ArrayNode>& Array::RenewNode() {
-    node_ = std::make_shared<ArrayNode>();
-    return node_;
-}
+const std::shared_ptr<ArrayNode>& Array::RenewNode() { return body_->node_ = std::make_shared<ArrayNode>(); }
 
-const nonstd::optional<Array>& Array::grad() const noexcept { return node_->grad(); }
+const nonstd::optional<Array>& Array::grad() const noexcept { return body_->node_->grad(); }
 
-void Array::set_grad(Array grad) { node_->set_grad(std::move(grad)); }
+void Array::set_grad(Array grad) { body_->node_->set_grad(std::move(grad)); }
 
-void Array::ClearGrad() noexcept { node_->ClearGrad(); }
+void Array::ClearGrad() noexcept { body_->node_->ClearGrad(); }
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
@@ -89,46 +89,44 @@ Array Array::ZerosLike(const Array& array) { return Zeros(array.shape(), array.d
 
 Array Array::OnesLike(const Array& array) { return Ones(array.shape(), array.dtype()); }
 
-Array Array::MakeView() const { return {shape_, dtype_, data_, node_, requires_grad_, is_contiguous_, offset_}; }
-
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
-    requires_grad_ = requires_grad_ || rhs.requires_grad();
+    set_requires_grad(requires_grad() || rhs.requires_grad());
     return *this;
 }
 
 Array& Array::operator*=(const Array& rhs) {
     Mul(rhs, *this);
-    requires_grad_ = requires_grad_ || rhs.requires_grad();
+    set_requires_grad(requires_grad() || rhs.requires_grad());
     return *this;
 }
 
 Array Array::operator+(const Array& rhs) const {
     Array out = Array::EmptyLike(*this);
-    out.set_requires_grad(requires_grad_ || rhs.requires_grad());
+    out.set_requires_grad(requires_grad() || rhs.requires_grad());
     Add(rhs, out);
     return out;
 }
 
 Array Array::operator*(const Array& rhs) const {
     Array out = Array::EmptyLike(*this);
-    out.set_requires_grad(requires_grad_ || rhs.requires_grad());
+    out.set_requires_grad(requires_grad() || rhs.requires_grad());
     Mul(rhs, out);
     return out;
 }
 
 Array Array::Copy() const {
     Array out = Array::EmptyLike(*this);
-    out.set_requires_grad(requires_grad_);
+    out.set_requires_grad(requires_grad());
     CopyTo(out);
     return out;
 }
 
 void Array::CopyTo(Array& out) const {
-    if (requires_grad_) {
+    if (requires_grad()) {
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
         int64_t out_rank = node()->rank();
-        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{node_};
+        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{body_->node_};
         auto in_func = [](const Array& gout) { return gout; };
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{in_func};
         auto op_node = std::make_shared<OpNode>("copy", out_rank, next_nodes, backward_functions);
@@ -138,20 +136,20 @@ void Array::CopyTo(Array& out) const {
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
     // is_contiguous_ and offset_ into account
-    internal::MemoryCopy(out.data().get(), data_.get(), total_bytes());
+    internal::MemoryCopy(out.data().get(), body_->data_.get(), total_bytes());
 }
 
 void Array::Add(const Array& rhs, Array& out) const {
-    if ((&out == this || &out == &rhs) && out.requires_grad_) {
+    if ((&out == this || &out == &rhs) && out.requires_grad()) {
         throw XchainerError("In-place operation (Add) is not supported for an array with requires_grad=true.");
     }
 
     // TODO(sonots): dtype conversion
-    CheckEqual(dtype_, rhs.dtype());
+    CheckEqual(dtype(), rhs.dtype());
     // TODO(sonots): broadcasting
-    CheckEqual(shape_, rhs.shape());
+    CheckEqual(shape(), rhs.shape());
 
-    if (requires_grad_ || rhs.requires_grad()) {
+    if (requires_grad() || rhs.requires_grad()) {
         const Array& lhs = *this;
         std::shared_ptr<ArrayNode> lhs_node = mutable_node();
         std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node();
@@ -180,16 +178,16 @@ void Array::Add(const Array& rhs, Array& out) const {
 }
 
 void Array::Mul(const Array& rhs, Array& out) const {
-    if ((&out == this || &out == &rhs) && out.requires_grad_) {
+    if ((&out == this || &out == &rhs) && out.requires_grad()) {
         throw XchainerError("In-place operation (Mul) is not supported for an array with requires_grad=true.");
     }
 
     // TODO(sonots): dtype conversion
-    CheckEqual(dtype_, rhs.dtype());
+    CheckEqual(dtype(), rhs.dtype());
     // TODO(sonots): broadcasting
-    CheckEqual(shape_, rhs.shape());
+    CheckEqual(shape(), rhs.shape());
 
-    if (requires_grad_ || rhs.requires_grad()) {
+    if (requires_grad() || rhs.requires_grad()) {
         std::shared_ptr<ArrayNode> lhs_node = mutable_node();
         std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node();
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
@@ -197,8 +195,8 @@ void Array::Mul(const Array& rhs, Array& out) const {
         auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node, rhs_node};
         std::function<Array(const Array&)> empty_func;
         // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
-        auto lhs_func = requires_grad_ ? [rhs_view = rhs.MakeView()](const Array& gout) { return gout * rhs_view; } : empty_func;
-        auto rhs_func = rhs.requires_grad_ ? [lhs_view = MakeView()](const Array& gout) { return gout * lhs_view; } : empty_func;
+        auto lhs_func = requires_grad() ? [rhs_view = rhs.MakeView()](const Array& gout) { return gout * rhs_view; } : empty_func;
+        auto rhs_func = rhs.requires_grad() ? [lhs_view = MakeView()](const Array& gout) { return gout * lhs_view; } : empty_func;
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
         auto op_node = std::make_shared<OpNode>("mul", out_rank, next_nodes, backward_functions);
         out_node->set_next_node(op_node);

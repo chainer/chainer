@@ -14,7 +14,39 @@
 
 namespace xchainer {
 
+class Array;
 class ArrayNode;
+
+namespace internal {
+
+// Data holder of Array.
+//
+// C++ Array and Python bindings both share ArrayBody through shared_ptr. C++ Array provides the value-based semantics of Array in C++,
+// while Python Array provides the reference-based semantics, which is more natural in Python.
+//
+// The current design requires a subtle overhead on converting between C++ Array and Python Array (due to reference counting), which is
+// currently considered to be ignorable compared to other Python operations.
+//
+// NOTE: This class should not be instantiated by any functions except those defined in array.cc. This class is still defined here so that
+// the code is made simple and we can use inline access to each member from member accessor functions of Array.
+class ArrayBody {
+public:
+    ArrayBody(const Shape& shape, Dtype dtype, bool requires_grad, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+              std::shared_ptr<ArrayNode> node);
+
+private:
+    friend class ::xchainer::Array;
+
+    Shape shape_;
+    Dtype dtype_;
+    bool requires_grad_;
+    bool is_contiguous_;
+    std::shared_ptr<void> data_;
+    int64_t offset_;
+    std::shared_ptr<ArrayNode> node_;
+};
+
+}  // namespace internal
 
 // The main data structure of multi-dimensional array.
 class Array {
@@ -28,6 +60,8 @@ public:
     // TODO(hvy): Copy assignment operator is deleted to avoid performance drops due to possible unwanted copies and heavy refactorings
     // later on until the behavior is better agreed upon
     Array& operator=(const Array&) = delete;
+
+    explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
 
     static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data);
 
@@ -45,33 +79,36 @@ public:
     static Array ZerosLike(const Array& array);
     static Array OnesLike(const Array& array);
 
-    Dtype dtype() const { return dtype_; }
+    const std::shared_ptr<internal::ArrayBody>& body() { return body_; }
+    std::shared_ptr<const internal::ArrayBody> body() const { return body_; }
 
-    int8_t ndim() const { return shape_.ndim(); }
+    Dtype dtype() const { return body_->dtype_; }
 
-    const Shape& shape() const { return shape_; }
+    int8_t ndim() const { return shape().ndim(); }
 
-    int64_t total_size() const { return shape_.total_size(); }
+    const Shape& shape() const { return body_->shape_; }
 
-    int64_t element_bytes() const { return GetElementSize(dtype_); }
+    int64_t total_size() const { return shape().total_size(); }
+
+    int64_t element_bytes() const { return GetElementSize(dtype()); }
 
     int64_t total_bytes() const { return total_size() * element_bytes(); }
 
-    const std::shared_ptr<void>& data() { return data_; }
+    const std::shared_ptr<void>& data() { return body_->data_; }
 
-    std::shared_ptr<const void> data() const { return data_; }
+    std::shared_ptr<const void> data() const { return body_->data_; }
 
-    bool requires_grad() const { return requires_grad_; }
+    bool requires_grad() const { return body_->requires_grad_; }
 
-    void set_requires_grad(bool requires_grad) { requires_grad_ = requires_grad; }
+    void set_requires_grad(bool requires_grad) { body_->requires_grad_ = requires_grad; }
 
-    bool is_contiguous() const { return is_contiguous_; }
+    bool is_contiguous() const { return body_->is_contiguous_; }
 
-    int64_t offset() const { return offset_; }
+    int64_t offset() const { return body_->offset_; }
 
-    const std::shared_ptr<ArrayNode>& mutable_node() const { return node_; }
+    const std::shared_ptr<ArrayNode>& mutable_node() const { return body_->node_; }
 
-    std::shared_ptr<const ArrayNode> node() const { return node_; }
+    std::shared_ptr<const ArrayNode> node() const { return body_->node_; }
 
     const std::shared_ptr<ArrayNode>& RenewNode();
 
@@ -81,7 +118,7 @@ public:
 
     void ClearGrad() noexcept;
 
-    Array MakeView() const;
+    Array MakeView() const { return Array{body_}; }
 
     Array& operator+=(const Array& rhs);
     Array& operator*=(const Array& rhs);
@@ -102,13 +139,7 @@ private:
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 
-    Shape shape_;
-    Dtype dtype_;
-    std::shared_ptr<void> data_;
-    bool requires_grad_;
-    bool is_contiguous_;
-    int64_t offset_;
-    std::shared_ptr<ArrayNode> node_;
+    std::shared_ptr<internal::ArrayBody> body_;
 };
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent = 0);
