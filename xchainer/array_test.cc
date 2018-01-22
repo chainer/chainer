@@ -329,12 +329,28 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
     { EXPECT_TRUE(std::is_nothrow_move_constructible<Array>::value); }
     {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        auto body = a.body();
         Array b = a;
         Array c = std::move(a);
-        ASSERT_EQ(a.data(), nullptr);
-        ASSERT_EQ(a.node(), nullptr);
+        EXPECT_EQ(a.body(), nullptr);
+        EXPECT_EQ(body, c.body());
         ExpectEqualCopy<float>(b, c);
     }
+}
+
+TEST_P(ArrayTest, ArrayBodyCtor) {
+    Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+    auto body = a.body();
+    Array b{body};
+    EXPECT_EQ(body, b.body());
+
+    EXPECT_EQ(a.dtype(), b.dtype());
+    EXPECT_EQ(a.shape(), b.shape());
+    EXPECT_EQ(a.data(), b.data());
+    EXPECT_EQ(a.requires_grad(), b.requires_grad());
+    EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
+    EXPECT_EQ(a.offset(), b.offset());
+    EXPECT_EQ(a.node(), b.node());
 }
 
 TEST_P(ArrayTest, ArrayMoveAssignmentOperator) {
