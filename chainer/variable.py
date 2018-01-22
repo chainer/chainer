@@ -865,8 +865,9 @@ Actual: {0}'''.format(type(data))
         1.0 as the initial error. This is useful on starting backprop from
         some scalar loss value.
 
-        Note that this method does not support *differentiable backprop*. Use
-        :func:`chainer.grad` to compute the gradient of gradients.
+        From v3, this method supports *differentiable backprop* (a.k.a. double
+        backprop, grad of grads). To enable it, pass
+        ``enable_double_backprop=True``.
 
         Args:
             retain_grad (bool): If ``True``, the gradient arrays of all
