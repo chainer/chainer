@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: xchainer-ci:latest
+      - image: masayukitakagi/0mdayl9l:latest
     steps:
 
       # Checkout
