@@ -322,19 +322,48 @@ private:
 TEST_P(ArrayTest, CopyCtor) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = a;
-    ExpectEqualCopy<bool>(a, b);
+
+    // A copy-constructed instance must be a view
+    ExpectEqual<bool>(a, b);
+    EXPECT_EQ(a.body(), b.body());
+
+    EXPECT_EQ(a.dtype(), b.dtype());
+    EXPECT_EQ(a.shape(), b.shape());
+    EXPECT_EQ(a.data(), b.data());
+    EXPECT_EQ(a.requires_grad(), b.requires_grad());
+    EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
+    EXPECT_EQ(a.offset(), b.offset());
+    EXPECT_EQ(a.node(), b.node());
 }
 
 TEST_P(ArrayTest, ArrayMoveCtor) {
     { EXPECT_TRUE(std::is_nothrow_move_constructible<Array>::value); }
+
+    // A view must not be affected by move
+    {
+        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = a;  // view
+        Array c = std::move(a);
+        ASSERT_EQ(a.body(), nullptr);
+        ExpectEqual<float>(b, c);
+    }
+
+    // A copy must not be affected by move
+    {
+        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = a.Copy();  // copy
+        Array c = std::move(a);
+        EXPECT_EQ(a.body(), nullptr);
+        ExpectEqualCopy<float>(b, c);
+    }
+
+    // Array body must be transferred by move
     {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
         auto body = a.body();
-        Array b = a;
         Array c = std::move(a);
         EXPECT_EQ(a.body(), nullptr);
         EXPECT_EQ(body, c.body());
-        ExpectEqualCopy<float>(b, c);
     }
 }
 

@@ -42,12 +42,7 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::s
              bool is_contiguous, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, dtype, requires_grad, is_contiguous, std::move(data), offset, std::move(node))) {}
 
-Array::Array(const Array& other)
-    : Array(other.shape(), other.dtype(), internal::Allocate(GetCurrentDevice(), other.total_bytes()), std::make_shared<ArrayNode>(),
-            other.requires_grad(), true, 0) {
-    // Memory layout-related members are not copied in this copy ctor since new C-contiguous memory is allocated
-    other.CopyTo(*this);
-}
+Array::Array(const Array& other) : Array(other.body_) {}
 
 const std::shared_ptr<ArrayNode>& Array::RenewNode() { return body_->node_ = std::make_shared<ArrayNode>(); }
 

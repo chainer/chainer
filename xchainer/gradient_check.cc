@@ -144,7 +144,8 @@ Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, con
     auto eval = [&](int i_in, int64_t in_flat_index, Scalar eps_scalar, float multiplier) -> Arrays {
         // TODO(niboshi): In this deep copy, currently xs and inputs are connected with the computational graph.
         // We should avoid this connection.
-        Arrays xs = inputs;  // arrays are deeply copied
+        Arrays xs;
+        std::transform(inputs.begin(), inputs.end(), std::back_inserter(xs), [](const Array& x) { return x.Copy(); });
 
         Set(xs.at(i_in), in_flat_index, Get(xs.at(i_in), in_flat_index) + Scalar(static_cast<float>(eps_scalar) * multiplier, dtype));
         return func(xs);

@@ -141,7 +141,7 @@ TEST_P(BackpropTest, BackwardIdenticalInputs) {
 TEST_P(BackpropTest, BackwardGivenInputGrad) {
     auto fprop = [](auto& xs) {
         xs[0].set_grad(Array::OnesLike(xs[0]));
-        return xs[0];
+        return xs[0].Copy();
     };
     CheckBackpropSingleElement({1.0f}, {2.0f}, fprop);
 }
