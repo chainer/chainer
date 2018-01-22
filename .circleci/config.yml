@@ -37,7 +37,7 @@ jobs:
                 CIRCLE_PR_NUMBER=$(basename "${CIRCLE_PULL_REQUEST}")
 
                 # Update PR refs for testing.
-                FETCH_REFS="+${master}:${master}"
+                FETCH_REFS="+master:master"
                 FETCH_REFS="${FETCH_REFS} +refs/pull/${CIRCLE_PR_NUMBER}/head:pr/${CIRCLE_PR_NUMBER}/head"
                 FETCH_REFS="${FETCH_REFS} +refs/pull/${CIRCLE_PR_NUMBER}/merge:pr/${CIRCLE_PR_NUMBER}/merge"
 
@@ -45,17 +45,11 @@ jobs:
                 echo "git fetch -u origin ${FETCH_REFS}"
                 git fetch -u origin ${FETCH_REFS}
 
-                # Checkout PR merge ref.
-                echo "git checkout -qf \"pr/${CIRCLE_PR_NUMBER}/merge\""
-                git checkout -qf "pr/${CIRCLE_PR_NUMBER}/merge"
-
-                # Test for merge conflicts.
-                echo "git branch --merged"
-                git branch --merged
-                echo "git branch --merged | grep master > /dev/null"
-                git branch --merged | grep master > /dev/null
-                echo "git branch --merged | grep \"pr/${CIRCLE_PR_NUMBER}/head\" > /dev/null"
-                git branch --merged | grep "pr/${CIRCLE_PR_NUMBER}/head" > /dev/null
+                # Checkout master and merge PR head ref. If conflicts occur, exit with non-zero.
+                git checkout master
+                git config user.name 'xchainer' # need to configure something to git merge
+                git config user.email 'xchainer@xchainer.org'
+                git merge --no-commit "pr/${CIRCLE_PR_NUMBER}/head"
             fi
 
       # Setup conda
