@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cstddef>
-#include <deque>
 #include <initializer_list>
 #include <type_traits>
 
@@ -122,15 +121,16 @@ public:
     }
 
     template <bool is_const, typename T>
-    void CheckFromBuffer(const Shape& shape, std::deque<T>&& raw_data) {
+    void CheckFromBuffer(const Shape& shape, std::initializer_list<T> raw_data) {
         using TargetArray = std::conditional_t<is_const, const Array, Array>;
 
         // Check test data
         ASSERT_EQ(shape.total_size(), static_cast<int64_t>(raw_data.size()));
 
+        std::shared_ptr<T> data = std::make_unique<T[]>(shape.total_size());
+        std::copy(raw_data.begin(), raw_data.end(), data.get());
+
         Dtype dtype = TypeToDtype<T>;
-        int64_t bytesize = shape.total_size() * sizeof(T);
-        auto data = std::shared_ptr<T>(&raw_data[0], [](T* ptr) { (void)ptr; });
         TargetArray x = Array::FromBuffer(shape, dtype, data);
 
         // Basic attributes
@@ -139,7 +139,7 @@ public:
         EXPECT_EQ(2, x.ndim());
         EXPECT_EQ(3 * 2, x.total_size());
         EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
-        EXPECT_EQ(bytesize, x.total_bytes());
+        EXPECT_EQ(shape.total_size() * sizeof(T), x.total_bytes());
         EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
