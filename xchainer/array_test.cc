@@ -324,16 +324,26 @@ TEST_P(ArrayTest, CopyCtor) {
     Array b = a;
 
     // A copy-constructed instance must be a view
-    ExpectEqual<bool>(a, b);
-    EXPECT_EQ(a.body(), b.body());
+    {
+        ExpectEqual<bool>(a, b);
+        EXPECT_EQ(a.dtype(), b.dtype());
+        EXPECT_EQ(a.shape(), b.shape());
+        EXPECT_EQ(a.data(), b.data());
+        EXPECT_EQ(a.requires_grad(), b.requires_grad());
+        EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
+        EXPECT_EQ(a.offset(), b.offset());
+        EXPECT_EQ(a.node(), b.node());
+    }
 
-    EXPECT_EQ(a.dtype(), b.dtype());
-    EXPECT_EQ(a.shape(), b.shape());
-    EXPECT_EQ(a.data(), b.data());
-    EXPECT_EQ(a.requires_grad(), b.requires_grad());
-    EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
-    EXPECT_EQ(a.offset(), b.offset());
-    EXPECT_EQ(a.node(), b.node());
+    // A view must not share requires_grad with the original array.
+    {
+        // Precondition of the test
+        ASSERT_FALSE(a.requires_grad());
+        ASSERT_FALSE(b.requires_grad());
+
+        a.set_requires_grad(true);
+        EXPECT_NE(a.requires_grad(), b.requires_grad());
+    }
 }
 
 TEST_P(ArrayTest, ArrayMoveCtor) {

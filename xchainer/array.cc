@@ -42,7 +42,9 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::s
              bool is_contiguous, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, dtype, requires_grad, is_contiguous, std::move(data), offset, std::move(node))) {}
 
-Array::Array(const Array& other) : Array(other.body_) {}
+Array::Array(const Array& other)
+    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.requires_grad(), other.is_contiguous(),
+                                                  other.body_->data_, other.offset(), other.body_->node_)) { std::cout << "Array copy ctor" << std::endl; }
 
 const std::shared_ptr<ArrayNode>& Array::RenewNode() { return body_->node_ = std::make_shared<ArrayNode>(); }
 
