@@ -17,9 +17,9 @@ In this section, you will learn about the following things:
 What is trainer Extension?
 --------------------------
 
-:class:`~chainer.training.Extension` is a callable object that takes a :class:`~chainer.training.Trainer` object as an argument. Adding an :class:`~chainer.training.Extension` to a :class:`~chainer.training.Trainer` using :meth:`~chainer.training.Trainer.extend` method, the :class:`~chainer.training.Extension` will be called at the given timing you specified by using ``trigger`` object (See the details in :ref:`trigger`)
+:class:`~chainer.training.Extension` is a callable object that takes a :class:`~chainer.training.Trainer` object as an argument. By adding an :class:`~chainer.training.Extension` to a :class:`~chainer.training.Trainer` using the :meth:`~chainer.training.Trainer.extend` method, the :class:`~chainer.training.Extension` will be called according to the schedule specified by using a ``trigger`` object (See the details in :ref:`trigger`)
 
-A :class:`~chainer.training.Trainer` object has all information used in a training loop, e.g., models, optimizers, updaters, iterators, and datasets, etc. So you can change the settings of optimizers
+The :class:`~chainer.training.Trainer` object contains all information used in a training loop, e.g., models, optimizers, updaters, iterators, and datasets, etc. This makes it possible to change settings such as the learning rate of an optimizer.
 
 
 .. _function:
@@ -27,7 +27,7 @@ A :class:`~chainer.training.Trainer` object has all information used in a traini
 Write a simple function
 -----------------------
 
-You can make a new :class:`~chainer.training.Extension` by writing a simple function which takes :class:`~chainer.training.Trainer` object as its argument. For example, when you want to reduce the learning rate at specified timing during training, ``lr_drop`` extension can be written as follows:
+You can make a new :class:`~chainer.training.Extension` by writing a simple function which takes a :class:`~chainer.training.Trainer` object as its argument. For example, when you want to reduce the learning rate periodically during training, an ``lr_drop`` extension can be written as follows:
 
 .. testcode::
 
@@ -55,7 +55,7 @@ Write a function decorated with @make_extension
     def lr_drop(trainer):
         trainer.updater.get_optimizer('main').lr *= 0.1
 
-The difference between the above one and this is whether it has a default ``trigger`` or not. In this latter case, :meth:`lr_drop` has its default ``trigger`` so that unless another ``trigger`` is specified via :meth:`~chainer.training.Trainer.extend` method, the ``trigger`` specified in :meth:`~chainer.training.make_extension` is used as default. So the code below acts the same as the former example, i.e., it reduces the learning rate every 10 epochs.
+The difference between the above example and this is whether it has a default ``trigger`` or not. In the latter case, :meth:`lr_drop` has its default ``trigger`` so that unless another ``trigger`` is specified via :meth:`~chainer.training.Trainer.extend` method, the ``trigger`` specified in :meth:`~chainer.training.make_extension` is used by default. The code below acts the same as the former example, i.e., it reduces the learning rate every 10 epochs.
 
 .. code-block:: python
 
@@ -68,7 +68,7 @@ There are several attributes you can add using the :meth:`~chainer.training.make
 1. trigger
 ^^^^^^^^^^
 
-``trigger`` is an object that takes a :class:`~chainer.training.Trainer` object as an argument and returns a boolean value. If a tuple in a form ``(period, unit)`` is given as a trigger, it will be considered as an :class:`~chainer.training.triggers.IntervalTrigger` that invokes the extension at every ``period`` ``unit``. For example, when the given tuple is ``(10, 'epoch')``, the extension will be fired at every 10 epochs.
+``trigger`` is an object that takes a :class:`~chainer.training.Trainer` object as an argument and returns a boolean value. If a tuple in the form ``(period, unit)`` is given as a trigger, it will be considered as an :class:`~chainer.training.triggers.IntervalTrigger` that invokes the extension every ``period`` ``unit``. For example, when the given tuple is ``(10, 'epoch')``, the extension will run every 10 epochs.
 
 ``trigger`` can also be given to the :meth:`~chainer.training.trainer.extend` method that adds an extension to a :class:`~chainer.training.Trainer` object. The priority of ``trigger``\ s is as follows:
 
@@ -76,37 +76,37 @@ There are several attributes you can add using the :meth:`~chainer.training.make
 - When ``None`` is given to :meth:`~chainer.training.Trainer.extend` as the ``trigger`` argument and a given :class:`~chainer.training.Extension` has ``trigger``, the ``trigger`` given to the :class:`~chainer.training.Extension` is used.
 - When both ``trigger`` attributes in :meth:`~chainer.training.Trainer.extend` and :class:`~chainer.training.Extension` are ``None``, the :class:`~chainer.training.Extension` will be fired every iteration.
 
-See the details in the documentation of :meth:`~chainer.training.get_trigger`.
+See the details in the documentation of :meth:`~chainer.training.get_trigger` for more information.
 
 2. default_name
 ^^^^^^^^^^^^^^^
 
-An :class:`~chainer.training.Extension` is kept in a dictionary which is a property in a :class:`~chainer.training.Trainer`. This argument gives the name of the :class:`~chainer.training.Extension`. Users will see this name in keys of the snapshot which is a dictionary generated by serialization.
+An :class:`~chainer.training.Extension` is kept in a dictionary which is a property in a :class:`~chainer.training.Trainer`. This argument gives the name of the :class:`~chainer.training.Extension`. Users will see this name in the keys of the snapshot which is a dictionary generated by serialization.
 
 3. priority
 ^^^^^^^^^^^
 
-The priority that is used to determine the order of execution of extensions in a :class:`~chainer.training.Trainer` object. There are three standard values for the priorities:
+As a :class:`~chainer.training.Trainer` object can be assigned multiple :class:`~chainer.training.Extension`\ s, the execution order is defined according to the following three values:
 
-- :data:`~chainer.training.extension.PRIORITY_WRITER`: The priority for extensions that write some records to the observation dictionary. It includes cases that the extension directly adds values to the observation dictionary, or the extension uses the chainer.report() function to report values to the observation dictionary. Extensions which write something to reporter should go first because the other Extensions which read those values could be added.
+- :data:`~chainer.training.extension.PRIORITY_WRITER`: The priority for extensions that write some records to the observation dictionary. It includes cases that the extension directly adds values to the observation dictionary, or the extension uses the chainer.report() function to report values to the observation dictionary. Extensions which write something to reporter should go first because other Extensions which read those values may be added.
 - :data:`~chainer.training.extension.PRIORITY_EDITOR`: The priority for extensions that edit the observation dictionary based on already reported values. Extensions which edit some values of reported ones should go after the extensions which write values to reporter but before extensions which read the final values.
 - :data:`~chainer.training.extension.PRIORITY_READER`: The priority for extensions that only read records from the observation dictionary. This is also suitable for extensions that do not use the observation dictionary at all. Extensions which read the reported values should be fired after all the extensions which have other priorities, e.g, :data:`PRIORITY_WRITER` and :data:`PRIORITY_EDITOR` because it should read the final values.
 
-See the details in the documentation of :class:`~chainer.training.Trainer`.
+See the details in the documentation of :class:`~chainer.training.Trainer` for more information.
 
 4. finalizer
 ^^^^^^^^^^^^
 
-You can specify a function which takes :class:`~chainer.training.Trainer` object to finalize the extension. It is called once at the end of the whole training loops, namely, the :meth:`~chainer.training.Trainer.run` finished.
+You can specify a function which takes a :class:`~chainer.training.Trainer` object as an argument to finalize the extension. It is called once at the end of the training loop, i.e., when :meth:`~chainer.training.Trainer.run` has finished.
 
 5. initializer
 ^^^^^^^^^^^^^^
 
-You can specify a function which takes :class:`~chainer.training.Trainer` object to initialize the extension. It is called once at the beginning of the training loop, namely, before starting the actual loop.
+You can specify a function which takes a :class:`~chainer.training.Trainer` object as an argument to initialize the extension. It is called once before the training loop begins.
 
 .. _class:
 
-Write a class inherited from Extension class
+Write a class inherited from the Extension class
 --------------------------------------------
 
 This is the way to define your own extension with the maximum degree of freedom. You can keep any values inside of the extension and serialize them.
@@ -117,7 +117,7 @@ As an example, let's make an extension that drops the learning rate polynomially
 
     \eta = \eta_{\rm init} \left( 1 - \frac{t}{t_{\rm max}} \right)^{\rm power}
 
-The learning rate will be dropped like the curve below with :math:`{\rm power} = 0.5`:
+The learning rate will be dropped according to the curve below with :math:`{\rm power} = 0.5`:
 
 .. image:: ../../image/polynomial.png
 
@@ -171,10 +171,10 @@ The learning rate will be dropped like the curve below with :math:`{\rm power} =
 
 This extension ``PolynomialShift`` takes five arguments.
 
-- ``attr``: The name of optimizer property you want to update by this extension.
+- ``attr``: The name of the optimizer property you want to update using this extension.
 - ``power``: The power of the above equation to calculate the learning rate.
 - ``stop_trigger``: The trigger given to the :class:`~chainer.traininig.Trainer` object to specify when to stop the training loop.
 - ``batchsize``: The training mini-batchsize.
-- ``len_dataset``: The length of dataset, i.e., the number of data in the training dataset.
+- ``len_dataset``: The length of the dataset, i.e., the number of data in the training dataset.
 
-This extension calculates the number of iterations which will be performed in training by using ``stop_trigger``, ``batchsize``, and ``len_dataset``, then store it as a property ``_maxiter``. This property will be used in :meth:`__call__` method to update the learning rate. :meth:`initialize` method obtains the initial learning rate from the optimizer set to give :class:`~chainer.training.Trainer` object. :meth:`~chainer.traininig.serialize` method stores or recovers the properties, ``_t`` (number of iterations) and ``_last_value`` (the latest learning rate), which this extension has.
+This extension calculates the number of iterations which will be performed during training by using ``stop_trigger``, ``batchsize``, and ``len_dataset``, then stores it as a property ``_maxiter``. This property will be used in the :meth:`__call__` method to update the learning rate. The :meth:`initialize` method obtains the initial learning rate from the optimizer given to the :class:`~chainer.training.Trainer` object. The :meth:`~chainer.traininig.serialize` method stores or recovers the properties, ``_t`` (number of iterations) and ``_last_value`` (the latest learning rate), belonging to this extension.
