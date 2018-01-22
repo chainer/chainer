@@ -434,7 +434,7 @@ TEST_P(ArrayTest, Grad) {
 
     // ClearGrad
     {
-        Array grad_view = x.grad()->MakeView();  // Make a view of grad
+        Array grad_view = *x.grad();  // Make a view of grad
 
         x.ClearGrad();
 
@@ -902,14 +902,6 @@ TEST_P(ArrayTest, Copy) {
         Array o = a.Copy();
         ExpectEqualCopy<bool>(a, o);
     }
-}
-
-TEST_P(ArrayTest, MakeView) {
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = a.MakeView();
-    ExpectEqual<bool>(a, b);
-    // View should point same addresses to data
-    EXPECT_EQ(a.data().get(), b.data().get());
 }
 
 TEST_P(ArrayTest, AddBackward) {
