@@ -21,19 +21,25 @@ namespace py = pybind11;
 namespace {
 
 void InitXchainerModule(pybind11::module& m) {
+    using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
+
     m.doc() = "xChainer";
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
 
-    m.def("backward", &Backward)
-        .def("empty", &Array::Empty)
-        .def("full", py::overload_cast<const Shape&, Scalar, Dtype>(&Array::Full))
-        .def("full", py::overload_cast<const Shape&, Scalar>(&Array::Full))
-        .def("zeros", &Array::Zeros)
-        .def("ones", &Array::Ones)
-        .def("empty_like", &Array::EmptyLike)
-        .def("full_like", &Array::FullLike)
-        .def("zeros_like", &Array::ZerosLike)
-        .def("ones_like", &Array::OnesLike);
+    m.def("backward",
+          [](const ArrayBodyPtr& body) {
+              Array array{body};
+              Backward(array);
+          })
+        .def("empty", [](const Shape& shape, Dtype dtype) { return Array::Empty(shape, dtype).body(); })
+        .def("full", [](const Shape& shape, Scalar value, Dtype dtype) { return Array::Full(shape, value, dtype).body(); })
+        .def("full", [](const Shape& shape, Scalar value) { return Array::Full(shape, value).body(); })
+        .def("zeros", [](const Shape& shape, Dtype dtype) { return Array::Zeros(shape, dtype).body(); })
+        .def("ones", [](const Shape& shape, Dtype dtype) { return Array::Ones(shape, dtype).body(); })
+        .def("empty_like", [](const ArrayBodyPtr& other) { return Array::EmptyLike(Array{other}).body(); })
+        .def("full_like", [](const ArrayBodyPtr& other, Scalar value) { return Array::FullLike(Array{other}, value).body(); })
+        .def("zeros_like", [](const ArrayBodyPtr& other) { return Array::ZerosLike(Array{other}).body(); })
+        .def("ones_like", [](const ArrayBodyPtr& other) { return Array::OnesLike(Array{other}).body(); });
 }
 }  // namespace
 }  // namespace xchainer

@@ -324,8 +324,8 @@ def test_array_grad_identity():
     grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
     array.grad = grad
 
-    # This assertion is not a specification, but just a note. Arrays are not identical here as opposed to ordinal Python semantics.
-    assert array.grad is not grad
+    assert array.grad is grad, 'grad must preserve physical identity'
+    assert array.grad is grad, 'grad must preserve physical identity in repeated retrieval'
 
     # Arrays' data are identical.
     grad += grad
