@@ -111,6 +111,14 @@ public:
         }
     }
 
+    void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
+        EXPECT_EQ(a.dtype(), b.dtype());
+        EXPECT_EQ(a.shape(), b.shape());
+        EXPECT_EQ(a.requires_grad(), b.requires_grad());
+        EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
+        EXPECT_EQ(a.offset(), b.offset());
+    }
+
     void ExpectDataExistsOnCurrentDevice(const Array& array) {
         if (GetCurrentDevice() == MakeDevice("cpu")) {
             EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
@@ -326,12 +334,8 @@ TEST_P(ArrayTest, CopyCtor) {
     // A copy-constructed instance must be a view
     {
         ExpectEqual<bool>(a, b);
-        EXPECT_EQ(a.dtype(), b.dtype());
-        EXPECT_EQ(a.shape(), b.shape());
+        ExpectArraysEqualAttributes(a, b);
         EXPECT_EQ(a.data(), b.data());
-        EXPECT_EQ(a.requires_grad(), b.requires_grad());
-        EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
-        EXPECT_EQ(a.offset(), b.offset());
         EXPECT_EQ(a.node(), b.node());
     }
 
@@ -383,12 +387,8 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
     Array b{body};
     EXPECT_EQ(body, b.body());
 
-    EXPECT_EQ(a.dtype(), b.dtype());
-    EXPECT_EQ(a.shape(), b.shape());
+    ExpectArraysEqualAttributes(a, b);
     EXPECT_EQ(a.data(), b.data());
-    EXPECT_EQ(a.requires_grad(), b.requires_grad());
-    EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
-    EXPECT_EQ(a.offset(), b.offset());
     EXPECT_EQ(a.node(), b.node());
 }
 
