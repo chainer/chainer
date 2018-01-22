@@ -122,14 +122,7 @@ void InitXchainerArray(pybind11::module& m) {
         .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
         .def("copy", &Array::Copy)
         .def_property("requires_grad", &Array::requires_grad, &Array::set_requires_grad)
-        .def_property("grad",
-                      [](Array& self) -> nonstd::optional<Array> {
-                          if (const auto& grad = self.grad()) {
-                              return Array{*grad};
-                          } else {
-                              return nonstd::nullopt;
-                          }
-                      },
+        .def_property("grad", [](Array& self) -> nonstd::optional<Array> { return self.grad(); },
                       [](Array& self, Array* grad) {
                           if (grad) {
                               self.set_grad(Array{*grad});
