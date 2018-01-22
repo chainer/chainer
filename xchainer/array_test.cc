@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <deque>
 #include <initializer_list>
 #include <type_traits>
 
@@ -121,15 +122,15 @@ public:
     }
 
     template <bool is_const, typename T>
-    void CheckFromBuffer() {
+    void CheckFromBuffer(const Shape& shape, std::deque<T>&& raw_data) {
         using TargetArray = std::conditional_t<is_const, const Array, Array>;
 
-        Shape shape = {3, 2};
+        // Check test data
+        ASSERT_EQ(shape.total_size(), static_cast<int64_t>(raw_data.size()));
+
         Dtype dtype = TypeToDtype<T>;
-        int64_t size = shape.total_size();
-        int64_t bytesize = size * sizeof(T);
-        T raw_data[] = {0, 1, 2, 3, 4, 5};
-        auto data = std::shared_ptr<T>(raw_data, [](T* ptr) { (void)ptr; });
+        int64_t bytesize = shape.total_size() * sizeof(T);
+        auto data = std::shared_ptr<T>(&raw_data[0], [](T* ptr) { (void)ptr; });
         TargetArray x = Array::FromBuffer(shape, dtype, data);
 
         // Basic attributes
@@ -390,25 +391,27 @@ TEST_P(ArrayTest, Grad) {
 }
 
 TEST_P(ArrayTest, ArrayFromBuffer) {
-    CheckFromBuffer<false, bool>();
-    CheckFromBuffer<false, int8_t>();
-    CheckFromBuffer<false, int16_t>();
-    CheckFromBuffer<false, int32_t>();
-    CheckFromBuffer<false, int64_t>();
-    CheckFromBuffer<false, uint8_t>();
-    CheckFromBuffer<false, float>();
-    CheckFromBuffer<false, double>();
+    Shape shape{3, 2};
+    CheckFromBuffer<false, bool>(shape, {true, false, false, true, false, true});
+    CheckFromBuffer<false, int8_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<false, int16_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<false, int32_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<false, int64_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<false, uint8_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<false, float>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<false, double>(shape, {0, 1, 2, 3, 4, 5});
 }
 
 TEST_P(ArrayTest, ConstArrayFromBuffer) {
-    CheckFromBuffer<true, bool>();
-    CheckFromBuffer<true, int8_t>();
-    CheckFromBuffer<true, int16_t>();
-    CheckFromBuffer<true, int32_t>();
-    CheckFromBuffer<true, int64_t>();
-    CheckFromBuffer<true, uint8_t>();
-    CheckFromBuffer<true, float>();
-    CheckFromBuffer<true, double>();
+    Shape shape{3, 2};
+    CheckFromBuffer<true, bool>(shape, {true, false, false, true, false, true});
+    CheckFromBuffer<true, int8_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<true, int16_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<true, int32_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<true, int64_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<true, uint8_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<true, float>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<true, double>(shape, {0, 1, 2, 3, 4, 5});
 }
 
 #ifdef XCHAINER_ENABLE_CUDA
