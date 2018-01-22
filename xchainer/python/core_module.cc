@@ -2,7 +2,6 @@
 
 #include "xchainer/array.h"
 #include "xchainer/backprop.h"
-
 #include "xchainer/python/array.h"
 #include "xchainer/python/common.h"
 #include "xchainer/python/device.h"
