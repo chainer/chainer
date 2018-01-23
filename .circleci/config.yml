@@ -128,7 +128,7 @@ jobs:
 
             mkdir -p build
             pushd build
-            cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON ..
+            cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON -DENABLE_WERROR=ON ..
             popd
 
       # clang-tidy (normal source files)
