@@ -331,13 +331,17 @@ def test_array_cleargrad():
 
 
 def test_array_grad_identity():
-    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
-    grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
+    shape = (3, 1)
+    array = xchainer.Array(shape, xchainer.int8, [1, 1, 1])
+    grad = xchainer.Array(shape, xchainer.float32, [0.5, 0.5, 0.5])
     array.grad = grad
 
     assert array.grad is grad, 'grad must preserve physical identity'
     assert array.grad is grad, 'grad must preserve physical identity in repeated retrieval'
 
-    # Arrays' data are identical.
-    grad += grad
-    assert array.grad._debug_flat_data == grad._debug_flat_data
+    # array.grad and grad share the same data
+    grad += xchainer.Array(shape, xchainer.float32, [2, 2, 2])
+    assert array.grad._debug_flat_data == [2.5, 2.5, 2.5], 'A modification to grad must affect array.grad'
+
+    array.grad += xchainer.Array(shape, xchainer.float32, [1, 1, 1])
+    assert grad._debug_flat_data == [3.5, 3.5, 3.5], 'A modification to array.grad must affect grad'
