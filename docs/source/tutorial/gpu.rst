@@ -17,6 +17,14 @@ After reading this section, you will be able to:
 * Write model-parallel computing in Chainer
 * Write data-parallel computing in Chainer
 
+.. testcode::
+   :hide:
+
+   try:
+       with cupy.cuda.Device(1):
+           pass
+   except cupy.cuda.runtime.CUDARuntimeError:
+       raise RuntimeError('doctest in this document requires 2 GPUs')
 
 Relationship between Chainer and CuPy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
