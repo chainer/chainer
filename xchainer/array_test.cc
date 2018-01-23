@@ -147,7 +147,7 @@ public:
         EXPECT_EQ(2, x.ndim());
         EXPECT_EQ(3 * 2, x.total_size());
         EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
-        EXPECT_EQ(shape.total_size() * sizeof(T), x.total_bytes());
+        EXPECT_EQ(shape.total_size() * int64_t{sizeof(T)}, x.total_bytes());
         EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
