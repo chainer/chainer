@@ -7,7 +7,9 @@
 namespace xchainer {
 namespace internal {
 
+#ifdef XCHAINER_ENABLE_CUDA
 bool IsPointerCudaMemory(const void* ptr);
+#endif  // XCHAINER_ENABLE_CUDA
 std::shared_ptr<void> Allocate(const Device& device, size_t bytesize);
 void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize);
 std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize);

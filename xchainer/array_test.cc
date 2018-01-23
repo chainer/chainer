@@ -118,6 +118,7 @@ public:
         EXPECT_EQ(a.offset(), b.offset());
     }
 
+#ifdef XCHAINER_ENABLE_CUDA
     void ExpectDataExistsOnCurrentDevice(const Array& array) {
         if (GetCurrentDevice() == MakeDevice("cpu")) {
             EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
@@ -127,6 +128,7 @@ public:
             FAIL() << "invalid device";
         }
     }
+#endif  // XCHAINER_ENABLE_CUDA
 
     template <bool is_const, typename T>
     void CheckFromBuffer(const Shape& shape, std::initializer_list<T> raw_data) {
@@ -154,7 +156,9 @@ public:
 
         // Array::data
         ExpectDataEqual<T>(data.get(), x);
+#ifdef XCHAINER_ENABLE_CUDA
         ExpectDataExistsOnCurrentDevice(x);
+#endif  // XCHAINER_ENABLE_CUDA
         if (GetCurrentDevice() == MakeDevice("cpu")) {
             EXPECT_EQ(data.get(), x.data().get());
         } else if (GetCurrentDevice() == MakeDevice("cuda")) {
@@ -174,7 +178,9 @@ public:
         EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
+#ifdef XCHAINER_ENABLE_CUDA
         ExpectDataExistsOnCurrentDevice(x);
+#endif  // XCHAINER_ENABLE_CUDA
     }
 
     template <typename T>
@@ -189,7 +195,9 @@ public:
         EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
+#ifdef XCHAINER_ENABLE_CUDA
         ExpectDataExistsOnCurrentDevice(x);
+#endif  // XCHAINER_ENABLE_CUDA
     }
 
     template <typename T>
@@ -216,7 +224,9 @@ public:
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
+#ifdef XCHAINER_ENABLE_CUDA
         ExpectDataExistsOnCurrentDevice(x);
+#endif  // XCHAINER_ENABLE_CUDA
     }
 
     template <typename T>
@@ -235,7 +245,9 @@ public:
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(value, x);
+#ifdef XCHAINER_ENABLE_CUDA
         ExpectDataExistsOnCurrentDevice(x);
+#endif  // XCHAINER_ENABLE_CUDA
     }
 
     template <typename T>
@@ -251,7 +263,9 @@ public:
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
+#ifdef XCHAINER_ENABLE_CUDA
         ExpectDataExistsOnCurrentDevice(x);
+#endif  // XCHAINER_ENABLE_CUDA
     }
 
     template <typename T>
@@ -271,7 +285,9 @@ public:
         EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
+#ifdef XCHAINER_ENABLE_CUDA
         ExpectDataExistsOnCurrentDevice(x);
+#endif  // XCHAINER_ENABLE_CUDA
     }
 
     template <typename T>
@@ -288,7 +304,9 @@ public:
         EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
+#ifdef XCHAINER_ENABLE_CUDA
         ExpectDataExistsOnCurrentDevice(x);
+#endif  // XCHAINER_ENABLE_CUDA
     }
 
     template <typename T>
@@ -303,7 +321,9 @@ public:
         EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
+#ifdef XCHAINER_ENABLE_CUDA
         ExpectDataExistsOnCurrentDevice(x);
+#endif  // XCHAINER_ENABLE_CUDA
     }
 
     template <typename T>
@@ -320,7 +340,9 @@ public:
         EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
+#ifdef XCHAINER_ENABLE_CUDA
         ExpectDataExistsOnCurrentDevice(x);
+#endif  // XCHAINER_ENABLE_CUDA
     }
 
 private:

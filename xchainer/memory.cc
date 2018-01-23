@@ -16,8 +16,8 @@
 namespace xchainer {
 namespace internal {
 
-bool IsPointerCudaMemory(const void* ptr) {
 #ifdef XCHAINER_ENABLE_CUDA
+bool IsPointerCudaMemory(const void* ptr) {
     cudaPointerAttributes attr = {};
     cudaError_t status = cudaPointerGetAttributes(&attr, ptr);
     switch (status) {
@@ -34,10 +34,8 @@ bool IsPointerCudaMemory(const void* ptr) {
             break;
     }
     assert(false);  // should never be reached
-#else
-    return false;
-#endif  // XCHAINER_ENABLE_CUDA
 }
+#endif  // XCHAINER_ENABLE_CUDA
 
 std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) {
     if (device == MakeDevice("cpu")) {
@@ -108,7 +106,11 @@ std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_p
         throw DeviceError("invalid device");
     }
 #else
-    return src_ptr;
+    if (device == MakeDevice("cpu")) {
+        return src_ptr;
+    } else {
+        throw DeviceError("invalid device");
+    }
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
