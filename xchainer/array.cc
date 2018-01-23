@@ -4,11 +4,14 @@
 #include <cassert>
 #include <cstring>
 #include <string>
+// #include <unordered_set>
+#include <unordered_map>
 
 #ifdef XCHAINER_ENABLE_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif  // XCHAINER_ENABLE_CUDA
+#include <gsl/gsl>
 
 #include "xchainer/array_fill.h"
 #include "xchainer/array_math.h"
@@ -36,6 +39,23 @@ ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool requires_grad, bool i
       offset_(offset),
       nodes_({{std::move(graph_name), {std::move(node), requires_grad}}}) {}
 
+const std::shared_ptr<ArrayNode>& ArrayBody::GetOrCreateNode(const std::string& graph_name, bool default_requires_grad) {
+    auto named_nodes =
+        std::find_if(nodes_.begin(), nodes_.end(),
+                     [&graph_name](const std::pair<std::string, ArrayNodeGradientProperty>& node) { return node.first == graph_name; });
+
+    if (named_nodes != nodes_.end()) {
+        // Return match
+        return named_nodes->second.node;
+    }
+
+    // Create and return new
+    std::shared_ptr<ArrayNode> node = std::make_shared<ArrayNode>();
+    ArrayNodeGradientProperty node_property(node, default_requires_grad);
+    nodes_.push_back({graph_name, node_property});
+    return nodes_.back().second.node;
+}
+
 }  // namespace internal
 
 Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad,
@@ -45,21 +65,21 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::s
 
 Array::Array(const Array& other)
     : Array(other.shape(), other.dtype(), internal::Allocate(GetCurrentDevice(), other.total_bytes()), std::make_shared<ArrayNode>(),
-            other.requires_grad(), true, 0) {
-    // TODO(hvy): Multi-graph support
+            other.requires_grad(), true, 0, "") {
+    // TODO(hvy): Do no set default empty string graph_name, but instead skip initializing the ArrayNode here
 
     // Memory layout-related members are not copied in this copy ctor since new C-contiguous memory is allocated
     other.CopyTo(*this);
 }
 
 // TODO(hvy): Multi-graph support
-const std::shared_ptr<ArrayNode>& Array::RenewNode() { return body_->node_ = std::make_shared<ArrayNode>(); }
+// const std::shared_ptr<ArrayNode>& Array::RenewNode() { return body_->node_ = std::make_shared<ArrayNode>(); }
 
-const nonstd::optional<Array>& Array::grad(const std::string& graph_name) const noexcept { return body_->node(graph_name)->grad(); }
+const nonstd::optional<Array>& Array::grad(const std::string& graph_name) const { return body_->node(graph_name)->grad(); }
 
-void Array::set_grad(Array grad, const std::string& graph_name) { body_->node(graph_name)->set_grad(std::move(grad)); }
+void Array::set_grad(Array grad, const std::string& graph_name) { body_->mutable_node(graph_name)->set_grad(std::move(grad)); }
 
-void Array::ClearGrad(const std::string& graph_name) noexcept { body_->node(graph_name)->ClearGrad(); }
+void Array::ClearGrad(const std::string& graph_name) { body_->mutable_node(graph_name)->ClearGrad(); }
 
 // TODO(hvy): Multi-graph support, i.e. specify graph_name
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
@@ -96,38 +116,53 @@ Array Array::OnesLike(const Array& array) { return Ones(array.shape(), array.dty
 
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
-    set_requires_grad(requires_grad() || rhs.requires_grad());
+    // set_requires_grad(requires_grad() || rhs.requires_grad());
     return *this;
 }
 
 Array& Array::operator*=(const Array& rhs) {
     Mul(rhs, *this);
-    set_requires_grad(requires_grad() || rhs.requires_grad());
+    // set_requires_grad(requires_grad() || rhs.requires_grad());
     return *this;
 }
 
 Array Array::operator+(const Array& rhs) const {
     Array out = Array::EmptyLike(*this);
-    out.set_requires_grad(requires_grad() || rhs.requires_grad());
+    // out.set_requires_grad(requires_grad() || rhs.requires_grad());
     Add(rhs, out);
     return out;
 }
 
 Array Array::operator*(const Array& rhs) const {
     Array out = Array::EmptyLike(*this);
-    out.set_requires_grad(requires_grad() || rhs.requires_grad());
+    // out.set_requires_grad(requires_grad() || rhs.requires_grad());
     Mul(rhs, out);
     return out;
 }
 
 Array Array::Copy() const {
     Array out = Array::EmptyLike(*this);
-    out.set_requires_grad(requires_grad());
+    // out.set_requires_grad(requires_grad());
     CopyTo(out);
     return out;
 }
 
 void Array::CopyTo(Array& out) const {
+    for (auto& named_node : body_->nodes_) {    // For each graph, or ArrayNode
+        if (named_node.second.requires_grad) {  // If ArrayNode requires gradients
+            const ArrayNodeGradientProperty& node_prop = named_node.second;
+            std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(named_node.first, true);
+            int64_t out_rank = node_prop.node->rank();
+            auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{node_prop.node};
+            auto in_func = [](const Array& gout) { return gout; };
+            auto backward_functions = std::vector<std::function<Array(const Array&)>>{in_func};
+            auto op_node = std::make_shared<OpNode>("copy", out_rank, next_nodes, backward_functions);
+            out_node->set_next_node(op_node);
+            out_node->set_rank(out_rank + 1);
+        }
+    }
+
+    /*
     if (requires_grad()) {
         std::shared_ptr<ArrayNode> out_node = out.RenewNode();
         int64_t out_rank = node()->rank();
@@ -138,6 +173,7 @@ void Array::CopyTo(Array& out) const {
         out_node->set_next_node(op_node);
         out_node->set_rank(out_rank + 1);
     }
+    */
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
     // is_contiguous_ and offset_ into account
@@ -145,29 +181,55 @@ void Array::CopyTo(Array& out) const {
 }
 
 void Array::Add(const Array& rhs, Array& out) const {
+    /*
     if ((&out == this || &out == &rhs) && out.requires_grad()) {
         throw XchainerError("In-place operation (Add) is not supported for an array with requires_grad=true.");
     }
+    */
 
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    if (requires_grad() || rhs.requires_grad()) {
-        const Array& lhs = *this;
-        std::shared_ptr<ArrayNode> lhs_node = mutable_node();
-        std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node();
-        std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-        int64_t out_rank = std::max(lhs_node->rank(), rhs_node->rank());
-        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node, rhs_node};
-        std::function<Array(const Array&)> empty_func;
-        auto lhs_func = lhs.requires_grad() ? [](const Array& gout) { return gout; } : empty_func;
-        auto rhs_func = rhs.requires_grad() ? [](const Array& gout) { return gout; } : empty_func;
-        auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
-        auto op_node = std::make_shared<OpNode>("add", out_rank, next_nodes, backward_functions);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(out_rank + 1);
+    std::unordered_map<std::string, std::shared_ptr<OpNode>> graph_op_nodes;
+
+    // LHS
+    for (auto& named_node : body_->nodes_) {  // For each graph
+        const std::string& graph_name = named_node.first;
+        if (named_node.second.requires_grad) {
+            std::shared_ptr<ArrayNode> lhs_node = mutable_node(graph_name);
+            auto lhs_func = [](const Array& gout) { return gout; };
+            std::shared_ptr<OpNode>& op_node = graph_op_nodes[graph_name];  // Create if not exists
+            op_node->set_name("add");
+            op_node->RegisterNextNode(lhs_node);
+            op_node->RegisterBackwardFunction(lhs_func);
+        }
+    }
+
+    // RHS
+    for (auto& named_node : rhs.nodes()) {
+        const std::string& graph_name = named_node.first;
+        if (named_node.second.requires_grad) {
+            std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node(graph_name);
+            auto rhs_func = [](const Array& gout) { return gout; };
+            std::shared_ptr<OpNode>& op_node = graph_op_nodes[graph_name];
+            op_node->set_name("add");
+            op_node->RegisterNextNode(rhs_node);
+            op_node->RegisterBackwardFunction(rhs_func);
+        }
+    }
+
+    for (const auto& graph_op_node : graph_op_nodes) {
+        std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_op_node.first, true);
+        gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second->next_nodes();
+        out_node->set_next_node(graph_op_node.second);
+        out_node->set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
+                                              [](const std::shared_ptr<ArrayNode>& a, const std::shared_ptr<ArrayNode>& b) {
+                                                  return a->rank() < b->rank();
+                                              }))
+                               ->rank() +
+                           1);
     }
 
     Device device = GetCurrentDevice();
@@ -183,29 +245,56 @@ void Array::Add(const Array& rhs, Array& out) const {
 }
 
 void Array::Mul(const Array& rhs, Array& out) const {
+    /*
     if ((&out == this || &out == &rhs) && out.requires_grad()) {
         throw XchainerError("In-place operation (Mul) is not supported for an array with requires_grad=true.");
     }
+    */
 
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    if (requires_grad() || rhs.requires_grad()) {
-        std::shared_ptr<ArrayNode> lhs_node = mutable_node();
-        std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node();
-        std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-        int64_t out_rank = std::max(lhs_node->rank(), rhs_node->rank());
-        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node, rhs_node};
-        std::function<Array(const Array&)> empty_func;
-        // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
-        auto lhs_func = requires_grad() ? [rhs_view = rhs.MakeView()](const Array& gout) { return gout * rhs_view; } : empty_func;
-        auto rhs_func = rhs.requires_grad() ? [lhs_view = MakeView()](const Array& gout) { return gout * lhs_view; } : empty_func;
-        auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
-        auto op_node = std::make_shared<OpNode>("mul", out_rank, next_nodes, backward_functions);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(out_rank + 1);
+    std::unordered_map<std::string, std::shared_ptr<OpNode>> graph_op_nodes;
+
+    // LHS
+    for (auto& named_node : body_->nodes_) {
+        const std::string& graph_name = named_node.first;
+        if (named_node.second.requires_grad) {
+            std::shared_ptr<ArrayNode> lhs_node = mutable_node(graph_name);
+            // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
+            auto lhs_func = [rhs_view = rhs.MakeView()](const Array& gout) { return gout * rhs_view; };
+            std::shared_ptr<OpNode>& op_node = graph_op_nodes[graph_name];
+            op_node->set_name("mul");
+            op_node->RegisterNextNode(lhs_node);
+            op_node->RegisterBackwardFunction(lhs_func);
+        }
+    }
+
+    // RHS
+    for (auto& named_node : rhs.nodes()) {
+        const std::string& graph_name = named_node.first;
+        if (named_node.second.requires_grad) {
+            std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node(graph_name);
+            auto rhs_func = [lhs_view = MakeView()](const Array& gout) { return gout * lhs_view; };
+            std::shared_ptr<OpNode>& op_node = graph_op_nodes[graph_name];
+            op_node->set_name("mul");
+            op_node->RegisterNextNode(rhs_node);
+            op_node->RegisterBackwardFunction(rhs_func);
+        }
+    }
+
+    for (const auto& graph_op_node : graph_op_nodes) {
+        std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_op_node.first, true);
+        gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second->next_nodes();
+        out_node->set_next_node(graph_op_node.second);
+        out_node->set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
+                                              [](const std::shared_ptr<ArrayNode>& a, const std::shared_ptr<ArrayNode>& b) {
+                                                  return a->rank() < b->rank();
+                                              }))
+                               ->rank() +
+                           1);
     }
 
     Device device = GetCurrentDevice();
@@ -254,7 +343,7 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 }  // namespace
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent) {
-    DebugDumpComputationalGraph(os, *array.node(), indent);
+    // DebugDumpComputationalGraph(os, *array.node(), indent);
 }
 
 }  // namespace xchainer

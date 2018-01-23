@@ -19,12 +19,23 @@ public:
            std::vector<std::function<Array(const Array&)>> backward_functions)
         : name_(std::move(name)), rank_(rank), next_nodes_(std::move(next_nodes)), backward_functions_(std::move(backward_functions)) {}
 
-    gsl::span<const std::shared_ptr<ArrayNode>> next_nodes() const { return gsl::make_span(next_nodes_); }
-    gsl::span<const std::function<Array(const Array&)>> backward_functions() const { return gsl::make_span(backward_functions_); }
+    void RegisterNextNode(std::shared_ptr<ArrayNode> next_node) { next_nodes_.push_back(std::move(next_node)); }
+
+    void RegisterBackwardFunction(std::function<Array(const Array&)> backward_function) {
+        backward_functions_.push_back(std::move(backward_function));
+    }
 
     std::string name() const { return name_; }
 
+    void set_name(std::string name) { name_ = std::move(name); }
+
     int64_t rank() const { return rank_; }
+
+    void set_rank(int64_t rank) { rank_ = rank; }
+
+    gsl::span<const std::shared_ptr<ArrayNode>> next_nodes() const { return gsl::make_span(next_nodes_); }
+
+    gsl::span<const std::function<Array(const Array&)>> backward_functions() const { return gsl::make_span(backward_functions_); }
 
 private:
     std::string name_;

@@ -20,14 +20,14 @@ namespace xchainer {
 class Array;
 class ArrayNode;
 
-namespace internal {
-
-struct ArrayNodeProperty {
-    ArrayNodeProperty(std::shared_ptr<ArrayNode> node, bool requires_grad) : node(std::move(node)), requires_grad(requires_grad) {}
+struct ArrayNodeGradientProperty {
+    ArrayNodeGradientProperty(std::shared_ptr<ArrayNode> node, bool requires_grad) : node(std::move(node)), requires_grad(requires_grad) {}
 
     std::shared_ptr<ArrayNode> node;
     bool requires_grad;
 };
+
+namespace internal {
 
 // Data holder of Array.
 //
@@ -44,38 +44,46 @@ public:
     ArrayBody(const Shape& shape, Dtype dtype, bool requires_grad, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
               std::shared_ptr<ArrayNode> node, std::string graph_name);
 
-    const std::shared_ptr<ArrayNode>& mutable_node(const std::string& graph_name) { return get_node(graph_name).node; }
+    const std::shared_ptr<ArrayNode>& GetOrCreateNode(const std::string& graph_name, bool default_requires_grad);
 
     // TODO(hvy): Better way of returning the const ArrayNode
     std::shared_ptr<const ArrayNode> node(const std::string& graph_name) {
-        return std::const_pointer_cast<const ArrayNode>(mutable_node(graph_name));
+        return std::const_pointer_cast<const ArrayNode>(GetNodeGradientProperty(graph_name).node);
     }
+
+    const std::shared_ptr<ArrayNode>& mutable_node(const std::string& graph_name) { return GetNodeGradientProperty(graph_name).node; }
+
+    const std::vector<std::pair<std::string, ArrayNodeGradientProperty>>& nodes() const { return nodes_; };
 
 private:
     friend class ::xchainer::Array;
 
-    inline ArrayNodeProperty& get_node(const std::string& graph_name) {
-        auto node_property =
+    // Find ArrayNodeGradientProperty assuming it exists
+    const ArrayNodeGradientProperty& GetNodeGradientProperty(const std::string& graph_name) const {
+        auto named_property =
             std::find_if(nodes_.begin(), nodes_.end(),
-                         [&graph_name](const std::pair<std::string, ArrayNodeProperty>& node) { return node.first == graph_name; });
-        if (node_property == nodes_.end()) {
+                         [&graph_name](const std::pair<std::string, ArrayNodeGradientProperty>& node) { return node.first == graph_name; });
+        if (named_property == nodes_.end()) {
             throw XchainerError("Cannot find node for graph: " + graph_name);
         }
-        return node_property->second;
+        return named_property->second;
     }
 
-    bool requires_grad(const std::string& graph_name) { return get_node(graph_name).requires_grad; }
+    inline ArrayNodeGradientProperty& GetNodeGradientProperty(const std::string& graph_name) { return GetNodeGradientProperty(graph_name); }
 
-    void set_requires_grad(bool requires_grad, const std::string& graph_name) { get_node(graph_name).requires_grad = requires_grad; }
+    // bool requires_grad(const std::string& graph_name) { return Node(graph_name).requires_grad; }
+    bool requires_grad(const std::string& graph_name) const { return GetNodeGradientProperty(graph_name).requires_grad; }
+
+    void set_requires_grad(bool requires_grad, const std::string& graph_name) {
+        GetNodeGradientProperty(graph_name).requires_grad = requires_grad;
+    }
 
     Shape shape_;
     Dtype dtype_;
     bool is_contiguous_;
     std::shared_ptr<void> data_;
     int64_t offset_;
-    // bool requires_grad_;
-    // std::shared_ptr<ArrayNode> node_;
-    std::vector<std::pair<std::string, ArrayNodeProperty>> nodes_;
+    std::vector<std::pair<std::string, ArrayNodeGradientProperty>> nodes_;
 };
 
 }  // namespace internal
@@ -138,17 +146,22 @@ public:
 
     int64_t offset() const { return body_->offset_; }
 
-    const std::shared_ptr<ArrayNode>& mutable_node(const std::string& graph_name = "") const { return body_->mutable_node(graph_name); }
+    const std::shared_ptr<ArrayNode>& mutable_node(const std::string& graph_name) const { return body_->mutable_node(graph_name); }
 
-    std::shared_ptr<const ArrayNode> node(const std::string& graph_name = "") const { return body_->node(graph_name); }
+    std::shared_ptr<const ArrayNode> node(const std::string& graph_name) const { return body_->node(graph_name); }
 
-    const std::shared_ptr<ArrayNode>& RenewNode();
+    const std::vector<std::pair<std::string, ArrayNodeGradientProperty>>& nodes() const { return body_->nodes(); };
 
-    const nonstd::optional<Array>& grad() const noexcept;
+    // const std::shared_ptr<ArrayNode>& RenewNode();
+    const std::shared_ptr<ArrayNode>& GetOrCreateNode(const std::string& graph_name, bool requires_grad) {
+        return body_->GetOrCreateNode(graph_name, requires_grad);
+    }
 
-    void set_grad(Array grad);
+    const nonstd::optional<Array>& grad(const std::string& graph_name) const;
 
-    void ClearGrad() noexcept;
+    void set_grad(Array grad, const std::string& graph_name);
+
+    void ClearGrad(const std::string& graph_name);
 
     Array MakeView() const { return Array{body_}; }
 
