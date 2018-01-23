@@ -46,12 +46,18 @@ public:
 
     const std::shared_ptr<ArrayNode>& mutable_node(const std::string& graph_name) { return get_node(graph_name).node; }
 
+    // TODO(hvy): Better way of returning the const ArrayNode
+    std::shared_ptr<const ArrayNode> node(const std::string& graph_name) {
+        return std::const_pointer_cast<const ArrayNode>(mutable_node(graph_name));
+    }
+
 private:
     friend class ::xchainer::Array;
 
     inline ArrayNodeProperty& get_node(const std::string& graph_name) {
-        auto node_property = std::find_if(nodes_.begin(), nodes_.end(),
-                                          [&graph_name](const std::pair<std::string, ArrayNodeProperty>& node) { return node.first == graph_name; });
+        auto node_property =
+            std::find_if(nodes_.begin(), nodes_.end(),
+                         [&graph_name](const std::pair<std::string, ArrayNodeProperty>& node) { return node.first == graph_name; });
         if (node_property == nodes_.end()) {
             throw XchainerError("Cannot find node for graph: " + graph_name);
         }
@@ -134,11 +140,7 @@ public:
 
     const std::shared_ptr<ArrayNode>& mutable_node(const std::string& graph_name = "") const { return body_->mutable_node(graph_name); }
 
-    // std::shared_ptr<const ArrayNode> node(const std::string& graph_name = "") const {
-    std::shared_ptr<ArrayNode> node(const std::string& graph_name = "") const {
-        // TODO(hvy): Return smart pointer to const
-        return body_->mutable_node(graph_name);
-    }
+    std::shared_ptr<const ArrayNode> node(const std::string& graph_name = "") const { return body_->node(graph_name); }
 
     const std::shared_ptr<ArrayNode>& RenewNode();
 

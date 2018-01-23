@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <string>
 
 #ifdef XCHAINER_ENABLE_CUDA
 #include <cuda.h>
@@ -45,18 +46,22 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::s
 Array::Array(const Array& other)
     : Array(other.shape(), other.dtype(), internal::Allocate(GetCurrentDevice(), other.total_bytes()), std::make_shared<ArrayNode>(),
             other.requires_grad(), true, 0) {
+    // TODO(hvy): Multi-graph support
+
     // Memory layout-related members are not copied in this copy ctor since new C-contiguous memory is allocated
     other.CopyTo(*this);
 }
 
+// TODO(hvy): Multi-graph support
 const std::shared_ptr<ArrayNode>& Array::RenewNode() { return body_->node_ = std::make_shared<ArrayNode>(); }
 
-const nonstd::optional<Array>& Array::grad() const noexcept { return body_->node_->grad(); }
+const nonstd::optional<Array>& Array::grad(const std::string& graph_name) const noexcept { return body_->node(graph_name)->grad(); }
 
-void Array::set_grad(Array grad) { body_->node_->set_grad(std::move(grad)); }
+void Array::set_grad(Array grad, const std::string& graph_name) { body_->node(graph_name)->set_grad(std::move(grad)); }
 
-void Array::ClearGrad() noexcept { body_->node_->ClearGrad(); }
+void Array::ClearGrad(const std::string& graph_name) noexcept { body_->node(graph_name)->ClearGrad(); }
 
+// TODO(hvy): Multi-graph support, i.e. specify graph_name
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
     std::shared_ptr<void> device_data = internal::MemoryFromBuffer(GetCurrentDevice(), data, bytesize);
