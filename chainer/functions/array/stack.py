@@ -32,7 +32,7 @@ class Stack(function_node.FunctionNode):
         else:
             # Old numpy does not have numpy.stack.
             return xp.concatenate(
-                [xp.expand_dims(x, self.axis) for x in inputs], self.axis)
+                [xp.expand_dims(x, self.axis) for x in inputs], self.axis),
 
     def backward(self, inputs, grads):
         return separate.separate(grads[0], self.axis)
