@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cstddef>
-#include <deque>
 #include <initializer_list>
 #include <type_traits>
 
@@ -111,6 +110,14 @@ public:
         }
     }
 
+    void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
+        EXPECT_EQ(a.dtype(), b.dtype());
+        EXPECT_EQ(a.shape(), b.shape());
+        EXPECT_EQ(a.requires_grad(), b.requires_grad());
+        EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
+        EXPECT_EQ(a.offset(), b.offset());
+    }
+
     void ExpectDataExistsOnCurrentDevice(const Array& array) {
         if (GetCurrentDevice() == MakeDevice("cpu")) {
             EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
@@ -122,15 +129,16 @@ public:
     }
 
     template <bool is_const, typename T>
-    void CheckFromBuffer(const Shape& shape, std::deque<T>&& raw_data) {
+    void CheckFromBuffer(const Shape& shape, std::initializer_list<T> raw_data) {
         using TargetArray = std::conditional_t<is_const, const Array, Array>;
 
         // Check test data
         ASSERT_EQ(shape.total_size(), static_cast<int64_t>(raw_data.size()));
 
+        std::shared_ptr<T> data = std::make_unique<T[]>(shape.total_size());
+        std::copy(raw_data.begin(), raw_data.end(), data.get());
+
         Dtype dtype = TypeToDtype<T>;
-        int64_t bytesize = shape.total_size() * sizeof(T);
-        auto data = std::shared_ptr<T>(&raw_data[0], [](T* ptr) { (void)ptr; });
         TargetArray x = Array::FromBuffer(shape, dtype, data);
 
         // Basic attributes
@@ -139,7 +147,7 @@ public:
         EXPECT_EQ(2, x.ndim());
         EXPECT_EQ(3 * 2, x.total_size());
         EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
-        EXPECT_EQ(bytesize, x.total_bytes());
+        EXPECT_EQ(shape.total_size() * sizeof(T), x.total_bytes());
         EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
@@ -322,19 +330,54 @@ private:
 TEST_P(ArrayTest, CopyCtor) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = a;
-    ExpectEqualCopy<bool>(a, b);
+
+    // A copy-constructed instance must be a view
+    {
+        ExpectEqual<bool>(a, b);
+        ExpectArraysEqualAttributes(a, b);
+        EXPECT_EQ(a.data(), b.data());
+        EXPECT_EQ(a.node(), b.node());
+    }
+
+    // A view must not share requires_grad with the original array.
+    {
+        // Precondition of the test
+        ASSERT_FALSE(a.requires_grad());
+        ASSERT_FALSE(b.requires_grad());
+
+        a.set_requires_grad(true);
+        EXPECT_NE(a.requires_grad(), b.requires_grad());
+    }
 }
 
 TEST_P(ArrayTest, ArrayMoveCtor) {
     { EXPECT_TRUE(std::is_nothrow_move_constructible<Array>::value); }
+
+    // A view must not be affected by move
+    {
+        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = a;  // view
+        Array c = std::move(a);
+        ASSERT_EQ(a.body(), nullptr);
+        ExpectEqual<float>(b, c);
+    }
+
+    // A copy must not be affected by move
+    {
+        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = a.Copy();  // copy
+        Array c = std::move(a);
+        EXPECT_EQ(a.body(), nullptr);
+        ExpectEqualCopy<float>(b, c);
+    }
+
+    // Array body must be transferred by move
     {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
         auto body = a.body();
-        Array b = a;
         Array c = std::move(a);
         EXPECT_EQ(a.body(), nullptr);
         EXPECT_EQ(body, c.body());
-        ExpectEqualCopy<float>(b, c);
     }
 }
 
@@ -344,12 +387,8 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
     Array b{body};
     EXPECT_EQ(body, b.body());
 
-    EXPECT_EQ(a.dtype(), b.dtype());
-    EXPECT_EQ(a.shape(), b.shape());
+    ExpectArraysEqualAttributes(a, b);
     EXPECT_EQ(a.data(), b.data());
-    EXPECT_EQ(a.requires_grad(), b.requires_grad());
-    EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
-    EXPECT_EQ(a.offset(), b.offset());
     EXPECT_EQ(a.node(), b.node());
 }
 
@@ -395,7 +434,7 @@ TEST_P(ArrayTest, Grad) {
 
     // ClearGrad
     {
-        Array grad_view = x.grad()->MakeView();  // Make a view of grad
+        Array grad_view = *x.grad();  // Make a view of grad
 
         x.ClearGrad();
 
@@ -863,14 +902,6 @@ TEST_P(ArrayTest, Copy) {
         Array o = a.Copy();
         ExpectEqualCopy<bool>(a, o);
     }
-}
-
-TEST_P(ArrayTest, MakeView) {
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = a.MakeView();
-    ExpectEqual<bool>(a, b);
-    // View should point same addresses to data
-    EXPECT_EQ(a.data().get(), b.data().get());
 }
 
 TEST_P(ArrayTest, AddBackward) {

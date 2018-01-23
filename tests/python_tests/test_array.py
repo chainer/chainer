@@ -157,6 +157,17 @@ def test_view(array_init_inputs):
         assert array._debug_flat_data == view._debug_flat_data
 
 
+def test_view_must_not_share_properties():
+    array = xchainer.Array((1,), xchainer.float32, [3.0])
+    view = array.view()
+    # Test preconditions
+    assert not array.requires_grad
+    assert not view.requires_grad
+
+    array.requires_grad = True
+    assert not view.requires_grad, 'A view must not share requires_grad with the original array.'
+
+
 def test_copy(array_init_inputs):
     shape_tup, dtype = array_init_inputs
 

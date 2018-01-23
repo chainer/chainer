@@ -126,8 +126,8 @@ void InitXchainerArray(pybind11::module& m) {
         .def_buffer(&MakeNumpyArrayFromArray)
         .def("view",
              [](const ArrayBodyPtr& self) {
-                 // Make a view via copy-ctor (array body is duplicated) and return its body
-                 return Array{Array{self}}.body();
+                 // Duplicate the array body
+                 return std::make_shared<internal::ArrayBody>(*self);
              })
         .def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).body(); })
         .def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).body(); })
