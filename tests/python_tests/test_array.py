@@ -201,7 +201,9 @@ def test_add_iadd(array_init_inputs):
     assert lhs._debug_flat_data == lhs_data_list
     assert rhs._debug_flat_data == rhs_data_list
 
+    lhs_prev = lhs
     lhs += rhs
+    assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
     assert lhs._debug_flat_data == expected_data_list
     assert rhs._debug_flat_data == rhs_data_list
 
@@ -226,7 +228,9 @@ def test_mul_imul(array_init_inputs):
     assert lhs._debug_flat_data == lhs_data_list
     assert rhs._debug_flat_data == rhs_data_list
 
+    lhs_prev = lhs
     lhs *= rhs
+    assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
     assert lhs._debug_flat_data == expected_data_list
     assert rhs._debug_flat_data == rhs_data_list
 
