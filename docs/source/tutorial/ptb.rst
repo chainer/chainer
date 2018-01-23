@@ -223,7 +223,7 @@ from different offsets equally spaced within the whole sequence.
 
 We use Backpropagation through time (BPTT) for optimize the RNNLM. BPTT can be implemented by
 overriding ``update_core()`` method of :class:`~chainer.training.StandardUpdater`. First,
-in the constructor of the ``BPTTUpdater``, it takes ``bprop_len`` as an argument in addiotion
+in the constructor of the ``BPTTUpdater``, it takes ``bprop_len`` as an argument in addition
 to other arguments :class:`~chainer.training.StandardUpdater` needs. ``bprop_len`` defines the
 length of sequence :math:`T` to calculate the loss:
 

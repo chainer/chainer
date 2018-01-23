@@ -99,13 +99,13 @@ class LinearFunction(function_node.FunctionNode):
             # Generic implementation
             inputs = self.get_retained_inputs()
             x, W = inputs
-            if 0 in indexes:  # grad_x
-                gx = linear(gy, W.T)
+            if 0 in indexes:
+                gx, = LinearGradData().apply((W, gy))
                 ret.append(chainer.functions.cast(gx, x.dtype))
-            if 1 in indexes:  # grad_W
-                gW = linear(gy.T, x.T)
+            if 1 in indexes:
+                gW, = LinearGradWeight().apply((x, gy))
                 ret.append(chainer.functions.cast(gW, W.dtype))
-            if 2 in indexes:  # grad_b
+            if 2 in indexes:
                 gb = chainer.functions.sum(gy, axis=0)
                 ret.append(gb)
 
@@ -187,6 +187,63 @@ class LinearGradWIdeep(function_node.FunctionNode):
                 gg += chainer.functions.broadcast_to(ggb, gg.shape)
             ret.append(gg)
 
+        return ret
+
+
+class LinearGradData(function_node.FunctionNode):
+
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+        W, gy = inputs
+
+        if (isinstance(gy, numpy.ndarray) and
+                not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+                1 in gy.shape):
+            gy = numpy.ascontiguousarray(gy)
+
+        gx = gy.dot(W).astype(gy.dtype, copy=False)
+        return gx,
+
+    def backward(self, indexes, grad_outputs):
+        W, gy = self.get_retained_inputs()
+        ggx, = grad_outputs
+
+        ret = []
+
+        if 0 in indexes:
+            gw, = LinearGradWeight().apply((ggx, gy))
+            ret.append(chainer.functions.cast(gw, W.dtype))
+        if 1 in indexes:
+            ggy = linear(ggx, W)
+            ret.append(chainer.functions.cast(ggy, gy.dtype))
+        return ret
+
+
+class LinearGradWeight(function_node.FunctionNode):
+
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+
+        if (isinstance(gy, numpy.ndarray) and
+                not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+                1 in gy.shape):
+            gy = numpy.ascontiguousarray(gy)
+
+        gW = gy.T.dot(x).astype(gy.dtype, copy=False)
+        return gW,
+
+    def backward(self, indexes, grad_outputs):
+        x, gy = self.get_retained_inputs()
+        ggW, = grad_outputs
+
+        ret = []
+        if 0 in indexes:
+            gx, = LinearGradData().apply((ggW, gy))
+            ret.append(chainer.functions.cast(gx, x.dtype))
+        if 1 in indexes:
+            ggy = linear(x, ggW)
+            ret.append(chainer.functions.cast(ggy, gy.dtype))
         return ret
 
 
