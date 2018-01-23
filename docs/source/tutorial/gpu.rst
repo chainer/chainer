@@ -24,7 +24,7 @@ After reading this section, you will be able to:
        with cupy.cuda.Device(1):
            pass
    except cupy.cuda.runtime.CUDARuntimeError:
-       raise RuntimeError('doctest in this document requires 2 GPUs')
+       raise RuntimeError('doctest in this document requires 2 GPUs') from None
 
 Relationship between Chainer and CuPy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
