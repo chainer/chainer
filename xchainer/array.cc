@@ -43,11 +43,8 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::s
     : body_(std::make_shared<internal::ArrayBody>(shape, dtype, requires_grad, is_contiguous, std::move(data), offset, std::move(node))) {}
 
 Array::Array(const Array& other)
-    : Array(other.shape(), other.dtype(), internal::Allocate(GetCurrentDevice(), other.total_bytes()), std::make_shared<ArrayNode>(),
-            other.requires_grad(), true, 0) {
-    // Memory layout-related members are not copied in this copy ctor since new C-contiguous memory is allocated
-    other.CopyTo(*this);
-}
+    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.requires_grad(), other.is_contiguous(),
+                                                  other.body_->data_, other.offset(), other.body_->node_)) {}
 
 const std::shared_ptr<ArrayNode>& Array::RenewNode() { return body_->node_ = std::make_shared<ArrayNode>(); }
 
@@ -195,8 +192,8 @@ void Array::Mul(const Array& rhs, Array& out) const {
         auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node, rhs_node};
         std::function<Array(const Array&)> empty_func;
         // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
-        auto lhs_func = requires_grad() ? [rhs_view = rhs.MakeView()](const Array& gout) { return gout * rhs_view; } : empty_func;
-        auto rhs_func = rhs.requires_grad() ? [lhs_view = MakeView()](const Array& gout) { return gout * lhs_view; } : empty_func;
+        auto lhs_func = requires_grad() ? [rhs_view = rhs](const Array& gout) { return gout * rhs_view; } : empty_func;
+        auto rhs_func = rhs.requires_grad() ? [lhs_view = *this](const Array& gout) { return gout * lhs_view; } : empty_func;
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
         auto op_node = std::make_shared<OpNode>("mul", out_rank, next_nodes, backward_functions);
         out_node->set_next_node(op_node);
