@@ -27,20 +27,20 @@ namespace internal {
 
 // Private definition of ArrayBody
 ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool requires_grad, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
-                     std::shared_ptr<ArrayNode> node)
+                     std::shared_ptr<ArrayNode> node, std::string graph_name)
     : shape_(shape),
       dtype_(dtype),
-      requires_grad_(requires_grad),
       is_contiguous_(is_contiguous),
       data_(std::move(data)),
       offset_(offset),
-      node_(std::move(node)) {}
+      nodes_({{std::move(graph_name), {std::move(node), requires_grad}}}) {}
 
 }  // namespace internal
 
 Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad,
-             bool is_contiguous, int64_t offset)
-    : body_(std::make_shared<internal::ArrayBody>(shape, dtype, requires_grad, is_contiguous, std::move(data), offset, std::move(node))) {}
+             bool is_contiguous, int64_t offset, std::string graph_name)
+    : body_(std::make_shared<internal::ArrayBody>(shape, dtype, requires_grad, is_contiguous, std::move(data), offset, std::move(node),
+                                                  std::move(graph_name))) {}
 
 Array::Array(const Array& other)
     : Array(other.shape(), other.dtype(), internal::Allocate(GetCurrentDevice(), other.total_bytes()), std::make_shared<ArrayNode>(),
