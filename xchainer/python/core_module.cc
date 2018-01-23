@@ -9,9 +9,6 @@
 #include "xchainer/python/error.h"
 #include "xchainer/python/scalar.h"
 #include "xchainer/python/shape.h"
-#ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/python/cuda/hello.h"
-#endif  // XCHAINER_ENABLE_CUDA
 
 namespace xchainer {
 
@@ -45,7 +42,4 @@ PYBIND11_MODULE(_core, m) {  // NOLINT
     xchainer::InitXchainerScalar(m);
     xchainer::InitXchainerShape(m);
     xchainer::InitXchainerArray(m);
-#ifdef XCHAINER_ENABLE_CUDA
-    xchainer::cuda::InitXchainerCudaHello(m);
-#endif  // XCHAINER_ENABLE_CUDA
 }
