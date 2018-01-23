@@ -81,6 +81,7 @@ public:
 
     const std::shared_ptr<internal::ArrayBody>& body() { return body_; }
     std::shared_ptr<const internal::ArrayBody> body() const { return body_; }
+    std::shared_ptr<internal::ArrayBody>&& move_body() { return std::move(body_); }
 
     Dtype dtype() const { return body_->dtype_; }
 

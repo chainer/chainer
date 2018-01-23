@@ -201,7 +201,9 @@ def test_add_iadd(array_init_inputs):
     assert lhs._debug_flat_data == lhs_data_list
     assert rhs._debug_flat_data == rhs_data_list
 
+    lhs_prev = lhs
     lhs += rhs
+    assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
     assert lhs._debug_flat_data == expected_data_list
     assert rhs._debug_flat_data == rhs_data_list
 
@@ -226,7 +228,9 @@ def test_mul_imul(array_init_inputs):
     assert lhs._debug_flat_data == lhs_data_list
     assert rhs._debug_flat_data == rhs_data_list
 
+    lhs_prev = lhs
     lhs *= rhs
+    assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
     assert lhs._debug_flat_data == expected_data_list
     assert rhs._debug_flat_data == rhs_data_list
 
@@ -331,13 +335,17 @@ def test_array_cleargrad():
 
 
 def test_array_grad_identity():
-    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
-    grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
+    shape = (3, 1)
+    array = xchainer.Array(shape, xchainer.int8, [1, 1, 1])
+    grad = xchainer.Array(shape, xchainer.float32, [0.5, 0.5, 0.5])
     array.grad = grad
 
-    # This assertion is not a specification, but just a note. Arrays are not identical here as opposed to ordinal Python semantics.
-    assert array.grad is not grad
+    assert array.grad is grad, 'grad must preserve physical identity'
+    assert array.grad is grad, 'grad must preserve physical identity in repeated retrieval'
 
-    # Arrays' data are identical.
-    grad += grad
-    assert array.grad._debug_flat_data == grad._debug_flat_data
+    # array.grad and grad share the same data
+    grad += xchainer.Array(shape, xchainer.float32, [2, 2, 2])
+    assert array.grad._debug_flat_data == [2.5, 2.5, 2.5], 'A modification to grad must affect array.grad'
+
+    array.grad += xchainer.Array(shape, xchainer.float32, [1, 1, 1])
+    assert grad._debug_flat_data == [3.5, 3.5, 3.5], 'A modification to array.grad must affect grad'
