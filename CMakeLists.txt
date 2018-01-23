@@ -20,6 +20,7 @@ include(cmake/third-party.cmake)
 option(BUILD_PYTHON "Build Python binding" OFF)
 option(ENABLE_TEST "Enable building test" ON)
 option(ENABLE_COVERAGE "Enable test coverage with gcov" OFF)
+option(ENABLE_WERROR "Enable -Werror option of compilers to fail if there are warnings" OFF)
 
 # C++ setup
 set(CMAKE_CXX_STANDARD 14)
@@ -43,6 +44,11 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
     if(ENABLE_COVERAGE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+    endif()
+
+    # cmake -DENABLE_WERROR=ON|OFF
+    if (ENABLE_WERROR)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
     endif()
 endif()
 include_directories("${PROJECT_SOURCE_DIR}")
