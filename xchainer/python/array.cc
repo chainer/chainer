@@ -76,7 +76,7 @@ ArrayBodyPtr MakeArray(const Shape& shape, Dtype dtype, py::list list) {
         using T = typename decltype(pt)::type;
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
-    return Array::FromBuffer(shape, dtype, ptr).body();
+    return Array::FromBuffer(shape, dtype, ptr).move_body();
 }
 
 ArrayBodyPtr MakeArray(py::array array) {
@@ -91,12 +91,12 @@ ArrayBodyPtr MakeArray(py::array array) {
     // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
     std::shared_ptr<void> data(std::make_shared<py::array>(std::move(array)), array.mutable_data());
 
-    return Array::FromBuffer(shape, dtype, data).body();
+    return Array::FromBuffer(shape, dtype, data).move_body();
 }
 
 py::buffer_info MakeNumpyArrayFromArray(internal::ArrayBody& self) {
-    auto self_ptr = ArrayBodyPtr(&self, [](internal::ArrayBody* ptr) { (void)ptr; });
-    Array array{self_ptr};  // Used as a temporary accessor
+    // Used as a temporary accessor
+    Array array{std::move(ArrayBodyPtr(&self, [](internal::ArrayBody* ptr) { (void)ptr; }))};
 
     if (!array.is_contiguous()) {
         throw DimensionError("cannot convert non-contiguous Array to NumPy array");
@@ -131,10 +131,10 @@ void InitXchainerArray(pybind11::module& m) {
              })
         .def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).body(); })
         .def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).body(); })
-        .def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).body(); })
-        .def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).body(); })
+        .def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).move_body(); })
+        .def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); })
         .def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); })
-        .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().body(); })
+        .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
         .def_property("requires_grad", [](const ArrayBodyPtr& self) { return Array{self}.requires_grad(); },
                       [](const ArrayBodyPtr& self, bool value) { Array{self}.set_requires_grad(value); })
         .def_property("grad",
