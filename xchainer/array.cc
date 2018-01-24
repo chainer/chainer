@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <iostream>  // TODO(hvy): delete me
 #include <string>
 #include <unordered_map>
 
