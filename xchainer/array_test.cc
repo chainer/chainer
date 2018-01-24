@@ -924,8 +924,10 @@ TEST_P(ArrayTest, MultipleGraphsForwardPropagation) {
 
     EXPECT_TRUE(o.requires_grad("graph_1"));
     EXPECT_TRUE(o.requires_grad("graph_2"));
+
+    // No unspecified graphs are generated
+    EXPECT_THROW(o.requires_grad(""), XchainerError);
     EXPECT_THROW(o.requires_grad("graph_3"), XchainerError);
-    EXPECT_THROW(o.requires_grad(""), XchainerError);  // TODO(hvy): Need to fix
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(

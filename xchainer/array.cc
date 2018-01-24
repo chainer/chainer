@@ -349,7 +349,7 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 }  // namespace
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent) {
-    for (auto& named_property : array.nodes()) {
+    for (const auto& named_property : array.nodes()) {
         DebugDumpComputationalGraph(os, *named_property.second.node, indent);
     }
 }

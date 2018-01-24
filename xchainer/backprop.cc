@@ -1,9 +1,9 @@
 #include "xchainer/backprop.h"
 
 #include <functional>
-#include <iostream>  // TODO(hvy): delete me
 #include <memory>
 #include <queue>
+#include <string>
 #include <unordered_map>
 
 #include <gsl/gsl>
