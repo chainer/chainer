@@ -96,7 +96,9 @@ ArrayBodyPtr MakeArray(py::array array) {
 
 py::buffer_info MakeNumpyArrayFromArray(internal::ArrayBody& self) {
     // Used as a temporary accessor
-    Array array{std::move(ArrayBodyPtr(&self, [](internal::ArrayBody* ptr) { (void)ptr; }))};
+    Array array{std::move(ArrayBodyPtr(&self, [](internal::ArrayBody* ptr) {
+        (void)ptr;  // unused
+    }))};
 
     if (!array.is_contiguous()) {
         throw DimensionError("cannot convert non-contiguous Array to NumPy array");
