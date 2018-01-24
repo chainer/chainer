@@ -95,6 +95,7 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
 
     return {out};
 }
+*/
 
 class CheckBackwardBaseTest : public ::testing::Test {
 protected:
@@ -163,12 +164,14 @@ TEST_P(CheckBackwardUnaryTest, CorrectBackward) {
     CheckBackwardComputation(true, fprop, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4);
 }
 
+/*
 TEST_P(CheckBackwardUnaryTest, IncorrectBackward) {
     float input_data[]{-2.f, 3.f, 1.f};
     float grad_output_data[]{0.f, -2.f, 1.f};
     float eps_data[]{1.f, 2.f, 3.f};
     CheckBackwardComputation(false, &IncorrectBackwardUnaryFunc, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4);
 }
+*/
 
 TEST_P(CheckBackwardBinaryTest, CorrectBackward) {
     float input_data1[]{1.f, 2.f, 3.f};
@@ -180,6 +183,7 @@ TEST_P(CheckBackwardBinaryTest, CorrectBackward) {
     CheckBackwardComputation(true, fprop, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1, eps_data2, 1e-5, 1e-4);
 }
 
+/*
 TEST_P(CheckBackwardBinaryTest, IncorrectBackward) {
     float input_data1[]{3.f, -2.f, 1.f};
     float input_data2[]{0.f, 1.4f, 2.f};
@@ -189,10 +193,10 @@ TEST_P(CheckBackwardBinaryTest, IncorrectBackward) {
     CheckBackwardComputation(false, &IncorrectBackwardBinaryFunc, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1, eps_data2,
                              1e-5, 1e-4);
 }
+*/
 
 INSTANTIATE_TEST_CASE_P(ForEachSingleSetRequiresGrad, CheckBackwardUnaryTest, ::testing::Bool());
 INSTANTIATE_TEST_CASE_P(ForEachCombinedSetRequiresGrad, CheckBackwardBinaryTest, ::testing::Combine(::testing::Bool(), ::testing::Bool()));
-*/
 
 }  // namespace
 }  // namespace xchainer
