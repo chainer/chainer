@@ -37,12 +37,14 @@ namespace internal {
 // The current design requires a subtle overhead on converting between C++ Array and Python Array (due to reference counting), which is
 // currently considered to be ignorable compared to other Python operations.
 //
-// NOTE: This class should not be instantiated by any functions except those defined in array.cc. This class is still defined here so that
+// NOTE: This class sho&graph_nameuld not be instantiated by any functions except those defined in array.cc. This class is still defined
+// here so that
 // the code is made simple and we can use inline access to each member from member accessor functions of Array.
 class ArrayBody {
 public:
-    ArrayBody(const Shape& shape, Dtype dtype, bool requires_grad, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
-              std::shared_ptr<ArrayNode> node, std::string graph_name);
+    ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset);
+
+    ArrayNode& GetNode(const std::string& graph_name, bool requires_grad);
 
     const std::shared_ptr<ArrayNode>& GetOrCreateNode(const std::string& graph_name, bool requires_grad);
 
@@ -58,6 +60,20 @@ public:
 private:
     friend class ::xchainer::Array;
 
+    const nonstd::optional<ArrayNodeGradientProperty> FindNodeProperty(const std::string& graph_name) const {
+        auto named_property =
+            std::find_if(nodes_.begin(), nodes_.end(),
+                         [&graph_name](const std::pair<std::string, ArrayNodeGradientProperty>& node) { return node.first == graph_name; });
+        return named_property != nodes_.end() ? nonstd::optional<ArrayNodeGradientProperty>(named_property->second) : nonstd::nullopt;
+    }
+
+    nonstd::optional<ArrayNodeGradientProperty> FindNodeProperty(const std::string& graph_name) {
+        auto named_property =
+            std::find_if(nodes_.begin(), nodes_.end(),
+                         [&graph_name](const std::pair<std::string, ArrayNodeGradientProperty>& node) { return node.first == graph_name; });
+        return named_property != nodes_.end() ? nonstd::optional<ArrayNodeGradientProperty>(named_property->second) : nonstd::nullopt;
+    }
+
     // Find ArrayNodeGradientProperty assuming it exists
     const ArrayNodeGradientProperty& GetNodeGradientProperty(const std::string& graph_name) const {
         auto named_property =
@@ -69,7 +85,8 @@ private:
         return named_property->second;
     }
 
-    // inline ArrayNodeGradientProperty& GetNodeGradientProperty(const std::string& graph_name) { return GetNodeGradientProperty(graph_name); }
+    // inline ArrayNodeGradientProperty& GetNodeGradientProperty(const std::string& graph_name) { return
+    // GetNodeGradientProperty(graph_name); }
     ArrayNodeGradientProperty& GetMutableNodeGradientProperty(const std::string& graph_name) {
         auto named_property =
             std::find_if(nodes_.begin(), nodes_.end(),
@@ -147,6 +164,7 @@ public:
 
     std::shared_ptr<const void> data() const { return body_->data_; }
 
+    // TODO(hvy): Delete default arg
     bool requires_grad(const std::string& graph_name = "") const { return body_->requires_grad(graph_name); }
 
     void set_requires_grad(bool requires_grad, const std::string& graph_name = "") { body_->set_requires_grad(requires_grad, graph_name); }
@@ -168,6 +186,11 @@ public:
     */
     const std::shared_ptr<ArrayNode>& GetOrCreateNode(const std::string& graph_name, bool requires_grad) {
         return body_->GetOrCreateNode(graph_name, requires_grad);
+    }
+
+    Array& GetNode(const std::string& graph_name, bool requires_grad = true) {
+        body_->GetNode(graph_name, requires_grad);
+        return *this;
     }
 
     const nonstd::optional<Array>& grad(const std::string& graph_name = "") const;
@@ -193,8 +216,7 @@ public:
     // std::shared_ptr<internal::ArrayBody> body_;
 
 private:
-    Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad = false,
-          bool is_contiguous = true, int64_t offset = 0, const std::string& graph_name = "");
+    Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
 
     void CopyTo(Array& out) const;
     void Add(const Array& rhs, Array& out) const;

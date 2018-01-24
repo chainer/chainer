@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <initializer_list>
+#include <string>
 #include <type_traits>
 
 #ifdef XCHAINER_ENABLE_CUDA
@@ -15,6 +16,7 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
+#include "xchainer/error.h"
 #include "xchainer/memory.h"
 #include "xchainer/op_node.h"
 
@@ -34,8 +36,9 @@ public:
     template <typename T>
     Array MakeArray(const Shape& shape, std::shared_ptr<void> data, bool requires_grad = false, const std::string& graph_name = "") {
         Array arr = Array::FromBuffer(shape, TypeToDtype<T>, data);
-        arr.GetOrCreateNode(graph_name, requires_grad);
-        arr.set_requires_grad(requires_grad, graph_name);
+        arr.GetNode(graph_name, requires_grad);
+        // arr.GetOrCreateNode(graph_name, requires_grad);
+        // arr.set_requires_grad(requires_grad, graph_name);
         return arr;
     }
 
@@ -47,19 +50,17 @@ public:
     }
 
     template <typename T>
-    void ExpectEqualCopy(const Array& expected, const Array& actual) {
+    void ExpectEqualCopy(const Array& expected, const Array& actual, const std::string& graph_name = "") {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
 
         // Deep copy, therefore assert different addresses to data
         EXPECT_NE(expected.data().get(), actual.data().get());
 
+        EXPECT_EQ(expected.requires_grad(graph_name), actual.requires_grad(graph_name));
         EXPECT_EQ(expected.requires_grad(), actual.requires_grad());
         EXPECT_TRUE(actual.is_contiguous());
         EXPECT_EQ(0, actual.offset());
-
-        // Check its node is properly initialized
-        EXPECT_TRUE(actual.node());
 
         ExpectDataEqual<T>(expected, actual);
     }
@@ -132,7 +133,7 @@ public:
         std::copy(raw_data.begin(), raw_data.end(), data.get());
 
         Dtype dtype = TypeToDtype<T>;
-        TargetArray x = Array::FromBuffer(shape, dtype, data);
+        Array x = Array::FromBuffer(shape, dtype, data);
 
         // Basic attributes
         EXPECT_EQ(shape, x.shape());
@@ -141,7 +142,6 @@ public:
         EXPECT_EQ(3 * 2, x.total_size());
         EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
         EXPECT_EQ(shape.total_size() * sizeof(T), x.total_bytes());
-        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
 
@@ -164,7 +164,6 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataExistsOnCurrentDevice(x);
@@ -179,7 +178,6 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataExistsOnCurrentDevice(x);
@@ -205,7 +203,6 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
@@ -224,7 +221,6 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), scalar.dtype());
-        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(value, x);
@@ -240,7 +236,6 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
@@ -259,7 +254,6 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         T expected{0};
@@ -276,7 +270,6 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         T expected{0};
@@ -291,7 +284,6 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         T expected{1};
@@ -308,7 +300,6 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_FALSE(x.requires_grad());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         T expected{1};
@@ -320,6 +311,17 @@ private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
 
+/*
+TEST_P(ArrayTest, Temporary) {
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    a.GetNode("");
+    a.GetNode("graph_1");
+    EXPECT_THROW(a.GetNode("graph_1"), XchainerError);
+    // Array b = a;
+    // ExpectEqualCopy<bool>(a, b);
+}
+
+*/
 TEST_P(ArrayTest, CopyCtor) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = a;
@@ -356,13 +358,13 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
 
 TEST_P(ArrayTest, ArrayMoveAssignmentOperator) {
     {
-        // TOOD(hvy): Change the following expectations when copy assignment is implemented (not explicitly deleted)
+        // TODO(hvy): Change the following expectations when copy assignment is implemented (not explicitly deleted)
         EXPECT_FALSE(std::is_nothrow_move_assignable<Array>::value);
     }
 }
 
 TEST_P(ArrayTest, SetRequiresGrad) {
-    Array x = MakeArray<bool>({1}, {true});
+    Array x = MakeArray<bool>({1}, {true}, false);
     ASSERT_FALSE(x.requires_grad());
     x.set_requires_grad(true);
     ASSERT_TRUE(x.requires_grad());
@@ -927,11 +929,16 @@ TEST_P(ArrayTest, MulBackwrdCapture) {
 TEST_P(ArrayTest, MultipleGraphs) {
     Array a = MakeArray<float>({1}, {2.0f}, true, "graph_1");
     Array b = MakeArray<float>({1}, {2.0f}, true, "graph_2");
+
+    EXPECT_TRUE(a.requires_grad("graph_1"));
+    EXPECT_TRUE(b.requires_grad("graph_2"));
+
     Array o = a * b;
+
     EXPECT_TRUE(o.requires_grad("graph_1"));
     EXPECT_TRUE(o.requires_grad("graph_2"));
     EXPECT_THROW(o.requires_grad("graph_3"), XchainerError);
-    // EXPECT_THROW(o.requires_grad(""), XchainerError);  // TODO(hvy): Need to fix
+    EXPECT_THROW(o.requires_grad(""), XchainerError);  // TODO(hvy): Need to fix
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(

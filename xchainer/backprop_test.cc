@@ -29,11 +29,11 @@ protected:
     virtual void TearDown() { device_scope_.reset(); }
 
 public:
-    std::vector<Array> MakeFullArrays(const Shape& shape, const std::vector<float>& values, bool requires_grad) const {
+    std::vector<Array> MakeFullArrays(const Shape& shape, const std::vector<float>& values, bool requires_grad, const std::string& graph_name) const {
         std::vector<Array> ret;
         for (float value : values) {
             ret.push_back(Array::Full(shape, value));
-            ret.back().set_requires_grad(requires_grad);
+            ret.back().GetNode(graph_name, requires_grad);
         }
         return ret;
     }
@@ -64,44 +64,46 @@ public:
     // Checks the correctness of Backward() applied to the output of a given function.
     // Gradients are only computed w.r.t. target_inputs, and are compared to expected_grads.
     template <typename Fprop, typename... Args>
-    void CheckBackpropImpl(std::vector<Array>& target_inputs, std::vector<Array>& expected_grads, Fprop&& fprop, Args&&... args) const {
+    void CheckBackpropImpl(std::vector<Array>& target_inputs, std::vector<Array>& expected_grads, Fprop&& fprop, const std::string& graph_name, Args&&... args) const {
         ASSERT_EQ(expected_grads.size(), target_inputs.size());
         auto y = fprop(target_inputs, args...);
-        Backward(y);
+        Backward(y, graph_name);
+        /*
         for (size_t i = 0; i < expected_grads.size(); ++i) {
-            ExpectEqual<float>(expected_grads[i], *target_inputs[i].grad());
+            ExpectEqual<float>(expected_grads[i], *target_inputs[i].grad(graph_name));
         }
+        */
     }
 
     template <typename Fprop>
-    void CheckBackprop(std::vector<Array>& target_inputs, std::vector<Array>& expected_grads, Fprop&& fprop) const {
-        CheckBackpropImpl(target_inputs, expected_grads, fprop);
+    void CheckBackprop(std::vector<Array>& target_inputs, std::vector<Array>& expected_grads, Fprop&& fprop, const std::string& graph_name) const {
+        CheckBackpropImpl(target_inputs, expected_grads, fprop, graph_name);
     }
 
     template <typename Fprop>
     void CheckBackpropExtraInputs(std::vector<Array>& target_inputs, std::vector<Array>& other_inputs, std::vector<Array>& expected_grads,
-                                  Fprop&& fprop) const {
-        CheckBackpropImpl(target_inputs, expected_grads, fprop, other_inputs);
+                                  Fprop&& fprop, const std::string& graph_name) const {
+        CheckBackpropImpl(target_inputs, expected_grads, fprop, graph_name, other_inputs);
         for (size_t i = 0; i < other_inputs.size(); ++i) {
-            EXPECT_FALSE(other_inputs[i].grad());
+            EXPECT_FALSE(other_inputs[i].grad(graph_name));
         }
     }
 
     // Simple versions. It makes and uses an array with one element for each input.
     template <typename Fprop>
-    void CheckBackpropSingleElement(std::vector<float> target_inputs, std::vector<float> expected_grads, Fprop&& fprop) const {
-        auto xs = MakeFullArrays({1}, target_inputs, true);
-        auto expected_gxs = MakeFullArrays({1}, expected_grads, false);
-        CheckBackprop(xs, expected_gxs, std::forward<Fprop>(fprop));
+    void CheckBackpropSingleElement(std::vector<float> target_inputs, std::vector<float> expected_grads, Fprop&& fprop, const std::string& graph_name) const {
+        auto xs = MakeFullArrays({1}, target_inputs, true, graph_name);
+        auto expected_gxs = MakeFullArrays({1}, expected_grads, false, graph_name);
+        CheckBackprop(xs, expected_gxs, std::forward<Fprop>(fprop), graph_name);
     }
 
     template <typename Fprop>
     void CheckBackpropSingleElementExtraInputs(std::vector<float> target_inputs, std::vector<float> other_inputs,
-                                               std::vector<float> expected_grads, Fprop&& fprop) const {
-        auto xs = MakeFullArrays({1}, target_inputs, true);
-        auto other_xs = MakeFullArrays({1}, other_inputs, false);
-        auto expected_gxs = MakeFullArrays({1}, expected_grads, false);
-        CheckBackpropExtraInputs(xs, other_xs, expected_gxs, std::forward<Fprop>(fprop));
+                                               std::vector<float> expected_grads, Fprop&& fprop, const std::string& graph_name) const {
+        auto xs = MakeFullArrays({1}, target_inputs, true, graph_name);
+        auto other_xs = MakeFullArrays({1}, other_inputs, false, graph_name);
+        auto expected_gxs = MakeFullArrays({1}, expected_grads, false, graph_name);
+        CheckBackpropExtraInputs(xs, other_xs, expected_gxs, std::forward<Fprop>(fprop), graph_name);
     }
 
 private:
@@ -109,61 +111,63 @@ private:
 };
 
 TEST_P(BackpropTest, BackwardBasic) {
-    CheckBackpropSingleElementExtraInputs({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
-    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) { return xs[0] * xs[1]; });
-    CheckBackpropSingleElement({3.0f, 2.0f, 4.0f}, {8.0f, 12.0f, 6.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[2]; });
-    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) { return xs[0] * xs[1]; });
-    CheckBackpropSingleElement({3.0f, 2.0f}, {12.0f, 9.0f}, [](auto& xs) { return xs[0] * xs[1] * xs[0]; });
-    CheckBackpropSingleElement({3.0f, 2.0f}, {1.0f, 2.0f}, [](auto& xs) { return (xs[0] + xs[1]) + xs[1]; });
+    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) { return xs[0] * xs[1]; }, "graph_1");
+    CheckBackpropSingleElement({3.0f, 2.0f, 4.0f}, {8.0f, 12.0f, 6.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[2]; }, "graph_1");
+    CheckBackpropSingleElement({3.0f, 2.0f}, {12.0f, 9.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[0]; }, "graph_1");
+    CheckBackpropSingleElement({3.0f, 2.0f}, {1.0f, 2.0f}, [](auto& xs) { return (xs[0] + xs[1]) + xs[1]; }, "graph_1");
 }
 
 TEST_P(BackpropTest, BackwardWithExtraInputs) {
-    CheckBackpropSingleElementExtraInputs({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
-    CheckBackpropSingleElementExtraInputs({2.0f}, {4.0f}, {4.0f}, [](auto& xs, auto& ys) { return xs[0] * ys[0]; });
+    CheckBackpropSingleElementExtraInputs({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); }, "graph_2");
+    CheckBackpropSingleElementExtraInputs({2.0f}, {4.0f}, {4.0f}, [](auto& xs, auto& ys) { return xs[0] * ys[0]; }, "graph_2");
 }
 
 TEST_P(BackpropTest, BackwardSoleArrayNode) {
     auto x = Array::Full({1}, 2.0f);
-    Backward(x);
+    x.GetNode("graph_1", true);
+    Backward(x, "graph_1");
     auto e = Array::OnesLike(x);
-    ExpectEqual<float>(e, *x.grad());
+    ExpectEqual<float>(e, *x.grad("graph_1"));
 }
 
 TEST_P(BackpropTest, DoubleBackprop) {
-    auto fprop = [](auto& xs, auto& ys) {
+    const std::string& graph_name = "graph_2";
+    auto fprop = [graph_name](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
-        Backward(z);
-        auto gx = *xs[0].grad();
-        xs[0].ClearGrad();
+        Backward(z, graph_name);
+        auto gx = *xs[0].grad(graph_name);
+        xs[0].ClearGrad(graph_name);
         return gx;
     };
-    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop);
+    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop, graph_name);
 }
 
 TEST_P(BackpropTest, BackwardInputToMultipleOps) {
-    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {7.0f}, [](auto& xs, auto& ys) { return xs[0] * (xs[0] + ys[0]); });
+    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {7.0f}, [](auto& xs, auto& ys) { return xs[0] * (xs[0] + ys[0]); }, "graph_2");
 }
 
 TEST_P(BackpropTest, BackwardIdenticalInputs) {
-    CheckBackpropSingleElement({2.0f}, {2.0f}, [](auto& xs) { return xs[0] + xs[0]; });
-    CheckBackpropSingleElement({3.0f}, {6.0f}, [](auto& xs) { return xs[0] * xs[0]; });
+    CheckBackpropSingleElement({2.0f}, {2.0f}, [](auto& xs) { return xs[0] + xs[0]; }, "graph_1");
+    CheckBackpropSingleElement({3.0f}, {6.0f}, [](auto& xs) { return xs[0] * xs[0]; }, "graph_1");
 }
 
 TEST_P(BackpropTest, BackwardGivenInputGrad) {
-    auto fprop = [](auto& xs) {
-        xs[0].set_grad(Array::OnesLike(xs[0]));
+    const std::string& graph_name = "graph_1";
+    auto fprop = [graph_name](auto& xs) {
+        xs[0].set_grad(Array::OnesLike(xs[0]), graph_name);
         return xs[0];
     };
-    CheckBackpropSingleElement({1.0f}, {2.0f}, fprop);
+    CheckBackpropSingleElement({1.0f}, {2.0f}, fprop, graph_name);
 }
 
 TEST_P(BackpropTest, BackwardGivenOutputGrad) {
-    auto fprop = [](auto& xs, auto& ys) {
+    const std::string& graph_name = "graph_3";
+    auto fprop = [graph_name](auto& xs, auto& ys) {
         auto z = xs[0] * ys[0];
-        z.set_grad(Array::FullLike(z, 2.0f));
+        z.set_grad(Array::FullLike(z, 2.0f), graph_name);
         return z;
     };
-    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {6.0f}, fprop);
+    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {6.0f}, fprop, graph_name);
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
