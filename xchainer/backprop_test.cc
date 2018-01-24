@@ -139,6 +139,14 @@ TEST_P(BackpropTest, BackwardIdenticalInputs) {
     CheckBackpropSingleElement({2.0f}, {2.0f}, [](auto& xs) { return xs[0] + xs[0]; });
 }
 
+TEST_P(BackpropTest, BackwardIdenticalIntermediateNodes) {
+    auto fprop = [](auto& xs) {
+        auto y = xs[0] + xs[0];
+        return y + y;
+    };
+    CheckBackpropSingleElement({2.0f}, {4.0f}, fprop);
+}
+
 TEST_P(BackpropTest, BackwardGivenInputGrad) {
     auto fprop = [](auto& xs) {
         xs[0].set_grad(Array::OnesLike(xs[0]));
