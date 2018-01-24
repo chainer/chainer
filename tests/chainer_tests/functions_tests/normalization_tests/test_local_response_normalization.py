@@ -3,24 +3,31 @@ import unittest
 import numpy
 import six
 
-import chainer
 from chainer import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
+from chainer.testing import backend
 
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
+@backend.inject_backend_tests(
+    ['test_forward', 'test_backward'],
+    # CPU tests
+    [{'use_cuda': False}]
+    # GPU tests
+    + [{'use_cuda': True}])
 class TestLocalResponseNormalization(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(
-            -1, 1, (2, 7, 3, 2)).astype(self.dtype)
-        self.gy = numpy.random.uniform(
-            -1, 1, (2, 7, 3, 2)).astype(self.dtype)
+        x = numpy.random.uniform(-1, 1, (2, 7, 3, 2)).astype(self.dtype)
+        gy = numpy.random.uniform(-1, 1, (2, 7, 3, 2)).astype(self.dtype)
+
+        self.inputs = [x]
+        self.grad_outputs = [gy]
+
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
             self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-3}
@@ -28,42 +35,40 @@ class TestLocalResponseNormalization(unittest.TestCase):
             self.check_forward_options = {}
             self.check_backward_options = {'atol': 3e-4, 'rtol': 3e-3}
 
-    def check_forward(self, x_data):
-        x = chainer.Variable(x_data)
-        y = functions.local_response_normalization(x)
-        self.assertEqual(y.data.dtype, self.dtype)
-        y_data = cuda.to_cpu(y.data)
-
+    def forward_cpu(self, inputs):
         # Naive implementation
-        y_expect = numpy.zeros_like(self.x)
-        for n, c, h, w in numpy.ndindex(self.x.shape):
+        x, = inputs
+        y_expect = numpy.zeros_like(x)
+        for n, c, h, w in numpy.ndindex(x.shape):
             s = 0
             for i in six.moves.range(max(0, c - 2), min(7, c + 2)):
-                s += self.x[n, i, h, w] ** 2
+                s += x[n, i, h, w] ** 2
             denom = (2 + 1e-4 * s) ** .75
-            y_expect[n, c, h, w] = self.x[n, c, h, w] / denom
+            y_expect[n, c, h, w] = x[n, c, h, w] / denom
+        return y_expect,
 
-        testing.assert_allclose(
-            y_expect, y_data, **self.check_forward_options)
+    def check_forward(self, inputs, backend_config):
+        y_expect, = self.forward_cpu(inputs)
 
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
+        with backend_config:
+            y = functions.local_response_normalization(*inputs)
 
-    def check_backward(self, x_data, y_grad):
+        assert y.data.dtype == self.dtype
+        testing.assert_allclose(y_expect, y.data, **self.check_forward_options)
+
+    def test_forward(self, backend_config):
+        self.check_forward(self.inputs, backend_config)
+
+    def check_backward(self, inputs, grad_outputs, backend_config):
         gradient_check.check_backward(
-            functions.LocalResponseNormalization(), x_data, y_grad,
+            functions.LocalResponseNormalization(), inputs, grad_outputs,
             eps=1, dtype=numpy.float64, **self.check_backward_options)
 
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+    def test_backward(self, backend_config):
+        self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
 
 testing.run_module(__name__, __file__)
