@@ -9,11 +9,13 @@ install(FILES
     array.h
     array_math.h
     array_repr.h
+    backend.h
     backprop.h
     constant.h
     device.h
     dtype.h
     error.h
+    native_backend.h
     memory.h
     scalar.h
     shape.h
@@ -30,6 +32,7 @@ add_library(xchainer SHARED
     device.cc
     dtype.cc
     gradient_check.cc
+    native_backend.cc
     memory.cc
     numeric.cc
     scalar.cc
