@@ -18,7 +18,8 @@ def _to_noncontiguous(arrays):
     return [xp.asfortranarray(a) for a in arrays]
 
 
-def _batch_normalization(x, gamma, beta, mean, var, expander):
+def _batch_normalization(args):
+    x, gamma, beta, mean, var, expander = args
     mean = mean[expander]
     std = numpy.sqrt(var)[expander]
     y_expect = (gamma[expander] * (x - mean) / std + beta[expander])
@@ -90,7 +91,7 @@ class TestBatchNormalization(unittest.TestCase):
 
     def forward_cpu(self, inputs):
         y_expect = _batch_normalization(
-            *inputs, self.mean, self.var, self.expander)
+            inputs + [self.mean, self.var, self.expander])
         return y_expect,
 
     def check_forward(self, inputs, backend_config):
@@ -221,7 +222,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
 
     def forward_cpu(self, inputs):
-        y_expect = _batch_normalization(*inputs, self.expander)
+        y_expect = _batch_normalization(inputs + [self.expander])
         return y_expect,
 
     def check_forward(self, inputs, backend_config):
@@ -237,7 +238,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
         assert y.data.dtype == self.dtype
 
         testing.assert_allclose(
-            y_expected.data, y.data, **self.check_forward_options)
+            y_expected, y.data, **self.check_forward_options)
 
     def test_forward(self, backend_config):
         self.check_forward(self.inputs, backend_config)
