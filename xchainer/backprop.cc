@@ -22,16 +22,15 @@ class BackwardImpl {
     using PreviousArrayNodeMap = std::unordered_map<std::shared_ptr<const OpNode>, std::shared_ptr<ArrayNode>>;
 
 public:
-    BackwardImpl() : candidate_op_nodes_(BackwardImpl::Compare){};
+    BackwardImpl(const Array& output)
+        : output_(output), output_array_node_(output.mutable_node()), candidate_op_nodes_(BackwardImpl::Compare){};
 
-    void run(Array& output) {
-        std::shared_ptr<ArrayNode> array_node = output.mutable_node();
-
-        if (!array_node->grad()) {
-            array_node->set_grad(Array::OnesLike(output));
+    void run() {
+        if (!output_array_node_->grad()) {
+            output_array_node_->set_grad(Array::OnesLike(output_));
         }
 
-        PushNextOpNode(array_node);
+        PushNextOpNode(output_array_node_);
 
         while (!candidate_op_nodes_.empty()) {
             std::shared_ptr<const OpNode> op_node = candidate_op_nodes_.top();
@@ -62,7 +61,9 @@ private:
             }
         }
 
-        previous_array_node->ClearGrad();
+        if (previous_array_node != output_array_node_) {
+            previous_array_node->ClearGrad();
+        }
 
         return gxs;
     }
@@ -96,6 +97,8 @@ private:
         return lhs->rank() < rhs->rank();
     };
 
+    const Array& output_;
+    const std::shared_ptr<ArrayNode>& output_array_node_;
     CandidateOpNodes candidate_op_nodes_;
     PreviousArrayNodeMap previous_array_node_map_;
 };
@@ -105,7 +108,7 @@ private:
 void Backward(Array& output) {
     // TODO(takagi): Operations that have multiple outputs
     // TODO(takagi): Begin backprop from multiple outputs
-    BackwardImpl{}.run(output);
+    BackwardImpl{output}.run();
 }
 
 }  // namespace xchainer

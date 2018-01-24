@@ -28,6 +28,8 @@ def check_backprop(xs, expected_gxs, fprop, args):
     for i, (gx, expected_gx) in enumerate(zip(gxs, expected_gxs)):
         assert_arrays_equal(gx, expected_gx)
 
+    assert outputs[0].grad is not None
+
 
 def test_backward_identity():
     shape = (1,)

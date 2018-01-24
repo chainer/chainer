@@ -71,6 +71,7 @@ public:
         for (size_t i = 0; i < expected_grads.size(); ++i) {
             ExpectEqual<float>(expected_grads[i], *target_inputs[i].grad());
         }
+        EXPECT_TRUE(y.grad().has_value());
     }
 
     template <typename Fprop>
