@@ -49,18 +49,18 @@ install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)
     set(srcs
-        # array_repr_test.cc
+        array_repr_test.cc
         array_test.cc
         check_backward.cc
-        # check_backward_test.cc
+        check_backward_test.cc
         backprop_test.cc
-        # device_test.cc
-        # dtype_test.cc
-        # gradient_check_test.cc
-        # memory_test.cc
-        # numeric_test.cc
-        # scalar_test.cc
-        # shape_test.cc
+        device_test.cc
+        dtype_test.cc
+        gradient_check_test.cc
+        memory_test.cc
+        numeric_test.cc
+        scalar_test.cc
+        shape_test.cc
         )
     if(${CUDA_FOUND})
         CUDA_ADD_EXECUTABLE(xchainer_test ${srcs})

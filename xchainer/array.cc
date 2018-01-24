@@ -402,7 +402,9 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 }  // namespace
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent) {
-    // DebugDumpComputationalGraph(os, *array.node(), indent);
+    for (auto& named_property : array.nodes()) {
+        DebugDumpComputationalGraph(os, *named_property.second.node, indent);
+    }
 }
 
 }  // namespace xchainer
