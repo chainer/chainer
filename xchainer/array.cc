@@ -34,14 +34,41 @@ ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::s
 
 // TODO(hvy): Consider this interface since e.g. requires_grad cannot be modified here if the ArrayNode is already present
 ArrayNode& ArrayBody::GetNode(const std::string& graph_name, bool requires_grad) {
-    auto maybe_node_property = FindNodeProperty(graph_name);
-    if (maybe_node_property) {
-        return *maybe_node_property->node;
+    auto named_property = std::find_if(nodes_.begin(), nodes_.end(), [&graph_name](const std::pair<std::string, ArrayNodeProperty>& node) {
+        return node.first == graph_name;
+    });
+
+    if (named_property != nodes_.end()) {  // Found node for graph, update property and return existing
+        named_property->second.requires_grad = requires_grad;
+        return *named_property->second.node;
     }
-    auto node = std::make_shared<ArrayNode>();
-    ArrayNodeGradientProperty node_property(node, requires_grad);
-    nodes_.push_back({graph_name, node_property});
+
+    // Did not find a node, create and return a new node
+    nodes_.push_back({graph_name, {std::make_shared<ArrayNode>(), requires_grad}});
     return *nodes_.back().second.node;
+}
+
+// TODO(hvy): Clean up intermediate accessors
+// Find ArrayNodeProperty assuming it exists
+const ArrayNodeProperty& ArrayBody::GetNodeProperty(const std::string& graph_name) const {
+    auto named_property = std::find_if(nodes_.begin(), nodes_.end(), [&graph_name](const std::pair<std::string, ArrayNodeProperty>& node) {
+        return node.first == graph_name;
+    });
+    if (named_property == nodes_.end()) {
+        throw XchainerError("Cannot find node for graph: " + graph_name);
+    }
+    return named_property->second;
+}
+
+// TODO(hvy): Clean up intermediate accessors
+ArrayNodeProperty& ArrayBody::GetMutableNodeProperty(const std::string& graph_name) {
+    auto named_property = std::find_if(nodes_.begin(), nodes_.end(), [&graph_name](const std::pair<std::string, ArrayNodeProperty>& node) {
+        return node.first == graph_name;
+    });
+    if (named_property == nodes_.end()) {
+        throw XchainerError("Cannot find node for graph: " + graph_name);
+    }
+    return named_property->second;
 }
 
 }  // namespace internal
