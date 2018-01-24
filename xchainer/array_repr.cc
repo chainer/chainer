@@ -131,9 +131,7 @@ private:
 
 class BoolFormatter {
 public:
-    void Scan(bool value) {
-        (void)value;  // unused
-    }
+    void Scan(bool value) { (void)value; /* unused */ }
 
     void Print(std::ostream& os, bool value) const {
         os << (value ? " True" : "False");  // NOLINTER
