@@ -55,7 +55,7 @@ class TestDropout(unittest.TestCase):
             inputs = cuda.to_gpu(inputs)
 
         with backend_config:
-            y = functions.dropout(*inputs, self.ratio)
+            y = functions.dropout(*(inputs + [self.ratio]))
 
         # In the calculation of expected results, the mask used in test forward
         # computation is reused.
