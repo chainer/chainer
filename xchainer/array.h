@@ -46,18 +46,10 @@ public:
 
     ArrayNode& GetNode(const std::string& graph_name, bool requires_grad);
 
-    // TODO(hvy): Better way of returning the const ArrayNode
-    std::shared_ptr<const ArrayNode> node(const std::string& graph_name) {
-        return std::const_pointer_cast<const ArrayNode>(GetNodeGradientProperty(graph_name).node);
-    }
-
-    const std::shared_ptr<ArrayNode>& mutable_node(const std::string& graph_name) { return GetNodeGradientProperty(graph_name).node; }
-
-    const std::vector<std::pair<std::string, ArrayNodeGradientProperty>>& nodes() const { return nodes_; };
-
 private:
     friend class ::xchainer::Array;
 
+    // TODO(hvy): Clean up intermediate accessors
     const nonstd::optional<ArrayNodeGradientProperty> FindNodeProperty(const std::string& graph_name) const {
         auto named_property =
             std::find_if(nodes_.begin(), nodes_.end(),
@@ -65,6 +57,7 @@ private:
         return named_property != nodes_.end() ? nonstd::optional<ArrayNodeGradientProperty>(named_property->second) : nonstd::nullopt;
     }
 
+    // TODO(hvy): Clean up intermediate accessors
     nonstd::optional<ArrayNodeGradientProperty> FindNodeProperty(const std::string& graph_name) {
         auto named_property =
             std::find_if(nodes_.begin(), nodes_.end(),
@@ -72,8 +65,9 @@ private:
         return named_property != nodes_.end() ? nonstd::optional<ArrayNodeGradientProperty>(named_property->second) : nonstd::nullopt;
     }
 
+    // TODO(hvy): Clean up intermediate accessors
     // Find ArrayNodeGradientProperty assuming it exists
-    const ArrayNodeGradientProperty& GetNodeGradientProperty(const std::string& graph_name) const {
+    const ArrayNodeGradientProperty& GetNodeProperty(const std::string& graph_name) const {
         auto named_property =
             std::find_if(nodes_.begin(), nodes_.end(),
                          [&graph_name](const std::pair<std::string, ArrayNodeGradientProperty>& node) { return node.first == graph_name; });
@@ -83,7 +77,8 @@ private:
         return named_property->second;
     }
 
-    ArrayNodeGradientProperty& GetMutableNodeGradientProperty(const std::string& graph_name) {
+    // TODO(hvy): Clean up intermediate accessors
+    ArrayNodeGradientProperty& GetMutableNodeProperty(const std::string& graph_name) {
         auto named_property =
             std::find_if(nodes_.begin(), nodes_.end(),
                          [&graph_name](const std::pair<std::string, ArrayNodeGradientProperty>& node) { return node.first == graph_name; });
@@ -93,10 +88,18 @@ private:
         return named_property->second;
     }
 
-    bool requires_grad(const std::string& graph_name) const { return GetNodeGradientProperty(graph_name).requires_grad; }
+    std::shared_ptr<const ArrayNode> node(const std::string& graph_name) {
+        return std::const_pointer_cast<const ArrayNode>(GetNodeProperty(graph_name).node);
+    }
+
+    const std::shared_ptr<ArrayNode>& mutable_node(const std::string& graph_name) { return GetNodeProperty(graph_name).node; }
+
+    const std::vector<std::pair<std::string, ArrayNodeGradientProperty>>& nodes() const { return nodes_; };
+
+    bool requires_grad(const std::string& graph_name) const { return GetNodeProperty(graph_name).requires_grad; }
 
     void set_requires_grad(bool requires_grad, const std::string& graph_name) {
-        GetMutableNodeGradientProperty(graph_name).requires_grad = requires_grad;
+        GetMutableNodeProperty(graph_name).requires_grad = requires_grad;
     }
 
     Shape shape_;
