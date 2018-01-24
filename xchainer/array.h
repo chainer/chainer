@@ -69,13 +69,22 @@ private:
         return named_property->second;
     }
 
-    inline ArrayNodeGradientProperty& GetNodeGradientProperty(const std::string& graph_name) { return GetNodeGradientProperty(graph_name); }
+    // inline ArrayNodeGradientProperty& GetNodeGradientProperty(const std::string& graph_name) { return GetNodeGradientProperty(graph_name); }
+    ArrayNodeGradientProperty& GetMutableNodeGradientProperty(const std::string& graph_name) {
+        auto named_property =
+            std::find_if(nodes_.begin(), nodes_.end(),
+                         [&graph_name](const std::pair<std::string, ArrayNodeGradientProperty>& node) { return node.first == graph_name; });
+        if (named_property == nodes_.end()) {
+            throw XchainerError("Cannot find node for graph: " + graph_name);
+        }
+        return named_property->second;
+    }
 
     // bool requires_grad(const std::string& graph_name) { return Node(graph_name).requires_grad; }
     bool requires_grad(const std::string& graph_name) const { return GetNodeGradientProperty(graph_name).requires_grad; }
 
     void set_requires_grad(bool requires_grad, const std::string& graph_name) {
-        GetNodeGradientProperty(graph_name).requires_grad = requires_grad;
+        GetMutableNodeGradientProperty(graph_name).requires_grad = requires_grad;
     }
 
     Shape shape_;
@@ -178,7 +187,7 @@ public:
 
 private:
     Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad = false,
-          bool is_contiguous = true, int64_t offset = 0, std::string graph_name = "");
+          bool is_contiguous = true, int64_t offset = 0, const std::string& graph_name = "");
 
     void CopyTo(Array& out) const;
     void Add(const Array& rhs, Array& out) const;

@@ -6,6 +6,6 @@
 
 namespace xchainer {
 
-void Backward(Array& output, const std::string& graph_name);
+void Backward(Array& output, const std::string& graph_name = "");
 
 }  // namespace xchainer

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <iostream> // TODO(hvy): Remove me
 #include <string>
 // #include <unordered_set>
 #include <unordered_map>
@@ -59,7 +60,7 @@ const std::shared_ptr<ArrayNode>& ArrayBody::GetOrCreateNode(const std::string& 
 }  // namespace internal
 
 Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad,
-             bool is_contiguous, int64_t offset, std::string graph_name)
+             bool is_contiguous, int64_t offset, const std::string& graph_name)
     : body_(std::make_shared<internal::ArrayBody>(shape, dtype, requires_grad, is_contiguous, std::move(data), offset, std::move(node),
                                                   std::move(graph_name))) {}
 
@@ -192,7 +193,7 @@ void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    std::unordered_map<std::string, std::shared_ptr<OpNode>> graph_op_nodes;
+    std::unordered_map<std::string, OpNode> graph_op_nodes;
 
     // LHS
     for (auto& named_node : body_->nodes_) {  // For each graph
@@ -200,10 +201,10 @@ void Array::Add(const Array& rhs, Array& out) const {
         if (named_node.second.requires_grad) {
             std::shared_ptr<ArrayNode> lhs_node = mutable_node(graph_name);
             auto lhs_func = [](const Array& gout) { return gout; };
-            std::shared_ptr<OpNode>& op_node = graph_op_nodes[graph_name];  // Create if not exists
-            op_node->set_name("add");
-            op_node->RegisterNextNode(lhs_node);
-            op_node->RegisterBackwardFunction(lhs_func);
+            OpNode& op_node = graph_op_nodes[graph_name];  // Create if not exists
+            op_node.set_name("add");
+            op_node.RegisterNextNode(lhs_node);
+            op_node.RegisterBackwardFunction(lhs_func);
         }
     }
 
@@ -213,17 +214,17 @@ void Array::Add(const Array& rhs, Array& out) const {
         if (named_node.second.requires_grad) {
             std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node(graph_name);
             auto rhs_func = [](const Array& gout) { return gout; };
-            std::shared_ptr<OpNode>& op_node = graph_op_nodes[graph_name];
-            op_node->set_name("add");
-            op_node->RegisterNextNode(rhs_node);
-            op_node->RegisterBackwardFunction(rhs_func);
+            OpNode& op_node = graph_op_nodes[graph_name];
+            op_node.set_name("add");
+            op_node.RegisterNextNode(rhs_node);
+            op_node.RegisterBackwardFunction(rhs_func);
         }
     }
 
     for (const auto& graph_op_node : graph_op_nodes) {
         std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_op_node.first, true);
-        gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second->next_nodes();
-        out_node->set_next_node(graph_op_node.second);
+        gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
+        out_node->set_next_node(std::make_shared<OpNode>(graph_op_node.second));
         out_node->set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
                                               [](const std::shared_ptr<ArrayNode>& a, const std::shared_ptr<ArrayNode>& b) {
                                                   return a->rank() < b->rank();
@@ -256,7 +257,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    std::unordered_map<std::string, std::shared_ptr<OpNode>> graph_op_nodes;
+    std::unordered_map<std::string, OpNode> graph_op_nodes;
 
     // LHS
     for (auto& named_node : body_->nodes_) {
@@ -265,10 +266,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
             std::shared_ptr<ArrayNode> lhs_node = mutable_node(graph_name);
             // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
             auto lhs_func = [rhs_view = rhs.MakeView()](const Array& gout) { return gout * rhs_view; };
-            std::shared_ptr<OpNode>& op_node = graph_op_nodes[graph_name];
-            op_node->set_name("mul");
-            op_node->RegisterNextNode(lhs_node);
-            op_node->RegisterBackwardFunction(lhs_func);
+            OpNode& op_node = graph_op_nodes[graph_name];
+            op_node.set_name("mul");
+            op_node.RegisterNextNode(lhs_node);
+            op_node.RegisterBackwardFunction(lhs_func);
         }
     }
 
@@ -278,17 +279,17 @@ void Array::Mul(const Array& rhs, Array& out) const {
         if (named_node.second.requires_grad) {
             std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node(graph_name);
             auto rhs_func = [lhs_view = MakeView()](const Array& gout) { return gout * lhs_view; };
-            std::shared_ptr<OpNode>& op_node = graph_op_nodes[graph_name];
-            op_node->set_name("mul");
-            op_node->RegisterNextNode(rhs_node);
-            op_node->RegisterBackwardFunction(rhs_func);
+            OpNode& op_node = graph_op_nodes[graph_name];
+            op_node.set_name("mul");
+            op_node.RegisterNextNode(rhs_node);
+            op_node.RegisterBackwardFunction(rhs_func);
         }
     }
 
     for (const auto& graph_op_node : graph_op_nodes) {
         std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_op_node.first, true);
-        gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second->next_nodes();
-        out_node->set_next_node(graph_op_node.second);
+        gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
+        out_node->set_next_node(std::make_shared<OpNode>(graph_op_node.second));
         out_node->set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
                                               [](const std::shared_ptr<ArrayNode>& a, const std::shared_ptr<ArrayNode>& b) {
                                                   return a->rank() < b->rank();

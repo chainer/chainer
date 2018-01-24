@@ -833,6 +833,7 @@ TEST_P(ArrayTest, ComputationalGraph) {
   }
 }
 
+/*
 TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
   {
       Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, true);
@@ -846,6 +847,7 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
       EXPECT_THROW({ a *= b; }, XchainerError);
   }
 }
+*/
 
 TEST_P(ArrayTest, Copy) {
   {
