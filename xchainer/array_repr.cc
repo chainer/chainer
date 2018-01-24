@@ -131,7 +131,9 @@ private:
 
 class BoolFormatter {
 public:
-    void Scan(bool value) { (void)value; }
+    void Scan(bool value) {
+        (void)value;  // unused
+    }
 
     void Print(std::ostream& os, bool value) const {
         os << (value ? " True" : "False");  // NOLINTER
@@ -173,7 +175,7 @@ struct ArrayReprImpl {
 
         // Let formatter scan all elements to print.
         VisitElements<T>(array, [&formatter](T value, const int64_t* index) {
-            (void)index;
+            (void)index;  // unused
             formatter.Scan(value);
         });
 

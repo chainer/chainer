@@ -16,7 +16,7 @@ public:
     explicit PyDeviceScope(Device target) : target_(target) {}
     void Enter() { scope_ = std::make_unique<DeviceScope>(target_); }
     void Exit(py::args args) {
-        (void)args;
+        (void)args;  // unused
         scope_.reset();
     }
 
