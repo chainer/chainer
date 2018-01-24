@@ -65,12 +65,6 @@ const std::shared_ptr<ArrayNode>& ArrayBody::GetOrCreateNode(const std::string& 
 
 }  // namespace internal
 
-/*
-Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad,
-             bool is_contiguous, int64_t offset, const std::string& graph_name)
-    : body_(std::make_shared<internal::ArrayBody>(shape, dtype, requires_grad, is_contiguous, std::move(data), offset, std::move(node),
-                                                  std::move(graph_name))) {}
-                                                  */
 Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool is_contiguous, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, dtype, is_contiguous, std::move(data), offset)) {}
 
@@ -79,9 +73,6 @@ Array::Array(const Array& other)
     // Memory layout-related members are not copied in this copy ctor since new C-contiguous memory is allocated
     other.CopyTo(*this);
 }
-
-// TODO(hvy): Multi-graph support
-// const std::shared_ptr<ArrayNode>& Array::RenewNode() { return body_->node_ = std::make_shared<ArrayNode>(); }
 
 const nonstd::optional<Array>& Array::grad(const std::string& graph_name) const { return body_->node(graph_name)->grad(); }
 
@@ -163,22 +154,6 @@ void Array::CopyTo(Array& out) const {
             out_node.set_next_node(op_node);
             out_node.set_rank(out_rank + 1);
         }
-
-        // out.set_requires_grad(true, graph_name);
-        /*
-        if (named_node.second.requires_grad) {  // If ArrayNode requires gradients
-            const ArrayNodeGradientProperty& node_property = named_node.second;
-            std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_name, true);
-            int64_t out_rank = node_property.node->rank();
-            auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{node_property.node};
-            auto in_func = [](const Array& gout) { return gout; };
-            auto backward_functions = std::vector<std::function<Array(const Array&)>>{in_func};
-            auto op_node = std::make_shared<OpNode>("copy", out_rank, next_nodes, backward_functions);
-            out_node->set_next_node(op_node);
-            out_node->set_rank(out_rank + 1);
-            // out.set_requires_grad(true, graph_name);
-        }
-        */
     }
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
@@ -234,14 +209,9 @@ void Array::Add(const Array& rhs, Array& out) const {
         }
     }
 
-    std::cout << "ADD FIN LHS, RHS" << std::endl;
-
     for (const auto& graph_op_node : graph_op_nodes) {
-        std::cout << "          OOOOOOOOOOOOOOOOOKKKKKKKKKKKKKK " << std::endl;
-        std::cout << graph_op_node.first << std::endl;
         // TODO(hvy): Better interface for creating a new node!
         std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_op_node.first, true);
-        // std::cout << "OUT : " << out.requires_grad("") << std::endl;
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
         out_node->set_next_node(std::make_shared<OpNode>(graph_op_node.second));
         out_node->set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
@@ -295,22 +265,6 @@ void Array::Mul(const Array& rhs, Array& out) const {
         }
     }
 
-    /*
-    // LHS
-    for (auto& named_node : body_->nodes_) {
-        const std::string& graph_name = named_node.first;
-        if (named_node.second.requires_grad) {
-            std::shared_ptr<ArrayNode> lhs_node = mutable_node(graph_name);
-            // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
-            auto lhs_func = [rhs_view = rhs.MakeView()](const Array& gout) { return gout * rhs_view; };
-            OpNode& op_node = graph_op_nodes[graph_name];
-            op_node.set_name("mul");
-            op_node.RegisterNextNode(lhs_node);
-            op_node.RegisterBackwardFunction(lhs_func);
-        }
-    }
-    */
-
     // RHS
     for (auto& named_node : rhs.body_->nodes_) {  // For each graph
         const std::string& graph_name = named_node.first;
@@ -327,21 +281,6 @@ void Array::Mul(const Array& rhs, Array& out) const {
             op_node.RegisterBackwardFunction(rhs_func);
         }
     }
-
-    /*
-    // RHS
-    for (auto& named_node : rhs.nodes()) {
-        const std::string& graph_name = named_node.first;
-        if (named_node.second.requires_grad) {
-            std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node(graph_name);
-            auto rhs_func = [lhs_view = MakeView()](const Array& gout) { return gout * lhs_view; };
-            OpNode& op_node = graph_op_nodes[graph_name];
-            op_node.set_name("mul");
-            op_node.RegisterNextNode(rhs_node);
-            op_node.RegisterBackwardFunction(rhs_func);
-        }
-    }
-    */
 
     for (const auto& graph_op_node : graph_op_nodes) {
         std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_op_node.first, true);
