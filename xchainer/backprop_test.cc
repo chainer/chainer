@@ -77,11 +77,9 @@ public:
         ASSERT_EQ(expected_grads.size(), target_inputs.size());
         auto y = fprop(target_inputs, args...);
         Backward(y, graph_name);
-        /*
         for (size_t i = 0; i < expected_grads.size(); ++i) {
             ExpectEqual<float>(expected_grads[i], *target_inputs[i].grad(graph_name));
         }
-        */
     }
 
     template <typename Fprop>
@@ -183,7 +181,7 @@ TEST_P(BackpropTest, BackwardGivenOutputGrad) {
 }
 
 // TODO(hvy): Clean up tests
-TEST_P(BackpropTest, MultipleGraphs) {
+TEST_P(BackpropTest, MultipleGraphsReuse) {
     const std::string& graph_name_1 = "graph_1";
     const std::string& graph_name_2 = "graph_2";
     Array x1 = MakeFullArray({1}, {2.0f}, true, graph_name_1);
@@ -191,19 +189,31 @@ TEST_P(BackpropTest, MultipleGraphs) {
     EXPECT_TRUE(x1.requires_grad(graph_name_1));
     EXPECT_TRUE(x2.requires_grad(graph_name_2));
 
-    {
-        Array y = x1 * x2;
-        Backward(y, graph_name_1);
-        Array expected_1 = MakeFullArray({1}, {5.0f}, false, "");
-        ExpectEqual<float>(expected_1, *x1.grad(graph_name_1));
-        ASSERT_EQ(nonstd::nullopt, x2.grad(graph_name_2));
-    }
-    {
-        Array y = x1 * x2;
-        Backward(y, graph_name_2);
-        Array expected_2 = MakeFullArray({1}, {2.0f}, false, "");
-        ExpectEqual<float>(expected_2, *x2.grad(graph_name_2));
-    }
+    Array y1 = x1 * x2;
+    Backward(y1, graph_name_1);
+    Array expected_1 = MakeFullArray({1}, {5.0f}, false, "");
+    ExpectEqual<float>(expected_1, *x1.grad(graph_name_1));
+    ASSERT_EQ(nonstd::nullopt, x2.grad(graph_name_2));
+
+    x1.ClearGrad(graph_name_1);
+    x2.ClearGrad(graph_name_2);
+
+    Array y2 = x1 * x2;
+    Backward(y2, graph_name_2);
+    Array expected_2 = MakeFullArray({1}, {2.0f}, false, "");
+    ExpectEqual<float>(expected_2, *x2.grad(graph_name_2));
+    ASSERT_EQ(nonstd::nullopt, x1.grad(graph_name_1));
+
+    x1.ClearGrad(graph_name_1);
+    x2.ClearGrad(graph_name_2);
+
+    x1.GetNode(graph_name_2);
+
+    Array y3 = x1 * x2;
+    Backward(y3, graph_name_2);
+
+    ExpectEqual<float>(expected_1, *x1.grad(graph_name_2));
+    ExpectEqual<float>(expected_2, *x2.grad(graph_name_2));
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
