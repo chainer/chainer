@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <iostream> // TODO(hvy): Remove me
 #include <string>
 // #include <unordered_set>
 #include <unordered_map>
@@ -117,33 +116,28 @@ Array Array::OnesLike(const Array& array) { return Ones(array.shape(), array.dty
 
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
-    // set_requires_grad(requires_grad() || rhs.requires_grad());
     return *this;
 }
 
 Array& Array::operator*=(const Array& rhs) {
     Mul(rhs, *this);
-    // set_requires_grad(requires_grad() || rhs.requires_grad());
     return *this;
 }
 
 Array Array::operator+(const Array& rhs) const {
     Array out = Array::EmptyLike(*this);
-    // out.set_requires_grad(requires_grad() || rhs.requires_grad());
     Add(rhs, out);
     return out;
 }
 
 Array Array::operator*(const Array& rhs) const {
     Array out = Array::EmptyLike(*this);
-    // out.set_requires_grad(requires_grad() || rhs.requires_grad());
     Mul(rhs, out);
     return out;
 }
 
 Array Array::Copy() const {
     Array out = Array::EmptyLike(*this);
-    // out.set_requires_grad(requires_grad());
     CopyTo(out);
     return out;
 }
@@ -162,19 +156,6 @@ void Array::CopyTo(Array& out) const {
             out_node->set_rank(out_rank + 1);
         }
     }
-
-    /*
-    if (requires_grad()) {
-        std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-        int64_t out_rank = node()->rank();
-        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{body_->node_};
-        auto in_func = [](const Array& gout) { return gout; };
-        auto backward_functions = std::vector<std::function<Array(const Array&)>>{in_func};
-        auto op_node = std::make_shared<OpNode>("copy", out_rank, next_nodes, backward_functions);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(out_rank + 1);
-    }
-    */
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
     // is_contiguous_ and offset_ into account
