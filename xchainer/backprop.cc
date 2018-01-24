@@ -54,7 +54,6 @@ private:
         const nonstd::optional<Array>& gy = previous_array_node->grad();
         assert(gy);
 
-        // TODO(hvy): Should really be optional? We not skip the empty function in the backward functions vector
         std::vector<nonstd::optional<Array>> gxs;
         for (const auto& backward_function : op_node->backward_functions()) {
             if (backward_function) {
