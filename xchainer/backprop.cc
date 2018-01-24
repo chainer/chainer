@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <queue>
+#include <set>
 #include <unordered_map>
 
 #include <gsl/gsl>
@@ -20,6 +21,7 @@ class BackwardImpl {
     // TODO(takgi): Using raw pointers to OpNode as the keys is more efficient as far as it is safe
     using CandidateOpNodes = std::priority_queue<std::shared_ptr<const OpNode>, std::vector<std::shared_ptr<const OpNode>>, Comparer>;
     using PreviousArrayNodeMap = std::unordered_map<std::shared_ptr<const OpNode>, std::shared_ptr<ArrayNode>>;
+    using SeenOpNodeSet = std::set<std::shared_ptr<const OpNode>>;
 
 public:
     BackwardImpl(const Array& output)
@@ -88,8 +90,11 @@ private:
     void PushNextOpNode(const std::shared_ptr<ArrayNode>& array_node) {
         const std::shared_ptr<const OpNode>& next_op_node = array_node->next_node();
         if (next_op_node) {
-            candidate_op_nodes_.push(next_op_node);
-            previous_array_node_map_.emplace(next_op_node, array_node);
+            if (seen_op_node_set_.find(next_op_node) == seen_op_node_set_.end()) {
+                candidate_op_nodes_.push(next_op_node);
+                previous_array_node_map_.emplace(next_op_node, array_node);
+                seen_op_node_set_.insert(next_op_node);
+            }
         }
     }
 
@@ -101,6 +106,7 @@ private:
     const std::shared_ptr<ArrayNode>& output_array_node_;
     CandidateOpNodes candidate_op_nodes_;
     PreviousArrayNodeMap previous_array_node_map_;
+    SeenOpNodeSet seen_op_node_set_;
 };
 
 }  // namespace
