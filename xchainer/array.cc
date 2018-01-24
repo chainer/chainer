@@ -39,19 +39,20 @@ ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool requires_grad, bool i
       offset_(offset),
       nodes_({{std::move(graph_name), {std::move(node), requires_grad}}}) {}
 
-const std::shared_ptr<ArrayNode>& ArrayBody::GetOrCreateNode(const std::string& graph_name, bool default_requires_grad) {
+const std::shared_ptr<ArrayNode>& ArrayBody::GetOrCreateNode(const std::string& graph_name, bool requires_grad) {
     auto named_nodes =
         std::find_if(nodes_.begin(), nodes_.end(),
                      [&graph_name](const std::pair<std::string, ArrayNodeGradientProperty>& node) { return node.first == graph_name; });
 
     if (named_nodes != nodes_.end()) {
         // Return match
+        named_nodes->second.requires_grad = requires_grad;
         return named_nodes->second.node;
     }
 
     // Create and return new
     std::shared_ptr<ArrayNode> node = std::make_shared<ArrayNode>();
-    ArrayNodeGradientProperty node_property(node, default_requires_grad);
+    ArrayNodeGradientProperty node_property(node, requires_grad);
     nodes_.push_back({graph_name, node_property});
     return nodes_.back().second.node;
 }
@@ -79,7 +80,6 @@ void Array::set_grad(Array grad, const std::string& graph_name) { body_->mutable
 
 void Array::ClearGrad(const std::string& graph_name) { body_->mutable_node(graph_name)->ClearGrad(); }
 
-// TODO(hvy): Multi-graph support, i.e. specify graph_name
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
     std::shared_ptr<void> device_data = internal::MemoryFromBuffer(GetCurrentDevice(), data, bytesize);
@@ -212,7 +212,6 @@ void Array::Add(const Array& rhs, Array& out) const {
     for (const auto& graph_op_node : graph_op_nodes) {
         // TODO(hvy): Better interface for creating a new node!
         std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_op_node.first, true);
-        out.set_requires_grad(true, "");
         std::cout << "OUT : " << out.requires_grad("") << std::endl;
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
         out_node->set_next_node(std::make_shared<OpNode>(graph_op_node.second));
@@ -280,7 +279,6 @@ void Array::Mul(const Array& rhs, Array& out) const {
     for (const auto& graph_op_node : graph_op_nodes) {
         std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_op_node.first, true);
         // TODO(hvy): Fix intercface, how to initialize nodes, temp we are setting the gradient requirement to true here. Not so nice.
-        out.set_requires_grad(true, "");
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
         out_node->set_next_node(std::make_shared<OpNode>(graph_op_node.second));
         out_node->set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),

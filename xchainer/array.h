@@ -44,7 +44,7 @@ public:
     ArrayBody(const Shape& shape, Dtype dtype, bool requires_grad, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
               std::shared_ptr<ArrayNode> node, std::string graph_name);
 
-    const std::shared_ptr<ArrayNode>& GetOrCreateNode(const std::string& graph_name, bool default_requires_grad);
+    const std::shared_ptr<ArrayNode>& GetOrCreateNode(const std::string& graph_name, bool requires_grad);
 
     // TODO(hvy): Better way of returning the const ArrayNode
     std::shared_ptr<const ArrayNode> node(const std::string& graph_name) {
@@ -190,7 +190,7 @@ public:
     std::string ToString() const;
 
     // TODO(hvy): for debug
-    std::shared_ptr<internal::ArrayBody> body_;
+    // std::shared_ptr<internal::ArrayBody> body_;
 
 private:
     Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad = false,
@@ -200,6 +200,7 @@ private:
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 
+    std::shared_ptr<internal::ArrayBody> body_;
 };
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent = 0);

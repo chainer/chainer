@@ -32,17 +32,18 @@ protected:
 
 public:
     template <typename T>
-    Array MakeArray(const Shape& shape, std::shared_ptr<void> data, bool requires_grad = false) {
+    Array MakeArray(const Shape& shape, std::shared_ptr<void> data, bool requires_grad = false, const std::string& graph_name = "") {
         Array arr = Array::FromBuffer(shape, TypeToDtype<T>, data);
-        arr.set_requires_grad(requires_grad);
+        arr.GetOrCreateNode(graph_name, requires_grad);
+        arr.set_requires_grad(requires_grad, graph_name);
         return arr;
     }
 
     template <typename T>
-    Array MakeArray(const Shape& shape, std::initializer_list<T> data, bool requires_grad = false) {
+    Array MakeArray(const Shape& shape, std::initializer_list<T> data, bool requires_grad = false, const std::string& graph_name = "") {
         auto a = std::make_unique<T[]>(data.size());
         std::copy(data.begin(), data.end(), a.get());
-        return MakeArray<T>(shape, std::move(a), requires_grad);
+        return MakeArray<T>(shape, std::move(a), requires_grad, graph_name);
     }
 
     template <typename T>
@@ -921,6 +922,16 @@ TEST_P(ArrayTest, MulBackwrdCapture) {
     Array gx2 = rhs_func(gy);
     Array e2 = MakeArray<float>({1}, {2.0f});
     ExpectEqual<bool>(e2, gx2);
+}
+
+TEST_P(ArrayTest, MultipleGraphs) {
+    Array a = MakeArray<float>({1}, {2.0f}, true, "graph_1");
+    Array b = MakeArray<float>({1}, {2.0f}, true, "graph_2");
+    Array o = a * b;
+    EXPECT_TRUE(o.requires_grad("graph_1"));
+    EXPECT_TRUE(o.requires_grad("graph_2"));
+    EXPECT_THROW(o.requires_grad("graph_3"), XchainerError);
+    // EXPECT_THROW(o.requires_grad(""), XchainerError);  // TODO(hvy): Need to fix
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(
