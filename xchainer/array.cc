@@ -32,7 +32,6 @@ namespace internal {
 ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset)
     : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_() {}
 
-// TODO(hvy): Consider this interface since e.g. requires_grad cannot be modified here if the ArrayNode is already present
 ArrayNode& ArrayBody::GetNode(const std::string& graph_name, bool requires_grad) {
     auto named_property_it = std::find_if(nodes_.begin(), nodes_.end(),
                                           [&graph_name](const auto& named_property) { return named_property.first == graph_name; });
