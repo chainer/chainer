@@ -30,17 +30,15 @@ namespace internal {
 
 // Private definition of ArrayBody
 ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset)
-    : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_({}) {}
+    : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_() {}
 
 // TODO(hvy): Consider this interface since e.g. requires_grad cannot be modified here if the ArrayNode is already present
 ArrayNode& ArrayBody::GetNode(const std::string& graph_name, bool requires_grad) {
-    auto named_property = std::find_if(nodes_.begin(), nodes_.end(), [&graph_name](const std::pair<std::string, ArrayNodeProperty>& node) {
-        return node.first == graph_name;
-    });
-
-    if (named_property != nodes_.end()) {  // Found node for graph, update property and return existing
-        named_property->second.requires_grad = requires_grad;
-        return *named_property->second.node;
+    auto named_property_it = std::find_if(nodes_.begin(), nodes_.end(),
+                                          [&graph_name](const auto& named_property) { return named_property.first == graph_name; });
+    if (named_property_it != nodes_.end()) {  // Found node for graph, update property and return existing
+        named_property_it->second.requires_grad = requires_grad;
+        return *named_property_it->second.node;
     }
 
     // Did not find a node, create and return a new node
@@ -51,24 +49,22 @@ ArrayNode& ArrayBody::GetNode(const std::string& graph_name, bool requires_grad)
 // TODO(hvy): Clean up intermediate accessors
 // Find ArrayNodeProperty assuming it exists
 const ArrayNodeProperty& ArrayBody::GetNodeProperty(const std::string& graph_name) const {
-    auto named_property = std::find_if(nodes_.begin(), nodes_.end(), [&graph_name](const std::pair<std::string, ArrayNodeProperty>& node) {
-        return node.first == graph_name;
-    });
-    if (named_property == nodes_.end()) {
+    auto named_property_it = std::find_if(nodes_.begin(), nodes_.end(),
+                                          [&graph_name](const auto& named_property) { return named_property.first == graph_name; });
+    if (named_property_it == nodes_.end()) {
         throw XchainerError("Cannot find node for graph: " + graph_name);
     }
-    return named_property->second;
+    return named_property_it->second;
 }
 
 // TODO(hvy): Clean up intermediate accessors
 ArrayNodeProperty& ArrayBody::GetMutableNodeProperty(const std::string& graph_name) {
-    auto named_property = std::find_if(nodes_.begin(), nodes_.end(), [&graph_name](const std::pair<std::string, ArrayNodeProperty>& node) {
-        return node.first == graph_name;
-    });
-    if (named_property == nodes_.end()) {
+    auto named_property_it = std::find_if(nodes_.begin(), nodes_.end(),
+                                          [&graph_name](const auto& named_property) { return named_property.first == graph_name; });
+    if (named_property_it == nodes_.end()) {
         throw XchainerError("Cannot find node for graph: " + graph_name);
     }
-    return named_property->second;
+    return named_property_it->second;
 }
 
 }  // namespace internal
@@ -149,15 +145,16 @@ Array Array::Copy() const {
 }
 
 void Array::CopyTo(Array& out) const {
-    for (auto& named_node : body_->nodes_) {
+    for (const auto& named_node : body_->nodes_) {
+        const auto& graph_name = named_node.first;
         const auto& node_property = named_node.second;
-        bool requires_grad = node_property.requires_grad;
-        ArrayNode& out_node = out.body_->GetNode(named_node.first, requires_grad);
-        if (requires_grad) {
-            int64_t out_rank = node_property.node->rank();
+
+        ArrayNode& out_node = out.body_->GetNode(graph_name, node_property.requires_grad);
+
+        if (node_property.requires_grad) {
             auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{node_property.node};
-            auto in_func = [](const Array& gout) { return gout; };
-            auto backward_functions = std::vector<std::function<Array(const Array&)>>{in_func};
+            auto backward_functions = std::vector<std::function<Array(const Array&)>>{[](const Array& gout) { return gout; }};
+            int64_t out_rank = node_property.node->rank();
             auto op_node = std::make_shared<OpNode>("copy", out_rank, next_nodes, backward_functions);
             out_node.set_next_node(op_node);
             out_node.set_rank(out_rank + 1);
@@ -183,51 +180,42 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     std::unordered_map<std::string, OpNode> graph_op_nodes;
 
-    // LHS
+    auto register_op = [&out, &graph_op_nodes](auto& named_node) {
+        const auto& graph_name = named_node.first;
+        const auto& node_property = named_node.second;
+
+        // Create an ArrayNode inside the Array if there does not exist one for this particular graph, else do nothing but update the
+        // requires_grad flag
+        out.body_->GetNode(named_node.first, node_property.requires_grad);
+
+        if (node_property.requires_grad) {
+            std::shared_ptr<ArrayNode> next_node = node_property.node;
+            auto backward_function = [](const Array& gout) { return gout; };
+            auto& op_node = graph_op_nodes[graph_name];  // Create if not exists
+            op_node.set_name("add");
+            op_node.set_rank(std::max(op_node.rank(), node_property.node->rank()));
+            op_node.RegisterNextNode(next_node);
+            op_node.RegisterBackwardFunction(backward_function);
+        }
+    };
+
+    // Create OpNodes
     for (auto& named_node : body_->nodes_) {  // For each graph
-        const std::string& graph_name = named_node.first;
-        const auto& node_property = named_node.second;
-        bool requires_grad = node_property.requires_grad;
-        out.body_->GetNode(named_node.first, requires_grad);
-
-        if (requires_grad) {
-            std::shared_ptr<ArrayNode> lhs_node = mutable_node(graph_name);
-            auto lhs_func = [](const Array& gout) { return gout; };
-            OpNode& op_node = graph_op_nodes[graph_name];  // Create if not exists
-            op_node.set_name("add");
-            op_node.RegisterNextNode(lhs_node);
-            op_node.RegisterBackwardFunction(lhs_func);
-        }
+        register_op(named_node);
     }
-
-    // RHS
     for (auto& named_node : rhs.body_->nodes_) {
-        const std::string& graph_name = named_node.first;
-        const auto& node_property = named_node.second;
-        bool requires_grad = node_property.requires_grad;
-        out.body_->GetNode(named_node.first, requires_grad);
-
-        if (requires_grad) {
-            std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node(graph_name);
-            auto rhs_func = [](const Array& gout) { return gout; };
-            OpNode& op_node = graph_op_nodes[graph_name];  // Create if not exists
-            op_node.set_name("add");
-            op_node.RegisterNextNode(rhs_node);
-            op_node.RegisterBackwardFunction(rhs_func);
-        }
+        register_op(named_node);
     }
 
+    // Add OpNodes to output
     for (const auto& graph_op_node : graph_op_nodes) {
-        // TODO(hvy): Better interface for creating a new node!
         ArrayNode& out_node = out.body_->GetNode(graph_op_node.first, true);
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
         out_node.set_next_node(std::make_shared<OpNode>(graph_op_node.second));
-        out_node.set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
-                                             [](const std::shared_ptr<ArrayNode>& a, const std::shared_ptr<ArrayNode>& b) {
-                                                 return a->rank() < b->rank();
-                                             }))
-                              ->rank() +
-                          1);
+        out_node.set_rank(
+            (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) { return a->rank() < b->rank(); }))
+                ->rank() +
+            1);
     }
 
     Device device = GetCurrentDevice();
@@ -256,51 +244,40 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     std::unordered_map<std::string, OpNode> graph_op_nodes;
 
-    // LHS
+    auto register_op = [&out, &graph_op_nodes](auto& named_node, const Array& other) {
+        const auto& graph_name = named_node.first;
+        const auto& node_property = named_node.second;
+
+        out.body_->GetNode(named_node.first, node_property.requires_grad);
+
+        if (node_property.requires_grad) {
+            std::shared_ptr<ArrayNode> next_node = node_property.node;
+            auto backward_function = [other_view = other.MakeView()](const Array& gout) { return gout * other_view; };
+            OpNode& op_node = graph_op_nodes[graph_name];  // Create if not exists
+            op_node.set_name("mul");
+            op_node.set_rank(std::max(op_node.rank(), node_property.node->rank()));
+            op_node.RegisterNextNode(next_node);
+            op_node.RegisterBackwardFunction(backward_function);
+        }
+    };
+
+    // Create OpNodes
     for (auto& named_node : body_->nodes_) {  // For each graph
-        const std::string& graph_name = named_node.first;
-        const auto& node_property = named_node.second;
-        bool requires_grad = node_property.requires_grad;
-        out.body_->GetNode(graph_name, requires_grad);  // Create an ArrayNode internally if it does not exists for this graph
-
-        if (requires_grad) {
-            std::shared_ptr<ArrayNode> lhs_node = mutable_node(graph_name);
-            auto lhs_func = [rhs_view = rhs.MakeView()](const Array& gout) { return gout * rhs_view; };
-            OpNode& op_node = graph_op_nodes[graph_name];  // Create if not exists
-            op_node.set_name("mul");
-            op_node.RegisterNextNode(lhs_node);
-            op_node.RegisterBackwardFunction(lhs_func);
-        }
+        register_op(named_node, rhs);
     }
-
-    // RHS
     for (auto& named_node : rhs.body_->nodes_) {  // For each graph
-        const std::string& graph_name = named_node.first;
-        const auto& node_property = named_node.second;
-        bool requires_grad = node_property.requires_grad;
-        out.body_->GetNode(graph_name, requires_grad);
-
-        if (requires_grad) {
-            std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node(graph_name);
-            auto rhs_func = [lhs_view = MakeView()](const Array& gout) { return gout * lhs_view; };
-            OpNode& op_node = graph_op_nodes[graph_name];  // Create if not exists
-            op_node.set_name("mul");
-            op_node.RegisterNextNode(rhs_node);
-            op_node.RegisterBackwardFunction(rhs_func);
-        }
+        register_op(named_node, *this);
     }
 
+    // Add OpNodes to output
     for (const auto& graph_op_node : graph_op_nodes) {
         ArrayNode& out_node = out.body_->GetNode(graph_op_node.first, true);
-        // TODO(hvy): Fix intercface, how to initialize nodes, temp we are setting the gradient requirement to true here. Not so nice.
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
         out_node.set_next_node(std::make_shared<OpNode>(graph_op_node.second));
-        out_node.set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
-                                             [](const std::shared_ptr<ArrayNode>& a, const std::shared_ptr<ArrayNode>& b) {
-                                                 return a->rank() < b->rank();
-                                             }))
-                              ->rank() +
-                          1);
+        out_node.set_rank(
+            (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) { return a->rank() < b->rank(); }))
+                ->rank() +
+            1);
     }
 
     Device device = GetCurrentDevice();

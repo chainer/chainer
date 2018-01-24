@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -11,7 +10,6 @@
 
 #include "xchainer/array_repr.h"
 #include "xchainer/dtype.h"
-#include "xchainer/error.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 
@@ -37,7 +35,7 @@ namespace internal {
 // The current design requires a subtle overhead on converting between C++ Array and Python Array (due to reference counting), which is
 // currently considered to be ignorable compared to other Python operations.
 //
-// NOTE: This class sho&graph_nameuld not be instantiated by any functions except those defined in array.cc. This class is still defined
+// NOTE: This class should not be instantiated by any functions except those defined in array.cc. This class is still defined
 // here so that
 // the code is made simple and we can use inline access to each member from member accessor functions of Array.
 class ArrayBody {
@@ -131,7 +129,6 @@ public:
 
     std::shared_ptr<const void> data() const { return body_->data_; }
 
-    // TODO(hvy): Delete default arg
     bool requires_grad(const std::string& graph_name = "") const { return body_->requires_grad(graph_name); }
 
     void set_requires_grad(bool requires_grad, const std::string& graph_name = "") { body_->set_requires_grad(requires_grad, graph_name); }
