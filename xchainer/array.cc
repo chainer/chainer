@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <iostream>  // TODO(hvy): delete me
 #include <string>
-// #include <unordered_set>
 #include <unordered_map>
 
 #ifdef XCHAINER_ENABLE_CUDA
@@ -65,9 +65,7 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::s
 
 Array::Array(const Array& other)
     : Array(other.shape(), other.dtype(), internal::Allocate(GetCurrentDevice(), other.total_bytes()), std::make_shared<ArrayNode>(),
-            other.requires_grad(), true, 0, "") {
-    // TODO(hvy): Do no set default empty string graph_name, but instead skip initializing the ArrayNode here
-
+            other.requires_grad(), true, 0) {
     // Memory layout-related members are not copied in this copy ctor since new C-contiguous memory is allocated
     other.CopyTo(*this);
 }
@@ -143,10 +141,11 @@ Array Array::Copy() const {
 }
 
 void Array::CopyTo(Array& out) const {
-    for (auto& named_node : body_->nodes_) {    // For each graph, or ArrayNode
+    for (auto& named_node : body_->nodes_) {  // For each graph, or ArrayNode
+        const std::string& graph_name = named_node.first;
         if (named_node.second.requires_grad) {  // If ArrayNode requires gradients
             const ArrayNodeGradientProperty& node_prop = named_node.second;
-            std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(named_node.first, true);
+            std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_name, true);
             int64_t out_rank = node_prop.node->rank();
             auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{node_prop.node};
             auto in_func = [](const Array& gout) { return gout; };
@@ -154,6 +153,7 @@ void Array::CopyTo(Array& out) const {
             auto op_node = std::make_shared<OpNode>("copy", out_rank, next_nodes, backward_functions);
             out_node->set_next_node(op_node);
             out_node->set_rank(out_rank + 1);
+            // out.set_requires_grad(true, graph_name);
         }
     }
 
@@ -178,32 +178,42 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     // LHS
     for (auto& named_node : body_->nodes_) {  // For each graph
+        std::cout << "LHS ADD" << named_node.second.requires_grad << std::endl;
         const std::string& graph_name = named_node.first;
         if (named_node.second.requires_grad) {
             std::shared_ptr<ArrayNode> lhs_node = mutable_node(graph_name);
             auto lhs_func = [](const Array& gout) { return gout; };
             OpNode& op_node = graph_op_nodes[graph_name];  // Create if not exists
             op_node.set_name("add");
+            std::cout << "REGISTER LHS ADD" << std::endl;
             op_node.RegisterNextNode(lhs_node);
             op_node.RegisterBackwardFunction(lhs_func);
+            // out.set_requires_grad(true, graph_name);
         }
     }
 
     // RHS
     for (auto& named_node : rhs.nodes()) {
+        std::cout << "RHS ADD" << named_node.second.requires_grad << std::endl;
         const std::string& graph_name = named_node.first;
         if (named_node.second.requires_grad) {
             std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node(graph_name);
             auto rhs_func = [](const Array& gout) { return gout; };
             OpNode& op_node = graph_op_nodes[graph_name];
             op_node.set_name("add");
+            std::cout << "REGISTER RHS ADD" << std::endl;
             op_node.RegisterNextNode(rhs_node);
             op_node.RegisterBackwardFunction(rhs_func);
         }
     }
 
+    std::cout << "ADD FIN LHS, RHS" << std::endl;
+
     for (const auto& graph_op_node : graph_op_nodes) {
+        // TODO(hvy): Better interface for creating a new node!
         std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_op_node.first, true);
+        out.set_requires_grad(true, "");
+        std::cout << "OUT : " << out.requires_grad("") << std::endl;
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
         out_node->set_next_node(std::make_shared<OpNode>(graph_op_node.second));
         out_node->set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
@@ -269,6 +279,8 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     for (const auto& graph_op_node : graph_op_nodes) {
         std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_op_node.first, true);
+        // TODO(hvy): Fix intercface, how to initialize nodes, temp we are setting the gradient requirement to true here. Not so nice.
+        out.set_requires_grad(true, "");
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
         out_node->set_next_node(std::make_shared<OpNode>(graph_op_node.second));
         out_node->set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),

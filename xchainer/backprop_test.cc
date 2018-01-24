@@ -18,7 +18,6 @@
 
 namespace xchainer {
 namespace {
-  /*
 
 class BackpropTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
@@ -109,8 +108,18 @@ private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
 
-TEST_P(BackpropTest, Backward) {
+TEST_P(BackpropTest, BackwardBasic) {
     CheckBackpropSingleElementExtraInputs({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
+    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) { return xs[0] * xs[1]; });
+    CheckBackpropSingleElement({3.0f, 2.0f, 4.0f}, {8.0f, 12.0f, 6.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[2]; });
+    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) { return xs[0] * xs[1]; });
+    CheckBackpropSingleElement({3.0f, 2.0f}, {12.0f, 9.0f}, [](auto& xs) { return xs[0] * xs[1] * xs[0]; });
+    CheckBackpropSingleElement({3.0f, 2.0f}, {1.0f, 2.0f}, [](auto& xs) { return (xs[0] + xs[1]) + xs[1]; });
+}
+
+TEST_P(BackpropTest, BackwardWithExtraInputs) {
+    CheckBackpropSingleElementExtraInputs({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
+    CheckBackpropSingleElementExtraInputs({2.0f}, {4.0f}, {4.0f}, [](auto& xs, auto& ys) { return xs[0] * ys[0]; });
 }
 
 TEST_P(BackpropTest, BackwardSoleArrayNode) {
@@ -137,6 +146,7 @@ TEST_P(BackpropTest, BackwardInputToMultipleOps) {
 
 TEST_P(BackpropTest, BackwardIdenticalInputs) {
     CheckBackpropSingleElement({2.0f}, {2.0f}, [](auto& xs) { return xs[0] + xs[0]; });
+    CheckBackpropSingleElement({3.0f}, {6.0f}, [](auto& xs) { return xs[0] * xs[0]; });
 }
 
 TEST_P(BackpropTest, BackwardGivenInputGrad) {
@@ -162,6 +172,5 @@ INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
 #endif  // XCHAINER_ENABLE_CUDA
                                                          std::string{"cpu"}));
 
-*/
 }  // namespace
 }  // namespace xchainer

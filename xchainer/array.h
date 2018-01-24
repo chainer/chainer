@@ -161,7 +161,11 @@ public:
 
     const std::vector<std::pair<std::string, ArrayNodeGradientProperty>>& nodes() const { return body_->nodes(); };
 
-    // const std::shared_ptr<ArrayNode>& RenewNode();
+    /*
+    const std::shared_ptr<ArrayNode>& RenewNode(const std::string& graph_name, bool requires_grad) {
+        return body_->RenewNode(graph_name, requires_grad);
+    }
+    */
     const std::shared_ptr<ArrayNode>& GetOrCreateNode(const std::string& graph_name, bool requires_grad) {
         return body_->GetOrCreateNode(graph_name, requires_grad);
     }
@@ -185,6 +189,9 @@ public:
 
     std::string ToString() const;
 
+    // TODO(hvy): for debug
+    std::shared_ptr<internal::ArrayBody> body_;
+
 private:
     Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad = false,
           bool is_contiguous = true, int64_t offset = 0, const std::string& graph_name = "");
@@ -193,7 +200,6 @@ private:
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 
-    std::shared_ptr<internal::ArrayBody> body_;
 };
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent = 0);

@@ -1,6 +1,7 @@
 #include "xchainer/backprop.h"
 
 #include <functional>
+#include <iostream>  // TODO(hvy): delete me
 #include <memory>
 #include <queue>
 #include <unordered_map>
@@ -53,16 +54,34 @@ private:
         const nonstd::optional<Array>& gy = previous_array_node->grad();
         assert(gy);
 
+        // TODO(hvy): Should really be optional? We not skip the empty function in the backward functions vector
         std::vector<nonstd::optional<Array>> gxs;
+        std::cout << "OP NAME: " << op_node->name() << std::endl;
+        std::cout << "OP BW FUNCS: " << op_node->backward_functions().size() << std::endl;
         for (const auto& backward_function : op_node->backward_functions()) {
             if (backward_function) {
-                gxs.emplace_back(backward_function(*gy));
+                std::cout << "Backward found!" << std::endl;
+                std::cout << "Gradient size before : " << gxs.size() << std::endl;
+                Array g = backward_function(*gy);
+                std::cout << "Grads: " << g.total_size() << std::endl;
+                // std::cout << g << std::endl;
+                gxs.push_back(g);
+                // gxs.emplace_back(backward_function(*gy));
+                std::cout << "Gradient size after : " << gxs.size() << std::endl;
+                std::cout << "return from backward" << std::endl;
+                // std::cout << *gxs.back() << std::endl;
             } else {
+                std::cout << "Backward NOT found!" << std::endl;
                 gxs.emplace_back(nonstd::nullopt);
             }
+            std::cout << "end of loop" << std::endl;
         }
 
+        std::cout << "before clear" << std::endl;
+
         previous_array_node->ClearGrad();
+
+        std::cout << "after clear before return" << std::endl;
 
         return gxs;
     }
