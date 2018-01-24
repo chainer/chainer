@@ -19,6 +19,7 @@
 namespace xchainer {
 namespace {
 
+/*
 class BackpropTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
     virtual void SetUp() {
@@ -160,6 +161,7 @@ INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
                                                          std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
                                                          std::string{"cpu"}));
+*/
 
 }  // namespace
 }  // namespace xchainer

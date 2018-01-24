@@ -24,8 +24,8 @@ class BackwardImpl {
 public:
     BackwardImpl() : candidate_op_nodes_(BackwardImpl::Compare){};
 
-    void run(Array& output) {
-        std::shared_ptr<ArrayNode> array_node = output.mutable_node();
+    void run(Array& output, const std::string& graph_name) {
+        std::shared_ptr<ArrayNode> array_node = output.mutable_node(graph_name);
 
         if (!array_node->grad()) {
             array_node->set_grad(Array::OnesLike(output));
@@ -102,10 +102,10 @@ private:
 
 }  // namespace
 
-void Backward(Array& output) {
+void Backward(Array& output, const std::string& graph_name) {
     // TODO(takagi): Operations that have multiple outputs
     // TODO(takagi): Begin backprop from multiple outputs
-    BackwardImpl{}.run(output);
+    BackwardImpl{}.run(output, graph_name);
 }
 
 }  // namespace xchainer
