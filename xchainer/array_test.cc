@@ -309,17 +309,6 @@ private:
     std::unique_ptr<DeviceScope> device_scope_;
 };
 
-/*
-TEST_P(ArrayTest, Temporary) {
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    a.GetNode("");
-    a.GetNode("graph_1");
-    EXPECT_THROW(a.GetNode("graph_1"), XchainerError);
-    // Array b = a;
-    // ExpectEqualCopy<bool>(a, b);
-}
-
-*/
 TEST_P(ArrayTest, CopyCtor) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = a;
@@ -924,7 +913,7 @@ TEST_P(ArrayTest, MulBackwrdCapture) {
     ExpectEqual<bool>(e2, gx2);
 }
 
-TEST_P(ArrayTest, MultipleGraphs) {
+TEST_P(ArrayTest, MultipleGraphsForwardPropagation) {
     Array a = MakeArray<float>({1}, {2.0f}, true, "graph_1");
     Array b = MakeArray<float>({1}, {2.0f}, true, "graph_2");
 

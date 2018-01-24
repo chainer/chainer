@@ -1,5 +1,6 @@
 #include "xchainer/backprop.h"
 
+#include <string>
 #include <vector>
 
 #ifdef XCHAINER_ENABLE_CUDA
@@ -29,7 +30,14 @@ protected:
     virtual void TearDown() { device_scope_.reset(); }
 
 public:
-    std::vector<Array> MakeFullArrays(const Shape& shape, const std::vector<float>& values, bool requires_grad, const std::string& graph_name) const {
+    Array MakeFullArray(const Shape& shape, float value, bool requires_grad, const std::string& graph_name) const {
+        Array x = Array::Full(shape, value);
+        x.GetNode(graph_name, requires_grad);
+        return x;
+    }
+
+    std::vector<Array> MakeFullArrays(const Shape& shape, const std::vector<float>& values, bool requires_grad,
+                                      const std::string& graph_name) const {
         std::vector<Array> ret;
         for (float value : values) {
             ret.push_back(Array::Full(shape, value));
@@ -64,7 +72,8 @@ public:
     // Checks the correctness of Backward() applied to the output of a given function.
     // Gradients are only computed w.r.t. target_inputs, and are compared to expected_grads.
     template <typename Fprop, typename... Args>
-    void CheckBackpropImpl(std::vector<Array>& target_inputs, std::vector<Array>& expected_grads, Fprop&& fprop, const std::string& graph_name, Args&&... args) const {
+    void CheckBackpropImpl(std::vector<Array>& target_inputs, std::vector<Array>& expected_grads, Fprop&& fprop,
+                           const std::string& graph_name, Args&&... args) const {
         ASSERT_EQ(expected_grads.size(), target_inputs.size());
         auto y = fprop(target_inputs, args...);
         Backward(y, graph_name);
@@ -76,7 +85,8 @@ public:
     }
 
     template <typename Fprop>
-    void CheckBackprop(std::vector<Array>& target_inputs, std::vector<Array>& expected_grads, Fprop&& fprop, const std::string& graph_name) const {
+    void CheckBackprop(std::vector<Array>& target_inputs, std::vector<Array>& expected_grads, Fprop&& fprop,
+                       const std::string& graph_name) const {
         CheckBackpropImpl(target_inputs, expected_grads, fprop, graph_name);
     }
 
@@ -91,7 +101,8 @@ public:
 
     // Simple versions. It makes and uses an array with one element for each input.
     template <typename Fprop>
-    void CheckBackpropSingleElement(std::vector<float> target_inputs, std::vector<float> expected_grads, Fprop&& fprop, const std::string& graph_name) const {
+    void CheckBackpropSingleElement(std::vector<float> target_inputs, std::vector<float> expected_grads, Fprop&& fprop,
+                                    const std::string& graph_name) const {
         auto xs = MakeFullArrays({1}, target_inputs, true, graph_name);
         auto expected_gxs = MakeFullArrays({1}, expected_grads, false, graph_name);
         CheckBackprop(xs, expected_gxs, std::forward<Fprop>(fprop), graph_name);
@@ -118,7 +129,8 @@ TEST_P(BackpropTest, BackwardBasic) {
 }
 
 TEST_P(BackpropTest, BackwardWithExtraInputs) {
-    CheckBackpropSingleElementExtraInputs({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); }, "graph_2");
+    CheckBackpropSingleElementExtraInputs({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); },
+                                          "graph_2");
     CheckBackpropSingleElementExtraInputs({2.0f}, {4.0f}, {4.0f}, [](auto& xs, auto& ys) { return xs[0] * ys[0]; }, "graph_2");
 }
 
@@ -168,6 +180,30 @@ TEST_P(BackpropTest, BackwardGivenOutputGrad) {
         return z;
     };
     CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {6.0f}, fprop, graph_name);
+}
+
+// TODO(hvy): Clean up tests
+TEST_P(BackpropTest, MultipleGraphs) {
+    const std::string& graph_name_1 = "graph_1";
+    const std::string& graph_name_2 = "graph_2";
+    Array x1 = MakeFullArray({1}, {2.0f}, true, graph_name_1);
+    Array x2 = MakeFullArray({1}, {5.0f}, true, graph_name_2);
+    EXPECT_TRUE(x1.requires_grad(graph_name_1));
+    EXPECT_TRUE(x2.requires_grad(graph_name_2));
+
+    {
+        Array y = x1 * x2;
+        Backward(y, graph_name_1);
+        Array expected_1 = MakeFullArray({1}, {5.0f}, false, "");
+        ExpectEqual<float>(expected_1, *x1.grad(graph_name_1));
+        ASSERT_EQ(nonstd::nullopt, x2.grad(graph_name_2));
+    }
+    {
+        Array y = x1 * x2;
+        Backward(y, graph_name_2);
+        Array expected_2 = MakeFullArray({1}, {2.0f}, false, "");
+        ExpectEqual<float>(expected_2, *x2.grad(graph_name_2));
+    }
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(

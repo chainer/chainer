@@ -32,10 +32,10 @@ namespace internal {
 ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset)
     : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_({}) {}
 
+// TODO(hvy): Consider this interface since e.g. requires_grad cannot be modified here if the ArrayNode is already present
 ArrayNode& ArrayBody::GetNode(const std::string& graph_name, bool requires_grad) {
     auto maybe_node_property = FindNodeProperty(graph_name);
     if (maybe_node_property) {
-        maybe_node_property->requires_grad = requires_grad;  // TODO(hvy): Update/overwrite here or not?
         return *maybe_node_property->node;
     }
     auto node = std::make_shared<ArrayNode>();
@@ -196,11 +196,11 @@ void Array::Add(const Array& rhs, Array& out) const {
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
         out_node.set_next_node(std::make_shared<OpNode>(graph_op_node.second));
         out_node.set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
-                                              [](const std::shared_ptr<ArrayNode>& a, const std::shared_ptr<ArrayNode>& b) {
-                                                  return a->rank() < b->rank();
-                                              }))
-                               ->rank() +
-                           1);
+                                             [](const std::shared_ptr<ArrayNode>& a, const std::shared_ptr<ArrayNode>& b) {
+                                                 return a->rank() < b->rank();
+                                             }))
+                              ->rank() +
+                          1);
     }
 
     Device device = GetCurrentDevice();
@@ -269,11 +269,11 @@ void Array::Mul(const Array& rhs, Array& out) const {
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
         out_node.set_next_node(std::make_shared<OpNode>(graph_op_node.second));
         out_node.set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
-                                              [](const std::shared_ptr<ArrayNode>& a, const std::shared_ptr<ArrayNode>& b) {
-                                                  return a->rank() < b->rank();
-                                              }))
-                               ->rank() +
-                           1);
+                                             [](const std::shared_ptr<ArrayNode>& a, const std::shared_ptr<ArrayNode>& b) {
+                                                 return a->rank() < b->rank();
+                                             }))
+                              ->rank() +
+                          1);
     }
 
     Device device = GetCurrentDevice();

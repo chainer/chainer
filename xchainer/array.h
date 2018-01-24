@@ -44,6 +44,7 @@ class ArrayBody {
 public:
     ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset);
 
+    // Generates a new ArrayNode if if does not exist for this graph, otherwise return the existing one
     ArrayNode& GetNode(const std::string& graph_name, bool requires_grad);
 
 private:
