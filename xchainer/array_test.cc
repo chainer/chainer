@@ -19,7 +19,6 @@
 #include "xchainer/op_node.h"
 
 namespace xchainer {
-/*
 namespace {
 
 class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
@@ -929,5 +928,4 @@ INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(
                                                     std::string{"cpu"}));
 
 }  // namespace
-*/
 }  // namespace xchainer

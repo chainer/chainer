@@ -146,9 +146,9 @@ public:
 
     int64_t offset() const { return body_->offset_; }
 
-    const std::shared_ptr<ArrayNode>& mutable_node(const std::string& graph_name) const { return body_->mutable_node(graph_name); }
+    const std::shared_ptr<ArrayNode>& mutable_node(const std::string& graph_name = "") const { return body_->mutable_node(graph_name); }
 
-    std::shared_ptr<const ArrayNode> node(const std::string& graph_name) const { return body_->node(graph_name); }
+    std::shared_ptr<const ArrayNode> node(const std::string& graph_name = "") const { return body_->node(graph_name); }
 
     const std::vector<std::pair<std::string, ArrayNodeGradientProperty>>& nodes() const { return body_->nodes(); };
 
@@ -157,11 +157,11 @@ public:
         return body_->GetOrCreateNode(graph_name, requires_grad);
     }
 
-    const nonstd::optional<Array>& grad(const std::string& graph_name) const;
+    const nonstd::optional<Array>& grad(const std::string& graph_name = "") const;
 
-    void set_grad(Array grad, const std::string& graph_name);
+    void set_grad(Array grad, const std::string& graph_name = "");
 
-    void ClearGrad(const std::string& graph_name);
+    void ClearGrad(const std::string& graph_name = "");
 
     Array MakeView() const { return Array{body_}; }
 
