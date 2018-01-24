@@ -46,8 +46,6 @@ public:
 
     ArrayNode& GetNode(const std::string& graph_name, bool requires_grad);
 
-    const std::shared_ptr<ArrayNode>& GetOrCreateNode(const std::string& graph_name, bool requires_grad);
-
     // TODO(hvy): Better way of returning the const ArrayNode
     std::shared_ptr<const ArrayNode> node(const std::string& graph_name) {
         return std::const_pointer_cast<const ArrayNode>(GetNodeGradientProperty(graph_name).node);
@@ -178,15 +176,6 @@ public:
     std::shared_ptr<const ArrayNode> node(const std::string& graph_name = "") const { return body_->node(graph_name); }
 
     const std::vector<std::pair<std::string, ArrayNodeGradientProperty>>& nodes() const { return body_->nodes(); };
-
-    /*
-    const std::shared_ptr<ArrayNode>& RenewNode(const std::string& graph_name, bool requires_grad) {
-        return body_->RenewNode(graph_name, requires_grad);
-    }
-    */
-    const std::shared_ptr<ArrayNode>& GetOrCreateNode(const std::string& graph_name, bool requires_grad) {
-        return body_->GetOrCreateNode(graph_name, requires_grad);
-    }
 
     Array& GetNode(const std::string& graph_name, bool requires_grad = true) {
         body_->GetNode(graph_name, requires_grad);

@@ -37,8 +37,6 @@ public:
     Array MakeArray(const Shape& shape, std::shared_ptr<void> data, bool requires_grad = false, const std::string& graph_name = "") {
         Array arr = Array::FromBuffer(shape, TypeToDtype<T>, data);
         arr.GetNode(graph_name, requires_grad);
-        // arr.GetOrCreateNode(graph_name, requires_grad);
-        // arr.set_requires_grad(requires_grad, graph_name);
         return arr;
     }
 
@@ -133,7 +131,7 @@ public:
         std::copy(raw_data.begin(), raw_data.end(), data.get());
 
         Dtype dtype = TypeToDtype<T>;
-        Array x = Array::FromBuffer(shape, dtype, data);
+        TargetArray x = Array::FromBuffer(shape, dtype, data);
 
         // Basic attributes
         EXPECT_EQ(shape, x.shape());

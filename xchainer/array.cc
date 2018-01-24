@@ -45,24 +45,6 @@ ArrayNode& ArrayBody::GetNode(const std::string& graph_name, bool requires_grad)
     return *nodes_.back().second.node;
 }
 
-const std::shared_ptr<ArrayNode>& ArrayBody::GetOrCreateNode(const std::string& graph_name, bool requires_grad) {
-    auto named_nodes =
-        std::find_if(nodes_.begin(), nodes_.end(),
-                     [&graph_name](const std::pair<std::string, ArrayNodeGradientProperty>& node) { return node.first == graph_name; });
-
-    if (named_nodes != nodes_.end()) {
-        // Return match
-        named_nodes->second.requires_grad = requires_grad;
-        return named_nodes->second.node;
-    }
-
-    // Create and return new
-    std::shared_ptr<ArrayNode> node = std::make_shared<ArrayNode>();
-    ArrayNodeGradientProperty node_property(node, requires_grad);
-    nodes_.push_back({graph_name, node_property});
-    return nodes_.back().second.node;
-}
-
 }  // namespace internal
 
 Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool is_contiguous, int64_t offset)
@@ -211,10 +193,10 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     for (const auto& graph_op_node : graph_op_nodes) {
         // TODO(hvy): Better interface for creating a new node!
-        std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_op_node.first, true);
+        ArrayNode& out_node = out.body_->GetNode(graph_op_node.first, true);
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
-        out_node->set_next_node(std::make_shared<OpNode>(graph_op_node.second));
-        out_node->set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
+        out_node.set_next_node(std::make_shared<OpNode>(graph_op_node.second));
+        out_node.set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
                                               [](const std::shared_ptr<ArrayNode>& a, const std::shared_ptr<ArrayNode>& b) {
                                                   return a->rank() < b->rank();
                                               }))
@@ -283,11 +265,11 @@ void Array::Mul(const Array& rhs, Array& out) const {
     }
 
     for (const auto& graph_op_node : graph_op_nodes) {
-        std::shared_ptr<ArrayNode> out_node = out.GetOrCreateNode(graph_op_node.first, true);
+        ArrayNode& out_node = out.body_->GetNode(graph_op_node.first, true);
         // TODO(hvy): Fix intercface, how to initialize nodes, temp we are setting the gradient requirement to true here. Not so nice.
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = graph_op_node.second.next_nodes();
-        out_node->set_next_node(std::make_shared<OpNode>(graph_op_node.second));
-        out_node->set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
+        out_node.set_next_node(std::make_shared<OpNode>(graph_op_node.second));
+        out_node.set_rank((*std::max_element(next_nodes.begin(), next_nodes.end(),
                                               [](const std::shared_ptr<ArrayNode>& a, const std::shared_ptr<ArrayNode>& b) {
                                                   return a->rank() < b->rank();
                                               }))
