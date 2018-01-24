@@ -83,8 +83,6 @@ private:
         return named_property->second;
     }
 
-    // inline ArrayNodeGradientProperty& GetNodeGradientProperty(const std::string& graph_name) { return
-    // GetNodeGradientProperty(graph_name); }
     ArrayNodeGradientProperty& GetMutableNodeGradientProperty(const std::string& graph_name) {
         auto named_property =
             std::find_if(nodes_.begin(), nodes_.end(),
@@ -95,7 +93,6 @@ private:
         return named_property->second;
     }
 
-    // bool requires_grad(const std::string& graph_name) { return Node(graph_name).requires_grad; }
     bool requires_grad(const std::string& graph_name) const { return GetNodeGradientProperty(graph_name).requires_grad; }
 
     void set_requires_grad(bool requires_grad, const std::string& graph_name) {

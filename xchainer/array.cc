@@ -234,7 +234,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
         const std::string& graph_name = named_node.first;
         const auto& node_property = named_node.second;
         bool requires_grad = node_property.requires_grad;
-        out.body_->GetNode(graph_name, requires_grad);
+        out.body_->GetNode(graph_name, requires_grad);  // Create an ArrayNode internally if it does not exists for this graph
 
         if (requires_grad) {
             std::shared_ptr<ArrayNode> lhs_node = mutable_node(graph_name);
