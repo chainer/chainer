@@ -35,6 +35,7 @@ bool IsPointerCudaMemory(const void* ptr) {
     }
     assert(false);  // should never be reached
 #else
+    (void)ptr;  // unused
     return false;
 #endif  // XCHAINER_ENABLE_CUDA
 }
@@ -108,7 +109,11 @@ std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_p
         throw DeviceError("invalid device");
     }
 #else
-    return src_ptr;
+    if (device == MakeDevice("cpu")) {
+        return src_ptr;
+    } else {
+        throw DeviceError("invalid device");
+    }
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
