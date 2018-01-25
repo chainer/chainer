@@ -186,11 +186,11 @@ void Array::Add(const Array& rhs, Array& out) const {
     };
 
     // Create OpNodes
-    for (auto& named_node : body_->nodes_) {  // For each graph
-        add_op(named_node);
+    for (auto& graph_id_node : body_->nodes_) {  // For each graph
+        add_op(graph_id_node);
     }
-    for (auto& named_node : rhs.body_->nodes_) {  // For each graph
-        add_op(named_node);
+    for (auto& graph_id_node : rhs.body_->nodes_) {  // For each graph
+        add_op(graph_id_node);
     }
 
     // Add OpNodes to output
@@ -238,11 +238,11 @@ void Array::Mul(const Array& rhs, Array& out) const {
     };
 
     // Create OpNodes
-    for (auto& named_node : body_->nodes_) {  // For each graph
-        add_op(named_node, rhs);
+    for (auto& graph_id_node : body_->nodes_) {  // For each graph
+        add_op(graph_id_node, rhs);
     }
-    for (auto& named_node : rhs.body_->nodes_) {  // For each graph
-        add_op(named_node, *this);
+    for (auto& graph_id_node : rhs.body_->nodes_) {  // For each graph
+        add_op(graph_id_node, *this);
     }
 
     // Add OpNodes to output

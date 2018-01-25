@@ -97,7 +97,7 @@ public:
 
     template <typename Fprop>
     void CheckBackpropExtraInputs(std::vector<Array>& target_inputs, std::vector<Array>& other_inputs, std::vector<Array>& expected_grads,
-                                  Fprop&& fprop, const std::string& graph_id) const {
+                                  Fprop&& fprop, const GraphId& graph_id) const {
         CheckBackpropImpl(target_inputs, expected_grads, fprop, graph_id, other_inputs);
         for (size_t i = 0; i < other_inputs.size(); ++i) {
             EXPECT_THROW(other_inputs[i].Grad(graph_id), XchainerError);
@@ -127,10 +127,10 @@ private:
 };
 
 TEST_P(BackpropTest, BackwardBasic) {
-    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) { return xs[0] * xs[1]; }, "graph_0");
-    CheckBackpropSingleElement({3.0f, 2.0f, 4.0f}, {8.0f, 12.0f, 6.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[2]; }, "graph_0");
-    CheckBackpropSingleElement({3.0f, 2.0f}, {12.0f, 9.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[0]; }, "graph_0");
-    CheckBackpropSingleElement({3.0f, 2.0f}, {1.0f, 2.0f}, [](auto& xs) { return (xs[0] + xs[1]) + xs[1]; }, "graph_0");
+    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) { return xs[0] * xs[1]; }, "graph_1");
+    CheckBackpropSingleElement({3.0f, 2.0f, 4.0f}, {8.0f, 12.0f, 6.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[2]; }, "graph_1");
+    CheckBackpropSingleElement({3.0f, 2.0f}, {12.0f, 9.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[0]; }, "graph_1");
+    CheckBackpropSingleElement({3.0f, 2.0f}, {1.0f, 2.0f}, [](auto& xs) { return (xs[0] + xs[1]) + xs[1]; }, "graph_1");
 }
 
 TEST_P(BackpropTest, BackwardWithExtraInputs) {
@@ -140,24 +140,24 @@ TEST_P(BackpropTest, BackwardWithExtraInputs) {
 }
 
 TEST_P(BackpropTest, BackwardSoleArrayNode) {
-    const GraphId g0 = "graph_0";
+    const GraphId graph_id = "graph_1";
     auto x = Array::Full({1}, 2.0f);
-    x.RequireGrad(g0);
-    Backward(x, g0);
+    x.RequireGrad(graph_id);
+    Backward(x, graph_id);
     auto e = Array::OnesLike(x);
-    ExpectEqual<float>(e, x.Grad(g0));
+    ExpectEqual<float>(e, x.Grad(graph_id));
 }
 
 TEST_P(BackpropTest, DoubleBackprop) {
-    const GraphId g1 = "graph_1";
-    auto fprop = [&g1](auto& xs, auto& ys) {
+    const GraphId graph_id = "graph_1";
+    auto fprop = [&graph_id](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
-        Backward(z, g1);
-        auto gx = xs[0].Grad(g1);
-        xs[0].ClearGrad(g1);
+        Backward(z, graph_id);
+        auto gx = xs[0].Grad(graph_id);
+        xs[0].ClearGrad(graph_id);
         return gx;
     };
-    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop, g1);
+    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop, graph_id);
 }
 
 TEST_P(BackpropTest, BackwardInputToMultipleOps) {
@@ -165,12 +165,12 @@ TEST_P(BackpropTest, BackwardInputToMultipleOps) {
 }
 
 TEST_P(BackpropTest, BackwardIdenticalInputs) {
-    CheckBackpropSingleElement({2.0f}, {2.0f}, [](auto& xs) { return xs[0] + xs[0]; }, "graph_0");
-    CheckBackpropSingleElement({3.0f}, {6.0f}, [](auto& xs) { return xs[0] * xs[0]; }, "graph_0");
+    CheckBackpropSingleElement({2.0f}, {2.0f}, [](auto& xs) { return xs[0] + xs[0]; }, "graph_1");
+    CheckBackpropSingleElement({3.0f}, {6.0f}, [](auto& xs) { return xs[0] * xs[0]; }, "graph_1");
 }
 
 TEST_P(BackpropTest, BackwardGivenInputGrad) {
-    const GraphId& graph_id = "graph_0";
+    const GraphId& graph_id = "graph_1";
     auto fprop = [graph_id](auto& xs) {
         xs[0].SetGrad(Array::OnesLike(xs[0]), graph_id);
         return xs[0];
@@ -179,7 +179,7 @@ TEST_P(BackpropTest, BackwardGivenInputGrad) {
 }
 
 TEST_P(BackpropTest, BackwardGivenOutputGrad) {
-    const GraphId& graph_id = "graph_2";
+    const GraphId& graph_id = "graph_1";
     auto fprop = [graph_id](auto& xs, auto& ys) {
         auto z = xs[0] * ys[0];
         z.SetGrad(Array::FullLike(z, 2.0f), graph_id);
@@ -190,50 +190,50 @@ TEST_P(BackpropTest, BackwardGivenOutputGrad) {
 
 // TODO(hvy): Clean up tests
 TEST_P(BackpropTest, MultipleGraphsReuse) {
-    GraphId g1 = "g0";
-    GraphId g2 = "g1";
+    GraphId graph_id_1 = "graph_1";
+    GraphId graph_id_2 = "graph_2";
 
     Array x1 = MakeFullArray({1}, {2.0f});
     Array x2 = MakeFullArray({1}, {5.0f});
 
-    EXPECT_FALSE(x1.RequiresGrad(g1));
-    EXPECT_FALSE(x2.RequiresGrad(g2));
+    EXPECT_FALSE(x1.RequiresGrad(graph_id_1));
+    EXPECT_FALSE(x2.RequiresGrad(graph_id_2));
 
-    x1.RequireGrad(g1);
-    x2.RequireGrad(g2);
+    x1.RequireGrad(graph_id_1);
+    x2.RequireGrad(graph_id_2);
 
-    EXPECT_TRUE(x1.RequiresGrad(g1));
-    EXPECT_TRUE(x2.RequiresGrad(g2));
+    EXPECT_TRUE(x1.RequiresGrad(graph_id_1));
+    EXPECT_TRUE(x2.RequiresGrad(graph_id_2));
 
     Array y1 = x1 * x2;
-    Backward(y1, g1);
+    Backward(y1, graph_id_1);
 
     Array expected_1 = MakeFullArray({1}, {5.0f});
-    ExpectEqual<float>(expected_1, x1.Grad(g1));
-    ASSERT_THROW(x2.Grad(g2), XchainerError);
+    ExpectEqual<float>(expected_1, x1.Grad(graph_id_1));
+    ASSERT_THROW(x2.Grad(graph_id_2), XchainerError);
 
-    x1.ClearGrad(g1);
-    x2.ClearGrad(g2);
+    x1.ClearGrad(graph_id_1);
+    x2.ClearGrad(graph_id_2);
 
     Array y2 = x1 * x2;
-    Backward(y2, g2);
+    Backward(y2, graph_id_2);
 
     Array expected_2 = MakeFullArray({1}, {2.0f});
-    ExpectEqual<float>(expected_2, x2.Grad(g2));
-    ASSERT_THROW(x1.Grad(g1), XchainerError);
+    ExpectEqual<float>(expected_2, x2.Grad(graph_id_2));
+    ASSERT_THROW(x1.Grad(graph_id_1), XchainerError);
 
-    x1.ClearGrad(g1);
-    x2.ClearGrad(g2);
+    x1.ClearGrad(graph_id_1);
+    x2.ClearGrad(graph_id_2);
 
-    x1.RequireGrad(g2);
+    x1.RequireGrad(graph_id_2);
 
     Array y3 = x1 * x2;
-    Backward(y3, g2);
+    Backward(y3, graph_id_2);
 
-    ExpectEqual<float>(expected_1, x1.Grad(g2));
-    ExpectEqual<float>(expected_2, x2.Grad(g2));
-    ASSERT_THROW(x1.Grad(g1), XchainerError);
-    ASSERT_THROW(x2.Grad(g1), XchainerError);
+    ExpectEqual<float>(expected_1, x1.Grad(graph_id_2));
+    ExpectEqual<float>(expected_2, x2.Grad(graph_id_2));
+    ASSERT_THROW(x1.Grad(graph_id_1), XchainerError);
+    ASSERT_THROW(x2.Grad(graph_id_1), XchainerError);
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
