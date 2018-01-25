@@ -179,7 +179,7 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     std::unordered_map<std::string, OpNode> graph_op_nodes;
 
-    auto register_op = [&out, &graph_op_nodes](auto& named_node) {
+    auto add_op = [&out, &graph_op_nodes](auto& named_node) {
         const auto& graph_name = named_node.first;
         const auto& node_property = named_node.second;
 
@@ -200,10 +200,10 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     // Create OpNodes
     for (auto& named_node : body_->nodes_) {  // For each graph
-        register_op(named_node);
+        add_op(named_node);
     }
     for (auto& named_node : rhs.body_->nodes_) {
-        register_op(named_node);
+        add_op(named_node);
     }
 
     // Add OpNodes to output
@@ -243,7 +243,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     std::unordered_map<std::string, OpNode> graph_op_nodes;
 
-    auto register_op = [&out, &graph_op_nodes](auto& named_node, const Array& other) {
+    auto add_op = [&out, &graph_op_nodes](auto& named_node, const Array& other) {
         const auto& graph_name = named_node.first;
         const auto& node_property = named_node.second;
 
@@ -262,10 +262,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     // Create OpNodes
     for (auto& named_node : body_->nodes_) {  // For each graph
-        register_op(named_node, rhs);
+        add_op(named_node, rhs);
     }
     for (auto& named_node : rhs.body_->nodes_) {  // For each graph
-        register_op(named_node, *this);
+        add_op(named_node, *this);
     }
 
     // Add OpNodes to output
