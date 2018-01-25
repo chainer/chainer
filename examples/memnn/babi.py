@@ -37,18 +37,13 @@ def parse_data(vocab, lines):
     all_data = []
     last_id = 0
     for line in lines:
-        line = line.strip()
-        pos = line.find(' ')
-        sid = int(line[:pos])
-        if sid == 1:
+        sid, content = line.strip().split(' ', 1)
+        if sid == '1':
             if len(data) > 0:
                 all_data.append(data)
                 data = []
-                last_id = 0
 
-        assert sid == last_id + 1
-        data.append(parse_line(vocab, line[pos + 1:]))
-        last_id = sid
+        data.append(parse_line(vocab, content))
 
     if len(data) > 0:
         all_data.append(data)
