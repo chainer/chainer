@@ -15,6 +15,7 @@
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/error.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -85,7 +86,7 @@ public:
         auto y = fprop(target_inputs, args...);
         Backward(y, graph_id);
         for (size_t i = 0; i < expected_grads.size(); ++i) {
-            ExpectEqual<float>(expected_grads[i], target_inputs[i].Grad(graph_id));
+            ExpectEqual<float>(expected_grads[i], *target_inputs[i].Grad(graph_id));
         }
     }
 
@@ -100,7 +101,7 @@ public:
                                   Fprop&& fprop, const GraphId& graph_id) const {
         CheckBackpropImpl(target_inputs, expected_grads, fprop, graph_id, other_inputs);
         for (size_t i = 0; i < other_inputs.size(); ++i) {
-            EXPECT_THROW(other_inputs[i].Grad(graph_id), XchainerError);
+          EXPECT_THROW(other_inputs[i].Grad(graph_id), XchainerError);
         }
     }
 
@@ -145,7 +146,7 @@ TEST_P(BackpropTest, BackwardSoleArrayNode) {
     x.RequireGrad(graph_id);
     Backward(x, graph_id);
     auto e = Array::OnesLike(x);
-    ExpectEqual<float>(e, x.Grad(graph_id));
+    ExpectEqual<float>(e, *x.Grad(graph_id));
 }
 
 TEST_P(BackpropTest, DoubleBackprop) {
@@ -153,7 +154,7 @@ TEST_P(BackpropTest, DoubleBackprop) {
     auto fprop = [&graph_id](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
         Backward(z, graph_id);
-        auto gx = xs[0].Grad(graph_id);
+        auto gx = *xs[0].Grad(graph_id);
         xs[0].ClearGrad(graph_id);
         return gx;
     };
@@ -209,8 +210,8 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     Backward(y1, graph_id_1);
 
     Array expected_1 = MakeFullArray({1}, {5.0f});
-    ExpectEqual<float>(expected_1, x1.Grad(graph_id_1));
-    ASSERT_THROW(x2.Grad(graph_id_2), XchainerError);
+    ExpectEqual<float>(expected_1, *x1.Grad(graph_id_1));
+    EXPECT_FALSE(x2.Grad(graph_id_2));
 
     x1.ClearGrad(graph_id_1);
     x2.ClearGrad(graph_id_2);
@@ -219,21 +220,22 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     Backward(y2, graph_id_2);
 
     Array expected_2 = MakeFullArray({1}, {2.0f});
-    ExpectEqual<float>(expected_2, x2.Grad(graph_id_2));
-    ASSERT_THROW(x1.Grad(graph_id_1), XchainerError);
+    ExpectEqual<float>(expected_2, *x2.Grad(graph_id_2));
+    EXPECT_FALSE(x1.Grad(graph_id_1));
 
     x1.ClearGrad(graph_id_1);
     x2.ClearGrad(graph_id_2);
 
     x1.RequireGrad(graph_id_2);
+    x2.RequireGrad(graph_id_1);
 
     Array y3 = x1 * x2;
     Backward(y3, graph_id_2);
 
-    ExpectEqual<float>(expected_1, x1.Grad(graph_id_2));
-    ExpectEqual<float>(expected_2, x2.Grad(graph_id_2));
-    ASSERT_THROW(x1.Grad(graph_id_1), XchainerError);
-    ASSERT_THROW(x2.Grad(graph_id_1), XchainerError);
+    ExpectEqual<float>(expected_1, *x1.Grad(graph_id_2));
+    ExpectEqual<float>(expected_2, *x2.Grad(graph_id_2));
+    EXPECT_FALSE(x1.Grad(graph_id_1));
+    EXPECT_FALSE(x2.Grad(graph_id_1));
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(

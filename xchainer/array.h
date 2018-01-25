@@ -121,7 +121,7 @@ public:
 
     bool RequiresGrad(const GraphId& graph_id = "") const { return body_->HasNode(graph_id); }
 
-    const Array& Grad(const GraphId& graph_id = "") const;
+    const nonstd::optional<Array>& Grad(const GraphId& graph_id = "") const;
 
     void SetGrad(Array grad, const GraphId& graph_id = "");
 

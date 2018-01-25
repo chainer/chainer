@@ -121,18 +121,30 @@ void InitXchainerArray(pybind11::module& m) {
         .def(py::self * py::self)
         .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
         .def("copy", &Array::Copy)
-        .def_property("requires_grad", &Array::requires_grad, &Array::set_requires_grad)
+        // .def_property("requires_grad", &Array::requires_grad, &Array::set_requires_grad)
+        .def_property("requires_grad", [](Array& self) -> bool { return self.RequiresGrad(); },
+                      [](Array& self, bool requires_grad) {
+                          if (requires_grad) {
+                              self.RequireGrad();
+                          } else {
+                              //  TODO(hvy): Not yet implemented
+                          }
+                      })
         .def_property("grad",
                       [](Array& self) -> nonstd::optional<Array> {
-                          if (const auto& grad = self.grad()) {
-                              return grad->MakeView();
+                          if (self.RequiresGrad()) {
+                              return self.Grad()->MakeView();
                           } else {
                               return nonstd::nullopt;
                           }
                       },
                       [](Array& self, Array* grad) {
                           if (grad) {
-                              self.set_grad(grad->MakeView());
+                              if (!self.RequiresGrad()) {
+                                  // Create the ArrayNode required in order to set the gradient
+                                  self.RequireGrad();
+                              }
+                              self.SetGrad(grad->MakeView());
                           } else {
                               self.ClearGrad();
                           }

@@ -57,7 +57,7 @@ const std::shared_ptr<ArrayNode>& ArrayBody::MutableNode(const GraphId& graph_id
 
 const std::shared_ptr<ArrayNode>& ArrayBody::CreateNode(const GraphId& graph_id) {
     if (HasNode(graph_id)) {
-        throw XchainerError("Duplicate graph registrationh: " + graph_id);
+        throw XchainerError("Duplicate graph registration: " + graph_id);
     }
     nodes_.push_back({graph_id, std::make_shared<ArrayNode>()});
     return nodes_.back().second;
@@ -74,12 +74,8 @@ Array::Array(const Array& other)
     other.CopyTo(*this);
 }
 
-const Array& Array::Grad(const GraphId& graph_id) const {
-    auto& grad = body_->Node(graph_id)->grad();
-    if (!grad) {
-        throw XchainerError("Gradient not set for graph: " + graph_id);
-    }
-    return *grad;
+const nonstd::optional<Array>& Array::Grad(const GraphId& graph_id) const {
+  return body_->Node(graph_id)->grad();
 }
 
 void Array::SetGrad(Array grad, const GraphId& graph_id) { body_->MutableNode(graph_id)->set_grad(std::move(grad)); }
@@ -199,7 +195,9 @@ void Array::Add(const Array& rhs, Array& out) const {
         const auto& op_node = graph_id_op_node.second;
 
         auto next_nodes = op_node.next_nodes();
-        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) { return a->rank() < b->rank(); }))->rank();
+        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
+                                return a->rank() < b->rank();
+                            }))->rank();
 
         auto& out_node = out.body_->CreateNode(graph_id);
         out_node->set_next_node(std::make_shared<OpNode>(op_node));
@@ -251,7 +249,9 @@ void Array::Mul(const Array& rhs, Array& out) const {
         const auto& op_node = graph_id_op_node.second;
 
         auto next_nodes = op_node.next_nodes();
-        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) { return a->rank() < b->rank(); }))->rank();
+        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
+                                return a->rank() < b->rank();
+                            }))->rank();
 
         auto& out_node = out.body_->CreateNode(graph_id);
         out_node->set_next_node(std::make_shared<OpNode>(op_node));

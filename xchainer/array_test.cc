@@ -387,29 +387,29 @@ TEST_P(ArrayTest, Grad) {
     Array x = MakeArray<T>(shape, {5, 3, 2, 1, 4, 6}, graph_id);
     Array g = MakeArray<T>(shape, {8, 4, 6, 3, 2, 1}, graph_id);
 
-    EXPECT_THROW(x.Grad(graph_id), XchainerError) << "grad must be initially unset";
+    EXPECT_FALSE(x.Grad(graph_id)) << "grad must be initially unset";
 
     // Set and get grad
     {
         x.SetGrad(g, graph_id);
 
-        ExpectEqual<T>(g, x.Grad(graph_id));
+        ExpectEqual<T>(g, *x.Grad(graph_id));
     }
 
     // Get grad multiple times
     {
-        const Array& grad1 = x.Grad(graph_id);
-        const Array& grad2 = x.Grad(graph_id);
+        const Array& grad1 = *x.Grad(graph_id);
+        const Array& grad2 = *x.Grad(graph_id);
         EXPECT_EQ(&grad1, &grad2) << "Multiple retrieval of grad must return the same arrays";
     }
 
     // ClearGrad
     {
-        Array grad_view = x.Grad(graph_id).MakeView();  // Make a view of grad
+        Array grad_view = x.Grad(graph_id)->MakeView();  // Make a view of grad
 
         x.ClearGrad(graph_id);
 
-        EXPECT_THROW(x.Grad(graph_id), XchainerError) << "grad must be cleared after calling ClearGrad()";
+        EXPECT_FALSE(x.Grad(graph_id)) << "grad must be cleared after calling ClearGrad()";
 
         // ClearGrad() must not affect previously retrieved view to grad
         ExpectEqual<T>(grad_view, g);
