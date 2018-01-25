@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <memory>
-#include <string>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
@@ -27,7 +26,7 @@ Arrays IncorrectBackwardUnaryFunc(const Arrays& inputs) {
 
     Array out = Array::EmptyLike(lhs);
 
-    std::unordered_map<std::string, OpNode> graph_id_op_nodes;
+    std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
 
     auto add_op = [&out, &graph_id_op_nodes](auto& graph_id_node) {
         const auto& graph_id = graph_id_node.first;
@@ -83,7 +82,7 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
 
     Array out = Array::EmptyLike(lhs);
 
-    std::unordered_map<std::string, OpNode> graph_id_op_nodes;
+    std::unordered_map<GrapId, OpNode> graph_id_op_nodes;
 
     auto add_op = [&out, &graph_id_op_nodes](auto& graph_id_node, const Array& other) {
         const auto& graph_id = graph_id_node.first;
