@@ -67,7 +67,7 @@ def position_encode(embed, sentences):
 
     # To avoid 0/0, we use max(length, 1) here.
     # Note that when the length is zero, its embedding is always zero and
-    # is igrenod.
+    # is ignored.
     length = xp.maximum(
         xp.sum((sentences != 0).astype('f'), axis=-1), 1)
     length = length.reshape((length.shape + (1, 1)))
