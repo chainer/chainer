@@ -40,11 +40,10 @@ public:
 private:
     friend class ::xchainer::Array;
 
-    bool HasArrayNode(const GraphId& graph_id) const;
-    ArrayNode& CreateArrayNode(const GraphId& graph_id);
-
-    std::shared_ptr<const ArrayNode> Node(const GraphId& graph_id);          // TODO(hvy)
-    const std::shared_ptr<ArrayNode>& MutableNode(const GraphId& graph_id);  // TODO(hvy)
+    bool HasNode(const GraphId& graph_id) const;
+    std::shared_ptr<const ArrayNode> Node(const GraphId& graph_id) const;
+    const std::shared_ptr<ArrayNode>& MutableNode(const GraphId& graph_id) const;
+    const std::shared_ptr<ArrayNode>& CreateNode(const GraphId& graph_id);
 
     Shape shape_;
     Dtype dtype_;
@@ -117,11 +116,11 @@ public:
     const std::shared_ptr<ArrayNode>& MutableNode(const GraphId& graph_id = "") const { return body_->MutableNode(graph_id); }
 
     Array& RequireGrad(const GraphId& graph_id = "") {
-        body_->CreateArrayNode(graph_id);
+        body_->CreateNode(graph_id);
         return *this;
     }
 
-    bool RequiresGrad(const GraphId& graph_id = "") const { return body_->HasArrayNode(graph_id); }
+    bool RequiresGrad(const GraphId& graph_id = "") const { return body_->HasNode(graph_id); }
 
     const Array& Grad(const GraphId& graph_id = "") const;
 

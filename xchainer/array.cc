@@ -32,36 +32,37 @@ namespace internal {
 ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset)
     : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_() {}
 
-bool ArrayBody::HasArrayNode(const GraphId& graph_id) const {
+bool ArrayBody::HasNode(const GraphId& graph_id) const {
     return std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; }) !=
            nodes_.end();
 }
 
-ArrayNode& ArrayBody::CreateArrayNode(const GraphId& graph_id) {
-    if (HasArrayNode(graph_id)) {
+std::shared_ptr<const ArrayNode> ArrayBody::Node(const GraphId& graph_id) const {
+    auto it =
+        std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; });
+    if (it == nodes_.end()) {
+        throw XchainerError("Cannot find ArrayNode for graph: " + graph_id);
+    }
+    return it->second;
+}
+
+const std::shared_ptr<ArrayNode>& ArrayBody::MutableNode(const GraphId& graph_id) const {
+    auto it =
+        std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; });
+    if (it == nodes_.end()) {
+        throw XchainerError("Cannot find ArrayNode for graph: " + graph_id);
+    }
+    return it->second;
+}
+
+const std::shared_ptr<ArrayNode>& ArrayBody::CreateNode(const GraphId& graph_id) {
+    if (HasNode(graph_id)) {
         throw XchainerError("Duplicate graph registrationh: " + graph_id);
     }
     nodes_.push_back({graph_id, std::make_shared<ArrayNode>()});
-    return *nodes_.back().second;
+    return nodes_.back().second;
 }
 
-std::shared_ptr<const ArrayNode> ArrayBody::Node(const GraphId& graph_id) {
-    auto it =
-        std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; });
-    if (it == nodes_.end()) {
-        throw XchainerError("Cannot find ArrayNode for graph: " + graph_id);
-    }
-    return it->second;
-}
-
-const std::shared_ptr<ArrayNode>& ArrayBody::MutableNode(const GraphId& graph_id) {
-    auto it =
-        std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; });
-    if (it == nodes_.end()) {
-        throw XchainerError("Cannot find ArrayNode for graph: " + graph_id);
-    }
-    return it->second;
-}
 
 }  // namespace internal
 
@@ -156,9 +157,9 @@ void Array::CopyTo(Array& out) const {
         int64_t prev_rank = next_node->rank();
         auto op_node = std::make_shared<OpNode>("copy", prev_rank, next_nodes, backward_functions);
 
-        ArrayNode& out_node = out.body_->CreateArrayNode(graph_id);
-        out_node.set_next_node(op_node);
-        out_node.set_rank(prev_rank + 1);
+        auto& out_node = out.body_->CreateNode(graph_id);
+        out_node->set_next_node(op_node);
+        out_node->set_rank(prev_rank + 1);
     }
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
@@ -197,10 +198,10 @@ void Array::Add(const Array& rhs, Array& out) const {
     for (const auto& graph_id_op_node : graph_id_op_nodes) {
         const auto& graph_id = graph_id_op_node.first;
         const auto& op_node = graph_id_op_node.second;
-        ArrayNode& out_node = out.body_->CreateArrayNode(graph_id);
+        auto& out_node = out.body_->CreateNode(graph_id);
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = op_node.next_nodes();
-        out_node.set_next_node(std::make_shared<OpNode>(op_node));
-        out_node.set_rank(
+        out_node->set_next_node(std::make_shared<OpNode>(op_node));
+        out_node->set_rank(
             (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) { return a->rank() < b->rank(); }))
                 ->rank() +
             1);
@@ -249,10 +250,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
     for (const auto& graph_id_op_node : graph_id_op_nodes) {
         const auto& graph_id = graph_id_op_node.first;
         const auto& op_node = graph_id_op_node.second;
-        ArrayNode& out_node = out.body_->CreateArrayNode(graph_id);
+        auto& out_node = out.body_->CreateNode(graph_id);
         gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = op_node.next_nodes();
-        out_node.set_next_node(std::make_shared<OpNode>(op_node));
-        out_node.set_rank(
+        out_node->set_next_node(std::make_shared<OpNode>(op_node));
+        out_node->set_rank(
             (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) { return a->rank() < b->rank(); }))
                 ->rank() +
             1);
