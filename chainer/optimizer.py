@@ -31,7 +31,8 @@ class Hyperparameter(object):
 
     Args:
         parent (Hyperparameter): Parent hyperparameter.
-"""
+
+    """
 
     def __init__(self, parent=None):
         self._parent = parent
@@ -748,7 +749,6 @@ class Lasso(optimizer_hooks.Lasso):
                       DeprecationWarning)
         return super(Lasso, self).__init__(*args, **kwargs)
 
-
 class GradientClipping(optimizer_hooks.GradientClipping):
 
     def __init__(self, *args, **kwargs):
@@ -778,27 +778,30 @@ class GradientLARS(object):
     name = 'GradientLARS'
     call_for_each_param = True
 
-    def __init__(self, threshold=1e-2 ,weightdecay=0.0, eps=1e-9):
+    def __init__(self, threshold=1e-2, weightdecay=0.0, eps=1e-9):
         self.threshold = threshold
         self.weightdecay = weightdecay
         self.eps = eps
 
     def __call__(self, rule, param):
         p, g = param.data, param.grad
+
+        xp = cuda.get_array_module(p)
+
         # weight norm
-        p_norm = _norm(p)
+        p_norm = xp.linalg.norm(p)
         # grad norm
-        g_norm = _norm(g)
-        rate = p_norm / (self.eps + g_norm + self.weightdecay * p_norm)
-        if p_norm > self.threshold :
-            with cuda.get_device_from_array(p) as dev:
-                if int(dev) == -1:
-                    g +=  self.weightdecay * p
-                    g *= rate
-                else:
-                    kernel = cuda.elementwise(
-                        'T p, T rate, T weightdecay',
-                        'T g',
-                        'g += weightdecay * p; g *= rate;',
-                        'lars')
-                    kernel(p, rate, self.weightdecay, g)
+        g_norm = xp.linalg.norm(g)
+        local_rate = p_norm / (self.eps + g_norm + self.weightdecay * p_norm)
+        rate = xp.where(p_norm > self.threshold, local_rate, 1.0)
+        with cuda.get_device_from_array(p) as dev:
+            if int(dev) == -1:
+                g += self.weightdecay * p
+                g *= rate
+            else:
+                kernel = cuda.elementwise(
+                    'T p, T rate, T weightdecay',
+                    'T g',
+                    'g += weightdecay * p; g *= rate;',
+                    'lars')
+                kernel(p, rate, self.weightdecay, g)
