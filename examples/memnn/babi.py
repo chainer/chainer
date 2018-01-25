@@ -35,7 +35,6 @@ def parse_line(vocab, line):
 def parse_data(vocab, lines):
     data = []
     all_data = []
-    last_id = 0
     for line in lines:
         sid, content = line.strip().split(' ', 1)
         if sid == '1':
