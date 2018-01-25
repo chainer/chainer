@@ -63,7 +63,6 @@ const std::shared_ptr<ArrayNode>& ArrayBody::CreateNode(const GraphId& graph_id)
     return nodes_.back().second;
 }
 
-
 }  // namespace internal
 
 Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool is_contiguous, int64_t offset)
