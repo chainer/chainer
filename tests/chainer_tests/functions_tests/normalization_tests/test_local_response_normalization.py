@@ -63,9 +63,14 @@ class TestLocalResponseNormalization(unittest.TestCase):
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        gradient_check.check_backward(
-            functions.LocalResponseNormalization(), inputs, grad_outputs,
-            eps=1, dtype=numpy.float64, **self.check_backward_options)
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
+            grad_outputs = cuda.to_gpu(grad_outputs)
+
+        with backend_config:
+            gradient_check.check_backward(
+                functions.LocalResponseNormalization(), inputs, grad_outputs,
+                eps=1, dtype=numpy.float64, **self.check_backward_options)
 
     def test_backward(self, backend_config):
         self.check_backward(self.inputs, self.grad_outputs, backend_config)
