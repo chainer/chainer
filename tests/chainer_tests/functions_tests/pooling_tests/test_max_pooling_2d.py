@@ -93,7 +93,8 @@ class TestMaxPooling2D(unittest.TestCase):
             inputs = _to_noncontiguous(inputs)
 
         with backend_config:
-            y = functions.max_pooling_2d(*inputs, 3, stride=2, pad=1,
+            x, = inputs
+            y = functions.max_pooling_2d(x, 3, stride=2, pad=1,
                                          cover_all=self.cover_all)
         assert y.data.dtype == self.dtype
         y_data = cuda.to_cpu(y.data)
