@@ -126,27 +126,6 @@ void InitXchainerArray(pybind11::module& m) {
         .def(py::init(py::overload_cast<const Shape&, Dtype, py::list>(&MakeArray)))
         .def(py::init(py::overload_cast<py::array>(&MakeArray)))
         .def_buffer(&MakeNumpyArrayFromArray)
-        /*
-                .def("view", &Array::MakeView)
-                .def(py::self += py::self)
-                .def(py::self *= py::self)
-                .def(py::self + py::self)
-                .def(py::self * py::self)
-                .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
-                .def("copy", &Array::Copy)
-                .def_property("requires_grad", [](Array& self) -> bool { return self.RequiresGrad(); },
-                              [](Array& self, bool requires_grad) {
-                                  if (requires_grad) {
-                                      self.RequireGrad();
-                                  } else {
-                                      //  TODO(hvy): Not yet implemented
-                                  }
-                              })
-                .def_property("grad",
-                              [](Array& self) -> nonstd::optional<Array> {
-                                  if (self.RequiresGrad()) {
-                                      return self.Grad()->MakeView();
-        */
         .def("view",
              [](const ArrayBodyPtr& self) {
                  // Duplicate the array body
@@ -160,7 +139,7 @@ void InitXchainerArray(pybind11::module& m) {
         .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
         .def_property("requires_grad", [](const ArrayBodyPtr& self) { return Array{self}.requires_grad(); },
                       [](const ArrayBodyPtr& self, bool value) {
-                          if (value) {
+                          if (value && !self->HasNode()) {
                               Array{self}.RequireGrad();
                           } else {
                               // Cannot unset required gradients
@@ -168,15 +147,19 @@ void InitXchainerArray(pybind11::module& m) {
                       })
         .def_property("grad",
                       [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {
-                          if (const auto& grad = Array{self}.grad()) {
-                              return grad->body();
+                          if (self->HasNode()) {
+                              return Array{self}.grad()->body();
                           } else {
                               return nullptr;
                           }
                       },
                       [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad) {
                           if (grad) {
-                              Array{self}.set_grad(Array{grad});
+                              if (!self->HasNode()) {
+                                  Array{self}.RequireGrad().set_grad(Array{grad});
+                              } else {
+                                  Array{self}.set_grad(Array{grad});
+                              }
                           } else {
                               Array{self}.ClearGrad();
                           }

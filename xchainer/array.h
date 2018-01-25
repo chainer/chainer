@@ -36,14 +36,14 @@ class ArrayBody {
 public:
     ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset);
 
+    bool HasNode(const GraphId& graph_id = "") const;
+    const std::shared_ptr<ArrayNode>& CreateNode(const GraphId& graph_id = "");
+
 private:
     friend class ::xchainer::Array;
 
     std::shared_ptr<const ArrayNode> node(const GraphId& graph_id) const;
     const std::shared_ptr<ArrayNode>& mutable_node(const GraphId& graph_id) const;
-
-    bool HasNode(const GraphId& graph_id) const;
-    const std::shared_ptr<ArrayNode>& CreateNode(const GraphId& graph_id);
 
     Shape shape_;
     Dtype dtype_;
