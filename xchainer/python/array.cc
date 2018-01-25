@@ -16,6 +16,11 @@ namespace xchainer {
 
 namespace py = pybind11;
 
+namespace {
+
+using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
+using ConstArrayBodyPtr = std::shared_ptr<const internal::ArrayBody>;
+
 Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
     switch (npdtype.kind()) {
         case 'b':
@@ -58,7 +63,7 @@ Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
     throw DtypeError("unsupported NumPy dtype");
 }
 
-Array MakeArray(const Shape& shape, Dtype dtype, py::list list) {
+ArrayBodyPtr MakeArray(const Shape& shape, Dtype dtype, py::list list) {
     auto total_size = shape.total_size();
     auto bytes = GetElementSize(dtype) * total_size;
     if (static_cast<size_t>(total_size) != list.size()) {
@@ -71,10 +76,10 @@ Array MakeArray(const Shape& shape, Dtype dtype, py::list list) {
         using T = typename decltype(pt)::type;
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
-    return Array::FromBuffer(shape, dtype, ptr);
+    return Array::FromBuffer(shape, dtype, ptr).move_body();
 }
 
-Array MakeArray(py::array array) {
+ArrayBodyPtr MakeArray(py::array array) {
     if ((array.flags() & py::array::c_style) == 0) {
         throw DimensionError("cannot convert non-contiguous NumPy array to Array");
     }
@@ -86,19 +91,24 @@ Array MakeArray(py::array array) {
     // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
     std::shared_ptr<void> data(std::make_shared<py::array>(std::move(array)), array.mutable_data());
 
-    return Array::FromBuffer(shape, dtype, data);
+    return Array::FromBuffer(shape, dtype, data).move_body();
 }
 
-py::buffer_info MakeNumpyArrayFromArray(Array& self) {
-    if (!self.is_contiguous()) {
+py::buffer_info MakeNumpyArrayFromArray(internal::ArrayBody& self) {
+    // Used as a temporary accessor
+    Array array{std::move(ArrayBodyPtr(&self, [](internal::ArrayBody* ptr) {
+        (void)ptr;  // unused
+    }))};
+
+    if (!array.is_contiguous()) {
         throw DimensionError("cannot convert non-contiguous Array to NumPy array");
     }
 
-    int64_t itemsize{GetElementSize(self.dtype())};
-    const Shape& shape = self.shape();
+    int64_t itemsize{GetElementSize(array.dtype())};
+    const Shape& shape = array.shape();
 
     // compute C-contiguous strides
-    size_t ndim = self.ndim();
+    size_t ndim = array.ndim();
     std::vector<size_t> strides(ndim);
     if (ndim > 0) {
         std::partial_sum(shape.crbegin(), shape.crend() - 1, strides.rbegin() + 1, std::multiplies<size_t>());
@@ -106,66 +116,90 @@ py::buffer_info MakeNumpyArrayFromArray(Array& self) {
         std::transform(strides.crbegin(), strides.crend(), strides.rbegin(), [&itemsize](size_t item) { return item * itemsize; });
     }
 
-    return py::buffer_info(self.data().get(), itemsize, std::string(1, GetCharCode(self.dtype())), ndim, shape, strides);
+    return py::buffer_info(array.data().get(), itemsize, std::string(1, GetCharCode(array.dtype())), ndim, shape, strides);
 }
 
+}  // namespace
+
 void InitXchainerArray(pybind11::module& m) {
-    py::class_<Array>{m, "Array", py::buffer_protocol()}
+    py::class_<internal::ArrayBody, ArrayBodyPtr>{m, "Array", py::buffer_protocol()}
         .def(py::init(py::overload_cast<const Shape&, Dtype, py::list>(&MakeArray)))
         .def(py::init(py::overload_cast<py::array>(&MakeArray)))
         .def_buffer(&MakeNumpyArrayFromArray)
-        .def("view", &Array::MakeView)
-        .def(py::self += py::self)
-        .def(py::self *= py::self)
-        .def(py::self + py::self)
-        .def(py::self * py::self)
-        .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
-        .def("copy", &Array::Copy)
-        .def_property("requires_grad", [](Array& self) -> bool { return self.RequiresGrad(); },
-                      [](Array& self, bool requires_grad) {
-                          if (requires_grad) {
-                              self.RequireGrad();
+        /*
+                .def("view", &Array::MakeView)
+                .def(py::self += py::self)
+                .def(py::self *= py::self)
+                .def(py::self + py::self)
+                .def(py::self * py::self)
+                .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
+                .def("copy", &Array::Copy)
+                .def_property("requires_grad", [](Array& self) -> bool { return self.RequiresGrad(); },
+                              [](Array& self, bool requires_grad) {
+                                  if (requires_grad) {
+                                      self.RequireGrad();
+                                  } else {
+                                      //  TODO(hvy): Not yet implemented
+                                  }
+                              })
+                .def_property("grad",
+                              [](Array& self) -> nonstd::optional<Array> {
+                                  if (self.RequiresGrad()) {
+                                      return self.Grad()->MakeView();
+        */
+        .def("view",
+             [](const ArrayBodyPtr& self) {
+                 // Duplicate the array body
+                 return std::make_shared<internal::ArrayBody>(*self);
+             })
+        .def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).move_body(); })
+        .def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).move_body(); })
+        .def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).move_body(); })
+        .def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); })
+        .def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); })
+        .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
+        .def_property("requires_grad", [](const ArrayBodyPtr& self) { return Array{self}.requires_grad(); },
+                      [](const ArrayBodyPtr& self, bool value) {
+                          if (value) {
+                              Array{self}.RequireGrad();
                           } else {
-                              //  TODO(hvy): Not yet implemented
+                              // Cannot unset required gradients
                           }
                       })
         .def_property("grad",
-                      [](Array& self) -> nonstd::optional<Array> {
-                          if (self.RequiresGrad()) {
-                              return self.Grad()->MakeView();
+                      [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {
+                          if (const auto& grad = Array{self}.grad()) {
+                              return grad->body();
                           } else {
-                              return nonstd::nullopt;
+                              return nullptr;
                           }
                       },
-                      [](Array& self, Array* grad) {
+                      [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad) {
                           if (grad) {
-                              if (!self.RequiresGrad()) {
-                                  // Create the ArrayNode required in order to set the gradient
-                                  self.RequireGrad();
-                              }
-                              self.SetGrad(grad->MakeView());
+                              Array{self}.set_grad(Array{grad});
                           } else {
-                              self.ClearGrad();
+                              Array{self}.ClearGrad();
                           }
                       })
-        .def_property_readonly("dtype", &Array::dtype)
-        .def_property_readonly("element_bytes", &Array::element_bytes)
-        .def_property_readonly("is_contiguous", &Array::is_contiguous)
-        .def_property_readonly("ndim", &Array::ndim)
-        .def_property_readonly("offset", &Array::offset)
-        .def_property_readonly("shape", &Array::shape)
-        .def_property_readonly("total_bytes", &Array::total_bytes)
-        .def_property_readonly("total_size", &Array::total_size)
+        .def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); })
+        .def_property_readonly("element_bytes", [](const ArrayBodyPtr& self) { return Array{self}.element_bytes(); })
+        .def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.is_contiguous(); })
+        .def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return Array{self}.ndim(); })
+        .def_property_readonly("offset", [](const ArrayBodyPtr& self) { return Array{self}.offset(); })
+        .def_property_readonly("shape", [](const ArrayBodyPtr& self) { return Array{self}.shape(); })
+        .def_property_readonly("total_bytes", [](const ArrayBodyPtr& self) { return Array{self}.total_bytes(); })
+        .def_property_readonly("total_size", [](const ArrayBodyPtr& self) { return Array{self}.total_size(); })
         .def_property_readonly("_debug_data_memory_address",  // These methods starting with `_debug_` are stubs for testing
-                               [](const Array& self) { return reinterpret_cast<std::uintptr_t>(self.data().get()); })
-        .def_property_readonly("_debug_flat_data", [](const Array& self) {
+                               [](const ArrayBodyPtr& self) { return reinterpret_cast<std::uintptr_t>(Array{self}.data().get()); })
+        .def_property_readonly("_debug_flat_data", [](const ArrayBodyPtr& self) {
             py::list list;
-            auto size = self.total_size();
+            Array array{self};
 
             // Copy data into the list
-            VisitDtype(self.dtype(), [&](auto pt) {
+            VisitDtype(array.dtype(), [&array, &list](auto pt) {
                 using T = typename decltype(pt)::type;
-                const T& data = *std::static_pointer_cast<const T>(self.data());
+                auto size = array.total_size();
+                const T& data = *std::static_pointer_cast<const T>(array.data());
                 for (int64_t i = 0; i < size; ++i) {
                     list.append((&data)[i]);
                 }

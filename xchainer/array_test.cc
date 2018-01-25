@@ -39,20 +39,10 @@ public:
     }
 
     template <typename T>
-    Array MakeArray(const Shape& shape, std::shared_ptr<void> data, const GraphId& graph_id) {
-        return MakeArray<T>(shape, data).RequireGrad(graph_id);
-    }
-
-    template <typename T>
     Array MakeArray(const Shape& shape, std::initializer_list<T> data) {
         auto a = std::make_unique<T[]>(data.size());
         std::copy(data.begin(), data.end(), a.get());
         return MakeArray<T>(shape, std::move(a));
-    }
-
-    template <typename T>
-    Array MakeArray(const Shape& shape, std::initializer_list<T> data, const GraphId& graph_id) {
-        return MakeArray<T>(shape, data).RequireGrad(graph_id);
     }
 
     template <typename T>
@@ -67,12 +57,6 @@ public:
         EXPECT_EQ(0, actual.offset());
 
         ExpectDataEqual<T>(expected, actual);
-    }
-
-    template <typename T>
-    void ExpectEqualCopy(const Array& expected, const Array& actual, const GraphId& graph_id) {
-        EXPECT_EQ(expected.RequiresGrad(graph_id), actual.RequiresGrad(graph_id));
-        ExpectEqualCopy<T>(expected, actual);
     }
 
     template <typename T>
@@ -122,6 +106,13 @@ public:
         }
     }
 
+    void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
+        EXPECT_EQ(a.dtype(), b.dtype());
+        EXPECT_EQ(a.shape(), b.shape());
+        EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
+        EXPECT_EQ(a.offset(), b.offset());
+    }
+
     void ExpectDataExistsOnCurrentDevice(const Array& array) {
         if (GetCurrentDevice() == MakeDevice("cpu")) {
             EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
@@ -151,7 +142,7 @@ public:
         EXPECT_EQ(2, x.ndim());
         EXPECT_EQ(3 * 2, x.total_size());
         EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
-        EXPECT_EQ(shape.total_size() * sizeof(T), x.total_bytes());
+        EXPECT_EQ(shape.total_size() * int64_t{sizeof(T)}, x.total_bytes());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
 
@@ -324,19 +315,55 @@ private:
 TEST_P(ArrayTest, CopyCtor) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = a;
-    ExpectEqualCopy<bool>(a, b);
+
+    // A copy-constructed instance must be a view
+    {
+        ExpectEqual<bool>(a, b);
+        ExpectArraysEqualAttributes(a, b);
+        EXPECT_EQ(a.data(), b.data());
+        EXPECT_THROW(a.node(), XchainerError);
+        EXPECT_THROW(b.node(), XchainerError);
+    }
+
+    // A view must not share requires_grad with the original array.
+    {
+        // Precondition of the test
+        ASSERT_FALSE(a.requires_grad());
+        ASSERT_FALSE(b.requires_grad());
+
+        a.RequireGrad();
+        EXPECT_NE(a.requires_grad(), b.requires_grad());
+    }
 }
 
 TEST_P(ArrayTest, ArrayMoveCtor) {
     { EXPECT_TRUE(std::is_nothrow_move_constructible<Array>::value); }
+
+    // A view must not be affected by move
+    {
+        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = a;  // view
+        Array c = std::move(a);
+        ASSERT_EQ(a.body(), nullptr);
+        ExpectEqual<float>(b, c);
+    }
+
+    // A copy must not be affected by move
+    {
+        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = a.Copy();  // copy
+        Array c = std::move(a);
+        EXPECT_EQ(a.body(), nullptr);
+        ExpectEqualCopy<float>(b, c);
+    }
+
+    // Array body must be transferred by move
     {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
         auto body = a.body();
-        Array b = a;
         Array c = std::move(a);
         EXPECT_EQ(a.body(), nullptr);
         EXPECT_EQ(body, c.body());
-        ExpectEqualCopy<float>(b, c);
     }
 }
 
@@ -345,12 +372,10 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
     auto body = a.body();
     Array b{body};
     EXPECT_EQ(body, b.body());
-    EXPECT_EQ(a.dtype(), b.dtype());
-    EXPECT_EQ(a.shape(), b.shape());
+    ExpectArraysEqualAttributes(a, b);
     EXPECT_EQ(a.data(), b.data());
-    EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
-    EXPECT_EQ(a.offset(), b.offset());
-    EXPECT_EQ(a.RequiresGrad(), b.RequiresGrad());
+    EXPECT_THROW(a.node(), XchainerError);
+    EXPECT_THROW(b.node(), XchainerError);
 }
 
 TEST_P(ArrayTest, ArrayMoveAssignmentOperator) {
@@ -364,18 +389,18 @@ TEST_P(ArrayTest, SetRequiresGrad) {
     // Default graph
     {
         Array x = MakeArray<bool>({1}, {true});
-        ASSERT_FALSE(x.RequiresGrad());
+        ASSERT_FALSE(x.requires_grad());
         x.RequireGrad();
-        ASSERT_TRUE(x.RequiresGrad());
+        ASSERT_TRUE(x.requires_grad());
     }
 
     // User-specified graph
     {
         GraphId graph_id = "graph_1";
         Array x = MakeArray<bool>({1}, {true});
-        ASSERT_FALSE(x.RequiresGrad(graph_id));
+        ASSERT_FALSE(x.requires_grad(graph_id));
         x.RequireGrad(graph_id);
-        ASSERT_TRUE(x.RequiresGrad(graph_id));
+        ASSERT_TRUE(x.requires_grad(graph_id));
     }
 }
 
@@ -384,32 +409,35 @@ TEST_P(ArrayTest, Grad) {
     Shape shape{2, 3};
     using T = float;
 
-    Array x = MakeArray<T>(shape, {5, 3, 2, 1, 4, 6}, graph_id);
-    Array g = MakeArray<T>(shape, {8, 4, 6, 3, 2, 1}, graph_id);
+    Array x = MakeArray<T>(shape, {5, 3, 2, 1, 4, 6});
+    Array g = MakeArray<T>(shape, {8, 4, 6, 3, 2, 1});
 
-    EXPECT_FALSE(x.Grad(graph_id)) << "grad must be initially unset";
+    x.RequireGrad(graph_id);
+    g.RequireGrad(graph_id);
+
+    EXPECT_FALSE(x.grad(graph_id)) << "grad must be initially unset";
 
     // Set and get grad
     {
-        x.SetGrad(g, graph_id);
+        x.set_grad(g, graph_id);
 
-        ExpectEqual<T>(g, *x.Grad(graph_id));
+        ExpectEqual<T>(g, *x.grad(graph_id));
     }
 
     // Get grad multiple times
     {
-        const Array& grad1 = *x.Grad(graph_id);
-        const Array& grad2 = *x.Grad(graph_id);
+        const Array& grad1 = *x.grad(graph_id);
+        const Array& grad2 = *x.grad(graph_id);
         EXPECT_EQ(&grad1, &grad2) << "Multiple retrieval of grad must return the same arrays";
     }
 
     // ClearGrad
     {
-        Array grad_view = x.Grad(graph_id)->MakeView();  // Make a view of grad
+        Array grad_view = *x.grad(graph_id);  // Make a view of grad
 
         x.ClearGrad(graph_id);
 
-        EXPECT_FALSE(x.Grad(graph_id)) << "grad must be cleared after calling ClearGrad()";
+        EXPECT_FALSE(x.grad(graph_id)) << "grad must be cleared after calling ClearGrad()";
 
         // ClearGrad() must not affect previously retrieved view to grad
         ExpectEqual<T>(grad_view, g);
@@ -796,8 +824,8 @@ TEST_P(ArrayTest, ComputationalGraph) {
     b.RequireGrad(graph_id);
 
     {
-        auto a_node = a.Node(graph_id);
-        auto b_node = b.Node(graph_id);
+        auto a_node = a.node(graph_id);
+        auto b_node = b.node(graph_id);
         EXPECT_NE(a_node, nullptr);
         EXPECT_NE(b_node, nullptr);
         auto a_op_node = a_node->next_node();
@@ -808,9 +836,9 @@ TEST_P(ArrayTest, ComputationalGraph) {
 
     Array c = a + b;
     {
-        auto a_node = a.Node(graph_id);
-        auto b_node = b.Node(graph_id);
-        auto c_node = c.Node(graph_id);
+        auto a_node = a.node(graph_id);
+        auto b_node = b.node(graph_id);
+        auto c_node = c.node(graph_id);
         EXPECT_NE(a_node, nullptr);
         EXPECT_NE(b_node, nullptr);
         EXPECT_NE(c_node, nullptr);
@@ -825,10 +853,10 @@ TEST_P(ArrayTest, ComputationalGraph) {
 
     Array o = a * c;
     {
-        auto a_node = a.Node(graph_id);
-        auto b_node = b.Node(graph_id);
-        auto c_node = c.Node(graph_id);
-        auto o_node = o.Node(graph_id);
+        auto a_node = a.node(graph_id);
+        auto b_node = b.node(graph_id);
+        auto c_node = c.node(graph_id);
+        auto o_node = o.node(graph_id);
         EXPECT_NE(a_node, nullptr);
         EXPECT_NE(b_node, nullptr);
         EXPECT_NE(c_node, nullptr);
@@ -847,40 +875,36 @@ TEST_P(ArrayTest, ComputationalGraph) {
 }
 
 TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
+    GraphId graph_id = "graph_1";
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "graph_1");
-        EXPECT_THROW({ a += b; }, XchainerError);
-    }
-
-    {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "graph_2");
-        EXPECT_THROW({ a += b; }, XchainerError);
-    }
-
-    {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "graph_1");
-        EXPECT_THROW({ a *= b; }, XchainerError);
-    }
-
-    {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "graph_2");
-        EXPECT_THROW({ a *= b; }, XchainerError);
-    }
-
-    {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        a.RequireGrad(graph_id);
+        b.RequireGrad(graph_id);
         EXPECT_THROW({ a += b; }, XchainerError);
     }
 
     {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "graph_1");
-        EXPECT_NO_THROW({ a += b; });
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        a.RequireGrad(graph_id);
+        b.RequireGrad(graph_id);
+        EXPECT_THROW({ a *= b; }, XchainerError);
+    }
+
+    {
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        a.RequireGrad(graph_id);
+        EXPECT_THROW({ a *= b; }, XchainerError);
+    }
+
+    // Does not throw since the inplace Array is not a part of any graph prior operation
+    {
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        b.RequireGrad(graph_id);
+        EXPECT_NO_THROW({ a *= b; });
     }
 }
 
@@ -891,47 +915,27 @@ TEST_P(ArrayTest, Copy) {
         ExpectEqualCopy<bool>(a, o);
     }
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
-        Array o = a.Copy();
-        ExpectEqualCopy<bool>(a, o, "graph_1");
-    }
-    {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array o = a.Copy();
         ExpectEqualCopy<bool>(a, o);
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3}, "graph_1");
-        Array o = a.Copy();
-        ExpectEqualCopy<bool>(a, o, "graph_1");
-    }
-    {
-        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array a = MakeArray<float>({3, 1}, {1.0f, 2.0f, 3.0f});
         Array o = a.Copy();
         ExpectEqualCopy<bool>(a, o);
     }
-    {
-        Array a = MakeArray<float>({3, 1}, {1, 2, 3}, "graph_1");
-        Array o = a.Copy();
-        ExpectEqualCopy<bool>(a, o, "graph_1");
-    }
-}
-
-TEST_P(ArrayTest, MakeView) {
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = a.MakeView();
-    ExpectEqual<bool>(a, b);
-    // View should point same addresses to data
-    EXPECT_EQ(a.data().get(), b.data().get());
 }
 
 TEST_P(ArrayTest, AddBackward) {
-    GraphId graph_id = "graph_1";
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, graph_id);
-    Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, graph_id);
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+
+    a.RequireGrad();
+    b.RequireGrad();
+
     Array o = a + b;
 
-    auto op_node = o.Node(graph_id)->next_node();
+    auto op_node = o.node()->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
     Array ga = op_node->backward_functions()[0](go);
     Array gb = op_node->backward_functions()[1](go);
@@ -941,12 +945,15 @@ TEST_P(ArrayTest, AddBackward) {
 }
 
 TEST_P(ArrayTest, MulBackward) {
-    GraphId graph_id = "graph_1";
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, graph_id);
-    Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, graph_id);
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+
+    a.RequireGrad();
+    b.RequireGrad();
+
     Array o = a * b;
 
-    auto op_node = o.Node(graph_id)->next_node();
+    auto op_node = o.node()->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
     Array ga = op_node->backward_functions()[0](go);
     Array gb = op_node->backward_functions()[1](go);
@@ -956,13 +963,14 @@ TEST_P(ArrayTest, MulBackward) {
 }
 
 TEST_P(ArrayTest, MulBackwrdCapture) {
-    GraphId graph_id = "graph_1";
-    Array y = [this, &graph_id]() {
-        Array x1 = MakeArray<float>({1}, {2.0f}, graph_id);
-        Array x2 = MakeArray<float>({1}, {3.0f}, graph_id);
+    Array y = [this]() {
+        Array x1 = MakeArray<float>({1}, {2.0f});
+        Array x2 = MakeArray<float>({1}, {3.0f});
+        x1.RequireGrad();
+        x2.RequireGrad();
         return x1 * x2;
     }();
-    auto op_node = y.Node(graph_id)->next_node();
+    auto op_node = y.node()->next_node();
     auto lhs_func = op_node->backward_functions()[0];
     auto rhs_func = op_node->backward_functions()[1];
     Array gy = MakeArray<float>({1}, {1.0f});
@@ -977,25 +985,29 @@ TEST_P(ArrayTest, MulBackwrdCapture) {
 }
 
 TEST_P(ArrayTest, MultipleGraphsForwardPropagation) {
+    Array a = MakeArray<float>({1}, {2.0f});
+    Array b = MakeArray<float>({1}, {2.0f});
+
     GraphId graph_id_1 = "graph_1";
     GraphId graph_id_2 = "graph_2";
-    Array a = MakeArray<float>({1}, {2.0f}, graph_id_1);
-    Array b = MakeArray<float>({1}, {2.0f}, graph_id_2);
 
-    EXPECT_TRUE(a.RequiresGrad(graph_id_1));
-    EXPECT_FALSE(a.RequiresGrad(graph_id_2));
+    a.RequireGrad(graph_id_1);
+    b.RequireGrad(graph_id_2);
 
-    EXPECT_FALSE(b.RequiresGrad(graph_id_1));
-    EXPECT_TRUE(b.RequiresGrad(graph_id_2));
+    EXPECT_TRUE(a.requires_grad(graph_id_1));
+    EXPECT_FALSE(a.requires_grad(graph_id_2));
+
+    EXPECT_FALSE(b.requires_grad(graph_id_1));
+    EXPECT_TRUE(b.requires_grad(graph_id_2));
 
     Array o = a * b;
 
-    EXPECT_TRUE(o.RequiresGrad(graph_id_1));
-    EXPECT_TRUE(o.RequiresGrad(graph_id_2));
+    EXPECT_TRUE(o.requires_grad(graph_id_1));
+    EXPECT_TRUE(o.requires_grad(graph_id_2));
 
     // No unspecified graphs are generated
-    EXPECT_FALSE(o.RequiresGrad(""));
-    EXPECT_FALSE(o.RequiresGrad("graph_3"));
+    EXPECT_FALSE(o.requires_grad(""));
+    EXPECT_FALSE(o.requires_grad("graph_3"));
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(

@@ -26,7 +26,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
 
     const int nout = outputs.size();
     for (int i = 0; i < nout; ++i) {
-        outputs[i].SetGrad(grad_outputs[i], graph_id);
+        outputs[i].set_grad(grad_outputs[i], graph_id);
     }
 
     // TODO(hvy): Currently only supporting functions with single outputs, support any number of outputs instead
@@ -36,7 +36,8 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
     Backward(outputs[0], graph_id);
 
     std::vector<nonstd::optional<Array>> backward_grads;
-    std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads), [&graph_id](const Array& input) { return input.Grad(graph_id); });
+    std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads),
+                   [&graph_id](const Array& input) { return input.grad(graph_id); });
 
     return backward_grads;
 }

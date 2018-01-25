@@ -20,6 +20,34 @@ jobs:
       # Checkout
       - checkout
 
+      # Checkout postprocess
+      - run:
+          name: Checkout postprocess
+          command: |
+            if [[ -n "${CIRCLE_PULL_REQUEST}" ]]
+            then
+                # CIRCLE_PR_NUMBER is available only if PR is created from a fork (unavailable if created from a branch).
+                # So, manually construct it from CIRCLE_PULL_REQUEST environment variable.
+                CIRCLE_PR_NUMBER=$(basename "${CIRCLE_PULL_REQUEST}")
+
+                # Update PR refs for testing.
+                FETCH_REFS="+master:master"
+                FETCH_REFS="${FETCH_REFS} +refs/pull/${CIRCLE_PR_NUMBER}/head:pr/${CIRCLE_PR_NUMBER}/head"
+                FETCH_REFS="${FETCH_REFS} +refs/pull/${CIRCLE_PR_NUMBER}/merge:pr/${CIRCLE_PR_NUMBER}/merge"
+
+                # Retrieve the refs
+                echo "git fetch -u origin ${FETCH_REFS}"
+                git fetch -u origin ${FETCH_REFS}
+
+                # Checkout master and merge PR head ref. If conflicts occur, exit with non-zero.
+                echo "git checkout master"
+                git checkout master
+                git config user.name 'xchainer' # need to configure something to git merge
+                git config user.email 'xchainer@xchainer.org'
+                echo "git merge --no-commit \"pr/${CIRCLE_PR_NUMBER}/head\""
+                git merge --no-commit "pr/${CIRCLE_PR_NUMBER}/head"
+            fi
+
       # Setup conda
       - run:
           name: Setup conda
@@ -100,7 +128,7 @@ jobs:
 
             mkdir -p build
             pushd build
-            cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON ..
+            cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON -DWARNINGS_AS_ERRORS=ON ..
             popd
 
       # clang-tidy (normal source files)

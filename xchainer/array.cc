@@ -37,7 +37,7 @@ bool ArrayBody::HasNode(const GraphId& graph_id) const {
            nodes_.end();
 }
 
-std::shared_ptr<const ArrayNode> ArrayBody::Node(const GraphId& graph_id) const {
+std::shared_ptr<const ArrayNode> ArrayBody::node(const GraphId& graph_id) const {
     auto it =
         std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; });
     if (it == nodes_.end()) {
@@ -46,7 +46,7 @@ std::shared_ptr<const ArrayNode> ArrayBody::Node(const GraphId& graph_id) const 
     return it->second;
 }
 
-const std::shared_ptr<ArrayNode>& ArrayBody::MutableNode(const GraphId& graph_id) const {
+const std::shared_ptr<ArrayNode>& ArrayBody::mutable_node(const GraphId& graph_id) const {
     auto it =
         std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; });
     if (it == nodes_.end()) {
@@ -69,18 +69,16 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool i
     : body_(std::make_shared<internal::ArrayBody>(shape, dtype, is_contiguous, std::move(data), offset)) {}
 
 Array::Array(const Array& other)
-    : Array(other.shape(), other.dtype(), internal::Allocate(GetCurrentDevice(), other.total_bytes()), true, 0) {
-    // Memory layout-related members are not copied in this copy ctor since new C-contiguous memory is allocated
-    other.CopyTo(*this);
-}
+    : body_(
+          std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.is_contiguous(), other.body_->data_, other.offset())) {
+    std::copy(other.body_->nodes_.begin(), other.body_->nodes_.end(), std::back_inserter(body_->nodes_));
+    }
 
-const nonstd::optional<Array>& Array::Grad(const GraphId& graph_id) const {
-  return body_->Node(graph_id)->grad();
-}
+const nonstd::optional<Array>& Array::grad(const GraphId& graph_id) const { return body_->node(graph_id)->grad(); }
 
-void Array::SetGrad(Array grad, const GraphId& graph_id) { body_->MutableNode(graph_id)->set_grad(std::move(grad)); }
+void Array::set_grad(Array grad, const GraphId& graph_id) { body_->mutable_node(graph_id)->set_grad(std::move(grad)); }
 
-void Array::ClearGrad(const GraphId& graph_id) { body_->MutableNode(graph_id)->ClearGrad(); }
+void Array::ClearGrad(const GraphId& graph_id) { body_->mutable_node(graph_id)->ClearGrad(); }
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
@@ -199,6 +197,7 @@ void Array::Add(const Array& rhs, Array& out) const {
                                 return a->rank() < b->rank();
                             }))->rank();
 
+
         auto& out_node = out.body_->CreateNode(graph_id);
         out_node->set_next_node(std::make_shared<OpNode>(op_node));
         out_node->set_rank(next_rank + 1);
@@ -227,7 +226,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
     auto add_op_node = [&out, &graph_id_op_nodes](auto& graph_id_node, const Array& other) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
-        auto backward_function = [other_view = other.MakeView()](const Array& gout) { return gout * other_view; };
+        auto backward_function = [other_view = other](const Array& gout) { return gout * other_view; };
         OpNode& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
         op_node.set_name("mul");
         op_node.set_rank(std::max(op_node.rank(), next_node->rank()));

@@ -15,10 +15,10 @@
 
 namespace xchainer {
 
-using GraphId = std::string;
-
 class Array;
 class ArrayNode;
+
+using GraphId = std::string;
 
 namespace internal {
 
@@ -39,9 +39,10 @@ public:
 private:
     friend class ::xchainer::Array;
 
+    std::shared_ptr<const ArrayNode> node(const GraphId& graph_id) const;
+    const std::shared_ptr<ArrayNode>& mutable_node(const GraphId& graph_id) const;
+
     bool HasNode(const GraphId& graph_id) const;
-    std::shared_ptr<const ArrayNode> Node(const GraphId& graph_id) const;
-    const std::shared_ptr<ArrayNode>& MutableNode(const GraphId& graph_id) const;
     const std::shared_ptr<ArrayNode>& CreateNode(const GraphId& graph_id);
 
     Shape shape_;
@@ -87,6 +88,7 @@ public:
 
     const std::shared_ptr<internal::ArrayBody>& body() { return body_; }
     std::shared_ptr<const internal::ArrayBody> body() const { return body_; }
+    std::shared_ptr<internal::ArrayBody>&& move_body() { return std::move(body_); }
 
     Dtype dtype() const { return body_->dtype_; }
 
@@ -108,26 +110,26 @@ public:
 
     int64_t offset() const { return body_->offset_; }
 
+    std::shared_ptr<const ArrayNode> node(const GraphId& graph_id = "") const { return body_->node(graph_id); }
+
+    const std::shared_ptr<ArrayNode>& mutable_node(const GraphId& graph_id = "") const { return body_->mutable_node(graph_id); }
+
     const std::vector<std::pair<GraphId, std::shared_ptr<ArrayNode>>>& nodes() const { return body_->nodes_; };
 
-    std::shared_ptr<const ArrayNode> Node(const GraphId& graph_id = "") const { return body_->Node(graph_id); }
+    bool requires_grad(const GraphId& graph_id = "") const { return body_->HasNode(graph_id); }
 
-    const std::shared_ptr<ArrayNode>& MutableNode(const GraphId& graph_id = "") const { return body_->MutableNode(graph_id); }
+    void set_grad(Array grad, const GraphId& graph_id = "");
 
+    const nonstd::optional<Array>& grad(const GraphId& graph_id = "") const;
+
+    // Creates a new ArrayNode to store the gradient
     Array& RequireGrad(const GraphId& graph_id = "") {
         body_->CreateNode(graph_id);
         return *this;
     }
 
-    bool RequiresGrad(const GraphId& graph_id = "") const { return body_->HasNode(graph_id); }
-
-    const nonstd::optional<Array>& Grad(const GraphId& graph_id = "") const;
-
-    void SetGrad(Array grad, const GraphId& graph_id = "");
-
+    // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
     void ClearGrad(const GraphId& graph_id = "");
-
-    Array MakeView() const { return Array{body_}; }
 
     Array& operator+=(const Array& rhs);
     Array& operator*=(const Array& rhs);

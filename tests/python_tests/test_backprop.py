@@ -28,6 +28,8 @@ def check_backprop(xs, expected_gxs, fprop, args):
     for i, (gx, expected_gx) in enumerate(zip(gxs, expected_gxs)):
         assert_arrays_equal(gx, expected_gx)
 
+    assert outputs[0].grad is not None
+
 
 def test_backward_identity():
     shape = (1,)
@@ -210,6 +212,25 @@ def test_backward_identical_inputs():
         x, = xs_
         y = x + x
         return y,
+
+    check_backprop(xs, expected_gxs, fprop, ())
+
+
+def test_backward_identical_intermediate_nodes():
+    shape = (1,)
+    dtype = xchainer.float32
+
+    xs = (xchainer.full(shape, 2, dtype),)
+    expected_gxs = (xchainer.full(shape, 4, dtype),)
+
+    for x in xs:
+        x.requires_grad = True
+
+    def fprop(xs_, extra_xs_):
+        x, = xs_
+        y = x + x
+        z = y + y
+        return z,
 
     check_backprop(xs, expected_gxs, fprop, ())
 
