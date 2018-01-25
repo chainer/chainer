@@ -285,7 +285,7 @@ def test_array_property_requires_grad():
     assert array.requires_grad
 
     # TODO(hvy): Should be removed when requires_grad becomes a method
-    # array.requires_grad = False
+    array.requires_grad = False
     # assert not array.requires_grad
 
 

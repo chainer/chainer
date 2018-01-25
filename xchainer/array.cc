@@ -72,7 +72,7 @@ Array::Array(const Array& other)
     : body_(
           std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.is_contiguous(), other.body_->data_, other.offset())) {
     std::copy(other.body_->nodes_.begin(), other.body_->nodes_.end(), std::back_inserter(body_->nodes_));
-    }
+}
 
 const nonstd::optional<Array>& Array::grad(const GraphId& graph_id) const { return body_->node(graph_id)->grad(); }
 
@@ -168,7 +168,7 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
 
-    auto add_op_node = [&out, &graph_id_op_nodes](auto& graph_id_node) {
+    auto build_op_nodes = [&out, &graph_id_op_nodes](auto& graph_id_node) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
         auto backward_function = [](const Array& gout) { return gout; };
@@ -181,10 +181,10 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     // Create OpNodes
     for (auto& graph_id_node : body_->nodes_) {  // For each graph
-        add_op_node(graph_id_node);
+        build_op_nodes(graph_id_node);
     }
     for (auto& graph_id_node : rhs.body_->nodes_) {
-        add_op_node(graph_id_node);
+        build_op_nodes(graph_id_node);
     }
 
     // Add OpNodes to output
@@ -196,7 +196,6 @@ void Array::Add(const Array& rhs, Array& out) const {
         int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
                                 return a->rank() < b->rank();
                             }))->rank();
-
 
         auto& out_node = out.body_->CreateNode(graph_id);
         out_node->set_next_node(std::make_shared<OpNode>(op_node));
@@ -223,7 +222,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
 
-    auto add_op_node = [&out, &graph_id_op_nodes](auto& graph_id_node, const Array& other) {
+    auto build_op_nodes = [&out, &graph_id_op_nodes](auto& graph_id_node, const Array& other) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
         auto backward_function = [other_view = other](const Array& gout) { return gout * other_view; };
@@ -236,10 +235,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     // Create OpNodes
     for (auto& graph_id_node : body_->nodes_) {  // For each graph
-        add_op_node(graph_id_node, rhs);
+        build_op_nodes(graph_id_node, rhs);
     }
     for (auto& graph_id_node : rhs.body_->nodes_) {
-        add_op_node(graph_id_node, *this);
+        build_op_nodes(graph_id_node, *this);
     }
 
     // Add OpNodes to output
