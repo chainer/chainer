@@ -121,7 +121,6 @@ void InitXchainerArray(pybind11::module& m) {
         .def(py::self * py::self)
         .def("__repr__", static_cast<std::string (Array::*)() const>(&Array::ToString))
         .def("copy", &Array::Copy)
-        // .def_property("requires_grad", &Array::requires_grad, &Array::set_requires_grad)
         .def_property("requires_grad", [](Array& self) -> bool { return self.RequiresGrad(); },
                       [](Array& self, bool requires_grad) {
                           if (requires_grad) {
