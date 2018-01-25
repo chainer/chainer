@@ -172,9 +172,9 @@ void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    std::unordered_map<std::string, OpNode> graph_id_op_nodes;
+    std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
 
-    auto add_op = [&out, &graph_id_op_nodes](auto& graph_id_node) {
+    auto add_op_node = [&out, &graph_id_op_nodes](auto& graph_id_node) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
         auto backward_function = [](const Array& gout) { return gout; };
@@ -187,10 +187,10 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     // Create OpNodes
     for (auto& graph_id_node : body_->nodes_) {  // For each graph
-        add_op(graph_id_node);
+        add_op_node(graph_id_node);
     }
-    for (auto& graph_id_node : rhs.body_->nodes_) {  // For each graph
-        add_op(graph_id_node);
+    for (auto& graph_id_node : rhs.body_->nodes_) {
+        add_op_node(graph_id_node);
     }
 
     // Add OpNodes to output
@@ -224,9 +224,9 @@ void Array::Mul(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    std::unordered_map<std::string, OpNode> graph_id_op_nodes;
+    std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
 
-    auto add_op = [&out, &graph_id_op_nodes](auto& graph_id_node, const Array& other) {
+    auto add_op_node = [&out, &graph_id_op_nodes](auto& graph_id_node, const Array& other) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
         auto backward_function = [other_view = other.MakeView()](const Array& gout) { return gout * other_view; };
@@ -239,10 +239,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     // Create OpNodes
     for (auto& graph_id_node : body_->nodes_) {  // For each graph
-        add_op(graph_id_node, rhs);
+        add_op_node(graph_id_node, rhs);
     }
-    for (auto& graph_id_node : rhs.body_->nodes_) {  // For each graph
-        add_op(graph_id_node, *this);
+    for (auto& graph_id_node : rhs.body_->nodes_) {
+        add_op_node(graph_id_node, *this);
     }
 
     // Add OpNodes to output
