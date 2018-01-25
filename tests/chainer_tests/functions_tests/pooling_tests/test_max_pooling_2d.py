@@ -13,7 +13,7 @@ from chainer.testing import attr
 from chainer.testing import backend
 
 
-def _to_noncontiguous(arrays):
+def _to_fcontiguous(arrays):
     xp = cuda.get_array_module(*arrays)
     return [xp.asfortranarray(a) for a in arrays]
 
@@ -90,7 +90,7 @@ class TestMaxPooling2D(unittest.TestCase):
         if backend_config.use_cuda:
             inputs = cuda.to_gpu(inputs)
         if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
+            inputs = _to_fcontiguous(inputs)
 
         with backend_config:
             x, = inputs
@@ -136,8 +136,8 @@ class TestMaxPooling2D(unittest.TestCase):
             inputs = cuda.to_gpu(inputs)
             grad_outputs = cuda.to_gpu(grad_outputs)
         if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
-            grad_outputs = _to_noncontiguous(grad_outputs)
+            inputs = _to_fcontiguous(inputs)
+            grad_outputs = _to_fcontiguous(grad_outputs)
 
         def f(x):
             return functions.max_pooling_2d(
@@ -165,9 +165,9 @@ class TestMaxPooling2D(unittest.TestCase):
             grad_outputs = cuda.to_gpu(grad_outputs)
             grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
         if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
-            grad_outputs = _to_noncontiguous(grad_outputs)
-            grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
+            inputs = _to_fcontiguous(inputs)
+            grad_outputs = _to_fcontiguous(grad_outputs)
+            grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(x):
             y = functions.max_pooling_2d(
