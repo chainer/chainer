@@ -21,8 +21,7 @@ from chainer.training import extensions
 import babi
 
 
-class BoWEncoder(object):
-
+def bow_encode(embed, sentences):
     """BoW sentence encoder.
 
     It is defined as:
@@ -35,15 +34,13 @@ class BoWEncoder(object):
 
     """
 
-    def __call__(self, embed, sentences):
-        xp = cuda.get_array_module(sentences)
-        e = embed(sentences)
-        s = F.sum(e, axis=-2)
-        return s
+    xp = cuda.get_array_module(sentences)
+    e = embed(sentences)
+    s = F.sum(e, axis=-2)
+    return s
 
 
-class PositionEncoder(object):
-
+def position_encode(embed, sentences):
     """Position encoding.
 
     It is defined as:
@@ -63,24 +60,23 @@ class PositionEncoder(object):
 
     """
 
-    def __call__(self, embed, sentences):
-        xp = cuda.get_array_module(sentences)
-        e = embed(sentences)
-        ndim = e.ndim
-        n_words, n_units = e.shape[-2:]
+    xp = cuda.get_array_module(sentences)
+    e = embed(sentences)
+    ndim = e.ndim
+    n_words, n_units = e.shape[-2:]
 
-        # To avoid 0/0, we use max(length, 1) here.
-        # Note that when the length is zero, its embedding is always zero and
-        # is igrenod.
-        length = xp.maximum(
-            xp.sum((sentences != 0).astype('f'), axis=-1), 1)
-        length = length.reshape((length.shape + (1, 1)))
-        k = xp.arange(1, n_units + 1, dtype=numpy.float32) / n_units
-        i = xp.arange(1, n_words + 1, dtype=numpy.float32)[:, None]
-        coeff = (1 - i / length) - k * (1 - 2.0 * i / length)
-        e = coeff * e
-        s = F.sum(e, axis=-2)
-        return s
+    # To avoid 0/0, we use max(length, 1) here.
+    # Note that when the length is zero, its embedding is always zero and
+    # is igrenod.
+    length = xp.maximum(
+        xp.sum((sentences != 0).astype('f'), axis=-1), 1)
+    length = length.reshape((length.shape + (1, 1)))
+    k = xp.arange(1, n_units + 1, dtype=numpy.float32) / n_units
+    i = xp.arange(1, n_words + 1, dtype=numpy.float32)[:, None]
+    coeff = (1 - i / length) - k * (1 - 2.0 * i / length)
+    e = coeff * e
+    s = F.sum(e, axis=-2)
+    return s
 
 
 class Memory(object):
@@ -241,9 +237,9 @@ def main():
         test_data = convert_data(test_data, args.max_memory)
 
         if args.sentence_repr == 'bow':
-            encoder = BoWEncoder()
+            encoder = bow_encode
         elif args.sentence_repr == 'pe':
-            encoder = PositionEncoder()
+            encoder = position_encode
         else:
             print('Unknonw --sentence-repr option: "%s"' % args.sentence_repr)
             sys.exit(1)
