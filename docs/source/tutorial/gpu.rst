@@ -359,7 +359,7 @@ In order to make a copy, we can use :meth:`Link.copy` method.
 
 .. testcode::
 
-   model_1 = L.copy(model_0)
+   model_1 = model_0.copy()
    model_0.to_gpu(0)
    model_1.to_gpu(1)
 
