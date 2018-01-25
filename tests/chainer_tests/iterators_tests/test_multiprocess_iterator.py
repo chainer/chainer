@@ -51,6 +51,25 @@ class DummyDeserializer(serializer.Deserializer):
         return value
 
 
+class RandomDataset(object):
+    def __init__(self, interleave=False, twice=False):
+        self.interleave = interleave
+        self.twice = twice
+
+    def __len__(self):
+        return 64
+
+    def __getitem__(self, i):
+        if self.interleave and i // 4 % 2 == 1:
+            return 0
+        else:
+            random = iterators.get_random_state()
+            if self.twice:
+                return random.uniform(), random.uniform()
+            else:
+                return random.uniform()
+
+
 @testing.parameterize(*testing.product({
     'n_prefetch': [1, 2],
     'shared_mem': [None, 1000000],
@@ -426,26 +445,8 @@ class TestMultiprocessIteratorRandomState(unittest.TestCase):
     def tearDown(self):
         numpy.random.set_state(self._random_bak)
 
-    class RandomDataset(object):
-        def __init__(self, interleave=False, twice=False):
-            self.interleave = interleave
-            self.twice = twice
-
-        def __len__(self):
-            return 64
-
-        def __getitem__(self, i):
-            if self.interleave and i // 4 % 2 == 1:
-                return 0
-            else:
-                random = iterators.get_random_state()
-                if self.twice:
-                    return random.uniform(), random.uniform()
-                else:
-                    return random.uniform()
-
     def test_random_state_different_numbers(self):
-        dataset = self.RandomDataset()
+        dataset = RandomDataset()
         it = iterators.MultiprocessIterator(dataset, 4, **self.options)
 
         batch1 = it.next()
@@ -458,7 +459,7 @@ class TestMultiprocessIteratorRandomState(unittest.TestCase):
         self.assertGreaterEqual(numpy.unique(data).size, 15)
 
     def test_random_state_different_numbers_interleaved(self):
-        dataset = self.RandomDataset(interleave=True)
+        dataset = RandomDataset(interleave=True)
         it = iterators.MultiprocessIterator(dataset, 4, **self.options)
 
         batch1 = it.next()
@@ -475,11 +476,11 @@ class TestMultiprocessIteratorRandomState(unittest.TestCase):
         self.assertGreaterEqual(numpy.unique(data).size, 15)
 
     def test_random_state_same_seed(self):
-        dataset1 = self.RandomDataset()
+        dataset1 = RandomDataset()
         numpy.random.seed(self._seed)
         it1 = iterators.MultiprocessIterator(dataset1, 4, **self.options)
 
-        dataset2 = self.RandomDataset(interleave=True)
+        dataset2 = RandomDataset(interleave=True)
         numpy.random.seed(self._seed)
         it2 = iterators.MultiprocessIterator(dataset2, 4, **self.options)
 
@@ -490,11 +491,11 @@ class TestMultiprocessIteratorRandomState(unittest.TestCase):
             self.assertEqual(batch1, batch2)
 
     def test_random_state_keep_sequence_for_each_batch_idx(self):
-        dataset1 = self.RandomDataset()
+        dataset1 = RandomDataset()
         numpy.random.seed(self._seed)
         it1 = iterators.MultiprocessIterator(dataset1, 4, **self.options)
 
-        dataset2 = self.RandomDataset(twice=True)
+        dataset2 = RandomDataset(twice=True)
         numpy.random.seed(self._seed)
         it2 = iterators.MultiprocessIterator(dataset2, 4, **self.options)
 
@@ -504,7 +505,7 @@ class TestMultiprocessIteratorRandomState(unittest.TestCase):
             self.assertEqual(batch1, batch2)
 
     def test_random_state_reset(self):
-        dataset = self.RandomDataset()
+        dataset = RandomDataset()
 
         numpy.random.seed(self._seed)
         it1 = iterators.MultiprocessIterator(dataset, 4, **self.options)
@@ -530,7 +531,7 @@ class TestMultiprocessIteratorRandomState(unittest.TestCase):
         assert batch_b == it2.next()
 
     def test_random_state_serialize(self):
-        dataset = self.RandomDataset()
+        dataset = RandomDataset()
 
         numpy.random.seed(self._seed)
         it1 = iterators.MultiprocessIterator(dataset, 4, **self.options)
