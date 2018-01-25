@@ -1,15 +1,10 @@
-class Query(object):
-
-    def __init__(self, sentence, answer, fact):
-        self.sentence = sentence
-        self.answer = answer
-        self.fact = fact
+import collections
 
 
-class Sentence(object):
+Query = collections.namedtuple('Query', ['sentence', 'answer', 'fact'])
+Sentence = collections.namedtuple('Sentence', ['sentence'])
 
-    def __init__(self, sentence):
-        self.sentence = sentence
+
 
 
 def split(sentence):
