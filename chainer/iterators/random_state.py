@@ -22,6 +22,9 @@ def get_random_state():
     if you set the same seed by :func:`numpy.random.seed` at the program
     startup.
 
+    The states remain unchanged when an iterator is reset. Internal states
+    during prefetch are silently discarded.
+
     Returns:
         The :class:`numpy.random.RandomState` instance bound to the batch
         index, if a :class:`~chainer.dataset.Iterator` instance is fetching
