@@ -10,7 +10,7 @@ functions, which users should use.
 .. note::
    As of v1.5, the concept of parameterized functions are gone, and they are
    replaced by corresponding :class:`~chainer.Link` implementations. They are
-   put in the :mod:`~chainer.links` namespace.
+   found in the :mod:`~chainer.links` namespace.
 
 ..
    For contributors that want to update these lists:
