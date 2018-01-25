@@ -152,13 +152,13 @@ void Array::CopyTo(Array& out) const {
         const auto& next_node = graph_id_node.second;
 
         auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{next_node};
+        int64_t next_rank = next_node->rank();
         auto backward_functions = std::vector<std::function<Array(const Array&)>>{[](const Array& gout) { return gout; }};
-        int64_t prev_rank = next_node->rank();
-        auto op_node = std::make_shared<OpNode>("copy", prev_rank, next_nodes, backward_functions);
+        auto op_node = std::make_shared<OpNode>("copy", next_rank, next_nodes, backward_functions);
 
         auto& out_node = out.body_->CreateNode(graph_id);
         out_node->set_next_node(op_node);
-        out_node->set_rank(prev_rank + 1);
+        out_node->set_rank(next_rank + 1);
     }
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
@@ -197,13 +197,13 @@ void Array::Add(const Array& rhs, Array& out) const {
     for (const auto& graph_id_op_node : graph_id_op_nodes) {
         const auto& graph_id = graph_id_op_node.first;
         const auto& op_node = graph_id_op_node.second;
+
+        auto next_nodes = op_node.next_nodes();
+        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) { return a->rank() < b->rank(); }))->rank();
+
         auto& out_node = out.body_->CreateNode(graph_id);
-        gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = op_node.next_nodes();
         out_node->set_next_node(std::make_shared<OpNode>(op_node));
-        out_node->set_rank(
-            (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) { return a->rank() < b->rank(); }))
-                ->rank() +
-            1);
+        out_node->set_rank(next_rank + 1);
     }
 
     Device device = GetCurrentDevice();
@@ -249,13 +249,13 @@ void Array::Mul(const Array& rhs, Array& out) const {
     for (const auto& graph_id_op_node : graph_id_op_nodes) {
         const auto& graph_id = graph_id_op_node.first;
         const auto& op_node = graph_id_op_node.second;
+
+        auto next_nodes = op_node.next_nodes();
+        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) { return a->rank() < b->rank(); }))->rank();
+
         auto& out_node = out.body_->CreateNode(graph_id);
-        gsl::span<const std::shared_ptr<ArrayNode>> next_nodes = op_node.next_nodes();
         out_node->set_next_node(std::make_shared<OpNode>(op_node));
-        out_node->set_rank(
-            (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) { return a->rank() < b->rank(); }))
-                ->rank() +
-            1);
+        out_node->set_rank(next_rank + 1);
     }
 
     Device device = GetCurrentDevice();

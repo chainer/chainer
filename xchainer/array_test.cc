@@ -371,45 +371,45 @@ TEST_P(ArrayTest, SetRequiresGrad) {
 
     // User-specified graph
     {
-        const GraphId g1 = "g1";
+        GraphId graph_id = "graph_1";
         Array x = MakeArray<bool>({1}, {true});
-        ASSERT_FALSE(x.RequiresGrad(g1));
-        x.RequireGrad(g1);
-        ASSERT_TRUE(x.RequiresGrad(g1));
+        ASSERT_FALSE(x.RequiresGrad(graph_id));
+        x.RequireGrad(graph_id);
+        ASSERT_TRUE(x.RequiresGrad(graph_id));
     }
 }
 
 TEST_P(ArrayTest, Grad) {
-    const GraphId g1 = "g1";
+    GraphId graph_id = "graph_1";
     Shape shape{2, 3};
     using T = float;
 
-    Array x = MakeArray<T>(shape, {5, 3, 2, 1, 4, 6}, g1);
-    Array g = MakeArray<T>(shape, {8, 4, 6, 3, 2, 1}, g1);
+    Array x = MakeArray<T>(shape, {5, 3, 2, 1, 4, 6}, graph_id);
+    Array g = MakeArray<T>(shape, {8, 4, 6, 3, 2, 1}, graph_id);
 
-    EXPECT_THROW(x.Grad(g1), XchainerError) << "grad must be initially unset";
+    EXPECT_THROW(x.Grad(graph_id), XchainerError) << "grad must be initially unset";
 
     // Set and get grad
     {
-        x.SetGrad(g, g1);
+        x.SetGrad(g, graph_id);
 
-        ExpectEqual<T>(g, x.Grad(g1));
+        ExpectEqual<T>(g, x.Grad(graph_id));
     }
 
     // Get grad multiple times
     {
-        const Array& grad1 = x.Grad(g1);
-        const Array& grad2 = x.Grad(g1);
+        const Array& grad1 = x.Grad(graph_id);
+        const Array& grad2 = x.Grad(graph_id);
         EXPECT_EQ(&grad1, &grad2) << "Multiple retrieval of grad must return the same arrays";
     }
 
     // ClearGrad
     {
-        Array grad_view = x.Grad(g1).MakeView();  // Make a view of grad
+        Array grad_view = x.Grad(graph_id).MakeView();  // Make a view of grad
 
-        x.ClearGrad(g1);
+        x.ClearGrad(graph_id);
 
-        EXPECT_THROW(x.Grad(g1), XchainerError) << "grad must be cleared after calling ClearGrad()";
+        EXPECT_THROW(x.Grad(graph_id), XchainerError) << "grad must be cleared after calling ClearGrad()";
 
         // ClearGrad() must not affect previously retrieved view to grad
         ExpectEqual<T>(grad_view, g);
@@ -685,14 +685,10 @@ TEST_P(ArrayTest, IMul) {
 
 TEST_P(ArrayTest, Add) {
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "graph_1");
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
         Array e = MakeArray<bool>({4, 1}, {true, true, true, false});
         Array o = a + b;
-        EXPECT_TRUE(o.RequiresGrad("graph_1"));
-        EXPECT_FALSE(o.RequiresGrad("graph_2"));
-        EXPECT_FALSE(o.RequiresGrad("graph_3"));
-        EXPECT_FALSE(o.RequiresGrad(""));
         ExpectEqual<bool>(e, o);
     }
     {
@@ -713,14 +709,10 @@ TEST_P(ArrayTest, Add) {
 
 TEST_P(ArrayTest, Mul) {
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "graph_2");
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
         Array e = MakeArray<bool>({4, 1}, {true, false, false, false});
         Array o = a * b;
-        EXPECT_TRUE(o.RequiresGrad("graph_1"));
-        EXPECT_TRUE(o.RequiresGrad("graph_2"));
-        EXPECT_FALSE(o.RequiresGrad("graph_3"));
-        EXPECT_FALSE(o.RequiresGrad(""));
         ExpectEqual<bool>(e, o);
     }
     {
@@ -799,13 +791,13 @@ TEST_P(ArrayTest, ComputationalGraph) {
     Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
 
-    GraphId g1 = "g1";
-    a.RequireGrad(g1);
-    b.RequireGrad(g1);
+    GraphId graph_id = "graph_1";
+    a.RequireGrad(graph_id);
+    b.RequireGrad(graph_id);
 
     {
-        auto a_node = a.Node(g1);
-        auto b_node = b.Node(g1);
+        auto a_node = a.Node(graph_id);
+        auto b_node = b.Node(graph_id);
         EXPECT_NE(a_node, nullptr);
         EXPECT_NE(b_node, nullptr);
         auto a_op_node = a_node->next_node();
@@ -816,9 +808,9 @@ TEST_P(ArrayTest, ComputationalGraph) {
 
     Array c = a + b;
     {
-        auto a_node = a.Node(g1);
-        auto b_node = b.Node(g1);
-        auto c_node = c.Node(g1);
+        auto a_node = a.Node(graph_id);
+        auto b_node = b.Node(graph_id);
+        auto c_node = c.Node(graph_id);
         EXPECT_NE(a_node, nullptr);
         EXPECT_NE(b_node, nullptr);
         EXPECT_NE(c_node, nullptr);
@@ -833,10 +825,10 @@ TEST_P(ArrayTest, ComputationalGraph) {
 
     Array o = a * c;
     {
-        auto a_node = a.Node(g1);
-        auto b_node = b.Node(g1);
-        auto c_node = c.Node(g1);
-        auto o_node = o.Node(g1);
+        auto a_node = a.Node(graph_id);
+        auto b_node = b.Node(graph_id);
+        auto c_node = c.Node(graph_id);
+        auto o_node = o.Node(graph_id);
         EXPECT_NE(a_node, nullptr);
         EXPECT_NE(b_node, nullptr);
         EXPECT_NE(c_node, nullptr);
@@ -856,38 +848,38 @@ TEST_P(ArrayTest, ComputationalGraph) {
 
 TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "g1");
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "g1");
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "graph_1");
         EXPECT_THROW({ a += b; }, XchainerError);
     }
 
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "g1");
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "g2");
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "graph_2");
         EXPECT_THROW({ a += b; }, XchainerError);
     }
 
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "g1");
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "g1");
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "graph_1");
         EXPECT_THROW({ a *= b; }, XchainerError);
     }
 
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "g1");
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "g2");
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "graph_2");
         EXPECT_THROW({ a *= b; }, XchainerError);
     }
 
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "g1");
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
         EXPECT_THROW({ a += b; }, XchainerError);
     }
 
     {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "g1");
+        Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, "graph_1");
         EXPECT_NO_THROW({ a += b; });
     }
 }
@@ -899,9 +891,9 @@ TEST_P(ArrayTest, Copy) {
         ExpectEqualCopy<bool>(a, o);
     }
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "g1");
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, "graph_1");
         Array o = a.Copy();
-        ExpectEqualCopy<bool>(a, o, "g1");
+        ExpectEqualCopy<bool>(a, o, "graph_1");
     }
     {
         Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
@@ -909,9 +901,9 @@ TEST_P(ArrayTest, Copy) {
         ExpectEqualCopy<bool>(a, o);
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3}, "g1");
+        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3}, "graph_1");
         Array o = a.Copy();
-        ExpectEqualCopy<bool>(a, o, "g1");
+        ExpectEqualCopy<bool>(a, o, "graph_1");
     }
     {
         Array a = MakeArray<float>({3, 1}, {1, 2, 3});
@@ -919,9 +911,9 @@ TEST_P(ArrayTest, Copy) {
         ExpectEqualCopy<bool>(a, o);
     }
     {
-        Array a = MakeArray<float>({3, 1}, {1, 2, 3}, "g1");
+        Array a = MakeArray<float>({3, 1}, {1, 2, 3}, "graph_1");
         Array o = a.Copy();
-        ExpectEqualCopy<bool>(a, o, "g1");
+        ExpectEqualCopy<bool>(a, o, "graph_1");
     }
 }
 
@@ -934,12 +926,12 @@ TEST_P(ArrayTest, MakeView) {
 }
 
 TEST_P(ArrayTest, AddBackward) {
-    GraphId g = "g";
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, g);
-    Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, g);
+    GraphId graph_id = "graph_1";
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, graph_id);
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, graph_id);
     Array o = a + b;
 
-    auto op_node = o.Node(g)->next_node();
+    auto op_node = o.Node(graph_id)->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
     Array ga = op_node->backward_functions()[0](go);
     Array gb = op_node->backward_functions()[1](go);
@@ -949,12 +941,12 @@ TEST_P(ArrayTest, AddBackward) {
 }
 
 TEST_P(ArrayTest, MulBackward) {
-    GraphId g = "g";
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, g);
-    Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, g);
+    GraphId graph_id = "graph_1";
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false}, graph_id);
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false}, graph_id);
     Array o = a * b;
 
-    auto op_node = o.Node(g)->next_node();
+    auto op_node = o.Node(graph_id)->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
     Array ga = op_node->backward_functions()[0](go);
     Array gb = op_node->backward_functions()[1](go);
@@ -964,13 +956,13 @@ TEST_P(ArrayTest, MulBackward) {
 }
 
 TEST_P(ArrayTest, MulBackwrdCapture) {
-    GraphId g = "g";
-    Array y = [this, &g]() {
-        Array x1 = MakeArray<float>({1}, {2.0f}, g);
-        Array x2 = MakeArray<float>({1}, {3.0f}, g);
+    GraphId graph_id = "graph_1";
+    Array y = [this, &graph_id]() {
+        Array x1 = MakeArray<float>({1}, {2.0f}, graph_id);
+        Array x2 = MakeArray<float>({1}, {3.0f}, graph_id);
         return x1 * x2;
     }();
-    auto op_node = y.Node(g)->next_node();
+    auto op_node = y.Node(graph_id)->next_node();
     auto lhs_func = op_node->backward_functions()[0];
     auto rhs_func = op_node->backward_functions()[1];
     Array gy = MakeArray<float>({1}, {1.0f});
@@ -985,25 +977,25 @@ TEST_P(ArrayTest, MulBackwrdCapture) {
 }
 
 TEST_P(ArrayTest, MultipleGraphsForwardPropagation) {
-    GraphId g0 = "g0";
-    GraphId g1 = "g1";
-    Array a = MakeArray<float>({1}, {2.0f}, g0);
-    Array b = MakeArray<float>({1}, {2.0f}, g1);
+    GraphId graph_id_1 = "graph_1";
+    GraphId graph_id_2 = "graph_2";
+    Array a = MakeArray<float>({1}, {2.0f}, graph_id_1);
+    Array b = MakeArray<float>({1}, {2.0f}, graph_id_2);
 
-    EXPECT_TRUE(a.RequiresGrad(g0));
-    EXPECT_FALSE(a.RequiresGrad(g1));
+    EXPECT_TRUE(a.RequiresGrad(graph_id_1));
+    EXPECT_FALSE(a.RequiresGrad(graph_id_2));
 
-    EXPECT_FALSE(b.RequiresGrad(g0));
-    EXPECT_TRUE(b.RequiresGrad(g1));
+    EXPECT_FALSE(b.RequiresGrad(graph_id_1));
+    EXPECT_TRUE(b.RequiresGrad(graph_id_2));
 
     Array o = a * b;
 
-    EXPECT_TRUE(o.RequiresGrad(g0));
-    EXPECT_TRUE(o.RequiresGrad(g1));
+    EXPECT_TRUE(o.RequiresGrad(graph_id_1));
+    EXPECT_TRUE(o.RequiresGrad(graph_id_2));
 
     // No unspecified graphs are generated
     EXPECT_FALSE(o.RequiresGrad(""));
-    EXPECT_FALSE(o.RequiresGrad("g3"));
+    EXPECT_FALSE(o.RequiresGrad("graph_3"));
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(
