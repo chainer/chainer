@@ -109,6 +109,7 @@ std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_p
         throw DeviceError("invalid device");
     }
 #else
+    (void)bytesize;  // unused
     if (device == MakeDevice("cpu")) {
         return src_ptr;
     } else {
