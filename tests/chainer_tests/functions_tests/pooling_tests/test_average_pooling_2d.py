@@ -14,7 +14,7 @@ from chainer.testing import backend
 from chainer.testing import condition
 
 
-def _to_noncontiguous(arrays):
+def _to_fcontiguous(arrays):
     xp = cuda.get_array_module(*arrays)
     return [xp.asfortranarray(a) for a in arrays]
 
@@ -70,7 +70,7 @@ class TestAveragePooling2D(unittest.TestCase):
         if backend_config.use_cuda:
             inputs = cuda.to_gpu(inputs)
         if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
+            inputs = _to_fcontiguous(inputs)
 
         with backend_config:
             x, = inputs
@@ -90,8 +90,8 @@ class TestAveragePooling2D(unittest.TestCase):
             inputs = cuda.to_gpu(inputs)
             grad_outputs = cuda.to_gpu(grad_outputs)
         if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
-            grad_outputs = _to_noncontiguous(grad_outputs)
+            inputs = _to_fcontiguous(inputs)
+            grad_outputs = _to_fcontiguous(grad_outputs)
 
         def f(x):
             return functions.average_pooling_2d(x, 3, 2, 1)
@@ -111,9 +111,9 @@ class TestAveragePooling2D(unittest.TestCase):
             grad_outputs = cuda.to_gpu(grad_outputs)
             grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
         if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
-            grad_outputs = _to_noncontiguous(grad_outputs)
-            grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
+            inputs = _to_fcontiguous(inputs)
+            grad_outputs = _to_fcontiguous(grad_outputs)
+            grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(x):
             y = functions.average_pooling_2d(x, 3, 2, 1)
