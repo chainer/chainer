@@ -20,12 +20,13 @@ namespace xchainer {
 namespace {
 
 std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector<Array>(const std::vector<Array>&)> func,
-                                                       const std::vector<Array>& inputs, const std::vector<Array>& grad_outputs, const std::string& graph_name) {
+                                                       const std::vector<Array>& inputs, const std::vector<Array>& grad_outputs,
+                                                       const std::string& graph_name) {
     std::vector<Array> outputs = func(inputs);
 
     const int nout = outputs.size();
     for (int i = 0; i < nout; ++i) {
-        outputs[i].mutable_node(graph_name)->set_grad(grad_outputs[i]);
+        outputs[i].MutableNode(graph_name)->set_grad(grad_outputs[i]);
     }
 
     // TODO(hvy): Currently only supporting functions with single outputs, support any number of outputs instead
@@ -35,7 +36,9 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
     Backward(outputs[0], graph_name);
 
     std::vector<nonstd::optional<Array>> backward_grads;
-    std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads), [&graph_name](const Array& input) { return input.grad(graph_name); });
+    std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads), [&graph_name](const Array& input) {
+        return input.RequiresGrad(graph_name) ? nonstd::optional<Array>(input.Grad(graph_name)) : nonstd::nullopt;
+    });
 
     return backward_grads;
 }
@@ -43,7 +46,8 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
 }  // namespace
 
 void CheckBackwardComputation(std::function<std::vector<Array>(const std::vector<Array>&)> func, const std::vector<Array>& inputs,
-                              const std::vector<Array>& grad_outputs, const std::vector<Array>& eps, double atol, double rtol, const std::string& graph_name) {
+                              const std::vector<Array>& grad_outputs, const std::vector<Array>& eps, double atol, double rtol,
+                              const std::string& graph_name) {
     const std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps);
     const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs, grad_outputs, graph_name);
     ASSERT_EQ(backward_grads.size(), numerical_grads.size());

@@ -26,7 +26,7 @@ public:
     BackwardImpl() : candidate_op_nodes_(BackwardImpl::Compare){};
 
     void run(Array& output, const std::string& graph_name) {
-        std::shared_ptr<ArrayNode> array_node = output.mutable_node(graph_name);
+        std::shared_ptr<ArrayNode> array_node = output.MutableNode(graph_name);
 
         if (!array_node->grad()) {
             array_node->set_grad(Array::OnesLike(output));

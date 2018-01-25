@@ -15,15 +15,10 @@
 
 namespace xchainer {
 
+using GraphId = std::string;
+
 class Array;
 class ArrayNode;
-
-struct ArrayNodeProperty {
-    ArrayNodeProperty(std::shared_ptr<ArrayNode> node, bool requires_grad) : node(std::move(node)), requires_grad(requires_grad) {}
-
-    std::shared_ptr<ArrayNode> node;
-    bool requires_grad;
-};
 
 namespace internal {
 
@@ -42,39 +37,21 @@ class ArrayBody {
 public:
     ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset);
 
-    // Generates a new ArrayNode if if does not exist for this graph, otherwise return the existing one
-    ArrayNode& GetNode(const std::string& graph_name, bool requires_grad);
-
 private:
     friend class ::xchainer::Array;
 
-    // TODO(hvy): Clean up intermediate accessors
-    // Find ArrayNodeProperty assuming it exists
-    const ArrayNodeProperty& GetNodeProperty(const std::string& graph_name) const;
+    bool HasArrayNode(const GraphId& graph_id) const;
+    ArrayNode& CreateArrayNode(const GraphId& graph_id);
 
-    // TODO(hvy): Clean up intermediate accessors
-    ArrayNodeProperty& GetMutableNodeProperty(const std::string& graph_name);
-
-    std::shared_ptr<const ArrayNode> node(const std::string& graph_name) {
-        return std::const_pointer_cast<const ArrayNode>(GetNodeProperty(graph_name).node);
-    }
-
-    const std::vector<std::pair<std::string, ArrayNodeProperty>>& nodes() const { return nodes_; };
-
-    bool requires_grad(const std::string& graph_name) const { return GetNodeProperty(graph_name).requires_grad; }
-
-    void set_requires_grad(bool requires_grad, const std::string& graph_name) {
-        GetMutableNodeProperty(graph_name).requires_grad = requires_grad;
-    }
-
-    const std::shared_ptr<ArrayNode>& mutable_node(const std::string& graph_name) { return GetNodeProperty(graph_name).node; }
+    std::shared_ptr<const ArrayNode> Node(const GraphId& graph_id);          // TODO(hvy)
+    const std::shared_ptr<ArrayNode>& MutableNode(const GraphId& graph_id);  // TODO(hvy)
 
     Shape shape_;
     Dtype dtype_;
     bool is_contiguous_;
     std::shared_ptr<void> data_;
     int64_t offset_;
-    std::vector<std::pair<std::string, ArrayNodeProperty>> nodes_;
+    std::vector<std::pair<GraphId, std::shared_ptr<ArrayNode>>> nodes_;
 };
 
 }  // namespace internal
@@ -129,30 +106,28 @@ public:
 
     std::shared_ptr<const void> data() const { return body_->data_; }
 
-    bool requires_grad(const std::string& graph_name = "") const { return body_->requires_grad(graph_name); }
-
-    void set_requires_grad(bool requires_grad, const std::string& graph_name = "") { body_->set_requires_grad(requires_grad, graph_name); }
-
     bool is_contiguous() const { return body_->is_contiguous_; }
 
     int64_t offset() const { return body_->offset_; }
 
-    const std::shared_ptr<ArrayNode>& mutable_node(const std::string& graph_name = "") const { return body_->mutable_node(graph_name); }
+    const std::vector<std::pair<GraphId, std::shared_ptr<ArrayNode>>>& nodes() const { return body_->nodes_; };
 
-    std::shared_ptr<const ArrayNode> node(const std::string& graph_name = "") const { return body_->node(graph_name); }
+    std::shared_ptr<const ArrayNode> Node(const GraphId& graph_id = "") const { return body_->Node(graph_id); }
 
-    const std::vector<std::pair<std::string, ArrayNodeProperty>>& nodes() const { return body_->nodes(); };
+    const std::shared_ptr<ArrayNode>& MutableNode(const GraphId& graph_id = "") const { return body_->MutableNode(graph_id); }
 
-    Array& GetNode(const std::string& graph_name, bool requires_grad = true) {
-        body_->GetNode(graph_name, requires_grad);
+    Array& RequireGrad(const GraphId& graph_id = "") {
+        body_->CreateArrayNode(graph_id);
         return *this;
     }
 
-    const nonstd::optional<Array>& grad(const std::string& graph_name = "") const;
+    bool RequiresGrad(const GraphId& graph_id = "") const { return body_->HasArrayNode(graph_id); }
 
-    void set_grad(Array grad, const std::string& graph_name = "");
+    const Array& Grad(const GraphId& graph_id = "") const;
 
-    void ClearGrad(const std::string& graph_name = "");
+    void SetGrad(Array grad, const GraphId& graph_id = "");
+
+    void ClearGrad(const GraphId& graph_id = "");
 
     Array MakeView() const { return Array{body_}; }
 
