@@ -136,9 +136,9 @@ class LinearGradWeight(function_node.FunctionNode):
             xp = cuda.get_array_module(*inputs)
             ax = six.moves.range(self._n_batch_axes)
             gW = xp.tensordot(
-                gy, x, axes=(ax, ax)).astype(gy.dtype, copy=False)
+                gy, x, axes=(ax, ax)).astype(W.dtype, copy=False)
         else:
-            gW = gy.T.dot(x).astype(gy.dtype, copy=False)
+            gW = gy.T.dot(x).astype(W.dtype, copy=False)
         return gW,
 
     def backward(self, indexes, grad_outputs):
