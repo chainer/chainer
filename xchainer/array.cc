@@ -59,7 +59,7 @@ const std::shared_ptr<ArrayNode>& ArrayBody::CreateNode(const GraphId& graph_id)
     if (HasNode(graph_id)) {
         throw XchainerError("Duplicate graph registration: " + graph_id);
     }
-    nodes_.push_back({graph_id, std::make_shared<ArrayNode>()});
+    nodes_.emplace_back(graph_id, std::make_shared<ArrayNode>());
     return nodes_.back().second;
 }
 
