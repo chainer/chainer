@@ -984,7 +984,7 @@ TEST_P(ArrayTest, MulBackwardCapture) {
     ExpectEqual<bool>(e2, gx2);
 }
 
-TEST_P(ArrayTest, MultipleGraphRequireGradDefault) {
+TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
     Array a = MakeArray<float>({1}, {2.0f});
 
     EXPECT_FALSE(a.requires_grad());
@@ -995,7 +995,7 @@ TEST_P(ArrayTest, MultipleGraphRequireGradDefault) {
     EXPECT_THROW(a.RequireGrad(), XchainerError);
 }
 
-TEST_P(ArrayTest, MultipleGraphRequireGradNamed) {
+TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
     GraphId graph_id = "graph_1";
 
     Array a = MakeArray<float>({1}, {2.0f});
@@ -1008,14 +1008,14 @@ TEST_P(ArrayTest, MultipleGraphRequireGradNamed) {
     EXPECT_THROW(a.RequireGrad(graph_id), XchainerError);
 }
 
-TEST_P(ArrayTest, MultipleGraphRequireGradChainedCallsCtor) {
+TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsCtor) {
     Array a = MakeArray<float>({1}, {2.0f}).RequireGrad();
 
     EXPECT_TRUE(a.requires_grad());
     EXPECT_THROW(a.RequireGrad(), XchainerError);
 }
 
-TEST_P(ArrayTest, MultipleGraphRequireGradChainedCallsRequireGrad) {
+TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsRequireGrad) {
     Array a = MakeArray<float>({1}, {2.0f});
 
     EXPECT_THROW(a.RequireGrad().RequireGrad(), XchainerError);

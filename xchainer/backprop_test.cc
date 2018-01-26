@@ -182,22 +182,65 @@ TEST_P(BackpropTest, BackwardGivenOutputGrad) {
     CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {6.0f}, fprop);
 }
 
-// TODO(hvy): Clean up tests
-TEST_P(BackpropTest, MultipleGraphsReuse) {
-    GraphId graph_id_1 = "graph_1";
-    GraphId graph_id_2 = "graph_2";
-
+TEST_P(BackpropTest, MultipleGraphsBasic) {
     Array x1 = MakeFullArray({1}, {2.0f});
     Array x2 = MakeFullArray({1}, {5.0f});
 
-    EXPECT_FALSE(x1.requires_grad(graph_id_1));
-    EXPECT_FALSE(x2.requires_grad(graph_id_2));
+    GraphId graph_id_1 = "graph_1";
+    GraphId graph_id_2 = "graph_2";
 
     x1.RequireGrad(graph_id_1);
     x2.RequireGrad(graph_id_2);
 
-    EXPECT_TRUE(x1.requires_grad(graph_id_1));
-    EXPECT_TRUE(x2.requires_grad(graph_id_2));
+    Array y1 = x1 * x2;
+    Backward(y1, graph_id_1);
+
+    Array expected_1 = MakeFullArray({1}, {5.0f});
+    ExpectEqual<float>(expected_1, *x1.grad(graph_id_1));
+    EXPECT_FALSE(x2.grad(graph_id_2));
+}
+
+TEST_P(BackpropTest, MultipleGraphsSameInput) {
+    Array x1 = MakeFullArray({1}, {3.0f});
+
+    GraphId graph_id_1 = "graph_1";
+
+    x1.RequireGrad(graph_id_1);
+
+    Array y1 = x1 * x1;
+    Backward(y1, graph_id_1);
+
+    Array expected_1 = MakeFullArray({1}, {6.0f});
+    ExpectEqual<float>(expected_1, *x1.grad(graph_id_1));
+
+    // TODO(hvy): The following expectation should be negated once we have implemented the functionality to not create graphs during back
+    // propagation
+    EXPECT_TRUE(x1.grad(graph_id_1)->requires_grad(graph_id_1));
+}
+
+TEST_P(BackpropTest, MultipleGraphsNonExisting) {
+    Array x1 = MakeFullArray({1}, {2.0f});
+    Array x2 = MakeFullArray({1}, {5.0f});
+
+    GraphId graph_id_1 = "graph_1";
+    GraphId graph_id_2 = "graph_2";
+
+    x1.RequireGrad(graph_id_1);
+    x2.RequireGrad(graph_id_1);
+
+    Array y1 = x1 * x2;
+    EXPECT_THROW(Backward(y1, graph_id_2), XchainerError);
+}
+
+TEST_P(BackpropTest, MultipleGraphsReuse) {
+    Array x1 = MakeFullArray({1}, {2.0f});
+    Array x2 = MakeFullArray({1}, {5.0f});
+
+    GraphId graph_id_1 = "graph_1";
+    GraphId graph_id_2 = "graph_2";
+
+    x1.RequireGrad(graph_id_1);
+    x2.RequireGrad(graph_id_2);
 
     Array y1 = x1 * x2;
     Backward(y1, graph_id_1);
