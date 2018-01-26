@@ -52,21 +52,21 @@ def transpose(x, axes=None):
         >>> y.shape
         (3, 2, 1)
         >>> y.data
-        array([[[ 0.],
-                [ 3.]],
+        array([[[0.],
+                [3.]],
         <BLANKLINE>
-               [[ 1.],
-                [ 4.]],
+               [[1.],
+                [4.]],
         <BLANKLINE>
-               [[ 2.],
-                [ 5.]]], dtype=float32)
+               [[2.],
+                [5.]]], dtype=float32)
         >>> y = F.transpose(x, axes=(1, 0, 2)) # swap 1st and 2nd axis
         >>> y.shape
         (2, 1, 3)
         >>> y.data
-        array([[[ 0.,  1.,  2.]],
+        array([[[0., 1., 2.]],
         <BLANKLINE>
-               [[ 3.,  4.,  5.]]], dtype=float32)
+               [[3., 4., 5.]]], dtype=float32)
 
     """
     return Transpose(axes).apply((x,))[0]

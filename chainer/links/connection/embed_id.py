@@ -32,17 +32,17 @@ class EmbedID(link.Link):
         ...               [1, 1, 1],
         ...               [2, 2, 2]]).astype('f')
         >>> W
-        array([[ 0.,  0.,  0.],
-               [ 1.,  1.,  1.],
-               [ 2.,  2.,  2.]], dtype=float32)
+        array([[0., 0., 0.],
+               [1., 1., 1.],
+               [2., 2., 2.]], dtype=float32)
         >>> l = L.EmbedID(W.shape[0], W.shape[1], initialW=W)
         >>> x = np.array([2, 1]).astype('i')
         >>> x
         array([2, 1], dtype=int32)
         >>> y = l(x)
         >>> y.data
-        array([[ 2.,  2.,  2.],
-               [ 1.,  1.,  1.]], dtype=float32)
+        array([[2., 2., 2.],
+               [1., 1., 1.]], dtype=float32)
 
     """
 

@@ -416,7 +416,7 @@ For example, consider the following simple dropout function::
       mask = 2 * (xp.random.rand(*x.shape) > 0.5).astype(x.dtype)
       return x * mask
 
-This function applies dropout to each element and doubles survived elemenets to preserve the scale.
+This function applies dropout to each element and doubles survived elements to preserve the scale.
 The above implementation applies dropout even in test mode, but it is not a desired behavior.
 We can fix it as follows::
 

@@ -138,7 +138,7 @@ In this tutorial, we mainly explain Skip-gram model because
 2. Even if the number of words increases, the accuracy is largely maintained.
    So, it is more scalable.
 
-So, let's think about a concreate example of calculating Skip-gram under this setup:
+So, let's think about a concrete example of calculating Skip-gram under this setup:
 
 * The size of vocabulary :math:`|\mathcal{V}|` is 10.
 * The size of embedding vector :math:`D` is 2.
@@ -195,7 +195,7 @@ Next, let's define a network for Skip-gram.
 
 .. note::
 
-    * The weight matrix ``self.embed.W`` is the embbeding matrix for input vector
+    * The weight matrix ``self.embed.W`` is the embedding matrix for input vector
       ``x``.
     * The function call ``__call__`` takes the word ID of a center word ``x`` and
       word IDs of context words contexts as inputs, and outputs the error calculated
