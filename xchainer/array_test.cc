@@ -900,12 +900,11 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
         EXPECT_THROW({ a *= b; }, XchainerError);
     }
 
-    // Does not throw since the inplace Array is not a part of any graph prior operation
     {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
         b.RequireGrad(graph_id);
-        EXPECT_NO_THROW({ a *= b; });
+        EXPECT_THROW({ a *= b; }, XchainerError);
     }
 }
 
