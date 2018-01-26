@@ -10,6 +10,7 @@
 #include <cuda_runtime.h>
 #endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
+#include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
 #ifdef XCHAINER_ENABLE_CUDA
@@ -426,9 +427,9 @@ TEST_P(ArrayTest, Grad) {
 
     // Get grad multiple times
     {
-        const Array& grad1 = *x.grad(graph_id);
-        const Array& grad2 = *x.grad(graph_id);
-        EXPECT_EQ(&grad1, &grad2) << "Multiple retrieval of grad must return the same arrays";
+        const nonstd::optional<Array>& grad1 = x.grad(graph_id);
+        const nonstd::optional<Array>& grad2 = x.grad(graph_id);
+        EXPECT_EQ(&*grad1, &*grad2) << "Multiple retrieval of grad must return the same arrays";
     }
 
     // ClearGrad
