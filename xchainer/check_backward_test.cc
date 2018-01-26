@@ -34,7 +34,7 @@ Arrays IncorrectBackwardUnaryFunc(const Arrays& inputs) {
         auto backward_function = [](const Array& gout) { return gout * gout; };
         auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
         if (!op_node) {
-          op_node = std::make_shared<OpNode>("incorrect_unary");
+            op_node = std::make_shared<OpNode>("incorrect_unary");
         }
         op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
         op_node->RegisterNextNode(next_node);
@@ -92,7 +92,7 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
         auto backward_function = [other_view = other](const Array& gout) { return gout + other_view; };
         auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
         if (!op_node) {
-          op_node = std::make_shared<OpNode>("incorrect_binary");
+            op_node = std::make_shared<OpNode>("incorrect_binary");
         }
         op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
         op_node->RegisterNextNode(next_node);
