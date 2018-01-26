@@ -166,43 +166,9 @@ void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_id_op_nodes;
-
-    auto build_op_nodes = [&graph_id_op_nodes](auto& graph_id_node) {
-        const auto& graph_id = graph_id_node.first;
-        const auto& next_node = graph_id_node.second;
-        auto backward_function = [](const Array& gout) { return gout; };
-        auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
-        if (!op_node) {
-            op_node = std::make_shared<OpNode>("add");
-        }
-        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
-        op_node->RegisterNextNode(next_node);
-        op_node->RegisterBackwardFunction(backward_function);
-    };
-
-    // Create OpNodes
-    for (auto& graph_id_node : body_->nodes_) {  // For each graph
-        build_op_nodes(graph_id_node);
-    }
-    for (auto& graph_id_node : rhs.body_->nodes_) {
-        build_op_nodes(graph_id_node);
-    }
-
-    // Add OpNodes to output
-    for (const auto& graph_id_op_node : graph_id_op_nodes) {
-        const auto& graph_id = graph_id_op_node.first;
-        const auto& op_node = graph_id_op_node.second;
-
-        auto next_nodes = op_node->next_nodes();
-        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
-                                return a->rank() < b->rank();
-                            }))->rank();
-
-        auto& out_node = out.body_->CreateNode(graph_id);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(next_rank + 1);
-    }
+    auto lhs_backward_function = [](const Array& gout) { return gout; };
+    auto rhs_backward_function = [](const Array& gout) { return gout; };
+    CreateOpNodes("add", *this, rhs, out, lhs_backward_function, rhs_backward_function);
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
@@ -222,43 +188,9 @@ void Array::Mul(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_id_op_nodes;
-
-    auto build_op_nodes = [&graph_id_op_nodes](auto& graph_id_node, const Array& other) {
-        const auto& graph_id = graph_id_node.first;
-        const auto& next_node = graph_id_node.second;
-        auto backward_function = [other_view = other](const Array& gout) { return gout * other_view; };
-        auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
-        if (!op_node) {
-            op_node = std::make_shared<OpNode>("mul");
-        }
-        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
-        op_node->RegisterNextNode(next_node);
-        op_node->RegisterBackwardFunction(backward_function);
-    };
-
-    // Create OpNodes
-    for (auto& graph_id_node : body_->nodes_) {  // For each graph
-        build_op_nodes(graph_id_node, rhs);
-    }
-    for (auto& graph_id_node : rhs.body_->nodes_) {
-        build_op_nodes(graph_id_node, *this);
-    }
-
-    // Add OpNodes to output
-    for (const auto& graph_id_op_node : graph_id_op_nodes) {
-        const auto& graph_id = graph_id_op_node.first;
-        const auto& op_node = graph_id_op_node.second;
-
-        auto next_nodes = op_node->next_nodes();
-        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
-                                return a->rank() < b->rank();
-                            }))->rank();
-
-        auto& out_node = out.body_->CreateNode(graph_id);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(next_rank + 1);
-    }
+    auto lhs_backward_function = [other_view = rhs](const Array& gout) { return gout * other_view; };
+    auto rhs_backward_function = [other_view = *this](const Array& gout) { return gout * other_view; };
+    CreateOpNodes("mul", *this, rhs, out, lhs_backward_function, rhs_backward_function);
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
@@ -286,6 +218,46 @@ void Array::Fill(Scalar value) {
 }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
+
+void Array::CreateOpNodes(std::string name, const Array& lhs, const Array& rhs, Array& out,
+                          std::function<Array(const Array&)> lhs_backward_function,
+                          std::function<Array(const Array&)> rhs_backward_function) const {
+    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_id_op_nodes;
+
+    auto build_op_nodes = [&name, &graph_id_op_nodes](const GraphId& graph_id, const std::shared_ptr<ArrayNode>& next_node,
+                                                      auto& backward_function) {
+        auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
+        if (!op_node) {
+            op_node = std::make_shared<OpNode>(name);
+        }
+        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
+        op_node->RegisterNextNode(next_node);
+        op_node->RegisterBackwardFunction(backward_function);
+    };
+
+    // Create OpNodes
+    for (auto& graph_id_node : lhs.body_->nodes_) {  // For each graph
+        build_op_nodes(graph_id_node.first, graph_id_node.second, lhs_backward_function);
+    }
+    for (auto& graph_id_node : rhs.body_->nodes_) {
+        build_op_nodes(graph_id_node.first, graph_id_node.second, rhs_backward_function);
+    }
+
+    // Add OpNodes to output
+    for (const auto& graph_id_op_node : graph_id_op_nodes) {
+        const auto& graph_id = graph_id_op_node.first;
+        const auto& op_node = graph_id_op_node.second;
+
+        auto next_nodes = op_node->next_nodes();
+        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
+                                return a->rank() < b->rank();
+                            }))->rank();
+
+        auto& out_node = out.body_->CreateNode(graph_id);
+        out_node->set_next_node(op_node);
+        out_node->set_rank(next_rank + 1);
+    }
+}
 
 namespace {
 
