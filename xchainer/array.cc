@@ -74,7 +74,7 @@ Array::Array(const Array& other)
     std::copy(other.body_->nodes_.begin(), other.body_->nodes_.end(), std::back_inserter(body_->nodes_));
 }
 
-const nonstd::optional<Array>& Array::FindGrad(const GraphId& graph_id) const { return body_->GetNode(graph_id)->grad(); }
+const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return body_->GetNode(graph_id)->grad(); }
 
 void Array::SetGrad(Array grad, const GraphId& graph_id) { body_->GetMutableNode(graph_id)->set_grad(std::move(grad)); }
 

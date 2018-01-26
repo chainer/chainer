@@ -97,10 +97,10 @@ public:
     std::shared_ptr<const ArrayNode> GetNode(const GraphId& graph_id = "") const { return body_->GetNode(graph_id); }
     const std::shared_ptr<ArrayNode>& GetMutableNode(const GraphId& graph_id = "") const { return body_->GetMutableNode(graph_id); }
 
+    const nonstd::optional<Array>& GetGrad(const GraphId& graph_id = "") const;
     void SetGrad(Array grad, const GraphId& graph_id = "");
     void ClearGrad(const GraphId& graph_id = "");  // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
     bool IsGradRequired(const GraphId& graph_id = "") const { return body_->HasNode(graph_id); }
-    const nonstd::optional<Array>& FindGrad(const GraphId& graph_id = "") const;
     Array& RequireGrad(const GraphId& graph_id = "") {  // Creates a new ArrayNode to store the gradient
         body_->CreateNode(graph_id);
         return *this;

@@ -77,9 +77,9 @@ public:
         auto y = fprop(target_inputs, args...);
         Backward(y);
         for (size_t i = 0; i < expected_grads.size(); ++i) {
-            ExpectEqual<float>(expected_grads[i], *target_inputs[i].FindGrad());
+            ExpectEqual<float>(expected_grads[i], *target_inputs[i].GetGrad());
         }
-        EXPECT_TRUE(y.FindGrad().has_value());
+        EXPECT_TRUE(y.GetGrad().has_value());
     }
 
     template <typename Fprop>
@@ -92,7 +92,7 @@ public:
                                   Fprop&& fprop) const {
         CheckBackpropImpl(target_inputs, expected_grads, fprop, other_inputs);
         for (size_t i = 0; i < other_inputs.size(); ++i) {
-            EXPECT_THROW(other_inputs[i].FindGrad(), XchainerError);
+            EXPECT_THROW(other_inputs[i].GetGrad(), XchainerError);
         }
     }
 
@@ -134,14 +134,14 @@ TEST_P(BackpropTest, BackwardSoleArrayNode) {
     x.RequireGrad();
     Backward(x);
     auto e = Array::OnesLike(x);
-    ExpectEqual<float>(e, *x.FindGrad());
+    ExpectEqual<float>(e, *x.GetGrad());
 }
 
 TEST_P(BackpropTest, DoubleBackprop) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
         Backward(z);
-        auto gx = *xs[0].FindGrad();
+        auto gx = *xs[0].GetGrad();
         xs[0].ClearGrad();
         return gx;
     };
@@ -196,8 +196,8 @@ TEST_P(BackpropTest, MultipleGraphsBasic) {
     Backward(y1, graph_id_1);
 
     Array expected_1 = MakeFullArray({1}, {5.0f});
-    ExpectEqual<float>(expected_1, *x1.FindGrad(graph_id_1));
-    EXPECT_FALSE(x2.FindGrad(graph_id_2));
+    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_1));
+    EXPECT_FALSE(x2.GetGrad(graph_id_2));
 }
 
 TEST_P(BackpropTest, MultipleGraphsSameInput) {
@@ -211,11 +211,11 @@ TEST_P(BackpropTest, MultipleGraphsSameInput) {
     Backward(y1, graph_id_1);
 
     Array expected_1 = MakeFullArray({1}, {6.0f});
-    ExpectEqual<float>(expected_1, *x1.FindGrad(graph_id_1));
+    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_1));
 
     // TODO(hvy): The following expectation should be negated once we have implemented the functionality to not create graphs during back
     // propagation
-    EXPECT_TRUE(x1.FindGrad(graph_id_1)->IsGradRequired(graph_id_1));
+    EXPECT_TRUE(x1.GetGrad(graph_id_1)->IsGradRequired(graph_id_1));
 }
 
 TEST_P(BackpropTest, MultipleGraphsNonExisting) {
@@ -246,8 +246,8 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     Backward(y1, graph_id_1);
 
     Array expected_1 = MakeFullArray({1}, {5.0f});
-    ExpectEqual<float>(expected_1, *x1.FindGrad(graph_id_1));
-    EXPECT_FALSE(x2.FindGrad(graph_id_2));
+    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_1));
+    EXPECT_FALSE(x2.GetGrad(graph_id_2));
 
     x1.ClearGrad(graph_id_1);
     x2.ClearGrad(graph_id_2);
@@ -256,8 +256,8 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     Backward(y2, graph_id_2);
 
     Array expected_2 = MakeFullArray({1}, {2.0f});
-    ExpectEqual<float>(expected_2, *x2.FindGrad(graph_id_2));
-    EXPECT_FALSE(x1.FindGrad(graph_id_1));
+    ExpectEqual<float>(expected_2, *x2.GetGrad(graph_id_2));
+    EXPECT_FALSE(x1.GetGrad(graph_id_1));
 
     x1.ClearGrad(graph_id_1);
     x2.ClearGrad(graph_id_2);
@@ -268,10 +268,10 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     Array y3 = x1 * x2;
     Backward(y3, graph_id_2);
 
-    ExpectEqual<float>(expected_1, *x1.FindGrad(graph_id_2));
-    ExpectEqual<float>(expected_2, *x2.FindGrad(graph_id_2));
-    EXPECT_FALSE(x1.FindGrad(graph_id_1));
-    EXPECT_FALSE(x2.FindGrad(graph_id_1));
+    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_2));
+    ExpectEqual<float>(expected_2, *x2.GetGrad(graph_id_2));
+    EXPECT_FALSE(x1.GetGrad(graph_id_1));
+    EXPECT_FALSE(x2.GetGrad(graph_id_1));
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(

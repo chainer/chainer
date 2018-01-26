@@ -416,29 +416,29 @@ TEST_P(ArrayTest, Grad) {
     x.RequireGrad(graph_id);
     g.RequireGrad(graph_id);
 
-    EXPECT_FALSE(x.FindGrad(graph_id)) << "grad must be initially unset";
+    EXPECT_FALSE(x.GetGrad(graph_id)) << "grad must be initially unset";
 
     // Set and get grad
     {
         x.SetGrad(g, graph_id);
 
-        ExpectEqual<T>(g, *x.FindGrad(graph_id));
+        ExpectEqual<T>(g, *x.GetGrad(graph_id));
     }
 
     // Get grad multiple times
     {
-        const nonstd::optional<Array>& grad1 = x.FindGrad(graph_id);
-        const nonstd::optional<Array>& grad2 = x.FindGrad(graph_id);
+        const nonstd::optional<Array>& grad1 = x.GetGrad(graph_id);
+        const nonstd::optional<Array>& grad2 = x.GetGrad(graph_id);
         EXPECT_EQ(&*grad1, &*grad2) << "Multiple retrieval of grad must return the same arrays";
     }
 
     // ClearGrad
     {
-        Array grad_view = *x.FindGrad(graph_id);  // Make a view of grad
+        Array grad_view = *x.GetGrad(graph_id);  // Make a view of grad
 
         x.ClearGrad(graph_id);
 
-        EXPECT_FALSE(x.FindGrad(graph_id)) << "grad must be cleared after calling ClearGrad()";
+        EXPECT_FALSE(x.GetGrad(graph_id)) << "grad must be cleared after calling ClearGrad()";
 
         // ClearGrad() must not affect previously retrieved view to grad
         ExpectEqual<T>(grad_view, g);

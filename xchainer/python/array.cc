@@ -147,7 +147,7 @@ void InitXchainerArray(pybind11::module& m) {
         .def_property("grad",
                       [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {
                           if (self->HasNode()) {
-                              return Array{self}.FindGrad()->body();
+                              return Array{self}.GetGrad()->body();
                           } else {
                               return nullptr;
                           }
