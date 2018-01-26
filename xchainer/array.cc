@@ -168,7 +168,7 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
 
-    auto build_op_nodes = [&out, &graph_id_op_nodes](auto& graph_id_node) {
+    auto build_op_nodes = [&graph_id_op_nodes](auto& graph_id_node) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
         auto backward_function = [](const Array& gout) { return gout; };
@@ -222,7 +222,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
 
-    auto build_op_nodes = [&out, &graph_id_op_nodes](auto& graph_id_node, const Array& other) {
+    auto build_op_nodes = [&graph_id_op_nodes](auto& graph_id_node, const Array& other) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
         auto backward_function = [other_view = other](const Array& gout) { return gout * other_view; };
