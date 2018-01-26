@@ -141,9 +141,9 @@ private:
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 
-    void CreateOpNodes(std::string name, const Array& lhs, const Array& rhs, Array& out,
-                       std::function<Array(const Array&)> lhs_backward_function,
-                       std::function<Array(const Array&)> rhs_backward_function) const;
+    void CreateGraph(std::string name, const Array& lhs, const Array& rhs, Array& out,
+                     std::function<Array(const Array&)> lhs_backward_function,
+                     std::function<Array(const Array&)> rhs_backward_function) const;
 
     std::shared_ptr<internal::ArrayBody> body_;
 };

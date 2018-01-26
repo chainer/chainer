@@ -168,7 +168,7 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     auto lhs_backward_function = [](const Array& gout) { return gout; };
     auto rhs_backward_function = [](const Array& gout) { return gout; };
-    CreateOpNodes("add", *this, rhs, out, lhs_backward_function, rhs_backward_function);
+    CreateGraph("add", *this, rhs, out, lhs_backward_function, rhs_backward_function);
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
@@ -190,7 +190,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     auto lhs_backward_function = [other_view = rhs](const Array& gout) { return gout * other_view; };
     auto rhs_backward_function = [other_view = *this](const Array& gout) { return gout * other_view; };
-    CreateOpNodes("mul", *this, rhs, out, lhs_backward_function, rhs_backward_function);
+    CreateGraph("mul", *this, rhs, out, lhs_backward_function, rhs_backward_function);
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
@@ -219,9 +219,9 @@ void Array::Fill(Scalar value) {
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
-void Array::CreateOpNodes(std::string name, const Array& lhs, const Array& rhs, Array& out,
-                          std::function<Array(const Array&)> lhs_backward_function,
-                          std::function<Array(const Array&)> rhs_backward_function) const {
+void Array::CreateGraph(std::string name, const Array& lhs, const Array& rhs, Array& out,
+                        std::function<Array(const Array&)> lhs_backward_function,
+                        std::function<Array(const Array&)> rhs_backward_function) const {
     std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_id_op_nodes;
 
     auto build_op_nodes = [&name, &graph_id_op_nodes](const GraphId& graph_id, const std::shared_ptr<ArrayNode>& next_node,
