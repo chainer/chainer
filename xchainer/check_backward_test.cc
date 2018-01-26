@@ -48,9 +48,9 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
     CheckEqual(lhs.shape(), rhs.shape());
     Array out = Array::EmptyLike(lhs);
 
-    auto lhs_backward_function = [other_view = rhs](const Array& gout) { return gout + other_view; };
-    auto rhs_backward_function = [other_view = lhs](const Array& gout) { return gout + other_view; };
-    CreateGraph("incorrect_biary", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+    auto lhs_backward_function = [other_view = rhs](const Array& gout) -> Array { return gout + other_view; };
+    auto rhs_backward_function = lhs_backward_function;
+    CreateGraph("incorrect_binary", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
