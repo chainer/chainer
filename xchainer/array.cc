@@ -250,10 +250,8 @@ void CreateGraph(std::string name, std::vector<std::reference_wrapper<const Arra
         }
     }
 
-    if (!graph_edges.empty()) {
-        if (std::any_of(inputs.begin(), inputs.end(), [&out](const Array& input) { return &out == &input; })) {
-            throw XchainerError("In-place operation (" + name + ") is not supported for an array that require gradients.");
-        }
+    if (!graph_edges.empty() && std::any_of(inputs.begin(), inputs.end(), [&out](const Array& input) { return &out == &input; })) {
+        throw XchainerError("In-place operation (" + name + ") is not supported for an array that require gradients.");
     }
 
     // Bind edges to output
