@@ -28,7 +28,7 @@ Arrays IncorrectBackwardUnaryFunc(const Arrays& inputs) {
 
     std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
 
-    auto add_op = [&out, &graph_id_op_nodes](auto& graph_id_node) {
+    auto build_op_nodes = [&out, &graph_id_op_nodes](auto& graph_id_node) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
         auto backward_function = [](const Array& gout) { return gout * gout; };
@@ -40,7 +40,7 @@ Arrays IncorrectBackwardUnaryFunc(const Arrays& inputs) {
     };
 
     for (auto& graph_id_node : lhs.nodes()) {
-        add_op(graph_id_node);
+        build_op_nodes(graph_id_node);
     }
 
     for (const auto& graph_id_op_node : graph_id_op_nodes) {
@@ -82,9 +82,9 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
 
     Array out = Array::EmptyLike(lhs);
 
-    std::unordered_map<GrapId, OpNode> graph_id_op_nodes;
+    std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
 
-    auto add_op = [&out, &graph_id_op_nodes](auto& graph_id_node, const Array& other) {
+    auto build_op_nodes = [&out, &graph_id_op_nodes](auto& graph_id_node, const Array& other) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
         auto backward_function = [other_view = other](const Array& gout) { return gout + other_view; };
@@ -96,10 +96,10 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
     };
 
     for (auto& graph_id_node : lhs.nodes()) {
-        add_op(graph_id_node, rhs);
+        build_op_nodes(graph_id_node, rhs);
     }
     for (auto& graph_id_node : rhs.nodes()) {
-        add_op(graph_id_node, lhs);
+        build_op_nodes(graph_id_node, lhs);
     }
 
     for (const auto& graph_id_op_node : graph_id_op_nodes) {
