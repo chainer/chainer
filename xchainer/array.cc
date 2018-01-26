@@ -200,7 +200,7 @@ void Array::Add(const Array& rhs, Array& out) const {
                             }))->rank();
 
         auto& out_node = out.body_->CreateNode(graph_id);
-        out_node->set_next_node(std::move(op_node));
+        out_node->set_next_node(op_node);
         out_node->set_rank(next_rank + 1);
     }
 
@@ -256,7 +256,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
                             }))->rank();
 
         auto& out_node = out.body_->CreateNode(graph_id);
-        out_node->set_next_node(std::move(op_node));
+        out_node->set_next_node(op_node);
         out_node->set_rank(next_rank + 1);
     }
 
