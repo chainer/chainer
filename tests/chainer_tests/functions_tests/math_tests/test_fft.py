@@ -50,3 +50,6 @@ class TestFFT(unittest.TestCase):
         self.check_backward(
             cuda.to_gpu(self.rx), cuda.to_gpu(self.ix),
             cuda.to_gpu(self.rg), cuda.to_gpu(self.ig))
+
+
+testing.run_module(__name__, __file__)
