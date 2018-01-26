@@ -22,51 +22,17 @@ using Arrays = std::vector<Array>;
 using Fprop = std::function<std::vector<Array>(const std::vector<Array>&)>;
 
 Arrays IncorrectBackwardUnaryFunc(const Arrays& inputs) {
-    const Array& lhs = inputs[0];
+    const Array& in = inputs[0];
+    Array out = Array::EmptyLike(in);
 
-    Array out = Array::EmptyLike(lhs);
+    auto backward_function = [](const Array& gout) { return gout * gout; };
+    CreateGraph("incorrect_unary", {in}, out, {backward_function});
 
-    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_id_op_nodes;
-
-    auto build_op_nodes = [&out, &graph_id_op_nodes](auto& graph_id_node) {
-        const auto& graph_id = graph_id_node.first;
-        const auto& next_node = graph_id_node.second;
-        auto backward_function = [](const Array& gout) { return gout * gout; };
-        auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
-        if (!op_node) {
-            op_node = std::make_shared<OpNode>("incorrect_unary");
-        }
-        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
-        op_node->RegisterNextNode(next_node);
-        op_node->RegisterBackwardFunction(backward_function);
-    };
-
-    for (auto& graph_id_node : lhs.nodes()) {
-        build_op_nodes(graph_id_node);
-    }
-
-    for (const auto& graph_id_op_node : graph_id_op_nodes) {
-        const auto& graph_id = graph_id_op_node.first;
-        const auto& op_node = graph_id_op_node.second;
-
-        auto next_nodes = op_node->next_nodes();
-        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
-                                return a->rank() < b->rank();
-                            }))->rank();
-
-        out.RequireGrad(graph_id);
-        auto& out_node = out.GetMutableNode(graph_id);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(next_rank + 1);
-    }
-
-    VisitDtype(lhs.dtype(), [&](auto pt) {
+    VisitDtype(in.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-
-        int64_t total_size = lhs.total_size();
-        auto* ldata = static_cast<const T*>(lhs.data().get());
+        int64_t total_size = in.total_size();
+        auto* ldata = static_cast<const T*>(in.data().get());
         auto* odata = static_cast<T*>(out.data().get());
-
         for (int64_t i = 0; i < total_size; i++) {
             odata[i] = ldata[i];
         }
@@ -78,57 +44,20 @@ Arrays IncorrectBackwardUnaryFunc(const Arrays& inputs) {
 Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
     const Array& lhs = inputs[0];
     const Array& rhs = inputs[1];
-
     CheckEqual(lhs.dtype(), rhs.dtype());
     CheckEqual(lhs.shape(), rhs.shape());
-
     Array out = Array::EmptyLike(lhs);
 
-    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_id_op_nodes;
-
-    auto build_op_nodes = [&out, &graph_id_op_nodes](auto& graph_id_node, const Array& other) {
-        const auto& graph_id = graph_id_node.first;
-        const auto& next_node = graph_id_node.second;
-        auto backward_function = [other_view = other](const Array& gout) { return gout + other_view; };
-        auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
-        if (!op_node) {
-            op_node = std::make_shared<OpNode>("incorrect_binary");
-        }
-        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
-        op_node->RegisterNextNode(next_node);
-        op_node->RegisterBackwardFunction(backward_function);
-    };
-
-    for (auto& graph_id_node : lhs.nodes()) {
-        build_op_nodes(graph_id_node, rhs);
-    }
-    for (auto& graph_id_node : rhs.nodes()) {
-        build_op_nodes(graph_id_node, lhs);
-    }
-
-    for (const auto& graph_id_op_node : graph_id_op_nodes) {
-        const auto& graph_id = graph_id_op_node.first;
-        const auto& op_node = graph_id_op_node.second;
-
-        auto next_nodes = op_node->next_nodes();
-        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
-                                return a->rank() < b->rank();
-                            }))->rank();
-
-        out.RequireGrad(graph_id);
-        auto& out_node = out.GetMutableNode(graph_id);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(next_rank + 1);
-    }
+    auto lhs_backward_function = [other_view = rhs](const Array& gout) { return gout + other_view; };
+    auto rhs_backward_function = [other_view = lhs](const Array& gout) { return gout + other_view; };
+    CreateGraph("incorrect_biary", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-
         int64_t total_size = lhs.total_size();
         auto* ldata = static_cast<const T*>(lhs.data().get());
         auto* rdata = static_cast<const T*>(rhs.data().get());
         auto* odata = static_cast<T*>(out.data().get());
-
         for (int64_t i = 0; i < total_size; i++) {
             odata[i] = ldata[i] * rdata[i];
         }

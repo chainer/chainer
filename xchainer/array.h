@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -143,12 +144,11 @@ private:
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 
-    void CreateGraph(std::string name, const Array& lhs, const Array& rhs, Array& out,
-                     std::function<Array(const Array&)> lhs_backward_function,
-                     std::function<Array(const Array&)> rhs_backward_function) const;
-
     std::shared_ptr<internal::ArrayBody> body_;
 };
+
+void CreateGraph(std::string name, std::vector<std::reference_wrapper<const Array>> inputs, Array& out,
+                 std::vector<std::function<Array(const Array&)>> backaward_functions);
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent = 0);
 

@@ -21,6 +21,7 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
+#include "xchainer/error.h"
 #include "xchainer/memory.h"
 #include "xchainer/op_node.h"
 #include "xchainer/scalar.h"
@@ -138,19 +139,7 @@ Array Array::Copy() const {
 }
 
 void Array::CopyTo(Array& out) const {
-    for (const auto& graph_id_node : body_->nodes_) {
-        const auto& graph_id = graph_id_node.first;
-        const auto& next_node = graph_id_node.second;
-
-        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{next_node};
-        int64_t next_rank = next_node->rank();
-        auto backward_functions = std::vector<std::function<Array(const Array&)>>{[](const Array& gout) { return gout; }};
-        auto op_node = std::make_shared<OpNode>("copy", next_rank, next_nodes, backward_functions);
-
-        auto& out_node = out.body_->CreateNode(graph_id);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(next_rank + 1);
-    }
+    CreateGraph("copy", {*this}, out, {[](const Array& gout) { return gout; }});
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
     // is_contiguous_ and offset_ into account
@@ -163,9 +152,9 @@ void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    auto lhs_backward_function = [](const Array& gout) { return gout; };
-    auto rhs_backward_function = [](const Array& gout) { return gout; };
-    CreateGraph("add", *this, rhs, out, lhs_backward_function, rhs_backward_function);
+    auto lhs_backward_function = [](const Array& gout) -> Array { return gout; };
+    auto rhs_backward_function = lhs_backward_function;
+    CreateGraph("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
@@ -187,7 +176,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     auto lhs_backward_function = [other_view = rhs](const Array& gout) { return gout * other_view; };
     auto rhs_backward_function = [other_view = *this](const Array& gout) { return gout * other_view; };
-    CreateGraph("mul", *this, rhs, out, lhs_backward_function, rhs_backward_function);
+    CreateGraph("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
@@ -216,46 +205,6 @@ void Array::Fill(Scalar value) {
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
-void Array::CreateGraph(std::string name, const Array& lhs, const Array& rhs, Array& out,
-                        std::function<Array(const Array&)> lhs_backward_function,
-                        std::function<Array(const Array&)> rhs_backward_function) const {
-    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_id_op_nodes;
-
-    auto build_op_nodes = [&name, &graph_id_op_nodes](const GraphId& graph_id, const std::shared_ptr<ArrayNode>& next_node,
-                                                      auto& backward_function) {
-        auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
-        if (!op_node) {
-            op_node = std::make_shared<OpNode>(name);
-        }
-        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
-        op_node->RegisterNextNode(next_node);
-        op_node->RegisterBackwardFunction(backward_function);
-    };
-
-    // Create OpNodes
-    for (auto& graph_id_node : lhs.body_->nodes_) {  // For each graph
-        build_op_nodes(graph_id_node.first, graph_id_node.second, lhs_backward_function);
-    }
-    for (auto& graph_id_node : rhs.body_->nodes_) {
-        build_op_nodes(graph_id_node.first, graph_id_node.second, rhs_backward_function);
-    }
-
-    // Add OpNodes to output
-    for (const auto& graph_id_op_node : graph_id_op_nodes) {
-        const auto& graph_id = graph_id_op_node.first;
-        const auto& op_node = graph_id_op_node.second;
-
-        auto next_nodes = op_node->next_nodes();
-        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
-                                return a->rank() < b->rank();
-                            }))->rank();
-
-        auto& out_node = out.body_->CreateNode(graph_id);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(next_rank + 1);
-    }
-}
-
 namespace {
 
 void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, int indent) {
@@ -273,6 +222,47 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 }
 
 }  // namespace
+
+void CreateGraph(std::string name, std::vector<std::reference_wrapper<const Array>> inputs, Array& out,
+                 std::vector<std::function<Array(const Array&)>> backward_functions) {
+    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_id_op_nodes;
+
+    auto build_op_nodes = [&name, &graph_id_op_nodes](const GraphId& graph_id, const std::shared_ptr<ArrayNode>& next_node,
+                                                      auto& backward_function) {
+        auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
+        if (!op_node) {
+            op_node = std::make_shared<OpNode>(name);
+        }
+        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
+        op_node->RegisterNextNode(next_node);
+        op_node->RegisterBackwardFunction(backward_function);
+    };
+
+    size_t nin = inputs.size();
+    if (nin != backward_functions.size()) {
+        throw XchainerError("Cannot currently construct a graph where numbers of input Arrays and backward functions do not match.");
+    }
+    for (size_t i = 0; i < nin; ++i) {
+        for (auto& graph_id_node : inputs[i].get().nodes()) {  // For each graph
+            build_op_nodes(graph_id_node.first, graph_id_node.second, backward_functions[i]);
+        }
+    }
+
+    // Add OpNodes to output
+    for (const auto& graph_id_op_node : graph_id_op_nodes) {
+        const auto& graph_id = graph_id_op_node.first;
+        const auto& op_node = graph_id_op_node.second;
+
+        auto next_nodes = op_node->next_nodes();
+        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
+                                return a->rank() < b->rank();
+                            }))->rank();
+
+        auto& out_node = out.body()->CreateNode(graph_id);
+        out_node->set_next_node(op_node);
+        out_node->set_rank(next_rank + 1);
+    }
+}
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent) {
     for (const auto& graph_id_node : array.nodes()) {
