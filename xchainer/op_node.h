@@ -28,8 +28,6 @@ public:
 
     std::string name() const { return name_; }
 
-    void set_name(std::string name) { name_ = std::move(name); }
-
     int64_t rank() const { return rank_; }
 
     void set_rank(int64_t rank) { rank_ = rank; }
