@@ -196,6 +196,7 @@ from chainer.functions.math.exponential_m1 import expm1  # NOQA
 from chainer.functions.math.exponential_m1 import Expm1  # NOQA
 from chainer.functions.math.fft import fft  # NOQA
 from chainer.functions.math.fft import FFT  # NOQA
+from chainer.functions.math.fft import ifft  # NOQA
 from chainer.functions.math.fix import fix  # NOQA
 from chainer.functions.math.floor import floor  # NOQA
 from chainer.functions.math.fmod import fmod  # NOQA
