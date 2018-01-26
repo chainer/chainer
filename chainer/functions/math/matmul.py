@@ -70,9 +70,10 @@ def _get_check_index(trans, right, row_idx=0, col_idx=1):
 
 class MatMul(function_node.FunctionNode):
 
-    def __init__(self, transa=False, transb=False):
+    def __init__(self, transa=False, transb=False, transc=False):
         self.transa = transa
         self.transb = transb
+        self.transc = transc
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -81,19 +82,24 @@ class MatMul(function_node.FunctionNode):
         type_check.expect(
             a_type.dtype.kind == 'f',
             b_type.dtype.kind == 'f',
-            a_type.ndim >= 1,
-            a_type.ndim == b_type.ndim,
         )
 
-        ndim = type_check.eval(a_type.ndim)
-        if ndim == 1:
-            type_check.expect(a_type.shape == b_type.shape)
+        a_ndim = type_check.eval(a_type.ndim)
+        b_ndim = type_check.eval(b_type.ndim)
+        if a_ndim == 0 or b_ndim == 0:
+            pass
+        elif a_ndim == 1 or b_ndim == 1:
+            type_check.expect(
+                a_type.ndim == b_type.ndim,
+                a_type.shape == b_type.shape,
+            )
         else:
             a_idx = _get_check_index(self.transa, False,
                                      row_idx=-2, col_idx=-1)
             b_idx = _get_check_index(self.transb, True,
                                      row_idx=-2, col_idx=-1)
             type_check.expect(
+                a_type.ndim == b_type.ndim,
                 a_type.shape[:-2] == b_type.shape[:-2],
                 a_type.shape[a_idx] == b_type.shape[b_idx],
             )
@@ -101,64 +107,29 @@ class MatMul(function_node.FunctionNode):
     def forward(self, x):
         self.retain_inputs((0, 1))
         a, b = x
-        y = _matmul(a, b, self.transa, self.transb)
+        if a.ndim == 0 or b.ndim == 0:
+            y = a * b
+        else:
+            y = _matmul(a, b, self.transa, self.transb, self.transc)
         return utils.force_array(y),
 
     def backward(self, indexes, grad_outputs):
         a, b = self.get_retained_inputs()
-        return MatMulGrad(self.transa, self.transb).apply(
-            (a, b, grad_outputs[0]))
+        gy, = grad_outputs
 
+        ga = None
+        if 0 in indexes:
+            ga, = MatMul(self.transc, not self.transb,
+                         self.transa).apply((gy, b))
+            ga.data = ga.data.astype(a.dtype)
 
-class MatMulGrad(function_node.FunctionNode):
+        gb = None
+        if 1 in indexes:
+            gb, = MatMul(not self.transa, self.transc,
+                         self.transb).apply((a, gy))
+            gb.data = gb.data.astype(b.dtype)
 
-    def __init__(self, transa=False, transb=False):
-        self.transa = transa
-        self.transb = transb
-
-    def forward(self, inputs):
-        self.retain_inputs((0, 1, 2))
-        a, b, gy = inputs
-        a_shape = a.shape
-        b_shape = b.shape
-
-        if gy.ndim == 0:
-            ga = gy * b
-        else:
-            ga = _matmul(gy, b, False, not self.transb)
-        if self.transa and a.ndim != 1:
-            ga = ga.swapaxes(-1, -2)
-        ga = ga.reshape(a_shape)
-
-        if gy.ndim == 0:
-            gb = a * gy
-        else:
-            gb = _matmul(a, gy, not self.transa, False)
-        if self.transb and a.ndim != 1:
-            gb = gb.swapaxes(-1, -2)
-        gb = gb.reshape(b_shape)
-        return ga.astype(a.dtype), gb.astype(b.dtype)
-
-    def backward(self, indexes, grads):
-        a, b, gy = self.get_retained_inputs()
-        ret = []
-        if 0 in indexes or 1 in indexes:
-            ggab = MatMulGrad(self.transa, self.transb).apply(
-                (grads[0], grads[1], gy))
-            if 0 in indexes:
-                ret.append(chainer.functions.cast(ggab[0], a.dtype))
-            if 1 in indexes:
-                ret.append(chainer.functions.cast(ggab[1], b.dtype))
-        if 2 in indexes:
-            ggy = \
-                chainer.functions.reshape(chainer.functions.cast(
-                    MatMul(self.transa, self.transb).apply((grads[0], b))[0],
-                    gy.dtype), gy.shape) + \
-                chainer.functions.reshape(chainer.functions.cast(
-                    MatMul(self.transa, self.transb).apply((a, grads[1]))[0],
-                    gy.dtype), gy.shape)
-            ret.append(ggy)
-        return ret
+        return ga, gb
 
 
 def matmul(a, b, transa=False, transb=False):
