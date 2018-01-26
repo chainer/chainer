@@ -137,18 +137,17 @@ void InitXchainerArray(pybind11::module& m) {
         .def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); })
         .def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); })
         .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
-        .def_property("requires_grad", [](const ArrayBodyPtr& self) { return Array{self}.requires_grad(); },
+        .def_property("requires_grad", [](const ArrayBodyPtr& self) { return Array{self}.IsGradRequired(); },
                       [](const ArrayBodyPtr& self, bool value) {
+                          // Cannot unset required gradients
                           if (value && !self->HasNode()) {
                               Array{self}.RequireGrad();
-                          } else {
-                              // Cannot unset required gradients
                           }
                       })
         .def_property("grad",
                       [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {
                           if (self->HasNode()) {
-                              return Array{self}.grad()->body();
+                              return Array{self}.FindGrad()->body();
                           } else {
                               return nullptr;
                           }
@@ -156,9 +155,9 @@ void InitXchainerArray(pybind11::module& m) {
                       [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad) {
                           if (grad) {
                               if (!self->HasNode()) {
-                                  Array{self}.RequireGrad().set_grad(Array{grad});
+                                  Array{self}.RequireGrad().SetGrad(Array{grad});
                               } else {
-                                  Array{self}.set_grad(Array{grad});
+                                  Array{self}.SetGrad(Array{grad});
                               }
                           } else {
                               Array{self}.ClearGrad();

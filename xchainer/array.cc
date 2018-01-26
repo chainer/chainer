@@ -37,7 +37,7 @@ bool ArrayBody::HasNode(const GraphId& graph_id) const {
            nodes_.end();
 }
 
-std::shared_ptr<const ArrayNode> ArrayBody::node(const GraphId& graph_id) const {
+std::shared_ptr<const ArrayNode> ArrayBody::GetNode(const GraphId& graph_id) const {
     auto it =
         std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; });
     if (it == nodes_.end()) {
@@ -46,7 +46,7 @@ std::shared_ptr<const ArrayNode> ArrayBody::node(const GraphId& graph_id) const 
     return it->second;
 }
 
-const std::shared_ptr<ArrayNode>& ArrayBody::mutable_node(const GraphId& graph_id) const {
+const std::shared_ptr<ArrayNode>& ArrayBody::GetMutableNode(const GraphId& graph_id) const {
     auto it =
         std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; });
     if (it == nodes_.end()) {
@@ -74,11 +74,11 @@ Array::Array(const Array& other)
     std::copy(other.body_->nodes_.begin(), other.body_->nodes_.end(), std::back_inserter(body_->nodes_));
 }
 
-const nonstd::optional<Array>& Array::grad(const GraphId& graph_id) const { return body_->node(graph_id)->grad(); }
+const nonstd::optional<Array>& Array::FindGrad(const GraphId& graph_id) const { return body_->GetNode(graph_id)->grad(); }
 
-void Array::set_grad(Array grad, const GraphId& graph_id) { body_->mutable_node(graph_id)->set_grad(std::move(grad)); }
+void Array::SetGrad(Array grad, const GraphId& graph_id) { body_->GetMutableNode(graph_id)->set_grad(std::move(grad)); }
 
-void Array::ClearGrad(const GraphId& graph_id) { body_->mutable_node(graph_id)->ClearGrad(); }
+void Array::ClearGrad(const GraphId& graph_id) { body_->GetMutableNode(graph_id)->ClearGrad(); }
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
