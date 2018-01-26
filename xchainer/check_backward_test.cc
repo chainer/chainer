@@ -149,9 +149,7 @@ protected:
 
     void CheckBaseBackwardComputation(bool expect_correct, Fprop fprop, Arrays& inputs, const Arrays& grad_outputs, const Arrays& eps,
                                       double atol, double rtol, const GraphId& graph_id) {
-        for (auto& input : inputs) {
-            input.RequireGrad(graph_id);
-        }
+        std::for_each(inputs.begin(), inputs.end(), [&graph_id](auto& input) { input.RequireGrad(graph_id); });
 
         if (!expect_correct &&
             std::any_of(inputs.begin(), inputs.end(), [graph_id](const Array& input) { return input.IsGradRequired(graph_id); })) {

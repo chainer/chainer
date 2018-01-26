@@ -1,4 +1,5 @@
 #include "xchainer/backprop.h"
+#include <algorithm>
 
 #include <string>
 #include <vector>
@@ -70,9 +71,7 @@ public:
     void CheckBackpropImpl(std::vector<Array>& target_inputs, std::vector<Array>& expected_grads, Fprop&& fprop, Args&&... args) const {
         ASSERT_EQ(expected_grads.size(), target_inputs.size());
 
-        for (auto& x : target_inputs) {
-            x.RequireGrad();
-        }
+        std::for_each(target_inputs.begin(), target_inputs.end(), [](auto& x) { x.RequireGrad(); });
 
         auto y = fprop(target_inputs, args...);
         Backward(y);
