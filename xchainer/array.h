@@ -35,6 +35,8 @@ namespace internal {
 class ArrayBody {
 public:
     ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset);
+    ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+              std::vector<std::pair<GraphId, std::shared_ptr<ArrayNode>>> nodes);
 
     bool HasNode(const GraphId& graph_id = "") const;
     const std::shared_ptr<ArrayNode>& CreateNode(const GraphId& graph_id = "");

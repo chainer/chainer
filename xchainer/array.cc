@@ -32,6 +32,10 @@ namespace internal {
 ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset)
     : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_() {}
 
+ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+                     std::vector<std::pair<GraphId, std::shared_ptr<ArrayNode>>> nodes)
+    : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_(nodes) {}
+
 bool ArrayBody::HasNode(const GraphId& graph_id) const {
     return std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; }) !=
            nodes_.end();
@@ -64,10 +68,8 @@ Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool i
     : body_(std::make_shared<internal::ArrayBody>(shape, dtype, is_contiguous, std::move(data), offset)) {}
 
 Array::Array(const Array& other)
-    : body_(
-          std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.is_contiguous(), other.body_->data_, other.offset())) {
-    std::copy(other.body_->nodes_.begin(), other.body_->nodes_.end(), std::back_inserter(body_->nodes_));
-}
+    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.is_contiguous(), other.body_->data_, other.offset(),
+                                                  other.body_->nodes_)) {}
 
 const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return body_->GetNode(graph_id)->grad(); }
 
