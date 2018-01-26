@@ -6,11 +6,23 @@ DCGAN: Generate the images from Deep Convolutinal GAN
 0. Introduction
 ================
 
+In this tutorial, we generate images from **generative adversarial network (GAN)**.
+It is a kind of generative model with deep neural network, and often applied to
+the image generation. The GAN technich is also applied to 
+`PaintsChainer <https://paintschainer.preferred.tech/index_en.html>`_,
+a famous automatic coloring service.
+
+In the tutorial, you will learn about the following things:
+
+1. Basic Idea of Generative Model
+2. The Difference among GAN and Other Generative Models
+3. Details of GAN
+4. Implementation of DCGAN in Chainer
 
 1. Basic Idea of Generative Model
 ==================================
 
-2. the Difference among GAN and Other Generative Models
+2. The Difference among GAN and Other Generative Models
 ========================================================
 
 
