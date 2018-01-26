@@ -166,17 +166,19 @@ void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
+    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_id_op_nodes;
 
     auto build_op_nodes = [&graph_id_op_nodes](auto& graph_id_node) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
         auto backward_function = [](const Array& gout) { return gout; };
-        OpNode& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
-        op_node.set_name("add");
-        op_node.set_rank(std::max(op_node.rank(), next_node->rank()));
-        op_node.RegisterNextNode(next_node);
-        op_node.RegisterBackwardFunction(backward_function);
+        auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
+        if (!op_node) {
+          op_node = std::make_shared<OpNode>("add");
+        }
+        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
+        op_node->RegisterNextNode(next_node);
+        op_node->RegisterBackwardFunction(backward_function);
     };
 
     // Create OpNodes
@@ -192,13 +194,13 @@ void Array::Add(const Array& rhs, Array& out) const {
         const auto& graph_id = graph_id_op_node.first;
         const auto& op_node = graph_id_op_node.second;
 
-        auto next_nodes = op_node.next_nodes();
+        auto next_nodes = op_node->next_nodes();
         int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
                                 return a->rank() < b->rank();
                             }))->rank();
 
         auto& out_node = out.body_->CreateNode(graph_id);
-        out_node->set_next_node(std::make_shared<OpNode>(op_node));
+        out_node->set_next_node(std::move(op_node));
         out_node->set_rank(next_rank + 1);
     }
 
@@ -220,17 +222,19 @@ void Array::Mul(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
+    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_id_op_nodes;
 
     auto build_op_nodes = [&graph_id_op_nodes](auto& graph_id_node, const Array& other) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
         auto backward_function = [other_view = other](const Array& gout) { return gout * other_view; };
-        OpNode& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
-        op_node.set_name("mul");
-        op_node.set_rank(std::max(op_node.rank(), next_node->rank()));
-        op_node.RegisterNextNode(next_node);
-        op_node.RegisterBackwardFunction(backward_function);
+        auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
+        if (!op_node) {
+          op_node = std::make_shared<OpNode>("mul");
+        }
+        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
+        op_node->RegisterNextNode(next_node);
+        op_node->RegisterBackwardFunction(backward_function);
     };
 
     // Create OpNodes
@@ -246,13 +250,13 @@ void Array::Mul(const Array& rhs, Array& out) const {
         const auto& graph_id = graph_id_op_node.first;
         const auto& op_node = graph_id_op_node.second;
 
-        auto next_nodes = op_node.next_nodes();
+        auto next_nodes = op_node->next_nodes();
         int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
                                 return a->rank() < b->rank();
                             }))->rank();
 
         auto& out_node = out.body_->CreateNode(graph_id);
-        out_node->set_next_node(std::make_shared<OpNode>(op_node));
+        out_node->set_next_node(std::move(op_node));
         out_node->set_rank(next_rank + 1);
     }
 
