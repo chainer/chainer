@@ -38,12 +38,7 @@ bool ArrayBody::HasNode(const GraphId& graph_id) const {
 }
 
 std::shared_ptr<const ArrayNode> ArrayBody::GetNode(const GraphId& graph_id) const {
-    auto it =
-        std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; });
-    if (it == nodes_.end()) {
-        throw XchainerError("Cannot find ArrayNode for graph: " + graph_id);
-    }
-    return it->second;
+    return std::const_pointer_cast<const ArrayNode>(GetMutableNode(graph_id));
 }
 
 const std::shared_ptr<ArrayNode>& ArrayBody::GetMutableNode(const GraphId& graph_id) const {
