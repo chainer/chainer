@@ -26,17 +26,19 @@ Arrays IncorrectBackwardUnaryFunc(const Arrays& inputs) {
 
     Array out = Array::EmptyLike(lhs);
 
-    std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
+    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_id_op_nodes;
 
     auto build_op_nodes = [&out, &graph_id_op_nodes](auto& graph_id_node) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
         auto backward_function = [](const Array& gout) { return gout * gout; };
-        OpNode& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
-        op_node.set_name("incorrect_unary");
-        op_node.set_rank(std::max(op_node.rank(), next_node->rank()));
-        op_node.RegisterNextNode(next_node);
-        op_node.RegisterBackwardFunction(backward_function);
+        auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
+        if (!op_node) {
+          op_node = std::make_shared<OpNode>("incorrect_unary");
+        }
+        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
+        op_node->RegisterNextNode(next_node);
+        op_node->RegisterBackwardFunction(backward_function);
     };
 
     for (auto& graph_id_node : lhs.nodes()) {
@@ -47,14 +49,14 @@ Arrays IncorrectBackwardUnaryFunc(const Arrays& inputs) {
         const auto& graph_id = graph_id_op_node.first;
         const auto& op_node = graph_id_op_node.second;
 
-        auto next_nodes = op_node.next_nodes();
+        auto next_nodes = op_node->next_nodes();
         int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
                                 return a->rank() < b->rank();
                             }))->rank();
 
         out.RequireGrad(graph_id);
         auto& out_node = out.GetMutableNode(graph_id);
-        out_node->set_next_node(std::make_shared<OpNode>(op_node));
+        out_node->set_next_node(op_node);
         out_node->set_rank(next_rank + 1);
     }
 
@@ -82,17 +84,19 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
 
     Array out = Array::EmptyLike(lhs);
 
-    std::unordered_map<GraphId, OpNode> graph_id_op_nodes;
+    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_id_op_nodes;
 
     auto build_op_nodes = [&out, &graph_id_op_nodes](auto& graph_id_node, const Array& other) {
         const auto& graph_id = graph_id_node.first;
         const auto& next_node = graph_id_node.second;
         auto backward_function = [other_view = other](const Array& gout) { return gout + other_view; };
-        OpNode& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
-        op_node.set_name("incorrect_binary");
-        op_node.set_rank(std::max(op_node.rank(), next_node->rank()));
-        op_node.RegisterNextNode(next_node);
-        op_node.RegisterBackwardFunction(backward_function);
+        auto& op_node = graph_id_op_nodes[graph_id];  // Create if not exists
+        if (!op_node) {
+          op_node = std::make_shared<OpNode>("incorrect_binary");
+        }
+        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
+        op_node->RegisterNextNode(next_node);
+        op_node->RegisterBackwardFunction(backward_function);
     };
 
     for (auto& graph_id_node : lhs.nodes()) {
@@ -106,14 +110,14 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
         const auto& graph_id = graph_id_op_node.first;
         const auto& op_node = graph_id_op_node.second;
 
-        auto next_nodes = op_node.next_nodes();
+        auto next_nodes = op_node->next_nodes();
         int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
                                 return a->rank() < b->rank();
                             }))->rank();
 
         out.RequireGrad(graph_id);
         auto& out_node = out.GetMutableNode(graph_id);
-        out_node->set_next_node(std::make_shared<OpNode>(op_node));
+        out_node->set_next_node(op_node);
         out_node->set_rank(next_rank + 1);
     }
 
