@@ -40,16 +40,25 @@ class ParallelUpdater(standard_updater.StandardUpdater):
             as ``models``.
         loss_func: Loss function. The model is used as a loss function by
             default.
+        loss_scale (float): Loss scaling factor. Loss scaling is a usefull
+            technique to mitigate vanishing gradient issue that tends to happen
+            when low precision data type like float16 is used during training.
+            If you set loss scaling factor, gradients of loss values are to be
+            multiplied by the factor before backprop starts. The factor is
+            propagated to whole gradients in a computational graph along the
+            backporp. The gradients of parameters are divided by the factor
+            just before the parameters are to be updated.
 
     """
 
     def __init__(self, iterator, optimizer, converter=convert.concat_examples,
-                 models=None, devices=None, loss_func=None):
+                 models=None, devices=None, loss_func=None, loss_scale=None):
         super(ParallelUpdater, self).__init__(
             iterator=iterator,
             optimizer=optimizer,
             converter=converter,
             loss_func=loss_func,
+            loss_scale=loss_scale,
         )
 
         if models is None:
@@ -123,7 +132,7 @@ class ParallelUpdater(standard_updater.StandardUpdater):
             model.cleargrads()
 
         for loss in losses:
-            loss.backward()
+            loss.backward(loss_scale=self.loss_scale)
 
         for model in six.itervalues(models_others):
             model_main.addgrads(model)

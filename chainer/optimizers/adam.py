@@ -16,6 +16,16 @@ _default_hyperparam.eta = 1.0
 _default_hyperparam.weight_decay_rate = 0
 
 
+def _learning_rate(hp, t):
+    if t == 0:
+        raise RuntimeError(
+            'Can\'t determine the learning rate of Adam optimizer '
+            'because the update steps have not been started.')
+    fix1 = 1. - math.pow(hp.beta1, t)
+    fix2 = 1. - math.pow(hp.beta2, t)
+    return hp.alpha * math.sqrt(fix2) / fix1
+
+
 class AdamRule(optimizer.UpdateRule):
 
     """Update rule of Adam optimization algorithm.
@@ -110,9 +120,7 @@ class AdamRule(optimizer.UpdateRule):
 
     @property
     def lr(self):
-        fix1 = 1. - math.pow(self.hyperparam.beta1, self.t)
-        fix2 = 1. - math.pow(self.hyperparam.beta2, self.t)
-        return self.hyperparam.alpha * math.sqrt(fix2) / fix1
+        return _learning_rate(self.hyperparam, self.t)
 
 
 class Adam(optimizer.GradientMethod):
@@ -151,10 +159,8 @@ class Adam(optimizer.GradientMethod):
                  beta2=_default_hyperparam.beta2,
                  eps=_default_hyperparam.eps,
                  eta=_default_hyperparam.eta,
-                 weight_decay_rate=_default_hyperparam.weight_decay_rate,
-                 model=None):
-        super(Adam, self).__init__(model)
-
+                 weight_decay_rate=_default_hyperparam.weight_decay_rate):
+        super(Adam, self).__init__()
         self.hyperparam.alpha = alpha
         self.hyperparam.beta1 = beta1
         self.hyperparam.beta2 = beta2
@@ -174,6 +180,4 @@ class Adam(optimizer.GradientMethod):
 
     @property
     def lr(self):
-        fix1 = 1. - math.pow(self.hyperparam.beta1, self.t)
-        fix2 = 1. - math.pow(self.hyperparam.beta2, self.t)
-        return self.hyperparam.alpha * math.sqrt(fix2) / fix1
+        return _learning_rate(self.hyperparam, self.t)

@@ -124,6 +124,7 @@ from chainer.functions.connection.n_step_rnn import NStepBiRNNReLU  # NOQA
 from chainer.functions.connection.n_step_rnn import NStepBiRNNTanh  # NOQA
 from chainer.functions.connection.n_step_rnn import NStepRNNReLU  # NOQA
 from chainer.functions.connection.n_step_rnn import NStepRNNTanh  # NOQA
+from chainer.functions.connection.shift import shift  # NOQA
 
 from chainer.functions.evaluation.accuracy import accuracy  # NOQA
 from chainer.functions.evaluation.accuracy import Accuracy  # NOQA

@@ -3,7 +3,8 @@ import warnings
 import numpy
 
 from chainer.backends import cuda
-from chainer import function
+from chainer import function_node
+import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
 
@@ -67,7 +68,7 @@ def _get_check_index(trans, right, row_idx=0, col_idx=1):
         return col_idx
 
 
-class MatMul(function.Function):
+class MatMul(function_node.FunctionNode):
 
     def __init__(self, transa=False, transb=False):
         self.transa = transa
@@ -98,31 +99,66 @@ class MatMul(function.Function):
             )
 
     def forward(self, x):
+        self.retain_inputs((0, 1))
         a, b = x
         y = _matmul(a, b, self.transa, self.transb)
         return utils.force_array(y),
 
-    def backward(self, x, gy):
-        a, b = x
+    def backward(self, indexes, grad_outputs):
+        a, b = self.get_retained_inputs()
+        return MatMulGrad(self.transa, self.transb).apply(
+            (a, b, grad_outputs[0]))
+
+
+class MatMulGrad(function_node.FunctionNode):
+
+    def __init__(self, transa=False, transb=False):
+        self.transa = transa
+        self.transb = transb
+
+    def forward(self, inputs):
+        self.retain_inputs((0, 1, 2))
+        a, b, gy = inputs
         a_shape = a.shape
         b_shape = b.shape
 
-        if gy[0].ndim == 0:
-            ga = gy[0] * b
+        if gy.ndim == 0:
+            ga = gy * b
         else:
-            ga = _matmul(gy[0], b, False, not self.transb)
+            ga = _matmul(gy, b, False, not self.transb)
         if self.transa and a.ndim != 1:
             ga = ga.swapaxes(-1, -2)
         ga = ga.reshape(a_shape)
 
-        if gy[0].ndim == 0:
-            gb = a * gy[0]
+        if gy.ndim == 0:
+            gb = a * gy
         else:
-            gb = _matmul(a, gy[0], not self.transa, False)
+            gb = _matmul(a, gy, not self.transa, False)
         if self.transb and a.ndim != 1:
             gb = gb.swapaxes(-1, -2)
         gb = gb.reshape(b_shape)
         return ga.astype(a.dtype), gb.astype(b.dtype)
+
+    def backward(self, indexes, grads):
+        a, b, gy = self.get_retained_inputs()
+        ret = []
+        if 0 in indexes or 1 in indexes:
+            ggab = MatMulGrad(self.transa, self.transb).apply(
+                (grads[0], grads[1], gy))
+            if 0 in indexes:
+                ret.append(chainer.functions.cast(ggab[0], a.dtype))
+            if 1 in indexes:
+                ret.append(chainer.functions.cast(ggab[1], b.dtype))
+        if 2 in indexes:
+            ggy = \
+                chainer.functions.reshape(chainer.functions.cast(
+                    MatMul(self.transa, self.transb).apply((grads[0], b))[0],
+                    gy.dtype), gy.shape) + \
+                chainer.functions.reshape(chainer.functions.cast(
+                    MatMul(self.transa, self.transb).apply((a, grads[1]))[0],
+                    gy.dtype), gy.shape)
+            ret.append(ggy)
+        return ret
 
 
 def matmul(a, b, transa=False, transb=False):
@@ -151,11 +187,11 @@ def matmul(a, b, transa=False, transb=False):
         >>> a = np.array([[1, 0], [0, 1]], 'f')
         >>> b = np.array([[4, 1], [2, 2]], 'f')
         >>> F.matmul(a, b).data
-        array([[ 4.,  1.],
-               [ 2.,  2.]], dtype=float32)
+        array([[4., 1.],
+               [2., 2.]], dtype=float32)
 
     """
-    return MatMul(transa=transa, transb=transb)(a, b)
+    return MatMul(transa=transa, transb=transb).apply((a, b))[0]
 
 
 def _get_size(typ, index):
@@ -171,7 +207,7 @@ def _batch_matmul(a, b, transa, transb, transout):
     return _matmul(a, b, transa, transb, transout)
 
 
-class BatchMatMul(function.Function):
+class BatchMatMul(function_node.FunctionNode):
 
     def __init__(self, transa=False, transb=False):
         self.transa = transa
@@ -198,16 +234,50 @@ class BatchMatMul(function.Function):
         )
 
     def forward(self, x):
+        self.retain_inputs((0, 1))
         a, b = x
         return _batch_matmul(a, b, self.transa, self.transb, False),
 
-    def backward(self, x, gy):
-        a, b = x
-        ga = _batch_matmul(gy[0], b, False, not self.transb,
+    def backward(self, indexes, grad_outputs):
+        a, b = self.get_retained_inputs()
+        return BatchMatMulGrad(self.transa, self.transb).apply(
+            (a, b, grad_outputs[0]))
+
+
+class BatchMatMulGrad(function_node.FunctionNode):
+
+    def __init__(self, transa=False, transb=False):
+        self.transa = transa
+        self.transb = transb
+
+    def forward(self, inputs):
+        self.retain_inputs((0, 1, 2))
+        a, b, gy = inputs
+        ga = _batch_matmul(gy, b, False, not self.transb,
                            self.transa).reshape(a.shape)
-        gb = _batch_matmul(a, gy[0], not self.transa, False,
+        gb = _batch_matmul(a, gy, not self.transa, False,
                            self.transb).reshape(b.shape)
         return ga, gb
+
+    def backward(self, indexes, grads):
+        a, b, gy = self.get_retained_inputs()
+        ret = []
+        if 0 in indexes or 1 in indexes:
+            ggab = BatchMatMulGrad(self.transa, self.transb).apply(
+                (grads[0], grads[1], gy))
+            if 0 in indexes:
+                ret.append(ggab[0])
+            if 1 in indexes:
+                ret.append(ggab[1])
+        if 2 in indexes:
+            a = chainer.functions.reshape(a, (a.shape[:2] + (-1,)))
+            b = chainer.functions.reshape(b, (b.shape[:2] + (-1,)))
+            ggy = \
+                BatchMatMul(self.transa, self.transb).apply(
+                    (grads[0], b))[0] + \
+                BatchMatMul(self.transa, self.transb).apply(
+                    (a, grads[1]))[0]
+        return ggab[0], ggab[1], ggy
 
 
 def batch_matmul(a, b, transa=False, transb=False):
@@ -234,4 +304,4 @@ def batch_matmul(a, b, transa=False, transb=False):
     """
     warnings.warn('batch_matmul is deprecated. Use matmul instead.',
                   DeprecationWarning)
-    return BatchMatMul(transa=transa, transb=transb)(a, b)
+    return BatchMatMul(transa=transa, transb=transb).apply((a, b))[0]
