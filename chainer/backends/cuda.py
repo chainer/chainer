@@ -186,8 +186,8 @@ def get_device(*args):
     .. note::
 
         This API is deprecated. Please use
-        :func:`~chainer.cuda.get_device_from_id`
-        or :func:`~chainer.cuda.get_device_from_array` instead.
+        :func:`~chainer.backends.cuda.get_device_from_id`
+        or :func:`~chainer.backends.cuda.get_device_from_array` instead.
 
     This is a convenient utility to select a correct device if the type of
     ``arg`` is unknown (i.e., one can use this function on arrays that may be
@@ -255,7 +255,7 @@ def to_gpu(array, device=None, stream=None):
     """
     if stream is not None:
         warnings.warn(
-            'The stream option is deprecated in chainer.cuda.to_gpu. '
+            'The stream option is deprecated in chainer.backends.cuda.to_gpu. '
             'Please remove it.', DeprecationWarning)
 
     check_cuda_available()
@@ -444,7 +444,7 @@ def clear_memo():
     """Clears the memoized results for all functions decorated by memoize.
 
     This function works like :func:`cupy.clear_memo` as a counterpart for
-    :func:`chainer.cuda.memoize`. It can be used even if CUDA is not available.
+    :func:`chainer.backends.cuda.memoize`. It can be used even if CUDA is not available.
     In such a case, this function does nothing.
 
     """
@@ -459,7 +459,7 @@ def clear_memo():
 def elementwise(in_params, out_params, operation, name, **kwargs):
     """Creates an elementwise kernel function.
 
-    This function uses :func:`~chainer.cuda.memoize` to cache the
+    This function uses :func:`~chainer.backends.cuda.memoize` to cache the
     kernel object, i.e. the resulting kernel object is cached for each argument
     combination and CUDA device.
 
@@ -478,7 +478,7 @@ def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
            identity, name,  **kwargs):
     """Creates a global reduction kernel function.
 
-    This function uses :func:`~chainer.cuda.memoize` to cache the resulting
+    This function uses :func:`~chainer.backends.cuda.memoize` to cache the resulting
     kernel object, i.e. the resulting kernel object is cached for each argument
     combination and CUDA device.
 
@@ -580,7 +580,7 @@ def should_use_cudnn(level, lowest_version=0):
     """Determines if we should use cuDNN.
 
     This function checks ``chainer.config.use_cudnn``,
-    ``chainer.cuda.cudnn_enabled``, and the cuDNN version. Note that
+    ``chainer.backends.cuda.cudnn_enabled``, and the cuDNN version. Note that
     ``cudnn_enabled`` flag is fixed at loading of :mod:`chainer` module.
 
     Args:
