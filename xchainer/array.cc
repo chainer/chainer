@@ -30,12 +30,12 @@ namespace xchainer {
 namespace internal {
 
 // Private definition of ArrayBody
-ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset)
-    : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_() {}
-
 ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
                      std::vector<std::pair<GraphId, std::shared_ptr<ArrayNode>>> nodes)
     : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_(nodes) {}
+
+ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset)
+    : ArrayBody(shape, dtype, is_contiguous, data, offset, {}) {}
 
 bool ArrayBody::HasNode(const GraphId& graph_id) const {
     return std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; }) !=
