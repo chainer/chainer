@@ -444,8 +444,8 @@ def clear_memo():
     """Clears the memoized results for all functions decorated by memoize.
 
     This function works like :func:`cupy.clear_memo` as a counterpart for
-    :func:`chainer.backends.cuda.memoize`. It can be used even if CUDA is not available.
-    In such a case, this function does nothing.
+    :func:`chainer.backends.cuda.memoize`. It can be used even if CUDA is
+    not available. In such a case, this function does nothing.
 
     """
     if available:
@@ -478,9 +478,9 @@ def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
            identity, name,  **kwargs):
     """Creates a global reduction kernel function.
 
-    This function uses :func:`~chainer.backends.cuda.memoize` to cache the resulting
-    kernel object, i.e. the resulting kernel object is cached for each argument
-    combination and CUDA device.
+    This function uses :func:`~chainer.backends.cuda.memoize` to cache the
+    resulting kernel object, i.e. the resulting kernel object is cached for
+    each argument combination and CUDA device.
 
     The arguments are the same as those for
     :class:`cupy.ReductionKernel`, except that the ``name`` argument is
