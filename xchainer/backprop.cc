@@ -38,7 +38,7 @@ public:
             std::shared_ptr<const OpNode> op_node = candidate_op_nodes_.top();
             candidate_op_nodes_.pop();
 
-            std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients(op_node);
+            std::vector<Array> gxs = ComputeNextGradients(op_node);
             AccumulateNextGradients(op_node, gxs);
 
             for (const auto& next_array_node : op_node->next_nodes()) {
@@ -48,19 +48,15 @@ public:
     };
 
 private:
-    std::vector<nonstd::optional<Array>> ComputeNextGradients(const std::shared_ptr<const OpNode>& op_node) {
+    std::vector<Array> ComputeNextGradients(const std::shared_ptr<const OpNode>& op_node) {
         const std::shared_ptr<ArrayNode>& previous_array_node = previous_array_node_map_.at(op_node);
 
         const nonstd::optional<Array>& gy = previous_array_node->grad();
         assert(gy);
 
-        std::vector<nonstd::optional<Array>> gxs;
+        std::vector<Array> gxs;
         for (const auto& backward_function : op_node->backward_functions()) {
-            if (backward_function) {
-                gxs.emplace_back(backward_function(*gy));
-            } else {
-                gxs.emplace_back(nonstd::nullopt);
-            }
+            gxs.emplace_back(backward_function(*gy));
         }
 
         if (previous_array_node != output_array_node_) {
@@ -70,19 +66,17 @@ private:
         return gxs;
     }
 
-    void AccumulateNextGradients(const std::shared_ptr<const OpNode>& op_node, const std::vector<nonstd::optional<Array>>& gxs) {
+    void AccumulateNextGradients(const std::shared_ptr<const OpNode>& op_node, const std::vector<Array>& gxs) {
         gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node->next_nodes();
         assert(next_array_nodes.size() == gxs.size());
         for (decltype(next_array_nodes)::index_type i = 0; i < next_array_nodes.size(); ++i) {
-            const nonstd::optional<Array>& gx = gxs[i];
+            const Array& gx = gxs[i];
             const std::shared_ptr<ArrayNode>& next_array_node = next_array_nodes[i];
-            if (gx) {
-                const nonstd::optional<Array>& grad = next_array_node->grad();
-                if (grad) {
-                    next_array_node->set_grad(*grad + *gx);
-                } else {
-                    next_array_node->set_grad(std::move(*gx));
-                }
+            const nonstd::optional<Array>& grad = next_array_node->grad();
+            if (grad) {
+                next_array_node->set_grad(*grad + gx);
+            } else {
+                next_array_node->set_grad(std::move(gx));
             }
         }
     }
