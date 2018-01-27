@@ -113,7 +113,8 @@ def main():
         print('Load model from', args.initmodel)
         chainer.serializers.load_npz(args.initmodel, model)
     if args.gpu >= 0:
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()  # Make the GPU current
+        # Make the GPU current
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()
 
     # Load the datasets and mean file
