@@ -6,8 +6,8 @@ import numpy
 import six
 
 import chainer
-from chainer import basic_math
 from chainer.backends import cuda
+from chainer import basic_math
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr

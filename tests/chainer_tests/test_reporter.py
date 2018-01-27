@@ -5,8 +5,8 @@ import unittest
 import numpy
 
 import chainer
-from chainer import configuration
 from chainer.backends import cuda
+from chainer import configuration
 from chainer import functions
 from chainer import testing
 from chainer.testing import attr
