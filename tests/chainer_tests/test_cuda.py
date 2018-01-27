@@ -59,13 +59,13 @@ class TestCudaModuleAliasForBackwardCompatibility(unittest.TestCase):
                 code, stdoutdata, stderrdata))
 
     def test_import1(self):
-        self._check('from chainer.backends import cuda; cuda.get_device_from_id')
+        self._check('from chainer import cuda; cuda.get_device_from_id')
 
     def test_import2(self):
-        self._check('import chainer.backends.cuda; chainer.backends.cuda.get_device_from_id')
+        self._check('import chainer.cuda; chainer.cuda.get_device_from_id')
 
     def test_import3(self):
-        self._check('import chainer; chainer.backends.cuda.get_device_from_id')
+        self._check('import chainer; chainer.cuda.get_device_from_id')
 
 
 class TestCuda(unittest.TestCase):
