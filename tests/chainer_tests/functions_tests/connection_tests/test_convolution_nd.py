@@ -6,7 +6,7 @@ import numpy
 from operator import mul
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer.functions.connection import convolution_nd
 from chainer import gradient_check

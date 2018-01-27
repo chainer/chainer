@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import initializers
 import chainer.links as L
