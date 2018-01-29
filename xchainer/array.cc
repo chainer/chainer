@@ -73,8 +73,7 @@ void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrap
             op_node = std::make_shared<OpNode>(name);
         }
         op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
-        op_node->RegisterNextNode(next_node);
-        op_node->RegisterBackwardFunction(backward_function);
+        op_node->RegisterNextNode(next_node, backward_function);
     };
 
     for (size_t i = 0; i < nin; ++i) {                      // For each input

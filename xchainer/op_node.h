@@ -20,9 +20,8 @@ public:
            std::vector<std::function<Array(const Array&)>> backward_functions)
         : name_(std::move(name)), rank_(rank), next_nodes_(std::move(next_nodes)), backward_functions_(std::move(backward_functions)) {}
 
-    void RegisterNextNode(std::shared_ptr<ArrayNode> next_node) { next_nodes_.push_back(std::move(next_node)); }
-
-    void RegisterBackwardFunction(std::function<Array(const Array&)> backward_function) {
+    void RegisterNextNode(std::shared_ptr<ArrayNode> next_node, std::function<Array(const Array&)> backward_function) {
+        next_nodes_.push_back(std::move(next_node));
         backward_functions_.push_back(std::move(backward_function));
     }
 
