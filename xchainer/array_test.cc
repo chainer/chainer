@@ -405,6 +405,34 @@ TEST_P(ArrayTest, SetRequiresGrad) {
     }
 }
 
+TEST_P(ArrayTest, MakeGradStoppingView) {
+    // Default graph
+    {
+        Array x = MakeArray<bool>({1}, {true});
+        x.RequireGrad();
+        EXPECT_TRUE(x.IsGradRequired());
+        Array v = x.MakeGradStoppingView();
+        EXPECT_TRUE(x.IsGradRequired());
+        EXPECT_FALSE(v.IsGradRequired());
+    }
+
+    // User defined graph
+    {
+        GraphId graph_id1 = "graph_1";
+        GraphId graph_id2 = "graph_2";
+        Array x = MakeArray<bool>({1}, {true});
+        x.RequireGrad(graph_id1);
+        x.RequireGrad(graph_id2);
+        EXPECT_TRUE(x.IsGradRequired(graph_id1));
+        EXPECT_TRUE(x.IsGradRequired(graph_id2));
+        Array v = x.MakeGradStoppingView(graph_id1);
+        EXPECT_TRUE(x.IsGradRequired(graph_id1));
+        EXPECT_TRUE(x.IsGradRequired(graph_id2));
+        EXPECT_FALSE(v.IsGradRequired(graph_id1));
+        EXPECT_TRUE(v.IsGradRequired(graph_id2));
+    }
+}
+
 TEST_P(ArrayTest, Grad) {
     GraphId graph_id = "graph_1";
     Shape shape{2, 3};
