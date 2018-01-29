@@ -291,7 +291,7 @@ Backprop Through Time is implemented as follows.
 
 .. code-block:: python
 
-   class BPTTUpdater(training.StandardUpdater):
+   class BPTTUpdater(training.updaters.StandardUpdater):
 
        def __init__(self, train_iter, optimizer, bprop_len):
            super(BPTTUpdater, self).__init__(train_iter, optimizer)
