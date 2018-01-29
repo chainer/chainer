@@ -90,7 +90,7 @@ void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrap
         const GraphId& graph_id = edge.first;
         const std::shared_ptr<OpNode>& op_node = edge.second;
 
-        std::shared_ptr<ArrayNode> out_node = out.body()->CreateNode(graph_id);
+        const std::shared_ptr<ArrayNode>& out_node = out.body()->CreateNode(graph_id);
         out_node->set_next_node(op_node);
         out_node->set_rank(op_node->rank() + 1);
     }
