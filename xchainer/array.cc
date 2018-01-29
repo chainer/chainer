@@ -257,14 +257,9 @@ void CreateGraph(std::string name, std::vector<std::reference_wrapper<const Arra
         const auto& graph_id = edge.first;
         const auto& op_node = edge.second;
 
-        auto next_nodes = op_node->next_nodes();
-        int64_t next_rank = (*std::max_element(next_nodes.begin(), next_nodes.end(), [](const auto& a, const auto& b) {
-                                return a->rank() < b->rank();
-                            }))->rank();
-
         auto& out_node = out.body()->CreateNode(graph_id);
         out_node->set_next_node(op_node);
-        out_node->set_rank(next_rank + 1);
+        out_node->set_rank(op_node->rank() + 1);
     }
 }
 
