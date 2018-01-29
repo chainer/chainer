@@ -30,7 +30,7 @@ public:
 
     GraphId graph_id() const { return graph_id_; }
 
-    void set_graph_id(GraphId graph_id) { graph_id_ = graph_id; }
+    void set_graph_id(GraphId graph_id) { graph_id_ = std::move(graph_id); }
 
     void ClearGrad() noexcept { grad_.reset(); }
 
