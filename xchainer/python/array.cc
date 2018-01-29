@@ -141,7 +141,7 @@ void InitXchainerArray(pybind11::module& m) {
                       [](const ArrayBodyPtr& self, bool value) {
                           // TODO(hvy): requires_grad should not be a boolean property but a method that takes a graph id argument, aligning
                           // to the c++ interface. Currently, this property is broken in the sense that once the required_grad flag is set
-                          // to true (and an ArrayNode is created internally) it cannot be uset.
+                          // to true (and an ArrayNode is created internally) it cannot be unset.
                           if (value && !self->HasNode()) {
                               Array{self}.RequireGrad();
                           }
