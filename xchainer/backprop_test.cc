@@ -212,9 +212,7 @@ TEST_P(BackpropTest, MultipleGraphsSameInput) {
     Array expected_1 = MakeFullArray({1}, {6.0f});
     ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_1));
 
-    // TODO(hvy): The following expectation should be negated once we have implemented the functionality to not create graphs during back
-    // propagation
-    EXPECT_TRUE(x1.GetGrad(graph_id_1)->IsGradRequired(graph_id_1));
+    EXPECT_FALSE(x1.GetGrad(graph_id_1)->IsGradRequired(graph_id_1));
 }
 
 TEST_P(BackpropTest, MultipleGraphsNonExisting) {
