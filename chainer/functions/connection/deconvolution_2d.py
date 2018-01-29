@@ -3,7 +3,7 @@ import six
 
 import chainer
 from chainer.backends import cuda
-from chainer.backends import ideep
+from chainer.backends import intel64
 from chainer import configuration
 from chainer import function_node
 import chainer.functions
@@ -144,7 +144,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             # Grouped convolution implementaion
             return self._forward_grouped_convolution(x, W, b)
 
-        elif (ideep.should_use('>=auto')
+        elif (intel64.should_use_ideep('>=auto')
                 and all(_.dtype == numpy.float32 for _ in inputs)
                 and (self.dy == 1 and self.dx == 1)):
 
@@ -167,7 +167,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
     def _forward_ideep(self, x, W, b):
         # bias is not supported yet
-        cc = ideep.ideep.xnn.ConvolutionBackwardData(
+        cc = intel64.ideep.xnn.ConvolutionBackwardData(
             (x, W), stride=(self.sy, self.sx),
             pad=(self.ph, self.pw), outsize=(self.outh, self.outw),
             cover_all=self.cover_all)

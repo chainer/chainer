@@ -3,7 +3,7 @@ import six
 
 import chainer
 from chainer.backends import cuda
-from chainer.backends import ideep
+from chainer.backends import intel64
 from chainer import configuration
 from chainer import function_node
 import chainer.functions
@@ -119,7 +119,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         return out_h, out_w
 
     def forward_cpu(self, inputs):
-        if (ideep.should_use('>=auto')
+        if (intel64.should_use_ideep('>=auto')
                 and all(_.dtype == numpy.float32 for _ in inputs)
                 and (self.dy == 1 and self.dx == 1)
                 and self.group == 1):
@@ -153,7 +153,7 @@ class Convolution2DFunction(function_node.FunctionNode):
     def forward_ideep(self, inputs):
         self.retain_inputs((0, 1))
 
-        cc = ideep.ideep.xnn.ConvolutionForward(
+        cc = intel64.ideep.xnn.ConvolutionForward(
             inputs, stride=(self.sy, self.sx),
             pad=(self.ph, self.pw), cover_all=self.cover_all)
         self.ideep_hint = cc.hint
@@ -369,7 +369,7 @@ class Convolution2DGradW(function_node.FunctionNode):
     def forward_ideep(self, inputs):
         self.retain_inputs((0, 1))
 
-        cc = ideep.ideep.xnn.ConvolutionBackwardWeights(
+        cc = intel64.ideep.xnn.ConvolutionBackwardWeights(
             inputs, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
             outsize=(self.kh, self.kw), cover_all=self.cover_all,
             hint=self.ideep_hint)

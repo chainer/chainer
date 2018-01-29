@@ -2,7 +2,7 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
-from chainer.backends import ideep
+from chainer.backends import intel64
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -28,7 +28,7 @@ class ReLU(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         x, = inputs
-        if (ideep.should_use('>=auto')
+        if (intel64.should_use_ideep('>=auto')
                 and x.dtype == numpy.float32
                 and (x.ndim == 2 or x.ndim == 4)):
 
@@ -42,7 +42,7 @@ class ReLU(function_node.FunctionNode):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
 
-        cc = ideep.ideep.xnn.ReLUForward(inputs)
+        cc = intel64.ideep.xnn.ReLUForward(inputs)
         self.ideep_hint = cc.hint
 
         y, = cc.execute_on()
@@ -153,7 +153,7 @@ class ReLUGradIdeep(ReLUGrad3Base):
         self.hint = hint
 
     def forward(self, inputs):
-        cc = ideep.ideep.xnn.ReLUBackward((self.x,), inputs, self.hint)
+        cc = intel64.ideep.xnn.ReLUBackward((self.x,), inputs, self.hint)
         ggx, = cc.execute_on()
         return ggx,
 

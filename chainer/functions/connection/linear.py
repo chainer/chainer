@@ -1,7 +1,7 @@
 import numpy
 
 from chainer.backends import cuda
-from chainer.backends import ideep
+from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
@@ -32,7 +32,7 @@ class LinearFunction(function_node.FunctionNode):
             )
 
     def forward(self, inputs):
-        if (ideep.should_use('>=auto')
+        if (intel64.should_use_ideep('>=auto')
                 and all([v.dtype == numpy.float32 for v in inputs])
                 and cuda.get_array_module(*inputs) is numpy):
 
@@ -60,7 +60,7 @@ class LinearFunction(function_node.FunctionNode):
         return y,
 
     def _forward_ideep(self, inputs):
-        cc = ideep.ideep.xnn.LinearForward(inputs)
+        cc = intel64.ideep.xnn.LinearForward(inputs)
         self._ideep_hint = cc.hint
         self._ideep_W = cc.W
 
@@ -124,7 +124,7 @@ class LinearGradDIdeep(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         W, gy = inputs
 
-        cc = ideep.ideep.xnn.LinearBackwardData(
+        cc = intel64.ideep.xnn.LinearBackwardData(
             self._input_data, (gy,), self.hint, self.W)
 
         gx = cc.execute_on()
@@ -159,7 +159,7 @@ class LinearGradWIdeep(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         x, gy = inputs
-        cc = ideep.ideep.xnn.LinearBackwardWeighs(
+        cc = intel64.ideep.xnn.LinearBackwardWeighs(
             self._input_data, (gy,), self.hint)
 
         gW_b = cc.execute_on()
