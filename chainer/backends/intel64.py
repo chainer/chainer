@@ -38,9 +38,6 @@ def check_ideep_available():
             'Reason: {}'.format(type(_error).__name__, str(_error)))
 
 
-_ideep_version = 0
-
-
 def should_use_ideep(level, lowest_version=0):
     """Determines if we should use iDeep.
 
