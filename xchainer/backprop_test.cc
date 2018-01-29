@@ -137,14 +137,24 @@ TEST_P(BackpropTest, BackwardSoleArrayNode) {
 }
 
 TEST_P(BackpropTest, DoubleBackprop) {
-    auto fprop = [](auto& xs, auto& ys) {
-        auto z = xs[0] * (xs[0] + ys[0]);
-        Backward(z);
-        auto gx = *xs[0].GetGrad();
-        xs[0].ClearGrad();
-        return gx;
-    };
-    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop);
+    GraphId graph_x = "graph_x";
+    GraphId graph_y = "graph_y";
+
+    auto x = Array::Full({1}, 2.0f);
+    x.RequireGrad(graph_x);
+
+    auto y = Array::Full({1}, 3.0f);
+    y.RequireGrad(graph_y);
+
+    auto z = x * (x + y);
+    Backward(z, graph_x);
+
+    auto gx = *x.GetGrad(graph_x);
+    auto w = x * gx;
+    Backward(w, graph_y);
+
+    auto e = Array::Full({1}, 2.0f);
+    ExpectEqual<float>(e, *y.GetGrad(graph_y));
 }
 
 TEST_P(BackpropTest, BackwardInputToMultipleOps) {
