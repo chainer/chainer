@@ -9,7 +9,7 @@ from chainer.utils import type_check
 
 class LinearFunction(function_node.FunctionNode):
 
-    _ideep_hint = None
+    _use_ideep = False
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -37,6 +37,7 @@ class LinearFunction(function_node.FunctionNode):
                 and cuda.get_array_module(*inputs) is numpy):
 
             # iDeep implementation
+            self._use_ideep = True
             return self._forward_ideep(inputs)
 
         # Generic implementation
@@ -60,45 +61,39 @@ class LinearFunction(function_node.FunctionNode):
         return y,
 
     def _forward_ideep(self, inputs):
-        cc = intel64.ideep.xnn.LinearForward(inputs)
-        self._ideep_hint = cc.hint
-        self._ideep_W = cc.W
-
-        y, = cc.execute_on()
-        y.reset_buf_order()
-
         if len(inputs) == 3:
-            self.retain_inputs((0, 1, 2))
+            x, W, b = inputs
         else:
-            self.retain_inputs((0, 1))
+            (x, W), b = inputs, None
+
+        y = intel64.ideep.linear.Forward(
+            intel64.ideep.array(x),
+            intel64.ideep.array(W),
+            intel64.ideep.array(b) if b is not None else None)
+
+        self.retain_inputs((0, 1))
         return y,
 
     def backward(self, indexes, grad_outputs):
         ret = []
         gy, = grad_outputs
 
-        if self._ideep_hint is not None:
+        x, W = self.get_retained_inputs()
+
+        if self._use_ideep:
 
             # iDeep implementation
-            inputs = self.get_retained_inputs()
-            input_data = [v.data for v in inputs]
-            x, W = inputs[:2]
-
             if 0 in indexes:  # grad_x
-                gx = LinearGradDIdeep(
-                    self._ideep_hint, self._ideep_W, input_data).apply((W, gy))
+                gx = LinearGradDIdeep().apply((W, gy))
                 ret.append(gx[0])
-            if 1 in indexes or 2 in indexes:
-                gW_b = LinearGradWIdeep(
-                    self._ideep_hint, input_data).apply((x, gy))
-                if 1 in indexes:  # grad_W
-                    ret.append(gW_b[0])
-                if 2 in indexes:  # grad_b
-                    ret.append(gW_b[1])
+            if 1 in indexes:  # grad_W
+                gW = LinearGradWIdeep().apply((x, gy))
+                ret.append(gW[0])
+            if 2 in indexes:  # grad_b
+                gb = chainer.functions.sum(gy, axis=0)
+                ret.append(gb)
         else:
             # Generic implementation
-            inputs = self.get_retained_inputs()
-            x, W = inputs
             if 0 in indexes:
                 gx, = LinearGradData().apply((W, gy))
                 ret.append(chainer.functions.cast(gx, x.dtype))
@@ -114,24 +109,15 @@ class LinearFunction(function_node.FunctionNode):
 
 class LinearGradDIdeep(function_node.FunctionNode):
 
-    def __init__(self, hint, ccW, input_data):
-        super(LinearGradDIdeep, self).__init__()
-
-        self._input_data = input_data
-        self.W = ccW
-        self.hint = hint
-
     def forward_cpu(self, inputs):
         W, gy = inputs
 
-        cc = intel64.ideep.xnn.LinearBackwardData(
-            self._input_data, (gy,), self.hint, self.W)
-
-        gx = cc.execute_on()
-        gx[0].reset_buf_order()
+        gx = intel64.ideep.linear.BackwardData(
+            intel64.ideep.array(W),
+            intel64.ideep.array(gy))
 
         self.retain_inputs((0, 1))
-        return gx
+        return gx,
 
     def backward(self, indexes, grad_outputs):
         inputs = self.get_retained_inputs()
@@ -151,22 +137,13 @@ class LinearGradDIdeep(function_node.FunctionNode):
 
 class LinearGradWIdeep(function_node.FunctionNode):
 
-    def __init__(self, hint, input_data):
-        super(LinearGradWIdeep, self).__init__()
-
-        self._input_data = input_data
-        self.hint = hint
-
     def forward_cpu(self, inputs):
         x, gy = inputs
-        cc = intel64.ideep.xnn.LinearBackwardWeighs(
-            self._input_data, (gy,), self.hint)
-
-        gW_b = cc.execute_on()
-        gW_b[0].reset_buf_order()
+        gW = intel64.ideep.linear.BackwardWeights(
+            intel64.ideep.array(x),
+            intel64.ideep.array(gy))
         self.retain_inputs((0, 1))
-
-        return gW_b
+        return gW,
 
     def backward(self, indexes, grad_outputs):
         inputs = self.get_retained_inputs()
