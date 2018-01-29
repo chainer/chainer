@@ -32,7 +32,7 @@ namespace internal {
 // Private definition of ArrayBody
 ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
                      std::vector<std::pair<GraphId, std::shared_ptr<ArrayNode>>> nodes)
-    : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_(nodes) {}
+    : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_(std::move(nodes)) {}
 
 ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset)
     : ArrayBody(shape, dtype, is_contiguous, data, offset, {}) {}
@@ -42,9 +42,7 @@ bool ArrayBody::HasNode(const GraphId& graph_id) const {
            nodes_.end();
 }
 
-std::shared_ptr<const ArrayNode> ArrayBody::GetNode(const GraphId& graph_id) const {
-    return std::const_pointer_cast<const ArrayNode>(GetMutableNode(graph_id));
-}
+std::shared_ptr<const ArrayNode> ArrayBody::GetNode(const GraphId& graph_id) const { return GetMutableNode(graph_id); }
 
 const std::shared_ptr<ArrayNode>& ArrayBody::GetMutableNode(const GraphId& graph_id) const {
     auto it =
