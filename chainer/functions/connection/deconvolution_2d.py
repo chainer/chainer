@@ -47,7 +47,7 @@ def _pair(x):
 class Deconvolution2DFunction(function_node.FunctionNode):
 
     cover_all = None
-    ideep_hint = None
+    _use_ideep = False
 
     def __init__(self, stride=1, pad=0, outsize=None, group=1, **kwargs):
         argument.check_unexpected_kwargs(
@@ -141,7 +141,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self._calc_out_size(x, W)
 
         if self.group > 1:
-            # Grouped convolution implementaion
+            # Grouped convolution implementation
             return self._forward_grouped_convolution(x, W, b)
 
         elif (intel64.should_use_ideep('>=auto')
@@ -149,6 +149,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 and (self.dy == 1 and self.dx == 1)):
 
             # iDeep implementation
+            # TODO(iDeep): Support group
+            self._use_ideep = True
             return self._forward_ideep(x, W, b)
 
         else:
@@ -166,18 +168,29 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         return y,
 
     def _forward_ideep(self, x, W, b):
-        # bias is not supported yet
-        cc = intel64.ideep.xnn.ConvolutionBackwardData(
-            (x, W), stride=(self.sy, self.sx),
-            pad=(self.ph, self.pw), outsize=(self.outh, self.outw),
-            cover_all=self.cover_all)
+        _, in_c, kh, kw = W.shape
+        n, _, in_h, in_w = x.shape
 
-        self.ideep_hint = cc.hint
-        y, = cc.execute_on()
+        self.pd = (self.sy * (in_h - 1)
+                   + (kh + (kh - 1) * (self.dy - 1))
+                   - self.outh - self.ph)
+        self.pr = (self.sx * (in_w - 1)
+                   + (kw + (kw - 1) * (self.dx - 1))
+                   - self.outw - self.pw)
+
+        param = intel64.ideep.convolution2DParam(
+            (n, in_c, self.outh, self.outw),
+            self.dy, self.dx,
+            self.sy, self.sx,
+            self.ph, self.pw,
+            self.pd, self.pr)
+        y = intel64.ideep.convolution2D.BackwardData(
+            intel64.ideep.array(W),
+            intel64.ideep.array(x),
+            param)
 
         if b is not None:
             y += b.reshape(1, b.size, 1, 1)
-
         return y,
 
     def forward_gpu(self, inputs):

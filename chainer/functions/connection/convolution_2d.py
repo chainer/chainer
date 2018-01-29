@@ -60,7 +60,7 @@ def _get_algorithm_bwd_filter(
 
 class Convolution2DFunction(function_node.FunctionNode):
 
-    ideep_hint = None
+    _use_ideep = False
 
     def __init__(self, stride=1, pad=0, cover_all=False, group=1, **kwargs):
         argument.check_unexpected_kwargs(
@@ -121,10 +121,11 @@ class Convolution2DFunction(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         if (intel64.should_use_ideep('>=auto')
                 and all(_.dtype == numpy.float32 for _ in inputs)
-                and (self.dy == 1 and self.dx == 1)
                 and self.group == 1):
 
             # iDeep implementation
+            # TODO(iDeep): Support group
+            self._use_ideep = True
             return self.forward_ideep(inputs)
 
         self.retain_inputs((0, 1))  # retain only x and W
@@ -152,13 +153,29 @@ class Convolution2DFunction(function_node.FunctionNode):
 
     def forward_ideep(self, inputs):
         self.retain_inputs((0, 1))
+        if len(inputs) == 3:
+            x, W, b = inputs
+        else:
+            (x, W), b = inputs, None
+        out_c, input_c, kh, kw = W.shape
+        n, c, h, w = x.shape
 
-        cc = intel64.ideep.xnn.ConvolutionForward(
-            inputs, stride=(self.sy, self.sx),
-            pad=(self.ph, self.pw), cover_all=self.cover_all)
-        self.ideep_hint = cc.hint
-
-        y, = cc.execute_on()
+        out_h, out_w = self._get_out_size(inputs)
+        self.pd = (self.sy * (out_h - 1)
+                   + (kh + (kh - 1) * (self.dy - 1)) - h - self.ph)
+        self.pr = (self.sx * (out_w - 1)
+                   + (kw + (kw - 1) * (self.dx - 1)) - w - self.pw)
+        param = intel64.ideep.convolution2DParam(
+            (n, out_c, out_h, out_w),
+            self.dy, self.dx,
+            self.sx, self.sy,
+            self.ph, self.pw,
+            self.pd, self.pr)
+        y = intel64.ideep.convolution2D.Forward(
+            intel64.ideep.array(x),
+            intel64.ideep.array(W),
+            intel64.ideep.array(b) if b is not None else None,
+            param)
         return y,
 
     def forward_gpu(self, inputs):
@@ -336,11 +353,12 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.cover_all = conv2d.cover_all
         self.W_dtype = W_node.dtype
         self.group = conv2d.group
-        self.ideep_hint = conv2d.ideep_hint
-        assert self.ideep_hint is None or self.group == 1
+        self._use_ideep = conv2d._use_ideep
+        assert self.group == 1 or not self._use_ideep
 
     def forward_cpu(self, inputs):
-        if self.ideep_hint is not None:
+        if self._use_ideep:
+            # TODO(iDeep): Support group
             return self.forward_ideep(inputs)
 
         self.retain_inputs((0, 1))
@@ -368,13 +386,27 @@ class Convolution2DGradW(function_node.FunctionNode):
 
     def forward_ideep(self, inputs):
         self.retain_inputs((0, 1))
+        x, gy = inputs
 
-        cc = intel64.ideep.xnn.ConvolutionBackwardWeights(
-            inputs, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-            outsize=(self.kh, self.kw), cover_all=self.cover_all,
-            hint=self.ideep_hint)
-        gW, gb = cc.execute_on()
+        n, input_c, h, w = x.shape
+        n, out_c, out_h, out_w = gy.shape
+        self.pd = (self.sy * (out_h - 1)
+                   + (self.kh + (self.kh - 1) * (self.dy - 1))
+                   - h - self.ph)
+        self.pr = (self.sx * (out_w - 1)
+                   + (self.kw + (self.kw - 1) * (self.dx - 1))
+                   - w - self.pw)
 
+        param = intel64.ideep.convolution2DParam(
+            (out_c, input_c, self.kh, self.kw),
+            self.dy, self.dx,
+            self.sy, self.sx,
+            self.ph, self.pw,
+            self.pd, self.pr)
+        gW = intel64.ideep.convolution2D.BackwardWeights(
+            intel64.ideep.array(x),
+            intel64.ideep.array(gy),
+            param)
         return gW,
 
     def forward_gpu(self, inputs):
