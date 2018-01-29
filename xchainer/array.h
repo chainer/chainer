@@ -31,8 +31,8 @@ namespace internal {
 // The current design requires a subtle overhead on converting between C++ Array and Python Array (due to reference counting), which is
 // currently considered to be ignorable compared to other Python operations.
 //
-// NOTE: This class should not be instantiated by any functions except those defined in array.cc. This class is still defined
-// here so that the code is made simple and we can use inline access to each member from member accessor functions of Array.
+// NOTE: This class should not be instantiated by any functions except those defined in array.cc. This class is still defined here so that
+// the code is made simple and we can use inline access to each member from member accessor functions of Array.
 class ArrayBody {
 public:
     ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset);
