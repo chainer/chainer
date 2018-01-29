@@ -285,11 +285,15 @@ def test_array_require_grad():
     assert not array.is_grad_required()
     array.require_grad()
     assert array.is_grad_required()
+    with pytest.raises(xchainer.XchainerError):
+        array.require_grad()
 
     # Tests for given graph id
     assert not array.is_grad_required('graph1')
     array.require_grad('graph1')
     assert array.is_grad_required('graph1')
+    with pytest.raises(xchainer.XchainerError):
+        array.require_grad('graph1')
 
     # Raise TypeError if given graph_id is None
     with pytest.raises(TypeError):
