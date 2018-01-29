@@ -750,8 +750,8 @@ class WeightDecay(object):
 
     Attributes:
         ~WeightDecay.rate (float): Coefficient for the weight decay.
-        ~WeightDecay.timing (string): Specifies when this hook should be called by the
-                         Optimizer/UpdateRule. Valid values are 'pre'
+        ~WeightDecay.timing (string): Specifies when this hook should be called
+                         by the Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
 
     .. versionadded:: 4.0.0
@@ -789,8 +789,8 @@ class Lasso(object):
 
     Attributes:
         ~Lasso.rate (float): Coefficient for the weight decay.
-        ~Lasso.timing (string): Specifies when this hook should be called by the
-                         Optimizer/UpdateRule. Valid values are 'pre'
+        ~Lasso.timing (string): Specifies when this hook should be called by
+                         the Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
 
     .. versionadded:: 4.0.0
@@ -829,10 +829,12 @@ class GradientClipping(object):
         threshold (float): L2 norm threshold.
 
     Attributes:
-        ~GradientClipping.threshold (float): L2 norm threshold of gradient norm.
-        ~GradientClipping.timing (string): Specifies when this hook should be called by the
-                         Optimizer/UpdateRule. Valid values are 'pre'
-                         (before any updates) and 'post' (after any updates).
+        ~GradientClipping.threshold (float): L2 norm threshold of gradient
+                                             norm.
+        ~GradientClipping.timing (string): Specifies when this hook should be
+                         called by the Optimizer/UpdateRule. Valid values are
+                         'pre' (before any updates) and 'post' (after any
+                         updates).
 
     .. versionadded:: 4.0.0
        The *timing* parameter.
@@ -884,9 +886,10 @@ class GradientNoise(object):
             Networks <https://arxiv.org/pdf/1511.06807>`_.
 
     Attributes:
-        ~GradientNoise.timing (string): Specifies when this hook should be called by the
-                         Optimizer/UpdateRule. Valid values are 'pre'
-                         (before any updates) and 'post' (after any updates).
+        ~GradientNoise.timing (string): Specifies when this hook should be
+                         called by the Optimizer/UpdateRule. Valid values are
+                         'pre' (before any updates) and 'post' (after any
+                         updates).
 
     .. versionadded:: 4.0.0
        The *timing* parameter.
@@ -927,11 +930,14 @@ class GradientHardClipping(object):
         upper_bound (float): The upper bound of the gradient value.
 
     Attributes:
-        ~GradientHardClipping.lower_bound (float): The lower bound of the gradient value.
-        ~GradientHardClipping.upper_bound (float): The upper bound of the gradient value.
-        ~GradientHardClipping.timing (string): Specifies when this hook should be called by the
-                         Optimizer/UpdateRule. Valid values are 'pre'
-                         (before any updates) and 'post' (after any updates).
+        ~GradientHardClipping.lower_bound (float): The lower bound of the
+                                                   gradient value.
+        ~GradientHardClipping.upper_bound (float): The upper bound of the
+                                                   gradient value.
+        ~GradientHardClipping.timing (string): Specifies when this hook should
+                         be called by the Optimizer/UpdateRule. Valid values
+                         are 'pre' (before any updates) and 'post' (after any
+                         updates).
 
     .. versionadded:: 4.0.0
        The *timing* parameter.
