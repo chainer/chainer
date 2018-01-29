@@ -3,41 +3,49 @@ from __future__ import absolute_import
 from chainer.configuration import config
 
 
+_ideep_version = None
 _error = None
 
 try:
-    import ideep  # NOQA
+    import ideep4py as ideep  # NOQA
+    _ideep_version = 0
 except ImportError as e:
     _error = e
 
 
+# ------------------------------------------------------------------------------
+# ideep configuration
+# ------------------------------------------------------------------------------
 _SHOULD_USE_IDEEP = {
     '==always': {'always': True, 'auto': False, 'never': False},
     '>=auto':   {'always': True, 'auto': True,  'never': False},
 }
 
 
-def is_available():
-    return _error is None
+def is_ideep_available():
+    return _ideep_version is not None
 
 
-def check_available():
+def check_ideep_available():
     """Checks if iDeep is available.
 
     When iDeep is correctly set up, nothing happens.
     Otherwise it raises ``RuntimeError``.
     """
-    if _error is not None:
+    if _ideep_version is None:
         raise RuntimeError(
             'iDeep is not available.\n'
             'Reason: {}'.format(type(_error).__name__, str(_error)))
 
 
-def should_use(level):
+_ideep_version = 0
+
+
+def should_use_ideep(level, lowest_version=0):
     """Determines if we should use iDeep.
 
     This function checks ``chainer.config.use_ideep`` and availability
-    of ``ideep`` package.
+    of ``ideep4py`` package.
 
     Args:
         level (str): iDeep use level. It must be either ``'==always'`` or
@@ -48,7 +56,10 @@ def should_use(level):
         bool: ``True`` if the caller should use iDeep.
 
     """
-    if not is_available():
+    if _ideep_version is None:
+        return False
+
+    if _ideep_version < lowest_version:
         return False
 
     if level not in _SHOULD_USE_IDEEP:
