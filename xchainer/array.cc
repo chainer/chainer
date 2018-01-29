@@ -59,8 +59,7 @@ const std::shared_ptr<ArrayNode>& ArrayBody::CreateNode(const GraphId& graph_id)
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
                   const std::vector<std::function<Array(const Array&)>>& backward_functions) {
-    size_t nin = inputs.size();
-    if (nin != backward_functions.size()) {
+    if (inputs.size() != backward_functions.size()) {
         throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");
     }
 
@@ -76,7 +75,7 @@ void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrap
         op_node->RegisterNextNode(next_node, backward_function);
     };
 
-    for (size_t i = 0; i < nin; ++i) {                                            // For each input
+    for (size_t i = 0; i < inputs.size(); ++i) {                                  // For each input
         for (const std::shared_ptr<ArrayNode>& node : inputs[i].get().nodes()) {  // For each graph, create an edge
             create_edge(node, backward_functions[i]);
         }
