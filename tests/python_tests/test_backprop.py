@@ -284,6 +284,15 @@ def test_backward_given_output_grad():
     check_backprop(xs, expected_gxs, fprop, extra_xs)
 
 
+def test_backward_keyword_arguments():
+    x = xchainer.full((1,), 2, xchainer.float32)
+    graph_id1 = 'graph_1'
+    x.require_grad(graph_id=graph_id1)
+    xchainer.backward(x, graph_id=graph_id1)
+    with pytest.raises(TypeError, match=r'.*incompatible function arguments.*'):
+        xchainer.backward(body=x, graph_id=graph_id1)
+
+
 def test_backward_multiple_graphs_basic():
     shape = (1,)
     dtype = xchainer.float32
@@ -291,8 +300,8 @@ def test_backward_multiple_graphs_basic():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    graph_id1 = "graph_1"
-    graph_id2 = "graph_2"
+    graph_id1 = 'graph_1'
+    graph_id2 = 'graph_2'
 
     x1.require_grad(graph_id1)
     x2.require_grad(graph_id2)
@@ -315,8 +324,8 @@ def test_backward_multiple_graphs_non_existing():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    graph_id1 = "graph_1"
-    graph_id2 = "graph_2"
+    graph_id1 = 'graph_1'
+    graph_id2 = 'graph_2'
 
     x1.require_grad(graph_id1)
     x2.require_grad(graph_id1)
@@ -333,8 +342,8 @@ def test_backward_multiple_graphs_reuse():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    graph_id1 = "graph_1"
-    graph_id2 = "graph_2"
+    graph_id1 = 'graph_1'
+    graph_id2 = 'graph_2'
 
     x1.require_grad(graph_id1)
     x2.require_grad(graph_id2)
