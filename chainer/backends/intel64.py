@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from chainer.configuration import config
+from chainer import variable
 
 
 _ideep_version = None
@@ -72,3 +73,30 @@ def should_use_ideep(level, lowest_version=0):
                          '(must be either of "always", "auto", or "never")' %
                          repr(use_ideep))
     return flags[use_ideep]
+
+
+def inputs_all_ready(inputs, supported_ndim=(2, 4)):
+    """Check inputs and configuration supported for ideep optimization.
+
+    The function checks ``inputs`` info and ``supported_ndim``.
+
+    Args:
+        inputs (numpy.ndarray, cupy.ndarray, ideep.mdarray):
+            ``inputs`` to be checked including array type, dimension
+            and data type.
+        supported_ndim: A tuple of ndim. ideep supports array dimension
+            in either 2 or 4 only.
+
+    Returns:
+        bool: ``True`` if all conditions meet.
+
+    """
+    if _ideep_version is None:
+        return False
+
+    inputs = [x.data if isinstance(x, variable.Variable)
+               else x for x in inputs]
+
+    return (ideep.check_ndim(inputs, supported_ndim)
+            and (isinstance(inputs[0], ideep.mdarray)
+                 or ideep.check_type(inputs)))
