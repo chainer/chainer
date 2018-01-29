@@ -146,18 +146,45 @@ class ConnectionistTemporalClassification(function.Function):
     def _computes_transition(self, prev_prob, path, path_length):
         xp = cuda.get_array_module(prev_prob)
 
-        n_batch, max_path_length = path.shape
-        mat = xp.full((3, n_batch, max_path_length), self.zero_padding, 'f')
-        mat[0, :, :] = prev_prob
-        mat[1, :, 1:] = prev_prob[:, :-1]
-        mat[2, :, 2:] = prev_prob[:, :-2]
-        # disable transition between the same symbols
-        # (including blank-to-blank)
-        same_transition = (path[:, :-2] == path[:, 2:])
-        mat[2, :, 2:][same_transition] = self.zero_padding
-        prob = _logsumexp(mat, xp, axis=0)
-        outside = xp.arange(max_path_length) >= path_length[:, None]
-        prob[outside] = self.zero_padding
+        if xp == numpy:
+            n_batch, max_path_length = path.shape
+            mat = xp.full((3, n_batch, max_path_length), self.zero_padding, 'f')
+            mat[0, :, :] = prev_prob
+            mat[1, :, 1:] = prev_prob[:, :-1]
+            mat[2, :, 2:] = prev_prob[:, :-2]
+            # disable transition between the same symbols
+            # (including blank-to-blank)
+            same_transition = (path[:, :-2] == path[:, 2:])
+            mat[2, :, 2:][same_transition] = self.zero_padding
+            prob = _logsumexp(mat, xp, axis=0)
+            outside = xp.arange(max_path_length) >= path_length[:, None]
+            prob[outside] = self.zero_padding
+        else:
+            prev_prob, path, path_length = xp.broadcast_arrays(
+                prev_prob, path, path_length[:, None])
+            prob = cuda.elementwise(
+                'raw T prob, raw I path, I path_length, T zero', 'T z',
+                '''
+                int length = prob.shape()[1];
+                int b = i / length;
+                int t = i - b * length;
+                if (t >= path_length) {
+                  z = zero;
+                  return;
+                }
+                int ind1[] = {b, t};
+                int ind2[] = {b, t - 1};
+                int ind3[] = {b, t - 2};
+                float f1 = prob[ind1];
+                float f2 = (0 <= t - 1) ? prob[ind2] : zero;
+                float f3 = (0 <= t - 2 && path[ind3] != path[ind1]) ?
+                  prob[ind3] : zero;
+
+                // calculates log-sum-exp
+                float m = max(f1, max(f2, f3));
+                z = m + log(exp(f1 - m) + exp(f2 - m) + exp(f3 - m));
+                ''', 'ctc_transition'
+                )(prev_prob, path, path_length, self.zero_padding)
         return prob
 
     def calc_trans(self, yseq, input_length,
