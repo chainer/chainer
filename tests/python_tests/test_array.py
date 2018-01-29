@@ -295,6 +295,14 @@ def test_array_require_grad():
     with pytest.raises(xchainer.XchainerError):
         array.require_grad('graph_1')
 
+    # Tests for keyword arguments
+    assert not array.is_grad_required(graph_id='graph_2')
+    array.require_grad(graph_id='graph_2')
+    assert array.is_grad_required('graph_2')
+    assert array.is_grad_required(graph_id='graph_2')
+    with pytest.raises(xchainer.XchainerError):
+        array.require_grad(graph_id='graph_2')
+
     # Raise TypeError if given graph_id is None
     with pytest.raises(TypeError):
         array.require_grad(None)
@@ -322,6 +330,16 @@ def test_array_grad():
     assert array.get_grad('graph_1')._debug_flat_data == grad._debug_flat_data
     array.set_grad(None, 'graph_1')  # clear
     assert array.get_grad('graph_1') is None
+
+    # Test setter and getter for keyword arguments
+    with pytest.raises(xchainer.XchainerError):
+        array.get_grad(graph_id='graph_2')
+    array.set_grad(grad, graph_id='graph_2')
+    assert array.get_grad('graph_2')._debug_flat_data == grad._debug_flat_data
+    assert array.get_grad(graph_id='graph_2')._debug_flat_data == grad._debug_flat_data
+    array.set_grad(None, graph_id='graph_2')  # clear
+    assert array.get_grad('graph_2') is None
+    assert array.get_grad(graph_id='graph_2') is None
 
     # Raise TypeError if given graph_id is None
     with pytest.raises(TypeError):
