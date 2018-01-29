@@ -289,11 +289,11 @@ def test_array_require_grad():
         array.require_grad()
 
     # Tests for given graph id
-    assert not array.is_grad_required('graph1')
-    array.require_grad('graph1')
-    assert array.is_grad_required('graph1')
+    assert not array.is_grad_required('graph_1')
+    array.require_grad('graph_1')
+    assert array.is_grad_required('graph_1')
     with pytest.raises(xchainer.XchainerError):
-        array.require_grad('graph1')
+        array.require_grad('graph_1')
 
     # Raise TypeError if given graph_id is None
     with pytest.raises(TypeError):
@@ -315,9 +315,9 @@ def test_array_grad():
 
     # Test setter and getter for given graph id
     with pytest.raises(xchainer.XchainerError):
-        array.get_grad('graph1')
-    array.set_grad(grad, 'graph1')
-    assert array.get_grad('graph1')._debug_flat_data == grad._debug_flat_data
+        array.get_grad('graph_1')
+    array.set_grad(grad, 'graph_1')
+    assert array.get_grad('graph_1')._debug_flat_data == grad._debug_flat_data
 
     # Raise TypeError if given graph_id is None
     with pytest.raises(TypeError):
