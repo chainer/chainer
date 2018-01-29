@@ -1,6 +1,7 @@
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer import function_node
@@ -82,7 +83,7 @@ class LSTM(function_node.FunctionNode):
         a, i, f, o = _extract_gates(x)
         batch = len(x)
 
-        if isinstance(x, numpy.ndarray):
+        if isinstance(x, chainer.get_cpu_array_types()):
             a = numpy.tanh(a)
             i = _sigmoid(i)
             f = _sigmoid(f)
