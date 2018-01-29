@@ -33,7 +33,9 @@ public:
 
     gsl::span<const std::shared_ptr<ArrayNode>> next_nodes() const { return gsl::make_span(next_nodes_); }
 
-    gsl::span<const std::function<Array(const GraphId&, const Array&)>> backward_functions() const { return gsl::make_span(backward_functions_); }
+    gsl::span<const std::function<Array(const GraphId&, const Array&)>> backward_functions() const {
+        return gsl::make_span(backward_functions_);
+    }
 
 private:
     std::string name_;

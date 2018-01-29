@@ -217,8 +217,12 @@ void Array::Mul(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    auto lhs_backward_function = [other = rhs](const GraphId& graph_id, const Array& gout) { return gout * other.MakeGradStoppingView(graph_id); };
-    auto rhs_backward_function = [other = *this](const GraphId& graph_id, const Array& gout) { return gout * other.MakeGradStoppingView(graph_id); };
+    auto lhs_backward_function = [other = rhs](const GraphId& graph_id, const Array& gout) {
+        return gout * other.MakeGradStoppingView(graph_id);
+    };
+    auto rhs_backward_function = [other = *this](const GraphId& graph_id, const Array& gout) {
+        return gout * other.MakeGradStoppingView(graph_id);
+    };
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     Device device = GetCurrentDevice();
