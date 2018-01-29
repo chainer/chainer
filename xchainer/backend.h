@@ -25,7 +25,7 @@ public:
 };
 
 Backend* GetCurrentBackend();
-void SetCurrentBackend(Backend* backend);
+void SetCurrentBackend(Backend* backend) noexcept;
 
 // Scope object that switches the current backend by RAII.
 class BackendScope {
@@ -41,7 +41,7 @@ public:
     ~BackendScope() { Exit(); }
 
     // Explicitly recovers the original backend. It will invalidate the scope object so that dtor will do nothing.
-    void Exit() {
+    void Exit() noexcept {
         if (orig_ != nullptr) {
             SetCurrentBackend(orig_);
         }

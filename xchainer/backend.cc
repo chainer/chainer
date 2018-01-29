@@ -15,6 +15,6 @@ Backend* GetCurrentBackend() {
     }
 }
 
-void SetCurrentBackend(Backend* backend) { thread_local_backend = backend; }
+void SetCurrentBackend(Backend* backend) noexcept { thread_local_backend = backend; }
 
 }  // namespace xchainer
