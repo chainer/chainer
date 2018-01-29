@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "xchainer/array.h"
+#include "xchainer/array_node.h"
 #include "xchainer/dtype.h"
 #include "xchainer/shape.h"
 
@@ -222,7 +223,19 @@ struct ArrayReprImpl {
 
         // Print the footer
         PrintNTimes(os, ']', ndim);
-        os << ", dtype=" << array.dtype() << ')';
+        os << ", dtype=" << array.dtype();
+        const auto& nodes = array.nodes();
+        if (!nodes.empty()) {
+            os << ", graph_ids=[";
+            for (size_t i = 0; i < nodes.size(); ++i) {
+                if (i > 0) {
+                    os << ", ";
+                }
+                os << array.nodes()[i]->graph_id();
+            }
+            os << ']';
+        }
+        os << ')';
     }
 };
 
