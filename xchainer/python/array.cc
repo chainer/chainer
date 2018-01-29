@@ -156,10 +156,10 @@ void InitXchainerArray(pybind11::module& m) {
                       },
                       [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad) {
                           if (grad) {
-                              if (!self->HasNode()) {
-                                  Array{self}.RequireGrad().SetGrad(Array{grad});
-                              } else {
+                              if (self->HasNode()) {
                                   Array{self}.SetGrad(Array{grad});
+                              } else {
+                                  Array{self}.RequireGrad().SetGrad(Array{grad});
                               }
                           } else {
                               Array{self}.ClearGrad();
