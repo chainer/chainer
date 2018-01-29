@@ -320,3 +320,44 @@ def test_backward_multiple_graphs_non_existing():
     y = x1 * x2
     with pytest.raises(xchainer.XchainerError):
         xchainer.backward(y, graph_id2)
+
+def test_backward_multiple_graphs_reuse():
+    shape = (1,)
+    dtype = xchainer.float32
+
+    x1 = xchainer.full(shape, 2, dtype)
+    x2 = xchainer.full(shape, 5, dtype)
+
+    graph_id1 = "graph_1"
+    graph_id2 = "graph_2"
+
+    x1.require_grad(graph_id1)
+    x2.require_grad(graph_id2)
+
+    xs = (x1, x2)
+
+    def fprop(xs_, extra_xs_):
+        x1, x2 = xs_
+        y = x1 * x2
+        return y,
+
+    expected_gxs = (xchainer.full(shape, 5, dtype), None)
+    check_backprop(xs, expected_gxs, fprop, (), graph_id1)
+
+    x1.set_grad(None, graph_id1)
+    x2.set_grad(None, graph_id2)
+
+    expected_gxs = (None, xchainer.full(shape, 2, dtype))
+    check_backprop(xs, expected_gxs, fprop, (), graph_id2)
+
+    x1.set_grad(None, graph_id1)
+    x2.set_grad(None, graph_id2)
+
+    x1.require_grad(graph_id2)
+    x2.require_grad(graph_id1)
+
+    expected_gxs = (xchainer.full(shape, 5, dtype), xchainer.full(shape, 2, dtype))
+    check_backprop(xs, expected_gxs, fprop, (), graph_id2)
+
+    assert x1.get_grad(graph_id1) is None
+    assert x2.get_grad(graph_id1) is None
