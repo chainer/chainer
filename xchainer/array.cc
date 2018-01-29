@@ -34,9 +34,6 @@ ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::s
                      std::vector<std::shared_ptr<ArrayNode>> nodes)
     : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_(std::move(nodes)) {}
 
-ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset)
-    : ArrayBody(shape, dtype, is_contiguous, data, offset, {}) {}
-
 bool ArrayBody::HasNode(const GraphId& graph_id) const {
     return std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); }) !=
            nodes_.end();
