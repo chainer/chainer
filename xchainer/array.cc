@@ -68,7 +68,7 @@ void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrap
 
     // Helper function to create an edge in the graph
     auto create_edge = [&name, &graph_edges](const std::shared_ptr<ArrayNode>& next_node, auto& backward_function) {
-        auto& op_node = graph_edges[next_node->graph_id()];  // Create if not exists
+        std::shared_ptr<OpNode>& op_node = graph_edges[next_node->graph_id()];  // Create if not exists
         if (!op_node) {
             op_node = std::make_shared<OpNode>(name);
         }
@@ -76,8 +76,8 @@ void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrap
         op_node->RegisterNextNode(next_node, backward_function);
     };
 
-    for (size_t i = 0; i < nin; ++i) {                      // For each input
-        for (const auto& node : inputs[i].get().nodes()) {  // For each graph, create an edge
+    for (size_t i = 0; i < nin; ++i) {                                            // For each input
+        for (const std::shared_ptr<ArrayNode>& node : inputs[i].get().nodes()) {  // For each graph, create an edge
             create_edge(node, backward_functions[i]);
         }
     }
@@ -88,10 +88,10 @@ void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrap
 
     // Bind edges to output
     for (const auto& edge : graph_edges) {
-        const auto& graph_id = edge.first;
-        const auto& op_node = edge.second;
+        const GraphId& graph_id = edge.first;
+        const std::shared_ptr<OpNode>& op_node = edge.second;
 
-        auto& out_node = out.body()->CreateNode(graph_id);
+        std::shared_ptr<ArrayNode> out_node = out.body()->CreateNode(graph_id);
         out_node->set_next_node(op_node);
         out_node->set_rank(op_node->rank() + 1);
     }
