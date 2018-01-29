@@ -317,7 +317,6 @@ def test_array_grad():
     with pytest.raises(xchainer.XchainerError):
         array.get_grad('graph1')
     array.set_grad(grad, 'graph1')
-    assert array.get_grad('graph1') is not None
     assert array.get_grad('graph1')._debug_flat_data == grad._debug_flat_data
 
     # Raise TypeError if given graph_id is None
@@ -377,3 +376,29 @@ def test_array_grad_identity():
     array_grad = array.get_grad()
     array_grad += xchainer.Array(shape, xchainer.float32, [1, 1, 1])
     assert grad._debug_flat_data == [3.5, 3.5, 3.5], 'A modification to array.grad must affect grad'
+
+
+def test_array_require_grad_multiple_graphs_forward():
+    x1 = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+    x2 = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+
+    graph_id1 = 'graph_1'
+    graph_id2 = 'graph_2'
+
+    x1.require_grad(graph_id1)
+    x2.require_grad(graph_id2)
+
+    assert x1.is_grad_required(graph_id1)
+    assert x2.is_grad_required(graph_id2)
+
+    assert not x1.is_grad_required(graph_id2)
+    assert not x2.is_grad_required(graph_id1)
+
+    y = x1 * x2
+
+    assert y.is_grad_required(graph_id1)
+    assert y.is_grad_required(graph_id2)
+
+    # No unspecified graphs are generated
+    assert not y.is_grad_required('')
+    assert not y.is_grad_required('graph_3')
