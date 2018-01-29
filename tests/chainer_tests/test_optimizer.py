@@ -162,7 +162,7 @@ class TestGradientLARS(unittest.TestCase):
         opt = optimizers.SGD(lr=1)
         opt.setup(self.target)
         opt.add_hook(optimizer.GradientLARS(threshold=threshold,
-                     weightdecay=weightdecay, eps=eps))
+                                            weightdecay=weightdecay, eps=eps))
         opt.update()
 
         testing.assert_allclose(expect0, w0)
