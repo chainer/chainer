@@ -312,12 +312,16 @@ def test_array_grad():
     array.set_grad(grad)
     assert array.get_grad() is not None
     assert array.get_grad()._debug_flat_data == grad._debug_flat_data
+    array.set_grad(None)  # clear
+    assert array.get_grad() is None
 
     # Test setter and getter for given graph id
     with pytest.raises(xchainer.XchainerError):
         array.get_grad('graph_1')
     array.set_grad(grad, 'graph_1')
     assert array.get_grad('graph_1')._debug_flat_data == grad._debug_flat_data
+    array.set_grad(None, 'graph_1')  # clear
+    assert array.get_grad('graph_1') is None
 
     # Raise TypeError if given graph_id is None
     with pytest.raises(TypeError):
