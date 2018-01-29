@@ -291,6 +291,12 @@ def test_array_require_grad():
     array.require_grad('graph1')
     assert array.is_grad_required('graph1')
 
+    # Raise TypeError if given graph_id is None
+    with pytest.raises(TypeError):
+        array.require_grad(None)
+    with pytest.raises(TypeError):
+        array.is_grad_required(None)
+
 
 def test_array_grad():
     array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
@@ -310,6 +316,7 @@ def test_array_grad():
     assert array.get_grad('graph1') is not None
     assert array.get_grad('graph1')._debug_flat_data == grad._debug_flat_data
 
+    # Raise TypeError if given graph_id is None
     with pytest.raises(TypeError):
         array.get_grad(None)
     with pytest.raises(TypeError):
