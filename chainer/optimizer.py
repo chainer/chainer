@@ -785,6 +785,8 @@ class GradientLARS(object):
 
     def __call__(self, rule, param):
         p, g = param.data, param.grad
+        if p is None or g is None:
+            return
 
         xp = cuda.get_array_module(p)
 
