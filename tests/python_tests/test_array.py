@@ -297,13 +297,15 @@ def test_array_grad():
     grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
 
     # Test setter and getter for default graph id
-    assert array.get_grad() is None, 'grad must be initially unset'
+    with pytest.raises(xchainer.XchainerError):
+        array.get_grad()
     array.set_grad(grad)
     assert array.get_grad() is not None
     assert array.get_grad()._debug_flat_data == grad._debug_flat_data
 
     # Test setter and getter for given graph id
-    assert array.get_grad('graph1') is None, 'grad must be initially unset'
+    with pytest.raises(xchainer.XchainerError):
+        array.get_grad('graph1')
     array.set_grad(grad, 'graph1')
     assert array.get_grad('graph1') is not None
     assert array.get_grad('graph1')._debug_flat_data == grad._debug_flat_data

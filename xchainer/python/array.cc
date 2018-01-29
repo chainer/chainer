@@ -144,13 +144,9 @@ void InitXchainerArray(pybind11::module& m) {
              py::arg("graph_id") = "")
         .def("get_grad",
              [](const ArrayBodyPtr& self, const GraphId& graph_id) -> ConstArrayBodyPtr {
-                 if (self->HasNode(graph_id)) {
-                     const nonstd::optional<Array>& grad = Array{self}.GetGrad(graph_id);
-                     if (grad.has_value()) {
-                         return grad->body();
-                     } else {
-                         return nullptr;
-                     }
+                 const nonstd::optional<Array>& grad = Array{self}.GetGrad(graph_id);
+                 if (grad.has_value()) {
+                     return grad->body();
                  } else {
                      return nullptr;
                  }

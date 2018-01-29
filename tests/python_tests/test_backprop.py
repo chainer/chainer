@@ -20,7 +20,7 @@ def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id = ""):
     assert isinstance(extra_xs, tuple)
     assert len(xs) == len(expected_gxs)
     assert all([isinstance(a, xchainer.Array) for a in xs])
-    assert all([(isinstance(a, xchainer.Array) or a is None) for a in expected_gxs])
+    assert all([(isinstance(a, xchainer.Array) or a == xchainer.XchainerError) for a in expected_gxs])
     assert all([isinstance(a, xchainer.Array) for a in extra_xs])
 
     outputs = fprop(xs, extra_xs)
@@ -28,10 +28,14 @@ def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id = ""):
 
     xchainer.backward(outputs[0], graph_id)
 
-    gxs = tuple([x.get_grad(graph_id) for x in xs])
-    # Note: i for pytest output on failure
-    for i, (gx, expected_gx) in enumerate(zip(gxs, expected_gxs)):
-        assert_arrays_equal(gx, expected_gx)
+    for i, expected_gx in enumerate(expected_gxs):
+        x = xs[i]
+        if expected_gx == xchainer.XchainerError:
+            with pytest.raises(xchainer.XchainerError):
+                x.get_grad(graph_id)
+        else:
+            gx = x.get_grad(graph_id)
+            assert_arrays_equal(gx, expected_gx)
 
     assert outputs[0].get_grad(graph_id) is not None
 
@@ -294,7 +298,7 @@ def test_backward_multiple_graphs_basic():
     x2.require_grad(graph_id2)
 
     xs = (x1, x2)
-    expected_gxs = (xchainer.full(shape, 5, dtype), None)
+    expected_gxs = (xchainer.full(shape, 5, dtype), xchainer.XchainerError)
 
     def fprop(xs_, extra_xs_):
         x1, x2 = xs_
@@ -341,13 +345,13 @@ def test_backward_multiple_graphs_reuse():
         y = x1 * x2
         return y,
 
-    expected_gxs = (xchainer.full(shape, 5, dtype), None)
+    expected_gxs = (xchainer.full(shape, 5, dtype), xchainer.XchainerError)
     check_backprop(xs, expected_gxs, fprop, (), graph_id1)
 
     x1.set_grad(None, graph_id1)
     x2.set_grad(None, graph_id2)
 
-    expected_gxs = (None, xchainer.full(shape, 2, dtype))
+    expected_gxs = (xchainer.XchainerError, xchainer.full(shape, 2, dtype))
     check_backprop(xs, expected_gxs, fprop, (), graph_id2)
 
     x1.set_grad(None, graph_id1)
