@@ -186,9 +186,9 @@ class TestRawArray(unittest.TestCase):
 class SimpleNetChild(chainer.Chain):
 
     def __init__(self):
-        super(SimpleNetChild, self).__init__(
-            conv=chainer.links.Convolution2D(2, 2, 3),
-        )
+        super(SimpleNetChild, self).__init__()
+        with self.init_scope():
+            self.conv = chainer.links.Convolution2D(2, 2, 3)
 
     def __call__(self, x):
 
@@ -203,10 +203,10 @@ class SimpleNetChild(chainer.Chain):
 class SimpleNetChildReporter(chainer.Chain):
 
     def __init__(self):
-        super(SimpleNetChildReporter, self).__init__(
-            c1=SimpleNetChild(),
-            fc=chainer.links.Linear(18, 2),
-        )
+        super(SimpleNetChildReporter, self).__init__()
+        with self.init_scope():
+            self.c1 = SimpleNetChild()
+            self.fc = chainer.links.Linear(18, 2)
         self.call_called = 0
 
     def clear(self):
