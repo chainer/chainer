@@ -12,7 +12,7 @@ def assert_arrays_equal(array1, array2):
         assert array1._debug_flat_data == array2._debug_flat_data
 
 
-def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id = ""):
+def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=''):
     # Checks for test validity
     assert isinstance(xs, tuple)
     assert isinstance(expected_gxs, tuple)
@@ -324,6 +324,7 @@ def test_backward_multiple_graphs_non_existing():
     y = x1 * x2
     with pytest.raises(xchainer.XchainerError):
         xchainer.backward(y, graph_id2)
+
 
 def test_backward_multiple_graphs_reuse():
     shape = (1,)
