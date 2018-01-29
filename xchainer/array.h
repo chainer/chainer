@@ -77,6 +77,8 @@ public:
 
     static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data);
 
+    Array MakeGradStoppingView(const GraphId& graph_id_to_stop = "") const;
+
     static Array Empty(const Shape& shape, Dtype dtype);
     static Array Full(const Shape& shape, Scalar scalar, Dtype dtype);
     static Array Full(const Shape& shape, Scalar scalar);
