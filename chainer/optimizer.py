@@ -749,8 +749,8 @@ class WeightDecay(object):
         rate (float): Coefficient for the weight decay.
 
     Attributes:
-        rate (float): Coefficient for the weight decay.
-        timing (string): Specifies when this hook should be called by the
+        ~WeightDecay.rate (float): Coefficient for the weight decay.
+        ~WeightDecay.timing (string): Specifies when this hook should be called by the
                          Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
 
@@ -788,8 +788,8 @@ class Lasso(object):
         rate (float): Coefficient for the weight decay.
 
     Attributes:
-        rate (float): Coefficient for the weight decay.
-        timing (string): Specifies when this hook should be called by the
+        ~Lasso.rate (float): Coefficient for the weight decay.
+        ~Lasso.timing (string): Specifies when this hook should be called by the
                          Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
 
@@ -829,8 +829,8 @@ class GradientClipping(object):
         threshold (float): L2 norm threshold.
 
     Attributes:
-        threshold (float): L2 norm threshold of gradient norm.
-        timing (string): Specifies when this hook should be called by the
+        ~GradientClipping.threshold (float): L2 norm threshold of gradient norm.
+        ~GradientClipping.timing (string): Specifies when this hook should be called by the
                          Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
 
@@ -884,7 +884,7 @@ class GradientNoise(object):
             Networks <https://arxiv.org/pdf/1511.06807>`_.
 
     Attributes:
-        timing (string): Specifies when this hook should be called by the
+        ~GradientNoise.timing (string): Specifies when this hook should be called by the
                          Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
 
@@ -927,9 +927,9 @@ class GradientHardClipping(object):
         upper_bound (float): The upper bound of the gradient value.
 
     Attributes:
-        lower_bound (float): The lower bound of the gradient value.
-        upper_bound (float): The upper bound of the gradient value.
-        timing (string): Specifies when this hook should be called by the
+        ~GradientHardClipping.lower_bound (float): The lower bound of the gradient value.
+        ~GradientHardClipping.upper_bound (float): The upper bound of the gradient value.
+        ~GradientHardClipping.timing (string): Specifies when this hook should be called by the
                          Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
 
