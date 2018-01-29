@@ -44,7 +44,7 @@ class SplitAxis(function_node.FunctionNode):
     def forward(self, inputs):
         # Currently iDeep only supports 4 dims
         if (intel64.should_use_ideep('>=auto')
-            and intel64.inputs_all_ready(inputs, (4,))):
+                and intel64.inputs_all_ready(inputs, (4,))):
 
             x, = inputs
             offsets = intel64.ideep.intVector()

@@ -120,8 +120,8 @@ class Convolution2DFunction(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         if (self.group == 1
-            and intel64.should_use_ideep('>=auto')
-            and intel64.inputs_all_ready(inputs)):
+                and intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(inputs)):
 
             # iDeep implementation
             # TODO(iDeep): Support group

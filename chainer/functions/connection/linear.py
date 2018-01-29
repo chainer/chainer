@@ -1,6 +1,5 @@
 import numpy
 
-from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
@@ -33,7 +32,7 @@ class LinearFunction(function_node.FunctionNode):
 
     def forward(self, inputs):
         if (intel64.should_use_ideep('>=auto')
-            and intel64.inputs_all_ready(inputs)):
+                and intel64.inputs_all_ready(inputs)):
 
             # iDeep implementation
             self._use_ideep = True

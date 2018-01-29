@@ -145,8 +145,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             return self._forward_grouped_convolution(x, W, b)
 
         elif ((self.dy == 1 and self.dx == 1)
-            and intel64.should_use_ideep('>=auto')
-            and intel64.inputs_all_ready(inputs)):
+              and intel64.should_use_ideep('>=auto')
+              and intel64.inputs_all_ready(inputs)):
 
             # iDeep implementation
             # TODO(iDeep): Support group
