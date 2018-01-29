@@ -24,8 +24,8 @@ class BackwardImpl {
     using SeenOpNodeSet = std::set<std::shared_ptr<const OpNode>>;
 
 public:
-    BackwardImpl(const Array& output)
-        : output_(output), output_array_node_(output.mutable_node()), candidate_op_nodes_(BackwardImpl::Compare){};
+    BackwardImpl(const Array& output, const GraphId& graph_id)
+        : output_(output), output_array_node_(output.GetMutableNode(graph_id)), candidate_op_nodes_(BackwardImpl::Compare){};
 
     void run() {
         if (!output_array_node_->grad()) {
@@ -111,10 +111,10 @@ private:
 
 }  // namespace
 
-void Backward(Array& output) {
+void Backward(Array& output, const GraphId& graph_id) {
     // TODO(takagi): Operations that have multiple outputs
     // TODO(takagi): Begin backprop from multiple outputs
-    BackwardImpl{output}.run();
+    BackwardImpl{output, graph_id}.run();
 }
 
 }  // namespace xchainer

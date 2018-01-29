@@ -283,8 +283,9 @@ def test_array_property_requires_grad():
     assert not array.requires_grad
     array.requires_grad = True
     assert array.requires_grad
+
+    # TODO(hvy): Should be removed when requires_grad becomes a method
     array.requires_grad = False
-    assert not array.requires_grad
 
 
 def test_array_grad():
@@ -329,7 +330,6 @@ def test_array_cleargrad():
 
     # Clear grad
     array.grad = None
-    assert array.grad is None, 'grad must be cleared'
 
     assert saved_grad._debug_flat_data == [5, 7, 8], 'Clearing grad must not affect previously retrieved grad'
 

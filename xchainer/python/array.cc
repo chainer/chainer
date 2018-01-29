@@ -137,19 +137,30 @@ void InitXchainerArray(pybind11::module& m) {
         .def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); })
         .def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); })
         .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
-        .def_property("requires_grad", [](const ArrayBodyPtr& self) { return Array{self}.requires_grad(); },
-                      [](const ArrayBodyPtr& self, bool value) { Array{self}.set_requires_grad(value); })
+        .def_property("requires_grad", [](const ArrayBodyPtr& self) { return Array{self}.IsGradRequired(); },
+                      [](const ArrayBodyPtr& self, bool value) {
+                          // TODO(hvy): requires_grad should not be a boolean property but a method that takes a graph id argument, aligning
+                          // to the c++ interface. Currently, this property is broken in the sense that once the required_grad flag is set
+                          // to true (and an ArrayNode is created internally) it cannot be unset.
+                          if (value && !self->HasNode()) {
+                              Array{self}.RequireGrad();
+                          }
+                      })
         .def_property("grad",
                       [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {
-                          if (const auto& grad = Array{self}.grad()) {
-                              return grad->body();
+                          if (self->HasNode()) {
+                              return Array{self}.GetGrad()->body();
                           } else {
                               return nullptr;
                           }
                       },
                       [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad) {
                           if (grad) {
-                              Array{self}.set_grad(Array{grad});
+                              if (self->HasNode()) {
+                                  Array{self}.SetGrad(Array{grad});
+                              } else {
+                                  Array{self}.RequireGrad().SetGrad(Array{grad});
+                              }
                           } else {
                               Array{self}.ClearGrad();
                           }

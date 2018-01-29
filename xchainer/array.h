@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
 #include <utility>
 
 #include <gsl/gsl>
@@ -17,6 +19,8 @@ namespace xchainer {
 class Array;
 class ArrayNode;
 
+using GraphId = std::string;
+
 namespace internal {
 
 // Data holder of Array.
@@ -31,20 +35,28 @@ namespace internal {
 // the code is made simple and we can use inline access to each member from member accessor functions of Array.
 class ArrayBody {
 public:
-    ArrayBody(const Shape& shape, Dtype dtype, bool requires_grad, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
-              std::shared_ptr<ArrayNode> node);
+    ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+              std::vector<std::shared_ptr<ArrayNode>> nodes = std::vector<std::shared_ptr<ArrayNode>>());
+
+    bool HasNode(const GraphId& graph_id = "") const;
+    const std::shared_ptr<ArrayNode>& CreateNode(const GraphId& graph_id = "");
 
 private:
     friend class ::xchainer::Array;
 
+    std::shared_ptr<const ArrayNode> GetNode(const GraphId& graph_id) const;
+    const std::shared_ptr<ArrayNode>& GetMutableNode(const GraphId& graph_id) const;
+
     Shape shape_;
     Dtype dtype_;
-    bool requires_grad_;
     bool is_contiguous_;
     std::shared_ptr<void> data_;
     int64_t offset_;
-    std::shared_ptr<ArrayNode> node_;
+    std::vector<std::shared_ptr<ArrayNode>> nodes_;
 };
+
+void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
+                  const std::vector<std::function<Array(const Array&)>>& backaward_functions);
 
 }  // namespace internal
 
@@ -79,6 +91,31 @@ public:
     static Array ZerosLike(const Array& array);
     static Array OnesLike(const Array& array);
 
+    Array Copy() const;
+    void Fill(Scalar value);
+
+    Array& operator+=(const Array& rhs);
+    Array& operator*=(const Array& rhs);
+    Array operator+(const Array& rhs) const;
+    Array operator*(const Array& rhs) const;
+
+    std::shared_ptr<const ArrayNode> GetNode(const GraphId& graph_id = "") const { return body_->GetNode(graph_id); }
+    const std::shared_ptr<ArrayNode>& GetMutableNode(const GraphId& graph_id = "") const { return body_->GetMutableNode(graph_id); }
+    const nonstd::optional<Array>& GetGrad(const GraphId& graph_id = "") const;
+    void SetGrad(Array grad, const GraphId& graph_id = "");
+    bool IsGradRequired(const GraphId& graph_id = "") const { return body_->HasNode(graph_id); }
+
+    // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
+    void ClearGrad(const GraphId& graph_id = "");
+
+    // Creates a new ArrayNode to store the gradient
+    Array& RequireGrad(const GraphId& graph_id = "") {
+        body_->CreateNode(graph_id);
+        return *this;
+    }
+
+    std::string ToString() const;
+
     const std::shared_ptr<internal::ArrayBody>& body() { return body_; }
     std::shared_ptr<const internal::ArrayBody> body() const { return body_; }
     std::shared_ptr<internal::ArrayBody>&& move_body() { return std::move(body_); }
@@ -99,40 +136,14 @@ public:
 
     std::shared_ptr<const void> data() const { return body_->data_; }
 
-    bool requires_grad() const { return body_->requires_grad_; }
-
-    void set_requires_grad(bool requires_grad) { body_->requires_grad_ = requires_grad; }
-
     bool is_contiguous() const { return body_->is_contiguous_; }
 
     int64_t offset() const { return body_->offset_; }
 
-    const std::shared_ptr<ArrayNode>& mutable_node() const { return body_->node_; }
-
-    std::shared_ptr<const ArrayNode> node() const { return body_->node_; }
-
-    const std::shared_ptr<ArrayNode>& RenewNode();
-
-    const nonstd::optional<Array>& grad() const noexcept;
-
-    void set_grad(Array grad);
-
-    void ClearGrad() noexcept;
-
-    Array& operator+=(const Array& rhs);
-    Array& operator*=(const Array& rhs);
-    Array operator+(const Array& rhs) const;
-    Array operator*(const Array& rhs) const;
-
-    Array Copy() const;
-
-    void Fill(Scalar value);
-
-    std::string ToString() const;
+    const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return body_->nodes_; };
 
 private:
-    Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad = false,
-          bool is_contiguous = true, int64_t offset = 0);
+    Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
 
     void CopyTo(Array& out) const;
     void Add(const Array& rhs, Array& out) const;

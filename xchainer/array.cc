@@ -3,11 +3,14 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <string>
+#include <unordered_map>
 
 #ifdef XCHAINER_ENABLE_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif  // XCHAINER_ENABLE_CUDA
+#include <gsl/gsl>
 
 #include "xchainer/array_fill.h"
 #include "xchainer/array_math.h"
@@ -18,6 +21,7 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
+#include "xchainer/error.h"
 #include "xchainer/memory.h"
 #include "xchainer/op_node.h"
 #include "xchainer/scalar.h"
@@ -26,44 +30,97 @@ namespace xchainer {
 namespace internal {
 
 // Private definition of ArrayBody
-ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool requires_grad, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
-                     std::shared_ptr<ArrayNode> node)
-    : shape_(shape),
-      dtype_(dtype),
-      requires_grad_(requires_grad),
-      is_contiguous_(is_contiguous),
-      data_(std::move(data)),
-      offset_(offset),
-      node_(std::move(node)) {}
+ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+                     std::vector<std::shared_ptr<ArrayNode>> nodes)
+    : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_(std::move(nodes)) {}
+
+bool ArrayBody::HasNode(const GraphId& graph_id) const {
+    return std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); }) !=
+           nodes_.end();
+}
+
+std::shared_ptr<const ArrayNode> ArrayBody::GetNode(const GraphId& graph_id) const { return GetMutableNode(graph_id); }
+
+const std::shared_ptr<ArrayNode>& ArrayBody::GetMutableNode(const GraphId& graph_id) const {
+    auto it = std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); });
+    if (it == nodes_.end()) {
+        throw XchainerError("Cannot find ArrayNode for graph: " + graph_id);
+    }
+    return *it;
+}
+
+const std::shared_ptr<ArrayNode>& ArrayBody::CreateNode(const GraphId& graph_id) {
+    if (HasNode(graph_id)) {
+        throw XchainerError("Duplicate graph registration: " + graph_id);
+    }
+    nodes_.emplace_back(std::make_shared<ArrayNode>(graph_id));
+    return nodes_.back();
+}
+
+void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
+                  const std::vector<std::function<Array(const Array&)>>& backward_functions) {
+    if (inputs.size() != backward_functions.size()) {
+        throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");
+    }
+
+    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_edges;
+
+    // Helper function to create an edge in the graph
+    auto create_edge = [&name, &graph_edges](const std::shared_ptr<ArrayNode>& next_node, auto& backward_function) {
+        std::shared_ptr<OpNode>& op_node = graph_edges[next_node->graph_id()];  // Create if not exists
+        if (!op_node) {
+            op_node = std::make_shared<OpNode>(name);
+        }
+        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
+        op_node->RegisterNextNode(next_node, backward_function);
+    };
+
+    for (size_t i = 0; i < inputs.size(); ++i) {                                  // For each input
+        for (const std::shared_ptr<ArrayNode>& node : inputs[i].get().nodes()) {  // For each graph, create an edge
+            create_edge(node, backward_functions[i]);
+        }
+    }
+
+    if (!graph_edges.empty() && std::any_of(inputs.begin(), inputs.end(), [&out](const Array& input) { return &out == &input; })) {
+        throw XchainerError("In-place operation (" + name + ") is not supported for an array that require gradients.");
+    }
+
+    // Bind edges to output
+    for (const auto& edge : graph_edges) {
+        const GraphId& graph_id = edge.first;
+        const std::shared_ptr<OpNode>& op_node = edge.second;
+
+        const std::shared_ptr<ArrayNode>& out_node = out.body()->CreateNode(graph_id);
+        out_node->set_next_node(op_node);
+        out_node->set_rank(op_node->rank() + 1);
+    }
+}
 
 }  // namespace internal
 
-Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, std::shared_ptr<ArrayNode> node, bool requires_grad,
-             bool is_contiguous, int64_t offset)
-    : body_(std::make_shared<internal::ArrayBody>(shape, dtype, requires_grad, is_contiguous, std::move(data), offset, std::move(node))) {}
+Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool is_contiguous, int64_t offset)
+    : body_(std::make_shared<internal::ArrayBody>(shape, dtype, is_contiguous, std::move(data), offset)) {}
 
 Array::Array(const Array& other)
-    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.requires_grad(), other.is_contiguous(),
-                                                  other.body_->data_, other.offset(), other.body_->node_)) {}
+    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.is_contiguous(), other.body_->data_, other.offset(),
+                                                  other.body_->nodes_)) {}
 
-const std::shared_ptr<ArrayNode>& Array::RenewNode() { return body_->node_ = std::make_shared<ArrayNode>(); }
+const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return body_->GetNode(graph_id)->grad(); }
 
-const nonstd::optional<Array>& Array::grad() const noexcept { return body_->node_->grad(); }
+void Array::SetGrad(Array grad, const GraphId& graph_id) { body_->GetMutableNode(graph_id)->set_grad(std::move(grad)); }
 
-void Array::set_grad(Array grad) { body_->node_->set_grad(std::move(grad)); }
-
-void Array::ClearGrad() noexcept { body_->node_->ClearGrad(); }
+void Array::ClearGrad(const GraphId& graph_id) { body_->GetMutableNode(graph_id)->ClearGrad(); }
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
     std::shared_ptr<void> device_data = internal::MemoryFromBuffer(GetCurrentDevice(), data, bytesize);
-    return {shape, dtype, device_data, std::make_unique<ArrayNode>()};
+    return {shape, dtype, device_data};
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
     std::shared_ptr<void> data = internal::Allocate(GetCurrentDevice(), bytesize);
-    return {shape, dtype, data, std::make_unique<ArrayNode>()};
+    return {shape, dtype, data};
 }
 
 Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype) {
@@ -88,48 +145,34 @@ Array Array::OnesLike(const Array& array) { return Ones(array.shape(), array.dty
 
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
-    set_requires_grad(requires_grad() || rhs.requires_grad());
     return *this;
 }
 
 Array& Array::operator*=(const Array& rhs) {
     Mul(rhs, *this);
-    set_requires_grad(requires_grad() || rhs.requires_grad());
     return *this;
 }
 
 Array Array::operator+(const Array& rhs) const {
     Array out = Array::EmptyLike(*this);
-    out.set_requires_grad(requires_grad() || rhs.requires_grad());
     Add(rhs, out);
     return out;
 }
 
 Array Array::operator*(const Array& rhs) const {
     Array out = Array::EmptyLike(*this);
-    out.set_requires_grad(requires_grad() || rhs.requires_grad());
     Mul(rhs, out);
     return out;
 }
 
 Array Array::Copy() const {
     Array out = Array::EmptyLike(*this);
-    out.set_requires_grad(requires_grad());
     CopyTo(out);
     return out;
 }
 
 void Array::CopyTo(Array& out) const {
-    if (requires_grad()) {
-        std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-        int64_t out_rank = node()->rank();
-        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{body_->node_};
-        auto in_func = [](const Array& gout) { return gout; };
-        auto backward_functions = std::vector<std::function<Array(const Array&)>>{in_func};
-        auto op_node = std::make_shared<OpNode>("copy", out_rank, next_nodes, backward_functions);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(out_rank + 1);
-    }
+    internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout) { return gout; }});
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
     // is_contiguous_ and offset_ into account
@@ -137,30 +180,14 @@ void Array::CopyTo(Array& out) const {
 }
 
 void Array::Add(const Array& rhs, Array& out) const {
-    if ((&out == this || &out == &rhs) && out.requires_grad()) {
-        throw XchainerError("In-place operation (Add) is not supported for an array with requires_grad=true.");
-    }
-
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    if (requires_grad() || rhs.requires_grad()) {
-        const Array& lhs = *this;
-        std::shared_ptr<ArrayNode> lhs_node = mutable_node();
-        std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node();
-        std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-        int64_t out_rank = std::max(lhs_node->rank(), rhs_node->rank());
-        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node, rhs_node};
-        std::function<Array(const Array&)> empty_func;
-        auto lhs_func = lhs.requires_grad() ? [](const Array& gout) { return gout; } : empty_func;
-        auto rhs_func = rhs.requires_grad() ? [](const Array& gout) { return gout; } : empty_func;
-        auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
-        auto op_node = std::make_shared<OpNode>("add", out_rank, next_nodes, backward_functions);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(out_rank + 1);
-    }
+    auto lhs_backward_function = [](const Array& gout) -> Array { return gout; };
+    auto rhs_backward_function = lhs_backward_function;
+    internal::SetUpOpNodes("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
@@ -175,30 +202,14 @@ void Array::Add(const Array& rhs, Array& out) const {
 }
 
 void Array::Mul(const Array& rhs, Array& out) const {
-    if ((&out == this || &out == &rhs) && out.requires_grad()) {
-        throw XchainerError("In-place operation (Mul) is not supported for an array with requires_grad=true.");
-    }
-
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    if (requires_grad() || rhs.requires_grad()) {
-        std::shared_ptr<ArrayNode> lhs_node = mutable_node();
-        std::shared_ptr<ArrayNode> rhs_node = rhs.mutable_node();
-        std::shared_ptr<ArrayNode> out_node = out.RenewNode();
-        int64_t out_rank = std::max(lhs_node->rank(), rhs_node->rank());
-        auto next_nodes = std::vector<std::shared_ptr<ArrayNode>>{lhs_node, rhs_node};
-        std::function<Array(const Array&)> empty_func;
-        // TODO(sonots): turn off constructing graph (requires_grad) in backward (but, turn on for double backprop)
-        auto lhs_func = requires_grad() ? [rhs_view = rhs](const Array& gout) { return gout * rhs_view; } : empty_func;
-        auto rhs_func = rhs.requires_grad() ? [lhs_view = *this](const Array& gout) { return gout * lhs_view; } : empty_func;
-        auto backward_functions = std::vector<std::function<Array(const Array&)>>{lhs_func, rhs_func};
-        auto op_node = std::make_shared<OpNode>("mul", out_rank, next_nodes, backward_functions);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(out_rank + 1);
-    }
+    auto lhs_backward_function = [other_view = rhs](const Array& gout) { return gout * other_view; };
+    auto rhs_backward_function = [other_view = *this](const Array& gout) { return gout * other_view; };
+    internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
@@ -246,7 +257,9 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 }  // namespace
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent) {
-    DebugDumpComputationalGraph(os, *array.node(), indent);
+    for (const auto& node : array.nodes()) {
+        DebugDumpComputationalGraph(os, *node, indent);
+    }
 }
 
 }  // namespace xchainer
