@@ -95,7 +95,7 @@ def inputs_all_ready(inputs, supported_ndim=(2, 4)):
         return False
 
     inputs = [x.data if isinstance(x, variable.Variable)
-               else x for x in inputs]
+              else x for x in inputs]
 
     return (ideep.check_ndim(inputs, supported_ndim)
             and (isinstance(inputs[0], ideep.mdarray)
