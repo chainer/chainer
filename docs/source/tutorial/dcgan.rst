@@ -22,6 +22,32 @@ In the tutorial, you will learn about the following things:
 1. Basic Idea of Generative Model
 ==================================
 
+1.1 What is Model ?
+--------------------
+
+In the field of science and engineering, we describe a system using mathematical
+concepts and language. The description is called as **mathematical model**,
+and the process of developing a mathematical model is **mathematical modeling**.
+Especially, in the context of machine learning, we explain a target model by a
+map :math:`f` from an input :math:`x` to an output :math:`y`.
+
+.. math::
+    f: x \mapsto y
+    
+Therefore, model learning is obtaining the map :math:`f` from training data.
+In the case of unsupervised learning, we use datasets of inputs
+:math:`\{s^{(n)}\}=\{d_1, d_2, \cdots, d_N\}` as the training data,
+and create model :math:`f`.
+In supervised learning, we use datasets of inputs and thier outputs
+:math:`\{s^{(n)}\}=\{(d_1, c_1), \cdots, (d_N, c_N)\}`. As a simple example,
+let's consider about a supervised learing problem such as classifying images as
+dogs or cats. Then, the training datasets consist of input images
+:math:`d_1, d_2, \cdots, d_N` and their labels
+:math:`c_1={\rm cat}, c_2={\rm dog}, \cdots, c_N={\rm cat}`.
+
+1.1 What is Generative Model ?
+-------------------------------
+
 2. The Difference among GAN and Other Generative Models
 ========================================================
 
