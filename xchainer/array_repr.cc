@@ -231,7 +231,7 @@ struct ArrayReprImpl {
                 if (i > 0) {
                     os << ", ";
                 }
-                os << array.nodes()[i]->graph_id();
+                os << nodes[i]->graph_id();
             }
             os << ']';
         }
