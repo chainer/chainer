@@ -139,7 +139,9 @@ void InitXchainerArray(pybind11::module& m) {
         .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
         .def_property("requires_grad", [](const ArrayBodyPtr& self) { return Array{self}.IsGradRequired(); },
                       [](const ArrayBodyPtr& self, bool value) {
-                          // Cannot unset required gradients
+                          // TODO(hvy): requires_grad should not be a boolean property but a method that takes a graph id argument, aligning
+                          // to the c++ interface. Currently, this property is broken in the sense that once the required_grad flag is set
+                          // to true (and an ArrayNode is created internally) it cannot be uset.
                           if (value && !self->HasNode()) {
                               Array{self}.RequireGrad();
                           }
