@@ -4,7 +4,7 @@
 namespace xchainer {
 
 thread_local Backend* thread_local_backend = nullptr;
-static_assert(std::is_pod<Backend*>::value, "thread_local_backend must be POD");
+static_assert(std::is_pod<decltype(thread_local_backend)>::value, "thread_local_backend must be POD");
 
 Backend* GetCurrentBackend() {
     Backend* backend = thread_local_backend;
