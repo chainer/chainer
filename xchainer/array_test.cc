@@ -965,8 +965,8 @@ TEST_P(ArrayTest, AddBackward) {
 
     auto op_node = o.GetNode()->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
-    Array ga = op_node->backward_functions()[0](go);
-    Array gb = op_node->backward_functions()[1](go);
+    Array ga = op_node->backward_functions()[0]("", go);
+    Array gb = op_node->backward_functions()[1]("", go);
 
     ExpectEqual<bool>(ga, go);
     ExpectEqual<bool>(gb, go);
@@ -983,8 +983,8 @@ TEST_P(ArrayTest, MulBackward) {
 
     auto op_node = o.GetNode()->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
-    Array ga = op_node->backward_functions()[0](go);
-    Array gb = op_node->backward_functions()[1](go);
+    Array ga = op_node->backward_functions()[0]("", go);
+    Array gb = op_node->backward_functions()[1]("", go);
 
     ExpectEqual<bool>(ga, go * b);
     ExpectEqual<bool>(gb, go * a);
@@ -1006,12 +1006,12 @@ TEST_P(ArrayTest, MulBackwardCapture) {
     auto rhs_func = op_node->backward_functions()[1];
     Array gy = MakeArray<float>({1}, {1.0f});
 
-    Array gx1 = lhs_func(gy);
+    Array gx1 = lhs_func("", gy);
     Array e1 = MakeArray<float>({1}, {3.0f});
     ExpectEqual<bool>(e1, gx1);
     EXPECT_FALSE(gx1.IsGradRequired());
 
-    Array gx2 = rhs_func(gy);
+    Array gx2 = rhs_func("", gy);
     Array e2 = MakeArray<float>({1}, {2.0f});
     ExpectEqual<bool>(e2, gx2);
     EXPECT_FALSE(gx2.IsGradRequired());
@@ -1031,10 +1031,10 @@ TEST_P(ArrayTest, MulBackwardMultipleGraphs) {
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
 
     auto op_node1 = o.GetNode(graph_id1)->next_node();
-    Array ga = op_node1->backward_functions()[0](go);
+    Array ga = op_node1->backward_functions()[0](graph_id1, go);
 
     auto op_node2 = o.GetNode(graph_id2)->next_node();
-    Array gb = op_node2->backward_functions()[0](go);
+    Array gb = op_node2->backward_functions()[0](graph_id2, go);
 
     EXPECT_FALSE(ga.IsGradRequired(graph_id1));
     EXPECT_TRUE(ga.IsGradRequired(graph_id2));

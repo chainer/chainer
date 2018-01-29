@@ -56,7 +56,7 @@ private:
 };
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
-                  const std::vector<std::function<Array(const Array&)>>& backaward_functions);
+                  const std::vector<std::function<Array(const GraphId&, const Array&)>>& backaward_functions);
 
 }  // namespace internal
 

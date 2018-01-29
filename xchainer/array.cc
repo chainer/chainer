@@ -58,7 +58,7 @@ const std::shared_ptr<ArrayNode>& ArrayBody::CreateNode(const GraphId& graph_id)
 }
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
-                  const std::vector<std::function<Array(const Array&)>>& backward_functions) {
+                  const std::vector<std::function<Array(const GraphId&, const Array&)>>& backward_functions) {
     if (inputs.size() != backward_functions.size()) {
         throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");
     }
@@ -182,7 +182,7 @@ Array Array::Copy() const {
 }
 
 void Array::CopyTo(Array& out) const {
-    internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout) { return gout; }});
+    internal::SetUpOpNodes("copy", {*this}, out, {[](const GraphId&, const Array& gout) { return gout; }});
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
     // is_contiguous_ and offset_ into account
@@ -195,7 +195,7 @@ void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    auto lhs_backward_function = [](const Array& gout) -> Array { return gout; };
+    auto lhs_backward_function = [](const GraphId&, const Array& gout) -> Array { return gout; };
     auto rhs_backward_function = lhs_backward_function;
     internal::SetUpOpNodes("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
@@ -217,8 +217,8 @@ void Array::Mul(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    auto lhs_backward_function = [other_view = rhs](const Array& gout) { return gout * other_view; };
-    auto rhs_backward_function = [other_view = *this](const Array& gout) { return gout * other_view; };
+    auto lhs_backward_function = [other = rhs](const GraphId& graph_id, const Array& gout) { return gout * other.MakeGradStoppingView(graph_id); };
+    auto rhs_backward_function = [other = *this](const GraphId& graph_id, const Array& gout) { return gout * other.MakeGradStoppingView(graph_id); };
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     Device device = GetCurrentDevice();
