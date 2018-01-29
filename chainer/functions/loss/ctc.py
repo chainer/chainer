@@ -12,8 +12,15 @@ from chainer import variable
 
 def _logsumexp(a, xp, axis=None):
     vmax = xp.amax(a, axis=axis, keepdims=True)
-    vmax += xp.log(xp.sum(xp.exp(a - vmax),
-                          axis=axis, keepdims=True, dtype=a.dtype))
+    if xp is numpy:
+        vmax += xp.log(xp.sum(xp.exp(a - vmax),
+                              axis=axis, keepdims=True, dtype=a.dtype))
+    else:
+        _logsumexp_impl = cuda.reduce(
+            'T x, T vmax', 'T y',
+            'exp(x - vmax)', 'a + b', 'y += log(a)', '0',
+            'logsumexp_impl')
+        _logsumexp_impl(a, vmax, vmax, axis=axis, keepdims=True)
     return xp.squeeze(vmax, axis=axis)
 
 
@@ -139,7 +146,8 @@ class ConnectionistTemporalClassification(function.Function):
                     'T z',
                     '''
                     T value = z;
-                    I c = i % b_max, b = i / b_max;
+                    I b = i / b_max;
+                    I c = i - b * b_max;
                     int ind[2] = {b, -1};
                     for (int index = 0; index < c_max; ++index) {
                         ind[1] = index;
@@ -150,7 +158,7 @@ class ConnectionistTemporalClassification(function.Function):
                                 at = value;
                                 bt = xvalue;
                             }
-                            value = at + log(1 + exp(bt - at));
+                            value = at + log1p(exp(bt - at));
                         }
                     }
                     z = value;
@@ -200,7 +208,7 @@ class ConnectionistTemporalClassification(function.Function):
             backward_prob = _log_dot(backward_prob[:, None, :], brr, xp)
             prob[-i - 1] += xp.take(
                 backward_prob[:, ::-1], backward_prob_index)
-            backward_prob = xp.take(y_inv, r_index) + backward_prob
+            backward_prob += xp.take(y_inv, r_index)
 
         # move to front.
         return _move_inputs(prob, -self.input_length, xp)

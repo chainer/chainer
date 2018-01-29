@@ -110,7 +110,7 @@ def select_item(x, t):
         >>> y.shape
         (2,)
         >>> y.data
-        array([ 0.,  5.], dtype=float32)
+        array([0., 5.], dtype=float32)
 
     """
     return SelectItem().apply((x, t))[0]

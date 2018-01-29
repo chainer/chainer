@@ -12,6 +12,8 @@ class Dropout(function_node.FunctionNode):
 
     """Dropout regularization."""
 
+    mask = None
+
     def __init__(self, dropout_ratio):
         if not 0.0 <= dropout_ratio < 1.0:
             raise ValueError('dropout_ratio must be in the range [0, 1)')
@@ -22,7 +24,7 @@ class Dropout(function_node.FunctionNode):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
-        if hasattr(self, 'mask'):
+        if self.mask is not None:
             y = x[0] * self.mask
         else:
             scale = x[0].dtype.type(1. / (1 - self.dropout_ratio))

@@ -24,7 +24,8 @@ class Evaluator(extension.Extension):
     :class:`~chainer.Reporter` for details in naming rules of the reports.
 
     Evaluator has a structure to customize similar to that of
-    :class:`~chainer.training.StandardUpdater`. The main differences are:
+    :class:`~chainer.training.updaters.StandardUpdater`.
+    The main differences are:
 
     - There are no optimizers in an evaluator. Instead, it holds links
       to evaluate.
@@ -70,6 +71,8 @@ class Evaluator(extension.Extension):
     trigger = 1, 'epoch'
     default_name = 'validation'
     priority = extension.PRIORITY_WRITER
+
+    name = None
 
     def __init__(self, iterator, target, converter=convert.concat_examples,
                  device=None, eval_hook=None, eval_func=None):
@@ -123,7 +126,7 @@ class Evaluator(extension.Extension):
         """
         # set up a reporter
         reporter = reporter_module.Reporter()
-        if hasattr(self, 'name'):
+        if self.name is not None:
             prefix = self.name + '/'
         else:
             prefix = ''
@@ -152,7 +155,7 @@ class Evaluator(extension.Extension):
 
             This method encloses :attr:`eval_func` calls with
             :func:`function.no_backprop_mode` context, so all calculations
-            using :class:`~chainer.FunctionNode`\s inside
+            using :class:`~chainer.FunctionNode`\\s inside
             :attr:`eval_func` do not make computational graphs. It is for
             reducing the memory consumption.
 
@@ -190,3 +193,14 @@ class Evaluator(extension.Extension):
             summary.add(observation)
 
         return summary.compute_mean()
+
+    def finalize(self):
+        """Finalizes the evaluator object.
+
+        This method calls the `finalize` method of each iterator that
+        this evaluator has.
+        It is called at the end of training loops.
+
+        """
+        for iterator in six.itervalues(self._iterators):
+            iterator.finalize()

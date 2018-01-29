@@ -156,15 +156,15 @@ def embed_id(x, W, ignore_label=None):
         ...               [1, 1, 1],
         ...               [2, 2, 2]]).astype('f')
         >>> W
-        array([[ 0.,  0.,  0.],
-               [ 1.,  1.,  1.],
-               [ 2.,  2.,  2.]], dtype=float32)
+        array([[0., 0., 0.],
+               [1., 1., 1.],
+               [2., 2., 2.]], dtype=float32)
         >>> F.embed_id(x, W).data
-        array([[ 2.,  2.,  2.],
-               [ 1.,  1.,  1.]], dtype=float32)
+        array([[2., 2., 2.],
+               [1., 1., 1.]], dtype=float32)
         >>> F.embed_id(x, W, ignore_label=1).data
-        array([[ 2.,  2.,  2.],
-               [ 0.,  0.,  0.]], dtype=float32)
+        array([[2., 2., 2.],
+               [0., 0., 0.]], dtype=float32)
 
     """
     return EmbedIDFunction(ignore_label=ignore_label).apply((x, W))[0]
