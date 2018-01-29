@@ -60,8 +60,8 @@ const std::shared_ptr<ArrayNode>& ArrayBody::CreateNode(const GraphId& graph_id)
     return nodes_.back();
 }
 
-void SetUpOpNodes(std::string name, std::vector<std::reference_wrapper<const Array>> inputs, Array& out,
-                  std::vector<std::function<Array(const Array&)>> backward_functions) {
+void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
+                  const std::vector<std::function<Array(const Array&)>>& backward_functions) {
     size_t nin = inputs.size();
     if (nin != backward_functions.size()) {
         throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");

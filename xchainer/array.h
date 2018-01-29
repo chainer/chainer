@@ -56,8 +56,8 @@ private:
     std::vector<std::shared_ptr<ArrayNode>> nodes_;
 };
 
-void SetUpOpNodes(std::string name, std::vector<std::reference_wrapper<const Array>> inputs, Array& out,
-                  std::vector<std::function<Array(const Array&)>> backaward_functions);
+void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
+                  const std::vector<std::function<Array(const Array&)>>& backaward_functions);
 
 }  // namespace internal
 
