@@ -256,10 +256,8 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 
 }  // namespace
 
-void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent) {
-    for (const auto& node : array.nodes()) {
-        DebugDumpComputationalGraph(os, *node, indent);
-    }
+void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent) {
+    DebugDumpComputationalGraph(os, *array.GetNode(graph_id), indent);
 }
 
 }  // namespace xchainer

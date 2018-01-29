@@ -152,6 +152,6 @@ private:
     std::shared_ptr<internal::ArrayBody> body_;
 };
 
-void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent = 0);
+void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent = 0);
 
 }  // namespace xchainer
