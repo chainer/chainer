@@ -18,7 +18,7 @@ class ReLU(function_node.FunctionNode):
     """Rectified Linear Unit."""
 
     _use_cudnn = False
-    _ideep_hint = None
+    _use_ideep = False
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -33,19 +33,19 @@ class ReLU(function_node.FunctionNode):
                 and (x.ndim == 2 or x.ndim == 4)):
 
             # iDeep implementation
+            # TODO(iDeep): Support arbitrary dimension
+            self._use_ideep = True
             return self.forward_ideep(inputs)
 
         self.retain_outputs((0,))
         return utils.force_array(numpy.maximum(x, 0, dtype=x.dtype)),
 
     def forward_ideep(self, inputs):
+        x, = inputs
         self.retain_inputs((0,))
         self.retain_outputs((0,))
 
-        cc = intel64.ideep.xnn.ReLUForward(inputs)
-        self.ideep_hint = cc.hint
-
-        y, = cc.execute_on()
+        y = intel64.ideep.relu.Forward(intel64.ideep.array(x))
         return y,
 
     def forward_gpu(self, inputs):
@@ -64,10 +64,11 @@ class ReLU(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
         y, = self.get_retained_outputs()
-        if self._ideep_hint is not None:
+        if self._use_ideep:
             # iDeep implementation
+            # TODO(iDeep): Support arbitrary dimension
             x, = self.get_retained_inputs()
-            return ReLUGradIdeep(x, y, self._ideep_hint).apply((gy,))
+            return ReLUGradIdeep(x, y).apply((gy,))
         if chainer.should_use_cudnn('==always') and self._use_cudnn:
             # cuDNN implementatioin
             x, = self.get_retained_inputs()
@@ -77,11 +78,7 @@ class ReLU(function_node.FunctionNode):
 
 
 def _heaviside(x):
-    if ideep.is_available() and isinstance(x, ideep.ideep.mdarray):
-        # ideep.mdarray does not support __gt__ yet
-        return numpy.greater(x, 0).astype(x.dtype)
-    else:
-        return (x > 0).astype(x.dtype)
+    return (x > 0).astype(x.dtype)
 
 
 class ReLUGrad2(function_node.FunctionNode):
@@ -148,13 +145,11 @@ class ReLUGradCudnn(ReLUGrad3Base):
 
 class ReLUGradIdeep(ReLUGrad3Base):
 
-    def __init__(self, x, y, hint):
-        super(ReLUGradIdeep, self).__init__(x, y)
-        self.hint = hint
-
     def forward(self, inputs):
-        cc = intel64.ideep.xnn.ReLUBackward((self.x,), inputs, self.hint)
-        ggx, = cc.execute_on()
+        gy, = inputs
+        ggx = intel64.ideep.relu.Backward(
+            intel64.ideep.array(self.x),
+            intel64.ideep.array(gy))
         return ggx,
 
 
