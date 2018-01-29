@@ -161,11 +161,11 @@ def test_view_must_not_share_properties():
     array = xchainer.Array((1,), xchainer.float32, [3.0])
     view = array.view()
     # Test preconditions
-    assert not array.requires_grad
-    assert not view.requires_grad
+    assert not array.is_grad_required()
+    assert not view.is_grad_required()
 
-    array.requires_grad = True
-    assert not view.requires_grad, 'A view must not share requires_grad with the original array.'
+    array.require_grad()
+    assert not view.is_grad_required(), 'A view must not share is_grad_required with the original array.'
 
 
 def test_copy(array_init_inputs):
@@ -278,14 +278,18 @@ def test_array_repr():
     )
 
 
-def test_array_property_requires_grad():
+def test_array_require_grad():
     array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
-    assert not array.requires_grad
-    array.requires_grad = True
-    assert array.requires_grad
 
-    # TODO(hvy): Should be removed when requires_grad becomes a method
-    array.requires_grad = False
+    # Tests for default graph id
+    assert not array.is_grad_required()
+    array.require_grad()
+    assert array.is_grad_required()
+
+    # Tests for given graph id
+    assert not array.is_grad_required('graph1')
+    array.require_grad('graph1')
+    assert array.is_grad_required('graph1')
 
 
 def test_array_grad():

@@ -39,7 +39,7 @@ def test_backward_identity():
     expected_gxs = (xchainer.full(shape, 1, dtype),)
 
     for x in xs:
-        x.requires_grad = True
+        x.require_grad()
 
     def fprop(xs_, extra_xs_):
         x, = xs_
@@ -61,7 +61,7 @@ def test_backward_add():
         xchainer.full(shape, 1, dtype),)
 
     for x in xs:
-        x.requires_grad = True
+        x.require_grad()
 
     def fprop(xs_, extra_xs_):
         x0, x1 = xs_
@@ -83,7 +83,7 @@ def test_backward_mul():
         xchainer.full(shape, 3, dtype),)
 
     for x in xs:
-        x.requires_grad = True
+        x.require_grad()
 
     def fprop(xs_, extra_xs_):
         x0, x1 = xs_
@@ -107,7 +107,7 @@ def test_backward_add_mull():
         xchainer.full(shape, 2, dtype))
 
     for x in xs:
-        x.requires_grad = True
+        x.require_grad()
 
     def fprop(xs_, extra_xs_):
         x0, x1, x2 = xs_
@@ -130,7 +130,7 @@ def test_backward_add_mul_extra_inputs():
         xchainer.full(shape, 6, dtype))
 
     for x in xs:
-        x.requires_grad = True
+        x.require_grad()
 
     def fprop(xs_, extra_xs_):
         x0, x1 = xs_
@@ -148,7 +148,7 @@ def test_backward_sole_array_node():
     x = xchainer.full(shape, 2, dtype)
     expected_gx = xchainer.full(shape, 1, dtype)
 
-    x.requires_grad = True
+    x.require_grad()
 
     xchainer.backward(x)
 
@@ -164,7 +164,7 @@ def test_double_backprop():
     expected_gxs = (xchainer.full(shape, 2, dtype),)
 
     for x in xs:
-        x.requires_grad = True
+        x.require_grad()
 
     def fprop(xs_, extra_xs_):
         x, = xs_
@@ -187,7 +187,7 @@ def test_backward_input_to_multiple_ops():
     expected_gxs = (xchainer.full(shape, 7, dtype),)
 
     for x in xs:
-        x.requires_grad = True
+        x.require_grad()
 
     def fprop(xs_, extra_xs_):
         x, = xs_
@@ -206,7 +206,7 @@ def test_backward_identical_inputs():
     expected_gxs = (xchainer.full(shape, 2, dtype),)
 
     for x in xs:
-        x.requires_grad = True
+        x.require_grad()
 
     def fprop(xs_, extra_xs_):
         x, = xs_
@@ -224,7 +224,7 @@ def test_backward_identical_intermediate_nodes():
     expected_gxs = (xchainer.full(shape, 4, dtype),)
 
     for x in xs:
-        x.requires_grad = True
+        x.require_grad()
 
     def fprop(xs_, extra_xs_):
         x, = xs_
@@ -243,7 +243,7 @@ def test_backward_given_input_grad():
     expected_gxs = (xchainer.full(shape, 2, dtype),)
 
     for x in xs:
-        x.requires_grad = True
+        x.require_grad()
 
     def fprop(xs_, extra_xs_):
         x, = xs_
@@ -263,7 +263,7 @@ def test_backward_given_output_grad():
     expected_gxs = (xchainer.full(shape, 6, dtype),)
 
     for x in xs:
-        x.requires_grad = True
+        x.require_grad()
 
     def fprop(xs_, extra_xs_):
         x, = xs_
