@@ -281,21 +281,24 @@ def test_array_repr():
 def test_array_require_grad():
     array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
 
-    # Tests for default graph id
     assert not array.is_grad_required()
     array.require_grad()
     assert array.is_grad_required()
+
     with pytest.raises(xchainer.XchainerError):
         array.require_grad()
 
-    # Tests for given graph id
+
+def test_array_require_grad_with_graph_id():
+    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+
     assert not array.is_grad_required('graph_1')
     array.require_grad('graph_1')
     assert array.is_grad_required('graph_1')
     with pytest.raises(xchainer.XchainerError):
         array.require_grad('graph_1')
 
-    # Tests for keyword arguments
+    # keyword arguments
     assert not array.is_grad_required(graph_id='graph_2')
     array.require_grad(graph_id='graph_2')
     assert array.is_grad_required('graph_2')
@@ -314,29 +317,41 @@ def test_array_grad():
     array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
     grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
 
-    # Test setter and getter for default graph id
     with pytest.raises(xchainer.XchainerError):
         array.get_grad()
+
     array.set_grad(grad)
     assert array.get_grad() is not None
     assert array.get_grad()._debug_flat_data == grad._debug_flat_data
+
     array.set_grad(None)  # clear
     assert array.get_grad() is None
 
-    # Test setter and getter for given graph id
+
+def test_array_grad_with_graph_id():
+    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+    grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
+
     with pytest.raises(xchainer.XchainerError):
         array.get_grad('graph_1')
+
     array.set_grad(grad, 'graph_1')
+    assert array.get_grad('graph_1') is not None
     assert array.get_grad('graph_1')._debug_flat_data == grad._debug_flat_data
+
     array.set_grad(None, 'graph_1')  # clear
     assert array.get_grad('graph_1') is None
 
-    # Test setter and getter for keyword arguments
+    # keyword arguments
     with pytest.raises(xchainer.XchainerError):
         array.get_grad(graph_id='graph_2')
+
     array.set_grad(grad, graph_id='graph_2')
+    assert array.get_grad('graph_2') is not None
+    assert array.get_grad(graph_id='graph_2') is not None
     assert array.get_grad('graph_2')._debug_flat_data == grad._debug_flat_data
     assert array.get_grad(graph_id='graph_2')._debug_flat_data == grad._debug_flat_data
+
     array.set_grad(None, graph_id='graph_2')  # clear
     assert array.get_grad('graph_2') is None
     assert array.get_grad(graph_id='graph_2') is None
