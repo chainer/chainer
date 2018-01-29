@@ -960,6 +960,9 @@ TEST_P(ArrayTest, MulBackward) {
 
     ExpectEqual<bool>(ga, go * b);
     ExpectEqual<bool>(gb, go * a);
+
+    EXPECT_FALSE(ga.IsGradRequired());
+    EXPECT_FALSE(gb.IsGradRequired());
 }
 
 TEST_P(ArrayTest, MulBackwardCapture) {
@@ -978,10 +981,38 @@ TEST_P(ArrayTest, MulBackwardCapture) {
     Array gx1 = lhs_func(gy);
     Array e1 = MakeArray<float>({1}, {3.0f});
     ExpectEqual<bool>(e1, gx1);
+    EXPECT_FALSE(gx1.IsGradRequired());
 
     Array gx2 = rhs_func(gy);
     Array e2 = MakeArray<float>({1}, {2.0f});
     ExpectEqual<bool>(e2, gx2);
+    EXPECT_FALSE(gx2.IsGradRequired());
+}
+
+TEST_P(ArrayTest, MulBackwardMultipleGraphs) {
+    GraphId graph_id1 = "graph_1";
+    GraphId graph_id2 = "graph_2";
+
+    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+
+    a.RequireGrad(graph_id1);
+    b.RequireGrad(graph_id2);
+
+    Array o = a * b;
+    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
+
+    auto op_node1 = o.GetNode(graph_id1)->next_node();
+    Array ga = op_node1->backward_functions()[0](go);
+
+    auto op_node2 = o.GetNode(graph_id2)->next_node();
+    Array gb = op_node2->backward_functions()[0](go);
+
+    EXPECT_FALSE(ga.IsGradRequired(graph_id1));
+    EXPECT_TRUE(ga.IsGradRequired(graph_id2));
+
+    EXPECT_TRUE(gb.IsGradRequired(graph_id1));
+    EXPECT_FALSE(gb.IsGradRequired(graph_id2));
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
