@@ -33,8 +33,7 @@ class LinearFunction(function_node.FunctionNode):
 
     def forward(self, inputs):
         if (intel64.should_use_ideep('>=auto')
-                and all([v.dtype == numpy.float32 for v in inputs])
-                and cuda.get_array_module(*inputs) is numpy):
+            and intel64.inputs_all_ready(inputs)):
 
             # iDeep implementation
             self._use_ideep = True

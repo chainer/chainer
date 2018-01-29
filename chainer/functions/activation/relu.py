@@ -27,16 +27,15 @@ class ReLU(function_node.FunctionNode):
         )
 
     def forward_cpu(self, inputs):
-        x, = inputs
         if (intel64.should_use_ideep('>=auto')
-                and x.dtype == numpy.float32
-                and (x.ndim == 2 or x.ndim == 4)):
+            and intel64.inputs_all_ready(inputs)):
 
             # iDeep implementation
             # TODO(iDeep): Support arbitrary dimension
             self._use_ideep = True
             return self.forward_ideep(inputs)
 
+        x, = inputs
         self.retain_outputs((0,))
         return utils.force_array(numpy.maximum(x, 0, dtype=x.dtype)),
 
