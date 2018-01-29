@@ -11,8 +11,8 @@ from chainer import functions
 from chainer import links
 from chainer import sequential
 from chainer import testing
-from chainer.testing import attr
 from chainer import variable
+from chainer.testing import attr
 
 
 class TestSequential(unittest.TestCase):
@@ -21,8 +21,10 @@ class TestSequential(unittest.TestCase):
         self.l1 = links.Linear(None, 3)
         self.l2 = links.Linear(3, 2)
         self.l3 = links.Linear(2, 3)
+        # s1: l1 -> l2
         self.s1 = sequential.Sequential(self.l1)
         self.s1.append(self.l2)
+        # s2: s1 (l1 -> l2) -> l3
         self.s2 = sequential.Sequential(self.s1)
         self.s2.append(self.l3)
 
@@ -552,6 +554,12 @@ class TestSequential(unittest.TestCase):
         self.assertEqual(len(ret), 4)
         ret = self.s2.repeat(0, mode='share')
         self.assertEqual(len(ret), 0)
+
+    def test_flatten(self):
+        flattened_s2 = self.s2.flatten()
+        self.assertIs(flattened_s2[0], self.l1)
+        self.assertIs(flattened_s2[1], self.l2)
+        self.assertIs(flattened_s2[2], self.l3)
 
 
 testing.run_module(__name__, __file__)

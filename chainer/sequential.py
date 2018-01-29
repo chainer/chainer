@@ -339,3 +339,12 @@ class Sequential(link.ChainList):
             else:
                 ret.append(copy.copy(layer))
         return ret
+
+    def flatten(self):
+        ret = []
+        for layer in self:
+            if isinstance(layer, Sequential):
+                ret.extend(layer.flatten())
+            else:
+                ret.append(layer)
+        return Sequential(*ret)
