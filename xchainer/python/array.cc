@@ -154,13 +154,13 @@ void InitXchainerArray(pybind11::module& m) {
         .def("set_grad",
              [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad, const GraphId& graph_id) {
                  if (grad) {
-                     if (self->HasNode()) {
-                         Array{self}.SetGrad(Array{grad});
+                     if (self->HasNode(graph_id)) {
+                         Array{self}.SetGrad(Array{grad}, graph_id);
                      } else {
-                         Array{self}.RequireGrad().SetGrad(Array{grad});
+                         Array{self}.RequireGrad(graph_id).SetGrad(Array{grad}, graph_id);
                      }
                  } else {
-                     Array{self}.ClearGrad();
+                     Array{self}.ClearGrad(graph_id);
                  }
              },
              py::arg("grad"), py::arg("graph_id") = "")
