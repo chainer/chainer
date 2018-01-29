@@ -11,8 +11,8 @@ from chainer import functions
 from chainer import links
 from chainer import sequential
 from chainer import testing
-from chainer import variable
 from chainer.testing import attr
+from chainer import variable
 
 
 class TestSequential(unittest.TestCase):

@@ -615,7 +615,7 @@ Assign a Parameter object directly to an attribute within a \
                         return F.relu(self.bn(self.conv(x)))
 
                 net = ConvBNReLU().repeat(16, mode='init')
-            
+
             The ``net`` object contains 16 blocks, each of which is
             ``ConvBNReLU``. And the ``mode`` was ``init``, so each block
             is re-initialized with different parameters. If you give

@@ -369,7 +369,7 @@ class Sequential(link.ChainList):
         inside this :class:`~chainer.Sequential` link.
 
         Returns:
-            
+
             A flattened :class:`~chainer.Sequential` object.
 
         .. admonition:: Example
