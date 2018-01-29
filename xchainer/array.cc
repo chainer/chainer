@@ -31,34 +31,33 @@ namespace internal {
 
 // Private definition of ArrayBody
 ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
-                     std::vector<std::pair<GraphId, std::shared_ptr<ArrayNode>>> nodes)
+                     std::vector<std::shared_ptr<ArrayNode>> nodes)
     : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_(std::move(nodes)) {}
 
 ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset)
     : ArrayBody(shape, dtype, is_contiguous, data, offset, {}) {}
 
 bool ArrayBody::HasNode(const GraphId& graph_id) const {
-    return std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; }) !=
+    return std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); }) !=
            nodes_.end();
 }
 
 std::shared_ptr<const ArrayNode> ArrayBody::GetNode(const GraphId& graph_id) const { return GetMutableNode(graph_id); }
 
 const std::shared_ptr<ArrayNode>& ArrayBody::GetMutableNode(const GraphId& graph_id) const {
-    auto it =
-        std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& graph_id_node) { return graph_id == graph_id_node.first; });
+    auto it = std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); });
     if (it == nodes_.end()) {
         throw XchainerError("Cannot find ArrayNode for graph: " + graph_id);
     }
-    return it->second;
+    return *it;
 }
 
 const std::shared_ptr<ArrayNode>& ArrayBody::CreateNode(const GraphId& graph_id) {
     if (HasNode(graph_id)) {
         throw XchainerError("Duplicate graph registration: " + graph_id);
     }
-    nodes_.emplace_back(graph_id, std::make_shared<ArrayNode>());
-    return nodes_.back().second;
+    nodes_.emplace_back(std::make_shared<ArrayNode>(graph_id));
+    return nodes_.back();
 }
 
 void SetUpOpNodes(std::string name, std::vector<std::reference_wrapper<const Array>> inputs, Array& out,
@@ -71,9 +70,8 @@ void SetUpOpNodes(std::string name, std::vector<std::reference_wrapper<const Arr
     std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_edges;
 
     // Helper function to create an edge in the graph
-    auto create_edge = [&name, &graph_edges](const GraphId& graph_id, const std::shared_ptr<ArrayNode>& next_node,
-                                             auto& backward_function) {
-        auto& op_node = graph_edges[graph_id];  // Create if not exists
+    auto create_edge = [&name, &graph_edges](const std::shared_ptr<ArrayNode>& next_node, auto& backward_function) {
+        auto& op_node = graph_edges[next_node->graph_id()];  // Create if not exists
         if (!op_node) {
             op_node = std::make_shared<OpNode>(name);
         }
@@ -82,9 +80,9 @@ void SetUpOpNodes(std::string name, std::vector<std::reference_wrapper<const Arr
         op_node->RegisterBackwardFunction(backward_function);
     };
 
-    for (size_t i = 0; i < nin; ++i) {                         // For each input
-        for (auto& graph_id_node : inputs[i].get().nodes()) {  // For each graph, create an edge
-            create_edge(graph_id_node.first, graph_id_node.second, backward_functions[i]);
+    for (size_t i = 0; i < nin; ++i) {                      // For each input
+        for (const auto& node : inputs[i].get().nodes()) {  // For each graph, create an edge
+            create_edge(node, backward_functions[i]);
         }
     }
 
@@ -179,7 +177,7 @@ Array Array::Copy() const {
 }
 
 void Array::CopyTo(Array& out) const {
-  internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout) { return gout; }});
+    internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout) { return gout; }});
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
     // is_contiguous_ and offset_ into account
@@ -264,8 +262,8 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 }  // namespace
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent) {
-    for (const auto& graph_id_node : array.nodes()) {
-        DebugDumpComputationalGraph(os, *graph_id_node.second, indent);
+    for (const auto& node : array.nodes()) {
+        DebugDumpComputationalGraph(os, *node, indent);
     }
 }
 

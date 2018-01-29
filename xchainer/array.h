@@ -37,7 +37,7 @@ class ArrayBody {
 public:
     ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset);
     ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
-              std::vector<std::pair<GraphId, std::shared_ptr<ArrayNode>>> nodes);
+              std::vector<std::shared_ptr<ArrayNode>> nodes);
 
     bool HasNode(const GraphId& graph_id = "") const;
     const std::shared_ptr<ArrayNode>& CreateNode(const GraphId& graph_id = "");
@@ -53,7 +53,7 @@ private:
     bool is_contiguous_;
     std::shared_ptr<void> data_;
     int64_t offset_;
-    std::vector<std::pair<GraphId, std::shared_ptr<ArrayNode>>> nodes_;
+    std::vector<std::shared_ptr<ArrayNode>> nodes_;
 };
 
 void SetUpOpNodes(std::string name, std::vector<std::reference_wrapper<const Array>> inputs, Array& out,
@@ -138,7 +138,7 @@ public:
 
     int64_t offset() const { return body_->offset_; }
 
-    const std::vector<std::pair<GraphId, std::shared_ptr<ArrayNode>>>& nodes() const { return body_->nodes_; };
+    const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return body_->nodes_; };
 
 private:
     Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
