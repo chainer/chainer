@@ -56,6 +56,9 @@ private:
     std::vector<std::pair<GraphId, std::shared_ptr<ArrayNode>>> nodes_;
 };
 
+void SetUpOpNodes(std::string name, std::vector<std::reference_wrapper<const Array>> inputs, Array& out,
+                  std::vector<std::function<Array(const Array&)>> backaward_functions);
+
 }  // namespace internal
 
 // The main data structure of multi-dimensional array.
@@ -146,9 +149,6 @@ private:
 
     std::shared_ptr<internal::ArrayBody> body_;
 };
-
-void CreateGraph(std::string name, std::vector<std::reference_wrapper<const Array>> inputs, Array& out,
-                 std::vector<std::function<Array(const Array&)>> backaward_functions);
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent = 0);
 

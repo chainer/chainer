@@ -61,6 +61,48 @@ const std::shared_ptr<ArrayNode>& ArrayBody::CreateNode(const GraphId& graph_id)
     return nodes_.back().second;
 }
 
+void SetUpOpNodes(std::string name, std::vector<std::reference_wrapper<const Array>> inputs, Array& out,
+                  std::vector<std::function<Array(const Array&)>> backward_functions) {
+    size_t nin = inputs.size();
+    if (nin != backward_functions.size()) {
+        throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");
+    }
+
+    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_edges;
+
+    // Helper function to create an edge in the graph
+    auto create_edge = [&name, &graph_edges](const GraphId& graph_id, const std::shared_ptr<ArrayNode>& next_node,
+                                             auto& backward_function) {
+        auto& op_node = graph_edges[graph_id];  // Create if not exists
+        if (!op_node) {
+            op_node = std::make_shared<OpNode>(name);
+        }
+        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
+        op_node->RegisterNextNode(next_node);
+        op_node->RegisterBackwardFunction(backward_function);
+    };
+
+    for (size_t i = 0; i < nin; ++i) {                         // For each input
+        for (auto& graph_id_node : inputs[i].get().nodes()) {  // For each graph, create an edge
+            create_edge(graph_id_node.first, graph_id_node.second, backward_functions[i]);
+        }
+    }
+
+    if (!graph_edges.empty() && std::any_of(inputs.begin(), inputs.end(), [&out](const Array& input) { return &out == &input; })) {
+        throw XchainerError("In-place operation (" + name + ") is not supported for an array that require gradients.");
+    }
+
+    // Bind edges to output
+    for (const auto& edge : graph_edges) {
+        const auto& graph_id = edge.first;
+        const auto& op_node = edge.second;
+
+        auto& out_node = out.body()->CreateNode(graph_id);
+        out_node->set_next_node(op_node);
+        out_node->set_rank(op_node->rank() + 1);
+    }
+}
+
 }  // namespace internal
 
 Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool is_contiguous, int64_t offset)
@@ -137,7 +179,7 @@ Array Array::Copy() const {
 }
 
 void Array::CopyTo(Array& out) const {
-    CreateGraph("copy", {*this}, out, {[](const Array& gout) { return gout; }});
+  internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout) { return gout; }});
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
     // is_contiguous_ and offset_ into account
@@ -152,7 +194,7 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     auto lhs_backward_function = [](const Array& gout) -> Array { return gout; };
     auto rhs_backward_function = lhs_backward_function;
-    CreateGraph("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
+    internal::SetUpOpNodes("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
@@ -174,7 +216,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     auto lhs_backward_function = [other_view = rhs](const Array& gout) { return gout * other_view; };
     auto rhs_backward_function = [other_view = *this](const Array& gout) { return gout * other_view; };
-    CreateGraph("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
+    internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     Device device = GetCurrentDevice();
     if (device == MakeDevice("cpu")) {
@@ -220,48 +262,6 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 }
 
 }  // namespace
-
-void CreateGraph(std::string name, std::vector<std::reference_wrapper<const Array>> inputs, Array& out,
-                 std::vector<std::function<Array(const Array&)>> backward_functions) {
-    size_t nin = inputs.size();
-    if (nin != backward_functions.size()) {
-        throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");
-    }
-
-    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_edges;
-
-    // Helper function to create an edge in the graph
-    auto create_edge = [&name, &graph_edges](const GraphId& graph_id, const std::shared_ptr<ArrayNode>& next_node,
-                                             auto& backward_function) {
-        auto& op_node = graph_edges[graph_id];  // Create if not exists
-        if (!op_node) {
-            op_node = std::make_shared<OpNode>(name);
-        }
-        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
-        op_node->RegisterNextNode(next_node);
-        op_node->RegisterBackwardFunction(backward_function);
-    };
-
-    for (size_t i = 0; i < nin; ++i) {                         // For each input
-        for (auto& graph_id_node : inputs[i].get().nodes()) {  // For each graph, create an edge
-            create_edge(graph_id_node.first, graph_id_node.second, backward_functions[i]);
-        }
-    }
-
-    if (!graph_edges.empty() && std::any_of(inputs.begin(), inputs.end(), [&out](const Array& input) { return &out == &input; })) {
-        throw XchainerError("In-place operation (" + name + ") is not supported for an array that require gradients.");
-    }
-
-    // Bind edges to output
-    for (const auto& edge : graph_edges) {
-        const auto& graph_id = edge.first;
-        const auto& op_node = edge.second;
-
-        auto& out_node = out.body()->CreateNode(graph_id);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(op_node->rank() + 1);
-    }
-}
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, int indent) {
     for (const auto& graph_id_node : array.nodes()) {

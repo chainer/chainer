@@ -26,7 +26,7 @@ Arrays IncorrectBackwardUnaryFunc(const Arrays& inputs) {
     Array out = Array::EmptyLike(in);
 
     auto backward_function = [](const Array& gout) { return gout * gout; };
-    CreateGraph("incorrect_unary", {in}, out, {backward_function});
+    internal::SetUpOpNodes("incorrect_unary", {in}, out, {backward_function});
 
     VisitDtype(in.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
@@ -50,7 +50,7 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
 
     auto lhs_backward_function = [other_view = rhs](const Array& gout)->Array { return gout + other_view; };
     auto rhs_backward_function = lhs_backward_function;
-    CreateGraph("incorrect_binary", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+    internal::SetUpOpNodes("incorrect_binary", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
