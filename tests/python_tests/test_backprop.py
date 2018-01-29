@@ -7,28 +7,28 @@ def assert_arrays_equal(array1, array2):
     assert array1._debug_flat_data == array2._debug_flat_data
 
 
-def check_backprop(xs, expected_gxs, fprop, args):
+def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id = ""):
     # Checks for test validity
     assert isinstance(xs, tuple)
     assert isinstance(expected_gxs, tuple)
     assert callable(fprop)
-    assert isinstance(args, tuple)
+    assert isinstance(extra_xs, tuple)
     assert len(xs) == len(expected_gxs)
     assert all([isinstance(a, xchainer.Array) for a in xs])
     assert all([isinstance(a, xchainer.Array) for a in expected_gxs])
-    assert all([isinstance(a, xchainer.Array) for a in args])
+    assert all([isinstance(a, xchainer.Array) for a in extra_xs])
 
-    outputs = fprop(xs, args)
+    outputs = fprop(xs, extra_xs)
     assert len(outputs) == 1, 'This test does not support multi-output functions yet'
 
-    xchainer.backward(outputs[0])
+    xchainer.backward(outputs[0], graph_id)
 
-    gxs = tuple([x.grad for x in xs])
+    gxs = tuple([x.get_grad(graph_id) for x in xs])
     # Note: i for pytest output on failure
     for i, (gx, expected_gx) in enumerate(zip(gxs, expected_gxs)):
         assert_arrays_equal(gx, expected_gx)
 
-    assert outputs[0].grad is not None
+    assert outputs[0].get_grad(graph_id) is not None
 
 
 def test_backward_identity():
@@ -152,7 +152,7 @@ def test_backward_sole_array_node():
 
     xchainer.backward(x)
 
-    assert_arrays_equal(x.grad, expected_gx)
+    assert_arrays_equal(x.get_grad(), expected_gx)
 
 
 def test_double_backprop():
@@ -171,8 +171,8 @@ def test_double_backprop():
         t, = extra_xs_
         y = x * (x + t)
         xchainer.backward(y)
-        gx = x.grad
-        x.grad = None
+        gx = x.get_grad()
+        x.set_grad(None)
         return gx,
 
     check_backprop(xs, expected_gxs, fprop, extra_xs)
@@ -247,7 +247,7 @@ def test_backward_given_input_grad():
 
     def fprop(xs_, extra_xs_):
         x, = xs_
-        x.grad = xchainer.full(shape, 1, dtype)
+        x.set_grad(xchainer.full(shape, 1, dtype))
         y = x.copy()
         return y,
 
@@ -269,7 +269,7 @@ def test_backward_given_output_grad():
         x, = xs_
         t, = extra_xs_
         y = x * t
-        y.grad = xchainer.full(shape, 2, dtype)
+        y.set_grad(xchainer.full(shape, 2, dtype))
         return y,
 
     check_backprop(xs, expected_gxs, fprop, extra_xs)
