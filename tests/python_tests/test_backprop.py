@@ -1,5 +1,7 @@
 import xchainer
 
+import pytest
+
 
 def assert_arrays_equal(array1, array2):
     if array1 is None:
@@ -300,3 +302,21 @@ def test_backward_multiple_graphs_basic():
         return y,
 
     check_backprop(xs, expected_gxs, fprop, (), graph_id1)
+
+
+def test_backward_multiple_graphs_non_existing():
+    shape = (1,)
+    dtype = xchainer.float32
+
+    x1 = xchainer.full(shape, 2, dtype)
+    x2 = xchainer.full(shape, 5, dtype)
+
+    graph_id1 = "graph_1"
+    graph_id2 = "graph_2"
+
+    x1.require_grad(graph_id1)
+    x2.require_grad(graph_id1)
+
+    y = x1 * x2
+    with pytest.raises(xchainer.XchainerError):
+        xchainer.backward(y, graph_id2)
