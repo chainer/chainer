@@ -17,7 +17,8 @@ class Sequential(link.ChainList):
     the forward pass computation. A :class:`~Sequential` calls the given
     callable objects sequentially inside of the :meth:`~Sequential.__call__`
     method in the same order as the given argments.
-    Therefore, you don't need to write the forward pass computation explicitly.
+    Therefore, you do not need to write the forward pass computation
+    explicitly.
 
     .. admonition:: Example
 
@@ -44,14 +45,17 @@ class Sequential(link.ChainList):
         where ``x`` denotes a mini-batch of ``n_in``-dimensional input vectors.
 
         Furthermore, :class:`~Sequential` supports build-in list APIs, so you
-        can concatenate :class:`~Sequential` objects and repeat a
-        :class:`~Sequential` object to create a longer :class:`~Sequential`
-        model easily with the same ways as Python lists::
+        can concatenate :class:`~Sequential` objects to create a longer
+        :class:`~Sequential` model easily with the same ways as Python lists::
 
           model_A = Sequential(L.Linear(10, 10), F.relu)
           model_B = Sequential(L.Linear(10, 10), F.sigmoid)
           model_C = model_A + model_B
-          model_D = 3 * model_A
+
+        To repeat a :class:`~Sequential` object multiple times, you can use
+        ``repeat()`` method.
+
+          model_D = model_A.repeat(3)
 
         You can also add your own functions or any callable objects to a
         :class:`~Sequential` object::
@@ -71,6 +75,24 @@ class Sequential(link.ChainList):
         using :meth:`~Sequential.append` method and then add a large network
         (``VGG16Layers``) and finally add a lambda function to extract the
         ``prob`` output.
+
+        Note that a :class:`~Sequential` link which has at least one ``lmabda``
+        function as its member cannot be pickled. So, please use ``partial``
+        method from ``functools`` package instead::
+
+          from functools import partial
+
+          # This is not pickable
+          model = Sequential(
+              L.Convolution2D(None, 64, 3, 1, 1),
+              lambda x: F.max_pooling_2d(x, 2)
+          )
+
+          # This is pickable
+          model = Sequential(
+              L.Convolution2D(None, 64, 3, 1, 1),
+              partial(F.max_pooling_2d, ksize=2)
+          )
 
     Args:
         layers: The layers which are called in its order. Each component should
@@ -341,10 +363,38 @@ class Sequential(link.ChainList):
         return ret
 
     def flatten(self):
-        ret = []
+        """Flatten nested :class:`~chainer.Sequential` links.
+
+        This method flattens all the nested :class:`~chainer.Sequential` links
+        inside this :class:`~chainer.Sequential` link.
+
+        Returns:
+            
+            A flattened :class:`~chainer.Sequential` object.
+
+        .. admonition:: Example
+
+            >> import chainer
+            >> import chainer.functions as F
+            >> import chainer.links as L
+            >> a = chainer.Sequential(L.Linear(None, 10), F.relu)
+            >> b = chainer.Sequential(L.Linear(None, 10), F.relu)
+            >> a.append(b)
+            >> print(a)  # Without flatten
+            0       Linear  W(None) b(10,)
+            1       relu
+            2       Sequential      which has 2 layers
+            >> print(a.flatten())  # With flatten
+            0       Linear  W(None) b(10,)
+            1       relu
+            2       Linear  W(None) b(10,)
+            3       relu
+
+        """
+        ret = Sequential()
         for layer in self:
             if isinstance(layer, Sequential):
                 ret.extend(layer.flatten())
             else:
                 ret.append(layer)
-        return Sequential(*ret)
+        return ret
