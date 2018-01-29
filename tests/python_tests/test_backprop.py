@@ -2,9 +2,12 @@ import xchainer
 
 
 def assert_arrays_equal(array1, array2):
-    assert array1.dtype == array2.dtype
-    assert array1.shape == array2.shape
-    assert array1._debug_flat_data == array2._debug_flat_data
+    if array1 is None:
+        assert array1 == array2
+    else:
+        assert array1.dtype == array2.dtype
+        assert array1.shape == array2.shape
+        assert array1._debug_flat_data == array2._debug_flat_data
 
 
 def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id = ""):
@@ -15,7 +18,7 @@ def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id = ""):
     assert isinstance(extra_xs, tuple)
     assert len(xs) == len(expected_gxs)
     assert all([isinstance(a, xchainer.Array) for a in xs])
-    assert all([isinstance(a, xchainer.Array) for a in expected_gxs])
+    assert all([(isinstance(a, xchainer.Array) or a is None) for a in expected_gxs])
     assert all([isinstance(a, xchainer.Array) for a in extra_xs])
 
     outputs = fprop(xs, extra_xs)
@@ -273,3 +276,27 @@ def test_backward_given_output_grad():
         return y,
 
     check_backprop(xs, expected_gxs, fprop, extra_xs)
+
+
+def test_backward_multiple_graphs_basic():
+    shape = (1,)
+    dtype = xchainer.float32
+
+    x1 = xchainer.full(shape, 2, dtype)
+    x2 = xchainer.full(shape, 5, dtype)
+
+    graph_id1 = "graph_1"
+    graph_id2 = "graph_2"
+
+    x1.require_grad(graph_id1)
+    x2.require_grad(graph_id2)
+
+    xs = (x1, x2)
+    expected_gxs = (xchainer.full(shape, 5, dtype), None)
+
+    def fprop(xs_, extra_xs_):
+        x1, x2 = xs_
+        y = x1 * x2
+        return y,
+
+    check_backprop(xs, expected_gxs, fprop, (), graph_id1)
