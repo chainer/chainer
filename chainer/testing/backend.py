@@ -1,5 +1,4 @@
 import functools
-import unittest
 
 import numpy
 
@@ -120,7 +119,6 @@ def inject_backend_tests(method_names, params):
         raise TypeError('params must be a list of dicts.')
 
     def wrap(case):
-        assert issubclass(case, unittest.TestCase)
         for method_name in method_names:
             impl = getattr(case, method_name)
             delattr(case, method_name)
