@@ -146,14 +146,10 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         assert y_expected.data.dtype == self.x_dtype
         assert y_actual.data.dtype == self.x_dtype
         testing.assert_allclose(
-            y_expected.data, y_actual.data.get(), **self.test_forward_options)
+            y_expected.data, y_actual.data, **self.test_forward_options)
 
     @attr.gpu
     def test_forward(self, backend_config):
-        # Forward test does not currently target CPU backend.
-        # It only tests for consistency between GPU and CPU computation.
-        if not backend_config.use_cuda:
-            return
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
