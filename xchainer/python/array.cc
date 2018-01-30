@@ -139,30 +139,33 @@ void InitXchainerArray(pybind11::module& m) {
         .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
         .def_property("requires_grad", [](const ArrayBodyPtr& self) { return Array{self}.IsGradRequired(); },
                       [](const ArrayBodyPtr& self, bool value) {
+                          auto array = Array{self};
                           // TODO(hvy): requires_grad should not be a boolean property but a method that takes a graph id argument, aligning
                           // to the c++ interface. Currently, this property is broken in the sense that once the required_grad flag is set
                           // to true (and an ArrayNode is created internally) it cannot be unset.
-                          if (value && !self->HasNode()) {
-                              Array{self}.RequireGrad();
+                          if (value && !array.HasNode()) {
+                              array.RequireGrad();
                           }
                       })
         .def_property("grad",
                       [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {
-                          if (self->HasNode()) {
-                              return Array{self}.GetGrad()->body();
+                          auto array = Array{self};
+                          if (array.HasNode()) {
+                              return array.GetGrad()->body();
                           } else {
                               return nullptr;
                           }
                       },
                       [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad) {
+                          auto array = Array{self};
                           if (grad) {
-                              if (self->HasNode()) {
-                                  Array{self}.SetGrad(Array{grad});
+                              if (array.HasNode()) {
+                                  array.SetGrad(Array{grad});
                               } else {
-                                  Array{self}.RequireGrad().SetGrad(Array{grad});
+                                  array.RequireGrad().SetGrad(Array{grad});
                               }
                           } else {
-                              Array{self}.ClearGrad();
+                              array.ClearGrad();
                           }
                       })
         .def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); })

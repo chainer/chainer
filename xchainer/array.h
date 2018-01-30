@@ -38,14 +38,8 @@ public:
     ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
               std::vector<std::shared_ptr<ArrayNode>> nodes = std::vector<std::shared_ptr<ArrayNode>>());
 
-    bool HasNode(const GraphId& graph_id = "") const;
-    const std::shared_ptr<ArrayNode>& CreateNode(const GraphId& graph_id = "");
-
 private:
     friend class ::xchainer::Array;
-
-    std::shared_ptr<const ArrayNode> GetNode(const GraphId& graph_id) const;
-    const std::shared_ptr<ArrayNode>& GetMutableNode(const GraphId& graph_id) const;
 
     Shape shape_;
     Dtype dtype_;
@@ -99,18 +93,20 @@ public:
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
 
-    std::shared_ptr<const ArrayNode> GetNode(const GraphId& graph_id = "") const { return body_->GetNode(graph_id); }
-    const std::shared_ptr<ArrayNode>& GetMutableNode(const GraphId& graph_id = "") const { return body_->GetMutableNode(graph_id); }
+    bool HasNode(const GraphId& graph_id = "") const;
+    const std::shared_ptr<ArrayNode>& CreateNode(const GraphId& graph_id = "");
+    std::shared_ptr<const ArrayNode> GetNode(const GraphId& graph_id = "") const;
+    const std::shared_ptr<ArrayNode>& GetMutableNode(const GraphId& graph_id = "") const;
+
     const nonstd::optional<Array>& GetGrad(const GraphId& graph_id = "") const;
     void SetGrad(Array grad, const GraphId& graph_id = "");
-    bool IsGradRequired(const GraphId& graph_id = "") const { return body_->HasNode(graph_id); }
-
     // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
     void ClearGrad(const GraphId& graph_id = "");
 
+    bool IsGradRequired(const GraphId& graph_id = "") const { return HasNode(graph_id); }
     // Creates a new ArrayNode to store the gradient
     Array& RequireGrad(const GraphId& graph_id = "") {
-        body_->CreateNode(graph_id);
+        CreateNode(graph_id);
         return *this;
     }
 

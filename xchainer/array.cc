@@ -34,29 +34,6 @@ ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::s
                      std::vector<std::shared_ptr<ArrayNode>> nodes)
     : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_(std::move(nodes)) {}
 
-bool ArrayBody::HasNode(const GraphId& graph_id) const {
-    return std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); }) !=
-           nodes_.end();
-}
-
-std::shared_ptr<const ArrayNode> ArrayBody::GetNode(const GraphId& graph_id) const { return GetMutableNode(graph_id); }
-
-const std::shared_ptr<ArrayNode>& ArrayBody::GetMutableNode(const GraphId& graph_id) const {
-    auto it = std::find_if(nodes_.begin(), nodes_.end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); });
-    if (it == nodes_.end()) {
-        throw XchainerError("Cannot find ArrayNode for graph: " + graph_id);
-    }
-    return *it;
-}
-
-const std::shared_ptr<ArrayNode>& ArrayBody::CreateNode(const GraphId& graph_id) {
-    if (HasNode(graph_id)) {
-        throw XchainerError("Duplicate graph registration: " + graph_id);
-    }
-    nodes_.emplace_back(std::make_shared<ArrayNode>(graph_id));
-    return nodes_.back();
-}
-
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
                   const std::vector<std::function<Array(const Array&)>>& backward_functions) {
     if (inputs.size() != backward_functions.size()) {
@@ -90,7 +67,7 @@ void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrap
         const GraphId& graph_id = edge.first;
         const std::shared_ptr<OpNode>& op_node = edge.second;
 
-        const std::shared_ptr<ArrayNode>& out_node = out.body()->CreateNode(graph_id);
+        const std::shared_ptr<ArrayNode>& out_node = out.CreateNode(graph_id);
         out_node->set_next_node(op_node);
         out_node->set_rank(op_node->rank() + 1);
     }
@@ -105,11 +82,35 @@ Array::Array(const Array& other)
     : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.is_contiguous(), other.body_->data_, other.offset(),
                                                   other.body_->nodes_)) {}
 
-const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return body_->GetNode(graph_id)->grad(); }
+bool Array::HasNode(const GraphId& graph_id) const {
+    return std::find_if(body_->nodes_.begin(), body_->nodes_.end(),
+                        [&graph_id](const auto& node) { return graph_id == node->graph_id(); }) != body_->nodes_.end();
+}
 
-void Array::SetGrad(Array grad, const GraphId& graph_id) { body_->GetMutableNode(graph_id)->set_grad(std::move(grad)); }
+const std::shared_ptr<ArrayNode>& Array::CreateNode(const GraphId& graph_id) {
+    if (HasNode(graph_id)) {
+        throw XchainerError("Duplicate graph registration: " + graph_id);
+    }
+    body_->nodes_.emplace_back(std::make_shared<ArrayNode>(graph_id));
+    return body_->nodes_.back();
+}
 
-void Array::ClearGrad(const GraphId& graph_id) { body_->GetMutableNode(graph_id)->ClearGrad(); }
+std::shared_ptr<const ArrayNode> Array::GetNode(const GraphId& graph_id) const { return GetMutableNode(graph_id); }
+
+const std::shared_ptr<ArrayNode>& Array::GetMutableNode(const GraphId& graph_id) const {
+    auto it =
+        std::find_if(body_->nodes_.begin(), body_->nodes_.end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); });
+    if (it == body_->nodes_.end()) {
+        throw XchainerError("Cannot find ArrayNode for graph: " + graph_id);
+    }
+    return *it;
+}
+
+const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return GetNode(graph_id)->grad(); }
+
+void Array::SetGrad(Array grad, const GraphId& graph_id) { GetMutableNode(graph_id)->set_grad(std::move(grad)); }
+
+void Array::ClearGrad(const GraphId& graph_id) { GetMutableNode(graph_id)->ClearGrad(); }
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
