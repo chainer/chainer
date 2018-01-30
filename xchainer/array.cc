@@ -187,14 +187,14 @@ Array Array::AsConstant(CopyKind kind, const std::vector<GraphId>& graph_ids) co
         case CopyKind::kView: {
             Array out{shape(), dtype(), body_->data_, is_contiguous(), offset()};
             if (graph_ids.empty()) {
-                return out;
+                return std::move(out);
             } else {
                 for (const std::shared_ptr<ArrayNode>& node : nodes()) {
                     if (std::find(graph_ids.begin(), graph_ids.end(), node->graph_id()) == graph_ids.end()) {
                         out.body_->nodes_.emplace_back(node);
                     }
                 }
-                return out;
+                return std::move(out);
             }
         }
         default:
