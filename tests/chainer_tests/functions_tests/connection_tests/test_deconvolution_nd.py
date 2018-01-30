@@ -6,7 +6,7 @@ import numpy
 from operator import mul
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing

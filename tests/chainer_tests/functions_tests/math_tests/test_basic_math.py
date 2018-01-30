@@ -6,8 +6,8 @@ import numpy
 import six
 
 import chainer
+from chainer.backends import cuda
 from chainer import basic_math
-from chainer import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
@@ -283,7 +283,7 @@ class TestBinaryOpConstant(unittest.TestCase):
         x = chainer.Variable(cuda.to_gpu(lhs))
         y = func(x, rhs)
         self.assertEqual(y.data.dtype, self.dtype)
-        y.grad = chainer.cuda.cupy.ones_like(y.data).astype(self.dtype)
+        y.grad = cuda.cupy.ones_like(y.data).astype(self.dtype)
         y.backward()
         self.assertEqual(x.grad.dtype, self.dtype)
 

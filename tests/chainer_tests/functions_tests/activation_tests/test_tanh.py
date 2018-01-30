@@ -4,7 +4,7 @@ import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer.functions.activation import tanh
 from chainer import gradient_check
