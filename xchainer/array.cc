@@ -185,7 +185,7 @@ Array Array::AsConstant(CopyKind kind, const std::vector<GraphId>& graph_ids) co
             // TODO(takgi): implement deep copy version
             throw XchainerError("not implemented");
         case CopyKind::kView: {
-            Array out = Array(shape(), dtype(), body_->data_, is_contiguous(), offset());
+            Array out{shape(), dtype(), body_->data_, is_contiguous(), offset()};
             if (graph_ids.empty()) {
                 return out;
             } else {
