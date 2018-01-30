@@ -15,3 +15,4 @@ Core functionalities
    core/training
    core/debug
    core/configuration
+   core/wrapper
