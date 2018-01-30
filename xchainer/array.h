@@ -97,6 +97,7 @@ public:
     static Array OnesLike(const Array& array);
 
     Array Copy() const;
+    Array AsConstant(CopyKind kind, const std::vector<GraphId>& graph_ids = {}) const;
     Array AsConstant(CopyKind kind, const GraphId& graph_id) const;
     void Fill(Scalar value);
 
