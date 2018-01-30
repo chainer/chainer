@@ -319,8 +319,12 @@ def test_array_grad():
 
     with pytest.raises(xchainer.XchainerError):
         array.get_grad()
+    with pytest.raises(xchainer.XchainerError):
+        array.set_grad(grad)
+    with pytest.raises(xchainer.XchainerError):
+        array.set_grad(None)
 
-    array.set_grad(grad)
+    array.require_grad().set_grad(grad)
     assert array.get_grad() is not None
     assert array.get_grad()._debug_flat_data == grad._debug_flat_data
 
@@ -334,8 +338,12 @@ def test_array_grad_with_graph_id():
 
     with pytest.raises(xchainer.XchainerError):
         array.get_grad('graph_1')
+    with pytest.raises(xchainer.XchainerError):
+        array.set_grad(grad, 'graph_1')
+    with pytest.raises(xchainer.XchainerError):
+        array.set_grad(None, 'graph_1')
 
-    array.set_grad(grad, 'graph_1')
+    array.require_grad('graph_1').set_grad(grad, 'graph_1')
     assert array.get_grad('graph_1') is not None
     assert array.get_grad('graph_1')._debug_flat_data == grad._debug_flat_data
 
@@ -345,8 +353,12 @@ def test_array_grad_with_graph_id():
     # keyword arguments
     with pytest.raises(xchainer.XchainerError):
         array.get_grad(graph_id='graph_2')
+    with pytest.raises(xchainer.XchainerError):
+        array.set_grad(grad, graph_id='graph_2')
+    with pytest.raises(xchainer.XchainerError):
+        array.set_grad(None, graph_id='graph_2')
 
-    array.set_grad(grad, graph_id='graph_2')
+    array.require_grad(graph_id='graph_2').set_grad(grad, graph_id='graph_2')
     assert array.get_grad('graph_2') is not None
     assert array.get_grad(graph_id='graph_2') is not None
     assert array.get_grad('graph_2')._debug_flat_data == grad._debug_flat_data
@@ -370,7 +382,7 @@ def test_array_grad_no_deepcopy():
     grad = xchainer.Array(shape, dtype, [5, 7, 8])
 
     # Set grad
-    array.set_grad(grad)
+    array.require_grad().set_grad(grad)
 
     # Retrieve grad twice and assert they share the same underlying data
     grad1 = array.get_grad()
@@ -387,7 +399,7 @@ def test_array_cleargrad():
     grad = xchainer.Array(shape, dtype, [5, 7, 8])
 
     # Set grad, get it and save it
-    array.set_grad(grad)
+    array.require_grad().set_grad(grad)
     del grad
     saved_grad = array.get_grad()
 
@@ -401,7 +413,7 @@ def test_array_grad_identity():
     shape = (3, 1)
     array = xchainer.Array(shape, xchainer.int8, [1, 1, 1])
     grad = xchainer.Array(shape, xchainer.float32, [0.5, 0.5, 0.5])
-    array.set_grad(grad)
+    array.require_grad().set_grad(grad)
 
     assert array.get_grad() is grad, 'grad must preserve physical identity'
     assert array.get_grad() is grad, 'grad must preserve physical identity in repeated retrieval'
