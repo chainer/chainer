@@ -7,8 +7,8 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
 from chainer import _backprop_utils
+from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_hook
 from chainer.utils import experimental
