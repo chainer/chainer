@@ -52,6 +52,11 @@ private:
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
                   const std::vector<std::function<Array(const Array&)>>& backaward_functions);
 
+bool HasArrayNode(const Array& array, const GraphId& graph_id = "");
+const std::shared_ptr<ArrayNode>& CreateArrayNode(Array& array, const GraphId& graph_id = "");
+std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id = "");
+const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = "");
+
 }  // namespace internal
 
 // The main data structure of multi-dimensional array.
@@ -93,20 +98,15 @@ public:
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
 
-    bool HasNode(const GraphId& graph_id = "") const;
-    const std::shared_ptr<ArrayNode>& CreateNode(const GraphId& graph_id = "");
-    std::shared_ptr<const ArrayNode> GetNode(const GraphId& graph_id = "") const;
-    const std::shared_ptr<ArrayNode>& GetMutableNode(const GraphId& graph_id = "") const;
-
     const nonstd::optional<Array>& GetGrad(const GraphId& graph_id = "") const;
     void SetGrad(Array grad, const GraphId& graph_id = "");
     // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
     void ClearGrad(const GraphId& graph_id = "");
 
-    bool IsGradRequired(const GraphId& graph_id = "") const { return HasNode(graph_id); }
+    bool IsGradRequired(const GraphId& graph_id = "") const { return internal::HasArrayNode(*this, graph_id); }
     // Creates a new ArrayNode to store the gradient
     Array& RequireGrad(const GraphId& graph_id = "") {
-        CreateNode(graph_id);
+        internal::CreateArrayNode(*this, graph_id);
         return *this;
     }
 
@@ -137,6 +137,7 @@ public:
     int64_t offset() const { return body_->offset_; }
 
     const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return body_->nodes_; };
+    std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; };
 
 private:
     Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);

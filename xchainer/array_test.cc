@@ -322,8 +322,8 @@ TEST_P(ArrayTest, CopyCtor) {
         ExpectEqual<bool>(a, b);
         ExpectArraysEqualAttributes(a, b);
         EXPECT_EQ(a.data(), b.data());
-        EXPECT_THROW(a.GetNode(), XchainerError);
-        EXPECT_THROW(b.GetNode(), XchainerError);
+        EXPECT_THROW(internal::GetArrayNode(a), XchainerError);
+        EXPECT_THROW(internal::GetArrayNode(b), XchainerError);
     }
 
     // A view must not share requires_grad with the original array.
@@ -375,8 +375,8 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
     EXPECT_EQ(body, b.body());
     ExpectArraysEqualAttributes(a, b);
     EXPECT_EQ(a.data(), b.data());
-    EXPECT_THROW(a.GetNode(), XchainerError);
-    EXPECT_THROW(b.GetNode(), XchainerError);
+    EXPECT_THROW(internal::GetArrayNode(a), XchainerError);
+    EXPECT_THROW(internal::GetArrayNode(b), XchainerError);
 }
 
 TEST_P(ArrayTest, ArrayMoveAssignmentOperator) {
@@ -825,8 +825,8 @@ TEST_P(ArrayTest, ComputationalGraph) {
     b.RequireGrad(graph_id);
 
     {
-        auto a_node = a.GetNode(graph_id);
-        auto b_node = b.GetNode(graph_id);
+        auto a_node = internal::GetArrayNode(a, graph_id);
+        auto b_node = internal::GetArrayNode(b, graph_id);
         EXPECT_NE(a_node, nullptr);
         EXPECT_NE(b_node, nullptr);
         auto a_op_node = a_node->next_node();
@@ -837,9 +837,9 @@ TEST_P(ArrayTest, ComputationalGraph) {
 
     Array c = a + b;
     {
-        auto a_node = a.GetNode(graph_id);
-        auto b_node = b.GetNode(graph_id);
-        auto c_node = c.GetNode(graph_id);
+        auto a_node = internal::GetArrayNode(a, graph_id);
+        auto b_node = internal::GetArrayNode(b, graph_id);
+        auto c_node = internal::GetArrayNode(c, graph_id);
         EXPECT_NE(a_node, nullptr);
         EXPECT_NE(b_node, nullptr);
         EXPECT_NE(c_node, nullptr);
@@ -854,10 +854,10 @@ TEST_P(ArrayTest, ComputationalGraph) {
 
     Array o = a * c;
     {
-        auto a_node = a.GetNode(graph_id);
-        auto b_node = b.GetNode(graph_id);
-        auto c_node = c.GetNode(graph_id);
-        auto o_node = o.GetNode(graph_id);
+        auto a_node = internal::GetArrayNode(a, graph_id);
+        auto b_node = internal::GetArrayNode(b, graph_id);
+        auto c_node = internal::GetArrayNode(c, graph_id);
+        auto o_node = internal::GetArrayNode(o, graph_id);
         EXPECT_NE(a_node, nullptr);
         EXPECT_NE(b_node, nullptr);
         EXPECT_NE(c_node, nullptr);
@@ -935,7 +935,7 @@ TEST_P(ArrayTest, AddBackward) {
 
     Array o = a + b;
 
-    auto op_node = o.GetNode()->next_node();
+    auto op_node = internal::GetArrayNode(o)->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
     Array ga = op_node->backward_functions()[0](go);
     Array gb = op_node->backward_functions()[1](go);
@@ -953,7 +953,7 @@ TEST_P(ArrayTest, MulBackward) {
 
     Array o = a * b;
 
-    auto op_node = o.GetNode()->next_node();
+    auto op_node = internal::GetArrayNode(o)->next_node();
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
     Array ga = op_node->backward_functions()[0](go);
     Array gb = op_node->backward_functions()[1](go);
@@ -970,7 +970,7 @@ TEST_P(ArrayTest, MulBackwardCapture) {
         x2.RequireGrad();
         return x1 * x2;
     }();
-    auto op_node = y.GetNode()->next_node();
+    auto op_node = internal::GetArrayNode(y)->next_node();
     auto lhs_func = op_node->backward_functions()[0];
     auto rhs_func = op_node->backward_functions()[1];
     Array gy = MakeArray<float>({1}, {1.0f});
