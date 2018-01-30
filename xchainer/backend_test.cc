@@ -13,7 +13,17 @@
 namespace xchainer {
 namespace {
 
-TEST(BackendTest, SetCurrentBackend) {
+class BackendTest : public ::testing::Test {
+protected:
+    void SetUp() override { orig_ = internal::GetCurrentBackendNoExcept(); }
+
+    void TearDown() override { SetCurrentBackend(orig_); }
+
+private:
+    Backend* orig_;
+};
+
+TEST_F(BackendTest, SetCurrentBackend) {
     ASSERT_THROW(GetCurrentBackend(), XchainerError);
 
     auto native_backend = std::make_unique<NativeBackend>();
@@ -31,7 +41,7 @@ TEST(BackendTest, SetCurrentBackend) {
     ASSERT_EQ(native_backend2.get(), GetCurrentBackend());
 }
 
-TEST(BackendTest, ThreadLocal) {
+TEST_F(BackendTest, ThreadLocal) {
     auto backend1 = std::make_unique<NativeBackend>();
     SetCurrentBackend(backend1.get());
 
@@ -43,7 +53,11 @@ TEST(BackendTest, ThreadLocal) {
     ASSERT_NE(GetCurrentBackend(), future.get());
 }
 
-TEST(BackendScopeTest, Ctor) {
+TEST_F(BackendTest, BackendScopeCtor) {
+    {
+        auto backend1 = std::make_unique<NativeBackend>();
+        BackendScope scope(backend1.get());
+    }
     auto backend1 = std::make_unique<NativeBackend>();
     SetCurrentBackend(backend1.get());
     {
