@@ -3,7 +3,9 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
+#include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
@@ -224,7 +226,7 @@ struct ArrayReprImpl {
         // Print the footer
         PrintNTimes(os, ']', ndim);
         os << ", dtype=" << array.dtype();
-        const auto& nodes = array.nodes();
+        const std::vector<std::shared_ptr<ArrayNode>>& nodes = array.nodes();
         if (!nodes.empty()) {
             os << ", graph_ids=[";
             for (size_t i = 0; i < nodes.size(); ++i) {
