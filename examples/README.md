@@ -12,8 +12,6 @@ More examples can be found in [Awesome Chainer](https://github.com/chainer-commu
 * [Recursive Nets for Sentiment Analysis](https://github.com/chainer/chainer/tree/master/examples/sentiment)
 * [Word2Vec - WordEmbedding](https://github.com/chainer/chainer/tree/master/examples/word2vec)
 * [Sequence-to-sequnce Learning for Machine Translation](https://github.com/chainer/chainer/tree/master/examples/seq2seq)
-* [Text Classification](https://github.com/chainer/chainer/tree/master/examples/text_classification)
-* [POS-tagging](https://github.com/chainer/chainer/tree/master/examples/pos)
 
 ### <a name="image-classification"></a> Image Classification
 
