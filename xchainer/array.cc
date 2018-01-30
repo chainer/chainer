@@ -179,6 +179,26 @@ void Array::CopyTo(Array& out) const {
     internal::MemoryCopy(out.data().get(), body_->data_.get(), total_bytes());
 }
 
+Array Array::AsConstant(CopyKind kind, const GraphId& graph_id) const {
+    switch (kind) {
+        case CopyKind::kCopy:
+            // TODO(takgi): implement deep copy version
+            throw XchainerError("not implemented");
+        case CopyKind::kView:
+            {
+                Array out = Array(shape(), dtype(), body_->data_, is_contiguous(), offset());
+                for (const std::shared_ptr<ArrayNode>& node : nodes()) {
+                    if (node->graph_id() != graph_id) {
+                        out.body_->nodes_.emplace_back(node);
+                    }
+                }
+                return out;
+            }
+        default:
+            assert(false);  // should never be reached
+    }
+}
+
 void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
