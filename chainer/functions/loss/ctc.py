@@ -140,30 +140,51 @@ class ConnectionistTemporalClassification(function.Function):
                         [:, target_path == c], numpy, axis=1)
         else:
             for i, multiply in enumerate(multiply_seq):
-                # TODO(okuta): remove loop
+                # calculates maximum log-prob for each label
+                n_batch = multiply.shape[0]
+                max_log_prob = cuda.cupy.full(
+                    (n_batch, label_size), float('-10000000000'), 'f')
                 cuda.cupy.ElementwiseKernel(
-                    'raw T prob, raw I path, I path_length, I label_size',
-                    'T z',
+                    'T prob, I path, I path_length, I max_path_length',
+                    'raw T max_log_prob',
                     '''
-                    T value = z;
-                    I b = i / label_size;
-                    I c = i - b * label_size;
-                    for (int index = 0; index < path_length; ++index) {
-                        int ind[] = {b, index};
-                        if (path[ind] == c) {
-                            T xvalue = prob[ind];
-                            T at = xvalue, bt = value;
-                            if (value > xvalue) {
-                                at = value;
-                                bt = xvalue;
-                            }
-                            value = at + log1p(exp(bt - at));
-                        }
+                    I b = i / max_path_length;
+                    I t = i - b * max_path_length;
+                    if (t < path_length) {
+                      int ind[] = {b, path};
+                      atomicMax(&max_log_prob[ind], prob);
                     }
-                    z = value;
-                    ''',
-                    'reduce_probability')(multiply, path, path_length[:, None],
-                                          label_size, ret[i])
+                    ''', 'ctc_max_log_prob',
+                    preamble='''
+                    __device__ static float atomicMax(float* address, float val)
+                    {
+                      int* address_as_i = (int*) address;
+                      int old = *address_as_i, assumed;
+                      do {
+                        assumed = old;
+                        old = ::atomicCAS(address_as_i, assumed,
+                        __float_as_int(::fmaxf(val, __int_as_float(assumed))));
+                      } while (assumed != old);
+                      return __int_as_float(old);
+                    }
+                    '''
+                    )(multiply, path, path_length[:, None], path.shape[1], max_log_prob)
+                cum_prob = cuda.cupy.zeros_like(max_log_prob)
+                cuda.cupy.ElementwiseKernel(
+                    'T prob, I path, I path_length, I max_path_length, '
+                    'raw T max_log_prob',
+                    'raw T cum_prob',
+                    '''
+                    I b = i / max_path_length;
+                    I t = i - b * max_path_length;
+                    if (t < path_length) {
+                      int ind[] = {b, path};
+                      T diff = exp(prob - max_log_prob[ind]);
+                      atomicAdd(&cum_prob[ind], diff);
+                    }
+                    ''', 'ctc_label_logsumexp'
+                )(multiply, path, path_length[:, None], path.shape[1], max_log_prob, cum_prob)
+                ret[i] = cuda.cupy.log(cum_prob) + max_log_prob
         return ret
 
     def calc_trans(self, yseq, input_length,
