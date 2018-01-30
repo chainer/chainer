@@ -142,17 +142,16 @@ class ConnectionistTemporalClassification(function.Function):
             for i, multiply in enumerate(multiply_seq):
                 # TODO(okuta): remove loop
                 cuda.cupy.ElementwiseKernel(
-                    'raw T x, raw I y, raw I l, I b_max, I c_max',
+                    'raw T prob, raw I path, I path_length, I label_size',
                     'T z',
                     '''
                     T value = z;
-                    I b = i / b_max;
-                    I c = i - b * b_max;
-                    int ind[2] = {b, -1};
-                    for (int index = 0; index < c_max; ++index) {
-                        ind[1] = index;
-                        if (ind[1] < l[ind[0]] && y[ind] == c) {
-                            T xvalue = x[ind];
+                    I b = i / label_size;
+                    I c = i - b * label_size;
+                    for (int index = 0; index < path_length; ++index) {
+                        int ind[] = {b, index};
+                        if (path[ind] == c) {
+                            T xvalue = prob[ind];
                             T at = xvalue, bt = value;
                             if (value > xvalue) {
                                 at = value;
@@ -163,9 +162,8 @@ class ConnectionistTemporalClassification(function.Function):
                     }
                     z = value;
                     ''',
-                    'reduce_probability')(multiply, path, path_length,
-                                          labels_prob.shape[1],
-                                          path.shape[1], ret[i])
+                    'reduce_probability')(multiply, path, path_length[:, None],
+                                          label_size, ret[i])
         return ret
 
     def calc_trans(self, yseq, input_length,
