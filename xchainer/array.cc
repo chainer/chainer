@@ -106,16 +106,6 @@ Array::Array(const Array& other)
     : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.is_contiguous(), other.body_->data_, other.offset(),
                                                   other.body_->nodes_)) {}
 
-Array Array::MakeGradStoppingView(const GraphId& graph_id_to_stop) const {
-    Array array = Array(shape(), dtype(), body_->data_, is_contiguous(), offset());
-    for (const std::shared_ptr<ArrayNode>& node : body_->nodes_) {
-        if (node->graph_id() != graph_id_to_stop) {
-            array.body_->nodes_.emplace_back(node);
-        }
-    }
-    return array;
-}
-
 const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return internal::GetArrayNode(*this, graph_id)->grad(); }
 
 void Array::SetGrad(Array grad, const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->set_grad(std::move(grad)); }
@@ -247,10 +237,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
     CheckEqual(shape(), rhs.shape());
 
     auto lhs_backward_function = [other = rhs](const GraphId& graph_id, const Array& gout) {
-        return gout * other.MakeGradStoppingView(graph_id);
+        return gout * other.AsConstant(CopyKind::kView, graph_id);
     };
     auto rhs_backward_function = [other = *this](const GraphId& graph_id, const Array& gout) {
-        return gout * other.MakeGradStoppingView(graph_id);
+        return gout * other.AsConstant(CopyKind::kView, graph_id);
     };
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
