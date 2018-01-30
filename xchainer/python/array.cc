@@ -137,34 +137,31 @@ void InitXchainerArray(pybind11::module& m) {
         .def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); })
         .def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); })
         .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
-        .def_property("requires_grad", [](const ArrayBodyPtr& self) { return Array{self}.IsGradRequired(); },
-                      [](const ArrayBodyPtr& self, bool value) {
-                          // TODO(hvy): requires_grad should not be a boolean property but a method that takes a graph id argument, aligning
-                          // to the c++ interface. Currently, this property is broken in the sense that once the required_grad flag is set
-                          // to true (and an ArrayNode is created internally) it cannot be unset.
-                          if (value && !self->HasNode()) {
-                              Array{self}.RequireGrad();
-                          }
-                      })
-        .def_property("grad",
-                      [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {
-                          if (self->HasNode()) {
-                              return Array{self}.GetGrad()->body();
-                          } else {
-                              return nullptr;
-                          }
-                      },
-                      [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad) {
-                          if (grad) {
-                              if (self->HasNode()) {
-                                  Array{self}.SetGrad(Array{grad});
-                              } else {
-                                  Array{self}.RequireGrad().SetGrad(Array{grad});
-                              }
-                          } else {
-                              Array{self}.ClearGrad();
-                          }
-                      })
+        .def("require_grad",
+             [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{self}.RequireGrad(graph_id).move_body(); },
+             py::arg("graph_id") = "")
+        .def("is_grad_required", [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{self}.IsGradRequired(graph_id); },
+             py::arg("graph_id") = "")
+        .def("get_grad",
+             [](const ArrayBodyPtr& self, const GraphId& graph_id) -> ConstArrayBodyPtr {
+                 const nonstd::optional<Array>& grad = Array{self}.GetGrad(graph_id);
+                 if (grad.has_value()) {
+                     return grad->body();
+                 } else {
+                     return nullptr;
+                 }
+             },
+             py::arg("graph_id") = "")
+        .def("set_grad",
+             [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad, const GraphId& graph_id) {
+                 auto array = Array{self};
+                 if (grad) {
+                     array.SetGrad(Array{grad}, graph_id);
+                 } else {
+                     array.ClearGrad(graph_id);
+                 }
+             },
+             py::arg("grad"), py::arg("graph_id") = "")
         .def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); })
         .def_property_readonly("element_bytes", [](const ArrayBodyPtr& self) { return Array{self}.element_bytes(); })
         .def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.is_contiguous(); })

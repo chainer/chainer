@@ -25,7 +25,9 @@ class BackwardImpl {
 
 public:
     BackwardImpl(const Array& output, const GraphId& graph_id)
-        : output_(output), output_array_node_(output.GetMutableNode(graph_id)), candidate_op_nodes_(BackwardImpl::Compare){};
+        : output_(output),
+          output_array_node_(internal::GetMutableArrayNode(output, graph_id)),
+          candidate_op_nodes_(BackwardImpl::Compare){};
 
     void run() {
         if (!output_array_node_->grad()) {

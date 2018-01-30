@@ -37,7 +37,7 @@ def check_basic_creation(a, shape, dtype):
     assert a.is_contiguous
     assert a.offset == 0
     assert a.total_size == functools.reduce(operator.mul, shape, 1)
-    assert not a.requires_grad
+    assert not a.is_grad_required()
     # TODO(niboshi): assert a.node is None
 
 

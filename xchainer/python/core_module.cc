@@ -23,10 +23,11 @@ void InitXchainerModule(pybind11::module& m) {
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
 
     m.def("backward",
-          [](const ArrayBodyPtr& body) {
+          [](const ArrayBodyPtr& body, const GraphId& graph_id) {
               Array array{body};
-              Backward(array);
-          })
+              Backward(array, graph_id);
+          },
+          py::arg().noconvert(), py::arg("graph_id") = "")
         .def("empty", [](const Shape& shape, Dtype dtype) { return Array::Empty(shape, dtype).move_body(); })
         .def("full", [](const Shape& shape, Scalar value, Dtype dtype) { return Array::Full(shape, value, dtype).move_body(); })
         .def("full", [](const Shape& shape, Scalar value) { return Array::Full(shape, value).move_body(); })

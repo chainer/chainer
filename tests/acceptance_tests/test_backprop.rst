@@ -3,20 +3,19 @@ Acceptance tests for Backprop
 
 >>> import xchainer as xc
 
->>> a = xc.Array((2, 3), xc.Dtype.float32, [0, 1, 2, 3, 4, 5])
+>>> a = xc.Array((2, 3), xc.Dtype.float32, [0, 1, 2, 3, 4, 5]).require_grad()
 >>> b = xc.full_like(a, 2)
->>> a.requires_grad = True
 >>> y = (a * b) + b
->>> y.requires_grad
+>>> y.is_grad_required()
 True
->>> b.requires_grad
+>>> b.is_grad_required()
 False
->>> y.grad = xc.full_like(a, 0.5)
+>>> y.set_grad(xc.full_like(a, 0.5))
 >>> xc.backward(y)
->>> a.grad
+>>> a.get_grad()
 array([[1., 1., 1.],
        [1., 1., 1.]], dtype=float32)
->>> y.grad
+>>> y.get_grad()
 array([[0.5, 0.5, 0.5],
        [0.5, 0.5, 0.5]], dtype=float32)
 
@@ -27,12 +26,14 @@ TODO(sonots): Fix bus error
 
 .. >>> xc.set_current_device('cuda')
 .. >>> a = a.copy()  # TODO(sonots): Check memory is located on GPU
-.. >>> a.requires_grad
+.. >>> a.is_grad_required()
 .. True
 .. >>> b = xc.full_like(a, 1)
 .. >>> y = (a * b) + b
 .. >>> xc.backward(y)
-.. >>> a.grad
+.. >>> a.get_grad()
 .. array([[1., 1., 1.],
 ..        [1., 1., 1.]], dtype=float32)
-.. >>> y.grad
+.. >>> y.get_grad()
+.. array([[1., 1., 1.],
+..        [1., 1., 1.]], dtype=float32)
