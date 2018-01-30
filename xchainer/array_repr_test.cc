@@ -13,13 +13,16 @@ namespace xchainer {
 namespace {
 
 template <typename T>
-void CheckArrayReprWithCurrentDevice(const std::string& expected, const std::vector<T>& data_vec, Shape shape,
-                                     std::vector<GraphId> graph_ids) {
+void CheckArrayReprWithCurrentDevice(const std::string& expected, const std::vector<T>& data_vec, const Shape& shape,
+                                     const std::vector<GraphId>& graph_ids) {
     // Copy to a contiguous memory block because std::vector<bool> is not packed as a sequence of bool's.
     std::shared_ptr<T> data_ptr = std::make_unique<T[]>(data_vec.size());
     std::copy(data_vec.begin(), data_vec.end(), data_ptr.get());
     Array array = Array::FromBuffer(shape, TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data_ptr));
-    std::for_each(graph_ids.begin(), graph_ids.end(), [&array](const GraphId& graph_id) { array.RequireGrad(graph_id); });
+
+    for (const GraphId& graph_id) {
+        array.RequireGrad(graph_id);
+    }
 
     // std::string version
     EXPECT_EQ(expected, ArrayRepr(array));
@@ -63,12 +66,10 @@ TEST(ArrayReprTest, ArrayRepr) {
         "array([[0, 1, 2],\n"
         "       [3, 4, 5]], dtype=int8)",
         {0, 1, 2, 3, 4, 5}, Shape({2, 3}));
-
     CheckArrayRepr<int8_t>(
         "array([[ 0,  1,  2],\n"
         "       [-3,  4,  5]], dtype=int8)",
         {0, 1, 2, -3, 4, 5}, Shape({2, 3}));
-
     CheckArrayRepr<int8_t>("array([[[[3]]]], dtype=int8)", {3}, Shape({1, 1, 1, 1}));
 
     // int16
@@ -92,7 +93,6 @@ TEST(ArrayReprTest, ArrayRepr) {
         "array([[0, 1, 2],\n"
         "       [3, 4, 5]], dtype=int32)",
         {0, 1, 2, 3, 4, 5}, Shape({2, 3}));
-
     CheckArrayRepr<int32_t>(
         "array([[ 0,  1,  2],\n"
         "       [-3,  4,  5]], dtype=int32)",
