@@ -141,50 +141,19 @@ class ConnectionistTemporalClassification(function.Function):
         else:
             for i, multiply in enumerate(multiply_seq):
                 # calculates maximum log-prob for each label
-                n_batch = multiply.shape[0]
-                max_log_prob = cuda.cupy.full(
-                    (n_batch, label_size), float('-10000000000'), 'f')
                 cuda.cupy.ElementwiseKernel(
                     'T prob, I path, I path_length, I max_path_length',
-                    'raw T max_log_prob',
-                    '''
-                    I b = i / max_path_length;
-                    I t = i - b * max_path_length;
-                    if (t < path_length) {
-                      int ind[] = {b, path};
-                      atomicMax(&max_log_prob[ind], prob);
-                    }
-                    ''', 'ctc_max_log_prob',
-                    preamble='''
-                    __device__ static float atomicMax(float* address, float val)
-                    {
-                      int* address_as_i = (int*) address;
-                      int old = *address_as_i, assumed;
-                      do {
-                        assumed = old;
-                        old = ::atomicCAS(address_as_i, assumed,
-                        __float_as_int(::fmaxf(val, __int_as_float(assumed))));
-                      } while (assumed != old);
-                      return __int_as_float(old);
-                    }
-                    '''
-                    )(multiply, path, path_length[:, None], path.shape[1], max_log_prob)
-                cum_prob = cuda.cupy.zeros_like(max_log_prob)
-                cuda.cupy.ElementwiseKernel(
-                    'T prob, I path, I path_length, I max_path_length, '
-                    'raw T max_log_prob',
                     'raw T cum_prob',
                     '''
                     I b = i / max_path_length;
                     I t = i - b * max_path_length;
                     if (t < path_length) {
                       int ind[] = {b, path};
-                      T diff = exp(prob - max_log_prob[ind]);
-                      atomicAdd(&cum_prob[ind], diff);
+                      atomicAdd(&cum_prob[ind], exp(prob));
                     }
                     ''', 'ctc_label_logsumexp'
-                )(multiply, path, path_length[:, None], path.shape[1], max_log_prob, cum_prob)
-                ret[i] = cuda.cupy.log(cum_prob) + max_log_prob
+                )(multiply, path, path_length[:, None], path.shape[1], ret[i])
+                cuda.cupy.log(ret[i], out=ret[i])
         return ret
 
     def calc_trans(self, yseq, input_length,
