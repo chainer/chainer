@@ -18,6 +18,11 @@ namespace py = pybind11;
 
 namespace {
 
+// TODO(beam2d): The current binding has an overhead on wrapping ArrayBodyPtr by Array, which copies shared_ptr. One
+// simple way to avoid this overhead is to use reinterpret_cast<Array&>(ptr). This cast is valid if ArrayBodyPtr (i.e.,
+// shared_ptr) satisfies "standard layout" conditions. We can test if ArrayBodyPtr satisfies these conditions by
+// std::is_standard_layout (see http://en.cppreference.com/w/cpp/types/is_standard_layout#Notes).
+
 using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 using ConstArrayBodyPtr = std::shared_ptr<const internal::ArrayBody>;
 
