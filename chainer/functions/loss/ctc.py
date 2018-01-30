@@ -129,19 +129,16 @@ class ConnectionistTemporalClassification(function.Function):
         n_batch = len(path)
         dtype = multiply_seq.dtype
 
+        ret = xp.zeros((seq_length, n_batch, label_size), dtype)
         if xp == numpy:
-            ret = xp.full(
-                (seq_length, n_batch, label_size), self.zero_padding,
-                dtype=dtype)
             for b in six.moves.range(len(path)):
-                target_path = path[b][0:path_length[b]]
+                target_path = path[b, :path_length[b]]
                 chars = {c for c in target_path}
                 for c in chars:
-                    ret[:, b, c] = _logsumexp(
+                    ret[:, b, c] = xp.sum(
                         multiply_seq[:, b, 0:path_length[b]]
-                        [:, target_path == c], numpy, axis=1)
+                        [:, target_path == c], axis=1)
         else:
-            ret = xp.zeros((seq_length, n_batch, label_size), dtype)
             cuda.cupy.ElementwiseKernel(
                 'T prob, I path, I path_length, I max_path_length',
                 'raw T cum_prob',
@@ -152,11 +149,10 @@ class ConnectionistTemporalClassification(function.Function):
                 I t = i % max_path_length;
                 if (t < path_length) {
                   int ind[] = {s, b, path};
-                  atomicAdd(&cum_prob[ind], exp(prob));
+                  atomicAdd(&cum_prob[ind], prob);
                 }
                 ''', 'ctc_label_logsumexp'
             )(multiply_seq, path, path_length[:, None], path.shape[1], ret)
-            cuda.cupy.log(ret, out=ret)
         return ret
 
     def calc_trans(self, yseq, input_length,
@@ -243,8 +239,8 @@ class ConnectionistTemporalClassification(function.Function):
         total_probability = _logsumexp(self.prob_trans[0], xp, axis=1)
         label_prob = self.label_probability(
             self.yseq.shape[2], self.path, self.path_length,
-            self.prob_trans, xp)
-        self.yseq -= xp.exp(label_prob - total_probability[:, None])
+            xp.exp(self.prob_trans - total_probability[:, None]), xp)
+        self.yseq -= label_prob
         if self.reduce == 'mean':
             self.yseq *= grad_output[0] / batch_size
         else:
