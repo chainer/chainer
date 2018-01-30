@@ -125,12 +125,14 @@ class ConnectionistTemporalClassification(function.Function):
     # path probablity to label probability
     def label_probability(self, label_size, path, path_length,
                           multiply_seq, xp):
-        labels_prob = self.log_matrix(xp.zeros((len(path), label_size),
-                                               dtype=multiply_seq.dtype), xp)
-        ret = xp.empty(
-            (len(multiply_seq),) + labels_prob.shape, dtype=labels_prob.dtype)
-        ret[...] = labels_prob
+        seq_length = len(multiply_seq)
+        n_batch = len(path)
+        dtype = multiply_seq.dtype
+
         if xp == numpy:
+            ret = xp.full(
+                (seq_length, n_batch, label_size), self.zero_padding,
+                dtype=dtype)
             for b in six.moves.range(len(path)):
                 target_path = path[b][0:path_length[b]]
                 chars = {c for c in target_path}
@@ -139,21 +141,22 @@ class ConnectionistTemporalClassification(function.Function):
                         multiply_seq[:, b, 0:path_length[b]]
                         [:, target_path == c], numpy, axis=1)
         else:
-            for i, multiply in enumerate(multiply_seq):
-                # calculates maximum log-prob for each label
-                cuda.cupy.ElementwiseKernel(
-                    'T prob, I path, I path_length, I max_path_length',
-                    'raw T cum_prob',
-                    '''
-                    I b = i / max_path_length;
-                    I t = i - b * max_path_length;
-                    if (t < path_length) {
-                      int ind[] = {b, path};
-                      atomicAdd(&cum_prob[ind], exp(prob));
-                    }
-                    ''', 'ctc_label_logsumexp'
-                )(multiply, path, path_length[:, None], path.shape[1], ret[i])
-                cuda.cupy.log(ret[i], out=ret[i])
+            ret = xp.zeros((seq_length, n_batch, label_size), dtype)
+            cuda.cupy.ElementwiseKernel(
+                'T prob, I path, I path_length, I max_path_length',
+                'raw T cum_prob',
+                '''
+                int n_batch = cum_prob.shape()[1];
+                I s = i / (max_path_length * n_batch);
+                I b = (i - s * (max_path_length * n_batch)) / max_path_length;
+                I t = i % max_path_length;
+                if (t < path_length) {
+                  int ind[] = {s, b, path};
+                  atomicAdd(&cum_prob[ind], exp(prob));
+                }
+                ''', 'ctc_label_logsumexp'
+            )(multiply_seq, path, path_length[:, None], path.shape[1], ret)
+            cuda.cupy.log(ret, out=ret)
         return ret
 
     def calc_trans(self, yseq, input_length,
