@@ -28,6 +28,7 @@ add_library(xchainer SHARED
     array_fill.cc
     array_math.cc
     array_repr.cc
+    backend.cc
     backprop.cc
     device.cc
     dtype.cc
@@ -56,6 +57,7 @@ if(ENABLE_TEST)
         array_test.cc
         check_backward.cc
         check_backward_test.cc
+        backend_test.cc
         backprop_test.cc
         device_test.cc
         dtype_test.cc
