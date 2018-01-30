@@ -929,7 +929,7 @@ TEST_P(ArrayTest, Copy) {
 TEST_P(ArrayTest, AsConstantView) {
     // Stop gradients on all graphs
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});;
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         a.RequireGrad("graph_1");
         a.RequireGrad("graph_2");
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
@@ -948,7 +948,7 @@ TEST_P(ArrayTest, AsConstantView) {
 
     // Stop gradients on graphs
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});;
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         a.RequireGrad("graph_1");
         a.RequireGrad("graph_2");
         a.RequireGrad("graph_3");
@@ -971,7 +971,7 @@ TEST_P(ArrayTest, AsConstantView) {
 
     // Stop gradient on a graph
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});;
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         a.RequireGrad("graph_1");
         a.RequireGrad("graph_2");
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
