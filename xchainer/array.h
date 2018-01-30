@@ -60,6 +60,11 @@ void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrap
 
 }  // namespace internal
 
+enum class CopyKind {
+    kCopy = 1,
+    kView,
+};
+
 // The main data structure of multi-dimensional array.
 class Array {
 public:
@@ -92,6 +97,7 @@ public:
     static Array OnesLike(const Array& array);
 
     Array Copy() const;
+    Array AsConstant(CopyKind kind, const GraphId& graph_id) const;
     void Fill(Scalar value);
 
     Array& operator+=(const Array& rhs);
