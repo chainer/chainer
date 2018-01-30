@@ -202,8 +202,6 @@ Array Array::AsConstant(CopyKind kind, const std::vector<GraphId>& graph_ids) co
     }
 }
 
-Array Array::AsConstant(CopyKind kind, const GraphId& graph_id) const { return AsConstant(kind, std::vector<GraphId>{graph_id}); }
-
 void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
