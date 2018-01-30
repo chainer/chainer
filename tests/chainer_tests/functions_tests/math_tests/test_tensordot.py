@@ -14,75 +14,53 @@ from chainer.utils import type_check
 @testing.parameterize(*testing.product_dict(
     [
         {'a_shape': (4, 3, 2), 'b_shape': (3, 2, 5), 'axes': 2, 'gc_shape': (4, 5)},
-
         {'a_shape': (4, 3, 2), 'b_shape': (3, 2, 5), 'axes': ([1, 2], [0, 1]), 'gc_shape': (4, 5)},
-        {'a_shape': (4, 3, 2), 'b_shape': (2, 3, 5), 'axes': ([1, 2], [1, 0]), 'gc_shape': (4, 5)},
-        {'a_shape': (4, 2, 3), 'b_shape': (2, 3, 5), 'axes': ([2, 1], [1, 0]), 'gc_shape': (4, 5)},
-        {'a_shape': (4, 2, 3), 'b_shape': (3, 2, 5), 'axes': ([2, 1], [0, 1]), 'gc_shape': (4, 5)},
+        {'a_shape': (4, 2, 3), 'b_shape': (3, 5, 2), 'axes': ([2, 1], [0, 2]), 'gc_shape': (4, 5)},
+        {'a_shape': (2, 4, 3), 'b_shape': (5, 3, 2), 'axes': ([2, 0], [1, 2]), 'gc_shape': (4, 5)},
+        {'a_shape': (2, 3, 4), 'b_shape': (5, 2, 3), 'axes': ([1, 0], [2, 1]), 'gc_shape': (4, 5)},
+        {'a_shape': (3, 2, 4), 'b_shape': (2, 5, 3), 'axes': ([0, 1], [2, 0]), 'gc_shape': (4, 5)},
+        {'a_shape': (3, 4, 2), 'b_shape': (2, 3, 5), 'axes': ([0, 2], [1, 0]), 'gc_shape': (4, 5)},
 
-        {'a_shape': (4, 3, 2), 'b_shape': (5, 3, 2), 'axes': ([1, 2], [1, 2]), 'gc_shape': (4, 5)},
-        {'a_shape': (4, 3, 2), 'b_shape': (5, 2, 3), 'axes': ([1, 2], [2, 1]), 'gc_shape': (4, 5)},
-        {'a_shape': (4, 2, 3), 'b_shape': (5, 2, 3), 'axes': ([2, 1], [2, 1]), 'gc_shape': (4, 5)},
-        {'a_shape': (4, 2, 3), 'b_shape': (5, 3, 2), 'axes': ([2, 1], [1, 2]), 'gc_shape': (4, 5)},
-
-        {'a_shape': (3, 2, 4), 'b_shape': (3, 2, 5), 'axes': ([0, 1], [0, 1]), 'gc_shape': (4, 5)},
-        {'a_shape': (3, 2, 4), 'b_shape': (2, 3, 5), 'axes': ([0, 1], [1, 0]), 'gc_shape': (4, 5)},
-        {'a_shape': (2, 3, 4), 'b_shape': (2, 3, 5), 'axes': ([1, 0], [1, 0]), 'gc_shape': (4, 5)},
-        {'a_shape': (2, 3, 4), 'b_shape': (3, 2, 5), 'axes': ([1, 0], [0, 1]), 'gc_shape': (4, 5)},
-        
-        {'a_shape': (3, 4, 2), 'b_shape': (3, 5, 2), 'axes': ([0, 2], [0, 2]), 'gc_shape': (4, 5)},
-        {'a_shape': (3, 4, 2), 'b_shape': (2, 5, 3), 'axes': ([0, 2], [2, 0]), 'gc_shape': (4, 5)},
-        {'a_shape': (2, 4, 3), 'b_shape': (2, 5, 3), 'axes': ([2, 0], [2, 0]), 'gc_shape': (4, 5)},
-        {'a_shape': (2, 4, 3), 'b_shape': (3, 5, 2), 'axes': ([2, 0], [0, 2]), 'gc_shape': (4, 5)},
+        {'a_shape': (3, 4, 2), 'b_shape': (2, 5, 6), 'axes': 1, 'gc_shape': (3, 4, 5, 6)},
+        {'a_shape': (3, 4, 2), 'b_shape': (2, 5, 6), 'axes': ([2, 0]), 'gc_shape': (3, 4, 5, 6)},
+        {'a_shape': (3, 2, 4), 'b_shape': (5, 2, 6), 'axes': ([1, 1]), 'gc_shape': (3, 4, 5, 6)},
+        {'a_shape': (2, 3, 4), 'b_shape': (5, 6, 2), 'axes': ([0, 2]), 'gc_shape': (3, 4, 5, 6)},
 
         {'a_shape': (4, 5, 3, 2), 'b_shape': (3, 2, 6), 'axes': 2, 'gc_shape': (4, 5, 6)},
-
         {'a_shape': (4, 5, 3, 2), 'b_shape': (3, 2, 6), 'axes': ([2, 3], [0, 1]), 'gc_shape': (4, 5, 6)},
-        {'a_shape': (4, 3, 5, 2), 'b_shape': (3, 6, 2), 'axes': ([1, 3], [0, 2]), 'gc_shape': (4, 5, 6)},
-        {'a_shape': (3, 4, 5, 2), 'b_shape': (3, 6, 2), 'axes': ([0, 3], [0, 2]), 'gc_shape': (4, 5, 6)},
-        {'a_shape': (3, 4, 5, 2), 'b_shape': (2, 6, 3), 'axes': ([0, 3], [2, 0]), 'gc_shape': (4, 5, 6)},
-        {'a_shape': (4, 3, 5, 2), 'b_shape': (2, 6, 3), 'axes': ([1, 3], [2, 0]), 'gc_shape': (4, 5, 6)},
-        {'a_shape': (4, 5, 3, 2), 'b_shape': (2, 3, 6), 'axes': ([2, 3], [1, 0]), 'gc_shape': (4, 5, 6)},
-
-        {'a_shape': (4, 5, 2, 3), 'b_shape': (3, 2, 6), 'axes': ([3, 2], [0, 1]), 'gc_shape': (4, 5, 6)},
-        {'a_shape': (4, 3, 2, 5), 'b_shape': (3, 6, 2), 'axes': ([1, 2], [0, 2]), 'gc_shape': (4, 5, 6)},
-        {'a_shape': (3, 4, 2, 5), 'b_shape': (3, 6, 2), 'axes': ([0, 2], [0, 2]), 'gc_shape': (4, 5, 6)},
-        {'a_shape': (3, 4, 2, 5), 'b_shape': (2, 6, 3), 'axes': ([0, 2], [2, 0]), 'gc_shape': (4, 5, 6)},
-        {'a_shape': (4, 3, 2, 5), 'b_shape': (2, 6, 3), 'axes': ([1, 2], [2, 0]), 'gc_shape': (4, 5, 6)},
-        {'a_shape': (4, 5, 2, 3), 'b_shape': (2, 3, 6), 'axes': ([3, 2], [1, 0]), 'gc_shape': (4, 5, 6)},
-
-        {'a_shape': (4, 5, 3, 2), 'b_shape': (3, 2, 6, 7), 'axes': 2, 'gc_shape': (4, 5, 6, 7)},
-
-        {'a_shape': (4, 5, 3, 2), 'b_shape': (3, 2, 6, 7), 'axes': ([2, 3], [0, 1]), 'gc_shape': (4, 5, 6, 7)},
-        {'a_shape': (4, 3, 5, 2), 'b_shape': (3, 6, 2, 7), 'axes': ([1, 3], [0, 2]), 'gc_shape': (4, 5, 6, 7)},
-        {'a_shape': (3, 4, 5, 2), 'b_shape': (3, 6, 7, 2), 'axes': ([0, 3], [0, 3]), 'gc_shape': (4, 5, 6, 7)},
-        {'a_shape': (3, 4, 2, 5), 'b_shape': (6, 3, 7, 2), 'axes': ([0, 2], [1, 3]), 'gc_shape': (4, 5, 6, 7)},
-        {'a_shape': (3, 2, 4, 5), 'b_shape': (6, 7, 3, 2), 'axes': ([0, 1], [2, 3]), 'gc_shape': (4, 5, 6, 7)},
-        {'a_shape': (2, 3, 4, 5), 'b_shape': (6, 7, 2, 3), 'axes': ([1, 0], [3, 2]), 'gc_shape': (4, 5, 6, 7)},
-        {'a_shape': (2, 4, 3, 5), 'b_shape': (6, 2, 7, 3), 'axes': ([2, 0], [3, 1]), 'gc_shape': (4, 5, 6, 7)},
-        {'a_shape': (2, 4, 5, 3), 'b_shape': (2, 6, 7, 3), 'axes': ([3, 0], [3, 0]), 'gc_shape': (4, 5, 6, 7)},
-        {'a_shape': (4, 2, 5, 3), 'b_shape': (2, 6, 3, 7), 'axes': ([3, 1], [2, 0]), 'gc_shape': (4, 5, 6, 7)},
-        {'a_shape': (4, 5, 2, 3), 'b_shape': (2, 3, 6, 7), 'axes': ([3, 2], [1, 0]), 'gc_shape': (4, 5, 6, 7)},
+        {'a_shape': (4, 5, 2, 3), 'b_shape': (3, 6, 2), 'axes': ([3, 2], [0, 2]), 'gc_shape': (4, 5, 6)},
+        {'a_shape': (4, 2, 5, 3), 'b_shape': (6, 3, 2), 'axes': ([3, 1], [1, 2]), 'gc_shape': (4, 5, 6)},
+        {'a_shape': (2, 4, 5, 3), 'b_shape': (6, 2, 3), 'axes': ([3, 0], [2, 1]), 'gc_shape': (4, 5, 6)},
+        {'a_shape': (2, 4, 3, 5), 'b_shape': (2, 6, 3), 'axes': ([2, 0], [2, 0]), 'gc_shape': (4, 5, 6)},
+        {'a_shape': (2, 3, 4, 5), 'b_shape': (2, 3, 6), 'axes': ([1, 0], [1, 0]), 'gc_shape': (4, 5, 6)},
+        {'a_shape': (3, 2, 4, 5), 'b_shape': (3, 2, 6), 'axes': ([0, 1], [0, 1]), 'gc_shape': (4, 5, 6)},
+        {'a_shape': (3, 2, 5, 4), 'b_shape': (3, 6, 2), 'axes': ([0, 1], [0, 2]), 'gc_shape': (5, 4, 6)},
+        {'a_shape': (3, 5, 2, 4), 'b_shape': (6, 3, 2), 'axes': ([0, 2], [1, 2]), 'gc_shape': (5, 4, 6)},
+        {'a_shape': (5, 3, 2, 4), 'b_shape': (6, 2, 3), 'axes': ([1, 2], [2, 1]), 'gc_shape': (5, 4, 6)},
 
         {'a_shape': (5, 4, 3, 2), 'b_shape': (4, 3, 2, 6), 'axes': 3, 'gc_shape': (5, 6)},
-
         {'a_shape': (5, 4, 3, 2), 'b_shape': (4, 3, 2, 6), 'axes': ([1, 2, 3], [0, 1, 2]), 'gc_shape': (5, 6)},
-        {'a_shape': (5, 4, 2, 3), 'b_shape': (3, 4, 2, 6), 'axes': ([1, 3, 2], [1, 0, 2]), 'gc_shape': (5, 6)},
-        {'a_shape': (5, 2, 4, 3), 'b_shape': (3, 2, 4, 6), 'axes': ([2, 3, 1], [2, 0, 1]), 'gc_shape': (5, 6)},
-        {'a_shape': (2, 5, 4, 3), 'b_shape': (3, 2, 6, 4), 'axes': ([2, 3, 0], [3, 0, 1]), 'gc_shape': (5, 6)},
-        {'a_shape': (2, 5, 3, 4), 'b_shape': (2, 3, 6, 4), 'axes': ([3, 2, 0], [3, 1, 0]), 'gc_shape': (5, 6)},
-        {'a_shape': (2, 3, 5, 4), 'b_shape': (2, 6, 3, 4), 'axes': ([3, 1, 0], [3, 2, 0]), 'gc_shape': (5, 6)},
-        {'a_shape': (3, 2, 5, 4), 'b_shape': (2, 6, 4, 3), 'axes': ([3, 0, 1], [2, 3, 0]), 'gc_shape': (5, 6)},
-        {'a_shape': (3, 2, 4, 5), 'b_shape': (6, 2, 4, 3), 'axes': ([2, 0, 1], [2, 3, 1]), 'gc_shape': (5, 6)},
-        {'a_shape': (3, 4, 2, 5), 'b_shape': (6, 4, 2, 3), 'axes': ([1, 0, 2], [1, 3, 2]), 'gc_shape': (5, 6)},
-        {'a_shape': (4, 3, 2, 5), 'b_shape': (6, 4, 3, 2), 'axes': ([0, 1, 2], [1, 2, 3]), 'gc_shape': (5, 6)},
-
+        {'a_shape': (5, 4, 2, 3), 'b_shape': (4, 3, 6, 2), 'axes': ([1, 3, 2], [0, 1, 3]), 'gc_shape': (5, 6)},
+        {'a_shape': (5, 2, 4, 3), 'b_shape': (4, 6, 3, 2), 'axes': ([2, 3, 1], [0, 2, 3]), 'gc_shape': (5, 6)},
+        {'a_shape': (2, 5, 4, 3), 'b_shape': (4, 6, 2, 3), 'axes': ([2, 3, 0], [0, 3, 2]), 'gc_shape': (5, 6)},
+        {'a_shape': (2, 5, 3, 4), 'b_shape': (6, 4, 2, 3), 'axes': ([3, 2, 0], [1, 3, 2]), 'gc_shape': (5, 6)},
+        {'a_shape': (2, 3, 5, 4), 'b_shape': (6, 2, 4, 3), 'axes': ([3, 1, 0], [2, 3, 1]), 'gc_shape': (5, 6)},
+        {'a_shape': (3, 2, 5, 4), 'b_shape': (6, 2, 3, 4), 'axes': ([3, 0, 1], [3, 2, 1]), 'gc_shape': (5, 6)},
+        {'a_shape': (3, 2, 4, 5), 'b_shape': (2, 6, 3, 4), 'axes': ([2, 0, 1], [3, 2, 0]), 'gc_shape': (5, 6)},
+        {'a_shape': (3, 4, 2, 5), 'b_shape': (2, 3, 6, 4), 'axes': ([1, 0, 2], [3, 1, 0]), 'gc_shape': (5, 6)},
+        {'a_shape': (4, 3, 2, 5), 'b_shape': (2, 3, 4, 6), 'axes': ([0, 1, 2], [2, 1, 0]), 'gc_shape': (5, 6)},
+        {'a_shape': (4, 3, 5, 2), 'b_shape': (3, 2, 4, 6), 'axes': ([0, 1, 3], [2, 0, 1]), 'gc_shape': (5, 6)},
+        {'a_shape': (4, 5, 3, 2), 'b_shape': (3, 4, 2, 6), 'axes': ([0, 2, 3], [1, 0, 2]), 'gc_shape': (5, 6)},
     ],
     [
+        {'a_dtype': numpy.float16},
         {'a_dtype': numpy.float32},
+        {'a_dtype': numpy.float64},
     ],
     [
+        {'b_dtype': numpy.float16},
         {'b_dtype': numpy.float32},
+        {'b_dtype': numpy.float64},
     ]
 ))
 class TestTensorDot(unittest.TestCase):
@@ -91,8 +69,8 @@ class TestTensorDot(unittest.TestCase):
         self.a = numpy.random.uniform(.5, 1, self.a_shape)
         self.a = self.a.astype(self.a_dtype)
         self.b = numpy.random.uniform(.5, 1, self.b_shape)
-        self.b = self.b.astype(self.a_dtype)
-        ret_dtype = numpy.result_type(self.a_dtype, self.a_dtype)
+        self.b = self.b.astype(self.b_dtype)
+        ret_dtype = numpy.result_type(self.a_dtype, self.b_dtype)
         self.gc = numpy.random.uniform(-1, 1, self.gc_shape).astype(ret_dtype)
         self.gga = numpy.random.uniform(
             .5, 1, self.a_shape).astype(self.a_dtype)
@@ -112,11 +90,19 @@ class TestTensorDot(unittest.TestCase):
         testing.assert_allclose(self.forward_answer, c.data, atol, rtol)
 
     def test_tensordot_forward_cpu(self):
-        self.check_forward(self.a, self.b)
+        if self.a.dtype == numpy.float16 or self.b.dtype == numpy.float16:
+            self.check_forward(self.a, self.b, atol=1e-3, rtol=1e-3)
+        else:
+            self.check_forward(self.a, self.b)
 
     @attr.gpu
     def test_tensordot_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.a), cuda.to_gpu(self.b))
+        a = cuda.to_gpu(self.a)
+        b = cuda.to_gpu(self.b)
+        if self.a.dtype == numpy.float16 or self.b.dtype == numpy.float16:
+            self.check_forward(a, b, atol=1e-3, rtol=1e-3)
+        else:
+            self.check_forward(a, b)
 
     def check_backward(self, a_data, b_data, c_grad, atol, rtol):
         gradient_check.check_backward(
