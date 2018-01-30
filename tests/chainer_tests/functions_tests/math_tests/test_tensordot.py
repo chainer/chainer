@@ -137,4 +137,5 @@ class TestTensorDot(unittest.TestCase):
             cuda.to_gpu(self.gc), cuda.to_gpu(self.gga),
             cuda.to_gpu(self.ggb), atol=1e-2, rtol=1e-2)
 
+
 testing.run_module(__name__, __file__)
