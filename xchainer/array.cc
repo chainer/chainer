@@ -67,10 +67,34 @@ void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrap
         const GraphId& graph_id = edge.first;
         const std::shared_ptr<OpNode>& op_node = edge.second;
 
-        const std::shared_ptr<ArrayNode>& out_node = out.CreateNode(graph_id);
+        const std::shared_ptr<ArrayNode>& out_node = CreateArrayNode(out, graph_id);
         out_node->set_next_node(op_node);
         out_node->set_rank(op_node->rank() + 1);
     }
+}
+
+bool HasArrayNode(const Array& array, const GraphId& graph_id) {
+    return std::find_if(array.nodes().begin(), array.nodes().end(),
+                        [&graph_id](const auto& node) { return graph_id == node->graph_id(); }) != array.nodes().end();
+}
+
+const std::shared_ptr<ArrayNode>& CreateArrayNode(Array& array, const GraphId& graph_id) {
+    if (HasArrayNode(array, graph_id)) {
+        throw XchainerError("Duplicate graph registration: " + graph_id);
+    }
+    array.nodes().emplace_back(std::make_shared<ArrayNode>(graph_id));
+    return array.nodes().back();
+}
+
+std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id) { return GetMutableArrayNode(array, graph_id); }
+
+const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id) {
+    auto it =
+        std::find_if(array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); });
+    if (it == array.nodes().end()) {
+        throw XchainerError("Cannot find ArrayNode for graph: " + graph_id);
+    }
+    return *it;
 }
 
 }  // namespace internal
@@ -82,35 +106,11 @@ Array::Array(const Array& other)
     : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.is_contiguous(), other.body_->data_, other.offset(),
                                                   other.body_->nodes_)) {}
 
-bool Array::HasNode(const GraphId& graph_id) const {
-    return std::find_if(body_->nodes_.begin(), body_->nodes_.end(),
-                        [&graph_id](const auto& node) { return graph_id == node->graph_id(); }) != body_->nodes_.end();
-}
+const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return internal::GetArrayNode(*this, graph_id)->grad(); }
 
-const std::shared_ptr<ArrayNode>& Array::CreateNode(const GraphId& graph_id) {
-    if (HasNode(graph_id)) {
-        throw XchainerError("Duplicate graph registration: " + graph_id);
-    }
-    body_->nodes_.emplace_back(std::make_shared<ArrayNode>(graph_id));
-    return body_->nodes_.back();
-}
+void Array::SetGrad(Array grad, const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->set_grad(std::move(grad)); }
 
-std::shared_ptr<const ArrayNode> Array::GetNode(const GraphId& graph_id) const { return GetMutableNode(graph_id); }
-
-const std::shared_ptr<ArrayNode>& Array::GetMutableNode(const GraphId& graph_id) const {
-    auto it =
-        std::find_if(body_->nodes_.begin(), body_->nodes_.end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); });
-    if (it == body_->nodes_.end()) {
-        throw XchainerError("Cannot find ArrayNode for graph: " + graph_id);
-    }
-    return *it;
-}
-
-const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return GetNode(graph_id)->grad(); }
-
-void Array::SetGrad(Array grad, const GraphId& graph_id) { GetMutableNode(graph_id)->set_grad(std::move(grad)); }
-
-void Array::ClearGrad(const GraphId& graph_id) { GetMutableNode(graph_id)->ClearGrad(); }
+void Array::ClearGrad(const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
@@ -258,7 +258,7 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 }  // namespace
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent) {
-    DebugDumpComputationalGraph(os, *array.GetNode(graph_id), indent);
+    DebugDumpComputationalGraph(os, *internal::GetArrayNode(array, graph_id), indent);
 }
 
 }  // namespace xchainer

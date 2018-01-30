@@ -156,7 +156,7 @@ void InitXchainerArray(pybind11::module& m) {
              [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad, const GraphId& graph_id) {
                  auto array = Array{self};
                  if (grad) {
-                     if (array.HasNode(graph_id)) {
+                     if (array.IsGradRequired(graph_id)) {
                          array.SetGrad(Array{grad}, graph_id);
                      } else {
                          array.RequireGrad(graph_id).SetGrad(Array{grad}, graph_id);
