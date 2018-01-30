@@ -169,13 +169,13 @@ TEST(ArrayReprTest, ArrayReprWithGraphIds) {
     CheckArrayRepr<int32_t>("array([3], dtype=int32)", {3}, Shape({1}));
 
     // Single graph
-    CheckArrayRepr<int32_t>("array([-2], dtype=int32, graph_ids=[\"graph_1\"])", {-2}, Shape({1}), {"graph_1"});
+    CheckArrayRepr<int32_t>("array([-2], dtype=int32, graph_ids=['graph_1'])", {-2}, Shape({1}), {"graph_1"});
 
     // Two graphs
-    CheckArrayRepr<int32_t>("array([1], dtype=int32, graph_ids=[\"graph_1\", \"graph_2\"])", {1}, Shape({1}), {"graph_1", "graph_2"});
+    CheckArrayRepr<int32_t>("array([1], dtype=int32, graph_ids=['graph_1', 'graph_2'])", {1}, Shape({1}), {"graph_1", "graph_2"});
 
     // Multiple graphs
-    CheckArrayRepr<int32_t>("array([-9], dtype=int32, graph_ids=[\"graph_1\", \"graph_2\", \"graph_3\", \"graph_4\", \"graph_5\"])", {-9}, Shape({1}),
+    CheckArrayRepr<int32_t>("array([-9], dtype=int32, graph_ids=['graph_1', 'graph_2', 'graph_3', 'graph_4', 'graph_5'])", {-9}, Shape({1}),
                             {"graph_1", "graph_2", "graph_3", "graph_4", "graph_5"});
 }
 
