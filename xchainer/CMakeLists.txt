@@ -9,11 +9,13 @@ install(FILES
     array.h
     array_math.h
     array_repr.h
+    backend.h
     backprop.h
     constant.h
     device.h
     dtype.h
     error.h
+    native_backend.h
     memory.h
     scalar.h
     shape.h
@@ -26,10 +28,12 @@ add_library(xchainer SHARED
     array_fill.cc
     array_math.cc
     array_repr.cc
+    backend.cc
     backprop.cc
     device.cc
     dtype.cc
     gradient_check.cc
+    native_backend.cc
     memory.cc
     numeric.cc
     scalar.cc
@@ -53,6 +57,7 @@ if(ENABLE_TEST)
         array_test.cc
         check_backward.cc
         check_backward_test.cc
+        backend_test.cc
         backprop_test.cc
         device_test.cc
         dtype_test.cc

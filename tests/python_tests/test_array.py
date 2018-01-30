@@ -161,11 +161,11 @@ def test_view_must_not_share_properties():
     array = xchainer.Array((1,), xchainer.float32, [3.0])
     view = array.view()
     # Test preconditions
-    assert not array.requires_grad
-    assert not view.requires_grad
+    assert not array.is_grad_required()
+    assert not view.is_grad_required()
 
-    array.requires_grad = True
-    assert not view.requires_grad, 'A view must not share requires_grad with the original array.'
+    array.require_grad()
+    assert not view.is_grad_required(), 'A view must not share is_grad_required with the original array.'
 
 
 def test_copy(array_init_inputs):
@@ -278,26 +278,101 @@ def test_array_repr():
     )
 
 
-def test_array_property_requires_grad():
+def test_array_require_grad():
     array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
-    assert not array.requires_grad
-    array.requires_grad = True
-    assert array.requires_grad
 
-    # TODO(hvy): Should be removed when requires_grad becomes a method
-    array.requires_grad = False
+    assert not array.is_grad_required()
+    array.require_grad()
+    assert array.is_grad_required()
+
+    with pytest.raises(xchainer.XchainerError):
+        array.require_grad()
+
+
+def test_array_require_grad_with_graph_id():
+    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+
+    assert not array.is_grad_required('graph_1')
+    array.require_grad('graph_1')
+    assert array.is_grad_required('graph_1')
+    with pytest.raises(xchainer.XchainerError):
+        array.require_grad('graph_1')
+
+    # keyword arguments
+    assert not array.is_grad_required(graph_id='graph_2')
+    array.require_grad(graph_id='graph_2')
+    assert array.is_grad_required('graph_2')
+    assert array.is_grad_required(graph_id='graph_2')
+    with pytest.raises(xchainer.XchainerError):
+        array.require_grad(graph_id='graph_2')
+
+    # Raise TypeError if given graph_id is None
+    with pytest.raises(TypeError):
+        array.require_grad(None)
+    with pytest.raises(TypeError):
+        array.is_grad_required(None)
 
 
 def test_array_grad():
     array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
-    assert array.grad is None, 'grad must be initially unset'
-
     grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
 
-    # Test setter and getter
-    array.grad = grad
-    assert array.grad is not None
-    assert array.grad._debug_flat_data == grad._debug_flat_data
+    with pytest.raises(xchainer.XchainerError):
+        array.get_grad()
+    with pytest.raises(xchainer.XchainerError):
+        array.set_grad(grad)
+    with pytest.raises(xchainer.XchainerError):
+        array.set_grad(None)
+
+    array.require_grad().set_grad(grad)
+    assert array.get_grad() is not None
+    assert array.get_grad()._debug_flat_data == grad._debug_flat_data
+
+    array.set_grad(None)  # clear
+    assert array.get_grad() is None
+
+
+def test_array_grad_with_graph_id():
+    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+    grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
+
+    with pytest.raises(xchainer.XchainerError):
+        array.get_grad('graph_1')
+    with pytest.raises(xchainer.XchainerError):
+        array.set_grad(grad, 'graph_1')
+    with pytest.raises(xchainer.XchainerError):
+        array.set_grad(None, 'graph_1')
+
+    array.require_grad('graph_1').set_grad(grad, 'graph_1')
+    assert array.get_grad('graph_1') is not None
+    assert array.get_grad('graph_1')._debug_flat_data == grad._debug_flat_data
+
+    array.set_grad(None, 'graph_1')  # clear
+    assert array.get_grad('graph_1') is None
+
+    # keyword arguments
+    with pytest.raises(xchainer.XchainerError):
+        array.get_grad(graph_id='graph_2')
+    with pytest.raises(xchainer.XchainerError):
+        array.set_grad(grad, graph_id='graph_2')
+    with pytest.raises(xchainer.XchainerError):
+        array.set_grad(None, graph_id='graph_2')
+
+    array.require_grad(graph_id='graph_2').set_grad(grad, graph_id='graph_2')
+    assert array.get_grad('graph_2') is not None
+    assert array.get_grad(graph_id='graph_2') is not None
+    assert array.get_grad('graph_2')._debug_flat_data == grad._debug_flat_data
+    assert array.get_grad(graph_id='graph_2')._debug_flat_data == grad._debug_flat_data
+
+    array.set_grad(None, graph_id='graph_2')  # clear
+    assert array.get_grad('graph_2') is None
+    assert array.get_grad(graph_id='graph_2') is None
+
+    # Raise TypeError if given graph_id is None
+    with pytest.raises(TypeError):
+        array.get_grad(None)
+    with pytest.raises(TypeError):
+        array.set_grad(grad, None)
 
 
 def test_array_grad_no_deepcopy():
@@ -307,11 +382,11 @@ def test_array_grad_no_deepcopy():
     grad = xchainer.Array(shape, dtype, [5, 7, 8])
 
     # Set grad
-    array.grad = grad
+    array.require_grad().set_grad(grad)
 
     # Retrieve grad twice and assert they share the same underlying data
-    grad1 = array.grad
-    grad2 = array.grad
+    grad1 = array.get_grad()
+    grad2 = array.get_grad()
 
     grad1 *= xchainer.Array(shape, dtype, [2, 2, 2])
     assert grad2._debug_flat_data == [10, 14, 16], 'grad getter must not incur a copy'
@@ -324,12 +399,12 @@ def test_array_cleargrad():
     grad = xchainer.Array(shape, dtype, [5, 7, 8])
 
     # Set grad, get it and save it
-    array.grad = grad
+    array.require_grad().set_grad(grad)
     del grad
-    saved_grad = array.grad
+    saved_grad = array.get_grad()
 
     # Clear grad
-    array.grad = None
+    array.set_grad(None)
 
     assert saved_grad._debug_flat_data == [5, 7, 8], 'Clearing grad must not affect previously retrieved grad'
 
@@ -338,14 +413,41 @@ def test_array_grad_identity():
     shape = (3, 1)
     array = xchainer.Array(shape, xchainer.int8, [1, 1, 1])
     grad = xchainer.Array(shape, xchainer.float32, [0.5, 0.5, 0.5])
-    array.grad = grad
+    array.require_grad().set_grad(grad)
 
-    assert array.grad is grad, 'grad must preserve physical identity'
-    assert array.grad is grad, 'grad must preserve physical identity in repeated retrieval'
+    assert array.get_grad() is grad, 'grad must preserve physical identity'
+    assert array.get_grad() is grad, 'grad must preserve physical identity in repeated retrieval'
 
     # array.grad and grad share the same data
     grad += xchainer.Array(shape, xchainer.float32, [2, 2, 2])
-    assert array.grad._debug_flat_data == [2.5, 2.5, 2.5], 'A modification to grad must affect array.grad'
+    assert array.get_grad()._debug_flat_data == [2.5, 2.5, 2.5], 'A modification to grad must affect array.grad'
 
-    array.grad += xchainer.Array(shape, xchainer.float32, [1, 1, 1])
+    array_grad = array.get_grad()
+    array_grad += xchainer.Array(shape, xchainer.float32, [1, 1, 1])
     assert grad._debug_flat_data == [3.5, 3.5, 3.5], 'A modification to array.grad must affect grad'
+
+
+def test_array_require_grad_multiple_graphs_forward():
+    x1 = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+    x2 = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+
+    graph_id1 = 'graph_1'
+    graph_id2 = 'graph_2'
+
+    x1.require_grad(graph_id1)
+    x2.require_grad(graph_id2)
+
+    assert x1.is_grad_required(graph_id1)
+    assert x2.is_grad_required(graph_id2)
+
+    assert not x1.is_grad_required(graph_id2)
+    assert not x2.is_grad_required(graph_id1)
+
+    y = x1 * x2
+
+    assert y.is_grad_required(graph_id1)
+    assert y.is_grad_required(graph_id2)
+
+    # No unspecified graphs are generated
+    assert not y.is_grad_required('')
+    assert not y.is_grad_required('graph_3')
