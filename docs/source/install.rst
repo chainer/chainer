@@ -1,7 +1,7 @@
 .. _install-guide:
 
-Installation Guide
-==================
+Installation
+============
 
 Recommended Environments
 ------------------------
@@ -193,8 +193,8 @@ Or run the interpreter directly::
   $ nvidia-docker run -it chainer/chainer /usr/bin/python
 
 
-FAQ
----
+Install Issues
+--------------
 
 The installer says "hdf5.h is not found"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

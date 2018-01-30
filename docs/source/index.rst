@@ -6,17 +6,16 @@ Welcome to the `Chainer <https://chainer.org>`_ documentation.
 
 * Certified 99% Python code!
 * Define-by-run approach for flexibility and understandable errors
-* Numpy format tensors
+* Standard Numpy syntax
 * NVIDIA GPU acceleration, thanks to `CuPy <https://cupy.chainer.org>`_
 
 .. toctree::
    :maxdepth: 2
-   :caption: Getting started
+   :caption: Chainer Documents
 
-   basic	
    install
-   examples/index
    guides/index
+   examples/index
    reference/index
 
 .. toctree::

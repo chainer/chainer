@@ -1,5 +1,5 @@
-Write a model as a chain
-~~~~~~~~~~~~~~~~~~~~~~~~
+Creating Models
+~~~~~~~~~~~~~~~
 
 Most neural network architectures contain multiple links.
 For example, a multi-layer perceptron consists of multiple linear layers.

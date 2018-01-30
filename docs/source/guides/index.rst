@@ -10,9 +10,8 @@ Guides
    functions
    models
    optimizers
-   train_loop
    trainer
-   extension
+   extensions
    gpu
    type_checks
    serializers

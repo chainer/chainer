@@ -1,5 +1,5 @@
-How to write a training loop in Chainer
-```````````````````````````````````````
+MNIST with a Manual Training Loop
+`````````````````````````````````
 
 .. currentmodule:: chainer
 

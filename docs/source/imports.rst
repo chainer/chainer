@@ -1,5 +1,5 @@
 Standard Imports
-================
+----------------
 
    In the example code of this tutorial, we assume for simplicity that the following symbols are already imported::
 

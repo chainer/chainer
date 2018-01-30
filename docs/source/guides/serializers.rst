@@ -1,5 +1,5 @@
-Serializer
-~~~~~~~~~~
+Serializers -- saving and loading
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Serializer is a simple interface to serialize or deserialize an object.
 :class:`Link`, :class:`Optimizer`, and :class:`~training.Trainer` supports serialization.
