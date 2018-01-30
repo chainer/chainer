@@ -138,7 +138,7 @@ void InitXchainerArray(pybind11::module& m) {
         .def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); })
         .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
         .def("require_grad",
-             [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{Array{self}.RequireGrad(graph_id)}.move_body(); },
+             [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{self}.RequireGrad(graph_id).move_body(); },
              py::arg("graph_id") = "")
         .def("is_grad_required", [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{self}.IsGradRequired(graph_id); },
              py::arg("graph_id") = "")
