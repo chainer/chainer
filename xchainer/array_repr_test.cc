@@ -79,7 +79,6 @@ TEST(ArrayReprTest, ArrayRepr) {
         "array([[0, 1, 2],\n"
         "       [3, 4, 5]], dtype=int16)",
         {0, 1, 2, 3, 4, 5}, Shape({2, 3}));
-
     CheckArrayRepr<int16_t>(
         "array([[ 0,  1,  2],\n"
         "       [-3,  4,  5]], dtype=int16)",
