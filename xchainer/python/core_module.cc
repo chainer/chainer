@@ -2,6 +2,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/backprop.h"
+#include "xchainer/constant.h"
 #include "xchainer/python/array.h"
 #include "xchainer/python/common.h"
 #include "xchainer/python/device.h"
@@ -27,7 +28,7 @@ void InitXchainerModule(pybind11::module& m) {
               Array array{body};
               Backward(array, graph_id);
           },
-          py::arg().noconvert(), py::arg("graph_id") = "")
+          py::arg().noconvert(), py::arg("graph_id") = kDefaultGraphId)
         .def("empty", [](const Shape& shape, Dtype dtype) { return Array::Empty(shape, dtype).move_body(); })
         .def("full", [](const Shape& shape, Scalar value, Dtype dtype) { return Array::Full(shape, value, dtype).move_body(); })
         .def("full", [](const Shape& shape, Scalar value) { return Array::Full(shape, value).move_body(); })
