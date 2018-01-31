@@ -5,7 +5,7 @@ import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer import testing
