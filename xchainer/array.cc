@@ -240,10 +240,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
     CheckEqual(shape(), rhs.shape());
 
     auto lhs_backward_function = [other = rhs](const GraphId& graph_id, const Array& gout) {
-        return gout * other.AsConstant(CopyKind::kView, graph_id);
+        return gout * other.AsConstant(CopyKind::kView, {graph_id});
     };
     auto rhs_backward_function = [other = *this](const GraphId& graph_id, const Array& gout) {
-        return gout * other.AsConstant(CopyKind::kView, graph_id);
+        return gout * other.AsConstant(CopyKind::kView, {graph_id});
     };
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 

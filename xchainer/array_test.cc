@@ -1046,10 +1046,10 @@ TEST_P(ArrayTest, MulBackwardMultipleGraphs) {
     Array o = a * b;
     Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
 
-    auto op_node1 = o.GetNode(graph_id1)->next_node();
+    auto op_node1 = internal::GetArrayNode(o, graph_id1)->next_node();
     Array ga = op_node1->backward_functions()[0](graph_id1, go);
 
-    auto op_node2 = o.GetNode(graph_id2)->next_node();
+    auto op_node2 = internal::GetArrayNode(o, graph_id2)->next_node();
     Array gb = op_node2->backward_functions()[0](graph_id2, go);
 
     EXPECT_FALSE(ga.IsGradRequired(graph_id1));
