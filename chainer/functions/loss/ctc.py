@@ -125,47 +125,35 @@ class ConnectionistTemporalClassification(function.Function):
     # path probablity to label probability
     def label_probability(self, label_size, path, path_length,
                           multiply_seq, xp):
-        labels_prob = self.log_matrix(xp.zeros((len(path), label_size),
-                                               dtype=multiply_seq.dtype), xp)
-        ret = xp.empty(
-            (len(multiply_seq),) + labels_prob.shape, dtype=labels_prob.dtype)
-        ret[...] = labels_prob
+        seq_length = len(multiply_seq)
+        n_batch = len(path)
+        dtype = multiply_seq.dtype
+
+        ret = xp.zeros((seq_length, n_batch, label_size), dtype)
         if xp == numpy:
             for b in six.moves.range(len(path)):
-                target_path = path[b][0:path_length[b]]
+                target_path = path[b, :path_length[b]]
                 chars = {c for c in target_path}
                 for c in chars:
-                    ret[:, b, c] = _logsumexp(
+                    ret[:, b, c] = xp.sum(
                         multiply_seq[:, b, 0:path_length[b]]
-                        [:, target_path == c], numpy, axis=1)
+                        [:, target_path == c], axis=1)
         else:
-            for i, multiply in enumerate(multiply_seq):
-                # TODO(okuta): remove loop
-                cuda.cupy.ElementwiseKernel(
-                    'raw T x, raw I y, raw I l, I b_max, I c_max',
-                    'T z',
-                    '''
-                    T value = z;
-                    I b = i / b_max;
-                    I c = i - b * b_max;
-                    int ind[2] = {b, -1};
-                    for (int index = 0; index < c_max; ++index) {
-                        ind[1] = index;
-                        if (ind[1] < l[ind[0]] && y[ind] == c) {
-                            T xvalue = x[ind];
-                            T at = xvalue, bt = value;
-                            if (value > xvalue) {
-                                at = value;
-                                bt = xvalue;
-                            }
-                            value = at + log1p(exp(bt - at));
-                        }
-                    }
-                    z = value;
-                    ''',
-                    'reduce_probability')(multiply, path, path_length,
-                                          labels_prob.shape[1],
-                                          path.shape[1], ret[i])
+            cuda.cupy.ElementwiseKernel(
+                'T prob, I path, I path_length, I max_path_length',
+                'raw T cum_prob',
+                '''
+                I t = i % max_path_length;
+                if (t < path_length) {
+                  int n_batch = cum_prob.shape()[1];
+                  I s = i / (max_path_length * n_batch);
+                  I b = (i - s * (max_path_length * n_batch))
+                      / max_path_length;
+                  int ind[] = {s, b, path};
+                  atomicAdd(&cum_prob[ind], prob);
+                }
+                ''', 'ctc_label_prob_sum'
+            )(multiply_seq, path, path_length[:, None], path.shape[1], ret)
         return ret
 
     def calc_trans(self, yseq, input_length,
@@ -252,8 +240,8 @@ class ConnectionistTemporalClassification(function.Function):
         total_probability = _logsumexp(self.prob_trans[0], xp, axis=1)
         label_prob = self.label_probability(
             self.yseq.shape[2], self.path, self.path_length,
-            self.prob_trans, xp)
-        self.yseq -= xp.exp(label_prob - total_probability[:, None])
+            xp.exp(self.prob_trans - total_probability[:, None]), xp)
+        self.yseq -= label_prob
         if self.reduce == 'mean':
             self.yseq *= grad_output[0] / batch_size
         else:
