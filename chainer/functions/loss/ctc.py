@@ -143,11 +143,12 @@ class ConnectionistTemporalClassification(function.Function):
                 'T prob, I path, I path_length, I max_path_length',
                 'raw T cum_prob',
                 '''
-                int n_batch = cum_prob.shape()[1];
-                I s = i / (max_path_length * n_batch);
-                I b = (i - s * (max_path_length * n_batch)) / max_path_length;
                 I t = i % max_path_length;
                 if (t < path_length) {
+                  int n_batch = cum_prob.shape()[1];
+                  I s = i / (max_path_length * n_batch);
+                  I b = (i - s * (max_path_length * n_batch))
+                      / max_path_length;
                   int ind[] = {s, b, path};
                   atomicAdd(&cum_prob[ind], prob);
                 }
