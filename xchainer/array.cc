@@ -35,7 +35,7 @@ ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::s
     : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_(std::move(nodes)) {}
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
-                  const std::vector<std::function<Array(const GraphId&, const Array&)>>& backward_functions) {
+                  const std::vector<std::function<Array(const Array&, const GraphId&)>>& backward_functions) {
     if (inputs.size() != backward_functions.size()) {
         throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");
     }
@@ -173,7 +173,7 @@ Array Array::Copy() const {
 }
 
 void Array::CopyTo(Array& out) const {
-    internal::SetUpOpNodes("copy", {*this}, out, {[](const GraphId&, const Array& gout) { return gout; }});
+    internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const GraphId&) { return gout; }});
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
     // is_contiguous_ and offset_ into account
@@ -217,7 +217,7 @@ void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    auto lhs_backward_function = [](const GraphId&, const Array& gout) -> Array { return gout; };
+    auto lhs_backward_function = [](const Array& gout, const GraphId& graph_id = "") -> Array { (void)graph_id; return gout; };
     auto rhs_backward_function = lhs_backward_function;
     internal::SetUpOpNodes("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
@@ -239,10 +239,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    auto lhs_backward_function = [other = rhs](const GraphId& graph_id, const Array& gout) {
+    auto lhs_backward_function = [other = rhs](const Array& gout, const GraphId& graph_id = "") {
         return gout * other.AsConstant(CopyKind::kView, {graph_id});
     };
-    auto rhs_backward_function = [other = *this](const GraphId& graph_id, const Array& gout) {
+    auto rhs_backward_function = [other = *this](const Array& gout, const GraphId& graph_id = "") {
         return gout * other.AsConstant(CopyKind::kView, {graph_id});
     };
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});

@@ -60,7 +60,7 @@ private:
 
         std::vector<Array> gxs;
         for (const auto& backward_function : op_node->backward_functions()) {
-            gxs.emplace_back(backward_function(graph_id, *gy));
+            gxs.emplace_back(backward_function(*gy, graph_id));
         }
 
         if (previous_array_node != output_array_node_) {
