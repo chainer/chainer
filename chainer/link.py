@@ -7,6 +7,7 @@ import numpy
 import six
 
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import initializers
 from chainer import variable
 
@@ -376,6 +377,20 @@ Assign a Parameter object directly to an attribute within a \
         self._cpu = False
         return self
 
+    def to_intel64(self):
+        """Copies parameter variables and persistent values to CPU.
+        """
+        intel64.check_ideep_available()
+        d = self.__dict__
+        for name in self._params:
+            d[name].to_intel64()
+        for name in self._persistent:
+            value = d[name]
+            if isinstance(value, numpy.ndarray):
+                d[name] = intel64.ideep.array(
+                    value, itype=intel64.ideep4.wgt_array)
+        return self
+
     def params(self, include_uninit=True):
         """Returns a generator of all parameters under the link hierarchy.
 
@@ -733,6 +748,13 @@ Assign a Link object directly to an attribute within a \
                 d[name].to_gpu()
         return self
 
+    def to_intel64(self):
+        super(Chain, self).to_intel64()
+        d = self.__dict__
+        for name in self._children:
+            d[name].to_intel64()
+        return self
+
     def params(self, include_uninit=True):
         for param in super(Chain, self).params(include_uninit):
             yield param
@@ -889,6 +911,12 @@ class ChainList(Link):
             super(ChainList, self).to_gpu()
             for link in self._children:
                 link.to_gpu()
+        return self
+
+    def to_intel64(self):
+        super(ChainList, self).to_intel64()
+        for link in self._children:
+            link.to_intel64()
         return self
 
     def params(self, include_uninit=True):

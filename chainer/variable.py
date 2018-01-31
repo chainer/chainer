@@ -9,6 +9,7 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
@@ -730,6 +731,20 @@ Actual: {0}'''.format(type(data))
             if node._data is not None:
                 node.retain_data()
 
+    def to_intel64(self):
+        """ Copies the data and gradient arrays to ia specific mdarray
+        """
+        if self.data is not None:
+            self._data = [
+                intel64.ideep.array(
+                    self.data, itype=intel64.ideep.wgt_array)]
+        if self._grad_var is not None:
+            self._grad_var.to_intel64()
+            # ensure that the node tracks the device migration
+            node = self._node
+            if node._data is not None:
+                node.retain_data()
+
     def cleargrad(self):
         """Clears the gradient array."""
         self._grad_var = None
@@ -1245,6 +1260,11 @@ class Parameter(Variable):
             if device is None:
                 device = cuda.Device().id
             self._initial_device = device
+
+    def to_intel64(self):
+        super(Parameter, self).to_intel64()
+        if self.data is None:
+            self._initial_device = None
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()
