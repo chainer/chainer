@@ -121,13 +121,15 @@ class MatMul(function_node.FunctionNode):
         if 0 in indexes:
             ga, = MatMul(self.transc, not self.transb,
                          self.transa).apply((gy, b))
-            ga.data = ga.data.astype(a.dtype)
+            if ga.dtype != a.dtype:
+                ga.array = ga.array.astype(a.dtype)
 
         gb = None
         if 1 in indexes:
             gb, = MatMul(not self.transa, self.transc,
                          self.transb).apply((a, gy))
-            gb.data = gb.data.astype(b.dtype)
+            if gb.dtype != b.dtype:
+                gb.array = gb.array.astype(b.dtype)
 
         return ga, gb
 
