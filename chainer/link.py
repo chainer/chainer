@@ -379,8 +379,7 @@ Assign a Parameter object directly to an attribute within a \
         return self
 
     def to_intel64(self):
-        """Copies parameter variables and persistent values to CPU.
-        """
+        """Copies parameter variables and persistent values to CPU."""
         intel64.check_ideep_available()
         d = self.__dict__
         for name in self._params:

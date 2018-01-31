@@ -10,7 +10,7 @@ import numpy as np
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.backends import intel64
 import chainer.functions as F
 from chainer import initializers

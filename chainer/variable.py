@@ -741,7 +741,7 @@ Actual: {0}'''.format(type(data))
                 node.retain_data()
 
     def to_intel64(self):
-        """ Copies the data and gradient arrays to intel64 specific mdarray
+        """Copies the data and gradient arrays to intel64 specific mdarray
 
         If the array is not suited for intel64, it will be converted to
         :class:`numpy.ndarray`.

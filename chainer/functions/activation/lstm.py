@@ -144,13 +144,13 @@ class LSTMGrad(function.Function):
         if xp is numpy:
             if intel64.should_use_ideep('>=auto'):
                 xp = intel64.ideep.get_array_module(x)
-            # TODO replace numpy with xp
+            # TODO(iDeep) replace numpy with xp
             tanh_a = numpy.tanh(a)
             sig_i = _sigmoid(i, xp)
             sig_f = _sigmoid(f, xp)
             sig_o = _sigmoid(o, xp)
 
-            # TODO replace numpy with xp
+            # TODO(iDeep) replace numpy with xp
             co = numpy.tanh(c_next[:batch])
             gc_prev = numpy.empty_like(c_prev)
             # multiply f later
