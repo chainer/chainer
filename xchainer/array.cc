@@ -180,30 +180,36 @@ void Array::CopyTo(Array& out) const {
     internal::MemoryCopy(out.data().get(), body_->data_.get(), total_bytes());
 }
 
-Array Array::AsConstant(CopyKind kind, const std::vector<GraphId>& graph_ids) const {
+Array Array::AsConstant(CopyKind kind) const {
     switch (kind) {
         case CopyKind::kCopy:
             // TODO(takgi): implement deep copy version
-            throw XchainerError("not implemented");
-        case CopyKind::kView: {
-            Array out = Array(shape(), dtype(), body_->data_, is_contiguous(), offset());
-            if (graph_ids.empty()) {
-                return out;
-            } else {
-                for (const std::shared_ptr<ArrayNode>& node : nodes()) {
-                    if (std::find(graph_ids.begin(), graph_ids.end(), node->graph_id()) == graph_ids.end()) {
-                        out.body_->nodes_.emplace_back(node);
-                    }
-                }
-                return out;
-            }
-        }
+            throw NotImplementedError("not implemented");
+        case CopyKind::kView:
+            return Array{shape(), dtype(), body_->data_, is_contiguous(), offset()};
         default:
             assert(false);  // should never be reached
     }
 }
 
-Array Array::AsConstant(CopyKind kind, const GraphId& graph_id) const { return AsConstant(kind, std::vector<GraphId>{graph_id}); }
+Array Array::AsConstant(CopyKind kind, const std::vector<GraphId>& graph_ids) const {
+    switch (kind) {
+        case CopyKind::kCopy:
+            // TODO(takgi): implement deep copy version
+            throw NotImplementedError("not implemented");
+        case CopyKind::kView: {
+            Array out{shape(), dtype(), body_->data_, is_contiguous(), offset()};
+            for (const std::shared_ptr<ArrayNode>& node : nodes()) {
+                if (std::find(graph_ids.begin(), graph_ids.end(), node->graph_id()) == graph_ids.end()) {
+                    out.body_->nodes_.emplace_back(node);
+                }
+            }
+            return std::move(out);
+        }
+        default:
+            assert(false);  // should never be reached
+    }
+}
 
 void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): dtype conversion

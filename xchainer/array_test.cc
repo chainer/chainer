@@ -946,7 +946,7 @@ TEST_P(ArrayTest, AsConstantView) {
         EXPECT_TRUE(a.IsGradRequired("graph_2"));
     }
 
-    // Stop gradients on graphs
+    // Stop gradients on some graphs
     {
         Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
         a.RequireGrad("graph_1");
@@ -955,7 +955,7 @@ TEST_P(ArrayTest, AsConstantView) {
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
         ASSERT_TRUE(a.IsGradRequired("graph_3"));
-        Array b = a.AsConstant(CopyKind::kView, std::vector<GraphId>{"graph_1", "graph_2"});
+        Array b = a.AsConstant(CopyKind::kView, {"graph_1", "graph_2"});
 
         ExpectEqual<bool>(a, b);
         ExpectArraysEqualAttributes(a, b);
@@ -967,25 +967,6 @@ TEST_P(ArrayTest, AsConstantView) {
         EXPECT_TRUE(a.IsGradRequired("graph_1"));
         EXPECT_TRUE(a.IsGradRequired("graph_2"));
         EXPECT_TRUE(a.IsGradRequired("graph_3"));
-    }
-
-    // Stop gradient on a graph
-    {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        a.RequireGrad("graph_1");
-        a.RequireGrad("graph_2");
-        ASSERT_TRUE(a.IsGradRequired("graph_1"));
-        ASSERT_TRUE(a.IsGradRequired("graph_2"));
-        Array b = a.AsConstant(CopyKind::kView, "graph_1");
-
-        ExpectEqual<bool>(a, b);
-        ExpectArraysEqualAttributes(a, b);
-        EXPECT_EQ(a.data(), b.data());
-        EXPECT_FALSE(b.IsGradRequired("graph_1"));
-        EXPECT_TRUE(b.IsGradRequired("graph_2"));
-
-        EXPECT_TRUE(a.IsGradRequired("graph_1"));
-        EXPECT_TRUE(a.IsGradRequired("graph_2"));
     }
 }
 
