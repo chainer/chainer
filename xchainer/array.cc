@@ -217,7 +217,7 @@ void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    auto lhs_backward_function = [](const Array& gout, const GraphId& graph_id = "") -> Array { (void)graph_id; return gout; };
+    auto lhs_backward_function = [](const Array& gout, const GraphId&) -> Array { return gout; };
     auto rhs_backward_function = lhs_backward_function;
     internal::SetUpOpNodes("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
@@ -239,10 +239,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    auto lhs_backward_function = [other = rhs](const Array& gout, const GraphId& graph_id = "") {
+    auto lhs_backward_function = [other = rhs](const Array& gout, const GraphId& graph_id) {
         return gout * other.AsConstant(CopyKind::kView, {graph_id});
     };
-    auto rhs_backward_function = [other = *this](const Array& gout, const GraphId& graph_id = "") {
+    auto rhs_backward_function = [other = *this](const Array& gout, const GraphId& graph_id) {
         return gout * other.AsConstant(CopyKind::kView, {graph_id});
     };
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
