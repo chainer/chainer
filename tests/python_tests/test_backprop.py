@@ -179,7 +179,7 @@ def test_double_backprop():
         x, = xs_
         t, = extra_xs_
         y = x * (x + t)
-        xchainer.backward(y)
+        xchainer.backward(y, enable_double_backprop=True)
         gx = x.get_grad()
         x.set_grad(None)
         return gx,
