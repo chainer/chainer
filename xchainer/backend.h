@@ -24,13 +24,19 @@ public:
     virtual void Synchronize() = 0;
 };
 
+namespace internal {
+
+Backend* GetCurrentBackendNoExcept() noexcept;
+
+}  // namespace internal
+
 Backend* GetCurrentBackend();
 void SetCurrentBackend(Backend* backend) noexcept;
 
 // Scope object that switches the current backend by RAII.
 class BackendScope {
 public:
-    BackendScope() : orig_(GetCurrentBackend()) {}
+    BackendScope() : orig_(internal::GetCurrentBackendNoExcept()) {}
     explicit BackendScope(Backend* backend) : BackendScope() { SetCurrentBackend(backend); }
 
     BackendScope(const BackendScope&) = delete;
