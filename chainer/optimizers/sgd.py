@@ -1,4 +1,5 @@
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import optimizer
 
 
@@ -30,6 +31,11 @@ class SGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
+        if (intel64.is_ideep_available()
+                and isinstance(param.data, intel64.ideep.mdarray)):
+            param.data.inplace_axpby(1.0, -self.hyperparam.lr, grad)
+        else:
+            param.data -= self.hyperparam.lr * grad
         param.data -= self.hyperparam.lr * grad
 
     def update_core_gpu(self, param):
