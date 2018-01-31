@@ -11,6 +11,7 @@ import six
 
 import chainer
 from chainer import cuda
+from chainer.backends import intel64
 import chainer.functions as F
 from chainer import initializers
 from chainer import testing
@@ -1604,6 +1605,77 @@ class TestLossScale(unittest.TestCase):
     @attr.gpu
     def test_loss_scale_gpu(self):
         self.check_loss_scale(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
+
+
+@testing.parameterize(*testing.product({
+    # TODO(niboshi): shape () is not supported
+    'shape': [(0,), (3, 2)],
+    'dtype': [
+        np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32,
+        np.uint64, np.float16, np.float32, np.float64],
+}))
+@attr.ideep
+class TestIntel64(unittest.TestCase):
+    def setUp(self):
+        self.x_data = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+
+    def _check_variable_shape_and_dtype(self, var):
+        assert var.data.shape == self.shape
+        assert var.data.dtype == self.dtype
+        assert var.shape == self.shape
+        assert var.dtype == self.dtype
+
+    def test_cpu_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        prev_x_data = x.data
+        x.to_intel64()
+
+        # Converted to mdarray only if dtype == float32.
+        # Otherwise, data should be left untouched.
+        if self.dtype == np.float32:
+            assert isinstance(x.data, intel64.ideep.mdarray)
+        else:
+            assert x.data is prev_x_data
+
+        self._check_variable_shape_and_dtype(x)
+
+    def test_intel64_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        x.to_intel64()
+        prev_x_data = x.data
+        x.to_intel64()
+
+        # Data should be left untouched
+        assert x.data is prev_x_data
+
+    @attr.gpu
+    def test_gpu_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        x.to_gpu()
+        prev_x_data = x.data
+        x.to_intel64()
+
+        # Data should be left untouched
+        assert x.data is prev_x_data
+
+    @attr.gpu
+    def test_intel64_to_gpu(self):
+        x = chainer.Variable(self.x_data)
+        x.to_intel64()
+        x.to_gpu()
+
+        # Data should be converted to cuda.ndarray
+        assert isinstance(x.data, cuda.cupy.ndarray)
+        self._check_variable_shape_and_dtype(x)
+
+    def test_intel64_to_cpu(self):
+        x = chainer.Variable(self.x_data)
+        x.to_intel64()
+        x.to_cpu()
+
+        # Data should be converted to numpy.ndarray
+        assert isinstance(x.data, np.ndarray)
+        self._check_variable_shape_and_dtype(x)
 
 
 testing.run_module(__name__, __file__)

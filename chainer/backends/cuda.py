@@ -30,8 +30,8 @@ import numpy
 import six
 
 import chainer
+from chainer.backends import intel64
 from chainer.configuration import config
-
 
 available = False
 cudnn_enabled = False
@@ -238,7 +238,7 @@ def to_gpu(array, device=None, stream=None):
     """Copies the given CPU array to the specified device.
 
     Args:
-        array (numpy.ndarray, cupy.ndarray, None, list or tuple):
+        array (array, None, list or tuple):
             Array or arrays to be sent to GPU.
         device: Device specifier.
         stream (~cupy.cuda.Stream): *(deprecated since v3.0.0)*
@@ -281,12 +281,17 @@ def _array_to_gpu(array, device, stream):
     assert device is DummyDevice or isinstance(device, Device)
     if array is None:
         return None
+
     if isinstance(array, (numpy.number, numpy.bool_)):
         array = numpy.asarray(array)
+    elif (intel64.is_ideep_available()
+          and isinstance(array, intel64.ideep.mdarray)):
+        # ideep.mdarray to numpy.ndarray
+        array = numpy.asarray(array)
+
     if not isinstance(array, (cupy.ndarray, numpy.ndarray)):
         raise TypeError(
-            'The array sent to gpu must be numpy.ndarray or cupy.ndarray, '
-            'or a NumPy scalar.'
+            'The array sent to gpu must be an array or a NumPy scalar.'
             '\nActual type: {0}.'.format(type(array)))
 
     array_dev = get_device_from_array(array)
