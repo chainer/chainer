@@ -4,10 +4,11 @@
 
 namespace xchainer {
 
-struct LeaveGraphTag {};
-constexpr LeaveGraphTag kLeaveGraph{};
+enum class DoubleBackpropOption : bool {
+    kDisable = false,
+    kEnable = true,
+};
 
-void Backward(Array& output, const GraphId& graph_id = "");
-void Backward(LeaveGraphTag, Array& output, const GraphId& graph_id = "");
+void Backward(Array& output, const GraphId& graph_id = "", DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
 }  // namespace xchainer

@@ -25,11 +25,8 @@ void InitXchainerModule(pybind11::module& m) {
     m.def("backward",
           [](const ArrayBodyPtr& body, const GraphId& graph_id, bool enable_double_backprop) {
               Array array{body};
-              if (enable_double_backprop) {
-                  Backward(kLeaveGraph, array, graph_id);
-              } else {
-                  Backward(array, graph_id);
-              }
+              auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
+              Backward(array, graph_id, double_backprop);
           },
           py::arg().noconvert(), py::arg("graph_id") = "", py::arg("enable_double_backprop") = false)
         .def("empty", [](const Shape& shape, Dtype dtype) { return Array::Empty(shape, dtype).move_body(); })

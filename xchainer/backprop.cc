@@ -24,11 +24,11 @@ class BackwardImpl {
     using SeenOpNodeSet = std::set<std::shared_ptr<OpNode>>;
 
 public:
-    BackwardImpl(const Array& output, const GraphId& graph_id, bool leave_graph)
+    BackwardImpl(const Array& output, const GraphId& graph_id, bool enable_double_backprop)
         : output_(output),
           output_array_node_(internal::GetMutableArrayNode(output, graph_id)),
           candidate_op_nodes_(BackwardImpl::Compare),
-          leave_graph_(leave_graph){};
+          double_backprop_enabled_(enable_double_backprop){};
 
     void run() {
         if (!output_array_node_->grad()) {
@@ -48,7 +48,7 @@ public:
                 PushNextOpNode(next_array_node);
             }
 
-            if (!leave_graph_) {
+            if (!double_backprop_enabled_) {
                 op_node->Unchain();
             }
         }
@@ -90,7 +90,7 @@ private:
 
     void PushNextOpNode(const std::shared_ptr<ArrayNode>& array_node) {
         // TODO(beam2d): Reduce the number of ref counting
-        std::shared_ptr<OpNode> next_op_node = leave_graph_ ? array_node->next_node() : array_node->move_next_node();
+        std::shared_ptr<OpNode> next_op_node = double_backprop_enabled_ ? array_node->next_node() : array_node->move_next_node();
         if (next_op_node) {
             if (seen_op_node_set_.find(next_op_node) == seen_op_node_set_.end()) {
                 candidate_op_nodes_.push(next_op_node);
@@ -107,18 +107,16 @@ private:
     CandidateOpNodes candidate_op_nodes_;
     PreviousArrayNodeMap previous_array_node_map_;
     SeenOpNodeSet seen_op_node_set_;
-    bool leave_graph_;
+    bool double_backprop_enabled_;
 };
 
 }  // namespace
 
-void Backward(Array& output, const GraphId& graph_id) {
+void Backward(Array& output, const GraphId& graph_id, DoubleBackpropOption double_backprop) {
     // TODO(takagi): Operations that have multiple outputs
     // TODO(takagi): Begin backprop from multiple outputs
     // BackwardImpl{output, graph_id, leave_graph}.run();
-    BackwardImpl{output, graph_id, false}.run();
+    BackwardImpl{output, graph_id, double_backprop == DoubleBackpropOption::kEnable}.run();
 }
-
-void Backward(LeaveGraphTag, Array& output, const GraphId& graph_id) { BackwardImpl{output, graph_id, true}.run(); }
 
 }  // namespace xchainer
