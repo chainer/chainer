@@ -139,7 +139,7 @@ TEST_P(BackpropTest, BackwardSoleArrayNode) {
 TEST_P(BackpropTest, DoubleBackprop) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
-        Backward(z);
+        Backward(kLeaveGraph, z);
         auto gx = *xs[0].GetGrad();
         xs[0].ClearGrad();
         return gx;
