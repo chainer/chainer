@@ -50,7 +50,7 @@ private:
 };
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
-                  const std::vector<std::function<Array(const Array&)>>& backaward_functions);
+                  const std::vector<std::function<Array(const Array&, const GraphId&)>>& backaward_functions);
 
 bool HasArrayNode(const Array& array, const GraphId& graph_id = "");
 const std::shared_ptr<ArrayNode>& CreateArrayNode(Array& array, const GraphId& graph_id = "");

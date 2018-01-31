@@ -30,6 +30,8 @@ public:
           candidate_op_nodes_(BackwardImpl::Compare){};
 
     void run() {
+        GraphId graph_id = output_array_node_->graph_id();
+
         if (!output_array_node_->grad()) {
             output_array_node_->set_grad(Array::OnesLike(output_));
         }
@@ -40,7 +42,7 @@ public:
             std::shared_ptr<const OpNode> op_node = candidate_op_nodes_.top();
             candidate_op_nodes_.pop();
 
-            std::vector<Array> gxs = ComputeNextGradients(op_node);
+            std::vector<Array> gxs = ComputeNextGradients(op_node, graph_id);
             AccumulateNextGradients(op_node, gxs);
 
             for (const auto& next_array_node : op_node->next_nodes()) {
@@ -50,7 +52,7 @@ public:
     };
 
 private:
-    std::vector<Array> ComputeNextGradients(const std::shared_ptr<const OpNode>& op_node) {
+    std::vector<Array> ComputeNextGradients(const std::shared_ptr<const OpNode>& op_node, const GraphId& graph_id) {
         const std::shared_ptr<ArrayNode>& previous_array_node = previous_array_node_map_.at(op_node);
 
         const nonstd::optional<Array>& gy = previous_array_node->grad();
@@ -58,7 +60,7 @@ private:
 
         std::vector<Array> gxs;
         for (const auto& backward_function : op_node->backward_functions()) {
-            gxs.emplace_back(backward_function(*gy));
+            gxs.emplace_back(backward_function(*gy, graph_id));
         }
 
         if (previous_array_node != output_array_node_) {
