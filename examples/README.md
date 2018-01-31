@@ -2,6 +2,7 @@ Chainer Examples
 ================
 
 This page contains a list of example codes written with Chainer.
+More examples can be found in [Awesome Chainer](https://github.com/chainer-community/awesome-chainer) maintained by the community.
 
 **It should be noted that examples marked with :zzz: have not been tested with current version of Chainer and whether it can work with current version of Chainer or not is not guaranteed.**
 
@@ -10,6 +11,7 @@ This page contains a list of example codes written with Chainer.
 * [Recurrent Net Language Model](https://github.com/chainer/chainer/tree/master/examples/ptb)
 * [Recursive Nets for Sentiment Analysis](https://github.com/chainer/chainer/tree/master/examples/sentiment)
 * [Word2Vec - WordEmbedding](https://github.com/chainer/chainer/tree/master/examples/word2vec)
+* [Sequence-to-sequnce Learning for Machine Translation](https://github.com/chainer/chainer/tree/master/examples/seq2seq)
 
 ### <a name="image-classification"></a> Image Classification
 
@@ -31,7 +33,8 @@ This page contains a list of example codes written with Chainer.
 
 * [Variational AutoEncoder](https://github.com/chainer/chainer/tree/master/examples/vae)
 * [DCGAN](https://github.com/chainer/chainer/tree/master/examples/dcgan)
-* [:zzz: pfnet-research example: Chainer-GAN-lib](https://github.com/pfnet-research/chainer-gan-lib)
+* [Image Captioning](https://github.com/chainer/chainer/tree/master/examples/image_captioning)
+* [pfnet-research example: Chainer-GAN-lib](https://github.com/pfnet-research/chainer-gan-lib)
 * [:zzz: pfnet-research example: Pix2Pix](https://github.com/pfnet-research/chainer-pix2pix)
 
 ### <a name="graph-cnn"></a> Graph Convolutional Network
