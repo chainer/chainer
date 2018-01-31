@@ -20,7 +20,7 @@ void CheckArrayReprWithCurrentDevice(const std::string& expected, const std::vec
     std::copy(data_vec.begin(), data_vec.end(), data_ptr.get());
     Array array = Array::FromBuffer(shape, TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data_ptr));
 
-    for (const GraphId& graph_id) {
+    for (const GraphId& graph_id : graph_ids) {
         array.RequireGrad(graph_id);
     }
 
