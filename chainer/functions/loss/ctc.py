@@ -152,7 +152,7 @@ class ConnectionistTemporalClassification(function.Function):
                   int ind[] = {s, b, path};
                   atomicAdd(&cum_prob[ind], prob);
                 }
-                ''', 'ctc_label_logsumexp'
+                ''', 'ctc_label_prob_sum'
             )(multiply_seq, path, path_length[:, None], path.shape[1], ret)
         return ret
 
