@@ -59,6 +59,11 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 }  // namespace internal
 
+enum class CopyKind {
+    kCopy = 1,
+    kView,
+};
+
 // The main data structure of multi-dimensional array.
 class Array {
 public:
@@ -91,6 +96,8 @@ public:
     static Array OnesLike(const Array& array);
 
     Array Copy() const;
+    Array AsConstant(CopyKind kind) const;
+    Array AsConstant(CopyKind kind, const std::vector<GraphId>& graph_ids) const;
     void Fill(Scalar value);
 
     Array& operator+=(const Array& rhs);
