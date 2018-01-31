@@ -741,12 +741,23 @@ Actual: {0}'''.format(type(data))
                 node.retain_data()
 
     def to_intel64(self):
-        """ Copies the data and gradient arrays to ia specific mdarray
+        """ Copies the data and gradient arrays to intel64 specific mdarray
+
+        If the array is not suited for intel64, it will be converted to
+        :class:`numpy.ndarray`.
         """
-        if self.data is not None:
-            self._data = [
-                intel64.ideep.array(
-                    self.data, itype=intel64.ideep.wgt_array)]
+        data = self.data
+        if data is not None:
+            if isinstance(data, numpy.ndarray):
+                # numpy.ndarray to ideep
+                self._data = [
+                    intel64.ideep.array(
+                        data, itype=intel64.ideep.wgt_array)]
+            elif isinstance(data, cuda.cupy.ndarray):
+                # cupy.ndarray to ideep
+                self._data = [
+                    intel64.ideep.array(
+                        data.get(), itype=intel64.ideep.wgt_array)]
         if self._grad_var is not None:
             self._grad_var.to_intel64()
             # ensure that the node tracks the device migration

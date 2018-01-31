@@ -1145,9 +1145,11 @@ class TestIntel64(unittest.TestCase):
         prev_y = link.y
         link.to_intel64()
 
-        # Parameters should be left untouched
-        assert link.y is prev_y
+        # Parameters should be converted to ideep.mdarray
+        assert isinstance(link.y.data, intel64.ideep.mdarray)
         assert link.v.data is None
+        self._check_variable_shape_and_dtype(
+            link.y, prev_y.shape, prev_y.dtype)
 
     @attr.gpu
     def test_intel64_to_gpu(self):
