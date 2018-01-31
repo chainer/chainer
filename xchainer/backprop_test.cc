@@ -140,7 +140,7 @@ TEST_P(BackpropTest, DoubleBackprop) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
         Backward(z);
-        auto gx = *xs[0].GetGrad();
+        auto gx = *xs[0].GetGrad();  // 2x + y
         xs[0].ClearGrad();
         return gx * xs[0];
     };
@@ -160,7 +160,7 @@ TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     auto z = x * (x + y);
     Backward(z, graph_x);
 
-    auto gx = *x.GetGrad(graph_x);
+    auto gx = *x.GetGrad(graph_x);  // 2x + y
     EXPECT_FALSE(gx.IsGradRequired(graph_x));
     EXPECT_TRUE(gx.IsGradRequired(graph_y));
 
@@ -168,7 +168,7 @@ TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     Backward(w, graph_y);
 
     auto e = Array::Full({1}, 2.0f);
-    ExpectEqual<float>(e, *y.GetGrad(graph_y));
+    ExpectEqual<float>(e, *y.GetGrad(graph_y));  // x
 }
 
 TEST_P(BackpropTest, BackwardInputToMultipleOps) {
