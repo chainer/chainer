@@ -37,10 +37,6 @@ def _label_to_path(labels, blank_symbol, xp):
     return path
 
 
-def _log_dot(prob, rr, xp):
-    return _logsumexp(prob + xp.swapaxes(rr, 1, 2), xp, axis=2)
-
-
 def _move_label_to_back(path, path_length, xp):
     s1 = path.shape[1]  # TODO(okuta): Change name
     index = (xp.arange(0, path.size, s1, dtype=numpy.int32)[:, None] +
@@ -101,27 +97,6 @@ class ConnectionistTemporalClassification(function.Function):
             res = create_recurrence_relation(x, self.zero_padding)
         return res.astype(numpy.float32)
 
-    def recurrence_relation(self, label, path_length, max_length, dtype, xp):
-        """Transition in forword and backword algorithms is represented as matrix.
-
-        See also
-        https://blog.wtf.sg/2014/10/06/connectionist-temporal-classification-ctc-with-theano/
-        """
-        batch, lab = label.shape
-        repeat_mask = xp.ones((batch, lab * 2 + 1))
-        repeat_mask[:, 1::2] = (label !=
-                                xp.take(label, xp.arange(-1, lab - 1)
-                                        % lab + xp.arange(0, batch * lab,
-                                                          lab)[:, None]))
-        repeat_mask[:, 1] = 1
-        rr = (xp.eye(max_length, dtype=dtype)[None, :] +
-              xp.eye(max_length, k=1, dtype=dtype)[None, :] +
-              (xp.eye(max_length, k=2, dtype=dtype) *
-               (xp.arange(max_length, dtype=dtype) % dtype(2))[None, :]
-               * repeat_mask[:, None]))
-        return self.log_matrix(
-            rr * (path_length[:, None] > xp.arange(max_length))[..., None], xp)
-
     # path probablity to label probability
     def label_probability(self, label_size, path, path_length,
                           multiply_seq, xp):
@@ -156,44 +131,95 @@ class ConnectionistTemporalClassification(function.Function):
             )(multiply_seq, path, path_length[:, None], path.shape[1], ret)
         return ret
 
+    def _computes_transition(self, prev_prob, path, path_length):
+        xp = cuda.get_array_module(prev_prob)
+
+        if xp == numpy:
+            n_batch, max_path_length = path.shape
+            mat = xp.full(
+                (3, n_batch, max_path_length), self.zero_padding, 'f')
+            mat[0, :, :] = prev_prob
+            mat[1, :, 1:] = prev_prob[:, :-1]
+            mat[2, :, 2:] = prev_prob[:, :-2]
+            # disable transition between the same symbols
+            # (including blank-to-blank)
+            same_transition = (path[:, :-2] == path[:, 2:])
+            mat[2, :, 2:][same_transition] = self.zero_padding
+            prob = _logsumexp(mat, xp, axis=0)
+            outside = xp.arange(max_path_length) >= path_length[:, None]
+            prob[outside] = self.zero_padding
+        else:
+            prev_prob, path, path_length = xp.broadcast_arrays(
+                prev_prob, path, path_length[:, None])
+            prob = cuda.elementwise(
+                'raw T prob, raw I path, I path_length, T zero', 'T z',
+                '''
+                int length = prob.shape()[1];
+                int b = i / length;
+                int t = i - b * length;
+                if (t >= path_length) {
+                  z = zero;
+                  return;
+                }
+                int ind1[] = {b, t};
+                int ind2[] = {b, t - 1};
+                int ind3[] = {b, t - 2};
+                float f1 = prob[ind1];
+                float f2 = (0 <= t - 1) ? prob[ind2] : zero;
+                float f3 = (0 <= t - 2 && path[ind3] != path[ind1]) ?
+                  prob[ind3] : zero;
+
+                // calculates log-sum-exp
+                float m = max(f1, max(f2, f3));
+                z = m + log(exp(f1 - m) + exp(f2 - m) + exp(f3 - m));
+                ''', 'ctc_transition'
+            )(prev_prob, path, path_length, self.zero_padding)
+        return prob
+
     def calc_trans(self, yseq, input_length,
                    label, label_length, path, path_length, xp):
+        max_input_length, n_batch, n_unit = yseq.shape
+        max_label_length = label.shape[1]
+        max_path_length = path.shape[1]
+        assert label.shape == (n_batch, max_label_length), label.shape
+        assert path.shape == (n_batch, max_label_length * 2 + 1)
+
         forward_prob = self.log_matrix(
-            xp.eye(path.shape[1], dtype='f')[0], xp)[None, :]
+            xp.eye(max_path_length, dtype='f')[0], xp)[None]
         backward_prob = forward_prob
         offset = xp.arange(
-            0, yseq[0].size, yseq[0].shape[1], dtype=path.dtype)[:, None]
+            0, n_batch * n_unit, n_unit, dtype=path.dtype)[:, None]
 
         # prob[i] := forward[i] + backward[-i-1]
         index = offset + path
-        frr = self.recurrence_relation(
-            label, path_length, path.shape[1], numpy.float32, xp)
         prob = xp.empty(
-            (len(yseq),) + index.shape, dtype=forward_prob.dtype)
+            (max_input_length, n_batch, max_path_length), dtype='f')
         # forward computation.
         for i, y in enumerate(yseq):
             # calc forward probability in log scale
-            forward_prob = xp.take(y, index) + _log_dot(
-                forward_prob[:, None, :], frr, xp)
+            forward_prob = self._computes_transition(
+                forward_prob, path, path_length)
+            forward_prob += xp.take(y, index)
             prob[i] = forward_prob
-        r_index = offset + _move_label_to_back(path, path_length, xp)
+
+        r_path = _move_label_to_back(path, path_length, xp)
+        r_index = offset + r_path
 
         # rotate yseq with path_length
         yseq_inv = _move_inputs(yseq, input_length, xp)[::-1]
-        brr = self.recurrence_relation(
-            _move_label_to_back(label, label_length, xp),
-            path_length, path.shape[1], numpy.float32, xp)
         # move to back.
         prob = _move_inputs(prob, input_length, xp)
 
         # backward computation.
-        ps1 = path.shape[1]
         backward_prob_index = (
-            xp.arange(0, path.size, ps1, dtype=numpy.int32)[:, None] +
-            (xp.arange(ps1) - path_length[:, None]) % ps1)
+            xp.arange(0, path.size, max_path_length, dtype='i')[:, None] +
+            (xp.arange(max_path_length) - path_length[:, None])
+            % max_path_length)
+
         for i, y_inv in enumerate(yseq_inv):
             # calc backward probability
-            backward_prob = _log_dot(backward_prob[:, None, :], brr, xp)
+            backward_prob = self._computes_transition(
+                backward_prob, r_path, path_length)
             prob[-i - 1] += xp.take(
                 backward_prob[:, ::-1], backward_prob_index)
             backward_prob += xp.take(y_inv, r_index)
