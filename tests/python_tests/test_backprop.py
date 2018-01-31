@@ -12,7 +12,7 @@ def assert_arrays_equal(array1, array2):
         assert array1._debug_flat_data == array2._debug_flat_data
 
 
-def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=''):
+def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=None):
     # Checks for test validity
     assert isinstance(xs, tuple)
     assert isinstance(expected_gxs, tuple)
@@ -25,19 +25,28 @@ def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=''):
 
     outputs = fprop(xs, extra_xs)
     assert len(outputs) == 1, 'This test does not support multi-output functions yet'
+    output = outputs[0]
 
-    xchainer.backward(outputs[0], graph_id)
+    # Call different functions/methods depending on if graph ID was specified
+    # or not
+    using_default_id = graph_id is None
+
+    if using_default_id:
+        xchainer.backward(output)
+    else:
+        xchainer.backward(output, graph_id)
 
     for i, expected_gx in enumerate(expected_gxs):
         x = xs[i]
         if expected_gx == xchainer.XchainerError:
             with pytest.raises(xchainer.XchainerError):
-                x.get_grad(graph_id)
+                x.get_grad() if using_default_id else x.get_grad(graph_id)
         else:
-            gx = x.get_grad(graph_id)
+            gx = x.get_grad() if using_default_id else x.get_grad(graph_id)
             assert_arrays_equal(gx, expected_gx)
 
-    assert outputs[0].get_grad(graph_id) is not None
+    grad = output.get_grad() if using_default_id else output.get_grad(graph_id)
+    assert grad is not None
 
 
 def test_backward_identity():
