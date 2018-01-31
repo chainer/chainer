@@ -120,13 +120,15 @@ class TensorDot(function_node.FunctionNode):
             ga, = TensorDot(a_axes=self.c_axes,
                             b_axes=[self.b_axes[1], self.b_axes[0]],
                             c_axes=self.a_axes).apply((gc, b))
-            ga.array = ga.array.astype(a.dtype)
+            if ga.dtype != a.dtype:
+                ga.array = ga.array.astype(a.dtype)
 
         if 1 in indexes:
             gb, = TensorDot(a_axes=[self.a_axes[1], self.a_axes[0]],
                             b_axes=self.c_axes,
                             c_axes=self.b_axes).apply((a, gc))
-            gb.array = gb.array.astype(b.dtype)
+            if gb.dtype != b.dtype:
+                gb.array = gb.array.astype(b.dtype)
 
         return ga, gb
 
