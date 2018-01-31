@@ -204,7 +204,7 @@ def test_multiple_graphs_double_backprop():
     assert not gx.is_grad_required(graph_id=graph_x)
     assert gx.is_grad_required(graph_id=graph_y)
 
-    w = x * gx;
+    w = x * gx
     xchainer.backward(w, graph_id=graph_y)
 
     e = xchainer.full((1,), 2, xchainer.float32)
