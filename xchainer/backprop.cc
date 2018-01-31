@@ -90,7 +90,12 @@ private:
 
     void PushNextOpNode(const std::shared_ptr<ArrayNode>& array_node) {
         // TODO(beam2d): Reduce the number of ref counting
+
+        // When double backprop is enabled, array_node releases the pointer to the next node here. After this operation, array_node will
+        // look like a leaf node of the graph. Note that this move does not invalidates the array_node object itself; it is guaranteed by
+        // the standard that shared_ptr becomes null after move-assigned to another.
         std::shared_ptr<OpNode> next_op_node = enable_double_backprop_ ? array_node->next_node() : array_node->move_next_node();
+
         if (next_op_node) {
             if (seen_op_node_set_.find(next_op_node) == seen_op_node_set_.end()) {
                 candidate_op_nodes_.push(next_op_node);
