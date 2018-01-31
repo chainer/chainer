@@ -562,7 +562,7 @@ Use apply() method instead.\
                 j = target_input_indexes[i]
                 if self.inputs[j].creator is None:
                     if sum_gx[0] is not None and len(sum_gx) > 1:
-                        sum_gx = chainer.functions.accumulate_add(sum_gx),
+                        sum_gx = chainer.functions.add(*sum_gx),
                 if len(sum_gx) > 1:
                     gxs_output += sum_gx,
                 else:
@@ -869,7 +869,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
 
         # Do backward
         gys = [gy if not isinstance(gy, tuple) else
-               chainer.functions.accumulate_add(gy)
+               chainer.functions.add(*gy)
                for gy in gys]
         new_gxs = func.backward_accumulate(input_indexes, gys, gxs)
 
@@ -892,7 +892,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
                 if cur_gx is not None:
                     if x.creator is None:
                         g = _backprop_utils.concat_variable(g, cur_gx)
-                        g = chainer.functions.accumulate_add(g)
+                        g = chainer.functions.add(*g)
                     else:
                         g = _backprop_utils.concat_variable(g, cur_gx)
             else:

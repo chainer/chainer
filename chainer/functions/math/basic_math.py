@@ -169,19 +169,7 @@ class AddConstant(function_node.FunctionNode):
         return gy[0],
 
 
-def add(self, rhs):  # lhs + rhs
-    """Element-wise addition.
-
-    Returns:
-        ~chainer.Variable: Output variable.
-    """
-    if isinstance(rhs, variable.Variable):
-        return Add().apply((self, rhs))[0]
-    _check_constant_type(rhs)
-    return AddConstant(rhs).apply((self,))[0]
-
-
-class AccumulateAdd(function_node.FunctionNode):
+class MultiAdd(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         for in_type in in_types:
@@ -209,17 +197,21 @@ class AccumulateAdd(function_node.FunctionNode):
         return gys
 
 
-def accumulate_add(xs):
-    """Element-wise add the input arrays.
-
-    Inputs:
-        ~chainer.Variable: Tuple of variable.
+def add(*xs):  # lhs + rhs or add more than 2 variables
+    """Element-wise addition.
 
     Returns:
         ~chainer.Variable: Output variable.
     """
-
-    return AccumulateAdd().apply(xs)[0]
+    if (len(xs) == 2):
+        self = xs[0]
+        rhs = xs[1]
+        if isinstance(rhs, variable.Variable):
+            return Add().apply((self, rhs))[0]
+        _check_constant_type(rhs)
+        return AddConstant(rhs).apply((self,))[0]
+    else:
+        return MultiAdd().apply(xs)[0]
 
 
 class Sub(function_node.FunctionNode):

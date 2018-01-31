@@ -956,7 +956,7 @@ Actual: {0}'''.format(type(data))
                 for y in outputs:
                     grad = get_grad(y)
                     if isinstance(grad, tuple):
-                        grad = chainer.functions.accumulate_add(grad)
+                        grad = chainer.functions.add(*grad)
                         set_grad(y, grad)
             out_grad = tuple([get_grad(y) for y in outputs])
             out_grad_data = tuple(
@@ -1053,7 +1053,7 @@ Actual: {0}'''.format(type(data))
                     if func.lazy_grad_sum:
                         if x.creator is None:
                             gx = _backprop_utils.concat_variable(gx, cur_gx)
-                            gx = chainer.functions.accumulate_add(gx)
+                            gx = chainer.functions.add(*gx)
                             grads[x] = gx
                         else:
                             grads[x] = _backprop_utils.concat_variable(
