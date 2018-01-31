@@ -1652,11 +1652,16 @@ class TestIntel64(unittest.TestCase):
     def test_gpu_to_intel64(self):
         x = chainer.Variable(self.x_data)
         x.to_gpu()
-        prev_x_data = x.data
         x.to_intel64()
 
-        # Data should be left untouched
-        assert x.data is prev_x_data
+        # Converted to mdarray only if dtype == float32.
+        # Otherwise, data should be converted to numpy.ndarray.
+        if self.dtype == np.float32:
+            assert isinstance(x.data, intel64.ideep.mdarray)
+        else:
+            assert isinstance(x.data, np.ndarray)
+
+        self._check_variable_shape_and_dtype(x)
 
     @attr.gpu
     def test_intel64_to_gpu(self):
