@@ -699,10 +699,19 @@ Actual: {0}'''.format(type(data))
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
-        if self.data is None:
+
+        data = self.data
+        if data is None:
             return
 
-        self._data = [cuda.to_cpu(self.data)]
+        if isinstance(data, cuda.cupy.ndarray):
+            # cupy.ndarray to numpy.ndarray
+            self._data = [cuda.to_cpu(data)]
+        elif (intel64.is_ideep_available
+              and isinstance(data, intel64.ideep.mdarray)):
+            # ideep.mdarray to numpy.ndarray
+            self._data = [numpy.array(data)]
+
         if self._grad_var is not None:
             self._grad_var.to_cpu()
         # ensure that the node tracks the device migration
