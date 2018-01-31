@@ -137,6 +137,17 @@ TEST_P(BackpropTest, BackwardSoleArrayNode) {
 }
 
 TEST_P(BackpropTest, DoubleBackprop) {
+    auto fprop = [](auto& xs, auto& ys) {
+        auto z = xs[0] * (xs[0] + ys[0]);
+        Backward(z);
+        auto gx = *xs[0].GetGrad();
+        xs[0].ClearGrad();
+        return gx * xs[0];
+    };
+    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {7.0f}, fprop);
+}
+
+TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     GraphId graph_x = "graph_x";
     GraphId graph_y = "graph_y";
 
