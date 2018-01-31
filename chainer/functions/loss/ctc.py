@@ -148,7 +148,8 @@ class ConnectionistTemporalClassification(function.Function):
 
         if xp == numpy:
             n_batch, max_path_length = path.shape
-            mat = xp.full((3, n_batch, max_path_length), self.zero_padding, 'f')
+            mat = xp.full(
+                (3, n_batch, max_path_length), self.zero_padding, 'f')
             mat[0, :, :] = prev_prob
             mat[1, :, 1:] = prev_prob[:, :-1]
             mat[2, :, 2:] = prev_prob[:, :-2]
@@ -184,7 +185,7 @@ class ConnectionistTemporalClassification(function.Function):
                 float m = max(f1, max(f2, f3));
                 z = m + log(exp(f1 - m) + exp(f2 - m) + exp(f3 - m));
                 ''', 'ctc_transition'
-                )(prev_prob, path, path_length, self.zero_padding)
+            )(prev_prob, path, path_length, self.zero_padding)
         return prob
 
     def calc_trans(self, yseq, input_length,
