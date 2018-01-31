@@ -244,7 +244,8 @@ struct ArrayReprImpl {
 }  // namespace
 
 std::ostream& operator<<(std::ostream& os, const Array& array) {
-    // TODO(hvy): Naive Python-like string representation with e.g. single quoted strings. We should be following C++ conventions.
+    // TODO(hvy): We need to determine the output specification of this function, whether or not to align with Python repr specification,
+    // and also whether this functionality should be defined in C++ layer or Python layer.
     VisitDtype(array.dtype(), [&](auto pt) { ArrayReprImpl{}.operator()<typename decltype(pt)::type>(array, os); });
     return os;
 }
