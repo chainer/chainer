@@ -251,10 +251,6 @@ class BatchNormalizationGrad(function.Function):
             if expand_dim:
                 gx = numpy.squeeze(gx, axis=(2, 3))
 
-            # TODO(niboshi): This line was not present in Intel's original
-            # implementation, but needed to pass the double-backward test.
-            gx = numpy.asarray(gx)
-
         elif self.use_cudnn:
             # TODO(niboshi): Refactor cuDNN part into a separate method
             cudnn_mode = self.mode.get_cudnn_mode()
