@@ -28,7 +28,7 @@ public:
         : output_(output),
           output_array_node_(internal::GetMutableArrayNode(output, graph_id)),
           candidate_op_nodes_(BackwardImpl::Compare),
-          double_backprop_enabled_(enable_double_backprop){};
+          enable_double_backprop_(enable_double_backprop){};
 
     void run() {
         if (!output_array_node_->grad()) {
@@ -48,7 +48,7 @@ public:
                 PushNextOpNode(next_array_node);
             }
 
-            if (!double_backprop_enabled_) {
+            if (!enable_double_backprop_) {
                 op_node->Unchain();
             }
         }
@@ -90,7 +90,7 @@ private:
 
     void PushNextOpNode(const std::shared_ptr<ArrayNode>& array_node) {
         // TODO(beam2d): Reduce the number of ref counting
-        std::shared_ptr<OpNode> next_op_node = double_backprop_enabled_ ? array_node->next_node() : array_node->move_next_node();
+        std::shared_ptr<OpNode> next_op_node = enable_double_backprop_ ? array_node->next_node() : array_node->move_next_node();
         if (next_op_node) {
             if (seen_op_node_set_.find(next_op_node) == seen_op_node_set_.end()) {
                 candidate_op_nodes_.push(next_op_node);
@@ -107,7 +107,7 @@ private:
     CandidateOpNodes candidate_op_nodes_;
     PreviousArrayNodeMap previous_array_node_map_;
     SeenOpNodeSet seen_op_node_set_;
-    bool double_backprop_enabled_;
+    bool enable_double_backprop_;
 };
 
 }  // namespace
