@@ -187,6 +187,31 @@ def test_double_backprop():
     check_backprop(xs, expected_gxs, fprop, extra_xs)
 
 
+def test_multiple_graphs_double_backprop():
+    graph_x = 'graph_x'
+    graph_y = 'graph_y'
+
+    x = xchainer.full((1,), 2, xchainer.float32)
+    x.require_grad(graph_id=graph_x)
+
+    y = xchainer.full((1,), 3, xchainer.float32)
+    y.require_grad(graph_id=graph_y)
+
+    z = x * (x + y)
+    xchainer.backward(z, graph_id=graph_x)
+
+    gx = x.get_grad(graph_x)  # 2x + y
+    assert not gx.is_grad_required(graph_id=graph_x)
+    assert gx.is_grad_required(graph_id=graph_y)
+
+    w = x * gx;
+    xchainer.backward(w, graph_id=graph_y)
+
+    e = xchainer.full((1,), 2, xchainer.float32)
+
+    assert_arrays_equal(y.get_grad(graph_y), e)  # x
+
+
 def test_backward_input_to_multiple_ops():
     shape = (1,)
     dtype = xchainer.float32
