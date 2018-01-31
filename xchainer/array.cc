@@ -180,11 +180,15 @@ void Array::CopyTo(Array& out) const {
 }
 
 Array Array::AsConstant(CopyKind kind) const {
-    std::vector<GraphId> graph_ids;
-    for (const std::shared_ptr<ArrayNode>& node : nodes()) {
-        graph_ids.emplace_back(node->graph_id());
+    switch (kind) {
+        case CopyKind::kCopy:
+            // TODO(takgi): implement deep copy version
+            throw NotImplementedError("not implemented");
+        case CopyKind::kView:
+            return Array{shape(), dtype(), body_->data_, is_contiguous(), offset()};
+        default:
+            assert(false);  // should never be reached
     }
-    return AsConstant(kind, graph_ids);
 }
 
 Array Array::AsConstant(CopyKind kind, const std::vector<GraphId>& graph_ids) const {
