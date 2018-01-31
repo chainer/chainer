@@ -161,6 +161,9 @@ TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     Backward(z, graph_x);
 
     auto gx = *x.GetGrad(graph_x);
+    EXPECT_FALSE(gx.IsGradRequired(graph_x));
+    EXPECT_TRUE(gx.IsGradRequired(graph_y));
+
     auto w = x * gx;
     Backward(w, graph_y);
 
