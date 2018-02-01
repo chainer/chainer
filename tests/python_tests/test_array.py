@@ -449,5 +449,5 @@ def test_array_require_grad_multiple_graphs_forward():
     assert y.is_grad_required(graph_id2)
 
     # No unspecified graphs are generated
-    assert not y.is_grad_required(DEFAULT_GRAPH_ID)
+    assert not y.is_grad_required(xchainer.DEFAULT_GRAPH_ID)
     assert not y.is_grad_required('graph_3')

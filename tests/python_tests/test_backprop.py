@@ -12,7 +12,7 @@ def assert_arrays_equal(array1, array2):
         assert array1._debug_flat_data == array2._debug_flat_data
 
 
-def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=DEFAULT_GRAPH_ID):
+def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=xchainer.DEFAULT_GRAPH_ID):
     # Checks for test validity
     assert isinstance(xs, tuple)
     assert isinstance(expected_gxs, tuple)
