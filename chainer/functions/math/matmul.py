@@ -113,7 +113,7 @@ class MatMul(function_node.FunctionNode):
         else:
             y = _matmul(a, b, self.transa, self.transb, self.transc)
         if self.dtype is not None and y.dtype != self.dtype:
-            y = y.astype(self.dtype, copy=False)
+            y = y.astype(self.dtype)
         return utils.force_array(y),
 
     def backward(self, indexes, grad_outputs):
