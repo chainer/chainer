@@ -164,18 +164,13 @@ def test_backward_sole_array_node():
     assert_arrays_equal(x.get_grad(), expected_gx)
 
 
-import pytest  # NOQA
-
-
-# TODO(takagi): Temporarily skip, will be fixed in another PR
-@pytest.mark.skip
 def test_double_backprop():
     shape = (1,)
     dtype = xchainer.float32
 
     xs = (xchainer.full(shape, 2, dtype),)
     extra_xs = (xchainer.full(shape, 3, dtype),)
-    expected_gxs = (xchainer.full(shape, 2, dtype),)
+    expected_gxs = (xchainer.full(shape, 7, dtype),)
 
     for x in xs:
         x.require_grad()
@@ -185,11 +180,36 @@ def test_double_backprop():
         t, = extra_xs_
         y = x * (x + t)
         xchainer.backward(y, enable_double_backprop=True)
-        gx = x.get_grad()
+        gx = x.get_grad()  # 2x + y
         x.set_grad(None)
-        return gx,
+        return gx * x,
 
     check_backprop(xs, expected_gxs, fprop, extra_xs)
+
+
+def test_multiple_graphs_double_backprop():
+    graph_x = 'graph_x'
+    graph_y = 'graph_y'
+
+    x = xchainer.full((1,), 2, xchainer.float32)
+    x.require_grad(graph_id=graph_x)
+
+    y = xchainer.full((1,), 3, xchainer.float32)
+    y.require_grad(graph_id=graph_y)
+
+    z = x * (x + y)
+    xchainer.backward(z, graph_id=graph_x)
+
+    gx = x.get_grad(graph_x)  # 2x + y
+    assert not gx.is_grad_required(graph_id=graph_x)
+    assert gx.is_grad_required(graph_id=graph_y)
+
+    w = x * gx
+    xchainer.backward(w, graph_id=graph_y)
+
+    e = xchainer.full((1,), 2, xchainer.float32)
+
+    assert_arrays_equal(y.get_grad(graph_y), e)  # x
 
 
 def test_backward_input_to_multiple_ops():
