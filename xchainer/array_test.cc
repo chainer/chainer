@@ -955,7 +955,7 @@ TEST_P(ArrayTest, AsConstantView) {
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
         ASSERT_TRUE(a.IsGradRequired("graph_3"));
-        Array b = a.AsConstant(CopyKind::kView, {"graph_1", "graph_2"});
+        Array b = a.AsConstant({"graph_1", "graph_2"}, CopyKind::kView);
 
         ExpectEqual<bool>(a, b);
         ExpectArraysEqualAttributes(a, b);

@@ -192,7 +192,7 @@ Array Array::AsConstant(CopyKind kind) const {
     }
 }
 
-Array Array::AsConstant(CopyKind kind, const std::vector<GraphId>& graph_ids) const {
+Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) const {
     switch (kind) {
         case CopyKind::kCopy:
             // TODO(takgi): implement deep copy version
@@ -240,10 +240,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
     CheckEqual(shape(), rhs.shape());
 
     auto lhs_backward_function = [other = rhs](const Array& gout, const GraphId& graph_id) {
-        return gout * other.AsConstant(CopyKind::kView, {graph_id});
+        return gout * other.AsConstant({graph_id}, CopyKind::kView);
     };
     auto rhs_backward_function = [other = *this](const Array& gout, const GraphId& graph_id) {
-        return gout * other.AsConstant(CopyKind::kView, {graph_id});
+        return gout * other.AsConstant({graph_id}, CopyKind::kView);
     };
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
