@@ -7,8 +7,15 @@
 #include <sstream>
 #include <vector>
 
+#ifdef XCHAINER_ENABLE_CUDA
+#include <cuda_runtime.h>
+#endif  // XCHAINER_ENABLE_CUDA
+
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
+#ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/cuda_runtime.h"
+#endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/dtype.h"
 #include "xchainer/shape.h"
 
@@ -154,6 +161,11 @@ struct ArrayReprImpl {
         std::vector<int64_t> indexer;
         std::copy(shape.cbegin(), shape.cend(), std::back_inserter(indexer));
         std::shared_ptr<const T> data = std::static_pointer_cast<const T>(array.data());
+
+// TODO(hvy): CUDA devices need to be synchronized here
+#ifdef XCHAINER_ENABLE_CUDA
+        cuda::CheckError(cudaDeviceSynchronize());
+#endif  // XCHAINER_ENABLE_CUDA
 
         for (int64_t i = 0; i < array.total_size(); ++i) {
             // Increment indexer
