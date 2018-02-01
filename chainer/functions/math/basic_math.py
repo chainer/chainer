@@ -202,8 +202,7 @@ def add(*xs):  # lhs + rhs or add more than 2 variables
         ~chainer.Variable: Output variable.
     """
     if len(xs) == 2:
-        lhs = xs[0]
-        rhs = xs[1]
+        lhs, rhs = xs
         if isinstance(rhs, variable.Variable):
             return Add().apply((lhs, rhs))[0]
         _check_constant_type(rhs)
