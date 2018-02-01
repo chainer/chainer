@@ -142,11 +142,35 @@ TEST_P(BackpropTest, DoubleBackprop) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
         Backward(z, "", DoubleBackpropOption::kEnable);
-        auto gx = *xs[0].GetGrad();
+        auto gx = *xs[0].GetGrad();  // 2x + y
         xs[0].ClearGrad();
-        return gx;
+        return gx * xs[0];
     };
-    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop);
+    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {7.0f}, fprop);
+}
+
+TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
+    GraphId graph_x = "graph_x";
+    GraphId graph_y = "graph_y";
+
+    auto x = Array::Full({1}, 2.0f);
+    x.RequireGrad(graph_x);
+
+    auto y = Array::Full({1}, 3.0f);
+    y.RequireGrad(graph_y);
+
+    auto z = x * (x + y);
+    Backward(z, graph_x);
+
+    auto gx = *x.GetGrad(graph_x);  // 2x + y
+    EXPECT_FALSE(gx.IsGradRequired(graph_x));
+    EXPECT_TRUE(gx.IsGradRequired(graph_y));
+
+    auto w = x * gx;
+    Backward(w, graph_y);
+
+    auto e = Array::Full({1}, 2.0f);
+    ExpectEqual<float>(e, *y.GetGrad(graph_y));  // x
 }
 
 TEST_P(BackpropTest, BackwardInputToMultipleOps) {
@@ -214,9 +238,7 @@ TEST_P(BackpropTest, MultipleGraphsSameInput) {
     Array expected_1 = MakeFullArray({1}, {6.0f});
     ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_1));
 
-    // TODO(hvy): The following expectation should be negated once we have implemented the functionality to not create graphs during back
-    // propagation
-    EXPECT_TRUE(x1.GetGrad(graph_id_1)->IsGradRequired(graph_id_1));
+    EXPECT_FALSE(x1.GetGrad(graph_id_1)->IsGradRequired(graph_id_1));
 }
 
 TEST_P(BackpropTest, MultipleGraphsNonExisting) {

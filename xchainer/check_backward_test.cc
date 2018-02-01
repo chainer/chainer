@@ -25,7 +25,7 @@ Arrays IncorrectBackwardUnaryFunc(const Arrays& inputs) {
     const Array& in = inputs[0];
     Array out = Array::EmptyLike(in);
 
-    auto backward_function = [](const Array& gout) { return gout * gout; };
+    auto backward_function = [](const Array& gout, const GraphId&) { return gout * gout; };
     internal::SetUpOpNodes("incorrect_unary", {in}, out, {backward_function});
 
     VisitDtype(in.dtype(), [&](auto pt) {
@@ -48,7 +48,9 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
     CheckEqual(lhs.shape(), rhs.shape());
     Array out = Array::EmptyLike(lhs);
 
-    auto lhs_backward_function = [other_view = rhs](const Array& gout)->Array { return gout + other_view; };
+    auto lhs_backward_function = [other = rhs](const Array& gout, const GraphId& graph_id)->Array {
+        return gout + other.AsConstant(CopyKind::kView, {graph_id});
+    };
     auto rhs_backward_function = lhs_backward_function;
     internal::SetUpOpNodes("incorrect_binary", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
