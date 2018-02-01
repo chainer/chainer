@@ -281,7 +281,7 @@ INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
 #endif  // XCHAINER_ENABLE_CUDA
                                                          std::string{"cpu"}));
 
-TEST(BackpropLeaveGraphTest, LeaveGraph) {
+TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
     Array x2 = Array::Full({2}, 2.f);
     Array y1 = x1 + x2;
@@ -307,7 +307,7 @@ TEST(BackpropLeaveGraphTest, LeaveGraph) {
     }
 }
 
-TEST(BackpropLeaveGraphTest, NotLeaveGraph) {
+TEST(BackpropEnableDoubleBackpropTest, Disabled) {
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
     Array x2 = Array::Full({2}, 2.f);
     Array y1 = x1 + x2;
