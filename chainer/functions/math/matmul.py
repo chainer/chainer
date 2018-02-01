@@ -70,10 +70,11 @@ def _get_check_index(trans, right, row_idx=0, col_idx=1):
 
 class MatMul(function_node.FunctionNode):
 
-    def __init__(self, transa=False, transb=False, transc=False):
+    def __init__(self, transa=False, transb=False, transc=False, dtype=None):
         self.transa = transa
         self.transb = transb
         self.transc = transc
+        self.dtype = dtype
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -111,6 +112,8 @@ class MatMul(function_node.FunctionNode):
             y = a * b
         else:
             y = _matmul(a, b, self.transa, self.transb, self.transc)
+        if self.dtype is not None and y.dtype != self.dtype:
+            y = y.astype(self.dtype, copy=False)
         return utils.force_array(y),
 
     def backward(self, indexes, grad_outputs):
@@ -119,17 +122,13 @@ class MatMul(function_node.FunctionNode):
 
         ga = None
         if 0 in indexes:
-            ga, = MatMul(self.transc, not self.transb,
-                         self.transa).apply((gy, b))
-            if ga.dtype != a.dtype:
-                ga.array = ga.array.astype(a.dtype)
+            ga, = MatMul(self.transc, not self.transb, self.transa,
+                         a.dtype).apply((gy, b))
 
         gb = None
         if 1 in indexes:
-            gb, = MatMul(not self.transa, self.transc,
-                         self.transb).apply((a, gy))
-            if gb.dtype != b.dtype:
-                gb.array = gb.array.astype(b.dtype)
+            gb, = MatMul(not self.transa, self.transc, self.transb,
+                         b.dtype).apply((a, gy))
 
         return ga, gb
 
