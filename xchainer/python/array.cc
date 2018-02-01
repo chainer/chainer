@@ -7,6 +7,7 @@
 #include <pybind11/operators.h>
 
 #include "xchainer/array.h"
+#include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 
@@ -144,9 +145,9 @@ void InitXchainerArray(pybind11::module& m) {
         .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
         .def("require_grad",
              [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{self}.RequireGrad(graph_id).move_body(); },
-             py::arg("graph_id") = "")
+             py::arg("graph_id") = kDefaultGraphId)
         .def("is_grad_required", [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{self}.IsGradRequired(graph_id); },
-             py::arg("graph_id") = "")
+             py::arg("graph_id") = kDefaultGraphId)
         .def("get_grad",
              [](const ArrayBodyPtr& self, const GraphId& graph_id) -> ConstArrayBodyPtr {
                  const nonstd::optional<Array>& grad = Array{self}.GetGrad(graph_id);
@@ -156,7 +157,7 @@ void InitXchainerArray(pybind11::module& m) {
                      return nullptr;
                  }
              },
-             py::arg("graph_id") = "")
+             py::arg("graph_id") = kDefaultGraphId)
         .def("set_grad",
              [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad, const GraphId& graph_id) {
                  auto array = Array{self};
@@ -166,7 +167,7 @@ void InitXchainerArray(pybind11::module& m) {
                      array.ClearGrad(graph_id);
                  }
              },
-             py::arg("grad"), py::arg("graph_id") = "")
+             py::arg("grad"), py::arg("graph_id") = kDefaultGraphId)
         .def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); })
         .def_property_readonly("element_bytes", [](const ArrayBodyPtr& self) { return Array{self}.element_bytes(); })
         .def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.is_contiguous(); })

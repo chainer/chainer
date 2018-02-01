@@ -1,6 +1,7 @@
 #pragma once
 
 #include "xchainer/array.h"
+#include "xchainer/constant.h"
 
 namespace xchainer {
 
@@ -9,6 +10,7 @@ enum class DoubleBackpropOption : bool {
     kEnable = true,
 };
 
-void Backward(Array& output, const GraphId& graph_id = "", DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
+void Backward(Array& output, const GraphId& graph_id = kDefaultGraphId,
+              DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
 }  // namespace xchainer

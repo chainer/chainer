@@ -10,6 +10,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array_repr.h"
+#include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
@@ -52,10 +53,10 @@ private:
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
                   const std::vector<std::function<Array(const Array&, const GraphId&)>>& backaward_functions);
 
-bool HasArrayNode(const Array& array, const GraphId& graph_id = "");
-const std::shared_ptr<ArrayNode>& CreateArrayNode(Array& array, const GraphId& graph_id = "");
-std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id = "");
-const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = "");
+bool HasArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
+const std::shared_ptr<ArrayNode>& CreateArrayNode(Array& array, const GraphId& graph_id = kDefaultGraphId);
+std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
+const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
 }  // namespace internal
 
@@ -105,14 +106,14 @@ public:
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
 
-    const nonstd::optional<Array>& GetGrad(const GraphId& graph_id = "") const;
-    void SetGrad(Array grad, const GraphId& graph_id = "");
+    const nonstd::optional<Array>& GetGrad(const GraphId& graph_id = kDefaultGraphId) const;
+    void SetGrad(Array grad, const GraphId& graph_id = kDefaultGraphId);
     // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
-    void ClearGrad(const GraphId& graph_id = "");
+    void ClearGrad(const GraphId& graph_id = kDefaultGraphId);
 
-    bool IsGradRequired(const GraphId& graph_id = "") const { return internal::HasArrayNode(*this, graph_id); }
+    bool IsGradRequired(const GraphId& graph_id = kDefaultGraphId) const { return internal::HasArrayNode(*this, graph_id); }
     // Creates a new ArrayNode to store the gradient
-    Array& RequireGrad(const GraphId& graph_id = "") {
+    Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) {
         internal::CreateArrayNode(*this, graph_id);
         return *this;
     }

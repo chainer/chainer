@@ -2,6 +2,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/backprop.h"
+#include "xchainer/constant.h"
 #include "xchainer/python/array.h"
 #include "xchainer/python/common.h"
 #include "xchainer/python/device.h"
@@ -22,13 +23,15 @@ void InitXchainerModule(pybind11::module& m) {
     m.doc() = "xChainer";
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
 
+    m.attr("DEFAULT_GRAPH_ID") = kDefaultGraphId;
+
     m.def("backward",
           [](const ArrayBodyPtr& body, const GraphId& graph_id, bool enable_double_backprop) {
               Array array{body};
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
               Backward(array, graph_id, double_backprop);
           },
-          py::arg().noconvert(), py::arg("graph_id") = "", py::arg("enable_double_backprop") = false)
+          py::arg().noconvert(), py::arg("graph_id") = kDefaultGraphId, py::arg("enable_double_backprop") = false)
         .def("empty", [](const Shape& shape, Dtype dtype) { return Array::Empty(shape, dtype).move_body(); })
         .def("full", [](const Shape& shape, Scalar value, Dtype dtype) { return Array::Full(shape, value, dtype).move_body(); })
         .def("full", [](const Shape& shape, Scalar value) { return Array::Full(shape, value).move_body(); })
