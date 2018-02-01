@@ -25,6 +25,11 @@ public:
         backward_functions_.push_back(std::move(backward_function));
     }
 
+    void Unchain() {
+        next_nodes_.clear();
+        backward_functions_.clear();
+    }
+
     std::string name() const { return name_; }
 
     int64_t rank() const { return rank_; }
