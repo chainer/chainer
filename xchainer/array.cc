@@ -283,7 +283,7 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 
     std::shared_ptr<const OpNode> op = array_node.next_node();
     if (op) {
-        os << std::string(static_cast<size_t>((indent + 1) * 2), kIndentChar) << "Op<" << op->name() << ">" << std::endl;
+        os << std::string(static_cast<size_t>((indent + 1) * 2), kIndentChar) << "Op<" << op->name() << "," << op.get() << ">" << std::endl;
         for (const std::shared_ptr<const ArrayNode>& next_node : op->next_nodes()) {
             DebugDumpComputationalGraph(os, *next_node, static_cast<size_t>(indent + 2));
         }
