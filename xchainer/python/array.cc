@@ -146,7 +146,7 @@ void InitXchainerArray(pybind11::module& m) {
                 return Array{self}.AsConstant(copy ? CopyKind::kCopy : CopyKind::kView).move_body();
             }, py::arg("copy") = true)
         .def("as_constant", [](const ArrayBodyPtr& self, const std::vector<GraphId>& graph_ids, bool copy) {
-                return Array{self}.AsConstant(copy ? CopyKind::kCopy : CopyKind::kView, graph_ids).move_body();
+                return Array{self}.AsConstant(graph_ids, copy ? CopyKind::kCopy : CopyKind::kView).move_body();
             },
             py::arg("graph_ids") = std::vector<GraphId>{}, py::arg("copy") = true)
         .def("require_grad",

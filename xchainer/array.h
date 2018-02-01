@@ -97,7 +97,7 @@ public:
 
     Array Copy() const;
     Array AsConstant(CopyKind kind) const;
-    Array AsConstant(CopyKind kind, const std::vector<GraphId>& graph_ids) const;
+    Array AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) const;
     void Fill(Scalar value);
 
     Array& operator+=(const Array& rhs);
