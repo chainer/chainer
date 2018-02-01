@@ -704,7 +704,7 @@ Actual: {0}'''.format(type(data))
         if data is None:
             return
 
-        if isinstance(data, cuda.cupy.ndarray):
+        if isinstance(data, cuda.ndarray):
             # cupy.ndarray to numpy.ndarray
             self._data = [cuda.to_cpu(data)]
         elif (intel64.is_ideep_available
@@ -753,7 +753,7 @@ Actual: {0}'''.format(type(data))
                 self._data = [
                     intel64.ideep.array(
                         data, itype=intel64.ideep.wgt_array)]
-            elif isinstance(data, cuda.cupy.ndarray):
+            elif isinstance(data, cuda.ndarray):
                 # cupy.ndarray to ideep
                 self._data = [
                     intel64.ideep.array(
@@ -939,7 +939,7 @@ Actual: {0}'''.format(type(data))
         if self.creator_node is None:
             return
         initial_device = None
-        if cuda.available and isinstance(self.data, cuda.cupy.ndarray):
+        if cuda.available and isinstance(self.data, cuda.ndarray):
             try:
                 initial_device = cuda.Device()
             except cuda.cupy.cuda.runtime.CUDARuntimeError as e:
