@@ -185,7 +185,7 @@ class ConnectionistTemporalClassification(function.Function):
         assert path.shape == (n_batch, max_label_length * 2 + 1)
 
         forward_prob = self.log_matrix(
-            xp.eye(max_path_length, dtype='f')[0], xp)[None]
+            xp.eye(1, max_path_length, dtype='f'), xp)
         backward_prob = forward_prob
         offset = xp.arange(
             0, n_batch * n_unit, n_unit, dtype=path.dtype)[:, None]
