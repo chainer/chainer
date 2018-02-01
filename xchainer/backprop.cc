@@ -24,11 +24,11 @@ class BackwardImpl {
     using SeenOpNodeSet = std::set<std::shared_ptr<OpNode>>;
 
 public:
-    BackwardImpl(const Array& output, const GraphId& graph_id, bool enable_double_backprop)
+    BackwardImpl(const Array& output, const GraphId& graph_id, DoubleBackpropOption double_backprop)
         : output_(output),
           output_array_node_(internal::GetMutableArrayNode(output, graph_id)),
           candidate_op_nodes_(BackwardImpl::Compare),
-          enable_double_backprop_(enable_double_backprop){};
+          double_backprop_(double_backprop){};
 
     void run() {
         GraphId graph_id = output_array_node_->graph_id();
@@ -50,7 +50,7 @@ public:
                 PushNextOpNode(next_array_node);
             }
 
-            if (!enable_double_backprop_) {
+            if (double_backprop_ == DoubleBackpropOption::kDisable) {
                 op_node->Unchain();
             }
         }
@@ -96,7 +96,8 @@ private:
         // When double backprop is enabled, array_node releases the pointer to the next node here. After this operation, array_node will
         // look like a leaf node of the graph. Note that this move does not invalidates the array_node object itself; it is guaranteed by
         // the standard that shared_ptr becomes null after move-assigned to another.
-        std::shared_ptr<OpNode> next_op_node = enable_double_backprop_ ? array_node->next_node() : array_node->move_next_node();
+        std::shared_ptr<OpNode> next_op_node =
+            double_backprop_ == DoubleBackpropOption::kEnable ? array_node->next_node() : array_node->move_next_node();
 
         if (next_op_node) {
             if (seen_op_node_set_.find(next_op_node) == seen_op_node_set_.end()) {
@@ -114,7 +115,7 @@ private:
     CandidateOpNodes candidate_op_nodes_;
     PreviousArrayNodeMap previous_array_node_map_;
     SeenOpNodeSet seen_op_node_set_;
-    bool enable_double_backprop_;
+    DoubleBackpropOption double_backprop_;
 };
 
 }  // namespace
@@ -123,7 +124,7 @@ void Backward(Array& output, const GraphId& graph_id, DoubleBackpropOption doubl
     // TODO(takagi): Operations that have multiple outputs
     // TODO(takagi): Begin backprop from multiple outputs
     // BackwardImpl{output, graph_id, leave_graph}.run();
-    BackwardImpl{output, graph_id, double_backprop == DoubleBackpropOption::kEnable}.run();
+    BackwardImpl{output, graph_id, double_backprop}.run();
 }
 
 }  // namespace xchainer
