@@ -27,16 +27,92 @@ def sequence_embed(embed, xs):
     return exs
 
 
+def prepare_attention(variable_list):
+    xp = chainer.cuda.get_array_module(*variable_list)
+    batch = len(variable_list)
+    lengths = [v.shape[0] for v in variable_list]
+    max_len = max(lengths)
+    pad_lengths = [max_len - l for l in lengths]
+    V = F.pad_sequence(variable_list, length=max_len, padding=0.0)
+    pad_mask = xp.ones((batch, max_len))
+    for i, l in enumerate(pad_lengths):
+        pad_mask[i, l:] = 0
+    return V, pad_mask
+
+
+def split_without_pads(V, lengths):
+    # split it into [seq1, pad1, seq2, pad2, ...]
+    batch, max_len, units = V.shape
+    lengths = numpy.array(lengths)
+    lengths_of_seq_and_pad = numpy.stack([lengths, max_len - lengths], axis=1)
+    stitch = lengths_of_seq_and_pad.reshape(-1)
+    stitch_split_ids = numpy.cumsum(stitch)[:-1]
+    if lengths[-1] == max_len:
+        stitch_split_ids = stitch_split_ids[:-1]
+    # [seq1, pad1, seq2, pad2, ...]
+    # and pick variables at even indices
+    split_V = F.split_axis(V.reshape(batch * max_len, units),
+                           stitch_split_ids, axis=0)[::2]
+    return split_V
+
+
+class AttentionMechanism(chainer.Chain):
+    def __init__(self, n_units):
+        super(AttentionMechanism, self).__init__()
+        self.n_units = n_units
+        self.att_units = min(256, n_units)
+        with self.init_scope():
+            self.W_query = L.Linear(n_units, self.att_units)
+            self.W_key = L.Linear(n_units, self.att_units)
+
+    def __call__(self, qs, ks):
+        raw_Q, q_pad_mask = prepare_attention(qs)
+        batch, q_len, units = raw_Q.shape
+        Q = self.W_query(raw_Q.reshape(batch * q_len, units))
+        Q = Q.reshape(batch, q_len, self.att_units)
+        # (batch, q_len, units)
+
+        raw_K, k_pad_mask = prepare_attention(ks)
+        batchsize, k_len, units = raw_K.shape
+        K = self.W_key(raw_K.reshape(batch * k_len, units))
+        K = K.reshape(batch, k_len, self.att_units)
+        # (batch, k_len, units)
+
+        QK_dot = F.batch_matmul(Q, K, transb=True)
+        # (batch, q_len, k_len)
+        QK_pad_mask = q_pad_mask[:, :, None] * k_pad_mask[:, None, :]
+        minus_infs = self.xp.full(QK_dot.shape, -1024., dtype='f')
+        QK_dot = F.where(QK_pad_mask.astype('bool'),
+                         QK_dot,
+                         minus_infs)
+        QK_weight = F.softmax(QK_dot, axis=2)
+        QK_weight = F.broadcast_to(
+            QK_weight[:, :, :, None],
+            (batch, q_len, k_len, units))
+        V = F.broadcast_to(
+            raw_K[:, None, :, :],
+            (batch, q_len, k_len, units))
+        weighted_V = F.sum(QK_weight * V, axis=2)
+        # (batch, q_len, units)
+        split_weighted_V = split_without_pads(
+            weighted_V, lengths=[q.shape[0] for q in qs])
+        return split_weighted_V
+
+
 class Seq2seq(chainer.Chain):
 
-    def __init__(self, n_layers, n_source_vocab, n_target_vocab, n_units):
+    def __init__(self, n_layers, n_source_vocab, n_target_vocab, n_units,
+                 use_attention=False):
         super(Seq2seq, self).__init__()
         with self.init_scope():
             self.embed_x = L.EmbedID(n_source_vocab, n_units)
             self.embed_y = L.EmbedID(n_target_vocab, n_units)
             self.encoder = L.NStepLSTM(n_layers, n_units, n_units, 0.1)
             self.decoder = L.NStepLSTM(n_layers, n_units, n_units, 0.1)
-            self.W = L.Linear(n_units, n_target_vocab)
+            self.W = L.Linear(None, n_target_vocab)
+
+            if use_attention:
+                self.attention = AttentionMechanism(n_units)
 
         self.n_layers = n_layers
         self.n_units = n_units
@@ -54,13 +130,19 @@ class Seq2seq(chainer.Chain):
 
         batch = len(xs)
         # None represents a zero vector in an encoder.
-        hx, cx, _ = self.encoder(None, None, exs)
+        hx, cx, enc_os = self.encoder(None, None, exs)
         _, _, os = self.decoder(hx, cx, eys)
 
         # It is faster to concatenate data before calculating loss
         # because only one matrix multiplication is called.
         concat_os = F.concat(os, axis=0)
         concat_ys_out = F.concat(ys_out, axis=0)
+
+        if hasattr(self, 'attention'):
+            vs = self.attention(os, enc_os)
+            concat_vs = F.concat(vs, axis=0)
+            concat_os = F.concat([concat_os, concat_vs], axis=1)
+
         loss = F.sum(F.softmax_cross_entropy(
             self.W(concat_os), concat_ys_out, reduce='no')) / batch
 
@@ -75,7 +157,7 @@ class Seq2seq(chainer.Chain):
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
             xs = [x[::-1] for x in xs]
             exs = sequence_embed(self.embed_x, xs)
-            h, c, _ = self.encoder(None, None, exs)
+            h, c, enc_os = self.encoder(None, None, exs)
             ys = self.xp.full(batch, EOS, 'i')
             result = []
             for i in range(max_length):
@@ -83,6 +165,12 @@ class Seq2seq(chainer.Chain):
                 eys = F.split_axis(eys, batch, 0)
                 h, c, ys = self.decoder(h, c, eys)
                 cys = F.concat(ys, axis=0)
+
+                if hasattr(self, 'attention'):
+                    vs = self.attention(ys, enc_os)
+                    cvs = F.concat(vs, axis=0)
+                    cys = F.concat([cys, cvs], axis=1)
+
                 wy = self.W(cys)
                 ys = self.xp.argmax(wy.data, axis=1).astype('i')
                 result.append(ys)
@@ -221,6 +309,9 @@ def main():
                         'with validation dataset')
     parser.add_argument('--out', '-o', default='result',
                         help='directory to output the result')
+    parser.add_argument('--use-attention', default=False,
+                        action='store_true',
+                        help='use attention mechanism for decoder')
     args = parser.parse_args()
 
     source_ids = load_vocabulary(args.SOURCE_VOCAB)
@@ -248,7 +339,8 @@ def main():
     target_words = {i: w for w, i in target_ids.items()}
     source_words = {i: w for w, i in source_ids.items()}
 
-    model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit)
+    model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit,
+                    args.use_attention)
     if args.gpu >= 0:
         chainer.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
