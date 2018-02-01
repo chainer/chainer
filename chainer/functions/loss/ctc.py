@@ -130,7 +130,7 @@ class ConnectionistTemporalClassification(function.Function):
             )(multiply_seq, path, path_length[:, None], path.shape[1], ret)
         return ret
 
-    def _computes_transition(self, prev_prob, path, path_length):
+    def _computes_forward_transition(self, prev_prob, path, path_length):
         xp = cuda.get_array_module(prev_prob)
 
         if xp == numpy:
@@ -175,6 +175,51 @@ class ConnectionistTemporalClassification(function.Function):
             )(prev_prob, path, path_length, self.zero_padding)
         return prob
 
+    def _computes_backward_transition(self, prev_prob, path, path_length):
+        xp = cuda.get_array_module(prev_prob)
+
+        if xp == numpy:
+            n_batch, max_path_length = path.shape
+            mat = xp.full(
+                (3, n_batch, max_path_length), self.zero_padding, 'f')
+            mat[0, :, :] = prev_prob
+            mat[1, :, :-1] = prev_prob[:, 1:]
+            mat[2, :, :-2] = prev_prob[:, 2:]
+            # disable transition between the same symbols
+            # (including blank-to-blank)
+            same_transition = (path[:, :-2] == path[:, 2:])
+            mat[2, :, :-2][same_transition] = self.zero_padding
+            prob = _logsumexp(mat, xp, axis=0)
+            outside = xp.arange(max_path_length) >= path_length[:, None]
+            prob[outside] = self.zero_padding
+        else:
+            prev_prob, path, path_length = xp.broadcast_arrays(
+                prev_prob, path, path_length[:, None])
+            prob = cuda.elementwise(
+                'raw T prob, raw I path, I path_length, T zero', 'T z',
+                '''
+                int length = prob.shape()[1];
+                int b = i / length;
+                int t = i - b * length;
+                if (t >= path_length) {
+                  z = zero;
+                  return;
+                }
+                int ind1[] = {b, t};
+                int ind2[] = {b, t + 1};
+                int ind3[] = {b, t + 2};
+                float f1 = prob[ind1];
+                float f2 = (t + 1 < path_length) ? prob[ind2] : zero;
+                float f3 = (t + 2 < path_length && path[ind3] != path[ind1]) ?
+                  prob[ind3] : zero;
+
+                // calculates log-sum-exp
+                float m = max(f1, max(f2, f3));
+                z = m + log(exp(f1 - m) + exp(f2 - m) + exp(f3 - m));
+                ''', 'ctc_transition_backward'
+            )(prev_prob, path, path_length, self.zero_padding)
+        return prob
+
     def calc_trans(self, yseq, input_length,
                    label, label_length, path, path_length, xp):
         max_input_length, n_batch, n_unit = yseq.shape
@@ -185,7 +230,6 @@ class ConnectionistTemporalClassification(function.Function):
 
         forward_prob = self.log_matrix(
             xp.eye(1, max_path_length, dtype='f'), xp)
-        backward_prob = forward_prob
         offset = xp.arange(
             0, n_batch * n_unit, n_unit, dtype=path.dtype)[:, None]
 
@@ -196,32 +240,24 @@ class ConnectionistTemporalClassification(function.Function):
         # forward computation.
         for i, y in enumerate(yseq):
             # calc forward probability in log scale
-            forward_prob = self._computes_transition(
+            forward_prob = self._computes_forward_transition(
                 forward_prob, path, path_length)
             forward_prob += xp.take(y, index)
             prob[i] = forward_prob
 
-        r_path = _move_label_to_back(path, path_length, xp)
-        r_index = offset + r_path
-
-        # rotate yseq with path_length
-        yseq_inv = _move_inputs(yseq, input_length, xp)[::-1]
         # move to back.
         prob = _move_inputs(prob, input_length, xp)
 
-        # backward computation.
-        backward_prob_index = (
-            xp.arange(0, path.size, max_path_length, dtype='i')[:, None] +
-            (xp.arange(max_path_length) - path_length[:, None])
-            % max_path_length)
-
+        backward_prob = xp.zeros((n_batch, max_path_length), dtype='f')
+        backward_prob[xp.arange(n_batch, dtype='i'), path_length - 1] = 1
+        backward_prob = self.log_matrix(backward_prob, xp)
+        yseq_inv = _move_inputs(yseq, input_length, xp)[::-1]
         for i, y_inv in enumerate(yseq_inv):
             # calc backward probability
-            backward_prob = self._computes_transition(
-                backward_prob, r_path, path_length)
-            prob[-i - 1] += xp.take(
-                backward_prob[:, ::-1], backward_prob_index)
-            backward_prob += xp.take(y_inv, r_index)
+            backward_prob = self._computes_backward_transition(
+                backward_prob, path, path_length)
+            prob[-i - 1] += backward_prob
+            backward_prob += xp.take(y_inv, index)
 
         # move to front.
         return _move_inputs(prob, -self.input_length, xp)
