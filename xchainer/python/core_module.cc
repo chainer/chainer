@@ -23,6 +23,8 @@ void InitXchainerModule(pybind11::module& m) {
     m.doc() = "xChainer";
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
 
+    m.attr("DEFAULT_GRAPH_ID") = kDefaultGraphId;
+
     m.def("backward",
           [](const ArrayBodyPtr& body, const GraphId& graph_id, bool enable_double_backprop) {
               Array array{body};
