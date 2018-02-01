@@ -1,3 +1,6 @@
+import chainer
+
+
 def concat_variable(gx, g_input):
     """concatenate the inputs to a tuple of variable
 
@@ -26,3 +29,7 @@ def concat_variable(gx, g_input):
         sum_gx = None,
 
     return sum_gx
+
+def add(lhs, rhs):
+    y = concat_variable(lhs, rhs)
+    return chainer.functions.add(*y)

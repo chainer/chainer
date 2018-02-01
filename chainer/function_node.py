@@ -572,7 +572,7 @@ Use apply() method instead.\
         else:
             return tuple([gx if g_input is None else
                           g_input if gx is None else
-                          gx + g_input
+                          chainer._backprop_utils.add(gx, g_input)
                           for gx, g_input in six.moves.zip(gxs, grad_inputs)])
 
     def get_retained_inputs(self):
@@ -890,11 +890,16 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
                 # Accumulate the duplicated gradients here
                 cur_gx = grads.get(node, None)
                 if cur_gx is not None:
-                    if x.creator is None:
-                        g = _backprop_utils.concat_variable(g, cur_gx)
-                        g = chainer.functions.add(*g)
+                    if func.lazy_grad_sum:
+                        if x.creator is None:
+                            g = _backprop_utils.concat_variable(g, cur_gx)
+                            g = chainer.functions.add(*g)
+                        else:
+                            g = _backprop_utils.concat_variable(g, cur_gx)
+                    # cur_gx may be tuple, becaue the lazy_grad_sum
+                    # may be enabled in its sibling node.
                     else:
-                        g = _backprop_utils.concat_variable(g, cur_gx)
+                        g = chainer._backprop_utils.add(g, cur_gx)
             else:
                 selected_inputs.add(node)
 

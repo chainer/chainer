@@ -952,12 +952,11 @@ Actual: {0}'''.format(type(data))
             in_data = tuple([x.data for x in inputs])
             # We need calculate the value of for the out_grad which accumulated
             # because now out_grad is used in backward calculation.
-            if func.lazy_grad_sum:
-                for y in outputs:
-                    grad = get_grad(y)
-                    if isinstance(grad, tuple):
-                        grad = chainer.functions.add(*grad)
-                        set_grad(y, grad)
+            for y in outputs:
+                grad = get_grad(y)
+                if isinstance(grad, tuple):
+                    grad = chainer.functions.add(*grad)
+                    set_grad(y, grad)
             out_grad = tuple([get_grad(y) for y in outputs])
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
@@ -1059,7 +1058,8 @@ Actual: {0}'''.format(type(data))
                             grads[x] = _backprop_utils.concat_variable(
                                 gx, cur_gx)
                     else:
-                        grads[x] = gx if cur_gx is None else gx + cur_gx
+                        grads[x] = gx if cur_gx is None else \
+                            chainer._backprop_utils.add(gx, cur_gx)
 
                 else:
                     grads[x] = gx
