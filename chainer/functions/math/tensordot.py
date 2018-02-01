@@ -52,11 +52,13 @@ def _tensordot(a, b, a_axes, b_axes, c_axes):
 
 class TensorDot(function_node.FunctionNode):
 
-    def __init__(self, axes=2, a_axes=None, b_axes=None, c_axes=None):
+    def __init__(self, axes=2, a_axes=None, b_axes=None, c_axes=None,
+                 dtype=None):
         self.axes = axes
         self.a_axes = a_axes
         self.b_axes = b_axes
         self.c_axes = c_axes
+        self.dtype = dtype
 
         if isinstance(axes, collections.Sequence):
             if len(axes) != 2:
@@ -110,6 +112,8 @@ class TensorDot(function_node.FunctionNode):
             self.c_axes = c_axes
 
         c = _tensordot(a, b, self.a_axes, self.b_axes, self.c_axes)
+        if self.dtype is not None and c.dtype != self.dtype:
+            c = c.astype(self.dtype, copy=False)
         return utils.force_array(c),
 
     def backward(self, indexes, grad_outputs):
@@ -120,17 +124,15 @@ class TensorDot(function_node.FunctionNode):
         if 0 in indexes:
             ga, = TensorDot(a_axes=self.c_axes,
                             b_axes=[self.b_axes[1], self.b_axes[0]],
-                            c_axes=self.a_axes).apply((gc, b))
-            if ga.dtype != a.dtype:
-                ga.array = ga.array.astype(a.dtype)
+                            c_axes=self.a_axes,
+                            dtype=a.dtype).apply((gc, b))
 
         gb = None
         if 1 in indexes:
             gb, = TensorDot(a_axes=[self.a_axes[1], self.a_axes[0]],
                             b_axes=self.c_axes,
-                            c_axes=self.b_axes).apply((a, gc))
-            if gb.dtype != b.dtype:
-                gb.array = gb.array.astype(b.dtype)
+                            c_axes=self.b_axes,
+                            dtype=b.dtype).apply((a, gc))
 
         return ga, gb
 
