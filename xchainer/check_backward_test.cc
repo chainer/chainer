@@ -130,9 +130,9 @@ private:
 };
 
 TEST_P(CheckBackwardUnaryTest, CorrectBackward) {
-    float input_data[]{1.f, 2.f, 3.f};
-    float grad_output_data[]{0.f, -2.f, 3.f};
-    float eps_data[]{1.f, 2.f, 3.f};
+    float input_data[]{1.f, 2.f, 1.f};
+    float grad_output_data[]{0.f, -2.f, 1.f};
+    float eps_data[]{1e-3f, 1e-3f, 1e-3f};
     Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[0]}; };
     CheckBackwardComputation(true, fprop, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "graph_1");
 }
@@ -140,25 +140,25 @@ TEST_P(CheckBackwardUnaryTest, CorrectBackward) {
 TEST_P(CheckBackwardUnaryTest, IncorrectBackward) {
     float input_data[]{-2.f, 3.f, 1.f};
     float grad_output_data[]{0.f, -2.f, 1.f};
-    float eps_data[]{1.f, 2.f, 3.f};
+    float eps_data[]{1e-3f, 1e-3f, 1e-3f};
     CheckBackwardComputation(false, &IncorrectBackwardUnaryFunc, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "graph_1");
 }
 
 TEST_P(CheckBackwardBinaryTest, CorrectBackward) {
-    float input_data1[]{1.f, 2.f, 3.f};
+    float input_data1[]{1.f, 2.f, 1.f};
     float input_data2[]{0.f, 1.f, 2.f};
-    float eps_data1[]{1.f, 2.f, 3.f};
-    float eps_data2[]{3.f, -2.f, 3.f};
+    float eps_data1[]{1e-3f, 1e-3f, 1e-3f};
+    float eps_data2[]{1e-3f, 1e-3f, 1e-3f};
     float grad_output_data[]{1.f, -2.f, 3.f};
     Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[1]}; };
     CheckBackwardComputation(true, fprop, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1, eps_data2, 1e-5, 1e-4, "graph_1");
 }
 
 TEST_P(CheckBackwardBinaryTest, IncorrectBackward) {
-    float input_data1[]{3.f, -2.f, 1.f};
+    float input_data1[]{1.f, -2.f, 1.f};
     float input_data2[]{0.f, 1.4f, 2.f};
-    float eps_data1[]{1.f, 2.f, 3.8f};
-    float eps_data2[]{3.f, -2.f, -3.f};
+    float eps_data1[]{1e-3f, 1e-3f, 1e-3f};
+    float eps_data2[]{1e-3f, 1e-3f, 1e-3f};
     float grad_output_data[]{4.f, -2.f, 3.f};
     CheckBackwardComputation(false, &IncorrectBackwardBinaryFunc, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1, eps_data2,
                              1e-5, 1e-4, "graph_1");
