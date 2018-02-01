@@ -35,7 +35,7 @@ ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::s
     : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_(std::move(nodes)) {}
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
-                  const std::vector<std::function<Array(const Array&)>>& backward_functions) {
+                  const std::vector<std::function<Array(const Array&, const GraphId&)>>& backward_functions) {
     if (inputs.size() != backward_functions.size()) {
         throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");
     }
@@ -173,11 +173,42 @@ Array Array::Copy() const {
 }
 
 void Array::CopyTo(Array& out) const {
-    internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout) { return gout; }});
+    internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const GraphId&) { return gout; }});
 
     // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
     // is_contiguous_ and offset_ into account
     internal::MemoryCopy(out.data().get(), body_->data_.get(), total_bytes());
+}
+
+Array Array::AsConstant(CopyKind kind) const {
+    switch (kind) {
+        case CopyKind::kCopy:
+            // TODO(takgi): implement deep copy version
+            throw NotImplementedError("not implemented");
+        case CopyKind::kView:
+            return Array{shape(), dtype(), body_->data_, is_contiguous(), offset()};
+        default:
+            assert(false);  // should never be reached
+    }
+}
+
+Array Array::AsConstant(CopyKind kind, const std::vector<GraphId>& graph_ids) const {
+    switch (kind) {
+        case CopyKind::kCopy:
+            // TODO(takgi): implement deep copy version
+            throw NotImplementedError("not implemented");
+        case CopyKind::kView: {
+            Array out{shape(), dtype(), body_->data_, is_contiguous(), offset()};
+            for (const std::shared_ptr<ArrayNode>& node : nodes()) {
+                if (std::find(graph_ids.begin(), graph_ids.end(), node->graph_id()) == graph_ids.end()) {
+                    out.body_->nodes_.emplace_back(node);
+                }
+            }
+            return std::move(out);
+        }
+        default:
+            assert(false);  // should never be reached
+    }
 }
 
 void Array::Add(const Array& rhs, Array& out) const {
@@ -186,7 +217,7 @@ void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    auto lhs_backward_function = [](const Array& gout) -> Array { return gout; };
+    auto lhs_backward_function = [](const Array& gout, const GraphId&) -> Array { return gout; };
     auto rhs_backward_function = lhs_backward_function;
     internal::SetUpOpNodes("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
@@ -208,8 +239,12 @@ void Array::Mul(const Array& rhs, Array& out) const {
     // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
-    auto lhs_backward_function = [other_view = rhs](const Array& gout) { return gout * other_view; };
-    auto rhs_backward_function = [other_view = *this](const Array& gout) { return gout * other_view; };
+    auto lhs_backward_function = [other = rhs](const Array& gout, const GraphId& graph_id) {
+        return gout * other.AsConstant(CopyKind::kView, {graph_id});
+    };
+    auto rhs_backward_function = [other = *this](const Array& gout, const GraphId& graph_id) {
+        return gout * other.AsConstant(CopyKind::kView, {graph_id});
+    };
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     Device device = GetCurrentDevice();
@@ -248,7 +283,7 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 
     std::shared_ptr<const OpNode> op = array_node.next_node();
     if (op) {
-        os << std::string(static_cast<size_t>((indent + 1) * 2), kIndentChar) << "Op<" << op->name() << ">" << std::endl;
+        os << std::string(static_cast<size_t>((indent + 1) * 2), kIndentChar) << "Op<" << op->name() << "," << op.get() << ">" << std::endl;
         for (const std::shared_ptr<const ArrayNode>& next_node : op->next_nodes()) {
             DebugDumpComputationalGraph(os, *next_node, static_cast<size_t>(indent + 2));
         }

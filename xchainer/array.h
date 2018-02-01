@@ -51,7 +51,7 @@ private:
 };
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
-                  const std::vector<std::function<Array(const Array&)>>& backaward_functions);
+                  const std::vector<std::function<Array(const Array&, const GraphId&)>>& backaward_functions);
 
 bool HasArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 const std::shared_ptr<ArrayNode>& CreateArrayNode(Array& array, const GraphId& graph_id = kDefaultGraphId);
@@ -59,6 +59,11 @@ std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId&
 const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
 }  // namespace internal
+
+enum class CopyKind {
+    kCopy = 1,
+    kView,
+};
 
 // The main data structure of multi-dimensional array.
 class Array {
@@ -92,6 +97,8 @@ public:
     static Array OnesLike(const Array& array);
 
     Array Copy() const;
+    Array AsConstant(CopyKind kind) const;
+    Array AsConstant(CopyKind kind, const std::vector<GraphId>& graph_ids) const;
     void Fill(Scalar value);
 
     Array& operator+=(const Array& rhs);
