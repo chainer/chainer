@@ -170,9 +170,6 @@ TEST(ArrayReprTest, ArrayReprWithGraphIds) {
     // Single graph
     CheckArrayRepr<int32_t>("array([-2], dtype=int32, graph_ids=['graph_1'])", {-2}, Shape({1}), {"graph_1"});
 
-    // Single graph, empty string
-    CheckArrayRepr<int32_t>("array([-2], dtype=int32, graph_ids=['default'])", {-2}, Shape({1}), {kDefaultGraphId});
-
     // Two graphs
     CheckArrayRepr<int32_t>("array([1], dtype=int32, graph_ids=['graph_1', 'graph_2'])", {1}, Shape({1}), {"graph_1", "graph_2"});
 
