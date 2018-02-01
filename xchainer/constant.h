@@ -6,6 +6,6 @@ namespace xchainer {
 constexpr int8_t kMaxNdim = 8;
 
 // Default graph ID to be used if not specified
-constexpr const char* const kDefaultGraphId = "default";
+constexpr const char* kDefaultGraphId = "default";
 
 }  // namespace xchainer
