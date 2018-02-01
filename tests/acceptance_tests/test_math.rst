@@ -38,14 +38,3 @@ Mixed
 >>> y = a + b * c;
 >>> y
 array([29., 42., 57.], dtype=float32)
-
-
-Mixed mode arithmetics are not supported
-----------------------------------------
-
->>> a = xc.Array((3,), xc.Dtype.int32, [1, 2, 3])
->>> b = xc.Array((3,), xc.Dtype.float32, [4, 5, 6])
->>> y = a * b
-Traceback (most recent call last):
-  ...
-xchainer.DtypeError: dtype mismatched: int32 != float32
