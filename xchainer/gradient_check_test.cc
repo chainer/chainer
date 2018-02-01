@@ -57,7 +57,7 @@ public:
 
             int64_t total_size = grads.at(i).total_size();
             for (int64_t i = 0; i < total_size; ++i) {
-                EXPECT_FLOAT_EQ(grads_data[i], expected_grads_data[i]) << "gradient mismatch at i=" << i;
+                EXPECT_NEAR(grads_data[i], expected_grads_data[i], 1e-3f) << "gradient mismatch at i=" << i;
             }
         }
     }
@@ -67,9 +67,9 @@ TEST_F(NumericalGradientTest, NumericalGradientAdd) {
     Shape shape{2, 3};
     float data1[]{1.f, 2.f, -3.f, 4.f, 0.5f, 3.f};
     float data2[]{0.f, 1.3f, 2.f, 3.f, -0.5f, 3.f};
-    float eps1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
-    float eps2[]{3.f, -2.f, 3.f, -4.f, 3.2f, 0.9f};
-    float grad_output_data[]{1.f, -2.f, 3.f, 0.f, 5.2f, 6.f};
+    float eps1[]{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
+    float eps2[]{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
+    float grad_output_data[]{1.f, -2.f, 3.f, 0.f, 3.2f, -1.f};
 
     Arrays inputs = {
         MakeArray(shape, data1), MakeArray(shape, data2),
@@ -93,11 +93,11 @@ TEST_F(NumericalGradientTest, NumericalGradientAdd) {
 
 TEST_F(NumericalGradientTest, NumericalGradientMul) {
     Shape shape{2, 3};
-    float data1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
-    float data2[]{0.f, 1.f, 2.f, 3.f, 4.f, 5.f};
-    float eps1[]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
-    float eps2[]{3.f, -2.f, 3.f, -4.f, 3.2f, 0.9f};
-    float grad_output_data[]{1.f, -2.f, 3.f, 0.f, 5.2f, 6.f};
+    float data1[]{1.f, 2.f, 3.f, 4.f, -2.f, -3.f};
+    float data2[]{0.f, 1.f, 2.f, 3.f, 2.f, 3.f};
+    float eps1[]{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
+    float eps2[]{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
+    float grad_output_data[]{1.f, -2.f, 3.f, 0.f, 2.2f, 1.f};
 
     Arrays inputs = {
         MakeArray(shape, data1), MakeArray(shape, data2),
