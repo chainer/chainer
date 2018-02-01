@@ -141,7 +141,7 @@ TEST_P(BackpropTest, BackwardSoleArrayNode) {
 TEST_P(BackpropTest, DoubleBackprop) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
-        Backward(z, "", DoubleBackpropOption::kEnable);
+        Backward(z, kDefaultGraphId, DoubleBackpropOption::kEnable);
         auto gx = *xs[0].GetGrad();  // 2x + y
         xs[0].ClearGrad();
         return gx * xs[0];
@@ -309,7 +309,7 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     Array y1 = x1 + x2;
     Array y2 = x1 * x2;
     Array z = y1 * y2;
-    Backward(z, "", DoubleBackpropOption::kEnable);
+    Backward(z, kDefaultGraphId, DoubleBackpropOption::kEnable);
 
     std::shared_ptr<const ArrayNode> z_node = internal::GetArrayNode(z);
     ASSERT_TRUE(z_node);
