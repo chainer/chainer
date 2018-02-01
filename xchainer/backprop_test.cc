@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include "xchainer/array.h"
+#include "xchainer/array_node.h"
 #include "xchainer/backprop.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
@@ -17,6 +18,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/op_node.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -139,7 +141,7 @@ TEST_P(BackpropTest, BackwardSoleArrayNode) {
 TEST_P(BackpropTest, DoubleBackprop) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
-        Backward(z);
+        Backward(z, "", DoubleBackpropOption::kEnable);
         auto gx = *xs[0].GetGrad();  // 2x + y
         xs[0].ClearGrad();
         return gx * xs[0];
@@ -300,6 +302,52 @@ INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
                                                          std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
                                                          std::string{"cpu"}));
+
+TEST(BackpropEnableDoubleBackpropTest, Enabled) {
+    Array x1 = Array::Full({2}, 1.f).RequireGrad();
+    Array x2 = Array::Full({2}, 2.f);
+    Array y1 = x1 + x2;
+    Array y2 = x1 * x2;
+    Array z = y1 * y2;
+    Backward(z, "", DoubleBackpropOption::kEnable);
+
+    std::shared_ptr<const ArrayNode> z_node = internal::GetArrayNode(z);
+    ASSERT_TRUE(z_node);
+
+    std::shared_ptr<const OpNode> z_op = z_node->next_node();
+    ASSERT_TRUE(z_op);
+
+    auto y_nodes = z_op->next_nodes();
+    ASSERT_EQ(2u, y_nodes.size());
+    EXPECT_EQ(2u, z_op->backward_functions().size());
+
+    for (const std::shared_ptr<ArrayNode>& y_node : y_nodes) {
+        std::shared_ptr<const OpNode> y_op = y_node->next_node();
+        ASSERT_TRUE(y_op);
+        ASSERT_EQ(1u, y_op->next_nodes().size());
+        EXPECT_EQ(1u, y_op->backward_functions().size());
+    }
+}
+
+TEST(BackpropEnableDoubleBackpropTest, Disabled) {
+    Array x1 = Array::Full({2}, 1.f).RequireGrad();
+    Array x2 = Array::Full({2}, 2.f);
+    Array y1 = x1 + x2;
+    Array y2 = x1 * x2;
+    Array z = y1 * y2;
+    std::shared_ptr<const ArrayNode> z_node = internal::GetArrayNode(z);
+    ASSERT_TRUE(z_node);
+    std::shared_ptr<const OpNode> z_op = z_node->next_node();
+    ASSERT_TRUE(z_op);
+
+    Backward(z);
+
+    ASSERT_TRUE(z_node);
+    EXPECT_FALSE(z_node->next_node());
+
+    EXPECT_EQ(0u, z_op->next_nodes().size());
+    EXPECT_EQ(0u, z_op->backward_functions().size());
+}
 
 }  // namespace
 }  // namespace xchainer
