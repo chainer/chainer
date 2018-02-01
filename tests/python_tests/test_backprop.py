@@ -172,7 +172,7 @@ def test_double_backprop():
 
     xs = (xchainer.full(shape, 2, dtype),)
     extra_xs = (xchainer.full(shape, 3, dtype),)
-    expected_gxs = (xchainer.full(shape, 7, dtype),)
+    expected_gxs = (xchainer.full(shape, 2, dtype),)
 
     for x in xs:
         x.require_grad()
@@ -184,7 +184,7 @@ def test_double_backprop():
         xchainer.backward(y, enable_double_backprop=True)
         gx = x.get_grad()  # 2x + y
         x.set_grad(None)
-        return gx * x,
+        return gx,
 
     check_backprop(xs, expected_gxs, fprop, extra_xs)
 

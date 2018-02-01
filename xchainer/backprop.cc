@@ -63,9 +63,14 @@ private:
         const nonstd::optional<Array>& gy = previous_array_node->grad();
         assert(gy);
 
+        std::vector<GraphId> graph_ids_to_stop_gradient;
+        if (double_backprop_ == DoubleBackpropOption::kDisable) {
+            graph_ids_to_stop_gradient.emplace_back(graph_id);
+        }
+
         std::vector<Array> gxs;
         for (const auto& backward_function : op_node->backward_functions()) {
-            gxs.emplace_back(backward_function(*gy, graph_id));
+            gxs.emplace_back(backward_function(*gy, graph_ids_to_stop_gradient));
         }
 
         if (previous_array_node != output_array_node_) {
