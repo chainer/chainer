@@ -198,7 +198,7 @@ def report(values, observer=None):
                   # This chain just computes the mean absolute and squared
                   # errors between the prediction and y.
                   pred = self.predictor(x)
-                  abs_error = F.sum(F.abs(pred - y)) / len(x.array)
+                  abs_error = F.sum(F.abs(pred - y)) / len(x)
                   loss = F.mean_squared_error(pred, y)
 
                   # Report the mean absolute and squared errors.
