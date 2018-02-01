@@ -43,7 +43,7 @@ public:
             std::shared_ptr<OpNode> op_node = candidate_op_nodes_.top();
             candidate_op_nodes_.pop();
 
-            std::vector<Array> gxs = ComputeNextGradients(op_node, graph_id, double_backprop_);
+            std::vector<Array> gxs = ComputeNextGradients(op_node, graph_id);
             AccumulateNextGradients(op_node, gxs);
 
             for (const auto& next_array_node : op_node->next_nodes()) {
@@ -57,15 +57,14 @@ public:
     };
 
 private:
-    std::vector<Array> ComputeNextGradients(const std::shared_ptr<OpNode>& op_node, const GraphId& graph_id,
-                                            DoubleBackpropOption double_backprop) {
+    std::vector<Array> ComputeNextGradients(const std::shared_ptr<OpNode>& op_node, const GraphId& graph_id) {
         const std::shared_ptr<ArrayNode>& previous_array_node = previous_array_node_map_.at(op_node);
 
         const nonstd::optional<Array>& gy = previous_array_node->grad();
         assert(gy);
 
         std::vector<GraphId> graph_ids_to_stop_gradient;
-        if (double_backprop == DoubleBackpropOption::kDisable) {
+        if (double_backprop_ == DoubleBackpropOption::kDisable) {
             graph_ids_to_stop_gradient.emplace_back(graph_id);
         }
 
