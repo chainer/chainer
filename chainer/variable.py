@@ -932,7 +932,7 @@ Actual: {0}'''.format(type(data))
 
         def set_grad(node, value):
             if node is None:
-                return None
+                return
             if node in grads:
                 grads[node] = value
             var = node.get_variable()

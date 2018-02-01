@@ -191,9 +191,7 @@ class MultiAdd(function_node.FunctionNode):
         return utils.force_array(y),
 
     def backward(self, indexes, gy):
-        gys = ()
-        for i in range(self.len):
-            gys += gy[0],
+        gys = (gy[0],) * self.len
         return gys
 
 
@@ -203,13 +201,13 @@ def add(*xs):  # lhs + rhs or add more than 2 variables
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if (len(xs) == 2):
-        self = xs[0]
+    if len(xs) == 2:
+        lhs = xs[0]
         rhs = xs[1]
         if isinstance(rhs, variable.Variable):
-            return Add().apply((self, rhs))[0]
+            return Add().apply((lhs, rhs))[0]
         _check_constant_type(rhs)
-        return AddConstant(rhs).apply((self,))[0]
+        return AddConstant(rhs).apply((lhs,))[0]
     else:
         return MultiAdd().apply(xs)[0]
 

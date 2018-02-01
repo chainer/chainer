@@ -312,7 +312,7 @@ Use apply() method instead.\
                 self._retained_output_data = tuple(retained_data)
 
             self.lazy_grad_sum = configuration.config.lazy_grad_sum
-            if self.lazy_grad_sum is True:
+            if self.lazy_grad_sum:
                 experimental('config.lazy_grad_sum')
 
         return ret
