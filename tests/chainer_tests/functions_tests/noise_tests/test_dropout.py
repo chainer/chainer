@@ -113,6 +113,9 @@ class TestDropout(unittest.TestCase):
             backend_config)
 
     def check_immutable(self, inputs, backend_config):
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
+
         with backend_config:
             dropout = functions.Dropout(0.5)
             y1, = dropout.apply(inputs)
