@@ -148,9 +148,7 @@ class ConnectionistTemporalClassification(function.Function):
             prob = _logsumexp(mat, xp, axis=0)
             outside = xp.arange(max_path_length) >= path_length[:, None]
             prob[outside] = self.zero_padding
-            offset = xp.arange(
-                0, n_batch * y.shape[-1], y.shape[-1], dtype=path.dtype)[:, None]
-            prob += xp.take(y, offset + path)
+            prob += y[xp.arange(0, n_batch)[:, None], path]
             prob_accum[:] = prob
         else:
             prev_prob, path, path_length = xp.broadcast_arrays(
@@ -204,9 +202,7 @@ class ConnectionistTemporalClassification(function.Function):
             outside = xp.arange(max_path_length) >= path_length[:, None]
             prob[outside] = self.zero_padding
             prob_accum[:] += prob
-            offset = xp.arange(
-                0, n_batch * y.shape[-1], y.shape[-1], dtype=path.dtype)[:, None]
-            prob += xp.take(y, offset + path)
+            prob += y[xp.arange(0, n_batch)[:, None], path]
         else:
             prev_prob, path, path_length = xp.broadcast_arrays(
                 prev_prob, path, path_length[:, None])
