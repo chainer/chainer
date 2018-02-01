@@ -116,6 +116,7 @@ class TensorDot(function_node.FunctionNode):
         a, b = self.get_retained_inputs()
         gc, = grad_outputs
 
+        ga = None
         if 0 in indexes:
             ga, = TensorDot(a_axes=self.c_axes,
                             b_axes=[self.b_axes[1], self.b_axes[0]],
@@ -123,6 +124,7 @@ class TensorDot(function_node.FunctionNode):
             if ga.dtype != a.dtype:
                 ga.array = ga.array.astype(a.dtype)
 
+        gb = None
         if 1 in indexes:
             gb, = TensorDot(a_axes=[self.a_axes[1], self.a_axes[0]],
                             b_axes=self.c_axes,
