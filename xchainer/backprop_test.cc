@@ -144,9 +144,9 @@ TEST_P(BackpropTest, DoubleBackprop) {
         Backward(z, kDefaultGraphId, DoubleBackpropOption::kEnable);
         auto gx = *xs[0].GetGrad();  // 2x + y
         xs[0].ClearGrad();
-        return gx * xs[0];
+        return gx;
     };
-    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {7.0f}, fprop);
+    CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop);
 }
 
 TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
