@@ -40,7 +40,7 @@ class TestDepthwiseConvolution2DFunction(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 5e-3, 'rtol': 5e-3}
 
-    def check_forward(self, x_data, W_data, b_data):
+    def check_forward(self, x_data, W_data, b_data, direct=False):
         args1 = (x_data, W_data)
         args2 = (x_data, W_data)
         if b_data is not None:
@@ -49,7 +49,8 @@ class TestDepthwiseConvolution2DFunction(unittest.TestCase):
             args2 = args2 + (b_data,)
 
         f1 = depthwise_convolution_2d.DepthwiseConvolution2D(self.stride,
-                                                             self.pad)
+                                                             self.pad,
+                                                             direct)
         y1 = f1(*args1)
         arys = numpy.split(y1.data, self.W.shape[1], axis=1)
         y1 = sum(arys)
@@ -73,14 +74,24 @@ class TestDepthwiseConvolution2DFunction(unittest.TestCase):
     def test_forward_gpu_nobias(self):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.W), None)
 
-    def check_backward(self, x_data, W_data, b_data, y_grad):
+    @attr.gpu
+    def test_forward_gpu_direct(self):
+        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
+                           cuda.to_gpu(self.b), True)
+
+    @attr.gpu
+    def test_forward_gpu_nobias_direct(self):
+        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
+                           None, True)
+
+    def check_backward(self, x_data, W_data, b_data, y_grad, direct=False):
         args = (x_data, W_data)
         if b_data is not None:
             args = args + (b_data,)
 
         gradient_check.check_backward(
             depthwise_convolution_2d.DepthwiseConvolution2D(
-                self.stride, self.pad),
+                self.stride, self.pad, direct),
             args, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
@@ -102,6 +113,18 @@ class TestDepthwiseConvolution2DFunction(unittest.TestCase):
     def test_backward_gpu_nobias(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             None, cuda.to_gpu(self.gy))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_gpu_direct(self):
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
+                            cuda.to_gpu(self.b), cuda.to_gpu(self.gy), True)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_gpu_nobias_direct(self):
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
+                            None, cuda.to_gpu(self.gy), True)
 
 
 testing.run_module(__name__, __file__)
