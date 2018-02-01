@@ -162,7 +162,7 @@ struct ArrayReprImpl {
         std::copy(shape.cbegin(), shape.cend(), std::back_inserter(indexer));
         std::shared_ptr<const T> data = std::static_pointer_cast<const T>(array.data());
 
-// TODO(hvy): Devices need to be synchronized here
+// TODO(hvy): Only synchronize devices when it is really needed
 #ifdef XCHAINER_ENABLE_CUDA
         cuda::CheckError(cudaDeviceSynchronize());
 #endif  // XCHAINER_ENABLE_CUDA
