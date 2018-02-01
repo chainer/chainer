@@ -130,7 +130,8 @@ class ConnectionistTemporalClassification(function.Function):
             )(multiply_seq, path, path_length[:, None], path.shape[1], ret)
         return ret
 
-    def _computes_forward_transition(self, prev_prob, path, path_length):
+    def _computes_forward_transition(
+            self, prev_prob, path, path_length, y, prob_accum):
         xp = cuda.get_array_module(prev_prob)
 
         if xp == numpy:
@@ -147,17 +148,24 @@ class ConnectionistTemporalClassification(function.Function):
             prob = _logsumexp(mat, xp, axis=0)
             outside = xp.arange(max_path_length) >= path_length[:, None]
             prob[outside] = self.zero_padding
+            offset = xp.arange(
+                0, n_batch * y.shape[-1], y.shape[-1], dtype=path.dtype)[:, None]
+            prob += xp.take(y, offset + path)
+            prob_accum[:] = prob
         else:
             prev_prob, path, path_length = xp.broadcast_arrays(
                 prev_prob, path, path_length[:, None])
-            prob = cuda.elementwise(
-                'raw T prob, raw I path, I path_length, T zero', 'T z',
+            prob = xp.empty_like(prev_prob)
+            cuda.elementwise(
+                'raw T prob, raw I path, I path_length, T zero, raw T y',
+                'T prob_accum, T z',
                 '''
                 int length = prob.shape()[1];
                 int b = i / length;
                 int t = i - b * length;
                 if (t >= path_length) {
                   z = zero;
+                  prob_accum = zero;
                   return;
                 }
                 int ind1[] = {b, t};
@@ -170,12 +178,15 @@ class ConnectionistTemporalClassification(function.Function):
 
                 // calculates log-sum-exp
                 float m = max(f1, max(f2, f3));
-                z = m + log(exp(f1 - m) + exp(f2 - m) + exp(f3 - m));
-                ''', 'ctc_transition'
-            )(prev_prob, path, path_length, self.zero_padding)
+                int y_ind[] = {b, path[ind1]};
+                z = y[y_ind] + m + log(exp(f1 - m) + exp(f2 - m) + exp(f3 - m));
+                prob_accum = z;
+                ''', 'ctc_transition_forward'
+            )(prev_prob, path, path_length, self.zero_padding, y, prob_accum, prob)
         return prob
 
-    def _computes_backward_transition(self, prev_prob, path, path_length):
+    def _computes_backward_transition(
+            self, prev_prob, path, path_length, y, prob_accum):
         xp = cuda.get_array_module(prev_prob)
 
         if xp == numpy:
@@ -192,11 +203,17 @@ class ConnectionistTemporalClassification(function.Function):
             prob = _logsumexp(mat, xp, axis=0)
             outside = xp.arange(max_path_length) >= path_length[:, None]
             prob[outside] = self.zero_padding
+            prob_accum[:] += prob
+            offset = xp.arange(
+                0, n_batch * y.shape[-1], y.shape[-1], dtype=path.dtype)[:, None]
+            prob += xp.take(y, offset + path)
         else:
             prev_prob, path, path_length = xp.broadcast_arrays(
                 prev_prob, path, path_length[:, None])
-            prob = cuda.elementwise(
-                'raw T prob, raw I path, I path_length, T zero', 'T z',
+            prob = xp.empty_like(prev_prob)
+            cuda.elementwise(
+                'raw T prob, raw I path, I path_length, T zero, raw T y',
+                'T prob_accum, T z',
                 '''
                 int length = prob.shape()[1];
                 int b = i / length;
@@ -216,8 +233,11 @@ class ConnectionistTemporalClassification(function.Function):
                 // calculates log-sum-exp
                 float m = max(f1, max(f2, f3));
                 z = m + log(exp(f1 - m) + exp(f2 - m) + exp(f3 - m));
+                prob_accum += z;
+                int y_ind[] = {b, path[ind1]};
+                z += y[y_ind];
                 ''', 'ctc_transition_backward'
-            )(prev_prob, path, path_length, self.zero_padding)
+            )(prev_prob, path, path_length, self.zero_padding, y, prob_accum, prob)
         return prob
 
     def calc_trans(self, yseq, input_length,
@@ -230,20 +250,14 @@ class ConnectionistTemporalClassification(function.Function):
 
         forward_prob = self.log_matrix(
             xp.eye(1, max_path_length, dtype='f'), xp)
-        offset = xp.arange(
-            0, n_batch * n_unit, n_unit, dtype=path.dtype)[:, None]
 
-        # prob[i] := forward[i] + backward[-i-1]
-        index = offset + path
         prob = xp.empty(
             (max_input_length, n_batch, max_path_length), dtype='f')
         # forward computation.
         for i, y in enumerate(yseq):
             # calc forward probability in log scale
             forward_prob = self._computes_forward_transition(
-                forward_prob, path, path_length)
-            forward_prob += xp.take(y, index)
-            prob[i] = forward_prob
+                forward_prob, path, path_length, y, prob[i])
 
         # move to back.
         prob = _move_inputs(prob, input_length, xp)
@@ -255,9 +269,7 @@ class ConnectionistTemporalClassification(function.Function):
         for i, y_inv in enumerate(yseq_inv):
             # calc backward probability
             backward_prob = self._computes_backward_transition(
-                backward_prob, path, path_length)
-            prob[-i - 1] += backward_prob
-            backward_prob += xp.take(y_inv, index)
+                backward_prob, path, path_length, y_inv, prob[-i - 1])
 
         # move to front.
         return _move_inputs(prob, -self.input_length, xp)
