@@ -57,7 +57,8 @@ public:
     };
 
 private:
-    std::vector<Array> ComputeNextGradients(const std::shared_ptr<OpNode>& op_node, const GraphId& graph_id, DoubleBackpropOption double_backprop) {
+    std::vector<Array> ComputeNextGradients(const std::shared_ptr<OpNode>& op_node, const GraphId& graph_id,
+                                            DoubleBackpropOption double_backprop) {
         const std::shared_ptr<ArrayNode>& previous_array_node = previous_array_node_map_.at(op_node);
 
         const nonstd::optional<Array>& gy = previous_array_node->grad();
