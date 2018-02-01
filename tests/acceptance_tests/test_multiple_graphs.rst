@@ -53,7 +53,7 @@ array([4., 5., 6.], dtype=float32, graph_ids=['default'])
 >>> w.get_grad()  # == x
 array([1., 2., 3.], dtype=float32, graph_ids=['default'])
 
->>> w.clear_grad()
+>>> w.set_grad(None)
 >>> z = gx * w  # == w * w
 >>> xc.backward(z)
 >>> w.get_grad()  # == 2 * w
