@@ -33,12 +33,12 @@ def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=xchainer.DEFAULT_
         x = xs[i]
         if expected_gx == xchainer.XchainerError:
             with pytest.raises(xchainer.XchainerError):
-                x.get_grad() if using_default_id else x.get_grad(graph_id)
+                x.get_grad(graph_id)
         else:
-            gx = x.get_grad() if using_default_id else x.get_grad(graph_id)
+            gx = x.get_grad(graph_id)
             assert_arrays_equal(gx, expected_gx)
 
-    grad = output.get_grad() if using_default_id else output.get_grad(graph_id)
+    grad = output.get_grad(graph_id)
     assert grad is not None
 
 
