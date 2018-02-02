@@ -105,7 +105,7 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 }  // namespace internal
 
-Array::Array(const Shape& shape, Dtype dtype, Device device, std::shared_ptr<void> data, bool is_contiguous, int64_t offset)
+Array::Array(const Shape& shape, Dtype dtype, const Device& device, std::shared_ptr<void> data, bool is_contiguous, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, dtype, device, is_contiguous, std::move(data), offset)) {}
 
 Array::Array(const Array& other)
@@ -118,39 +118,39 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) { internal::GetMutableA
 
 void Array::ClearGrad(const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
 
-Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
+Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, const Device& device) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
-    Device device = GetCurrentDevice();
     std::shared_ptr<void> device_data = internal::MemoryFromBuffer(device, data, bytesize);
     return {shape, dtype, device, device_data};
 }
 
-Array Array::Empty(const Shape& shape, Dtype dtype) {
+Array Array::Empty(const Shape& shape, Dtype dtype, const Device& device) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
-    Device device = GetCurrentDevice();
     std::shared_ptr<void> data = internal::Allocate(device, bytesize);
     return {shape, dtype, device, data};
 }
 
-Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype) {
-    Array array = Empty(shape, dtype);
+Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype, const Device& device) {
+    Array array = Empty(shape, dtype, device);
     array.Fill(scalar);
     return array;
 }
 
-Array Array::Full(const Shape& shape, Scalar scalar) { return Full(shape, scalar, scalar.dtype()); }
+Array Array::Full(const Shape& shape, Scalar scalar, const Device& device) { return Full(shape, scalar, scalar.dtype(), device); }
 
-Array Array::Zeros(const Shape& shape, Dtype dtype) { return Full(shape, 0, dtype); }
+Array Array::Zeros(const Shape& shape, Dtype dtype, const Device& device) { return Full(shape, 0, dtype, device); }
 
-Array Array::Ones(const Shape& shape, Dtype dtype) { return Full(shape, 1, dtype); }
+Array Array::Ones(const Shape& shape, Dtype dtype, const Device& device) { return Full(shape, 1, dtype, device); }
 
-Array Array::EmptyLike(const Array& array) { return Empty(array.shape(), array.dtype()); }
+Array Array::EmptyLike(const Array& array, const Device& device) { return Empty(array.shape(), array.dtype(), device); }
 
-Array Array::FullLike(const Array& array, Scalar scalar) { return Full(array.shape(), scalar, array.dtype()); }
+Array Array::FullLike(const Array& array, Scalar scalar, const Device& device) {
+    return Full(array.shape(), scalar, array.dtype(), device);
+}
 
-Array Array::ZerosLike(const Array& array) { return Zeros(array.shape(), array.dtype()); }
+Array Array::ZerosLike(const Array& array, const Device& device) { return Zeros(array.shape(), array.dtype(), device); }
 
-Array Array::OnesLike(const Array& array) { return Ones(array.shape(), array.dtype()); }
+Array Array::OnesLike(const Array& array, const Device& device) { return Ones(array.shape(), array.dtype(), device); }
 
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);

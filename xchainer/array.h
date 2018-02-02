@@ -82,21 +82,21 @@ public:
 
     explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
 
-    static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data);
+    static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, const Device& device = GetCurrentDevice());
 
-    static Array Empty(const Shape& shape, Dtype dtype);
-    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype);
-    static Array Full(const Shape& shape, Scalar scalar);
-    static Array Zeros(const Shape& shape, Dtype dtype);
-    static Array Ones(const Shape& shape, Dtype dtype);
+    static Array Empty(const Shape& shape, Dtype dtype, const Device& device = GetCurrentDevice());
+    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, const Device& device = GetCurrentDevice());
+    static Array Full(const Shape& shape, Scalar scalar, const Device& device = GetCurrentDevice());
+    static Array Zeros(const Shape& shape, Dtype dtype, const Device& device = GetCurrentDevice());
+    static Array Ones(const Shape& shape, Dtype dtype, const Device& device = GetCurrentDevice());
 
     // Creates an array which has the same shape and dtype as the other array.
     // The new array is allocated in the current device. The device of the other array
     // is ignored.
-    static Array EmptyLike(const Array& array);
-    static Array FullLike(const Array& array, Scalar scalar);
-    static Array ZerosLike(const Array& array);
-    static Array OnesLike(const Array& array);
+    static Array EmptyLike(const Array& array, const Device& device = GetCurrentDevice());
+    static Array FullLike(const Array& array, Scalar scalar, const Device& device = GetCurrentDevice());
+    static Array ZerosLike(const Array& array, const Device& device = GetCurrentDevice());
+    static Array OnesLike(const Array& array, const Device& device = GetCurrentDevice());
 
     Array Copy() const;
     Array AsConstant(CopyKind kind = CopyKind::kView) const;
@@ -128,7 +128,7 @@ public:
 
     Dtype dtype() const { return body_->dtype_; }
 
-    Device device() const { return body_->device_; }
+    const Device& device() const { return body_->device_; }
 
     int8_t ndim() const { return shape().ndim(); }
 
@@ -152,7 +152,7 @@ public:
     std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; };
 
 private:
-    Array(const Shape& shape, Dtype dtype, Device device, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
+    Array(const Shape& shape, Dtype dtype, const Device& device, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
 
     void CopyTo(Array& out) const;
     void Add(const Array& rhs, Array& out) const;
