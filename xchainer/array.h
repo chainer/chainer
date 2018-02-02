@@ -11,6 +11,7 @@
 
 #include "xchainer/array_repr.h"
 #include "xchainer/constant.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
@@ -36,7 +37,7 @@ namespace internal {
 // the code is made simple and we can use inline access to each member from member accessor functions of Array.
 class ArrayBody {
 public:
-    ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+    ArrayBody(const Shape& shape, Dtype dtype, Device device, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
               std::vector<std::shared_ptr<ArrayNode>> nodes = std::vector<std::shared_ptr<ArrayNode>>());
 
 private:
@@ -44,6 +45,7 @@ private:
 
     Shape shape_;
     Dtype dtype_;
+    Device device_;
     bool is_contiguous_;
     std::shared_ptr<void> data_;
     int64_t offset_;
@@ -126,6 +128,8 @@ public:
 
     Dtype dtype() const { return body_->dtype_; }
 
+    Device device() const { return body_->device_; }
+
     int8_t ndim() const { return shape().ndim(); }
 
     const Shape& shape() const { return body_->shape_; }
@@ -148,7 +152,7 @@ public:
     std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; };
 
 private:
-    Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
+    Array(const Shape& shape, Dtype dtype, Device device, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
 
     void CopyTo(Array& out) const;
     void Add(const Array& rhs, Array& out) const;

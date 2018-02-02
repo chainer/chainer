@@ -50,6 +50,7 @@ public:
     void ExpectEqualCopy(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
+        EXPECT_EQ(expected.device(), actual.device());
 
         // Deep copy, therefore assert different addresses to data
         EXPECT_NE(expected.data().get(), actual.data().get());
@@ -64,6 +65,7 @@ public:
     void ExpectEqual(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
+        EXPECT_EQ(expected.device(), actual.device());
         ExpectDataEqual<T>(expected, actual);
     }
 
@@ -91,8 +93,7 @@ public:
     template <typename T>
     void ExpectDataEqual(T expected, const Array& actual) {
 #ifdef XCHAINER_ENABLE_CUDA
-        std::string device_name = ::testing::get<0>(GetParam());
-        if (device_name == "cuda") {
+        if (actual.device() == MakeDevice("cuda")) {
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
@@ -115,6 +116,10 @@ public:
     }
 
     void ExpectDataExistsOnCurrentDevice(const Array& array) {
+        // Check device accessor
+        EXPECT_EQ(GetCurrentDevice(), array.device());
+
+        // Check device of data pointee
         if (GetCurrentDevice() == MakeDevice("cpu")) {
             EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
         } else if (GetCurrentDevice() == MakeDevice("cuda")) {
