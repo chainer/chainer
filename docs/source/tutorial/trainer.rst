@@ -189,7 +189,7 @@ However, when you keep the whole :class:`~chainer.training.Trainer` object, in s
 ...............................................
 
 This method saves the structure of the computational graph of the model. The graph is saved in the
-`Graphviz <http://www.graphviz.org/>_`s dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out` argument of :class:`~chainer.training.Trainer`.
+`Graphviz <http://www.graphviz.org/>`_'s dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out` argument of :class:`~chainer.training.Trainer`.
 
 :class:`~chainer.training.extensions.Evaluator`
 ...............................................
@@ -208,7 +208,7 @@ It outputs the specified values to the standard output.
 
 ----
 
-Each :class:`~chainer.training.Extension` class has different options and some extensions are not mentioned here. And one of other important feature is, for instance, by using the :attr:`~chainer.training.Extension.trigger` option, you can set individual timings to fire the :class:`~chainer.training.Extension`. To know more details of all extensions, please take a look at the official document: `Trainer extensions <reference/extensions.html>_`.
+Each :class:`~chainer.training.Extension` class has different options and some extensions are not mentioned here. And one of other important feature is, for instance, by using the :attr:`~chainer.training.Extension.trigger` option, you can set individual timings to fire the :class:`~chainer.training.Extension`. To know more details of all extensions, please take a look at the official document: :ref:`extensions`.
 
 7. Start Training
 '''''''''''''''''

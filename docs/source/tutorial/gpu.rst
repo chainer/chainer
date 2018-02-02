@@ -270,15 +270,15 @@ Let's write a link for the whole network.
 
    class ParallelMLP(Chain):
        def __init__(self):
-           super(ParallelMLP, self).__init__(
+           super(ParallelMLP, self).__init__()
+           with self.init_scope():
                # the input size, 784, is inferred
-               mlp1_gpu0=MLP(1000, 2000).to_gpu(0),
-               mlp1_gpu1=MLP(1000, 2000).to_gpu(1),
+               self.mlp1_gpu0 = MLP(1000, 2000).to_gpu(0)
+               self.mlp1_gpu1 = MLP(1000, 2000).to_gpu(1)
 
                # the input size, 2000, is inferred
-               mlp2_gpu0=MLP(1000, 10).to_gpu(0),
-               mlp2_gpu1=MLP(1000, 10).to_gpu(1),
-           )
+               self.mlp2_gpu0 = MLP(1000, 10).to_gpu(0)
+               self.mlp2_gpu1 = MLP(1000, 10).to_gpu(1)
 
        def __call__(self, x):
            # assume x is on GPU 0
