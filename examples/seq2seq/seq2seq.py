@@ -32,10 +32,9 @@ def prepare_attention(variable_list):
     batch = len(variable_list)
     lengths = [v.shape[0] for v in variable_list]
     max_len = max(lengths)
-    pad_lengths = [max_len - l for l in lengths]
     V = F.pad_sequence(variable_list, length=max_len, padding=0.0)
     pad_mask = xp.ones((batch, max_len))
-    for i, l in enumerate(pad_lengths):
+    for i, l in enumerate(lengths):
         pad_mask[i, l:] = 0
     return V, pad_mask
 
@@ -86,6 +85,7 @@ class AttentionMechanism(chainer.Chain):
                          QK_dot,
                          minus_infs)
         QK_weight = F.softmax(QK_dot, axis=2)
+
         QK_weight = F.broadcast_to(
             QK_weight[:, :, :, None],
             (batch, q_len, k_len, k_units))
