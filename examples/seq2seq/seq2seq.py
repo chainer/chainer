@@ -102,16 +102,19 @@ class AttentionMechanism(chainer.Chain):
 class Seq2seq(chainer.Chain):
 
     def __init__(self, n_layers, n_source_vocab, n_target_vocab, n_units,
-                 use_attention=False, use_bidirectional=False):
+                 dropout=0.2, use_attention=False, use_bidirectional=False):
         super(Seq2seq, self).__init__()
         with self.init_scope():
             self.embed_x = L.EmbedID(n_source_vocab, n_units)
             self.embed_y = L.EmbedID(n_target_vocab, n_units)
             if use_bidirectional:
-                self.encoder = L.NStepBiLSTM(n_layers, n_units, n_units, 0.1)
+                self.encoder = L.NStepBiLSTM(
+                    n_layers, n_units, n_units, dropout)
             else:
-                self.encoder = L.NStepLSTM(n_layers, n_units, n_units, 0.1)
-            self.decoder = L.NStepLSTM(n_layers, n_units, n_units, 0.1)
+                self.encoder = L.NStepLSTM(
+                    n_layers, n_units, n_units, dropout)
+            self.decoder = L.NStepLSTM(
+                n_layers, n_units, n_units, dropout)
             self.W = L.Linear(None, n_target_vocab)
 
             if use_attention:
@@ -167,6 +170,9 @@ class Seq2seq(chainer.Chain):
             xs = [x[::-1] for x in xs]
             exs = sequence_embed(self.embed_x, xs)
             h, c, enc_os = self.encoder(None, None, exs)
+            if self.use_bidirectional:
+                h = h[::2]
+                c = c[::2]
             ys = self.xp.full(batch, EOS, 'i')
             result = []
             for i in range(max_length):
@@ -303,6 +309,8 @@ def main():
                         help='number of units')
     parser.add_argument('--layer', '-l', type=int, default=3,
                         help='number of layers')
+    parser.add_argument('--dropout', '-d', type=float, default=0.2,
+                        help='ratio of dropout')
     parser.add_argument('--min-source-sentence', type=int, default=1,
                         help='minimium length of source sentence')
     parser.add_argument('--max-source-sentence', type=int, default=50,
@@ -352,12 +360,12 @@ def main():
     source_words = {i: w for w, i in source_ids.items()}
 
     model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit,
-                    args.use_attention, args.use_bidirectional)
+                    args.dropout, args.use_attention, args.use_bidirectional)
     if args.gpu >= 0:
         chainer.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
 
-    optimizer = chainer.optimizers.Adam()
+    optimizer = chainer.optimizers.Adam(alpha=1e-4)
     optimizer.setup(model)
 
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
