@@ -30,15 +30,9 @@ Here's the whole picture of the code:
     
    #!/usr/bin/env python
    
-   from __future__ import print_function
-   
-   try:
-       import matplotlib
-   
-       matplotlib.use('Agg')
-   except ImportError:
-       pass
-   
+   import matplotlib
+   matplotlib.use('Agg')
+
    import chainer
    import chainer.functions as F
    import chainer.links as L
@@ -86,14 +80,14 @@ Here's the whole picture of the code:
    optimizer = chainer.optimizers.SGD()
    optimizer.setup(model)
    
-   gpu_id = -1  # Change to -1 to use CPU
-   
+   # Create the updater, using the optimizer
+   updater = training.StandardUpdater(train_iter, optimizer, device=-1)
+
    # Set up a trainer
-   updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
    trainer = training.Trainer(updater, (50, 'epoch'), out='result')
    
    # Evaluate the model with the test dataset for each epoch
-   trainer.extend(extensions.Evaluator(test_iter, model, device=gpu_id))
+   trainer.extend(extensions.Evaluator(test_iter, model, device=-1))
    
    # Dump a computational graph from 'loss' variable at the first iteration
    # The "main" refers to the target link of the "main" optimizer.
@@ -119,18 +113,18 @@ Here's the whole picture of the code:
        ['epoch', 'main/loss', 'validation/main/loss',
         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
    
-   # Run the training
+   #  Run the training
    trainer.run()
    
    x, t = test[np.random.randint(len(test))]
 
-   # If using a GPU, we need to move the array to the GPU for inference
-   x = chainer.cuda.to_gpu(x, device=gpu_id) if gpu_id >= 0 else x
    predict = model.predictor(x[None]).data
-   predict = predict[0][0] >= 0
+   predict = predict[0][0]
    
-   print('Predicted', 'Edible' if predict == 0 else 'Poisonous',
-         'Actual', 'Edible' if t[0] == 0 else 'Poisonous')     
+   if predict >= 0:
+      print('Predicted Poisonous, Actual ' + ['Edible', 'Poisonous'][t[0]])
+   else:
+      print('Predicted Edible, Actual ' + ['Edible', 'Poisonous'][t[0]])
    
 If you've worked with other neural net frameworks, some of that code may look familiar. Let's break down what it's doing.
 
@@ -146,13 +140,8 @@ Let's start our python program. Matplotlib is used for the graphs to show traini
 
    #!/usr/bin/env python
    
-   from __future__ import print_function
-   
-   try:
-       import matplotlib
-       matplotlib.use('Agg')
-   except ImportError:
-       pass
+   import matplotlib
+   matplotlib.use('Agg')
 
 Typical imports for a Chainer program. :class:`~chainer.links` contain trainable parameters and :class:`~chainer.functions` do not.
 
@@ -166,7 +155,6 @@ Typical imports for a Chainer program. :class:`~chainer.links` contain trainable
    from chainer.training import extensions
    
    import numpy as np
-   import sklearn.preprocessing as sp
    
 Trainer Structure
 ~~~~~~~~~~~~~~~~~
@@ -185,17 +173,16 @@ Our first step is to format the :mod:`~chainer.datasets`. From the raw mushroom.
 
 .. code-block:: python
 
-   data_array = np.genfromtxt(
-       'mushrooms.csv', delimiter=',', dtype=str, skip_header=1)
-   labelEncoder = sp.LabelEncoder()
-   for col in range(data_array.shape[1]):
-       data_array[:, col] = labelEncoder.fit_transform(data_array[:, col])
-   
-   X = data_array[:, 1:].astype(np.float32)
-   Y = data_array[:, 0].astype(np.int32)[:, None]
-   train, test = datasets.split_dataset_random(
-       datasets.TupleDataset(X, Y), int(data_array.shape[0] * .7))
-   
+data_array = np.genfromtxt(
+    'mushrooms.csv', delimiter=',', dtype=str, skip_header=1)
+for col in range(data_array.shape[1]):
+    data_array[:, col] = np.unique(data_array[:, col], return_inverse=True)[1]
+
+X = data_array[:, 1:].astype(np.float32)
+Y = data_array[:, 0].astype(np.int32)[:, None]
+train, test = datasets.split_dataset_random(
+    datasets.TupleDataset(X, Y), int(data_array.shape[0] * .7))
+
 Iterator
 ~~~~~~~~
 .. image:: ../../image/glance/trainer-iterator.png
@@ -257,14 +244,12 @@ Updater
 ~~~~~~~~~
 .. image:: ../../image/glance/trainer-updater.png
 
-Now that we have the training :class:`~chainer.iterator` and :class:`~chainer.optimizer` set up, we link them both together into the :class:`~chainer.updater`. The :class:`~chainer.updater` uses the minibatches from the :class:`~chainer.iterator`, and then does the forward and backward processing of the model, and updates the parameters of the model according to the :class:`~chainer.optimizer`.
-
-If using a CPU instead of the GPU, set ``gpu_id`` to ``-1``. Otherwise, use the ID of the GPU, usually ``0``.
+Now that we have the training :class:`~chainer.iterator` and :class:`~chainer.optimizer` set up, we link them both together into the :class:`~chainer.updater`. The :class:`~chainer.updater` uses the minibatches from the :class:`~chainer.iterator`, and then does the forward and backward processing of the model, and updates the parameters of the model according to the :class:`~chainer.optimizer`. Setting the ``device=-1`` sets the device as the CPU. To use a GPU, set ``device`` equal to the number of the GPU, usually ``device=0``.
 
 .. code-block:: python
 
-   gpu_id = 0  # Change to -1 to use CPU
-   updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
+   # Create the updater, using the optimizer
+   updater = training.StandardUpdater(train_iter, optimizer, device=-1)
    
 Set up the :class:`~chainer.updater` to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory ``result``.
 
@@ -279,11 +264,14 @@ Extensions
 
 Use the testing :class:`~chainer.iterator` defined above for an :class:`~chainer.training.extensions.Evaluator` extension to the trainer to provide test scores.
 
+If using a GPU instead of the CPU, set ``device`` to the ID of the GPU, usually ``0``.
+
 .. code-block:: python
 
-   trainer.extend(extensions.Evaluator(test_iter, model, device=gpu_id))
+   trainer.extend(extensions.Evaluator(test_iter, model, device=-1))
    
-Save a computational graph from ``loss`` variable at the first iteration. ``main`` refers to the target link of the ``main`` :class:`~chainer.optimizer`. The graph is saved in the `Graphviz <http://www.graphviz.org/>_`s dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out argument of :class:`~chainer.training.Trainer`.
+Save a computational graph from ``loss`` variable at the first iteration. ``main`` refers to the target link of the ``main`` :class:`~chainer.optimizer`. The graph is saved in the `Graphviz's <http://www.graphviz.org/>`_ dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out` argument of :class:`~chainer.training.Trainer`.
+   # Create the updater, using the optimizer
 
 .. code-block:: python
 
@@ -335,16 +323,16 @@ Once the training is complete, only the model is necessary to make predictions. 
 
 .. code-block:: python
 
-   x, t = test[np.random.randint(len(test))]
+    x, t = test[np.random.randint(len(test))]
 
-   # If using a GPU, we need to move the array to the GPU for inference
-   x = chainer.cuda.to_gpu(x, device=gpu_id) if gpu_id >= 0 else x
-   predict = model.predictor(x[None]).data
-   predict = predict[0][0] >= 0
-   
-   print('Predicted', 'Edible' if predict == 0 else 'Poisonous',
-         'Actual', 'Edible' if t[0] == 0 else 'Poisonous')     
-   
+    predict = model.predictor(x[None]).data
+    predict = predict[0][0]
+
+    if predict >= 0:
+        print('Predicted Poisonous, Actual ' + ['Edible', 'Poisonous'][t[0]])
+    else:
+        print('Predicted Edible, Actual ' + ['Edible', 'Poisonous'][t[0]])
+
 Output
 -------
 
@@ -415,12 +403,3 @@ And the accuracy
 
 .. image:: ../../image/glance/accuracy.png
 
-Next Steps
-
-To continue learning about Chainer, we recommend you look at specific examples of specialized neural nets:
-
-<links to other neural nets here>
-
-Or learn how to customize existing Chainer code to implement your own approach to neural nets:
-
-<links to customization tutorials here>
