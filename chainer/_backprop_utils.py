@@ -30,6 +30,7 @@ def concat_variable(gx, g_input):
 
     return sum_gx
 
+
 def add(lhs, rhs):
     y = concat_variable(lhs, rhs)
     return chainer.functions.add(*y)
