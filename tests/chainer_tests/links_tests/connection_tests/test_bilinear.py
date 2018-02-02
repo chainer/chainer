@@ -36,8 +36,6 @@ def _uniform(*shape):
 
 
 def _as_mat(x):
-    if x.ndim == 2:
-        return x
     return x.reshape(len(x), -1)
 
 
@@ -190,10 +188,8 @@ class TestBilinearWOBias2(TestBilinearWOBias):
         self.e2 = _uniform(self.batch_size, 2, self.in_shape[1] // 2)
         self.gy = _uniform(self.batch_size, self.out_size)
 
-        e1 = _as_mat(self.e1)
-        e2 = _as_mat(self.e2)
-
-        self.y = numpy.einsum('ij,ik,jkl->il', e1, e2, self.W)
+        self.y = numpy.einsum(
+            'ij,ik,jkl->il', _as_mat(self.e1), _as_mat(self.e2), self.W)
 
 
 class TestBilinearWOBias3(TestBilinearWOBias):
