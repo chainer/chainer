@@ -36,7 +36,6 @@ class SGDRule(optimizer.UpdateRule):
             param.data.inplace_axpby(1.0, -self.hyperparam.lr, grad)
         else:
             param.data -= self.hyperparam.lr * grad
-        param.data -= self.hyperparam.lr * grad
 
     def update_core_gpu(self, param):
         grad = param.grad
