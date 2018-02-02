@@ -24,6 +24,285 @@
 namespace xchainer {
 namespace {
 
+template <typename T>
+Array MakeArray(const Shape& shape, std::shared_ptr<void> data) {
+    return Array::FromBuffer(shape, TypeToDtype<T>, data);
+}
+
+template <typename T>
+Array MakeArray(const Shape& shape, std::initializer_list<T> data) {
+    auto a = std::make_unique<T[]>(data.size());
+    std::copy(data.begin(), data.end(), a.get());
+    return MakeArray<T>(shape, std::move(a));
+}
+
+template <typename T>
+void ExpectDataEqual(const T* expected_data, const Array& actual) {
+#ifdef XCHAINER_ENABLE_CUDA
+    if (actual.device() == MakeDevice("cuda")) {
+        cuda::CheckError(cudaDeviceSynchronize());
+    }
+#endif  // XCHAINER_ENABLE_CUDA
+    auto total_size = actual.shape().total_size();
+    const T* actual_data = static_cast<const T*>(actual.data().get());
+    for (decltype(total_size) i = 0; i < total_size; i++) {
+        EXPECT_EQ(expected_data[i], actual_data[i]) << "where i is " << i;
+    }
+}
+
+template <typename T>
+void ExpectDataEqual(const Array& expected, const Array& actual) {
+    const T* expected_data = static_cast<const T*>(expected.data().get());
+    ExpectDataEqual(expected_data, actual);
+}
+
+template <typename T>
+void ExpectEqualCopy(const Array& expected, const Array& actual) {
+    EXPECT_EQ(expected.dtype(), actual.dtype());
+    EXPECT_EQ(expected.shape(), actual.shape());
+    EXPECT_EQ(expected.device(), actual.device());
+
+    // Deep copy, therefore assert different addresses to data
+    EXPECT_NE(expected.data().get(), actual.data().get());
+
+    EXPECT_TRUE(actual.is_contiguous());
+    EXPECT_EQ(0, actual.offset());
+
+    ExpectDataEqual<T>(expected, actual);
+}
+
+template <typename T>
+void ExpectEqual(const Array& expected, const Array& actual) {
+    EXPECT_EQ(expected.dtype(), actual.dtype());
+    EXPECT_EQ(expected.shape(), actual.shape());
+    EXPECT_EQ(expected.device(), actual.device());
+    ExpectDataEqual<T>(expected, actual);
+}
+
+template <typename T>
+void ExpectDataEqual(T expected, const Array& actual) {
+#ifdef XCHAINER_ENABLE_CUDA
+    if (actual.device() == MakeDevice("cuda")) {
+        cuda::CheckError(cudaDeviceSynchronize());
+    }
+#endif  // XCHAINER_ENABLE_CUDA
+    auto total_size = actual.shape().total_size();
+    const T* actual_data = static_cast<const T*>(actual.data().get());
+    for (decltype(total_size) i = 0; i < total_size; i++) {
+        if (std::isnan(expected)) {
+            EXPECT_TRUE(std::isnan(actual_data[i])) << "where i is " << i;
+        } else {
+            EXPECT_EQ(expected, actual_data[i]) << "where i is " << i;
+        }
+    }
+}
+
+void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
+    EXPECT_EQ(a.dtype(), b.dtype());
+    EXPECT_EQ(a.shape(), b.shape());
+    EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
+    EXPECT_EQ(a.offset(), b.offset());
+}
+
+void ExpectDataExistsOnCurrentDevice(const Array& array) {
+    // Check device accessor
+    EXPECT_EQ(GetCurrentDevice(), array.device());
+
+    // Check device of data pointee
+    if (GetCurrentDevice() == MakeDevice("cpu")) {
+        EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
+    } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+        EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
+    } else {
+        FAIL() << "invalid device";
+    }
+}
+
+template <bool is_const, typename T>
+void CheckFromBuffer(const Shape& shape, std::initializer_list<T> raw_data) {
+    using TargetArray = std::conditional_t<is_const, const Array, Array>;
+
+    // Check test data
+    ASSERT_EQ(shape.total_size(), static_cast<int64_t>(raw_data.size()));
+
+    std::shared_ptr<T> data = std::make_unique<T[]>(shape.total_size());
+    std::copy(raw_data.begin(), raw_data.end(), data.get());
+
+    Dtype dtype = TypeToDtype<T>;
+    TargetArray x = Array::FromBuffer(shape, dtype, data);
+
+    // Basic attributes
+    EXPECT_EQ(shape, x.shape());
+    EXPECT_EQ(dtype, x.dtype());
+    EXPECT_EQ(2, x.ndim());
+    EXPECT_EQ(3 * 2, x.total_size());
+    EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
+    EXPECT_EQ(shape.total_size() * int64_t{sizeof(T)}, x.total_bytes());
+    EXPECT_TRUE(x.is_contiguous());
+    EXPECT_EQ(0, x.offset());
+
+    // Array::data
+    ExpectDataEqual<T>(data.get(), x);
+    ExpectDataExistsOnCurrentDevice(x);
+    if (GetCurrentDevice() == MakeDevice("cpu")) {
+        EXPECT_EQ(data.get(), x.data().get());
+    } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+        EXPECT_NE(data.get(), x.data().get());
+    } else {
+        FAIL() << "invalid device";
+    }
+}
+
+template <typename T>
+void CheckEmpty() {
+    Dtype dtype = TypeToDtype<T>;
+    Array x = Array::Empty(Shape{3, 2}, dtype);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_EQ(x.shape(), Shape({3, 2}));
+    EXPECT_EQ(x.dtype(), dtype);
+    EXPECT_TRUE(x.is_contiguous());
+    EXPECT_EQ(0, x.offset());
+    ExpectDataExistsOnCurrentDevice(x);
+}
+
+template <typename T>
+void CheckEmptyLike() {
+    Dtype dtype = TypeToDtype<T>;
+    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+    Array x = Array::EmptyLike(x_orig);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_NE(x.data(), x_orig.data());
+    EXPECT_EQ(x.shape(), x_orig.shape());
+    EXPECT_EQ(x.dtype(), x_orig.dtype());
+    EXPECT_TRUE(x.is_contiguous());
+    EXPECT_EQ(0, x.offset());
+    ExpectDataExistsOnCurrentDevice(x);
+}
+
+template <typename T>
+void CheckFill(T expected, Scalar scalar) {
+    Dtype dtype = TypeToDtype<T>;
+    Array x = Array::Empty(Shape{3, 2}, dtype);
+    x.Fill(scalar);
+    ExpectDataEqual(expected, x);
+}
+
+template <typename T>
+void CheckFill(T value) {
+    CheckFill(value, value);
+}
+
+template <typename T>
+void CheckFullWithGivenDtype(T expected, Scalar scalar) {
+    Dtype dtype = TypeToDtype<T>;
+    Array x = Array::Full(Shape{3, 2}, scalar, dtype);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_EQ(x.shape(), Shape({3, 2}));
+    EXPECT_EQ(x.dtype(), dtype);
+    EXPECT_TRUE(x.is_contiguous());
+    EXPECT_EQ(0, x.offset());
+    ExpectDataEqual(expected, x);
+    ExpectDataExistsOnCurrentDevice(x);
+}
+
+template <typename T>
+void CheckFullWithGivenDtype(T value) {
+    CheckFullWithGivenDtype(value, value);
+}
+
+template <typename T>
+void CheckFullWithScalarDtype(T value) {
+    Scalar scalar = {value};
+    Array x = Array::Full(Shape{3, 2}, scalar);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_EQ(x.shape(), Shape({3, 2}));
+    EXPECT_EQ(x.dtype(), scalar.dtype());
+    EXPECT_TRUE(x.is_contiguous());
+    EXPECT_EQ(0, x.offset());
+    ExpectDataEqual(value, x);
+    ExpectDataExistsOnCurrentDevice(x);
+}
+
+template <typename T>
+void CheckFullLike(T expected, Scalar scalar) {
+    Dtype dtype = TypeToDtype<T>;
+    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+    Array x = Array::FullLike(x_orig, scalar);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_NE(x.data(), x_orig.data());
+    EXPECT_EQ(x.shape(), x_orig.shape());
+    EXPECT_EQ(x.dtype(), x_orig.dtype());
+    EXPECT_TRUE(x.is_contiguous());
+    EXPECT_EQ(0, x.offset());
+    ExpectDataEqual(expected, x);
+    ExpectDataExistsOnCurrentDevice(x);
+}
+
+template <typename T>
+void CheckFullLike(T value) {
+    CheckFullLike(value, value);
+}
+
+template <typename T>
+void CheckZeros() {
+    Dtype dtype = TypeToDtype<T>;
+    Array x = Array::Zeros(Shape{3, 2}, dtype);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_EQ(x.shape(), Shape({3, 2}));
+    EXPECT_EQ(x.dtype(), dtype);
+    EXPECT_TRUE(x.is_contiguous());
+    EXPECT_EQ(0, x.offset());
+    T expected{0};
+    ExpectDataEqual(expected, x);
+    ExpectDataExistsOnCurrentDevice(x);
+}
+
+template <typename T>
+void CheckZerosLike() {
+    Dtype dtype = TypeToDtype<T>;
+    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+    Array x = Array::ZerosLike(x_orig);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_NE(x.data(), x_orig.data());
+    EXPECT_EQ(x.shape(), x_orig.shape());
+    EXPECT_EQ(x.dtype(), x_orig.dtype());
+    EXPECT_TRUE(x.is_contiguous());
+    EXPECT_EQ(0, x.offset());
+    T expected{0};
+    ExpectDataEqual(expected, x);
+    ExpectDataExistsOnCurrentDevice(x);
+}
+
+template <typename T>
+void CheckOnes() {
+    Dtype dtype = TypeToDtype<T>;
+    Array x = Array::Ones(Shape{3, 2}, dtype);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_EQ(x.shape(), Shape({3, 2}));
+    EXPECT_EQ(x.dtype(), dtype);
+    EXPECT_TRUE(x.is_contiguous());
+    EXPECT_EQ(0, x.offset());
+    T expected{1};
+    ExpectDataEqual(expected, x);
+    ExpectDataExistsOnCurrentDevice(x);
+}
+
+template <typename T>
+void CheckOnesLike() {
+    Dtype dtype = TypeToDtype<T>;
+    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+    Array x = Array::OnesLike(x_orig);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_NE(x.data(), x_orig.data());
+    EXPECT_EQ(x.shape(), x_orig.shape());
+    EXPECT_EQ(x.dtype(), x_orig.dtype());
+    EXPECT_TRUE(x.is_contiguous());
+    EXPECT_EQ(0, x.offset());
+    T expected{1};
+    ExpectDataEqual(expected, x);
+    ExpectDataExistsOnCurrentDevice(x);
+}
+
 class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
     void SetUp() override {
@@ -32,287 +311,6 @@ protected:
     }
 
     void TearDown() override { device_scope_.reset(); }
-
-public:
-    template <typename T>
-    Array MakeArray(const Shape& shape, std::shared_ptr<void> data) {
-        return Array::FromBuffer(shape, TypeToDtype<T>, data);
-    }
-
-    template <typename T>
-    Array MakeArray(const Shape& shape, std::initializer_list<T> data) {
-        auto a = std::make_unique<T[]>(data.size());
-        std::copy(data.begin(), data.end(), a.get());
-        return MakeArray<T>(shape, std::move(a));
-    }
-
-    template <typename T>
-    void ExpectEqualCopy(const Array& expected, const Array& actual) {
-        EXPECT_EQ(expected.dtype(), actual.dtype());
-        EXPECT_EQ(expected.shape(), actual.shape());
-        EXPECT_EQ(expected.device(), actual.device());
-
-        // Deep copy, therefore assert different addresses to data
-        EXPECT_NE(expected.data().get(), actual.data().get());
-
-        EXPECT_TRUE(actual.is_contiguous());
-        EXPECT_EQ(0, actual.offset());
-
-        ExpectDataEqual<T>(expected, actual);
-    }
-
-    template <typename T>
-    void ExpectEqual(const Array& expected, const Array& actual) {
-        EXPECT_EQ(expected.dtype(), actual.dtype());
-        EXPECT_EQ(expected.shape(), actual.shape());
-        EXPECT_EQ(expected.device(), actual.device());
-        ExpectDataEqual<T>(expected, actual);
-    }
-
-    template <typename T>
-    void ExpectDataEqual(const Array& expected, const Array& actual) {
-        const T* expected_data = static_cast<const T*>(expected.data().get());
-        ExpectDataEqual(expected_data, actual);
-    }
-
-    template <typename T>
-    void ExpectDataEqual(const T* expected_data, const Array& actual) {
-#ifdef XCHAINER_ENABLE_CUDA
-        std::string device_name = ::testing::get<0>(GetParam());
-        if (device_name == "cuda") {
-            cuda::CheckError(cudaDeviceSynchronize());
-        }
-#endif  // XCHAINER_ENABLE_CUDA
-        auto total_size = actual.shape().total_size();
-        const T* actual_data = static_cast<const T*>(actual.data().get());
-        for (decltype(total_size) i = 0; i < total_size; i++) {
-            EXPECT_EQ(expected_data[i], actual_data[i]) << "where i is " << i;
-        }
-    }
-
-    template <typename T>
-    void ExpectDataEqual(T expected, const Array& actual) {
-#ifdef XCHAINER_ENABLE_CUDA
-        if (actual.device() == MakeDevice("cuda")) {
-            cuda::CheckError(cudaDeviceSynchronize());
-        }
-#endif  // XCHAINER_ENABLE_CUDA
-        auto total_size = actual.shape().total_size();
-        const T* actual_data = static_cast<const T*>(actual.data().get());
-        for (decltype(total_size) i = 0; i < total_size; i++) {
-            if (std::isnan(expected)) {
-                EXPECT_TRUE(std::isnan(actual_data[i])) << "where i is " << i;
-            } else {
-                EXPECT_EQ(expected, actual_data[i]) << "where i is " << i;
-            }
-        }
-    }
-
-    void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
-        EXPECT_EQ(a.dtype(), b.dtype());
-        EXPECT_EQ(a.shape(), b.shape());
-        EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
-        EXPECT_EQ(a.offset(), b.offset());
-    }
-
-    void ExpectDataExistsOnCurrentDevice(const Array& array) {
-        // Check device accessor
-        EXPECT_EQ(GetCurrentDevice(), array.device());
-
-        // Check device of data pointee
-        if (GetCurrentDevice() == MakeDevice("cpu")) {
-            EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
-        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
-        } else {
-            FAIL() << "invalid device";
-        }
-    }
-
-    template <bool is_const, typename T>
-    void CheckFromBuffer(const Shape& shape, std::initializer_list<T> raw_data) {
-        using TargetArray = std::conditional_t<is_const, const Array, Array>;
-
-        // Check test data
-        ASSERT_EQ(shape.total_size(), static_cast<int64_t>(raw_data.size()));
-
-        std::shared_ptr<T> data = std::make_unique<T[]>(shape.total_size());
-        std::copy(raw_data.begin(), raw_data.end(), data.get());
-
-        Dtype dtype = TypeToDtype<T>;
-        TargetArray x = Array::FromBuffer(shape, dtype, data);
-
-        // Basic attributes
-        EXPECT_EQ(shape, x.shape());
-        EXPECT_EQ(dtype, x.dtype());
-        EXPECT_EQ(2, x.ndim());
-        EXPECT_EQ(3 * 2, x.total_size());
-        EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
-        EXPECT_EQ(shape.total_size() * int64_t{sizeof(T)}, x.total_bytes());
-        EXPECT_TRUE(x.is_contiguous());
-        EXPECT_EQ(0, x.offset());
-
-        // Array::data
-        ExpectDataEqual<T>(data.get(), x);
-        ExpectDataExistsOnCurrentDevice(x);
-        if (GetCurrentDevice() == MakeDevice("cpu")) {
-            EXPECT_EQ(data.get(), x.data().get());
-        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
-            EXPECT_NE(data.get(), x.data().get());
-        } else {
-            FAIL() << "invalid device";
-        }
-    }
-
-    template <typename T>
-    void CheckEmpty() {
-        Dtype dtype = TypeToDtype<T>;
-        Array x = Array::Empty(Shape{3, 2}, dtype);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_EQ(x.shape(), Shape({3, 2}));
-        EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_TRUE(x.is_contiguous());
-        EXPECT_EQ(0, x.offset());
-        ExpectDataExistsOnCurrentDevice(x);
-    }
-
-    template <typename T>
-    void CheckEmptyLike() {
-        Dtype dtype = TypeToDtype<T>;
-        Array x_orig = Array::Empty(Shape{3, 2}, dtype);
-        Array x = Array::EmptyLike(x_orig);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_NE(x.data(), x_orig.data());
-        EXPECT_EQ(x.shape(), x_orig.shape());
-        EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_TRUE(x.is_contiguous());
-        EXPECT_EQ(0, x.offset());
-        ExpectDataExistsOnCurrentDevice(x);
-    }
-
-    template <typename T>
-    void CheckFill(T expected, Scalar scalar) {
-        Dtype dtype = TypeToDtype<T>;
-        Array x = Array::Empty(Shape{3, 2}, dtype);
-        x.Fill(scalar);
-        ExpectDataEqual(expected, x);
-    }
-
-    template <typename T>
-    void CheckFill(T value) {
-        CheckFill(value, value);
-    }
-
-    template <typename T>
-    void CheckFullWithGivenDtype(T expected, Scalar scalar) {
-        Dtype dtype = TypeToDtype<T>;
-        Array x = Array::Full(Shape{3, 2}, scalar, dtype);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_EQ(x.shape(), Shape({3, 2}));
-        EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_TRUE(x.is_contiguous());
-        EXPECT_EQ(0, x.offset());
-        ExpectDataEqual(expected, x);
-        ExpectDataExistsOnCurrentDevice(x);
-    }
-
-    template <typename T>
-    void CheckFullWithGivenDtype(T value) {
-        CheckFullWithGivenDtype(value, value);
-    }
-
-    template <typename T>
-    void CheckFullWithScalarDtype(T value) {
-        Scalar scalar = {value};
-        Array x = Array::Full(Shape{3, 2}, scalar);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_EQ(x.shape(), Shape({3, 2}));
-        EXPECT_EQ(x.dtype(), scalar.dtype());
-        EXPECT_TRUE(x.is_contiguous());
-        EXPECT_EQ(0, x.offset());
-        ExpectDataEqual(value, x);
-        ExpectDataExistsOnCurrentDevice(x);
-    }
-
-    template <typename T>
-    void CheckFullLike(T expected, Scalar scalar) {
-        Dtype dtype = TypeToDtype<T>;
-        Array x_orig = Array::Empty(Shape{3, 2}, dtype);
-        Array x = Array::FullLike(x_orig, scalar);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_NE(x.data(), x_orig.data());
-        EXPECT_EQ(x.shape(), x_orig.shape());
-        EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_TRUE(x.is_contiguous());
-        EXPECT_EQ(0, x.offset());
-        ExpectDataEqual(expected, x);
-        ExpectDataExistsOnCurrentDevice(x);
-    }
-
-    template <typename T>
-    void CheckFullLike(T value) {
-        CheckFullLike(value, value);
-    }
-
-    template <typename T>
-    void CheckZeros() {
-        Dtype dtype = TypeToDtype<T>;
-        Array x = Array::Zeros(Shape{3, 2}, dtype);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_EQ(x.shape(), Shape({3, 2}));
-        EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_TRUE(x.is_contiguous());
-        EXPECT_EQ(0, x.offset());
-        T expected{0};
-        ExpectDataEqual(expected, x);
-        ExpectDataExistsOnCurrentDevice(x);
-    }
-
-    template <typename T>
-    void CheckZerosLike() {
-        Dtype dtype = TypeToDtype<T>;
-        Array x_orig = Array::Empty(Shape{3, 2}, dtype);
-        Array x = Array::ZerosLike(x_orig);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_NE(x.data(), x_orig.data());
-        EXPECT_EQ(x.shape(), x_orig.shape());
-        EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_TRUE(x.is_contiguous());
-        EXPECT_EQ(0, x.offset());
-        T expected{0};
-        ExpectDataEqual(expected, x);
-        ExpectDataExistsOnCurrentDevice(x);
-    }
-
-    template <typename T>
-    void CheckOnes() {
-        Dtype dtype = TypeToDtype<T>;
-        Array x = Array::Ones(Shape{3, 2}, dtype);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_EQ(x.shape(), Shape({3, 2}));
-        EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_TRUE(x.is_contiguous());
-        EXPECT_EQ(0, x.offset());
-        T expected{1};
-        ExpectDataEqual(expected, x);
-        ExpectDataExistsOnCurrentDevice(x);
-    }
-
-    template <typename T>
-    void CheckOnesLike() {
-        Dtype dtype = TypeToDtype<T>;
-        Array x_orig = Array::Empty(Shape{3, 2}, dtype);
-        Array x = Array::OnesLike(x_orig);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_NE(x.data(), x_orig.data());
-        EXPECT_EQ(x.shape(), x_orig.shape());
-        EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_TRUE(x.is_contiguous());
-        EXPECT_EQ(0, x.offset());
-        T expected{1};
-        ExpectDataEqual(expected, x);
-        ExpectDataExistsOnCurrentDevice(x);
-    }
 
 private:
     std::unique_ptr<DeviceScope> device_scope_;
