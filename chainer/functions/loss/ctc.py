@@ -333,10 +333,11 @@ def connectionist_temporal_classification(
     # TODO(jnishi): Support d(>1)-dimentinal inputs.
     assert x[0].ndim == 2
 
+    xp = cuda.get_array_module(x[0])
     if input_length is None:
-        xp = cuda.get_array_module(x[0])
-        input_length = xp.full(x[0].shape[0], len(x), dtype=numpy.int32)
-        label_length = xp.full(t.shape[0], t.shape[1], dtype=numpy.int32)
+        input_length = xp.full(len(x[0]), len(x), dtype=numpy.int32)
+    if label_length is None:
+        label_length = xp.full(len(t), t.shape[1], dtype=numpy.int32)
 
     return ConnectionistTemporalClassification(blank_symbol, reduce)(
         input_length, label_length, t, *x)
