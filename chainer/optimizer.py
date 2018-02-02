@@ -254,6 +254,7 @@ class UpdateRule(object):
             serializer (~chainer.AbstractSerializer): Serializer object.
 
         """
+        self.t = serializer('t', self.t)
         if self.state is None:
             if isinstance(serializer, serializer_module.Deserializer):
                 # try to initialize the state to retrieve state entries
