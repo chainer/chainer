@@ -248,7 +248,9 @@ class TestBinaryOpTuple(unittest.TestCase):
     def test_add_forward_cpu(self):
         func = chainer.functions.add
 
-        def op(x, y): return x + y
+        def op(x, y):
+            return x + y
+
         self.forward_cpu(func, op)
 
     def check_backward(self, op, x1_data, x2_data, x3_data, y_grad):
