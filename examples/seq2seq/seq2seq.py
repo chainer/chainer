@@ -28,6 +28,14 @@ def sequence_embed(embed, xs):
 
 
 def prepare_attention(variable_list):
+    """Preprocess of attention.
+
+    This function pads variables which have diffirent shapes
+    such as ``(sequence_length, n_units)``.
+    This function returns concatenation of the padded variables
+    and an array which represents positions where pads do not exist.
+
+    """
     xp = chainer.cuda.get_array_module(*variable_list)
     batch = len(variable_list)
     lengths = [v.shape[0] for v in variable_list]
@@ -40,16 +48,25 @@ def prepare_attention(variable_list):
 
 
 def split_without_pads(V, lengths):
-    # split it into [seq1, pad1, seq2, pad2, ...]
+    """Postprocess of attention.
+
+    This function un-pads a variable, that is,
+    removes padded parts and split it into variables which have
+    diffirent shapes such as ``(sequence_length, n_units)``.
+    This function returns a list of variables.
+
+    """
     batch, max_len, units = V.shape
+    # get [len(seq1), len(pad1), len(seq2), len(pad2), ...]
     lengths = numpy.array(lengths)
     lengths_of_seq_and_pad = numpy.stack([lengths, max_len - lengths], axis=1)
     stitch = lengths_of_seq_and_pad.reshape(-1)
+    # get indices to be split
+    if stitch[-1] == 0:
+        stitch = stitch[:-1]
     stitch_split_ids = numpy.cumsum(stitch)[:-1]
-    if lengths[-1] == max_len:
-        stitch_split_ids = stitch_split_ids[:-1]
-    # [seq1, pad1, seq2, pad2, ...]
-    # and pick variables at even indices
+    # get [seq1, pad1, seq2, pad2, ...]
+    # pick variables at even indices
     split_V = F.split_axis(V.reshape(batch * max_len, units),
                            stitch_split_ids, axis=0)[::2]
     return split_V
@@ -65,37 +82,43 @@ class AttentionMechanism(chainer.Chain):
             self.W_key = L.Linear(None, self.att_units)
 
     def __call__(self, qs, ks):
-        raw_Q, q_pad_mask = prepare_attention(qs)
-        batch, q_len, q_units = raw_Q.shape
-        Q = self.W_query(raw_Q.reshape(batch * q_len, q_units))
+        concat_Q, q_pad_mask = prepare_attention(qs)
+        batch, q_len, q_units = concat_Q.shape
+        Q = self.W_query(concat_Q.reshape(batch * q_len, q_units))
         Q = Q.reshape(batch, q_len, self.att_units)
-        # (batch, q_len, q_units)
+        assert Q.shape == (batch, q_len, self.att_units)
 
-        raw_K, k_pad_mask = prepare_attention(ks)
-        batchsize, k_len, k_units = raw_K.shape
-        K = self.W_key(raw_K.reshape(batch * k_len, k_units))
+        concat_K, k_pad_mask = prepare_attention(ks)
+        batchsize, k_len, k_units = concat_K.shape
+        K = self.W_key(concat_K.reshape(batch * k_len, k_units))
         K = K.reshape(batch, k_len, self.att_units)
-        # (batch, k_len, k_units)
+        assert K.shape == (batch, k_len, self.att_units)
 
         QK_dot = F.batch_matmul(Q, K, transb=True)
-        # (batch, q_len, k_len)
+        assert QK_dot.shape == (batch, q_len, k_len)
+        # ignore attention weights where padded values are used
         QK_pad_mask = q_pad_mask[:, :, None] * k_pad_mask[:, None, :]
+        assert QK_pad_mask.shape == (batch, q_len, k_len)
         minus_infs = self.xp.full(QK_dot.shape, -1024., dtype='f')
         QK_dot = F.where(QK_pad_mask.astype('bool'),
                          QK_dot,
                          minus_infs)
         QK_weight = F.softmax(QK_dot, axis=2)
+        assert QK_weight.shape == (batch, q_len, k_len)
 
+        # broadcast weight to be multiplied to vector
         QK_weight = F.broadcast_to(
             QK_weight[:, :, :, None],
             (batch, q_len, k_len, k_units))
         V = F.broadcast_to(
-            raw_K[:, None, :, :],
+            concat_K[:, None, :, :],
             (batch, q_len, k_len, k_units))
         weighted_V = F.sum(QK_weight * V, axis=2)
-        # (batch, q_len, k_units)
-        split_weighted_V = split_without_pads(
-            weighted_V, lengths=[q.shape[0] for q in qs])
+        assert weighted_V.shape == (batch, q_len, k_units)
+        q_lengths = [q.shape[0] for q in qs]
+        split_weighted_V = split_without_pads(weighted_V, q_lengths)
+        assert all(v.shape == (l, k_units) for l, v
+                   in zip(q_lengths, split_weighted_V))
         return split_weighted_V
 
 
