@@ -274,6 +274,7 @@ class CalculateBleu(chainer.training.Extension):
         bleu = bleu_score.corpus_bleu(
             references, hypotheses,
             smoothing_function=bleu_score.SmoothingFunction().method1)
+        bleu *= 100
         chainer.report({self.key: bleu})
 
 
@@ -398,8 +399,8 @@ def main():
     trainer.extend(extensions.LogReport(
         trigger=(args.log_interval, 'iteration')))
     trainer.extend(extensions.PrintReport(
-        ['epoch', 'iteration', 'main/loss', 'validation/main/loss',
-         'main/perp', 'validation/main/perp', 'validation/main/bleu',
+        ['epoch', 'iteration', 'main/loss',
+         'main/perp', 'validation/main/bleu',
          'elapsed_time']),
         trigger=(args.log_interval, 'iteration'))
 
