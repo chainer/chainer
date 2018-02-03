@@ -84,5 +84,6 @@ vocab.en vocab.fr \
 ```
 
 To activate attention mechanism, please add `--use-attention`. To use bidirectional LSTM, please add `--use-bidirectional`.
+If you meet out of GPU memory, please reduce the size of LSTM units (`--unit`), the number of layers (`--layer`), or batchsize (`--batchsize`).
 
 See command line help for other options.
