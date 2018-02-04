@@ -73,7 +73,7 @@ def main():
 
         @chainer.training.make_extension()
         def fix_ignore_label(trainer):
-            memnn.fix_ignore_label()
+            network.fix_ignore_label()
 
         trainer.extend(fix_ignore_label)
         trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
