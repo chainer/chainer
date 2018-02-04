@@ -22,7 +22,7 @@ In the tutorial, you will learn about the following things:
 1. Basic Idea of Generative Model
 ==================================
 
-1.1 What is Model ?
+1.1 What is Model?
 --------------------
 
 In the field of science and engineering, we describe a system using mathematical
@@ -45,8 +45,42 @@ dogs or cats. Then, the training datasets consist of input images
 :math:`d_1, d_2, \cdots, d_N` and their labels
 :math:`c_1={\rm cat}, c_2={\rm dog}, \cdots, c_N={\rm cat}`.
 
-1.1 What is Generative Model ?
+1.1 What is Generative Model?
 -------------------------------
+
+When we consider about the generarive model, it models the probability distribution
+:math:`p: s \mapsto p(s)` which generates the training data :math:`s`. The most simple
+generative model models the probability distribution :math:`p` with the map :math:`f`.
+We assign each :math:`x` and :math:`y` of :math:`f: x \mapsto y` as following.
+
+* :math:`x` : the training data :math:`s`
+* :math:`y` : the likelihood of generating the training data :math:`s`
+
+In the case, because we models the probability distribution :math:`p` explicitly,
+we can calculate the likelihood :math:`p(s)`. So, we can maximize the likelihood.
+There is an advantage that the learning process is simple. However, there is a
+disadvantage that we have to make a mechanism for sampling because we have only
+the process for calculating the likelihood.
+
+In the fitst place, we often just want to sample according to the distribution
+:math:`s \sim p(s)` in practice. The likelihood :math:`p(s)` is used
+only for model learning. In the case, we sometimes do not model the probability distribution
+:math:`p(s)` directly but other targets to facilitate sampling. 
+
+The first case is to model the probability distributions :math:`p(z)` and :math:`p(s|z)`
+by introducing the latent variable :math:`z`. The VAE, which is described later,
+belongs to this.
+Second, we introduce the latent variable :math:`z` and model the sample generator
+`s = G(z)` according to :math:`s \sim p(s)`. The GAN belongs to this category.
+These models can generate the training data :math:`s` satisfying the probability
+distribution :math:`p(s)` by generating the distribution latent variable :math:`z`
+based on random numbers. 
+
+These generative models can be used for the following purposes:
+
+* Assistance for creative activities (e.g. line drawing coloring)
+* Providing interfaces to people (e.g. generating natural sentences)
+* Reduction of data creation cost (e.g. use as a simulator)
 
 2. The Difference among GAN and Other Generative Models
 ========================================================
