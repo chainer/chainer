@@ -560,6 +560,8 @@ def fuse(*args, **kwargs):
     """
     if available:
         with warnings.catch_warnings():
+            # Currently cupy.fuse is an experimental feature.
+            # Its interface may be changed in the future.
             warnings.simplefilter('ignore', FutureWarning)
             return cupy.fuse(*args, **kwargs)
     else:
