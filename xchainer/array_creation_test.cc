@@ -1,16 +1,13 @@
 #include "xchainer/array.h"
 
-#include <array>
 #include <cstddef>
 #include <initializer_list>
 #include <string>
-#include <type_traits>
 
 #ifdef XCHAINER_ENABLE_CUDA
 #include <cuda_runtime.h>
 #endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
 #ifdef XCHAINER_ENABLE_CUDA
@@ -19,7 +16,6 @@
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/memory.h"
-#include "xchainer/op_node.h"
 
 namespace xchainer {
 namespace {
@@ -96,10 +92,6 @@ void CheckFromBufferMembers(const Array& x, const Shape& shape, Dtype dtype, std
     ExpectDataEqual<T>(data.get(), x);
 }
 
-void CheckEmptyMembers(const Array& x, const Shape& shape, Dtype dtype, const Device& device) {
-    CheckCommonMembers(x, shape, dtype, device);
-}
-
 void CheckFullMembers(const Array& x, const Shape& shape, Scalar scalar, Dtype dtype, const Device& device) {
     CheckCommonMembers(x, shape, dtype, device);
     ExpectDataEqual(x, dtype, scalar);
@@ -119,8 +111,6 @@ void CheckCommonLikeMembers(const Array& x, const Array& x_orig, const Device& d
     EXPECT_EQ(0, x.offset());
     ExpectDataExistsOnDevice(device, x);
 }
-
-void CheckEmptyLikeMembers(const Array& x, const Array& x_orig, const Device& device) { CheckCommonLikeMembers(x, x_orig, device); }
 
 void CheckFullLikeMembers(const Array& x, const Array& x_orig, Scalar scalar, Dtype dtype, const Device& device) {
     CheckCommonLikeMembers(x, x_orig, device);
@@ -168,12 +158,12 @@ protected:
     void CheckEmpty(const Shape& shape, Dtype dtype) {
         auto device_scope = std::make_unique<DeviceScope>(device_);
         Array x = Array::Empty(shape, dtype);
-        CheckEmptyMembers(x, shape, dtype, device_);
+        CheckCommonMembers(x, shape, dtype, device_);
     }
 
     void CheckEmpty(const Shape& shape, Dtype dtype, const Device& device) {
         Array x = Array::Empty(shape, dtype, device);
-        CheckEmptyMembers(x, shape, dtype, device);
+        CheckCommonMembers(x, shape, dtype, device);
     }
 
     void CheckFull(const Shape& shape, Scalar scalar, Dtype dtype) {
@@ -201,26 +191,26 @@ protected:
     void CheckZeros(const Shape& shape, Dtype dtype) {
         auto device_scope = std::make_unique<DeviceScope>(device_);
         Array x = Array::Zeros(shape, dtype);
-        CheckEmptyMembers(x, shape, dtype, device_);
+        CheckCommonMembers(x, shape, dtype, device_);
         ExpectDataEqual(x, dtype, 0);
     }
 
     void CheckZeros(const Shape& shape, Dtype dtype, const Device& device) {
         Array x = Array::Zeros(shape, dtype, device);
-        CheckEmptyMembers(x, shape, dtype, device);
+        CheckCommonMembers(x, shape, dtype, device);
         ExpectDataEqual(x, dtype, 0);
     }
 
     void CheckOnes(const Shape& shape, Dtype dtype) {
         auto device_scope = std::make_unique<DeviceScope>(device_);
         Array x = Array::Ones(shape, dtype);
-        CheckEmptyMembers(x, shape, dtype, device_);
+        CheckCommonMembers(x, shape, dtype, device_);
         ExpectDataEqual(x, dtype, 1);
     }
 
     void CheckOnes(const Shape& shape, Dtype dtype, const Device& device) {
         Array x = Array::Ones(shape, dtype, device);
-        CheckEmptyMembers(x, shape, dtype, device);
+        CheckCommonMembers(x, shape, dtype, device);
         ExpectDataEqual(x, dtype, 1);
     }
 
@@ -228,13 +218,13 @@ protected:
         auto device_scope = std::make_unique<DeviceScope>(device_);
         Array x_orig = Array::Empty(shape, dtype);
         Array x = Array::EmptyLike(x_orig);
-        CheckEmptyLikeMembers(x, x_orig, device_);
+        CheckCommonLikeMembers(x, x_orig, device_);
     }
 
     void CheckEmptyLike(const Shape& shape, Dtype dtype, const Device& device) {
         Array x_orig = Array::Empty(shape, dtype, device);
         Array x = Array::EmptyLike(x_orig, device);
-        CheckEmptyLikeMembers(x, x_orig, device);
+        CheckCommonLikeMembers(x, x_orig, device);
     }
 
     void CheckFullLike(const Shape& shape, Scalar scalar) {
@@ -254,14 +244,14 @@ protected:
         auto device_scope = std::make_unique<DeviceScope>(device_);
         Array x_orig = Array::Empty(shape, dtype);
         Array x = Array::ZerosLike(x_orig);
-        CheckEmptyLikeMembers(x, x_orig, device_);
+        CheckCommonLikeMembers(x, x_orig, device_);
         ExpectDataEqual(x, dtype, 0);
     }
 
     void CheckZerosLike(const Shape& shape, Dtype dtype, const Device& device) {
         Array x_orig = Array::Empty(shape, dtype, device);
         Array x = Array::ZerosLike(x_orig, device);
-        CheckEmptyLikeMembers(x, x_orig, device);
+        CheckCommonLikeMembers(x, x_orig, device);
         ExpectDataEqual(x, dtype, 0);
     }
 
@@ -269,14 +259,14 @@ protected:
         auto device_scope = std::make_unique<DeviceScope>(device_);
         Array x_orig = Array::Empty(shape, dtype);
         Array x = Array::OnesLike(x_orig);
-        CheckEmptyLikeMembers(x, x_orig, device_);
+        CheckCommonLikeMembers(x, x_orig, device_);
         ExpectDataEqual(x, dtype, 1);
     }
 
     void CheckOnesLike(const Shape& shape, Dtype dtype, const Device& device) {
         Array x_orig = Array::Empty(shape, dtype, device);
         Array x = Array::OnesLike(x_orig, device);
-        CheckEmptyLikeMembers(x, x_orig, device);
+        CheckCommonLikeMembers(x, x_orig, device);
         ExpectDataEqual(x, dtype, 1);
     }
 
@@ -323,14 +313,6 @@ TEST_P(ArrayCreationTest, Empty) {
     }
 }
 
-TEST_P(ArrayCreationTest, EmptyLike) {
-    Shape shape({2, 3});
-    for (const Dtype& dtype : GetAllDtypes()) {
-        CheckEmptyLike(shape, dtype);
-        CheckEmptyLike(shape, dtype, GetDevice());
-    }
-}
-
 TEST_P(ArrayCreationTest, Full) {
     Shape shape({2, 3});
     CheckFull(shape, true);
@@ -363,6 +345,30 @@ TEST_P(ArrayCreationTest, Full) {
     CheckFull(shape, double{2.0}, Dtype::kInt8, GetDevice());
 }
 
+TEST_P(ArrayCreationTest, Zeros) {
+    Shape shape({2, 3});
+    for (const Dtype& dtype : GetAllDtypes()) {
+        CheckZeros(shape, dtype);
+        CheckZeros(shape, dtype, GetDevice());
+    }
+}
+
+TEST_P(ArrayCreationTest, Ones) {
+    Shape shape({2, 3});
+    for (const Dtype& dtype : GetAllDtypes()) {
+        CheckOnes(shape, dtype);
+        CheckOnes(shape, dtype, GetDevice());
+    }
+}
+
+TEST_P(ArrayCreationTest, EmptyLike) {
+    Shape shape({2, 3});
+    for (const Dtype& dtype : GetAllDtypes()) {
+        CheckEmptyLike(shape, dtype);
+        CheckEmptyLike(shape, dtype, GetDevice());
+    }
+}
+
 TEST_P(ArrayCreationTest, FullLike) {
     Shape shape({2, 3});
     CheckFullLike(shape, true);
@@ -381,27 +387,11 @@ TEST_P(ArrayCreationTest, FullLike) {
     CheckFullLike(shape, double{2.0}, GetDevice());
 }
 
-TEST_P(ArrayCreationTest, Zeros) {
-    Shape shape({2, 3});
-    for (const Dtype& dtype : GetAllDtypes()) {
-        CheckZeros(shape, dtype);
-        CheckZeros(shape, dtype, GetDevice());
-    }
-}
-
 TEST_P(ArrayCreationTest, ZerosLike) {
     Shape shape({2, 3});
     for (const Dtype& dtype : GetAllDtypes()) {
         CheckZerosLike(shape, dtype);
         CheckZerosLike(shape, dtype, GetDevice());
-    }
-}
-
-TEST_P(ArrayCreationTest, Ones) {
-    Shape shape({2, 3});
-    for (const Dtype& dtype : GetAllDtypes()) {
-        CheckOnes(shape, dtype);
-        CheckOnes(shape, dtype, GetDevice());
     }
 }
 
