@@ -1,5 +1,6 @@
 #include "xchainer/array.h"
 
+#include <cassert>
 #include <cstddef>
 #include <initializer_list>
 #include <string>
@@ -114,6 +115,7 @@ protected:
 
     template <typename T>
     void CheckFromBuffer(const Shape& shape, Dtype dtype, std::initializer_list<T> raw_data) {
+        assert(shape.total_size() == static_cast<int64_t>(raw_data.size()));
         auto device_scope = std::make_unique<DeviceScope>(device_);
         std::shared_ptr<T> data = std::make_unique<T[]>(shape.total_size());
         std::copy(raw_data.begin(), raw_data.end(), data.get());
@@ -129,6 +131,7 @@ protected:
 
     template <typename T>
     void CheckFromBuffer(const Shape& shape, Dtype dtype, std::initializer_list<T> raw_data, const Device& device) {
+        assert(shape.total_size() == static_cast<int64_t>(raw_data.size()));
         std::shared_ptr<T> data = std::make_unique<T[]>(shape.total_size());
         std::copy(raw_data.begin(), raw_data.end(), data.get());
         {
