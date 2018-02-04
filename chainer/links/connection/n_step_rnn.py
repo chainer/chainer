@@ -109,6 +109,13 @@ class NStepRNNBase(link.ChainList):
             hx = variable.Variable(self.xp.zeros(shape, dtype=xs[0].dtype))
         return hx
 
+    def rnn(self, *args):
+        """Calls RNN function.
+
+        This function must be implemented in a child class.
+        """
+        raise NotImplementedError
+
     def __call__(self, hx, xs, **kwargs):
         """__call__(self, hx, xs)
 
@@ -212,7 +219,9 @@ class NStepRNNTanh(NStepRNNBase):
 
     n_weights = 2
     use_bi_direction = False
-    rnn = lambda *args: rnn.n_step_rnn(*args, activation='tanh')
+
+    def rnn(self, *args):
+        return rnn.n_step_rnn(*args, activation='tanh')
 
 
 class NStepRNNReLU(NStepRNNBase):
@@ -249,7 +258,9 @@ class NStepRNNReLU(NStepRNNBase):
 
     n_weights = 2
     use_bi_direction = False
-    rnn = lambda *args: rnn.n_step_rnn(*args, activation='relu')
+
+    def rnn(self, *args):
+        return rnn.n_step_rnn(*args, activation='relu')
 
 
 class NStepBiRNNTanh(NStepRNNBase):
@@ -287,7 +298,9 @@ class NStepBiRNNTanh(NStepRNNBase):
 
     n_weights = 2
     use_bi_direction = True
-    rnn = lambda *args: rnn.n_step_birnn(*args, activation='tanh')
+
+    def rnn(self, *args):
+        return rnn.n_step_birnn(*args, activation='tanh')
 
 
 class NStepBiRNNReLU(NStepRNNBase):
@@ -324,4 +337,6 @@ class NStepBiRNNReLU(NStepRNNBase):
 
     n_weights = 2
     use_bi_direction = True
-    rnn = lambda *args: rnn.n_step_birnn(*args, activation='relu')
+
+    def rnn(self, *args):
+        return rnn.n_step_birnn(*args, activation='relu')

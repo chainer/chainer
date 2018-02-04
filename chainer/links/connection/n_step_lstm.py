@@ -93,7 +93,9 @@ class NStepLSTM(NStepLSTMBase):
     """
 
     use_bi_direction = False
-    rnn = rnn.n_step_lstm
+
+    def rnn(self, *args):
+        return rnn.n_step_lstm(*args)
 
 
 class NStepBiLSTM(NStepLSTMBase):
@@ -134,4 +136,6 @@ class NStepBiLSTM(NStepLSTMBase):
     """
 
     use_bi_direction = True
-    rnn = rnn.n_step_bilstm
+
+    def rnn(self, *args):
+        return rnn.n_step_bilstm(*args)

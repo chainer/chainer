@@ -67,7 +67,9 @@ class NStepGRU(NStepGRUBase):
     """
 
     use_bi_direction = False
-    rnn = rnn.n_step_gru
+
+    def rnn(self, *args):
+        return rnn.n_step_gru(*args)
 
 
 class NStepBiGRU(NStepGRUBase):
@@ -103,4 +105,6 @@ class NStepBiGRU(NStepGRUBase):
     """
 
     use_bi_direction = True
-    rnn = rnn.n_step_bigru
+
+    def rnn(self, *args):
+        return rnn.n_step_bigru(*args)
