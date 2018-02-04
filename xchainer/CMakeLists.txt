@@ -53,6 +53,7 @@ install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)
     set(srcs
+        array_creation_test.cc
         array_repr_test.cc
         array_test.cc
         check_backward.cc
