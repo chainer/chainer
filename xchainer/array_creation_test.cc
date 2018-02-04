@@ -92,15 +92,6 @@ void CheckFromBufferMembers(const Array& x, const Shape& shape, Dtype dtype, std
     ExpectDataEqual<T>(data.get(), x);
 }
 
-void CheckFullMembers(const Array& x, const Shape& shape, Scalar scalar, Dtype dtype, const Device& device) {
-    CheckCommonMembers(x, shape, dtype, device);
-    ExpectDataEqual(x, dtype, scalar);
-}
-
-void CheckFullMembers(const Array& x, const Shape& shape, Scalar scalar, const Device& device) {
-    CheckFullMembers(x, shape, scalar, scalar.dtype(), device);
-}
-
 // Common criteria for EmptyLike, FullLike, OnesLike, ZerosLike, etc.
 void CheckCommonLikeMembers(const Array& x, const Array& x_orig, const Device& device) {
     EXPECT_NE(nullptr, x.data());
@@ -110,11 +101,6 @@ void CheckCommonLikeMembers(const Array& x, const Array& x_orig, const Device& d
     EXPECT_TRUE(x.is_contiguous());
     EXPECT_EQ(0, x.offset());
     ExpectDataExistsOnDevice(device, x);
-}
-
-void CheckFullLikeMembers(const Array& x, const Array& x_orig, Scalar scalar, Dtype dtype, const Device& device) {
-    CheckCommonLikeMembers(x, x_orig, device);
-    ExpectDataEqual(x, dtype, scalar);
 }
 
 class ArrayCreationTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
@@ -169,23 +155,27 @@ protected:
     void CheckFull(const Shape& shape, Scalar scalar, Dtype dtype) {
         auto device_scope = std::make_unique<DeviceScope>(device_);
         Array x = Array::Full(shape, scalar, dtype);
-        CheckFullMembers(x, shape, scalar, dtype, device_);
+        CheckCommonMembers(x, shape, dtype, device_);
+        ExpectDataEqual(x, dtype, scalar);
     }
 
     void CheckFull(const Shape& shape, Scalar scalar, Dtype dtype, const Device& device) {
         Array x = Array::Full(shape, scalar, dtype, device);
-        CheckFullMembers(x, shape, scalar, dtype, device);
+        CheckCommonMembers(x, shape, dtype, device);
+        ExpectDataEqual(x, dtype, scalar);
     }
 
     void CheckFull(const Shape& shape, Scalar scalar) {
         auto device_scope = std::make_unique<DeviceScope>(device_);
         Array x = Array::Full(shape, scalar);
-        CheckFullMembers(x, shape, scalar, device_);
+        CheckCommonMembers(x, shape, scalar.dtype(), device_);
+        ExpectDataEqual(x, scalar.dtype(), scalar);
     }
 
     void CheckFull(const Shape& shape, Scalar scalar, const Device& device) {
         Array x = Array::Full(shape, scalar, device);
-        CheckFullMembers(x, shape, scalar, device);
+        CheckCommonMembers(x, shape, scalar.dtype(), device);
+        ExpectDataEqual(x, scalar.dtype(), scalar);
     }
 
     void CheckZeros(const Shape& shape, Dtype dtype) {
@@ -231,13 +221,15 @@ protected:
         auto device_scope = std::make_unique<DeviceScope>(device_);
         Array x_orig = Array::Empty(shape, scalar.dtype());
         Array x = Array::FullLike(x_orig, scalar);
-        CheckFullLikeMembers(x, x_orig, scalar, scalar.dtype(), device_);
+        CheckCommonLikeMembers(x, x_orig, device_);
+        ExpectDataEqual(x, scalar.dtype(), scalar);
     }
 
     void CheckFullLike(const Shape& shape, Scalar scalar, const Device& device) {
         Array x_orig = Array::Empty(shape, scalar.dtype(), device);
         Array x = Array::FullLike(x_orig, scalar, device);
-        CheckFullLikeMembers(x, x_orig, scalar, scalar.dtype(), device);
+        CheckCommonLikeMembers(x, x_orig, device);
+        ExpectDataEqual(x, scalar.dtype(), scalar);
     }
 
     void CheckZerosLike(const Shape& shape, Dtype dtype) {
