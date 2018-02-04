@@ -251,29 +251,34 @@ def lstm_grad_grad(
 
     gc_bar = gh * sig_o * gtanh_c + gc
 
-    cuda.cupy.fusion.multiply(ggf * gc_bar, gsig_f, out=gc_prev)
-    cuda.cupy.fusion.multiply(
+    if isinstance(c_prev, numpy.ndarray):
+        xp = numpy
+    else:
+        xp = cuda.cupy.fusion
+
+    xp.multiply(ggf * gc_bar, gsig_f, out=gc_prev)
+    xp.multiply(
         (gga * sig_i * ggtanh_a + ggi * gtanh_a * gsig_i), gc_bar,
         out=ga)
-    cuda.cupy.fusion.multiply(
+    xp.multiply(
         (gga * gtanh_a * gsig_i + ggi * tanh_a * ggsig_i), gc_bar,
         out=gi)
-    cuda.cupy.fusion.add(
+    xp.add(
         ggc_prev * (gh * sig_o * gtanh_c + gc) * gsig_f,
         ggf * gc_bar * c_prev * ggsig_f, out=gf)
 
-    cuda.cupy.fusion.add(
+    xp.add(
         ggc_prev * sig_f +
         gga * sig_i * gtanh_a +
         ggi * tanh_a * gsig_i,
         ggf * c_prev * gsig_f, out=ggc)
 
     dgc_do = gh * gsig_o * gtanh_c
-    cuda.cupy.fusion.add(ggc * dgc_do, ggo * gh * tanh_c * ggsig_o, out=go)
+    xp.add(ggc * dgc_do, ggo * gh * tanh_c * ggsig_o, out=go)
     dgc_dc = gh * sig_o * ggtanh_c
-    cuda.cupy.fusion.add(
+    xp.add(
         ggc * dgc_dc, ggo * gh * gtanh_c * gsig_o, out=gc_next)
-    cuda.cupy.fusion.add(ggc * sig_o * gtanh_c, ggo * tanh_c * gsig_o, out=ggh)
+    xp.add(ggc * sig_o * gtanh_c, ggo * tanh_c * gsig_o, out=ggh)
     return gc_prev, ga, gi, gf, go, gc_next, ggc, ggh
 
 
