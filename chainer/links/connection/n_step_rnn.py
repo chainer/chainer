@@ -91,6 +91,13 @@ class NStepRNNBase(link.ChainList):
 
         super(NStepRNNBase, self).__init__(*weights)
 
+        self.ws = [[getattr(layer, 'w%d' % i)
+                    for i in six.moves.range(self.n_weights)]
+                   for layer in self]
+        self.bs = [[getattr(layer, 'b%d' % i)
+                    for i in six.moves.range(self.n_weights)]
+                   for layer in self]
+
         self.n_layers = n_layers
         self.dropout = dropout
         self.out_size = out_size
@@ -158,13 +165,9 @@ class NStepRNNBase(link.ChainList):
 
         trans_x = transpose_sequence.transpose_sequence(xs)
 
-        ws = [[getattr(w, 'w%d' % i) for i in range(self.n_weights)]
-              for w in self]
-        bs = [[getattr(w, 'b%d' % i) for i in range(self.n_weights)]
-              for w in self]
-
-        args = [self.n_layers, self.dropout] + hxs + [ws, bs, trans_x]
-        result = self.__class__.rnn(*args)
+        args = [self.n_layers, self.dropout] + hxs + \
+               [self.ws, self.bs, trans_x]
+        result = self.rnn(*args)
 
         hys = [permutate.permutate(h, indices_array, axis=1, inv=True)
                for h in result[:-1]]
