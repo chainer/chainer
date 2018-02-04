@@ -30,11 +30,11 @@ def bow_encode(embed, sentences):
 
        m = \sum_j A x_j,
 
-    where :math:`A` is an embed matrix, and :math:`x_j` is :math:`j`-th word ID.
+    where :math:`A` is an embed matrix, and :math:`x_j` is :math:`j`-th word
+    ID.
 
     """
 
-    xp = cuda.get_array_module(sentences)
     e = embed(sentences)
     s = F.sum(e, axis=-2)
     return s
@@ -62,7 +62,6 @@ def position_encode(embed, sentences):
 
     xp = cuda.get_array_module(sentences)
     e = embed(sentences)
-    ndim = e.ndim
     n_words, n_units = e.shape[-2:]
 
     # To avoid 0/0, we use max(length, 1) here.
@@ -244,7 +243,8 @@ def main():
             print('Unknonw --sentence-repr option: "%s"' % args.sentence_repr)
             sys.exit(1)
 
-        memnn = MemNN(args.unit, len(vocab), encoder, args.max_memory, args.hop)
+        memnn = MemNN(
+            args.unit, len(vocab), encoder, args.max_memory, args.hop)
         model = L.Classifier(memnn, label_key='answer')
         opt = optimizers.Adam()
 
