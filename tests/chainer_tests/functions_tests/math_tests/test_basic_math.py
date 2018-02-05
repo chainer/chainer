@@ -220,7 +220,7 @@ class TestBinaryOp(unittest.TestCase):
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestBinaryOpTuple(unittest.TestCase):
+class TestMultipleAdd(unittest.TestCase):
 
     def setUp(self):
         self.x1 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
@@ -231,7 +231,7 @@ class TestBinaryOpTuple(unittest.TestCase):
         self.ggx2 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.ggx3 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
-    def check_forward(self, func, op, x1_data, x2_data, x3_data):
+    def check_forward(self, func, x1_data, x2_data, x3_data):
         x1 = chainer.Variable(x1_data)
         x2 = chainer.Variable(x2_data)
         x3 = chainer.Variable(x3_data)
@@ -240,32 +240,56 @@ class TestBinaryOpTuple(unittest.TestCase):
         if self.dtype == numpy.float16:
             options = {'atol': 1e-4, 'rtol': 1e-3}
         testing.assert_allclose(
-            op(op(self.x1, self.x2), self.x3), y.data, **options)
+            (self.x1 + self.x2 + self.x3), y.data, **options)
 
-    def forward_cpu(self, func, op):
-        self.check_forward(func, op, self.x1, self.x2, self.x3)
+    def forward_cpu(self, func):
+        self.check_forward(func, self.x1, self.x2, self.x3)
 
     def test_add_forward_cpu(self):
         func = chainer.functions.add
+        self.forward_cpu(func)
 
-        def op(x, y):
-            return x + y
-
-        self.forward_cpu(func, op)
-
-    def check_backward(self, op, x1_data, x2_data, x3_data, y_grad):
+    def check_backward(self, func, x1_data, x2_data, x3_data, y_grad):
         options = {}
         if self.dtype == numpy.float16:
             options = {'atol': 5e-3, 'rtol': 5e-2}
-        gradient_check.check_backward(op, (x1_data, x2_data, x3_data), y_grad,
+        gradient_check.check_backward(func, (x1_data, x2_data, x3_data),
+                                      y_grad,
                                       dtype=numpy.float64, **options)
 
-    def backward_cpu(self, op):
-        self.check_backward(op, self.x1, self.x2, self.x3, self.gy)
+    def backward_cpu(self, func):
+        self.check_backward(func, self.x1, self.x2, self.x3, self.gy)
 
     def test_add_backward_cpu(self):
-        op = chainer.functions.add
-        self.backward_cpu(op)
+        func = chainer.functions.add
+        self.backward_cpu(func)
+
+    def check_double_backward(
+            self, func, x1_data, x2_data, x3_data, y_grad,
+            ggx1_data, ggx2_data, ggx3_data, **args):
+        options = {}
+        if self.dtype == numpy.float16:
+            options = {'atol': 5e-3, 'rtol': 5e-2}
+        options.update(args)
+
+        def _op(*xs):
+            y = func(*xs)
+            return y * y
+
+        gradient_check.check_double_backward(
+            _op, (x1_data, x2_data, x3_data), y_grad, (ggx1_data,
+                                                       ggx2_data, ggx3_data),
+            dtype=numpy.float64, **options)
+
+    def double_backward_cpu(self, func, **options):
+        self.check_double_backward(
+            func, self.x1, self.x2, self.x3, self.gy,
+            self.ggx1, self.ggx2, self.ggx3,
+            **options)
+
+    def test_double_backward_cpu(self):
+        func = chainer.functions.add
+        self.double_backward_cpu(func, atol=5e-2, rtol=5e-2)
 
 
 @testing.parameterize(*testing.product({
