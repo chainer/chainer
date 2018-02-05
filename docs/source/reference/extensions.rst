@@ -22,4 +22,5 @@ Trainer extensions
    chainer.training.extensions.PlotReport
    chainer.training.extensions.PrintReport
    chainer.training.extensions.ProgressBar
+   chainer.training.extensions.VariableStatisticsPlot
    
