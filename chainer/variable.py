@@ -407,6 +407,22 @@ def _create_variable(data, name, grad, requires_grad):
         data, name=name, grad=grad, requires_grad=requires_grad)
 
 
+class _Data(object):
+
+    """Tiny object that represents Variable's data with its initialized and uninitialized states."""
+
+    data = None
+
+    def __init__(self, data=None):
+        self.data = data
+
+    def get(self):
+        return self.data
+
+    def set(self, data):
+        self.data = data
+
+
 class Variable(object):
 
     """__init__(data=None, *, name=None, grad=None, requires_grad=True)
@@ -459,9 +475,7 @@ class Variable(object):
 Actual: {0}'''.format(type(data))
             raise TypeError(msg)
 
-        # Use a list as a data structure to hold the data array indirectly to
-        # abstract its initialized/uninitialized state.
-        self._data = [data]
+        self._data = _Data(data)
         self._requires_grad = requires_grad
         self._node = VariableNode(self, name)
         self._grad_var = None if grad is None else Variable(grad)
@@ -610,11 +624,11 @@ Actual: {0}'''.format(type(data))
         or ``None`` if the variable in in an uninitialized state.
 
         """
-        return self._data[0]
+        return self._data.get()
 
     @array.setter
     def array(self, d):
-        self._data[0] = d
+        self._data.set(d)
         self._node._update_data_info(d)
 
     @property
@@ -628,11 +642,11 @@ Actual: {0}'''.format(type(data))
         ``.data``.
 
         """
-        return self._data[0]
+        return self._data.get()
 
     @data.setter
     def data(self, d):
-        self._data[0] = d
+        self._data.set(d)
         self._node._update_data_info(d)
 
     @property
@@ -701,7 +715,7 @@ Actual: {0}'''.format(type(data))
         if self.data is None:
             return
 
-        self._data = [cuda.to_cpu(self.data)]
+        self._data = _Data(cuda.to_cpu(self.data))
         if self._grad_var is not None:
             self._grad_var.to_cpu()
         # ensure that the node tracks the device migration
@@ -720,9 +734,9 @@ Actual: {0}'''.format(type(data))
         if self.data is None:
             self._initial_device = (cuda.Device().id
                                     if device is None else device)
-            self._data = [None]  # Renew placeholder to break sharing
+            self._data = _Data(None)
         else:
-            self._data = [cuda.to_gpu(self.data, device)]
+            self._data = _Data(cuda.to_gpu(self.data, device))
             if self._grad_var is not None:
                 self._grad_var.to_gpu(device)
             # ensure that the node tracks the device migration
@@ -1122,7 +1136,7 @@ Actual: {0}'''.format(type(data))
 
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
-        self._node.data = self._data[0]
+        self._node.data = self._data.get()
 
     def __lt__(self, other):
         raise NotImplementedError()
