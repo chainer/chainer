@@ -3,7 +3,12 @@
 #include <future>
 
 #include <gtest/gtest.h>
+#include "xchainer/backend.h"
+#ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/cuda_backend.h"
+#endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/error.h"
+#include "xchainer/native_backend.h"
 
 namespace xchainer {
 namespace {
@@ -21,7 +26,7 @@ private:
     Device orig_;
 };
 
-TEST(DeviceTest, MakeDevice) {
+TEST_F(DeviceTest, MakeDevice) {
     auto native_backend = std::make_unique<NativeBackend>();
     Device expect = {"abcde", native_backend.get()};
     Device actual = MakeDevice("abcde", native_backend.get());
@@ -39,13 +44,13 @@ TEST_F(DeviceTest, SetCurrentDevice) {
     ASSERT_EQ(native_device, GetCurrentDevice());
 
 #ifdef XCHAINER_ENABLE_CUDA
-    auto cuda_backend = std::make_unique<cuda::CudaDevice>();
+    auto cuda_backend = std::make_unique<cuda::CudaBackend>();
     auto cuda_device = MakeDevice("cuda", cuda_backend.get());
     SetCurrentDevice(cuda_device);
     ASSERT_EQ(cuda_device, GetCurrentDevice());
 #endif  // XCHAINER_ENABLE_CUDA
 
-    auto native_backend2 = std::make_unique<NativeDevice>();
+    auto native_backend2 = std::make_unique<NativeBackend>();
     auto native_device2 = MakeDevice("cpu2", native_backend2.get());
     SetCurrentDevice(native_device2);
     ASSERT_EQ(native_device2, GetCurrentDevice());
@@ -53,13 +58,13 @@ TEST_F(DeviceTest, SetCurrentDevice) {
 
 TEST_F(DeviceTest, ThreadLocal) {
     auto backend1 = std::make_unique<NativeBackend>();
-    auto device1 = MakeDevice("cpu1", device1.get());
+    auto device1 = MakeDevice("cpu1", backend1.get());
     SetCurrentDevice(device1);
 
     auto future = std::async(std::launch::async, [] {
         auto backend2 = std::make_unique<NativeBackend>();
-        auto device2 = MakeDevice("cpu2", device2.get());
-        SetCurrentDevice(device2.get());
+        auto device2 = MakeDevice("cpu2", backend2.get());
+        SetCurrentDevice(device2);
         return GetCurrentDevice();
     });
     ASSERT_NE(GetCurrentDevice(), future.get());
@@ -68,30 +73,29 @@ TEST_F(DeviceTest, ThreadLocal) {
 TEST_F(DeviceTest, DeviceScopeCtor) {
     {
         // DeviceScope should work even if current device is kDefaultDevice
-        auto backend = std::make_unique<NativeDevice>();
+        auto backend = std::make_unique<NativeBackend>();
         auto device = MakeDevice("cpu", backend.get());
         DeviceScope scope(device);
     }
-
-    auto backend1 = std::make_unique<NativeDevice>();
+    auto backend1 = std::make_unique<NativeBackend>();
     auto device1 = MakeDevice("cpu1", backend1.get());
     SetCurrentDevice(device1);
     {
-        auto backend2 = std::make_unique<NativeDevice>();
+        auto backend2 = std::make_unique<NativeBackend>();
         auto device2 = MakeDevice("cpu2", backend2.get());
         DeviceScope scope(device2);
-        EXPECT_EQ(device1, GetCurrentDevice());
+        EXPECT_EQ(device2, GetCurrentDevice());
     }
     ASSERT_EQ(device1, GetCurrentDevice());
     {
         DeviceScope scope;
         EXPECT_EQ(device1, GetCurrentDevice());
-        auto backend2 = std::make_unique<NativeDevice>();
+        auto backend2 = std::make_unique<NativeBackend>();
         auto device2 = MakeDevice("cpu2", backend2.get());
         SetCurrentDevice(device2);
     }
     ASSERT_EQ(device1, GetCurrentDevice());
-    auto backend2 = std::make_unique<NativeDevice>();
+    auto backend2 = std::make_unique<NativeBackend>();
     auto device2 = MakeDevice("cpu2", backend2.get());
     {
         DeviceScope scope(device2);
