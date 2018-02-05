@@ -41,10 +41,11 @@ bool IsPointerCudaMemory(const void* ptr) {
 }
 
 std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) {
-    if (device == MakeDevice("cpu")) {
+    // TODO(sonots): Use device.backend->Allocate()
+    if (strncmp(device.name, "cpu", kMaxDeviceNameLength) == 0) {
         return std::make_unique<uint8_t[]>(bytesize);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (device == MakeDevice("cuda")) {
+    } else if (strncmp(device.name, "cuda", kMaxDeviceNameLength) == 0) {
         void* raw_ptr = nullptr;
         // Be careful to be exception-safe, i.e., do not throw before creating shared_ptr
         cudaError_t status = cudaMallocManaged(&raw_ptr, bytesize, cudaMemAttachGlobal);
@@ -88,8 +89,9 @@ void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
 }
 
 std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
+// TODO(sonots): Use device.backend->FromBuffer()
 #ifdef XCHAINER_ENABLE_CUDA
-    if (device == MakeDevice("cpu")) {
+    if (strncmp(device.name, "cpu", kMaxDeviceNameLength) == 0) {
         if (IsPointerCudaMemory(src_ptr.get())) {
             std::shared_ptr<void> dst_ptr = Allocate(device, bytesize);
             cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyDeviceToHost));
@@ -97,7 +99,7 @@ std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_p
         } else {
             return src_ptr;
         }
-    } else if (device == MakeDevice("cuda")) {
+    } else if (strncmp(device.name, "cuda", kMaxDeviceNameLength) == 0) {
         if (IsPointerCudaMemory(src_ptr.get())) {
             return src_ptr;
         } else {
@@ -110,7 +112,7 @@ std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_p
     }
 #else
     (void)bytesize;  // unused
-    if (device == MakeDevice("cpu")) {
+    if (strncmp(device.name, "cpu", kMaxDeviceNameLength) == 0) {
         return src_ptr;
     } else {
         throw DeviceError("invalid device");
