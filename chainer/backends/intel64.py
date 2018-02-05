@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
+import chainer
 from chainer.configuration import config
-from chainer import variable
 
 
 _ideep_version = None
@@ -94,7 +94,7 @@ def inputs_all_ready(inputs, supported_ndim=(2, 4)):
     if _ideep_version is None:
         return False
 
-    inputs = [x.data if isinstance(x, variable.Variable)
+    inputs = [x.data if isinstance(x, chainer.variable.Variable)
               else x for x in inputs]
 
     return (ideep.check_ndim(inputs, supported_ndim)
