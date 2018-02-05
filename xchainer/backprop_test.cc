@@ -11,13 +11,16 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
+#include "xchainer/backend.h"
 #include "xchainer/backprop.h"
 #ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/shape.h"
 
@@ -28,7 +31,15 @@ class BackpropTest : public ::testing::TestWithParam<::testing::tuple<std::strin
 protected:
     virtual void SetUp() {
         std::string device_name = ::testing::get<0>(GetParam());
-        device_scope_ = std::make_unique<DeviceScope>(device_name);
+        std::unique_ptr<Backend> backend;
+        if (device_name == "cpu") {
+            backend = std::make_unique<NativeBackend>();
+#ifdef XCHAINER_ENABLE_CUDA
+        } else if (device_name == "cuda") {
+            backend = std::make_unique<cuda::CudaBackend>();
+#endif  // XCHAINER_ENABLE_CUDA
+        }
+        device_scope_ = std::make_unique<DeviceScope>(device_name, backend.get());
     }
 
     virtual void TearDown() { device_scope_.reset(); }
