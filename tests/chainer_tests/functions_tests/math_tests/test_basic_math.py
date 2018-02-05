@@ -272,12 +272,12 @@ class TestMultipleAdd(unittest.TestCase):
             options = {'atol': 5e-3, 'rtol': 5e-2}
         options.update(args)
 
-        def _op(*xs):
+        def _func(*xs):
             y = func(*xs)
             return y * y
 
         gradient_check.check_double_backward(
-            _op, (x1_data, x2_data, x3_data), y_grad, (ggx1_data,
+            _func, (x1_data, x2_data, x3_data), y_grad, (ggx1_data,
                                                        ggx2_data, ggx3_data),
             dtype=numpy.float64, **options)
 
