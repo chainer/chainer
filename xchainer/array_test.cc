@@ -329,6 +329,7 @@ TEST_P(ArrayTest, CopyCtor) {
     // A copy-constructed instance must be a view
     {
         ExpectEqualView<bool>(a, b);
+        EXPECT_NE(a.body(), b.body());
         EXPECT_THROW(internal::GetArrayNode(a), XchainerError);
         EXPECT_THROW(internal::GetArrayNode(b), XchainerError);
     }
@@ -944,6 +945,7 @@ TEST_P(ArrayTest, AsConstantView) {
         Array b = a.AsConstant(CopyKind::kView);
 
         ExpectEqualView<bool>(a, b);
+        EXPECT_NE(a.body(), b.body());
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
         EXPECT_FALSE(b.IsGradRequired("graph_2"));
 
@@ -963,6 +965,7 @@ TEST_P(ArrayTest, AsConstantView) {
         Array b = a.AsConstant({"graph_1", "graph_2"}, CopyKind::kView);
 
         ExpectEqualView<bool>(a, b);
+        EXPECT_NE(a.body(), b.body());
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
         EXPECT_FALSE(b.IsGradRequired("graph_2"));
         EXPECT_TRUE(b.IsGradRequired("graph_3"));
