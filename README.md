@@ -15,7 +15,7 @@
 | **Examples** ([Official](https://github.com/chainer/chainer/blob/master/examples), [External](https://github.com/chainer/chainer/wiki/External-examples))
 
 **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
-| **Slack invitation** ([en](https://bit.ly/chainer-slack), [ja](https://bit.ly/chainer-jp-slack))
+| **Slack invitation** ([en](https://bit.ly/join-chainer-slack), [ja](https://bit.ly/join-chainer-jp-slack))
 | **Slack archive** ([en](https://chainer.slackarchive.io), [ja](https://chainer-jp.slackarchive.io))
 | **Twitter** ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
 

@@ -474,7 +474,7 @@ Use apply() method instead.\
             target_input_indexes (tuple of int): Indices of the input variables
                 w.r.t. which the gradients are required. It is guaranteed that
                 this tuple contains at least one element.
-            grad_outputs (tuple of :class:`~chainer.Variable`\ s): Gradients
+            grad_outputs (tuple of :class:`~chainer.Variable`\\ s): Gradients
                 w.r.t. the output variables.
                 If the gradient w.r.t. an output variable is not
                 given, the corresponding element is ``None``.
@@ -652,7 +652,7 @@ Use apply() method instead.\
 
 
 def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
-         retain_grad=False, enable_double_backprop=False):
+         retain_grad=False, enable_double_backprop=False, loss_scale=None):
     """Computes the gradient of output variables w.r.t.\\  the input variables.
 
     This function implements the backpropagation algorithm. While
@@ -701,6 +701,14 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             the memory consumption (and possibly the computational time) to
             remember the intermediate gradient values for the second
             backpropagation.
+        loss_scale (float): Loss scaling factor. Loss scaling is a usefull
+            technique to mitigate vanishing gradient issue that tends to happen
+            when low precision data type like float16 is used during training.
+            If you set loss scaling factor, gradients of loss values are to be
+            multiplied by the factor before backprop starts. The factor is
+            propagated to whole gradients in a computational graph along the
+            backporp. The gradients of parameters are divided by the factor
+            just before the parameters are to be updated.
 
     Returns:
         A list of gradient variables w.r.t. the inputs.
@@ -777,6 +785,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                 else:
                     gy_data = cuda.cupy.ones_like(y.data)
                 gy = variable.Variable(gy_data, requires_grad=False)
+            if loss_scale is not None:
+                gy.data *= loss_scale
         grads[y.node] = gy
 
     if grad_inputs is not None:
@@ -787,7 +797,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     # Backprop implementation. It edits grads which will only contain the
     # gradients w.r.t. the inputs.
     with chainer.using_config('enable_backprop', enable_double_backprop):
-        _backprop(outputs, inputs, grad_required, retain_grad, grads)
+        _backprop(outputs, inputs, grad_required, retain_grad, grads,
+                  loss_scale)
 
     # Extract the gradients w.r.t. the inputs and return them.
     ret = [grads.get(x.node, None) for x in inputs]
@@ -798,7 +809,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     return ret
 
 
-def _backprop(outputs, inputs, grad_required, retain_grad, grads):
+def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
     candidate_funcs, push_candidate, pop_candidate = _get_ordered_func_heap()
 
     for y in outputs:
@@ -875,6 +886,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
                 v = node.get_variable_or_none()
                 if v is not None:
                     v.grad_var = g
+                    v._loss_scale = loss_scale
 
             creator = node.creator_node
             if creator is not None:

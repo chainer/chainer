@@ -47,9 +47,9 @@ def swapaxes(x, axis1, axis2):
         >>> y.shape
         (2, 1, 3)
         >>> y.data
-        array([[[ 0.,  1.,  2.]],
+        array([[[0., 1., 2.]],
         <BLANKLINE>
-               [[ 3.,  4.,  5.]]], dtype=float32)
+               [[3., 4., 5.]]], dtype=float32)
 
     """
     y, = Swapaxes(axis1, axis2).apply((x,))

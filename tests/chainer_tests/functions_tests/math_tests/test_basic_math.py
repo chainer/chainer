@@ -50,6 +50,9 @@ class TestBinaryOp(unittest.TestCase):
     def test_div_forward_cpu(self):
         self.forward_cpu(lambda x, y: x / y)
 
+    def test_floordiv_forward_cpu(self):
+        self.forward_cpu(lambda x, y: x // y)
+
     def test_pow_forward_cpu(self):
         self.forward_cpu(lambda x, y: x ** y)
 
@@ -64,6 +67,9 @@ class TestBinaryOp(unittest.TestCase):
 
     def test_rdiv_forward_cpu(self):
         self.forward_cpu(lambda x, y: y.__rtruediv__(x))
+
+    def test_rfloordiv_forward_cpu(self):
+        self.forward_cpu(lambda x, y: y.__rfloordiv__(x))
 
     def test_rpow_forward_cpu(self):
         self.forward_cpu(lambda x, y: y.__rpow__(x))
@@ -88,6 +94,10 @@ class TestBinaryOp(unittest.TestCase):
         self.forward_gpu(lambda x, y: x / y)
 
     @attr.gpu
+    def test_floordiv_forward_gpu(self):
+        self.forward_gpu(lambda x, y: x // y)
+
+    @attr.gpu
     def test_pow_forward_gpu(self):
         self.forward_gpu(lambda x, y: x ** y)
 
@@ -106,6 +116,10 @@ class TestBinaryOp(unittest.TestCase):
     @attr.gpu
     def test_rdiv_forward_gpu(self):
         self.forward_gpu(lambda x, y: y.__rtruediv__(x))
+
+    @attr.gpu
+    def test_rfloordiv_forward_gpu(self):
+        self.forward_gpu(lambda x, y: y.__rfloordiv__(x))
 
     @attr.gpu
     def test_rpow_forward_gpu(self):
@@ -1070,12 +1084,18 @@ class TestNegativePow(unittest.TestCase):
         {'x_shape': (3,), 'y_shape': (3,), 'z_shape': ()},
     ]
 ))
+@unittest.skipUnless(sys.version_info >= (3, 5),
+                     'Only for Python3.5 or higher')
 class TestMatMulVarVar(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
         self.y = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
         self.gz = numpy.random.uniform(-1, 1, self.z_shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(
+            -1, 1, self.x_shape).astype(self.dtype)
+        self.ggy = numpy.random.uniform(
+            -1, 1, self.y_shape).astype(self.dtype)
 
     def _get_forward_answer(self, x, y):
         if x.ndim <= 2:
@@ -1100,13 +1120,9 @@ class TestMatMulVarVar(unittest.TestCase):
         testing.assert_allclose(
             self._get_forward_answer(self.x, self.y), z.data, **options)
 
-    @unittest.skipUnless(sys.version_info >= (3, 5),
-                         'Only for Python3.5 or higher')
     def test_forward_cpu(self):
         self.check_forward(self.x, self.y)
 
-    @unittest.skipUnless(sys.version_info >= (3, 5),
-                         'Only for Python3.5 or higher')
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
@@ -1131,17 +1147,50 @@ class TestMatMulVarVar(unittest.TestCase):
         gradient_check.check_backward(
             op, data, z_grad, dtype=numpy.float64, **options)
 
-    @unittest.skipUnless(sys.version_info >= (3, 5),
-                         'Only for Python3.5 or higher')
     def test_backward_cpu(self):
         self.check_backward(self.x, self.y, self.gz)
 
     @attr.gpu
-    @unittest.skipUnless(sys.version_info >= (3, 5),
-                         'Only for Python3.5 or higher')
     def test_backward_gpu(self):
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.y), cuda.to_gpu(self.gz))
+
+    def check_double_backward(
+            self, x_data, y_data, z_grad, x_grad_grad, y_grad_grad):
+        if self.right_const:
+            def op(x):
+                z = operator.matmul(x, y_data)
+                return z * z
+            data = x_data,
+            grad_grad = x_grad_grad,
+        elif self.left_const:
+            def op(y):
+                z = operator.matmul(x_data, y)
+                return z * z
+            data = y_data,
+            grad_grad = y_grad_grad,
+        else:
+            def op(x, y):
+                z = operator.matmul(x, y)
+                return z * z
+            data = x_data, y_data
+            grad_grad = x_grad_grad, y_grad_grad
+
+        if self.dtype == numpy.float16:
+            options = {'atol': 1e-3, 'rtol': 1e-2}
+        else:
+            options = {'atol': 1e-4, 'rtol': 1e-4}
+        gradient_check.check_double_backward(
+            op, data, z_grad, grad_grad, dtype=numpy.float64, **options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.y, self.gz, self.ggx, self.ggy)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.y), cuda.to_gpu(self.gz),
+            cuda.to_gpu(self.ggx), cuda.to_gpu(self.ggy))
 
 
 class TestNotSupportOperation(unittest.TestCase):

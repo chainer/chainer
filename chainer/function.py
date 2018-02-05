@@ -59,7 +59,7 @@ def force_backprop_mode():
     ...         y = x + 1
     >>> y.backward()
     >>> x.grad
-    array([ 1.], dtype=float32)
+    array([1.], dtype=float32)
 
     .. seealso::
 
