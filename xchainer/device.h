@@ -10,8 +10,16 @@ class Backend;
 constexpr size_t kMaxDeviceNameLength = 8;
 
 struct Device {
-    char name[kMaxDeviceNameLength];
-    Backend* backend;
+public:
+    const std::string name() const { return name_; }
+
+    const Backend* backend() const { return backend_; }
+
+    static Device MakeDevice(const std::string& name, Backend* backend);
+
+private:
+    char name_[kMaxDeviceNameLength];
+    Backend* backend_;
 };
 
 constexpr Device kNullDevice = {};
@@ -23,13 +31,9 @@ Device GetCurrentDeviceNoExcept() noexcept;
 }  // namespace internal
 
 // TODO(sonots): Need to prohibit to create devices of the same name?
-inline bool operator==(const Device& lhs, const Device& rhs) {
-    return (strncmp(lhs.name, rhs.name, kMaxDeviceNameLength) == 0) && (lhs.backend == rhs.backend);
-}
+inline bool operator==(const Device& lhs, const Device& rhs) { return (lhs.name() == rhs.name()) && (lhs.backend() == rhs.backend()); }
 
 inline bool operator!=(const Device& lhs, const Device& rhs) { return !(lhs == rhs); }
-
-Device MakeDevice(const std::string& name, Backend* backend);
 
 Device GetCurrentDevice();
 
@@ -42,7 +46,7 @@ class DeviceScope {
 public:
     DeviceScope() : orig_(internal::GetCurrentDeviceNoExcept()) {}
     explicit DeviceScope(Device device) : DeviceScope() { SetCurrentDevice(device); }
-    explicit DeviceScope(const std::string& device, Backend* backend) : DeviceScope(MakeDevice(device, backend)) {}
+    explicit DeviceScope(const std::string& device, Backend* backend) : DeviceScope(Device::MakeDevice(device, backend)) {}
 
     DeviceScope(const DeviceScope&) = delete;
     DeviceScope(DeviceScope&&) = delete;

@@ -29,17 +29,17 @@ private:
 
 void InitXchainerDevice(pybind11::module& m) {
     py::class_<Device>(m, "Device")
-        .def(py::init(&MakeDevice))
+        .def(py::init(&Device::MakeDevice))
         .def("__eq__", py::overload_cast<const Device&, const Device&>(&operator==))
         .def("__ne__", py::overload_cast<const Device&, const Device&>(&operator!=))
         .def("__repr__",
              [](Device device) {
                  std::ostringstream os;
-                 os << "<Device('" << static_cast<char*>(device.name) << "', " << device.backend << ")>";
+                 os << "<Device('" << device.name() << "', " << device.backend() << ")>";
                  return os.str();
              })
-        .def_property_readonly("name", [](const Device& self) { return self.name; })
-        .def_property_readonly("backend", [](const Device& self) { return self.backend; });
+        .def_property_readonly("name", &Device::name)
+        .def_property_readonly("backend", &Device::backend);
 
     m.def("get_current_device", []() { return GetCurrentDevice(); });
     m.def("set_current_device", [](const Device& device) { SetCurrentDevice(device); });

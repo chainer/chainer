@@ -24,7 +24,7 @@ void Synchronize() {
 #ifdef XCHAINER_ENABLE_CUDA
     Device device = GetCurrentDevice();
     // TODO(sonots): Use device.backend->Synchronize()
-    if (strncmp(device.name, "cuda", kMaxDeviceNameLength) == 0) {
+    if (device.name() == "cuda") {
         cuda::CheckError(cudaDeviceSynchronize());
     }
 #endif  // XCHAINER_ENABLE_CUDA

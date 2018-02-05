@@ -128,9 +128,9 @@ public:
     void ExpectDataExistsOnCurrentDevice(const Array& array) {
         // TODO(sonots): Fix to check array's device member
         Device device = GetCurrentDevice();
-        if (strncmp(device.name, "cpu", kMaxDeviceNameLength) == 0) {
+        if (device.name() == "cpu") {
             EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
-        } else if (strncmp(device.name, "cuda", kMaxDeviceNameLength) == 0) {
+        } else if (device.name() == "cuda") {
             EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
         } else {
             FAIL() << "invalid device";
@@ -166,9 +166,9 @@ public:
 
         // TODO(sonots): Polymorphism using device.backend->XXX()?
         Device device = GetCurrentDevice();
-        if (strncmp(device.name, "cpu", kMaxDeviceNameLength) == 0) {
+        if (device.name() == "cpu") {
             EXPECT_EQ(data.get(), x.data().get());
-        } else if (strncmp(device.name, "cuda", kMaxDeviceNameLength) == 0) {
+        } else if (device.name() == "cuda") {
             EXPECT_NE(data.get(), x.data().get());
         } else {
             FAIL() << "invalid device";

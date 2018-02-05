@@ -18,13 +18,13 @@ Device GetCurrentDeviceNoExcept() noexcept { return thread_local_device; }
 
 }  // namespace internal
 
-Device MakeDevice(const std::string& name, Backend* backend) {
+Device Device::MakeDevice(const std::string& name, Backend* backend) {
     Device device = {};
     if (name.size() >= kMaxDeviceNameLength) {
         throw DeviceError("device name is too long; should be shorter than 8 characters");
     }
-    std::copy(name.begin(), name.end(), static_cast<char*>(device.name));
-    device.backend = backend;
+    std::copy(name.begin(), name.end(), static_cast<char*>(device.name_));
+    device.backend_ = backend;
     return device;
 }
 
@@ -40,7 +40,7 @@ Device GetCurrentDevice() {
 void SetCurrentDevice(const Device& device) { thread_local_device = device; }
 
 void SetCurrentDevice(const std::string& name, Backend* backend) {
-    auto device = MakeDevice(name, backend);
+    auto device = Device::MakeDevice(name, backend);
     SetCurrentDevice(device);
 }
 

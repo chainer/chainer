@@ -223,10 +223,10 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     Device device = GetCurrentDevice();
     // TODO(sonots): Use device.backend->Add()
-    if (strncmp(device.name, "cpu", kMaxDeviceNameLength) == 0) {
+    if (device.name() == "cpu") {
         xchainer::Add(*this, rhs, out);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (strncmp(device.name, "cuda", kMaxDeviceNameLength) == 0) {
+    } else if (device.name() == "cuda") {
         xchainer::cuda::Add(*this, rhs, out);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
@@ -250,10 +250,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     Device device = GetCurrentDevice();
     // TODO(sonots): Use device.backend->Mul()
-    if (strncmp(device.name, "cpu", kMaxDeviceNameLength) == 0) {
+    if (device.name() == "cpu") {
         xchainer::Mul(*this, rhs, out);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (strncmp(device.name, "cuda", kMaxDeviceNameLength) == 0) {
+    } else if (device.name() == "cuda") {
         xchainer::cuda::Mul(*this, rhs, out);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
@@ -264,10 +264,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
 void Array::Fill(Scalar value) {
     Device device = GetCurrentDevice();
     // TODO(sonots): Use device.backend->Fill()
-    if (strncmp(device.name, "cpu", kMaxDeviceNameLength) == 0) {
+    if (device.name() == "cpu") {
         xchainer::Fill(*this, value);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (strncmp(device.name, "cuda", kMaxDeviceNameLength) == 0) {
+    } else if (device.name() == "cuda") {
         xchainer::cuda::Fill(*this, value);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {

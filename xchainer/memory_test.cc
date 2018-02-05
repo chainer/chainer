@@ -52,12 +52,12 @@ TEST(MemoryTest, Allocate) {
     size_t size = 3;
     {
         auto backend = std::make_unique<NativeBackend>();
-        std::shared_ptr<void> ptr = Allocate(MakeDevice("cpu", backend.get()), size);
+        std::shared_ptr<void> ptr = Allocate(Device::MakeDevice("cpu", backend.get()), size);
         EXPECT_FALSE(IsPointerCudaMemory(ptr.get()));
     }
     {
         auto backend = std::make_unique<cuda::CudaBackend>();
-        std::shared_ptr<void> ptr = Allocate(MakeDevice("cuda", backend.get()), size);
+        std::shared_ptr<void> ptr = Allocate(Device::MakeDevice("cuda", backend.get()), size);
         EXPECT_TRUE(IsPointerCudaMemory(ptr.get()));
     }
 }
@@ -70,10 +70,8 @@ TEST(MemoryTest, MemoryCopy) {
         (void)ptr;  // unused
     });
 
-    auto native_backend = std::make_unique<NativeBackend>();
-    auto native_device = MakeDevice("cpu", native_backend.get());
     auto cuda_backend = std::make_unique<cuda::CudaBackend>();
-    auto cuda_device = MakeDevice("cuda", cuda_backend.get());
+    auto cuda_device = Device::MakeDevice("cuda", cuda_backend.get());
 
     {
         // cpu to cpu
@@ -113,9 +111,9 @@ TEST(MemoryTest, MemoryFromBuffer) {
     });
 
     auto native_backend = std::make_unique<NativeBackend>();
-    auto native_device = MakeDevice("cpu", native_backend.get());
+    auto native_device = Device::MakeDevice("cpu", native_backend.get());
     auto cuda_backend = std::make_unique<cuda::CudaBackend>();
-    auto cuda_device = MakeDevice("cuda", cuda_backend.get());
+    auto cuda_device = Device::MakeDevice("cuda", cuda_backend.get());
 
     std::shared_ptr<void> gpu_src = Allocate(cuda_device, bytesize);
     MemoryCopy(gpu_src.get(), cpu_src.get(), size);
