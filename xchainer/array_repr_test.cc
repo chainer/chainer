@@ -7,7 +7,12 @@
 #include <limits>
 #include <vector>
 
+#include "xchainer/backend.h"
+#ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/cuda_backend.h"
+#endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
+#include "xchainer/native_backend.h"
 
 namespace xchainer {
 namespace {
@@ -37,16 +42,18 @@ template <typename T>
 void CheckArrayRepr(const std::string& expected, const std::vector<T>& data_vec, Shape shape,
                     const std::vector<GraphId>& graph_ids = std::vector<GraphId>()) {
     {
-        DeviceScope ctx{"cpu"};
+        auto backend = std::make_unique<NativeBackend>();
+        DeviceScope ctx{"cpu", backend.get()};
         CheckArrayReprWithCurrentDevice(expected, data_vec, shape, graph_ids);
     }
 
-    {
 #ifdef XCHAINER_ENABLE_CUDA
-        DeviceScope ctx{"cuda"};
+    {
+        auto backend = std::make_unique<cuda::CudaBackend>();
+        DeviceScope ctx{"cuda", backend.get()};
         CheckArrayReprWithCurrentDevice(expected, data_vec, shape, graph_ids);
-#endif  // XCHAINER_ENABLE_CUDA
     }
+#endif  // XCHAINER_ENABLE_CUDA
 }
 
 TEST(ArrayReprTest, ArrayRepr) {
