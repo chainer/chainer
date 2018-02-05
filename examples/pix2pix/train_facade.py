@@ -2,18 +2,18 @@
 
 from __future__ import print_function
 import argparse
-import chainer
 
+import chainer
 from chainer import training
 from chainer.training import extensions
 
-from net import Discriminator
 from net import Decoder
+from net import Discriminator
 from net import Encoder
 from updater import FacadeUpdater
 
-from facade_dataset import FacadeDataset
 from facade_visualizer import out_image
+from facade_dataset import FacadeDataset
 
 
 def main():

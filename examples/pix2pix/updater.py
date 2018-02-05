@@ -4,8 +4,8 @@ from __future__ import print_function
 
 import chainer
 import chainer.functions as F
+
 from chainer import Variable
-from chainer import function
 
 
 class FacadeUpdater(chainer.training.StandardUpdater):
