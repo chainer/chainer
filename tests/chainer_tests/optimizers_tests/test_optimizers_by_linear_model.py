@@ -8,11 +8,19 @@ from chainer import cuda
 import chainer.functions as F
 from chainer import initializers
 import chainer.links as L
+from chainer import backends
 from chainer import optimizers
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
 from chainer.testing import condition
+
+
+# TODO(niboshi): This is temporary workaround for skipping test not working
+# with testing.condition.
+# See: https://github.com/chainer/chainer/issues/4272
+class Skipped(Exception):
+    pass
 
 
 class LinearModel(object):
@@ -75,6 +83,10 @@ class LinearModel(object):
         if backend_config.use_cuda:
             model.to_gpu(device=gpu_device)
         elif backend_config.use_ideep == 'always':
+            if not backends.intel64.is_ideep_available():
+                # TODO(niboshi): This is temporary workaround.
+                # See the comment on Skipped.
+                raise Skipped('ideep is required to run this test.')
             model.to_intel64()
 
         with backend_config:
@@ -108,7 +120,12 @@ class OptimizerTestBase(object):
 
     @condition.retry(10)
     def test_linear_model(self, backend_config):
-        accuracy = self.model.accuracy(backend_config)
+        try:
+            accuracy = self.model.accuracy(backend_config)
+        except Skipped:
+            # TODO(niboshi): This is temporary workaround.
+            # See the comment on Skipped.
+            return
         assert accuracy.data > 0.9
 
     @attr.multi_gpu(2)
