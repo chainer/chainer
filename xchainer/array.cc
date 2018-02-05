@@ -30,7 +30,7 @@ namespace xchainer {
 namespace internal {
 
 // Private definition of ArrayBody
-ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, Device device, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, const Device& device, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
                      std::vector<std::shared_ptr<ArrayNode>> nodes)
     : shape_(shape),
       dtype_(dtype),

@@ -37,7 +37,7 @@ namespace internal {
 // the code is made simple and we can use inline access to each member from member accessor functions of Array.
 class ArrayBody {
 public:
-    ArrayBody(const Shape& shape, Dtype dtype, Device device, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+    ArrayBody(const Shape& shape, Dtype dtype, const Device& device, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
               std::vector<std::shared_ptr<ArrayNode>> nodes = std::vector<std::shared_ptr<ArrayNode>>());
 
 private:
