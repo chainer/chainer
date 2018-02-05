@@ -775,6 +775,25 @@ class GradientHardClipping(optimizer_hooks.GradientHardClipping):
 
 class GradientLARS(object):
 
+    """Optimizer/UpdateRule hook function for layer wise adaptive rate scaling.
+
+    See: `Large Batch Training of Convolutional Networks \
+          <https://arxiv.org/abs/1708.03888>`_
+
+    This hook function scales all gradient arrays to fit to the weight norm.
+
+    Args:
+        threashold (float): If weight norm is more than threshold,
+            this function scales all gradient arrays to fit weight norm.
+        weightdecay (float): Coefficient for the weight decay.
+        eps (float): Small value for the numerical stability.
+
+    Attributes:
+        threashold (float): If weight norm is more than threshold,
+            this function scales all gradient arrays to fit weight norm.
+        weightdecay (float): Coefficient for the weight decay.
+        eps (float): Small value for the numerical stability.
+    """
     name = 'GradientLARS'
     call_for_each_param = True
 
