@@ -63,7 +63,7 @@ CuPy v4
 -------
 
 Chainer v4 requires CuPy v4 if you need GPU support.
-Please see the `Upgrade Guide for CuPy v4 <https://docs.chainer.org/en/latest/upgrade.html#cupy-v4>`_ for details.
+Please see the `Upgrade Guide for CuPy v4 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v4>`_ for details.
 
 
 Chainer v3
@@ -117,7 +117,7 @@ CuPy v2
 -------
 
 Chainer v3 requires CuPy v2 if you need GPU support.
-Please see the `Upgrade Guide for CuPy v2 <https://docs.chainer.org/en/latest/upgrade.html#cupy-v2>`_ for details.
+Please see the `Upgrade Guide for CuPy v2 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v2>`_ for details.
 
 
 Chainer v2
