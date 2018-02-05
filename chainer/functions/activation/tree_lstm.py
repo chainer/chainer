@@ -65,7 +65,7 @@ class TreeLSTM(function.Function):
     """
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() >= 3)
+        type_check.expect(in_types.size() >= 2)
         c_types = in_types[:-1]
         x_type = in_types[-1]
         n_ary = len(c_types)
