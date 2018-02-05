@@ -5,14 +5,7 @@ from __future__ import print_function
 import chainer
 import chainer.functions as F
 from chainer import Variable
-
-import numpy as np
-from PIL import Image
-
-from chainer import cuda
 from chainer import function
-from chainer.utils import type_check
-import numpy
 
 
 class FacadeUpdater(chainer.training.StandardUpdater):

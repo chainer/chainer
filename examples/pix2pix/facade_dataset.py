@@ -1,19 +1,7 @@
 import os
+import numpy as np
 
-import numpy
 from PIL import Image
-import six
-
-import numpy as np
-
-from io import BytesIO
-import os
-import pickle
-import json
-import numpy as np
-
-import skimage.io as io
-
 from chainer.dataset import dataset_mixin
 
 # download `BASE` dataset from http://cmp.felk.cvut.cz/~tylecr1/facade/

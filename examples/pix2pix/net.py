@@ -2,10 +2,7 @@
 
 from __future__ import print_function
 
-import numpy
-
 import chainer
-from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
 
@@ -43,7 +40,6 @@ class ConvBNR(chainer.Chain):
 
 class Encoder(chainer.Chain):
     def __init__(self, in_ch):
-        layers = {}
         w = chainer.initializers.Normal(0.02)
         super(Encoder, self).__init__()
         with self.init_scope():
@@ -72,7 +68,6 @@ class Encoder(chainer.Chain):
 
 class Decoder(chainer.Chain):
     def __init__(self, out_ch):
-        layers = {}
         w = chainer.initializers.Normal(0.02)
         super(Decoder, self).__init__()
         with self.init_scope():
@@ -105,7 +100,6 @@ class Decoder(chainer.Chain):
 
 class Discriminator(chainer.Chain):
     def __init__(self, in_ch, out_ch):
-        layers = {}
         w = chainer.initializers.Normal(0.02)
         super(Discriminator, self).__init__()
         with self.init_scope():
