@@ -204,8 +204,8 @@ TEST_P(ArrayDeviceTest, FromBuffer) { CheckFromBuffer({2, 3}, Dtype::kFloat32, {
 TEST_P(ArrayDeviceTest, Empty) { CheckEmpty({2, 3}, Dtype::kFloat32); }
 TEST_P(ArrayDeviceTest, FullWithGivenDtype) { CheckFullWithGivenDtype({2, 3}, float{2.f}, Dtype::kFloat32); }
 TEST_P(ArrayDeviceTest, FullWithScalarDtype) { CheckFullWithScalarDtype({2, 3}, float{2.f}); }
-TEST_P(ArrayDeviceTest, Ones) { CheckOnes({2, 3}, Dtype::kFloat32); }
 TEST_P(ArrayDeviceTest, Zeros) { CheckZeros({2, 3}, Dtype::kFloat32); }
+TEST_P(ArrayDeviceTest, Ones) { CheckOnes({2, 3}, Dtype::kFloat32); }
 
 TEST_P(ArrayDeviceTest, EmptyLike) { CheckEmptyLike({2, 3}, Dtype::kFloat32); }
 TEST_P(ArrayDeviceTest, FullLike) { CheckFullLike({2, 3}, float{2.f}, Dtype::kFloat32); }
