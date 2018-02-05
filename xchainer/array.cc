@@ -182,9 +182,11 @@ void Array::CopyTo(Array& out) const {
 
 Array Array::AsConstant(CopyKind kind) const {
     switch (kind) {
-        case CopyKind::kCopy:
-            // TODO(takgi): implement deep copy version
-            throw NotImplementedError("not implemented");
+        case CopyKind::kCopy: {
+            Array out = Array::EmptyLike(*this);
+            internal::MemoryCopy(out.data().get(), body_->data_.get(), total_bytes());
+            return std::move(out);
+        }
         case CopyKind::kView:
             return Array{shape(), dtype(), body_->data_, is_contiguous(), offset()};
         default:
