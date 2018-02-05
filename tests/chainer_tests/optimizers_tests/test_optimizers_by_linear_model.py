@@ -4,11 +4,11 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+from chainer.backends import intel64
 import chainer.functions as F
 from chainer import initializers
 import chainer.links as L
-from chainer import backends
 from chainer import optimizers
 from chainer import testing
 from chainer.testing import attr
@@ -83,7 +83,7 @@ class LinearModel(object):
         if backend_config.use_cuda:
             model.to_gpu(device=gpu_device)
         elif backend_config.use_ideep == 'always':
-            if not backends.intel64.is_ideep_available():
+            if not intel64.is_ideep_available():
                 # TODO(niboshi): This is temporary workaround.
                 # See the comment on Skipped.
                 raise Skipped('ideep is required to run this test.')
