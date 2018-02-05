@@ -78,7 +78,7 @@ protected:
         return Array::FromBuffer(shape, TypeToDtype<T>, std::move(a));
     }
 
-    void CheckBaseBackwardComputation(bool expect_correct, Fprop fprop, Arrays& inputs, const Arrays& grad_outputs, const Arrays& eps,
+    void CheckBackwardBaseComputation(bool expect_correct, Fprop fprop, Arrays& inputs, const Arrays& grad_outputs, const Arrays& eps,
                                       double atol, double rtol, const GraphId& graph_id) {
         bool is_none_of_grad_required =
             std::none_of(inputs.begin(), inputs.end(), [graph_id](const Array& input) { return input.IsGradRequired(graph_id); });
@@ -98,8 +98,8 @@ protected:
     void SetUp() override { requires_grad = GetParam(); }
 
     template <typename T>
-    void CheckBackwardComputation(bool expect_correct, Fprop fprop, const Shape& shape, const T* input_data, const T* grad_output_data,
-                                  const T* eps_data, double atol, double rtol, const GraphId& graph_id) {
+    void CheckBackwardUnaryComputation(bool expect_correct, Fprop fprop, const Shape& shape, const T* input_data, const T* grad_output_data,
+                                       const T* eps_data, double atol, double rtol, const GraphId& graph_id) {
         Arrays inputs{MakeArray(shape, input_data)};
         if (requires_grad) {
             inputs[0].RequireGrad(graph_id);
@@ -107,7 +107,7 @@ protected:
 
         Arrays grad_outputs{MakeArray(shape, grad_output_data)};
         Arrays eps{MakeArray(shape, eps_data)};
-        CheckBaseBackwardComputation(expect_correct, fprop, inputs, grad_outputs, eps, atol, rtol, graph_id);
+        CheckBackwardBaseComputation(expect_correct, fprop, inputs, grad_outputs, eps, atol, rtol, graph_id);
     }
 
 private:
@@ -119,9 +119,9 @@ protected:
     void SetUp() override { requires_grads = {std::get<0>(GetParam()), std::get<1>(GetParam())}; }
 
     template <typename T>
-    void CheckBackwardComputation(bool expect_correct, Fprop fprop, const Shape& shape, const T* input_data1, const T* input_data2,
-                                  const T* grad_output_data, const T* eps_data1, const T* eps_data2, double atol, double rtol,
-                                  const GraphId& graph_id) {
+    void CheckBackwardBinaryComputation(bool expect_correct, Fprop fprop, const Shape& shape, const T* input_data1, const T* input_data2,
+                                        const T* grad_output_data, const T* eps_data1, const T* eps_data2, double atol, double rtol,
+                                        const GraphId& graph_id) {
         Arrays inputs{MakeArray(shape, input_data1), MakeArray(shape, input_data2)};
         if (requires_grads[0]) {
             inputs[0].RequireGrad(graph_id);
@@ -132,7 +132,7 @@ protected:
 
         Arrays grad_outputs{MakeArray(shape, grad_output_data)};
         Arrays eps{MakeArray(shape, eps_data1), MakeArray(shape, eps_data2)};
-        CheckBaseBackwardComputation(expect_correct, fprop, inputs, grad_outputs, eps, atol, rtol, graph_id);
+        CheckBackwardBaseComputation(expect_correct, fprop, inputs, grad_outputs, eps, atol, rtol, graph_id);
     }
 
 private:
@@ -144,14 +144,15 @@ TEST_P(CheckBackwardUnaryTest, CorrectBackward) {
     float grad_output_data[]{0.f, -2.f, 1.f};
     float eps_data[]{1e-3f, 1e-3f, 1e-3f};
     Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[0]}; };
-    CheckBackwardComputation(true, fprop, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "graph_1");
+    CheckBackwardUnaryComputation(true, fprop, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "graph_1");
 }
 
 TEST_P(CheckBackwardUnaryTest, IncorrectBackward) {
     float input_data[]{-2.f, 3.f, 1.f};
     float grad_output_data[]{0.f, -2.f, 1.f};
     float eps_data[]{1e-3f, 1e-3f, 1e-3f};
-    CheckBackwardComputation(false, &IncorrectBackwardUnaryFunc, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "graph_1");
+    CheckBackwardUnaryComputation(false, &IncorrectBackwardUnaryFunc, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4,
+                                  "graph_1");
 }
 
 TEST_P(CheckBackwardBinaryTest, CorrectBackward) {
@@ -161,7 +162,8 @@ TEST_P(CheckBackwardBinaryTest, CorrectBackward) {
     float eps_data2[]{1e-3f, 1e-3f, 1e-3f};
     float grad_output_data[]{1.f, -2.f, 3.f};
     Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[1]}; };
-    CheckBackwardComputation(true, fprop, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1, eps_data2, 1e-5, 1e-4, "graph_1");
+    CheckBackwardBinaryComputation(true, fprop, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1, eps_data2, 1e-5, 1e-4,
+                                   "graph_1");
 }
 
 TEST_P(CheckBackwardBinaryTest, IncorrectBackward) {
@@ -170,8 +172,8 @@ TEST_P(CheckBackwardBinaryTest, IncorrectBackward) {
     float eps_data1[]{1e-3f, 1e-3f, 1e-3f};
     float eps_data2[]{1e-3f, 1e-3f, 1e-3f};
     float grad_output_data[]{4.f, -2.f, 3.f};
-    CheckBackwardComputation(false, &IncorrectBackwardBinaryFunc, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1, eps_data2,
-                             1e-5, 1e-4, "graph_1");
+    CheckBackwardBinaryComputation(false, &IncorrectBackwardBinaryFunc, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1,
+                                   eps_data2, 1e-5, 1e-4, "graph_1");
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachSingleSetRequiresGrad, CheckBackwardUnaryTest, ::testing::Bool());

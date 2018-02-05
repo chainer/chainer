@@ -40,13 +40,14 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
     }
 
     std::vector<nonstd::optional<Array>> backward_grads;
-    std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads), [&graph_id](const Array& input) -> nonstd::optional<Array> {
-        if (input.IsGradRequired(graph_id)) {
-            return input.GetGrad(graph_id);
-        } else {
-            return nonstd::nullopt;
-        }
-    });
+    std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads),
+                   [&graph_id](const Array& input) -> nonstd::optional<Array> {
+                       if (input.IsGradRequired(graph_id)) {
+                           return input.GetGrad(graph_id);
+                       } else {
+                           return nonstd::nullopt;
+                       }
+                   });
 
     return backward_grads;
 }
