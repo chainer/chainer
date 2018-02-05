@@ -49,7 +49,7 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
     Array out = Array::EmptyLike(lhs);
 
     auto lhs_backward_function = [other = rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)->Array {
-        return gout + other.AsConstant(graph_ids_to_stop_gradient, CopyKind::kView);
+        return gout + other.AsConstant(graph_ids_to_stop_gradient);
     };
     auto rhs_backward_function = lhs_backward_function;
     internal::SetUpOpNodes("incorrect_binary", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
