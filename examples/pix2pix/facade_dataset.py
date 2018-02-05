@@ -30,7 +30,7 @@ class FacadeDataset(dataset_mixin.DatasetMixin):
             img = Image.open(dataDir+"/cmp_b%04d.jpg" % i)
             label = Image.open(dataDir+"/cmp_b%04d.png" % i)
             w, h = img.size
-            r = 286/min(w, h)
+            r = 286/float(min(w, h))
             # resize images so that min(w, h) == 286
             img = img.resize((int(r*w), int(r*h)), Image.BILINEAR)
             label = label.resize((int(r*w), int(r*h)), Image.NEAREST)
