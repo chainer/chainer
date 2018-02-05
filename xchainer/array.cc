@@ -268,11 +268,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
 }
 
 void Array::Fill(Scalar value) {
-    Device device = GetCurrentDevice();
-    if (device == MakeDevice("cpu")) {
+    if (body_->device_ == MakeDevice("cpu")) {
         xchainer::Fill(*this, value);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (device == MakeDevice("cuda")) {
+    } else if (body_->device_ == MakeDevice("cuda")) {
         xchainer::cuda::Fill(*this, value);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
