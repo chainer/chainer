@@ -62,8 +62,8 @@ public:
 
     template <typename T>
     void ExpectEqualView(const Array& expected, const Array& actual) {
-        ExpectEqual<T>(expect, actual);
-        ExpectArraysEqualAttributes<T>(expect, actual);
+        ExpectEqual<T>(expected, actual);
+        ExpectArraysEqualAttributes(expected, actual);
 
         // Shallow copy, therefore assert the same address to data
         EXPECT_EQ(expected.data().get(), actual.data().get());
