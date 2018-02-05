@@ -362,6 +362,8 @@ Use apply() method instead.\
         assert len(inputs) > 0
         if isinstance(inputs[0], cuda.ndarray):
             return self.forward_gpu(inputs)
+        elif chainer.ia.all_ready(inputs):
+            return self.forward_ia(inputs)
         return self.forward_cpu(inputs)
 
     def forward_cpu(self, inputs):
@@ -380,6 +382,29 @@ Use apply() method instead.\
 
         """
         raise NotImplementedError
+
+    def forward_ia(self, inputs):
+        """Computes the output arrays from the input NumPy arrays or ideep arrays.
+
+        if function node does not implement forward_ia, then
+        bridges to forward_cpu
+
+        Args:
+            inputs: Tuple of input :class:`numpy.ndarray` or
+                :class:`ideep4py.mdarray` objects.
+
+        Returns:
+            Tuple of output arrays. Each element can be ideep4py mdarray.
+
+        .. warning::
+
+            Implementation of :class:`FunctionNode` must take care that the
+            return value must be a tuple even if it returns only one array.
+
+        """
+        inputs = tuple([x if isinstance(x, chainer.ia.mdarray) else
+                        numpy.array(x) for x in inputs])
+        return self.forward_cpu(inputs)
 
     def forward_gpu(self, inputs):
         """Computes the output arrays from the input CuPy arrays.
