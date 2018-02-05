@@ -61,6 +61,15 @@ public:
     }
 
     template <typename T>
+    void ExpectEqualView(const Array& expected, const Array& actual) {
+        ExpectEqual<T>(expect, actual);
+        ExpectArraysEqualAttributes<T>(expect, actual);
+
+        // Shallow copy, therefore assert the same address to data
+        EXPECT_EQ(expected.data().get(), actual.data().get());
+    }
+
+    template <typename T>
     void ExpectEqual(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
@@ -319,9 +328,7 @@ TEST_P(ArrayTest, CopyCtor) {
 
     // A copy-constructed instance must be a view
     {
-        ExpectEqual<bool>(a, b);
-        ExpectArraysEqualAttributes(a, b);
-        EXPECT_EQ(a.data(), b.data());
+        ExpectEqualView<bool>(a, b);
         EXPECT_THROW(internal::GetArrayNode(a), XchainerError);
         EXPECT_THROW(internal::GetArrayNode(b), XchainerError);
     }
@@ -936,9 +943,7 @@ TEST_P(ArrayTest, AsConstantView) {
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
         Array b = a.AsConstant(CopyKind::kView);
 
-        ExpectEqual<bool>(a, b);
-        ExpectArraysEqualAttributes(a, b);
-        EXPECT_EQ(a.data(), b.data());
+        ExpectEqualView<bool>(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
         EXPECT_FALSE(b.IsGradRequired("graph_2"));
 
@@ -957,9 +962,7 @@ TEST_P(ArrayTest, AsConstantView) {
         ASSERT_TRUE(a.IsGradRequired("graph_3"));
         Array b = a.AsConstant({"graph_1", "graph_2"}, CopyKind::kView);
 
-        ExpectEqual<bool>(a, b);
-        ExpectArraysEqualAttributes(a, b);
-        EXPECT_EQ(a.data(), b.data());
+        ExpectEqualView<bool>(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
         EXPECT_FALSE(b.IsGradRequired("graph_2"));
         EXPECT_TRUE(b.IsGradRequired("graph_3"));
