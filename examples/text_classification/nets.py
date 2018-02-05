@@ -122,11 +122,12 @@ class RNNEncoder(chainer.Chain):
     """
 
     def __init__(self, n_layers, n_vocab, n_units, dropout=0.1):
-        super(RNNEncoder, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units,
-                            initialW=embed_init),
-            encoder=L.NStepLSTM(n_layers, n_units, n_units, dropout),
-        )
+        super(RNNEncoder, self).__init__()
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units,
+                                   initialW=embed_init)
+            self.encoder = L.NStepLSTM(n_layers, n_units, n_units, dropout)
+
         self.n_layers = n_layers
         self.out_units = n_units
         self.dropout = dropout
@@ -158,20 +159,21 @@ class CNNEncoder(chainer.Chain):
 
     def __init__(self, n_layers, n_vocab, n_units, dropout=0.1):
         out_units = n_units // 3
-        super(CNNEncoder, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units, ignore_label=-1,
-                            initialW=embed_init),
-            cnn_w3=L.Convolution2D(
+        super(CNNEncoder, self).__init__()
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units, ignore_label=-1,
+                                   initialW=embed_init)
+            self.cnn_w3 = L.Convolution2D(
                 n_units, out_units, ksize=(3, 1), stride=1, pad=(2, 0),
-                nobias=True),
-            cnn_w4=L.Convolution2D(
+                nobias=True)
+            self.cnn_w4 = L.Convolution2D(
                 n_units, out_units, ksize=(4, 1), stride=1, pad=(3, 0),
-                nobias=True),
-            cnn_w5=L.Convolution2D(
+                nobias=True)
+            self.cnn_w5 = L.Convolution2D(
                 n_units, out_units, ksize=(5, 1), stride=1, pad=(4, 0),
-                nobias=True),
-            mlp=MLP(n_layers, out_units * 3, dropout)
-        )
+                nobias=True)
+            self.mlp = MLP(n_layers, out_units * 3, dropout)
+
         self.out_units = out_units * 3
         self.dropout = dropout
 
@@ -227,10 +229,11 @@ class BOWEncoder(chainer.Chain):
     """
 
     def __init__(self, n_vocab, n_units, dropout=0.1):
-        super(BOWEncoder, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units, ignore_label=-1,
-                            initialW=embed_init),
-        )
+        super(BOWEncoder, self).__init__()
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units, ignore_label=-1,
+                                   initialW=embed_init)
+
         self.out_units = n_units
         self.dropout = dropout
 
@@ -258,10 +261,11 @@ class BOWMLPEncoder(chainer.Chain):
     """
 
     def __init__(self, n_layers, n_vocab, n_units, dropout=0.1):
-        super(BOWMLPEncoder, self).__init__(
-            bow_encoder=BOWEncoder(n_vocab, n_units, dropout),
-            mlp_encoder=MLP(n_layers, n_units, dropout)
-        )
+        super(BOWMLPEncoder, self).__init__()
+        with self.init_scope():
+            self.bow_encoder = BOWEncoder(n_vocab, n_units, dropout)
+            self.mlp_encoder = MLP(n_layers, n_units, dropout)
+
         self.out_units = n_units
 
     def __call__(self, xs):

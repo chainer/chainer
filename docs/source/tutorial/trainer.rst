@@ -105,7 +105,7 @@ Now let's create the :class:`~chainer.training.Updater` object !
     optimizer.setup(model)
 
     # Get an updater that uses the Iterator and Optimizer
-    updater = training.StandardUpdater(train_iter, optimizer, device=gpu_id)
+    updater = training.updaters.StandardUpdater(train_iter, optimizer, device=gpu_id)
 
 .. note::
 
@@ -118,7 +118,7 @@ Now let's create the :class:`~chainer.training.Updater` object !
     In :class:`~chainer.links.Classifier`, the :attr:`~chainer.links.Classifier.lossfun` is set to
     :meth:`~chainer.functions.softmax_cross_entropy` as default.
 
-    :class:`~chainer.training.StandardUpdater` is the simplest class among several updaters. There are also the :class:`~chainer.training.ParallelUpdater` and the :class:`~chainer.training.updaters.MultiprocessParallelUpdater` to utilize multiple GPUs. The :class:`~chainer.training.updaters.MultiprocessParallelUpdater` uses the NVIDIA NCCL library, so you need to install NCCL and re-install CuPy before using it.
+    :class:`~chainer.training.updaters.StandardUpdater` is the simplest class among several updaters. There are also the :class:`~chainer.training.updaters.ParallelUpdater` and the :class:`~chainer.training.updaters.MultiprocessParallelUpdater` to utilize multiple GPUs. The :class:`~chainer.training.updaters.MultiprocessParallelUpdater` uses the NVIDIA NCCL library, so you need to install NCCL and re-install CuPy before using it.
 
 5. Setup Trainer
 ''''''''''''''''
@@ -189,7 +189,7 @@ However, when you keep the whole :class:`~chainer.training.Trainer` object, in s
 ...............................................
 
 This method saves the structure of the computational graph of the model. The graph is saved in the
-`Graphviz <http://www.graphviz.org/>_`s dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out` argument of :class:`~chainer.training.Trainer`.
+`Graphviz <http://www.graphviz.org/>`_'s dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out` argument of :class:`~chainer.training.Trainer`.
 
 :class:`~chainer.training.extensions.Evaluator`
 ...............................................
@@ -208,7 +208,7 @@ It outputs the specified values to the standard output.
 
 ----
 
-Each :class:`~chainer.training.Extension` class has different options and some extensions are not mentioned here. And one of other important feature is, for instance, by using the :attr:`~chainer.training.Extension.trigger` option, you can set individual timings to fire the :class:`~chainer.training.Extension`. To know more details of all extensions, please take a look at the official document: `Trainer extensions <reference/extensions.html>_`.
+Each :class:`~chainer.training.Extension` class has different options and some extensions are not mentioned here. And one of other important feature is, for instance, by using the :attr:`~chainer.training.Extension.trigger` option, you can set individual timings to fire the :class:`~chainer.training.Extension`. To know more details of all extensions, please take a look at the official document: :ref:`extensions`.
 
 7. Start Training
 '''''''''''''''''

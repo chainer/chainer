@@ -465,6 +465,7 @@ Actual: {0}'''.format(type(data))
         self._requires_grad = requires_grad
         self._node = VariableNode(self, name)
         self._grad_var = None if grad is None else Variable(grad)
+        self._loss_scale = None
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -719,6 +720,7 @@ Actual: {0}'''.format(type(data))
         if self.data is None:
             self._initial_device = (cuda.Device().id
                                     if device is None else device)
+            self._data = [None]  # Renew placeholder to break sharing
         else:
             self._data = [cuda.to_gpu(self.data, device)]
             if self._grad_var is not None:
@@ -842,7 +844,8 @@ Actual: {0}'''.format(type(data))
         """
         self._node.set_creator_node(fnode)
 
-    def backward(self, retain_grad=False, enable_double_backprop=False):
+    def backward(self, retain_grad=False, enable_double_backprop=False,
+                 loss_scale=None):
         """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
 
         On backprop,
@@ -862,8 +865,9 @@ Actual: {0}'''.format(type(data))
         1.0 as the initial error. This is useful on starting backprop from
         some scalar loss value.
 
-        Note that this method does not support *differentiable backprop*. Use
-        :func:`chainer.grad` to compute the gradient of gradients.
+        From v3, this method supports *differentiable backprop* (a.k.a. double
+        backprop, grad of grads). To enable it, pass
+        ``enable_double_backprop=True``.
 
         Args:
             retain_grad (bool): If ``True``, the gradient arrays of all
@@ -882,12 +886,20 @@ Actual: {0}'''.format(type(data))
                 enabling it results in larger memory consumption needed to
                 store the gradients w.r.t intermediate variables that are
                 required for the second gradient computation.
-
+            loss_scale (float): Loss scaling factor. Loss scaling is a usefull
+                technique to mitigate vanishing gradient issue that tends to
+                happen when low precision data type like float16 is used during
+                training. If you set loss scaling factor, gradients of loss
+                values are to be multiplied by the factor before backprop
+                starts. The factor is propagated to whole gradients in a
+                computational graph along the backporp. The gradients of
+                parameters are divided by the factor just before the parameters
+                are to be updated.
         """
         with chainer.using_config('enable_backprop', enable_double_backprop):
-            self._backward_main(retain_grad)
+            self._backward_main(retain_grad, loss_scale)
 
-    def _backward_main(self, retain_grad):
+    def _backward_main(self, retain_grad, loss_scale):
         self._node._check_old_style_gradient()
         if self.creator_node is None:
             return
@@ -912,6 +924,8 @@ Actual: {0}'''.format(type(data))
                     self.grad = numpy.ones_like(self.data)
                 else:
                     self.grad = cuda.cupy.ones_like(self.data)
+            if loss_scale is not None:
+                self.grad *= loss_scale
         grads[self._node] = self._grad_var
 
         def add_cand(cand):
@@ -1033,6 +1047,7 @@ Actual: {0}'''.format(type(data))
                 x_var = x.get_variable_or_none()
                 if x_var is not None:
                     x_var._grad_var = grads[x]
+                    x_var._loss_scale = loss_scale
 
                 if x.creator_node is not None:
                     add_cand(x.creator_node)

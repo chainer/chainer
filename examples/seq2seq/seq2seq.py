@@ -260,7 +260,7 @@ def main():
     optimizer.setup(model)
 
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
-    updater = training.StandardUpdater(
+    updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
     trainer.extend(extensions.LogReport(
