@@ -37,12 +37,7 @@ Device GetCurrentDevice() {
     }
 }
 
-void SetCurrentDevice(const Device& device) {
-    if (strncmp(device.name, "cpu", kMaxDeviceNameLength) != 0 && strncmp(device.name, "cuda", kMaxDeviceNameLength) != 0) {
-        throw DeviceError("invalid device");
-    }
-    thread_local_device = device;
-}
+void SetCurrentDevice(const Device& device) { thread_local_device = device; }
 
 void SetCurrentDevice(const std::string& name, Backend* backend) {
     auto device = MakeDevice(name, backend);
