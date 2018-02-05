@@ -14,7 +14,7 @@ struct Device {
     Backend* backend;
 };
 
-constexpr Device kDefaultDevice = {};
+constexpr Device kNullDevice = {};
 
 namespace internal {
 
@@ -53,10 +53,10 @@ public:
 
     // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
-        if (orig_ != kDefaultDevice) {
+        if (orig_ != kNullDevice) {
             SetCurrentDevice(orig_);
         }
-        orig_ = kDefaultDevice;
+        orig_ = kNullDevice;
     }
 
 private:

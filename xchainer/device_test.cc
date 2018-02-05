@@ -17,7 +17,7 @@ class DeviceTest : public ::testing::Test {
 protected:
     void SetUp() override {
         orig_ = internal::GetCurrentDeviceNoExcept();
-        SetCurrentDevice(kDefaultDevice);
+        SetCurrentDevice(kNullDevice);
     }
 
     void TearDown() override { SetCurrentDevice(orig_); }
@@ -72,7 +72,7 @@ TEST_F(DeviceTest, ThreadLocal) {
 
 TEST_F(DeviceTest, DeviceScopeCtor) {
     {
-        // DeviceScope should work even if current device is kDefaultDevice
+        // DeviceScope should work even if current device is kNullDevice
         auto backend = std::make_unique<NativeBackend>();
         auto device = MakeDevice("cpu", backend.get());
         DeviceScope scope(device);
