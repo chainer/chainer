@@ -115,7 +115,8 @@ class ChildSumTreeLSTM(link.Chain):
 
             aio_in = self.W_h_aio(sum(hs)) + W_x_aio_in
             W_h_fs_in = concat.concat(split_axis.split_axis(
-                self.W_h_f(concat.concat(hs, axis=0)), len(hs), axis=0), axis=1)
+                self.W_h_f(concat.concat(hs, axis=0)), len(hs), axis=0),
+                axis=1)
             f_in = W_h_fs_in + \
                 concat.concat([W_x_f_in] * len(hs), axis=1)
             tree_lstm_in = concat.concat([aio_in, f_in], axis=1)
