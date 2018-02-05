@@ -35,7 +35,7 @@ void InitXchainerDevice(pybind11::module& m) {
         .def("__repr__",
              [](Device device) {
                  std::ostringstream os;
-                 os << "<Device " << static_cast<char*>(device.name) << "," << device.backend << ">";
+                 os << "<Device('" << static_cast<char*>(device.name) << "', " << device.backend << ")>";
                  return os.str();
              })
         .def_property_readonly("name", [](const Device& self) { return self.name; })
