@@ -2,16 +2,14 @@
 
 from __future__ import print_function
 import argparse
-import os
-
 import chainer
+
 from chainer import training
 from chainer.training import extensions
-from chainer import serializers
 
 from net import Discriminator
-from net import Encoder
 from net import Decoder
+from net import Encoder
 from updater import FacadeUpdater
 
 from facade_dataset import FacadeDataset
