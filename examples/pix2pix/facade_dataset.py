@@ -1,8 +1,7 @@
-import os
-import numpy as np
-
 from PIL import Image
+
 from chainer.dataset import dataset_mixin
+import numpy as np
 
 # download `BASE` dataset from http://cmp.felk.cvut.cz/~tylecr1/facade/
 
