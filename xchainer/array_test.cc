@@ -24,94 +24,6 @@
 namespace xchainer {
 namespace {
 
-template <typename T>
-Array MakeArray(const Shape& shape, std::shared_ptr<void> data) {
-    return Array::FromBuffer(shape, TypeToDtype<T>, data);
-}
-
-template <typename T>
-Array MakeArray(const Shape& shape, std::initializer_list<T> data) {
-    auto a = std::make_unique<T[]>(data.size());
-    std::copy(data.begin(), data.end(), a.get());
-    return MakeArray<T>(shape, std::move(a));
-}
-
-template <typename T>
-void ExpectDataEqual(T expected, const Array& actual) {
-#ifdef XCHAINER_ENABLE_CUDA
-    if (actual.device() == MakeDevice("cuda")) {
-        cuda::CheckError(cudaDeviceSynchronize());
-    }
-#endif  // XCHAINER_ENABLE_CUDA
-    auto total_size = actual.shape().total_size();
-    const T* actual_data = static_cast<const T*>(actual.data().get());
-    for (decltype(total_size) i = 0; i < total_size; i++) {
-        if (std::isnan(expected)) {
-            EXPECT_TRUE(std::isnan(actual_data[i])) << "where i is " << i;
-        } else {
-            EXPECT_EQ(expected, actual_data[i]) << "where i is " << i;
-        }
-    }
-}
-
-template <typename T>
-void ExpectDataEqual(const T* expected_data, const Array& actual) {
-#ifdef XCHAINER_ENABLE_CUDA
-    if (actual.device() == MakeDevice("cuda")) {
-        cuda::CheckError(cudaDeviceSynchronize());
-    }
-#endif  // XCHAINER_ENABLE_CUDA
-    auto total_size = actual.shape().total_size();
-    const T* actual_data = static_cast<const T*>(actual.data().get());
-    for (decltype(total_size) i = 0; i < total_size; i++) {
-        EXPECT_EQ(expected_data[i], actual_data[i]) << "where i is " << i;
-    }
-}
-
-template <typename T>
-void ExpectDataEqual(const Array& expected, const Array& actual) {
-    const T* expected_data = static_cast<const T*>(expected.data().get());
-    ExpectDataEqual(expected_data, actual);
-}
-
-template <typename T>
-void ExpectEqual(const Array& expected, const Array& actual) {
-    EXPECT_EQ(expected.dtype(), actual.dtype());
-    EXPECT_EQ(expected.shape(), actual.shape());
-    EXPECT_EQ(expected.device(), actual.device());
-    ExpectDataEqual<T>(expected, actual);
-}
-
-template <typename T>
-void ExpectEqualCopy(const Array& expected, const Array& actual) {
-    ExpectEqual<T>(expected, actual);
-
-    // Deep copy, therefore assert different addresses to data
-    EXPECT_NE(expected.data().get(), actual.data().get());
-    EXPECT_TRUE(actual.is_contiguous());
-    EXPECT_EQ(0, actual.offset());
-}
-
-void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
-    EXPECT_EQ(a.dtype(), b.dtype());
-    EXPECT_EQ(a.shape(), b.shape());
-    EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
-    EXPECT_EQ(a.offset(), b.offset());
-}
-
-template <typename T>
-void CheckFill(T expected, Scalar scalar) {
-    Dtype dtype = TypeToDtype<T>;
-    Array x = Array::Empty(Shape{3, 2}, dtype);
-    x.Fill(scalar);
-    ExpectDataEqual(expected, x);
-}
-
-template <typename T>
-void CheckFill(T value) {
-    CheckFill(value, value);
-}
-
 class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
     void SetUp() override {
@@ -120,6 +32,287 @@ protected:
     }
 
     void TearDown() override { device_scope_.reset(); }
+
+public:
+    template <typename T>
+    Array MakeArray(const Shape& shape, std::shared_ptr<void> data) {
+        return Array::FromBuffer(shape, TypeToDtype<T>, data);
+    }
+
+    template <typename T>
+    Array MakeArray(const Shape& shape, std::initializer_list<T> data) {
+        auto a = std::make_unique<T[]>(data.size());
+        std::copy(data.begin(), data.end(), a.get());
+        return MakeArray<T>(shape, std::move(a));
+    }
+
+    template <typename T>
+    void ExpectEqualCopy(const Array& expected, const Array& actual) {
+        EXPECT_EQ(expected.dtype(), actual.dtype());
+        EXPECT_EQ(expected.shape(), actual.shape());
+        EXPECT_EQ(expected.device(), actual.device());
+
+        // Deep copy, therefore assert different addresses to data
+        EXPECT_NE(expected.data().get(), actual.data().get());
+
+        EXPECT_TRUE(actual.is_contiguous());
+        EXPECT_EQ(0, actual.offset());
+
+        ExpectDataEqual<T>(expected, actual);
+    }
+
+    template <typename T>
+    void ExpectEqual(const Array& expected, const Array& actual) {
+        EXPECT_EQ(expected.dtype(), actual.dtype());
+        EXPECT_EQ(expected.shape(), actual.shape());
+        EXPECT_EQ(expected.device(), actual.device());
+        ExpectDataEqual<T>(expected, actual);
+    }
+
+    template <typename T>
+    void ExpectDataEqual(const Array& expected, const Array& actual) {
+        const T* expected_data = static_cast<const T*>(expected.data().get());
+        ExpectDataEqual(expected_data, actual);
+    }
+
+    template <typename T>
+    void ExpectDataEqual(const T* expected_data, const Array& actual) {
+#ifdef XCHAINER_ENABLE_CUDA
+        std::string device_name = ::testing::get<0>(GetParam());
+        if (device_name == "cuda") {
+            cuda::CheckError(cudaDeviceSynchronize());
+        }
+#endif  // XCHAINER_ENABLE_CUDA
+        auto total_size = actual.shape().total_size();
+        const T* actual_data = static_cast<const T*>(actual.data().get());
+        for (decltype(total_size) i = 0; i < total_size; i++) {
+            EXPECT_EQ(expected_data[i], actual_data[i]) << "where i is " << i;
+        }
+    }
+
+    template <typename T>
+    void ExpectDataEqual(T expected, const Array& actual) {
+#ifdef XCHAINER_ENABLE_CUDA
+        if (actual.device() == MakeDevice("cuda")) {
+            cuda::CheckError(cudaDeviceSynchronize());
+        }
+#endif  // XCHAINER_ENABLE_CUDA
+        auto total_size = actual.shape().total_size();
+        const T* actual_data = static_cast<const T*>(actual.data().get());
+        for (decltype(total_size) i = 0; i < total_size; i++) {
+            if (std::isnan(expected)) {
+                EXPECT_TRUE(std::isnan(actual_data[i])) << "where i is " << i;
+            } else {
+                EXPECT_EQ(expected, actual_data[i]) << "where i is " << i;
+            }
+        }
+    }
+
+    void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
+        EXPECT_EQ(a.dtype(), b.dtype());
+        EXPECT_EQ(a.shape(), b.shape());
+        EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
+        EXPECT_EQ(a.offset(), b.offset());
+    }
+
+    void ExpectDataExistsOnCurrentDevice(const Array& array) {
+        // Check device accessor
+        EXPECT_EQ(GetCurrentDevice(), array.device());
+
+        // Check device of data pointee
+        if (GetCurrentDevice() == MakeDevice("cpu")) {
+            EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
+        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+            EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
+        } else {
+            FAIL() << "invalid device";
+        }
+    }
+
+    template <bool is_const, typename T>
+    void CheckFromBuffer(const Shape& shape, std::initializer_list<T> raw_data) {
+        using TargetArray = std::conditional_t<is_const, const Array, Array>;
+
+        // Check test data
+        ASSERT_EQ(shape.total_size(), static_cast<int64_t>(raw_data.size()));
+
+        std::shared_ptr<T> data = std::make_unique<T[]>(shape.total_size());
+        std::copy(raw_data.begin(), raw_data.end(), data.get());
+
+        Dtype dtype = TypeToDtype<T>;
+        TargetArray x = Array::FromBuffer(shape, dtype, data);
+
+        // Basic attributes
+        EXPECT_EQ(shape, x.shape());
+        EXPECT_EQ(dtype, x.dtype());
+        EXPECT_EQ(2, x.ndim());
+        EXPECT_EQ(3 * 2, x.total_size());
+        EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
+        EXPECT_EQ(shape.total_size() * int64_t{sizeof(T)}, x.total_bytes());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
+
+        // Array::data
+        ExpectDataEqual<T>(data.get(), x);
+        ExpectDataExistsOnCurrentDevice(x);
+        if (GetCurrentDevice() == MakeDevice("cpu")) {
+            EXPECT_EQ(data.get(), x.data().get());
+        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+            EXPECT_NE(data.get(), x.data().get());
+        } else {
+            FAIL() << "invalid device";
+        }
+    }
+
+    template <typename T>
+    void CheckEmpty() {
+        Dtype dtype = TypeToDtype<T>;
+        Array x = Array::Empty(Shape{3, 2}, dtype);
+        EXPECT_NE(x.data(), nullptr);
+        EXPECT_EQ(x.shape(), Shape({3, 2}));
+        EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
+        ExpectDataExistsOnCurrentDevice(x);
+    }
+
+    template <typename T>
+    void CheckEmptyLike() {
+        Dtype dtype = TypeToDtype<T>;
+        Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+        Array x = Array::EmptyLike(x_orig);
+        EXPECT_NE(x.data(), nullptr);
+        EXPECT_NE(x.data(), x_orig.data());
+        EXPECT_EQ(x.shape(), x_orig.shape());
+        EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
+        ExpectDataExistsOnCurrentDevice(x);
+    }
+
+    template <typename T>
+    void CheckFill(T expected, Scalar scalar) {
+        Dtype dtype = TypeToDtype<T>;
+        Array x = Array::Empty(Shape{3, 2}, dtype);
+        x.Fill(scalar);
+        ExpectDataEqual(expected, x);
+    }
+
+    template <typename T>
+    void CheckFill(T value) {
+        CheckFill(value, value);
+    }
+
+    template <typename T>
+    void CheckFullWithGivenDtype(T expected, Scalar scalar) {
+        Dtype dtype = TypeToDtype<T>;
+        Array x = Array::Full(Shape{3, 2}, scalar, dtype);
+        EXPECT_NE(x.data(), nullptr);
+        EXPECT_EQ(x.shape(), Shape({3, 2}));
+        EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
+        ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
+    }
+
+    template <typename T>
+    void CheckFullWithGivenDtype(T value) {
+        CheckFullWithGivenDtype(value, value);
+    }
+
+    template <typename T>
+    void CheckFullWithScalarDtype(T value) {
+        Scalar scalar = {value};
+        Array x = Array::Full(Shape{3, 2}, scalar);
+        EXPECT_NE(x.data(), nullptr);
+        EXPECT_EQ(x.shape(), Shape({3, 2}));
+        EXPECT_EQ(x.dtype(), scalar.dtype());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
+        ExpectDataEqual(value, x);
+        ExpectDataExistsOnCurrentDevice(x);
+    }
+
+    template <typename T>
+    void CheckFullLike(T expected, Scalar scalar) {
+        Dtype dtype = TypeToDtype<T>;
+        Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+        Array x = Array::FullLike(x_orig, scalar);
+        EXPECT_NE(x.data(), nullptr);
+        EXPECT_NE(x.data(), x_orig.data());
+        EXPECT_EQ(x.shape(), x_orig.shape());
+        EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
+        ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
+    }
+
+    template <typename T>
+    void CheckFullLike(T value) {
+        CheckFullLike(value, value);
+    }
+
+    template <typename T>
+    void CheckZeros() {
+        Dtype dtype = TypeToDtype<T>;
+        Array x = Array::Zeros(Shape{3, 2}, dtype);
+        EXPECT_NE(x.data(), nullptr);
+        EXPECT_EQ(x.shape(), Shape({3, 2}));
+        EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
+        T expected{0};
+        ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
+    }
+
+    template <typename T>
+    void CheckZerosLike() {
+        Dtype dtype = TypeToDtype<T>;
+        Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+        Array x = Array::ZerosLike(x_orig);
+        EXPECT_NE(x.data(), nullptr);
+        EXPECT_NE(x.data(), x_orig.data());
+        EXPECT_EQ(x.shape(), x_orig.shape());
+        EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
+        T expected{0};
+        ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
+    }
+
+    template <typename T>
+    void CheckOnes() {
+        Dtype dtype = TypeToDtype<T>;
+        Array x = Array::Ones(Shape{3, 2}, dtype);
+        EXPECT_NE(x.data(), nullptr);
+        EXPECT_EQ(x.shape(), Shape({3, 2}));
+        EXPECT_EQ(x.dtype(), dtype);
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
+        T expected{1};
+        ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
+    }
+
+    template <typename T>
+    void CheckOnesLike() {
+        Dtype dtype = TypeToDtype<T>;
+        Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+        Array x = Array::OnesLike(x_orig);
+        EXPECT_NE(x.data(), nullptr);
+        EXPECT_NE(x.data(), x_orig.data());
+        EXPECT_EQ(x.shape(), x_orig.shape());
+        EXPECT_EQ(x.dtype(), x_orig.dtype());
+        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_EQ(0, x.offset());
+        T expected{1};
+        ExpectDataEqual(expected, x);
+        ExpectDataExistsOnCurrentDevice(x);
+    }
 
 private:
     std::unique_ptr<DeviceScope> device_scope_;
@@ -257,6 +450,67 @@ TEST_P(ArrayTest, Grad) {
     }
 }
 
+TEST_P(ArrayTest, ArrayFromBuffer) {
+    Shape shape{3, 2};
+    CheckFromBuffer<false, bool>(shape, {true, false, false, true, false, true});
+    CheckFromBuffer<false, int8_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<false, int16_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<false, int32_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<false, int64_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<false, uint8_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<false, float>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<false, double>(shape, {0, 1, 2, 3, 4, 5});
+}
+
+TEST_P(ArrayTest, ConstArrayFromBuffer) {
+    Shape shape{3, 2};
+    CheckFromBuffer<true, bool>(shape, {true, false, false, true, false, true});
+    CheckFromBuffer<true, int8_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<true, int16_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<true, int32_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<true, int64_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<true, uint8_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<true, float>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromBuffer<true, double>(shape, {0, 1, 2, 3, 4, 5});
+}
+
+#ifdef XCHAINER_ENABLE_CUDA
+TEST_P(ArrayTest, FromBufferFromNonManagedMemory) {
+    Shape shape = {3, 2};
+    Dtype dtype = Dtype::kBool;
+    int64_t bytesize = shape.total_size() * sizeof(bool);
+
+    void* raw_ptr = nullptr;
+    cuda::CheckError(cudaMalloc(&raw_ptr, bytesize));
+    auto data = std::shared_ptr<void>{raw_ptr, cudaFree};
+
+    EXPECT_THROW(Array::FromBuffer(shape, dtype, data), XchainerError)
+        << "FromBuffer must throw an exception if non-managed CUDA memory is given";
+}
+#endif  // XCHAINER_ENABLE_CUDA
+
+TEST_P(ArrayTest, Empty) {
+    CheckEmpty<bool>();
+    CheckEmpty<int8_t>();
+    CheckEmpty<int16_t>();
+    CheckEmpty<int32_t>();
+    CheckEmpty<int64_t>();
+    CheckEmpty<uint8_t>();
+    CheckEmpty<float>();
+    CheckEmpty<double>();
+}
+
+TEST_P(ArrayTest, EmptyLike) {
+    CheckEmptyLike<bool>();
+    CheckEmptyLike<int8_t>();
+    CheckEmptyLike<int16_t>();
+    CheckEmptyLike<int32_t>();
+    CheckEmptyLike<int64_t>();
+    CheckEmptyLike<uint8_t>();
+    CheckEmptyLike<float>();
+    CheckEmptyLike<double>();
+}
+
 TEST_P(ArrayTest, Fill) {
     CheckFill(true);
     CheckFill(false);
@@ -326,6 +580,93 @@ TEST_P(ArrayTest, Fill) {
     CheckFill(double{1}, Scalar(true));
     CheckFill(double{1}, Scalar(1.0f));
     CheckFill(double{1}, Scalar(1.0));
+}
+
+TEST_P(ArrayTest, FullWithGivenDtype) {
+    CheckFullWithGivenDtype(true);
+    CheckFullWithGivenDtype(int8_t{2});
+    CheckFullWithGivenDtype(int16_t{2});
+    CheckFullWithGivenDtype(int32_t{2});
+    CheckFullWithGivenDtype(int64_t{2});
+    CheckFullWithGivenDtype(uint8_t{2});
+    CheckFullWithGivenDtype(float{2.0f});
+    CheckFullWithGivenDtype(double{2.0});
+
+    CheckFullWithGivenDtype(true, Scalar(int32_t{1}));
+    CheckFullWithGivenDtype(true, Scalar(int32_t{2}));
+    CheckFullWithGivenDtype(true, Scalar(int32_t{-1}));
+    CheckFullWithGivenDtype(false, Scalar(int32_t{0}));
+}
+
+TEST_P(ArrayTest, FullWithScalarDtype) {
+    CheckFullWithScalarDtype(true);
+    CheckFullWithScalarDtype(int8_t{2});
+    CheckFullWithScalarDtype(int16_t{2});
+    CheckFullWithScalarDtype(int32_t{2});
+    CheckFullWithScalarDtype(int64_t{2});
+    CheckFullWithScalarDtype(uint8_t{2});
+    CheckFullWithScalarDtype(float{2.0f});
+    CheckFullWithScalarDtype(double{2.0});
+}
+
+TEST_P(ArrayTest, FullLike) {
+    CheckFullLike(true);
+    CheckFullLike(int8_t{2});
+    CheckFullLike(int16_t{2});
+    CheckFullLike(int32_t{2});
+    CheckFullLike(int64_t{2});
+    CheckFullLike(uint8_t{2});
+    CheckFullLike(float{2.0f});
+    CheckFullLike(double{2.0});
+
+    CheckFullLike(true, Scalar(int32_t{1}));
+    CheckFullLike(true, Scalar(int32_t{2}));
+    CheckFullLike(true, Scalar(int32_t{-1}));
+    CheckFullLike(false, Scalar(int32_t{0}));
+}
+
+TEST_P(ArrayTest, Zeros) {
+    CheckZeros<bool>();
+    CheckZeros<int8_t>();
+    CheckZeros<int16_t>();
+    CheckZeros<int32_t>();
+    CheckZeros<int64_t>();
+    CheckZeros<uint8_t>();
+    CheckZeros<float>();
+    CheckZeros<double>();
+}
+
+TEST_P(ArrayTest, ZerosLike) {
+    CheckZerosLike<bool>();
+    CheckZerosLike<int8_t>();
+    CheckZerosLike<int16_t>();
+    CheckZerosLike<int32_t>();
+    CheckZerosLike<int64_t>();
+    CheckZerosLike<uint8_t>();
+    CheckZerosLike<float>();
+    CheckZerosLike<double>();
+}
+
+TEST_P(ArrayTest, Ones) {
+    CheckOnes<bool>();
+    CheckOnes<int8_t>();
+    CheckOnes<int16_t>();
+    CheckOnes<int32_t>();
+    CheckOnes<int64_t>();
+    CheckOnes<uint8_t>();
+    CheckOnes<float>();
+    CheckOnes<double>();
+}
+
+TEST_P(ArrayTest, OnesLike) {
+    CheckOnesLike<bool>();
+    CheckOnesLike<int8_t>();
+    CheckOnesLike<int16_t>();
+    CheckOnesLike<int32_t>();
+    CheckOnesLike<int64_t>();
+    CheckOnesLike<uint8_t>();
+    CheckOnesLike<float>();
+    CheckOnesLike<double>();
 }
 
 TEST_P(ArrayTest, IAdd) {
