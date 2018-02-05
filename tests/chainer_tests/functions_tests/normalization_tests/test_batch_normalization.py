@@ -19,9 +19,9 @@ def _to_fcontiguous(arrays):
 
 
 def _batch_normalization(args):
-    x, gamma, beta, mean, var, expander = args
+    x, gamma, beta, mean, var, eps, expander = args
     mean = mean[expander]
-    std = numpy.sqrt(var)[expander]
+    std = numpy.sqrt(var + eps)[expander]
     y_expect = (gamma[expander] * (x - mean) / std + beta[expander])
     return y_expect
 
@@ -67,7 +67,7 @@ class TestBatchNormalization(unittest.TestCase):
 
         aggr_axes = (0,) + tuple(six.moves.range(head_ndim, x.ndim))
         mean = x.mean(axis=aggr_axes)
-        var = x.var(axis=aggr_axes) + self.eps
+        var = x.var(axis=aggr_axes)
 
         self.decay = 0.9
         self.expander = (None, Ellipsis) + (None,) * ndim
@@ -91,7 +91,7 @@ class TestBatchNormalization(unittest.TestCase):
 
     def forward_cpu(self, inputs):
         y_expect = _batch_normalization(
-            inputs + [self.mean, self.var, self.expander])
+            inputs + [self.mean, self.var, self.eps, self.expander])
         return y_expect,
 
     def check_forward(self, inputs, backend_config):
@@ -223,7 +223,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
 
     def forward_cpu(self, inputs):
-        y_expect = _batch_normalization(inputs + [self.expander])
+        y_expect = _batch_normalization(inputs + [self.eps, self.expander])
         return y_expect,
 
     def check_forward(self, inputs, backend_config):
