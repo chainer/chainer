@@ -309,7 +309,7 @@ The retained output arrays can be accessed via :attr:`Function.output_data`.
 
        class TanhFunction(chainer.Function):
            def forward(self, inputs):
-               xp = chainer.backends.cuda.get_array_module(inputs[0])
+               xp = chainer.cuda.get_array_module(inputs[0])
                self.y = xp.tanh(inputs[0])
                return self.y,
 
@@ -324,7 +324,7 @@ The retained output arrays can be accessed via :attr:`Function.output_data`.
        class TanhFunction(chainer.Function):
            def forward(self, inputs):
                self.retain_outputs((0,))
-               xp = chainer.backends.cuda.get_array_module(inputs[0])
+               xp = chainer.cuda.get_array_module(inputs[0])
                return xp.tanh(inputs[0]),
 
            def backward(self, inputs, grad_outputs):
@@ -808,12 +808,12 @@ The following classes and functions are removed in Chainer v2.
 
 - ``chainer.Flag``
 - ``chainer.FunctionSet`` (Use :class:`Chain` or :class:`ChainList` instead)
-- ``chainer.backends.cuda.init`` (It did nothing except for calling :func:`~cuda.check_cuda_available`)
-- ``chainer.backends.cuda.empty`` (Use :func:`cupy.empty`)
-- ``chainer.backends.cuda.empty_like`` (Use :func:`cupy.empty_like`)
-- ``chainer.backends.cuda.full`` (Use :func:`cupy.full`)
-- ``chainer.backends.cuda.full_like`` (Use :func:`cupy.full_like`)
-- ``chainer.backends.cuda.ones`` (Use :func:`cupy.ones`)
-- ``chainer.backends.cuda.ones_like`` (Use :func:`cupy.ones_like`)
-- ``chainer.backends.cuda.zeros`` (Use :func:`cupy.zeros`)
-- ``chainer.backends.cuda.zeros_like`` (Use :func:`cupy.zeros_like`)
+- ``chainer.cuda.init`` (It did nothing except for calling :func:`~cuda.check_cuda_available`)
+- ``chainer.cuda.empty`` (Use :func:`cupy.empty`)
+- ``chainer.cuda.empty_like`` (Use :func:`cupy.empty_like`)
+- ``chainer.cuda.full`` (Use :func:`cupy.full`)
+- ``chainer.cuda.full_like`` (Use :func:`cupy.full_like`)
+- ``chainer.cuda.ones`` (Use :func:`cupy.ones`)
+- ``chainer.cuda.ones_like`` (Use :func:`cupy.ones_like`)
+- ``chainer.cuda.zeros`` (Use :func:`cupy.zeros`)
+- ``chainer.cuda.zeros_like`` (Use :func:`cupy.zeros_like`)
