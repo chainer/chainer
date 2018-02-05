@@ -96,7 +96,7 @@ class LinearModel(object):
     def accuracy_gpu(self, device):
         with cuda.get_device_from_id(device):
             return self.accuracy(
-                backend.BackendConfig(use_cuda=True),
+                backend.BackendConfig({'use_cuda': True}),
                 device)
 
 
