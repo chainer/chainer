@@ -1,7 +1,6 @@
 #include "xchainer/array.h"
 
 #include <cassert>
-#include <cstddef>
 #include <initializer_list>
 #include <string>
 
@@ -16,7 +15,6 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
-#include "xchainer/error.h"
 #include "xchainer/memory.h"
 
 namespace xchainer {
