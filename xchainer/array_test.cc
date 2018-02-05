@@ -13,12 +13,15 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/backend.h"
 #ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/memory.h"
+#include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
 
 namespace xchainer {
@@ -28,7 +31,15 @@ class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>>
 protected:
     void SetUp() override {
         std::string device_name = ::testing::get<0>(GetParam());
-        device_scope_ = std::make_unique<DeviceScope>(device_name);
+        std::unique_ptr<Backend> backend;
+        if (device_name == "cpu") {
+            backend = std::make_unique<NativeBackend>();
+#ifdef XCHAINER_ENABLE_CUDA
+        } else if (device_name == "cuda") {
+            backend = std::make_unique<cuda::CudaBackend>();
+#endif  // XCHAINER_ENABLE_CUDA
+        }
+        device_scope_ = std::make_unique<DeviceScope>(device_name, backend.get());
     }
 
     void TearDown() override { device_scope_.reset(); }
@@ -115,9 +126,11 @@ public:
     }
 
     void ExpectDataExistsOnCurrentDevice(const Array& array) {
-        if (GetCurrentDevice() == MakeDevice("cpu")) {
+        // TODO(sonots): Fix to check array's device member
+        Device device = GetCurrentDevice();
+        if (strncmp(device.name, "cpu", kMaxDeviceNameLength) == 0) {
             EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
-        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+        } else if (strncmp(device.name, "cuda", kMaxDeviceNameLength) == 0) {
             EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
         } else {
             FAIL() << "invalid device";
@@ -150,9 +163,12 @@ public:
         // Array::data
         ExpectDataEqual<T>(data.get(), x);
         ExpectDataExistsOnCurrentDevice(x);
-        if (GetCurrentDevice() == MakeDevice("cpu")) {
+
+        // TODO(sonots): Polymorphism using device.backend->XXX()?
+        Device device = GetCurrentDevice();
+        if (strncmp(device.name, "cpu", kMaxDeviceNameLength) == 0) {
             EXPECT_EQ(data.get(), x.data().get());
-        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+        } else if (strncmp(device.name, "cuda", kMaxDeviceNameLength) == 0) {
             EXPECT_NE(data.get(), x.data().get());
         } else {
             FAIL() << "invalid device";
