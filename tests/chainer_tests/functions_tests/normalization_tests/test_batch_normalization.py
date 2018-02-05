@@ -54,7 +54,6 @@ class TestBatchNormalization(unittest.TestCase):
         param_shape = self.param_shape
         dtype = self.dtype
         ndim = self.ndim
-        eps = 2e-5
 
         gamma = numpy.random.uniform(.5, 1, param_shape).astype(dtype)
         beta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
@@ -68,9 +67,8 @@ class TestBatchNormalization(unittest.TestCase):
 
         aggr_axes = (0,) + tuple(six.moves.range(head_ndim, x.ndim))
         mean = x.mean(axis=aggr_axes)
-        var = x.var(axis=aggr_axes) + eps
+        var = x.var(axis=aggr_axes) + self.eps
 
-        self.eps = eps
         self.decay = 0.9
         self.expander = (None, Ellipsis) + (None,) * ndim
         self.mean = mean
@@ -207,7 +205,6 @@ class TestFixedBatchNormalization(unittest.TestCase):
         ggmean = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
         ggvar = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
 
-        self.eps = 2e-5
         self.decay = 0.0
         self.expander = (None, Ellipsis) + (None,) * ndim
 
