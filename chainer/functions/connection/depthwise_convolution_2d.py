@@ -23,9 +23,10 @@ def _matmul(a, b, xp):
 
 class DepthwiseConvolution2D(function.Function):
 
-    def __init__(self, stride=1, pad=0):
+    def __init__(self, stride=1, pad=0, direct=False):
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
+        self.direct = direct
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -58,6 +59,8 @@ class DepthwiseConvolution2D(function.Function):
         if xp is numpy:
             self.col = conv.im2col_cpu(
                 x, kh, kw, self.sy, self.sx, self.ph, self.pw)
+        elif self.direct:
+            return self.forward_gpu_direct(inputs)
         else:
             self.col = conv.im2col_gpu(
                 x, kh, kw, self.sy, self.sx, self.ph, self.pw)
@@ -79,6 +82,50 @@ class DepthwiseConvolution2D(function.Function):
             y += b[None, :, None, None]
         return y,
 
+    def forward_gpu_direct(self, inputs):
+        x, W = inputs[:2]
+        b = inputs[2] if len(inputs) == 3 else None
+        c_m, c_i, kh, kw = W.shape
+
+        n, c, h, w = x.shape
+        out_h = conv.get_conv_outsize(h, kh, self.sy, self.ph)
+        out_w = conv.get_conv_outsize(w, kw, self.sx, self.pw)
+        y = cuda.cupy.zeros((n, c_m * c_i, out_h, out_w), dtype=x.dtype)
+        cuda.elementwise(
+            'raw T W, raw U img,'
+            'int32 n, int32 c, int32 h, int32 w,'
+            'int32 m, int32 out_h, int32 out_w,'
+            'int32 kh, int32 kw, int32 sy, int32 sx, int32 ph, int32 pw',
+            'V out',
+            '''
+                const int n_i = i / (c*m*out_h*out_w);
+                const int out_c = i / (out_h*out_w) % (m*c);
+                const int in_c = out_c / m;
+                const int m_i = out_c % m;
+                const int out_y = i / out_w % out_h;
+                const int out_x = i % out_w;
+                int widx = (m_i*c + in_c)*kw*kh;
+                for(int ky=0; ky<kh; ky++) {
+                  const int in_y = out_y * sy - ph + ky;
+                  for(int kx=0; kx<kw; kx++) {
+                    const int in_x = out_x * sx - pw + kx;
+                    if (0<=in_x && in_x<w && 0<=in_y && in_y<h) {
+                      const int idx = ((n_i*c + in_c)*h + in_y)*w + in_x;
+                      out += W[widx] * img[idx];
+                    }
+                    widx++;
+                  }
+                }
+            ''',
+            'direct_depthwise_conv')(W.reduced_view(),
+                                     x.reduced_view(),
+                                     n, c_i, h, w, c_m, out_h, out_w,
+                                     kh, kw, self.sy, self.sx,
+                                     self.ph, self.pw, y)
+        if b is not None:
+            y += b[None, :, None, None]
+        return y,
+
     def backward(self, inputs, grad_outputs):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
@@ -86,6 +133,8 @@ class DepthwiseConvolution2D(function.Function):
         h, w = x.shape[2:]
 
         xp = cuda.get_array_module(*x)
+        if xp == cuda.cupy and self.direct:
+            return self.backward_gpu_direct(inputs, grad_outputs)
 
         B, C, KY, KX, IY, IX = self.col.shape
         D = W.shape[0]
@@ -120,8 +169,97 @@ class DepthwiseConvolution2D(function.Function):
             gb = gy.sum(axis=(0, 1, 2))
             return gx, gW, gb
 
+    def backward_gpu_direct(self, inputs, grad_outputs):
+        x, W = inputs[:2]
+        b = inputs[2] if len(inputs) == 3 else None
+        gy = grad_outputs[0]
+        n, c, h, w = x.shape
+        m, c, kh, kw = W.shape
+        out_h = conv.get_conv_outsize(h, kh, self.sy, self.ph)
+        out_w = conv.get_conv_outsize(w, kw, self.sx, self.pw)
+        gW = cuda.cupy.zeros((m, c, kh, kw), dtype=W.dtype)
+        xp = cuda.get_array_module(*x)
 
-def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0):
+        cuda.elementwise(
+            'raw T gout, raw U img,'
+            'int32 n, int32 c, int32 h, int32 w,'
+            'int32 m, int32 out_h, int32 out_w,'
+            'int32 kh, int32 kw, int32 sy, int32 sx, int32 ph, int32 pw',
+            'V gW',
+            '''
+                const int m_i = i / (c*kh*kw);
+                const int in_c = i / (kh*kw) % c;
+                const int go_c = in_c * m + m_i;
+                const int ky = i / kw % kh;
+                const int kx = i % kw;
+                const int go_pane_size = out_h * out_w;
+                for (int n_i=0; n_i<n; n_i++) {
+                  for (int go_pos=0; go_pos<go_pane_size; go_pos++) {
+                    const int go_x = go_pos % out_w;
+                    const int go_y = go_pos / out_w;
+                    const int in_x = go_x * sx - pw + kx;
+                    const int in_y = go_y * sy - ph + ky;
+                    if (0<=in_x && in_x<w && 0<=in_y && in_y<h) {
+                      const int idx = ((n_i*c + in_c)*h + in_y)*w + in_x;
+                      const int gidx = (n_i*c*m + go_c)*go_pane_size + go_pos;
+                      gW += gout[gidx] * img[idx];
+                    }
+                  }
+                }
+            ''',
+            'direct_depthwise_gW')(gy.reduced_view(),
+                                   x.reduced_view(),
+                                   n, c, h, w, m, out_h, out_w,
+                                   kh, kw, self.sy, self.sx,
+                                   self.ph, self.pw, gW)
+        gx = cuda.cupy.zeros((n, c, h, w), dtype=x.dtype)
+        cuda.elementwise(
+            'raw T gout, raw U W,'
+            'int32 n, int32 c, int32 h, int32 w,'
+            'int32 m, int32 out_h, int32 out_w,'
+            'int32 kh, int32 kw, int32 sy, int32 sx, int32 ph, int32 pw',
+            'V gx',
+            '''
+                const int n_i = i / (c*h*w);
+                const int in_c = i / (h*w) % c;
+                const int in_y = i / w % h;
+                const int in_x = i % w;
+                for(int m_i=0; m_i<m; m_i++) {
+                  const int go_c = in_c*m+m_i;
+                  int widx = (m_i*c + in_c) * kh * kw;
+                  for(int ky=0; ky<kh; ky++) {
+                    for(int kx=0; kx<kw; kx++) {
+                      int go_y = in_y + ph - ky;
+                      int go_x = in_x + pw - kx;
+                      if((go_y % sy == 0) && (go_x % sx == 0)){
+                        go_y = go_y / sy;
+                        go_x = go_x / sx;
+                        if(0<=go_x && go_x<out_w && 0<=go_y && go_y<out_h) {
+                          const int gidx =
+                            ((n_i*m*c + go_c)*out_h + go_y)*out_w + go_x;
+                          gx += gout[gidx] * W[widx];
+                        }
+                      }
+                      widx++;
+                    }
+                  }
+                }
+            ''',
+            'direct_depthwise_gx')(gy.reduced_view(),
+                                   W.reduced_view(),
+                                   n, c, h, w, m, out_h, out_w,
+                                   kh, kw, self.sy, self.sx,
+                                   self.ph, self.pw, gx)
+
+        if b is None:
+            return gx, gW
+        else:
+            gy = xp.rollaxis(gy, 1, 4)
+            gb = gy.sum(axis=(0, 1, 2))
+            return gx, gW, gb
+
+
+def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0, direct=False):
     """Two-dimensional depthwise convolution function.
 
     This is an implementation of two-dimensional depthwise convolution.
@@ -151,7 +289,9 @@ def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0):
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-
+        direct (bool): If ``True`` and gpu enabled, this function use direct
+            implementation of convolution instead of im2col.
+            This is efficient when the channel size is large.
 
     Returns:
         ~chainer.Variable:
@@ -186,7 +326,7 @@ def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0):
         (2, 6, 2, 5)
 
     """
-    func = DepthwiseConvolution2D(stride, pad)
+    func = DepthwiseConvolution2D(stride, pad, direct)
     if b is None:
         return func(x, W)
     else:

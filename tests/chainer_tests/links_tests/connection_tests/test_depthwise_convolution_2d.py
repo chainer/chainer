@@ -15,6 +15,7 @@ from chainer.testing import condition
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'nobias': [True, False],
+    'direct': [True, False],
 }))
 class TestDepthwiseConvolution2D(unittest.TestCase):
 
@@ -22,7 +23,8 @@ class TestDepthwiseConvolution2D(unittest.TestCase):
         self.link = links.DepthwiseConvolution2D(
             3, 2, 3, stride=2, pad=1,
             initialW=chainer.initializers.Normal(1, self.W_dtype),
-            initial_bias=chainer.initializers.Normal(1, self.x_dtype))
+            initial_bias=chainer.initializers.Normal(1, self.x_dtype),
+            direct=self.direct)
         self.link.cleargrads()
 
         self.x = numpy.random.uniform(-1, 1,

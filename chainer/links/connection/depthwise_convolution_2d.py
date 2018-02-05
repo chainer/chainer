@@ -32,6 +32,9 @@ class DepthwiseConvolution2D(link.Link):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        direct (bool): If ``True`` and gpu enabled, this link use direct
+            implementation of convolution instead of im2col.
+            This is efficient when the channel size is large.
 
     .. seealso::
        See :func:`chainer.functions.depthwise_convolution_2d`.
@@ -43,13 +46,14 @@ class DepthwiseConvolution2D(link.Link):
     """
 
     def __init__(self, in_channels, channel_multiplier, ksize, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None):
+                 nobias=False, initialW=None, initial_bias=None, direct=False):
         super(DepthwiseConvolution2D, self).__init__()
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
         self.channel_multiplier = channel_multiplier
         self.nobias = nobias
+        self.direct = direct
 
         if initialW is None:
             initialW = initializers.HeNormal(1. / numpy.sqrt(2))
@@ -90,7 +94,7 @@ class DepthwiseConvolution2D(link.Link):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return depthwise_convolution_2d.depthwise_convolution_2d(
-            x, self.W, self.b, self.stride, self.pad)
+            x, self.W, self.b, self.stride, self.pad, self.direct)
 
 
 def _pair(x):
