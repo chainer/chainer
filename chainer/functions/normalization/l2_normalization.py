@@ -35,13 +35,15 @@ class NormalizeL2(function_node.FunctionNode):
         gy, = grad_outputs
         F = chainer.functions
 
-        norm = F.sqrt(F.sum(F.square(x), axis=self.axis)) + self.eps
+        norm_noeps = F.sqrt(F.sum(F.square(x), axis=self.axis))
+        norm = norm_noeps + self.eps
         norm = F.broadcast_to(F.expand_dims(norm, self.axis), gy.shape)
 
         x_gy_reduced = F.sum((x * gy), axis=self.axis)
+        x_gy_reduced /= norm_noeps
         x_gy_reduced = F.broadcast_to(
             F.expand_dims(x_gy_reduced, self.axis), gy.shape)
-        gx = gy * norm - x_gy_reduced * x / norm
+        gx = gy * norm - x_gy_reduced * x
         gx = gx / norm ** 2
 
         return gx,
@@ -59,7 +61,7 @@ def normalize(x, eps=1e-5, axis=1):
     vector :math:`y` by the following equation:
 
     .. math::
-       y_i = {x_i \\over \\| x_i \\|_2 + \epsilon}
+       y_i = {x_i \\over \\| x_i \\|_2 + \\epsilon}
 
     :obj:`eps` is used to avoid division by zero when norm of :math:`x` along
     the given axis is zero.

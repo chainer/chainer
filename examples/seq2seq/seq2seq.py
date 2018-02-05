@@ -87,7 +87,10 @@ class Seq2seq(chainer.Chain):
                 ys = self.xp.argmax(wy.data, axis=1).astype('i')
                 result.append(ys)
 
-        result = cuda.to_cpu(self.xp.stack(result).T)
+        # Using `xp.concatenate(...)` instead of `xp.stack(result)` here to
+        # support NumPy 1.9.
+        result = cuda.to_cpu(
+            self.xp.concatenate([self.xp.expand_dims(x, 0) for x in result]).T)
 
         # Remove EOS taggs
         outs = []
@@ -257,7 +260,7 @@ def main():
     optimizer.setup(model)
 
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
-    updater = training.StandardUpdater(
+    updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
     trainer.extend(extensions.LogReport(

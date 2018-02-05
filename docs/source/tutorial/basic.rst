@@ -95,7 +95,7 @@ The resulting ``y`` is also a :class:`Variable` object, whose value can be extra
 .. doctest::
 
    >>> y.data
-   array([ 16.], dtype=float32)
+   array([16.], dtype=float32)
 
 What ``y`` holds is not only the result value.
 It also holds the history of computation (i.e., computational graph), which enables to compute its differentiation.
@@ -111,7 +111,7 @@ Then, the gradient is computed and stored in the :attr:`~Variable.grad` attribut
 .. doctest::
 
    >>> x.grad
-   array([ 8.], dtype=float32)
+   array([8.], dtype=float32)
 
 Also we can compute gradients of intermediate variables.
 Note that Chainer, by default, releases the gradient arrays of intermediate variables for memory efficiency.
@@ -146,8 +146,8 @@ This is simply done by setting the :attr:`~Variable.grad` attribute of the outpu
    >>> y.grad = np.ones((2, 3), dtype=np.float32)
    >>> y.backward()
    >>> x.grad
-   array([[  0.,   2.,   4.],
-          [  6.,   8.,  10.]], dtype=float32)
+   array([[ 0.,  2.,  4.],
+          [ 6.,  8., 10.]], dtype=float32)
 
 .. note::
 
@@ -186,10 +186,10 @@ By default, the matrix ``W`` is initialized randomly, while the vector ``b`` is 
 .. doctest::
 
    >>> f.W.data
-   array([[ 1.01847613,  0.23103087,  0.56507462],
-          [ 1.29378033,  1.07823515, -0.56423163]], dtype=float32)
+   array([[ 1.0184761 ,  0.23103087,  0.5650746 ],
+          [ 1.2937803 ,  1.0782351 , -0.56423163]], dtype=float32)
    >>> f.b.data
-   array([ 0.,  0.], dtype=float32)
+   array([0., 0.], dtype=float32)
 
 An instance of the Linear link acts like a usual function:
 
@@ -198,8 +198,8 @@ An instance of the Linear link acts like a usual function:
    >>> x = Variable(np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32))
    >>> y = f(x)
    >>> y.data
-   array([[ 3.1757617 ,  1.75755572],
-          [ 8.61950684,  7.18090773]], dtype=float32)
+   array([[3.1757617, 1.7575557],
+          [8.619507 , 7.1809077]], dtype=float32)
 
 .. note::
 
@@ -237,10 +237,10 @@ Now we can compute the gradients of parameters by simply calling the backward me
    >>> y.grad = np.ones((2, 2), dtype=np.float32)
    >>> y.backward()
    >>> f.W.grad
-   array([[ 5.,  7.,  9.],
-          [ 5.,  7.,  9.]], dtype=float32)
+   array([[5., 7., 9.],
+          [5., 7., 9.]], dtype=float32)
    >>> f.b.grad
-   array([ 2.,  2.], dtype=float32)
+   array([2., 2.], dtype=float32)
 
 
 Write a model as a chain
@@ -572,7 +572,7 @@ Now we can build a trainer object.
 
 .. doctest::
 
-   >>> updater = training.StandardUpdater(train_iter, optimizer)
+   >>> updater = training.updaters.StandardUpdater(train_iter, optimizer)
    >>> trainer = training.Trainer(updater, (20, 'epoch'), out='result')
 
 The second argument ``(20, 'epoch')`` represents the duration of training.

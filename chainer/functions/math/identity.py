@@ -6,7 +6,6 @@ class Identity(function_node.FunctionNode):
     """Identity function."""
 
     def forward(self, xs):
-        self.retain_inputs(())
         return xs
 
     def backward(self, indexes, gys):

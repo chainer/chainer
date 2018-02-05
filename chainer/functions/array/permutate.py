@@ -109,26 +109,26 @@ def permutate(x, indices, axis=0, inv=False):
 
         >>> x = np.arange(6).reshape((3, 2)).astype('f')
         >>> x
-        array([[ 0.,  1.],
-               [ 2.,  3.],
-               [ 4.,  5.]], dtype=float32)
+        array([[0., 1.],
+               [2., 3.],
+               [4., 5.]], dtype=float32)
         >>> indices = np.array([2, 0, 1], 'i')
         >>> y = F.permutate(x, indices)
         >>> y.data
-        array([[ 4.,  5.],
-               [ 0.,  1.],
-               [ 2.,  3.]], dtype=float32)
+        array([[4., 5.],
+               [0., 1.],
+               [2., 3.]], dtype=float32)
         >>> y = F.permutate(x, indices, inv=True)
         >>> y.data
-        array([[ 2.,  3.],
-               [ 4.,  5.],
-               [ 0.,  1.]], dtype=float32)
+        array([[2., 3.],
+               [4., 5.],
+               [0., 1.]], dtype=float32)
         >>> indices = np.array([1, 0], 'i')
         >>> y = F.permutate(x, indices, axis=1)
         >>> y.data
-        array([[ 1.,  0.],
-               [ 3.,  2.],
-               [ 5.,  4.]], dtype=float32)
+        array([[1., 0.],
+               [3., 2.],
+               [5., 4.]], dtype=float32)
 
     """
     y, = Permutate(axis, inv).apply((x, indices))
