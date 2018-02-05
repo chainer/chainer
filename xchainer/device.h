@@ -40,7 +40,7 @@ void SetCurrentDevice(const std::string& name, Backend* backend);
 // Scope object that switches the current device by RAII.
 class DeviceScope {
 public:
-    DeviceScope() : orig_(GetCurrentDevice()) {}
+    DeviceScope() : orig_(internal::GetCurrentDeviceNoExcept()) {}
     explicit DeviceScope(Device device) : DeviceScope() { SetCurrentDevice(device); }
     explicit DeviceScope(const std::string& device, Backend* backend) : DeviceScope(MakeDevice(device, backend)) {}
 
