@@ -278,7 +278,7 @@ class TestMultipleAdd(unittest.TestCase):
 
         gradient_check.check_double_backward(
             _func, (x1_data, x2_data, x3_data), y_grad, (ggx1_data,
-                                                       ggx2_data, ggx3_data),
+                                                         ggx2_data, ggx3_data),
             dtype=numpy.float64, **options)
 
     def double_backward_cpu(self, func, **options):
