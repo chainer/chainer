@@ -84,14 +84,6 @@ void CheckCommonMembers(const Array& x, const Shape& shape, Dtype dtype, const D
     ExpectDataExistsOnDevice(device, x);
 }
 
-template <typename T>
-void CheckFromBufferMembers(const Array& x, const Shape& shape, Dtype dtype, std::shared_ptr<T> data, const Device& device) {
-    CheckCommonMembers(x, shape, dtype, device);
-    EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
-    EXPECT_EQ(shape.total_size() * int64_t{sizeof(T)}, x.total_bytes());
-    ExpectDataEqual<T>(data.get(), x);
-}
-
 // Common criteria for EmptyLike, FullLike, OnesLike, ZerosLike, etc.
 void CheckCommonLikeMembers(const Array& x, const Array& x_orig, const Device& device) {
     EXPECT_NE(nullptr, x.data());
@@ -132,13 +124,20 @@ protected:
         auto device_scope = std::make_unique<DeviceScope>(device_);
         std::shared_ptr<T> data = std::make_unique<T[]>(shape.total_size());
         std::copy(raw_data.begin(), raw_data.end(), data.get());
+
         {
             Array x = Array::FromBuffer(shape, dtype, data);
-            CheckFromBufferMembers(x, shape, dtype, data, device_);
+            CheckCommonMembers(x, shape, dtype, device_);
+            ExpectDataEqual<T>(data.get(), x);
+            EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
+            EXPECT_EQ(shape.total_size() * int64_t{sizeof(T)}, x.total_bytes());
         }
         {
             const Array x = Array::FromBuffer(shape, dtype, data);
-            CheckFromBufferMembers(x, shape, dtype, data, device_);
+            CheckCommonMembers(x, shape, dtype, device_);
+            ExpectDataEqual<T>(data.get(), x);
+            EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
+            EXPECT_EQ(shape.total_size() * int64_t{sizeof(T)}, x.total_bytes());
         }
     }
 
