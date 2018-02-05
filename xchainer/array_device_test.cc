@@ -75,8 +75,6 @@ void ExpectDataExistsOnDevice(const Device& expected_device, const Array& array)
 void CheckCommonMembers(const Array& x, const Shape& shape, Dtype dtype, const Device& device) {
     EXPECT_NE(nullptr, x.data());
     EXPECT_EQ(shape, x.shape());
-    EXPECT_EQ(shape.ndim(), x.ndim());
-    EXPECT_EQ(shape.total_size(), x.total_size());
     EXPECT_EQ(dtype, x.dtype());
     EXPECT_EQ(device, x.device());
     EXPECT_TRUE(x.is_contiguous());
