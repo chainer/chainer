@@ -4,6 +4,7 @@ import chainer
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
+from chainer.functions.math import floor as _floor
 from chainer.functions.math import matmul as _matmul
 from chainer import utils
 from chainer.utils import type_check
@@ -445,6 +446,26 @@ def rdiv(self, rhs):  # rhs / lhs
     return DivFromConstant(rhs).apply((self,))[0]
 
 
+def floordiv(self, rhs):  # lhs // rhs
+    """Element-wise floor division.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
+
+    return _floor.floor(div(self, rhs))
+
+
+def rfloordiv(self, rhs):  # rhs // lhs
+    """Element-wise floor division.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
+
+    return _floor.floor(rdiv(self, rhs))
+
+
 class PowVarVar(function_node.FunctionNode):
 
     @property
@@ -846,6 +867,8 @@ def install_variable_arithmetics():
     variable.Variable.__truediv__ = div
     variable.Variable.__rdiv__ = rdiv
     variable.Variable.__rtruediv__ = rdiv
+    variable.Variable.__floordiv__ = floordiv
+    variable.Variable.__rfloordiv__ = rfloordiv
     variable.Variable.__pow__ = pow
     variable.Variable.__rpow__ = rpow
     variable.Variable.__matmul__ = matmul
