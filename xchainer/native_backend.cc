@@ -2,42 +2,42 @@
 
 namespace xchainer {
 
-std::shared_ptr<void> NativeBackend::Allocate(const Device& device, size_t bytesize) {
+std::shared_ptr<void> NativeBackend::Allocate(const Device& device, size_t bytesize) const {
     (void)device;    // unused
     (void)bytesize;  // unused
     return nullptr;
 }
 
-void NativeBackend::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
+void NativeBackend::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) const {
     (void)dst_ptr;   // unused
     (void)src_ptr;   // unused
     (void)bytesize;  // unused
 }
 
-std::shared_ptr<void> NativeBackend::FromBuffer(const Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
+std::shared_ptr<void> NativeBackend::FromBuffer(const Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) const {
     (void)device;    // unused
     (void)src_ptr;   // unused
     (void)bytesize;  // unused
     return nullptr;
 }
 
-void NativeBackend::Fill(Array& out, Scalar value) {
+void NativeBackend::Fill(Array& out, Scalar value) const {
     (void)out;    // unused
     (void)value;  // unused
 }
 
-void NativeBackend::Add(const Array& lhs, const Array& rhs, Array& out) {
+void NativeBackend::Add(const Array& lhs, const Array& rhs, Array& out) const {
     (void)lhs;  // unused
     (void)rhs;  // unused
     (void)out;  // unused
 }
 
-void NativeBackend::Mul(const Array& lhs, const Array& rhs, Array& out) {
+void NativeBackend::Mul(const Array& lhs, const Array& rhs, Array& out) const {
     (void)lhs;  // unused
     (void)rhs;  // unused
     (void)out;  // unused
 }
 
-void NativeBackend::Synchronize() {}
+void NativeBackend::Synchronize() const {}
 
 }  // namespace xchainer
