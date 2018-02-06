@@ -61,11 +61,13 @@ class BatchNormalization(function_node.FunctionNode):
             beta_type.dtype == x_type.dtype,
             gamma_type.shape == beta_type.shape,
         )
-        _axis = _compute_axis(x_type.ndim, gamma_type.ndim, self.axis)
+        _x_ndim = type_check.eval(x_type.ndim)
+        _gamma_ndim = type_check.eval(gamma_type.ndim)
+        _axis = _compute_axis(_x_ndim, _gamma_ndim, self.axis)
         type_check.expect(
             x_type.ndim >= len(_axis),
         )
-        _key_axis = _compute_key_axis(x_type.ndim, gamma_type.ndim, _axis)
+        _key_axis = _compute_key_axis(_x_ndim, _gamma_ndim, _axis)
         type_check.expect(
             gamma_type.ndim == len(_key_axis),
         )
@@ -329,11 +331,13 @@ class FixedBatchNormalization(function_node.FunctionNode):
             var_type.dtype == x_type.dtype,
             var_type.shape == gamma_type.shape,
         )
-        _axis = _compute_axis(x_type.ndim, gamma_type.ndim, self.axis)
+        _x_ndim = type_check.eval(x_type.ndim)
+        _gamma_ndim = type_check.eval(gamma_type.ndim)
+        _axis = _compute_axis(_x_ndim, _gamma_ndim, self.axis)
         type_check.expect(
             x_type.ndim >= len(_axis),
         )
-        _key_axis = _compute_key_axis(x_type.ndim, gamma_type.ndim, _axis)
+        _key_axis = _compute_key_axis(_x_ndim, _gamma_ndim, _axis)
         type_check.expect(
             gamma_type.ndim == len(_key_axis),
         )
