@@ -26,7 +26,7 @@ constexpr Device kNullDevice = {};
 
 namespace internal {
 
-Device GetCurrentDeviceNoExcept() noexcept;
+const Device& GetCurrentDeviceNoExcept() noexcept;
 
 }  // namespace internal
 

@@ -14,7 +14,7 @@ static_assert(std::is_pod<decltype(thread_local_device)>::value, "thread_local_d
 
 namespace internal {
 
-Device GetCurrentDeviceNoExcept() noexcept { return thread_local_device; }
+const Device& GetCurrentDeviceNoExcept() noexcept { return thread_local_device; }
 
 }  // namespace internal
 
