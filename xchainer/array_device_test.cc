@@ -20,6 +20,19 @@
 namespace xchainer {
 namespace {
 
+class ArrayDeviceTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        orig_ = internal::GetCurrentDeviceNoExcept();
+        SetCurrentDevice(internal::kNullDevice);
+    }
+
+    void TearDown() override { SetCurrentDevice(orig_); }
+
+private:
+    Device orig_;
+};
+
 // Check that Array data exists on the specified device
 void ExpectDataExistsOnDevice(const Device& expected_device, const Array& array) {
     // Check device member of the Array
@@ -99,7 +112,7 @@ void CheckDeviceExplicit(const std::function<Array(const Device& device)>& creat
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
-TEST(ArrayDeviceTest, FromBuffer) {
+TEST_F(ArrayDeviceTest, FromBuffer) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
     float raw_data[] = {0.f, 1.f, 2.f, 3.f, 4.f, 5.f};
@@ -110,14 +123,14 @@ TEST(ArrayDeviceTest, FromBuffer) {
     CheckDeviceExplicit([&](const Device& device) { return Array::FromBuffer(shape, dtype, data, device); });
 }
 
-TEST(ArrayDeviceTest, Empty) {
+TEST_F(ArrayDeviceTest, Empty) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
     CheckDeviceFallback([&]() { return Array::Empty(shape, dtype); });
     CheckDeviceExplicit([&](const Device& device) { return Array::Empty(shape, dtype, device); });
 }
 
-TEST(ArrayDeviceTest, Full) {
+TEST_F(ArrayDeviceTest, Full) {
     Shape shape({2, 3});
     Scalar scalar{2.f};
     Dtype dtype = Dtype::kFloat32;
@@ -127,21 +140,21 @@ TEST(ArrayDeviceTest, Full) {
     CheckDeviceExplicit([&](const Device& device) { return Array::Full(shape, scalar, device); });
 }
 
-TEST(ArrayDeviceTest, Zeros) {
+TEST_F(ArrayDeviceTest, Zeros) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
     CheckDeviceFallback([&]() { return Array::Zeros(shape, dtype); });
     CheckDeviceExplicit([&](const Device& device) { return Array::Zeros(shape, dtype, device); });
 }
 
-TEST(ArrayDeviceTest, Ones) {
+TEST_F(ArrayDeviceTest, Ones) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
     CheckDeviceFallback([&]() { return Array::Ones(shape, dtype); });
     CheckDeviceExplicit([&](const Device& device) { return Array::Ones(shape, dtype, device); });
 }
 
-TEST(ArrayDeviceTest, EmptyLike) {
+TEST_F(ArrayDeviceTest, EmptyLike) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
 
@@ -157,7 +170,7 @@ TEST(ArrayDeviceTest, EmptyLike) {
     });
 }
 
-TEST(ArrayDeviceTest, FullLike) {
+TEST_F(ArrayDeviceTest, FullLike) {
     Shape shape({2, 3});
     Scalar scalar{2.f};
     Dtype dtype = Dtype::kFloat32;
@@ -174,7 +187,7 @@ TEST(ArrayDeviceTest, FullLike) {
     });
 }
 
-TEST(ArrayDeviceTest, ZerosLike) {
+TEST_F(ArrayDeviceTest, ZerosLike) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
 
@@ -190,7 +203,7 @@ TEST(ArrayDeviceTest, ZerosLike) {
     });
 }
 
-TEST(ArrayDeviceTest, OnesLike) {
+TEST_F(ArrayDeviceTest, OnesLike) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
 
@@ -204,6 +217,30 @@ TEST(ArrayDeviceTest, OnesLike) {
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::OnesLike(array_orig, device);
     });
+}
+
+TEST_F(ArrayDeviceTest, Fill) {
+    Shape shape({2, 3});
+    Dtype dtype = Dtype::kFloat32;
+    NativeBackend native_backend;
+    Device cpu_device{"cpu", &native_backend};
+    Array cpu_array = Array::Empty(shape, dtype, cpu_device);
+
+    {
+        // current device is null
+        cpu_array.Fill(1);
+    }
+    {
+        // current device and array's device are same
+        DeviceScope scope{cpu_device};
+        cpu_array.Fill(1);
+    }
+    {
+        // current device and array's device are different
+        NativeBackend native_backend2;
+        DeviceScope scope{"cpu2", &native_backend2};
+        EXPECT_THROW(cpu_array.Fill(1), DeviceError);
+    }
 }
 
 }  // namespace
