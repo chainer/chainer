@@ -53,7 +53,7 @@ class Sequential(link.ChainList):
           model_C = model_A + model_B
 
         To repeat a :class:`~Sequential` object multiple times, you can use
-        ``repeat()`` method.
+        :meth:`~chainer.Link.repeat` method.
 
           model_D = model_A.repeat(3)
 
