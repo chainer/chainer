@@ -315,6 +315,9 @@ INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
                                                          std::string{"cpu"}));
 
 TEST(BackpropEnableDoubleBackpropTest, Enabled) {
+    NativeBackend native_backend;
+    DeviceScope scope{"cpu", &native_backend};
+
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
     Array x2 = Array::Full({2}, 2.f);
     Array y1 = x1 + x2;
@@ -341,6 +344,9 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
 }
 
 TEST(BackpropEnableDoubleBackpropTest, Disabled) {
+    NativeBackend native_backend;
+    DeviceScope scope{"cpu", &native_backend};
+
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
     Array x2 = Array::Full({2}, 2.f);
     Array y1 = x1 + x2;
