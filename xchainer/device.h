@@ -51,7 +51,7 @@ void SetCurrentDevice(const Device& device);
 // Scope object that switches the current device by RAII.
 class DeviceScope {
 public:
-    DeviceScope() : orig_(internal::GetCurrentDeviceNoExcept()) {}
+    DeviceScope() : orig_(internal::GetCurrentDeviceNoExcept()), exited_(false) {}
     explicit DeviceScope(Device device) : DeviceScope() { SetCurrentDevice(device); }
     explicit DeviceScope(const std::string& device, Backend* backend) : DeviceScope(Device{device, backend}) {}
 
@@ -64,14 +64,15 @@ public:
 
     // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
-        if (!orig_.is_null()) {
+        if (!exited_) {
             SetCurrentDevice(orig_);
+            exited_ = true;
         }
-        orig_ = internal::kNullDevice;
     }
 
 private:
     Device orig_;
+    bool exited_;
 };
 
 }  // namespace xchainer
