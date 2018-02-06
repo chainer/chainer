@@ -61,6 +61,7 @@ public:
     void ExpectEqualCopy(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
+        EXPECT_EQ(expected.device(), actual.device());
 
         // Deep copy, therefore assert different addresses to data
         EXPECT_NE(expected.data().get(), actual.data().get());
@@ -72,9 +73,22 @@ public:
     }
 
     template <typename T>
+    void ExpectEqualView(const Array& expected, const Array& actual) {
+        ExpectEqual<T>(expected, actual);
+        ExpectArraysEqualAttributes(expected, actual);
+
+        // Shallow copy, therefore assert the same address to data
+        EXPECT_EQ(expected.data().get(), actual.data().get());
+
+        // Views should have different array bodies.
+        EXPECT_NE(expected.body(), actual.body());
+    }
+
+    template <typename T>
     void ExpectEqual(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
+        EXPECT_EQ(expected.device(), actual.device());
         ExpectDataEqual<T>(expected, actual);
     }
 
@@ -102,8 +116,7 @@ public:
     template <typename T>
     void ExpectDataEqual(T expected, const Array& actual) {
 #ifdef XCHAINER_ENABLE_CUDA
-        std::string device_name = ::testing::get<0>(GetParam());
-        if (device_name == "cuda") {
+        if (actual.device().name() == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
@@ -126,8 +139,11 @@ public:
     }
 
     void ExpectDataExistsOnCurrentDevice(const Array& array) {
-        // TODO(sonots): Fix to check array's device member
         Device device = GetCurrentDevice();
+
+        // Check device accessor
+        EXPECT_EQ(device, array.device());
+
         if (device.name() == "cpu") {
             EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
         } else if (device.name() == "cuda") {
@@ -335,9 +351,7 @@ TEST_P(ArrayTest, CopyCtor) {
 
     // A copy-constructed instance must be a view
     {
-        ExpectEqual<bool>(a, b);
-        ExpectArraysEqualAttributes(a, b);
-        EXPECT_EQ(a.data(), b.data());
+        ExpectEqualView<bool>(a, b);
         EXPECT_THROW(internal::GetArrayNode(a), XchainerError);
         EXPECT_THROW(internal::GetArrayNode(b), XchainerError);
     }
@@ -950,11 +964,9 @@ TEST_P(ArrayTest, AsConstantView) {
         a.RequireGrad("graph_2");
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
-        Array b = a.AsConstant(CopyKind::kView);
+        Array b = a.AsConstant();
 
-        ExpectEqual<bool>(a, b);
-        ExpectArraysEqualAttributes(a, b);
-        EXPECT_EQ(a.data(), b.data());
+        ExpectEqualView<bool>(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
         EXPECT_FALSE(b.IsGradRequired("graph_2"));
 
@@ -971,11 +983,9 @@ TEST_P(ArrayTest, AsConstantView) {
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
         ASSERT_TRUE(a.IsGradRequired("graph_3"));
-        Array b = a.AsConstant({"graph_1", "graph_2"}, CopyKind::kView);
+        Array b = a.AsConstant({"graph_1", "graph_2"});
 
-        ExpectEqual<bool>(a, b);
-        ExpectArraysEqualAttributes(a, b);
-        EXPECT_EQ(a.data(), b.data());
+        ExpectEqualView<bool>(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
         EXPECT_FALSE(b.IsGradRequired("graph_2"));
         EXPECT_TRUE(b.IsGradRequired("graph_3"));

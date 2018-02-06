@@ -35,7 +35,7 @@ inline bool operator==(const Device& lhs, const Device& rhs) { return (lhs.name(
 
 inline bool operator!=(const Device& lhs, const Device& rhs) { return !(lhs == rhs); }
 
-Device GetCurrentDevice();
+const Device& GetCurrentDevice();
 
 void SetCurrentDevice(const Device& device);
 

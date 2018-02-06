@@ -26,18 +26,28 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
 
     const int nout = outputs.size();
     for (int i = 0; i < nout; ++i) {
-        outputs[i].SetGrad(grad_outputs[i], graph_id);
+        if (outputs[i].IsGradRequired(graph_id)) {
+            outputs[i].SetGrad(grad_outputs[i], graph_id);
+        }
     }
 
     // TODO(hvy): Currently only supporting functions with single outputs, support any number of outputs instead
     if (outputs.size() > 1) {
         throw NotImplementedError("Functions with more than one output are not supported");
     }
-    Backward(outputs[0], graph_id);
+    if (outputs[0].IsGradRequired(graph_id)) {
+        Backward(outputs[0], graph_id);
+    }
 
     std::vector<nonstd::optional<Array>> backward_grads;
     std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads),
-                   [&graph_id](const Array& input) { return input.GetGrad(graph_id); });
+                   [&graph_id](const Array& input) -> nonstd::optional<Array> {
+                       if (input.IsGradRequired(graph_id)) {
+                           return input.GetGrad(graph_id);
+                       } else {
+                           return nonstd::nullopt;
+                       }
+                   });
 
     return backward_grads;
 }

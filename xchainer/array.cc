@@ -30,9 +30,15 @@ namespace xchainer {
 namespace internal {
 
 // Private definition of ArrayBody
-ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, const Device& device, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
                      std::vector<std::shared_ptr<ArrayNode>> nodes)
-    : shape_(shape), dtype_(dtype), is_contiguous_(is_contiguous), data_(std::move(data)), offset_(offset), nodes_(std::move(nodes)) {}
+    : shape_(shape),
+      dtype_(dtype),
+      device_(device),
+      is_contiguous_(is_contiguous),
+      data_(std::move(data)),
+      offset_(offset),
+      nodes_(std::move(nodes)) {}
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
                   const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions) {
@@ -99,12 +105,12 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 }  // namespace internal
 
-Array::Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool is_contiguous, int64_t offset)
-    : body_(std::make_shared<internal::ArrayBody>(shape, dtype, is_contiguous, std::move(data), offset)) {}
+Array::Array(const Shape& shape, Dtype dtype, const Device& device, std::shared_ptr<void> data, bool is_contiguous, int64_t offset)
+    : body_(std::make_shared<internal::ArrayBody>(shape, dtype, device, is_contiguous, std::move(data), offset)) {}
 
 Array::Array(const Array& other)
-    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.is_contiguous(), other.body_->data_, other.offset(),
-                                                  other.body_->nodes_)) {}
+    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.device(), other.is_contiguous(), other.body_->data_,
+                                                  other.offset(), other.body_->nodes_)) {}
 
 const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return internal::GetArrayNode(*this, graph_id)->grad(); }
 
@@ -112,37 +118,39 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) { internal::GetMutableA
 
 void Array::ClearGrad(const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
 
-Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data) {
+Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, const Device& device) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
-    std::shared_ptr<void> device_data = internal::MemoryFromBuffer(GetCurrentDevice(), data, bytesize);
-    return {shape, dtype, device_data};
+    std::shared_ptr<void> device_data = internal::MemoryFromBuffer(device, data, bytesize);
+    return {shape, dtype, device, device_data};
 }
 
-Array Array::Empty(const Shape& shape, Dtype dtype) {
+Array Array::Empty(const Shape& shape, Dtype dtype, const Device& device) {
     auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
-    std::shared_ptr<void> data = internal::Allocate(GetCurrentDevice(), bytesize);
-    return {shape, dtype, data};
+    std::shared_ptr<void> data = internal::Allocate(device, bytesize);
+    return {shape, dtype, device, data};
 }
 
-Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype) {
-    Array array = Empty(shape, dtype);
+Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype, const Device& device) {
+    Array array = Empty(shape, dtype, device);
     array.Fill(scalar);
     return array;
 }
 
-Array Array::Full(const Shape& shape, Scalar scalar) { return Full(shape, scalar, scalar.dtype()); }
+Array Array::Full(const Shape& shape, Scalar scalar, const Device& device) { return Full(shape, scalar, scalar.dtype(), device); }
 
-Array Array::Zeros(const Shape& shape, Dtype dtype) { return Full(shape, 0, dtype); }
+Array Array::Zeros(const Shape& shape, Dtype dtype, const Device& device) { return Full(shape, 0, dtype, device); }
 
-Array Array::Ones(const Shape& shape, Dtype dtype) { return Full(shape, 1, dtype); }
+Array Array::Ones(const Shape& shape, Dtype dtype, const Device& device) { return Full(shape, 1, dtype, device); }
 
-Array Array::EmptyLike(const Array& array) { return Empty(array.shape(), array.dtype()); }
+Array Array::EmptyLike(const Array& array, const Device& device) { return Empty(array.shape(), array.dtype(), device); }
 
-Array Array::FullLike(const Array& array, Scalar scalar) { return Full(array.shape(), scalar, array.dtype()); }
+Array Array::FullLike(const Array& array, Scalar scalar, const Device& device) {
+    return Full(array.shape(), scalar, array.dtype(), device);
+}
 
-Array Array::ZerosLike(const Array& array) { return Zeros(array.shape(), array.dtype()); }
+Array Array::ZerosLike(const Array& array, const Device& device) { return Zeros(array.shape(), array.dtype(), device); }
 
-Array Array::OnesLike(const Array& array) { return Ones(array.shape(), array.dtype()); }
+Array Array::OnesLike(const Array& array, const Device& device) { return Ones(array.shape(), array.dtype(), device); }
 
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
@@ -186,7 +194,7 @@ Array Array::AsConstant(CopyKind kind) const {
             // TODO(takgi): implement deep copy version
             throw NotImplementedError("not implemented");
         case CopyKind::kView:
-            return Array{shape(), dtype(), body_->data_, is_contiguous(), offset()};
+            return Array{shape(), dtype(), device(), body_->data_, is_contiguous(), offset()};
         default:
             assert(false);  // should never be reached
     }
@@ -198,7 +206,7 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
             // TODO(takgi): implement deep copy version
             throw NotImplementedError("not implemented");
         case CopyKind::kView: {
-            Array out{shape(), dtype(), body_->data_, is_contiguous(), offset()};
+            Array out{shape(), dtype(), device(), body_->data_, is_contiguous(), offset()};
             for (const std::shared_ptr<ArrayNode>& node : nodes()) {
                 if (std::find(graph_ids.begin(), graph_ids.end(), node->graph_id()) == graph_ids.end()) {
                     out.body_->nodes_.emplace_back(node);
@@ -262,12 +270,11 @@ void Array::Mul(const Array& rhs, Array& out) const {
 }
 
 void Array::Fill(Scalar value) {
-    Device device = GetCurrentDevice();
     // TODO(sonots): Use device.backend->Fill()
-    if (device.name() == "cpu") {
+    if (device().name() == "cpu") {
         xchainer::Fill(*this, value);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (device.name() == "cuda") {
+    } else if (device().name() == "cuda") {
         xchainer::cuda::Fill(*this, value);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {

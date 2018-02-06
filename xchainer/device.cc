@@ -28,12 +28,11 @@ Device Device::MakeDevice(const std::string& name, Backend* backend) {
     return device;
 }
 
-Device GetCurrentDevice() {
-    Device device = thread_local_device;
-    if (device == kNullDevice) {
+const Device& GetCurrentDevice() {
+    if (thread_local_device == kNullDevice) {
         throw XchainerError("No device is available. Please set via SetCurrentDevice()");
     } else {
-        return device;
+        return thread_local_device;
     }
 }
 
