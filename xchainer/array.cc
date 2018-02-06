@@ -170,9 +170,7 @@ Array Array::operator*(const Array& rhs) const {
     return out;
 }
 
-Array Array::Copy() const {
-    return AsConstant({}, CopyKind::kCopy);
-}
+Array Array::Copy() const { return AsConstant({}, CopyKind::kCopy); }
 
 Array Array::AsConstant(CopyKind kind) const {
     switch (kind) {
