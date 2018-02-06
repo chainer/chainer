@@ -303,11 +303,8 @@ Assign a Parameter object directly to an attribute within a \
         """Copies the link hierarchy to new one.
 
         The whole hierarchy rooted by this link is copied. There are three
-        modes to perform copy. If the ``mode`` argument is ``'share'``, The
-        copy is basically shallow, except that the parameter variables are also
-        shallowly copied. It means that the parameter variables of copied one
-        are different from ones of original link, while they share the data and
-        gradient arrays. If the ``mode`` argument is ``'
+        modes to perform copy. Please see the document for the argument
+        ``mode`` below.
 
         The name of the link is reset on the copy, since the copied instance
         does not belong to the original parent chain (even if exists).
