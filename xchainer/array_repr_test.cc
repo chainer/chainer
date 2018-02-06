@@ -42,15 +42,15 @@ template <typename T>
 void CheckArrayRepr(const std::string& expected, const std::vector<T>& data_vec, Shape shape,
                     const std::vector<GraphId>& graph_ids = std::vector<GraphId>()) {
     {
-        auto backend = NativeBackend();
-        DeviceScope ctx{"cpu", &backend};
+        NativeBackend native_backend;
+        DeviceScope ctx{"cpu", &native_backend};
         CheckArrayReprWithCurrentDevice(expected, data_vec, shape, graph_ids);
     }
 
 #ifdef XCHAINER_ENABLE_CUDA
     {
-        auto backend = cuda::CudaBackend();
-        DeviceScope ctx{"cuda", &backend};
+        cuda::CudaBackend cuda_backend;
+        DeviceScope ctx{"cuda", &cuda_backend};
         CheckArrayReprWithCurrentDevice(expected, data_vec, shape, graph_ids);
     }
 #endif  // XCHAINER_ENABLE_CUDA

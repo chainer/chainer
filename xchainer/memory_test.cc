@@ -51,13 +51,13 @@ TEST(MemoryTest, IsPointerCudaMemory) {
 TEST(MemoryTest, Allocate) {
     size_t size = 3;
     {
-        auto backend = NativeBackend();
-        std::shared_ptr<void> ptr = Allocate(Device{"cpu", &backend}, size);
+        NativeBackend native_backend;
+        std::shared_ptr<void> ptr = Allocate(Device{"cpu", &native_backend}, size);
         EXPECT_FALSE(IsPointerCudaMemory(ptr.get()));
     }
     {
-        auto backend = cuda::CudaBackend();
-        std::shared_ptr<void> ptr = Allocate(Device{"cuda", &backend}, size);
+        cuda::CudaBackend cuda_backend;
+        std::shared_ptr<void> ptr = Allocate(Device{"cuda", &cuda_backend}, size);
         EXPECT_TRUE(IsPointerCudaMemory(ptr.get()));
     }
 }
@@ -70,7 +70,7 @@ TEST(MemoryTest, MemoryCopy) {
         (void)ptr;  // unused
     });
 
-    auto cuda_backend = cuda::CudaBackend();
+    cuda::CudaBackend cuda_backend;
     Device cuda_device{"cuda", &cuda_backend};
 
     {
@@ -110,9 +110,9 @@ TEST(MemoryTest, MemoryFromBuffer) {
         (void)ptr;  // unused
     });
 
-    auto native_backend = NativeBackend();
+    NativeBackend native_backend;
     Device native_device{"cpu", &native_backend};
-    auto cuda_backend = cuda::CudaBackend();
+    cuda::CudaBackend cuda_backend;
     Device cuda_device{"cuda", &cuda_backend};
 
     std::shared_ptr<void> gpu_src = Allocate(cuda_device, bytesize);

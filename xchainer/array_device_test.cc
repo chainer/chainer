@@ -39,7 +39,7 @@ void ExpectDataExistsOnDevice(const Device& expected_device, const Array& array)
 void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
     // Fallback to current device which is CPU
     {
-        auto native_backend = NativeBackend();
+        NativeBackend native_backend;
         Device cpu_device{"cpu", &native_backend};
         auto scope = std::make_unique<DeviceScope>(cpu_device);
         Array array = create_array_func();
@@ -48,7 +48,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
 #ifdef XCHAINER_ENABLE_CUDA
     // Fallback to current device which is GPU
     {
-        auto cuda_backend = cuda::CudaBackend();
+        cuda::CudaBackend cuda_backend;
         Device cuda_device{"cuda", &cuda_backend};
         auto scope = std::make_unique<DeviceScope>(cuda_device);
         Array array = create_array_func();
@@ -59,7 +59,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
 
 // Check that Arrays are created on the specified device, if specified, without taking into account the current device
 void CheckDeviceExplicit(const std::function<Array(const Device& device)>& create_array_func) {
-    auto native_backend = NativeBackend();
+    NativeBackend native_backend;
     Device cpu_device{"cpu", &native_backend};
 
     // Explicitly create on CPU
@@ -73,7 +73,7 @@ void CheckDeviceExplicit(const std::function<Array(const Device& device)>& creat
         ExpectDataExistsOnDevice(cpu_device, array);
     }
 #ifdef XCHAINER_ENABLE_CUDA
-    auto cuda_backend = cuda::CudaBackend();
+    cuda::CudaBackend cuda_backend;
     Device cuda_device{"cuda", &cuda_backend};
 
     {

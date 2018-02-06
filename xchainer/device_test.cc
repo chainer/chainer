@@ -27,7 +27,7 @@ private:
 };
 
 TEST_F(DeviceTest, Ctor) {
-    auto native_backend = NativeBackend();
+    NativeBackend native_backend;
     Device expect{"abcde", &native_backend};
     Device actual{"abcde", &native_backend};
     EXPECT_EQ(expect, actual);
@@ -38,31 +38,31 @@ TEST_F(DeviceTest, Ctor) {
 TEST_F(DeviceTest, SetCurrentDevice) {
     ASSERT_THROW(GetCurrentDevice(), XchainerError);
 
-    auto native_backend = NativeBackend();
+    NativeBackend native_backend;
     Device native_device{"cpu", &native_backend};
     SetCurrentDevice(native_device);
     ASSERT_EQ(native_device, GetCurrentDevice());
 
 #ifdef XCHAINER_ENABLE_CUDA
-    auto cuda_backend = cuda::CudaBackend();
+    cuda::CudaBackend cuda_backend;
     Device cuda_device{"cuda", &cuda_backend};
     SetCurrentDevice(cuda_device);
     ASSERT_EQ(cuda_device, GetCurrentDevice());
 #endif  // XCHAINER_ENABLE_CUDA
 
-    auto native_backend2 = NativeBackend();
+    NativeBackend native_backend2;
     Device native_device2{"cpu2", &native_backend2};
     SetCurrentDevice(native_device2);
     ASSERT_EQ(native_device2, GetCurrentDevice());
 }
 
 TEST_F(DeviceTest, ThreadLocal) {
-    auto backend1 = NativeBackend();
+    NativeBackend backend1;
     Device device1{"cpu1", &backend1};
     SetCurrentDevice(device1);
 
     auto future = std::async(std::launch::async, [] {
-        auto backend2 = NativeBackend();
+        NativeBackend backend2;
         Device device2{"cpu2", &backend2};
         SetCurrentDevice(device2);
         return GetCurrentDevice();
@@ -73,15 +73,15 @@ TEST_F(DeviceTest, ThreadLocal) {
 TEST_F(DeviceTest, DeviceScopeCtor) {
     {
         // DeviceScope should work even if current device is kNullDevice
-        auto backend = NativeBackend();
+        NativeBackend backend;
         Device device{"cpu", &backend};
         DeviceScope scope(device);
     }
-    auto backend1 = NativeBackend();
+    NativeBackend backend1;
     Device device1{"cpu1", &backend1};
     SetCurrentDevice(device1);
     {
-        auto backend2 = NativeBackend();
+        NativeBackend backend2;
         Device device2{"cpu2", &backend2};
         DeviceScope scope(device2);
         EXPECT_EQ(device2, GetCurrentDevice());
@@ -90,12 +90,12 @@ TEST_F(DeviceTest, DeviceScopeCtor) {
     {
         DeviceScope scope;
         EXPECT_EQ(device1, GetCurrentDevice());
-        auto backend2 = NativeBackend();
+        NativeBackend backend2;
         Device device2{"cpu2", &backend2};
         SetCurrentDevice(device2);
     }
     ASSERT_EQ(device1, GetCurrentDevice());
-    auto backend2 = NativeBackend();
+    NativeBackend backend2;
     Device device2{"cpu2", &backend2};
     {
         DeviceScope scope(device2);
