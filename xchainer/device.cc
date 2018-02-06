@@ -18,7 +18,7 @@ Device MakeDevice(const std::string& name) {
     return device;
 }
 
-Device GetCurrentDevice() { return thread_local_device; }
+const Device& GetCurrentDevice() { return thread_local_device; }
 
 void SetCurrentDevice(const Device& device) {
     if (device != Device{"cpu"} && device != Device{"cuda"}) {

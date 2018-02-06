@@ -15,7 +15,7 @@ inline bool operator!=(const Device& lhs, const Device& rhs) { return !(lhs == r
 
 Device MakeDevice(const std::string& name);
 
-Device GetCurrentDevice();
+const Device& GetCurrentDevice();
 
 void SetCurrentDevice(const Device& device);
 
