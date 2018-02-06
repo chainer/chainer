@@ -33,7 +33,7 @@ void InitXchainerDevice(pybind11::module& m) {
         .def("__eq__", py::overload_cast<const Device&, const Device&>(&operator==))
         .def("__ne__", py::overload_cast<const Device&, const Device&>(&operator!=))
         .def("__repr__",
-             [](Device device) {
+             [](const Device& device) {
                  std::ostringstream os;
                  os << "<Device('" << device.name() << "', " << device.backend() << ")>";
                  return os.str();
