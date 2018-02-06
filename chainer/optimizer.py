@@ -602,6 +602,7 @@ class GradientMethod(Optimizer):
             param.update_rule = self.create_update_rule()
             if self._use_fp32_update:
                 param.update_rule.use_fp32_update()
+        return self
 
     def reallocate_cleared_grads(self):
         """Reallocate gradients cleared by :meth:`~chainer.Variable.cleargrad`.
