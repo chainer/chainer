@@ -13,6 +13,18 @@ if cuda.cudnn_enabled:
     libcudnn = cuda.cuda.cudnn
 
 
+def _compute_axis(x_ndim, param_ndim=1, axis=None):
+    if axis is None:
+        axis = (0,) + tuple(range(param_ndim + 1, x_ndim))
+    return axis
+
+
+def _compute_key_axis(x_ndim, param_ndim=1, axis=None):
+    axis = _compute_axis(x_ndim, param_ndim, axis)
+    key_axis = tuple([i for i in range(x_ndim) if i not in axis])
+    return key_axis
+
+
 class BatchNormalization(function_node.FunctionNode):
 
     mean = None
@@ -43,22 +55,23 @@ class BatchNormalization(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 3)
         x_type, gamma_type, beta_type = in_types
-        M = type_check.eval(gamma_type.ndim)
         type_check.expect(
             x_type.dtype.kind == 'f',
-            # TODO(beam2d): Check shape
             gamma_type.dtype == x_type.dtype,
             beta_type.dtype == x_type.dtype,
             gamma_type.shape == beta_type.shape,
         )
-        if self.axis is None:
+        _axis = _compute_axis(x_type.ndim, gamma_type.ndim, self.axis)
+        type_check.expect(
+            x_type.ndim >= len(_axis),
+        )
+        _key_axis = _compute_key_axis(x_type.ndim, gamma_type.ndim, _axis)
+        type_check.expect(
+            gamma_type.ndim >= len(_key_axis),
+        )
+        for i in range(len(_key_axis)):
             type_check.expect(
-                x_type.ndim >= gamma_type.ndim + 1,
-                x_type.shape[1:1 + M] == gamma_type.shape,
-            )
-        else:
-            type_check.expect(
-                x_type.ndim > len(self.axis),
+                x_type.shape[_key_axis[i]] == gamma_type.shape[i],
             )
 
     def forward(self, inputs):
@@ -69,9 +82,8 @@ class BatchNormalization(function_node.FunctionNode):
             self.running_mean = xp.zeros_like(gamma)
             self.running_var = xp.zeros_like(gamma)
 
-        if self.axis is None:
-            self.axis = (0,) + tuple(range(gamma.ndim + 1, x.ndim))
-        self.key_axis = tuple([i for i in range(x.ndim) if i not in self.axis])
+        self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
+        self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
         for i, j in enumerate(self.key_axis):
             if gamma.shape[i] != x.shape[j]:
                 raise RuntimeError('shape mismatch')
@@ -306,7 +318,6 @@ class FixedBatchNormalization(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 5)
         x_type, gamma_type, beta_type, mean_type, var_type = in_types
-        M = type_check.eval(gamma_type.ndim)
         type_check.expect(
             x_type.dtype.kind == 'f',
             # TODO(beam2d): Check shape
@@ -318,14 +329,17 @@ class FixedBatchNormalization(function_node.FunctionNode):
             var_type.dtype == x_type.dtype,
             var_type.shape == gamma_type.shape,
         )
-        if self.axis is None:
+        _axis = _compute_axis(x_type.ndim, gamma_type.ndim, self.axis)
+        type_check.expect(
+            x_type.ndim >= len(_axis),
+        )
+        _key_axis = _compute_key_axis(x_type.ndim, gamma_type.ndim, _axis)
+        type_check.expect(
+            gamma_type.ndim >= len(_key_axis),
+        )
+        for i in range(len(_key_axis)):
             type_check.expect(
-                x_type.ndim >= gamma_type.ndim + 1,
-                x_type.shape[1:1 + M] == gamma_type.shape,
-            )
-        else:
-            type_check.expect(
-                x_type.ndim > len(self.axis),
+                x_type.shape[_key_axis[i]] == gamma_type.shape[i],
             )
 
     def forward(self, inputs):
@@ -333,9 +347,8 @@ class FixedBatchNormalization(function_node.FunctionNode):
         x, gamma, beta, mean, var = inputs
         xp = cuda.get_array_module(x)
 
-        if self.axis is None:
-            self.axis = (0,) + tuple(range(gamma.ndim + 1, x.ndim))
-        self.key_axis = tuple([i for i in range(x.ndim) if i not in self.axis])
+        self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
+        self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
         for i, j in enumerate(self.key_axis):
             if gamma.shape[i] != x.shape[j]:
                 raise RuntimeError('shape mismatch')
@@ -618,6 +631,14 @@ def batch_normalization(x, gamma, beta, **kwargs):
             be ``None``.
         decay (float): Decay rate of moving average. It is used during
             training.
+        axis (int or tuple of int): Axis over which normalization is
+            performed. When axis is None, it is determined from input
+            dimensions. If x.ndim is 4, axis becomes (0, 2, 3) and
+            normalization is performed over 0th, 2nd and 3rd axis of input.
+            If it is 2, axis becomes (0) and normalization is performed
+            over 0th axis of input. When a tuple of int is given to this
+            option, numbers in the tuple must be being sorted in ascending
+            order. For example, (0, 2) is OK, but (2, 0) is not.
 
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
@@ -652,6 +673,14 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
         mean (Variable): Shifting parameter of input.
         var (Variable): Square of scaling parameter of input.
         eps (float): Epsilon value for numerical stability.
+        axis (int or tuple of int): Axis over which normalization is
+            performed. When axis is None, it is determined from input
+            dimensions. If x.ndim is 4, axis becomes (0, 2, 3) and
+            normalization is performed over 0th, 2nd and 3rd axis of input.
+            If it is 2, axis becomes (0) and normalization is performed
+            over 0th axis of input. When a tuple of int is given to this
+            option, numbers in the tuple must be being sorted in ascending
+            order. For example, (0, 2) is OK, but (2, 0) is not.
 
     .. seealso::
        :func:`functions.batch_normalization`,
