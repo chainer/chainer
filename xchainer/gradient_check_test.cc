@@ -9,12 +9,24 @@
 #include "xchainer/array.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/device.h"
+#include "xchainer/native_backend.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
 namespace {
 
 class NumericalGradientTest : public ::testing::Test {
+protected:
+    virtual void SetUp() {
+        backend_ = std::make_unique<NativeBackend>();
+        device_scope_ = std::make_unique<DeviceScope>("cpu", backend_.get());
+    }
+
+    virtual void TearDown() {
+        device_scope_.reset();
+        backend_.reset();
+    }
+
 public:
     using Arrays = std::vector<Array>;
 
@@ -61,6 +73,10 @@ public:
             }
         }
     }
+
+private:
+    std::unique_ptr<Backend> backend_;
+    std::unique_ptr<DeviceScope> device_scope_;
 };
 
 TEST_F(NumericalGradientTest, NumericalGradientAdd) {
