@@ -181,6 +181,46 @@ def test_copy(array_init_inputs):
     _check_arrays_equal_copy(array, array_copy)
 
 
+def test_as_constant_copy(array_init_inputs):
+    shape_tup, dtype = array_init_inputs
+    shape = xchainer.Shape(shape_tup)
+    data_list = _create_dummy_data(shape_tup, dtype)
+
+    # Stop gradients on all graphs
+    a = xchainer.Array(shape, dtype, data_list)
+    a.require_grad('graph_1')
+    a.require_grad('graph_2')
+    assert a.is_grad_required('graph_1')
+    assert a.is_grad_required('graph_2')
+    b = a.as_constant(copy=True)
+
+    _check_arrays_equal_copy(a, b)
+    assert not b.is_grad_required('graph_1')
+    assert not b.is_grad_required('graph_2')
+
+    assert a.is_grad_required('graph_1')
+    assert a.is_grad_required('graph_2')
+
+    # Stop gradients on some graphs
+    a = xchainer.Array(shape, dtype, data_list)
+    a.require_grad('graph_1')
+    a.require_grad('graph_2')
+    a.require_grad('graph_3')
+    assert a.is_grad_required('graph_1')
+    assert a.is_grad_required('graph_2')
+    assert a.is_grad_required('graph_3')
+    b = a.as_constant(['graph_1', 'graph_2'], copy=True)
+
+    _check_arrays_equal_copy(a, b)
+    assert not b.is_grad_required('graph_1')
+    assert not b.is_grad_required('graph_2')
+    assert b.is_grad_required('graph_3')
+
+    assert a.is_grad_required('graph_1')
+    assert a.is_grad_required('graph_2')
+    assert a.is_grad_required('graph_3')
+
+
 def test_as_constant_view(array_init_inputs):
     shape_tup, dtype = array_init_inputs
     shape = xchainer.Shape(shape_tup)
