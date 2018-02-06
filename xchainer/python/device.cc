@@ -29,7 +29,7 @@ private:
 
 void InitXchainerDevice(pybind11::module& m) {
     py::class_<Device>(m, "Device")
-        .def(py::init(&Device::MakeDevice))
+        .def(py::init<const std::string&, Backend*>())
         .def("__eq__", py::overload_cast<const Device&, const Device&>(&operator==))
         .def("__ne__", py::overload_cast<const Device&, const Device&>(&operator!=))
         .def("__repr__",

@@ -15,22 +15,24 @@ class Backend;
 
 struct Device {
 public:
-    std::string name() const { return name_; }
+    Device() = default;  // required to be POD
+    Device(const std::string& name, Backend* backend);
 
+    std::string name() const { return name_; }
     const Backend* backend() const { return backend_; }
 
-    static Device MakeDevice(const std::string& name, Backend* backend);
+    bool is_null() const;
 
 private:
     char name_[device_detail::kMaxDeviceNameLength];
     Backend* backend_;
 };
 
-constexpr Device kNullDevice = {};
-
 namespace internal {
 
 const Device& GetCurrentDeviceNoExcept() noexcept;
+
+constexpr Device kNullDevice = {};
 
 }  // namespace internal
 
@@ -47,7 +49,7 @@ class DeviceScope {
 public:
     DeviceScope() : orig_(internal::GetCurrentDeviceNoExcept()) {}
     explicit DeviceScope(Device device) : DeviceScope() { SetCurrentDevice(device); }
-    explicit DeviceScope(const std::string& device, Backend* backend) : DeviceScope(Device::MakeDevice(device, backend)) {}
+    explicit DeviceScope(const std::string& device, Backend* backend) : DeviceScope(Device{device, backend}) {}
 
     DeviceScope(const DeviceScope&) = delete;
     DeviceScope(DeviceScope&&) = delete;
@@ -58,10 +60,10 @@ public:
 
     // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
-        if (orig_ != kNullDevice) {
+        if (!orig_.is_null()) {
             SetCurrentDevice(orig_);
         }
-        orig_ = kNullDevice;
+        orig_ = internal::kNullDevice;
     }
 
 private:
