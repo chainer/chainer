@@ -25,8 +25,18 @@ Device::Device(const std::string& name, Backend* backend) : name_(), backend_(ba
 
 bool Device::is_null() const { return *this == internal::kNullDevice; }
 
+std::string Device::ToString() const {
+    std::ostringstream os;
+    os << *this;
+    return os.str();
+}
+
 std::ostream& operator<<(std::ostream& os, const Device& device) {
-    os << "<Device('" << device.name() << "', " << device.backend() << ")>";
+    if (device.is_null()) {
+        os << "<Device()>";
+    } else {
+        os << "<Device('" << device.name() << "', " << device.backend() << ")>";
+    }
     return os;
 }
 

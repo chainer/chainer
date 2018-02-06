@@ -23,6 +23,7 @@ public:
     const Backend* backend() const { return backend_; }
 
     bool is_null() const;
+    std::string ToString() const;
 
 private:
     char name_[device_detail::kMaxDeviceNameLength];
