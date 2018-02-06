@@ -5,9 +5,13 @@
 
 namespace xchainer {
 
-class Backend;
+namespace device_detail {
 
 constexpr size_t kMaxDeviceNameLength = 8;
+
+}  // device_detail
+
+class Backend;
 
 struct Device {
 public:
@@ -18,7 +22,7 @@ public:
     static Device MakeDevice(const std::string& name, Backend* backend);
 
 private:
-    char name_[kMaxDeviceNameLength];
+    char name_[device_detail::kMaxDeviceNameLength];
     Backend* backend_;
 };
 

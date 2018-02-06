@@ -18,7 +18,7 @@ const Device& GetCurrentDeviceNoExcept() noexcept { return thread_local_device; 
 
 Device Device::MakeDevice(const std::string& name, Backend* backend) {
     Device device = {};
-    if (name.size() >= kMaxDeviceNameLength) {
+    if (name.size() >= device_detail::kMaxDeviceNameLength) {
         throw DeviceError("device name is too long; should be shorter than 8 characters");
     }
     std::copy(name.begin(), name.end(), static_cast<char*>(device.name_));
