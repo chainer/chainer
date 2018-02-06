@@ -6,8 +6,6 @@ namespace xchainer {
 namespace {
 
 thread_local Device thread_local_device = kNullDevice;
-// Device must be POD (plain old data) to be used as a thread local variable safely.
-// ref. https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
 static_assert(std::is_pod<decltype(thread_local_device)>::value, "thread_local_device must be POD");
 
 }  // namespace
