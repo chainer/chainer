@@ -29,9 +29,17 @@ Welcome to the `Chainer <https://chainer.org>`_ documentation.
    comparison
    license
 
-
 Indices and tables
 ==================
 
 * :ref:`genindex`
 * :ref:`modindex`
+* :ref:`search`
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Community
+
+   Slack Chat <https://bit.ly/join-chainer-slack>
+   Forums <https://groups.google.com/forum/#!forum/chainer>
+   Examples in Awesome Chainer <https://github.com/chainer-community/awesome-chainer>
