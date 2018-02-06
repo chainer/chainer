@@ -171,17 +171,7 @@ Array Array::operator*(const Array& rhs) const {
 }
 
 Array Array::Copy() const {
-    Array out = Array::EmptyLike(*this);
-    CopyTo(out);
-    return out;
-}
-
-void Array::CopyTo(Array& out) const {
-    internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }});
-
-    // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
-    // is_contiguous_ and offset_ into account
-    internal::MemoryCopy(out.data().get(), body_->data_.get(), total_bytes());
+    return AsConstant({}, CopyKind::kCopy);
 }
 
 Array Array::AsConstant(CopyKind kind) const {

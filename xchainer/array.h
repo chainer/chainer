@@ -151,7 +151,6 @@ public:
 private:
     Array(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
 
-    void CopyTo(Array& out) const;
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 
