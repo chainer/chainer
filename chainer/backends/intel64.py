@@ -9,9 +9,13 @@ _error = None
 
 try:
     import ideep4py as ideep  # NOQA
+    from ideep4py import mdarray  # NOQA
     _ideep_version = 0
 except ImportError as e:
     _error = e
+
+    class mdarray(object):
+        pass  # for type testing
 
 
 # ------------------------------------------------------------------------------

@@ -707,8 +707,7 @@ Actual: {0}'''.format(type(data))
         if isinstance(data, cuda.ndarray):
             # cupy.ndarray to numpy.ndarray
             self._data = [cuda.to_cpu(data)]
-        elif (intel64.is_ideep_available()
-              and isinstance(data, intel64.ideep.mdarray)):
+        elif isinstance(data, intel64.mdarray):
             # ideep.mdarray to numpy.ndarray
             self._data = [numpy.array(data)]
 

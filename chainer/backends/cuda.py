@@ -284,8 +284,7 @@ def _array_to_gpu(array, device, stream):
 
     if isinstance(array, (numpy.number, numpy.bool_)):
         array = numpy.asarray(array)
-    elif (intel64.is_ideep_available()
-          and isinstance(array, intel64.ideep.mdarray)):
+    elif isinstance(array, intel64.mdarray):
         # ideep.mdarray to numpy.ndarray
         array = numpy.asarray(array)
 

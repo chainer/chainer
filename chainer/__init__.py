@@ -104,8 +104,8 @@ def _load_array_types():
             _array_types.append(backends.cuda.ndarray)
 
         if backends.intel64.is_ideep_available():
-            _array_types.append(backends.intel64.ideep.mdarray)
-            _cpu_array_types.append(backends.intel64.ideep.mdarray)
+            _array_types.append(backends.intel64.mdarray)
+            _cpu_array_types.append(backends.intel64.mdarray)
 
         _array_types = tuple(_array_types)
         _cpu_array_types = tuple(_cpu_array_types)
