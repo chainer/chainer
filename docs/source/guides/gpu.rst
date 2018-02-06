@@ -1,6 +1,8 @@
 Using GPU(s) in Chainer
 -----------------------
 
+.. include:: ../imports.rst
+
 .. currentmodule:: chainer
 
 In this section, you will learn about the following things:

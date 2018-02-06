@@ -1,6 +1,8 @@
 Creating Models
 ~~~~~~~~~~~~~~~
 
+.. include:: ../imports.rst
+
 Most neural network architectures contain multiple links.
 For example, a multi-layer perceptron consists of multiple linear layers.
 We can write complex procedures with parameters by combining multiple links like this:

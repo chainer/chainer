@@ -11,6 +11,7 @@ For example, we can serialize a link object into NPZ file by the :func:`serializ
 
 .. doctest::
 
+   >>> from chainer import serializers
    >>> serializers.save_npz('my.model', model)
 
 It saves the parameters of ``model`` into the file ``'my.model'`` in NPZ format.

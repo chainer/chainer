@@ -1,6 +1,8 @@
 Optimizer
 ~~~~~~~~~
 
+.. include:: ../imports.rst
+
 In order to get good values for parameters, we have to optimize them by the :class:`Optimizer` class.
 It runs a numerical optimization algorithm on a given link.
 Many algorithms are implemented in the :mod:`~chainer.optimizers` module.

@@ -1,6 +1,8 @@
 MNIST using Trainer
 ```````````````````
 
+.. include:: ../imports.rst
+
 By using :class:`~chainer.training.Trainer`, you don't need to write the training loop explicitly any more. Furthermore, Chainer provides many useful extensions that can be used with :class:`~chainer.training.Trainer` to visualize your results, evaluate your model, store and manage log files more easily.
 
 This example will show how to use the :class:`~chainer.training.Trainer` to train a fully-connected feed-forward neural network on the MNIST dataset.

@@ -1,6 +1,8 @@
 MNIST with a Manual Training Loop
 `````````````````````````````````
 
+.. inclue:: ../imports.rst
+
 .. currentmodule:: chainer
 
 In this tutorial section, we will learn how to train a deep neural network to classify images of hand-written digits in the popular MNIST dataset. This dataset contains 50,000 training examples and 10,000 test examples. Each example is a set of a 28 x 28 greyscale image and a corresponding class label. Since the digits from 0 to 9 are used, there are 10 classes for the labels.
