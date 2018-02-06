@@ -100,8 +100,8 @@ def _load_array_types():
         _array_types = [numpy.ndarray]
         _cpu_array_types = [numpy.ndarray]
 
-        if cuda.available:
-            _array_types.append(cuda.ndarray)
+        if backends.cuda.available:
+            _array_types.append(backends.cuda.ndarray)
 
         if backends.intel64.is_ideep_available():
             _array_types.append(backends.intel64.ideep.mdarray)
@@ -125,8 +125,8 @@ def is_arrays_compatible(arrays):
     arrays = [_ for _ in arrays if _ is not None]
     if len(arrays) == 0:
         return True
-    if type(arrays[0]) is cuda.ndarray:
-        types = cuda.ndarray
+    if type(arrays[0]) is backends.cuda.ndarray:
+        types = backends.cuda.ndarray
     else:
         types = get_cpu_array_types()
     return all(isinstance(_, types) for _ in arrays)
