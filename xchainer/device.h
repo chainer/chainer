@@ -39,8 +39,6 @@ const Device& GetCurrentDevice();
 
 void SetCurrentDevice(const Device& device);
 
-void SetCurrentDevice(const std::string& name, Backend* backend);
-
 // Scope object that switches the current device by RAII.
 class DeviceScope {
 public:

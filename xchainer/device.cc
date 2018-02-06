@@ -38,9 +38,4 @@ const Device& GetCurrentDevice() {
 
 void SetCurrentDevice(const Device& device) { thread_local_device = device; }
 
-void SetCurrentDevice(const std::string& name, Backend* backend) {
-    auto device = Device::MakeDevice(name, backend);
-    SetCurrentDevice(device);
-}
-
 }  // namespace xchainer
