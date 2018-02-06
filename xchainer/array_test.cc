@@ -31,18 +31,20 @@ class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>>
 protected:
     void SetUp() override {
         std::string device_name = ::testing::get<0>(GetParam());
-        std::unique_ptr<Backend> backend;
         if (device_name == "cpu") {
-            backend = std::make_unique<NativeBackend>();
+            backend_ = std::make_unique<NativeBackend>();
 #ifdef XCHAINER_ENABLE_CUDA
         } else if (device_name == "cuda") {
-            backend = std::make_unique<cuda::CudaBackend>();
+            backend_ = std::make_unique<cuda::CudaBackend>();
 #endif  // XCHAINER_ENABLE_CUDA
         }
-        device_scope_ = std::make_unique<DeviceScope>(device_name, backend.get());
+        device_scope_ = std::make_unique<DeviceScope>(device_name, backend_.get());
     }
 
-    void TearDown() override { device_scope_.reset(); }
+    void TearDown() override {
+        device_scope_.reset();
+        backend_.reset();
+    }
 
 public:
     template <typename T>
@@ -342,6 +344,7 @@ public:
     }
 
 private:
+    std::unique_ptr<Backend> backend_;
     std::unique_ptr<DeviceScope> device_scope_;
 };
 
