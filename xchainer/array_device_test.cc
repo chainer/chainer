@@ -10,12 +10,12 @@
 #include "xchainer/array.h"
 #include "xchainer/backend.h"
 #ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/cuda/cuda_backend.h"
+#include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
-#include "xchainer/native_backend.h"
 #include "xchainer/memory.h"
+#include "xchainer/native_backend.h"
 
 namespace xchainer {
 namespace {
