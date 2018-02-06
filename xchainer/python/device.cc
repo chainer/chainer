@@ -43,12 +43,8 @@ void InitXchainerDevice(pybind11::module& m) {
 
     m.def("get_current_device", []() { return GetCurrentDevice(); });
     m.def("set_current_device", [](const Device& device) { SetCurrentDevice(device); });
-    // TODO(sonots): Get device or backend from global dict and set to current device
-    // m.def("set_current_device", [](const std::string& name) { SetCurrentDevice(name); });
 
     py::class_<PyDeviceScope>(m, "DeviceScope").def("__enter__", &PyDeviceScope::Enter).def("__exit__", &PyDeviceScope::Exit);
-    // TODO(sonots): Get device or backend from global dict and set to current device
-    // m.def("device_scope", [](const std::string& name) { return PyDeviceScope(MakeDevice(name)); });
     m.def("device_scope", [](Device device) { return PyDeviceScope(device); });
 }
 
