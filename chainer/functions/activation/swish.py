@@ -83,19 +83,6 @@ class SwishGrad(function_node.FunctionNode):
         self.extended_shape = extended_shape
         self.reduction_axes = reduction_axes
 
-    def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 3)
-        x_type, beta_type, gy_type = in_types
-        type_check.expect(
-            x_type.dtype.kind == 'f',
-            beta_type.dtype == x_type.dtype,
-            gy_type.dtype == x_type.dtype,
-            beta_type.ndim <= x_type.ndim - 1,
-            beta_type.shape == x_type.shape[1:1 +
-                                            type_check.eval(beta_type.ndim)],
-            gy_type.shape == x_type.shape
-        )
-
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1, 2))
         x, beta, gy = inputs
