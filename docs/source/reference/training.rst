@@ -1,6 +1,6 @@
 .. module:: chainer.training
 
-Training loop abstraction
+Training Tools
 =========================
 
 Chainer provides a standard implementation of the training loops under the :mod:`chainer.training` module. It is built on top of many other core features of Chainer, including Variable and Function, Link/Chain/ChainList, Optimizer, Dataset, and Reporter/Summary. Compared to the training loop abstraction of other machine learning tool kits, Chainer's training framework aims at maximal flexibility, while keeps the simplicity for the typical usages. Most components are pluggable, and users can overwrite the definition.
