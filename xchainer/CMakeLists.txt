@@ -25,7 +25,6 @@ install(FILES
 
 add_library(xchainer SHARED
     array.cc
-    array_fill.cc
     array_math.cc
     array_repr.cc
     backprop.cc

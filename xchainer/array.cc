@@ -12,11 +12,10 @@
 #endif  // XCHAINER_ENABLE_CUDA
 #include <gsl/gsl>
 
-#include "xchainer/array_fill.h"
 #include "xchainer/array_math.h"
 #include "xchainer/array_repr.h"
+#include "xchainer/backend.h"
 #ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/cuda/array_fill.h"
 #include "xchainer/cuda/array_math.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
@@ -270,18 +269,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
     }
 }
 
-void Array::Fill(Scalar value) {
-    // TODO(sonots): Use device.backend->Fill()
-    if (device().name() == "cpu") {
-        xchainer::Fill(*this, value);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device().name() == "cuda") {
-        xchainer::cuda::Fill(*this, value);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
-}
+void Array::Fill(Scalar value) { device().backend()->Fill(*this, value); }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
