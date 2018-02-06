@@ -33,9 +33,9 @@ std::string Device::ToString() const {
 
 std::ostream& operator<<(std::ostream& os, const Device& device) {
     if (device.is_null()) {
-        os << "<Device()>";
+        os << "Device()";
     } else {
-        os << "<Device('" << device.name() << "', " << device.backend() << ")>";
+        os << "Device('" << device.name() << "', " << device.backend() << ")";
     }
     return os;
 }

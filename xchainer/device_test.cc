@@ -36,13 +36,13 @@ TEST_F(DeviceTest, Ctor) {
 }
 
 TEST_F(DeviceTest, ToString) {
-    EXPECT_EQ(internal::kNullDevice.ToString(), "<Device()>");
+    EXPECT_EQ("Device()", internal::kNullDevice.ToString());
 
     NativeBackend native_backend;
     Device device{"cpu", &native_backend};
     std::ostringstream os;
-    os << "<Device('cpu', " << &native_backend << ")>";
-    EXPECT_EQ(device.ToString(), os.str());
+    os << "Device('cpu', " << &native_backend << ")";
+    EXPECT_EQ(os.str(), device.ToString());
 }
 
 TEST_F(DeviceTest, SetCurrentDevice) {
