@@ -67,7 +67,7 @@ class BatchNormalization(function_node.FunctionNode):
         )
         _key_axis = _compute_key_axis(x_type.ndim, gamma_type.ndim, _axis)
         type_check.expect(
-            gamma_type.ndim >= len(_key_axis),
+            gamma_type.ndim == len(_key_axis),
         )
         for i in range(len(_key_axis)):
             type_check.expect(
@@ -335,7 +335,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
         )
         _key_axis = _compute_key_axis(x_type.ndim, gamma_type.ndim, _axis)
         type_check.expect(
-            gamma_type.ndim >= len(_key_axis),
+            gamma_type.ndim == len(_key_axis),
         )
         for i in range(len(_key_axis)):
             type_check.expect(
