@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <sstream>
 #include <string>
 
 namespace xchainer {
@@ -39,6 +40,8 @@ constexpr Device kNullDevice = {};
 inline bool operator==(const Device& lhs, const Device& rhs) { return (lhs.name() == rhs.name()) && (lhs.backend() == rhs.backend()); }
 
 inline bool operator!=(const Device& lhs, const Device& rhs) { return !(lhs == rhs); }
+
+std::ostream& operator<<(std::ostream&, const Device&);
 
 const Device& GetCurrentDevice();
 

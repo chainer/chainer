@@ -25,6 +25,11 @@ Device::Device(const std::string& name, Backend* backend) : name_(), backend_(ba
 
 bool Device::is_null() const { return *this == internal::kNullDevice; }
 
+std::ostream& operator<<(std::ostream& os, const Device& device) {
+    os << "<Device('" << device.name() << "', " << device.backend() << ")>";
+    return os;
+}
+
 const Device& GetCurrentDevice() {
     if (thread_local_device.is_null()) {
         throw XchainerError("No device is available. Please set via SetCurrentDevice()");
