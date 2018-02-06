@@ -11,7 +11,7 @@ constexpr size_t kMaxDeviceNameLength = 8;
 
 struct Device {
 public:
-    const std::string name() const { return name_; }
+    std::string name() const { return name_; }
 
     const Backend* backend() const { return backend_; }
 
