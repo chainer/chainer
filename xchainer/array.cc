@@ -135,7 +135,7 @@ Array Array::Empty(const Shape& shape, Dtype dtype, const Device& device) {
 
 Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype, const Device& device) {
     Array array = Empty(shape, dtype, device);
-    array.Fill(scalar);
+    device.backend()->Fill(array, scalar);
     return array;
 }
 
@@ -269,7 +269,16 @@ void Array::Mul(const Array& rhs, Array& out) const {
     }
 }
 
-void Array::Fill(Scalar value) { device().backend()->Fill(*this, value); }
+void Array::Fill(Scalar value) {
+    Device current_device = internal::GetCurrentDeviceNoExcept();
+    if (current_device.is_null() || current_device == device()) {
+        device().backend()->Fill(*this, value);
+    } else {
+        std::ostringstream os;
+        os << "Current device: " << current_device << " and array's device: " << device() << " do not match";
+        throw DeviceError(os.str());
+    }
+}
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
