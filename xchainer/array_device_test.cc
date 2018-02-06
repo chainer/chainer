@@ -96,7 +96,7 @@ void CheckDeviceExplicit(const std::function<Array(const Device& device)>& creat
         Array array = create_array_func(cuda_device);
         ExpectDataExistsOnDevice(cuda_device, array);
     }
-#endif
+#endif  // XCHAINER_ENABLE_CUDA
 }
 
 TEST(ArrayDeviceTest, FromBuffer) {
@@ -150,13 +150,19 @@ TEST(ArrayDeviceTest, EmptyLike) {
         return Array::EmptyLike(array_orig);
     });
     CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype);
+        NativeBackend native_backend;
+        Device cpu_device{"cpu", &native_backend};
+        Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::EmptyLike(array_orig, device);
     });
+#ifdef XCHAINER_ENABLE_CUDA
     CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype, device);
+        cuda::CudaBackend cuda_backend;
+        Device cuda_device{"cpu", &cuda_backend};
+        Array array_orig = Array::Empty(shape, dtype, cuda_device);
         return Array::EmptyLike(array_orig, device);
     });
+#endif  // XCHAINER_ENABLE_CUDA
 }
 
 TEST(ArrayDeviceTest, FullLike) {
@@ -169,13 +175,19 @@ TEST(ArrayDeviceTest, FullLike) {
         return Array::FullLike(array_orig, scalar);
     });
     CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype);
+        NativeBackend native_backend;
+        Device cpu_device{"cpu", &native_backend};
+        Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::FullLike(array_orig, scalar, device);
     });
+#ifdef XCHAINER_ENABLE_CUDA
     CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype, device);
+        cuda::CudaBackend cuda_backend;
+        Device cuda_device{"cpu", &cuda_backend};
+        Array array_orig = Array::Empty(shape, dtype, cuda_device);
         return Array::FullLike(array_orig, scalar, device);
     });
+#endif  // XCHAINER_ENABLE_CUDA
 }
 
 TEST(ArrayDeviceTest, ZerosLike) {
@@ -187,13 +199,19 @@ TEST(ArrayDeviceTest, ZerosLike) {
         return Array::ZerosLike(array_orig);
     });
     CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype);
+        NativeBackend native_backend;
+        Device cpu_device{"cpu", &native_backend};
+        Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::ZerosLike(array_orig, device);
     });
+#ifdef XCHAINER_ENABLE_CUDA
     CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype, device);
+        cuda::CudaBackend cuda_backend;
+        Device cuda_device{"cpu", &cuda_backend};
+        Array array_orig = Array::Empty(shape, dtype, cuda_device);
         return Array::ZerosLike(array_orig, device);
     });
+#endif  // XCHAINER_ENABLE_CUDA
 }
 
 TEST(ArrayDeviceTest, OnesLike) {
@@ -205,13 +223,19 @@ TEST(ArrayDeviceTest, OnesLike) {
         return Array::OnesLike(array_orig);
     });
     CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype);
+        NativeBackend native_backend;
+        Device cpu_device{"cpu", &native_backend};
+        Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::OnesLike(array_orig, device);
     });
+#ifdef XCHAINER_ENABLE_CUDA
     CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype, device);
+        cuda::CudaBackend cuda_backend;
+        Device cuda_device{"cpu", &cuda_backend};
+        Array array_orig = Array::Empty(shape, dtype, cuda_device);
         return Array::OnesLike(array_orig, device);
     });
+#endif  // XCHAINER_ENABLE_CUDA
 }
 
 }  // namespace
