@@ -1,7 +1,9 @@
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import function
 from chainer import function_node
 from chainer.utils import type_check
@@ -82,15 +84,19 @@ class LSTM(function_node.FunctionNode):
         a, i, f, o = _extract_gates(x)
         batch = len(x)
 
-        if isinstance(x, numpy.ndarray):
-            a = numpy.tanh(a)
-            i = _sigmoid(i)
-            f = _sigmoid(f)
-            o = _sigmoid(o)
+        if isinstance(x, chainer.get_cpu_array_types()):
+            if intel64.should_use_ideep('>=auto'):
+                xp = intel64.ideep.get_array_module(x)
+            else:
+                xp = numpy
+            a = xp.tanh(a)
+            i = _sigmoid(i, xp)
+            f = _sigmoid(f, xp)
+            o = _sigmoid(o, xp)
 
             c_next = numpy.empty_like(c_prev)
             c_next[:batch] = a * i + f * c_prev[:batch]
-            h = o * numpy.tanh(c_next[:batch])
+            h = o * xp.tanh(c_next[:batch])
         else:
             c_next = cuda.cupy.empty_like(c_prev)
             h = cuda.cupy.empty_like(c_next[:batch])
@@ -136,11 +142,15 @@ class LSTMGrad(function.Function):
 
         a, i, f, o = _extract_gates(x)
         if xp is numpy:
-            tanh_a = xp.tanh(a)
-            sig_i = _sigmoid(i)
-            sig_f = _sigmoid(f)
-            sig_o = _sigmoid(o)
+            if intel64.should_use_ideep('>=auto'):
+                xp = intel64.ideep.get_array_module(x)
+            # TODO(iDeep) replace numpy with xp
+            tanh_a = numpy.tanh(a)
+            sig_i = _sigmoid(i, xp)
+            sig_f = _sigmoid(f, xp)
+            sig_o = _sigmoid(o, xp)
 
+            # TODO(iDeep) replace numpy with xp
             co = numpy.tanh(c_next[:batch])
             gc_prev = numpy.empty_like(c_prev)
             # multiply f later

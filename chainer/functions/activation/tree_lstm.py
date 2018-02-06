@@ -1,6 +1,7 @@
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -90,7 +91,7 @@ class TreeLSTM(function.Function):
         a, i, o = gates[:3]
         fs = gates[3:]
 
-        if isinstance(x, numpy.ndarray):
+        if isinstance(x, chainer.get_cpu_array_types()):
             self.a = numpy.tanh(a)
             self.i = _sigmoid(i)
             self.o = _sigmoid(o)
