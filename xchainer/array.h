@@ -53,7 +53,8 @@ private:
 };
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
-                  const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backaward_functions);
+                  const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backaward_functions,
+                  const std::vector<GraphId>& graph_ids_to_stop_gradient = {});
 
 bool HasArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 const std::shared_ptr<ArrayNode>& CreateArrayNode(Array& array, const GraphId& graph_id = kDefaultGraphId);
@@ -154,7 +155,6 @@ public:
 private:
     Array(const Shape& shape, Dtype dtype, const Device& device, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
 
-    void CopyTo(Array& out) const;
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 

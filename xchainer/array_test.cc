@@ -956,6 +956,46 @@ TEST_P(ArrayTest, Copy) {
     }
 }
 
+TEST_P(ArrayTest, AsConstantCopy) {
+    // Stop gradients on all graphs
+    {
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        a.RequireGrad("graph_1");
+        a.RequireGrad("graph_2");
+        ASSERT_TRUE(a.IsGradRequired("graph_1"));
+        ASSERT_TRUE(a.IsGradRequired("graph_2"));
+        Array b = a.AsConstant(CopyKind::kCopy);
+
+        ExpectEqualCopy<bool>(a, b);
+        EXPECT_FALSE(b.IsGradRequired("graph_1"));
+        EXPECT_FALSE(b.IsGradRequired("graph_2"));
+
+        EXPECT_TRUE(a.IsGradRequired("graph_1"));
+        EXPECT_TRUE(a.IsGradRequired("graph_2"));
+    }
+
+    // Stop gradients on graphs
+    {
+        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        a.RequireGrad("graph_1");
+        a.RequireGrad("graph_2");
+        a.RequireGrad("graph_3");
+        ASSERT_TRUE(a.IsGradRequired("graph_1"));
+        ASSERT_TRUE(a.IsGradRequired("graph_2"));
+        ASSERT_TRUE(a.IsGradRequired("graph_3"));
+        Array b = a.AsConstant({"graph_1", "graph_2"}, CopyKind::kCopy);
+
+        ExpectEqualCopy<bool>(a, b);
+        EXPECT_FALSE(b.IsGradRequired("graph_1"));
+        EXPECT_FALSE(b.IsGradRequired("graph_2"));
+        EXPECT_TRUE(b.IsGradRequired("graph_3"));
+
+        EXPECT_TRUE(a.IsGradRequired("graph_1"));
+        EXPECT_TRUE(a.IsGradRequired("graph_2"));
+        EXPECT_TRUE(a.IsGradRequired("graph_3"));
+    }
+}
+
 TEST_P(ArrayTest, AsConstantView) {
     // Stop gradients on all graphs
     {

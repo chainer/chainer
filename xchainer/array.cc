@@ -41,7 +41,8 @@ ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, const Device& device, bool
       nodes_(std::move(nodes)) {}
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
-                  const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions) {
+                  const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
+                  const std::vector<GraphId>& graph_ids_to_stop_gradient) {
     if (inputs.size() != backward_functions.size()) {
         throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");
     }
@@ -60,7 +61,10 @@ void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrap
 
     for (size_t i = 0; i < inputs.size(); ++i) {                                  // For each input
         for (const std::shared_ptr<ArrayNode>& node : inputs[i].get().nodes()) {  // For each graph, create an edge
-            create_edge(node, backward_functions[i]);
+            if (find(graph_ids_to_stop_gradient.begin(), graph_ids_to_stop_gradient.end(), node->graph_id()) ==
+                graph_ids_to_stop_gradient.end()) {
+                create_edge(node, backward_functions[i]);
+            }
         }
     }
 
@@ -174,25 +178,17 @@ Array Array::operator*(const Array& rhs) const {
     return out;
 }
 
-Array Array::Copy() const {
-    Array out = Array::EmptyLike(*this);
-    CopyTo(out);
-    return out;
-}
-
-void Array::CopyTo(Array& out) const {
-    internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }});
-
-    // TODO(hvy): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
-    // is_contiguous_ and offset_ into account
-    internal::MemoryCopy(out.data().get(), body_->data_.get(), total_bytes());
-}
+Array Array::Copy() const { return AsConstant({}, CopyKind::kCopy); }
 
 Array Array::AsConstant(CopyKind kind) const {
     switch (kind) {
-        case CopyKind::kCopy:
-            // TODO(takgi): implement deep copy version
-            throw NotImplementedError("not implemented");
+        case CopyKind::kCopy: {
+            Array out = Array::EmptyLike(*this);
+            // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
+            // is_contiguous_ and offset_ into account
+            internal::MemoryCopy(out.data().get(), body_->data_.get(), total_bytes());
+            return std::move(out);
+        }
         case CopyKind::kView:
             return Array{shape(), dtype(), device(), body_->data_, is_contiguous(), offset()};
         default:
@@ -202,9 +198,14 @@ Array Array::AsConstant(CopyKind kind) const {
 
 Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) const {
     switch (kind) {
-        case CopyKind::kCopy:
-            // TODO(takgi): implement deep copy version
-            throw NotImplementedError("not implemented");
+        case CopyKind::kCopy: {
+            Array out = Array::EmptyLike(*this);
+            internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }}, graph_ids);
+            // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
+            // is_contiguous_ and offset_ into account
+            internal::MemoryCopy(out.data().get(), body_->data_.get(), total_bytes());
+            return std::move(out);
+        }
         case CopyKind::kView: {
             Array out{shape(), dtype(), device(), body_->data_, is_contiguous(), offset()};
             for (const std::shared_ptr<ArrayNode>& node : nodes()) {
