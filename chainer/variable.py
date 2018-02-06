@@ -20,15 +20,15 @@ def _check_grad_type(func, x, gx):
         # ``x.data is None`` implies that the data array is not retained
         return
     if not chainer.is_arrays_compatible((gx, x.data)):
-        msg = ('Type of data and grad mismatch\ngrad:%s != data:%s' %
+        msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
                (type(x.data), type(gx)))
         typ = TypeError
     elif gx.dtype != x.data.dtype:
-        msg = ('Dtype of data and grad mismatch\ngrad:%s != data:%s' %
+        msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
                (x.data.dtype, gx.dtype))
         typ = TypeError
     elif gx.shape != x.data.shape:
-        msg = ('Shape of data and grad mismatch\ngrad:%s != data:%s' %
+        msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
                (x.data.shape, gx.shape))
         typ = ValueError
     else:
