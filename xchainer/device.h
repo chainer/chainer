@@ -30,7 +30,6 @@ const Device& GetCurrentDeviceNoExcept() noexcept;
 
 }  // namespace internal
 
-// TODO(sonots): Need to prohibit to create devices of the same name?
 inline bool operator==(const Device& lhs, const Device& rhs) { return (lhs.name() == rhs.name()) && (lhs.backend() == rhs.backend()); }
 
 inline bool operator!=(const Device& lhs, const Device& rhs) { return !(lhs == rhs); }
