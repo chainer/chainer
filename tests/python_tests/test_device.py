@@ -42,7 +42,7 @@ def test_creation():
     backend = xchainer.NativeBackend()
     device = xchainer.Device('cpu', backend)
     assert device.name == 'cpu'
-    assert device.backend == backend
+    assert device.backend is backend
 
 
 @pytest.mark.usefixtures('cache_restore_device')
