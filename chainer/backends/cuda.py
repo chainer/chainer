@@ -238,7 +238,7 @@ def to_gpu(array, device=None, stream=None):
     """Copies the given CPU array to the specified device.
 
     Args:
-        array (array, None, list or tuple):
+        array (*array*, None, list or tuple):
             Array or arrays to be sent to GPU.
         device: Device specifier.
         stream (~cupy.cuda.Stream): *(deprecated since v3.0.0)*
