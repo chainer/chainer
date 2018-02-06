@@ -8,11 +8,14 @@
 #include <gtest/gtest.h>
 
 #include "xchainer/array.h"
+#include "xchainer/backend.h"
 #ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 #include "xchainer/memory.h"
+#include "xchainer/native_backend.h"
 
 namespace xchainer {
 namespace {
@@ -23,9 +26,9 @@ void ExpectDataExistsOnDevice(const Device& expected_device, const Array& array)
     EXPECT_EQ(expected_device, array.device());
 
     // Check device of data pointee
-    if (expected_device == MakeDevice("cpu")) {
+    if (expected_device.name() == "cpu") {
         EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
-    } else if (expected_device == MakeDevice("cuda")) {
+    } else if (expected_device.name() == "cuda") {
         EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
     } else {
         FAIL() << "invalid device";
@@ -36,7 +39,8 @@ void ExpectDataExistsOnDevice(const Device& expected_device, const Array& array)
 void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
     // Fallback to current device which is CPU
     {
-        Device cpu_device = MakeDevice("cpu");
+        NativeBackend native_backend;
+        Device cpu_device{"cpu", &native_backend};
         auto scope = std::make_unique<DeviceScope>(cpu_device);
         Array array = create_array_func();
         ExpectDataExistsOnDevice(cpu_device, array);
@@ -44,7 +48,8 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
 #ifdef XCHAINER_ENABLE_CUDA
     // Fallback to current device which is GPU
     {
-        Device cuda_device = MakeDevice("cuda");
+        cuda::CudaBackend cuda_backend;
+        Device cuda_device{"cuda", &cuda_backend};
         auto scope = std::make_unique<DeviceScope>(cuda_device);
         Array array = create_array_func();
         ExpectDataExistsOnDevice(cuda_device, array);
@@ -54,7 +59,8 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
 
 // Check that Arrays are created on the specified device, if specified, without taking into account the current device
 void CheckDeviceExplicit(const std::function<Array(const Device& device)>& create_array_func) {
-    Device cpu_device = MakeDevice("cpu");
+    NativeBackend native_backend;
+    Device cpu_device{"cpu", &native_backend};
 
     // Explicitly create on CPU
     {
@@ -67,7 +73,8 @@ void CheckDeviceExplicit(const std::function<Array(const Device& device)>& creat
         ExpectDataExistsOnDevice(cpu_device, array);
     }
 #ifdef XCHAINER_ENABLE_CUDA
-    Device cuda_device = MakeDevice("cuda");
+    cuda::CudaBackend cuda_backend;
+    Device cuda_device{"cuda", &cuda_backend};
 
     {
         auto scope = std::make_unique<DeviceScope>(cuda_device);

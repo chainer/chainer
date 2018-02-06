@@ -5,9 +5,12 @@
 #endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
 
+#include "xchainer/backend.h"
 #ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
+#include "xchainer/native_backend.h"
 
 namespace xchainer {
 namespace internal {
@@ -48,11 +51,13 @@ TEST(MemoryTest, IsPointerCudaMemory) {
 TEST(MemoryTest, Allocate) {
     size_t size = 3;
     {
-        std::shared_ptr<void> ptr = Allocate(MakeDevice("cpu"), size);
+        NativeBackend native_backend;
+        std::shared_ptr<void> ptr = Allocate(Device{"cpu", &native_backend}, size);
         EXPECT_FALSE(IsPointerCudaMemory(ptr.get()));
     }
     {
-        std::shared_ptr<void> ptr = Allocate(MakeDevice("cuda"), size);
+        cuda::CudaBackend cuda_backend;
+        std::shared_ptr<void> ptr = Allocate(Device{"cuda", &cuda_backend}, size);
         EXPECT_TRUE(IsPointerCudaMemory(ptr.get()));
     }
 }
@@ -64,6 +69,10 @@ TEST(MemoryTest, MemoryCopy) {
     std::shared_ptr<void> cpu_src(raw_data, [](float* ptr) {
         (void)ptr;  // unused
     });
+
+    cuda::CudaBackend cuda_backend;
+    Device cuda_device{"cuda", &cuda_backend};
+
     {
         // cpu to cpu
         std::shared_ptr<void> cpu_dst = std::make_unique<float[]>(size);
@@ -72,12 +81,12 @@ TEST(MemoryTest, MemoryCopy) {
     }
     {
         // cpu to gpu
-        std::shared_ptr<void> gpu_dst = Allocate(MakeDevice("cuda"), bytesize);
+        std::shared_ptr<void> gpu_dst = Allocate(cuda_device, bytesize);
         MemoryCopy(gpu_dst.get(), cpu_src.get(), bytesize);
         ExpectDataEqual<float>(cpu_src, gpu_dst, size);
     }
 
-    std::shared_ptr<void> gpu_src = Allocate(MakeDevice("cuda"), bytesize);
+    std::shared_ptr<void> gpu_src = Allocate(cuda_device, bytesize);
     MemoryCopy(gpu_src.get(), cpu_src.get(), bytesize);
     {
         // gpu to cpu
@@ -87,7 +96,7 @@ TEST(MemoryTest, MemoryCopy) {
     }
     {
         // gpu to gpu
-        std::shared_ptr<void> gpu_dst = Allocate(MakeDevice("cuda"), bytesize);
+        std::shared_ptr<void> gpu_dst = Allocate(cuda_device, bytesize);
         MemoryCopy(gpu_dst.get(), gpu_src.get(), bytesize);
         ExpectDataEqual<float>(gpu_src, gpu_dst, size);
     }
@@ -100,29 +109,35 @@ TEST(MemoryTest, MemoryFromBuffer) {
     std::shared_ptr<void> cpu_src(raw_data, [](float* ptr) {
         (void)ptr;  // unused
     });
-    std::shared_ptr<void> gpu_src = Allocate(MakeDevice("cuda"), bytesize);
+
+    NativeBackend native_backend;
+    Device native_device{"cpu", &native_backend};
+    cuda::CudaBackend cuda_backend;
+    Device cuda_device{"cuda", &cuda_backend};
+
+    std::shared_ptr<void> gpu_src = Allocate(cuda_device, bytesize);
     MemoryCopy(gpu_src.get(), cpu_src.get(), size);
     {
         // cpu to cpu
-        std::shared_ptr<void> cpu_dst = MemoryFromBuffer(MakeDevice("cpu"), cpu_src, bytesize);
+        std::shared_ptr<void> cpu_dst = MemoryFromBuffer(native_device, cpu_src, bytesize);
         ExpectDataEqual<float>(cpu_src, cpu_dst, size);
         EXPECT_EQ(cpu_src.get(), cpu_dst.get());
     }
     {
         // cpu to gpu
-        std::shared_ptr<void> gpu_dst = MemoryFromBuffer(MakeDevice("cuda"), cpu_src, bytesize);
+        std::shared_ptr<void> gpu_dst = MemoryFromBuffer(cuda_device, cpu_src, bytesize);
         ExpectDataEqual<float>(cpu_src, gpu_dst, size);
         EXPECT_NE(cpu_src.get(), gpu_dst.get());
     }
     {
         // gpu to cpu
-        std::shared_ptr<void> cpu_dst = MemoryFromBuffer(MakeDevice("cpu"), gpu_src, bytesize);
+        std::shared_ptr<void> cpu_dst = MemoryFromBuffer(native_device, gpu_src, bytesize);
         ExpectDataEqual<float>(gpu_src, cpu_dst, size);
         EXPECT_NE(gpu_src.get(), cpu_dst.get());
     }
     {
         // gpu to gpu
-        std::shared_ptr<void> gpu_dst = MemoryFromBuffer(MakeDevice("cuda"), gpu_src, bytesize);
+        std::shared_ptr<void> gpu_dst = MemoryFromBuffer(cuda_device, gpu_src, bytesize);
         ExpectDataEqual<float>(gpu_src, gpu_dst, size);
         EXPECT_EQ(gpu_src.get(), gpu_dst.get());
     }

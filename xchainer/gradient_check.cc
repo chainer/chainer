@@ -22,7 +22,9 @@ namespace gradient_internal {
 
 void Synchronize() {
 #ifdef XCHAINER_ENABLE_CUDA
-    if (GetCurrentDevice() == MakeDevice("cuda")) {
+    Device device = GetCurrentDevice();
+    // TODO(sonots): Use device.backend->Synchronize()
+    if (device.name() == "cuda") {
         cuda::CheckError(cudaDeviceSynchronize());
     }
 #endif  // XCHAINER_ENABLE_CUDA

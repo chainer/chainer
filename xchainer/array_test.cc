@@ -13,12 +13,15 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/backend.h"
 #ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/memory.h"
+#include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
 
 namespace xchainer {
@@ -28,7 +31,15 @@ class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>>
 protected:
     void SetUp() override {
         std::string device_name = ::testing::get<0>(GetParam());
-        device_scope_ = std::make_unique<DeviceScope>(device_name);
+        std::unique_ptr<Backend> backend;
+        if (device_name == "cpu") {
+            backend = std::make_unique<NativeBackend>();
+#ifdef XCHAINER_ENABLE_CUDA
+        } else if (device_name == "cuda") {
+            backend = std::make_unique<cuda::CudaBackend>();
+#endif  // XCHAINER_ENABLE_CUDA
+        }
+        device_scope_ = std::make_unique<DeviceScope>(device_name, backend.get());
     }
 
     void TearDown() override { device_scope_.reset(); }
@@ -105,7 +116,7 @@ public:
     template <typename T>
     void ExpectDataEqual(T expected, const Array& actual) {
 #ifdef XCHAINER_ENABLE_CUDA
-        if (actual.device() == MakeDevice("cuda")) {
+        if (actual.device().name() == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
@@ -128,13 +139,14 @@ public:
     }
 
     void ExpectDataExistsOnCurrentDevice(const Array& array) {
-        // Check device accessor
-        EXPECT_EQ(GetCurrentDevice(), array.device());
+        Device device = GetCurrentDevice();
 
-        // Check device of data pointee
-        if (GetCurrentDevice() == MakeDevice("cpu")) {
+        // Check device accessor
+        EXPECT_EQ(device, array.device());
+
+        if (device.name() == "cpu") {
             EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
-        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+        } else if (device.name() == "cuda") {
             EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
         } else {
             FAIL() << "invalid device";
@@ -167,9 +179,12 @@ public:
         // Array::data
         ExpectDataEqual<T>(data.get(), x);
         ExpectDataExistsOnCurrentDevice(x);
-        if (GetCurrentDevice() == MakeDevice("cpu")) {
+
+        // TODO(sonots): Polymorphism using device.backend->XXX()?
+        Device device = GetCurrentDevice();
+        if (device.name() == "cpu") {
             EXPECT_EQ(data.get(), x.data().get());
-        } else if (GetCurrentDevice() == MakeDevice("cuda")) {
+        } else if (device.name() == "cuda") {
             EXPECT_NE(data.get(), x.data().get());
         } else {
             FAIL() << "invalid device";
