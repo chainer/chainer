@@ -19,7 +19,7 @@ public:
     Device(const std::string& name, Backend* backend);
 
     std::string name() const { return name_; }
-    const Backend* backend() const { return backend_; }
+    Backend* backend() const { return backend_; }
 
     bool is_null() const;
 
