@@ -85,11 +85,12 @@ class TestNegativeSampling(unittest.TestCase):
         x = chainer.Variable(self.x)
         t = chainer.Variable(self.t)
         y = self.link(x, t)
+        samples = y.creator.samples
         y.backward()
 
         # fix samples
         negative_sampling.NegativeSamplingFunction.samples = cuda.to_gpu(
-            y.creator.samples)
+            samples)
         self.link.to_gpu()
         del negative_sampling.NegativeSamplingFunction.samples
         xg = chainer.Variable(cuda.to_gpu(self.x))
