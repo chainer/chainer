@@ -67,7 +67,46 @@ if available:
         cudnn = cupy.cudnn
         cudnn_enabled = not _cudnn_disabled_by_user
     except Exception as e:
+        cudnn = None
         _resolution_error = e
+
+
+class _CudaRuntimeInfo(object):
+
+    cupy_version = None
+    cuda_runtime_version = None
+    cuda_driver_version = None
+    cudnn_version = None
+    cudnn_enabled = False
+    nccl_version = None
+
+    def __init__(self):
+        if available:
+            self.cupy_version = cupy.__version__
+            self.cuda_runtime_version = cuda.runtime.runtimeGetVersion()
+            self.cuda_driver_version = cuda.runtime.driverGetVersion()
+            if cudnn is not None:
+                self.cudnn_version = cuda.cudnn.getVersion()
+                self.cudnn_enabled = cudnn_enabled
+            try:
+                self.nccl_version = cuda.nccl.get_version()
+            except AttributeError:
+                pass
+
+    def __str__(self):
+        s = six.StringIO()
+        s.write('''CuPy: {}\n'''.format(self.cupy_version))
+        if self.cupy_version is not None:
+            s.write('''CUDA runtime: {}\n'''.format(self.cuda_runtime_version))
+            s.write('''CUDA driver: {}\n'''.format(self.cuda_driver_version))
+            s.write('''cuDNN: {}\n'''.format(self.cudnn_version))
+            s.write('''cuDNN enabled: {}\n'''.format(self.cudnn_enabled))
+            s.write('''NCCL: {}\n'''.format(self.nccl_version))
+        return s.getvalue()
+
+
+def get_runtime_info():
+    return _CudaRuntimeInfo()
 
 
 def check_cuda_available():

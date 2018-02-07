@@ -29,6 +29,8 @@ from chainer import variable  # NOQA
 
 # import class and function
 # These functions from backends.cuda are kept for backward compatibility
+from chainer._runtime_info import get_runtime_info  # NOQA
+from chainer._runtime_info import print_runtime_info  # NOQA
 from chainer.backends.cuda import should_use_cudnn  # NOQA
 from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
