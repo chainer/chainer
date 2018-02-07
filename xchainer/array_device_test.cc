@@ -155,14 +155,6 @@ TEST(ArrayDeviceTest, EmptyLike) {
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::EmptyLike(array_orig, device);
     });
-#ifdef XCHAINER_ENABLE_CUDA
-    CheckDeviceExplicit([&](const Device& device) {
-        cuda::CudaBackend cuda_backend;
-        Device cuda_device{"cpu", &cuda_backend};
-        Array array_orig = Array::Empty(shape, dtype, cuda_device);
-        return Array::EmptyLike(array_orig, device);
-    });
-#endif  // XCHAINER_ENABLE_CUDA
 }
 
 TEST(ArrayDeviceTest, FullLike) {
@@ -180,14 +172,6 @@ TEST(ArrayDeviceTest, FullLike) {
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::FullLike(array_orig, scalar, device);
     });
-#ifdef XCHAINER_ENABLE_CUDA
-    CheckDeviceExplicit([&](const Device& device) {
-        cuda::CudaBackend cuda_backend;
-        Device cuda_device{"cpu", &cuda_backend};
-        Array array_orig = Array::Empty(shape, dtype, cuda_device);
-        return Array::FullLike(array_orig, scalar, device);
-    });
-#endif  // XCHAINER_ENABLE_CUDA
 }
 
 TEST(ArrayDeviceTest, ZerosLike) {
@@ -204,14 +188,6 @@ TEST(ArrayDeviceTest, ZerosLike) {
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::ZerosLike(array_orig, device);
     });
-#ifdef XCHAINER_ENABLE_CUDA
-    CheckDeviceExplicit([&](const Device& device) {
-        cuda::CudaBackend cuda_backend;
-        Device cuda_device{"cpu", &cuda_backend};
-        Array array_orig = Array::Empty(shape, dtype, cuda_device);
-        return Array::ZerosLike(array_orig, device);
-    });
-#endif  // XCHAINER_ENABLE_CUDA
 }
 
 TEST(ArrayDeviceTest, OnesLike) {
@@ -228,14 +204,6 @@ TEST(ArrayDeviceTest, OnesLike) {
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::OnesLike(array_orig, device);
     });
-#ifdef XCHAINER_ENABLE_CUDA
-    CheckDeviceExplicit([&](const Device& device) {
-        cuda::CudaBackend cuda_backend;
-        Device cuda_device{"cpu", &cuda_backend};
-        Array array_orig = Array::Empty(shape, dtype, cuda_device);
-        return Array::OnesLike(array_orig, device);
-    });
-#endif  // XCHAINER_ENABLE_CUDA
 }
 
 }  // namespace
