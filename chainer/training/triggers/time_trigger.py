@@ -1,6 +1,3 @@
-import time
-
-
 class TimeTrigger(object):
 
     """Trigger based on a fixed time interval.
@@ -14,11 +11,10 @@ class TimeTrigger(object):
 
     def __init__(self, period):
         self._period = period
-        self._next_time = time.time()
+        self._next_time = self._period
 
     def __call__(self, trainer):
-        now = time.time()
-        if self._next_time < now:
+        if self._next_time < trainer.elapsed_time:
             self._next_time += self._period
             return True
         else:
