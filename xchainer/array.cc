@@ -42,7 +42,7 @@ ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, const Device& device, bool
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
                   const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
-                  const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+                  const std::vector<GraphId>& graph_ids_to_stop_gradients) {
     if (inputs.size() != backward_functions.size()) {
         throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");
     }
@@ -61,8 +61,8 @@ void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrap
 
     for (size_t i = 0; i < inputs.size(); ++i) {                                  // For each input
         for (const std::shared_ptr<ArrayNode>& node : inputs[i].get().nodes()) {  // For each graph, create an edge
-            if (find(graph_ids_to_stop_gradient.begin(), graph_ids_to_stop_gradient.end(), node->graph_id()) ==
-                graph_ids_to_stop_gradient.end()) {
+            if (find(graph_ids_to_stop_gradients.begin(), graph_ids_to_stop_gradients.end(), node->graph_id()) ==
+                graph_ids_to_stop_gradients.end()) {
                 create_edge(node, backward_functions[i]);
             }
         }
