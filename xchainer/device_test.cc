@@ -35,6 +35,16 @@ TEST_F(DeviceTest, Ctor) {
     EXPECT_THROW(Device("12345678", &native_backend), DeviceError);
 }
 
+TEST_F(DeviceTest, ToString) {
+    EXPECT_EQ("Device(null)", internal::kNullDevice.ToString());
+
+    NativeBackend native_backend;
+    Device device{"cpu", &native_backend};
+    std::ostringstream os;
+    os << "Device('cpu', " << &native_backend << ")";
+    EXPECT_EQ(os.str(), device.ToString());
+}
+
 TEST_F(DeviceTest, SetCurrentDevice) {
     ASSERT_THROW(GetCurrentDevice(), XchainerError);
 
