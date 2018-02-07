@@ -1,5 +1,6 @@
 import functools
 import operator
+import re
 
 import numpy
 import pytest
@@ -300,21 +301,23 @@ def test_array_init_invalid_length():
 
 def test_array_repr():
     array = xchainer.Array((0,), xchainer.Dtype.bool, [])
-    assert str(array) == 'array([], dtype=bool)'
+    assert re.match(r"array\(\[\], dtype=bool, device=Device\('cpu', 0[xX][0-9a-fA-F]+\)\)", str(array))
 
     array = xchainer.Array((1,), xchainer.Dtype.bool, [False])
-    assert str(array) == 'array([False], dtype=bool)'
+    assert re.match(r"array\(\[False\], dtype=bool, device=Device\('cpu', 0[xX][0-9a-fA-F]+\)\)", str(array))
 
     array = xchainer.Array((2, 3), xchainer.Dtype.int8, [0, 1, 2, 3, 4, 5])
-    assert str(array) == (
-        'array([[0, 1, 2],\n'
-        '       [3, 4, 5]], dtype=int8)'
+    assert re.match(
+        r"array\(\[\[0, 1, 2\],\n"
+        r"       \[3, 4, 5\]\], dtype=int8, device=Device\('cpu', 0[xX][0-9a-fA-F]+\)\)",
+        str(array)
     )
 
     array = xchainer.Array((2, 3), xchainer.Dtype.float32, [0, 1, 2, 3.25, 4, 5])
-    assert str(array) == (
-        'array([[0.  , 1.  , 2.  ],\n'
-        '       [3.25, 4.  , 5.  ]], dtype=float32)'
+    assert re.match(
+        r"array\(\[\[0.  , 1.  , 2.  \],\n"
+        r"       \[3.25, 4.  , 5.  \]\], dtype=float32, device=Device\('cpu', 0[xX][0-9a-fA-F]+\)\)",
+        str(array)
     )
 
 
