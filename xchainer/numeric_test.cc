@@ -7,12 +7,24 @@
 
 #include "xchainer/array.h"
 #include "xchainer/error.h"
+#include "xchainer/native_backend.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
 
 class NumericTest : public ::testing::Test {
+protected:
+    virtual void SetUp() {
+        backend_ = std::make_unique<NativeBackend>();
+        device_scope_ = std::make_unique<DeviceScope>("cpu", backend_.get());
+    }
+
+    virtual void TearDown() {
+        device_scope_.reset();
+        backend_.reset();
+    }
+
 public:
     template <typename T>
     Array MakeArray(const Shape& shape, std::initializer_list<T> data) {
@@ -41,6 +53,10 @@ public:
         Array b = MakeArray<U>(shape, bdata);
         EXPECT_THROW(AllClose(a, b, rtol, atol), DtypeError);
     }
+
+private:
+    std::unique_ptr<Backend> backend_;
+    std::unique_ptr<DeviceScope> device_scope_;
 };
 
 TEST_F(NumericTest, AllClose) {

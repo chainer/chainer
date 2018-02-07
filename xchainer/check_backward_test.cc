@@ -12,6 +12,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/check_backward.h"
+#include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/shape.h"
 
@@ -70,6 +71,17 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
 
 class CheckBackwardBaseTest : public ::testing::Test {
 protected:
+    virtual void SetUp() {
+        backend_ = std::make_unique<NativeBackend>();
+        device_scope_ = std::make_unique<DeviceScope>("cpu", backend_.get());
+    }
+
+    virtual void TearDown() {
+        device_scope_.reset();
+        backend_.reset();
+    }
+
+protected:
     template <typename T>
     Array MakeArray(const Shape& shape, const T* data) const {
         int64_t size = shape.total_size();
@@ -91,11 +103,18 @@ protected:
                                     "Backward check failure");
         }
     }
+
+private:
+    std::unique_ptr<Backend> backend_;
+    std::unique_ptr<DeviceScope> device_scope_;
 };
 
 class CheckBackwardUnaryTest : public CheckBackwardBaseTest, public ::testing::WithParamInterface<bool> {
 protected:
-    void SetUp() override { requires_grad = GetParam(); }
+    void SetUp() override {
+        CheckBackwardBaseTest::SetUp();
+        requires_grad = GetParam();
+    }
 
     template <typename T>
     void CheckBackwardUnaryComputation(bool expect_correct, Fprop fprop, const Shape& shape, const T* input_data, const T* grad_output_data,
@@ -116,7 +135,10 @@ private:
 
 class CheckBackwardBinaryTest : public CheckBackwardBaseTest, public ::testing::WithParamInterface<std::tuple<bool, bool>> {
 protected:
-    void SetUp() override { requires_grads = {std::get<0>(GetParam()), std::get<1>(GetParam())}; }
+    void SetUp() override {
+        CheckBackwardBaseTest::SetUp();
+        requires_grads = {std::get<0>(GetParam()), std::get<1>(GetParam())};
+    }
 
     template <typename T>
     void CheckBackwardBinaryComputation(bool expect_correct, Fprop fprop, const Shape& shape, const T* input_data1, const T* input_data2,

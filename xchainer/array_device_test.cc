@@ -96,7 +96,7 @@ void CheckDeviceExplicit(const std::function<Array(const Device& device)>& creat
         Array array = create_array_func(cuda_device);
         ExpectDataExistsOnDevice(cuda_device, array);
     }
-#endif
+#endif  // XCHAINER_ENABLE_CUDA
 }
 
 TEST(ArrayDeviceTest, FromBuffer) {
@@ -150,11 +150,9 @@ TEST(ArrayDeviceTest, EmptyLike) {
         return Array::EmptyLike(array_orig);
     });
     CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype);
-        return Array::EmptyLike(array_orig, device);
-    });
-    CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype, device);
+        NativeBackend native_backend;
+        Device cpu_device{"cpu", &native_backend};
+        Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::EmptyLike(array_orig, device);
     });
 }
@@ -169,11 +167,9 @@ TEST(ArrayDeviceTest, FullLike) {
         return Array::FullLike(array_orig, scalar);
     });
     CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype);
-        return Array::FullLike(array_orig, scalar, device);
-    });
-    CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype, device);
+        NativeBackend native_backend;
+        Device cpu_device{"cpu", &native_backend};
+        Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::FullLike(array_orig, scalar, device);
     });
 }
@@ -187,11 +183,9 @@ TEST(ArrayDeviceTest, ZerosLike) {
         return Array::ZerosLike(array_orig);
     });
     CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype);
-        return Array::ZerosLike(array_orig, device);
-    });
-    CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype, device);
+        NativeBackend native_backend;
+        Device cpu_device{"cpu", &native_backend};
+        Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::ZerosLike(array_orig, device);
     });
 }
@@ -205,11 +199,9 @@ TEST(ArrayDeviceTest, OnesLike) {
         return Array::OnesLike(array_orig);
     });
     CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype);
-        return Array::OnesLike(array_orig, device);
-    });
-    CheckDeviceExplicit([&](const Device& device) {
-        Array array_orig = Array::Empty(shape, dtype, device);
+        NativeBackend native_backend;
+        Device cpu_device{"cpu", &native_backend};
+        Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::OnesLike(array_orig, device);
     });
 }
