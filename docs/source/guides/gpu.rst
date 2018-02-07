@@ -369,8 +369,7 @@ In order to make a copy, we can use :meth:`Link.copy` method.
 
 .. testcode::
 
-   import copy
-   model_1 = copy.deepcopy(model_0)
+   model_1 = model_0.copy()
    model_0.to_gpu(0)
    model_1.to_gpu(1)
 
