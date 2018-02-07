@@ -274,9 +274,7 @@ void Array::Fill(Scalar value) {
     if (current_device.is_null() || current_device == device()) {
         device().backend()->Fill(*this, value);
     } else {
-        std::ostringstream os;
-        os << "Current device: " << current_device << " and array's device: " << device() << " do not match";
-        throw DeviceError(os.str());
+        throw DeviceError("Current device: " + current_device.ToString() + " and array's device: " + device().ToString() + " do not match");
     }
 }
 
