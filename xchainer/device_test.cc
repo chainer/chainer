@@ -36,7 +36,7 @@ TEST_F(DeviceTest, Ctor) {
 }
 
 TEST_F(DeviceTest, ToString) {
-    EXPECT_EQ("Device()", internal::kNullDevice.ToString());
+    EXPECT_EQ("Device(null)", internal::kNullDevice.ToString());
 
     NativeBackend native_backend;
     Device device{"cpu", &native_backend};
