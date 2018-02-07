@@ -45,18 +45,7 @@ class SplitAxis(function_node.FunctionNode):
         # Currently iDeep only supports 4 dims
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(inputs, (4,))):
-
-            x, = inputs
-            offsets = intel64.ideep.intVector()
-            # FIXME
-            # bypass python3 issue when transfer array to std::vector<>
-            # https://github.com/SimpleITK/SimpleITK/issues/106
-            for i in self.indices_or_sections:
-                offsets.push_back(i)
-            ret = intel64.ideep.concat.Backward(
-                intel64.ideep.array(x), offsets, self.axis)
-            self._shapes = [r.shape for r in ret]
-            return ret
+            return self._forward_ideep(inputs)
 
         x, = inputs
         if isinstance(self.indices_or_sections, collections.Iterable):
@@ -65,6 +54,25 @@ class SplitAxis(function_node.FunctionNode):
             ind.append(cdimx)
         self._xp = cuda.get_array_module(x)
         ret = tuple(self._xp.split(x, self.indices_or_sections, self.axis))
+        self._shapes = [r.shape for r in ret]
+        return ret
+
+    def _forward_ideep(self, inputs):
+        x, = inputs
+        offsets = intel64.ideep.intVector()
+        # FIXME
+        # bypass python3 issue when transfer array to std::vector<>
+        # https://github.com/SimpleITK/SimpleITK/issues/106
+        if isinstance(self.indices_or_sections, collections.Iterable):
+            for i in self.indices_or_sections:
+                offsets.push_back(i)
+        else:
+            d = x.shape[self.axis]
+            step = d // self.indices_or_sections
+            for i in six.moves.range(0, d, step):
+                offsets.push_back(i)
+        ret = intel64.ideep.concat.Backward(
+            intel64.ideep.array(x), offsets, self.axis)
         self._shapes = [r.shape for r in ret]
         return ret
 
