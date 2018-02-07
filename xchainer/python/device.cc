@@ -29,7 +29,8 @@ private:
 
 void InitXchainerDevice(pybind11::module& m) {
     py::class_<Device>(m, "Device")
-        .def(py::init<const std::string&, Backend*>())
+        // We uses py::keep_alive because device keeps the pointer to the backend through its lifetime
+        .def(py::init<const std::string&, Backend*>(), py::keep_alive<1, 3>())
         .def("__eq__", py::overload_cast<const Device&, const Device&>(&operator==))
         .def("__ne__", py::overload_cast<const Device&, const Device&>(&operator!=))
         .def("__repr__", &Device::ToString)
