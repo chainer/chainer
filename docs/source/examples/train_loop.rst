@@ -1,7 +1,7 @@
 MNIST with a Manual Training Loop
 `````````````````````````````````
 
-.. inclue:: ../imports.rst
+.. include:: ../imports.rst
 
 .. currentmodule:: chainer
 
