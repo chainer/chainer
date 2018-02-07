@@ -1,6 +1,5 @@
 #include "xchainer/array_repr.h"
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
