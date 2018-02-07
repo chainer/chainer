@@ -155,7 +155,17 @@ class SwishGrad(function_node.FunctionNode):
 def swish(x, beta):
     """Swish activation function.
 
-    .. math:: f(x, \\beta) = x \\sigma(\\beta x).
+    .. math:: f(x, \\beta) = x \\cdot \\sigma(\\beta x).
+
+    It has the following properties:
+
+    .. math::
+        :nowrap:
+
+        \\begin{align}
+            f(x, 0) &= \\frac{x}{2}, \\\\
+            \\lim_{\\beta \\to \\infty} f(x, \\beta) &= \\max(0, x).
+        \\end{align}
 
     Args:
         x (~chainer.Variable): Input variable of shape :math:`(s_B, s_1, \
@@ -163,10 +173,13 @@ def swish(x, beta):
             *minibatch dimension*.
         beta (~chainer.Variable): Parameter variable :math:`\\beta` of shape
             :math:`(s_1, s_2, ..., s_M)`, where :math:`M` is an arbitrary
-            integer between :math:`1 \\leq M \\leq N`.
+            integer between :math:`1 \\leq M \\leq N`. The number of
+            dimensions of ``beta`` will be matched with ``x`` by reshaping it
+            as :math:`(1, s_1, ..., s_M, 1, ... 1)`, then ``beta`` and ``x``
+            are multiplied together in an element-wise fashion.
 
     Returns:
-        ~chainer.Variable: Output variable of the same shape as `x`.
+        ~chainer.Variable: Output variable of the same shape as ``x``.
 
     .. seealso:: :class:`~chainer.links.Swish`
 

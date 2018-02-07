@@ -8,8 +8,8 @@ class Swish(link.Link):
     """Swish activation function as a link.
 
     Args:
-        shape (tuple of ints): Shape of the :math:`\\beta` parameter variable.
-        init (float): Initial parameter value.
+        shape (tuple of ints): Shape of the parameter variable :math:`\\beta`.
+        init (float): Initial value of the parameter variable :math:`\\beta`.
 
     See the paper for details: `Searching for Activation Functions \
     <https://arxiv.org/abs/1710.05941>`_
