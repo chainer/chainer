@@ -42,7 +42,7 @@ std::ostream& operator<<(std::ostream& os, const Device& device) {
 
 const Device& GetCurrentDevice() {
     if (thread_local_device.is_null()) {
-        throw XchainerError("No device is available. Please set via SetCurrentDevice()");
+        throw XchainerError("Current device is not set.");
     } else {
         return thread_local_device;
     }
