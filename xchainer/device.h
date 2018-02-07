@@ -74,4 +74,6 @@ private:
     Device orig_;
 };
 
+void DebugDumpDevice(std::ostream& os, const Device& device);
+
 }  // namespace xchainer

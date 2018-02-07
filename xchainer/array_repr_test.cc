@@ -32,7 +32,7 @@ std::string ArrayReprFromTemplate(const std::string& array_data_repr, const std:
     std::ostringstream os;
     os << "array(" + array_data_repr;
     os << ", dtype=" + dtype_repr;
-    os << ", device=" << device_repr;
+    os << ", device='" << device_repr << "'";
     if (graph_ids_repr) {
         os << ", graph_ids=" << graph_ids_repr.value();
     }
@@ -42,13 +42,8 @@ std::string ArrayReprFromTemplate(const std::string& array_data_repr, const std:
 
 std::string CreateExpectedArrayRepr(const std::string& array_data_repr, Dtype dtype, const Device& device,
                                     const std::vector<GraphId> graph_ids) {
-    // Dtype repr
     std::string dtype_repr = AsString(dtype);
-
-    // Device repr
-    std::string device_repr = AsString(device);
-
-    // Graph IDs repr
+    std::string device_repr = device.name();
     nonstd::optional<std::string> graph_ids_repr;
     if (!graph_ids.empty()) {
         std::ostringstream os;
@@ -63,7 +58,6 @@ std::string CreateExpectedArrayRepr(const std::string& array_data_repr, Dtype dt
         graph_ids_repr = nonstd::optional<std::string>(os.str());
     }
 
-    // Expected Array repr
     return ArrayReprFromTemplate(array_data_repr, dtype_repr, device_repr, graph_ids_repr);
 }
 

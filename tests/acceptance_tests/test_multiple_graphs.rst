@@ -19,7 +19,7 @@ False
 >>> xc.backward(y, graph_id='input')
 >>> gx = x.get_grad('input')
 >>> gx  # == w
-array([4., 5., 6.], dtype=float32, device=Device('cpu', ...), graph_ids=['weight'])
+array([4., 5., 6.], dtype=float32, device='cpu', graph_ids=['weight'])
 >>> w.get_grad('input')
 Traceback (most recent call last):
   ...
@@ -28,7 +28,7 @@ xchainer.XchainerError: Cannot find ArrayNode for graph: input
 >>> z = gx * w  # == w * w
 >>> xc.backward(z, graph_id='weight')
 >>> w.get_grad('weight')  # == 2 * w
-array([ 8., 10., 12.], dtype=float32, device=Device('cpu', ...))
+array([ 8., 10., 12.], dtype=float32, device='cpu')
 >>> x.get_grad('weight')
 Traceback (most recent call last):
   ...
@@ -49,16 +49,16 @@ False
 >>> xc.backward(y, enable_double_backprop=True)
 >>> gx = x.get_grad()
 >>> gx  # == w
-array([4., 5., 6.], dtype=float32, device=Device('cpu', ...), graph_ids=['default'])
+array([4., 5., 6.], dtype=float32, device='cpu', graph_ids=['default'])
 >>> w.get_grad()  # == x
-array([1., 2., 3.], dtype=float32, device=Device('cpu', ...), graph_ids=['default'])
+array([1., 2., 3.], dtype=float32, device='cpu', graph_ids=['default'])
 
 >>> w.set_grad(None)
 >>> z = gx * w  # == w * w
 >>> xc.backward(z)
 >>> w.get_grad()  # == 2 * w
-array([ 8., 10., 12.], dtype=float32, device=Device('cpu', ...))
+array([ 8., 10., 12.], dtype=float32, device='cpu')
 >>> x.get_grad()  # the second backprop does not reach here
-array([4., 5., 6.], dtype=float32, device=Device('cpu', ...), graph_ids=['default'])
+array([4., 5., 6.], dtype=float32, device='cpu', graph_ids=['default'])
 >>> x.get_grad() is gx
 True

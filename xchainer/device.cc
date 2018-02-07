@@ -35,7 +35,7 @@ std::ostream& operator<<(std::ostream& os, const Device& device) {
     if (device.is_null()) {
         os << "Device(null)";
     } else {
-        os << "Device('" << device.name() << "', " << device.backend() << ")";
+        os << "Device('" << device.name() << "')";
     }
     return os;
 }
@@ -49,5 +49,13 @@ const Device& GetCurrentDevice() {
 }
 
 void SetCurrentDevice(const Device& device) { thread_local_device = device; }
+
+void DebugDumpDevice(std::ostream& os, const Device& device) {
+    if (device.is_null()) {
+        os << "Device(null)";
+    } else {
+        os << "Device('" << device.name() << "', " << device.backend() << ")";
+    }
+}
 
 }  // namespace xchainer
