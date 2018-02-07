@@ -911,6 +911,7 @@ Actual: {0}'''.format(type(data))
                 if e.status != 38:  # cudaErrorNoDevice
                     raise
 
+        enable_double_backprop = chainer.config.enable_backprop
         is_debug = chainer.is_debug()
 
         cand_funcs = []
@@ -929,12 +930,23 @@ Actual: {0}'''.format(type(data))
         grads[self._node] = self._grad_var
 
         def add_cand(cand):
-            if cand not in seen_set:
+            # weakref is used for `seen_set` so that unchained function nodes
+            # can be freed in the backward process.
+            # If a weakref corresponding to `cand` is already in the set,
+            # it's guaranteed to be alive, because `cand` is alive.
+            # If a weakref in the set has been invalidated, its equality with
+            # `cand` is guaranteed to be negative.
+            # See the documentation of the weakref module.
+            cand_ref = weakref.ref(cand)
+            if cand_ref not in seen_set:
                 # Negate since heapq is min-heap
                 heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
-                seen_set.add(cand)
+                seen_set.add(cand_ref)
 
         add_cand(self.creator_node)
+
+        if not enable_double_backprop:
+            self.unchain()
 
         def get_grad(node):
             if node is None:
@@ -1051,6 +1063,8 @@ Actual: {0}'''.format(type(data))
 
                 if x.creator_node is not None:
                     add_cand(x.creator_node)
+                    if not enable_double_backprop:
+                        x.unchain()
 
             del gxs  # to reduce memory usage
             if initial_device is not None:
