@@ -36,7 +36,7 @@ ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, bool is_contiguous, std::s
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
                   const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
-                  const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+                  const std::vector<GraphId>& graph_ids_to_stop_gradients) {
     if (inputs.size() != backward_functions.size()) {
         throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");
     }
