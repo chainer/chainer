@@ -11,18 +11,18 @@ class _RuntimeInfo(object):
 
     chainer_version = None
     numpy_version = None
-    cupy_info = None
+    cuda_info = None
 
     def __init__(self):
         self.chainer_version = chainer.__version__
         self.numpy_version = numpy.__version__
-        self.cupy_info = cuda.get_runtime_info()
+        self.cuda_info = cuda.get_runtime_info()
 
     def __str__(self):
         s = six.StringIO()
         s.write('''Chainer: {}\n'''.format(self.chainer_version))
         s.write('''NumPy: {}\n'''.format(self.numpy_version))
-        s.write(str(self.cupy_info))
+        s.write(str(self.cuda_info))
         return s.getvalue()
 
 
