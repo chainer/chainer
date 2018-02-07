@@ -7,7 +7,6 @@ from chainer.backends import cuda
 from chainer import function
 from chainer import utils
 from chainer.utils import type_check
-from chainer import variable
 
 
 def _logsumexp(a, xp, axis=None):
@@ -279,17 +278,23 @@ def connectionist_temporal_classification(
 
 
     Args:
-        x (sequence of Variable): RNN output at each time. ``x`` must be a list
-            of :class:`~chainer.Variable` s. Each element of ``x``, ``x[i]``
+        x (list or tuple of :class:`~chainer.Variable`):
+            RNN output at each time. Each element of ``x``, ``x[i]``
             is a :class:`~chainer.Variable` representing output of RNN at time
             ``i``.
-        t (Variable): Expected label sequence.
+        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Expected label sequence.
         blank_symbol (int): Index of blank_symbol.
             This value must be non-negative.
-        input_length (Variable): Length of valid sequence for each of mini
+        input_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Length of valid sequence for each of mini
             batch ``x`` (optional). If input_length is skipped, It regards that
             all of ``x`` is valid input.
-        label_length (Variable): Length of valid sequence for each of mini
+        label_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Length of valid sequence for each of mini
             batch ``t`` (optional). If label_length is skipped, It regards that
             all of ``t`` is valid input.
         reduce (str): Reduction option. Its value must be either
@@ -331,18 +336,16 @@ def connectionist_temporal_classification(
         raise TypeError('x must be a list of Variables')
     if not isinstance(blank_symbol, int):
         raise TypeError('blank_symbol must be non-negative integer.')
-    assert blank_symbol >= 0
-    assert blank_symbol < x[0].shape[1]
+    assert 0 <= blank_symbol < x[0].shape[1]
     # This implementation only supports 1-dimensional data.
     # TODO(jnishi): Support d(>1)-dimentinal inputs.
-    assert(len(x[0].shape) == 2)
+    assert x[0].ndim == 2
 
+    xp = cuda.get_array_module(x[0])
     if input_length is None:
-        xp = cuda.get_array_module(x[0].data)
-        input_length = variable.Variable(
-            xp.full((len(x[0].data),), len(x), dtype=numpy.int32))
-        label_length = variable.Variable(
-            xp.full((len(t.data),), len(t.data[0]), dtype=numpy.int32))
+        input_length = xp.full(len(x[0]), len(x), dtype=numpy.int32)
+    if label_length is None:
+        label_length = xp.full(len(t), t.shape[1], dtype=numpy.int32)
 
     return ConnectionistTemporalClassification(blank_symbol, reduce)(
         input_length, label_length, t, *x)
