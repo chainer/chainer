@@ -911,7 +911,10 @@ Actual: {0}'''.format(type(data))
                 if e.status != 38:  # cudaErrorNoDevice
                     raise
 
-        enable_double_backprop = chainer.config.enable_backprop
+        unchain_creator_funcs = not (
+            chainer.config.enable_backprop
+            or chainer.config.keep_graph_on_report)
+
         is_debug = chainer.is_debug()
 
         cand_funcs = []
@@ -945,7 +948,7 @@ Actual: {0}'''.format(type(data))
 
         add_cand(self.creator_node)
 
-        if not enable_double_backprop:
+        if unchain_creator_funcs:
             self.unchain()
 
         def get_grad(node):
@@ -1063,7 +1066,7 @@ Actual: {0}'''.format(type(data))
 
                 if x.creator_node is not None:
                     add_cand(x.creator_node)
-                    if not enable_double_backprop:
+                    if unchain_creator_funcs:
                         x.unchain()
 
             del gxs  # to reduce memory usage
