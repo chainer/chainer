@@ -237,7 +237,14 @@ struct ArrayReprImpl {
 
         // Print the footer
         PrintNTimes(os, ']', ndim);
+
+        // Print the footer dtype
         os << ", dtype=" << array.dtype();
+
+        // Print the footer device
+        os << ", device=" << array.device();
+
+        // Print the footer graphs
         const std::vector<std::shared_ptr<ArrayNode>>& nodes = array.nodes();
         if (!nodes.empty()) {
             os << ", graph_ids=[";
@@ -249,6 +256,8 @@ struct ArrayReprImpl {
             }
             os << ']';
         }
+
+        // End of repr
         os << ')';
     }
 };
