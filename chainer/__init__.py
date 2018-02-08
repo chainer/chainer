@@ -94,21 +94,26 @@ def get_function_hooks():
 
 
 def _load_array_types():
+    # Note: this function may not be protected by GIL because of external
+    # calls.
     global _array_types
     global _cpu_array_types
     if _array_types is None:
-        _array_types = [numpy.ndarray]
-        _cpu_array_types = [numpy.ndarray]
+        array_types = [numpy.ndarray]
+        cpu_array_types = [numpy.ndarray]
 
         if backends.cuda.available:
-            _array_types.append(backends.cuda.ndarray)
+            array_types.append(backends.cuda.ndarray)
 
         if backends.intel64.is_ideep_available():
-            _array_types.append(backends.intel64.mdarray)
-            _cpu_array_types.append(backends.intel64.mdarray)
+            array_types.append(backends.intel64.mdarray)
+            cpu_array_types.append(backends.intel64.mdarray)
 
-        _array_types = tuple(_array_types)
-        _cpu_array_types = tuple(_cpu_array_types)
+        array_types = tuple(array_types)
+        cpu_array_types = tuple(cpu_array_types)
+
+        _array_types = array_types
+        _cpu_array_types = cpu_array_types
 
 
 def get_array_types():
