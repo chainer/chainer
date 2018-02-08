@@ -2,7 +2,9 @@
 
 import argparse
 import collections
+import json
 import glob
+import os
 
 import six
 
@@ -58,11 +60,21 @@ def train(train_data_path, test_data_path, args):
     trainer.extend(extensions.ProgressBar(update_interval=10))
     trainer.run()
 
+    if args.model:
+        memnn.save_model(args.model, model, vocab)
+
 
 def main():
     parser = argparse.ArgumentParser(
         description='Chainer example: End-to-end memory networks')
-    parser.add_argument('data', help='Path to bAbI dataset')
+    parser.add_argument('TRAIN_DATA',
+                        help='Path to training data in bAbI dataset '
+                        '(e.g. "qa1_single-supporting-fact_train.txt")')
+    parser.add_argument('TEST_DATA',
+                        help='Path to test data in bAbI dataset '
+                        '(e.g. "qa1_single-supporting-fact_test.txt")')
+    parser.add_argument('--model', '-m',
+                        help='Model directory where it stors trained model')
     parser.add_argument('--batchsize', '-b', type=int, default=100,
                         help='Number of images in each mini batch')
     parser.add_argument('--epoch', '-e', type=int, default=100,
@@ -81,12 +93,7 @@ def main():
                         'Select from BoW ("bow") or position encoding ("pe")')
     args = parser.parse_args()
 
-    for data_id in six.moves.range(1, 2):
-        train_data_path = glob.glob(
-            '%s/qa%d_*train.txt' % (args.data, data_id))[0]
-        test_data_path = glob.glob(
-            '%s/qa%d_*test.txt' % (args.data, data_id))[0]
-        train(train_data_path, test_data_path, args)
+    train(args.TRAIN_DATA, args.TEST_DATA, args)
 
 
 if __name__ == '__main__':
