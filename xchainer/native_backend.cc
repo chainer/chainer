@@ -1,5 +1,9 @@
 #include "xchainer/native_backend.h"
 
+#include "xchainer/array.h"
+#include "xchainer/dtype.h"
+#include "xchainer/scalar.h"
+
 namespace xchainer {
 
 std::shared_ptr<void> NativeBackend::Allocate(const Device& device, size_t bytesize) {
@@ -22,8 +26,16 @@ std::shared_ptr<void> NativeBackend::FromBuffer(const Device& device, const std:
 }
 
 void NativeBackend::Fill(Array& out, Scalar value) {
-    (void)out;    // unused
-    (void)value;  // unused
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        T c_value{value};
+
+        int64_t size = out.total_size();
+        auto* ptr = static_cast<T*>(out.data().get());
+        for (int64_t i = 0; i < size; ++i) {
+            ptr[i] = c_value;
+        }
+    });
 }
 
 void NativeBackend::Add(const Array& lhs, const Array& rhs, Array& out) {
