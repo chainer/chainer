@@ -339,6 +339,7 @@ Here we use the simplest one, called Stochastic Gradient Descent (SGD):
    >>> model = MyChain()
    >>> optimizer = optimizers.SGD()
    >>> optimizer.setup(model)
+   <...>
 
 The method :meth:`~Optimizer.setup` prepares for the optimization given a link.
 
@@ -566,6 +567,7 @@ So instead of using the above example, we will use this predefined Classifier ch
    >>> model = L.Classifier(MLP(100, 10))  # the input size, 784, is inferred
    >>> optimizer = optimizers.SGD()
    >>> optimizer.setup(model)
+   <...>
 
 Now we can build a trainer object.
 
