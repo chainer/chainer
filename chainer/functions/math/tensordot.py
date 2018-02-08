@@ -113,7 +113,7 @@ class TensorDot(function_node.FunctionNode):
 
         c = _tensordot(a, b, self.a_axes, self.b_axes, self.c_axes)
         if self.dtype is not None and c.dtype != self.dtype:
-            c = c.astype(self.dtype, copy=False)
+            c = c.astype(self.dtype)
         return utils.force_array(c),
 
     def backward(self, indexes, grad_outputs):
@@ -138,5 +138,34 @@ class TensorDot(function_node.FunctionNode):
 
 
 def tensordot(a, b, axes=2):
+    """Returns the tensor dot product of two arrays along specified axes.
 
+    This is equivalent to compute dot product along the specified axes which
+    are treated as one axis by reshaping.
+
+    Args:
+        a (Variable): The first argument.
+        b (Variable): The second argument.
+        axes:
+            - If it is an integer, then ``axes`` axes at the last of ``a`` and
+              the first of ``b`` are used.
+            - If it is a pair of sequences of integers, then these two
+              sequences specify the list of axes for ``a`` and ``b``. The
+              corresponding axes are paired for sum-product.
+
+    Returns:
+        ~chainer.Variable: The tensor dot product of ``a`` and ``b`` along the
+        axes specified by ``axes``.
+
+    .. admonition:: Example
+
+        >>> a = np.random.rand(5, 3, 2)
+        >>> b = np.random.rand(3, 2, 4)
+        >>> c = F.tensordot(a, b, axes=2)
+        >>> c.shape
+        (5, 4)
+
+    .. seealso:: :func:`numpy.tensordot`
+
+    """
     return TensorDot(axes=axes).apply((a, b))[0]
