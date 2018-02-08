@@ -103,5 +103,5 @@ def inputs_all_ready(inputs, supported_ndim=(2, 4)):
               else x for x in inputs]
 
     return (ideep.check_ndim(inputs, supported_ndim)
-            and (isinstance(inputs[0], ideep.mdarray)
+            and (all([isinstance(a, ideep.mdarray) for a in inputs])
                  or ideep.check_type(inputs)))
