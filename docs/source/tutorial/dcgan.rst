@@ -34,7 +34,7 @@ map :math:`f` from an input :math:`x` to an output :math:`y`.
 .. math::
     f: x \mapsto y
     
-Therefore, model learning is obtaining the map :math:`f` from training data.
+Therefore, the purpose of model learning is obtaining the map :math:`f` from training data.
 In the case of unsupervised learning, we use datasets of inputs
 :math:`\{s^{(n)}\}=\{d_1, d_2, \cdots, d_N\}` as the training data,
 and create model :math:`f`.
@@ -45,7 +45,7 @@ dogs or cats. Then, the training datasets consist of input images
 :math:`d_1, d_2, \cdots, d_N` and their labels
 :math:`c_1={\rm cat}, c_2={\rm dog}, \cdots, c_N={\rm cat}`.
 
-1.1 What is Generative Model?
+1.2 What is Generative Model?
 -------------------------------
 
 When we consider about the generarive model, it models the probability distribution
@@ -62,19 +62,18 @@ There is an advantage that the learning process is simple. However, there is a
 disadvantage that we have to make a mechanism for sampling because we have only
 the process for calculating the likelihood.
 
-In the fitst place, we often just want to sample according to the distribution
-:math:`s \sim p(s)` in practice. The likelihood :math:`p(s)` is used
+In the fitst place, we often just want to sample :math:`s \sim p(s)`
+according to the distribution in practice. The likelihood :math:`p(s)` is used
 only for model learning. In the case, we sometimes do not model the probability distribution
 :math:`p(s)` directly but other targets to facilitate sampling. 
 
 The first case is to model the probability distributions :math:`p(z)` and :math:`p(s|z)`
 by introducing the latent variable :math:`z`. The VAE, which is described later,
-belongs to this.
+belongs to this category.
 Second, we introduce the latent variable :math:`z` and model the sample generator
-`s = G(z)` according to :math:`s \sim p(s)`. The GAN belongs to this category.
-These models can generate the training data :math:`s` satisfying the probability
-distribution :math:`p(s)` by generating the distribution latent variable :math:`z`
-based on random numbers. 
+`s = G(z)` which fits the distribution :math:`p(s)`. The GAN belongs to this category.
+These models can generate the training data :math:`s \sim p(s)` by generating
+the latent variable :math:`z` based on random numbers. 
 
 These generative models can be used for the following purposes:
 
@@ -82,32 +81,44 @@ These generative models can be used for the following purposes:
 * Providing interfaces to people (e.g. generating natural sentences)
 * Reduction of data creation cost (e.g. use as a simulator)
 
+.. note::
+    When we talk about generative model, we sometimes explain it aginst discrimination
+    model in classification problem [1]. However, when we talk about generating
+    model in GAN, it is natural to define it as a model of probability distribution
+    that generates training data.
+
 2. The Difference among GAN and Other Generative Models
 ========================================================
 
+As explained in GAN tutorial in NIPS 2016 [2], the generative models can be classified into the categories
+as shown in the following figure:
 
-=====================   ===============================================================================================================================
-Symbol                  Definition                                               
-=====================   ===============================================================================================================================
-:math:`|\mathcal{V}|`   The size of vocabulary                                   
-:math:`D`               The size of embedding vector                             
-:math:`{\bf v}_t`       A one-hot center word vector                             
-:math:`V_{t \pm C}`     A set of :math:`2C` context vectors around :math:`{\bf v}_t`, namely, :math:`\{{\bf v}_{t+c}\}_{c=-C}^C \backslash {\bf v}_t`
-:math:`{\bf l}_H`       An embedding vector of an input word vector              
-:math:`{\bf l}_O`       An output vector of the network                          
-:math:`{\bf W}_H`       The embedding matrix for inputs                          
-:math:`{\bf W}_O`       The embedding matrix for outputs                         
-=====================   ===============================================================================================================================
+.. image:: ../../image/dcgan/class-generative-model.png
 
-.. note::
+Besides GAN, other famous generative models are Fully visible belief networks (FVBNs), Variational autoencoder
+(VAE).
 
-    Using **negative sampling** or **hierarchical softmax** for the loss
-    function is very common, however, in this tutorial, we will use the
-    **softmax over all words** and skip the other variants for the sake
-    of simplicity.
+2.1 Fully Visible Belief Networks (FVBNs)
+------------------------------------------
 
-2.1 Skip-gram
---------------
+FVBNs decomposes the probability distribution :math:`p({\bf s})` into one-dimensional probability distributions
+using the Bayes' theorem as shown in the following equation:
+
+.. math::
+    p_{\mathrm{model}}({\bf s}) = \prod^{n}_{i=1}p_{\mathrm{model}} (s_i | s_1, \cdots, s_{i-1})
+
+Since the dimensions from :math:`s_2, \cdots, s_n`, excluding the first dimension :math:`s_1`, are
+generated based on the dimensions previously generated, FVBNs can be said to be an autoregressive model.
+PixcelRNN and PixcelCNN, which are categorized as FVBNs, model one-dimensional distribution functions
+with Recurrent Neural Networks(RNN) and Convolutional Neural Networks(CNN), respectively.
+The advantage of FVBNs is that the model can learn with explicitly computable likelihood.
+The disadvantage is that sampling cost can be expensive because each dimension can only be generated sequentially.
+
+2.2 Variational Auto-Encoder (VAE)
+-----------------------------------
+
+2.3 Generarive Adversarial Networks (GAN)
+------------------------------------------
 
 3. Details of GAN
 ==================
@@ -258,5 +269,5 @@ the list of Document IDs:
 
 5. Reference
 =============
-* [1] `Mikolov, Tomas; et al. "Efficient Estimation of Word Representations in Vector Space". arXiv:1301.3781 <https://arxiv.org/abs/1301.3781>`_
-* [2] `Distributional Hypothesis <https://aclweb.org/aclwiki/Distributional_Hypothesis>`_
+* [1] `Wikipedia: Generative model <https://en.wikipedia.org/wiki/Generative_model>`_
+* [2] `NIPS 2016 Tutorial: Generative Adversarial Networks <http://arxiv.org/abs/1701.00160>`_
