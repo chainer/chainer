@@ -99,9 +99,15 @@ public:
     static Array ZerosLike(const Array& array, const Device& device = GetCurrentDevice());
     static Array OnesLike(const Array& array, const Device& device = GetCurrentDevice());
 
+    // Creates a copy. It will be connected to all the graphs.
     Array Copy() const;
+
+    // Creates a copy or a view. It will be disconnected from all the graphs.
     Array AsConstant(CopyKind kind = CopyKind::kView) const;
+
+    // Creates a copy or a view. It will be disconnected from the specified graphs.
     Array AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind = CopyKind::kView) const;
+
     void Fill(Scalar value);
 
     Array& operator+=(const Array& rhs);
