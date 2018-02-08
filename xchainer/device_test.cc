@@ -40,9 +40,7 @@ TEST_F(DeviceTest, ToString) {
 
     NativeBackend native_backend;
     Device device{"cpu", &native_backend};
-    std::ostringstream os;
-    os << "Device('cpu', " << &native_backend << ")";
-    EXPECT_EQ(os.str(), device.ToString());
+    EXPECT_EQ("Device('cpu')", device.ToString());
 }
 
 TEST_F(DeviceTest, SetCurrentDevice) {

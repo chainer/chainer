@@ -1,5 +1,6 @@
 #include "xchainer/array_repr.h"
 
+#include <cassert>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
@@ -238,6 +239,8 @@ struct ArrayReprImpl {
         // Print the footer
         PrintNTimes(os, ']', ndim);
         os << ", dtype=" << array.dtype();
+        assert(!array.device().is_null());
+        os << ", device='" << array.device().name() << "'";
         const std::vector<std::shared_ptr<ArrayNode>>& nodes = array.nodes();
         if (!nodes.empty()) {
             os << ", graph_ids=[";
