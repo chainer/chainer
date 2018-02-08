@@ -43,7 +43,7 @@ def check_ideep_available():
             'Reason: {}'.format(type(_error).__name__, str(_error)))
 
 
-def should_use_ideep(level, lowest_version=0):
+def should_use_ideep(level):
     """Determines if we should use iDeep.
 
     This function checks ``chainer.config.use_ideep`` and availability
@@ -61,8 +61,9 @@ def should_use_ideep(level, lowest_version=0):
     if _ideep_version is None:
         return False
 
-    if _ideep_version < lowest_version:
-        return False
+    # TODO(niboshi):
+    # Add lowest_version argument and compare with ideep version.
+    # Currently ideep does not provide a way to retrieve its version.
 
     if level not in _SHOULD_USE_IDEEP:
         raise ValueError('invalid iDeep use level: %s '
