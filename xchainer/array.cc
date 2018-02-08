@@ -178,7 +178,10 @@ Array Array::operator*(const Array& rhs) const {
     return out;
 }
 
-Array Array::Copy() const { return AsConstant({}, CopyKind::kCopy); }
+Array Array::Copy() const {
+    // No graph will be disconnected.
+    return AsConstant({}, CopyKind::kCopy);
+}
 
 Array Array::AsConstant(CopyKind kind) const {
     switch (kind) {
@@ -196,11 +199,12 @@ Array Array::AsConstant(CopyKind kind) const {
     }
 }
 
-Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) const {
+Array Array::AsConstant(const std::vector<GraphId>& disconnect_graph_ids, CopyKind kind) const {
     switch (kind) {
         case CopyKind::kCopy: {
             Array out = Array::EmptyLike(*this);
-            internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }}, graph_ids);
+            internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }},
+                                   disconnect_graph_ids);
             // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
             // is_contiguous_ and offset_ into account
             internal::MemoryCopy(out.data().get(), body_->data_.get(), total_bytes());
@@ -208,6 +212,9 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
         }
         case CopyKind::kView: {
             Array out{shape(), dtype(), device(), body_->data_, is_contiguous(), offset()};
+
+            // Duplicate the array nodes only when graph IDs are not found in disconnect_graph_ids.
+            const std::vector<GraphId>& graph_ids = disconnect_graph_ids;
             for (const std::shared_ptr<ArrayNode>& node : nodes()) {
                 if (std::find(graph_ids.begin(), graph_ids.end(), node->graph_id()) == graph_ids.end()) {
                     out.body_->nodes_.emplace_back(node);
