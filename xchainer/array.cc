@@ -200,8 +200,6 @@ Array Array::AsConstant(CopyKind kind) const {
 }
 
 Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) const {
-    // Creates a copy or a view disconnected from graphs specified by `graph_ids`.
-
     switch (kind) {
         case CopyKind::kCopy: {
             Array out = Array::EmptyLike(*this);
