@@ -9,10 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "xchainer/backend.h"
-#ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/cuda/cuda_backend.h"
-#endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 #include "xchainer/native_backend.h"
 
@@ -39,7 +35,7 @@ void CheckArrayRepr(const std::string& expected, const std::vector<T>& data_vec,
     EXPECT_EQ(expected, os.str());
 }
 
-TEST(ArrayReprTest, NativeBackend) {
+TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
     NativeBackend backend;
 
     // bool
@@ -170,21 +166,6 @@ TEST(ArrayReprTest, NativeBackend) {
     CheckArrayRepr<int32_t>("array([-9], dtype=int32, device='cpu', graph_ids=['graph_1', 'graph_2', 'graph_3', 'graph_4', 'graph_5'])",
                             {-9}, Shape({1}), Device{"cpu", &backend}, {"graph_1", "graph_2", "graph_3", "graph_4", "graph_5"});
 }
-
-#ifdef XCHAINER_ENABLE_CUDA
-TEST(ArrayReprTest, CudaBackend) {
-    cuda::CudaBackend backend;
-
-    // Randomly picked checks for CUDA
-    CheckArrayRepr<bool>("array([False], dtype=bool, device='cuda')", {false}, Shape({1}), Device{"cuda", &backend});
-    CheckArrayRepr<double>(
-        "array([[ 0.  ,  1.  ,  2.  ],\n"
-        "       [-3.25,  4.  ,  5.  ]], dtype=float64, device='cuda')",
-        {0, 1, 2, -3.25, 4, 5}, Shape({2, 3}), Device{"cuda", &backend});
-    CheckArrayRepr<int32_t>("array([1], dtype=int32, device='cuda', graph_ids=['graph_1', 'graph_2'])", {1}, Shape({1}),
-                            Device{"cuda", &backend}, {"graph_1", "graph_2"});
-}
-#endif  // XCHAINER_ENABLE_CUDA
 
 }  // namespace
 }  // namespace xchainer
