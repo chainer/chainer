@@ -1,6 +1,6 @@
 from chainer import cuda
 from chainer import function_node
-from chainer.functions.array import separate
+from chainer import functions
 from chainer.utils import type_check
 
 
@@ -35,7 +35,7 @@ class Stack(function_node.FunctionNode):
                 [xp.expand_dims(x, self.axis) for x in inputs], self.axis),
 
     def backward(self, inputs, grads):
-        return separate.separate(grads[0], self.axis)
+        return functions.separate(grads[0], self.axis)
 
 
 def stack(xs, axis=0):
