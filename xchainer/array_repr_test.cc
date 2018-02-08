@@ -1,7 +1,6 @@
 #include "xchainer/array_repr.h"
 
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include <algorithm>
 #include <cmath>
