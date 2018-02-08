@@ -218,6 +218,7 @@ Mathematical functions
    chainer.functions.sum
    chainer.functions.tanh
    chainer.functions.tan
+   chainer.functions.tensordot
 
 Noise injections
 ----------------
