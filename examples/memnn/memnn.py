@@ -1,3 +1,7 @@
+import collections
+import json
+import os
+
 import numpy
 import six
 
@@ -148,6 +152,10 @@ class MemNN(chainer.Chain):
 
         self.encoder = encoder
 
+        self.n_units = n_units
+        self.max_memory = max_memory
+        self.hops = hops
+
     def fix_ignore_label(self):
         for embed in self.embeds:
             embed.W.data[0, :] = 0
@@ -193,3 +201,62 @@ def convert_data(train_data, max_memory):
                 })
 
     return all_data
+
+
+def save_model(directory, model, vocab):
+    """Saves a model to a given directory.
+
+    Args:
+        directory (str): Path to a directory where you store a model.
+        model (chainer.Chain): Model to store.
+        vocab (dict): Vocaburaly dictionary.
+
+    """
+    encoder = model.predictor.encoder
+    if encoder == bow_encode:
+        sentence_repr = 'bow'
+    elif encoder == position_encode:
+        sentence_repr = 'pe'
+    else:
+        raise ValueError('Cannot serialize encoder: %s' % str(encoder))
+
+    os.makedirs(directory, exist_ok=True)
+    parameters = {
+        'unit': model.predictor.n_units,
+        'hop': model.predictor.hops,
+        'max_memory': model.predictor.max_memory,
+        'sentence_repr': sentence_repr,
+        'vocabulary': vocab,
+    }
+    with open(os.path.join(directory, 'parameter.json'), 'w') as f:
+        json.dump(parameters, f)
+    chainer.serializers.save_npz(
+        os.path.join(directory, 'model.npz'), model)
+    
+
+def load_model(directory):
+    """Loads a model saved.
+
+    Args:
+        directory (str): Path to a directory where you load a model.
+        
+    Returns:
+        tuple: ``(model, vocab)`` where ``model`` is a loaded model and
+        ``vocab`` is a ``dict`` storing its vocabulary.
+    
+    """
+    with open(os.path.join(directory, 'parameter.json')) as f:
+        parameters = json.load(f)
+
+    max_memory = parameters['max_memory']
+    vocab = collections.defaultdict(lambda: 0)
+    vocab.update(parameters['vocabulary'])
+
+    encoder = make_encoder(parameters['sentence_repr'])
+    network = MemNN(
+        parameters['unit'], len(vocab), encoder, max_memory, parameters['hop'])
+    model = chainer.links.Classifier(network, label_key='answer')
+    chainer.serializers.load_npz(
+        os.path.join(directory, 'model.npz'), model)
+
+    return model, vocab
