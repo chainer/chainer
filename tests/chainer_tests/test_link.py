@@ -1104,13 +1104,6 @@ class TestChainList(unittest.TestCase):
         mocks['1'].assert_called_with('x', l2.x.data)
 
 
-def skip_if_no_ideep():
-    decorator = pytest.mark.skipif(
-        not intel64.is_ideep_available(),
-        reason='ideep is required')
-    return decorator
-
-
 @attr.ideep
 class TestIntel64(unittest.TestCase):
 
@@ -1126,7 +1119,6 @@ class TestIntel64(unittest.TestCase):
         assert var.shape == shape
         assert var.dtype == dtype
 
-    @skip_if_no_ideep()
     def test_cpu_to_intel64(self):
         link = self.link
         prev_y = link.y
@@ -1137,7 +1129,6 @@ class TestIntel64(unittest.TestCase):
         self._check_variable_shape_and_dtype(
             link.y, prev_y.shape, prev_y.dtype)
 
-    @skip_if_no_ideep()
     def test_intel64_to_intel64(self):
         link = self.link
         link.to_intel64()
@@ -1149,7 +1140,6 @@ class TestIntel64(unittest.TestCase):
         assert link.v.data is None
 
     @attr.gpu
-    @skip_if_no_ideep()
     def test_gpu_to_intel64(self):
         link = self.link
         link.to_gpu()
@@ -1163,7 +1153,6 @@ class TestIntel64(unittest.TestCase):
             link.y, prev_y.shape, prev_y.dtype)
 
     @attr.gpu
-    @skip_if_no_ideep()
     def test_intel64_to_gpu(self):
         link = self.link
         link.to_intel64()
@@ -1176,7 +1165,6 @@ class TestIntel64(unittest.TestCase):
         self._check_variable_shape_and_dtype(
             link.y, prev_y.shape, prev_y.dtype)
 
-    @skip_if_no_ideep()
     def test_intel64_to_cpu(self):
         link = self.link
         link.to_intel64()

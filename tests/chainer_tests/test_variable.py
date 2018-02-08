@@ -1608,13 +1608,6 @@ class TestLossScale(unittest.TestCase):
         self.check_loss_scale(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
 
 
-def skip_if_no_ideep():
-    decorator = pytest.mark.skipif(
-        not intel64.is_ideep_available(),
-        reason='ideep is required')
-    return decorator
-
-
 @testing.parameterize(*testing.product({
     # TODO(niboshi): shape () is not supported
     'shape': [(0,), (3, 2)],
@@ -1633,7 +1626,6 @@ class TestIntel64(unittest.TestCase):
         assert var.shape == self.shape
         assert var.dtype == self.dtype
 
-    @skip_if_no_ideep()
     def test_cpu_to_intel64(self):
         x = chainer.Variable(self.x_data)
         prev_x_data = x.data
@@ -1648,7 +1640,6 @@ class TestIntel64(unittest.TestCase):
 
         self._check_variable_shape_and_dtype(x)
 
-    @skip_if_no_ideep()
     def test_intel64_to_intel64(self):
         x = chainer.Variable(self.x_data)
         x.to_intel64()
@@ -1659,7 +1650,6 @@ class TestIntel64(unittest.TestCase):
         assert x.data is prev_x_data
 
     @attr.gpu
-    @skip_if_no_ideep()
     def test_gpu_to_intel64(self):
         x = chainer.Variable(self.x_data)
         x.to_gpu()
@@ -1675,7 +1665,6 @@ class TestIntel64(unittest.TestCase):
         self._check_variable_shape_and_dtype(x)
 
     @attr.gpu
-    @skip_if_no_ideep()
     def test_intel64_to_gpu(self):
         x = chainer.Variable(self.x_data)
         x.to_intel64()
@@ -1685,7 +1674,6 @@ class TestIntel64(unittest.TestCase):
         assert isinstance(x.data, cuda.cupy.ndarray)
         self._check_variable_shape_and_dtype(x)
 
-    @skip_if_no_ideep()
     def test_intel64_to_cpu(self):
         x = chainer.Variable(self.x_data)
         x.to_intel64()
