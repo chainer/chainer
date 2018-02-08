@@ -214,9 +214,10 @@ Array Array::AsConstant(const std::vector<GraphId>& disconnect_graph_ids, CopyKi
             Array out{shape(), dtype(), device(), body_->data_, is_contiguous(), offset()};
 
             // Duplicate the array nodes only when graph IDs are not found in disconnect_graph_ids.
-            const std::vector<GraphId>& graph_ids = disconnect_graph_ids;
+            const std::vector<GraphId>& dgs = disconnect_graph_ids;
             for (const std::shared_ptr<ArrayNode>& node : nodes()) {
-                if (std::find(graph_ids.begin(), graph_ids.end(), node->graph_id()) == graph_ids.end()) {
+                if (std::find(dgs.begin(), dgs.end(), node->graph_id()) == dgs.end()) {
+                    // extend the graph
                     out.body_->nodes_.emplace_back(node);
                 }
             }
