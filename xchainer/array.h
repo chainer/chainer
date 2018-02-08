@@ -106,7 +106,7 @@ public:
     Array AsConstant(CopyKind kind = CopyKind::kView) const;
 
     // Creates a copy or a view. It will be disconnected from the specified graphs.
-    Array AsConstant(const std::vector<GraphId>& disconnect_graph_ids, CopyKind kind = CopyKind::kView) const;
+    Array AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind = CopyKind::kView) const;
 
     void Fill(Scalar value);
 
