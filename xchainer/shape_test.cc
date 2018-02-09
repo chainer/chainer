@@ -15,7 +15,7 @@ TEST(ShapeTest, Ctor) {
         EXPECT_EQ(3, shape.ndim());
         EXPECT_EQ(size_t{3}, shape.size());
         CheckSpanEqual({2, 3, 4}, shape.span());
-        EXPECT_EQ(2 * 3 * 4, shape.total_size());
+        EXPECT_EQ(2 * 3 * 4, shape.TotalSize());
     }
     {
         const std::array<int64_t, 3> dims = {2, 3, 4};

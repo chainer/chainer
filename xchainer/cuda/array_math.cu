@@ -31,7 +31,7 @@ void Add(const Array& lhs, const Array& rhs, Array& out) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
 
-        int64_t total_size = lhs.total_size();
+        int64_t total_size = lhs.TotalSize();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
@@ -48,7 +48,7 @@ void Mul(const Array& lhs, const Array& rhs, Array& out) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MulKernel<T>).block_size;
 
-        int64_t total_size = lhs.total_size();
+        int64_t total_size = lhs.TotalSize();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 

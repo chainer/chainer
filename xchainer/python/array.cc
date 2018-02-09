@@ -70,7 +70,7 @@ Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
 }
 
 ArrayBodyPtr MakeArray(const Shape& shape, Dtype dtype, py::list list) {
-    auto total_size = shape.total_size();
+    auto total_size = shape.TotalSize();
     auto bytes = GetElementSize(dtype) * total_size;
     if (static_cast<size_t>(total_size) != list.size()) {
         throw DimensionError("Invalid data length");
@@ -182,8 +182,8 @@ void InitXchainerArray(pybind11::module& m) {
         .def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return Array{self}.ndim(); })
         .def_property_readonly("offset", [](const ArrayBodyPtr& self) { return Array{self}.offset(); })
         .def_property_readonly("shape", [](const ArrayBodyPtr& self) { return Array{self}.shape(); })
-        .def_property_readonly("total_bytes", [](const ArrayBodyPtr& self) { return Array{self}.total_bytes(); })
-        .def_property_readonly("total_size", [](const ArrayBodyPtr& self) { return Array{self}.total_size(); })
+        .def_property_readonly("total_bytes", [](const ArrayBodyPtr& self) { return Array{self}.TotalBytes(); })
+        .def_property_readonly("total_size", [](const ArrayBodyPtr& self) { return Array{self}.TotalSize(); })
         .def_property_readonly("_debug_data_memory_address",  // These methods starting with `_debug_` are stubs for testing
                                [](const ArrayBodyPtr& self) { return reinterpret_cast<std::uintptr_t>(Array{self}.data().get()); })
         .def_property_readonly("_debug_flat_data", [](const ArrayBodyPtr& self) {
@@ -193,7 +193,7 @@ void InitXchainerArray(pybind11::module& m) {
             // Copy data into the list
             VisitDtype(array.dtype(), [&array, &list](auto pt) {
                 using T = typename decltype(pt)::type;
-                auto size = array.total_size();
+                auto size = array.TotalSize();
                 const T& data = *std::static_pointer_cast<const T>(array.data());
                 for (int64_t i = 0; i < size; ++i) {
                     list.append((&data)[i]);

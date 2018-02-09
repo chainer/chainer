@@ -37,7 +37,7 @@ Array& Subtract(const Array& lhs, const Array& rhs, Array& out) {
         auto* ldata = static_cast<const T*>(lhs.data().get());
         auto* rdata = static_cast<const T*>(rhs.data().get());
         auto* odata = static_cast<T*>(out.data().get());
-        int64_t total_size = lhs.total_size();
+        int64_t total_size = lhs.TotalSize();
         for (int64_t i = 0; i < total_size; ++i) {
             odata[i] = ldata[i] - rdata[i];
         }
@@ -52,7 +52,7 @@ Array& Divide(const Array& lhs, const Array& rhs, Array& out) {
         auto* ldata = static_cast<const T*>(lhs.data().get());
         auto* rdata = static_cast<const T*>(rhs.data().get());
         auto* odata = static_cast<T*>(out.data().get());
-        int64_t total_size = lhs.total_size();
+        int64_t total_size = lhs.TotalSize();
         for (int64_t i = 0; i < total_size; ++i) {
             odata[i] = ldata[i] / rdata[i];
         }
@@ -74,7 +74,7 @@ Array operator/(const Array& lhs, const Array& rhs) {
 
 template <typename T>
 T SumImpl(const Array& array) {
-    int64_t size = array.total_size();
+    int64_t size = array.TotalSize();
     T s = 0;
     for (int64_t i = 0; i < size; ++i) {
         s += static_cast<const T*>(array.data().get())[i];
@@ -156,7 +156,7 @@ Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, con
     Arrays grads;
     for (int i = 0; i < nin; ++i) {
         Array grad_i = Array::ZerosLike(inputs.at(i));
-        int64_t size = grad_i.total_size();
+        int64_t size = grad_i.TotalSize();
 
         for (int64_t in_flat_index = 0; in_flat_index < size; ++in_flat_index) {
             Scalar eps_scalar = Get(eps.at(i), in_flat_index);

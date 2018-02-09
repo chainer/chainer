@@ -39,7 +39,7 @@ public:
 
     template <typename T>
     Array MakeArray(const Shape& shape, const T* data) {
-        int64_t size = shape.total_size();
+        int64_t size = shape.TotalSize();
         auto a = std::make_unique<T[]>(size);
         std::copy(data, data + size, a.get());
         return Array::FromBuffer(shape, TypeToDtype<T>, std::move(a));
@@ -67,7 +67,7 @@ public:
             auto grads_data = static_cast<const T*>(grads[i].data().get());
             auto expected_grads_data = static_cast<const T*>(expected_grads.at(i).data().get());
 
-            int64_t total_size = grads.at(i).total_size();
+            int64_t total_size = grads.at(i).TotalSize();
             for (int64_t i = 0; i < total_size; ++i) {
                 EXPECT_NEAR(grads_data[i], expected_grads_data[i], 1e-3f) << "gradient mismatch at i=" << i;
             }

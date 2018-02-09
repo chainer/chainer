@@ -43,7 +43,7 @@ void CudaBackend::Fill(Array& out, Scalar value) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&FillKernel<T>).block_size;
 
-        int64_t total_size = out.total_size();
+        int64_t total_size = out.TotalSize();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 

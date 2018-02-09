@@ -10,7 +10,7 @@ void Add(const Array& lhs, const Array& rhs, Array& out) {
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
-        int64_t total_size = lhs.total_size();
+        int64_t total_size = lhs.TotalSize();
         auto* ldata = static_cast<const T*>(lhs.data().get());
         auto* rdata = static_cast<const T*>(rhs.data().get());
         auto* odata = static_cast<T*>(out.data().get());
@@ -25,7 +25,7 @@ void Mul(const Array& lhs, const Array& rhs, Array& out) {
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
-        int64_t total_size = lhs.total_size();
+        int64_t total_size = lhs.TotalSize();
         auto* ldata = static_cast<const T*>(lhs.data().get());
         auto* rdata = static_cast<const T*>(rhs.data().get());
         auto* odata = static_cast<T*>(out.data().get());

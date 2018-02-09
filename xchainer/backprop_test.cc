@@ -72,7 +72,7 @@ public:
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
-        auto total_size = expected.shape().total_size();
+        auto total_size = expected.shape().TotalSize();
         const T* expected_data = static_cast<const T*>(expected.data().get());
         const T* actual_data = static_cast<const T*>(actual.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
