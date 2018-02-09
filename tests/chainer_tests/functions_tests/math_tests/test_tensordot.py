@@ -50,6 +50,16 @@ from chainer.testing import attr
         {'a_shape': (4, 3, 2, 5), 'b_shape': (2, 3, 4, 6), 'axes': ([0, 1, 2], [2, 1, 0]), 'gc_shape': (5, 6)},  # NOQA
         {'a_shape': (4, 3, 5, 2), 'b_shape': (3, 2, 4, 6), 'axes': ([0, 1, 3], [2, 0, 1]), 'gc_shape': (5, 6)},  # NOQA
         {'a_shape': (4, 5, 3, 2), 'b_shape': (3, 4, 2, 6), 'axes': ([0, 2, 3], [1, 0, 2]), 'gc_shape': (5, 6)},  # NOQA
+
+        {'a_shape': (3, 2), 'b_shape': (2, 4), 'axes': 1, 'gc_shape': (3, 4)},  # NOQA
+        {'a_shape': (3, 2), 'b_shape': (2, 4), 'axes': (1, 0), 'gc_shape': (3, 4)},  # NOQA
+        {'a_shape': (3, 2), 'b_shape': (4, 2), 'axes': (1, 1), 'gc_shape': (3, 4)},  # NOQA
+        {'a_shape': (2, 3), 'b_shape': (4, 2), 'axes': (0, 1), 'gc_shape': (3, 4)},  # NOQA
+        {'a_shape': (2, 3), 'b_shape': (2, 4), 'axes': (0, 0), 'gc_shape': (3, 4)},  # NOQA
+
+        {'a_shape': (2), 'b_shape': (3), 'axes': 0, 'gc_shape': (2, 3)},  # NOQA
+        {'a_shape': (2, 3), 'b_shape': (4), 'axes': 0, 'gc_shape': (2, 3, 4)},  # NOQA
+        {'a_shape': (2), 'b_shape': (3, 4), 'axes': 0, 'gc_shape': (2, 3, 4)},  # NOQA
     ],
     [
         {'a_dtype': numpy.float16},
@@ -65,23 +75,18 @@ from chainer.testing import attr
 class TestTensorDot(unittest.TestCase):
 
     def setUp(self):
-        self.a = numpy.random.uniform(.5, 1, self.a_shape)
-        self.a = self.a.astype(self.a_dtype)
-        self.b = numpy.random.uniform(.5, 1, self.b_shape)
-        self.b = self.b.astype(self.b_dtype)
+        self.a = self._setup_tensor(.5, 1, self.a_shape, self.a_dtype)
+        self.b = self._setup_tensor(.5, 1, self.b_shape, self.b_dtype)
         ret_dtype = numpy.result_type(self.a_dtype, self.b_dtype)
-        self.gc = numpy.random.uniform(-1, 1, self.gc_shape).astype(ret_dtype)
-        self.gga = numpy.random.uniform(
-            .5, 1, self.a_shape).astype(self.a_dtype)
-        self.ggb = numpy.random.uniform(
-            .5, 1, self.b_shape).astype(self.b_dtype)
+        self.gc = self._setup_tensor(-1, 1, self.gc_shape, ret_dtype)
+        self.gga = self._setup_tensor(.5, 1, self.a_shape, self.a_dtype)
+        self.ggb = self._setup_tensor(.5, 1, self.b_shape, self.b_dtype)
 
         self.op = lambda a, b: F.tensordot(a, b, axes=self.axes)
-        self.forward_answer = self._get_forward_answer(self.a, self.b,
-                                                       self.axes)
+        self.forward_answer = numpy.tensordot(self.a, self.b, self.axes)
 
-    def _get_forward_answer(self, a, b, axes):
-        return numpy.tensordot(a, b, axes=axes)
+    def _setup_tensor(self, _min, _max, shape, dtype):
+        return numpy.random.uniform(_min, _max, shape).astype(dtype)
 
     def check_forward(self, a_data, b_data, atol=1e-4, rtol=1e-5):
         a = chainer.Variable(a_data)
@@ -136,6 +141,41 @@ class TestTensorDot(unittest.TestCase):
             cuda.to_gpu(self.a), cuda.to_gpu(self.b),
             cuda.to_gpu(self.gc), cuda.to_gpu(self.gga),
             cuda.to_gpu(self.ggb), atol=1e-2, rtol=1e-2)
+
+
+class TestTensorDotInvalid(unittest.TestCase):
+
+    def test_invalid_shape(self):
+        a_data = numpy.zeros((4, 3, 2), dtype=numpy.float32)
+        b_data = numpy.zeros((2, 3, 5), dtype=numpy.float32)
+        a = chainer.Variable(a_data)
+        b = chainer.Variable(b_data)
+        with self.assertRaises(ValueError):
+            F.tensordot(a, b)
+        with self.assertRaises(ValueError):
+            F.tensordot(a, b, axes=((1, 2), (0, 1)))
+        with self.assertRaises(ValueError):
+            F.tensordot(a, b, axes=((0), (0)))
+        with self.assertRaises(ValueError):
+            F.tensordot(a, b, axes=((2), (2)))
+
+    def test_invalid_axes(self):
+        a_data = numpy.zeros((4, 3, 2), dtype=numpy.float32)
+        b_data = numpy.zeros((3, 2, 5), dtype=numpy.float32)
+        a = chainer.Variable(a_data)
+        b = chainer.Variable(b_data)
+        with self.assertRaises(ValueError):
+            F.tensordot(a, b, axes=((1, 2), (0)))
+        with self.assertRaises(ValueError):
+            F.tensordot(a, b, axes=((2), (0, 1)))
+        with self.assertRaises(ValueError):
+            F.tensordot(a, b, axes=((0, 1, 2, 3), (0, 1, 2, 3)))
+        with self.assertRaises(ValueError):
+            F.tensordot(a, b, axes=(()))
+        with self.assertRaises(ValueError):
+            F.tensordot(a, b, axes=((), (), ()))
+        with self.assertRaises(TypeError):
+            F.tensordot(a, b, axes=1.0)
 
 
 testing.run_module(__name__, __file__)
