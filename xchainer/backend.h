@@ -8,7 +8,6 @@
 
 namespace xchainer {
 
-
 // Backend base class.
 // Note that these member functions may be called from the framework or user code.
 class Backend {
