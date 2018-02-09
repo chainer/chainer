@@ -171,8 +171,6 @@ class ConnectionistTemporalClassification(function.Function):
             batch_index = xp.arange(0, n_batch, dtype='i')
             prob += y[batch_index[:, None], path]
         else:
-            prev_prob, path, path_length = xp.broadcast_arrays(
-                prev_prob, path, path_length[:, None])
             prob = xp.empty_like(prev_prob)
             cuda.elementwise(
                 'raw T prob, raw I path, I path_length, T zero, raw T y',
@@ -203,7 +201,7 @@ class ConnectionistTemporalClassification(function.Function):
                 int y_ind[] = {b, path[ind1]};
                 z += y[y_ind];
                 ''', 'ctc_transition'
-            )(prev_prob, path, path_length, self.zero_padding, y,
+            )(prev_prob, path, path_length[:, None], self.zero_padding, y,
               prob, cum_prob)
         return prob
 
@@ -215,8 +213,9 @@ class ConnectionistTemporalClassification(function.Function):
         assert label.shape == (n_batch, max_label_length), label.shape
         assert path.shape == (n_batch, max_label_length * 2 + 1)
 
-        forward_prob = self.log_matrix(
-            xp.eye(1, max_path_length, dtype='f'), xp)
+        forward_prob = xp.full(
+            (n_batch, max_path_length), self.zero_padding, dtype='f')
+        forward_prob[:, 0] = 0
         backward_prob = forward_prob
 
         batch_index = xp.arange(0, n_batch, dtype='i')
