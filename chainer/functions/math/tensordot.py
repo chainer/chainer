@@ -62,11 +62,13 @@ class TensorDot(function_node.FunctionNode):
 
         if isinstance(axes, collections.Sequence):
             if len(axes) != 2:
-                raise ValueError('axes must consist of two arrays.')
+                raise ValueError('axes must be a pair of sequence of integers '
+                                 'when it is a list or tuple.')
         elif isinstance(axes, int):
             pass
         else:
-            raise TypeError('axes must be int or tuple of int')
+            raise TypeError('axes must be a pair of sequence of integers or '
+                            'an integer')
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -112,9 +114,7 @@ class TensorDot(function_node.FunctionNode):
             self.c_axes = c_axes
 
         c = _tensordot(a, b, self.a_axes, self.b_axes, self.c_axes)
-        if self.dtype is not None and c.dtype != self.dtype:
-            c = c.astype(self.dtype)
-        return utils.force_array(c),
+        return utils.force_array(c, self.dtype),
 
     def backward(self, indexes, grad_outputs):
         a, b = self.get_retained_inputs()
