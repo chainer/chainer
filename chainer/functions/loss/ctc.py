@@ -207,15 +207,15 @@ class ConnectionistTemporalClassification(function.Function):
         backward_prob = forward_prob
 
         batch_index = xp.arange(0, n_batch, dtype='i')
-        prob = xp.empty(
-            (max_input_length, n_batch, max_path_length), dtype='f')
+        seq_index = xp.arange(len(yseq), dtype='i')
+        prob = yseq[seq_index[:, None, None], batch_index[:, None], path]
         # forward computation.
         for i, y in enumerate(yseq):
             # calc forward probability in log scale
             forward_prob = self._computes_transition(
                 forward_prob, path, path_length)
+            prob[i] += forward_prob
             forward_prob += y[batch_index[:, None], path]
-            prob[i] = forward_prob
 
         r_path = _move_label_to_back(path, path_length, xp)
 
