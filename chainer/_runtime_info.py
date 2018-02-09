@@ -26,16 +26,11 @@ class _RuntimeInfo(object):
         return s.getvalue()
 
 
-def get_runtime_info(as_text=False):
-    ri = _RuntimeInfo()
-    if as_text:
-        return str(ri)
-    else:
-        return ri
+def get_runtime_info():
+    return _RuntimeInfo()
 
 
 def print_runtime_info(out=None):
     if out is None:
         out = sys.stdout
-    text = get_runtime_info(as_text=True)
-    out.write(text)
+    out.write(str(get_runtime_info()))
