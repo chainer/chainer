@@ -97,8 +97,8 @@ class _CudaRuntimeInfo(object):
         s = six.StringIO()
         s.write('''CuPy: {}\n'''.format(self.cupy_version))
         if self.cupy_version is not None:
-            s.write('''CUDA runtime: {}\n'''.format(self.cuda_runtime_version))
             s.write('''CUDA driver: {}\n'''.format(self.cuda_driver_version))
+            s.write('''CUDA runtime: {}\n'''.format(self.cuda_runtime_version))
             s.write('''cuDNN: {}\n'''.format(self.cudnn_version))
             s.write('''cuDNN enabled: {}\n'''.format(self.cudnn_enabled))
             s.write('''NCCL: {}\n'''.format(self.nccl_version))
