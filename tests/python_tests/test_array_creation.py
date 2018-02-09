@@ -38,7 +38,6 @@ def check_basic_creation(a, shape, dtype):
     assert a.offset == 0
     assert a.total_size == functools.reduce(operator.mul, shape, 1)
     assert not a.is_grad_required()
-    # TODO(niboshi): assert a.node is None
 
 
 def test_empty(shape, dtype):
@@ -51,7 +50,7 @@ def test_empty_like(shape, dtype):
     a = xchainer.empty_like(t)
     check_basic_creation(a, shape, dtype)
 
-    # TODO(niboshi): Check memory is not shared
+    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
 
 
 def test_zeros(shape, dtype):
@@ -70,7 +69,7 @@ def test_zeros_like(shape, dtype):
     value = False if dtype == xchainer.bool else 0
     assert all([el == value for el in a._debug_flat_data])
 
-    # TODO(niboshi): Check memory is not shared
+    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
 
 
 def test_ones(shape, dtype):
@@ -89,7 +88,7 @@ def test_ones_like(shape, dtype):
     value = True if dtype == xchainer.bool else 1
     assert all([el == value for el in a._debug_flat_data])
 
-    # TODO(niboshi): Check memory is not shared
+    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
 
 
 def check_full(shape, value, dtype):
@@ -143,7 +142,7 @@ def check_full_like(shape, value, dtype):
     else:
         assert a._debug_flat_data == [value] * a.total_size
 
-    # TODO(niboshi): Check memory is not shared
+    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
 
 
 def test_full_full_like_0(shape, dtype):
