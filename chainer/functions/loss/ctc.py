@@ -186,11 +186,8 @@ class ConnectionistTemporalClassification(function.Function):
         forward_prob = self.log_matrix(
             xp.eye(1, max_path_length, dtype='f'), xp)
         backward_prob = forward_prob
-        offset = xp.arange(
-            0, n_batch * n_unit, n_unit, dtype=path.dtype)[:, None]
 
-        # prob[i] := forward[i] + backward[-i-1]
-        index = offset + path
+        batch_index = xp.arange(0, n_batch, dtype='i')
         prob = xp.empty(
             (max_input_length, n_batch, max_path_length), dtype='f')
         # forward computation.
@@ -198,11 +195,10 @@ class ConnectionistTemporalClassification(function.Function):
             # calc forward probability in log scale
             forward_prob = self._computes_transition(
                 forward_prob, path, path_length)
-            forward_prob += xp.take(y, index)
+            forward_prob += y[batch_index[:, None], path]
             prob[i] = forward_prob
 
         r_path = _move_label_to_back(path, path_length, xp)
-        r_index = offset + r_path
 
         # rotate yseq with path_length
         yseq_inv = _move_inputs(yseq, input_length, xp)[::-1]
@@ -221,7 +217,7 @@ class ConnectionistTemporalClassification(function.Function):
                 backward_prob, r_path, path_length)
             prob[i] += xp.take(
                 backward_prob[:, ::-1], backward_prob_index)
-            backward_prob += xp.take(y_inv, r_index)
+            backward_prob += y_inv[batch_index[:, None], r_path]
 
         # move to front.
         return _move_inputs(prob[::-1], -self.input_length, xp)
