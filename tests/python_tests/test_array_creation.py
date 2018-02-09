@@ -69,7 +69,7 @@ def test_zeros_like(shape, dtype):
     value = False if dtype == xchainer.bool else 0
     assert all([el == value for el in a._debug_flat_data])
 
-    assert a._debug_data_memory_address != t._debug_data_memory_address
+    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
 
 
 def test_ones(shape, dtype):
