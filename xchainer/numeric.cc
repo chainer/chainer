@@ -18,7 +18,7 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol) {
     return VisitDtype(a.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
-        int64_t total_size = a.total_size();
+        int64_t total_size = a.GetTotalSize();
         auto* adata = static_cast<const T*>(a.data().get());
         auto* bdata = static_cast<const T*>(b.data().get());
 

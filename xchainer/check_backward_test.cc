@@ -31,7 +31,7 @@ Arrays IncorrectBackwardUnaryFunc(const Arrays& inputs) {
 
     VisitDtype(in.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        int64_t total_size = in.total_size();
+        int64_t total_size = in.GetTotalSize();
         auto* ldata = static_cast<const T*>(in.data().get());
         auto* odata = static_cast<T*>(out.data().get());
         for (int64_t i = 0; i < total_size; i++) {
@@ -57,7 +57,7 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
 
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        int64_t total_size = lhs.total_size();
+        int64_t total_size = lhs.GetTotalSize();
         auto* ldata = static_cast<const T*>(lhs.data().get());
         auto* rdata = static_cast<const T*>(rhs.data().get());
         auto* odata = static_cast<T*>(out.data().get());
@@ -84,7 +84,7 @@ protected:
 protected:
     template <typename T>
     Array MakeArray(const Shape& shape, const T* data) const {
-        int64_t size = shape.total_size();
+        int64_t size = shape.GetTotalSize();
         auto a = std::make_unique<T[]>(size);
         std::copy(data, data + size, a.get());
         return Array::FromBuffer(shape, TypeToDtype<T>, std::move(a));

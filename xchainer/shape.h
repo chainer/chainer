@@ -36,11 +36,13 @@ public:
     Shape(Shape&&) = default;
     Shape& operator=(Shape&&) = delete;
 
+    int64_t GetTotalSize() const;
+
+    std::string ToString() const;
+
     size_t size() const noexcept { return static_cast<size_t>(ndim_); }
 
     int8_t ndim() const noexcept { return ndim_; }
-
-    int64_t total_size() const;
 
     int64_t operator[](int8_t index) const {
         if (!(0 <= index && index < ndim_)) {
@@ -63,8 +65,6 @@ public:
 
     // span
     gsl::span<const int64_t> span() const { return {&dims_[0], static_cast<size_t>(ndim_)}; }
-
-    std::string ToString() const;
 
 private:
     void CheckNdim() const {

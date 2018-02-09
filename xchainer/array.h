@@ -127,6 +127,10 @@ public:
         return *this;
     }
 
+    int64_t GetTotalSize() const { return shape().GetTotalSize(); }
+
+    int64_t GetTotalBytes() const { return GetTotalSize() * element_bytes(); }
+
     std::string ToString() const;
 
     const std::shared_ptr<internal::ArrayBody>& body() { return body_; }
@@ -141,11 +145,7 @@ public:
 
     const Shape& shape() const { return body_->shape_; }
 
-    int64_t total_size() const { return shape().total_size(); }
-
     int64_t element_bytes() const { return GetElementSize(dtype()); }
-
-    int64_t total_bytes() const { return total_size() * element_bytes(); }
 
     const std::shared_ptr<void>& data() { return body_->data_; }
 

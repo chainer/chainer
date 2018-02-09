@@ -122,13 +122,13 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) { internal::GetMutableA
 void Array::ClearGrad(const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, const Device& device) {
-    auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
+    auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
     std::shared_ptr<void> device_data = internal::MemoryFromBuffer(device, data, bytesize);
     return {shape, dtype, device, device_data};
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype, const Device& device) {
-    auto bytesize = static_cast<size_t>(shape.total_size() * GetElementSize(dtype));
+    auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
     std::shared_ptr<void> data = internal::Allocate(device, bytesize);
     return {shape, dtype, device, data};
 }
@@ -188,7 +188,7 @@ Array Array::AsConstant(CopyKind kind) const {
             Array out = Array::EmptyLike(*this);
             // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
             // is_contiguous_ and offset_ into account
-            internal::MemoryCopy(out.data().get(), body_->data_.get(), total_bytes());
+            internal::MemoryCopy(out.data().get(), body_->data_.get(), GetTotalBytes());
             return std::move(out);
         }
         case CopyKind::kView:
@@ -205,7 +205,7 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
             internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }}, graph_ids);
             // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
             // is_contiguous_ and offset_ into account
-            internal::MemoryCopy(out.data().get(), body_->data_.get(), total_bytes());
+            internal::MemoryCopy(out.data().get(), body_->data_.get(), GetTotalBytes());
             return std::move(out);
         }
         case CopyKind::kView: {
