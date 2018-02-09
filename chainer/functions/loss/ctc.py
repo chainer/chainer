@@ -36,37 +36,63 @@ def _label_to_path(labels, blank_symbol, xp):
     return path
 
 
-def _move_label_to_back(path, path_length, xp):
+def _flip_path(path, path_length, xp):
+    """Flips label sequence.
+
+    This function rotates a label sequence and flips it.
+    ``path[b, t]`` stores a label at time ``t`` in ``b``-th batch.
+    The rotated matrix ``r`` is defined as
+    ``r[b, t] = path[b, t + path_length[b]]``
+
+    .. ::
+
+       a b c d .     . a b c d    d c b a .
+       e f . . .  -> . . . e f -> f e . . .
+       g h i j k     g h i j k    k j i h g
+
+    """
     n_batch, n_label = path.shape
     rotate = (xp.arange(n_label) + path_length[:, None]) % n_label
     return path[xp.arange(n_batch, dtype='i')[:, None],
                 rotate][:, ::-1]
 
 
-def _move_inputs(prob, input_length, xp):
-    seq, n_batch, n_label = prob.shape
+def _flip_label_probability(y, input_length, xp):
+    """Flips a label probability matrix.
+
+    This function rotates a label probability matrix and flips it.
+    ``y[i, b, l]`` stores log probability of label ``l`` at ``i``-th
+    input in ``b``-th batch.
+    The rotated matrix ``r`` is defined as
+    ``r[i, b, l] = y[i + input_length[b], b, l]``
+
+    """
+    seq, n_batch, n_vocab = y.shape
     rotate = (xp.arange(seq, dtype='i')[:, None] + input_length) % seq
-    return prob[
+    return y[
         rotate[:, :, None],
         xp.arange(n_batch, dtype='i')[None, :, None],
-        xp.arange(n_label, dtype='i')[None, None, :]]
+        xp.arange(n_vocab, dtype='i')[None, None, :]][::-1]
 
 
-def _move_inputs_and_labels(prob, input_length, path_length, xp):
-    """Rotates probability matrix.
+def _flip_path_probability(prob, input_length, path_length, xp):
+    """Flips a path probability matrix.
 
-    This function returns an ndarray ``r`` whose value is
-
-    ``r[i, j, k] = prob[(i + input_length[j]) % I, j, (k + path_length[j]) % K]``
+    This function returns a path probability matrix and flips it.
+    ``prob[i, b, t]`` stores log probability at ``i``-th input and
+    at time ``t`` in a output sequence in ``b``-th batch.
+    The rotated matrix ``r`` is defined as
+    ``r[i, j, k] = prob[i + input_length[j], j, k + path_length[j]]``
 
     """
     seq, n_batch, n_label = prob.shape
     rotate_input = (xp.arange(seq, dtype='i')[:, None] + input_length) % seq
-    rotate_label = (xp.arange(n_label, dtype='i') + path_length[:, None]) % n_label
+    rotate_label = (
+        xp.arange(n_label, dtype='i') + path_length[:, None]) % n_label
     return prob[
         rotate_input[:, :, None],
         xp.arange(n_batch, dtype='i')[None, :, None],
-        rotate_label]
+        rotate_label][::-1, :, ::-1]
 
 
 class ConnectionistTemporalClassification(function.Function):
@@ -223,24 +249,19 @@ class ConnectionistTemporalClassification(function.Function):
         prob = yseq[seq_index[:, None, None], batch_index[:, None], path]
         # forward computation.
         for i, y in enumerate(yseq):
-            # calc forward probability in log scale
             forward_prob = self._computes_transition(
                 forward_prob, path, path_length, prob[i], y)
 
-        r_path = _move_label_to_back(path, path_length, xp)
+        r_path = _flip_path(path, path_length, xp)
 
-        # rotate yseq with path_length
-        yseq_inv = _move_inputs(yseq, input_length, xp)[::-1]
-        # move to back.
-        prob = _move_inputs_and_labels(prob, input_length, path_length, xp)[::-1, :, ::-1]
+        yseq_inv = _flip_label_probability(yseq, input_length, xp)
+        prob = _flip_path_probability(prob, input_length, path_length, xp)
 
         for i, y_inv in enumerate(yseq_inv):
-            # calc backward probability
             backward_prob = self._computes_transition(
                 backward_prob, r_path, path_length, prob[i], y_inv)
 
-        # move to front.
-        return _move_inputs_and_labels(prob, input_length, path_length, xp)[::-1, :, ::-1]
+        return _flip_path_probability(prob, input_length, path_length, xp)
 
     def forward(self, inputs):
         xp = cuda.get_array_module(inputs[0])
