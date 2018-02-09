@@ -37,17 +37,19 @@ def _label_to_path(labels, blank_symbol, xp):
 
 
 def _move_label_to_back(path, path_length, xp):
-    s1 = path.shape[1]  # TODO(okuta): Change name
-    index = (xp.arange(0, path.size, s1, dtype=numpy.int32)[:, None] +
-             (xp.arange(s1) + path_length[:, None])[:, ::-1] % s1)
-    return xp.take(path, index)
+    n_batch, n_label = path.shape
+    rotate = (xp.arange(n_label) + path_length[:, None]) % n_label
+    return path[xp.arange(n_batch, dtype='i')[:, None],
+                rotate][:, ::-1]
 
 
 def _move_inputs(prob, input_length, xp):
-    seq, batch, ch = prob.shape
-    rotate = (xp.arange(seq)[:, None] + input_length) % seq
-    index = rotate * batch + xp.arange(batch)
-    return xp.take(prob.reshape(seq * batch, ch), index, axis=0)
+    seq, n_batch, n_label = prob.shape
+    rotate = (xp.arange(seq, dtype='i')[:, None] + input_length) % seq
+    return prob[
+        rotate[:, :, None],
+        xp.arange(n_batch, dtype='i')[None, :, None],
+        xp.arange(n_label, dtype='i')[None, None, :]]
 
 
 class ConnectionistTemporalClassification(function.Function):
