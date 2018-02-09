@@ -207,7 +207,7 @@ class ConnectionistTemporalClassification(function.Function):
         # rotate yseq with path_length
         yseq_inv = _move_inputs(yseq, input_length, xp)[::-1]
         # move to back.
-        prob = _move_inputs(prob, input_length, xp)
+        prob = _move_inputs(prob, input_length, xp)[::-1]
 
         # backward computation.
         backward_prob_index = (
@@ -219,12 +219,12 @@ class ConnectionistTemporalClassification(function.Function):
             # calc backward probability
             backward_prob = self._computes_transition(
                 backward_prob, r_path, path_length)
-            prob[-i - 1] += xp.take(
+            prob[i] += xp.take(
                 backward_prob[:, ::-1], backward_prob_index)
             backward_prob += xp.take(y_inv, r_index)
 
         # move to front.
-        return _move_inputs(prob, -self.input_length, xp)
+        return _move_inputs(prob[::-1], -self.input_length, xp)
 
     def forward(self, inputs):
         xp = cuda.get_array_module(inputs[0])
