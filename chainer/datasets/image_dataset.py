@@ -208,11 +208,10 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
 
     def __init__(self, zipfilename, dtype=numpy.float32):
         self._zipfilename = zipfilename
-        self._zf = zipfile.ZipFile(zipfilename)
+        self._zf = None
         self._zf_pid = os.getpid()
         self._dtype = dtype
-        paths = filter(lambda x: not x.endswith('/'), self._zf.namelist())
-        self._paths = list(paths)
+        self._paths = [x for x in self._zf.namelist() if not x.endswith('/')]
 
     def __len__(self):
         return len(self._paths)
