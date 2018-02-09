@@ -108,7 +108,7 @@ public:
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
-        auto total_size = actual.shape().TotalSize();
+        auto total_size = actual.shape().GetTotalSize();
         const T* actual_data = static_cast<const T*>(actual.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
             EXPECT_EQ(expected_data[i], actual_data[i]) << "where i is " << i;
@@ -122,7 +122,7 @@ public:
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
-        auto total_size = actual.shape().TotalSize();
+        auto total_size = actual.shape().GetTotalSize();
         const T* actual_data = static_cast<const T*>(actual.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
             if (std::isnan(expected)) {
@@ -160,9 +160,9 @@ public:
         using TargetArray = std::conditional_t<is_const, const Array, Array>;
 
         // Check test data
-        ASSERT_EQ(shape.TotalSize(), static_cast<int64_t>(raw_data.size()));
+        ASSERT_EQ(shape.GetTotalSize(), static_cast<int64_t>(raw_data.size()));
 
-        std::shared_ptr<T> data = std::make_unique<T[]>(shape.TotalSize());
+        std::shared_ptr<T> data = std::make_unique<T[]>(shape.GetTotalSize());
         std::copy(raw_data.begin(), raw_data.end(), data.get());
 
         Dtype dtype = TypeToDtype<T>;
@@ -172,9 +172,9 @@ public:
         EXPECT_EQ(shape, x.shape());
         EXPECT_EQ(dtype, x.dtype());
         EXPECT_EQ(2, x.ndim());
-        EXPECT_EQ(3 * 2, x.TotalSize());
+        EXPECT_EQ(3 * 2, x.GetTotalSize());
         EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
-        EXPECT_EQ(shape.TotalSize() * int64_t{sizeof(T)}, x.TotalBytes());
+        EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetTotalBytes());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
 
@@ -506,7 +506,7 @@ TEST_P(ArrayTest, ConstArrayFromBuffer) {
 TEST_P(ArrayTest, FromBufferFromNonManagedMemory) {
     Shape shape = {3, 2};
     Dtype dtype = Dtype::kBool;
-    int64_t bytesize = shape.TotalSize() * sizeof(bool);
+    int64_t bytesize = shape.GetTotalSize() * sizeof(bool);
 
     void* raw_ptr = nullptr;
     cuda::CheckError(cudaMalloc(&raw_ptr, bytesize));

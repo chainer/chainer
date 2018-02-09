@@ -168,7 +168,7 @@ struct ArrayReprImpl {
         cuda::CheckError(cudaDeviceSynchronize());
 #endif  // XCHAINER_ENABLE_CUDA
 
-        for (int64_t i = 0; i < array.TotalSize(); ++i) {
+        for (int64_t i = 0; i < array.GetTotalSize(); ++i) {
             // Increment indexer
             for (int j = shape.ndim() - 1; j >= 0; --j) {
                 indexer[j]++;
@@ -232,7 +232,7 @@ struct ArrayReprImpl {
         });
 
         // In case of an empty Array, print the header here
-        if (array.TotalSize() == 0) {
+        if (array.GetTotalSize() == 0) {
             os << "array([";
         }
 

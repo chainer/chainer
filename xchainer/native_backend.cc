@@ -30,7 +30,7 @@ void NativeBackend::Fill(Array& out, Scalar value) {
         using T = typename decltype(pt)::type;
         T c_value{value};
 
-        int64_t size = out.TotalSize();
+        int64_t size = out.GetTotalSize();
         auto* ptr = static_cast<T*>(out.data().get());
         for (int64_t i = 0; i < size; ++i) {
             ptr[i] = c_value;

@@ -5,7 +5,7 @@
 
 namespace xchainer {
 
-int64_t Shape::TotalSize() const {
+int64_t Shape::GetTotalSize() const {
     const auto first = dims_.begin();
     const auto last = first + ndim_;
     auto total_size = std::accumulate(first, last, int64_t{1}, std::multiplies<>());

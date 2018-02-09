@@ -127,9 +127,9 @@ public:
         return *this;
     }
 
-    int64_t TotalSize() const { return shape().TotalSize(); }
+    int64_t GetTotalSize() const { return shape().GetTotalSize(); }
 
-    int64_t TotalBytes() const { return TotalSize() * element_bytes(); }
+    int64_t GetTotalBytes() const { return GetTotalSize() * element_bytes(); }
 
     std::string ToString() const;
 

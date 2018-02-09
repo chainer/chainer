@@ -36,7 +36,7 @@ public:
     Shape(Shape&&) = default;
     Shape& operator=(Shape&&) = delete;
 
-    int64_t TotalSize() const;
+    int64_t GetTotalSize() const;
 
     std::string ToString() const;
 
