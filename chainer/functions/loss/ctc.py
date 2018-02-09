@@ -52,6 +52,23 @@ def _move_inputs(prob, input_length, xp):
         xp.arange(n_label, dtype='i')[None, None, :]]
 
 
+def _move_inputs_and_labels(prob, input_length, path_length, xp):
+    """Rotates probability matrix.
+
+    This function returns an ndarray ``r`` whose value is
+
+    ``r[i, j, k] = prob[(i + input_length[j]) % I, j, (k + path_length[j]) % K]``
+
+    """
+    seq, n_batch, n_label = prob.shape
+    rotate_input = (xp.arange(seq, dtype='i')[:, None] + input_length) % seq
+    rotate_label = (xp.arange(n_label, dtype='i') + path_length[:, None]) % n_label
+    return prob[
+        rotate_input[:, :, None],
+        xp.arange(n_batch, dtype='i')[None, :, None],
+        rotate_label]
+
+
 class ConnectionistTemporalClassification(function.Function):
 
     """The implementation of Connectionist Temporal Classfication loss functions.
@@ -205,24 +222,17 @@ class ConnectionistTemporalClassification(function.Function):
         # rotate yseq with path_length
         yseq_inv = _move_inputs(yseq, input_length, xp)[::-1]
         # move to back.
-        prob = _move_inputs(prob, input_length, xp)[::-1]
-
-        # backward computation.
-        backward_prob_index = (
-            xp.arange(0, path.size, max_path_length, dtype='i')[:, None] +
-            (xp.arange(max_path_length) - path_length[:, None])
-            % max_path_length)
+        prob = _move_inputs_and_labels(prob, input_length, path_length, xp)[::-1, :, ::-1]
 
         for i, y_inv in enumerate(yseq_inv):
             # calc backward probability
             backward_prob = self._computes_transition(
                 backward_prob, r_path, path_length)
-            prob[i] += xp.take(
-                backward_prob[:, ::-1], backward_prob_index)
+            prob[i] += backward_prob
             backward_prob += y_inv[batch_index[:, None], r_path]
 
         # move to front.
-        return _move_inputs(prob[::-1], -self.input_length, xp)
+        return _move_inputs_and_labels(prob, input_length, path_length, xp)[::-1, :, ::-1]
 
     def forward(self, inputs):
         xp = cuda.get_array_module(inputs[0])
