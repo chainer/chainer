@@ -46,7 +46,7 @@ before_install:
       python --version;
 
       brew cask uninstall oclint;
-      brew install homebrew/science/hdf5;
+      brew install hdf5;
     fi
 
 install:
