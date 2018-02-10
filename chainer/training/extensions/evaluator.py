@@ -97,12 +97,12 @@ class Evaluator(extension.Extension):
                                       iterators.MultiprocessIterator,
                                       iterators.MultithreadIterator)) and
                         getattr(iter, 'repeat', False)):
-                    msg = 'The repeat property of the iterator {} '
-                    'is set to True. Typically, evaluator sweeps '
-                    'over iterators until it raises StopIteration. '
-                    'But this iterator might not raise the exception, '
-                    'which means the evaluation could'
-                    'go into an infinite loop in evaluation. '
+                    msg = 'The `repeat` property of the iterator {} '
+                    'is set to `True`. Typically, the evaluator sweeps '
+                    'over iterators until they stop, '
+                    'but as the property being `True`, this iterator '
+                    'might not stop and evaluation could go into '
+                    'an infinite loop.'
                     'We recommend to check the configuration '
                     'of iterators'.format(key)
                     warnings.warn(msg)
