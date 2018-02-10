@@ -168,9 +168,8 @@ class Evaluator(extension.Extension):
         returns a dictionary whose values are means computed by the summary.
 
         Note that this function assumes that the main iterator raises
-        ``StopIteration`` or some error is raised during the evaluation loop.
-        So, if the iterator does not raise ``StopIteratiron`` and
-        the loop does not raise no exceptions. It could be caught in the
+        ``StopIteration`` or code in the evaluation loop raises an exception.
+        So, if this assumption is not held, the function could be caught in
         an infinite loop.
 
         Users can override this method to customize the evaluation routine.
