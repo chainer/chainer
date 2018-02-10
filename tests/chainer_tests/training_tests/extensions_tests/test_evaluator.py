@@ -246,7 +246,7 @@ class TestEvaluatorRepeat(unittest.TestCase):
         else:
             expect = 0
 
-        self.assertEqual(len(w), expect)
+        assert len(w) == expect
 
 
 testing.run_module(__name__, __file__)
