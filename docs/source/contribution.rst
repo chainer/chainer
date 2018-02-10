@@ -340,7 +340,7 @@ For example, if you want to write a test for a module ``chainer.x.y.z``, the tes
 How to Write Tests
 ~~~~~~~~~~~~~~~~~~
 
-There are many examples of unit tests under the ``tests`` directory, so reading some of them is a good and recommended way to learn how to write tests for Chainer.
+There are many examples of unit tests under the :tree:`tests` directory, so reading some of them is a good and recommended way to learn how to write tests for Chainer.
 They simply use the ``unittest`` package of the standard library, while some tests are using utilities from :mod:`chainer.testing`.
 
 Even if your patch includes GPU-related code, your tests should not fail without GPU capability.

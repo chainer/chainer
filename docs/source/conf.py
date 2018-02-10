@@ -28,6 +28,15 @@ __version__ = pkg_resources.get_distribution('chainer').version
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
+rtd_version = os.environ.get('READTHEDOCS_VERSION')
+if rtd_version == 'latest':
+    tag = 'master'
+else:
+    tag = 'v{}'.format(__version__)
+extlinks = {
+    'blob': ('https://github.com/chainer/chainer/blob/{}/%s'.format(tag), ''),
+    'tree': ('https://github.com/chainer/chainer/tree/{}/%s'.format(tag), ''),
+}
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -45,6 +54,7 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx.ext.doctest',
+              'sphinx.ext.extlinks',
               'sphinx.ext.intersphinx',
               'sphinx.ext.mathjax',
               'sphinx.ext.napoleon',
@@ -428,12 +438,6 @@ def _get_sourcefile_and_linenumber(obj):
 def linkcode_resolve(domain, info):
     if domain != 'py' or not info['module']:
         return None
-
-    rtd_version = os.environ.get('READTHEDOCS_VERSION')
-    if rtd_version == 'latest':
-        tag = 'master'
-    else:
-        tag = 'v{}'.format(__version__)
 
     # Import the object from module path
     obj = _import_object_from_name(info['module'], info['fullname'])
