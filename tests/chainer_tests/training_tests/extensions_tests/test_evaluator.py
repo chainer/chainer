@@ -220,26 +220,34 @@ class TestEvaluatorWithEvalFunc(unittest.TestCase):
 @testing.parameterize(*testing.product({
     'debug': [True, False],
     'repeat': [True, False],
-    'iterator': [iterators.SerialIterator,
-                 iterators.MultiprocessIterator,
-                 iterators.MultithreadIterator]
+    'iterator_class': ['serial_iterator',
+                       'multiprocess_iterator',
+                       'multithread_iterator']
 }))
 class TestEvaluatorRepeat(unittest.TestCase):
 
     def setUp(self):
         self.context = warnings.catch_warnings(record=True)
         self.warnings = self.context.__enter__()
+        self.dataset = numpy.ones((4, 6))
+        if self.iterator_class == 'serial_iterator':
+            self.iterator = iterators.SerialIterator(
+                self.dataset, 2, repeat=self.repeat)
+        elif self.iterator_class == 'multiprocess_iterator':
+            self.iterator = iterators.MultiprocessIterator(
+                self.dataset, 2, repeat=self.repeat)
+        elif self.iterator_class == 'multithread_iterator':
+            self.iterator = iterators.MultithreadIterator(
+                self.dataset, 2, repeat=self.repeat)
         warnings.filterwarnings(action='always', category=DeprecationWarning)
 
     def tearDown(self):
         self.context.__exit__()
 
     def test_serial_iterator(self):
-        dataset = numpy.ones((4, 6))
-        iterator = iterators.SerialIterator(dataset, 2, repeat=self.repeat)
         with chainer.using_config('debug', self.debug):
             with warnings.catch_warnings(record=True) as w:
-                extensions.Evaluator(iterator, {})
+                extensions.Evaluator(self.iterator, {})
 
         if self.debug and self.repeat:
             expect = 1
