@@ -328,7 +328,7 @@ If you modify the code related to existing unit tests, you must run appropriate 
 Test File and Directory Naming Conventions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Tests are put into the ``tests/chainer_tests`` directory.
+Tests are put into the :tree:`tests/chainer_tests` directory.
 In order to enable test runner to find test scripts correctly, we are using special naming convention for the test subdirectories and the test scripts.
 
 * The name of each subdirectory of ``tests`` must end with the ``_tests`` suffix.

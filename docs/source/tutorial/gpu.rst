@@ -440,6 +440,6 @@ So we must manually copy them to ``model_1`` using :meth:`Link.copyparams` metho
 --------
 
 Now you can use Chainer with GPUs.
-All examples in the ``examples`` directory support GPU computation, so please refer to them if you want to know more practices on using GPUs.
+All examples in the :tree:`examples` directory support GPU computation, so please refer to them if you want to know more practices on using GPUs.
 In the next section, we will show how to define a differentiable (i.e. *backpropable*) function on Variable objects.
 We will also show there how to write a simple (elementwise) CUDA kernel using Chainer's CUDA utilities.
