@@ -64,7 +64,7 @@ The :class:`cupy.ndarray` class is in its core, which is a compatible GPU altern
 CuPy implements many functions on :class:`cupy.ndarray` objects.
 :ref:`See the reference for the supported subset of NumPy API <cupy_reference>`.
 Understanding NumPy might help utilizing most features of CuPy.
-`See the NumPy documentation for learning it <http://docs.scipy.org/doc/numpy/index.html>`_.
+`See the NumPy documentation for learning it <https://docs.scipy.org/doc/numpy/index.html>`_.
 
 The main difference of :class:`cupy.ndarray` from :class:`numpy.ndarray` is that the content is allocated on the device memory.
 The allocation takes place on the current device by default.
