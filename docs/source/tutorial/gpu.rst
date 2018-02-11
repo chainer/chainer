@@ -17,6 +17,14 @@ After reading this section, you will be able to:
 * Write model-parallel computing in Chainer
 * Write data-parallel computing in Chainer
 
+.. testcode::
+   :hide:
+
+   try:
+       with cupy.cuda.Device(1):
+           pass
+   except cupy.cuda.runtime.CUDARuntimeError:
+       raise RuntimeError('doctest in this document requires 2 GPUs') from None
 
 Relationship between Chainer and CuPy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -196,7 +204,7 @@ If we use :class:`chainer.training.Trainer`, what we have to do is just let the 
 
 .. testcode::
 
-   updater = training.StandardUpdater(train_iter, optimizer, device=0)
+   updater = training.updaters.StandardUpdater(train_iter, optimizer, device=0)
    trainer = training.Trainer(updater, (20, 'epoch'), out='result')
 
 We also have to specify the device ID for an evaluator extension as well.
@@ -262,15 +270,15 @@ Let's write a link for the whole network.
 
    class ParallelMLP(Chain):
        def __init__(self):
-           super(ParallelMLP, self).__init__(
+           super(ParallelMLP, self).__init__()
+           with self.init_scope():
                # the input size, 784, is inferred
-               mlp1_gpu0=MLP(1000, 2000).to_gpu(0),
-               mlp1_gpu1=MLP(1000, 2000).to_gpu(1),
+               self.mlp1_gpu0 = MLP(1000, 2000).to_gpu(0)
+               self.mlp1_gpu1 = MLP(1000, 2000).to_gpu(1)
 
                # the input size, 2000, is inferred
-               mlp2_gpu0=MLP(1000, 10).to_gpu(0),
-               mlp2_gpu1=MLP(1000, 10).to_gpu(1),
-           )
+               self.mlp2_gpu0 = MLP(1000, 10).to_gpu(0)
+               self.mlp2_gpu1 = MLP(1000, 10).to_gpu(1)
 
        def __call__(self, x):
            # assume x is on GPU 0
@@ -319,12 +327,12 @@ First, define a model and optimizer instances:
    optimizer.setup(model)
 
 Recall that the ``MLP`` link implements the multi-layer perceptron, and the :class:`~chainer.links.Classifier` link wraps it to provide a classifier interface.
-We used :class:`~training.StandardUpdater` in the previous example.
-In order to enable data-parallel computation with multiple GPUs, we only have to replace it with :class:`~training.ParallelUpdater`.
+We used :class:`~training.updaters.StandardUpdater` in the previous example.
+In order to enable data-parallel computation with multiple GPUs, we only have to replace it with :class:`~training.updaters.ParallelUpdater`.
 
 .. doctest::
 
-   updater = training.ParallelUpdater(train_iter, optimizer,
+   updater = training.updaters.ParallelUpdater(train_iter, optimizer,
                                       devices={'main': 0, 'second': 1})
 
 The ``devices`` option specifies which devices to use in data-parallel learning.
@@ -343,7 +351,7 @@ Data-parallel Computation on Multiple GPUs without Trainer
 We here introduce a way to write data-parallel computation without the help of :class:`~training.Trainer`.
 Most users can skip this section.
 If you are interested in how to write a data-parallel computation by yourself, this section should be informative.
-It is also helpful to, e.g., customize the :class:`~training.ParallelUpdater` class.
+It is also helpful to, e.g., customize the :class:`~training.updaters.ParallelUpdater` class.
 
 We again start from the MNIST example.
 At this time, we use a suffix like ``_0`` and ``_1`` to distinguish objects on each device.
@@ -359,8 +367,7 @@ In order to make a copy, we can use :meth:`Link.copy` method.
 
 .. testcode::
 
-   import copy
-   model_1 = copy.deepcopy(model_0)
+   model_1 = model_0.copy()
    model_0.to_gpu(0)
    model_1.to_gpu(1)
 

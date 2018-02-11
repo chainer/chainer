@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -110,7 +110,7 @@ def select_item(x, t):
         >>> y.shape
         (2,)
         >>> y.data
-        array([ 0.,  5.], dtype=float32)
+        array([0., 5.], dtype=float32)
 
     """
     return SelectItem().apply((x, t))[0]

@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -136,12 +136,12 @@ def contrastive(x0, x1, y, margin=1, reduce='mean'):
         >>> F.contrastive(x0, x1, y)
         variable(0.3125)
         >>> F.contrastive(x0, x1, y, margin=3.0)  # harder penalty
-        variable(0.3528856933116913)
+        variable(0.3528857)
         >>> z = F.contrastive(x0, x1, y, reduce='no')
         >>> z.shape
         (2,)
         >>> z.data
-        array([ 0.625,  0.   ], dtype=float32)
+        array([0.625, 0.   ], dtype=float32)
 
     """
     return Contrastive(margin, reduce)(x0, x1, y)

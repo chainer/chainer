@@ -10,3 +10,4 @@ Tutorial
    gpu
    customize
    type_check
+   various_tasks

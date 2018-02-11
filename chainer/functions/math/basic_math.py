@@ -1,9 +1,10 @@
 import numpy
 
 import chainer
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
 from chainer import function_node
+import chainer.functions
+from chainer.functions.math import floor as _floor
 from chainer.functions.math import matmul as _matmul
 from chainer import utils
 from chainer.utils import type_check
@@ -23,7 +24,8 @@ def _convert_value_to_string(value):
         return 'constant array'
     else:
         raise ValueError(
-            'value must be scalar, ndarray, or Variable')
+            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
+            'or a `Variable`.\nActual: {}'.format(type(value)))
 
 
 def _check_constant_type(value):
@@ -33,7 +35,8 @@ def _check_constant_type(value):
         return
     else:
         raise ValueError(
-            'value must be scalar, ndarray, or Variable')
+            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
+            'or a `Variable`.\nActual: {}'.format(type(value)))
 
 
 def _preprocess_const(x, value):
@@ -374,34 +377,60 @@ def div(self, rhs):  # lhs / rhs
     return MulConstant(1. / rhs).apply((self,))[0]
 
 
-class DivFromConstant(function.Function):
+class DivFromConstant(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
 
     @property
     def label(self):
-        return '_ / %s' % _convert_value_to_string(self.value)
+        return '%s / _' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
+        self.retain_inputs((0,))
         value = _preprocess_const(x[0], self.value)
         return utils.force_array(value / x[0]),
 
-    def backward_cpu(self, x, gy):
-        value = _preprocess_const(x[0], self.value)
-        return utils.force_array(-value * gy[0] / (x[0] ** 2)),
+    def backward(self, indexes, grad_outputs):
+        x = self.get_retained_inputs()
+        return DivFromConstantGrad(self.value).apply((x[0], grad_outputs[0]))
 
-    def backward_gpu(self, x, gy):
+
+class DivFromConstantGrad(function_node.FunctionNode):
+
+    def __init__(self, value):
+        super(DivFromConstantGrad, self).__init__()
+        self.value = value
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+        value = _preprocess_const(x, self.value)
+        return utils.force_array(-value * gy / (x ** 2)),
+
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
         # TODO(beam2d): Make it not use the input
-        value = _preprocess_const(x[0], self.value)
+        value = _preprocess_const(x, self.value)
         gx = cuda.elementwise('T x, T gy, T value', 'T gx',
                               'gx = -value * gy / (x * x)',
-                              'div_from_const_bwd')(x[0], gy[0], value)
+                              'div_from_const_bwd')(x, gy, value)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        x, gy = self.get_retained_inputs()
+        value = _preprocess_const(x.data, self.value)
+        ret = []
+        if 0 in indexes:
+            ret.append(grad_outputs[0] * 2 * value * gy / (x ** 3))
+        if 1 in indexes:
+            ret.append(grad_outputs[0] * -value / (x ** 2))
+        return ret
 
 
 def rdiv(self, rhs):  # rhs / lhs
@@ -414,7 +443,27 @@ def rdiv(self, rhs):  # rhs / lhs
     if isinstance(rhs, variable.Variable):
         return Div().apply((rhs, self))[0]
     _check_constant_type(rhs)
-    return DivFromConstant(rhs)(self)
+    return DivFromConstant(rhs).apply((self,))[0]
+
+
+def floordiv(self, rhs):  # lhs // rhs
+    """Element-wise floor division.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
+
+    return _floor.floor(div(self, rhs))
+
+
+def rfloordiv(self, rhs):  # rhs // lhs
+    """Element-wise floor division.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
+
+    return _floor.floor(rdiv(self, rhs))
 
 
 class PowVarVar(function_node.FunctionNode):
@@ -679,7 +728,7 @@ class MatMulVarVar(_matmul.MatMul):
         return '_ @ _'
 
 
-class MatMulVarConst(function.Function):
+class MatMulVarConst(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -714,21 +763,22 @@ class MatMulVarConst(function.Function):
             )
 
     def forward(self, x):
-        self.retain_inputs(())
-        self._x_shape = x[0].shape
+        self.retain_inputs((0,))
         return utils.force_array(_matmul._matmul(x[0], self.value)),
 
-    def backward(self, x, gy):
+    def backward(self, indexes, gy):
+        x = self.get_retained_inputs()
         if gy[0].ndim == 0:
-            gx0 = gy[0] * self.value
+            gx0 = chainer.functions.broadcast_to(
+                gy[0], self.value.shape) * self.value
         else:
-            gx0 = _matmul._matmul(
-                gy[0], self.value, transb=True, transout=False
-            ).reshape(self._x_shape)
+            gx0 = chainer.functions.reshape(
+                chainer.functions.matmul(gy[0], self.value, False, True),
+                x[0].shape)
         return gx0,
 
 
-class MatMulConstVar(function.Function):
+class MatMulConstVar(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -763,17 +813,18 @@ class MatMulConstVar(function.Function):
             )
 
     def forward(self, x):
-        self.retain_inputs(())
-        self._x_shape = x[0].shape
+        self.retain_inputs((0,))
         return utils.force_array(_matmul._matmul(self.value, x[0])),
 
     def backward(self, x, gy):
+        x = self.get_retained_inputs()
         if gy[0].ndim == 0:
-            gx1 = gy[0] * self.value
+            gx1 = chainer.functions.broadcast_to(
+                gy[0], self.value.shape) * self.value
         else:
-            gx1 = _matmul._matmul(
-                self.value, gy[0], transa=True, transout=False
-            ).reshape(self._x_shape)
+            gx1 = chainer.functions.reshape(
+                chainer.functions.matmul(self.value, gy[0], True, False),
+                x[0].shape)
         return gx1,
 
 
@@ -785,9 +836,9 @@ def matmul(self, rhs):  # lhs @ rhs
     """
 
     if isinstance(rhs, variable.Variable):
-        return MatMulVarVar()(self, rhs)
+        return MatMulVarVar().apply((self, rhs))[0]
     _check_constant_type(rhs)
-    return MatMulVarConst(rhs)(self)
+    return MatMulVarConst(rhs).apply((self,))[0]
 
 
 def rmatmul(self, rhs):  # rhs @ lhs
@@ -798,9 +849,9 @@ def rmatmul(self, rhs):  # rhs @ lhs
     """
 
     if isinstance(rhs, variable.Variable):
-        return MatMulVarVar()(rhs, self)
+        return MatMulVarVar().apply((rhs, self))[0]
     _check_constant_type(rhs)
-    return MatMulConstVar(rhs)(self)
+    return MatMulConstVar(rhs).apply((self,))[0]
 
 
 def install_variable_arithmetics():
@@ -816,6 +867,8 @@ def install_variable_arithmetics():
     variable.Variable.__truediv__ = div
     variable.Variable.__rdiv__ = rdiv
     variable.Variable.__rtruediv__ = rdiv
+    variable.Variable.__floordiv__ = floordiv
+    variable.Variable.__rfloordiv__ = rfloordiv
     variable.Variable.__pow__ = pow
     variable.Variable.__rpow__ = rpow
     variable.Variable.__matmul__ = matmul

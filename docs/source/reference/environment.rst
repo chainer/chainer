@@ -16,3 +16,8 @@ Here are the environment variables Chainer uses.
 |                        | Otherwise type checking is enabled automatically.                        |
 |                        | See :ref:`type-check-utils` for details.                                 |
 +------------------------+--------------------------------------------------------------------------+
+| ``CHAINER_DEBUG``      | Set ``1`` to enable debug mode. It is disabled by default.               |
+|                        | In debug mode, Chainer performs various runtime checks that can help     |
+|                        | debug user's code at the cost of some overhead.                          |
+|                        | For details, see :ref:`debug`.                                           |
++------------------------+--------------------------------------------------------------------------+

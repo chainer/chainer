@@ -6,7 +6,7 @@ import chainer
 from chainer import cuda
 from chainer import functions
 from chainer import testing
-from chainer.testing import attr
+from chainer.testing import backend
 
 
 @testing.parameterize(*testing.product_dict(
@@ -34,45 +34,54 @@ from chainer.testing import attr
         {'dtype': numpy.float64},
     ],
 ))
+@backend.inject_backend_tests(
+    ['test_forward', 'test_backward'],
+    # CPU tests
+    [{'use_cuda': False}]
+    # GPU tests
+    + [{'use_cuda': True}])
 class TestConcat(unittest.TestCase):
 
     def setUp(self):
-        self.y = numpy.arange(
-            numpy.prod(self.shape), dtype=self.dtype).reshape(self.shape)
-        self.xs = [self.y[s] for s in self.slices]
+        shape = self.shape
+        dtype = self.dtype
 
-    def check_forward(self, xs_data, y_data, axis):
-        xs = tuple(chainer.Variable(x_data) for x_data in xs_data)
-        y = functions.concat(xs, axis=axis)
-        self.assertEqual(y.data.dtype, self.dtype)
-        testing.assert_allclose(y_data, y.data, atol=0, rtol=0)
-        self.assertIsInstance(y.data.shape, tuple)
+        y = numpy.arange(numpy.prod(shape), dtype=dtype).reshape(shape)
+        xs = [y[s] for s in self.slices]
 
-    def test_forward_cpu(self):
-        self.check_forward(self.xs, self.y, axis=self.axis)
+        self.y_expected = y
+        self.inputs = xs
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(
-            [cuda.to_gpu(x.copy()) for x in self.xs],
-            cuda.to_gpu(self.y), axis=self.axis)
+    def check_forward(self, inputs, backend_config):
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
 
-    def check_backward(self, xs_data, axis):
-        xs = tuple(chainer.Variable(x_data) for x_data in xs_data)
-        y = functions.concat(xs, axis=axis)
-        y.grad = y.data
-        y.backward()
+        with backend_config:
+            y = functions.concat(inputs, axis=self.axis)
 
-        for x in xs:
+        assert y.data.dtype == self.dtype
+        testing.assert_allclose(self.y_expected, y.data, atol=0, rtol=0)
+        assert isinstance(y.data.shape, tuple)
+
+    def test_forward(self, backend_config):
+        self.check_forward(self.inputs, backend_config)
+
+    def check_backward(self, inputs, backend_config):
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
+
+        inputs = [chainer.Variable(x) for x in inputs]
+
+        with backend_config:
+            y = functions.concat(inputs, axis=self.axis)
+            y.grad = y.data
+            y.backward()
+
+        for x in inputs:
             testing.assert_allclose(x.data, x.grad, atol=0, rtol=0)
 
-    def test_backward_cpu(self):
-        self.check_backward(self.xs, axis=self.axis)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward([cuda.to_gpu(x.copy()) for x in self.xs],
-                            axis=self.axis)
+    def test_backward(self, backend_config):
+        self.check_backward(self.inputs, backend_config)
 
 
 class TestConcatInvalidAxisType(unittest.TestCase):

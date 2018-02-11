@@ -3,8 +3,8 @@ import weakref
 
 import six
 
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 # for backward compatibility
 from chainer.function_hook import FunctionHook  # NOQA
 from chainer import function_node
@@ -59,7 +59,7 @@ def force_backprop_mode():
     ...         y = x + 1
     >>> y.backward()
     >>> x.grad
-    array([ 1.], dtype=float32)
+    array([1.], dtype=float32)
 
     .. seealso::
 

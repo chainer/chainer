@@ -2,7 +2,7 @@ import numpy
 
 import chainer.functions
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -113,7 +113,7 @@ def softplus(x, beta=1.0):
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
         >>> F.softplus(x, beta=1.0).data
-        array([ 0.126928  ,  0.69314718,  2.12692809], dtype=float32)
+        array([0.126928 , 0.6931472, 2.126928 ], dtype=float32)
 
     """
     y, = Softplus(beta=beta).apply((x,))

@@ -17,3 +17,4 @@ Specifically, if it is a bug report, these information are very helpful:
 
 Thank you for your cooperation!
 
+Support is available on our [Slack Chat](https://bit.ly/join-chainer-slack).

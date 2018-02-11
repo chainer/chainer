@@ -1,4 +1,4 @@
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -116,9 +116,9 @@ def leaky_relu(x, slope=0.2):
                [ 2., -3.],
                [-2.,  1.]], dtype=float32)
         >>> F.leaky_relu(x, slope=0.2).data
-        array([[-0.2       ,  0.        ],
-               [ 2.        , -0.60000002],
-               [-0.40000001,  1.        ]], dtype=float32)
+        array([[-0.2,  0. ],
+               [ 2. , -0.6],
+               [-0.4,  1. ]], dtype=float32)
 
     """
     return LeakyReLU(slope).apply((x,))[0]

@@ -1,6 +1,6 @@
 from __future__ import division
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -64,7 +64,7 @@ def binary_accuracy(y, t):
         ...              [1, 0]], 'i')
         >>> F.binary_accuracy(y, t).data \
 # 100% accuracy because all samples are correct.
-        array(1.0)
+        array(1.)
         >>> t = np.array([[0, 0],
         ...              [1, 1]], 'i')
         >>> F.binary_accuracy(y, t).data \
@@ -74,6 +74,6 @@ def binary_accuracy(y, t):
         ...              [1, -1]], 'i')
         >>> F.binary_accuracy(y, t).data \
 # 100% accuracy because of ignoring y[0][1] and y[1][1].
-        array(1.0)
+        array(1.)
     """
     return BinaryAccuracy()(y, t)
