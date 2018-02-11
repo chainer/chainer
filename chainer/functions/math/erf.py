@@ -58,7 +58,8 @@ def erf(x):
        `SciPy <https://www.scipy.org/>`_ is not available.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
