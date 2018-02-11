@@ -30,8 +30,11 @@ def _tensordot(a, b, a_axes, b_axes, c_axes):
         if a.shape[a_axis] != b.shape[b_axis]:
             raise ValueError('shape mismatch')
 
-    xp = cuda.get_array_module(a)
-    y = xp.tensordot(a, b, axes=(a_axes[1], b_axes[0]))
+    if a.ndim == 0 or b.ndim == 0:
+        y = a * b
+    else:
+        xp = cuda.get_array_module(a)
+        y = xp.tensordot(a, b, axes=(a_axes[1], b_axes[0]))
 
     trans = [None for i in six.moves.range(y.ndim)]
     table_a = [1 if i in a_axes[0] else 0 for i in six.moves.range(a.ndim)]
@@ -77,8 +80,6 @@ class TensorDot(function_node.FunctionNode):
         type_check.expect(
             a_type.dtype.kind == 'f',
             b_type.dtype.kind == 'f',
-            a_type.ndim >= 1,
-            b_type.ndim >= 1,
         )
 
     def forward(self, inputs):
