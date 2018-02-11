@@ -14,7 +14,9 @@ class Swish(link.Link):
     See the paper for details: `Searching for Activation Functions \
     <https://arxiv.org/abs/1710.05941>`_
 
-    .. seealso:: :func:`chainer.functions.swish`
+    .. seealso::
+        See :func:`chainer.functions.swish` for the definition of Swish
+        activation function.
 
     Attributes:
         beta (~chainer.Parameter): Parameter variable :math:`\\beta`.
