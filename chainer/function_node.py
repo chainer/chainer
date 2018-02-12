@@ -560,19 +560,15 @@ Use apply() method instead.\
             for i, (gx, g_input) in enumerate(six.moves.zip(gxs, grad_inputs)):
                 sum_gx = _backprop_utils.concat_variable(gx, g_input)
                 j = target_input_indexes[i]
-                if self.inputs[j].creator is None:
-                    if sum_gx[0] is not None and len(sum_gx) > 1:
-                        sum_gx = chainer.functions.add(*sum_gx),
-                if len(sum_gx) > 1:
-                    gxs_output += sum_gx,
-                else:
-                    gxs_output += sum_gx
-
+                if self.inputs[j].creator is None and \
+                        isinstance(sum_gx, tuple):
+                    sum_gx = chainer.functions.add(*sum_gx)
+                gxs_output += sum_gx,
             return gxs_output
         else:
             return tuple([gx if g_input is None else
                           g_input if gx is None else
-                          chainer._backprop_utils.add(gx, g_input)
+                          gx + g_input
                           for gx, g_input in six.moves.zip(gxs, grad_inputs)])
 
     def get_retained_inputs(self):
@@ -892,14 +888,13 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
                 if cur_gx is not None:
                     if func.lazy_grad_sum:
                         if x.creator is None:
-                            g = _backprop_utils.concat_variable(g, cur_gx)
-                            g = chainer.functions.add(*g)
+                            g = _backprop_utils.add(g, cur_gx)
                         else:
                             g = _backprop_utils.concat_variable(g, cur_gx)
-                    # cur_gx may be tuple, becaue the lazy_grad_sum
-                    # may be enabled in its sibling node.
+                    # cur_gx can't be tuple, the lazy_grad_sum can't
+                    # be enabled in its sibling node.
                     else:
-                        g = chainer._backprop_utils.add(g, cur_gx)
+                        g = g + cur_gx
             else:
                 selected_inputs.add(node)
 

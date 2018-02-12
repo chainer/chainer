@@ -1051,15 +1051,13 @@ Actual: {0}'''.format(type(data))
                     cur_gx = grads[x]
                     if func.lazy_grad_sum:
                         if x.creator is None:
-                            gx = _backprop_utils.concat_variable(gx, cur_gx)
-                            gx = chainer.functions.add(*gx)
+                            gx = _backprop_utils.add(gx, cur_gx)
                             grads[x] = gx
                         else:
                             grads[x] = _backprop_utils.concat_variable(
                                 gx, cur_gx)
                     else:
-                        grads[x] = gx if cur_gx is None else \
-                            chainer._backprop_utils.add(gx, cur_gx)
+                        grads[x] = gx if cur_gx is None else gx + cur_gx
 
                 else:
                     grads[x] = gx
