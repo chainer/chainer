@@ -80,12 +80,12 @@ class TanhGrad(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         y, gy = self.get_retained_inputs()
-        g = grad_outputs[0]
+        ggx = grad_outputs[0]
 
-        y_mul_g = y * g
-        grad_y = -2 * gy * y_mul_g
-        ggy = g - y * y_mul_g
-        return grad_y, ggy
+        y_mul_ggx = y * ggx
+        gx = -2 * gy * y_mul_ggx
+        ggy = ggx - y * y_mul_ggx
+        return gx, ggy
 
 
 def tanh(x):

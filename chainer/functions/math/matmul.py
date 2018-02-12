@@ -231,25 +231,25 @@ class BatchMatMulGrad(function_node.FunctionNode):
                            self.transb).reshape(b.shape)
         return ga, gb
 
-    def backward(self, indexes, grads):
+    def backward(self, indexes, grad_outputs):
         a, b, gy = self.get_retained_inputs()
+        gga, ggb = grad_outputs
+
         ret = []
         if 0 in indexes or 1 in indexes:
-            ggab = BatchMatMulGrad(self.transa, self.transb).apply(
-                (grads[0], grads[1], gy))
+            ga, gb = BatchMatMulGrad(self.transa, self.transb).apply(
+                (gga, ggb, gy))
             if 0 in indexes:
-                ret.append(ggab[0])
+                ret.append(ga)
             if 1 in indexes:
-                ret.append(ggab[1])
+                ret.append(gb)
         if 2 in indexes:
             a = chainer.functions.reshape(a, (a.shape[:2] + (-1,)))
             b = chainer.functions.reshape(b, (b.shape[:2] + (-1,)))
             ggy = \
-                BatchMatMul(self.transa, self.transb).apply(
-                    (grads[0], b))[0] + \
-                BatchMatMul(self.transa, self.transb).apply(
-                    (a, grads[1]))[0]
-        return ggab[0], ggab[1], ggy
+                BatchMatMul(self.transa, self.transb).apply((gga, b))[0] + \
+                BatchMatMul(self.transa, self.transb).apply((a, ggb))[0]
+        return ga, gb, ggy
 
 
 def batch_matmul(a, b, transa=False, transb=False):

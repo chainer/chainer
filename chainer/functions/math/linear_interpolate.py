@@ -35,8 +35,8 @@ class LinearInterpolate(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         p, x, y = self.get_retained_inputs()
-        g, = grad_outputs
-        return LinearInterpolateGrad().apply((p, x, y, g))
+        gz, = grad_outputs
+        return LinearInterpolateGrad().apply((p, x, y, gz))
 
 
 class LinearInterpolateGrad(function_node.FunctionNode):
@@ -63,13 +63,13 @@ class LinearInterpolateGrad(function_node.FunctionNode):
         )(p, x, y, g)
 
     def backward(self, indexes, grad_outputs):
-        p, x, y, g = self.get_retained_inputs()
-        g0, g1, g2 = grad_outputs
-        gp = g * (g1 - g2)
-        gx = g * g0
+        p, x, y, gz = self.get_retained_inputs()
+        ggp, ggx, ggy = grad_outputs
+        gp = gz * (ggx - ggy)
+        gx = gz * ggp
         gy = - gx
-        gg = (x - y) * g0 + p * g1 + (1 - p) * g2
-        return gp, gx, gy, gg
+        ggz = (x - y) * ggp + p * ggx + (1 - p) * ggy
+        return gp, gx, gy, ggz
 
 
 def linear_interpolate(p, x, y):
