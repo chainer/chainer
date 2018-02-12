@@ -260,9 +260,6 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
                 self.should_call_cudnn = False
             if self.groups > 1 and cuda.cuda.cudnn.getVersion() < 7000:
                 self.should_call_cudnn = False
-            self.can_use_tensor_core = True
-            if self.dilate > 1:
-                self.can_use_tensor_core = False
 
     def forward(self):
         x = chainer.Variable(self.x)

@@ -248,23 +248,20 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         return y,
 
     def _forward_cudnn(self, x, W, b):
-        n = x.shape[0]
-        # out_c = W.shape[1]
-        yCg = W.shape[1]
-        yC = yCg * self.groups
+        n = len(x)
+        yC = W.shape[1] * self.groups
 
         y = cuda.cupy.empty((n, yC, self.outh, self.outw), dtype=x.dtype)
         pad = (self.ph, self.pw)
         stride = (self.sy, self.sx)
         dilation = (self.dy, self.dx)
-        group = self.group
-        workspace_size = cuda.get_max_workspace_size()
         deterministic = configuration.config.cudnn_deterministic
-        autotune = configuration.config.autotune
+        auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
         cudnn.convolution_backward_data(
-            W, x, b, y, pad, stride, dilation, group, workspace_size,
-            deterministic, autotune, tensor_core)
+            W, x, b, y, pad, stride, dilation, self.groups,
+            deterministic=deterministic, auto_tune=auto_tune,
+            tensor_core=tensor_core)
 
         return y,
 

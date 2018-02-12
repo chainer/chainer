@@ -89,14 +89,13 @@ class ConvolutionND(function_node.FunctionNode):
         assert all(out > 0 for out in outs), 'Output sizes should be positive.'
         y_shape = (n, out_c) + outs  # (n, c_O, out_1, out_2, ..., out_N)
         y = cuda.cupy.empty(y_shape, dtype=x.dtype)
-        workspace_size = cuda.get_max_workspace_size()
         dilation = (1,) * self.ndim
-        group = 1
-        autotune = configuration.config.autotune
+        groups = 1
+        auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
         cudnn.convolution_forward(
-            x, W, b, y, pad, stride, dilation, group, workspace_size, autotune,
-            tensor_core)
+            x, W, b, y, pad, stride, dilation, groups,
+            auto_tune=auto_tune, tensor_core=tensor_core)
         return y,
 
     def forward(self, inputs):
@@ -190,10 +189,6 @@ class ConvolutionNDGradW(function_node.FunctionNode):
         return gW,
 
     def _forward_cudnn(self, x, gy):
-        # Convert to C-contiguous arrays.
-        x = cuda.cupy.ascontiguousarray(x)
-        gy = cuda.cupy.ascontiguousarray(gy)
-
         # Make empty arrays for result.
         out_c = gy.shape[1]
         in_c = x.shape[1]
@@ -204,14 +199,14 @@ class ConvolutionNDGradW(function_node.FunctionNode):
         pad = self.pad
         stride = self.stride
         dilation = (1,) * self.ndim
-        group = 1
-        workspace_size = cuda.get_max_workspace_size()
+        groups = 1
         deterministic = configuration.config.cudnn_deterministic
-        autotune = configuration.config.autotune
+        auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
         cudnn.convolution_backward_filter(
-            x, gy, gW, pad, stride, dilation, group, workspace_size,
-            deterministic, autotune, tensor_core)
+            x, gy, gW, pad, stride, dilation, groups,
+            deterministic=deterministic, auto_tune=auto_tune,
+            tensor_core=tensor_core)
 
         return gW,
 

@@ -218,16 +218,14 @@ class Convolution2DFunction(function_node.FunctionNode):
         return y,
 
     def _forward_cudnn(self, x, W, b, y):
-        workspace_size = cuda.get_max_workspace_size()
         pad = (self.ph, self.pw)
         stride = (self.sy, self.sx)
         dilation = (self.dy, self.dx)
-        group = self.group
-        autotune = configuration.config.autotune
+        auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
         cudnn.convolution_forward(
-            x, W, b, y, pad, stride, dilation, group, workspace_size,
-            autotune, tensor_core)
+            x, W, b, y, pad, stride, dilation, self.groups,
+            auto_tune=auto_tune, tensor_core=tensor_core)
         return y,
 
     def backward(self, indexes, grad_outputs):
@@ -397,14 +395,13 @@ class Convolution2DGradW(function_node.FunctionNode):
         pad = (self.ph, self.pw)
         stride = (self.sy, self.sx)
         dilation = (self.dy, self.dx)
-        group = self.group
-        workspace_size = cuda.get_max_workspace_size()
         deterministic = configuration.config.cudnn_deterministic
-        autotune = configuration.config.autotune
+        auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
         cudnn.convolution_backward_filter(
-            x, gy, gW, pad, stride, dilation, group, workspace_size,
-            deterministic, autotune, tensor_core)
+            x, gy, gW, pad, stride, dilation, self.groups,
+            deterministic=deterministic, auto_tune=auto_tune,
+            tensor_core=tensor_core)
 
         return gW,
 

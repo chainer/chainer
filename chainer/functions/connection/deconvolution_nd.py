@@ -98,15 +98,15 @@ class DeconvolutionND(function_node.FunctionNode):
         pad = self.pad
         stride = self.stride
         dilation = (1,) * self.ndim
-        group = 1
-        workspace_size = cuda.get_max_workspace_size()
+        groups = 1
         deterministic = configuration.config.cudnn_deterministic
-        autotune = configuration.config.autotune
+        auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
 
         cudnn.convolution_backward_data(
-            W, x, b, y, pad, stride, dilation, group, workspace_size,
-            deterministic, autotune, tensor_core)
+            W, x, b, y, pad, stride, dilation, groups,
+            deterministic=deterministic, auto_tune=auto_tune,
+            tensor_core=tensor_core)
 
         return y,
 
@@ -132,70 +132,6 @@ class DeconvolutionND(function_node.FunctionNode):
             return self._forward_cudnn(x, W, b)
         else:
             return self._forward_xp(x, W, b, cuda.cupy)
-
-    def _backward_xp(self, x, W, b, gy, xp):
-        ndim = self.ndim
-        ksize = W.shape[2:]
-        stride = self.stride
-        pad = self.pad
-        if xp is numpy:
-            col = conv_nd.im2col_nd_cpu(gy, ksize, stride, pad)
-        else:
-            col = conv_nd.im2col_nd_gpu(gy, ksize, stride, pad)
-
-        # x  : n, C_I, d_1, d_2, ..., d_N
-        # col: n, C_I, k_1, k_2, ..., k_N, d_1, d_2, ..., d_N
-        x_axes = (0,) + tuple(six.moves.range(2, ndim + 2))
-        col_axes = (0,) + tuple(six.moves.range(ndim + 2, ndim * 2 + 2))
-        gW = xp.tensordot(x, col, (x_axes, col_axes)).astype(
-            W.dtype, copy=False)
-
-        # col: n, C_I, k_1, k_2, ..., k_N, d_1, d_2, ..., d_N
-        # W  : C_I, C_O, k_1, k_2, ..., k_N
-        axes = (1,) + tuple(six.moves.range(2, ndim + 2))
-        gx = xp.tensordot(col, W, (axes, axes)).astype(x.dtype, copy=False)
-        gx = xp.rollaxis(gx, ndim + 1, 1)
-
-        if b is None:
-            return gx, gW
-        else:
-            sum_axis = (0,) + tuple(six.moves.range(2, ndim + 2))
-            gb = gy.sum(axis=sum_axis)
-            return gx, gW, gb
-
-    def _backward_cudnn(self, x, W, b, gy):
-        # Convert to C-contiguous arrays.
-        gy = cuda.cupy.ascontiguousarray(gy)
-
-        # Make empty arrays for results.
-        gx = cuda.cupy.empty_like(x)
-        gW = cuda.cupy.empty_like(W)
-
-        # Compute input gradient.
-        pad = self.pad
-        stride = self.stride
-        dilation = (1,) * self.ndim
-        group = 1
-        workspace_size = cuda.get_max_workspace_size()
-        deterministic = configuration.config.cudnn_deterministic
-        autotune = False
-        tensor_core = configuration.config.use_cudnn_tensor_core
-        cudnn.convolution_forward(
-            gy, W, None, gx, pad, stride, dilation, group, workspace_size,
-            autotune, tensor_core)
-
-        # Compute filter gradient.
-        cudnn.convolution_backward_filter(
-            gy, x, gW, pad, stride, dilation, group, workspace_size,
-            deterministic, autotune, tensor_core)
-
-        if b is None:
-            return gx, gW
-
-        # Compute bias gradient.
-        gb = cuda.cupy.empty_like(b)
-        cudnn.convolution_backward_bias(gy, gb)
-        return gx, gW, gb
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
