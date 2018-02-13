@@ -127,14 +127,14 @@ def get_cpu_array_types():
 
 
 def is_arrays_compatible(arrays):
-    arrays = [_ for _ in arrays if _ is not None]
+    arrays = [a for a in arrays if a is not None]
     if len(arrays) == 0:
         return True
     if type(arrays[0]) is backends.cuda.ndarray:
         types = backends.cuda.ndarray
     else:
         types = get_cpu_array_types()
-    return all(isinstance(_, types) for _ in arrays)
+    return all([isinstance(a, types) for a in arrays])
 
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
