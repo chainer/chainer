@@ -219,29 +219,5 @@ TEST_F(ArrayDeviceTest, OnesLike) {
     });
 }
 
-TEST_F(ArrayDeviceTest, Fill) {
-    Shape shape({2, 3});
-    Dtype dtype = Dtype::kFloat32;
-    NativeBackend native_backend;
-    Device cpu_device{"cpu", &native_backend};
-    Array cpu_array = Array::Empty(shape, dtype, cpu_device);
-
-    {
-        // current device is null
-        cpu_array.Fill(1);
-    }
-    {
-        // current device and array's device are same
-        DeviceScope scope{cpu_device};
-        cpu_array.Fill(1);
-    }
-    {
-        // current device and array's device are different
-        NativeBackend native_backend2;
-        DeviceScope scope{"cpu2", &native_backend2};
-        EXPECT_THROW(cpu_array.Fill(1), DeviceError);
-    }
-}
-
 }  // namespace
 }  // namespace xchainer
