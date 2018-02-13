@@ -61,6 +61,7 @@ if(ENABLE_TEST)
         dtype_test.cc
         gradient_check_test.cc
         memory_test.cc
+        native_backend_test.cc
         numeric_test.cc
         scalar_test.cc
         shape_test.cc
