@@ -13,7 +13,10 @@ def inject_backend_tests(method_names):
     decorator = backend.inject_backend_tests(
         method_names,
         # CPU tests
-        [{'use_cuda': False}]
+        testing.product({
+            'use_cuda': [False],
+            'use_ideep': ['never', 'always'],
+        })
         # GPU tests
         + [{'use_cuda': True}])
     return decorator
@@ -40,6 +43,12 @@ def inject_backend_tests(method_names):
          'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
                     [slice(None), slice(5, None)]]},
         {'shape': (2, 7, 3), 'axis': 1, 'ys_section': [0],
+         'slices': [[slice(None), slice(None, 0)], [slice(None), slice(0, 7)]]
+         },
+        {'shape': (2, 7, 3, 2), 'axis': 1, 'ys_section': [2, 5],
+         'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
+                    [slice(None), slice(5, None)]]},
+        {'shape': (2, 7, 3, 2), 'axis': 1, 'ys_section': [0],
          'slices': [[slice(None), slice(None, 0)], [slice(None), slice(0, 7)]]
          },
     ],
