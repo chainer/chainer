@@ -23,6 +23,18 @@ TEST(CudaDeviceTest, Ctor) {
     }
 }
 
+TEST(CudaDeviceTest, Allocate) {
+    size_t size = 3;
+    CudaBackend backend;
+    CudaDevice device{backend, 0};
+    std::shared_ptr<void> ptr = device.Allocate(size);
+
+    cudaPointerAttributes attr = {};
+    CheckError(cudaPointerGetAttributes(&attr, ptr.get()));
+    EXPECT_TRUE(attr.isManaged);
+    EXPECT_EQ(device.index(), attr.device);
+}
+
 }  // namespace
 }  // namespace cuda
 }  // namespace xchainer
