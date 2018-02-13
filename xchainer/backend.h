@@ -20,7 +20,7 @@ public:
     // Copies the data between two memory chunks.
     // The caller must guarantee that:
     // - both dst_ptr and src_ptr reside in devices of this backend,
-    // - a copy between these memory regions can be done transparently,
+    // - a copy between these memory regions can be done transparently, e.g. without sychronization,
     // - and these memory regions are not overlapped.
     virtual void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) = 0;
 
