@@ -6,6 +6,8 @@ namespace xchainer {
 
 class NativeBackend : public Backend {
 public:
+    NativeBackend() : Backend("native") {}
+
     std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) override;
     void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) override;
     std::shared_ptr<void> FromBuffer(const Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
