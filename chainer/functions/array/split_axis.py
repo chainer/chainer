@@ -44,7 +44,9 @@ class SplitAxis(function_node.FunctionNode):
     def forward(self, inputs):
         # Currently iDeep only supports 4 dims
         if (intel64.should_use_ideep('>=auto')
-                and intel64.inputs_all_ready(inputs, (4,))):
+                and intel64.inputs_all_ready(inputs, (4,))
+                and self._ideep_is_indices_or_sections_supported(
+                    self.indices_or_sections)):
             return self._forward_ideep(inputs)
 
         x, = inputs
@@ -57,18 +59,35 @@ class SplitAxis(function_node.FunctionNode):
         self._shapes = [r.shape for r in ret]
         return ret
 
+    def _ideep_is_indices_or_sections_supported(self, indices_or_sections):
+        # Returns True if the value of ``indices_or_sections`` is supported
+        # by iDeep.
+        ios = indices_or_sections
+        if isinstance(ios, collections.Iterable):
+            if len(ios) == 0:
+                return False  # Empty sequence
+            if ios[0] == 0:
+                return False  # Sequence starting with 0
+            if any([ios[i-1] == ios[i] for i in six.moves.range(1, len(ios))]):
+                return False  # Sequence with duplicate index
+        else:
+            if ios == 1:
+                return False  # 1
+        return True
+
     def _forward_ideep(self, inputs):
         x, = inputs
         offsets = intel64.ideep.intVector()
         # FIXME
         # bypass python3 issue when transfer array to std::vector<>
         # https://github.com/SimpleITK/SimpleITK/issues/106
-        if isinstance(self.indices_or_sections, collections.Iterable):
-            for i in self.indices_or_sections:
+        ios = self.indices_or_sections
+        if isinstance(ios, collections.Iterable):
+            for i in ios:
                 offsets.push_back(i)
         else:
             d = x.shape[self.axis]
-            step = d // self.indices_or_sections
+            step = d // ios
             for i in six.moves.range(0, d, step):
                 offsets.push_back(i)
         ret = intel64.ideep.concat.Backward(
