@@ -57,9 +57,10 @@ from chainer.testing import attr
         {'a_shape': (2, 3), 'b_shape': (4, 2), 'axes': (0, 1), 'gc_shape': (3, 4)},  # NOQA
         {'a_shape': (2, 3), 'b_shape': (2, 4), 'axes': (0, 0), 'gc_shape': (3, 4)},  # NOQA
 
+        {'a_shape': (), 'b_shape': (), 'axes': 0, 'gc_shape': ()},  # NOQA
         {'a_shape': (2), 'b_shape': (3), 'axes': 0, 'gc_shape': (2, 3)},  # NOQA
-        {'a_shape': (2, 3), 'b_shape': (), 'axes': 0, 'gc_shape': (2, 3)},  # NOQA
         {'a_shape': (), 'b_shape': (2, 3), 'axes': 0, 'gc_shape': (2, 3)},  # NOQA
+        {'a_shape': (2, 3), 'b_shape': (), 'axes': 0, 'gc_shape': (2, 3)},  # NOQA
         {'a_shape': (2, 3), 'b_shape': (4), 'axes': 0, 'gc_shape': (2, 3, 4)},  # NOQA
         {'a_shape': (2), 'b_shape': (3, 4), 'axes': 0, 'gc_shape': (2, 3, 4)},  # NOQA
     ],

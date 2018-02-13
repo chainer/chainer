@@ -9,7 +9,6 @@ from chainer.utils import type_check
 
 
 def _tensordot(a, b, a_axes, b_axes, c_axes=None):
-
     a_col_ndim = len(a_axes[1])
     b_row_ndim = len(b_axes[0])
     if a_col_ndim != b_row_ndim:
@@ -22,11 +21,8 @@ def _tensordot(a, b, a_axes, b_axes, c_axes=None):
         if a.shape[a_axis] != b.shape[b_axis]:
             raise ValueError('shape mismatch')
 
-    if a.ndim == 0 or b.ndim == 0:
-        y = a * b
-    else:
-        xp = cuda.get_array_module(a)
-        y = xp.tensordot(a, b, axes=(a_axes[1], b_axes[0]))
+    xp = cuda.get_array_module(a)
+    y = xp.tensordot(a, b, axes=(tuple(a_axes[1]), tuple(b_axes[0])))
 
     if c_axes is not None:
         a_row_ndim = len(a_axes[0])
