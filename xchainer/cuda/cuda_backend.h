@@ -7,7 +7,7 @@ namespace cuda {
 
 class CudaBackend : public Backend {
 public:
-    CudaBackend() : Backend("cuda") {}
+    CudaBackend(const std::string& name = "cuda") : Backend(name) {}
 
     std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) override;
     void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) override;
