@@ -96,7 +96,7 @@ def crf1d(cost, xs, ys, reduce='mean'):
 
         See detail in the original paper: `Conditional Random Fields:
         Probabilistic Models for Segmenting and Labeling Sequence Data
-        <http://repository.upenn.edu/cis_papers/159/>`_.
+        <https://repository.upenn.edu/cis_papers/159/>`_.
 
     """
     if reduce not in ('mean', 'no'):
