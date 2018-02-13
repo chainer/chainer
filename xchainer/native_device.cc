@@ -6,10 +6,7 @@
 
 namespace xchainer {
 
-std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) {
-    (void)bytesize;  // unused
-    return nullptr;
-}
+std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) { return std::make_unique<uint8_t[]>(bytesize); }
 
 void NativeDevice::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
     (void)dst_ptr;   // unused

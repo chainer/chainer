@@ -42,26 +42,7 @@ bool IsPointerCudaMemory(const void* ptr) {
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
-std::shared_ptr<void> Allocate(Device& device, size_t bytesize) {
-    // TODO(sonots): Use device.Allocate()
-    if (device.backend().GetName() == "native") {
-        return std::make_unique<uint8_t[]>(bytesize);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device.backend().GetName() == "cuda") {
-        void* raw_ptr = nullptr;
-        // Be careful to be exception-safe, i.e., do not throw before creating shared_ptr
-        cudaError_t status = cudaMallocManaged(&raw_ptr, bytesize, cudaMemAttachGlobal);
-        if (status == cudaSuccess) {
-            return std::shared_ptr<void>{raw_ptr, cudaFree};
-        } else {
-            cuda::Throw(status);
-        }
-        assert(false);  // should never be reached
-#endif                  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
-}
+std::shared_ptr<void> Allocate(Device& device, size_t bytesize) { return device.Allocate(bytesize); }
 
 void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
 #ifdef XCHAINER_ENABLE_CUDA
