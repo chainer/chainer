@@ -242,6 +242,7 @@ from chainer.functions.math.squared_difference import squared_difference  # NOQA
 from chainer.functions.math.squared_difference import SquaredDifference  # NOQA
 from chainer.functions.math.sum import sum  # NOQA
 from chainer.functions.math.sum import Sum  # NOQA
+from chainer.functions.math.tensordot import tensordot  # NOQA
 from chainer.functions.math.trigonometric import arccos  # NOQA
 from chainer.functions.math.trigonometric import Arccos  # NOQA
 from chainer.functions.math.trigonometric import arcsin  # NOQA
