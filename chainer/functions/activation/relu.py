@@ -29,9 +29,7 @@ class ReLU(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(inputs)):
-
             # iDeep implementation
-            # TODO(iDeep): Support arbitrary dimension
             self._use_ideep = True
             return self.forward_ideep(inputs)
 
@@ -65,7 +63,6 @@ class ReLU(function_node.FunctionNode):
         y, = self.get_retained_outputs()
         if self._use_ideep:
             # iDeep implementation
-            # TODO(iDeep): Support arbitrary dimension
             x, = self.get_retained_inputs()
             return ReLUGradIdeep(x, y).apply((gy,))
         if chainer.should_use_cudnn('==always') and self._use_cudnn:
