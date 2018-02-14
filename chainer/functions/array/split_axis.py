@@ -68,8 +68,9 @@ class SplitAxis(function_node.FunctionNode):
                 return False  # Empty sequence
             if ios[0] == 0:
                 return False  # Sequence starting with 0
-            if any([ios[i-1] == ios[i] for i in six.moves.range(1, len(ios))]):
-                return False  # Sequence with duplicate index
+            for i in six.moves.range(1, len(ios)):
+                if ios[i-1] == ios[i]:
+                    return False  # Sequence with duplicate index
         else:
             if ios == 1:
                 return False  # 1
