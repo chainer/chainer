@@ -509,6 +509,10 @@ Use apply() method instead.\
            This behavior might be changed in a future version.
 
         """
+        assert isinstance(target_input_indexes, tuple)
+        assert isinstance(grad_outputs, tuple)
+        assert isinstance(grad_inputs, tuple)
+
         # The default implementation uses backward(). You can override this
         # method without using backward().
         gxs = self.backward(target_input_indexes, grad_outputs)
@@ -794,6 +798,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
                 gys.append(None)
                 continue
             gys.append(grads.get(y, None))
+        gys = tuple(gys)
 
         # Collect the gradients w.r.t. the inputs
         #
@@ -814,6 +819,8 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
             else:
                 gxs.append(grads.get(x, None))
                 selected_inputs.add(x)
+        gxs = tuple(gxs)
+        input_indexes = tuple(input_indexes)
 
         if not input_indexes:
             continue
