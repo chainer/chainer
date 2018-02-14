@@ -235,7 +235,7 @@ In order to implement this training procedure, we have to customize the followin
 When we write a dataset iterator dedicated to the dataset, the dataset implementation can be arbitrary; even the interface is not fixed.
 On the other hand, the iterator must support the :class:`~chainer.dataset.Iterator` interface.
 The important methods and attributes to implement are ``batch_size``, ``epoch``, ``epoch_detail``, ``is_new_epoch``, ``iteration``, ``__next__``, and ``serialize``.
-Following is a code from the official example in the ``examples/ptb`` directory.
+Following is a code from the official example in the :tree:`examples/ptb` directory.
 
 .. code-block:: python
 
@@ -333,5 +333,5 @@ The rest of the code for setting up Trainer is almost same as one given in the p
 ---------
 
 In this section we have demonstrated how to write recurrent nets in Chainer and some fundamental techniques to manage the history of computation (a.k.a. computational graph).
-The example in the ``examples/ptb`` directory implements truncated backprop learning of a LSTM language model from the Penn Treebank corpus.
+The example in the :tree:`examples/ptb` directory implements truncated backprop learning of a LSTM language model from the Penn Treebank corpus.
 In the next section, we will review how to use GPU(s) in Chainer.
