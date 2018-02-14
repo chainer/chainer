@@ -33,7 +33,6 @@ class LinearFunction(function_node.FunctionNode):
     def forward(self, inputs):
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(inputs)):
-
             # iDeep implementation
             self._use_ideep = True
             return self._forward_ideep(inputs)
