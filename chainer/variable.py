@@ -9,6 +9,7 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
@@ -18,16 +19,16 @@ def _check_grad_type(func, x, gx):
     if x.data is None or gx is None:
         # ``x.data is None`` implies that the data array is not retained
         return
-    if not isinstance(gx, type(x.data)):
-        msg = ('Type of data and grad mismatch\n%s != %s' %
+    if not chainer.is_arrays_compatible((gx, x.data)):
+        msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
                (type(x.data), type(gx)))
         typ = TypeError
     elif gx.dtype != x.data.dtype:
-        msg = ('Dtype of data and grad mismatch\n%s != %s' %
+        msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
                (x.data.dtype, gx.dtype))
         typ = TypeError
     elif gx.shape != x.data.shape:
-        msg = ('Shape of data and grad mismatch\n%s != %s' %
+        msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
                (x.data.shape, gx.shape))
         typ = ValueError
     else:
@@ -454,7 +455,7 @@ class Variable(object):
                 ('requires_grad', True))
 
         if (data is not None and
-                not isinstance(data, (numpy.ndarray, cuda.ndarray))):
+                not isinstance(data, chainer.get_array_types())):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
 Actual: {0}'''.format(type(data))
             raise TypeError(msg)
@@ -698,10 +699,18 @@ Actual: {0}'''.format(type(data))
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
-        if self.data is None:
+
+        data = self.data
+        if data is None:
             return
 
-        self._data = [cuda.to_cpu(self.data)]
+        if isinstance(data, cuda.ndarray):
+            # cupy.ndarray to numpy.ndarray
+            self._data = [cuda.to_cpu(data)]
+        elif isinstance(data, intel64.mdarray):
+            # ideep.mdarray to numpy.ndarray
+            self._data = [numpy.array(data)]
+
         if self._grad_var is not None:
             self._grad_var.to_cpu()
         # ensure that the node tracks the device migration
@@ -725,6 +734,31 @@ Actual: {0}'''.format(type(data))
             self._data = [cuda.to_gpu(self.data, device)]
             if self._grad_var is not None:
                 self._grad_var.to_gpu(device)
+            # ensure that the node tracks the device migration
+            node = self._node
+            if node._data is not None:
+                node.retain_data()
+
+    def to_intel64(self):
+        """Copies the data and gradient arrays to intel64 specific mdarray.
+
+        If the array is not suited for intel64, it will be converted to
+        :class:`numpy.ndarray`.
+        """
+        data = self.data
+        if data is not None:
+            if isinstance(data, numpy.ndarray):
+                # numpy.ndarray to ideep
+                self._data = [
+                    intel64.ideep.array(
+                        data, itype=intel64.ideep.wgt_array)]
+            elif isinstance(data, cuda.ndarray):
+                # cupy.ndarray to ideep
+                self._data = [
+                    intel64.ideep.array(
+                        data.get(), itype=intel64.ideep.wgt_array)]
+        if self._grad_var is not None:
+            self._grad_var.to_intel64()
             # ensure that the node tracks the device migration
             node = self._node
             if node._data is not None:
@@ -904,7 +938,7 @@ Actual: {0}'''.format(type(data))
         if self.creator_node is None:
             return
         initial_device = None
-        if cuda.available and isinstance(self.data, cuda.cupy.ndarray):
+        if cuda.available and isinstance(self.data, cuda.ndarray):
             try:
                 initial_device = cuda.Device()
             except cuda.cupy.cuda.runtime.CUDARuntimeError as e:
@@ -1245,6 +1279,11 @@ class Parameter(Variable):
             if device is None:
                 device = cuda.Device().id
             self._initial_device = device
+
+    def to_intel64(self):
+        super(Parameter, self).to_intel64()
+        if self.data is None:
+            self._initial_device = None
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()

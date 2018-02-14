@@ -29,6 +29,7 @@ if _error is None:
     _gpu_limit = int(os.getenv('CHAINER_TEST_GPU_LIMIT', '-1'))
 
     cudnn = pytest.mark.cudnn
+    ideep = pytest.mark.ideep
     slow = pytest.mark.slow
 
 else:
@@ -37,6 +38,7 @@ else:
         assert False  # Not reachable
 
     cudnn = _dummy_callable
+    ideep = _dummy_callable
     slow = _dummy_callable
 
 
