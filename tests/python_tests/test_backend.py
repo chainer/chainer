@@ -7,3 +7,7 @@ def test_inheritance():
 
 def test_creation():
     xchainer.NativeBackend()
+
+
+def test_name():
+    assert "native" == xchainer.NativeBackend().name
