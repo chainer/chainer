@@ -23,11 +23,11 @@ namespace {
 class ArrayDeviceTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        orig_ = internal::GetCurrentDeviceNoExcept();
-        SetCurrentDevice(internal::kNullDevice);
+        orig_ = internal::GetDefaultDeviceNoExcept();
+        SetDefaultDevice(internal::kNullDevice);
     }
 
-    void TearDown() override { SetCurrentDevice(orig_); }
+    void TearDown() override { SetDefaultDevice(orig_); }
 
 private:
     Device orig_;
@@ -48,9 +48,9 @@ void ExpectDataExistsOnDevice(const Device& expected_device, const Array& array)
     }
 }
 
-// Check that Arrays are created on the current device if no other devices are specified
+// Check that Arrays are created on the default device if no other devices are specified
 void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
-    // Fallback to current device which is CPU
+    // Fallback to default device which is CPU
     {
         NativeBackend native_backend;
         Device cpu_device{"cpu", &native_backend};
@@ -59,7 +59,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
         ExpectDataExistsOnDevice(cpu_device, array);
     }
 #ifdef XCHAINER_ENABLE_CUDA
-    // Fallback to current device which is GPU
+    // Fallback to default device which is GPU
     {
         cuda::CudaBackend cuda_backend;
         Device cuda_device{"cuda", &cuda_backend};
@@ -70,7 +70,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
 #endif
 }
 
-// Check that Arrays are created on the specified device, if specified, without taking into account the current device
+// Check that Arrays are created on the specified device, if specified, without taking into account the default device
 void CheckDeviceExplicit(const std::function<Array(const Device& device)>& create_array_func) {
     NativeBackend native_backend;
     Device cpu_device{"cpu", &native_backend};

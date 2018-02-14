@@ -32,7 +32,7 @@ private:
 
 namespace internal {
 
-const Device& GetCurrentDeviceNoExcept() noexcept;
+const Device& GetDefaultDeviceNoExcept() noexcept;
 
 constexpr Device kNullDevice = {};
 
@@ -44,15 +44,15 @@ inline bool operator!=(const Device& lhs, const Device& rhs) { return !(lhs == r
 
 std::ostream& operator<<(std::ostream&, const Device&);
 
-const Device& GetCurrentDevice();
+const Device& GetDefaultDevice();
 
-void SetCurrentDevice(const Device& device);
+void SetDefaultDevice(const Device& device);
 
-// Scope object that switches the current device by RAII.
+// Scope object that switches the default device by RAII.
 class DeviceScope {
 public:
-    DeviceScope() : orig_(internal::GetCurrentDeviceNoExcept()), exited_(false) {}
-    explicit DeviceScope(Device device) : DeviceScope() { SetCurrentDevice(device); }
+    DeviceScope() : orig_(internal::GetDefaultDeviceNoExcept()), exited_(false) {}
+    explicit DeviceScope(Device device) : DeviceScope() { SetDefaultDevice(device); }
     explicit DeviceScope(const std::string& device, Backend* backend) : DeviceScope(Device{device, backend}) {}
 
     DeviceScope(const DeviceScope&) = delete;
@@ -65,7 +65,7 @@ public:
     // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
         if (!exited_) {
-            SetCurrentDevice(orig_);
+            SetDefaultDevice(orig_);
             exited_ = true;
         }
     }

@@ -24,7 +24,7 @@ On GPU
 
 TODO(sonots): Fix bus error
 
-.. >>> xc.set_current_device('cuda')
+.. >>> xc.set_default_device('cuda')
 .. >>> a = a.copy()  # TODO(sonots): Check memory is located on GPU
 .. >>> a.is_grad_required()
 .. True

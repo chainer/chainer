@@ -37,8 +37,8 @@ void InitXchainerDevice(pybind11::module& m) {
         .def_property_readonly("name", &Device::name)
         .def_property_readonly("backend", &Device::backend);
 
-    m.def("get_current_device", []() { return GetCurrentDevice(); });
-    m.def("set_current_device", [](const Device& device) { SetCurrentDevice(device); });
+    m.def("get_default_device", []() { return GetDefaultDevice(); });
+    m.def("set_default_device", [](const Device& device) { SetDefaultDevice(device); });
 
     py::class_<PyDeviceScope>(m, "DeviceScope").def("__enter__", &PyDeviceScope::Enter).def("__exit__", &PyDeviceScope::Exit);
     m.def("device_scope", [](Device device) { return PyDeviceScope(device); });
