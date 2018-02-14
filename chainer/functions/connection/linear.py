@@ -79,7 +79,6 @@ class LinearFunction(function_node.FunctionNode):
         x, W = self.get_retained_inputs()
 
         if self._use_ideep:
-
             # iDeep implementation
             if 0 in indexes:  # grad_x
                 gx = LinearGradDIdeep().apply((W, gy))
