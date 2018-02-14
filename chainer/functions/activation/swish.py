@@ -170,7 +170,7 @@ def swish(x, beta):
             *minibatch dimension*.
         beta (~chainer.Variable): Parameter variable :math:`\\beta` of shape
             :math:`(s_1, s_2, ..., s_M)`, where :math:`M` is an arbitrary
-            integer between :math:`1 \\leq M \\leq N`. The number of
+            integer between :math:`0 \\leq M \\leq N`. The number of
             dimensions of ``beta`` will be matched with ``x`` by reshaping it
             as :math:`(1, s_1, ..., s_M, 1, ... 1)`, then ``beta`` and ``x``
             are multiplied together in an element-wise manner.
