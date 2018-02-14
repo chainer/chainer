@@ -168,7 +168,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         param = intel64.ideep.convolution2DParam(
             (n, out_c, out_h, out_w),
             self.dy, self.dx,
-            self.sx, self.sy,
+            self.sy, self.sx,
             self.ph, self.pw,
             self.pd, self.pr)
         y = intel64.ideep.convolution2D.Forward(
