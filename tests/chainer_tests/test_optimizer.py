@@ -150,19 +150,20 @@ class TestGradientLARS(unittest.TestCase):
         g1 = self.target[1].param.grad
         xp = cuda.get_array_module(w0)
         threshold = 1e-2
-        weightdecay = 0.2
+        weight_decay = 0.2
         eps = 1e-9
 
         p0_norm = xp.linalg.norm(w0)
         g0_norm = xp.linalg.norm(g0)
-        local_rate = p0_norm / (eps + g0_norm + weightdecay * p0_norm)
-        expect0 = w0 - local_rate * (g0 + weightdecay * w0)
-        expect1 = w1 - 1.0 * (g1 + weightdecay * w1)
+        local_rate = p0_norm / (eps + g0_norm + weight_decay * p0_norm)
+        expect0 = w0 - local_rate * (g0 + weight_decay * w0)
+        expect1 = w1 - 1.0 * (g1 + weight_decay * w1)
 
         opt = optimizers.SGD(lr=1)
         opt.setup(self.target)
         opt.add_hook(optimizer.GradientLARS(threshold=threshold,
-                                            weightdecay=weightdecay, eps=eps))
+                                            weight_decay=weight_decay,
+                                            eps=eps))
         opt.update()
 
         testing.assert_allclose(expect0, w0)
