@@ -100,7 +100,8 @@ class TestNonparameterizedLinear(unittest.TestCase):
             inputs = inputs[:-1]
 
         input_vars = [chainer.Variable(x) for x in inputs]
-        y, = self.forward(*input_vars)
+        with backend_config:
+            y, = self.forward(*input_vars)
 
         assert y.data.dtype == self.x_dtype
         testing.assert_allclose(
@@ -148,9 +149,10 @@ class TestNonparameterizedLinear(unittest.TestCase):
             y, = self.forward(*args)
             return y * y
 
-        gradient_check.check_double_backward(
-            nonlinear, inputs, grad_outputs, grad_grad_inputs,
-            **self.check_double_backward_options)
+        with backend_config:
+            gradient_check.check_double_backward(
+                nonlinear, inputs, grad_outputs, grad_grad_inputs,
+                **self.check_double_backward_options)
 
     def test_double_backward(self, backend_config):
         self.check_double_backward(
@@ -167,16 +169,17 @@ class TestLinearBackwardNoncontiguousGradOutputs(unittest.TestCase):
     # a non-contiguous array.
 
     def test_1(self):
-        n_batches = 1  # important
-        in_dims = (2, 2)
-        out_dim = 3
-        x_shape = (n_batches,) + in_dims
-        w_shape = (out_dim, numpy.prod(in_dims),)
-        x = numpy.ones(x_shape, numpy.float32)
-        w = numpy.ones(w_shape, numpy.float32)
-        y = functions.linear(chainer.Variable(x), w)
-        z = functions.sum(y)
-        z.backward()
+        with chainer.using_config('use_ideep', 'never'):
+            n_batches = 1  # important
+            in_dims = (2, 2)
+            out_dim = 3
+            x_shape = (n_batches,) + in_dims
+            w_shape = (out_dim, numpy.prod(in_dims),)
+            x = numpy.ones(x_shape, numpy.float32)
+            w = numpy.ones(w_shape, numpy.float32)
+            y = functions.linear(chainer.Variable(x), w)
+            z = functions.sum(y)
+            z.backward()
 
 
 testing.run_module(__name__, __file__)
