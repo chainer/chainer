@@ -785,21 +785,21 @@ class GradientLARS(object):
     Args:
         threashold (float): If weight norm is more than threshold,
             this function scales all gradient arrays to fit weight norm.
-        weightdecay (float): Coefficient for the weight decay.
+        weight_decay (float): Coefficient for the weight decay.
         eps (float): Small value for the numerical stability.
 
     Attributes:
         threashold (float): If weight norm is more than threshold,
             this function scales all gradient arrays to fit weight norm.
-        weightdecay (float): Coefficient for the weight decay.
+        weight_decay (float): Coefficient for the weight decay.
         eps (float): Small value for the numerical stability.
     """
     name = 'GradientLARS'
     call_for_each_param = True
 
-    def __init__(self, threshold=1e-2, weightdecay=0.0, eps=1e-9):
+    def __init__(self, threshold=1e-2, weight_decay=0.0, eps=1e-9):
         self.threshold = threshold
-        self.weightdecay = weightdecay
+        self.weight_decay = weight_decay
         self.eps = eps
 
     def __call__(self, rule, param):
@@ -813,16 +813,16 @@ class GradientLARS(object):
         p_norm = xp.linalg.norm(p)
         # grad norm
         g_norm = xp.linalg.norm(g)
-        local_rate = p_norm / (self.eps + g_norm + self.weightdecay * p_norm)
+        local_rate = p_norm / (self.eps + g_norm + self.weight_decay * p_norm)
         rate = xp.where(p_norm > self.threshold, local_rate, 1.0)
         with cuda.get_device_from_array(p) as dev:
             if int(dev) == -1:
-                g += self.weightdecay * p
+                g += self.weight_decay * p
                 g *= rate
             else:
                 kernel = cuda.elementwise(
-                    'T p, T rate, T weightdecay',
+                    'T p, T rate, T weight_decay',
                     'T g',
-                    'g += weightdecay * p; g *= rate;',
+                    'g += weight_decay * p; g *= rate;',
                     'lars')
-                kernel(p, rate, self.weightdecay, g)
+                kernel(p, rate, self.weight_decay, g)
