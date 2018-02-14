@@ -31,8 +31,7 @@ class SGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        if (intel64.is_ideep_available()
-                and isinstance(param.data, intel64.ideep.mdarray)):
+        if isinstance(param.data, intel64.mdarray):
             param.data.inplace_axpby(1.0, -self.hyperparam.lr, grad)
         else:
             param.data -= self.hyperparam.lr * grad

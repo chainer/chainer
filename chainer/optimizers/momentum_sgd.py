@@ -46,8 +46,7 @@ class MomentumSGDRule(optimizer.UpdateRule):
         if grad is None:
             return
         v = self.state['v']
-        if (intel64.is_ideep_available()
-                and isinstance(v, intel64.ideep.mdarray)):
+        if isinstance(v, intel64.mdarray):
             v.inplace_axpby(self.hyperparam.momentum, -
                             self.hyperparam.lr, grad)
             param.data += v
