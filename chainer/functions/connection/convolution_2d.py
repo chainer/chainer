@@ -59,7 +59,7 @@ def _get_algorithm_bwd_filter(
 
 class Convolution2DFunction(function_node.FunctionNode):
 
-    def __init__(self, stride=1, pad=0, cover_all=False, group=1, **kwargs):
+    def __init__(self, stride=1, pad=0, cover_all=False, groups=1, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs,
             deterministic="deterministic argument is not supported anymore. "
@@ -76,7 +76,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         self.ph, self.pw = _pair(pad)
         self.cover_all = cover_all
         self.dy, self.dx = _pair(dilate)
-        self.group = group
+        self.groups = groups
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -123,7 +123,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         else:
             x, W, b = inputs
 
-        if self.group > 1:
+        if self.groups > 1:
             y = self._forward_grouped_convolution(x, W, b)
         else:
             y = self._forward_cpu_core(x, W, b)
@@ -159,7 +159,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             and not self.cover_all
             and x.dtype == W.dtype
             and ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)
-            and (self.group <= 1 or _cudnn_version >= 7000)
+            and (self.groups <= 1 or _cudnn_version >= 7000)
         )
 
         if use_cudnn:
@@ -167,7 +167,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             return self._forward_cudnn(x, W, b, y)
 
         else:
-            if self.group > 1:
+            if self.groups > 1:
                 y = self._forward_grouped_convolution(x, W, b)
             else:
                 y = self._forward_gpu_core(x, W, b)
@@ -194,7 +194,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         # kH, kW: kernel height, kernel width
         # iC, iH, iW: input channels, input height, input width
         # oC, oH, oW: output channels, output height, output width
-        G = self.group
+        G = self.groups
         N, iC, iH, iW = x.shape
         oC, _, kH, kW = W.shape
         iCg = int(iC / G)
@@ -243,7 +243,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         conv_desc = cudnn.create_convolution_descriptor(
             *conv_param, dilation=dilation,
             use_tensor_core=use_tensor_core,
-            group=self.group)
+            groups=self.groups)
         if b is not None:
             bias_desc = cudnn.create_tensor_descriptor(
                 b[None, :, None, None])
@@ -292,7 +292,8 @@ class Convolution2DFunction(function_node.FunctionNode):
             xh, xw = x.shape[2:]
             gx = chainer.functions.deconvolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                outsize=(xh, xw), dilate=(self.dy, self.dx), group=self.group)
+                outsize=(xh, xw), dilate=(self.dy, self.dx),
+                groups=self.groups)
             ret.append(gx)
         if 1 in indexes:
             gW, = Convolution2DGradW(self).apply((x, gy))
@@ -317,7 +318,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.dx = conv2d.dx
         self.cover_all = conv2d.cover_all
         self.W_dtype = W_node.dtype
-        self.group = conv2d.group
+        self.groups = conv2d.groups
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
@@ -330,7 +331,7 @@ class Convolution2DGradW(function_node.FunctionNode):
                 1 in gy.shape):
             gy = numpy.ascontiguousarray(gy)
 
-        if self.group > 1:
+        if self.groups > 1:
             gW = self._forward_grouped_convolution(x, gy)
         else:
             gW = self._forward_cpu_core(x, gy)
@@ -355,7 +356,7 @@ class Convolution2DGradW(function_node.FunctionNode):
             and ((self.dy == 1 and self.dx == 1)
                  or (_cudnn_version >= 6000
                      and not configuration.config.cudnn_deterministic))
-            and (self.group <= 1 or _cudnn_version >= 7000)
+            and (self.groups <= 1 or _cudnn_version >= 7000)
         )
 
         if use_cudnn:
@@ -363,7 +364,7 @@ class Convolution2DGradW(function_node.FunctionNode):
             return self._forward_cudnn(x, gy)
 
         else:
-            if self.group > 1:
+            if self.groups > 1:
                 gW = self._forward_grouped_convolution(x, gy)
             else:
                 gW = self._forward_gpu_core(x, gy)
@@ -383,7 +384,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         # kH, kW: kernel height, kernel width
         # iC, iH, iW: input channels, input height, input width
         # oC, oH, oW: output channels, output height, output width
-        G = self.group
+        G = self.groups
         N, iC, iH, iW = x.shape
         _, oC, oH, oW = gy.shape
         iCg = int(iC / G)
@@ -415,7 +416,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         n, c, h, w = x.shape
 
         iC = c
-        iCg = int(iC / self.group)
+        iCg = int(iC / self.groups)
         gW = cuda.cupy.empty((out_c, iCg, self.kh, self.kw),
                              dtype=self.W_dtype)
         x = cuda.cupy.ascontiguousarray(x)
@@ -438,7 +439,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         conv_desc = cudnn.create_convolution_descriptor(
             *conv_param, dilation=dilation,
             use_tensor_core=use_tensor_core,
-            group=self.group)
+            groups=self.groups)
 
         oz_dtype = 'd' if x.dtype == 'd' else 'f'
         one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -482,19 +483,20 @@ class Convolution2DGradW(function_node.FunctionNode):
             xh, xw = x.shape[2:]
             gx = chainer.functions.deconvolution_2d(
                 gy, ggW, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                outsize=(xh, xw), dilate=(self.dy, self.dx), group=self.group)
+                outsize=(xh, xw), dilate=(self.dy, self.dx),
+                groups=self.groups)
             ret.append(gx)
         if 1 in indexes:
             ggy = convolution_2d(
                 x, ggW, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
                 cover_all=self.cover_all, dilate=(self.dy, self.dx),
-                group=self.group)
+                groups=self.groups)
             ret.append(ggy)
 
         return ret
 
 
-def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, group=1,
+def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, groups=1,
                    **kwargs):
     """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, *, dilate=1)
 
@@ -630,7 +632,7 @@ cover_all=True)
     dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
-                                  group=group)
+                                  groups=groups)
     if b is None:
         args = x, W
     else:
