@@ -53,7 +53,9 @@ class Concat(function_node.FunctionNode):
         xs_mdarray = intel64.ideep.mdarrayVector()
         for x in xs:
             xs_mdarray.push_back(intel64.ideep.array(x))
-        return intel64.ideep.concat.Forward(xs_mdarray, self.axis),
+        ndim = xs[0].ndim
+        axis = self.axis % ndim
+        return intel64.ideep.concat.Forward(xs_mdarray, axis),
 
     def backward(self, indexes, grad_outputs):
         if len(self.inputs) == 1:
