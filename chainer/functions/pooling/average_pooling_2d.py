@@ -37,15 +37,15 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         y_w = conv.get_conv_outsize(
             w, self.kw, self.sx, self.pw, self.cover_all)
         assert y_w > 0, 'Width in the output should be positive.'
-        self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
-        self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
+        pd = self.sy * (y_h - 1) + self.kh - h - self.ph
+        pr = self.sx * (y_w - 1) + self.kw - w - self.pw
 
         pp = intel64.ideep.pooling2DParam(
             (n, c, y_h, y_w),
             self.kh, self.kw,
             self.sy, self.sx,
             self.ph, self.pw,
-            self.pd, self.pr,
+            pd, pr,
             intel64.ideep.pooling2DParam.pooling_avg_include_padding)
         y, = intel64.ideep.pooling2D.Forward(intel64.ideep.array(x[0]), pp)
         return y,
@@ -129,15 +129,15 @@ class AveragePooling2DGrad(function_node.FunctionNode):
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
 
-        self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
-        self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
+        pd = self.sy * (y_h - 1) + self.kh - h - self.ph
+        pr = self.sx * (y_w - 1) + self.kw - w - self.pw
 
         pp = intel64.ideep.pooling2DParam(
             self._in_shape,
             self.kh, self.kw,
             self.sy, self.sx,
             self.ph, self.pw,
-            self.pd, self.pr,
+            pd, pr,
             intel64.ideep.pooling2DParam.pooling_avg_include_padding)
         gx = intel64.ideep.pooling2D.Backward(
             intel64.ideep.array(gy[0]), None, pp)
