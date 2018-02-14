@@ -66,10 +66,10 @@ class ReLU(function_node.FunctionNode):
             x, = self.get_retained_inputs()
             return ReLUGradIdeep(x, y).apply((gy,))
         if chainer.should_use_cudnn('==always') and self._use_cudnn:
-            # cuDNN implementatioin
+            # cuDNN implementation
             x, = self.get_retained_inputs()
             return ReLUGradCudnn(x, y).apply((gy,))
-        # Generic implementaion
+        # Generic implementation
         return ReLUGrad2(y).apply((gy,))
 
 
