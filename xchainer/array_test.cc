@@ -140,8 +140,8 @@ public:
         EXPECT_EQ(a.offset(), b.offset());
     }
 
-    void ExpectDataExistsOnCurrentDevice(const Array& array) {
-        Device device = GetCurrentDevice();
+    void ExpectDataExistsOnDefaultDevice(const Array& array) {
+        Device device = GetDefaultDevice();
 
         // Check device accessor
         EXPECT_EQ(device, array.device());
@@ -180,10 +180,10 @@ public:
 
         // Array::data
         ExpectDataEqual<T>(data.get(), x);
-        ExpectDataExistsOnCurrentDevice(x);
+        ExpectDataExistsOnDefaultDevice(x);
 
         // TODO(sonots): Polymorphism using device.backend->XXX()?
-        Device device = GetCurrentDevice();
+        Device device = GetDefaultDevice();
         if (device.name() == "cpu") {
             EXPECT_EQ(data.get(), x.data().get());
         } else if (device.name() == "cuda") {
@@ -202,7 +202,7 @@ public:
         EXPECT_EQ(x.dtype(), dtype);
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
-        ExpectDataExistsOnCurrentDevice(x);
+        ExpectDataExistsOnDefaultDevice(x);
     }
 
     template <typename T>
@@ -216,7 +216,7 @@ public:
         EXPECT_EQ(x.dtype(), x_orig.dtype());
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
-        ExpectDataExistsOnCurrentDevice(x);
+        ExpectDataExistsOnDefaultDevice(x);
     }
 
     template <typename T>
@@ -242,7 +242,7 @@ public:
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
-        ExpectDataExistsOnCurrentDevice(x);
+        ExpectDataExistsOnDefaultDevice(x);
     }
 
     template <typename T>
@@ -260,7 +260,7 @@ public:
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(value, x);
-        ExpectDataExistsOnCurrentDevice(x);
+        ExpectDataExistsOnDefaultDevice(x);
     }
 
     template <typename T>
@@ -275,7 +275,7 @@ public:
         EXPECT_TRUE(x.is_contiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
-        ExpectDataExistsOnCurrentDevice(x);
+        ExpectDataExistsOnDefaultDevice(x);
     }
 
     template <typename T>
@@ -294,7 +294,7 @@ public:
         EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
-        ExpectDataExistsOnCurrentDevice(x);
+        ExpectDataExistsOnDefaultDevice(x);
     }
 
     template <typename T>
@@ -310,7 +310,7 @@ public:
         EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
-        ExpectDataExistsOnCurrentDevice(x);
+        ExpectDataExistsOnDefaultDevice(x);
     }
 
     template <typename T>
@@ -324,7 +324,7 @@ public:
         EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
-        ExpectDataExistsOnCurrentDevice(x);
+        ExpectDataExistsOnDefaultDevice(x);
     }
 
     template <typename T>
@@ -340,7 +340,7 @@ public:
         EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
-        ExpectDataExistsOnCurrentDevice(x);
+        ExpectDataExistsOnDefaultDevice(x);
     }
 
 private:

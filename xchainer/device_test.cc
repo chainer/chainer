@@ -16,11 +16,11 @@ namespace {
 class DeviceTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        orig_ = internal::GetCurrentDeviceNoExcept();
-        SetCurrentDevice(internal::kNullDevice);
+        orig_ = internal::GetDefaultDeviceNoExcept();
+        SetDefaultDevice(internal::kNullDevice);
     }
 
-    void TearDown() override { SetCurrentDevice(orig_); }
+    void TearDown() override { SetDefaultDevice(orig_); }
 
 private:
     Device orig_;
@@ -43,76 +43,76 @@ TEST_F(DeviceTest, ToString) {
     EXPECT_EQ("Device('cpu')", device.ToString());
 }
 
-TEST_F(DeviceTest, SetCurrentDevice) {
-    ASSERT_THROW(GetCurrentDevice(), XchainerError);
+TEST_F(DeviceTest, SetDefaultDevice) {
+    ASSERT_THROW(GetDefaultDevice(), XchainerError);
 
     NativeBackend native_backend;
     Device native_device{"cpu", &native_backend};
-    SetCurrentDevice(native_device);
-    ASSERT_EQ(native_device, GetCurrentDevice());
+    SetDefaultDevice(native_device);
+    ASSERT_EQ(native_device, GetDefaultDevice());
 
 #ifdef XCHAINER_ENABLE_CUDA
     cuda::CudaBackend cuda_backend;
     Device cuda_device{"cuda", &cuda_backend};
-    SetCurrentDevice(cuda_device);
-    ASSERT_EQ(cuda_device, GetCurrentDevice());
+    SetDefaultDevice(cuda_device);
+    ASSERT_EQ(cuda_device, GetDefaultDevice());
 #endif  // XCHAINER_ENABLE_CUDA
 
     NativeBackend native_backend2;
     Device native_device2{"cpu2", &native_backend2};
-    SetCurrentDevice(native_device2);
-    ASSERT_EQ(native_device2, GetCurrentDevice());
+    SetDefaultDevice(native_device2);
+    ASSERT_EQ(native_device2, GetDefaultDevice());
 }
 
 TEST_F(DeviceTest, ThreadLocal) {
     NativeBackend backend1;
     Device device1{"cpu1", &backend1};
-    SetCurrentDevice(device1);
+    SetDefaultDevice(device1);
 
     auto future = std::async(std::launch::async, [] {
         NativeBackend backend2;
         Device device2{"cpu2", &backend2};
-        SetCurrentDevice(device2);
-        return GetCurrentDevice();
+        SetDefaultDevice(device2);
+        return GetDefaultDevice();
     });
-    ASSERT_NE(GetCurrentDevice(), future.get());
+    ASSERT_NE(GetDefaultDevice(), future.get());
 }
 
 TEST_F(DeviceTest, DeviceScopeCtor) {
     {
-        // DeviceScope should work even if current device is kNullDevice
+        // DeviceScope should work even if default device is kNullDevice
         NativeBackend backend;
         Device device{"cpu", &backend};
         DeviceScope scope(device);
     }
     NativeBackend backend1;
     Device device1{"cpu1", &backend1};
-    SetCurrentDevice(device1);
+    SetDefaultDevice(device1);
     {
         NativeBackend backend2;
         Device device2{"cpu2", &backend2};
         DeviceScope scope(device2);
-        EXPECT_EQ(device2, GetCurrentDevice());
+        EXPECT_EQ(device2, GetDefaultDevice());
     }
-    ASSERT_EQ(device1, GetCurrentDevice());
+    ASSERT_EQ(device1, GetDefaultDevice());
     {
         DeviceScope scope;
-        EXPECT_EQ(device1, GetCurrentDevice());
+        EXPECT_EQ(device1, GetDefaultDevice());
         NativeBackend backend2;
         Device device2{"cpu2", &backend2};
-        SetCurrentDevice(device2);
+        SetDefaultDevice(device2);
     }
-    ASSERT_EQ(device1, GetCurrentDevice());
+    ASSERT_EQ(device1, GetDefaultDevice());
     NativeBackend backend2;
     Device device2{"cpu2", &backend2};
     {
         DeviceScope scope(device2);
         scope.Exit();
-        EXPECT_EQ(device1, GetCurrentDevice());
-        SetCurrentDevice(device2);
+        EXPECT_EQ(device1, GetDefaultDevice());
+        SetDefaultDevice(device2);
         // not recovered here because the scope has already existed
     }
-    ASSERT_EQ(device2, GetCurrentDevice());
+    ASSERT_EQ(device2, GetDefaultDevice());
 }
 
 }  // namespace

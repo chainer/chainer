@@ -235,7 +235,7 @@ void Array::Add(const Array& rhs, Array& out) const {
     auto rhs_backward_function = lhs_backward_function;
     internal::SetUpOpNodes("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
-    Device device = GetCurrentDevice();
+    Device device = GetDefaultDevice();
     // TODO(sonots): Use device.backend->Add()
     if (device.name() == "cpu") {
         xchainer::Add(*this, rhs, out);
@@ -262,7 +262,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
     };
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
-    Device device = GetCurrentDevice();
+    Device device = GetDefaultDevice();
     // TODO(sonots): Use device.backend->Mul()
     if (device.name() == "cpu") {
         xchainer::Mul(*this, rhs, out);

@@ -83,21 +83,21 @@ public:
 
     explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
 
-    static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, const Device& device = GetCurrentDevice());
+    static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, const Device& device = GetDefaultDevice());
 
-    static Array Empty(const Shape& shape, Dtype dtype, const Device& device = GetCurrentDevice());
-    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, const Device& device = GetCurrentDevice());
-    static Array Full(const Shape& shape, Scalar scalar, const Device& device = GetCurrentDevice());
-    static Array Zeros(const Shape& shape, Dtype dtype, const Device& device = GetCurrentDevice());
-    static Array Ones(const Shape& shape, Dtype dtype, const Device& device = GetCurrentDevice());
+    static Array Empty(const Shape& shape, Dtype dtype, const Device& device = GetDefaultDevice());
+    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, const Device& device = GetDefaultDevice());
+    static Array Full(const Shape& shape, Scalar scalar, const Device& device = GetDefaultDevice());
+    static Array Zeros(const Shape& shape, Dtype dtype, const Device& device = GetDefaultDevice());
+    static Array Ones(const Shape& shape, Dtype dtype, const Device& device = GetDefaultDevice());
 
     // Creates an array which has the same shape and dtype as the other array.
-    // The new array is allocated in the current device. The device of the other array
+    // The new array is allocated in the default device. The device of the other array
     // is ignored.
-    static Array EmptyLike(const Array& array, const Device& device = GetCurrentDevice());
-    static Array FullLike(const Array& array, Scalar scalar, const Device& device = GetCurrentDevice());
-    static Array ZerosLike(const Array& array, const Device& device = GetCurrentDevice());
-    static Array OnesLike(const Array& array, const Device& device = GetCurrentDevice());
+    static Array EmptyLike(const Array& array, const Device& device = GetDefaultDevice());
+    static Array FullLike(const Array& array, Scalar scalar, const Device& device = GetDefaultDevice());
+    static Array ZerosLike(const Array& array, const Device& device = GetDefaultDevice());
+    static Array OnesLike(const Array& array, const Device& device = GetDefaultDevice());
 
     // Creates a copy. It will be connected to all the graphs.
     Array Copy() const;

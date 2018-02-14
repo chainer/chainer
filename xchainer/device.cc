@@ -12,7 +12,7 @@ static_assert(std::is_pod<decltype(thread_local_device)>::value, "thread_local_d
 
 namespace internal {
 
-const Device& GetCurrentDeviceNoExcept() noexcept { return thread_local_device; }
+const Device& GetDefaultDeviceNoExcept() noexcept { return thread_local_device; }
 
 }  // namespace internal
 
@@ -40,15 +40,15 @@ std::ostream& operator<<(std::ostream& os, const Device& device) {
     return os;
 }
 
-const Device& GetCurrentDevice() {
+const Device& GetDefaultDevice() {
     if (thread_local_device.is_null()) {
-        throw XchainerError("Current device is not set.");
+        throw XchainerError("Default device is not set.");
     } else {
         return thread_local_device;
     }
 }
 
-void SetCurrentDevice(const Device& device) { thread_local_device = device; }
+void SetDefaultDevice(const Device& device) { thread_local_device = device; }
 
 void DebugDumpDevice(std::ostream& os, const Device& device) {
     if (device.is_null()) {
