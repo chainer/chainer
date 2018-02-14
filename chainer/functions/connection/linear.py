@@ -8,7 +8,7 @@ from chainer.utils import type_check
 
 class LinearFunction(function_node.FunctionNode):
 
-    _use_ideep_config = None
+    _config_use_ideep = None
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -31,7 +31,7 @@ class LinearFunction(function_node.FunctionNode):
             )
 
     def forward(self, inputs):
-        self._use_ideep_config = chainer.config.use_ideep
+        self._config_use_ideep = chainer.config.use_ideep
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(inputs)):
             # iDeep implementation
@@ -75,7 +75,7 @@ class LinearFunction(function_node.FunctionNode):
         x, W = self.get_retained_inputs()
         gy, = grad_outputs
         ret = []
-        with chainer.using_config('use_ideep', self._use_ideep_config):
+        with chainer.using_config('use_ideep', self._config_use_ideep):
             if 0 in indexes:
                 gx, = LinearGradData().apply((W, gy))
                 ret.append(chainer.functions.cast(gx, x.dtype))
@@ -91,10 +91,10 @@ class LinearFunction(function_node.FunctionNode):
 
 class LinearGradData(function_node.FunctionNode):
 
-    _use_ideep_config = None
+    _config_use_ideep = None
 
     def forward(self, inputs):
-        self._use_ideep_config = chainer.config.use_ideep
+        self._config_use_ideep = chainer.config.use_ideep
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(inputs)):
             # iDeep implementation
@@ -125,7 +125,7 @@ class LinearGradData(function_node.FunctionNode):
         ggx, = grad_outputs
 
         ret = []
-        with chainer.using_config('use_ideep', self._use_ideep_config):
+        with chainer.using_config('use_ideep', self._config_use_ideep):
             if 0 in indexes:
                 gw, = LinearGradWeight(W.dtype).apply((ggx, gy))
                 ret.append(chainer.functions.cast(gw, W.dtype))
@@ -137,13 +137,13 @@ class LinearGradData(function_node.FunctionNode):
 
 class LinearGradWeight(function_node.FunctionNode):
 
-    _use_ideep_config = None
+    _config_use_ideep = None
 
     def __init__(self, w_dtype):
         self._w_dtype = w_dtype
 
     def forward(self, inputs):
-        self._use_ideep_config = chainer.config.use_ideep
+        self._config_use_ideep = chainer.config.use_ideep
         if (intel64.should_use_ideep('>=auto')
                 and self._w_dtype == numpy.float32
                 and intel64.inputs_all_ready(inputs)):
@@ -175,7 +175,7 @@ class LinearGradWeight(function_node.FunctionNode):
         ggW, = grad_outputs
 
         ret = []
-        with chainer.using_config('use_ideep', self._use_ideep_config):
+        with chainer.using_config('use_ideep', self._config_use_ideep):
             if 0 in indexes:
                 gx, = LinearGradData().apply((ggW, gy))
                 ret.append(chainer.functions.cast(gx, x.dtype))
