@@ -78,7 +78,7 @@ class SplitAxis(function_node.FunctionNode):
     def _forward_ideep(self, inputs):
         x, = inputs
         offsets = intel64.ideep.intVector()
-        # FIXME
+        # TODO(iDeep)
         # bypass python3 issue when transfer array to std::vector<>
         # https://github.com/SimpleITK/SimpleITK/issues/106
         ios = self.indices_or_sections
