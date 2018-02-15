@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import chainer
 from chainer.configuration import config
+from chainer import utils
 
 
 _ideep_version = None
@@ -37,6 +38,8 @@ def check_ideep_available():
     When iDeep is correctly set up, nothing happens.
     Otherwise it raises ``RuntimeError``.
     """
+    utils.experimental('ideep')
+
     if _ideep_version is None:
         raise RuntimeError(
             'iDeep is not available.\n'
@@ -77,7 +80,10 @@ def should_use_ideep(level):
         raise ValueError('invalid use_ideep configuration: %s '
                          '(must be either of "always", "auto", or "never")' %
                          repr(use_ideep))
-    return flags[use_ideep]
+    ret = flags[use_ideep]
+    if ret:
+        utils.experimental('ideep')
+    return ret
 
 
 def inputs_all_ready(inputs, supported_ndim=(2, 4)):
