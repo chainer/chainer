@@ -272,12 +272,12 @@ class BatchMatMulGrad(function_node.FunctionNode):
         if 2 in indexes:
             a = chainer.functions.reshape(a, (a.shape[:2] + (-1,)))
             b = chainer.functions.reshape(b, (b.shape[:2] + (-1,)))
-            ggy = \
+            ret.append(
                 BatchMatMul(self.transa, self.transb).apply(
-                    (grads[0], b))[0] + \
+                    (grads[0], b))[0] +
                 BatchMatMul(self.transa, self.transb).apply(
-                    (a, grads[1]))[0]
-        return ggab[0], ggab[1], ggy
+                    (a, grads[1]))[0])
+        return ret
 
 
 def batch_matmul(a, b, transa=False, transb=False):
