@@ -428,20 +428,22 @@ def n_step_lstm_base(
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         states = get_random_state().create_dropout_states(dropout_ratio)
+        lengths = [len(x) for x in xs]
+        xs = chainer.functions.concat(xs, axis=0)
         # flatten all input variables
         inputs = tuple(itertools.chain(
             (hx, cx),
             itertools.chain.from_iterable(ws),
             itertools.chain.from_iterable(bs),
-            xs))
+            (xs,)))
         if use_bi_direction:
-            rnn = NStepBiLSTM(n_layers, states)
+            rnn = NStepBiLSTM
         else:
-            rnn = NStepLSTM(n_layers, states)
+            rnn = NStepLSTM
 
-        ret = rnn(*inputs)
-        hy, cy = ret[:2]
-        ys = ret[2:]
+        hy, cy, ys = rnn(n_layers, states, lengths)(*inputs)
+        sections = numpy.cumsum(lengths[:-1])
+        ys = chainer.functions.split_axis(ys, sections, 0)
         return hy, cy, ys
 
     else:

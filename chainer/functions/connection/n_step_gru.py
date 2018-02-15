@@ -296,20 +296,22 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         states = get_random_state().create_dropout_states(dropout_ratio)
+        lengths = [len(x) for x in xs]
+        xs = chainer.functions.concat(xs, axis=0)
         # flatten all input variables
         inputs = tuple(itertools.chain(
-            (hx, ),
+            (hx,),
             itertools.chain.from_iterable(ws),
             itertools.chain.from_iterable(bs),
-            xs))
+            (xs,)))
         if use_bi_direction:
-            rnn = NStepBiGRU(n_layers, states)
+            rnn = NStepBiGRU
         else:
-            rnn = NStepGRU(n_layers, states)
+            rnn = NStepGRU
 
-        ret = rnn(*inputs)
-        hy, = ret[:1]
-        ys = ret[1:]
+        hy, ys = rnn(n_layers, states, lengths)(*inputs)
+        sections = numpy.cumsum(lengths[:-1])
+        ys = chainer.functions.split_axis(ys, sections, 0)
         return hy, ys
 
     else:
