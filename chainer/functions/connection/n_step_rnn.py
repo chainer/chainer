@@ -28,13 +28,6 @@ if cuda.cudnn_enabled:
     _cudnn_version = libcudnn.getVersion()
 
 
-def _stack_weight(ws):
-    # TODO(unno): Input of the current LSTM implementaiton is shuffled
-    w = stack.stack(ws, axis=1)
-    shape = w.shape
-    return reshape.reshape(w, (shape[0] * shape[1],) + shape[2:])
-
-
 class PointerArray(object):
 
     def __init__(self, lst, back_pointer):
@@ -837,10 +830,10 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
                                    force_tuple=True)
         hx = [reshape.reshape(h, h.shape[1:]) for h in hx]
 
-        xws = [_stack_weight([w[0]]) for w in ws]
-        hws = [_stack_weight([w[1]]) for w in ws]
-        xbs = [_stack_weight([b[0]]) for b in bs]
-        hbs = [_stack_weight([b[1]]) for b in bs]
+        xws = [xw for xw, _ in ws]
+        hws = [hw for _, hw in ws]
+        xbs = [xb for xb, _ in bs]
+        hbs = [hb for _, hb in bs]
 
         xs_next = xs
         hy = []
@@ -863,9 +856,9 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
                     if layer > 0:
                         x = dropout.dropout(x, ratio=dropout_ratio)
 
-                    rnn_in = (linear.linear(x, xws[layer_idx],
-                                            xbs[layer_idx]) +
-                              linear.linear(h, hws[layer_idx], hbs[layer_idx]))
+                    rnn_in = (
+                        linear.linear(x, xws[layer_idx], xbs[layer_idx]) +
+                        linear.linear(h, hws[layer_idx], hbs[layer_idx]))
                     if activation == 'tanh':
                         h_bar = tanh.tanh(rnn_in)
                     elif activation == 'relu':
