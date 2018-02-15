@@ -1,6 +1,7 @@
 import numpy
 import six
 
+from chainer.backends import cuda
 from chainer import reporter
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
@@ -42,19 +43,21 @@ class ParameterStatistics(extension.Extension):
     default_name = 'parameter_statistics'
     priority = extension.PRIORITY_WRITER
 
+    # avoid computations involving NaNs, e.g. when initial gradients are NaNs
+    check_nan_params = False
+
     # prefix ends with a '/' and param_name is preceded by a '/'
     report_key_template = ('{prefix}{link_name}{param_name}/{attr_name}/'
                            '{function_name}')
 
     default_statistics = {
-        'mean': numpy.mean,
-        'std': numpy.std,
-        'min': numpy.min,
-        'max': numpy.max,
-        'zeros': lambda x: numpy.count_nonzero(x == 0),
-        'percentile': lambda x: numpy.percentile(x, (0.13, 2.28, 15.87,
-                                                     50, 84.13, 97.72,
-                                                     99.87))
+        'mean': lambda x: cuda.get_array_module(x).mean(x),
+        'std': lambda x: cuda.get_array_module(x).std(x),
+        'min': lambda x: cuda.get_array_module(x).min(x),
+        'max': lambda x: cuda.get_array_module(x).max(x),
+        'zeros': lambda x: cuda.get_array_module(x).count_nonzero(x == 0),
+        'percentile': lambda x: cuda.get_array_module(x).percentile(
+            x, (0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87))
     }
 
     def __init__(self, links, statistics=default_statistics,
@@ -65,7 +68,7 @@ class ParameterStatistics(extension.Extension):
             links = links,
         self._links = links
 
-        self._statistics = statistics
+        self._statistics = statistics or {}
 
         attrs = []
         if report_params:
@@ -103,7 +106,12 @@ class ParameterStatistics(extension.Extension):
                         # since the statistics function should make no
                         # assumption about the axes
                         params = getattr(param, attr_name).ravel()
-                        value = function(params)
+                        if self.check_nan_params and \
+                                cuda.get_array_module(params).isnan(params) \
+                                    .any():
+                            value = numpy.nan
+                        else:
+                            value = function(params)
                         key = self.report_key_template.format(
                             prefix=self._prefix + '/' if self._prefix else '',
                             link_name=link_name,
@@ -111,7 +119,10 @@ class ParameterStatistics(extension.Extension):
                             attr_name=attr_name,
                             function_name=function_name
                         )
-                        if hasattr(value, '__iter__'):
+                        if hasattr(value, '__iter__') or \
+                                (isinstance(value,
+                                            (numpy.ndarray, cuda.ndarray))
+                                 and value.size > 1):
                             # Append integer indices to the keys if the
                             # statistic function return multiple values
                             statistics.update({'{}/{}'.format(key, i): v for
