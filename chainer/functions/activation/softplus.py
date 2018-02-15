@@ -109,7 +109,7 @@ def softplus(x, beta=1.0):
 
     .. admonition:: Example
 
-        >>> x = np.arange(-2, 3, 2).astype('f')
+        >>> x = np.arange(-2, 3, 2).astype(np.float32)
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
         >>> F.softplus(x, beta=1.0).data

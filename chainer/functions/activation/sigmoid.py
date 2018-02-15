@@ -109,7 +109,7 @@ def sigmoid(x):
 
         It maps the input values into the range of :math:`[0, 1]`.
 
-        >>> x = np.arange(-2, 3, 2).astype('f')
+        >>> x = np.arange(-2, 3, 2).astype(np.float32)
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
         >>> F.sigmoid(x)

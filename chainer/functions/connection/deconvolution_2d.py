@@ -427,13 +427,14 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         >>> h_i, w_i = 5, 10
         >>> h_k, w_k = 10, 10
         >>> h_p, w_p = 5, 5
-        >>> x = np.random.uniform(0, 1, (n, c_i, h_i, w_i)).astype('f')
+        >>> x = np.random.uniform(0, 1, (n, c_i, h_i, w_i)).astype(np.float32)
         >>> x.shape
         (10, 1, 5, 10)
-        >>> W = np.random.uniform(0, 1, (c_i, c_o, h_k, w_k)).astype('f')
+        >>> W = np.random.uniform(0, 1, (c_i, c_o, h_k, w_k)).\
+astype(np.float32)
         >>> W.shape
         (1, 3, 10, 10)
-        >>> b = np.random.uniform(0, 1, c_o).astype('f')
+        >>> b = np.random.uniform(0, 1, c_o).astype(np.float32)
         >>> b.shape
         (3,)
         >>> s_y, s_x = 5, 5
