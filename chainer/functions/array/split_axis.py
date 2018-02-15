@@ -89,7 +89,7 @@ class SplitAxis(function_node.FunctionNode):
         else:
             d = x.shape[self.axis]
             step = d // ios
-            for i in six.moves.range(0, d, step):
+            for i in six.moves.range(step, d, step):
                 offsets.push_back(i)
         ret = intel64.ideep.concat.Backward(
             intel64.ideep.array(x), offsets, self.axis)
