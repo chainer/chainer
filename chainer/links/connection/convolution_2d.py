@@ -7,7 +7,7 @@ from chainer import variable
 
 class Convolution2D(link.Link):
 
-    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None)
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None, *, group=1)
 
     Two-dimensional convolutional layer.
 
@@ -48,6 +48,8 @@ class Convolution2D(link.Link):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        group (int): The number of groups to use grouped convolution. The
+            default is one, where grouped convolution is not used.
 
     .. seealso::
        See :func:`chainer.functions.convolution_2d` for the definition of
@@ -103,8 +105,7 @@ class Convolution2D(link.Link):
     """  # NOQA
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None, group=1,
-                 **kwargs):
+                 nobias=False, initialW=None, initial_bias=None, **kwargs):
         super(Convolution2D, self).__init__()
 
         argument.check_unexpected_kwargs(
@@ -112,7 +113,8 @@ class Convolution2D(link.Link):
             "supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
-        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
+        dilate, group = argument.parse_kwargs(kwargs,
+                                              ('dilate', 1), ('group', 1))
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
