@@ -343,7 +343,7 @@ def connectionist_temporal_classification(
 
     .. [Graves2012] Alex Graves,\
     `Supervised Sequence Labelling with Recurrent Neural Networks\
-    <http://www.cs.toronto.edu/~graves/preprint.pdf>`_
+    <https://www.cs.toronto.edu/~graves/preprint.pdf>`_
 
     """
     if not isinstance(x, collections.Sequence):

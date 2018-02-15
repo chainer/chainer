@@ -158,7 +158,7 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
         Variable: Output variable.
 
     See: Section 3.3 of `ImageNet Classification with Deep Convolutional \\
-    Neural Networks <http://www.cs.toronto.edu/~fritz/absps/imagenet.pdf>`_
+    Neural Networks <https://www.cs.toronto.edu/~fritz/absps/imagenet.pdf>`_
 
     """
     return LocalResponseNormalization(n, k, alpha, beta)(x)

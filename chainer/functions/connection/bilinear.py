@@ -231,7 +231,7 @@ def bilinear(e1, e2, W, V1=None, V2=None, b=None):
 
     See:
         `Reasoning With Neural Tensor Networks for Knowledge Base Completion
-        <http://papers.nips.cc/paper/5028-reasoning-with-neural-tensor-
+        <https://papers.nips.cc/paper/5028-reasoning-with-neural-tensor-
         networks-for-knowledge-base-completion>`_ [Socher+, NIPS2013].
 
     """
