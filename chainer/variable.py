@@ -934,9 +934,9 @@ Actual: {0}'''.format(type(data))
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
             inputs = func.inputs
-            target_input_indexes = [
+            target_input_indexes = tuple([
                 i for i, x in enumerate(inputs) if x.requires_grad
-            ]
+            ])
             if not target_input_indexes:
                 continue
             outputs = [y() for y in func.outputs]  # access via weak ref
@@ -986,6 +986,7 @@ Actual: {0}'''.format(type(data))
                 else:
                     gx = None
                 in_grad.append(gx)
+            in_grad = tuple(in_grad)
 
             gxs = func.backward_accumulate(
                 target_input_indexes, out_grad, in_grad)
