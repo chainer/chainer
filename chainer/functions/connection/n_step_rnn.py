@@ -825,68 +825,75 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
 
     else:
 
-        direction = 2 if use_bi_direction else 1
-        hx = split_axis.split_axis(hx, n_layers * direction, axis=0,
-                                   force_tuple=True)
-        hx = [reshape.reshape(h, h.shape[1:]) for h in hx]
+        def f(x, h, w, b):
+            xw, hw = w
+            xb, hb = b
+            rnn_in = linear.linear(x, xw, xb) + linear.linear(h, hw, hb)
+            if activation == 'tanh':
+                return tanh.tanh(rnn_in)
+            elif activation == 'relu':
+                return relu.relu(rnn_in)
 
-        xws = [xw for xw, _ in ws]
-        hws = [hw for _, hw in ws]
-        xbs = [xb for xb, _ in bs]
-        hbs = [hb for _, hb in bs]
+        return n_step_rnn_impl(
+            f, n_layers, dropout_ratio, hx, ws, bs, xs, use_bi_direction)
 
-        xs_next = xs
-        hy = []
-        for layer in six.moves.range(n_layers):
 
-            def _one_directional_loop(di):
-                # di=0, forward RNN
-                # di=1, backward RNN
-                xs_list = xs_next if di == 0 else reversed(xs_next)
-                layer_idx = direction * layer + di
-                h = hx[layer_idx]
-                h_list = []
-                for x in xs_list:
-                    batch = x.shape[0]
-                    if h.shape[0] > batch:
-                        h, h_rest = split_axis.split_axis(h, [batch], axis=0)
-                    else:
-                        h_rest = None
+def n_step_rnn_impl(
+        f, n_layers, dropout_ratio, hx, ws, bs, xs, use_bi_direction):
+    direction = 2 if use_bi_direction else 1
+    hx = split_axis.split_axis(hx, n_layers * direction, axis=0)
+    hx = [reshape.reshape(h, h.shape[1:]) for h in hx]
 
-                    if layer > 0:
-                        x = dropout.dropout(x, ratio=dropout_ratio)
+    xs_next = xs
+    hy = []
+    for layer in six.moves.range(n_layers):
 
-                    rnn_in = (
-                        linear.linear(x, xws[layer_idx], xbs[layer_idx]) +
-                        linear.linear(h, hws[layer_idx], hbs[layer_idx]))
-                    if activation == 'tanh':
-                        h_bar = tanh.tanh(rnn_in)
-                    elif activation == 'relu':
-                        h_bar = relu.relu(rnn_in)
+        # Forward RNN
+        if layer == 0:
+            xs = xs_next
+        else:
+            xs = [dropout.dropout(x, ratio=dropout_ratio) for x in xs_next]
+        idx = direction * layer
+        h, h_forward = _one_directional_loop(f, xs, hx[idx], ws[idx], bs[idx])
+        hy.append(h)
 
-                    if h_rest is not None:
-                        h = concat.concat([h_bar, h_rest], axis=0)
-                    else:
-                        h = h_bar
-                    h_list.append(h_bar)
-                return h, h_list
-
-            # Forward RNN
-            h, h_forward = _one_directional_loop(di=0)
-            hy.append(h)
-
-            if use_bi_direction:
-                # Backward RNN
-                h, h_backward = _one_directional_loop(di=1)
-                h_backward.reverse()
-                # Concat
-                xs_next = [concat.concat([hfi, hbi], axis=1) for (hfi, hbi) in
-                           six.moves.zip(h_forward, h_backward)]
-                hy.append(h)
+        if use_bi_direction:
+            # Backward RNN
+            idx = direction * layer + 1
+            if layer == 0:
+                xs = xs_next
             else:
-                # Uni-directional RNN
-                xs_next = h_forward
+                xs = [dropout.dropout(x, ratio=dropout_ratio) for x in xs_next]
+            h, h_backward = _one_directional_loop(
+                f, reversed(xs), hx[idx], ws[idx], bs[idx])
+            h_backward.reverse()
+            # Concat
+            xs_next = [concat.concat([hfi, hbi], axis=1) for (hfi, hbi) in
+                       six.moves.zip(h_forward, h_backward)]
+            hy.append(h)
+        else:
+            # Uni-directional RNN
+            xs_next = h_forward
 
-        ys = xs_next
-        hy = stack.stack(hy)
-        return hy, tuple(ys)
+    ys = xs_next
+    hy = stack.stack(hy)
+    return hy, tuple(ys)
+
+
+def _one_directional_loop(f, xs, h, w, b):
+    h_list = []
+    for x in xs:
+        batch = x.shape[0]
+        if h.shape[0] > batch:
+            h, h_rest = split_axis.split_axis(h, [batch], axis=0)
+        else:
+            h_rest = None
+
+        h_bar = f(x, h, w, b)
+
+        if h_rest is not None:
+            h = concat.concat([h_bar, h_rest], axis=0)
+        else:
+            h = h_bar
+        h_list.append(h_bar)
+    return h, h_list
