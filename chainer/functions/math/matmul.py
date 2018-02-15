@@ -4,7 +4,6 @@ import numpy
 
 from chainer.backends import cuda
 from chainer import function_node
-import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
 
