@@ -74,13 +74,18 @@ def inject_backend_tests(method_names):
                     slice(5, None)]
          },
         {'shape': (5, 5, 3, 8), 'axis': 3, 'ys_section': 2,
-         'slices': [[slice(None, None), slice(None, None), slice(None, None), slice(None, 4)], [slice(None, None), slice(None, None), slice(None, None), slice(4, None)]]
+         'slices': [[slice(None, None), slice(None, None), slice(None, None),
+                     slice(None, 4)],
+                    [slice(None, None), slice(None, None), slice(None, None),
+                     slice(4, None)]]
          },
         {'shape': (5, 8, 3, 2), 'axis': -3, 'ys_section': 2,
-         'slices': [[slice(None, None), slice(None, 4)], [slice(None, None), slice(4, None)]]
+         'slices': [[slice(None, None), slice(None, 4)],
+                    [slice(None, None), slice(4, None)]]
          },
         {'shape': (5, 8, 3, 2), 'axis': 1, 'ys_section': 2,
-         'slices': [[slice(None, None), slice(None, 4)], [slice(None, None), slice(4, None)]]
+         'slices': [[slice(None, None), slice(None, 4)],
+                    [slice(None, None), slice(4, None)]]
          },
         {'shape': (5, 4, 3, 4), 'axis': -1, 'ys_section': 2,
          'slices': [[slice(None, None), slice(None, None), slice(None, None),
