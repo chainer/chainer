@@ -13,7 +13,6 @@ from chainer import function
 from chainer.functions.activation import relu
 from chainer.functions.activation import tanh
 from chainer.functions.array import concat
-from chainer.functions.array import reshape
 from chainer.functions.array import split_axis
 from chainer.functions.array import stack
 from chainer.functions.connection import linear
@@ -825,36 +824,45 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
 
     else:
 
-        def f(x, h, w, b):
+        def f(x, h, c, w, b):
             xw, hw = w
             xb, hb = b
             rnn_in = linear.linear(x, xw, xb) + linear.linear(h, hw, hb)
             if activation == 'tanh':
-                return tanh.tanh(rnn_in)
+                return tanh.tanh(rnn_in), None
             elif activation == 'relu':
-                return relu.relu(rnn_in)
+                return relu.relu(rnn_in), None
 
-        return n_step_rnn_impl(
-            f, n_layers, dropout_ratio, hx, ws, bs, xs, use_bi_direction)
+        hy, _, ys = n_step_rnn_impl(
+            f, n_layers, dropout_ratio, hx, None, ws, bs, xs, use_bi_direction)
+        return hy, ys
 
 
 def n_step_rnn_impl(
-        f, n_layers, dropout_ratio, hx, ws, bs, xs, use_bi_direction):
+        f, n_layers, dropout_ratio, hx, cx, ws, bs, xs, use_bi_direction):
     direction = 2 if use_bi_direction else 1
     hx = chainer.functions.separate(hx)
+    use_cell = cx is not None
+    if use_cell:
+        cx = chainer.functions.separate(cx)
+    else:
+        cx = [None] * len(hx)
 
     xs_next = xs
     hy = []
+    cy = []
     for layer in six.moves.range(n_layers):
 
         # Forward RNN
         if layer == 0:
             xs = xs_next
         else:
-            xs = [dropout.dropout(x, ratio=dropout_ratio) for x in xs_next]
+            xs = _dropout_sequence(xs_next, dropout_ratio)
         idx = direction * layer
-        h, h_forward = _one_directional_loop(f, xs, hx[idx], ws[idx], bs[idx])
+        h, c, h_forward = _one_directional_loop(
+            f, xs, hx[idx], cx[idx], ws[idx], bs[idx])
         hy.append(h)
+        cy.append(c)
 
         if use_bi_direction:
             # Backward RNN
@@ -862,37 +870,51 @@ def n_step_rnn_impl(
             if layer == 0:
                 xs = xs_next
             else:
-                xs = [dropout.dropout(x, ratio=dropout_ratio) for x in xs_next]
-            h, h_backward = _one_directional_loop(
-                f, reversed(xs), hx[idx], ws[idx], bs[idx])
+                xs = _dropout_sequence(xs_next, dropout_ratio)
+            h, c, h_backward = _one_directional_loop(
+                f, reversed(xs), hx[idx], cx[idx], ws[idx], bs[idx])
             h_backward.reverse()
             # Concat
             xs_next = [concat.concat([hfi, hbi], axis=1) for (hfi, hbi) in
                        six.moves.zip(h_forward, h_backward)]
             hy.append(h)
+            cy.append(c)
         else:
             # Uni-directional RNN
             xs_next = h_forward
 
     ys = xs_next
     hy = stack.stack(hy)
-    return hy, tuple(ys)
+    if use_cell:
+        cy = stack.stack(cy)
+    else:
+        cy = None
+    return hy, cy, tuple(ys)
 
 
-def _one_directional_loop(f, xs, h, w, b):
+def _one_directional_loop(f, xs, h, c, w, b):
     h_list = []
     for x in xs:
         batch = x.shape[0]
         if h.shape[0] > batch:
             h, h_rest = split_axis.split_axis(h, [batch], axis=0)
+            if c is not None:
+                c, c_rest = split_axis.split_axis(c, [batch], axis=0)
         else:
             h_rest = None
 
-        h_bar = f(x, h, w, b)
+        h_bar, c_bar = f(x, h, c, w, b)
 
         if h_rest is not None:
             h = concat.concat([h_bar, h_rest], axis=0)
+            if c is not None:
+                c = concat.concat([c_bar, c_rest], axis=0)
         else:
             h = h_bar
+            c = c_bar
         h_list.append(h_bar)
-    return h, h_list
+    return h, c, h_list
+
+
+def _dropout_sequence(xs, dropout_ratio):
+    return [dropout.dropout(x, ratio=dropout_ratio) for x in xs]
