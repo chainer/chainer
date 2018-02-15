@@ -79,7 +79,8 @@ class SplitAxis(function_node.FunctionNode):
         # See:
         #   https://github.com/chainer/chainer/pull/4281#issuecomment-365830630
         # TODO(niboshi): Remove this after iDeep is fixed.
-        if self.axis == 1 and inputs[0].shape[1] == 8:
+        # Note: inputs[0].ndim is always 4.
+        if (self.axis == 1 or self.axis == -3) and inputs[0].shape[1] == 8:
             return False
 
         return True
