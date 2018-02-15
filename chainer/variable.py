@@ -745,6 +745,7 @@ Actual: {0}'''.format(type(data))
         If the array is not suited for intel64, it will be converted to
         :class:`numpy.ndarray`.
         """
+        intel64.check_ideep_available()
         data = self.data
         if data is not None:
             if isinstance(data, numpy.ndarray):
