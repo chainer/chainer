@@ -45,8 +45,7 @@ class SplitAxis(function_node.FunctionNode):
         # Currently iDeep only supports 4 dims
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(inputs, (4,))
-                and self._ideep_is_indices_or_sections_supported(
-                    self.indices_or_sections)):
+                and self._ideep_is_supported(inputs)):
             return self._forward_ideep(inputs)
 
         x, = inputs
@@ -59,10 +58,11 @@ class SplitAxis(function_node.FunctionNode):
         self._shapes = [r.shape for r in ret]
         return ret
 
-    def _ideep_is_indices_or_sections_supported(self, indices_or_sections):
-        # Returns True if the value of ``indices_or_sections`` is supported
-        # by iDeep.
-        ios = indices_or_sections
+    def _ideep_is_supported(self, inputs):
+        # Returns True if iDeep supports current configuration of inputs and
+        # arguments. This is workaround for limitation in iDeep internal
+        # implementation.
+        ios = self.indices_or_sections
         if isinstance(ios, collections.Iterable):
             if len(ios) == 0:
                 return False  # Empty sequence
@@ -74,6 +74,14 @@ class SplitAxis(function_node.FunctionNode):
         else:
             if ios == 1:
                 return False  # 1
+
+        # Workaround for iDeep segfault issue
+        # See:
+        #   https://github.com/chainer/chainer/pull/4281#issuecomment-365830630
+        # TODO(niboshi): Remove this after iDeep is fixed.
+        if self.axis == 1 and inputs[0].shape[1] == 8:
+            return False
+
         return True
 
     def _forward_ideep(self, inputs):
