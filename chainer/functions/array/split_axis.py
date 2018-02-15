@@ -95,7 +95,7 @@ class SplitAxis(function_node.FunctionNode):
         axis = self.axis % x.ndim
         if isinstance(ios, collections.Iterable):
             for i in ios:
-                offsets.push_back(i)
+                offsets.push_back(int(i))
         else:
             d = x.shape[self.axis]
             step = d // ios
