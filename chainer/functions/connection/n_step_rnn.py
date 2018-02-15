@@ -896,23 +896,19 @@ def _one_directional_loop(f, xs, h, c, w, b):
     h_list = []
     for x in xs:
         batch = x.shape[0]
-        if h.shape[0] > batch:
+        need_split = h.shape[0] > batch
+        if need_split:
             h, h_rest = split_axis.split_axis(h, [batch], axis=0)
             if c is not None:
                 c, c_rest = split_axis.split_axis(c, [batch], axis=0)
-        else:
-            h_rest = None
 
-        h_bar, c_bar = f(x, h, c, w, b)
+        h, c = f(x, h, c, w, b)
+        h_list.append(h)
 
-        if h_rest is not None:
-            h = concat.concat([h_bar, h_rest], axis=0)
+        if need_split:
+            h = concat.concat([h, h_rest], axis=0)
             if c is not None:
-                c = concat.concat([c_bar, c_rest], axis=0)
-        else:
-            h = h_bar
-            c = c_bar
-        h_list.append(h_bar)
+                c = concat.concat([c, c_rest], axis=0)
     return h, c, h_list
 
 
