@@ -59,14 +59,70 @@ class TestParameterStatisticsBase(object):
 
 
 @testing.parameterize(
-    {'links': [chainer.links.Linear(3, 2)], 'statistics': {'min': lambda x: cuda.get_array_module(x).min(x)}, 'report_params': True, 'report_grads': True, 'prefix': None, 'expect': 4},  # NOQA
-    {'links': [chainer.links.Linear(3, 2)], 'statistics': {'min': lambda x: cuda.get_array_module(x).min(x)}, 'report_params': False, 'report_grads': True, 'prefix': 'test', 'expect': 2},  # NOQA
-    {'links': [chainer.links.Linear(3, 2)], 'statistics': {'min': lambda x: cuda.get_array_module(x).min(x)}, 'report_params': True, 'report_grads': False, 'prefix': None, 'expect': 2},  # NOQA
-    {'links': [chainer.links.Linear(3, 2)], 'statistics': {'min': lambda x: cuda.get_array_module(x).min(x)}, 'report_params': False, 'report_grads': False, 'prefix': 'test', 'expect': 0},  # NOQA
-    {'links': [chainer.links.Linear(3, 2)], 'statistics': extensions.ParameterStatistics.default_statistics, 'report_params': True, 'report_grads': True, 'prefix': None, 'expect': 36},  # NOQA
-    {'links': [chainer.links.Linear(3, 2)], 'statistics': extensions.ParameterStatistics.default_statistics, 'report_params': True, 'report_grads': False, 'prefix': 'test', 'expect': 24},  # NOQA
-    {'links': [chainer.links.Linear(3, 2)], 'statistics': extensions.ParameterStatistics.default_statistics, 'report_params': False, 'report_grads': True, 'prefix': None, 'expect': 12},  # NOQA
-    {'links': [chainer.links.Linear(3, 2)], 'statistics': extensions.ParameterStatistics.default_statistics, 'report_params': False, 'report_grads': False, 'prefix': 'test', 'expect': 0},  # NOQA
+    {
+        'links': [chainer.links.Linear(3, 2)],
+        'statistics': {'min': lambda x: cuda.get_array_module(x).min(x)},
+        'report_params': True,
+        'report_grads': True,
+        'prefix': None,
+        'expect': 4
+    },
+    {
+        'links': [chainer.links.Linear(3, 2)],
+        'statistics': {'min': lambda x: cuda.get_array_module(x).min(x)},
+        'report_params': False,
+        'report_grads': True,
+        'prefix': 'test',
+        'expect': 2
+    },
+    {
+        'links': [chainer.links.Linear(3, 2)],
+        'statistics': {'min': lambda x: cuda.get_array_module(x).min(x)},
+        'report_params': True,
+        'report_grads': False,
+        'prefix': None,
+        'expect': 2
+    },
+    {
+        'links': [chainer.links.Linear(3, 2)],
+        'statistics': {'min': lambda x: cuda.get_array_module(x).min(x)},
+        'report_params': False,
+        'report_grads': False,
+        'prefix': 'test',
+        'expect': 0
+    },
+    {
+        'links': [chainer.links.Linear(3, 2)],
+        'statistics': extensions.ParameterStatistics.default_statistics,
+        'report_params': True,
+        'report_grads': True,
+        'prefix': None,
+        'expect': 36
+    },
+    {
+        'links': [chainer.links.Linear(3, 2)],
+        'statistics': extensions.ParameterStatistics.default_statistics,
+        'report_params': True,
+        'report_grads': False,
+        'prefix': 'test',
+        'expect': 24
+    },
+    {
+        'links': [chainer.links.Linear(3, 2)],
+        'statistics': extensions.ParameterStatistics.default_statistics,
+        'report_params': False,
+        'report_grads': True,
+        'prefix': None,
+        'expect': 12
+    },
+    {
+        'links': [chainer.links.Linear(3, 2)],
+        'statistics': extensions.ParameterStatistics.default_statistics,
+        'report_params': False,
+        'report_grads': False,
+        'prefix': 'test',
+        'expect': 0
+    }
 )
 class TestParameterStatistics(TestParameterStatisticsBase, unittest.TestCase):
 
@@ -101,7 +157,14 @@ class TestParameterStatistics(TestParameterStatisticsBase, unittest.TestCase):
 
 
 @testing.parameterize(
-    {'links': [chainer.links.Linear(3, 2)], 'statistics': {'one': lambda x: 1.0}, 'report_params': True, 'report_grads': True, 'prefix': 'test', 'expect': 1.0},  # NOQA
+    {
+        'links': [chainer.links.Linear(3, 2)],
+        'statistics': {'one': lambda x: 1.0},
+        'report_params': True,
+        'report_grads': True,
+        'prefix': 'test',
+        'expect': 1.0
+    }
 )
 class TestParameterStatisticsCustomFunction(TestParameterStatisticsBase,
                                             unittest.TestCase):
