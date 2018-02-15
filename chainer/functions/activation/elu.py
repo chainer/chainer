@@ -22,14 +22,14 @@ class ELU(function_node.FunctionNode):
         self.retain_inputs((0,))
         y = x[0].copy()
         neg_indices = x[0] < 0
-        y[neg_indices] = self.alpha * (numpy.exp(y[neg_indices]) - 1)
+        y[neg_indices] = self.alpha * (numpy.expm1(y[neg_indices]))
         return y,
 
     def forward_gpu(self, x):
         self.retain_inputs((0,))
         y = cuda.elementwise(
             'T x, T alpha', 'T y',
-            'y = x >= 0 ? x : (T)(alpha * (exp(x) - 1))',
+            'y = x >= 0 ? x : (T)(alpha * expm1(x))',
             'elu_fwd')(
                 x[0], self.alpha)
         return y,
