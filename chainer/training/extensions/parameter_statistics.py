@@ -46,8 +46,6 @@ class ParameterStatistics(extension.Extension):
     default_name = 'parameter_statistics'
     priority = extension.PRIORITY_WRITER
 
-    # avoid computations involving NaNs, e.g. when initial gradients are NaNs
-
     # prefix ends with a '/' and param_name is preceded by a '/'
     report_key_template = ('{prefix}{link_name}{param_name}/{attr_name}/'
                            '{function_name}')
