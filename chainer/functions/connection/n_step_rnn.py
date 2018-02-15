@@ -841,8 +841,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
 def n_step_rnn_impl(
         f, n_layers, dropout_ratio, hx, ws, bs, xs, use_bi_direction):
     direction = 2 if use_bi_direction else 1
-    hx = split_axis.split_axis(hx, n_layers * direction, axis=0)
-    hx = [reshape.reshape(h, h.shape[1:]) for h in hx]
+    hx = chainer.functions.separate(hx)
 
     xs_next = xs
     hy = []
