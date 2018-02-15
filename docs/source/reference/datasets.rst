@@ -1,15 +1,15 @@
 .. module:: chainer.dataset
 
-Dataset abstraction
+Dataset Abstraction
 ===================
 
-Chainer has a support of common interface of training and validation datasets. The dataset support consists of three components: datasets, iterators, and batch conversion functions.
+Chainer supports a common interface for training and validation of datasets. The dataset support consists of three components: datasets, iterators, and batch conversion functions.
 
-**Dataset** represents a set of examples. The interface is only determined by combination with iterators you want to use on it. The built-in iterators of Chainer requires the dataset to support ``__getitem__`` and ``__len__`` method. In particular, the ``__getitem__`` method should support indexing by both an integer and a slice. We can easily support slice indexing by inheriting :class:`DatasetMixin`, in which case users only have to implement :meth:`~DatasetMixin.get_example` method for indexing. Some iterators also restrict the type of each example. Basically, datasets are considered as `stateless` objects, so that we do not need to save the dataset as a checkpoint of the training procedure.
+**Dataset** represents a set of examples. The interface is only determined by combination with iterators you want to use on it. The built-in iterators of Chainer require the dataset to support ``__getitem__`` and ``__len__`` methods. In particular, the ``__getitem__`` method should support indexing by both an integer and a slice. We can easily support slice indexing by inheriting :class:`DatasetMixin`, in which case users only have to implement :meth:`~DatasetMixin.get_example` method for indexing. Basically, datasets are considered as `stateless` objects, so that we do not need to save the dataset as a checkpoint of the training procedure.
 
-**Iterator** iterates over the dataset, and at each iteration, it yields a mini batch of examples as a list. Iterators should support the :class:`Iterator` interface, which includes the standard iterator protocol of Python. Iterators manage where to read next, which means they are `stateful`.
+**Iterator** iterates over the dataset, and at each iteration, it yields a mini-batch of examples as a list. Iterators should support the :class:`Iterator` interface, which includes the standard iterator protocol of Python. Iterators manage where to read next, which means they are `stateful`.
 
-**Batch conversion function** converts the mini batch into arrays to feed to the neural nets. They are also responsible to send each array to an appropriate device.
+**Batch conversion function** converts the mini-batch into arrays to feed to the neural nets. They are also responsible to send each array to an appropriate device.
 Chainer currently provides two implementations:
 
 - :func:`concat_examples` is a plain implementation which is used as the default choice.
@@ -20,7 +20,7 @@ These components are all customizable, and designed to have a minimum interface 
 Chainer also has a light system to download, manage, and cache concrete examples of datasets. All datasets managed through the system are saved under `the dataset root directory`, which is determined by the ``CHAINER_DATASET_ROOT`` environment variable, and can also be set by the :func:`set_dataset_root` function.
 
 
-Dataset representation
+Dataset Representation
 ~~~~~~~~~~~~~~~~~~~~~~
 See :ref:`datasets` for dataset implementations.
 
@@ -30,7 +30,7 @@ See :ref:`datasets` for dataset implementations.
 
    chainer.dataset.DatasetMixin
 
-Iterator interface
+Iterator Interface
 ~~~~~~~~~~~~~~~~~~
 See :ref:`iterators` for dataset iterator implementations.
 
@@ -40,7 +40,7 @@ See :ref:`iterators` for dataset iterator implementations.
 
    chainer.dataset.Iterator
 
-Batch conversion function
+Batch Conversion Function
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
@@ -51,7 +51,7 @@ Batch conversion function
    chainer.dataset.ConcatWithAsyncTransfer
    chainer.dataset.to_device
 
-Dataset management
+Dataset Management
 ~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
@@ -81,7 +81,7 @@ Most of them are wrapper of other datasets to introduce some structures (e.g., t
 The other one is a group of concrete, popular datasets.
 These concrete examples use the downloading utilities in the :mod:`chainer.dataset` module to cache downloaded and converted datasets.
 
-General datasets
+General Datasets
 ================
 
 General datasets are further divided into four types.
@@ -161,7 +161,7 @@ LabeledImageDataset
 
    chainer.datasets.LabeledImageDataset
 
-Concrete datasets
+Concrete Datasets
 ~~~~~~~~~~~~~~~~~
 
 .. autosummary::

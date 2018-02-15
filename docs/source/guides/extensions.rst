@@ -3,7 +3,7 @@ Trainer Extensions
 
 .. currentmodule:: chainer
 
-In this section, you will learn about the following things:
+In this section, you will learn about the following topics:
 
 - How to create your own trainer extension
 

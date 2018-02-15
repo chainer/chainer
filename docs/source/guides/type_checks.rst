@@ -1,4 +1,4 @@
-Type checks
+Type Checks
 -----------
 
 .. currentmodule:: chainer

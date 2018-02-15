@@ -3,7 +3,7 @@ Optimizer
 
 .. include:: ../imports.rst
 
-In order to get good values for parameters, we have to optimize them by the :class:`Optimizer` class.
+To tune parameters values to minimize loss, etc., we have to optimize them by the :class:`Optimizer` class.
 It runs a numerical optimization algorithm on a given link.
 Many algorithms are implemented in the :mod:`~chainer.optimizers` module.
 Here we use the simplest one, called Stochastic Gradient Descent (SGD):
@@ -23,13 +23,13 @@ For example, we can set weight decay regularization by running the next line bef
    >>> optimizer.add_hook(chainer.optimizer.WeightDecay(0.0005))
 
 Of course, you can write your own hook functions.
-It should be a function or a callable object, taking the optimizer as the argument.
+It should be a function or a callable object.
 
 There are two ways to use the optimizer.
 One is using it via :class:`~chainer.training.Trainer`, which we will see in the following sections.
 The other way is using it directly.
 We here review the latter case.
-*If you are interested in getting able to use the optimizer in a simple way, skip this section and go to the next one.*
+To use the optimizer in an automated fashion, see the :doc:`trainer` guide.
 
 There are two further ways to use the optimizer directly.
 One is manually computing gradients and then calling the :meth:`~Optimizer.update` method with no arguments.
@@ -49,11 +49,10 @@ In this case, :meth:`~Link.cleargrads` is automatically called by the update met
    ...     # calculate loss
    ...     loss = F.sum(model(arg1 - arg2))
    ...     return loss
+
    >>> arg1 = np.random.uniform(-1, 1, (2, 4)).astype('f')
    >>> arg2 = np.random.uniform(-1, 1, (2, 4)).astype('f')
    >>> optimizer.update(lossfun, chainer.Variable(arg1), chainer.Variable(arg2))
 
 See :meth:`Optimizer.update` for the full specification.
-
-
 

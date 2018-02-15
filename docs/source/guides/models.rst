@@ -11,6 +11,7 @@ We can write complex procedures with parameters by combining multiple links like
 
    >>> l1 = L.Linear(4, 3)
    >>> l2 = L.Linear(3, 2)
+
    >>> def my_forward(x):
    ...     h = l1(x)
    ...     return l2(h)
@@ -48,9 +49,9 @@ Then, what we have to do here is just define the above class as a subclass of Ch
    ...         return self.l2(h)
 
 It shows how a complex chain is constructed by simpler links.
-Links like ``l1`` and ``l2`` are called *child links* of MyChain.
+Links like ``l1`` and ``l2`` are called *child links* of ``MyChain``.
 **Note that Chain itself inherits Link**.
-It means we can define more complex chains that hold MyChain objects as their child links.
+It means we can define more complex chains that hold ``MyChain`` objects as their child links.
 
 .. note::
 
@@ -82,6 +83,4 @@ Another way to define a chain is using the :class:`ChainList` class, which behav
    ...         return self[1](h)
 
 ChainList can conveniently use an arbitrary number of links, however if the number of links is fixed like in the above case, the Chain class is recommended as a base class.
-
-
 

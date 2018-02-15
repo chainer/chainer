@@ -7,7 +7,7 @@ Chainer provides a standard implementation of the training loops under the :mod:
 
 The core of the training loop abstraction is :class:`~chainer.training.Trainer`, which implements the training loop itself. The training loop consists of two parts: one is :class:`~chainer.training.Updater`, which actually updates the parameters to train, and the other is :class:`~chainer.training.Extension` for arbitrary functionalities other than the parameter update.
 
-Updater and some extensions use :mod:`chainer.dataset` and :class:`~chainer.dataset.Iterator` to scan the datasets and load mini batches. The trainer also uses :class:`~chainer.Reporter` to collect the observed values, and some extensions use :class:`~chainer.DictSummary` to accumulate them and computes the statistics.
+Updater and some extensions use :mod:`chainer.dataset` and :class:`~chainer.dataset.Iterator` to scan the datasets and load mini-batches. The trainer also uses :class:`~chainer.Reporter` to collect the observed values, and some extensions use :class:`~chainer.DictSummary` to accumulate them and computes the statistics.
 
 You can find many examples for the usage of this training utilities from the official examples. You can also search the extension implementations from :ref:`extensions`.
 

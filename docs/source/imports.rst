@@ -1,7 +1,7 @@
-Standard Imports
-~~~~~~~~~~~~~~~~
 
-   In the example code of this tutorial, we assume for simplicity that the following symbols are already imported::
+   In the example code of this tutorial, we assume for simplicity that the following symbols are already imported.
+
+.. testcode::
 
      import numpy as np
      import chainer
@@ -11,5 +11,4 @@ Standard Imports
      import chainer.functions as F
      import chainer.links as L
      from chainer.training import extensions
-
 

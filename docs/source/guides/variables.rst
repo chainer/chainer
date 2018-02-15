@@ -1,6 +1,7 @@
-
 Variables and Derivatives
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. include:: ../imports.rst
 
 As described previously, Chainer uses the "Define-by-Run" scheme, so forward computation itself *defines* the network.
 In order to start forward computation, we have to set the input array to a :class:`Variable` object.
@@ -26,7 +27,7 @@ The resulting ``y`` is also a Variable object, whose value can be extracted by a
    array([ 16.], dtype=float32)
 
 What ``y`` holds is not only the result value.
-It also holds the history of computation (or computational graph), which enables us to compute its differentiation.
+It also holds the history of computation (or computational graph), which enables us to compute its derivative.
 This is done by calling its :meth:`~Variable.backward` method:
 
 .. doctest::
@@ -53,8 +54,8 @@ In order to preserve gradient information, pass the ``retain_grad`` argument to 
    >>> z.grad
    array([-1.], dtype=float32)
 
-All these computations are easily generalized to a multi-element array input.
-Note that if we want to start backward computation from a variable holding a multi-element array, we must set the *initial error* manually.
+All these computations are can be generalized to a multi-element array input.
+While single-element arrays are automatically initialized to ``[1]``, to start backward computation from a variable holding a multi-element array, we must set the *initial error* manually.
 This is done simply by setting the :attr:`~Variable.grad` attribute of the output variable:
 
 .. doctest::
@@ -71,5 +72,4 @@ This is done simply by setting the :attr:`~Variable.grad` attribute of the outpu
 
    Many functions taking :class:`Variable` object(s) are defined in the :mod:`~chainer.functions` module.
    You can combine them to realize complicated functions with automatic backward computation.
-
 

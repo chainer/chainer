@@ -2,20 +2,22 @@ Serializers -- saving and loading
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Serializer is a simple interface to serialize or deserialize an object.
-:class:`Link`, :class:`Optimizer`, and :class:`~training.Trainer` supports serialization.
+:class:`Link`, :class:`Optimizer`, and :class:`~training.Trainer` support serialization.
 
 Concrete serializers are defined in the :mod:`serializers` module.
 It supports NumPy NPZ and HDF5 formats.
 
 For example, we can serialize a link object into NPZ file by the :func:`serializers.save_npz` function:
 
+Assuming we have defined a ``model``:
+
 .. doctest::
 
    >>> from chainer import serializers
    >>> serializers.save_npz('my.model', model)
 
-It saves the parameters of ``model`` into the file ``'my.model'`` in NPZ format.
-The saved model can be read by the :func:`serializers.load_npz` function:
+This saves the parameters of ``model`` into the file ``'my.model'`` in NPZ format.
+The saved model can be read back from ``my.model`` back into ``model``  by the :func:`serializers.load_npz` function:
 
 .. doctest::
 
@@ -44,5 +46,4 @@ Serialization and deserialization with the HDF5 format are almost identical to t
 just replace :func:`~serializers.save_npz` and :func:`~serializers.load_npz` by :func:`~serializers.save_hdf5` and :func:`~serializers.load_hdf5`, respectively.
 
 .. _mnist_mlp_example:
-
 
