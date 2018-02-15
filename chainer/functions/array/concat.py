@@ -43,9 +43,10 @@ class Concat(function_node.FunctionNode):
     def forward(self, xs):
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(xs, (4,))):
-
+            # iDeep implementation
             return self._forward_ideep(xs)
 
+        # Generic implementation
         xp = cuda.get_array_module(*xs)
         return xp.concatenate(xs, self.axis),
 
