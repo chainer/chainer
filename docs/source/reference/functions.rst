@@ -185,6 +185,7 @@ Mathematical functions
    chainer.functions.cumsum
    chainer.functions.det
    chainer.functions.batch_det
+   chainer.functions.erf
    chainer.functions.exp
    chainer.functions.expm1
    chainer.functions.fix
