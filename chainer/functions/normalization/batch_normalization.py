@@ -90,19 +90,23 @@ class BatchNormalization(function_node.FunctionNode):
 
             m = x.size // gamma.size
             adjust = m / max(m - 1., 1.)
-            if (isinstance(self.running_mean, intel64.ideep.mdarray)
-                    and isinstance(self.running_var, intel64.ideep.mdarray)):
+
+            # Update running_mean
+            if isinstance(self.running_mean, intel64.ideep.mdarray):
                 self.running_mean.inplace_axpby(
                     self.decay, (1 - self.decay), self.mean)
-                self.running_var.inplace_axpby(
-                    self.decay, (1 - self.decay), self.var * adjust)
             else:
                 self.running_mean *= self.decay
                 self.running_mean += self.mean * (1 - self.decay)
+
+            # Update running_var
+            if isinstance(self.running_var, intel64.ideep.mdarray):
+                self.running_var.inplace_axpby(
+                    self.decay, (1 - self.decay), self.var * adjust)
+            else:
                 self.running_var *= self.decay
                 self.running_var += self.var * adjust * (1 - self.decay)
 
-            # ndarray ?
             if expand_dim:
                 y = numpy.squeeze(y, axis=(2, 3))
 
@@ -402,7 +406,6 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 self.eps
             )
 
-            # ndarray ?
             if expand_dim:
                 y = numpy.squeeze(y, axis=(2, 3))
 
