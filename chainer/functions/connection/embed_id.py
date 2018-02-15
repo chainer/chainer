@@ -29,11 +29,6 @@ class EmbedIDFunction(function_node.FunctionNode):
         x, W = inputs
         self._w_shape = W.shape
 
-        if not type_check.same_types(*inputs):
-            raise ValueError('numpy and cupy must not be used together\n'
-                             'type(W): {0}, type(x): {1}'
-                             .format(type(W), type(x)))
-
         xp = cuda.get_array_module(*inputs)
         if chainer.is_debug():
             valid_x = xp.logical_and(0 <= x, x < len(W))
