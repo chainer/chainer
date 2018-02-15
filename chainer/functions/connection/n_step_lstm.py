@@ -445,80 +445,14 @@ def n_step_lstm_base(
         return hy, cy, ys
 
     else:
-        direction = 2 if use_bi_direction else 1
-        split_size = n_layers * direction
-        hx = split_axis.split_axis(hx, split_size, axis=0, force_tuple=True)
-        hx = [reshape.reshape(h, h.shape[1:]) for h in hx]
-        cx = split_axis.split_axis(cx, split_size, axis=0, force_tuple=True)
-        cx = [reshape.reshape(c, c.shape[1:]) for c in cx]
+        def f(x, h, c, w, b):
+            xw = _stack_weight([w[2], w[0], w[1], w[3]])
+            hw = _stack_weight([w[6], w[4], w[5], w[7]])
+            xb = _stack_weight([b[2], b[0], b[1], b[3]])
+            hb = _stack_weight([b[6], b[4], b[5], b[7]])
+            lstm_in = linear.linear(x, xw, xb) + linear.linear(h, hw, hb)
+            c_bar, h_bar = lstm.lstm(c, lstm_in)
+            return h_bar, c_bar
 
-        xws = [_stack_weight([w[2], w[0], w[1], w[3]]) for w in ws]
-        hws = [_stack_weight([w[6], w[4], w[5], w[7]]) for w in ws]
-        xbs = [_stack_weight([b[2], b[0], b[1], b[3]]) for b in bs]
-        hbs = [_stack_weight([b[6], b[4], b[5], b[7]]) for b in bs]
-
-        xs_next = xs
-        hy = []
-        cy = []
-        for layer in six.moves.range(n_layers):
-
-            def _one_directional_loop(di):
-                # di=0, forward LSTM
-                # di=1, backward LSTM
-                h_list = []
-                c_list = []
-                layer_idx = direction * layer + di
-                h = hx[layer_idx]
-                c = cx[layer_idx]
-                if di == 0:
-                    xs_list = xs_next
-                else:
-                    xs_list = reversed(xs_next)
-                for x in xs_list:
-                    batch = x.shape[0]
-                    if h.shape[0] > batch:
-                        h, h_rest = split_axis.split_axis(h, [batch], axis=0)
-                        c, c_rest = split_axis.split_axis(c, [batch], axis=0)
-                    else:
-                        h_rest = None
-                        c_rest = None
-
-                    if layer != 0:
-                        x = dropout.dropout(x, ratio=dropout_ratio)
-                    lstm_in = linear.linear(x, xws[layer_idx],
-                                            xbs[layer_idx]) + \
-                        linear.linear(h, hws[layer_idx], hbs[layer_idx])
-
-                    c_bar, h_bar = lstm.lstm(c, lstm_in)
-                    if h_rest is not None:
-                        h = concat.concat([h_bar, h_rest], axis=0)
-                        c = concat.concat([c_bar, c_rest], axis=0)
-                    else:
-                        h = h_bar
-                        c = c_bar
-                    h_list.append(h_bar)
-                    c_list.append(c_bar)
-                return h, c, h_list, c_list
-
-            h, c, h_forward, c_forward = _one_directional_loop(di=0)
-            hy.append(h)
-            cy.append(c)
-
-            if use_bi_direction:
-                # BiLSTM
-                h, c, h_backward, c_backward = _one_directional_loop(di=1)
-                hy.append(h)
-                cy.append(c)
-
-                h_backward.reverse()
-                # concat
-                xs_next = [concat.concat([hfi, hbi], axis=1) for (hfi, hbi) in
-                           zip(h_forward, h_backward)]
-            else:
-                # Uni-directional RNN
-                xs_next = h_forward
-
-        ys = xs_next
-        hy = stack.stack(hy)
-        cy = stack.stack(cy)
-        return hy, cy, tuple(ys)
+        return n_step_rnn.n_step_rnn_impl(
+            f, n_layers, dropout_ratio, hx, cx, ws, bs, xs, use_bi_direction)
