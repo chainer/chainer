@@ -91,6 +91,7 @@ class SplitAxis(function_node.FunctionNode):
         # bypass python3 issue when transfer array to std::vector<>
         # https://github.com/SimpleITK/SimpleITK/issues/106
         ios = self.indices_or_sections
+        axis = self.axis % x.ndim
         if isinstance(ios, collections.Iterable):
             for i in ios:
                 offsets.push_back(i)
@@ -100,7 +101,7 @@ class SplitAxis(function_node.FunctionNode):
             for i in six.moves.range(step, d, step):
                 offsets.push_back(i)
         ret = intel64.ideep.concat.Backward(
-            intel64.ideep.array(x), offsets, self.axis)
+            intel64.ideep.array(x), offsets, axis)
         self._shapes = [r.shape for r in ret]
         return ret
 

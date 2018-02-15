@@ -82,6 +82,11 @@ def inject_backend_tests(method_names):
         {'shape': (5, 8, 3, 2), 'axis': 1, 'ys_section': 2,
          'slices': [[slice(None, None), slice(None, 4)], [slice(None, None), slice(4, None)]]
          },
+        {'shape': (5, 4, 3, 4), 'axis': -1, 'ys_section': 2,
+         'slices': [[slice(None, None), slice(None, None), slice(None, None),
+                     slice(None, 2)], [slice(None, None), slice(None, None),
+                                       slice(None, None), slice(2, None)]]
+         },
     ],
     [
         {'dtype': numpy.float16},
