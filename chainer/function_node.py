@@ -225,7 +225,7 @@ Use apply() method instead.\
         # Check for input array types
         if not chainer.is_arrays_compatible(in_data):
             raise ValueError(
-                'numpy and cupy arrays are mixed in the forward input '
+                'incompatible array types are mixed in the forward input '
                 '({}).\n'
                 '{}'.format(
                     self.label,
@@ -262,7 +262,7 @@ Use apply() method instead.\
 
         if not chainer.is_arrays_compatible(outputs):
             raise ValueError(
-                'numpy and cupy arrays are mixed in the forward output '
+                'incompatible array types are mixed in the forward output '
                 '({}).\n'
                 '{}'.format(
                     self.label,
