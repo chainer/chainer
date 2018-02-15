@@ -25,16 +25,18 @@ if cuda.cudnn_enabled:
 
 class NStepGRU(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, lengths, **kwargs):
         n_step_rnn.BaseNStepRNN.__init__(
-            self, n_layers, states, rnn_dir='uni', rnn_mode='gru', **kwargs)
+            self, n_layers, states, lengths,
+            rnn_dir='uni', rnn_mode='gru', **kwargs)
 
 
 class NStepBiGRU(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, lengths, **kwargs):
         n_step_rnn.BaseNStepRNN.__init__(
-            self, n_layers, states, rnn_dir='bi', rnn_mode='gru', **kwargs)
+            self, n_layers, states, lengths,
+            rnn_dir='bi', rnn_mode='gru', **kwargs)
 
 
 def n_step_gru(

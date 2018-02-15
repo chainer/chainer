@@ -133,7 +133,7 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
 
 class BaseNStepRNN(function.Function):
 
-    def __init__(self, n_layers, states, rnn_dir, rnn_mode, **kwargs):
+    def __init__(self, n_layers, states, lengths, rnn_dir, rnn_mode, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '
             'Use chainer.using_config')
@@ -472,30 +472,34 @@ class BaseNStepRNN(function.Function):
 
 class NStepRNNTanh(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
-        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                              rnn_mode='rnn_tanh', **kwargs)
+    def __init__(self, n_layers, states, lengths, **kwargs):
+        BaseNStepRNN.__init__(
+            self, n_layers, states, lengths,
+            rnn_dir='uni', rnn_mode='rnn_tanh', **kwargs)
 
 
 class NStepRNNReLU(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
-        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                              rnn_mode='rnn_relu', **kwargs)
+    def __init__(self, n_layers, states, lengths, **kwargs):
+        BaseNStepRNN.__init__(
+            self, n_layers, states, lengths,
+            rnn_dir='uni', rnn_mode='rnn_relu', **kwargs)
 
 
 class NStepBiRNNTanh(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
-        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='bi',
-                              rnn_mode='rnn_tanh', **kwargs)
+    def __init__(self, n_layers, states, lengths, **kwargs):
+        BaseNStepRNN.__init__(
+            self, n_layers, states, lengths,
+            rnn_dir='bi', rnn_mode='rnn_tanh', **kwargs)
 
 
 class NStepBiRNNReLU(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
-        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='bi',
-                              rnn_mode='rnn_relu', **kwargs)
+    def __init__(self, n_layers, states, lengths, **kwargs):
+        BaseNStepRNN.__init__(
+            self, n_layers, states, lengths,
+            rnn_dir='bi', rnn_mode='rnn_relu', **kwargs)
 
 
 def n_step_rnn(
