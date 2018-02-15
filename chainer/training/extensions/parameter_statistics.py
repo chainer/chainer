@@ -106,9 +106,9 @@ class ParameterStatistics(extension.Extension):
                         # since the statistics function should make no
                         # assumption about the axes
                         params = getattr(param, attr_name).ravel()
-                        if self.check_nan_params and \
-                                cuda.get_array_module(params).isnan(params) \
-                                    .any():
+                        if (self.check_nan_params
+                            and (cuda.get_array_module(params).isnan(params)
+                                 .any())):
                             value = numpy.nan
                         else:
                             value = function(params)
@@ -119,10 +119,9 @@ class ParameterStatistics(extension.Extension):
                             attr_name=attr_name,
                             function_name=function_name
                         )
-                        if hasattr(value, '__iter__') or \
-                                (isinstance(value,
-                                            (numpy.ndarray, cuda.ndarray))
-                                 and value.size > 1):
+                        if (hasattr(value, '__iter__')
+                            or (isinstance(value, cuda.ndarray)
+                                and value.size > 1)):
                             # Append integer indices to the keys if the
                             # statistic function return multiple values
                             statistics.update({'{}/{}'.format(key, i): v for
