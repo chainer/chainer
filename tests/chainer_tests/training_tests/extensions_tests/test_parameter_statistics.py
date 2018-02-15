@@ -3,7 +3,6 @@ import time
 import unittest
 
 import mock
-import numpy
 import six
 
 import chainer
