@@ -39,12 +39,14 @@ class ParameterStatistics(extension.Extension):
         prefix (str): Optional prefix to prepend to the report keys.
         trigger: Trigger that decides when to aggregate the results and report
             the values.
+        skip_nan_params (bool): If ``True``, statistics are not computed for
+            parameters including NaNs and a single NaN value is immediately
+            reported instead.
     """
     default_name = 'parameter_statistics'
     priority = extension.PRIORITY_WRITER
 
     # avoid computations involving NaNs, e.g. when initial gradients are NaNs
-    check_nan_params = False
 
     # prefix ends with a '/' and param_name is preceded by a '/'
     report_key_template = ('{prefix}{link_name}{param_name}/{attr_name}/'
@@ -62,7 +64,7 @@ class ParameterStatistics(extension.Extension):
 
     def __init__(self, links, statistics=default_statistics,
                  report_params=True, report_grads=True, prefix=None,
-                 trigger=(1, 'epoch')):
+                 trigger=(1, 'epoch'), skip_nan_params=False):
 
         if not isinstance(links, (list, tuple)):
             links = links,
@@ -80,6 +82,7 @@ class ParameterStatistics(extension.Extension):
         self._prefix = prefix
         self._trigger = trigger_module.get_trigger(trigger)
         self._summary = reporter.DictSummary()
+        self._skip_nan_params = skip_nan_params
 
     def __call__(self, trainer):
         """Execute the statistics extension.
@@ -106,7 +109,7 @@ class ParameterStatistics(extension.Extension):
                         # since the statistics function should make no
                         # assumption about the axes
                         params = getattr(param, attr_name).ravel()
-                        if (self.check_nan_params
+                        if (self._skip_nan_params
                             and (cuda.get_array_module(params).isnan(params)
                                  .any())):
                             value = numpy.nan

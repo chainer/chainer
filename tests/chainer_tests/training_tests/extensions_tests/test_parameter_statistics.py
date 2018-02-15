@@ -49,12 +49,11 @@ class TestParameterStatisticsBase(object):
             'statistics': self.statistics if not skip_statistics else None,
             'report_params': self.report_params,
             'report_grads': self.report_grads,
-            'prefix': self.prefix
+            'prefix': self.prefix,
+            'skip_nan_params': True  # avoid warnings when grads are nan
         }
 
-        extension = extensions.ParameterStatistics(self.links, **kwargs)
-        extension.check_nan_params = True
-        return extension
+        return extensions.ParameterStatistics(self.links, **kwargs)
 
 
 @testing.parameterize(
