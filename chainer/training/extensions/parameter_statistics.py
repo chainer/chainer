@@ -68,7 +68,7 @@ class ParameterStatistics(extension.Extension):
             links = links,
         self._links = links
 
-        self._statistics = statistics or {}
+        self._statistics = statistics if statistics is not None else {}
 
         attrs = []
         if report_params:
