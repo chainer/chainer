@@ -159,16 +159,6 @@ class DeconvolutionND(function_node.FunctionNode):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
-
         if self.outs is None:
             dims = x.shape[2:]
             ksize = W.shape[2:]

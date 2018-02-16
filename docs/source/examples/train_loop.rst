@@ -206,7 +206,7 @@ You can easily try out other optimizers as well. Please test and observe the res
 ''''''''''''''''''''''''
 
 We now show how to write the training loop. Since we are working on a digit classification problem, we will use
-:func:`~chainer.functions.softmax_cross_entropy` as the loss function for the optimizer to minimize. For other types of problems, such as regression models, other loss functions might be more appropriate. See the `Chainer documentation for detailed information on the various loss functions <http://docs.chainer.org/en/stable/reference/functions.html#loss-functions>`_ for more details.
+:func:`~chainer.functions.softmax_cross_entropy` as the loss function for the optimizer to minimize. For other types of problems, such as regression models, other loss functions might be more appropriate. See the `Chainer documentation for detailed information on the various loss functions <../reference/functions.html#loss-functions>`_ for more details.
 
 Our training loop will be structured as follows.
 

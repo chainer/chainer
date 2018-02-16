@@ -191,7 +191,7 @@ However, when you keep the whole :class:`~chainer.training.Trainer` object, in s
 ...............................................
 
 This method saves the structure of the computational graph of the model. The graph is saved in the
-`Graphviz <http://www.graphviz.org/>`_'s dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out` argument of :class:`~chainer.training.Trainer`.
+`Graphviz <https://www.graphviz.org/>`_'s dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out` argument of :class:`~chainer.training.Trainer`.
 
 :class:`~chainer.training.extensions.Evaluator`
 ...............................................

@@ -31,7 +31,7 @@ class AdamRule(optimizer.UpdateRule):
     """Update rule of Adam optimization algorithm.
 
     See: `Adam: A Method for Stochastic Optimization \
-          <http://arxiv.org/abs/1412.6980v8>`_
+          <https://arxiv.org/abs/1412.6980v8>`_
 
     Modified for proper weight decay.
 
@@ -128,7 +128,7 @@ class Adam(optimizer.GradientMethod):
     """Adam optimizer.
 
     See: `Adam: A Method for Stochastic Optimization \
-          <http://arxiv.org/abs/1412.6980v8>`_
+          <https://arxiv.org/abs/1412.6980v8>`_
 
     Modified for proper weight decay (also called AdamW).
     AdamW introduces the additional parameters ``eta``

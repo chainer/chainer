@@ -36,7 +36,7 @@ To install Chainer, use `pip`.
 $ pip install chainer
 ```
 
-To enable CUDA support, [set up CUDA](http://docs.nvidia.com/cuda/index.html#installation-guides) and install [CuPy](https://github.com/cupy/cupy).
+To enable CUDA support, [set up CUDA](https://docs.nvidia.com/cuda/index.html#installation-guides) and install [CuPy](https://github.com/cupy/cupy).
 
 ```sh
 $ pip install cupy

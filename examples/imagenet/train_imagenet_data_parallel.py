@@ -38,7 +38,8 @@ def main():
         'googlenetbn': googlenetbn.GoogLeNetBN,
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
-        'resnet50': resnet50.ResNet50
+        'resnet50': resnet50.ResNet50,
+        'resnext50': resnet50.ResNeXt50,
     }
 
     parser = argparse.ArgumentParser(

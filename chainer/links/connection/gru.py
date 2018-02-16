@@ -70,7 +70,7 @@ class StatelessGRU(GRUBase):
 
     See:
         - `On the Properties of Neural Machine Translation: Encoder-Decoder
-          Approaches <http://www.aclweb.org/anthology/W14-4012>`_
+          Approaches <https://www.aclweb.org/anthology/W14-4012>`_
           [Cho+, SSST2014].
         - `Empirical Evaluation of Gated Recurrent Neural Networks on Sequence
           Modeling <https://arxiv.org/abs/1412.3555>`_
