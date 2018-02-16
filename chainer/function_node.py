@@ -744,6 +744,10 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             continue
         visited_funcs.add(func)
         for x in func.inputs:
+            # Raise error here if x is created by Function.backward.
+            # In such case, we don't know exact inputs of the creator.
+            x._check_old_style_gradient()
+
             if not x.requires_grad:
                 continue
             forward_graph[x].append(func)
