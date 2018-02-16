@@ -147,7 +147,6 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         elif ((self.dy == 1 and self.dx == 1)
               and intel64.should_use_ideep('>=auto')
               and intel64.inputs_all_ready(inputs)):
-
             # iDeep implementation
             # TODO(iDeep): Support group
             self._use_ideep = True
@@ -171,19 +170,19 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         _, in_c, kh, kw = W.shape
         n, _, in_h, in_w = x.shape
 
-        self.pd = (self.sy * (in_h - 1)
-                   + (kh + (kh - 1) * (self.dy - 1))
-                   - self.outh - self.ph)
-        self.pr = (self.sx * (in_w - 1)
-                   + (kw + (kw - 1) * (self.dx - 1))
-                   - self.outw - self.pw)
+        pd = (self.sy * (in_h - 1)
+              + (kh + (kh - 1) * (self.dy - 1))
+              - self.outh - self.ph)
+        pr = (self.sx * (in_w - 1)
+              + (kw + (kw - 1) * (self.dx - 1))
+              - self.outw - self.pw)
 
         param = intel64.ideep.convolution2DParam(
             (n, in_c, self.outh, self.outw),
             self.dy, self.dx,
             self.sy, self.sx,
             self.ph, self.pw,
-            self.pd, self.pr)
+            pd, pr)
         y = intel64.ideep.convolution2D.BackwardData(
             intel64.ideep.array(W),
             intel64.ideep.array(x),

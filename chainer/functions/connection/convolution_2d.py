@@ -122,11 +122,10 @@ class Convolution2DFunction(function_node.FunctionNode):
         if (self.group == 1
                 and intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(inputs)):
-
             # iDeep implementation
             # TODO(iDeep): Support group
             self._use_ideep = True
-            return self.forward_ideep(inputs)
+            return self._forward_ideep(inputs)
 
         self.retain_inputs((0, 1))  # retain only x and W
         if len(inputs) == 2:
@@ -151,7 +150,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         y = numpy.rollaxis(y, 3, 1)
         return y,
 
-    def forward_ideep(self, inputs):
+    def _forward_ideep(self, inputs):
         self.retain_inputs((0, 1))
         if len(inputs) == 3:
             x, W, b = inputs
@@ -161,16 +160,16 @@ class Convolution2DFunction(function_node.FunctionNode):
         n, c, h, w = x.shape
 
         out_h, out_w = self._get_out_size(inputs)
-        self.pd = (self.sy * (out_h - 1)
-                   + (kh + (kh - 1) * (self.dy - 1)) - h - self.ph)
-        self.pr = (self.sx * (out_w - 1)
-                   + (kw + (kw - 1) * (self.dx - 1)) - w - self.pw)
+        pd = (self.sy * (out_h - 1)
+              + (kh + (kh - 1) * (self.dy - 1)) - h - self.ph)
+        pr = (self.sx * (out_w - 1)
+              + (kw + (kw - 1) * (self.dx - 1)) - w - self.pw)
         param = intel64.ideep.convolution2DParam(
             (n, out_c, out_h, out_w),
             self.dy, self.dx,
             self.sy, self.sx,
             self.ph, self.pw,
-            self.pd, self.pr)
+            pd, pr)
         y = intel64.ideep.convolution2D.Forward(
             intel64.ideep.array(x),
             intel64.ideep.array(W),
@@ -359,7 +358,7 @@ class Convolution2DGradW(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         if self._use_ideep:
             # TODO(iDeep): Support group
-            return self.forward_ideep(inputs)
+            return self._forward_ideep(inputs)
 
         self.retain_inputs((0, 1))
         x, gy = inputs
@@ -384,25 +383,25 @@ class Convolution2DGradW(function_node.FunctionNode):
                              ).astype(self.W_dtype, copy=False)
         return gW,
 
-    def forward_ideep(self, inputs):
+    def _forward_ideep(self, inputs):
         self.retain_inputs((0, 1))
         x, gy = inputs
 
         n, input_c, h, w = x.shape
         n, out_c, out_h, out_w = gy.shape
-        self.pd = (self.sy * (out_h - 1)
-                   + (self.kh + (self.kh - 1) * (self.dy - 1))
-                   - h - self.ph)
-        self.pr = (self.sx * (out_w - 1)
-                   + (self.kw + (self.kw - 1) * (self.dx - 1))
-                   - w - self.pw)
+        pd = (self.sy * (out_h - 1)
+              + (self.kh + (self.kh - 1) * (self.dy - 1))
+              - h - self.ph)
+        pr = (self.sx * (out_w - 1)
+              + (self.kw + (self.kw - 1) * (self.dx - 1))
+              - w - self.pw)
 
         param = intel64.ideep.convolution2DParam(
             (out_c, input_c, self.kh, self.kw),
             self.dy, self.dx,
             self.sy, self.sx,
             self.ph, self.pw,
-            self.pd, self.pr)
+            pd, pr)
         gW = intel64.ideep.convolution2D.BackwardWeights(
             intel64.ideep.array(x),
             intel64.ideep.array(gy),
