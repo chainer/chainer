@@ -51,8 +51,8 @@ class SelectItem(function_node.FunctionNode):
         t = self.get_retained_inputs()[0]
         ret = []
         if 0 in indexes:
-            ggx = Assign(self._in_shape, self._in_dtype, t).apply(gy)[0]
-            ret.append(ggx)
+            gx = Assign(self._in_shape, self._in_dtype, t).apply(gy)[0]
+            ret.append(gx)
         if 1 in indexes:
             ret.append(None)
         return ret
