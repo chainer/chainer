@@ -20,7 +20,7 @@ Welcome to the `Chainer <https://chainer.org>`_ documentation.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Other Stuff
+   :caption: Other
 
    compatibility
    contribution

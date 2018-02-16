@@ -26,7 +26,7 @@ The parameters of a link are stored as attributes.
 Each parameter is an instance of :class:`~chainer.Variable`.
 In the case of the Linear link, two parameters, ``W`` and ``b``, are stored.
 By default, the matrix ``W`` is initialized randomly, while the vector ``b`` is initialized with zeros.
-This it the preferred way to initialize these parameters.
+This is the preferred way to initialize these parameters.
 
 .. doctest::
 
