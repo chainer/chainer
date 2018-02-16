@@ -40,7 +40,7 @@ class StandardUpdater(_updater.Updater):
             If you set loss scaling factor, gradients of loss values are to be
             multiplied by the factor before backprop starts. The factor is
             propagated to whole gradients in a computational graph along the
-            backporp. The gradients of parameters are divided by the factor
+            backprop. The gradients of parameters are divided by the factor
             just before the parameters are to be updated.
 
     Attributes:

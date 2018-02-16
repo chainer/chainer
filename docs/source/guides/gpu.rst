@@ -307,7 +307,7 @@ The copy supports backprop, which just reversely transfers an output gradient to
    Above code is not parallelized on CPU, but is parallelized on GPU.
    This is because all the functions in the above code run asynchronously to the host CPU.
 
-An almost identical example code can be found at `examples/mnist/train_mnist_model_parallel.py <https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist_model_parallel.py>`_.
+An almost identical example code can be found at :blob:`examples/mnist/train_mnist_model_parallel.py`.
 
 
 Data-parallel Computation on Multiple GPUs with Trainer
@@ -344,7 +344,7 @@ In the above example, the model is also cloned and sent to GPU 1.
 Half of each mini-batch is fed to this cloned model.
 After every backward computation, the gradient is accumulated into the main device, the parameter update runs on it, and then the updated parameters are sent to GPU 1 again.
 
-See also the example code in `examples/mnist/train_mnist_data_parallel.py <https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist_data_parallel.py>`_.
+See also the example code in :blob:`examples/mnist/train_mnist_data_parallel.py`.
 
 
 Data-parallel Computation on Multiple GPUs without Trainer
@@ -442,6 +442,6 @@ So we must manually copy them to ``model_1`` using :meth:`Link.copyparams` metho
 --------
 
 Now you can use Chainer with GPUs.
-All examples in the ``examples`` directory support GPU computation, so please refer to them if you want to know more practices on using GPUs.
+All examples in the :tree:`examples` directory support GPU computation, so please refer to them if you want to know more practices on using GPUs.
 In the next section, we will show how to define a differentiable (i.e. *backpropable*) function on Variable objects.
 We will also show there how to write a simple (elementwise) CUDA kernel using Chainer's CUDA utilities.

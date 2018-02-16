@@ -609,4 +609,4 @@ offers a utility function :func:`chainer.gradient_check.check_backward` that fol
    unittest.TextTestRunner().run(suite)
 
 
-You can find many examples of function tests under ``tests/chainer_tests/function_tests`` directory.
+You can find many examples of function tests under :tree:`tests/chainer_tests/functions_tests` directory.
