@@ -728,6 +728,12 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         raise TypeError(
             'grad_inputs must be a tuple or a list or None, not {}.'.format(
                 type(grad_inputs)))
+
+    for v in outputs:
+        # Raise error here if v is created by Function.backward.
+        # In such case, we don't know exact inputs of the creator.
+        v.node._check_old_style_gradient()
+
     # The implementation consists of three steps.
 
     # 1. Backward enumeration: all the nodes reachable backward from the output
