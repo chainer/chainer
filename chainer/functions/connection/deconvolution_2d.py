@@ -148,7 +148,6 @@ class Deconvolution2DFunction(function_node.FunctionNode):
               and intel64.should_use_ideep('>=auto')
               and intel64.inputs_all_ready(inputs)):
             # iDeep implementation
-            # TODO(iDeep): Support group
             self._use_ideep = True
             return self._forward_ideep(x, W, b)
 

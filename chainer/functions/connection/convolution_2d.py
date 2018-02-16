@@ -123,7 +123,6 @@ class Convolution2DFunction(function_node.FunctionNode):
                 and intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(inputs)):
             # iDeep implementation
-            # TODO(iDeep): Support group
             self._use_ideep = True
             return self._forward_ideep(inputs)
 
@@ -357,7 +356,6 @@ class Convolution2DGradW(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         if self._use_ideep:
-            # TODO(iDeep): Support group
             return self._forward_ideep(inputs)
 
         self.retain_inputs((0, 1))
