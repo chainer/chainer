@@ -169,7 +169,7 @@ class Adam(optimizer.GradientMethod):
     See: `Fixing Weight Decay Regularization in Adam \
           <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
-    A flag ``amsgrad`` to use the AMSGrad variant of Adam from 
+    A flag ``amsgrad`` to use the AMSGrad variant of Adam from
     the paper:
         `On the Convergence of Adam and Beyond \
         <https://openreview.net/forum?id=ryQu7f-RZ>`_
