@@ -96,11 +96,10 @@ class AdamRule(optimizer.UpdateRule):
         if hp.amsgrad:
             vhat = self.state['vhat']
             vhat = np.maximum(vhat, v)
-            param.data -= hp.eta * (self.lr * m / (np.sqrt(vhat) + hp.eps) +
-                                    hp.weight_decay_rate * param.data)
         else:
-            param.data -= hp.eta * (self.lr * m / (np.sqrt(v) + hp.eps) +
-                                    hp.weight_decay_rate * param.data)
+            vhat = v
+        param.data -= hp.eta * (self.lr * m / (np.sqrt(vhat) + hp.eps) +
+                                hp.weight_decay_rate * param.data)
 
     def update_core_gpu(self, param):
         grad = param.grad
