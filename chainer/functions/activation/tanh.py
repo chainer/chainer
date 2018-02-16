@@ -83,9 +83,9 @@ class TanhGrad(function_node.FunctionNode):
         ggx = grad_outputs[0]
 
         y_mul_ggx = y * ggx
-        gx = -2 * gy * y_mul_ggx
+        grad_y = -2 * gy * y_mul_ggx
         ggy = ggx - y * y_mul_ggx
-        return gx, ggy
+        return grad_y, ggy
 
 
 def tanh(x):
