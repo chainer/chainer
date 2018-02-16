@@ -69,6 +69,10 @@ def inject_backend_tests(method_names):
         {'shape': (10, 4, 3, 2), 'axis': 0, 'ys_section': [2, 3, 5],
          'slices': [slice(None, 2), slice(2, 3), slice(3, 5), slice(5, None)]
          },
+        {'shape': (10, 4, 3, 2), 'axis': 0,
+         'ys_section': numpy.asarray([2, 3, 5]),
+         'slices': [slice(None, 2), slice(2, 3), slice(3, 5), slice(5, None)]
+         },
         {'shape': (10, 4, 3, 2), 'axis': 0, 'ys_section': [2, 3, 3, 5],
          'slices': [slice(None, 2), slice(2, 3), slice(3, 3), slice(3, 5),
                     slice(5, None)]
