@@ -878,9 +878,9 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
             continue
 
         # Do backward
-        gys = [gy if not isinstance(gy, tuple) else
-               chainer.functions.add(*gy)
-               for gy in gys]
+        gys = tuple([gy if not isinstance(gy, tuple) else
+                     chainer.functions.add(*gy)
+                     for gy in gys])
         new_gxs = func.backward_accumulate(input_indexes, gys, gxs)
 
         # Delete output gradients that are not required to return
