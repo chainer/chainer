@@ -16,7 +16,7 @@ from nlp_utils import split_text
 from nlp_utils import transform_to_array
 
 URL_DBPEDIA = 'https://github.com/le-scientifique/torchDatasets/raw/master/dbpedia_csv.tar.gz'  # NOQA
-URL_IMDB = 'http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz'
+URL_IMDB = 'https://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz'
 URL_OTHER_BASE = 'https://raw.githubusercontent.com/harvardnlp/sent-conv-torch/master/data/'  # NOQA
 
 

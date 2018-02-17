@@ -29,11 +29,6 @@ class EmbedIDFunction(function_node.FunctionNode):
         x, W = inputs
         self._w_shape = W.shape
 
-        if not type_check.same_types(*inputs):
-            raise ValueError('numpy and cupy must not be used together\n'
-                             'type(W): {0}, type(x): {1}'
-                             .format(type(W), type(x)))
-
         xp = cuda.get_array_module(*inputs)
         if chainer.is_debug():
             valid_x = xp.logical_and(0 <= x, x < len(W))
@@ -156,15 +151,15 @@ def embed_id(x, W, ignore_label=None):
         ...               [1, 1, 1],
         ...               [2, 2, 2]]).astype('f')
         >>> W
-        array([[ 0.,  0.,  0.],
-               [ 1.,  1.,  1.],
-               [ 2.,  2.,  2.]], dtype=float32)
+        array([[0., 0., 0.],
+               [1., 1., 1.],
+               [2., 2., 2.]], dtype=float32)
         >>> F.embed_id(x, W).data
-        array([[ 2.,  2.,  2.],
-               [ 1.,  1.,  1.]], dtype=float32)
+        array([[2., 2., 2.],
+               [1., 1., 1.]], dtype=float32)
         >>> F.embed_id(x, W, ignore_label=1).data
-        array([[ 2.,  2.,  2.],
-               [ 0.,  0.,  0.]], dtype=float32)
+        array([[2., 2., 2.],
+               [0., 0., 0.]], dtype=float32)
 
     """
     return EmbedIDFunction(ignore_label=ignore_label).apply((x, W))[0]

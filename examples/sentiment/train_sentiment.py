@@ -230,5 +230,5 @@ for epoch in range(n_epoch):
         evaluate(model, develop_trees)
         print('')
 
-print('Test evaluateion')
+print('Test evaluation')
 evaluate(model, test_trees)

@@ -80,11 +80,11 @@ class SoftplusGrad(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x, gy = self.get_retained_inputs()
-        g, = grad_outputs
+        ggx, = grad_outputs
         e = chainer.functions.exp(self.beta * x)
-        ggx = g * gy * self.beta * e / (1 + e) ** 2
-        ggy = SoftplusGrad((self.beta,)).apply((x, g))[0]
-        return ggx, ggy
+        gx = ggx * gy * self.beta * e / (1 + e) ** 2
+        ggy = SoftplusGrad((self.beta,)).apply((x, ggx))[0]
+        return gx, ggy
 
 
 def softplus(x, beta=1.0):
@@ -113,7 +113,7 @@ def softplus(x, beta=1.0):
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
         >>> F.softplus(x, beta=1.0).data
-        array([ 0.126928  ,  0.69314718,  2.12692809], dtype=float32)
+        array([0.126928 , 0.6931472, 2.126928 ], dtype=float32)
 
     """
     y, = Softplus(beta=beta).apply((x,))

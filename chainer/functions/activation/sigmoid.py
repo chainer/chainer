@@ -87,8 +87,8 @@ class SigmoidGrad(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         y, gy = self.get_retained_inputs()
-        g, = grad_outputs
-        return g * gy * (1 - 2 * y), g * y * (1 - y)
+        ggx, = grad_outputs
+        return ggx * gy * (1 - 2 * y), ggx * y * (1 - y)
 
 
 def sigmoid(x):
@@ -113,7 +113,7 @@ def sigmoid(x):
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
         >>> F.sigmoid(x)
-        variable([ 0.11920291,  0.5       ,  0.88079709])
+        variable([0.11920291, 0.5       , 0.8807971 ])
 
     """
     y, = Sigmoid().apply((x,))

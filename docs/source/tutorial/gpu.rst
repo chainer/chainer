@@ -17,6 +17,14 @@ After reading this section, you will be able to:
 * Write model-parallel computing in Chainer
 * Write data-parallel computing in Chainer
 
+.. testcode::
+   :hide:
+
+   try:
+       with cupy.cuda.Device(1):
+           pass
+   except cupy.cuda.runtime.CUDARuntimeError:
+       raise RuntimeError('doctest in this document requires 2 GPUs') from None
 
 Relationship between Chainer and CuPy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -56,7 +64,7 @@ The :class:`cupy.ndarray` class is in its core, which is a compatible GPU altern
 CuPy implements many functions on :class:`cupy.ndarray` objects.
 :ref:`See the reference for the supported subset of NumPy API <cupy_reference>`.
 Understanding NumPy might help utilizing most features of CuPy.
-`See the NumPy documentation for learning it <http://docs.scipy.org/doc/numpy/index.html>`_.
+`See the NumPy documentation for learning it <https://docs.scipy.org/doc/numpy/index.html>`_.
 
 The main difference of :class:`cupy.ndarray` from :class:`numpy.ndarray` is that the content is allocated on the device memory.
 The allocation takes place on the current device by default.
@@ -262,15 +270,15 @@ Let's write a link for the whole network.
 
    class ParallelMLP(Chain):
        def __init__(self):
-           super(ParallelMLP, self).__init__(
+           super(ParallelMLP, self).__init__()
+           with self.init_scope():
                # the input size, 784, is inferred
-               mlp1_gpu0=MLP(1000, 2000).to_gpu(0),
-               mlp1_gpu1=MLP(1000, 2000).to_gpu(1),
+               self.mlp1_gpu0 = MLP(1000, 2000).to_gpu(0)
+               self.mlp1_gpu1 = MLP(1000, 2000).to_gpu(1)
 
                # the input size, 2000, is inferred
-               mlp2_gpu0=MLP(1000, 10).to_gpu(0),
-               mlp2_gpu1=MLP(1000, 10).to_gpu(1),
-           )
+               self.mlp2_gpu0 = MLP(1000, 10).to_gpu(0)
+               self.mlp2_gpu1 = MLP(1000, 10).to_gpu(1)
 
        def __call__(self, x):
            # assume x is on GPU 0
@@ -297,7 +305,7 @@ The copy supports backprop, which just reversely transfers an output gradient to
    Above code is not parallelized on CPU, but is parallelized on GPU.
    This is because all the functions in the above code run asynchronously to the host CPU.
 
-An almost identical example code can be found at `examples/mnist/train_mnist_model_parallel.py <https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist_model_parallel.py>`_.
+An almost identical example code can be found at :blob:`examples/mnist/train_mnist_model_parallel.py`.
 
 
 Data-parallel Computation on Multiple GPUs with Trainer
@@ -320,11 +328,11 @@ First, define a model and optimizer instances:
 
 Recall that the ``MLP`` link implements the multi-layer perceptron, and the :class:`~chainer.links.Classifier` link wraps it to provide a classifier interface.
 We used :class:`~training.updaters.StandardUpdater` in the previous example.
-In order to enable data-parallel computation with multiple GPUs, we only have to replace it with :class:`~training.ParallelUpdater`.
+In order to enable data-parallel computation with multiple GPUs, we only have to replace it with :class:`~training.updaters.ParallelUpdater`.
 
 .. doctest::
 
-   updater = training.ParallelUpdater(train_iter, optimizer,
+   updater = training.updaters.ParallelUpdater(train_iter, optimizer,
                                       devices={'main': 0, 'second': 1})
 
 The ``devices`` option specifies which devices to use in data-parallel learning.
@@ -334,7 +342,7 @@ In the above example, the model is also cloned and sent to GPU 1.
 Half of each mini-batch is fed to this cloned model.
 After every backward computation, the gradient is accumulated into the main device, the parameter update runs on it, and then the updated parameters are sent to GPU 1 again.
 
-See also the example code in `examples/mnist/train_mnist_data_parallel.py <https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist_data_parallel.py>`_.
+See also the example code in :blob:`examples/mnist/train_mnist_data_parallel.py`.
 
 
 Data-parallel Computation on Multiple GPUs without Trainer
@@ -343,7 +351,7 @@ Data-parallel Computation on Multiple GPUs without Trainer
 We here introduce a way to write data-parallel computation without the help of :class:`~training.Trainer`.
 Most users can skip this section.
 If you are interested in how to write a data-parallel computation by yourself, this section should be informative.
-It is also helpful to, e.g., customize the :class:`~training.ParallelUpdater` class.
+It is also helpful to, e.g., customize the :class:`~training.updaters.ParallelUpdater` class.
 
 We again start from the MNIST example.
 At this time, we use a suffix like ``_0`` and ``_1`` to distinguish objects on each device.
@@ -359,8 +367,7 @@ In order to make a copy, we can use :meth:`Link.copy` method.
 
 .. testcode::
 
-   import copy
-   model_1 = copy.deepcopy(model_0)
+   model_1 = model_0.copy()
    model_0.to_gpu(0)
    model_1.to_gpu(1)
 
@@ -433,6 +440,6 @@ So we must manually copy them to ``model_1`` using :meth:`Link.copyparams` metho
 --------
 
 Now you can use Chainer with GPUs.
-All examples in the ``examples`` directory support GPU computation, so please refer to them if you want to know more practices on using GPUs.
+All examples in the :tree:`examples` directory support GPU computation, so please refer to them if you want to know more practices on using GPUs.
 In the next section, we will show how to define a differentiable (i.e. *backpropable*) function on Variable objects.
 We will also show there how to write a simple (elementwise) CUDA kernel using Chainer's CUDA utilities.

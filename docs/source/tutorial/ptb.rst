@@ -108,7 +108,7 @@ where :math:`\hat P` is the empirical distribution of a sequence in the training
 
 **There is an example of RNN language model in the official repository, so we will
 explain how to implement a RNNLM in Chainer based on that:**
-`chainer/examples/ptb <https://github.com/chainer/chainer/tree/master/examples/ptb>`_
+:tree:`examples/ptb`
 
 2.1 Model Overview
 -------------------
@@ -222,9 +222,9 @@ from different offsets equally spaced within the whole sequence.
 ^^^^^^^^^^^^^^^^^^^^^
 
 We use Backpropagation through time (BPTT) for optimize the RNNLM. BPTT can be implemented by
-overriding ``update_core()`` method of :class:`~chainer.training.StandardUpdater`. First,
-in the constructor of the ``BPTTUpdater``, it takes ``bprop_len`` as an argument in addiotion
-to other arguments :class:`~chainer.training.StandardUpdater` needs. ``bprop_len`` defines the
+overriding ``update_core()`` method of :class:`~chainer.training.updaters.StandardUpdater`. First,
+in the constructor of the ``BPTTUpdater``, it takes ``bprop_len`` as an argument in addition
+to other arguments :class:`~chainer.training.updaters.StandardUpdater` needs. ``bprop_len`` defines the
 length of sequence :math:`T` to calculate the loss:
 
 .. math::
@@ -334,7 +334,7 @@ outside of :class:`~chainer.training.Trainer`.
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can train the model with the script:
-`chainer/examples/ptb/train_ptb.py <https://github.com/chainer/chainer/tree/master/examples/ptb/train_ptb.py>`_
+:blob:`examples/ptb/train_ptb.py`
 
 .. code-block:: console
 
@@ -354,7 +354,7 @@ You can train the model with the script:
 You can generate the sentence which starts with a word in the vocabulary. In this example,
 we generate a sentence which starts with the word apple.
 We use the script in the PTB example of the official repository:
-`chainer/examples/ptb/gentxt.py <https://github.com/chainer/chainer/tree/master/examples/ptb/gentxt.py>`_
+:blob:`examples/ptb/gentxt.py`
 
 .. code-block:: console
 

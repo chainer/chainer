@@ -136,14 +136,14 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
         >>> pos = np.array([[-2.1, 2.8, 0.5], [4.9, 2.0, -0.4]]).astype('f')
         >>> neg = np.array([[-2.1, 2.7, 0.7], [4.9, 2.0, -0.7]]).astype('f')
         >>> F.triplet(anchor, pos, neg)
-        variable(0.14000003039836884)
+        variable(0.14000003)
         >>> y = F.triplet(anchor, pos, neg, reduce='no')
         >>> y.shape
         (2,)
         >>> y.data
-        array([ 0.11000005,  0.17      ], dtype=float32)
+        array([0.11000005, 0.17      ], dtype=float32)
         >>> F.triplet(anchor, pos, neg, margin=0.5)  # harder penalty
-        variable(0.4400000274181366)
+        variable(0.44000003)
 
     """
     return Triplet(margin, reduce).apply((anchor, positive, negative))[0]

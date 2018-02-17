@@ -15,7 +15,7 @@
 | **Examples** ([Official](https://github.com/chainer/chainer/blob/master/examples), [External](https://github.com/chainer/chainer/wiki/External-examples))
 
 **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
-| **Slack invitation** ([en](https://bit.ly/chainer-slack), [ja](https://bit.ly/chainer-jp-slack))
+| **Slack invitation** ([en](https://bit.ly/join-chainer-slack), [ja](https://bit.ly/join-chainer-jp-slack))
 | **Slack archive** ([en](https://chainer.slackarchive.io), [ja](https://chainer-jp.slackarchive.io))
 | **Twitter** ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
 
@@ -36,7 +36,7 @@ To install Chainer, use `pip`.
 $ pip install chainer
 ```
 
-To enable CUDA support, [set up CUDA](http://docs.nvidia.com/cuda/index.html#installation-guides) and install [CuPy](https://github.com/cupy/cupy).
+To enable CUDA support, [set up CUDA](https://docs.nvidia.com/cuda/index.html#installation-guides) and install [CuPy](https://github.com/cupy/cupy).
 
 ```sh
 $ pip install cupy

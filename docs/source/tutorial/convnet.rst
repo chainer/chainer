@@ -48,7 +48,7 @@ digit images in 1998. In Chainer, the model can be written as follows:
     class LeNet5(Chain):
         def __init__(self):
             super(LeNet5, self).__init__()
-	    with self.init_scope():
+            with self.init_scope():
                 self.conv1 = L.Convolution2D(
                     in_channels=1, out_channels=6, ksize=5, stride=1)
                 self.conv2 = L.Convolution2D(
@@ -121,8 +121,8 @@ can also write the model like in this way:
             net += [('_sigm4', F.Sigmoid())]
             net += [('fc5', L.Linear(84, 10))]
             net += [('_sigm5', F.Sigmoid())]
-	    with self.init_scope():
-	        for n in net:
+            with self.init_scope():
+                for n in net:
                     if not n[0].startswith('_'):
                         setattr(self, n[0], n[1])
             self.forward = net
@@ -242,7 +242,7 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
         def __init__(self, n_channels, n_convs=2, fc=False):
             w = chainer.initializers.HeNormal()
             super(VGGBlock, self).__init__()
-	    with self.init_scope():
+            with self.init_scope():
                 self.conv1 = L.Convolution2D(None, n_channels, 3, 1, 1, initialW=w)
                 self.conv2 = L.Convolution2D(
                     n_channels, n_channels, 3, 1, 1, initialW=w)
@@ -251,7 +251,7 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
                         n_channels, n_channels, 3, 1, 1, initialW=w)
                 if fc:
                     self.fc4 = L.Linear(None, 4096, initialW=w)
-		    self.fc5 = L.Linear(4096, 4096, initialW=w)
+                    self.fc5 = L.Linear(4096, 4096, initialW=w)
                     self.fc6 = L.Linear(4096, 1000, initialW=w)
 
             self.n_convs = n_convs
@@ -295,15 +295,15 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
     class ResNet152(chainer.Chain):
         def __init__(self, n_blocks=[3, 8, 36, 3]):
             w = chainer.initializers.HeNormal()
-            super(ResNet152, self).__init__(
-                conv1=L.Convolution2D(
-                    None, 64, 7, 2, 3, initialW=w, nobias=True),
-                bn1=L.BatchNormalization(64),
-                res2=ResBlock(n_blocks[0], 64, 64, 256, 1),
-                res3=ResBlock(n_blocks[1], 256, 128, 512),
-                res4=ResBlock(n_blocks[2], 512, 256, 1024),
-                res5=ResBlock(n_blocks[3], 1024, 512, 2048),
-                fc6=L.Linear(2048, 1000))
+            super(ResNet152, self).__init__()
+            with self.init_scope():
+                self.conv1 = L.Convolution2D(None, 64, 7, 2, 3, initialW=w, nobias=True)
+                self.bn1 = L.BatchNormalization(64)
+                self.res2 = ResBlock(n_blocks[0], 64, 64, 256, 1)
+                self.res3 = ResBlock(n_blocks[1], 256, 128, 512)
+                self.res4 = ResBlock(n_blocks[2], 512, 256, 1024)
+                self.res5 = ResBlock(n_blocks[3], 1024, 512, 2048)
+                self.fc6 = L.Linear(2048, 1000)
 
         def __call__(self, x):
             h = self.bn1(self.conv1(x))
@@ -321,7 +321,6 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
 
     class ResBlock(chainer.ChainList):
         def __init__(self, n_layers, n_in, n_mid, n_out, stride=2):
-            w = chainer.initializers.HeNormal()
             super(ResBlock, self).__init__()
             self.add_link(BottleNeck(n_in, n_mid, n_out, stride, True))
             for _ in range(n_layers - 1):
@@ -337,8 +336,8 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
         def __init__(self, n_in, n_mid, n_out, stride=1, proj=False):
             w = chainer.initializers.HeNormal()
             super(BottleNeck, self).__init__()
-	    with self.init_scope():
-	        self.conv1x1a = L.Convolution2D(
+            with self.init_scope():
+                self.conv1x1a = L.Convolution2D(
                     n_in, n_mid, 1, stride, 0, initialW=w, nobias=True)
                 self.conv3x3b = L.Convolution2D(
                     n_mid, n_mid, 3, 1, 1, initialW=w, nobias=True)
@@ -398,8 +397,8 @@ extractor. See the details of this model here:
 :class:`chainer.links.VGG16Layers`.
 
 In the case of ResNet models, there are three variations differing in the number
-of layers. We have :class:`chainer.links.ResNet50`,
-:class:`chainer.links.ResNet101`, and :class:`chainer.links.ResNet152` models
+of layers. We have :class:`chainer.links.ResNet50Layers`,
+:class:`chainer.links.ResNet101Layers`, and :class:`chainer.links.ResNet152Layers` models
 with easy parameter loading feature. ResNet's pre-trained parameters are not
 available for direct downloading, so you need to download the weight from the
 author's web page first, and then place it into the dir
@@ -413,7 +412,7 @@ the preparation is finished, the usage is the same as VGG16:
     model = ResNet152layers()
 
 Please see the details of usage and how to prepare the pre-trained weights for
-ResNet here: :class:`chainer.links.ResNet50`
+ResNet here: :class:`chainer.links.ResNet50Layers`
 
 References
 ..........
