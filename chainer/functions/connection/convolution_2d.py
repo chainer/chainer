@@ -263,7 +263,7 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         # cuDNN 7 supports dilation only in *_FWD_ALGO_IMPLICIT_GEMM, but
         # it supports Tensor Cores only in *_FWD_ALGO_IMPLICIT_PRECOMP_GEMM.
-        if (use_tensor_core and (self.dx > 1 or self.dy > 1)):
+        if use_tensor_core and (self.dx > 1 or self.dy > 1):
             use_tensor_core = False
 
         handle = cudnn.get_handle()
@@ -486,7 +486,7 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         # cuDNN 7 supports dilation only in *_BWD_FILTER_ALGO_0, but
         # it supports Tensor Cores only in *_BWD_FILTER_ALGO_1.
-        if (use_tensor_core and (self.dx > 1 or self.dy > 1)):
+        if use_tensor_core and (self.dx > 1 or self.dy > 1):
             use_tensor_core = False
 
         handle = cudnn.get_handle()
