@@ -80,10 +80,6 @@ class DropoutRandomStates(object):
         return self._states
 
 
-def _split(inputs, pos):
-    return inputs[:pos], inputs[pos:]
-
-
 _random_states = {}
 
 
@@ -131,91 +127,38 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
     }
 
 
-class BaseNStepRNN(function.Function):
+class CudnnRNNWeightConcat(function.Function):
 
-    def __init__(self, n_layers, states, lengths, rnn_dir, rnn_mode, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+    """Concatenates weight matrixes for cuDNN's RNN.
 
-        if rnn_dir not in _rnn_dirs:
-            candidate_list = ','.join(_rnn_dirs.keys())
-            raise ValueError('Invalid rnn_dir: "%s". Please select from [%s]'
-                             % (rnn_dir, candidate_list))
-        if rnn_mode not in _rnn_modes:
-            candidate_list = ','.join(_rnn_modes.keys())
-            raise ValueError('Invalid rnn_mode: "%s". Please select from [%s]'
-                             % (rnn_mode, candidate_list))
-        self.rnn_dir = _rnn_dirs[rnn_dir]
-        self.rnn_mode = _rnn_modes[rnn_mode]
-        self.rnn_direction = _rnn_params_direction[self.rnn_dir]
+    This function concatenates weight matrixes for RNNs into one large array.
+    Its format is defined in cuDNN's API.
+
+    """
+
+    def __init__(self, n_layers, states, rnn_dir, rnn_mode):
         self.n_layers = n_layers
         self.states = states
-        self.use_cell = _rnn_params_use_cell[self.rnn_mode]
+        self.rnn_dir = _rnn_dirs[rnn_dir]
+        self.rnn_mode = _rnn_modes[rnn_mode]
+
+        self.rnn_direction = _rnn_params_direction[self.rnn_dir]
         self.n_W = _rnn_n_params[self.rnn_mode]
-        self.lengths = lengths
-        self.sections = numpy.cumsum(lengths)
-
-    @property
-    def _n_cell(self):
-        if self.use_cell:
-            return 2
-        else:
-            return 1
-
-    @property
-    def _n_params(self):
-        return self.n_layers * self.rnn_direction * self.n_W
 
     def check_type_forward(self, in_types):
+        n_params = self.n_layers * self.rnn_direction * self.n_W
         type_check.expect(
-            in_types.size() == self._n_cell + self._n_params * 2 + 1)
+            in_types.size() == n_params * 2)
 
-        if self.use_cell:
-            (h_type, c_type), in_types = _split(in_types, 2)
-            h_size = self.n_layers * self.rnn_direction
-            type_check.expect(
-                h_type.dtype == numpy.float32,
-                c_type.dtype == numpy.float32,
+        w_types = in_types[0:n_params]
+        b_types = in_types[n_params:]
 
-                h_type.ndim == 3,
-                h_type.shape[0] == h_size,
-                c_type.ndim == 3,
-                c_type.shape[0] == h_size,
-
-                # mini-batch size
-                h_type.shape[1] == c_type.shape[1],
-
-                # hidden size
-                h_type.shape[2] == c_type.shape[2],
-            )
-
-        else:
-            (h_type, ), in_types = _split(in_types, 1)
-            h_size = self.n_layers * self.rnn_direction
-            type_check.expect(
-                h_type.dtype == numpy.float32,
-
-                h_type.ndim == 3,
-                h_type.shape[0] == h_size,
-            )
-
-        w_types, in_types = _split(in_types, self._n_params)
-        b_types, in_types = _split(in_types, self._n_params)
-
-        x_type = in_types[0]
-        type_check.expect(
-            x_type.dtype == numpy.float32,
-            x_type.ndim == 2,
-        )
-
-        in_size = x_type.shape[1]
-        out_size = h_type.shape[2]
+        in_size = w_types[0].shape[1]
+        out_size = w_types[0].shape[0]
 
         for layer in six.moves.range(self.n_layers):
-            for i in six.moves.range(self.n_W):
-                for di in six.moves.range(self.rnn_direction):
+            for di in six.moves.range(self.rnn_direction):
+                for i in six.moves.range(self.n_W):
                     ind = (layer * self.rnn_direction + di) * self.n_W + i
                     w_type = w_types[ind]
                     b_type = b_types[ind]
@@ -246,9 +189,154 @@ class BaseNStepRNN(function.Function):
                     )
 
     def forward(self, inputs):
+        handle = cudnn.get_handle()
+        ws_size = self.n_layers * self.rnn_direction * self.n_W
+        ws = inputs[0:ws_size]
+        bs = inputs[ws_size:]
+        out_size = ws[0].shape[0]
+        in_size = ws[0].shape[1]
+
+        # TODO(unno): Make a wrapper method to avoid access _desc directly
+        rnn_desc = cudnn.create_rnn_descriptor(
+            out_size, self.n_layers, self.states._desc,
+            libcudnn.CUDNN_LINEAR_INPUT, self.rnn_dir,
+            self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
+        self.rnn_desc = rnn_desc
+
+        dummy_x = cuda.cupy.empty((1, in_size, 1), 'f')
+        x_desc = cudnn.create_tensor_nd_descriptor(dummy_x)
+
+        weights_size = libcudnn.getRNNParamsSize(
+            handle, rnn_desc.value, x_desc.value, libcudnn.CUDNN_DATA_FLOAT)
+        w = cuda.cupy.empty((weights_size // 4, 1, 1), dtype=numpy.float32)
+        w_desc = cudnn.create_filter_descriptor(w)
+
+        for layer in six.moves.range(self.n_layers):
+            for di in six.moves.range(self.rnn_direction):
+                mat_index = layer * self.rnn_direction + di
+                # di = 0: forward, 1: backward
+                for lin_layer_id in six.moves.range(self.n_W):
+                    mat = cudnn.get_rnn_lin_layer_matrix_params(
+                        handle, rnn_desc, mat_index,
+                        x_desc, w_desc, w, lin_layer_id)
+                    W_index = mat_index * self.n_W + lin_layer_id
+                    m = mat.reshape(mat.size)
+                    m[...] = ws[W_index].ravel()
+                    bias = cudnn.get_rnn_lin_layer_bias_params(
+                        handle, rnn_desc, mat_index,
+                        x_desc, w_desc, w, lin_layer_id)
+                    b = bias.reshape(bias.size)
+                    b[...] = bs[W_index]
+        self.w_desc = w_desc
+        self.x_desc = x_desc
+        return w,
+
+    def backward(self, inputs, grads):
+        handle = cudnn.get_handle()
+        ws_size = self.n_layers * self.rnn_direction * self.n_W
+        ws = inputs[0:ws_size]
+        bs = inputs[ws_size:]
+
+        rnn_desc = self.rnn_desc
+        dw = grads[0]
+        dw_desc = cudnn.create_filter_descriptor(dw)
+        dx_desc = self.x_desc
+
+        dws = []
+        dbs = []
+        for layer in six.moves.range(self.n_layers):
+            for di in six.moves.range(self.rnn_direction):
+                mat_index = layer * self.rnn_direction + di
+                for lin_layer_id in six.moves.range(self.n_W):
+                    mat = cudnn.get_rnn_lin_layer_matrix_params(
+                        handle, rnn_desc, mat_index,
+                        dx_desc, dw_desc, dw, lin_layer_id)
+                    W_index = mat_index * self.n_W + lin_layer_id
+                    dws.append(mat.reshape(ws[W_index].shape))
+                    bias = cudnn.get_rnn_lin_layer_bias_params(
+                        handle, rnn_desc, mat_index,
+                        dx_desc, dw_desc, dw, lin_layer_id)
+                    dbs.append(bias.reshape(bs[W_index].shape))
+        return tuple(dws + dbs)
+
+
+def cudnn_rnn_weight_concat(
+        n_layers, states, use_bi_direction, rnn_mode, ws, bs):
+    rnn_dir = 'bi' if use_bi_direction else 'uni'
+    inputs = itertools.chain(
+        itertools.chain.from_iterable(ws),
+        itertools.chain.from_iterable(bs),
+    )
+    return CudnnRNNWeightConcat(n_layers, states, rnn_dir, rnn_mode)(*inputs)
+
+
+class BaseNStepRNN(function.Function):
+
+    def __init__(self, n_layers, states, lengths, rnn_dir, rnn_mode, **kwargs):
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
+        if rnn_dir not in _rnn_dirs:
+            candidate_list = ','.join(_rnn_dirs.keys())
+            raise ValueError('Invalid rnn_dir: "%s". Please select from [%s]'
+                             % (rnn_dir, candidate_list))
+        if rnn_mode not in _rnn_modes:
+            candidate_list = ','.join(_rnn_modes.keys())
+            raise ValueError('Invalid rnn_mode: "%s". Please select from [%s]'
+                             % (rnn_mode, candidate_list))
+        self.rnn_dir = _rnn_dirs[rnn_dir]
+        self.rnn_mode = _rnn_modes[rnn_mode]
+        self.rnn_direction = _rnn_params_direction[self.rnn_dir]
+        self.n_layers = n_layers
+        self.states = states
+        self.use_cell = _rnn_params_use_cell[self.rnn_mode]
+        self.lengths = lengths
+        self.sections = numpy.cumsum(lengths)
+
+    def check_type_forward(self, in_types):
+        if self.use_cell:
+            type_check.expect(in_types.size() == 4)
+            h_type, c_type, w_type, x_type = in_types
+            h_size = self.n_layers * self.rnn_direction
+            type_check.expect(
+                h_type.dtype == numpy.float32,
+                c_type.dtype == numpy.float32,
+
+                h_type.ndim == 3,
+                h_type.shape[0] == h_size,
+                c_type.ndim == 3,
+                c_type.shape[0] == h_size,
+
+                # mini-batch size
+                h_type.shape[1] == c_type.shape[1],
+
+                # hidden size
+                h_type.shape[2] == c_type.shape[2],
+            )
+
+        else:
+            type_check.expect(in_types.size() == 3)
+            h_type, w_type, x_type = in_types
+            h_size = self.n_layers * self.rnn_direction
+            type_check.expect(
+                h_type.dtype == numpy.float32,
+
+                h_type.ndim == 3,
+                h_type.shape[0] == h_size,
+            )
+
+        type_check.expect(
+            x_type.dtype == numpy.float32,
+            x_type.ndim == 2,
+            x_type.shape[0] == self.sections[-1],
+        )
+
+    def forward(self, inputs):
         if self.use_cell:
             # LSTM
-            (hx, cx), inputs = _split(inputs, self._n_cell)
+            hx, cx, w, xs = inputs
             cx = cuda.cupy.ascontiguousarray(cx)
             cx_desc = cudnn.create_tensor_nd_descriptor(cx)
 
@@ -262,14 +350,13 @@ class BaseNStepRNN(function.Function):
             cy_desc_value = cy_desc.value
         else:
             # RNN, GRU
-            (hx, ), inputs = _split(inputs, self._n_cell)
+            hx, w, xs = inputs
             cx = cy = None
             cx_data_ptr = cy_data_ptr = 0
             cx_desc_value = cy_desc_value = 0
 
-        ws, inputs = _split(inputs, self._n_params)
-        bs, inputs = _split(inputs, self._n_params)
-        xs = cuda.cupy.ascontiguousarray(inputs[0])
+        w = cuda.cupy.ascontiguousarray(w)
+        xs = cuda.cupy.ascontiguousarray(xs)
         hx = cuda.cupy.ascontiguousarray(hx)
 
         length = len(self.lengths)
@@ -289,36 +376,15 @@ class BaseNStepRNN(function.Function):
         self.rnn_desc = rnn_desc
 
         x_list = cuda.cupy.split(xs, self.sections[:-1])
-        x_desc = cudnn.create_tensor_nd_descriptor(x_list[0][..., None])
         c_x_descs = _make_tensor_descriptor_array(x_list)
         hx_desc = cudnn.create_tensor_nd_descriptor(hx)
 
-        weights_size = libcudnn.getRNNParamsSize(
-            handle, rnn_desc.value, x_desc.value, libcudnn.CUDNN_DATA_FLOAT)
-        w = cuda.cupy.empty((weights_size // 4, 1, 1), dtype=numpy.float32)
         w_desc = cudnn.create_filter_descriptor(w)
 
-        for layer in six.moves.range(self.n_layers):
-            for di in six.moves.range(self.rnn_direction):
-                # di = 0: forward, 1: backward
-                for lin_layer_id in six.moves.range(self.n_W):
-                    mat_index = layer * self.rnn_direction + di
-                    mat = cudnn.get_rnn_lin_layer_matrix_params(
-                        handle, rnn_desc, mat_index,
-                        x_desc, w_desc, w, lin_layer_id)
-                    W_index = mat_index * self.n_W + lin_layer_id
-                    m = mat.reshape(mat.size)
-                    m[...] = ws[W_index].ravel()
-                    bias = cudnn.get_rnn_lin_layer_bias_params(
-                        handle, rnn_desc, mat_index,
-                        x_desc, w_desc, w, lin_layer_id)
-                    b = bias.reshape(bias.size)
-                    b[...] = bs[W_index]
         self.w = w
         self.w_desc = w_desc
 
         y_list = cuda.cupy.split(ys, self.sections[:-1])
-
         c_y_descs = _make_tensor_descriptor_array(y_list)
         hy = cuda.cupy.empty_like(hx)
         hy_desc = cudnn.create_tensor_nd_descriptor(hy)
@@ -363,8 +429,8 @@ class BaseNStepRNN(function.Function):
     def backward(self, inputs, grads):
         if self.use_cell:
             # LSTM
-            (hx, cx), inputs = _split(inputs, self._n_cell)
-            dhy, dcy = grads[:self._n_cell]
+            hx, cx, w, xs = inputs
+            dhy, dcy, dys = grads
             if dcy is None:
                 dcy = cuda.cupy.zeros_like(cx)
 
@@ -383,22 +449,18 @@ class BaseNStepRNN(function.Function):
             dcy_desc_value = dcy_desc.value
         else:
             # GRU, RNN
-            (hx, ), inputs = _split(inputs, self._n_cell)
-            dhy, = grads[:self._n_cell]
+            hx, w, xs = inputs
+            dhy, dys = grads
             dcy = cx = dcx = None
             cx_data_ptr = dcy_data_ptr = dcx_data_ptr = 0
             cx_desc_value = dcx_desc_value = dcy_desc_value = 0
 
-        ws_size = self.n_layers * self.rnn_direction * self.n_W
-        ws, inputs = _split(inputs, ws_size)
-        bs, inputs = _split(inputs, ws_size)
-        xs = cuda.cupy.ascontiguousarray(inputs[0])
+        xs = cuda.cupy.ascontiguousarray(xs)
         hx = cuda.cupy.ascontiguousarray(hx)
 
         if dhy is None:
             dhy = cuda.cupy.zeros_like(hx)
 
-        dys = grads[self._n_cell]
         if dys is None:
             dys = cuda.cupy.zeros_like(self.ys)
 
@@ -443,31 +505,12 @@ class BaseNStepRNN(function.Function):
             workspace.data.ptr, work_size, dw_desc.value, dw.data.ptr,
             self.reserve_space.data.ptr, self.reserve_space.size)
 
-        dx = dx_list[0]
-        dx = dx.reshape(dx.shape + (1,))
-        dx_desc = cudnn.create_tensor_nd_descriptor(dx)
-        dws = []
-        dbs = []
-        for layer in six.moves.range(self.n_layers):
-            for di in six.moves.range(self.rnn_direction):
-                for lin_layer_id in six.moves.range(self.n_W):
-                    mat_index = layer * self.rnn_direction + di
-                    mat = cudnn.get_rnn_lin_layer_matrix_params(
-                        handle, rnn_desc, mat_index,
-                        dx_desc, dw_desc, dw, lin_layer_id)
-                    W_index = mat_index * self.n_W + lin_layer_id
-                    dws.append(mat.reshape(ws[W_index].shape))
-                    bias = cudnn.get_rnn_lin_layer_bias_params(
-                        handle, rnn_desc, mat_index,
-                        dx_desc, dw_desc, dw, lin_layer_id)
-                    dbs.append(bias.reshape(bs[W_index].shape))
-
         if self.use_cell:
             # LSTM
-            return tuple([dhx, dcx] + dws + dbs + [dxs])
+            return dhx, dcx, dw, dxs
         else:
             # GRU, RNN
-            return tuple([dhx] + dws + dbs + [dxs])
+            return dhx, dw, dxs
 
 
 class NStepRNNTanh(BaseNStepRNN):
@@ -797,12 +840,11 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         states = get_random_state().create_dropout_states(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
-        # flatten all input variables
-        inputs = tuple(itertools.chain(
-            (hx,),
-            itertools.chain.from_iterable(ws),
-            itertools.chain.from_iterable(bs),
-            (xs,)))
+
+        rnn_mode = 'rnn_%s' % activation
+        w = cudnn_rnn_weight_concat(
+            n_layers, states, use_bi_direction, rnn_mode, ws, bs)
+
         if use_bi_direction:
             # Bi-directional RNN
             if activation == 'tanh':
@@ -816,7 +858,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             elif activation == 'relu':
                 rnn = NStepRNNReLU
 
-        hy, ys = rnn(n_layers, states, lengths)(*inputs)
+        hy, ys = rnn(n_layers, states, lengths)(hx, w, xs)
         sections = numpy.cumsum(lengths[:-1])
         ys = chainer.functions.split_axis(ys, sections, 0)
         return hy, ys
