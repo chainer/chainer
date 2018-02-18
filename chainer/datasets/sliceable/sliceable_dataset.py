@@ -70,21 +70,21 @@ class SliceHelper(object):
             index = args
             keys = self._dataset.keys
 
-        if isinstance(keys, tuple):
-            is_tuple = True
+        if isinstance(keys, (list, tuple)):
+            return_tuple = True
         else:
-            keys, is_tuple = (keys,), False
+            keys, return_tuple = (keys,), False
 
         # convert index to name
         keys = tuple(
-            self._dataset.keys[key] if isinstance(key, int) else key
+            key if isinstance(key, str) else self._dataset.keys[key]
             for key in keys)
         for key in keys:
             if key not in _as_tuple(self._dataset.keys):
                 raise KeyError('{} does not exists'.format(key))
 
         return SlicedDataset(
-            self._dataset, index, keys if is_tuple else keys[0])
+            self._dataset, index, keys if return_tuple else keys[0])
 
 
 class SlicedDataset(SliceableDataset):
