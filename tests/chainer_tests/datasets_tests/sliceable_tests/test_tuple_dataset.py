@@ -27,12 +27,15 @@ class TestTupleDataset(unittest.TestCase):
 
     def test_basic(self):
         dataset = TupleDataset(
-            self.dataset, ('item3', np.arange(len(self.dataset))))
+            self.dataset,
+            ('item3', np.arange(len(self.dataset))),
+            np.arange(len(self.dataset)) * 2)
         self.assertIsInstance(dataset, SliceableDataset)
         self.assertEqual(len(dataset), len(self.dataset))
-        self.assertEqual(dataset.keys, ('item0', 'item1', 'item2', 'item3'))
         self.assertEqual(
-            dataset[1], ('item0(1)', 'item1(1)', 'item2(1)', 1))
+            dataset.keys, ('item0', 'item1', 'item2', 'item3', 'key_4'))
+        self.assertEqual(
+            dataset[1], ('item0(1)', 'item1(1)', 'item2(1)', 1, 2))
 
     def test_empty(self):
         with self.assertRaises(ValueError):

@@ -27,30 +27,62 @@ class TestSliceableDataset(unittest.TestCase):
         self.assertEqual(
             self.dataset[0], ('item0(0)', 'item1(0)', 'item2(0)'))
 
-    def test_slice_keys_single(self):
+    def test_slice_keys_single_name(self):
         dataset = self.dataset.slice[:, 'item0']
         self.assertIsInstance(dataset, SliceableDataset)
         self.assertEqual(len(dataset), len(self.dataset))
         self.assertEqual(dataset.keys, 'item0')
         self.assertEqual(dataset[1], 'item0(1)')
 
-    def test_slice_keys_single_tuple(self):
+    def test_slice_keys_single_index(self):
+        dataset = self.dataset.slice[:, 0]
+        self.assertIsInstance(dataset, SliceableDataset)
+        self.assertEqual(len(dataset), len(self.dataset))
+        self.assertEqual(dataset.keys, 'item0')
+        self.assertEqual(dataset[1], 'item0(1)')
+
+    def test_slice_keys_single_tuple_name(self):
         dataset = self.dataset.slice[:, ('item1',)]
         self.assertIsInstance(dataset, SliceableDataset)
         self.assertEqual(len(dataset), len(self.dataset))
         self.assertEqual(dataset.keys, ('item1',))
         self.assertEqual(dataset[2], ('item1(2)',))
 
-    def test_slice_keys_multiple(self):
+    def test_slice_keys_single_tuple_index(self):
+        dataset = self.dataset.slice[:, (1,)]
+        self.assertIsInstance(dataset, SliceableDataset)
+        self.assertEqual(len(dataset), len(self.dataset))
+        self.assertEqual(dataset.keys, ('item1',))
+        self.assertEqual(dataset[2], ('item1(2)',))
+
+    def test_slice_keys_multiple_name(self):
         dataset = self.dataset.slice[:, ('item0', 'item2')]
         self.assertIsInstance(dataset, SliceableDataset)
         self.assertEqual(len(dataset), len(self.dataset))
         self.assertEqual(dataset.keys, ('item0', 'item2'))
         self.assertEqual(dataset[3], ('item0(3)', 'item2(3)'))
 
-    def test_slice_keys_invalid(self):
+    def test_slice_keys_multiple_index(self):
+        dataset = self.dataset.slice[:, (0, 2)]
+        self.assertIsInstance(dataset, SliceableDataset)
+        self.assertEqual(len(dataset), len(self.dataset))
+        self.assertEqual(dataset.keys, ('item0', 'item2'))
+        self.assertEqual(dataset[3], ('item0(3)', 'item2(3)'))
+
+    def test_slice_keys_multiple_mixed(self):
+        dataset = self.dataset.slice[:, ('item0', 2)]
+        self.assertIsInstance(dataset, SliceableDataset)
+        self.assertEqual(len(dataset), len(self.dataset))
+        self.assertEqual(dataset.keys, ('item0', 'item2'))
+        self.assertEqual(dataset[3], ('item0(3)', 'item2(3)'))
+
+    def test_slice_keys_invalid_name(self):
         with self.assertRaises(KeyError):
             self.dataset.slice[:, 'invalid']
+
+    def test_slice_keys_invalid_index(self):
+        with self.assertRaises(IndexError):
+            self.dataset.slice[:, 3]
 
     def test_slice_index_slice(self):
         dataset = self.dataset.slice[3:8:2]

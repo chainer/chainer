@@ -15,10 +15,13 @@ class TupleDataset(SliceableDataset):
 
     Args:
         datasets: The underlying datasets.
-            Each dataset should be an inheritance of
-            :class:~chainer.datasets.sliceable.Sliceabledataset`.
-            or a tuple of the name of datum and a data array
-            (list/tuple/:class:`numpy.ndarray`).
+            Following datasets are acceptable.
+
+            * An inheritance of \
+                :class:~chainer.datasets.sliceable.SliceableDataset`.
+            * A tuple of a name and a data array. \
+                 The data array should be list/tuple/:class:`numpy.ndarray`.
+            * A data array. The name is automatically decided.
     """
 
     def __init__(self, *datasets):
@@ -38,7 +41,10 @@ class TupleDataset(SliceableDataset):
                 self._keys.extend(_as_tuple(dataset.keys))
                 self._sliceable_datasets.append((set(dataset.keys), dataset))
             else:
-                key, dataset = dataset
+                if isinstance(dataset, tuple):
+                    key, dataset = dataset
+                else:
+                    key = 'key_{:d}'.format(len(self._keys))
                 if self._len is None:
                     self._len = len(dataset)
                 if not len(dataset) == self._len:
