@@ -2,6 +2,7 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import function
 from chainer import function_node
 from chainer.utils import argument
@@ -55,6 +56,9 @@ class BatchNormalization(function_node.FunctionNode):
             self.running_var = xp.zeros_like(gamma)
         self.mode = _BNMode(x, gamma)
 
+        # TODO(niboshi): Refactor calculation of expander and axis into a
+        # function and call it just before they are used.
+
         # expander inserts singleton dimensions to gamma and beta so that they
         # can be broadcasted with x.
         head_ndim = gamma.ndim + 1
@@ -62,8 +66,52 @@ class BatchNormalization(function_node.FunctionNode):
         self.expander = expander
         self.axis = (0,) + tuple(range(head_ndim, x.ndim))
         self.use_cudnn = self.mode.can_use_cudnn(xp)
+        self.use_ideep = self.mode.can_use_ideep()
 
-        if self.use_cudnn:
+        if self.use_ideep:
+            # TODO(niboshi): Refactor iDeep part into a separate method
+            expand_dim = False
+            if x.ndim == 2:
+                expand_dim = True
+                x = x[:, :, None, None]
+
+            gamma = gamma[expander]
+            beta = beta[expander]
+            W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
+
+            y, self.mean, self.var, self.inv_std = (
+                intel64.ideep.batchNormalization.Forward(
+                    intel64.ideep.array(x),
+                    intel64.ideep.array(W),
+                    None,
+                    None,
+                    self.eps
+                ))
+
+            m = x.size // gamma.size
+            adjust = m / max(m - 1., 1.)
+
+            # Update running_mean
+            if isinstance(self.running_mean, intel64.ideep.mdarray):
+                self.running_mean.inplace_axpby(
+                    self.decay, (1 - self.decay), self.mean)
+            else:
+                self.running_mean *= self.decay
+                self.running_mean += self.mean * (1 - self.decay)
+
+            # Update running_var
+            if isinstance(self.running_var, intel64.ideep.mdarray):
+                self.running_var.inplace_axpby(
+                    self.decay, (1 - self.decay), self.var * adjust)
+            else:
+                self.running_var *= self.decay
+                self.running_var += self.var * adjust * (1 - self.decay)
+
+            if expand_dim:
+                y = numpy.squeeze(y, axis=(2, 3))
+
+        elif self.use_cudnn:
+            # TODO(niboshi): Refactor cuDNN part into a separate method
             x = cuda.cupy.ascontiguousarray(x)
 
             gamma = cuda.cupy.ascontiguousarray(gamma)
@@ -125,6 +173,8 @@ class BatchNormalization(function_node.FunctionNode):
                 self.running_var.data.copy_from(running_var.data,
                                                 running_var.nbytes)
         else:
+            # Generic CPU and GPU implementation
+
             gamma = gamma[expander]
             beta = beta[expander]
             self.mean = x.mean(axis=self.axis)
@@ -146,21 +196,31 @@ class BatchNormalization(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         x, gamma = self.get_retained_inputs()
         gy, = grad_outputs
+
+        if self.use_ideep:
+            assert self.var is not None
+            var = self.var
+        else:
+            var = None
+
         f = BatchNormalizationGrad(
             self.eps, self.use_cudnn, self.mode, self.expander, self.axis,
-            self.mean, self.inv_std)
+            self.mean, var, self.inv_std)
         return f(x, gamma, gy)
 
 
 class BatchNormalizationGrad(function.Function):
 
-    def __init__(self, eps, use_cudnn, mode, expander, axis, mean, inv_std):
+    def __init__(
+            self, eps, use_cudnn, mode, expander, axis, mean, var, inv_std):
         self.eps = eps
         self.use_cudnn = use_cudnn
+        self.use_ideep = mode.can_use_ideep()
         self.mode = mode
         self.expander = expander
         self.axis = axis
         self.mean = mean
+        self.var = var  # Only used in iDeep implementation
         self.inv_std = inv_std
 
     def forward(self, inputs):
@@ -170,7 +230,33 @@ class BatchNormalizationGrad(function.Function):
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
         xp = cuda.get_array_module(x)
 
-        if self.use_cudnn:
+        if self.use_ideep:
+            # TODO(niboshi): Refactor iDeep part into a separate method
+            expand_dim = False
+            if x.ndim == 2:
+                expand_dim = True
+                x = x[:, :, None, None]
+                gy = gy[:, :, None, None]
+
+            gamma = gamma[expander]
+            beta = numpy.zeros_like(gamma)
+            W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
+
+            gx, gW = intel64.ideep.batchNormalization.Backward(
+                intel64.ideep.array(x),
+                intel64.ideep.array(gy),
+                self.mean,
+                self.var,
+                intel64.ideep.array(W),
+                self.eps)
+
+            ggamma, gbeta = gW[:2]
+
+            if expand_dim:
+                gx = numpy.squeeze(gx, axis=(2, 3))
+
+        elif self.use_cudnn:
+            # TODO(niboshi): Refactor cuDNN part into a separate method
             cudnn_mode = self.mode.get_cudnn_mode()
             x = cuda.cupy.ascontiguousarray(x)
             gamma = cuda.cupy.ascontiguousarray(gamma)
@@ -202,6 +288,7 @@ class BatchNormalizationGrad(function.Function):
                 ggamma = ggamma.astype(dtype)
                 gbeta = gbeta.astype(dtype)
         else:
+            # CPU and GPU implementation
             gbeta = gy.sum(axis=self.axis)
             x_hat = _x_hat(x, self.mean[expander], self.inv_std[expander])
             ggamma = (gy * x_hat).sum(axis=self.axis)
@@ -300,7 +387,34 @@ class FixedBatchNormalization(function_node.FunctionNode):
         self.axis = (0,) + tuple(range(head_ndim, x.ndim))
 
         mode = _BNMode(x, gamma)
-        if mode.can_use_cudnn(xp):
+        if mode.can_use_ideep():
+            # TODO(niboshi): Refactor iDeep part into a separate method
+            expand_dim = False
+            if x.ndim == 2:
+                expand_dim = True
+                x = x[:, :, None, None]
+
+            gamma = gamma[expander]
+            beta = beta[expander]
+            W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
+
+            y, = intel64.ideep.batchNormalization.Forward(
+                intel64.ideep.array(x),
+                intel64.ideep.array(W),
+                intel64.ideep.array(mean),
+                intel64.ideep.array(var),
+                self.eps
+            )
+
+            if expand_dim:
+                y = numpy.squeeze(y, axis=(2, 3))
+
+            # lazy
+            self.inv_var = None
+            self.inv_std = None
+
+        elif mode.can_use_cudnn(xp):
+            # TODO(niboshi): Refactor cuDNN part into a separate method
             x = cuda.cupy.ascontiguousarray(x)
 
             gamma = cuda.cupy.ascontiguousarray(gamma)
@@ -329,6 +443,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 derivedBnDesc.value, gamma.data.ptr, beta.data.ptr,
                 mean.data.ptr, var.data.ptr, self.eps)
         else:
+            # Generic CPU and GPU implementation
             gamma = gamma[expander]
             beta = beta[expander]
             var = var + self.eps
@@ -433,12 +548,16 @@ class _BNMode(object):
         self.cudnn_dim_ok = self.is_for_conv2d or self.is_for_linear
         # self.cudnn_dtype_ok = x.dtype != numpy.float16
         self.cudnn_dtype_ok = self.is_for_conv2d or (x.dtype != numpy.float16)
+        self.ideep_ok = is_gamma_1d and intel64.inputs_all_ready((x,))
 
     def get_cudnn_mode(self):
         assert self.cudnn_dim_ok
         if self.is_for_conv2d:
             return libcudnn.CUDNN_BATCHNORM_SPATIAL
         return libcudnn.CUDNN_BATCHNORM_PER_ACTIVATION
+
+    def can_use_ideep(self):
+        return self.ideep_ok and intel64.should_use_ideep('>=auto')
 
     def can_use_cudnn(self, xp):
         # TODO(bkvogel): Check for float16 support again in next cuDNN version.

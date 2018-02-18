@@ -1,6 +1,7 @@
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -90,7 +91,7 @@ class TreeLSTM(function.Function):
         a, i, o = gates[:3]
         fs = gates[3:]
 
-        if isinstance(x, numpy.ndarray):
+        if isinstance(x, chainer.get_cpu_array_types()):
             self.a = numpy.tanh(a)
             self.i = _sigmoid(i)
             self.o = _sigmoid(o)
@@ -242,7 +243,7 @@ def tree_lstm(*inputs):
 
     See the papers for details: `Improved Semantic Representations From \
     Tree-Structured Long Short-Term Memory Networks \
-    <http://www.aclweb.org/anthology/P15-1150>`_ and
+    <https://www.aclweb.org/anthology/P15-1150>`_ and
     `A Fast Unified Model for Parsing and Sentence Understanding \
     <https://arxiv.org/pdf/1603.06021.pdf>`_.
 

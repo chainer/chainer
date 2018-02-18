@@ -76,9 +76,9 @@ class SoftmaxCrossEntropyLoss(chainer.Chain):
 
 
 class WindowIterator(chainer.dataset.Iterator):
-    """Dataet iterator to create a batch of sequences at different positions.
+    """Dataset iterator to create a batch of sequences at different positions.
 
-    This iterator retuns a pair of the current words and the context words.
+    This iterator returns a pair of the current words and the context words.
     """
 
     def __init__(self, dataset, window, batch_size, repeat=True):

@@ -67,7 +67,7 @@ class NesterovAG(optimizer.GradientMethod):
 
     """Nesterov's Accelerated Gradient.
 
-    See: http://arxiv.org/abs/1212.0901
+    See: https://arxiv.org/abs/1212.0901
 
     Args:
         lr (float): Learning rate.

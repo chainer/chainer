@@ -25,16 +25,18 @@ if cuda.cudnn_enabled:
 
 class NStepGRU(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, lengths, **kwargs):
         n_step_rnn.BaseNStepRNN.__init__(
-            self, n_layers, states, rnn_dir='uni', rnn_mode='gru', **kwargs)
+            self, n_layers, states, lengths,
+            rnn_dir='uni', rnn_mode='gru', **kwargs)
 
 
 class NStepBiGRU(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
+    def __init__(self, n_layers, states, lengths, **kwargs):
         n_step_rnn.BaseNStepRNN.__init__(
-            self, n_layers, states, rnn_dir='bi', rnn_mode='gru', **kwargs)
+            self, n_layers, states, lengths,
+            rnn_dir='bi', rnn_mode='gru', **kwargs)
 
 
 def n_step_gru(
@@ -151,7 +153,7 @@ def n_step_bigru(
        h_{t-1} + b^{b}_5)) \\\\
        h^{b}_t &= (1 - z^{b}_t) \\cdot h^{b'}_t + z^{b}_t \\cdot h_{t-1}
        \\\\
-       h_t  &= [h^{f}_t; h^{f}_t] \\\\
+       h_t  &= [h^{f}_t; h^{b}_t] \\\\
 
     where :math:`W^{f}` is weight matrices for forward-GRU, :math:`W^{b}` is
     weight matrices for backward-GRU.
@@ -296,20 +298,22 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         states = get_random_state().create_dropout_states(dropout_ratio)
+        lengths = [len(x) for x in xs]
+        xs = chainer.functions.concat(xs, axis=0)
         # flatten all input variables
         inputs = tuple(itertools.chain(
-            (hx, ),
+            (hx,),
             itertools.chain.from_iterable(ws),
             itertools.chain.from_iterable(bs),
-            xs))
+            (xs,)))
         if use_bi_direction:
-            rnn = NStepBiGRU(n_layers, states)
+            rnn = NStepBiGRU
         else:
-            rnn = NStepGRU(n_layers, states)
+            rnn = NStepGRU
 
-        ret = rnn(*inputs)
-        hy, = ret[:1]
-        ys = ret[1:]
+        hy, ys = rnn(n_layers, states, lengths)(*inputs)
+        sections = numpy.cumsum(lengths[:-1])
+        ys = chainer.functions.split_axis(ys, sections, 0)
         return hy, ys
 
     else:

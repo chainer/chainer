@@ -10,9 +10,7 @@ functions, which users should use.
 .. note::
    As of v1.5, the concept of parameterized functions are gone, and they are
    replaced by corresponding :class:`~chainer.Link` implementations. They are
-   still put in the :mod:`~chainer.functions` namespace for backward
-   compatibility, though it is strongly recommended to use them via the
-   :mod:`chainer.links` package.
+   found in the :mod:`~chainer.links` namespace.
 
 ..
    For contributors that want to update these lists:
@@ -187,6 +185,8 @@ Mathematical functions
    chainer.functions.cumsum
    chainer.functions.det
    chainer.functions.batch_det
+   chainer.functions.erf
+   chainer.functions.erfc
    chainer.functions.exp
    chainer.functions.expm1
    chainer.functions.fix
@@ -218,6 +218,7 @@ Mathematical functions
    chainer.functions.sum
    chainer.functions.tanh
    chainer.functions.tan
+   chainer.functions.tensordot
 
 Noise injections
 ----------------

@@ -4,6 +4,7 @@ import chainer
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
+from chainer.functions.math import floor as _floor
 from chainer.functions.math import matmul as _matmul
 from chainer import utils
 from chainer.utils import type_check
@@ -347,18 +348,19 @@ class DivGrad(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x0, x1, gy = self.get_retained_inputs()
+        ggx0, ggx1 = grad_outputs
+
         ret = []
         x1_square = x1 * x1
         if 0 in indexes:
-            ggx0 = - grad_outputs[1] * gy / x1_square
-            ret.append(ggx0)
+            gx0 = -ggx1 * gy / x1_square
+            ret.append(gx0)
         if 1 in indexes:
-            ggx1 = \
-                - grad_outputs[0] * gy / x1_square + \
-                grad_outputs[1] * 2 * gy * x0 / (x1_square * x1)
-            ret.append(ggx1)
+            gx1 = -ggx0 * gy / x1_square + \
+                ggx1 * 2 * gy * x0 / (x1_square * x1)
+            ret.append(gx1)
         if 2 in indexes:
-            ggy = grad_outputs[0] / x1 - grad_outputs[1] * x0 / x1_square
+            ggy = ggx0 / x1 - ggx1 * x0 / x1_square
             ret.append(ggy)
         return ret
 
@@ -443,6 +445,26 @@ def rdiv(self, rhs):  # rhs / lhs
         return Div().apply((rhs, self))[0]
     _check_constant_type(rhs)
     return DivFromConstant(rhs).apply((self,))[0]
+
+
+def floordiv(self, rhs):  # lhs // rhs
+    """Element-wise floor division.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
+
+    return _floor.floor(div(self, rhs))
+
+
+def rfloordiv(self, rhs):  # rhs // lhs
+    """Element-wise floor division.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
+
+    return _floor.floor(rdiv(self, rhs))
 
 
 class PowVarVar(function_node.FunctionNode):
@@ -846,6 +868,8 @@ def install_variable_arithmetics():
     variable.Variable.__truediv__ = div
     variable.Variable.__rdiv__ = rdiv
     variable.Variable.__rtruediv__ = rdiv
+    variable.Variable.__floordiv__ = floordiv
+    variable.Variable.__rfloordiv__ = rfloordiv
     variable.Variable.__pow__ = pow
     variable.Variable.__rpow__ = rpow
     variable.Variable.__matmul__ = matmul

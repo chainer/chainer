@@ -105,10 +105,12 @@ class NpzDeserializer(serializer.Deserializer):
 
     """
 
-    def __init__(self, npz, path='', strict=True, ignore_names=[]):
+    def __init__(self, npz, path='', strict=True, ignore_names=None):
         self.npz = npz
         self.path = path
         self.strict = strict
+        if ignore_names is None:
+            ignore_names = []
         self.ignore_names = ignore_names
 
     def __getitem__(self, key):
