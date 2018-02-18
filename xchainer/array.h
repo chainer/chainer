@@ -53,7 +53,7 @@ private:
 };
 
 void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
-                  const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backaward_functions,
+                  const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
                   const std::vector<GraphId>& graph_ids_to_stop_gradients = {});
 
 bool HasArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
