@@ -1683,13 +1683,20 @@ class TestIntel64(unittest.TestCase):
         self._check_variable_shape_and_dtype(x)
 
 
+@testing.parameterize(*testing.product({
+    'shape': [(3,), (3, 2), (3, 2, 2), (3, 2, 2, 3)],
+    'dtype': [
+        np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32,
+        np.uint64, np.float16, np.float32, np.float64],
+}))
 class TestLazyGradSum(unittest.TestCase):
 
     def setUp(self):
-        self.x = np.arange(3).astype(np.float32)
+        self.x = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
-        y10 = np.arange(4).astype(np.float32)
-        gy00 = chainer.Variable(np.arange(4).astype(np.float32))
+        y10 = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy00 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
         f10 = chainer.FunctionNode()
         f10.check_type_forward = mock.MagicMock()
         f10.forward_cpu = mock.MagicMock(return_value=(y10,))
@@ -1699,8 +1706,9 @@ class TestLazyGradSum(unittest.TestCase):
         self.f10 = f10
         self.gy00 = gy00
 
-        y11 = np.arange(4).astype(np.float32)
-        gy01 = chainer.Variable(np.arange(4).astype(np.float32))
+        y11 = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy01 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
         f11 = chainer.FunctionNode()
         f11.check_type_forward = mock.MagicMock()
         f11.forward_cpu = mock.MagicMock(return_value=(y11,))
@@ -1710,8 +1718,9 @@ class TestLazyGradSum(unittest.TestCase):
         self.f11 = f11
         self.gy01 = gy01
 
-        y12 = np.arange(4).astype(np.float32)
-        gy02 = chainer.Variable(np.arange(4).astype(np.float32))
+        y12 = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy02 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
         f12 = chainer.FunctionNode()
         f12.check_type_forward = mock.MagicMock()
         f12.forward_cpu = mock.MagicMock(return_value=(y12,))
@@ -1721,10 +1730,13 @@ class TestLazyGradSum(unittest.TestCase):
         self.f12 = f12
         self.gy02 = gy02
 
-        y = np.arange(4).astype(np.float32)
-        gy10 = chainer.Variable(np.arange(4).astype(np.float32))
-        gy11 = chainer.Variable(np.arange(4).astype(np.float32))
-        gy12 = chainer.Variable(np.arange(4).astype(np.float32))
+        y = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy10 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        gy11 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        gy12 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
         f2 = chainer.FunctionNode()
         f2.check_type_forward = mock.MagicMock()
         f2.forward_cpu = mock.MagicMock(return_value=(y,))
@@ -1738,11 +1750,22 @@ class TestLazyGradSum(unittest.TestCase):
         self.gx = gy00 + gy01 + gy02
 
     def tearDown(self):
-        # Set None to delete cuda array
-        self.f = None
-        self.y1 = None
-        self.y2 = None
-        self.gx1 = None
+        self.x = None
+        self.y10 = None
+        self.f10 = None
+        self.gy00 = None
+        self.y11 = None
+        self.f11 = None
+        self.gy01 = None
+        self.y12 = None
+        self.f12 = None
+        self.gy02 = None
+        self.y = None
+        self.f2 = None
+        self.gy10 = None
+        self.gy11 = None
+        self.gy12 = None
+        self.gx = None
 
     def forward(self, x):
         y0 = F.identity(x)
@@ -1757,7 +1780,7 @@ class TestLazyGradSum(unittest.TestCase):
         y = self.forward(x)
         y[0].grad = np.ones(y[0].shape, y[0].dtype)
         y[0].backward()
-        testing.assert_allclose(self.gx.data, x.grad)
+        testing.assert_allclose(self.gx.data, x.grad, atol=1e-3, rtol=1e-2)
 
     def test_backward_cpu(self):
         with chainer.using_config('lazy_grad_sum', False):
