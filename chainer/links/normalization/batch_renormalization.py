@@ -48,14 +48,14 @@ class BatchRenormalization(BatchNormalization):
         if self.gamma is not None:
             gamma = self.gamma
         else:
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype))
 
         if self.beta is not None:
             beta = self.beta
         else:
-            with cuda.get_device(self._device_id):
+            with cuda.get_device_from_id(self._device_id):
                 beta = variable.Variable(self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype))
 
