@@ -104,8 +104,8 @@ def select_item(x, t):
 
     .. admonition:: Example
 
-        >>> x = np.array([[0, 1, 2], [3, 4, 5]], 'f')
-        >>> t = np.array([0, 2], 'i')
+        >>> x = np.array([[0, 1, 2], [3, 4, 5]], np.float32)
+        >>> t = np.array([0, 2], np.int32)
         >>> y = F.select_item(x, t)
         >>> y.shape
         (2,)

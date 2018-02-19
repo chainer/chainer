@@ -149,7 +149,7 @@ def n_step_lstm(
         >>> batchs = [3, 2, 1]  # support variable length sequences
         >>> in_size, out_size, n_layers = 3, 2, 2
         >>> dropout_ratio = 0.0
-        >>> xs = [np.ones((b, in_size)).astype('f') for b in batchs]
+        >>> xs = [np.ones((b, in_size)).astype(np.float32) for b in batchs]
         >>> [x.shape for x in xs]
         [(3, 3), (2, 3), (1, 3)]
         >>> h_shape = (n_layers, batchs[0], out_size)
@@ -159,9 +159,9 @@ def n_step_lstm(
         >>> ws = []
         >>> bs = []
         >>> for n in range(n_layers):
-        ...     ws.append([np.ones((out_size, w_in(n, i))).astype('f') \
+        ...     ws.append([np.ones((out_size, w_in(n, i))).astype(np.float32) \
 for i in range(8)])
-        ...     bs.append([np.ones((out_size,)).astype('f') \
+        ...     bs.append([np.ones((out_size,)).astype(np.float32) \
 for _ in range(8)])
         ...
         >>> ws[0][0].shape  # ws[0][:4].shape are (out_size, in_size)
@@ -306,7 +306,7 @@ def n_step_bilstm(
         >>> batchs = [3, 2, 1]  # support variable length sequences
         >>> in_size, out_size, n_layers = 3, 2, 2
         >>> dropout_ratio = 0.0
-        >>> xs = [np.ones((b, in_size)).astype('f') for b in batchs]
+        >>> xs = [np.ones((b, in_size)).astype(np.float32) for b in batchs]
         >>> [x.shape for x in xs]
         [(3, 3), (2, 3), (1, 3)]
         >>> h_shape = (n_layers * 2, batchs[0], out_size)
@@ -324,9 +324,9 @@ def n_step_bilstm(
         >>> bs = []
         >>> for n in range(n_layers):
         ...     for direction in (0, 1):
-        ...         ws.append([np.ones((out_size, w_in(n, i))).astype('f') \
-for i in range(8)])
-        ...         bs.append([np.ones((out_size,)).astype('f') \
+        ...         ws.append([np.ones((out_size, w_in(n, i))).\
+astype(np.float32) for i in range(8)])
+        ...         bs.append([np.ones((out_size,)).astype(np.float32) \
 for _ in range(8)])
         ...
         >>> ws[0][0].shape  # ws[0:2][:4].shape are (out_size, in_size)

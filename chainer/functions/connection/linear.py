@@ -215,9 +215,9 @@ def linear(x, W, b=None):
 
     .. admonition:: Example
 
-        >>> x = np.random.uniform(0, 1, (3, 4)).astype('f')
-        >>> W = np.random.uniform(0, 1, (5, 4)).astype('f')
-        >>> b = np.random.uniform(0, 1, (5,)).astype('f')
+        >>> x = np.random.uniform(0, 1, (3, 4)).astype(np.float32)
+        >>> W = np.random.uniform(0, 1, (5, 4)).astype(np.float32)
+        >>> b = np.random.uniform(0, 1, (5,)).astype(np.float32)
         >>> y = F.linear(x, W, b)
         >>> y.shape
         (3, 5)

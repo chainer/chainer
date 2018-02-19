@@ -144,12 +144,12 @@ def embed_id(x, W, ignore_label=None):
 
     .. admonition:: Example
 
-        >>> x = np.array([2, 1]).astype('i')
+        >>> x = np.array([2, 1]).astype(np.int32)
         >>> x
         array([2, 1], dtype=int32)
         >>> W = np.array([[0, 0, 0],
         ...               [1, 1, 1],
-        ...               [2, 2, 2]]).astype('f')
+        ...               [2, 2, 2]]).astype(np.float32)
         >>> W
         array([[0., 0., 0.],
                [1., 1., 1.],

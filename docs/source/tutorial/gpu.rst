@@ -126,10 +126,10 @@ Here are some other examples:
 .. testcode::
 
    cuda.get_device_from_id(1).use()
-   x_gpu1 = cupy.empty((4, 3), dtype='f')  # 'f' indicates float32
+   x_gpu1 = cupy.empty((4, 3), dtype=cupy.float32)
 
    with cuda.get_device_from_id(1):
-       x_gpu1 = cupy.empty((4, 3), dtype='f')
+       x_gpu1 = cupy.empty((4, 3), dtype=cupy.float32)
 
    with cuda.get_device_from_array(x_gpu1):
        y_gpu1 = x_gpu + 1

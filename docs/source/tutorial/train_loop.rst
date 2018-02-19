@@ -78,8 +78,8 @@ The code below shows how to create a :class:`~chainer.iterators.SerialIterator` 
     from chainer.datasets import mnist
     # This is a dummy code which is equivalent to this code
     # train, test = mnist.get_mnist(withlabel=True, ndim=1)
-    train = [(np.zeros((784,), 'f'), np.zeros((), 'f'))]
-    test = [(np.zeros((784,), 'f'), np.zeros((), 'f'))]
+    train = [(np.zeros((784,), np.float32), np.zeros((), np.float32))]
+    test = [(np.zeros((784,), np.float32), np.zeros((), np.float32))]
 
 .. testcode::
 
