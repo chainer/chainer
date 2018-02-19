@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer import cuda
 from chainer.utils import type_check
@@ -27,46 +25,15 @@ class ThinStackSet(chainer.Function):
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
         stack, indices, values = inputs
-        if xp is numpy:
-            stack[range(len(indices)), indices] = values
-        else:
-            cuda.elementwise(
-                'S t, T v, int32 d',
-                'raw T s',
-                '''
-                int b = i / d;
-                int k = i - b * d;
-                int ind[] = {b, t, k};
-                s[ind] = v;
-                ''',
-                'thin_stack_set_fwd'
-            )(indices[:, None], values, values.shape[1], stack)
-
+        stack[xp.arange(len(indices)), indices] = values
         return stack,
 
     def backward(self, inputs, grads):
         xp = cuda.get_array_module(*inputs)
         _, indices, _ = inputs
         g = grads[0]
-        if xp is numpy:
-            gv = g[range(len(indices)), indices]
-            g[range(len(indices)), indices] = 0
-        else:
-            dim = g.shape[2]
-            shape = (indices.shape[0], dim)
-            gv = cuda.cupy.empty(shape, g.dtype)
-            cuda.elementwise(
-                'S t, int32 d',
-                'raw T s, T y',
-                '''
-                int b = i / d;
-                int k = i - b * d;
-                int ind[] = {b, t, k};
-                y = s[ind];
-                s[ind] = 0;
-                ''',
-                'thin_stack_set_bwd'
-            )(indices[:, None], dim, g, gv)
+        gv = g[xp.arange(len(indices)), indices]
+        g[xp.arange(len(indices)), indices] = 0
         return g, None, gv
 
 
@@ -90,24 +57,7 @@ class ThinStackGet(chainer.Function):
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
         stack, indices = inputs
-        if xp is numpy:
-            return stack[range(len(indices)), indices], stack
-        else:
-            dim = stack.shape[2]
-            shape = (indices.shape[0], dim)
-            y = cuda.cupy.empty(shape, stack.dtype)
-            cuda.elementwise(
-                'S t, int32 d, raw T s',
-                'T y',
-                '''
-                int b = i / d;
-                int k = i - b * d;
-                int ind[] = {b, t, k};
-                y = s[ind];
-                ''',
-                'thin_stack_get_fwd'
-            )(indices[:, None], dim, stack, y)
-            return y, stack
+        return stack[xp.arange(len(indices)), indices], stack
 
     def backward(self, inputs, grads):
         xp = cuda.get_array_module(*inputs)
@@ -116,21 +66,7 @@ class ThinStackGet(chainer.Function):
         if gs is None:
             gs = xp.zeros_like(stack)
         if g is not None:
-            if xp is numpy:
-                gs[range(len(indices)), indices] += g
-            else:
-                dim = stack.shape[2]
-                cuda.elementwise(
-                    'S t, int32 d',
-                    'raw T gs, T g',
-                    '''
-                    int b = i / d;
-                    int k = i - b * d;
-                    int ind[] = {b, t, k};
-                    gs[ind] += g;
-                    ''',
-                    'thin_stack_get_bwd'
-                )(indices[:, None], dim, gs, g)
+            gs[xp.arange(len(indices)), indices] += g
         return gs, None
 
 
