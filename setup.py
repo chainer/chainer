@@ -101,6 +101,8 @@ def find_any_distribution(pkgs):
     return None
 
 
+# Currently cupy provides source package (cupy) and binary wheel packages
+# (cupy-cudaXX). Chainer can use any one of these packages.
 cupy_pkg = find_any_distribution([
     'cupy',
     'cupy-cuda70',
