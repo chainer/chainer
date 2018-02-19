@@ -13,7 +13,7 @@ class SplitAxis(function_node.FunctionNode):
 
     """Function that splits multiple arrays along the specified axis."""
 
-    def __init__(self, indices_or_sections, axis):
+    def __init__(self, indices_or_sections, axis, squeeze=False):
         if not isinstance(
                 indices_or_sections,
                 six.integer_types + (collections.Iterable,)):
@@ -26,6 +26,7 @@ class SplitAxis(function_node.FunctionNode):
                     raise ValueError('indices_or_sections must be sorted')
         self.indices_or_sections = indices_or_sections
         self.axis = axis
+        self._squeeze = squeeze
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -49,11 +50,20 @@ class SplitAxis(function_node.FunctionNode):
             return self._forward_ideep(inputs)
 
         x, = inputs
+        self._xp = cuda.get_array_module(x)
+        if self._squeeze:
+            shape = list(x.shape)
+            del shape[self.axis]
+            shape = tuple(shape)
+            self._shape = shape
+            ret = tuple(x.reshape(shape) for x in
+                        self._xp.split(x, self.indices_or_sections, self.axis))
+            return ret
+
         if isinstance(self.indices_or_sections, collections.Iterable):
             cdimx = x.shape[self.axis]
             ind = list(self.indices_or_sections)
             ind.append(cdimx)
-        self._xp = cuda.get_array_module(x)
         ret = tuple(self._xp.split(x, self.indices_or_sections, self.axis))
         self._shapes = [r.shape for r in ret]
         return ret
@@ -108,6 +118,11 @@ class SplitAxis(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         dtype = self.inputs[0].dtype
+        if self._squeeze:
+            grads = [
+                self._xp.zeros(self._shape, dtype=dtype) if gy is None else gy
+                for gy in grad_outputs]
+            return chainer.functions.stack(grads, self.axis),
         grads = [
             self._xp.zeros(shape, dtype=dtype) if gy is None else gy
             for gy, shape in six.moves.zip(grad_outputs, self._shapes)]
@@ -144,7 +159,11 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
         (i.e. ``axis``-th value of its shape is zero).
 
     """
-    res = SplitAxis(indices_or_sections, axis).apply((x,))
+    res = SplitAxis(indices_or_sections, axis, False).apply((x,))
     if force_tuple or len(res) != 1:
         return res
     return res[0]
+
+
+def _split_axis_squeeze(x, axis):
+    return SplitAxis(x.shape[axis], axis, True).apply((x,))

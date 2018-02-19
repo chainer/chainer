@@ -84,6 +84,7 @@ from chainer.functions.array.spatial_transformer_grid import spatial_transformer
 from chainer.functions.array.spatial_transformer_grid import SpatialTransformerGrid  # NOQA
 from chainer.functions.array.spatial_transformer_sampler import spatial_transformer_sampler  # NOQA
 from chainer.functions.array.spatial_transformer_sampler import SpatialTransformerSampler  # NOQA
+from chainer.functions.array.split_axis import _split_axis_squeeze  # NOQA
 from chainer.functions.array.split_axis import split_axis  # NOQA
 from chainer.functions.array.split_axis import SplitAxis  # NOQA
 from chainer.functions.array.squeeze import squeeze  # NOQA
