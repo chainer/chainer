@@ -109,8 +109,6 @@ class LSTM(function_node.FunctionNode):
         return c_next, h
 
     def backward(self, indexes, grads):
-        if not isinstance(grads, tuple):
-            grads = tuple(grads)
         grad_inputs = (
             self.get_retained_inputs() + self.get_retained_outputs() + grads)
         return LSTMGrad()(*grad_inputs)
