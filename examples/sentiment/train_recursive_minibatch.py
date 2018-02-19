@@ -11,6 +11,7 @@ from chainer import training
 from chainer.training import extensions
 
 import data
+import thin_stack
 
 
 def linearize_tree(vocab, root, xp=numpy):
@@ -155,11 +156,11 @@ class ThinStackRecursiveNet(chainer.Chain):
             predict = self.xp.argmax(y.data, axis=1)
             correct += (predict == label.data).sum()
 
-            stack = F.thin_stack_set(stack, ds, es)
+            stack = thin_stack.thin_stack_set(stack, ds, es)
 
         for left, right, dest, label in zip(lefts, rights, dests, labels):
-            l, stack = F.thin_stack_get(stack, left)
-            r, stack = F.thin_stack_get(stack, right)
+            l, stack = thin_stack.thin_stack_get(stack, left)
+            r, stack = thin_stack.thin_stack_get(stack, right)
             o = self.node(l, r)
             y = self.label(o)
             batch = l.shape[0]
@@ -168,7 +169,7 @@ class ThinStackRecursiveNet(chainer.Chain):
             predict = self.xp.argmax(y.data, axis=1)
             correct += (predict == label.data).sum()
 
-            stack = F.thin_stack_set(stack, dest, o)
+            stack = thin_stack.thin_stack_set(stack, dest, o)
 
         loss /= count
         reporter.report({'loss': loss}, self)
