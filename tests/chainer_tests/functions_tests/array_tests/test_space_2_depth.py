@@ -47,8 +47,10 @@ class TestSpace2Depth(unittest.TestCase):
         self.ggx = numpy.random.randn(2, 2, 6, 4).astype(self.dtype)
         self.r = 2
         self.check_backward_options = {}
+        self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
 
     def check_forward(self, space_data, depth_data):
         space = chainer.Variable(space_data)
@@ -90,7 +92,7 @@ class TestSpace2Depth(unittest.TestCase):
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
-            **self.check_backward_options)
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)

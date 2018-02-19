@@ -7,8 +7,8 @@ import numpy
 import six
 
 import chainer
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer import function
 from chainer.functions.activation import relu
 from chainer.functions.activation import tanh
@@ -26,13 +26,6 @@ if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cuda.cudnn
     _cudnn_version = libcudnn.getVersion()
-
-
-def _stack_weight(ws):
-    # TODO(unno): Input of the current LSTM implementaiton is shuffled
-    w = stack.stack(ws, axis=1)
-    shape = w.shape
-    return reshape.reshape(w, (shape[0] * shape[1],) + shape[2:])
 
 
 class PointerArray(object):
@@ -59,13 +52,6 @@ def _make_tensor_descriptor_array(xs):
         desc = cudnn.create_tensor_nd_descriptor(x)
         descs.append(desc)
     return PointerArray([d.value for d in descs], descs)
-
-
-def _make_ptr_array(xs):
-    """Make an array of pointers denoting pointers of ndarrays.
-
-    """
-    return PointerArray([x.data.ptr for x in xs], xs)
 
 
 class DropoutRandomStates(object):
@@ -147,7 +133,7 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
 
 class BaseNStepRNN(function.Function):
 
-    def __init__(self, n_layers, states, rnn_dir, rnn_mode, **kwargs):
+    def __init__(self, n_layers, states, lengths, rnn_dir, rnn_mode, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '
             'Use chainer.using_config')
@@ -168,6 +154,8 @@ class BaseNStepRNN(function.Function):
         self.states = states
         self.use_cell = _rnn_params_use_cell[self.rnn_mode]
         self.n_W = _rnn_n_params[self.rnn_mode]
+        self.lengths = lengths
+        self.sections = numpy.cumsum(lengths)
 
     @property
     def _n_cell(self):
@@ -181,7 +169,8 @@ class BaseNStepRNN(function.Function):
         return self.n_layers * self.rnn_direction * self.n_W
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() > self._n_cell + self._n_params * 2)
+        type_check.expect(
+            in_types.size() == self._n_cell + self._n_params * 2 + 1)
 
         if self.use_cell:
             (h_type, c_type), in_types = _split(in_types, 2)
@@ -215,19 +204,13 @@ class BaseNStepRNN(function.Function):
         w_types, in_types = _split(in_types, self._n_params)
         b_types, in_types = _split(in_types, self._n_params)
 
-        x_types = in_types
-        for x_type in x_types:
-            type_check.expect(
-                x_type.dtype == numpy.float32,
-                x_type.ndim == 2,
-            )
-        for x1_type, x2_type in six.moves.zip(x_types, x_types[1:]):
-            type_check.expect(
-                # Check if xs are sorted by descending lengths
-                x1_type.shape[0] >= x2_type.shape[0],
-                x1_type.shape[1] == x2_type.shape[1])
+        x_type = in_types[0]
+        type_check.expect(
+            x_type.dtype == numpy.float32,
+            x_type.ndim == 2,
+        )
 
-        in_size = x_types[0].shape[1]
+        in_size = x_type.shape[1]
         out_size = h_type.shape[2]
 
         for layer in six.moves.range(self.n_layers):
@@ -286,16 +269,14 @@ class BaseNStepRNN(function.Function):
 
         ws, inputs = _split(inputs, self._n_params)
         bs, inputs = _split(inputs, self._n_params)
-        x_list = inputs
+        xs = cuda.cupy.ascontiguousarray(inputs[0])
         hx = cuda.cupy.ascontiguousarray(hx)
-        x_desc = cudnn.create_tensor_nd_descriptor(x_list[0][..., None])
 
-        length = len(x_list)
+        length = len(self.lengths)
         n_units = hx.shape[2]
 
-        xs = cuda.cupy.concatenate(x_list, axis=0)
-        ys = cuda.cupy.empty((len(xs),
-                              n_units * self.rnn_direction), dtype=xs.dtype)
+        ys = cuda.cupy.empty(
+            (len(xs), n_units * self.rnn_direction), dtype=xs.dtype)
 
         handle = cudnn.get_handle()
         self.handle = handle
@@ -307,6 +288,8 @@ class BaseNStepRNN(function.Function):
             self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
         self.rnn_desc = rnn_desc
 
+        x_list = cuda.cupy.split(xs, self.sections[:-1])
+        x_desc = cudnn.create_tensor_nd_descriptor(x_list[0][..., None])
         c_x_descs = _make_tensor_descriptor_array(x_list)
         hx_desc = cudnn.create_tensor_nd_descriptor(hx)
 
@@ -334,8 +317,7 @@ class BaseNStepRNN(function.Function):
         self.w = w
         self.w_desc = w_desc
 
-        sections = numpy.cumsum([len(x) for x in x_list[:-1]])
-        y_list = cuda.cupy.split(ys, sections)
+        y_list = cuda.cupy.split(ys, self.sections[:-1])
 
         c_y_descs = _make_tensor_descriptor_array(y_list)
         hy = cuda.cupy.empty_like(hx)
@@ -373,10 +355,10 @@ class BaseNStepRNN(function.Function):
 
         if self.use_cell:
             # LSTM
-            return tuple([hy, cy] + y_list)
+            return hy, cy, ys
         else:
             # GRU, RNN
-            return tuple([hy, ] + y_list)
+            return hy, ys
 
     def backward(self, inputs, grads):
         if self.use_cell:
@@ -410,27 +392,25 @@ class BaseNStepRNN(function.Function):
         ws_size = self.n_layers * self.rnn_direction * self.n_W
         ws, inputs = _split(inputs, ws_size)
         bs, inputs = _split(inputs, ws_size)
-        x_list = inputs
+        xs = cuda.cupy.ascontiguousarray(inputs[0])
         hx = cuda.cupy.ascontiguousarray(hx)
 
         if dhy is None:
             dhy = cuda.cupy.zeros_like(hx)
 
-        dy_list = list(grads[self._n_cell:])
-        for i in six.moves.range(len(dy_list)):
-            if dy_list[i] is None:
-                dy_list[i] = cuda.cupy.zeros_like(x_list[i])
+        dys = grads[self._n_cell]
+        if dys is None:
+            dys = cuda.cupy.zeros_like(self.ys)
 
-        xs = cuda.cupy.concatenate(x_list, axis=0)
-        length = len(x_list)
+        length = len(self.lengths)
 
         dhx = cuda.cupy.empty_like(hx)
 
         hx_desc = cudnn.create_tensor_nd_descriptor(hx)
         dhy_desc = cudnn.create_tensor_nd_descriptor(dhy)
 
+        dy_list = cuda.cupy.split(dys, self.sections[:-1], 0)
         c_dy_descs = _make_tensor_descriptor_array(dy_list)
-        dys = cuda.cupy.concatenate(dy_list, axis=0)
 
         rnn_desc = self.rnn_desc
         handle = self.handle
@@ -441,8 +421,7 @@ class BaseNStepRNN(function.Function):
         dhx_desc = cudnn.create_tensor_nd_descriptor(dhx)
 
         dxs = cuda.cupy.empty_like(xs)
-        sections = numpy.cumsum([len(x) for x in x_list[:-1]])
-        dx_list = cuda.cupy.split(dxs, sections, 0)
+        dx_list = cuda.cupy.split(dxs, self.sections[:-1], 0)
         c_dx_descs = _make_tensor_descriptor_array(dx_list)
 
         libcudnn.RNNBackwardData(
@@ -485,38 +464,42 @@ class BaseNStepRNN(function.Function):
 
         if self.use_cell:
             # LSTM
-            return tuple([dhx, dcx] + dws + dbs + dx_list)
+            return tuple([dhx, dcx] + dws + dbs + [dxs])
         else:
             # GRU, RNN
-            return tuple([dhx, ] + dws + dbs + dx_list)
+            return tuple([dhx] + dws + dbs + [dxs])
 
 
 class NStepRNNTanh(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
-        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                              rnn_mode='rnn_tanh', **kwargs)
+    def __init__(self, n_layers, states, lengths, **kwargs):
+        BaseNStepRNN.__init__(
+            self, n_layers, states, lengths,
+            rnn_dir='uni', rnn_mode='rnn_tanh', **kwargs)
 
 
 class NStepRNNReLU(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
-        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='uni',
-                              rnn_mode='rnn_relu', **kwargs)
+    def __init__(self, n_layers, states, lengths, **kwargs):
+        BaseNStepRNN.__init__(
+            self, n_layers, states, lengths,
+            rnn_dir='uni', rnn_mode='rnn_relu', **kwargs)
 
 
 class NStepBiRNNTanh(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
-        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='bi',
-                              rnn_mode='rnn_tanh', **kwargs)
+    def __init__(self, n_layers, states, lengths, **kwargs):
+        BaseNStepRNN.__init__(
+            self, n_layers, states, lengths,
+            rnn_dir='bi', rnn_mode='rnn_tanh', **kwargs)
 
 
 class NStepBiRNNReLU(BaseNStepRNN):
 
-    def __init__(self, n_layers, states, **kwargs):
-        BaseNStepRNN.__init__(self, n_layers, states, rnn_dir='bi',
-                              rnn_mode='rnn_relu', **kwargs)
+    def __init__(self, n_layers, states, lengths, **kwargs):
+        BaseNStepRNN.__init__(
+            self, n_layers, states, lengths,
+            rnn_dir='bi', rnn_mode='rnn_relu', **kwargs)
 
 
 def n_step_rnn(
@@ -569,7 +552,7 @@ def n_step_rnn(
         hx (chainer.Variable): Variable holding stacked hidden states.
             Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
-            dimention of hidden units.
+            dimension of hidden units.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
             represents weights for i-th layer.
             Each ``ws[i]`` is a list containing two matrices.
@@ -581,7 +564,7 @@ def n_step_rnn(
             represnents biases for i-th layer.
             Each ``bs[i]`` is a list containing two vectors.
             ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
-            Shape of each matrix is ``(N,)`` where ``N`` is dimention of
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
         xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
             holding input values. Each element ``xs[t]`` holds input value
@@ -670,9 +653,10 @@ def n_step_birnn(
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
         hx (chainer.Variable): Variable holding stacked hidden states.
-            Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
+            Its shape is ``(2S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
-            dimention of hidden units.
+            dimension of hidden units. Because of bi-direction, the
+            first dimension length is ``2S``.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i + di]``
             represents weights for i-th layer.
             Note that ``di = 0`` for forward-RNN and ``di = 1`` for
@@ -690,7 +674,7 @@ def n_step_birnn(
             Each ``bs[i + di]`` is a list containing two vectors.
             ``bs[i + di][j]`` is corresponding with ``b^{f}_j`` if ``di = 0``
             and corresponding with ``b^{b}_j`` if ``di = 1`` in the equation.
-            Shape of each matrix is ``(N,)`` where ``N`` is dimention of
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
         xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
             holding input values. Each element ``xs[t]`` holds input value
@@ -747,7 +731,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         hx (chainer.Variable): Variable holding stacked hidden states.
             Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
-            dimention of hidden units.
+            dimension of hidden units.
         ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
             represents weights for i-th layer.
             Each ``ws[i]`` is a list containing two matrices.
@@ -759,7 +743,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             represnents biases for i-th layer.
             Each ``bs[i]`` is a list containing two vectors.
             ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
-            Shape of each matrix is ``(N,)`` where ``N`` is dimention of
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
         xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
             holding input values. Each element ``xs[t]`` holds input value
@@ -811,28 +795,30 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         states = get_random_state().create_dropout_states(dropout_ratio)
+        lengths = [len(x) for x in xs]
+        xs = chainer.functions.concat(xs, axis=0)
         # flatten all input variables
         inputs = tuple(itertools.chain(
-            (hx, ),
+            (hx,),
             itertools.chain.from_iterable(ws),
             itertools.chain.from_iterable(bs),
-            xs))
+            (xs,)))
         if use_bi_direction:
             # Bi-directional RNN
             if activation == 'tanh':
-                rnn = NStepBiRNNTanh(n_layers, states)
+                rnn = NStepBiRNNTanh
             elif activation == 'relu':
-                rnn = NStepBiRNNReLU(n_layers, states)
+                rnn = NStepBiRNNReLU
         else:
             # Uni-directional RNN
             if activation == 'tanh':
-                rnn = NStepRNNTanh(n_layers, states)
+                rnn = NStepRNNTanh
             elif activation == 'relu':
-                rnn = NStepRNNReLU(n_layers, states)
+                rnn = NStepRNNReLU
 
-        ret = rnn(*inputs)
-        hy, = ret[:1]
-        ys = ret[1:]
+        hy, ys = rnn(n_layers, states, lengths)(*inputs)
+        sections = numpy.cumsum(lengths[:-1])
+        ys = chainer.functions.split_axis(ys, sections, 0)
         return hy, ys
 
     else:
@@ -842,10 +828,10 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
                                    force_tuple=True)
         hx = [reshape.reshape(h, h.shape[1:]) for h in hx]
 
-        xws = [_stack_weight([w[0]]) for w in ws]
-        hws = [_stack_weight([w[1]]) for w in ws]
-        xbs = [_stack_weight([b[0]]) for b in bs]
-        hbs = [_stack_weight([b[1]]) for b in bs]
+        xws = [xw for xw, _ in ws]
+        hws = [hw for _, hw in ws]
+        xbs = [xb for xb, _ in bs]
+        hbs = [hb for _, hb in bs]
 
         xs_next = xs
         hy = []
@@ -868,9 +854,9 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
                     if layer > 0:
                         x = dropout.dropout(x, ratio=dropout_ratio)
 
-                    rnn_in = (linear.linear(x, xws[layer_idx],
-                                            xbs[layer_idx]) +
-                              linear.linear(h, hws[layer_idx], hbs[layer_idx]))
+                    rnn_in = (
+                        linear.linear(x, xws[layer_idx], xbs[layer_idx]) +
+                        linear.linear(h, hws[layer_idx], hbs[layer_idx]))
                     if activation == 'tanh':
                         h_bar = tanh.tanh(rnn_in)
                     elif activation == 'relu':

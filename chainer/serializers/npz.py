@@ -2,7 +2,7 @@ import numpy
 
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import serializer
 
 
@@ -29,9 +29,10 @@ class DictionarySerializer(serializer.Serializer):
             indicates.
 
     Attributes:
-        target (dict): The target dictionary. Once the serialization completes,
-            this dictionary can be fed into :func:`numpy.savez` or
-            :func:`numpy.savez_compressed` to serialize it in the NPZ format.
+        ~DictionarySerializer.target (dict): The target dictionary.
+            Once the serialization completes, this dictionary can be fed into
+            :func:`numpy.savez` or :func:`numpy.savez_compressed` to serialize
+            it in the NPZ format.
 
     """
 
@@ -68,10 +69,13 @@ def save_npz(file, obj, compression=True):
         :func:`chainer.serializers.load_npz`
 
     """
+    if isinstance(file, six.string_types):
+        with open(file, 'wb') as f:
+            save_npz(f, obj, compression)
+        return
+
     s = DictionarySerializer()
     s.save(obj)
-    if isinstance(file, six.string_types):
-        file = open(file, 'wb')
     if compression:
         numpy.savez_compressed(file, **s.target)
     else:
@@ -101,10 +105,12 @@ class NpzDeserializer(serializer.Deserializer):
 
     """
 
-    def __init__(self, npz, path='', strict=True, ignore_names=[]):
+    def __init__(self, npz, path='', strict=True, ignore_names=None):
         self.npz = npz
         self.path = path
         self.strict = strict
+        if ignore_names is None:
+            ignore_names = []
         self.ignore_names = ignore_names
 
     def __getitem__(self, key):

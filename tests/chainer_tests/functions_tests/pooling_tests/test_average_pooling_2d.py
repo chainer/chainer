@@ -9,125 +9,128 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import backend
 from chainer.testing import condition
+
+
+def _to_fcontiguous(arrays):
+    xp = cuda.get_array_module(*arrays)
+    return [xp.asfortranarray(a) for a in arrays]
 
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'c_contiguous': [True, False],
 }))
+@backend.inject_backend_tests(
+    ['test_forward', 'test_backward', 'test_double_backward'],
+    # CPU tests
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    }))
 class TestAveragePooling2D(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1,
-                                      (2, 3, 4, 3)).astype(self.dtype)
-        self.gy = numpy.random.uniform(-1, 1,
-                                       (2, 3, 2, 2)).astype(self.dtype)
+        dtype = self.dtype
+        x = numpy.random.uniform(-1, 1, (2, 3, 4, 3)).astype(dtype)
+        gy = numpy.random.uniform(-1, 1, (2, 3, 2, 2)).astype(dtype)
+        ggx = numpy.random.uniform(-1, 1, (2, 3, 4, 3)).astype(dtype)
+
+        self.output_shape = gy.shape
+
+        self.inputs = [x]
+        self.grad_outputs = [gy]
+        self.grad_grad_inputs = [ggx]
+
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
-        self.ggx = numpy.random.uniform(
-            -1, 1, (2, 3, 4, 3)).astype(self.dtype)
 
-    def check_forward(self, x_data, use_cudnn='always'):
-        x = chainer.Variable(x_data)
-        with chainer.using_config('use_cudnn', use_cudnn):
-            y = functions.average_pooling_2d(x, 3, stride=2, pad=1)
-        self.assertEqual(y.data.dtype, self.dtype)
-        y_data = cuda.to_cpu(y.data)
-
-        self.assertEqual(self.gy.shape, y_data.shape)
+    def forward_cpu(self, inputs):
+        x, = inputs
+        expect = numpy.empty(self.output_shape, dtype=self.dtype)
         for k in six.moves.range(2):
             for c in six.moves.range(3):
-                x = self.x[k, c]
-                expect = numpy.array([
-                    [x[0:2, 0:2].sum(), x[0:2, 1:3].sum()],
-                    [x[1:4, 0:2].sum(), x[1:4, 1:3].sum()]]) / 9
-                testing.assert_allclose(
-                    expect, y_data[k, c], **self.check_forward_options)
+                xx = x[k, c]
+                expect[k, c] = numpy.array([
+                    [xx[0:2, 0:2].sum(), xx[0:2, 1:3].sum()],
+                    [xx[1:4, 0:2].sum(), xx[1:4, 1:3].sum()]]) / 9
+        return expect,
+
+    def check_forward(self, inputs, backend_config):
+        y_expect, = self.forward_cpu(inputs)
+
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
+        if not self.c_contiguous:
+            inputs = _to_fcontiguous(inputs)
+
+        with backend_config:
+            x, = inputs
+            y = functions.average_pooling_2d(x, 3, stride=2, pad=1)
+        assert y.data.dtype == self.dtype
+        y_data = cuda.to_cpu(y.data)
+
+        assert self.output_shape == y_data.shape
+        testing.assert_allclose(y_expect, y_data, **self.check_forward_options)
 
     @condition.retry(3)
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
+    def test_forward(self, backend_config):
+        self.check_forward(self.inputs, backend_config)
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
+    def check_backward(self, inputs, grad_outputs, backend_config):
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
+            grad_outputs = cuda.to_gpu(grad_outputs)
+        if not self.c_contiguous:
+            inputs = _to_fcontiguous(inputs)
+            grad_outputs = _to_fcontiguous(grad_outputs)
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu_non_contiguous(self):
-        self.check_forward(cuda.cupy.asfortranarray(cuda.to_gpu(self.x)))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu_no_cudnn(self):
-        self.check_forward(cuda.to_gpu(self.x), 'never')
-
-    def check_backward(self, x_data, y_grad, use_cudnn='always'):
         def f(x):
             return functions.average_pooling_2d(x, 3, 2, 1)
-        with chainer.using_config('use_cudnn', use_cudnn):
+
+        with backend_config:
             gradient_check.check_backward(
-                f, x_data, y_grad, **self.check_backward_options)
+                f, inputs, grad_outputs, **self.check_backward_options)
 
     @condition.retry(3)
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
+    def test_backward(self, backend_config):
+        self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+    def check_double_backward(
+            self, inputs, grad_outputs, grad_grad_inputs, backend_config):
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
+            grad_outputs = cuda.to_gpu(grad_outputs)
+            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
+        if not self.c_contiguous:
+            inputs = _to_fcontiguous(inputs)
+            grad_outputs = _to_fcontiguous(grad_outputs)
+            grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu_non_contiguous(self):
-        self.check_backward(
-            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
-            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu_no_cudnn(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
-
-    def check_double_backward(self, x_data, y_grad, x_grad_grad,
-                              use_cudnn='always'):
         def f(x):
             y = functions.average_pooling_2d(x, 3, 2, 1)
             return y * y
-        with chainer.using_config('use_cudnn', use_cudnn):
+
+        with backend_config:
             gradient_check.check_double_backward(
-                f, x_data, y_grad, x_grad_grad, **self.check_backward_options)
+                f, inputs, grad_outputs, grad_grad_inputs,
+                **self.check_backward_options)
 
     @condition.retry(3)
-    def test_double_backward_cpu(self):
-        self.check_double_backward(self.x, self.gy, self.ggx, 'never')
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_double_backward_gpu(self):
+    def test_double_backward(self, backend_config):
         self.check_double_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_double_backward_gpu_non_contiguous(self):
-        self.check_double_backward(
-            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
-            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
-            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_double_backward_gpu_no_cudnn(self):
-        self.check_double_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
-            'never')
+            self.inputs, self.grad_outputs, self.grad_grad_inputs,
+            backend_config)
 
 
 @testing.parameterize(*testing.product({

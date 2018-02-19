@@ -3,7 +3,7 @@ import copy
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.initializers import uniform
 from chainer import link

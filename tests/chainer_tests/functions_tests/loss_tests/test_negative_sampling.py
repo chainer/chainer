@@ -43,7 +43,16 @@ class TestNegativeSamplingFunction(unittest.TestCase):
             g_shape = self.t.shape
         elif self.reduce == 'sum':
             g_shape = ()
+
         self.gy = numpy.random.uniform(-1, 1, g_shape).astype(numpy.float32)
+
+        self.ggx = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+        self.ggw = numpy.random.uniform(-1, 1, w_shape).astype(numpy.float32)
+
+        self.check_backward_options = {
+            'eps': 1e-2, 'atol': 5e-4, 'rtol': 5e-3}
+        self.check_double_backward_options = {
+            'eps': 1e-2, 'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x_data, t_data, w_data, sampler):
         x = chainer.Variable(x_data)
@@ -63,6 +72,7 @@ class TestNegativeSamplingFunction(unittest.TestCase):
                 loss[i] = 0
             else:
                 iw = self.w[samples[i]]
+
                 f = iw.dot(ix)
                 # first one is positive example
                 f[0] *= -1
@@ -84,14 +94,12 @@ class TestNegativeSamplingFunction(unittest.TestCase):
             make_sampler(cuda.cupy, self.label_size))
 
     def check_backward(self, x_data, t_data, w_data, y_grad, sampler):
-        t = chainer.Variable(t_data)
-
         def f(x, w):
-            return negative_sampling.negative_sampling(
-                x, t, w, sampler, self.sample_size, self.reduce)
+            return functions.negative_sampling(
+                x, t_data, w, sampler, self.sample_size, reduce=self.reduce)
 
         gradient_check.check_backward(
-            f, (x_data, w_data), y_grad, eps=1e-2, atol=1e-4, rtol=1e-4)
+            f, (x_data, w_data), y_grad, **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(
@@ -103,6 +111,30 @@ class TestNegativeSamplingFunction(unittest.TestCase):
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.t),
             cuda.to_gpu(self.w), cuda.to_gpu(self.gy),
+            make_sampler(cuda.cupy, self.label_size))
+
+    def check_double_backward(self, x_data, t_data, w_data, y_grad,
+                              x_grad_grad, w_grad_grad, sampler):
+
+        def f(x, w):
+            return functions.negative_sampling(
+                x, t_data, w, sampler, self.sample_size, reduce=self.reduce)
+
+        gradient_check.check_double_backward(
+            f, (x_data, w_data), y_grad, (x_grad_grad, w_grad_grad),
+            **self.check_double_backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.x, self.t, self.w, self.gy, self.ggx, self.ggw,
+            make_sampler(numpy, self.label_size))
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.t),
+            cuda.to_gpu(self.w), cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggx), cuda.to_gpu(self.ggw),
             make_sampler(cuda.cupy, self.label_size))
 
 

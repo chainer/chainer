@@ -6,6 +6,7 @@ Trainer triggers
    :nosignatures:
 
    chainer.training.triggers.BestValueTrigger
+   chainer.training.triggers.EarlyStoppingTrigger
    chainer.training.triggers.IntervalTrigger
    chainer.training.triggers.ManualScheduleTrigger
    chainer.training.triggers.MaxValueTrigger

@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -91,8 +91,8 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
     :math:`(N, K)`.
 
     .. math::
-        L(a, p, n) = \\frac{1}{N} \\left( \\sum_{i=1}^N \\max \{d(a_i, p_i)
-            - d(a_i, n_i) + {\\rm margin}, 0\} \\right)
+        L(a, p, n) = \\frac{1}{N} \\left( \\sum_{i=1}^N \\max \\{d(a_i, p_i)
+            - d(a_i, n_i) + {\\rm margin}, 0\\} \\right)
 
     where :math:`d(x_i, y_i) = \\| {\\bf x}_i - {\\bf y}_i \\|_2^2`.
 
@@ -132,18 +132,21 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
 
     .. admonition:: Example
 
-        >>> anchor = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).astype('f')
-        >>> pos = np.array([[-2.1, 2.8, 0.5], [4.9, 2.0, -0.4]]).astype('f')
-        >>> neg = np.array([[-2.1, 2.7, 0.7], [4.9, 2.0, -0.7]]).astype('f')
+        >>> anchor = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).\
+astype(np.float32)
+        >>> pos = np.array([[-2.1, 2.8, 0.5], [4.9, 2.0, -0.4]]).\
+astype(np.float32)
+        >>> neg = np.array([[-2.1, 2.7, 0.7], [4.9, 2.0, -0.7]]).\
+astype(np.float32)
         >>> F.triplet(anchor, pos, neg)
-        variable(0.14000003039836884)
+        variable(0.14000003)
         >>> y = F.triplet(anchor, pos, neg, reduce='no')
         >>> y.shape
         (2,)
         >>> y.data
-        array([ 0.11000005,  0.17      ], dtype=float32)
+        array([0.11000005, 0.17      ], dtype=float32)
         >>> F.triplet(anchor, pos, neg, margin=0.5)  # harder penalty
-        variable(0.4400000274181366)
+        variable(0.44000003)
 
     """
     return Triplet(margin, reduce).apply((anchor, positive, negative))[0]
