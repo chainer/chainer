@@ -320,12 +320,10 @@ Actual: 1 < 2"""
     {'return_value': (numpy.array([float('nan')], numpy.float32),),
      'valid': False},
     {'return_value': (numpy.array([1], numpy.int32),), 'valid': True},
-    {'return_value': (numpy.float32(1),), 'valid': False, 'test_gpu': False},
 )
 class TestFunctionNodeForwardDebug(unittest.TestCase):
 
     def setUp(self):
-        self.test_gpu = getattr(self, 'test_gpu', True)
         self.original_debug = chainer.is_debug()
         chainer.set_debug(True)
         self.one = numpy.array([1], numpy.float32)
@@ -349,8 +347,6 @@ class TestFunctionNodeForwardDebug(unittest.TestCase):
 
     @attr.gpu
     def test_debug_forward_gpu(self):
-        if not self.test_gpu:
-            return
         return_value = tuple(None if x is None else cuda.to_gpu(x)
                              for x in self.return_value)
         self.f.forward_gpu = mock.MagicMock(return_value=return_value)
