@@ -175,7 +175,7 @@ class TestRawArray(unittest.TestCase):
                         numpy.int32(0)) for i in range(100)]
 
             batch_size = 5
-            devices = (1,)
+            devices = (0,)
             iters = [chainer.iterators.SerialIterator(i, batch_size) for i in
                      chainer.datasets.split_dataset_n_random(
                          dataset, len(devices))]
@@ -190,14 +190,10 @@ class TestRawArray(unittest.TestCase):
 
 class TestChildReporter(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
-    @attr.gpu
-    @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
-                         "MultiprocessParallelUpdater is not available.")
-    def test_update_uses_raw_array(self):
-        code = """
+    def check_update_uses_raw_array(self, n_devices):
+        device_ids_tuple = 'tuple([{}])'.format(
+            ', '.join([str(n) for n in range(n_devices)]))
+        code = '''
 import numpy
 import chainer
 from chainer.training import trainer
@@ -249,7 +245,7 @@ if __name__ == '__main__':
                 numpy.int32(0)) for i in range(100)]
 
     batch_size = 5
-    devices = (0, 1)
+    devices = {{{device_ids_tuple}}}
     iters = [chainer.iterators.SerialIterator(i, batch_size) for i in
              chainer.datasets.split_dataset_n_random(
                  dataset, len(devices))]
@@ -260,7 +256,8 @@ if __name__ == '__main__':
     trainer = trainer.Trainer(updater, (1, 'iteration'), '/tmp')
     trainer.run()
     assert model.call_called == 1
-"""
+'''.replace('{{{device_ids_tuple}}}', device_ids_tuple)
+
         temp_dir = tempfile.mkdtemp()
         try:
             script_path = os.path.join(temp_dir, 'script.py')
@@ -281,5 +278,16 @@ if __name__ == '__main__':
             '[stderr]:{!r}'.format(
                 code, stdoutdata, stderrdata))
 
+    @attr.gpu
+    @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
+                         'MultiprocessParallelUpdater is not available.')
+    def test_single_device(self):
+        self.check_update_uses_raw_array(1)
+
+    @attr.multi_gpu(2)
+    @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
+                         'MultiprocessParallelUpdater is not available.')
+    def test_multi_device(self):
+        self.check_update_uses_raw_array(2)
 
 testing.run_module(__name__, __file__)
