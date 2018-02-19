@@ -10,7 +10,7 @@ class SampleDataset(GetterDataset):
 
         self.add_getter('item0', self.get_item0)
         self.add_getter(('item1', 'item2'), self.get_item1_item2)
-        self.add_getter('item3', self.get_item3)
+        self.add_getter(1, self.get_item3)
 
         self.count = 0
 
@@ -37,20 +37,10 @@ class TestGetterDataset(unittest.TestCase):
 
     def test_keys(self):
         self.assertEqual(
-            self.dataset.keys, ('item0', 'item1', 'item2', 'item3'))
-
-    def test_set_keys(self):
-        self.dataset.keys = ('item3', 'item2', 'item1', 'item0')
-        self.assertEqual(
-            self.dataset.keys, ('item3', 'item2', 'item1', 'item0'))
-
-    def test_set_keys_invalid(self):
-        with self.assertRaises(KeyError):
-            self.dataset.keys = ('invalid',)
+            self.dataset.keys, ('item0', 'item1', 'item2', None))
 
     def test_get_example_by_keys(self):
-        example = self.dataset.get_example_by_keys(
-            1, ('item1', 'item2', 'item3'))
+        example = self.dataset.get_example_by_keys(1, (1, 2, 3))
         self.assertEqual(example, ('item1(1)', 'item2(1)', 'item3(1)'))
         self.assertEqual(self.dataset.count, 2)
 

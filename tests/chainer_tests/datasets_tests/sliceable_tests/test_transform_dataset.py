@@ -37,5 +37,17 @@ class TestTransformDataset(unittest.TestCase):
         self.assertEqual(
             dataset[3], ('transformed_item0(3)', 'transformed_item2(3)'))
 
+    def test_transform_without_keys(self):
+        def func(in_data):
+            item0, item1, item2 = in_data
+            return 'transformed_' + item0, 'transformed_' + item2
+
+        dataset = TransformDataset(self.dataset, 2, func)
+        self.assertIsInstance(dataset, SliceableDataset)
+        self.assertEqual(len(dataset), len(self.dataset))
+        self.assertEqual(dataset.keys, (None, None))
+        self.assertEqual(
+            dataset[3], ('transformed_item0(3)', 'transformed_item2(3)'))
+
 
 testing.run_module(__name__, __file__)

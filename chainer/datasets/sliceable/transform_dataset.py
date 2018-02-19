@@ -7,8 +7,8 @@ class TransformDataset(GetterDataset):
     Args:
         dataset: The underlying dataset.
             This dataset should have :meth:`__len__` and :meth:`__getitem__`.
-        keys (string or tuple of strings): Name(s) of data that
-                the transform function returns.
+        keys (int or string or tuple of strings): The number or name(s) of
+            data that the transform function returns.
         transform (callable): A function that is called to transform values
             returned by the underlying dataset's :meth:`__getitem__`.
     """
@@ -16,6 +16,11 @@ class TransformDataset(GetterDataset):
     def __init__(self, dataset, keys, transform):
         super(TransformDataset, self).__init__()
         self._dataset = dataset
+        if isinstance(keys, int):
+            if keys == 1:
+                keys = None
+            else:
+                keys = (None,) * keys
         self.add_getter(keys, lambda index: transform(dataset[index]))
 
     def __len__(self):
