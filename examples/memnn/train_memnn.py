@@ -2,11 +2,6 @@
 
 import argparse
 import collections
-import json
-import glob
-import os
-
-import six
 
 import chainer
 from chainer.training import extensions

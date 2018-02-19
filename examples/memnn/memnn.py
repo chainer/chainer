@@ -232,18 +232,18 @@ def save_model(directory, model, vocab):
         json.dump(parameters, f)
     chainer.serializers.save_npz(
         os.path.join(directory, 'model.npz'), model)
-    
+
 
 def load_model(directory):
     """Loads a model saved.
 
     Args:
         directory (str): Path to a directory where you load a model.
-        
+
     Returns:
         tuple: ``(model, vocab)`` where ``model`` is a loaded model and
         ``vocab`` is a ``dict`` storing its vocabulary.
-    
+
     """
     with open(os.path.join(directory, 'parameter.json')) as f:
         parameters = json.load(f)
