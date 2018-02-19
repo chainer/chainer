@@ -562,7 +562,11 @@ def fuse(*args, **kwargs):
 
     """
     if available:
-        return cupy.fuse(*args, **kwargs)
+        with warnings.catch_warnings():
+            # Currently cupy.fuse is an experimental feature.
+            # Its interface may be changed in the future.
+            warnings.simplefilter('ignore', FutureWarning)
+            return cupy.fuse(*args, **kwargs)
     else:
         return lambda f: f
 
