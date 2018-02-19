@@ -271,8 +271,8 @@ Use apply() method instead.\
         for hook in hooks:
             hook.forward_postprocess(self, in_data)
 
+        # NaN check of output values
         if is_debug:
-            # NaN check of output values
             if any(out.dtype.kind == 'f' and
                    cuda.get_array_module(out).isnan(out).any()
                    for out in outputs):
