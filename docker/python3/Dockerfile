@@ -8,4 +8,4 @@ RUN apt-get update -y && \
     python3-wheel && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-RUN pip3 install cupy==4.0.0b3 chainer==4.0.0b3
+RUN pip3 install chainer[cuda]==4.0.0b3
