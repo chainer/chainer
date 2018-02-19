@@ -9,6 +9,7 @@ this table when reading chainer's source codes).
  imported name                original name
 ============================ =================================
  ``chainer.cuda.cupy``        :mod:`cupy`
+ ``chainer.cuda.cupyx``       :mod:`cupyx`
  ``chainer.cuda.ndarray``     :class:`cupy.ndarray`
  ``chainer.cuda.cupy.cuda``   :mod:`cupy.cuda`
  ``chainer.cuda.Device``      :class:`cupy.cuda.Device`
@@ -40,6 +41,7 @@ try:
     import cupy
     from cupy import cuda  # NOQA
     from cupy.cuda import cublas  # NOQA
+    import cupyx  # NOQA
 
     from cupy import ndarray  # NOQA
 
