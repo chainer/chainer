@@ -1,4 +1,3 @@
-import cupyx
 import numpy
 
 import chainer
@@ -45,7 +44,7 @@ class ScatterAdd(function_node.FunctionNode):
         if xp is numpy:
             numpy.add.at(y, self.slices, b),
         else:
-            cupyx.scatter_add(y, self.slices, b),
+            cuda.cupyx.scatter_add(y, self.slices, b),
         return y,
 
     def backward(self, indexes, grad_outputs):
