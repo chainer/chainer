@@ -258,7 +258,7 @@ if __name__ == '__main__':
         iters, optimizer, devices=devices)
     trainer = trainer.Trainer(updater, (1, 'iteration'), '/tmp')
     trainer.run()
-    assert model.call_called == 0
+    assert model.call_called == 1
 """
         temp_dir = tempfile.mkdtemp()
         try:
