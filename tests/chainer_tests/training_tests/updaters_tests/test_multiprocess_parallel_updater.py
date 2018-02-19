@@ -290,4 +290,5 @@ if __name__ == '__main__':
     def test_multi_device(self):
         self.check_update_uses_raw_array(2)
 
+
 testing.run_module(__name__, __file__)
