@@ -16,8 +16,10 @@ class SampleDataset(SliceableDataset):
     def keys(self):
         return ('item0', 'item1', 'item2')
 
-    def get_example_by_keys(self, i, keys):
-        return tuple('{:s}({:d})'.format(key, i) for key in keys)
+    def get_example_by_keys(self, i, key_indices):
+        return tuple(
+            '{:s}({:d})'.format(self.keys[key_index], i)
+            for key_index in key_indices)
 
 
 class TestTupleDataset(unittest.TestCase):
@@ -33,7 +35,7 @@ class TestTupleDataset(unittest.TestCase):
         self.assertIsInstance(dataset, SliceableDataset)
         self.assertEqual(len(dataset), len(self.dataset))
         self.assertEqual(
-            dataset.keys, ('item0', 'item1', 'item2', 'item3', 'key_4'))
+            dataset.keys, ('item0', 'item1', 'item2', 'item3', None))
         self.assertEqual(
             dataset[1], ('item0(1)', 'item1(1)', 'item2(1)', 1, 2))
 

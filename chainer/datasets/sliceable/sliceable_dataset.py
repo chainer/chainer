@@ -24,19 +24,19 @@ class SliceableDataset(chainer.dataset.DatasetMixin):
 
     @property
     def keys(self):
-        """Return all keys
+        """Return names of all keys
 
         Returns:
             string or tuple of strings
         """
         raise NotImplementedError
 
-    def get_example_by_keys(self, index, keys):
+    def get_example_by_keys(self, index, key_indices):
         """Return data of an example by keys
 
         Args:
             index (int): An index of an example.
-            keys (tuple of strings): A tuple of requested keys.
+            key_indices (tuple of ints): A tuple of indices of requested keys.
 
         Returns:
             tuple of data
@@ -45,9 +45,10 @@ class SliceableDataset(chainer.dataset.DatasetMixin):
 
     def get_example(self, index):
         if isinstance(self.keys, tuple):
-            return self.get_example_by_keys(index, self.keys)
+            return self.get_example_by_keys(
+                index, tuple(range(len(self.keys))))
         else:
-            return self.get_example_by_keys(index, (self.keys,))[0]
+            return self.get_example_by_keys(index, (0,))[0]
 
     @property
     def slice(self):
@@ -75,25 +76,34 @@ class SliceHelper(object):
         else:
             keys, return_tuple = (keys,), False
 
-        # convert index to name
-        keys = tuple(
-            key if isinstance(key, str) else self._dataset.keys[key]
-            for key in keys)
+        # convert name to index
+        key_indices = list()
         for key in keys:
-            if key not in _as_tuple(self._dataset.keys):
-                raise KeyError('{} does not exists'.format(key))
+            if isinstance(key, int):
+                key_index = key
+                if key_index >= len(self._dataset.keys):
+                    raise IndexError('Invalid index of key')
+                if key_index < 0:
+                    key_index += len(self._dataset.keys)
+            else:
+                try:
+                    key_index = _as_tuple(self._dataset.keys).index(key)
+                except ValueError:
+                    raise KeyError('{} does not exists'.format(key))
+            key_indices.append(key_index)
 
         return SlicedDataset(
-            self._dataset, index, keys if return_tuple else keys[0])
+            self._dataset, index,
+            tuple(key_indices) if return_tuple else key_indices[0])
 
 
 class SlicedDataset(SliceableDataset):
     """A sliced view for :class:`SliceableDataset`."""
 
-    def __init__(self, dataset, index, keys):
+    def __init__(self, dataset, index, key_indices):
         self._dataset = dataset
         self._index = index
-        self._keys = keys
+        self._key_indices = key_indices
 
     def __len__(self):
         if isinstance(self._index, slice):
@@ -104,12 +114,24 @@ class SlicedDataset(SliceableDataset):
 
     @property
     def keys(self):
-        return self._keys
+        keys = _as_tuple(self._dataset.keys)
+        if isinstance(self._key_indices, tuple):
+            return tuple(keys[key_index] for key_index in self._key_indices)
+        else:
+            return keys[self._key_indices]
 
-    def get_example_by_keys(self, index, keys):
+    def get_example_by_keys(self, index, key_indices):
+        if isinstance(key_indices, tuple):
+            key_indices = tuple(
+                _as_tuple(self._key_indices)[key_index]
+                for key_index in key_indices)
+        else:
+            key_indices = _as_tuple(self._key_indices)[key_indices]
+
         if isinstance(self._index, slice):
             start, _, step = self._index.indices(len(self._dataset))
             return self._dataset.get_example_by_keys(
-                start + index * step, keys)
+                start + index * step, key_indices)
         else:
-            return self._dataset.get_example_by_keys(self._index[index], keys)
+            return self._dataset.get_example_by_keys(
+                self._index[index], key_indices)

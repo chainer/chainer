@@ -14,8 +14,10 @@ class SampleDataset(SliceableDataset):
     def keys(self):
         return ('item0', 'item1', 'item2')
 
-    def get_example_by_keys(self, i, keys):
-        return tuple('{:s}({:d})'.format(key, i) for key in keys)
+    def get_example_by_keys(self, i, key_indices):
+        return tuple(
+            '{:s}({:d})'.format(self.keys[key_index], i)
+            for key_index in key_indices)
 
 
 class TestTransformDataset(unittest.TestCase):

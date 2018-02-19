@@ -27,11 +27,11 @@ class ConcatenatedDataset(SliceableDataset):
     def keys(self):
         return self._keys
 
-    def get_example_by_keys(self, index, keys):
+    def get_example_by_keys(self, index, key_indices):
         if index < 0:
             raise IndexError
         for dataset in self._datasets:
             if index < len(dataset):
-                return dataset.get_example_by_keys(index, keys)
+                return dataset.get_example_by_keys(index, key_indices)
             index -= len(dataset)
         raise IndexError
