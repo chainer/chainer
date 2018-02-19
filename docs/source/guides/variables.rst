@@ -24,7 +24,7 @@ The resulting ``y`` is also a Variable object, whose value can be extracted by a
 .. doctest::
 
    >>> y.data
-   array([ 16.], dtype=float32)
+   array([16.], dtype=float32)
 
 What ``y`` holds is not only the result value.
 It also holds the history of computation (or computational graph), which enables us to compute its derivative.
@@ -40,7 +40,7 @@ Then, the gradient is computed and stored in the :attr:`~Variable.grad` attribut
 .. doctest::
 
    >>> x.grad
-   array([ 8.], dtype=float32)
+   array([8.], dtype=float32)
 
 Also we can compute gradients of intermediate variables.
 Note that Chainer, by default, releases the gradient arrays of intermediate variables for memory efficiency.
