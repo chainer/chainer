@@ -65,8 +65,8 @@ This is done simply by setting the :attr:`~Variable.grad` attribute of the outpu
    >>> y.grad = np.ones((2, 3), dtype=np.float32)
    >>> y.backward()
    >>> x.grad
-   array([[  0.,   2.,   4.],
-          [  6.,   8.,  10.]], dtype=float32)
+   array([[0., 2., 4.],
+          [6., 8., 10.]], dtype=float32)
 
 .. note::
 
