@@ -35,7 +35,8 @@ class Stack(function_node.FunctionNode):
                 [xp.expand_dims(x, self.axis) for x in inputs], self.axis),
 
     def backward(self, inputs, grads):
-        return chainer.functions.separate(grads[0], self.axis)
+        gx, = grads
+        return chainer.functions._split_axis_squeeze(gx, self.axis)
 
 
 def stack(xs, axis=0):
