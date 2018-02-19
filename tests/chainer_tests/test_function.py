@@ -159,12 +159,15 @@ class TestFunction(unittest.TestCase):
         device = 1
         self.setup_gpu(device)
 
-        test_case = self
-
         def check_current_device(ret):
-            def meth(self, *args, **kwargs):
+            def meth(func_self, *args, **kwargs):
                 current_device = cuda.cupy.cuda.Device().id
-                test_case.assertEqual(current_device, device)
+                # TODO(niboshi):
+                # This test fails with zero-sized arrays because CUDA device is
+                # not defined for such arrays.
+                # See: https://github.com/chainer/chainer/issues/3702
+                if not (self.y1.size == 0 or self.x1.size == 0):
+                    assert current_device == device
                 return ret
             return meth
 
