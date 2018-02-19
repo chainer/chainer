@@ -1,3 +1,4 @@
+import cupyx
 import numpy
 
 from chainer.backends import cuda
@@ -116,7 +117,7 @@ class ResizeImagesGrad(function_node.FunctionNode):
         if xp is numpy:
             scatter_add = numpy.add.at
         else:
-            scatter_add = xp.scatter_add
+            scatter_add = cupyx.scatter_add
 
         gx = xp.zeros(self.input_shape, dtype=gy.dtype)
         gy = gy.reshape(B, C, -1)

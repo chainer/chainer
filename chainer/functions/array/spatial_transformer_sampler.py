@@ -1,3 +1,4 @@
+import cupyx
 import numpy
 
 import chainer
@@ -233,7 +234,7 @@ class SpatialTransformerSampler(function.Function):
         if xp is numpy:
             scatter_add = numpy.add.at
         else:
-            scatter_add = xp.scatter_add
+            scatter_add = cupyx.scatter_add
         gx = xp.zeros_like(x_pad)
         gy = gy.reshape(B, C, -1)
         for b in range(B):
