@@ -4,9 +4,10 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer import functions
 from chainer import testing
 from chainer.testing import attr
+
+import thin_stack
 
 
 class TestThinStackGet(unittest.TestCase):
@@ -22,12 +23,13 @@ class TestThinStackGet(unittest.TestCase):
         self.gt = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
     def check_forward(self, s_data, i_data):
+        xp = cuda.get_array_module(s_data)
         s_old = s_data.copy()
         s = chainer.Variable(s_data)
         i = chainer.Variable(i_data)
-        x, t = chainer.functions.thin_stack_get(s, i)
+        x, t = thin_stack.thin_stack_get(s, i)
 
-        expect = s_old[range(len(i_data)), i_data]
+        expect = s_old[xp.arange(len(i_data)), i_data]
         testing.assert_allclose(x.data, expect)
 
         # Thin stack reuses the same ndarray.
@@ -45,7 +47,7 @@ class TestThinStackGet(unittest.TestCase):
         gt_old = gt_data.copy()
         s = chainer.Variable(s_data)
         i = chainer.Variable(i_data)
-        x, t = functions.thin_stack_get(s, i)
+        x, t = thin_stack.thin_stack_get(s, i)
         x.grad = gx_data
         t.grad = gt_data
 
@@ -86,14 +88,15 @@ class TestThinStackSet(unittest.TestCase):
         self.gt = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
     def check_forward(self, s_data, i_data, x_data):
+        xp = cuda.get_array_module(s_data)
         s = chainer.Variable(s_data)
         i = chainer.Variable(i_data)
         x = chainer.Variable(x_data)
 
-        t = chainer.functions.thin_stack_set(s, i, x)
+        t = thin_stack.thin_stack_set(s, i, x)
 
         testing.assert_allclose(
-            t.data[range(len(i_data)), i_data], x_data)
+            t.data[xp.arange(len(i_data)), i_data], x_data)
 
         # Thin stack reuses the same ndarray.
         self.assertIs(s_data, t.data)
@@ -112,7 +115,7 @@ class TestThinStackSet(unittest.TestCase):
         s = chainer.Variable(s_data)
         i = chainer.Variable(i_data)
         x = chainer.Variable(x_data)
-        t = functions.thin_stack_set(s, i, x)
+        t = thin_stack.thin_stack_set(s, i, x)
         t.grad = gt_data
 
         t.backward()
