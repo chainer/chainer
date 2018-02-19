@@ -875,7 +875,7 @@ def n_step_rnn_impl(
                 f, reversed(xs), hx[idx], cx[idx], ws[idx], bs[idx])
             h_backward.reverse()
             # Concat
-            xs_next = [concat.concat([hfi, hbi], axis=1) for (hfi, hbi) in
+            xs_next = [concat.concat([hfi, hbi], axis=1) for hfi, hbi in
                        six.moves.zip(h_forward, h_backward)]
             hy.append(h)
             cy.append(c)
@@ -895,8 +895,8 @@ def n_step_rnn_impl(
 def _one_directional_loop(f, xs, h, c, w, b):
     h_list = []
     for x in xs:
-        batch = x.shape[0]
-        need_split = h.shape[0] > batch
+        batch = len(x)
+        need_split = len(h) > batch
         if need_split:
             h, h_rest = split_axis.split_axis(h, [batch], axis=0)
             if c is not None:
