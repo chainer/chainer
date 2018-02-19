@@ -5,7 +5,8 @@ import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
@@ -153,6 +154,47 @@ class TestLink(unittest.TestCase):
         self.assertIsNone(link.u.data)
         self.assertIs(link.p, self.link.p)
         self.assertIs(link.name, None)
+
+    @attr.gpu
+    def test_copy_and_to_gpu_init(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        self.assertIs(l0.x.data, l1.x.data)
+        l1.to_gpu()
+        self.assertIsNot(l0.x.data, l1.x.data)
+        self.assertIsInstance(l0.x.data, numpy.ndarray)
+        self.assertIsInstance(l1.x.data, cupy.ndarray)
+
+    @attr.gpu
+    def test_copy_and_to_gpu_uninit(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        self.assertIsNone(l0.u.data)
+        self.assertIsNone(l1.u.data)
+        l1.to_gpu()
+        l1.u.initialize((2, 3))
+        self.assertIsNone(l0.u.data)
+        self.assertIsInstance(l1.u.data, cupy.ndarray)
+
+    @attr.multi_gpu(2)
+    def test_copy_and_to_gpu_uninit_multi_gpu(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        l2 = l0.copy()
+        self.assertIsNone(l0.u.data)
+        self.assertIsNone(l1.u.data)
+        self.assertIsNone(l2.u.data)
+        l1.to_gpu()
+        l1.u.initialize((2, 3))
+        l2.to_gpu()
+        l2.u.initialize((2, 3))
+        self.assertIsNone(l0.u.data)
+        self.assertIsInstance(l1.u.data, cupy.ndarray)
+        self.assertIsInstance(l2.u.data, cupy.ndarray)
+        self.assertNotEqual(l1.u.data.data, l2.u.data.data)
 
     def _check_deepcopy(self, link):
         self.assertIsInstance(link._params, set)
@@ -1059,6 +1101,80 @@ class TestChainList(unittest.TestCase):
 
         mocks['0'].assert_called_with('y', l1.y.data)
         mocks['1'].assert_called_with('x', l2.x.data)
+
+
+@attr.ideep
+class TestIntel64(unittest.TestCase):
+
+    def setUp(self):
+        self.link = chainer.Link()
+        with self.link.init_scope():
+            self.link.y = chainer.Parameter(shape=(2,))
+            self.link.v = chainer.Parameter()
+
+    def _check_variable_shape_and_dtype(self, var, shape, dtype):
+        assert var.data.shape == shape
+        assert var.data.dtype == dtype
+        assert var.shape == shape
+        assert var.dtype == dtype
+
+    def test_cpu_to_intel64(self):
+        link = self.link
+        prev_y = link.y
+        link.to_intel64()
+
+        assert isinstance(link.y.data, intel64.ideep.mdarray)
+        assert link.v.data is None
+        self._check_variable_shape_and_dtype(
+            link.y, prev_y.shape, prev_y.dtype)
+
+    def test_intel64_to_intel64(self):
+        link = self.link
+        link.to_intel64()
+        prev_y = link.y
+        link.to_intel64()
+
+        # Parameters should be left untouched
+        assert link.y is prev_y
+        assert link.v.data is None
+
+    @attr.gpu
+    def test_gpu_to_intel64(self):
+        link = self.link
+        link.to_gpu()
+        prev_y = link.y
+        link.to_intel64()
+
+        # Parameters should be converted to ideep.mdarray
+        assert isinstance(link.y.data, intel64.ideep.mdarray)
+        assert link.v.data is None
+        self._check_variable_shape_and_dtype(
+            link.y, prev_y.shape, prev_y.dtype)
+
+    @attr.gpu
+    def test_intel64_to_gpu(self):
+        link = self.link
+        link.to_intel64()
+        prev_y = link.y
+        link.to_gpu()
+
+        # Parameters should be converted to cupy.ndarray
+        assert isinstance(link.y.data, cuda.cupy.ndarray)
+        assert link.v.data is None
+        self._check_variable_shape_and_dtype(
+            link.y, prev_y.shape, prev_y.dtype)
+
+    def test_intel64_to_cpu(self):
+        link = self.link
+        link.to_intel64()
+        prev_y = link.y
+        link.to_cpu()
+
+        # Parameters should be converted to numpy.ndarray
+        assert isinstance(link.y.data, numpy.ndarray)
+        assert link.v.data is None
+        self._check_variable_shape_and_dtype(
+            link.y, prev_y.shape, prev_y.dtype)
 
 
 testing.run_module(__name__, __file__)

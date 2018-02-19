@@ -19,10 +19,11 @@ class TestHardSigmoid(unittest.TestCase):
 
     def setUp(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.g = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         # Avoid unstability of numerical grad
         x[((-0.35 < x) & (x < -0.15)) | ((0.15 < x) & (x < 0.35))] = 0.5
         self.x = x
+        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
         self.check_forward_option = {}
         self.check_backward_option = {}
@@ -45,18 +46,35 @@ class TestHardSigmoid(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
-    def check_backward(self, x_data, grad):
+    def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            functions.HardSigmoid(), x_data, grad, dtype=numpy.float64,
+            functions.hard_sigmoid, x_data, y_grad, dtype=numpy.float64,
             **self.check_backward_option)
 
     def test_backward_cpu(self):
-        self.check_backward(self.x, self.g)
+        self.check_backward(self.x, self.gy)
 
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x),
-                            cuda.to_gpu(self.g))
+                            cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+        def f(x):
+            y = functions.hard_sigmoid(x)
+            return y * y
+
+        gradient_check.check_double_backward(
+            f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
+            **self.check_backward_option)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
+                                   cuda.to_gpu(self.ggx))
 
 
 testing.run_module(__name__, __file__)

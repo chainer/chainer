@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 from chainer import variable
@@ -165,7 +165,7 @@ def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None,
         Li, W., Matthew Z., Sixin Z., Yann L., Rob F. (2013).
         Regularization of Neural Network using DropConnect.
         International Conference on Machine Learning.
-        `URL <http://cs.nyu.edu/~wanli/dropc/>`_
+        `URL <https://cs.nyu.edu/~wanli/dropc/>`_
     """
     if not train:
         ratio = 0

@@ -248,6 +248,17 @@ class TestLSTMInitialize(unittest.TestCase):
             numpy.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]))
 
 
+class TestLSTMEmptyBatchInitialize(unittest.TestCase):
+
+    def setUp(self):
+        self.link = links.LSTM(4)
+        self.x = numpy.random.uniform(-1, 1, (0, 3)).astype(numpy.float32)
+
+    def test_empty_batch_dim(self):
+        y = self.link(chainer.Variable(self.x))
+        assert y.shape == (0, 4)
+
+
 @testing.parameterize(*testing.product_dict(
     [
         {'in_size': 10, 'out_size': 10},

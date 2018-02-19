@@ -20,15 +20,20 @@ class TestMinimum(unittest.TestCase):
     def setUp(self):
         shape = self.shape
         self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.ggx1 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.ggx2 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
+        self.check_double_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
             eps = 2 ** -3
             self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
             self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-1}
+            self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-1}
         else:
             eps = 1e-2
         self.check_backward_options['eps'] = eps
+        self.check_double_backward_options['eps'] = eps
 
         self.x1 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.x2 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
@@ -72,6 +77,25 @@ class TestMinimum(unittest.TestCase):
         x2 = cuda.to_gpu(self.x2)
         gy = cuda.to_gpu(self.gy)
         self.check_backward(x1, x2, gy)
+
+    def check_double_backward(self, x1, x2, gy, ggx1, ggx2):
+        gradient_check.check_double_backward(
+            functions.minimum, (x1, x2), gy, (ggx1, ggx2),
+            no_grads=[True, True, False],
+            **self.check_double_backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.x1, self.x2, self.gy, self.ggx1, self.ggx2)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        x1 = cuda.to_gpu(self.x1)
+        x2 = cuda.to_gpu(self.x2)
+        gy = cuda.to_gpu(self.gy)
+        ggx1 = cuda.to_gpu(self.ggx1)
+        ggx2 = cuda.to_gpu(self.ggx2)
+        self.check_double_backward(x1, x2, gy, ggx1, ggx2)
 
 
 @testing.parameterize(*testing.product({
