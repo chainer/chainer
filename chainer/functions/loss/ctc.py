@@ -194,7 +194,7 @@ class ConnectionistTemporalClassification(function.Function):
             outside = xp.arange(max_path_length) >= path_length[:, None]
             prob[outside] = self.zero_padding
             cum_prob += prob
-            batch_index = xp.arange(0, n_batch, dtype='i')
+            batch_index = xp.arange(n_batch, dtype='i')
             prob += y[batch_index[:, None], path]
         else:
             prob = xp.empty_like(prev_prob)
@@ -244,7 +244,7 @@ class ConnectionistTemporalClassification(function.Function):
         forward_prob[:, 0] = 0
         backward_prob = forward_prob
 
-        batch_index = xp.arange(0, n_batch, dtype='i')
+        batch_index = xp.arange(n_batch, dtype='i')
         seq_index = xp.arange(len(yseq), dtype='i')
         prob = yseq[seq_index[:, None, None], batch_index[:, None], path]
         # forward computation.
