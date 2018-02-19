@@ -1,11 +1,11 @@
 import numpy
 
+import chainer
 from chainer import cuda
-from chainer import function
 from chainer.utils import type_check
 
 
-class ThinStackSet(function.Function):
+class ThinStackSet(chainer.Function):
 
     """Set values to a thin stack."""
 
@@ -74,7 +74,7 @@ def thin_stack_set(s, i, x):
     return ThinStackSet()(s, i, x)
 
 
-class ThinStackGet(function.Function):
+class ThinStackGet(chainer.Function):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
