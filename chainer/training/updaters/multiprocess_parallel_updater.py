@@ -1,4 +1,5 @@
 import multiprocessing
+import sys
 import warnings
 
 import six
@@ -18,10 +19,9 @@ except ImportError:
 import numpy
 
 
-class _Worker(multiprocessing.Process):
+class _Worker(object):
 
     def __init__(self, proc_id, pipe, master):
-        super(_Worker, self).__init__()
         self.proc_id = proc_id
         self.pipe = pipe
         self.converter = master.converter
@@ -41,44 +41,44 @@ class _Worker(multiprocessing.Process):
         self.reporter.add_observers('main',
                                     self.model.namedlinks(skipself=True))
 
-    def run(self):
-        dev = cuda.Device(self.device)
-        dev.use()
-        self.setup()
-        gp = None
-        while True:
-            job, data = self.pipe.recv()
-            if job == 'finalize':
-                dev.synchronize()
-                break
-            if job == 'update':
-                # For reducing memory
-                self.model.cleargrads()
 
-                batch = self.converter(self.iterator.next(), self.device)
-                observation = {}
-                with self.reporter.scope(observation):
-                    loss = _calc_loss(self.model, batch)
+def _worker_run(worker):
+    dev = cuda.Device(worker.device)
+    dev.use()
+    worker.setup()
+    while True:
+        job, data = worker.pipe.recv()
+        if job == 'finalize':
+            dev.synchronize()
+            break
+        if job == 'update':
+            # For reducing memory
+            worker.model.cleargrads()
 
-                self.model.cleargrads()
-                loss.backward()
+            batch = worker.converter(worker.iterator.next(), worker.device)
+            observation = {}
+            with worker.reporter.scope(observation):
+                loss = _calc_loss(worker.model, batch)
 
-                del loss
+            worker.model.cleargrads()
+            loss.backward()
 
-                gg = gather_grads(self.model)
-                nccl_data_type = _get_nccl_data_type(gg.dtype)
-                null_stream = cuda.Stream.null
-                self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                 nccl_data_type, nccl.NCCL_SUM, 0,
-                                 null_stream.ptr)
-                del gg
-                self.model.cleargrads()
-                gp = gather_params(self.model)
-                nccl_data_type = _get_nccl_data_type(gp.dtype)
-                self.comm.bcast(gp.data.ptr, gp.size, nccl_data_type, 0,
-                                null_stream.ptr)
-                scatter_params(self.model, gp)
-                gp = None
+            del loss
+
+            gg = gather_grads(worker.model)
+            nccl_data_type = _get_nccl_data_type(gg.dtype)
+            null_stream = cuda.Stream.null
+            worker.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
+                               nccl_data_type, nccl.NCCL_SUM, 0,
+                               null_stream.ptr)
+            del gg
+            worker.model.cleargrads()
+            gp = gather_params(worker.model)
+            nccl_data_type = _get_nccl_data_type(gp.dtype)
+            worker.comm.bcast(gp.data.ptr, gp.size, nccl_data_type, 0,
+                              null_stream.ptr)
+            scatter_params(worker.model, gp)
+            del gp
 
 
 class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
@@ -168,6 +168,13 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
         self._pipes = []
         self._workers = []
         self.comm = None
+        if sys.version_info < (3, 4, 0):
+            self._context = multiprocessing
+        else:
+            method = None
+            if 'forkserver' in multiprocessing.get_all_start_methods():
+                method = 'forkserver'
+            self._context = multiprocessing.get_context(method)
 
     @staticmethod
     def available():
@@ -184,10 +191,11 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
 
         self._master.cleargrads()
         for i in six.moves.range(1, len(self._devices)):
-            pipe, worker_end = multiprocessing.Pipe()
+            pipe, worker_end = self._context.Pipe()
             worker = _Worker(i, worker_end, self)
-            worker.start()
-            self._workers.append(worker)
+            p = self._context.Process(None, _worker_run, args=(worker,))
+            p.start()
+            self._workers.append(p)
             self._pipes.append(pipe)
 
         with cuda.Device(self._devices[0]):
