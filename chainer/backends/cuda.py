@@ -39,9 +39,9 @@ cudnn_enabled = False
 
 try:
     import cupy
-    import cupyx
     from cupy import cuda  # NOQA
     from cupy.cuda import cublas  # NOQA
+    import cupyx  # NOQA
 
     from cupy import ndarray  # NOQA
 
