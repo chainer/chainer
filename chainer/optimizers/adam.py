@@ -95,7 +95,7 @@ class AdamRule(optimizer.UpdateRule):
 
         if hp.amsgrad:
             vhat = self.state['vhat']
-            vhat = np.maximum(vhat, v)
+            np.maximum(vhat, v, out=vhat)
         else:
             vhat = v
         param.data -= hp.eta * (self.lr * m / (np.sqrt(vhat) + hp.eps) +
