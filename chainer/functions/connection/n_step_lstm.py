@@ -1,19 +1,15 @@
 import itertools
 
 import numpy
-import six
 
 import chainer
 from chainer.backends import cuda
 from chainer.functions.activation import lstm
-from chainer.functions.array import concat
 from chainer.functions.array import reshape
-from chainer.functions.array import split_axis
 from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.connection import n_step_rnn
 from chainer.functions.connection.n_step_rnn import get_random_state
-from chainer.functions.noise import dropout
 from chainer.utils import argument
 
 
