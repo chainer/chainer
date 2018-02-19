@@ -106,8 +106,6 @@ def find_any_distribution(pkgs):
 cupy_pkg = find_any_distribution([
     'cupy-cuda90',
     'cupy-cuda80',
-    'cupy-cuda75',
-    'cupy-cuda70',
     'cupy',
 ])
 if cupy_pkg is not None:
