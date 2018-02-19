@@ -309,23 +309,25 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         return hy, ys
 
     else:
-        def f(x, h, c, w, b):
-            xw = concat.concat([w[0], w[1], w[2]], axis=0)
-            hw = concat.concat([w[3], w[4], w[5]], axis=0)
-            xb = concat.concat([b[0], b[1], b[2]], axis=0)
-            hb = concat.concat([b[3], b[4], b[5]], axis=0)
-
-            gru_x = linear.linear(x, xw, xb)
-            gru_h = linear.linear(h, hw, hb)
-
-            W_r_x, W_z_x, W_x = split_axis.split_axis(gru_x, 3, axis=1)
-            U_r_h, U_z_h, U_x = split_axis.split_axis(gru_h, 3, axis=1)
-
-            r = sigmoid.sigmoid(W_r_x + U_r_h)
-            z = sigmoid.sigmoid(W_z_x + U_z_h)
-            h_bar = tanh.tanh(W_x + r * U_x)
-            return (1 - z) * h_bar + z * h, None
-
         hy, _, ys = n_step_rnn.n_step_rnn_impl(
-            f, n_layers, dropout_ratio, hx, None, ws, bs, xs, use_bi_direction)
+            _gru, n_layers, dropout_ratio, hx, None, ws, bs, xs,
+            use_bi_direction)
         return hy, ys
+
+
+def _gru(x, h, c, w, b):
+    xw = concat.concat([w[0], w[1], w[2]], axis=0)
+    hw = concat.concat([w[3], w[4], w[5]], axis=0)
+    xb = concat.concat([b[0], b[1], b[2]], axis=0)
+    hb = concat.concat([b[3], b[4], b[5]], axis=0)
+
+    gru_x = linear.linear(x, xw, xb)
+    gru_h = linear.linear(h, hw, hb)
+
+    W_r_x, W_z_x, W_x = split_axis.split_axis(gru_x, 3, axis=1)
+    U_r_h, U_z_h, U_x = split_axis.split_axis(gru_h, 3, axis=1)
+
+    r = sigmoid.sigmoid(W_r_x + U_r_h)
+    z = sigmoid.sigmoid(W_z_x + U_z_h)
+    h_bar = tanh.tanh(W_x + r * U_x)
+    return (1 - z) * h_bar + z * h, None

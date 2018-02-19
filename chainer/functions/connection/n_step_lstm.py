@@ -445,14 +445,16 @@ def n_step_lstm_base(
         return hy, cy, ys
 
     else:
-        def f(x, h, c, w, b):
-            xw = _stack_weight([w[2], w[0], w[1], w[3]])
-            hw = _stack_weight([w[6], w[4], w[5], w[7]])
-            xb = _stack_weight([b[2], b[0], b[1], b[3]])
-            hb = _stack_weight([b[6], b[4], b[5], b[7]])
-            lstm_in = linear.linear(x, xw, xb) + linear.linear(h, hw, hb)
-            c_bar, h_bar = lstm.lstm(c, lstm_in)
-            return h_bar, c_bar
-
         return n_step_rnn.n_step_rnn_impl(
-            f, n_layers, dropout_ratio, hx, cx, ws, bs, xs, use_bi_direction)
+            _lstm, n_layers, dropout_ratio, hx, cx, ws, bs, xs,
+            use_bi_direction)
+
+
+def _lstm(x, h, c, w, b):
+    xw = _stack_weight([w[2], w[0], w[1], w[3]])
+    hw = _stack_weight([w[6], w[4], w[5], w[7]])
+    xb = _stack_weight([b[2], b[0], b[1], b[3]])
+    hb = _stack_weight([b[6], b[4], b[5], b[7]])
+    lstm_in = linear.linear(x, xw, xb) + linear.linear(h, hw, hb)
+    c_bar, h_bar = lstm.lstm(c, lstm_in)
+    return h_bar, c_bar
