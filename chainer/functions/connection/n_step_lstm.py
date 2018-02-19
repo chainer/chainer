@@ -1,5 +1,3 @@
-import itertools
-
 import numpy
 import six
 
