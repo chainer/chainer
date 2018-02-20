@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -94,7 +94,7 @@ def get_item(x, slices):
     .. note::
 
        See NumPy document for details of `indexing
-       <http://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_.
+       <https://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_.
 
     .. admonition:: Example
 

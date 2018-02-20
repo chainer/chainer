@@ -10,6 +10,10 @@ from chainer import utils
 class ChildSumTreeLSTM(link.Chain):
     """Child-Sum TreeLSTM unit.
 
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
     This is a Child-Sum TreeLSTM unit as a chain.
     This link is a variable arguments function, which compounds
     the states of all children nodes into the new states of
@@ -43,7 +47,7 @@ class ChildSumTreeLSTM(link.Chain):
 
     See the paper for details: `Improved Semantic Representations From \
     Tree-Structured Long Short-Term Memory Networks \
-    <http://www.aclweb.org/anthology/P15-1150>`_.
+    <https://www.aclweb.org/anthology/P15-1150>`_.
 
     """
 
@@ -121,6 +125,10 @@ class ChildSumTreeLSTM(link.Chain):
 class NaryTreeLSTM(link.Chain):
     """N-ary TreeLSTM unit.
 
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
     This is a N-ary TreeLSTM unit as a chain.
     This link is a fixed-length arguments function, which compounds
     the states of all children nodes into the new states of
@@ -156,7 +164,7 @@ class NaryTreeLSTM(link.Chain):
 
     See the papers for details: `Improved Semantic Representations From \
     Tree-Structured Long Short-Term Memory Networks \
-    <http://www.aclweb.org/anthology/P15-1150>`_, and
+    <https://www.aclweb.org/anthology/P15-1150>`_, and
     `A Fast Unified Model for Parsing and Sentence Understanding \
     <https://arxiv.org/pdf/1603.06021.pdf>`_.
 

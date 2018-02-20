@@ -3,8 +3,8 @@ import weakref
 
 import six
 
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 # for backward compatibility
 from chainer.function_hook import FunctionHook  # NOQA
 from chainer import function_node
@@ -14,18 +14,27 @@ from chainer import variable
 def no_backprop_mode():
     """Make a context manager which disables back-propagation.
 
-    In this context, Chainer does not make a computational graph.
-    :class:`~chainer.Variable` created in this context does not have
-    reference to the :class:`~chainer.Function` which created the variable.
-    So, you cannot compute gradient with :func:`~chainer.Variable.backward`.
-    Instead memory consumption is reduced.
+    In this context, Chainer does not make a computational graph. It has the
+    benefit of reducing memory consumption. However, a
+    :class:`~chainer.Variable` created in this context does not hold a
+    reference to the :class:`~chainer.FunctionNode` that created itself so no
+    gradients are accumulated by :func:`~chainer.Variable.backward`.
 
-    In this example, ``y`` is created in this context. So you cannot call
-    :func:`~chianer.Variable.backward`.
+    In the following example, ``y`` is created in this context, which means
+    that calling :func:`~chainer.Variable.backward` on ``y`` has no effect on
+    the gradients of ``x``.
 
-    >>> x = chainer.Variable(np.array([1,], 'f'))
+    >>> x = chainer.Variable(np.array([1,], np.float32))
     >>> with chainer.no_backprop_mode():
-    ...   y = x + 1
+    ...     y = x + 1
+    >>> y.backward()
+    >>> x.grad is None
+    True
+
+    .. seealso::
+
+       See :func:`force_backprop_mode` for details on how to override this
+       context.
 
     """
     return configuration.using_config('enable_backprop', False)
@@ -34,23 +43,28 @@ def no_backprop_mode():
 def force_backprop_mode():
     """Make a context manager which enables back-propagation.
 
-    When you want to enable back-propagation in :func:`no_backprop_mode`,
-    call this method. :~chainer.Variable: created in this context always has
-    a computational graph.
-    If you call this method outside of :func:`no_backprop_mode` context, it
-    changes nothing.
+    When you want to enable back-propagation in :func:`no_backprop_mode`, call
+    this method. A :class:`~chainer.Variable` created in this context always
+    has a computational graph unless overridden by deeper contexts. If you call
+    this method outside of :func:`no_backprop_mode` context, it changes
+    nothing.
 
-    In this example, ``y`` has a computational graph and ``y.backward``
-    computes gradients of variables in the graph.
+    In the following example, ``y`` has a computational graph and calling
+    :func:`~chainer.Variable.backward` on ``y`` will compute and accumulate the
+    gradients of the variables in the graph, in this case only ``x``.
 
-    >>> x = chainer.Variable(np.array([1,], 'f'))
+    >>> x = chainer.Variable(np.array([1,], np.float32))
     >>> with chainer.no_backprop_mode():
-    ...   with chainer.force_backprop_mode():
-    ...     y = x + 1
+    ...     with chainer.force_backprop_mode():
+    ...         y = x + 1
+    >>> y.backward()
+    >>> x.grad
+    array([1.], dtype=float32)
 
     .. seealso::
 
-       See :func:`no_backprop_mode` for details of back-prop mode.
+       See :func:`no_backprop_mode` for details on disabled back-propagation
+       mode.
 
     """
     return configuration.using_config('enable_backprop', True)
@@ -135,7 +149,7 @@ class FunctionAdapter(function_node.FunctionNode):
             if gxs[i] is None:
                 g = None
             else:
-                # Intentionallly not passing requires_grad=False so that
+                # Intentionally not passing requires_grad=False so that
                 # backprop routines can raise an error when a further backprop
                 # is attempted against this gradient variable.
                 g = variable.Variable(gxs[i])
@@ -487,7 +501,7 @@ class Function(object):
 
         Args:
             indexes (iterable of int): Indexes of input variables that the
-                function does not require for backprop.
+                function will require for backprop.
 
         """
         self.node.retain_inputs(indexes)
@@ -513,7 +527,7 @@ class Function(object):
 
         Args:
             indexes (iterable of int): Indexes of input variables that the
-                function does not require for backprop.
+                function will require for backprop.
 
             retain_after_backward (bool): This option has no effect. It is
                 left only for the backward compatibility.

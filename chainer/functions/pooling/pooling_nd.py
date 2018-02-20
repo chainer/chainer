@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import conv
 from chainer.utils import conv_nd
@@ -10,7 +10,7 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cudnn.cudnn
+    libcudnn = cuda.cuda.cudnn
 
 
 class _PoolingND(function.Function):
@@ -20,6 +20,10 @@ class _PoolingND(function.Function):
     def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True):
         if stride is None:
             stride = ksize
+
+        if ndim <= 0:
+            raise ValueError(
+                'pooling operation requires at least one spatial dimension.')
 
         self.ndim = ndim
         self.ksize = conv_nd.as_tuple(ksize, ndim)
@@ -33,7 +37,8 @@ class _PoolingND(function.Function):
         type_check.expect(
             in_types.size() == 1,
             in_types[0].dtype.kind == 'f',
-            in_types[0].ndim == 2 + self.ndim
+            in_types[0].ndim == 2 + self.ndim,
+            in_types[0].size > 0,
         )
 
     def forward_gpu(self, x):

@@ -1,4 +1,4 @@
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -93,7 +93,7 @@ def clipped_relu(x, z=20.0):
 
     .. admonition:: Example
 
-        >>> x = np.random.uniform(-100, 100, (10, 20)).astype('f')
+        >>> x = np.random.uniform(-100, 100, (10, 20)).astype(np.float32)
         >>> z = 10.0
         >>> np.any(x < 0)
         True

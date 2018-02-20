@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.loss import black_out
 from chainer import link
 from chainer.utils import walker_alias
@@ -22,6 +22,8 @@ class BlackOut(link.Link):
         W (~chainer.Parameter): Weight parameter matrix.
 
     """
+
+    sample_data = None
 
     def __init__(self, in_size, counts, sample_size):
         super(BlackOut, self).__init__()
@@ -55,7 +57,7 @@ class BlackOut(link.Link):
         """
 
         batch_size = x.shape[0]
-        if hasattr(self, 'sample_data'):
+        if self.sample_data is not None:
             # for test
             sample_data = self.sample_data
         else:

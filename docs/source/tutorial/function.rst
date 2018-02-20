@@ -416,7 +416,7 @@ For example, consider the following simple dropout function::
       mask = 2 * (xp.random.rand(*x.shape) > 0.5).astype(x.dtype)
       return x * mask
 
-This function applies dropout to each element and doubles survived elemenets to preserve the scale.
+This function applies dropout to each element and doubles survived elements to preserve the scale.
 The above implementation applies dropout even in test mode, but it is not a desired behavior.
 We can fix it as follows::
 
@@ -599,7 +599,7 @@ offers a utility function :func:`chainer.gradient_check.check_backward` that fol
            x = np.random.randn(3, 2).astype(np.float32)
            y_grad = np.random.randn(3, 2).astype(np.float32)
 
-           gradient_check.check_backward(f, x, y_grad)
+           gradient_check.check_backward(f, x, y_grad, atol=1e-4, rtol=1e-4)
 
 .. testcode::
    :hide:
@@ -608,4 +608,4 @@ offers a utility function :func:`chainer.gradient_check.check_backward` that fol
    unittest.TextTestRunner().run(suite)
 
 
-You can find many examples of function tests under ``tests/chainer_tests/function_tests`` directory.
+You can find many examples of function tests under :tree:`tests/chainer_tests/functions_tests` directory.
