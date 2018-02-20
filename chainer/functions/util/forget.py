@@ -1,5 +1,4 @@
 import chainer
-from chainer import cuda
 from chainer import function
 from chainer import function_node
 from chainer import variable
@@ -28,19 +27,6 @@ def _call_func(func, xs):
     return outs
 
 
-class _DummyFunction(function_node.FunctionNode):
-
-    def __init__(self, grad_var):
-        self.grad_var = grad_var
-
-    def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
-        return xp.array(0),
-
-    def backward(self, indexes, grad_outputs):
-        return self.grad_var
-
-
 class Forget(function_node.FunctionNode):
 
     def __init__(self, func):
@@ -59,8 +45,6 @@ class Forget(function_node.FunctionNode):
         inputs = self.get_retained_inputs()
         with function.force_backprop_mode():
             outs = _call_func(self.func, inputs)
-            # Set gradients of variables involed in the forward pass
-            _DummyFunction(grad_outputs).apply(outs)[0].backward()
         # Return gradients that are further backproable
         return chainer.grad(
             outs, inputs, grad_outputs=grad_outputs,
