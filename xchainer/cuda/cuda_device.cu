@@ -1,4 +1,4 @@
-#include "xchainer/cuda/cuda_backend.h"
+#include "xchainer/cuda/cuda_device.h"
 
 #include "xchainer/array.h"
 #include "xchainer/cuda/cuda_runtime.h"
@@ -19,26 +19,24 @@ __global__ void FillKernel(T* odata, T value, int64_t total_size) {
 
 }  // namespace
 
-std::shared_ptr<void> CudaBackend::Allocate(const Device& device, size_t bytesize) {
-    (void)device;    // unused
+std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
     (void)bytesize;  // unused
     return nullptr;
 }
 
-void CudaBackend::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
+void CudaDevice::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
     (void)dst_ptr;   // unused
     (void)src_ptr;   // unused
     (void)bytesize;  // unused
 }
 
-std::shared_ptr<void> CudaBackend::FromBuffer(const Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
-    (void)device;    // unused
+std::shared_ptr<void> CudaDevice::FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
     (void)src_ptr;   // unused
     (void)bytesize;  // unused
     return nullptr;
 }
 
-void CudaBackend::Fill(Array& out, Scalar value) {
+void CudaDevice::Fill(Array& out, Scalar value) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&FillKernel<T>).block_size;
@@ -52,19 +50,19 @@ void CudaBackend::Fill(Array& out, Scalar value) {
     });
 }
 
-void CudaBackend::Add(const Array& lhs, const Array& rhs, Array& out) {
+void CudaDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
     (void)lhs;  // unused
     (void)rhs;  // unused
     (void)out;  // unused
 }
 
-void CudaBackend::Mul(const Array& lhs, const Array& rhs, Array& out) {
+void CudaDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
     (void)lhs;  // unused
     (void)rhs;  // unused
     (void)out;  // unused
 }
 
-void CudaBackend::Synchronize() { CheckError(cudaDeviceSynchronize()); }
+void CudaDevice::Synchronize() { CheckError(cudaDeviceSynchronize()); }
 
 }  // namespace cuda
 }  // namespace xchainer

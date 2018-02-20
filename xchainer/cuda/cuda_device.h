@@ -1,17 +1,18 @@
 #pragma once
 
-#include "xchainer/backend.h"
+#include "xchainer/device.h"
+#include "xchainer/cuda/cuda_backend.h"
 
 namespace xchainer {
 namespace cuda {
 
-class CudaBackend : public Backend {
+class CudaDevice : public Device {
 public:
-    CudaBackend(const std::string& name = "cuda") : Backend(name) {}
+    CudaDevice(CudaBackend& backend, int index) : Device(backend, index) {}
 
-    std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) override;
+    std::shared_ptr<void> Allocate(size_t bytesize) override;
     void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) override;
-    std::shared_ptr<void> FromBuffer(const Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
+    std::shared_ptr<void> FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
     void Fill(Array& out, Scalar value) override;
 
