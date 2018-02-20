@@ -17,11 +17,11 @@ class NumericTest : public ::testing::Test {
 protected:
     virtual void SetUp() {
         backend_ = std::make_unique<NativeBackend>();
-        device_scope_ = std::make_unique<DeviceScope>("cpu", backend_.get());
+        device_id_scope_ = std::make_unique<DeviceIdScope>(backend_.get());
     }
 
     virtual void TearDown() {
-        device_scope_.reset();
+        device_id_scope_.reset();
         backend_.reset();
     }
 
@@ -56,7 +56,7 @@ public:
 
 private:
     std::unique_ptr<Backend> backend_;
-    std::unique_ptr<DeviceScope> device_scope_;
+    std::unique_ptr<DeviceIdScope> device_id_scope_;
 };
 
 TEST_F(NumericTest, AllClose) {
