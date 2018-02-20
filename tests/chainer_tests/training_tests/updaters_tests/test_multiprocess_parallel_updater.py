@@ -204,6 +204,8 @@ import numpy
 import chainer
 from chainer.training import trainer
 import chainer.training.updaters.multiprocess_parallel_updater as mpu
+
+
 class SimpleNetChild(chainer.Chain):
 
     def __init__(self):
@@ -248,13 +250,12 @@ class SimpleNetChildReporter(chainer.Chain):
 if __name__ == '__main__':
     model = SimpleNetChildReporter()
     dataset = [(numpy.full((2, 5, 5), i, numpy.float32),
-                numpy.int32(0)) for i in range(100)]
+                numpy.int32(0)) for i in range(10)]
 
     batch_size = 5
     devices = (0, 1)
     iters = [chainer.iterators.SerialIterator(i, batch_size) for i in
-             chainer.datasets.split_dataset_n_random(
-                 dataset, len(devices))]
+             chainer.datasets.split_dataset_n_random(dataset, len(devices))]
     optimizer = chainer.optimizers.SGD(lr=1.0)
     optimizer.setup(model)
     updater = mpu.MultiprocessParallelUpdater(
@@ -263,6 +264,7 @@ if __name__ == '__main__':
     trainer.run()
     assert model.call_called == 1
 """
+
         temp_dir = tempfile.mkdtemp()
         try:
             script_path = os.path.join(temp_dir, 'script.py')
