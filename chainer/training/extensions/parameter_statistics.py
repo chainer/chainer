@@ -41,7 +41,8 @@ class ParameterStatistics(extension.Extension):
             the values.
         skip_nan_params (bool): If ``True``, statistics are not computed for
             parameters including NaNs and a single NaN value is immediately
-            reported instead.
+            reported instead. Otherwise, this extension will simply try to
+            compute the statistics without performing any checks for NaNs.
     """
     default_name = 'parameter_statistics'
     priority = extension.PRIORITY_WRITER
