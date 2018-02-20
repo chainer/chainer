@@ -45,7 +45,7 @@ def _child_sum_tree_lstm(func, *inputs):
             o = _sigmoid(o)
             f_list = [_sigmoid(f) for f in f_list]
 
-            c_next = a * i + sum(f * c for f, c in zip(f_list, cs))
+            c_next = sum([f * c for f, c in zip(f_list, cs)], a * i)
             y = o * xp.tanh(c_next)
         else:
             a = x.dot(W_xa) + b_a
