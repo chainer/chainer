@@ -36,7 +36,7 @@ class InceptionBN(link.Chain):
             initialize the convolution matrix weights.
             When it is :class:`numpy.ndarray`, its ``ndim`` should be 4.
         dtype (numpy.dtype): Type to use in
-            ``~batch_normalization.BatchNormalization``.
+            :class:`BatchNormalization`.
 
     .. seealso:: :class:`Inception`
 

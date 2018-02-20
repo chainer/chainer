@@ -48,7 +48,7 @@ digit images in 1998. In Chainer, the model can be written as follows:
     class LeNet5(Chain):
         def __init__(self):
             super(LeNet5, self).__init__()
-	    with self.init_scope():
+            with self.init_scope():
                 self.conv1 = L.Convolution2D(
                     in_channels=1, out_channels=6, ksize=5, stride=1)
                 self.conv2 = L.Convolution2D(
@@ -121,8 +121,8 @@ can also write the model like in this way:
             net += [('_sigm4', F.Sigmoid())]
             net += [('fc5', L.Linear(84, 10))]
             net += [('_sigm5', F.Sigmoid())]
-	    with self.init_scope():
-	        for n in net:
+            with self.init_scope():
+                for n in net:
                     if not n[0].startswith('_'):
                         setattr(self, n[0], n[1])
             self.forward = net
@@ -242,7 +242,7 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
         def __init__(self, n_channels, n_convs=2, fc=False):
             w = chainer.initializers.HeNormal()
             super(VGGBlock, self).__init__()
-	    with self.init_scope():
+            with self.init_scope():
                 self.conv1 = L.Convolution2D(None, n_channels, 3, 1, 1, initialW=w)
                 self.conv2 = L.Convolution2D(
                     n_channels, n_channels, 3, 1, 1, initialW=w)
@@ -251,7 +251,7 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
                         n_channels, n_channels, 3, 1, 1, initialW=w)
                 if fc:
                     self.fc4 = L.Linear(None, 4096, initialW=w)
-		    self.fc5 = L.Linear(4096, 4096, initialW=w)
+                    self.fc5 = L.Linear(4096, 4096, initialW=w)
                     self.fc6 = L.Linear(4096, 1000, initialW=w)
 
             self.n_convs = n_convs
@@ -336,8 +336,8 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
         def __init__(self, n_in, n_mid, n_out, stride=1, proj=False):
             w = chainer.initializers.HeNormal()
             super(BottleNeck, self).__init__()
-	    with self.init_scope():
-	        self.conv1x1a = L.Convolution2D(
+            with self.init_scope():
+                self.conv1x1a = L.Convolution2D(
                     n_in, n_mid, 1, stride, 0, initialW=w, nobias=True)
                 self.conv3x3b = L.Convolution2D(
                     n_mid, n_mid, 3, 1, 1, initialW=w, nobias=True)

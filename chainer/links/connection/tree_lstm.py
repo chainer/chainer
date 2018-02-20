@@ -47,7 +47,7 @@ class ChildSumTreeLSTM(link.Chain):
 
     See the paper for details: `Improved Semantic Representations From \
     Tree-Structured Long Short-Term Memory Networks \
-    <http://www.aclweb.org/anthology/P15-1150>`_.
+    <https://www.aclweb.org/anthology/P15-1150>`_.
 
     """
 
@@ -164,7 +164,7 @@ class NaryTreeLSTM(link.Chain):
 
     See the papers for details: `Improved Semantic Representations From \
     Tree-Structured Long Short-Term Memory Networks \
-    <http://www.aclweb.org/anthology/P15-1150>`_, and
+    <https://www.aclweb.org/anthology/P15-1150>`_, and
     `A Fast Unified Model for Parsing and Sentence Understanding \
     <https://arxiv.org/pdf/1603.06021.pdf>`_.
 

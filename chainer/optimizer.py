@@ -410,6 +410,14 @@ class Optimizer(object):
         Args:
             link (~chainer.Link): Target link object.
 
+        Returns:
+            The optimizer instance.
+
+        .. note::
+           As of v4.0.0, this function returns the optimizer instance itself
+           so that you can instantiate and setup the optimizer in one line,
+           e.g., ``optimizer = SomeOptimizer().setup(link)``.
+
         """
         if not isinstance(link, link_module.Link):
             raise TypeError('optimization target must be a link')
@@ -602,6 +610,7 @@ class GradientMethod(Optimizer):
             param.update_rule = self.create_update_rule()
             if self._use_fp32_update:
                 param.update_rule.use_fp32_update()
+        return self
 
     def reallocate_cleared_grads(self):
         """Reallocate gradients cleared by :meth:`~chainer.Variable.cleargrad`.

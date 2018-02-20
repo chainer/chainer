@@ -1,6 +1,6 @@
 <div align="center"><img src="docs/image/chainer_red_h.png" width="400"/></div>
 
-# Chainer: a deep learning framework
+# Chainer: A deep learning framework
 
 [![pypi](https://img.shields.io/pypi/v/chainer.svg)](https://pypi.python.org/pypi/chainer)
 [![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/chainer/chainer)
@@ -36,7 +36,7 @@ To install Chainer, use `pip`.
 $ pip install chainer
 ```
 
-To enable CUDA support, [set up CUDA](http://docs.nvidia.com/cuda/index.html#installation-guides) and install [CuPy](https://github.com/cupy/cupy).
+To enable CUDA support, [set up CUDA](https://docs.nvidia.com/cuda/index.html#installation-guides) and install [CuPy](https://github.com/cupy/cupy).
 
 ```sh
 $ pip install cupy

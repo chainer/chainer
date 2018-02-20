@@ -19,7 +19,10 @@ from chainer.testing import backend
     ['test_forward', 'test_backward', 'test_double_backward',
      'test_immutable'],
     # CPU tests
-    [{'use_cuda': False}]
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
     # GPU tests
     + [{'use_cuda': True}])
 class TestDropout(unittest.TestCase):

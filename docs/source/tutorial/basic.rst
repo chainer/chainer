@@ -340,6 +340,7 @@ Here we use the simplest one, called Stochastic Gradient Descent (SGD):
    >>> model = MyChain()
    >>> optimizer = optimizers.SGD()
    >>> optimizer.setup(model)
+   <...>
 
 The method :meth:`~Optimizer.setup` prepares for the optimization given a link.
 
@@ -362,7 +363,7 @@ There are two further ways to use the optimizer directly.
 One is manually computing gradients and then calling the :meth:`~Optimizer.update` method with no arguments.
 Do not forget to clear the gradients beforehand!
 
-   >>> x = np.random.uniform(-1, 1, (2, 4)).astype('f')
+   >>> x = np.random.uniform(-1, 1, (2, 4)).astype(np.float32)
    >>> model.cleargrads()
    >>> # compute gradient here...
    >>> loss = F.sum(model(chainer.Variable(x)))
@@ -376,8 +377,8 @@ In this case, :meth:`~Link.cleargrads` is automatically called by the update met
    ...     # calculate loss
    ...     loss = F.sum(model(arg1 - arg2))
    ...     return loss
-   >>> arg1 = np.random.uniform(-1, 1, (2, 4)).astype('f')
-   >>> arg2 = np.random.uniform(-1, 1, (2, 4)).astype('f')
+   >>> arg1 = np.random.uniform(-1, 1, (2, 4)).astype(np.float32)
+   >>> arg2 = np.random.uniform(-1, 1, (2, 4)).astype(np.float32)
    >>> optimizer.update(lossfun, chainer.Variable(arg1), chainer.Variable(arg2))
 
 See :meth:`Optimizer.update` for the full specification.
@@ -465,7 +466,7 @@ Example: Multi-layer Perceptron on MNIST
 
 Now you can solve a multiclass classification task using a multi-layer perceptron (MLP).
 We use a hand-written digits dataset called `MNIST <http://yann.lecun.com/exdb/mnist/>`_, which is one of the long-standing de facto "hello world" examples used in machine learning.
-This MNIST example is also found in the `examples/mnist <https://github.com/chainer/chainer/tree/master/examples/mnist>`_ directory of the official repository.
+This MNIST example is also found in the :tree:`examples/mnist` directory of the official repository.
 We show how to use :class:`~training.Trainer` to construct and run the training loop in this section.
 
 We first have to prepare the MNIST dataset.
@@ -567,6 +568,7 @@ So instead of using the above example, we will use this predefined Classifier ch
    >>> model = L.Classifier(MLP(100, 10))  # the input size, 784, is inferred
    >>> optimizer = optimizers.SGD()
    >>> optimizer.setup(model)
+   <...>
 
 Now we can build a trainer object.
 
@@ -618,4 +620,4 @@ These extensions perform the following tasks:
 There are many extensions implemented in the :mod:`chainer.training.extensions` module.
 The most important one that is not included above is :func:`~training.extensions.snapshot`, which saves the snapshot of the training procedure (i.e., the Trainer object) to a file in the output directory.
 
-The `example code <https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist.py>`_ in the `examples/mnist` directory additionally contains GPU support, though the essential part is the same as the code in this tutorial. We will review in later sections how to use GPU(s).
+The :blob:`example code <examples/mnist/train_mnist.py>` in the :tree:`examples/mnist` directory additionally contains GPU support, though the essential part is the same as the code in this tutorial. We will review in later sections how to use GPU(s).

@@ -133,11 +133,13 @@ class Trainer(object):
     """
 
     def __init__(self, updater, stop_trigger=None, out='result',
-                 extensions=[]):
+                 extensions=None):
         self.updater = updater
         self.stop_trigger = trigger_module.get_trigger(stop_trigger)
         self.observation = {}
         self.out = out
+        if extensions is None:
+            extensions = []
 
         reporter = reporter_module.Reporter()
         for name, optimizer in six.iteritems(updater.get_all_optimizers()):

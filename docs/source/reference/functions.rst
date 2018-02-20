@@ -185,6 +185,8 @@ Mathematical functions
    chainer.functions.cumsum
    chainer.functions.det
    chainer.functions.batch_det
+   chainer.functions.erf
+   chainer.functions.erfc
    chainer.functions.exp
    chainer.functions.expm1
    chainer.functions.fix
@@ -216,6 +218,7 @@ Mathematical functions
    chainer.functions.sum
    chainer.functions.tanh
    chainer.functions.tan
+   chainer.functions.tensordot
 
 Noise injections
 ----------------
