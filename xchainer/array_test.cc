@@ -31,7 +31,7 @@ class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>>
 protected:
     void SetUp() override {
         std::string backend_name = ::testing::get<0>(GetParam());
-        if (backend_name == "cpu") {
+        if (backend_name == "native") {
             backend_ = std::make_unique<NativeBackend>();
 #ifdef XCHAINER_ENABLE_CUDA
         } else if (backend_name == "cuda") {
@@ -146,7 +146,7 @@ public:
         // Check device_id accessor
         EXPECT_EQ(device_id, array.device_id());
 
-        if (device_id.backend()->GetName() == "cpu") {
+        if (device_id.backend()->GetName() == "native") {
             EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
         } else if (device_id.backend()->GetName() == "cuda") {
             EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
@@ -184,7 +184,7 @@ public:
 
         // TODO(sonots): Polymorphism using device_id.backend->XXX()?
         DeviceId device_id = GetDefaultDeviceId();
-        if (device_id.backend()->GetName() == "cpu") {
+        if (device_id.backend()->GetName() == "native") {
             EXPECT_EQ(data.get(), x.data().get());
         } else if (device_id.backend()->GetName() == "cuda") {
             EXPECT_NE(data.get(), x.data().get());
@@ -1195,7 +1195,7 @@ INSTANTIATE_TEST_CASE_P(ForEachDeviceId, ArrayTest, ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
                                                         std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
-                                                        std::string{"cpu"}));
+                                                        std::string{"native"}));
 
 }  // namespace
 }  // namespace xchainer

@@ -39,7 +39,7 @@ void ExpectDataExistsOnDeviceId(const DeviceId& expected_device_id, const Array&
     EXPECT_EQ(expected_device_id, array.device_id());
 
     // Check device_id of data pointee
-    if (expected_device_id.backend()->GetName() == "cpu") {
+    if (expected_device_id.backend()->GetName() == "native") {
         EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
     } else if (expected_device_id.backend()->GetName() == "cuda") {
         EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));

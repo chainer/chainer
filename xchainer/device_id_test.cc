@@ -51,11 +51,11 @@ TEST_F(DeviceIdTest, ToString) {
     NativeBackend native_backend;
     {
         DeviceId device_id{&native_backend};
-        EXPECT_EQ("DeviceId('cpu', 0)", device_id.ToString());
+        EXPECT_EQ("DeviceId('native', 0)", device_id.ToString());
     }
     {
         DeviceId device_id{&native_backend, 1};
-        EXPECT_EQ("DeviceId('cpu', 1)", device_id.ToString());
+        EXPECT_EQ("DeviceId('native', 1)", device_id.ToString());
     }
 }
 

@@ -31,7 +31,7 @@ class BackpropTest : public ::testing::TestWithParam<::testing::tuple<std::strin
 protected:
     virtual void SetUp() {
         std::string device_id_name = ::testing::get<0>(GetParam());
-        if (device_id_name == "cpu") {
+        if (device_id_name == "native") {
             backend_ = std::make_unique<NativeBackend>();
 #ifdef XCHAINER_ENABLE_CUDA
         } else if (device_id_name == "cuda") {
@@ -315,7 +315,7 @@ INSTANTIATE_TEST_CASE_P(ForEachDeviceId, BackpropTest, ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
                                                            std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
-                                                           std::string{"cpu"}));
+                                                           std::string{"native"}));
 
 TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     NativeBackend native_backend;

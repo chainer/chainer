@@ -14,6 +14,8 @@
 #include "xchainer/device_id.h"
 #include "xchainer/error.h"
 
+#include <iostream>
+
 namespace xchainer {
 namespace internal {
 
@@ -43,7 +45,7 @@ bool IsPointerCudaMemory(const void* ptr) {
 
 std::shared_ptr<void> Allocate(const DeviceId& device_id, size_t bytesize) {
     // TODO(sonots): Use device_id.backend->Allocate()
-    if (device_id.backend()->GetName() == "cpu") {
+    if (device_id.backend()->GetName() == "native") {
         return std::make_unique<uint8_t[]>(bytesize);
 #ifdef XCHAINER_ENABLE_CUDA
     } else if (device_id.backend()->GetName() == "cuda") {
@@ -92,7 +94,7 @@ void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
 std::shared_ptr<void> MemoryFromBuffer(const DeviceId& device_id, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
 // TODO(sonots): Use device_id.backend->FromBuffer()
 #ifdef XCHAINER_ENABLE_CUDA
-    if (device_id.backend()->GetName() == "cpu") {
+    if (device_id.backend()->GetName() == "native") {
         if (IsPointerCudaMemory(src_ptr.get())) {
             std::shared_ptr<void> dst_ptr = Allocate(device_id, bytesize);
             cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyDeviceToHost));
@@ -113,7 +115,7 @@ std::shared_ptr<void> MemoryFromBuffer(const DeviceId& device_id, const std::sha
     }
 #else
     (void)bytesize;  // unused
-    if (device_id.backend().GetName() == "cpu") {
+    if (device_id.backend().GetName() == "native") {
         return src_ptr;
     } else {
         throw DeviceError("invalid device_id");
