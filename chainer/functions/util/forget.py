@@ -63,7 +63,7 @@ class Forget(function_node.FunctionNode):
             _DummyFunction(grad_outputs).apply(outs)[0].backward()
         # Return gradients that are further backproable
         return chainer.grad(
-            outs, inputs, grad_outputs=grad_outputs, retain_grad=True,
+            outs, inputs, grad_outputs=grad_outputs,
             enable_double_backprop=True)
 
 
