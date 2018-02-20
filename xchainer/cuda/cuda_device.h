@@ -1,7 +1,7 @@
 #pragma once
 
-#include "xchainer/device.h"
 #include "xchainer/cuda/cuda_backend.h"
+#include "xchainer/device.h"
 
 namespace xchainer {
 namespace cuda {

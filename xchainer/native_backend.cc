@@ -7,7 +7,7 @@ namespace xchainer {
 int NativeBackend::GetDeviceCount() const { return 4; }
 
 Device& NativeBackend::GetDevice(int index) {
-	if (!devices_.HasDevice(index)) {
+    if (!devices_.HasDevice(index)) {
         devices_.AddDevice(std::make_unique<NativeDevice>(*this, index));
     }
     return devices_.GetDevice(index);
