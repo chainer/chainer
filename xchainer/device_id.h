@@ -11,7 +11,7 @@ class Backend;
 struct DeviceId {
 public:
     DeviceId() = default;  // required to be POD
-    DeviceId(Backend* backend, int index) : backend_(backend), index_(index) {}
+    DeviceId(Backend* backend, int index = 0) : backend_(backend), index_(index) {}
 
     Backend* backend() const { return backend_; }
     int index() const { return index_; }
