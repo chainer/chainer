@@ -30,11 +30,11 @@ namespace {
 class BackpropTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
     virtual void SetUp() {
-        std::string device_id_name = ::testing::get<0>(GetParam());
-        if (device_id_name == "native") {
+        std::string backend_name = ::testing::get<0>(GetParam());
+        if (backend_name == "native") {
             backend_ = std::make_unique<NativeBackend>();
 #ifdef XCHAINER_ENABLE_CUDA
-        } else if (device_id_name == "cuda") {
+        } else if (backend_name == "cuda") {
             backend_ = std::make_unique<cuda::CudaBackend>();
 #endif  // XCHAINER_ENABLE_CUDA
         }
@@ -67,8 +67,8 @@ public:
     template <typename T>
     void ExpectDataEqual(const Array& expected, const Array& actual) const {
 #ifdef XCHAINER_ENABLE_CUDA
-        std::string device_id_name = ::testing::get<0>(GetParam());
-        if (device_id_name == "cuda") {
+        std::string backend_name = ::testing::get<0>(GetParam());
+        if (backend_name == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
