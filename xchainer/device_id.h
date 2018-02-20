@@ -47,7 +47,7 @@ class DeviceIdScope {
 public:
     DeviceIdScope() : orig_(internal::GetDefaultDeviceIdNoExcept()), exited_(false) {}
     explicit DeviceIdScope(DeviceId device_id) : DeviceIdScope() { SetDefaultDeviceId(device_id); }
-    explicit DeviceIdScope(Backend* backend, int index) : DeviceIdScope(DeviceId{backend, index}) {}
+    explicit DeviceIdScope(Backend* backend, int index = 0) : DeviceIdScope(DeviceId{backend, index}) {}
 
     DeviceIdScope(const DeviceIdScope&) = delete;
     DeviceIdScope(DeviceIdScope&&) = delete;
