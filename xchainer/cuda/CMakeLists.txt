@@ -1,6 +1,7 @@
 CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     array_math.cu
-    cuda_backend.cu
+    cuda_device.cu
+    cuda_backend.cc
     cuda_runtime.cc)
 
 if(${ENABLE_TEST})

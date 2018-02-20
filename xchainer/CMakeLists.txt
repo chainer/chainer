@@ -13,9 +13,12 @@ install(FILES
     backprop.h
     constant.h
     device.h
+    device_id.h
+    device_list.h
     dtype.h
     error.h
     native_backend.h
+    native_device.h
     memory.h
     scalar.h
     shape.h
@@ -28,10 +31,12 @@ add_library(xchainer SHARED
     array_math.cc
     array_repr.cc
     backprop.cc
-    device.cc
+    device_id.cc
+    device_list.cc
     dtype.cc
     gradient_check.cc
     native_backend.cc
+    native_device.cc
     memory.cc
     numeric.cc
     scalar.cc
