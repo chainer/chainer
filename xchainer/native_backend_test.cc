@@ -14,7 +14,6 @@ TEST(NativeBackendTest, GetDeviceCount) {
 
 TEST(NativeBackendTest, GetDevice) {
     NativeBackend backend;
-
     {
         Device& device = backend.GetDevice(0);
         EXPECT_EQ(&backend, &device.backend());
@@ -27,6 +26,9 @@ TEST(NativeBackendTest, GetDevice) {
         EXPECT_EQ(3, device3.index());
         EXPECT_EQ(&backend, &device2.backend());
         EXPECT_EQ(2, device2.index());
+    }
+    {
+        EXPECT_THROW(backend.GetDevice(backend.GetDeviceCount() + 1), std::out_of_range);
     }
 }
 

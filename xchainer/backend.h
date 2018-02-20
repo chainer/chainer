@@ -19,7 +19,7 @@ public:
 
     // Returns the device for the given index.
     //
-    // Throws out-of-index exception if index >= GetDeviceCount().
+    // Throws out_of_range exception if index >= GetDeviceCount().
     virtual Device& GetDevice(int index) = 0;
 
     // Returns the name of this backend. This name should be unique within the context.

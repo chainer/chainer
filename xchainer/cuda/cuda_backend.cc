@@ -1,5 +1,7 @@
 #include "xchainer/cuda/cuda_backend.h"
 
+#include <stdexcept>
+
 #include <cuda_runtime.h>
 
 #include "xchainer/cuda/cuda_device.h"
@@ -15,6 +17,9 @@ int CudaBackend::GetDeviceCount() const {
 }
 
 Device& CudaBackend::GetDevice(int index) {
+    if (index >= GetDeviceCount()) {
+        throw std::out_of_range("The index number must be smaller than the number of available devices");
+    }
     if (!devices_.HasDevice(index)) {
         devices_.AddDevice(std::make_unique<CudaDevice>(*this, index));
     }
