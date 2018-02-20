@@ -1,16 +1,13 @@
-import collections
 import inspect
+import os
 import types
 
 import chainer.functions
 import chainer.links
 
 
-_autodoc_entities = collections.defaultdict(list)
-
-
-def process(app, what, name, obj, options, lines):
-    _autodoc_entities[what].append(name)
+def _is_rst_exists(entity):
+    return os.path.exists('source/reference/generated/{}.rst'.format(entity))
 
 
 def check(app, exception):
@@ -18,16 +15,15 @@ def check(app, exception):
 
     missing_entities += [
         name for name in _list_chainer_functions()
-        if name not in _autodoc_entities['function']]
+        if not _is_rst_exists(name)]
 
     missing_entities += [
         name for name in _list_chainer_links()
-        if name not in _autodoc_entities['class']]
+        if not _is_rst_exists(name)]
 
     if len(missing_entities) != 0:
         app.warn('\n'.join([
             'Undocumented entities found.',
-            '(Note: be sure to use `make clean html` to run this check):',
             '',
         ] + missing_entities))
 

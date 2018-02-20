@@ -366,12 +366,10 @@ def setup(app):
 
 def _autodoc_process_docstring(app, what, name, obj, options, lines):
     _docstring_check.check(app, what, name, obj, options, lines)
-    _autosummary_check.process(app, what, name, obj, options, lines)
 
 
 def _build_finished(app, exception):
-    if (os.environ.get('CHAINER_DOCS_CHECK_UNDOCUMENTED_ENTITY', False) and
-            exception is None):
+    if exception is None:
         _autosummary_check.check(app, exception)
 
 
