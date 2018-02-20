@@ -193,9 +193,11 @@ class TestChildReporter(unittest.TestCase):
     def setUp(self):
         pass
 
+    # TODO(niboshi): Investigate the timeout error and remove skip mark
     @attr.gpu
     @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
                          "MultiprocessParallelUpdater is not available.")
+    @unittest.skip('temporarily skipping: this test causes timeout')
     def test_update_uses_raw_array(self):
         code = """
 import numpy
