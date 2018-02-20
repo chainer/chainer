@@ -8,6 +8,8 @@ It runs a numerical optimization algorithm on a given link.
 Many algorithms are implemented in the :mod:`~chainer.optimizers` module.
 Here we use the simplest one, called Stochastic Gradient Descent (SGD):
 
+.. code-block:: console
+
    >>> model = MyChain()
    >>> optimizer = optimizers.SGD()
    >>> optimizer.setup(model)
@@ -33,6 +35,8 @@ There are two further ways to use the optimizer directly.
 One is manually computing gradients and then calling the :meth:`~Optimizer.update` method with no arguments.
 Do not forget to clear the gradients beforehand!
 
+.. code-block:: console
+
    >>> x = np.random.uniform(-1, 1, (2, 4)).astype(np.float32)
    >>> model.cleargrads()
    >>> # compute gradient here...
@@ -42,6 +46,8 @@ Do not forget to clear the gradients beforehand!
 
 The other way is just passing a loss function to the :meth:`~Optimizer.update` method.
 In this case, :meth:`~Link.cleargrads` is automatically called by the update method, so the user does not have to call it manually.
+
+.. code-block:: console
 
    >>> def lossfun(arg1, arg2):
    ...     # calculate loss
