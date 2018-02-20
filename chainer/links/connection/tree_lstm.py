@@ -106,7 +106,7 @@ class ChildSumTreeLSTM(link.Chain):
             a, i, o = split_axis.split_axis(aio_in, 3, axis=1)
             c = sigmoid.sigmoid(i) * tanh.tanh(a)
             h = sigmoid.sigmoid(o) * tanh.tanh(c)
-            return (c, h)
+            return c, h
         else:
             hs = self._pad_zero_nodes(
                 hs, (x.shape[0], self.state_size), dtype=x.dtype)
