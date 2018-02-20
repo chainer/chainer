@@ -40,7 +40,7 @@ public:
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat
-    std::string name() const { return backend_.name() + ":" + std::to_string(index_); }
+    std::string name() const { return backend_.GetName() + ":" + std::to_string(index_); }
 
     Backend& backend() const { return backend_; }
     int index() const { return index_; }

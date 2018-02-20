@@ -1,8 +1,9 @@
-#include "xchainer/cuda_backend.h"
+#include "xchainer/cuda/cuda_backend.h"
 
 #include <cuda_runtime.h>
 
-#include "xchainer/cuda_device.h"
+#include "xchainer/cuda/cuda_device.h"
+#include "xchainer/cuda/cuda_runtime.h"
 
 namespace xchainer {
 namespace cuda {
