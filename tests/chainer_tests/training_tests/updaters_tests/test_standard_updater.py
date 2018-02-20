@@ -43,7 +43,9 @@ class DummyOptimizer(chainer.Optimizer):
 
 class DummySerializer(chainer.Serializer):
 
-    def __init__(self, path=[]):
+    def __init__(self, path=None):
+        if path is None:
+            path = []
         self.path = path
         self.called = []
 
@@ -61,7 +63,8 @@ class TestUpdater(unittest.TestCase):
         self.iterator = DummyIterator([(numpy.array(1), numpy.array(2))])
         self.optimizer = DummyOptimizer()
         self.optimizer.setup(self.target)
-        self.updater = training.StandardUpdater(self.iterator, self.optimizer)
+        self.updater = training.updaters.StandardUpdater(
+            self.iterator, self.optimizer)
 
     def test_init_values(self):
         self.assertIsNone(self.updater.device)
@@ -117,7 +120,7 @@ class TestUpdaterUpdateArguments(unittest.TestCase):
 
     def test_update_tuple(self):
         iterator = DummyIterator([(numpy.array(1), numpy.array(2))])
-        updater = training.StandardUpdater(iterator, self.optimizer)
+        updater = training.updaters.StandardUpdater(iterator, self.optimizer)
 
         updater.update_core()
 
@@ -137,7 +140,7 @@ class TestUpdaterUpdateArguments(unittest.TestCase):
 
     def test_update_dict(self):
         iterator = DummyIterator([{'x': numpy.array(1), 'y': numpy.array(2)}])
-        updater = training.StandardUpdater(iterator, self.optimizer)
+        updater = training.updaters.StandardUpdater(iterator, self.optimizer)
 
         updater.update_core()
 
@@ -159,7 +162,7 @@ class TestUpdaterUpdateArguments(unittest.TestCase):
 
     def test_update_var(self):
         iterator = DummyIterator([numpy.array(1)])
-        updater = training.StandardUpdater(iterator, self.optimizer)
+        updater = training.updaters.StandardUpdater(iterator, self.optimizer)
 
         updater.update_core()
 

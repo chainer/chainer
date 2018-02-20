@@ -3,10 +3,11 @@ import warnings
 
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.dataset import convert
 from chainer import reporter
-from chainer.training import updater
+from chainer.training.updaters import standard_updater
+
 
 try:
     from cupy.cuda import nccl
@@ -37,6 +38,8 @@ class _Worker(multiprocessing.Process):
         self.model.to_gpu(self.device)
         self.reporter = reporter.Reporter()
         self.reporter.add_observer('main', self.model)
+        self.reporter.add_observers('main',
+                                    self.model.namedlinks(skipself=True))
 
     def run(self):
         dev = cuda.Device(self.device)
@@ -78,7 +81,7 @@ class _Worker(multiprocessing.Process):
                 gp = None
 
 
-class MultiprocessParallelUpdater(updater.StandardUpdater):
+class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
 
     """Implementation of a multiprocess parallel GPU Updater.
 
@@ -86,9 +89,11 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
     with multi-process data parallelism. It uses Nvidia NCCL for communication
     between multiple GPUs.
 
-    It behaves similarly to :class:`~chainer.training.StandardUpdater`. The
-    update routine is modified to support data-parallel computation on multiple
-    GPUs in one machine. It is based on synchronous parallel SGD: it
+    It behaves similarly to
+    :class:`~chainer.training.updaters.StandardUpdater`.
+    The update routine is modified to support data-parallel
+    computation on multiple GPUs in one machine.
+    It is based on synchronous parallel SGD: it
     parallelizes the gradient computation over a mini-batch, and updates the
     parameters only in the main device.
 

@@ -17,15 +17,15 @@ from chainer.training import extensions
 class CRF(chainer.Chain):
 
     def __init__(self, n_vocab, n_pos):
-        super(CRF, self).__init__(
-            feature=L.EmbedID(n_vocab, n_pos),
-            crf=L.CRF1d(n_pos),
-        )
+        super(CRF, self).__init__()
+        with self.init_scope():
+            self.feature = L.EmbedID(n_vocab, n_pos)
+            self.crf = L.CRF1d(n_pos)
 
     def __call__(self, xs, ys):
         # Before making a transpose, you need to sort two lists in descending
         # order of length.
-        inds = numpy.argsort([-len(x) for x in xs]).astype('i')
+        inds = numpy.argsort([-len(x) for x in xs]).astype(numpy.int32)
         xs = [xs[i] for i in inds]
         ys = [ys[i] for i in inds]
 
@@ -85,8 +85,8 @@ def main():
     nltk.download('brown')
     data = []
     for sentence in nltk.corpus.brown.tagged_sents():
-        xs = numpy.array([vocab[lex] for lex, _ in sentence], 'i')
-        ys = numpy.array([pos_vocab[pos] for _, pos in sentence], 'i')
+        xs = numpy.array([vocab[lex] for lex, _ in sentence], numpy.int32)
+        ys = numpy.array([pos_vocab[pos] for _, pos in sentence], numpy.int32)
         data.append((xs, ys))
 
     print('# of sentences: {}'.format(len(data)))
@@ -107,7 +107,7 @@ def main():
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test_data, args.batchsize,
                                                  repeat=False, shuffle=False)
-    updater = training.StandardUpdater(
+    updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 

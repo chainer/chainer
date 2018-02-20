@@ -1,5 +1,5 @@
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -67,29 +67,29 @@ def depth2space(X, r):
 
     .. admonition:: Example
 
-        >>> X = np.arange(24).reshape(1, 4, 2, 3).astype('f')
+        >>> X = np.arange(24).reshape(1, 4, 2, 3).astype(np.float32)
         >>> X.shape
         (1, 4, 2, 3)
         >>> X
-        array([[[[  0.,   1.,   2.],
-                 [  3.,   4.,   5.]],
+        array([[[[ 0.,  1.,  2.],
+                 [ 3.,  4.,  5.]],
         <BLANKLINE>
-                [[  6.,   7.,   8.],
-                 [  9.,  10.,  11.]],
+                [[ 6.,  7.,  8.],
+                 [ 9., 10., 11.]],
         <BLANKLINE>
-                [[ 12.,  13.,  14.],
-                 [ 15.,  16.,  17.]],
+                [[12., 13., 14.],
+                 [15., 16., 17.]],
         <BLANKLINE>
-                [[ 18.,  19.,  20.],
-                 [ 21.,  22.,  23.]]]], dtype=float32)
+                [[18., 19., 20.],
+                 [21., 22., 23.]]]], dtype=float32)
         >>> y = F.depth2space(X, 2)
         >>> y.shape
         (1, 1, 4, 6)
         >>> y.data
-        array([[[[  0.,   6.,   1.,   7.,   2.,   8.],
-                 [ 12.,  18.,  13.,  19.,  14.,  20.],
-                 [  3.,   9.,   4.,  10.,   5.,  11.],
-                 [ 15.,  21.,  16.,  22.,  17.,  23.]]]], dtype=float32)
+        array([[[[ 0.,  6.,  1.,  7.,  2.,  8.],
+                 [12., 18., 13., 19., 14., 20.],
+                 [ 3.,  9.,  4., 10.,  5., 11.],
+                 [15., 21., 16., 22., 17., 23.]]]], dtype=float32)
 
     """
     return Depth2Space(r).apply((X,))[0]

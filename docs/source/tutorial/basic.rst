@@ -94,7 +94,7 @@ The resulting ``y`` is also a :class:`Variable` object, whose value can be extra
 .. doctest::
 
    >>> y.data
-   array([ 16.], dtype=float32)
+   array([16.], dtype=float32)
 
 What ``y`` holds is not only the result value.
 It also holds the history of computation (i.e., computational graph), which enables to compute its differentiation.
@@ -110,7 +110,7 @@ Then, the gradient is computed and stored in the :attr:`~Variable.grad` attribut
 .. doctest::
 
    >>> x.grad
-   array([ 8.], dtype=float32)
+   array([8.], dtype=float32)
 
 Also we can compute gradients of intermediate variables.
 Note that Chainer, by default, releases the gradient arrays of intermediate variables for memory efficiency.
@@ -145,8 +145,8 @@ This is simply done by setting the :attr:`~Variable.grad` attribute of the outpu
    >>> y.grad = np.ones((2, 3), dtype=np.float32)
    >>> y.backward()
    >>> x.grad
-   array([[  0.,   2.,   4.],
-          [  6.,   8.,  10.]], dtype=float32)
+   array([[ 0.,  2.,  4.],
+          [ 6.,  8., 10.]], dtype=float32)
 
 .. note::
 
@@ -185,10 +185,10 @@ By default, the matrix ``W`` is initialized randomly, while the vector ``b`` is 
 .. doctest::
 
    >>> f.W.data
-   array([[ 1.01847613,  0.23103087,  0.56507462],
-          [ 1.29378033,  1.07823515, -0.56423163]], dtype=float32)
+   array([[ 1.0184761 ,  0.23103087,  0.5650746 ],
+          [ 1.2937803 ,  1.0782351 , -0.56423163]], dtype=float32)
    >>> f.b.data
-   array([ 0.,  0.], dtype=float32)
+   array([0., 0.], dtype=float32)
 
 An instance of the Linear link acts like a usual function:
 
@@ -197,8 +197,8 @@ An instance of the Linear link acts like a usual function:
    >>> x = Variable(np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32))
    >>> y = f(x)
    >>> y.data
-   array([[ 3.1757617 ,  1.75755572],
-          [ 8.61950684,  7.18090773]], dtype=float32)
+   array([[3.1757617, 1.7575557],
+          [8.619507 , 7.1809077]], dtype=float32)
 
 .. note::
 
@@ -236,10 +236,10 @@ Now we can compute the gradients of parameters by simply calling the backward me
    >>> y.grad = np.ones((2, 2), dtype=np.float32)
    >>> y.backward()
    >>> f.W.grad
-   array([[ 5.,  7.,  9.],
-          [ 5.,  7.,  9.]], dtype=float32)
+   array([[5., 7., 9.],
+          [5., 7., 9.]], dtype=float32)
    >>> f.b.grad
-   array([ 2.,  2.], dtype=float32)
+   array([2., 2.], dtype=float32)
 
 
 Write a model as a chain
@@ -339,6 +339,7 @@ Here we use the simplest one, called Stochastic Gradient Descent (SGD):
    >>> model = MyChain()
    >>> optimizer = optimizers.SGD()
    >>> optimizer.setup(model)
+   <...>
 
 The method :meth:`~Optimizer.setup` prepares for the optimization given a link.
 
@@ -361,7 +362,7 @@ There are two further ways to use the optimizer directly.
 One is manually computing gradients and then calling the :meth:`~Optimizer.update` method with no arguments.
 Do not forget to clear the gradients beforehand!
 
-   >>> x = np.random.uniform(-1, 1, (2, 4)).astype('f')
+   >>> x = np.random.uniform(-1, 1, (2, 4)).astype(np.float32)
    >>> model.cleargrads()
    >>> # compute gradient here...
    >>> loss = F.sum(model(chainer.Variable(x)))
@@ -375,8 +376,8 @@ In this case, :meth:`~Link.cleargrads` is automatically called by the update met
    ...     # calculate loss
    ...     loss = F.sum(model(arg1 - arg2))
    ...     return loss
-   >>> arg1 = np.random.uniform(-1, 1, (2, 4)).astype('f')
-   >>> arg2 = np.random.uniform(-1, 1, (2, 4)).astype('f')
+   >>> arg1 = np.random.uniform(-1, 1, (2, 4)).astype(np.float32)
+   >>> arg2 = np.random.uniform(-1, 1, (2, 4)).astype(np.float32)
    >>> optimizer.update(lossfun, chainer.Variable(arg1), chainer.Variable(arg2))
 
 See :meth:`Optimizer.update` for the full specification.
@@ -464,7 +465,7 @@ Example: Multi-layer Perceptron on MNIST
 
 Now you can solve a multiclass classification task using a multi-layer perceptron (MLP).
 We use a hand-written digits dataset called `MNIST <http://yann.lecun.com/exdb/mnist/>`_, which is one of the long-standing de facto "hello world" examples used in machine learning.
-This MNIST example is also found in the `examples/mnist <https://github.com/chainer/chainer/tree/master/examples/mnist>`_ directory of the official repository.
+This MNIST example is also found in the :tree:`examples/mnist` directory of the official repository.
 We show how to use :class:`~training.Trainer` to construct and run the training loop in this section.
 
 We first have to prepare the MNIST dataset.
@@ -566,12 +567,13 @@ So instead of using the above example, we will use this predefined Classifier ch
    >>> model = L.Classifier(MLP(100, 10))  # the input size, 784, is inferred
    >>> optimizer = optimizers.SGD()
    >>> optimizer.setup(model)
+   <...>
 
 Now we can build a trainer object.
 
 .. doctest::
 
-   >>> updater = training.StandardUpdater(train_iter, optimizer)
+   >>> updater = training.updaters.StandardUpdater(train_iter, optimizer)
    >>> trainer = training.Trainer(updater, (20, 'epoch'), out='result')
 
 The second argument ``(20, 'epoch')`` represents the duration of training.
@@ -617,4 +619,4 @@ These extensions perform the following tasks:
 There are many extensions implemented in the :mod:`chainer.training.extensions` module.
 The most important one that is not included above is :func:`~training.extensions.snapshot`, which saves the snapshot of the training procedure (i.e., the Trainer object) to a file in the output directory.
 
-The `example code <https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist.py>`_ in the `examples/mnist` directory additionally contains GPU support, though the essential part is the same as the code in this tutorial. We will review in later sections how to use GPU(s).
+The :blob:`example code <examples/mnist/train_mnist.py>` in the :tree:`examples/mnist` directory additionally contains GPU support, though the essential part is the same as the code in this tutorial. We will review in later sections how to use GPU(s).

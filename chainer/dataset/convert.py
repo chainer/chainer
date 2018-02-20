@@ -2,7 +2,7 @@ import collections
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 
 
 def to_device(device, x):
@@ -12,7 +12,7 @@ def to_device(device, x):
     :func:`~chainer.dataset.concat_examples`.
     You can also use this method in a custom converter method used in
     :class:`~chainer.training.Updater` and :class:`~chainer.training.Extension`
-    such as :class:`~chainer.training.StandardUpdater` and
+    such as :class:`~chainer.training.updaters.StandardUpdater` and
     :class:`~chainer.training.extensions.Evaluator`.
 
     See also :func:`chainer.dataset.concat_examples`.
@@ -156,7 +156,7 @@ class ConcatWithAsyncTransfer(object):
 
         from chainer.dataset import convert
         ...
-        updater = chainer.training.StandardUpdater(
+        updater = chainer.training.updaters.StandardUpdater(
                        ...,
                        converter=convert.ConcatWithAsyncTransfer(),
                        ...)
@@ -176,7 +176,7 @@ class ConcatWithAsyncTransfer(object):
     def __call__(self, batch, device=None, padding=None):
         """Concatenate data and transfer them to GPU asynchronously.
 
-        (see concat_examples for detail about concatenation)
+        See also :func:`chainer.dataset.concat_examples`.
 
         Args:
             batch (list): A list of examples.

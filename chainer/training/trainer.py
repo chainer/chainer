@@ -117,6 +117,8 @@ class Trainer(object):
             update the models.
         stop_trigger: Trigger that determines when to stop the training loop.
             If it is not callable, it is passed to :class:`IntervalTrigger`.
+        out: Output directory.
+        extensions: Extensions registered to the trainer.
 
     Attributes:
         updater: The updater object for this trainer.
@@ -130,11 +132,14 @@ class Trainer(object):
 
     """
 
-    def __init__(self, updater, stop_trigger=None, out='result'):
+    def __init__(self, updater, stop_trigger=None, out='result',
+                 extensions=None):
         self.updater = updater
         self.stop_trigger = trigger_module.get_trigger(stop_trigger)
         self.observation = {}
         self.out = out
+        if extensions is None:
+            extensions = []
 
         reporter = reporter_module.Reporter()
         for name, optimizer in six.iteritems(updater.get_all_optimizers()):
@@ -151,6 +156,8 @@ class Trainer(object):
         self._final_elapsed_time = None
 
         updater.connect_trainer(self)
+        for ext in extensions:
+            self.extend(ext)
 
     @property
     def elapsed_time(self):
