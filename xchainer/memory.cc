@@ -115,7 +115,7 @@ std::shared_ptr<void> MemoryFromBuffer(const DeviceId& device_id, const std::sha
     }
 #else
     (void)bytesize;  // unused
-    if (device_id.backend().GetName() == "native") {
+    if (device_id.backend()->GetName() == "native") {
         return src_ptr;
     } else {
         throw DeviceError("invalid device_id");
