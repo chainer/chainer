@@ -8,8 +8,6 @@ It runs a numerical optimization algorithm on a given link.
 Many algorithms are implemented in the :mod:`~chainer.optimizers` module.
 Here we use the simplest one, called Stochastic Gradient Descent (SGD):
 
-.. doctest::
-
    >>> model = MyChain()
    >>> optimizer = optimizers.SGD()
    >>> optimizer.setup(model)
