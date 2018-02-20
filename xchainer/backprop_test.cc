@@ -311,11 +311,11 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     EXPECT_FALSE(x2.GetGrad(graph_id_1));
 }
 
-INSTANTIATE_TEST_CASE_P(ForEachDeviceId, BackpropTest, ::testing::Values(
+INSTANTIATE_TEST_CASE_P(ForEachBackend, BackpropTest, ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
-                                                           std::string{"cuda"},
+                                                          std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
-                                                           std::string{"native"}));
+                                                          std::string{"native"}));
 
 TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     NativeBackend native_backend;
