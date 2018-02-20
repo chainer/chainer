@@ -96,23 +96,23 @@ def get_item(x, slices):
 
     .. admonition:: Example
 
-        >>> x = np.arange(12).reshape((2, 2, 3)).astype('f')
+        >>> x = np.arange(12).reshape((2, 2, 3))
         >>> x
-        array([[[  0.,   1.,   2.],
-                [  3.,   4.,   5.]],
+        array([[[ 0,  1,  2],
+                [ 3,  4,  5]],
         <BLANKLINE>
-               [[  6.,   7.,   8.],
-                [  9.,  10.,  11.]]], dtype=float32)
-        >>> F.get_item(x, 0).data
-        array([[ 0.,  1.,  2.],
-               [ 3.,  4.,  5.]], dtype=float32)
-        >>> F.get_item(x, (0, 0, slice(0, 2, 1))).data # equals x[0, 0, 0:2:1]
-        array([ 0.,  1.], dtype=float32)
-        >>> F.get_item(x, (Ellipsis, 2)).data # equals x[..., 2]
-        array([[  2.,   5.],
-               [  8.,  11.]], dtype=float32)
-        >>> F.get_item(x, (1, np.newaxis, 1, 0)).data # equals x[1, None, 1, 0]
-        array([ 9.], dtype=float32)
+               [[ 6,  7,  8],
+                [ 9, 10, 11]]])
+        >>> F.get_item(x, 0)
+        variable([[0, 1, 2],
+                  [3, 4, 5]])
+        >>> F.get_item(x, (0, 0, slice(0, 2, 1)))  # equals x[0, 0, 0:2:1]
+        variable([0, 1])
+        >>> F.get_item(x, (Ellipsis, 2))  # equals x[..., 2]
+        variable([[ 2,  5],
+                  [ 8, 11]])
+        >>> F.get_item(x, (1, np.newaxis, 1, 0))  # equals x[1, None, 1, 0]
+        variable([9])
 
     """
     return GetItem(slices).apply((x,))[0]
