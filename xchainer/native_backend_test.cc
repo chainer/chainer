@@ -5,7 +5,7 @@
 namespace xchainer {
 namespace {
 
-TEST(NativeBackendTest, name) { EXPECT_EQ("native", NativeBackend().name()); }
+TEST(NativeBackendTest, GetName) { EXPECT_EQ("native", NativeBackend().GetName()); }
 
 }  // namespace
 }  // namespace xchainer

@@ -6,7 +6,7 @@ namespace xchainer {
 namespace cuda {
 namespace {
 
-TEST(CudaBackendTest, name) { EXPECT_EQ("cuda", cuda::CudaBackend().name()); }
+TEST(CudaBackendTest, GetName) { EXPECT_EQ("cuda", cuda::CudaBackend().GetName()); }
 
 }  // namespace
 }  // namespace cuda
