@@ -10,7 +10,7 @@
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/device.h"
+#include "xchainer/device_id.h"
 #include "xchainer/error.h"
 
 namespace xchainer {
@@ -40,12 +40,12 @@ bool IsPointerCudaMemory(const void* ptr) {
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
-std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) {
-    // TODO(sonots): Use device.backend->Allocate()
-    if (device.name() == "cpu") {
+std::shared_ptr<void> Allocate(const DeviceId& device_id, size_t bytesize) {
+    // TODO(sonots): Use device_id.backend->Allocate()
+    if (device_id.name() == "cpu") {
         return std::make_unique<uint8_t[]>(bytesize);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (device.name() == "cuda") {
+    } else if (device_id.name() == "cuda") {
         void* raw_ptr = nullptr;
         // Be careful to be exception-safe, i.e., do not throw before creating shared_ptr
         cudaError_t status = cudaMallocManaged(&raw_ptr, bytesize, cudaMemAttachGlobal);
@@ -57,7 +57,7 @@ std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) {
         assert(false);  // should never be reached
 #endif                  // XCHAINER_ENABLE_CUDA
     } else {
-        throw DeviceError("invalid device");
+        throw DeviceError("invalid device_id");
     }
 }
 
@@ -67,18 +67,18 @@ void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
     bool is_src_cuda_memory = IsPointerCudaMemory(src_ptr);
     if (is_dst_cuda_memory) {
         if (is_src_cuda_memory) {
-            // Copy from device to device is faster even in unified memory
-            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyDeviceToDevice));
+            // Copy from device_id to device_id is faster even in unified memory
+            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyDeviceIdToDeviceId));
         } else {
             // For pre-6.x GPU architecture, we encountered SEGV with std::memcpy
             // ref. https://github.com/pfnet/xchainer/pull/74
-            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyHostToDevice));
+            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyHostToDeviceId));
         }
     } else {
         if (is_src_cuda_memory) {
             // For pre-6.x GPU architecture, we encountered SEGV with std::memcpy
             // ref. https://github.com/pfnet/xchainer/pull/74
-            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyDeviceToHost));
+            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyDeviceIdToHost));
         } else {
             std::memcpy(dst_ptr, src_ptr, bytesize);
         }
@@ -88,34 +88,34 @@ void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
-std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
-// TODO(sonots): Use device.backend->FromBuffer()
+std::shared_ptr<void> MemoryFromBuffer(const DeviceId& device_id, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
+// TODO(sonots): Use device_id.backend->FromBuffer()
 #ifdef XCHAINER_ENABLE_CUDA
-    if (device.name() == "cpu") {
+    if (device_id.name() == "cpu") {
         if (IsPointerCudaMemory(src_ptr.get())) {
-            std::shared_ptr<void> dst_ptr = Allocate(device, bytesize);
-            cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyDeviceToHost));
+            std::shared_ptr<void> dst_ptr = Allocate(device_id, bytesize);
+            cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyDeviceIdToHost));
             return dst_ptr;
         } else {
             return src_ptr;
         }
-    } else if (device.name() == "cuda") {
+    } else if (device_id.name() == "cuda") {
         if (IsPointerCudaMemory(src_ptr.get())) {
             return src_ptr;
         } else {
-            std::shared_ptr<void> dst_ptr = Allocate(device, bytesize);
-            cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
+            std::shared_ptr<void> dst_ptr = Allocate(device_id, bytesize);
+            cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToDeviceId));
             return dst_ptr;
         }
     } else {
-        throw DeviceError("invalid device");
+        throw DeviceError("invalid device_id");
     }
 #else
     (void)bytesize;  // unused
-    if (device.name() == "cpu") {
+    if (device_id.name() == "cpu") {
         return src_ptr;
     } else {
-        throw DeviceError("invalid device");
+        throw DeviceError("invalid device_id");
     }
 #endif  // XCHAINER_ENABLE_CUDA
 }
