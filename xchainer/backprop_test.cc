@@ -17,7 +17,7 @@
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/device.h"
+#include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/native_backend.h"
@@ -30,19 +30,19 @@ namespace {
 class BackpropTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
     virtual void SetUp() {
-        std::string device_name = ::testing::get<0>(GetParam());
-        if (device_name == "cpu") {
+        std::string device_id_name = ::testing::get<0>(GetParam());
+        if (device_id_name == "cpu") {
             backend_ = std::make_unique<NativeBackend>();
 #ifdef XCHAINER_ENABLE_CUDA
-        } else if (device_name == "cuda") {
+        } else if (device_id_name == "cuda") {
             backend_ = std::make_unique<cuda::CudaBackend>();
 #endif  // XCHAINER_ENABLE_CUDA
         }
-        device_scope_ = std::make_unique<DeviceScope>(device_name, backend_.get());
+        device_id_scope_ = std::make_unique<DeviceIdScope>(backend_.get());
     }
 
     virtual void TearDown() {
-        device_scope_.reset();
+        device_id_scope_.reset();
         backend_.reset();
     }
 
@@ -67,8 +67,8 @@ public:
     template <typename T>
     void ExpectDataEqual(const Array& expected, const Array& actual) const {
 #ifdef XCHAINER_ENABLE_CUDA
-        std::string device_name = ::testing::get<0>(GetParam());
-        if (device_name == "cuda") {
+        std::string device_id_name = ::testing::get<0>(GetParam());
+        if (device_id_name == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
@@ -129,7 +129,7 @@ public:
 
 private:
     std::unique_ptr<Backend> backend_;
-    std::unique_ptr<DeviceScope> device_scope_;
+    std::unique_ptr<DeviceIdScope> device_id_scope_;
 };
 
 TEST_P(BackpropTest, BackwardBasic) {
@@ -311,7 +311,7 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     EXPECT_FALSE(x2.GetGrad(graph_id_1));
 }
 
-INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
+INSTANTIATE_TEST_CASE_P(ForEachDeviceId, BackpropTest, ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
                                                          std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
@@ -319,7 +319,7 @@ INSTANTIATE_TEST_CASE_P(ForEachDevice, BackpropTest, ::testing::Values(
 
 TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     NativeBackend native_backend;
-    DeviceScope scope{"cpu", &native_backend};
+    DeviceIdScope scope{&native_backend};
 
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
     Array x2 = Array::Full({2}, 2.f);
@@ -348,7 +348,7 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
 
 TEST(BackpropEnableDoubleBackpropTest, Disabled) {
     NativeBackend native_backend;
-    DeviceScope scope{"cpu", &native_backend};
+    DeviceIdScope scope{&native_backend};
 
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
     Array x2 = Array::Full({2}, 2.f);
