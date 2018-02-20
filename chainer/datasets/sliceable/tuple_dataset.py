@@ -21,7 +21,7 @@ class TupleDataset(SliceableDataset):
             * An inheritance of \
                 :class:~chainer.datasets.sliceable.SliceableDataset`.
             * A tuple of a name and a data array. \
-                 The data array should be list/tuple/:class:`numpy.ndarray`.
+                 The data array should be list or :class:`numpy.ndarray`.
             * A data array. In this case, the name of key is :obj:`None`.
     """
 
