@@ -72,9 +72,7 @@ def get_item(x, slices):
         :class:`cupy.ndarray`): A variable to be sliced.
         slices (int, slice, Ellipsis, None, integer array-like, boolean\
         array-like or tuple of them):
-            It is an integer, a slice, an ellipsis,
-            a numpy.newaxis, a None, an integer array-like,
-            a boolean array-like or tuple of them.
+            An object to specify the selection of elements.
 
     Returns:
         A :class:`~chainer.Variable` object which contains sliced array of
