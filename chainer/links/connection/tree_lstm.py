@@ -107,21 +107,21 @@ class ChildSumTreeLSTM(link.Chain):
             c = sigmoid.sigmoid(i) * tanh.tanh(a)
             h = sigmoid.sigmoid(o) * tanh.tanh(c)
             return c, h
-        else:
-            hs = self._pad_zero_nodes(
-                hs, (x.shape[0], self.state_size), dtype=x.dtype)
-            cs = self._pad_zero_nodes(
-                cs, (x.shape[0], self.state_size), dtype=x.dtype)
 
-            aio_in = self.W_h_aio(sum(hs)) + W_x_aio_in
-            W_h_fs_in = concat.concat(split_axis.split_axis(
-                self.W_h_f(concat.concat(hs, axis=0)), len(hs), axis=0),
-                axis=1)
-            f_in = W_h_fs_in + \
-                concat.concat([W_x_f_in] * len(hs), axis=1)
-            tree_lstm_in = concat.concat([aio_in, f_in], axis=1)
+        hs = self._pad_zero_nodes(
+            hs, (x.shape[0], self.state_size), dtype=x.dtype)
+        cs = self._pad_zero_nodes(
+            cs, (x.shape[0], self.state_size), dtype=x.dtype)
 
-            return tree_lstm.tree_lstm(*(cs + (tree_lstm_in, )))
+        aio_in = self.W_h_aio(sum(hs)) + W_x_aio_in
+        W_h_fs_in = concat.concat(split_axis.split_axis(
+            self.W_h_f(concat.concat(hs, axis=0)), len(hs), axis=0),
+            axis=1)
+        f_in = W_h_fs_in + \
+            concat.concat([W_x_f_in] * len(hs), axis=1)
+        tree_lstm_in = concat.concat([aio_in, f_in], axis=1)
+
+        return tree_lstm.tree_lstm(*(cs + (tree_lstm_in, )))
 
     def _pad_zero_nodes(self, vs, shape, dtype='f'):
         if any(v is None for v in vs):
