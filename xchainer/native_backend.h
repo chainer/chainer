@@ -8,7 +8,7 @@
 
 namespace xchainer {
 
-class NativeBackend {
+class NativeBackend : public Backend {
 public:
     int GetDeviceCount() const override;
 
