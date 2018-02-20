@@ -1,6 +1,7 @@
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer import reporter
 from chainer.training import extension
@@ -121,7 +122,7 @@ class ParameterStatistics(extension.Extension):
                             attr_name=attr_name,
                             function_name=function_name
                         )
-                        if (isinstance(value, (numpy.ndarray, cuda.ndarray))
+                        if (isinstance(value, chainer.get_array_types())
                                 and value.size > 1):
                             # Append integer indices to the keys if the
                             # statistic function return multiple values
