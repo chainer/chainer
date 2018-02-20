@@ -1,5 +1,6 @@
 #include "xchainer/device_id.h"
 
+#include "xchainer/backend.h"
 #include "xchainer/error.h"
 
 namespace xchainer {
@@ -28,7 +29,7 @@ std::ostream& operator<<(std::ostream& os, const DeviceId& device_id) {
     if (device_id.is_null()) {
         os << "DeviceId(null)";
     } else {
-        os << "DeviceId('" << device_id.backend()->name() << "', " << device_id.index() << ")";
+        os << "DeviceId('" << device_id.backend()->GetName() << "', " << device_id.index() << ")";
     }
     return os;
 }

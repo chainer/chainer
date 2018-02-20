@@ -159,7 +159,8 @@ public:
     std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; };
 
 private:
-    Array(const Shape& shape, Dtype dtype, const DeviceId& device_id, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
+    Array(const Shape& shape, Dtype dtype, const DeviceId& device_id, std::shared_ptr<void> data, bool is_contiguous = true,
+          int64_t offset = 0);
 
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;

@@ -19,6 +19,7 @@
 #include "xchainer/cuda/array_math.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
+#include "xchainer/device.h"
 #include "xchainer/device_id.h"
 #include "xchainer/error.h"
 #include "xchainer/memory.h"
@@ -29,8 +30,8 @@ namespace xchainer {
 namespace internal {
 
 // Private definition of ArrayBody
-ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, const DeviceId& device_id, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
-                     std::vector<std::shared_ptr<ArrayNode>> nodes)
+ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, const DeviceId& device_id, bool is_contiguous, std::shared_ptr<void> data,
+                     int64_t offset, std::vector<std::shared_ptr<ArrayNode>> nodes)
     : shape_(shape),
       dtype_(dtype),
       device_id_(device_id),
@@ -112,8 +113,8 @@ Array::Array(const Shape& shape, Dtype dtype, const DeviceId& device_id, std::sh
     : body_(std::make_shared<internal::ArrayBody>(shape, dtype, device_id, is_contiguous, std::move(data), offset)) {}
 
 Array::Array(const Array& other)
-    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.device_id(), other.is_contiguous(), other.body_->data_,
-                                                  other.offset(), other.body_->nodes_)) {}
+    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.device_id(), other.is_contiguous(),
+                                                  other.body_->data_, other.offset(), other.body_->nodes_)) {}
 
 const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return internal::GetArrayNode(*this, graph_id)->grad(); }
 
@@ -237,10 +238,10 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     DeviceId device_id = GetDefaultDeviceId();
     // TODO(sonots): Use device_id.backend->Add()
-    if (device_id.name() == "cpu") {
+    if (device_id.backend()->GetName() == "cpu") {
         xchainer::Add(*this, rhs, out);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (device_id.name() == "cuda") {
+    } else if (device_id.backend()->GetName() == "cuda") {
         xchainer::cuda::Add(*this, rhs, out);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
@@ -264,10 +265,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     DeviceId device_id = GetDefaultDeviceId();
     // TODO(sonots): Use device_id.backend->Mul()
-    if (device_id.name() == "cpu") {
+    if (device_id.backend()->GetName() == "cpu") {
         xchainer::Mul(*this, rhs, out);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (device_id.name() == "cuda") {
+    } else if (device_id.backend()->GetName() == "cuda") {
         xchainer::cuda::Mul(*this, rhs, out);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
@@ -275,7 +276,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
     }
 }
 
-void Array::Fill(Scalar value) { device_id().backend()->Fill(*this, value); }
+void Array::Fill(Scalar value) { device_id().backend()->GetDevice(device_id().index()).Fill(*this, value); }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 

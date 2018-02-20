@@ -14,6 +14,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
+#include "xchainer/backend.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
@@ -163,7 +164,7 @@ struct ArrayReprImpl {
         std::copy(shape.cbegin(), shape.cend(), std::back_inserter(indexer));
         std::shared_ptr<const T> data = std::static_pointer_cast<const T>(array.data());
 
-// TODO(hvy): Only synchronize devices when it is really needed
+// TODO(hvy): Only synchronize device_ids when it is really needed
 #ifdef XCHAINER_ENABLE_CUDA
         cuda::CheckError(cudaDeviceSynchronize());
 #endif  // XCHAINER_ENABLE_CUDA
@@ -239,8 +240,8 @@ struct ArrayReprImpl {
         // Print the footer
         PrintNTimes(os, ']', ndim);
         os << ", dtype=" << array.dtype();
-        assert(!array.device().is_null());
-        os << ", device='" << array.device().name() << "'";
+        assert(!array.device_id().is_null());
+        os << ", device_id=('" << array.device_id().backend()->GetName() << "', " << array.device_id().index() << ")";
         const std::vector<std::shared_ptr<ArrayNode>>& nodes = array.nodes();
         if (!nodes.empty()) {
             os << ", graph_ids=[";
