@@ -11,20 +11,21 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_repr.h"
+#include "xchainer/backend.h"
 #include "xchainer/error.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/device.h"
+#include "xchainer/device_id.h"
 
 namespace xchainer {
 namespace gradient_internal {
 
 void Synchronize() {
 #ifdef XCHAINER_ENABLE_CUDA
-    Device device = GetDefaultDevice();
-    // TODO(sonots): Use device.backend->Synchronize()
-    if (device.name() == "cuda") {
+    DeviceId device_id = GetDefaultDeviceId();
+    // TODO(sonots): Use device_id.backend->Synchronize()
+    if (device_id.backend()->GetName() == "cuda") {
         cuda::CheckError(cudaDeviceSynchronize());
     }
 #endif  // XCHAINER_ENABLE_CUDA
