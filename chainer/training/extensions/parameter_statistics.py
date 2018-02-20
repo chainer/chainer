@@ -121,9 +121,8 @@ class ParameterStatistics(extension.Extension):
                             attr_name=attr_name,
                             function_name=function_name
                         )
-                        if (hasattr(value, '__iter__')
-                            or (isinstance(value, cuda.ndarray)
-                                and value.size > 1)):
+                        if (isinstance(value, (numpy.ndarray, cuda.ndarray))
+                                and value.size > 1):
                             # Append integer indices to the keys if the
                             # statistic function return multiple values
                             statistics.update({'{}/{}'.format(key, i): v for
