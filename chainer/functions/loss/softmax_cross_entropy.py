@@ -355,11 +355,11 @@ def softmax_cross_entropy(
 
     .. admonition:: Example
 
-        >>> x = np.array([[-1, 0, 1, 2], [2, 0, 1, -1]]).astype('f')
+        >>> x = np.array([[-1, 0, 1, 2], [2, 0, 1, -1]]).astype(np.float32)
         >>> x
         array([[-1.,  0.,  1.,  2.],
                [ 2.,  0.,  1., -1.]], dtype=float32)
-        >>> t = np.array([3, 0]).astype('i')
+        >>> t = np.array([3, 0]).astype(np.int32)
         >>> t
         array([3, 0], dtype=int32)
         >>> y = F.softmax_cross_entropy(x, t)

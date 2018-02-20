@@ -12,7 +12,6 @@ from chainer.functions.array import split_axis
 from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.connection import n_step_rnn
-from chainer.functions.connection.n_step_rnn import _stack_weight
 from chainer.functions.connection.n_step_rnn import get_random_state
 from chainer.functions.noise import dropout
 from chainer.utils import argument
@@ -23,18 +22,27 @@ if cuda.cudnn_enabled:
     libcudnn = cuda.cuda.cudnn
 
 
+def _stack_weight(ws):
+    # TODO(unno): Input of the current LSTM implementaiton is shuffled
+    w = stack.stack(ws, axis=1)
+    shape = w.shape
+    return reshape.reshape(w, (shape[0] * shape[1],) + shape[2:])
+
+
 class NStepLSTM(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states):
-        n_step_rnn.BaseNStepRNN.__init__(self, n_layers, states,
-                                         rnn_dir='uni', rnn_mode='lstm')
+    def __init__(self, n_layers, states, lengths):
+        n_step_rnn.BaseNStepRNN.__init__(
+            self, n_layers, states, lengths,
+            rnn_dir='uni', rnn_mode='lstm')
 
 
 class NStepBiLSTM(n_step_rnn.BaseNStepRNN):
 
-    def __init__(self, n_layers, states):
-        n_step_rnn.BaseNStepRNN.__init__(self, n_layers, states,
-                                         rnn_dir='bi', rnn_mode='lstm')
+    def __init__(self, n_layers, states, lengths):
+        n_step_rnn.BaseNStepRNN.__init__(
+            self, n_layers, states, lengths,
+            rnn_dir='bi', rnn_mode='lstm')
 
 
 def n_step_lstm(
@@ -141,7 +149,7 @@ def n_step_lstm(
         >>> batchs = [3, 2, 1]  # support variable length sequences
         >>> in_size, out_size, n_layers = 3, 2, 2
         >>> dropout_ratio = 0.0
-        >>> xs = [np.ones((b, in_size)).astype('f') for b in batchs]
+        >>> xs = [np.ones((b, in_size)).astype(np.float32) for b in batchs]
         >>> [x.shape for x in xs]
         [(3, 3), (2, 3), (1, 3)]
         >>> h_shape = (n_layers, batchs[0], out_size)
@@ -151,9 +159,9 @@ def n_step_lstm(
         >>> ws = []
         >>> bs = []
         >>> for n in range(n_layers):
-        ...     ws.append([np.ones((out_size, w_in(n, i))).astype('f') \
+        ...     ws.append([np.ones((out_size, w_in(n, i))).astype(np.float32) \
 for i in range(8)])
-        ...     bs.append([np.ones((out_size,)).astype('f') \
+        ...     bs.append([np.ones((out_size,)).astype(np.float32) \
 for _ in range(8)])
         ...
         >>> ws[0][0].shape  # ws[0][:4].shape are (out_size, in_size)
@@ -298,7 +306,7 @@ def n_step_bilstm(
         >>> batchs = [3, 2, 1]  # support variable length sequences
         >>> in_size, out_size, n_layers = 3, 2, 2
         >>> dropout_ratio = 0.0
-        >>> xs = [np.ones((b, in_size)).astype('f') for b in batchs]
+        >>> xs = [np.ones((b, in_size)).astype(np.float32) for b in batchs]
         >>> [x.shape for x in xs]
         [(3, 3), (2, 3), (1, 3)]
         >>> h_shape = (n_layers * 2, batchs[0], out_size)
@@ -316,9 +324,9 @@ def n_step_bilstm(
         >>> bs = []
         >>> for n in range(n_layers):
         ...     for direction in (0, 1):
-        ...         ws.append([np.ones((out_size, w_in(n, i))).astype('f') \
-for i in range(8)])
-        ...         bs.append([np.ones((out_size,)).astype('f') \
+        ...         ws.append([np.ones((out_size, w_in(n, i))).\
+astype(np.float32) for i in range(8)])
+        ...         bs.append([np.ones((out_size,)).astype(np.float32) \
 for _ in range(8)])
         ...
         >>> ws[0][0].shape  # ws[0:2][:4].shape are (out_size, in_size)
@@ -422,20 +430,22 @@ def n_step_lstm_base(
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         states = get_random_state().create_dropout_states(dropout_ratio)
+        lengths = [len(x) for x in xs]
+        xs = chainer.functions.concat(xs, axis=0)
         # flatten all input variables
         inputs = tuple(itertools.chain(
             (hx, cx),
             itertools.chain.from_iterable(ws),
             itertools.chain.from_iterable(bs),
-            xs))
+            (xs,)))
         if use_bi_direction:
-            rnn = NStepBiLSTM(n_layers, states)
+            rnn = NStepBiLSTM
         else:
-            rnn = NStepLSTM(n_layers, states)
+            rnn = NStepLSTM
 
-        ret = rnn(*inputs)
-        hy, cy = ret[:2]
-        ys = ret[2:]
+        hy, cy, ys = rnn(n_layers, states, lengths)(*inputs)
+        sections = numpy.cumsum(lengths[:-1])
+        ys = chainer.functions.split_axis(ys, sections, 0)
         return hy, cy, ys
 
     else:

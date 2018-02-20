@@ -166,7 +166,7 @@ Since there should be more than one context word, repeat the following process f
 
 There is an example of Word2vec in the official repository of Chainer,
 so we will explain how to implement Skip-gram based on this:
-`chainer/examples/word2vec <https://github.com/chainer/chainer/tree/master/examples/word2vec>`_
+:tree:`examples/word2vec`
 
 4.1 Preparation
 --------------------------

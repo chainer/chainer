@@ -240,7 +240,7 @@ class BOWEncoder(chainer.Chain):
     def __call__(self, xs):
         x_block = chainer.dataset.convert.concat_examples(xs, padding=-1)
         ex_block = block_embed(self.embed, x_block)
-        x_len = self.xp.array([len(x) for x in xs], 'i')[:, None, None]
+        x_len = self.xp.array([len(x) for x in xs], numpy.int32)[:, None, None]
         h = F.sum(ex_block, axis=2) / x_len
         return h
 
