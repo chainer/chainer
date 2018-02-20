@@ -2,6 +2,7 @@ import copy
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import cuda
@@ -175,6 +176,45 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         x = numpy.array([[1.0, 2.0, 3.0]], numpy.float32)
         self.link.to_gpu()
         self.check_sample(cuda.to_gpu(x))
+
+    def node_score(self, node_index, x, code):
+        return 1 / (numpy.exp(-self.W[node_index].dot(x) * code) + 1)
+
+    def compute_probability_manually(self, x):
+        # tree = ((0, 1), ((2, 3), 4))
+        probs = numpy.zeros((5, ), dtype='f')
+        probs[0] = self.node_score(0, x, 1) * self.node_score(1, x, 1)
+        probs[1] = self.node_score(0, x, 1) * self.node_score(1, x, -1)
+        probs[2] = self.node_score(0, x, -1) * self.node_score(2, x, 1) * \
+            self.node_score(3, x, 1)
+        probs[3] = self.node_score(0, x, -1) * self.node_score(2, x, 1) * \
+            self.node_score(3, x, -1)
+        probs[4] = self.node_score(0, x, -1) * self.node_score(2, x, -1)
+        return probs
+
+    def check_probability(self, x_data):
+        samples = 1000
+        x = chainer.Variable(x_data)
+        xp = cuda.get_array_module(x)
+        batch = len(x)
+        counter = xp.zeros((batch, 5), dtype='i')
+        for _ in six.moves.range(samples):
+            y = self.link.sample(x)
+            counter[xp.arange(batch), y] += 1
+
+        probs = numpy.empty((batch, 5), dtype='f')
+        for i in six.moves.range(batch):
+            probs[i] = self.compute_probability_manually(self.x[i])
+
+        testing.assert_allclose(counter / samples, probs, atol=0.05)
+
+    def test_probability_cpu(self):
+        self.check_probability(self.x)
+
+    @attr.gpu
+    def test_probability_gpu(self):
+        self.link.to_gpu()
+        self.check_probability(cuda.to_gpu(self.x))
 
 
 testing.run_module(__name__, __file__)
