@@ -11,6 +11,7 @@ build
 .eggs/
 _readthedocs_build
 /TAGS
+/docs/source/reference/**/generated
 /tags
 chainer.egg-info/
 dist/

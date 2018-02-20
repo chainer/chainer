@@ -1,5 +1,5 @@
 RNN Language Models
-****************************
+*******************
 
 .. currentmodule:: chainer
 

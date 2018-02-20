@@ -1,5 +1,5 @@
 Variables and Derivatives
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. include:: ../imports.rst
 
