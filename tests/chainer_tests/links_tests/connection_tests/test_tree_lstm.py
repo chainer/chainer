@@ -118,7 +118,8 @@ class TestTreeLSTM(unittest.TestCase):
                 self.in_size, self.out_size)
         elif self.model_type == 'NaryTreeLSTM':
             if self.n_ary == 0:
-                self.n_ary = 1  # skip n_ary=1 test for NaryTreeLSTM
+                # n_ary=0 test should be skipped for NaryTreeLSTM
+                self.n_ary = 1
             self.link = links.NaryTreeLSTM(
                 self.in_size, self.out_size, n_ary=self.n_ary)
         else:
