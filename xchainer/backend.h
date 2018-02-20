@@ -8,18 +8,6 @@ namespace xchainer {
 
 class Device;
 
-class DeviceList {
-public:
-    void AddDevice(std::unique_ptr<Device> device);
-
-    Device& GetDevice(int index) const;
-
-    bool HasDevice(int index) const;
-
-private:
-    std::vector<std::unique_ptr<Device>> devices_;
-};
-
 class Backend {
 public:
     virtual ~Backend() = default;
