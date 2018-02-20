@@ -39,21 +39,19 @@ def _child_sum_tree_lstm(func, *inputs):
             i = x.dot(W_xi) + sum_h.dot(W_hi) + b_i
             o = x.dot(W_xo) + sum_h.dot(W_ho) + b_o
             f_list = [x.dot(W_xf) + h.dot(W_hf) + b_f for h in hs]
-
-            a = xp.tanh(a)
-            i = _sigmoid(i)
-            o = _sigmoid(o)
-            f_list = [_sigmoid(f) for f in f_list]
-
-            c_next = sum([f * c for f, c in zip(f_list, cs)], a * i)
-            y = o * xp.tanh(c_next)
         else:
             a = x.dot(W_xa) + b_a
             i = x.dot(W_xi) + b_i
             o = x.dot(W_xo) + b_o
-            a = xp.tanh(a)
-            i = _sigmoid(i)
-            o = _sigmoid(o)
+        a = xp.tanh(a)
+        i = _sigmoid(i)
+        o = _sigmoid(o)
+
+        if len(hs) >= 1:
+            f_list = [_sigmoid(f) for f in f_list]
+            c_next = sum([f * c for f, c in zip(f_list, cs)], a * i)
+            y = o * xp.tanh(c_next)
+        else:
             c_next = a * i
             y = o * xp.tanh(c_next)
     return c_next, y
