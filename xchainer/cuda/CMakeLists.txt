@@ -10,6 +10,7 @@ if(${ENABLE_TEST})
   )
   target_link_libraries(xchainer_cuda_test
       xchainer
+      xchainer_cuda
       gtest_main)
   add_test(NAME xchainer_cuda_test COMMAND xchainer_cuda_test)
 endif()

@@ -4,6 +4,7 @@
 
 namespace xchainer {
 
+// TODO(sonots): Returns number of CPU cores
 int NativeBackend::GetDeviceCount() const { return 4; }
 
 Device& NativeBackend::GetDevice(int index) {
