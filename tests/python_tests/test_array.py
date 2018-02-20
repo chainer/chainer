@@ -340,18 +340,18 @@ def test_array_init_invalid_length():
 
 def test_array_repr():
     array = xchainer.Array((0,), xchainer.Dtype.bool, [])
-    assert "array([], dtype=bool, device='cpu')" == str(array)
+    assert "array([], dtype=bool, device_id=('native', 0))" == str(array)
 
     array = xchainer.Array((1,), xchainer.Dtype.bool, [False])
-    assert "array([False], dtype=bool, device='cpu')" == str(array)
+    assert "array([False], dtype=bool, device_id=('native', 0))" == str(array)
 
     array = xchainer.Array((2, 3), xchainer.Dtype.int8, [0, 1, 2, 3, 4, 5])
     assert ("array([[0, 1, 2],\n"
-            "       [3, 4, 5]], dtype=int8, device='cpu')") == str(array)
+            "       [3, 4, 5]], dtype=int8, device_id=('native', 0))") == str(array)
 
     array = xchainer.Array((2, 3), xchainer.Dtype.float32, [0, 1, 2, 3.25, 4, 5])
     assert ("array([[0.  , 1.  , 2.  ],\n"
-            "       [3.25, 4.  , 5.  ]], dtype=float32, device='cpu')") == str(array)
+            "       [3.25, 4.  , 5.  ]], dtype=float32, device_id=('native', 0))") == str(array)
 
 
 def test_array_require_grad():
