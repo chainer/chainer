@@ -52,12 +52,12 @@ TEST(MemoryTest, Allocate) {
     size_t size = 3;
     {
         NativeBackend native_backend;
-        std::shared_ptr<void> ptr = Allocate(Device{"cpu", &native_backend}, size);
+        std::shared_ptr<void> ptr = Allocate(DeviceId{&native_backend}, size);
         EXPECT_FALSE(IsPointerCudaMemory(ptr.get()));
     }
     {
         cuda::CudaBackend cuda_backend;
-        std::shared_ptr<void> ptr = Allocate(Device{"cuda", &cuda_backend}, size);
+        std::shared_ptr<void> ptr = Allocate(DeviceId{&cuda_backend}, size);
         EXPECT_TRUE(IsPointerCudaMemory(ptr.get()));
     }
 }
@@ -71,7 +71,7 @@ TEST(MemoryTest, MemoryCopy) {
     });
 
     cuda::CudaBackend cuda_backend;
-    Device cuda_device{"cuda", &cuda_backend};
+    DeviceId cuda_device_id{&cuda_backend};
 
     {
         // cpu to cpu
@@ -81,12 +81,12 @@ TEST(MemoryTest, MemoryCopy) {
     }
     {
         // cpu to gpu
-        std::shared_ptr<void> gpu_dst = Allocate(cuda_device, bytesize);
+        std::shared_ptr<void> gpu_dst = Allocate(cuda_device_id, bytesize);
         MemoryCopy(gpu_dst.get(), cpu_src.get(), bytesize);
         ExpectDataEqual<float>(cpu_src, gpu_dst, size);
     }
 
-    std::shared_ptr<void> gpu_src = Allocate(cuda_device, bytesize);
+    std::shared_ptr<void> gpu_src = Allocate(cuda_device_id, bytesize);
     MemoryCopy(gpu_src.get(), cpu_src.get(), bytesize);
     {
         // gpu to cpu
@@ -96,7 +96,7 @@ TEST(MemoryTest, MemoryCopy) {
     }
     {
         // gpu to gpu
-        std::shared_ptr<void> gpu_dst = Allocate(cuda_device, bytesize);
+        std::shared_ptr<void> gpu_dst = Allocate(cuda_device_id, bytesize);
         MemoryCopy(gpu_dst.get(), gpu_src.get(), bytesize);
         ExpectDataEqual<float>(gpu_src, gpu_dst, size);
     }
@@ -111,33 +111,33 @@ TEST(MemoryTest, MemoryFromBuffer) {
     });
 
     NativeBackend native_backend;
-    Device native_device{"cpu", &native_backend};
+    DeviceId native_device_id{&native_backend};
     cuda::CudaBackend cuda_backend;
-    Device cuda_device{"cuda", &cuda_backend};
+    DeviceId cuda_device_id{&cuda_backend};
 
-    std::shared_ptr<void> gpu_src = Allocate(cuda_device, bytesize);
+    std::shared_ptr<void> gpu_src = Allocate(cuda_device_id, bytesize);
     MemoryCopy(gpu_src.get(), cpu_src.get(), size);
     {
         // cpu to cpu
-        std::shared_ptr<void> cpu_dst = MemoryFromBuffer(native_device, cpu_src, bytesize);
+        std::shared_ptr<void> cpu_dst = MemoryFromBuffer(native_device_id, cpu_src, bytesize);
         ExpectDataEqual<float>(cpu_src, cpu_dst, size);
         EXPECT_EQ(cpu_src.get(), cpu_dst.get());
     }
     {
         // cpu to gpu
-        std::shared_ptr<void> gpu_dst = MemoryFromBuffer(cuda_device, cpu_src, bytesize);
+        std::shared_ptr<void> gpu_dst = MemoryFromBuffer(cuda_device_id, cpu_src, bytesize);
         ExpectDataEqual<float>(cpu_src, gpu_dst, size);
         EXPECT_NE(cpu_src.get(), gpu_dst.get());
     }
     {
         // gpu to cpu
-        std::shared_ptr<void> cpu_dst = MemoryFromBuffer(native_device, gpu_src, bytesize);
+        std::shared_ptr<void> cpu_dst = MemoryFromBuffer(native_device_id, gpu_src, bytesize);
         ExpectDataEqual<float>(gpu_src, cpu_dst, size);
         EXPECT_NE(gpu_src.get(), cpu_dst.get());
     }
     {
         // gpu to gpu
-        std::shared_ptr<void> gpu_dst = MemoryFromBuffer(cuda_device, gpu_src, bytesize);
+        std::shared_ptr<void> gpu_dst = MemoryFromBuffer(cuda_device_id, gpu_src, bytesize);
         ExpectDataEqual<float>(gpu_src, gpu_dst, size);
         EXPECT_EQ(gpu_src.get(), gpu_dst.get());
     }
