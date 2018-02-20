@@ -6,18 +6,18 @@
 
 namespace xchainer {
 
-namespace device_detail {
+namespace device_id_detail {
 
-constexpr size_t kMaxDeviceNameLength = 8;
+constexpr size_t kMaxDeviceIdNameLength = 8;
 
-}  // device_detail
+}  // device_id_detail
 
 class Backend;
 
-struct Device {
+struct DeviceId {
 public:
-    Device() = default;  // required to be POD
-    Device(const std::string& name, Backend* backend);
+    DeviceId() = default;  // required to be POD
+    DeviceId(const std::string& name, Backend* backend);
 
     std::string name() const { return name_; }
     Backend* backend() const { return backend_; }
@@ -26,55 +26,55 @@ public:
     std::string ToString() const;
 
 private:
-    char name_[device_detail::kMaxDeviceNameLength];
+    char name_[device_id_detail::kMaxDeviceIdNameLength];
     Backend* backend_;
 };
 
 namespace internal {
 
-const Device& GetDefaultDeviceNoExcept() noexcept;
+const DeviceId& GetDefaultDeviceIdNoExcept() noexcept;
 
-constexpr Device kNullDevice = {};
+constexpr DeviceId kNullDeviceId = {};
 
 }  // namespace internal
 
-inline bool operator==(const Device& lhs, const Device& rhs) { return (lhs.name() == rhs.name()) && (lhs.backend() == rhs.backend()); }
+inline bool operator==(const DeviceId& lhs, const DeviceId& rhs) { return (lhs.name() == rhs.name()) && (lhs.backend() == rhs.backend()); }
 
-inline bool operator!=(const Device& lhs, const Device& rhs) { return !(lhs == rhs); }
+inline bool operator!=(const DeviceId& lhs, const DeviceId& rhs) { return !(lhs == rhs); }
 
-std::ostream& operator<<(std::ostream&, const Device&);
+std::ostream& operator<<(std::ostream&, const DeviceId&);
 
-const Device& GetDefaultDevice();
+const DeviceId& GetDefaultDeviceId();
 
-void SetDefaultDevice(const Device& device);
+void SetDefaultDeviceId(const DeviceId& device_id);
 
-// Scope object that switches the default device by RAII.
-class DeviceScope {
+// Scope object that switches the default device_id by RAII.
+class DeviceIdScope {
 public:
-    DeviceScope() : orig_(internal::GetDefaultDeviceNoExcept()), exited_(false) {}
-    explicit DeviceScope(Device device) : DeviceScope() { SetDefaultDevice(device); }
-    explicit DeviceScope(const std::string& device, Backend* backend) : DeviceScope(Device{device, backend}) {}
+    DeviceIdScope() : orig_(internal::GetDefaultDeviceIdNoExcept()), exited_(false) {}
+    explicit DeviceIdScope(DeviceId device_id) : DeviceIdScope() { SetDefaultDeviceId(device_id); }
+    explicit DeviceIdScope(const std::string& device_id, Backend* backend) : DeviceIdScope(DeviceId{device_id, backend}) {}
 
-    DeviceScope(const DeviceScope&) = delete;
-    DeviceScope(DeviceScope&&) = delete;
-    DeviceScope& operator=(const DeviceScope&) = delete;
-    DeviceScope& operator=(DeviceScope&&) = delete;
+    DeviceIdScope(const DeviceIdScope&) = delete;
+    DeviceIdScope(DeviceIdScope&&) = delete;
+    DeviceIdScope& operator=(const DeviceIdScope&) = delete;
+    DeviceIdScope& operator=(DeviceIdScope&&) = delete;
 
-    ~DeviceScope() { Exit(); }
+    ~DeviceIdScope() { Exit(); }
 
-    // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
+    // Explicitly recovers the original device_id. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
         if (!exited_) {
-            SetDefaultDevice(orig_);
+            SetDefaultDeviceId(orig_);
             exited_ = true;
         }
     }
 
 private:
-    Device orig_;
+    DeviceId orig_;
     bool exited_;
 };
 
-void DebugDumpDevice(std::ostream& os, const Device& device);
+void DebugDumpDeviceId(std::ostream& os, const DeviceId& device_id);
 
 }  // namespace xchainer
