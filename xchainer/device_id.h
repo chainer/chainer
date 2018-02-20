@@ -6,28 +6,22 @@
 
 namespace xchainer {
 
-namespace device_id_detail {
-
-constexpr size_t kMaxDeviceIdNameLength = 8;
-
-}  // device_id_detail
-
 class Backend;
 
 struct DeviceId {
 public:
     DeviceId() = default;  // required to be POD
-    DeviceId(const std::string& name, Backend* backend);
+    DeviceId(Backend* backend, int index) : backend_(backend), index_(index) {}
 
-    std::string name() const { return name_; }
     Backend* backend() const { return backend_; }
+    int index() const { return index_; }
 
     bool is_null() const;
     std::string ToString() const;
 
 private:
-    char name_[device_id_detail::kMaxDeviceIdNameLength];
     Backend* backend_;
+    int index_;
 };
 
 namespace internal {
@@ -38,7 +32,7 @@ constexpr DeviceId kNullDeviceId = {};
 
 }  // namespace internal
 
-inline bool operator==(const DeviceId& lhs, const DeviceId& rhs) { return (lhs.name() == rhs.name()) && (lhs.backend() == rhs.backend()); }
+inline bool operator==(const DeviceId& lhs, const DeviceId& rhs) { return lhs.backend() == rhs.backend() && lhs.index() == rhs.index(); }
 
 inline bool operator!=(const DeviceId& lhs, const DeviceId& rhs) { return !(lhs == rhs); }
 
@@ -53,7 +47,7 @@ class DeviceIdScope {
 public:
     DeviceIdScope() : orig_(internal::GetDefaultDeviceIdNoExcept()), exited_(false) {}
     explicit DeviceIdScope(DeviceId device_id) : DeviceIdScope() { SetDefaultDeviceId(device_id); }
-    explicit DeviceIdScope(const std::string& device_id, Backend* backend) : DeviceIdScope(DeviceId{device_id, backend}) {}
+    explicit DeviceIdScope(Backend* backend, int index) : DeviceIdScope(DeviceId{backend, index}) {}
 
     DeviceIdScope(const DeviceIdScope&) = delete;
     DeviceIdScope(DeviceIdScope&&) = delete;
@@ -74,7 +68,5 @@ private:
     DeviceId orig_;
     bool exited_;
 };
-
-void DebugDumpDeviceId(std::ostream& os, const DeviceId& device_id);
 
 }  // namespace xchainer
