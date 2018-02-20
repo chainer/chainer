@@ -5,3 +5,4 @@ How to Train a Network
    :maxdepth: 2
 
    train_loop
+   trainer

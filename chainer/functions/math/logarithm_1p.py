@@ -1,12 +1,12 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Log1p(function.Function):
+class Log1p(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -17,15 +17,18 @@ class Log1p(function.Function):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):
+        self.retain_inputs((0,))
         return utils.force_array(numpy.log1p(x[0])),
 
     def forward_gpu(self, x):
+        self.retain_inputs((0,))
         return cuda.cupy.log1p(x[0]),
 
-    def backward(self, x, gy):
-        return utils.force_array(gy[0] / (x[0] + x[0].dtype.type(1.0))),
+    def backward(self, indexes, gy):
+        x = self.get_retained_inputs()
+        return gy[0] / (x[0] + 1.0),
 
 
 def log1p(x):
     """Elementwise natural logarithm plus one function."""
-    return Log1p()(x)
+    return Log1p().apply((x,))[0]

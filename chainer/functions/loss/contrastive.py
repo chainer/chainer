@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -27,7 +27,7 @@ class Contrastive(function.Function):
         type_check.expect(
             x0_type.dtype == numpy.float32,
             x1_type.dtype == numpy.float32,
-            y_type.dtype == numpy.int32,
+            y_type.dtype.kind == 'i',
             x0_type.shape == x1_type.shape,
             x1_type.shape[0] == y_type.shape[0],
             x1_type.shape[0] > 0,
@@ -66,9 +66,8 @@ class Contrastive(function.Function):
         # similar pair
         gx0 = alpha * y * self.diff
         # dissimilar pair
-        mdist = xp.repeat(self.mdist[:, None], x_dim, axis=1)
-        mdist_p = xp.array(mdist > 0, dtype=xp.int32)
-        gx0 += alpha * (1 - y) * mdist_p * mdist * -(self.diff / dist)
+        mdist = xp.maximum(xp.repeat(self.mdist[:, None], x_dim, axis=1), 0)
+        gx0 += alpha * (1 - y) * mdist * -(self.diff / dist)
         gx0 = gx0.astype(xp.float32)
 
         return gx0, -gx0, None
@@ -100,12 +99,15 @@ def contrastive(x0, x1, y, margin=1, reduce='mean'):
     loss values.
 
     Args:
-        x0 (~chainer.Variable): The first input variable. The shape should be
+        x0 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): The first input variable. The shape should be
             (N, K), where N denotes the mini-batch size, and K denotes the
             dimension of ``x0``.
-        x1 (~chainer.Variable): The second input variable. The shape should be
+        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): The second input variable. The shape should be
             the same as ``x0``.
-        y (~chainer.Variable): Labels. All values should be 0 or 1. The shape
+        y (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Labels. All values should be 0 or 1. The shape
             should be ``(N,)``, where N denotes the mini-batch size.
         margin (float): A parameter for contrastive loss. It should be positive
             value.
@@ -125,6 +127,23 @@ def contrastive(x0, x1, y, margin=1, reduce='mean'):
         Similarity Metric Discriminatively, with Application to Face
         Verification <http://yann.lecun.com/exdb/publis/pdf/chopra-05.pdf>`_
         for details.
+
+    .. admonition:: Example
+
+        >>> x0 = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).\
+astype(np.float32)
+        >>> x1 = np.array([[-1.0, 3.0, 1.0], [3.5, 0.5, -2.0]]).\
+astype(np.float32)
+        >>> y = np.array([1, 0]).astype(np.int32)
+        >>> F.contrastive(x0, x1, y)
+        variable(0.3125)
+        >>> F.contrastive(x0, x1, y, margin=3.0)  # harder penalty
+        variable(0.3528857)
+        >>> z = F.contrastive(x0, x1, y, reduce='no')
+        >>> z.shape
+        (2,)
+        >>> z.data
+        array([0.625, 0.   ], dtype=float32)
 
     """
     return Contrastive(margin, reduce)(x0, x1, y)

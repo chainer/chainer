@@ -128,7 +128,7 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
 
 
 # Custom updater for truncated BackProp Through Time (BPTT)
-class BPTTUpdater(training.StandardUpdater):
+class BPTTUpdater(training.updaters.StandardUpdater):
 
     def __init__(self, train_iter, optimizer, bprop_len, device):
         super(BPTTUpdater, self).__init__(

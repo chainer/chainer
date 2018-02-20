@@ -1,5 +1,5 @@
-Chainer Tutorial
-================
+Tutorial
+========
 
 .. toctree::
    :maxdepth: 2
@@ -8,5 +8,6 @@ Chainer Tutorial
    writenet
    train
    gpu
-   function
+   customize
    type_check
+   various_tasks

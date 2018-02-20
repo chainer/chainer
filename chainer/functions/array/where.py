@@ -1,11 +1,11 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Where(function.Function):
+class Where(function_node.FunctionNode):
 
     """Choose elements depending on condition."""
 
@@ -26,12 +26,21 @@ class Where(function.Function):
         condition, x, y = inputs
         return xp.where(condition, x, y),
 
-    def backward(self, inputs, grads):
-        xp = cuda.get_array_module(inputs[0])
-        condition = inputs[0]
-        gx = xp.where(condition, grads[0], 0)
-        gy = xp.where(condition, 0, grads[0])
-        return None, gx, gy
+    def backward(self, indexes, grad_outputs):
+        condition = self.get_retained_inputs()[0]
+        xp = cuda.get_array_module(condition.data)
+        g, = grad_outputs
+        zeros = xp.zeros(g.shape, dtype=g.dtype)
+        ret = []
+        if 0 in indexes:
+            ret.append(None)
+        if 1 in indexes:
+            gx, = Where().apply((condition.data, g, zeros))
+            ret.append(gx)
+        if 2 in indexes:
+            gy, = Where().apply((condition.data, zeros, g))
+            ret.append(gy)
+        return ret
 
 
 def where(condition, x, y):
@@ -63,13 +72,14 @@ def where(condition, x, y):
         >>> cond = np.array([[1, 0], [0, 1]], dtype=np.bool)
         >>> cond
         array([[ True, False],
-               [False,  True]], dtype=bool)
-        >>> x = np.array([[1, 2], [3, 4]], 'f')
-        >>> y = np.zeros((2, 2), 'f')
+               [False,  True]])
+        >>> x = np.array([[1, 2], [3, 4]], np.float32)
+        >>> y = np.zeros((2, 2), np.float32)
         >>> F.where(cond, x, y).data
-        array([[ 1.,  0.],
-               [ 0.,  4.]], dtype=float32)
+        array([[1., 0.],
+               [0., 4.]], dtype=float32)
 
     """
 
-    return Where()(condition, x, y)
+    y, = Where().apply((condition, x, y))
+    return y

@@ -8,7 +8,6 @@ import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 import math
 
 
@@ -18,7 +17,7 @@ class UnaryFunctionsTestBase(unittest.TestCase):
         raise NotImplementedError
 
     def setUp(self):
-        self.x, self.divisor, self.gy = self.make_data()
+        self.x, self.divisor, self.gy, self.ggx, self.ggd = self.make_data()
 
     def check_forward(self, op, op_xp, x_data, divisor_data):
         x = chainer.Variable(x_data)
@@ -47,6 +46,25 @@ class UnaryFunctionsTestBase(unittest.TestCase):
         self.check_backward(op, cuda.to_gpu(self.x), cuda.to_gpu(
             self.divisor), cuda.to_gpu(self.gy))
 
+    def check_double_backward(self, op, x_data, divisor, y_grad, ggx, ggd):
+        def f(*args):
+            y = op(*args)
+            return y * y
+
+        gradient_check.check_double_backward(
+            f, (x_data, divisor), y_grad, (ggx, ggd), dtype=numpy.float64,
+            atol=1e-3, rtol=1e-2)
+
+    def check_double_backward_cpu(self, op):
+        self.check_double_backward(
+            op, self.x, self.divisor, self.gy, self.ggx, self.ggd)
+
+    def check_double_backward_gpu(self, op):
+        self.check_double_backward(
+            op, cuda.to_gpu(self.x), cuda.to_gpu(self.divisor),
+            cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+            cuda.to_gpu(self.ggd))
+
     def check_label(self, op, expected):
         self.assertEqual(op().label, expected)
 
@@ -72,25 +90,30 @@ class TestFmod(UnaryFunctionsTestBase):
                 x[i] = 0.5
                 divisor[i] = 0.3
         gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        return x, divisor, gy
+        ggx = numpy.random.uniform(-1.0, 1.0, self.shape).astype(self.dtype)
+        ggd = numpy.random.uniform(-1.0, 1.0, self.shape).astype(self.dtype)
+        return x, divisor, gy, ggx, ggd
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward_cpu(F.fmod, numpy.fmod)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward_gpu(F.fmod, cuda.cupy.fmod)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward_cpu(F.fmod)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward_gpu(F.fmod)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward_cpu(F.fmod)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward_gpu(F.fmod)
 
     def test_label(self):
         self.check_label(F.Fmod, 'fmod')

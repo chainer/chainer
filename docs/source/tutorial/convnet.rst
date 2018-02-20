@@ -48,7 +48,7 @@ digit images in 1998. In Chainer, the model can be written as follows:
     class LeNet5(Chain):
         def __init__(self):
             super(LeNet5, self).__init__()
-	    with self.init_scope():
+            with self.init_scope():
                 self.conv1 = L.Convolution2D(
                     in_channels=1, out_channels=6, ksize=5, stride=1)
                 self.conv2 = L.Convolution2D(
@@ -79,8 +79,8 @@ To give input images and label vectors simply by calling the model object
 like a function, :meth:`__call__` is usually defined in the model class.
 This method performs the forward computation of the model. Chainer uses
 the powerful autograd system for any computational graphs written with
-:class:`~chainer.Function` s and :class:`~chainer.Link` s (actually a
-:class:`~chainer.Link` calls a corresponding :class:`~chainer.Function`
+:class:`~chainer.FunctionNode`\ s and :class:`~chainer.Link`\ s (actually a
+:class:`~chainer.Link` calls a corresponding :class:`~chainer.FunctionNode`
 inside of it), so that you don't need to explicitly write the code for backward
 computations in the model. Just prepare the data, then give it to the model.
 The way this works is the resulting output :class:`~chainer.Variable` from the
@@ -121,8 +121,8 @@ can also write the model like in this way:
             net += [('_sigm4', F.Sigmoid())]
             net += [('fc5', L.Linear(84, 10))]
             net += [('_sigm5', F.Sigmoid())]
-	    with self.init_scope():
-	        for n in net:
+            with self.init_scope():
+                for n in net:
                     if not n[0].startswith('_'):
                         setattr(self, n[0], n[1])
             self.forward = net
@@ -137,19 +137,19 @@ can also write the model like in this way:
                 return x
             return F.softmax(x)
 
-This code creates a list of all :class:`~chainer.Link` s and
-:class:`~chainer.Function` s after calling its superclass's constructor.
+This code creates a list of all :class:`~chainer.Link`\ s and
+:class:`~chainer.FunctionNode`\ s after calling its superclass's constructor.
 Then the elements of the list are registered to this model as
 trainable layers when the name of an element doesn't start with ``_``
 character. This operation can be freely replaced with many other ways because
-those names are just designed to select :class:`~chainer.Link` s only from the
-list ``net`` easily. :class:`~chainer.Function` doesn't have any trainable
+those names are just designed to select :class:`~chainer.Link`\ s only from the
+list ``net`` easily. :class:`~chainer.FunctionNode` doesn't have any trainable
 parameters, so that we can't register it to the model, but we want to use
-:class:`~chainer.Function` s for constructing a forward path. The list
+:class:`~chainer.FunctionNode`\ s for constructing a forward path. The list
 ``net`` is stored as an attribute :attr:`forward` to refer it in
 :meth:`__call__`. In :meth:`__call__`, it retrieves all layers in the network
 from :attr:`self.forward` sequentially regardless of what types of object (
-:class:`~chainer.Link` or :class:`~chainer.Function`) it is, and gives the
+:class:`~chainer.Link` or :class:`~chainer.FunctionNode`) it is, and gives the
 input variable or the intermediate output from the previous layer to the
 current layer. The last part of the :meth:`__call__` to switch its behavior
 by the training/inference mode is the same as the former way.
@@ -223,7 +223,6 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
 
     class VGG16(chainer.ChainList):
         def __init__(self):
-            w = chainer.initializers.HeNormal()
             super(VGG16, self).__init__(
                 VGGBlock(64),
                 VGGBlock(128),
@@ -243,7 +242,7 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
         def __init__(self, n_channels, n_convs=2, fc=False):
             w = chainer.initializers.HeNormal()
             super(VGGBlock, self).__init__()
-	    with self.init_scope():
+            with self.init_scope():
                 self.conv1 = L.Convolution2D(None, n_channels, 3, 1, 1, initialW=w)
                 self.conv2 = L.Convolution2D(
                     n_channels, n_channels, 3, 1, 1, initialW=w)
@@ -252,7 +251,7 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
                         n_channels, n_channels, 3, 1, 1, initialW=w)
                 if fc:
                     self.fc4 = L.Linear(None, 4096, initialW=w)
-		    self.fc5 = L.Linear(4096, 4096, initialW=w)
+                    self.fc5 = L.Linear(4096, 4096, initialW=w)
                     self.fc6 = L.Linear(4096, 1000, initialW=w)
 
             self.n_convs = n_convs
@@ -296,15 +295,15 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
     class ResNet152(chainer.Chain):
         def __init__(self, n_blocks=[3, 8, 36, 3]):
             w = chainer.initializers.HeNormal()
-            super(ResNet152, self).__init__(
-                conv1=L.Convolution2D(
-                    None, 64, 7, 2, 3, initialW=w, nobias=True),
-                bn1=L.BatchNormalization(64),
-                res2=ResBlock(n_blocks[0], 64, 64, 256, 1),
-                res3=ResBlock(n_blocks[1], 256, 128, 512),
-                res4=ResBlock(n_blocks[2], 512, 256, 1024),
-                res5=ResBlock(n_blocks[3], 1024, 512, 2048),
-                fc6=L.Linear(2048, 1000))
+            super(ResNet152, self).__init__()
+            with self.init_scope():
+                self.conv1 = L.Convolution2D(None, 64, 7, 2, 3, initialW=w, nobias=True)
+                self.bn1 = L.BatchNormalization(64)
+                self.res2 = ResBlock(n_blocks[0], 64, 64, 256, 1)
+                self.res3 = ResBlock(n_blocks[1], 256, 128, 512)
+                self.res4 = ResBlock(n_blocks[2], 512, 256, 1024)
+                self.res5 = ResBlock(n_blocks[3], 1024, 512, 2048)
+                self.fc6 = L.Linear(2048, 1000)
 
         def __call__(self, x):
             h = self.bn1(self.conv1(x))
@@ -322,7 +321,6 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
 
     class ResBlock(chainer.ChainList):
         def __init__(self, n_layers, n_in, n_mid, n_out, stride=2):
-            w = chainer.initializers.HeNormal()
             super(ResBlock, self).__init__()
             self.add_link(BottleNeck(n_in, n_mid, n_out, stride, True))
             for _ in range(n_layers - 1):
@@ -338,8 +336,8 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
         def __init__(self, n_in, n_mid, n_out, stride=1, proj=False):
             w = chainer.initializers.HeNormal()
             super(BottleNeck, self).__init__()
-	    with self.init_scope():
-	        self.conv1x1a = L.Convolution2D(
+            with self.init_scope():
+                self.conv1x1a = L.Convolution2D(
                     n_in, n_mid, 1, stride, 0, initialW=w, nobias=True)
                 self.conv3x3b = L.Convolution2D(
                     n_mid, n_mid, 3, 1, 1, initialW=w, nobias=True)
@@ -374,7 +372,7 @@ parameter registration. In this case, when :attr:`proj` is ``False``, the
 usage would be efficient compared to the case when it registers both anyway and
 just ignore them if :attr:`proj` is ``False``.
 
-Using nested :class:`~chainer.Chain` s and :class:`~chainer.ChainList` for
+Using nested :class:`~chainer.Chain`\ s and :class:`~chainer.ChainList` for
 sequential part enables us to write complex and very deep models easily.
 
 Use Pre-trained Models
@@ -399,8 +397,8 @@ extractor. See the details of this model here:
 :class:`chainer.links.VGG16Layers`.
 
 In the case of ResNet models, there are three variations differing in the number
-of layers. We have :class:`chainer.links.ResNet50`,
-:class:`chainer.links.ResNet101`, and :class:`chainer.links.ResNet152` models
+of layers. We have :class:`chainer.links.ResNet50Layers`,
+:class:`chainer.links.ResNet101Layers`, and :class:`chainer.links.ResNet152Layers` models
 with easy parameter loading feature. ResNet's pre-trained parameters are not
 available for direct downloading, so you need to download the weight from the
 author's web page first, and then place it into the dir
@@ -414,7 +412,7 @@ the preparation is finished, the usage is the same as VGG16:
     model = ResNet152layers()
 
 Please see the details of usage and how to prepare the pre-trained weights for
-ResNet here: :class:`chainer.links.ResNet50`
+ResNet here: :class:`chainer.links.ResNet50Layers`
 
 References
 ..........

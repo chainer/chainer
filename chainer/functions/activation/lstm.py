@@ -1,7 +1,9 @@
 import numpy
 import six
 
-from chainer import cuda
+import chainer
+from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import function
 from chainer import function_node
 from chainer.utils import type_check
@@ -82,15 +84,19 @@ class LSTM(function_node.FunctionNode):
         a, i, f, o = _extract_gates(x)
         batch = len(x)
 
-        if isinstance(x, numpy.ndarray):
-            a = numpy.tanh(a)
-            i = _sigmoid(i)
-            f = _sigmoid(f)
-            o = _sigmoid(o)
+        if isinstance(x, chainer.get_cpu_array_types()):
+            if intel64.should_use_ideep('>=auto'):
+                xp = intel64.ideep.get_array_module(x)
+            else:
+                xp = numpy
+            a = xp.tanh(a)
+            i = _sigmoid(i, xp)
+            f = _sigmoid(f, xp)
+            o = _sigmoid(o, xp)
 
             c_next = numpy.empty_like(c_prev)
             c_next[:batch] = a * i + f * c_prev[:batch]
-            h = o * numpy.tanh(c_next[:batch])
+            h = o * xp.tanh(c_next[:batch])
         else:
             c_next = cuda.cupy.empty_like(c_prev)
             h = cuda.cupy.empty_like(c_next[:batch])
@@ -136,12 +142,14 @@ class LSTMGrad(function.Function):
 
         a, i, f, o = _extract_gates(x)
         if xp is numpy:
+            if intel64.should_use_ideep('>=auto'):
+                xp = intel64.ideep.get_array_module(x)
             tanh_a = xp.tanh(a)
-            sig_i = _sigmoid(i)
-            sig_f = _sigmoid(f)
-            sig_o = _sigmoid(o)
+            sig_i = _sigmoid(i, xp)
+            sig_f = _sigmoid(f, xp)
+            sig_o = _sigmoid(o, xp)
 
-            co = numpy.tanh(c_next[:batch])
+            co = xp.tanh(c_next[:batch])
             gc_prev = numpy.empty_like(c_prev)
             # multiply f later
             gc_prev[:batch] = gh * sig_o * _grad_tanh(co) + gc_update
@@ -180,13 +188,18 @@ class LSTMGrad(function.Function):
         c_prev, x, c, gc, gh = inputs
         ggc_prev, ggx = grads
 
-        gc_prev = xp.zeros_like(c_prev)
-        gx = xp.zeros_like(x)
-        gc_next = xp.zeros_like(c)
-        ggc = ggc_prev.copy()
-        ggh = xp.zeros_like(gh)
+        gc_prev = xp.empty_like(c_prev)
+        gx = xp.empty_like(x)
+        gc_next = xp.empty_like(c)
+        ggc = xp.empty_like(ggc_prev)
+        ggh = xp.empty_like(gh)
 
         batch = len(x)
+        gc_prev[batch:] = 0
+        gc_next[batch:] = 0
+        ggc[batch:] = ggc_prev[batch:]
+        ggh[batch:] = 0
+
         c_prev = c_prev[:batch]
         c = c[:batch]
         gc = gc[:batch]
@@ -195,49 +208,61 @@ class LSTMGrad(function.Function):
 
         a, i, f, o = _extract_gates(x)
         gga, ggi, ggf, ggo = _extract_gates(ggx)
-
         ga, gi, gf, go = _extract_gates(gx)
 
-        sig_o = _sigmoid(o, xp)
-        gsig_o = _grad_sigmoid(sig_o)
-        ggsig_o = _grad_grad_sigmoid(sig_o)
-        sig_i = _sigmoid(i, xp)
-        gsig_i = _grad_sigmoid(sig_i)
-        ggsig_i = _grad_grad_sigmoid(sig_i)
-        sig_f = _sigmoid(f, xp)
-        gsig_f = _grad_sigmoid(sig_f)
-        ggsig_f = _grad_grad_sigmoid(sig_f)
-        tanh_a = xp.tanh(a)
-        gtanh_a = _grad_tanh(tanh_a)
-        ggtanh_a = _grad_grad_tanh(tanh_a, gtanh_a)
-        tanh_c = xp.tanh(c)
-        gtanh_c = _grad_tanh(tanh_c)
-        ggtanh_c = _grad_grad_tanh(tanh_c, gtanh_c)
-
-        gc_bar = gh * sig_o * gtanh_c + gc
-
-        gc_prev[:batch] = ggf * gc_bar * gsig_f
-        ga[:] = (gga * sig_i * ggtanh_a +
-                 ggi * gtanh_a * gsig_i) * gc_bar
-        gi[:] = (gga * gtanh_a * gsig_i +
-                 ggi * tanh_a * ggsig_i) * gc_bar
-        gf[:] = (ggc_prev * (gh * sig_o * gtanh_c + gc) * gsig_f +
-                 ggf * gc_bar * c_prev[:batch] * ggsig_f)
-
-        ggc_this = (
-            ggc_prev * sig_f +
-            gga * sig_i * gtanh_a +
-            ggi * tanh_a * gsig_i +
-            ggf * c_prev[:batch] * gsig_f)
-        ggc[:batch] = ggc_this
-
-        dgc_do = gh * gsig_o * gtanh_c
-        go[:] = ggc_this * dgc_do + ggo * gh * tanh_c * ggsig_o
-        dgc_dc = gh * sig_o * ggtanh_c
-        gc_next[:batch] = ggc_this * dgc_dc + ggo * gh * gtanh_c * gsig_o
-        ggh[:batch] = ggc_this * sig_o * gtanh_c + ggo * tanh_c * gsig_o
-
+        gc_prev[:batch], ga[:], gi[:], gf[:], go[:], gc_next[:batch], \
+            ggc[:batch], ggh[:batch] \
+            = lstm_grad_grad(
+                c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo)
         return gc_prev, gx, gc_next, ggc, ggh
+
+
+def _cupy_sigmoid(x):
+    half = x.dtype.type(0.5)
+    return cuda.fusion.tanh(x * half) * half + half
+
+
+@cuda.fuse()
+def lstm_grad_grad(
+        c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo):
+    sig_o = _cupy_sigmoid(o)
+    gsig_o = _grad_sigmoid(sig_o)
+    ggsig_o = _grad_grad_sigmoid(sig_o)
+    sig_i = _cupy_sigmoid(i)
+    gsig_i = _grad_sigmoid(sig_i)
+    ggsig_i = _grad_grad_sigmoid(sig_i)
+    sig_f = _cupy_sigmoid(f)
+    gsig_f = _grad_sigmoid(sig_f)
+    ggsig_f = _grad_grad_sigmoid(sig_f)
+    tanh_a = cuda.fusion.tanh(a)
+    gtanh_a = _grad_tanh(tanh_a)
+    ggtanh_a = _grad_grad_tanh(tanh_a, gtanh_a)
+    tanh_c = cuda.fusion.tanh(c)
+    gtanh_c = _grad_tanh(tanh_c)
+    ggtanh_c = _grad_grad_tanh(tanh_c, gtanh_c)
+
+    gc_bar = gh * sig_o * gtanh_c + gc
+
+    gc_prev = ggf * gc_bar * gsig_f
+    ga = (gga * sig_i * ggtanh_a +
+          ggi * gtanh_a * gsig_i) * gc_bar
+    gi = (gga * gtanh_a * gsig_i +
+          ggi * tanh_a * ggsig_i) * gc_bar
+    gf = (ggc_prev * (gh * sig_o * gtanh_c + gc) * gsig_f +
+          ggf * gc_bar * c_prev * ggsig_f)
+
+    ggc = (
+        ggc_prev * sig_f +
+        gga * sig_i * gtanh_a +
+        ggi * tanh_a * gsig_i +
+        ggf * c_prev * gsig_f)
+
+    dgc_do = gh * gsig_o * gtanh_c
+    go = ggc * dgc_do + ggo * gh * tanh_c * ggsig_o
+    dgc_dc = gh * sig_o * ggtanh_c
+    gc_next = ggc * dgc_dc + ggo * gh * gtanh_c * gsig_o
+    ggh = ggc * sig_o * gtanh_c + ggo * tanh_c * gsig_o
+    return gc_prev, ga, gi, gf, go, gc_next, ggc, ggh
 
 
 def lstm(c_prev, x):
@@ -307,9 +332,9 @@ def lstm(c_prev, x):
         Most typical preparation of ``x`` is:
 
         >>> n_units = 100
-        >>> y = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> h = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> c = chainer.Variable(np.zeros((1, n_units), 'f'))
+        >>> y = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> h = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> c = chainer.Variable(np.zeros((1, n_units), np.float32))
         >>> model = chainer.Chain()
         >>> with model.init_scope():
         ...   model.w = L.Linear(n_units, 4 * n_units)

@@ -111,6 +111,7 @@ class TestLog(UnaryFunctionsTestBase):
     def make_data(self):
         x = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
         gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         return x, gy
 
     def test_forward_cpu(self):
@@ -130,6 +131,13 @@ class TestLog(UnaryFunctionsTestBase):
     def test_label(self):
         self.check_label(F.Log, 'log')
 
+    def test_double_backward_cpu(self):
+        self.check_double_backward_cpu(F.log)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward_gpu(F.log)
+
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
@@ -140,6 +148,7 @@ class TestLog2(UnaryFunctionsTestBase):
     def make_data(self):
         x = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
         gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         return x, gy
 
     def test_forward_cpu(self):
@@ -159,6 +168,13 @@ class TestLog2(UnaryFunctionsTestBase):
     def test_label(self):
         self.check_label(F.Log2, 'log2')
 
+    def test_double_backward_cpu(self):
+        self.check_double_backward_cpu(F.log2)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward_gpu(F.log2)
+
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
@@ -169,6 +185,7 @@ class TestLog10(UnaryFunctionsTestBase):
     def make_data(self):
         x = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
         gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         return x, gy
 
     def test_forward_cpu(self):
@@ -187,6 +204,13 @@ class TestLog10(UnaryFunctionsTestBase):
 
     def test_label(self):
         self.check_label(F.Log10, 'log10')
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward_cpu(F.log2)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward_gpu(F.log2)
 
 
 testing.run_module(__name__, __file__)
