@@ -332,9 +332,9 @@ def lstm(c_prev, x):
         Most typical preparation of ``x`` is:
 
         >>> n_units = 100
-        >>> y = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> h = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> c = chainer.Variable(np.zeros((1, n_units), 'f'))
+        >>> y = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> h = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> c = chainer.Variable(np.zeros((1, n_units), np.float32))
         >>> model = chainer.Chain()
         >>> with model.init_scope():
         ...   model.w = L.Linear(n_units, 4 * n_units)

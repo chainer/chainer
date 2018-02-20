@@ -51,8 +51,8 @@ class SelectItem(function_node.FunctionNode):
         t = self.get_retained_inputs()[0]
         ret = []
         if 0 in indexes:
-            ggx = Assign(self._in_shape, self._in_dtype, t).apply(gy)[0]
-            ret.append(ggx)
+            gx = Assign(self._in_shape, self._in_dtype, t).apply(gy)[0]
+            ret.append(gx)
         if 1 in indexes:
             ret.append(None)
         return ret
@@ -104,8 +104,8 @@ def select_item(x, t):
 
     .. admonition:: Example
 
-        >>> x = np.array([[0, 1, 2], [3, 4, 5]], 'f')
-        >>> t = np.array([0, 2], 'i')
+        >>> x = np.array([[0, 1, 2], [3, 4, 5]], np.float32)
+        >>> t = np.array([0, 2], np.int32)
         >>> y = F.select_item(x, t)
         >>> y.shape
         (2,)
