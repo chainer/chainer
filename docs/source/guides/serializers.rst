@@ -11,7 +11,7 @@ For example, we can serialize a link object into NPZ file by the :func:`serializ
 
 Assuming we have defined a ``model``:
 
-.. doctest::
+.. code-block:: console
 
    >>> from chainer import serializers
    >>> serializers.save_npz('my.model', model)
@@ -19,7 +19,7 @@ Assuming we have defined a ``model``:
 This saves the parameters of ``model`` into the file ``'my.model'`` in NPZ format.
 The saved model can be read back from ``my.model`` back into ``model``  by the :func:`serializers.load_npz` function:
 
-.. doctest::
+.. code-block:: console
 
    >>> serializers.load_npz('my.model', model)
 
@@ -31,7 +31,7 @@ The saved model can be read back from ``my.model`` back into ``model``  by the :
 
 The state of an optimizer can also be saved by the same functions:
 
-.. doctest::
+.. code-block:: console
 
    >>> serializers.save_npz('my.state', optimizer)
    >>> serializers.load_npz('my.state', optimizer)
