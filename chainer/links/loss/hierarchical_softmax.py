@@ -15,10 +15,9 @@ LEAF = -1
 NOT_LEAF = -1
 
 
-def _sigmoid(x):
+def _log_sigmoid(x):
     xp = cuda.get_array_module(x)
-    half = x.dtype.type(0.5)
-    return xp.tanh(x * half) * half + half
+    return -xp.log1p(xp.exp(-x))
 
 
 class TreeParser(object):
@@ -433,9 +432,10 @@ class BinaryHierarchicalSoftmax(link.Link):
         while not done.all():
             w = self.W.data[ids]
             score = xp.einsum('ij,ij->i', w, x.data)
-            prob_left = _sigmoid(score)[:, None]
-            prob_right = 1 - prob_left
-            prob = xp.concatenate([prob_left, prob_right], axis=1)
+            log_prob_left = _log_sigmoid(score)
+            log_prob_right = log_prob_left - score
+            prob = xp.concatenate(
+                [log_prob_left[:, None], log_prob_right[:, None]], axis=1)
 
             # Gumbel-max trick to draw samples from a discrete distribution
             sampled_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
