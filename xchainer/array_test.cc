@@ -1193,9 +1193,9 @@ TEST_P(ArrayTest, MultipleGraphsForward) {
 
 INSTANTIATE_TEST_CASE_P(ForEachDeviceId, ArrayTest, ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
-                                                      std::string{"cuda"},
+                                                        std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
-                                                      std::string{"cpu"}));
+                                                        std::string{"cpu"}));
 
 }  // namespace
 }  // namespace xchainer
