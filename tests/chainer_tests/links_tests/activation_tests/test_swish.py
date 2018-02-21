@@ -23,7 +23,7 @@ class TestSwishSingle(unittest.TestCase):
         self.x_shape = (4, 3, 2)
         self.dtype = numpy.float32
 
-        self.link = links.Swish()
+        self.link = links.Swish(())
         beta = self.link.beta.data
         beta[...] = numpy.random.uniform(-1, 1, beta.shape)
         self.link.cleargrads()
@@ -66,17 +66,13 @@ class TestSwishSingle(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
-class TestSwishMulti(TestSwishSingle):
+class TestSwishFull(TestSwishSingle):
 
     def setUp(self):
         self.x_shape = (4, 3, 2)
-        self.beta_shape = (3,)
-        self.extended_beta_shape = (1, 3, 1)
         self.dtype = numpy.float32
 
-        self.link = links.Swish(shape=self.beta_shape)
-        beta = self.link.beta.data
-        beta[...] = numpy.random.uniform(-1, 1, beta.shape)
+        self.link = links.Swish(None)
         self.link.cleargrads()
 
         self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
@@ -86,8 +82,9 @@ class TestSwishMulti(TestSwishSingle):
         x = chainer.Variable(x_data)
         y = self.link(x)
         self.assertEqual(y.data.dtype, self.dtype)
+        self.assertEqual(self.link.beta.shape, self.x_shape[1:])
 
-        beta_data = self.link.beta.data.reshape(self.extended_beta_shape)
+        beta_data = self.link.beta.data
         y_expect = x_data * _sigmoid(beta_data * x_data)
 
         testing.assert_allclose(y_expect, y.data)
