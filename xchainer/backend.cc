@@ -4,6 +4,8 @@
 
 namespace xchainer {
 
+Backend::~Backend() {}
+
 Device& Backend::GetDevice(int index) {
     if (index < 0) {
         throw std::out_of_range("The index number must be greater than or equal to 0");
