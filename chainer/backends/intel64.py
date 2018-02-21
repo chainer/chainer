@@ -40,7 +40,7 @@ def check_ideep_available():
     if _ideep_version is None:
         raise RuntimeError(
             'iDeep is not available.\n'
-            'Reason: {}'.format(type(_error).__name__, str(_error)))
+            'Reason: {}: {}'.format(type(_error).__name__, str(_error)))
 
 
 def should_use_ideep(level):
