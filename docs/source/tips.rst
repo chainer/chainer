@@ -35,7 +35,7 @@ vecLib is the default BLAS library installed on Mac OS X.
 We recommend using other BLAS libraries such as `OpenBLAS <http://www.openblas.net/>`_.
 
 To use an alternative BLAS library, it is necessary to reinstall NumPy.
-Here is an instruction to install NumPy with OpenBLAS using `Homebrew <http://brew.sh/>`_.
+Here is an instruction to install NumPy with OpenBLAS using `Homebrew <https://brew.sh/>`_.
 
 ::
 

@@ -1,14 +1,14 @@
 .. _install-guide:
 
-Installation Guide
-==================
+Installation
+============
 
 Recommended Environments
 ------------------------
 
 We recommend these Linux distributions.
 
-* `Ubuntu <http://www.ubuntu.com/>`__ 14.04/16.04 LTS 64bit
+* `Ubuntu <https://www.ubuntu.com/>`__ 14.04/16.04 LTS 64bit
 * `CentOS <https://www.centos.org/>`__ 7 64bit
 
 The following versions of Python can be used: 2.7.6+, 3.4.3+, 3.5.1+, and 3.6.0+.
@@ -193,8 +193,8 @@ Or run the interpreter directly::
   $ nvidia-docker run -it chainer/chainer /usr/bin/python
 
 
-FAQ
----
+Install Issues
+--------------
 
 The installer says "hdf5.h is not found"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
