@@ -8,6 +8,8 @@ namespace xchainer {
 
 class Backend;
 
+// TODO(hvy): Follow struct coding guidelines.
+// TODO(hvy): Replace backend pointer to backend name.
 struct DeviceId {
 public:
     DeviceId() = default;  // required to be POD
