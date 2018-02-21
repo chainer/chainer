@@ -1,21 +1,13 @@
 #include "xchainer/device_id.h"
 
-#include "xchainer/backend.h"
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+
 #include "xchainer/error.h"
 
 namespace xchainer {
-namespace {
-
-thread_local Device* t_default_device = nullptr;
-static_assert(std::is_pod<decltype(t_default_device)>::value, "t_default_device must be POD");
-
-}  // namespace
-
-namespace internal {
-
-Device* GetDefaultDeviceNoExcept() noexcept { return t_default_device; }
-
-}  // namespace internal
 
 DeviceId::DeviceId(const std::string& device_name) {
     size_t pos = device_name.find(':');
@@ -46,14 +38,5 @@ std::ostream& operator<<(std::ostream& os, const DeviceId& device_id) {
     os << backend_name_ << ':' << index_;
     return os;
 }
-
-Device& GetDefaultDevice() {
-    if (t_default_device == nullptr) {
-        throw XchainerError("Default device_id is not set.");
-    }
-    return *t_default_device;
-}
-
-void SetDefaultDevice(Device* device) { t_default_device = device; }
 
 }  // namespace xchainer

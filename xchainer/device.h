@@ -50,4 +50,43 @@ private:
     int index_;
 };
 
+namespace internal {
+
+Device* GetDefaultDeviceNoExcept() noexcept;
+
+}  // namespace internal
+
+Device& GetDefaultDevice();
+
+void SetDefaultDevice(Device* device);
+
+// Scope object that switches the default device_id by RAII.
+class DeviceScope {
+public:
+    DeviceScope() : orig_(internal::GetDefaultDeviceNoExcept()), exited_(false) {}
+    explicit DeviceScope(Device& device) : DeviceScope() { SetDefaultDevice(&device); }
+
+    // TODO(hvy): Maybe unnecessary.
+    explicit DeviceScope(Backend* backend, int index = 0) : DeviceScope(backend->GetDevice(index)) {}
+
+    DeviceScope(const DeviceScope&) = delete;
+    DeviceScope(DeviceScope&&) = delete;
+    DeviceScope& operator=(const DeviceScope&) = delete;
+    DeviceScope& operator=(DeviceScope&&) = delete;
+
+    ~DeviceScope() { Exit(); }
+
+    // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
+    void Exit() {
+        if (!exited_) {
+            SetDefaultDevice(orig_);
+            exited_ = true;
+        }
+    }
+
+private:
+    Device* orig_;
+    bool exited_;
+};
+
 }  // namespace xchainer

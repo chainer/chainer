@@ -31,6 +31,7 @@ add_library(xchainer SHARED
     array_repr.cc
     backend.cc
     backprop.cc
+    device.cc
     device_id.cc
     dtype.cc
     gradient_check.cc
