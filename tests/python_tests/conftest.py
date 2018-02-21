@@ -35,8 +35,8 @@ _signed_dtypes = [
 @pytest.fixture(scope='session', autouse=True)
 def scope_session():
     backend = xchainer.NativeBackend()
-    device = xchainer.Device('cpu', backend)
-    with xchainer.device_scope(device):
+    device_id = xchainer.DeviceId(backend)
+    with xchainer.device_scope(device_id):
         yield
 
 

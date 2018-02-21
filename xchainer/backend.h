@@ -2,47 +2,36 @@
 
 #include <memory>
 #include <string>
-
-#include "xchainer/array.h"
-#include "xchainer/device.h"
-#include "xchainer/scalar.h"
+#include <vector>
 
 namespace xchainer {
 
+class Device;
+
 // Backend base class.
-// Note that these member functions may be called from the framework or user code.
 class Backend {
 public:
-    Backend(std::string name) : name_(std::move(name)) {}
-    virtual ~Backend() = default;
+    virtual ~Backend();
 
-    // Allocates a memory chunk on the specified device.
-    virtual std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) = 0;
+    // Returns the name of this backend. This name should be unique within the context.
+    virtual std::string GetName() const = 0;
 
-    // Copies the data between two memory chunks.
-    // The caller must guarantee that:
-    // - both dst_ptr and src_ptr reside in devices of this backend,
-    // - a copy between these memory regions can be done transparently, e.g. without sychronization,
-    // - and these memory regions are not overlapped.
-    virtual void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) = 0;
-
-    // Creates a data buffer filled with the specified data on the specified device.
+    // Returns the number of available devices.
     //
-    // It may allocate a new memory or return an alias.
-    // src_ptr must reside in the main RAM.
-    virtual std::shared_ptr<void> FromBuffer(const Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
+    // This count is usually configurable by backend specific ways.
+    virtual int GetDeviceCount() const = 0;
 
-    virtual void Fill(Array& out, Scalar value) = 0;
-
-    virtual void Add(const Array& lhs, const Array& rhs, Array& out) = 0;
-    virtual void Mul(const Array& lhs, const Array& rhs, Array& out) = 0;
-
-    virtual void Synchronize() = 0;
-
-    const std::string& name() const { return name_; }
+    // Returns the device for the given index.
+    //
+    // Throws out_of_range exception if index >= GetDeviceCount().
+    Device& GetDevice(int index);
 
 private:
-    std::string name_;
+    // Creates a new device.
+    // This function is called from GetDevice().
+    virtual std::unique_ptr<Device> CreateDevice(int index) = 0;
+
+    std::vector<std::unique_ptr<Device>> devices_;
 };
 
 }  // namespace xchainer

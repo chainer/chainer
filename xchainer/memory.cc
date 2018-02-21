@@ -7,10 +7,11 @@
 #include <cuda_runtime.h>
 #endif  // XCHAINER_ENABLE_CUDA
 
+#include "xchainer/backend.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/device.h"
+#include "xchainer/device_id.h"
 #include "xchainer/error.h"
 
 namespace xchainer {
@@ -40,12 +41,12 @@ bool IsPointerCudaMemory(const void* ptr) {
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
-std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) {
-    // TODO(sonots): Use device.backend->Allocate()
-    if (device.name() == "cpu") {
+std::shared_ptr<void> Allocate(const DeviceId& device_id, size_t bytesize) {
+    // TODO(sonots): Use device_id.backend->Allocate()
+    if (device_id.backend()->GetName() == "native") {
         return std::make_unique<uint8_t[]>(bytesize);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (device.name() == "cuda") {
+    } else if (device_id.backend()->GetName() == "cuda") {
         void* raw_ptr = nullptr;
         // Be careful to be exception-safe, i.e., do not throw before creating shared_ptr
         cudaError_t status = cudaMallocManaged(&raw_ptr, bytesize, cudaMemAttachGlobal);
@@ -57,7 +58,7 @@ std::shared_ptr<void> Allocate(const Device& device, size_t bytesize) {
         assert(false);  // should never be reached
 #endif                  // XCHAINER_ENABLE_CUDA
     } else {
-        throw DeviceError("invalid device");
+        throw DeviceError("invalid device_id");
     }
 }
 
@@ -88,34 +89,34 @@ void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
-std::shared_ptr<void> MemoryFromBuffer(const Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
-// TODO(sonots): Use device.backend->FromBuffer()
+std::shared_ptr<void> MemoryFromBuffer(const DeviceId& device_id, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
+// TODO(sonots): Use device_id.backend->FromBuffer()
 #ifdef XCHAINER_ENABLE_CUDA
-    if (device.name() == "cpu") {
+    if (device_id.backend()->GetName() == "native") {
         if (IsPointerCudaMemory(src_ptr.get())) {
-            std::shared_ptr<void> dst_ptr = Allocate(device, bytesize);
+            std::shared_ptr<void> dst_ptr = Allocate(device_id, bytesize);
             cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyDeviceToHost));
             return dst_ptr;
         } else {
             return src_ptr;
         }
-    } else if (device.name() == "cuda") {
+    } else if (device_id.backend()->GetName() == "cuda") {
         if (IsPointerCudaMemory(src_ptr.get())) {
             return src_ptr;
         } else {
-            std::shared_ptr<void> dst_ptr = Allocate(device, bytesize);
+            std::shared_ptr<void> dst_ptr = Allocate(device_id, bytesize);
             cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
             return dst_ptr;
         }
     } else {
-        throw DeviceError("invalid device");
+        throw DeviceError("invalid device_id");
     }
 #else
     (void)bytesize;  // unused
-    if (device.name() == "cpu") {
+    if (device_id.backend()->GetName() == "native") {
         return src_ptr;
     } else {
-        throw DeviceError("invalid device");
+        throw DeviceError("invalid device_id");
     }
 #endif  // XCHAINER_ENABLE_CUDA
 }

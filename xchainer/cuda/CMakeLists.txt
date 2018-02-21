@@ -1,6 +1,7 @@
 CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     array_math.cu
-    cuda_backend.cu
+    cuda_device.cu
+    cuda_backend.cc
     cuda_runtime.cc)
 
 if(${ENABLE_TEST})
@@ -9,6 +10,7 @@ if(${ENABLE_TEST})
   )
   target_link_libraries(xchainer_cuda_test
       xchainer
+      xchainer_cuda
       gtest_main)
   add_test(NAME xchainer_cuda_test COMMAND xchainer_cuda_test)
 endif()

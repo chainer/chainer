@@ -1,80 +1,53 @@
 #pragma once
 
-#include <cstring>
-#include <sstream>
+#include <memory>
 #include <string>
+
+#include "xchainer/array.h"
+#include "xchainer/backend.h"
+#include "xchainer/scalar.h"
 
 namespace xchainer {
 
-namespace device_detail {
-
-constexpr size_t kMaxDeviceNameLength = 8;
-
-}  // device_detail
-
-class Backend;
-
-struct Device {
+// Device base class.
+// Note that these member functions may be called from the framework or user code.
+class Device {
 public:
-    Device() = default;  // required to be POD
-    Device(const std::string& name, Backend* backend);
+    Device(Backend& backend, int index) : backend_(backend), index_(index) {}
+    virtual ~Device() = default;
 
-    std::string name() const { return name_; }
-    Backend* backend() const { return backend_; }
+    // Allocates a memory chunk on this device.
+    virtual std::shared_ptr<void> Allocate(size_t bytesize) = 0;
 
-    bool is_null() const;
-    std::string ToString() const;
+    // Copies the data between two memory chunks.
+    // The caller must guarantee that:
+    // - both dst_ptr and src_ptr reside in this device.
+    // - a copy between these memory regions can be done transparently, e.g. without sychronization,
+    // - and these memory regions are not overlapped.
+    virtual void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) = 0;
+
+    // Creates a data buffer filled with the specified data on this device.
+    //
+    // It may allocate a new memory or return an alias.
+    // src_ptr must reside in the main RAM.
+    virtual std::shared_ptr<void> FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
+
+    virtual void Fill(Array& out, Scalar value) = 0;
+
+    virtual void Add(const Array& lhs, const Array& rhs, Array& out) = 0;
+    virtual void Mul(const Array& lhs, const Array& rhs, Array& out) = 0;
+
+    virtual void Synchronize() = 0;
+
+    // TODO(sonots): optimize string concat
+    std::string name() const { return backend_.GetName() + ":" + std::to_string(index_); }
+
+    Backend& backend() const { return backend_; }
+    int index() const { return index_; }
 
 private:
-    char name_[device_detail::kMaxDeviceNameLength];
-    Backend* backend_;
+    Backend& backend_;
+    int index_;
 };
-
-namespace internal {
-
-const Device& GetDefaultDeviceNoExcept() noexcept;
-
-constexpr Device kNullDevice = {};
-
-}  // namespace internal
-
-inline bool operator==(const Device& lhs, const Device& rhs) { return (lhs.name() == rhs.name()) && (lhs.backend() == rhs.backend()); }
-
-inline bool operator!=(const Device& lhs, const Device& rhs) { return !(lhs == rhs); }
-
-std::ostream& operator<<(std::ostream&, const Device&);
-
-const Device& GetDefaultDevice();
-
-void SetDefaultDevice(const Device& device);
-
-// Scope object that switches the default device by RAII.
-class DeviceScope {
-public:
-    DeviceScope() : orig_(internal::GetDefaultDeviceNoExcept()), exited_(false) {}
-    explicit DeviceScope(Device device) : DeviceScope() { SetDefaultDevice(device); }
-    explicit DeviceScope(const std::string& device, Backend* backend) : DeviceScope(Device{device, backend}) {}
-
-    DeviceScope(const DeviceScope&) = delete;
-    DeviceScope(DeviceScope&&) = delete;
-    DeviceScope& operator=(const DeviceScope&) = delete;
-    DeviceScope& operator=(DeviceScope&&) = delete;
-
-    ~DeviceScope() { Exit(); }
-
-    // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
-    void Exit() {
-        if (!exited_) {
-            SetDefaultDevice(orig_);
-            exited_ = true;
-        }
-    }
-
-private:
-    Device orig_;
-    bool exited_;
-};
-
-void DebugDumpDevice(std::ostream& os, const Device& device);
 
 }  // namespace xchainer

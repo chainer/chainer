@@ -18,7 +18,7 @@
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/device.h"
+#include "xchainer/device_id.h"
 #include "xchainer/error.h"
 #include "xchainer/memory.h"
 #include "xchainer/native_backend.h"
@@ -30,15 +30,15 @@ namespace {
 class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
     void SetUp() override {
-        std::string device_name = ::testing::get<0>(GetParam());
-        if (device_name == "cpu") {
+        std::string backend_name = ::testing::get<0>(GetParam());
+        if (backend_name == "native") {
             backend_ = std::make_unique<NativeBackend>();
 #ifdef XCHAINER_ENABLE_CUDA
-        } else if (device_name == "cuda") {
+        } else if (backend_name == "cuda") {
             backend_ = std::make_unique<cuda::CudaBackend>();
 #endif  // XCHAINER_ENABLE_CUDA
         }
-        device_scope_ = std::make_unique<DeviceScope>(device_name, backend_.get());
+        device_scope_ = std::make_unique<DeviceScope>(backend_.get());
     }
 
     void TearDown() override {
@@ -63,7 +63,7 @@ public:
     void ExpectEqualCopy(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
-        EXPECT_EQ(expected.device(), actual.device());
+        EXPECT_EQ(expected.device_id(), actual.device_id());
 
         // Deep copy, therefore assert different addresses to data
         EXPECT_NE(expected.data().get(), actual.data().get());
@@ -90,7 +90,7 @@ public:
     void ExpectEqual(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
-        EXPECT_EQ(expected.device(), actual.device());
+        EXPECT_EQ(expected.device_id(), actual.device_id());
         ExpectDataEqual<T>(expected, actual);
     }
 
@@ -103,8 +103,8 @@ public:
     template <typename T>
     void ExpectDataEqual(const T* expected_data, const Array& actual) {
 #ifdef XCHAINER_ENABLE_CUDA
-        std::string device_name = ::testing::get<0>(GetParam());
-        if (device_name == "cuda") {
+        std::string backend_name = ::testing::get<0>(GetParam());
+        if (backend_name == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
@@ -118,7 +118,7 @@ public:
     template <typename T>
     void ExpectDataEqual(T expected, const Array& actual) {
 #ifdef XCHAINER_ENABLE_CUDA
-        if (actual.device().name() == "cuda") {
+        if (actual.device_id().backend()->GetName() == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
@@ -141,17 +141,17 @@ public:
     }
 
     void ExpectDataExistsOnDefaultDevice(const Array& array) {
-        Device device = GetDefaultDevice();
+        DeviceId device_id = GetDefaultDeviceId();
 
-        // Check device accessor
-        EXPECT_EQ(device, array.device());
+        // Check device_id accessor
+        EXPECT_EQ(device_id, array.device_id());
 
-        if (device.name() == "cpu") {
+        if (device_id.backend()->GetName() == "native") {
             EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
-        } else if (device.name() == "cuda") {
+        } else if (device_id.backend()->GetName() == "cuda") {
             EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
         } else {
-            FAIL() << "invalid device";
+            FAIL() << "invalid device_id";
         }
     }
 
@@ -182,14 +182,14 @@ public:
         ExpectDataEqual<T>(data.get(), x);
         ExpectDataExistsOnDefaultDevice(x);
 
-        // TODO(sonots): Polymorphism using device.backend->XXX()?
-        Device device = GetDefaultDevice();
-        if (device.name() == "cpu") {
+        // TODO(sonots): Polymorphism using device_id.backend->XXX()?
+        DeviceId device_id = GetDefaultDeviceId();
+        if (device_id.backend()->GetName() == "native") {
             EXPECT_EQ(data.get(), x.data().get());
-        } else if (device.name() == "cuda") {
+        } else if (device_id.backend()->GetName() == "cuda") {
             EXPECT_NE(data.get(), x.data().get());
         } else {
-            FAIL() << "invalid device";
+            FAIL() << "invalid device_id";
         }
     }
 
@@ -1191,11 +1191,11 @@ TEST_P(ArrayTest, MultipleGraphsForward) {
     EXPECT_FALSE(o.IsGradRequired("graph_3"));
 }
 
-INSTANTIATE_TEST_CASE_P(ForEachDevice, ArrayTest, ::testing::Values(
+INSTANTIATE_TEST_CASE_P(ForEachBackend, ArrayTest, ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
-                                                      std::string{"cuda"},
+                                                       std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
-                                                      std::string{"cpu"}));
+                                                       std::string{"native"}));
 
 }  // namespace
 }  // namespace xchainer

@@ -8,7 +8,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_repr.h"
-#include "xchainer/device.h"
+#include "xchainer/device_id.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/shape.h"
 
@@ -19,7 +19,7 @@ class NumericalGradientTest : public ::testing::Test {
 protected:
     virtual void SetUp() {
         backend_ = std::make_unique<NativeBackend>();
-        device_scope_ = std::make_unique<DeviceScope>("cpu", backend_.get());
+        device_scope_ = std::make_unique<DeviceScope>(backend_.get());
     }
 
     virtual void TearDown() {

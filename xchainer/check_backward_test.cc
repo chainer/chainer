@@ -73,7 +73,7 @@ class CheckBackwardBaseTest : public ::testing::Test {
 protected:
     virtual void SetUp() {
         backend_ = std::make_unique<NativeBackend>();
-        device_scope_ = std::make_unique<DeviceScope>("cpu", backend_.get());
+        device_scope_ = std::make_unique<DeviceScope>(backend_.get());
     }
 
     virtual void TearDown() {

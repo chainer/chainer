@@ -14,6 +14,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
+#include "xchainer/backend.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
@@ -239,8 +240,8 @@ struct ArrayReprImpl {
         // Print the footer
         PrintNTimes(os, ']', ndim);
         os << ", dtype=" << array.dtype();
-        assert(!array.device().is_null());
-        os << ", device='" << array.device().name() << "'";
+        assert(!array.device_id().is_null());
+        os << ", device_id=('" << array.device_id().backend()->GetName() << "', " << array.device_id().index() << ")";
         const std::vector<std::shared_ptr<ArrayNode>>& nodes = array.nodes();
         if (!nodes.empty()) {
             os << ", graph_ids=[";
