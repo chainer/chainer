@@ -138,14 +138,13 @@ if available:
     pinned_memory_pool = cupy.get_default_pinned_memory_pool()
 
 
+_integer_types = six.integer_types + (numpy.integer,)
 if six.PY2:
     try:
         from future.types.newint import newint as _newint
-        _integer_types = six.integer_types + (numpy.integer,) + (_newint,)
+        _integer_types += (_newint,)
     except ImportError:
-        _integer_types = six.integer_types + (numpy.integer,)
-else:
-    _integer_types = six.integer_types + (numpy.integer,)
+        pass
 
 
 # ------------------------------------------------------------------------------
@@ -219,7 +218,8 @@ def get_device(*args):
 
 def _get_device(*args):
     for arg in args:
-        if isinstance(arg, _integer_types):
+        if isinstance(arg, _integer_types) and not numpy.issubdtype(
+                type(arg), numpy.bool_):
             check_cuda_available()
             return Device(arg)
         if isinstance(arg, ndarray):
