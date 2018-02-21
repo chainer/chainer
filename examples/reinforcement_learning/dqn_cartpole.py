@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Example code of DQN and DoubleDQN on OpenAI Gym environments.
 
-For DQN, see: http://www.nature.com/articles/nature14236
+For DQN, see: https://www.nature.com/articles/nature14236
 For DoubleDQN, see: https://arxiv.org/abs/1509.06461
 """
 from __future__ import print_function

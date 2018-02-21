@@ -6,6 +6,7 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
@@ -1100,6 +1101,80 @@ class TestChainList(unittest.TestCase):
 
         mocks['0'].assert_called_with('y', l1.y.data)
         mocks['1'].assert_called_with('x', l2.x.data)
+
+
+@attr.ideep
+class TestIntel64(unittest.TestCase):
+
+    def setUp(self):
+        self.link = chainer.Link()
+        with self.link.init_scope():
+            self.link.y = chainer.Parameter(shape=(2,))
+            self.link.v = chainer.Parameter()
+
+    def _check_variable_shape_and_dtype(self, var, shape, dtype):
+        assert var.data.shape == shape
+        assert var.data.dtype == dtype
+        assert var.shape == shape
+        assert var.dtype == dtype
+
+    def test_cpu_to_intel64(self):
+        link = self.link
+        prev_y = link.y
+        link.to_intel64()
+
+        assert isinstance(link.y.data, intel64.ideep.mdarray)
+        assert link.v.data is None
+        self._check_variable_shape_and_dtype(
+            link.y, prev_y.shape, prev_y.dtype)
+
+    def test_intel64_to_intel64(self):
+        link = self.link
+        link.to_intel64()
+        prev_y = link.y
+        link.to_intel64()
+
+        # Parameters should be left untouched
+        assert link.y is prev_y
+        assert link.v.data is None
+
+    @attr.gpu
+    def test_gpu_to_intel64(self):
+        link = self.link
+        link.to_gpu()
+        prev_y = link.y
+        link.to_intel64()
+
+        # Parameters should be converted to ideep.mdarray
+        assert isinstance(link.y.data, intel64.ideep.mdarray)
+        assert link.v.data is None
+        self._check_variable_shape_and_dtype(
+            link.y, prev_y.shape, prev_y.dtype)
+
+    @attr.gpu
+    def test_intel64_to_gpu(self):
+        link = self.link
+        link.to_intel64()
+        prev_y = link.y
+        link.to_gpu()
+
+        # Parameters should be converted to cupy.ndarray
+        assert isinstance(link.y.data, cuda.cupy.ndarray)
+        assert link.v.data is None
+        self._check_variable_shape_and_dtype(
+            link.y, prev_y.shape, prev_y.dtype)
+
+    def test_intel64_to_cpu(self):
+        link = self.link
+        link.to_intel64()
+        prev_y = link.y
+        link.to_cpu()
+
+        # Parameters should be converted to numpy.ndarray
+        assert isinstance(link.y.data, numpy.ndarray)
+        assert link.v.data is None
+        self._check_variable_shape_and_dtype(
+            link.y, prev_y.shape, prev_y.dtype)
 
 
 testing.run_module(__name__, __file__)

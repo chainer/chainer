@@ -34,7 +34,7 @@ class PrintHook(function_hook.FunctionHook):
 
         >>> from chainer import function_hooks
         >>> l = L.Linear(10, 10)
-        >>> x = chainer.Variable(np.zeros((1, 10), 'f'))
+        >>> x = chainer.Variable(np.zeros((1, 10), np.float32))
         >>> with chainer.function_hooks.PrintHook():
         ...     y = l(x)
         ...     z = F.sum(y)

@@ -107,12 +107,12 @@ def permutate(x, indices, axis=0, inv=False):
 
     .. admonition:: Example
 
-        >>> x = np.arange(6).reshape((3, 2)).astype('f')
+        >>> x = np.arange(6).reshape((3, 2)).astype(np.float32)
         >>> x
         array([[0., 1.],
                [2., 3.],
                [4., 5.]], dtype=float32)
-        >>> indices = np.array([2, 0, 1], 'i')
+        >>> indices = np.array([2, 0, 1], np.int32)
         >>> y = F.permutate(x, indices)
         >>> y.data
         array([[4., 5.],
@@ -123,7 +123,7 @@ def permutate(x, indices, axis=0, inv=False):
         array([[2., 3.],
                [4., 5.],
                [0., 1.]], dtype=float32)
-        >>> indices = np.array([1, 0], 'i')
+        >>> indices = np.array([1, 0], np.int32)
         >>> y = F.permutate(x, indices, axis=1)
         >>> y.data
         array([[1., 0.],

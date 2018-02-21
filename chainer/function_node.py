@@ -223,11 +223,9 @@ Use apply() method instead.\
         requires_grad = any([x.requires_grad for x in input_vars])
 
         # Check for input array types
-        xp = cuda.get_array_module(*in_data)
-        if not all([x is None or isinstance(x, xp.ndarray)
-                    for x in in_data]):
+        if not chainer.is_arrays_compatible(in_data):
             raise ValueError(
-                'numpy and cupy arrays are mixed in the forward input '
+                'incompatible array types are mixed in the forward input '
                 '({}).\n'
                 '{}'.format(
                     self.label,
@@ -262,11 +260,9 @@ Use apply() method instead.\
                 'forward output must be a tuple ({})\n'
                 'Actual: {}'.format(self.label, type(outputs)))
 
-        xp = cuda.get_array_module(*outputs)
-        if not all([x is None or isinstance(x, xp.ndarray)
-                    for x in outputs]):
+        if not chainer.is_arrays_compatible(outputs):
             raise ValueError(
-                'numpy and cupy arrays are mixed in the forward output '
+                'incompatible array types are mixed in the forward output '
                 '({}).\n'
                 '{}'.format(
                     self.label,
@@ -536,6 +532,10 @@ Use apply() method instead.\
            This behavior might be changed in a future version.
 
         """
+        assert isinstance(target_input_indexes, tuple)
+        assert isinstance(grad_outputs, tuple)
+        assert isinstance(grad_inputs, tuple)
+
         # The default implementation uses backward(). You can override this
         # method without using backward().
         gxs = self.backward(target_input_indexes, grad_outputs)
@@ -832,6 +832,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
                 gys.append(None)
                 continue
             gys.append(grads.get(y, None))
+        gys = tuple(gys)
 
         # Collect the gradients w.r.t. the inputs
         #
@@ -852,6 +853,8 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
             else:
                 gxs.append(grads.get(x, None))
                 selected_inputs.add(x)
+        gxs = tuple(gxs)
+        input_indexes = tuple(input_indexes)
 
         if not input_indexes:
             continue

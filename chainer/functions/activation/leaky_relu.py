@@ -110,7 +110,7 @@ def leaky_relu(x, slope=0.2):
 
     .. admonition:: Example
 
-        >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], 'f')
+        >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], np.float32)
         >>> x
         array([[-1.,  0.],
                [ 2., -3.],

@@ -3,6 +3,8 @@ import os
 import threading
 import warnings
 
+import numpy
+
 from chainer import _version
 from chainer import backends  # NOQA
 from chainer import configuration  # NOQA
@@ -78,6 +80,8 @@ _environment_check.check()
 __version__ = _version.__version__
 
 _thread_local = threading.local()
+_array_types = None
+_cpu_array_types = None
 
 
 def get_function_hooks():
@@ -87,6 +91,50 @@ def get_function_hooks():
         ret = collections.OrderedDict()
         _thread_local.function_hooks = ret
     return ret
+
+
+def _load_array_types():
+    # Note: this function may not be protected by GIL because of external
+    # calls.
+    global _array_types
+    global _cpu_array_types
+    if _array_types is None:
+        array_types = [numpy.ndarray]
+        cpu_array_types = [numpy.ndarray]
+
+        if backends.cuda.available:
+            array_types.append(backends.cuda.ndarray)
+
+        if backends.intel64.is_ideep_available():
+            array_types.append(backends.intel64.mdarray)
+            cpu_array_types.append(backends.intel64.mdarray)
+
+        array_types = tuple(array_types)
+        cpu_array_types = tuple(cpu_array_types)
+
+        _array_types = array_types
+        _cpu_array_types = cpu_array_types
+
+
+def get_array_types():
+    _load_array_types()
+    return _array_types
+
+
+def get_cpu_array_types():
+    _load_array_types()
+    return _cpu_array_types
+
+
+def is_arrays_compatible(arrays):
+    arrays = [a for a in arrays if a is not None]
+    if len(arrays) == 0:
+        return True
+    if type(arrays[0]) is backends.cuda.ndarray:
+        types = backends.cuda.ndarray
+    else:
+        types = get_cpu_array_types()
+    return all([isinstance(a, types) for a in arrays])
 
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
@@ -99,6 +147,7 @@ global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_cudnn_tensor_core = 'auto'
 global_config.autotune = False
+global_config.use_ideep = os.environ.get('CHAINER_USE_IDEEP', 'never')
 
 
 def is_debug():

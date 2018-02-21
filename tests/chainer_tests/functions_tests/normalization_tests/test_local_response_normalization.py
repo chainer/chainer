@@ -16,7 +16,10 @@ from chainer.testing import backend
 @backend.inject_backend_tests(
     ['test_forward', 'test_backward'],
     # CPU tests
-    [{'use_cuda': False}]
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
     # GPU tests
     + [{'use_cuda': True}])
 class TestLocalResponseNormalization(unittest.TestCase):
