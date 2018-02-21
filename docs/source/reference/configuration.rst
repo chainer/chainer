@@ -46,7 +46,7 @@ Note that the default values are set in the global config.
    If it is ``False``, :func:`report` does not keep the computational graph when a :class:`Variable` object is reported.
    It means that :func:`report` stores a copy of the :class:`Variable` object which is purged from the computational graph.
    If it is ``True``, :func:`report` just stores the :class:`Variable` object as is with the computational graph left attached.
-   The default value is ``False``.
+   The default value is given by ``CHAINER_KEEP_GRAPH_ON_REPORT`` environment variable (set to 0 or 1) if available, otherwise uses ``False``.
 ``chainer.config.train``
    Training mode flag.
    If it is ``True``, Chainer runs in training mode.
@@ -68,7 +68,7 @@ Note that the default values are set in the global config.
        - If it is ``'auto'``, Chainer will use cuDNN only if it is known that the usage does not degrade the performance.
        - If it is ``'never'``, Chainer will never use cuDNN anywhere.
 
-   The default value is ``'auto'``.
+   The default value is given by ``CHAINER_USE_CUDNN`` environment variable (set to ``'always'``, ``'auto'`` or ``'never'``) if available, otherwise uses ``'auto'``.
 ``chainer.config.cudnn_use_tensor_core``
    Flag to configure whether or not to enable Tensor Core operatons in cuDNN.
 
