@@ -9,10 +9,8 @@ namespace xchainer {
 
 class Backend;
 
-// TODO(hvy): Replace backend pointer to backend name.
 class DeviceId {
 public:
-    DeviceId() = default;  // required to be POD
     DeviceId(const std::string& device_name);
     DeviceId(std::string backend_name, int index) : backend_name_(std::move(backend_name)), index_(index) {}
 

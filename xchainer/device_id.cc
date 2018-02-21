@@ -17,7 +17,22 @@ const DeviceId& GetDefaultDeviceIdNoExcept() noexcept { return thread_local_devi
 }  // namespace internal
 
 DeviceId::DeviceId(const std::string& device_name) {
-    // TODO(takagi): continue mob from here
+    size_t pos = device_name.find(':');
+    if (pos == std::string::npos) {
+        backend_name_ = device_name;
+        index_ = 0;
+    } else {
+        backend_name_ = device_name.substr(0, pos);
+        try {
+            // TODO(hvy): Check if device_name ends with the index without any garbage
+            index_ = std::stoi(device_name.substr(pos + 1));
+        } catch (const std::logic_error& e) {
+            throw DeviceError("invalid device name (no integer found after ':'): '" + device_name + "'");
+        }
+        if (index_ < 0) {
+            throw DeviceError("invalid device name (negative index is not allowed): '" + device_name + "'");
+        }
+    }
 }
 
 std::string DeviceId::ToString() const {
@@ -27,11 +42,7 @@ std::string DeviceId::ToString() const {
 }
 
 std::ostream& operator<<(std::ostream& os, const DeviceId& device_id) {
-    if (device_id.is_null()) {
-        os << "DeviceId(null)";
-    } else {
-        os << "DeviceId('" << device_id.backend()->GetName() << "', " << device_id.index() << ")";
-    }
+    os << backend_name_ << ':' << index_;
     return os;
 }
 
