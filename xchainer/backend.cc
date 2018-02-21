@@ -1,5 +1,7 @@
 #include "xchainer/backend.h"
 
+#include "xchainer/device.h"
+
 namespace xchainer {
 
 Device& Backend::GetDevice(int index) {
@@ -13,7 +15,7 @@ Device& Backend::GetDevice(int index) {
         devices_.resize(index + 1);
     }
     if (devices_[index] == nullptr) {
-        devices_[index].reset(CreateDevice(index));
+        devices_[index] = CreateDevice(index);
     }
     return *devices_[index];
 }

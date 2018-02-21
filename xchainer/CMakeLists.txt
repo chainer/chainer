@@ -29,6 +29,7 @@ add_library(xchainer SHARED
     array.cc
     array_math.cc
     array_repr.cc
+    backend.cc
     backprop.cc
     device_id.cc
     dtype.cc

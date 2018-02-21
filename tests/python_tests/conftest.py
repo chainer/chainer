@@ -36,7 +36,7 @@ _signed_dtypes = [
 def scope_session():
     backend = xchainer.NativeBackend()
     device_id = xchainer.DeviceId(backend)
-    with xchainer.device_id_scope(device_id):
+    with xchainer.device_scope(device_id):
         yield
 
 

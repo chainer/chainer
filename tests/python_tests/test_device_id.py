@@ -75,7 +75,7 @@ def test_eq(device_id_instance1, device_id_instance2):
 
 
 @pytest.mark.usefixtures('cache_restore_device_id')
-def test_device_id_scope(device_id_instance1, device_id_instance2):
+def test_device_scope(device_id_instance1, device_id_instance2):
     if device_id_instance1 == device_id_instance2:
         return
 
@@ -83,10 +83,10 @@ def test_device_id_scope(device_id_instance1, device_id_instance2):
     device_id2 = device_id_instance2
 
     xchainer.set_default_device_id(device_id1)
-    with xchainer.device_id_scope(device_id2):
+    with xchainer.device_scope(device_id2):
         assert xchainer.get_default_device_id() == device_id2
 
-    scope = xchainer.device_id_scope(device_id2)
+    scope = xchainer.device_scope(device_id2)
     assert xchainer.get_default_device_id() == device_id1
     with scope:
         assert xchainer.get_default_device_id() == device_id2
