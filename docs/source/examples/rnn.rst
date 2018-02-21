@@ -1,6 +1,8 @@
 Recurrent Nets and their Computational Graph
 ````````````````````````````````````````````
 
+.. include:: ../imports.rst
+
 .. currentmodule:: chainer
 
 In this section, you will learn how to write

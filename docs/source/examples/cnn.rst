@@ -33,7 +33,8 @@ labeling task, etc.
 .. note::
 
     The below example code assumes that some packages are already imported.
-    Please see the details here: :doc:`basic`.
+
+.. include:: ../imports.rst
 
 LeNet5
 ''''''
