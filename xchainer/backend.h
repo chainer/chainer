@@ -18,13 +18,20 @@ public:
     // This count is usually configurable by backend specific ways.
     virtual int GetDeviceCount() const = 0;
 
+    // Returns the name of this backend. This name should be unique within the context.
+    virtual std::string GetName() const = 0;
+
     // Returns the device for the given index.
     //
     // Throws out_of_range exception if index >= GetDeviceCount().
-    virtual Device& GetDevice(int index) = 0;
+    Device& GetDevice(int index);
 
-    // Returns the name of this backend. This name should be unique within the context.
-    virtual std::string GetName() const = 0;
+private:
+	// Creates a new device.
+	// This function is called from GetDevice().
+    virtual std::unique_ptr<Device> CreateDevice(int index) = 0;
+
+	std::vector<std::unique_ptr<Device>> devices_;
 };
 
 }  // namespace xchainer
