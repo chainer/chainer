@@ -8,7 +8,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions.math.minmax
 from chainer import initializers
 import chainer.reporter
