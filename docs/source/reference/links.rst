@@ -1,5 +1,5 @@
-Standard Link implementations
-=============================
+Link and Chains
+===============
 
 .. module:: chainer.links
 
@@ -148,3 +148,16 @@ Compatibility with other frameworks
 
    chainer.links.TheanoFunction
    chainer.links.caffe.CaffeFunction
+
+Link and Chain base classes
+---------------------------
+
+.. module:: chainer
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Link
+   chainer.Chain
+   chainer.ChainList
