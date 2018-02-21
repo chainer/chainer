@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import importlib
+import imp
 import os
 import pkg_resources
 import sys
@@ -100,7 +100,7 @@ if cupy_pkg is not None:
     print('Use %s' % requirements['cuda'])
 
 here = os.path.abspath(os.path.dirname(__file__))
-__version__ = importlib.import_module(
+__version__ = imp.load_source(
     '_version', os.path.join(here, 'chainer', '_version.py')).__version__
 
 
