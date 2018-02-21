@@ -8,6 +8,7 @@ namespace xchainer {
 
 class Device;
 
+// Backend base class.
 class Backend {
 public:
     virtual ~Backend() = default;
