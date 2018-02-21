@@ -26,8 +26,7 @@ Here we use the simplest one, called Stochastic Gradient Descent (SGD):
 .. doctest::
 
    >>> model = MyChain()
-   >>> optimizer = optimizers.SGD()
-   >>> optimizer.setup(model)
+   >>> optimizer = optimizers.SGD().setup(model)
 
 The method :meth:`~Optimizer.setup` prepares for the optimization given a link.
 
