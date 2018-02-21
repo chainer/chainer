@@ -300,7 +300,7 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         xs = chainer.functions.concat(xs, axis=0)
 
         w = n_step_rnn.cudnn_rnn_weight_concat(
-            n_layers, states, use_bi_direction, 'lstm', ws, bs)
+            n_layers, states, use_bi_direction, 'gru', ws, bs)
 
         if use_bi_direction:
             rnn = NStepBiGRU
