@@ -34,7 +34,7 @@ void InitXchainerDeviceId(pybind11::module& m) {
         .def("__eq__", py::overload_cast<const DeviceId&, const DeviceId&>(&operator==))
         .def("__ne__", py::overload_cast<const DeviceId&, const DeviceId&>(&operator!=))
         .def("__repr__", &DeviceId::ToString)
-        .def_property_readonly("backend", &DeviceId::backend)
+        .def_property_readonly("backend", &DeviceId::backend, py::return_value_policy::reference)
         .def_property_readonly("index", &DeviceId::index);
 
     m.def("get_default_device_id", []() { return GetDefaultDeviceId(); });
