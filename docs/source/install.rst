@@ -79,7 +79,9 @@ You can install Chainer from the tarball::
 
 You can also install the development version of Chainer from a cloned Git repository::
 
-  $ pip install git+https://github.com/chainer/chainer.git
+  $ git clone https://github.com/chainer/chainer.git
+  $ cd chainer
+  $ pip install .
 
 
 .. _install_error:
