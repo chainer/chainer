@@ -43,6 +43,7 @@ requirements = {
         'theano',
     ],
     'docs': [
+        'sphinx',
         'sphinx_rtd_theme',
     ],
     'travis': [
