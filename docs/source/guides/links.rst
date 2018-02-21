@@ -15,7 +15,7 @@ A linear link from three-dimensional space to two-dimensional space is defined b
 
 .. doctest::
 
-   >>> l = L.Linear(3, 2)
+   >>> f = L.Linear(3, 2)
 
 .. note::
 
@@ -30,21 +30,21 @@ This is the preferred way to initialize these parameters.
 
 .. doctest::
 
-   >>> l.W.data
-   array([[ 1.01847613,  0.23103087,  0.56507462],
-          [ 1.29378033,  1.07823515, -0.56423163]], dtype=float32)
-   >>> l.b.data
-   array([ 0.,  0.], dtype=float32)
+   >>> f.W.data
+   array([[ 1.0184761 ,  0.23103087,  0.5650746 ],
+          [ 1.2937803 ,  1.0782351 , -0.56423163]], dtype=float32)
+   >>> f.b.data
+   array([0., 0.], dtype=float32)
 
 An instance of the Linear link acts like a usual function:
 
 .. doctest::
 
    >>> x = Variable(np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32))
-   >>> y = l(x)
+   >>> y = f(x)
    >>> y.data
-   array([[ 3.1757617 ,  1.75755572],
-          [ 8.61950684,  7.18090773]], dtype=float32)
+   array([[3.1757617, 1.7575557],
+          [8.619507 , 7.1809077]], dtype=float32)
 
 .. note::
 
@@ -55,7 +55,7 @@ An instance of the Linear link acts like a usual function:
   For example, the following line creates a linear link whose output dimension
   is two::
 
-  >>> l = L.Linear(2)
+  >>> f = L.Linear(2)
 
   If we feed a mini-batch of shape :math:`(2, M)`, the input dimension will be inferred as ``M``,
   which means ``l.W`` will be a 2 x M matrix.
@@ -69,7 +69,7 @@ It can be done by calling the :meth:`~Link.cleargrads` method.
 
 .. doctest::
 
-   >>> l.cleargrads()
+   >>> f.cleargrads()
 
 .. note::
    :meth:`~Link.cleargrads` is introduced in v1.15 to replace :meth:`~Link.zerograds` for efficiency.
@@ -81,9 +81,9 @@ Now we can compute the gradients of parameters by simply calling the backward me
 
    >>> y.grad = np.ones((2, 2), dtype=np.float32)
    >>> y.backward()
-   >>> l.W.grad
-   array([[ 5.,  7.,  9.],
-          [ 5.,  7.,  9.]], dtype=float32)
-   >>> l.b.grad
-   array([ 2.,  2.], dtype=float32)
+   >>> f.W.grad
+   array([[5., 7., 9.],
+          [5., 7., 9.]], dtype=float32)
+   >>> f.b.grad
+   array([2., 2.], dtype=float32)
 

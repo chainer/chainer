@@ -3,12 +3,27 @@ Optimizer
 
 .. include:: ../imports.rst
 
+From the previous guide on :doc:`models`, let's use the ``MyChain`` class:
+
+.. doctest::
+
+   >>> class MyChain(Chain):
+   ...     def __init__(self):
+   ...         super(MyChain, self).__init__()
+   ...         with self.init_scope():
+   ...             self.l1 = L.Linear(4, 3)
+   ...             self.l2 = L.Linear(3, 2)
+   ...
+   ...     def __call__(self, x):
+   ...         h = self.l1(x)
+   ...         return self.l2(h)
+
 To tune parameters values to minimize loss, etc., we have to optimize them by the :class:`Optimizer` class.
 It runs a numerical optimization algorithm on a given link.
 Many algorithms are implemented in the :mod:`~chainer.optimizers` module.
 Here we use the simplest one, called Stochastic Gradient Descent (SGD):
 
-.. code-block:: console
+.. doctest::
 
    >>> model = MyChain()
    >>> optimizer = optimizers.SGD()
@@ -20,7 +35,7 @@ Some parameter/gradient manipulations, e.g. weight decay and gradient clipping, 
 Hook functions are called after the gradient computation and right before the actual update of parameters.
 For example, we can set weight decay regularization by running the next line beforehand:
 
-.. code-block:: console
+.. doctest::
 
    >>> optimizer.add_hook(chainer.optimizer.WeightDecay(0.0005))
 
@@ -37,7 +52,7 @@ There are two further ways to use the optimizer directly.
 One is manually computing gradients and then calling the :meth:`~Optimizer.update` method with no arguments.
 Do not forget to clear the gradients beforehand!
 
-.. code-block:: console
+.. doctest::
 
    >>> x = np.random.uniform(-1, 1, (2, 4)).astype(np.float32)
    >>> model.cleargrads()
@@ -49,7 +64,7 @@ Do not forget to clear the gradients beforehand!
 The other way is just passing a loss function to the :meth:`~Optimizer.update` method.
 In this case, :meth:`~Link.cleargrads` is automatically called by the update method, so the user does not have to call it manually.
 
-.. code-block:: console
+.. doctest::
 
    >>> def lossfun(arg1, arg2):
    ...     # calculate loss
