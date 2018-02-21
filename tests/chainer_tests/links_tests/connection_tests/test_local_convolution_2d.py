@@ -78,4 +78,5 @@ class TestLocalConvolution2DParameterShapePlaceholder(unittest.TestCase):
         self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
+
 testing.run_module(__name__, __file__)
