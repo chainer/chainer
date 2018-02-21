@@ -141,11 +141,11 @@ if available:
 if six.PY2:
     try:
         from future.types.newint import newint as _newint
-        _integer_types = six.integer_types + (_newint,)
+        _integer_types = six.integer_types + (numpy.integer,) + (_newint,)
     except ImportError:
-        _integer_types = six.integer_types
+        _integer_types = six.integer_types + (numpy.integer,)
 else:
-    _integer_types = six.integer_types
+    _integer_types = six.integer_types + (numpy.integer,)
 
 
 # ------------------------------------------------------------------------------
@@ -219,7 +219,7 @@ def get_device(*args):
 
 def _get_device(*args):
     for arg in args:
-        if type(arg) in _integer_types:
+        if isinstance(arg, _integer_types):
             check_cuda_available()
             return Device(arg)
         if isinstance(arg, ndarray):
