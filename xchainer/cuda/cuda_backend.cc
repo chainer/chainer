@@ -11,7 +11,7 @@ namespace xchainer {
 namespace cuda {
 
 int CudaBackend::GetDeviceCount() const {
-    int count;
+    int count = 0;
     CheckError(cudaGetDeviceCount(&count));
     return count;
 }
