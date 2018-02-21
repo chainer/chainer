@@ -8,4 +8,4 @@ RUN apt-get update -y && \
     python-setuptools && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-RUN pip install chainer[cuda]==4.0.0b3
+RUN pip install chainer[cuda]==4.0.0b4

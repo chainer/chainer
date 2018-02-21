@@ -1,5 +1,7 @@
-Let's try using the Trainer feature
-```````````````````````````````````
+MNIST using Trainer
+```````````````````
+
+.. include:: ../imports.rst
 
 By using :class:`~chainer.training.Trainer`, you don't need to write the training loop explicitly any more. Furthermore, Chainer provides many useful extensions that can be used with :class:`~chainer.training.Trainer` to visualize your results, evaluate your model, store and manage log files more easily.
 
@@ -208,7 +210,7 @@ It outputs the specified values to the standard output.
 
 ----
 
-Each :class:`~chainer.training.Extension` class has different options and some extensions are not mentioned here. And one of other important feature is, for instance, by using the :attr:`~chainer.training.Extension.trigger` option, you can set individual timings to fire the :class:`~chainer.training.Extension`. To know more details of all extensions, please take a look at the official document: :ref:`extensions`.
+Each :class:`~chainer.training.Extension` class has different options and some extensions are not mentioned here. And one of other important feature is, for instance, by using the :attr:`~chainer.training.Extension.trigger` option, you can set individual timings to fire the :class:`~chainer.training.Extension`. To know more details of all extensions, please take a look at the :ref:`extensions` document.
 
 7. Start Training
 '''''''''''''''''
