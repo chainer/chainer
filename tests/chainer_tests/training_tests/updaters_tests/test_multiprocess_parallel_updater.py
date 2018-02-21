@@ -10,7 +10,6 @@ import numpy
 import chainer
 from chainer import cuda
 import chainer.functions.math.minmax
-from chainer import initializers
 import chainer.reporter
 from chainer import testing
 from chainer.testing import attr
