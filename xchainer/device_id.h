@@ -3,26 +3,26 @@
 #include <cstring>
 #include <sstream>
 #include <string>
+#include <utility>
 
 namespace xchainer {
 
 class Backend;
 
-// TODO(hvy): Follow struct coding guidelines.
 // TODO(hvy): Replace backend pointer to backend name.
-struct DeviceId {
+class DeviceId {
 public:
     DeviceId() = default;  // required to be POD
-    DeviceId(Backend* backend, int index = 0) : backend_(backend), index_(index) {}
+    DeviceId(const std::string& device_name);
+    DeviceId(std::string backend_name, int index) : backend_name_(std::move(backend_name)), index_(index) {}
 
-    Backend* backend() const { return backend_; }
+    const std::string& backend_name() const { return backend_name_; }
     int index() const { return index_; }
 
-    bool is_null() const;
     std::string ToString() const;
 
 private:
-    Backend* backend_;
+    std::string backend_name_;
     int index_;
 };
 

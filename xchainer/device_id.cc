@@ -14,10 +14,11 @@ static_assert(std::is_pod<decltype(thread_local_device_id)>::value, "thread_loca
 namespace internal {
 
 const DeviceId& GetDefaultDeviceIdNoExcept() noexcept { return thread_local_device_id; }
-
 }  // namespace internal
 
-bool DeviceId::is_null() const { return *this == internal::kNullDeviceId; }
+DeviceId::DeviceId(const std::string& device_name) {
+    // TODO(takagi): continue mob from here
+}
 
 std::string DeviceId::ToString() const {
     std::ostringstream os;
