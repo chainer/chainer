@@ -218,8 +218,7 @@ def get_device(*args):
 
 def _get_device(*args):
     for arg in args:
-        if isinstance(arg, _integer_types) and not numpy.issubdtype(
-                type(arg), numpy.bool_):
+        if type(arg) is not bool and isinstance(arg, _integer_types):
             check_cuda_available()
             return Device(arg)
         if isinstance(arg, ndarray):
