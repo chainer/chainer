@@ -14,7 +14,6 @@ install(FILES
     constant.h
     device.h
     device_id.h
-    device_list.h
     dtype.h
     error.h
     native_backend.h
@@ -32,7 +31,6 @@ add_library(xchainer SHARED
     array_repr.cc
     backprop.cc
     device_id.cc
-    device_list.cc
     dtype.cc
     gradient_check.cc
     native_backend.cc
