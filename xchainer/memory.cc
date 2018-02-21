@@ -14,8 +14,6 @@
 #include "xchainer/device_id.h"
 #include "xchainer/error.h"
 
-#include <iostream>
-
 namespace xchainer {
 namespace internal {
 
