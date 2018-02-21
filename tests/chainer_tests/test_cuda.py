@@ -323,7 +323,7 @@ class TestWorkspace(unittest.TestCase):
 }) + testing.product({
     'c_contiguous': [False],
     'device_dtype': [int]
-    }))
+}))
 )
 class TestToGPU(unittest.TestCase):
 
