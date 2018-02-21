@@ -12,10 +12,10 @@ namespace xchainer {
 
 namespace py = pybind11;  // standard convention
 
-class PyDeviceIdScope {
+class PyDeviceScope {
 public:
-    explicit PyDeviceIdScope(DeviceId target) : target_(target) {}
-    void Enter() { scope_ = std::make_unique<DeviceIdScope>(target_); }
+    explicit PyDeviceScope(DeviceId target) : target_(target) {}
+    void Enter() { scope_ = std::make_unique<DeviceScope>(target_); }
     void Exit(py::args args) {
         (void)args;  // unused
         scope_.reset();
@@ -23,7 +23,7 @@ public:
 
 private:
     // TODO(beam2d): better to replace it by "optional"...
-    std::unique_ptr<DeviceIdScope> scope_;
+    std::unique_ptr<DeviceScope> scope_;
     DeviceId target_;
 };
 
@@ -40,8 +40,8 @@ void InitXchainerDeviceId(pybind11::module& m) {
     m.def("get_default_device_id", []() { return GetDefaultDeviceId(); });
     m.def("set_default_device_id", [](const DeviceId& device_id) { SetDefaultDeviceId(device_id); });
 
-    py::class_<PyDeviceIdScope>(m, "DeviceIdScope").def("__enter__", &PyDeviceIdScope::Enter).def("__exit__", &PyDeviceIdScope::Exit);
-    m.def("device_id_scope", [](DeviceId device_id) { return PyDeviceIdScope(device_id); });
+    py::class_<PyDeviceScope>(m, "DeviceScope").def("__enter__", &PyDeviceScope::Enter).def("__exit__", &PyDeviceScope::Exit);
+    m.def("device_scope", [](DeviceId device_id) { return PyDeviceScope(device_id); });
 }
 
 }  // namespace xchainer

@@ -38,11 +38,11 @@ protected:
             backend_ = std::make_unique<cuda::CudaBackend>();
 #endif  // XCHAINER_ENABLE_CUDA
         }
-        device_id_scope_ = std::make_unique<DeviceIdScope>(backend_.get());
+        device_scope_ = std::make_unique<DeviceScope>(backend_.get());
     }
 
     void TearDown() override {
-        device_id_scope_.reset();
+        device_scope_.reset();
         backend_.reset();
     }
 
@@ -345,7 +345,7 @@ public:
 
 private:
     std::unique_ptr<Backend> backend_;
-    std::unique_ptr<DeviceIdScope> device_id_scope_;
+    std::unique_ptr<DeviceScope> device_scope_;
 };
 
 TEST_P(ArrayTest, CopyCtor) {

@@ -94,12 +94,12 @@ TEST_F(DeviceIdTest, ThreadLocal) {
     ASSERT_NE(GetDefaultDeviceId(), future.get());
 }
 
-TEST_F(DeviceIdTest, DeviceIdScopeCtor) {
+TEST_F(DeviceIdTest, DeviceScopeCtor) {
     {
-        // DeviceIdScope should work even if default device_id is kNullDeviceId
+        // DeviceScope should work even if default device_id is kNullDeviceId
         NativeBackend backend;
         DeviceId device_id{&backend};
-        DeviceIdScope scope(device_id);
+        DeviceScope scope(device_id);
     }
     NativeBackend backend1;
     DeviceId device_id1{&backend1, 1};
@@ -107,12 +107,12 @@ TEST_F(DeviceIdTest, DeviceIdScopeCtor) {
     {
         NativeBackend backend2;
         DeviceId device_id2{&backend2, 2};
-        DeviceIdScope scope(device_id2);
+        DeviceScope scope(device_id2);
         EXPECT_EQ(device_id2, GetDefaultDeviceId());
     }
     ASSERT_EQ(device_id1, GetDefaultDeviceId());
     {
-        DeviceIdScope scope;
+        DeviceScope scope;
         EXPECT_EQ(device_id1, GetDefaultDeviceId());
         NativeBackend backend2;
         DeviceId device_id2{&backend2, 2};
@@ -122,7 +122,7 @@ TEST_F(DeviceIdTest, DeviceIdScopeCtor) {
     NativeBackend backend2;
     DeviceId device_id2{&backend2, 2};
     {
-        DeviceIdScope scope(device_id2);
+        DeviceScope scope(device_id2);
         scope.Exit();
         EXPECT_EQ(device_id1, GetDefaultDeviceId());
         SetDefaultDeviceId(device_id2);

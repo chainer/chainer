@@ -45,18 +45,18 @@ const DeviceId& GetDefaultDeviceId();
 void SetDefaultDeviceId(const DeviceId& device_id);
 
 // Scope object that switches the default device_id by RAII.
-class DeviceIdScope {
+class DeviceScope {
 public:
-    DeviceIdScope() : orig_(internal::GetDefaultDeviceIdNoExcept()), exited_(false) {}
-    explicit DeviceIdScope(DeviceId device_id) : DeviceIdScope() { SetDefaultDeviceId(device_id); }
-    explicit DeviceIdScope(Backend* backend, int index = 0) : DeviceIdScope(DeviceId{backend, index}) {}
+    DeviceScope() : orig_(internal::GetDefaultDeviceIdNoExcept()), exited_(false) {}
+    explicit DeviceScope(DeviceId device_id) : DeviceScope() { SetDefaultDeviceId(device_id); }
+    explicit DeviceScope(Backend* backend, int index = 0) : DeviceScope(DeviceId{backend, index}) {}
 
-    DeviceIdScope(const DeviceIdScope&) = delete;
-    DeviceIdScope(DeviceIdScope&&) = delete;
-    DeviceIdScope& operator=(const DeviceIdScope&) = delete;
-    DeviceIdScope& operator=(DeviceIdScope&&) = delete;
+    DeviceScope(const DeviceScope&) = delete;
+    DeviceScope(DeviceScope&&) = delete;
+    DeviceScope& operator=(const DeviceScope&) = delete;
+    DeviceScope& operator=(DeviceScope&&) = delete;
 
-    ~DeviceIdScope() { Exit(); }
+    ~DeviceScope() { Exit(); }
 
     // Explicitly recovers the original device_id. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {

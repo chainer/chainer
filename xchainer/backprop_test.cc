@@ -38,11 +38,11 @@ protected:
             backend_ = std::make_unique<cuda::CudaBackend>();
 #endif  // XCHAINER_ENABLE_CUDA
         }
-        device_id_scope_ = std::make_unique<DeviceIdScope>(backend_.get());
+        device_scope_ = std::make_unique<DeviceScope>(backend_.get());
     }
 
     virtual void TearDown() {
-        device_id_scope_.reset();
+        device_scope_.reset();
         backend_.reset();
     }
 
@@ -129,7 +129,7 @@ public:
 
 private:
     std::unique_ptr<Backend> backend_;
-    std::unique_ptr<DeviceIdScope> device_id_scope_;
+    std::unique_ptr<DeviceScope> device_scope_;
 };
 
 TEST_P(BackpropTest, BackwardBasic) {
@@ -319,7 +319,7 @@ INSTANTIATE_TEST_CASE_P(ForEachBackend, BackpropTest, ::testing::Values(
 
 TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     NativeBackend native_backend;
-    DeviceIdScope scope{&native_backend};
+    DeviceScope scope{&native_backend};
 
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
     Array x2 = Array::Full({2}, 2.f);
@@ -348,7 +348,7 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
 
 TEST(BackpropEnableDoubleBackpropTest, Disabled) {
     NativeBackend native_backend;
-    DeviceIdScope scope{&native_backend};
+    DeviceScope scope{&native_backend};
 
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
     Array x2 = Array::Full({2}, 2.f);

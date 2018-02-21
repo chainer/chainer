@@ -54,7 +54,7 @@ void CheckDeviceIdFallback(const std::function<Array()>& create_array_func) {
     {
         NativeBackend native_backend;
         DeviceId cpu_device_id{&native_backend};
-        auto scope = std::make_unique<DeviceIdScope>(cpu_device_id);
+        auto scope = std::make_unique<DeviceScope>(cpu_device_id);
         Array array = create_array_func();
         ExpectDataExistsOnDeviceId(cpu_device_id, array);
     }
@@ -63,7 +63,7 @@ void CheckDeviceIdFallback(const std::function<Array()>& create_array_func) {
     {
         cuda::CudaBackend cuda_backend;
         DeviceId cuda_device_id{&cuda_backend};
-        auto scope = std::make_unique<DeviceIdScope>(cuda_device_id);
+        auto scope = std::make_unique<DeviceScope>(cuda_device_id);
         Array array = create_array_func();
         ExpectDataExistsOnDeviceId(cuda_device_id, array);
     }
@@ -81,7 +81,7 @@ void CheckDeviceIdExplicit(const std::function<Array(const DeviceId& device_id)>
         ExpectDataExistsOnDeviceId(cpu_device_id, array);
     }
     {
-        auto scope = std::make_unique<DeviceIdScope>(cpu_device_id);
+        auto scope = std::make_unique<DeviceScope>(cpu_device_id);
         Array array = create_array_func(cpu_device_id);
         ExpectDataExistsOnDeviceId(cpu_device_id, array);
     }
@@ -90,7 +90,7 @@ void CheckDeviceIdExplicit(const std::function<Array(const DeviceId& device_id)>
     DeviceId cuda_device_id{&cuda_backend};
 
     {
-        auto scope = std::make_unique<DeviceIdScope>(cuda_device_id);
+        auto scope = std::make_unique<DeviceScope>(cuda_device_id);
         Array array = create_array_func(cpu_device_id);
         ExpectDataExistsOnDeviceId(cpu_device_id, array);
     }
@@ -100,12 +100,12 @@ void CheckDeviceIdExplicit(const std::function<Array(const DeviceId& device_id)>
         ExpectDataExistsOnDeviceId(cuda_device_id, array);
     }
     {
-        auto scope = std::make_unique<DeviceIdScope>(cpu_device_id);
+        auto scope = std::make_unique<DeviceScope>(cpu_device_id);
         Array array = create_array_func(cuda_device_id);
         ExpectDataExistsOnDeviceId(cuda_device_id, array);
     }
     {
-        auto scope = std::make_unique<DeviceIdScope>(cuda_device_id);
+        auto scope = std::make_unique<DeviceScope>(cuda_device_id);
         Array array = create_array_func(cuda_device_id);
         ExpectDataExistsOnDeviceId(cuda_device_id, array);
     }
