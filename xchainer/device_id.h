@@ -26,9 +26,7 @@ private:
 
 namespace internal {
 
-const DeviceId& GetDefaultDeviceIdNoExcept() noexcept;
-
-constexpr DeviceId kNullDeviceId = {};
+Device* GetDefaultDeviceNoExcept() noexcept;
 
 }  // namespace internal
 
@@ -38,16 +36,18 @@ inline bool operator!=(const DeviceId& lhs, const DeviceId& rhs) { return !(lhs 
 
 std::ostream& operator<<(std::ostream&, const DeviceId&);
 
-const DeviceId& GetDefaultDeviceId();
+Device& GetDefaultDevice();
 
-void SetDefaultDeviceId(const DeviceId& device_id);
+void SetDefaultDevice(Device* device);
 
 // Scope object that switches the default device_id by RAII.
 class DeviceScope {
 public:
-    DeviceScope() : orig_(internal::GetDefaultDeviceIdNoExcept()), exited_(false) {}
-    explicit DeviceScope(DeviceId device_id) : DeviceScope() { SetDefaultDeviceId(device_id); }
-    explicit DeviceScope(Backend* backend, int index = 0) : DeviceScope(DeviceId{backend, index}) {}
+    DeviceScope() : orig_(internal::GetDefaultDeviceNoExcept()), exited_(false) {}
+    explicit DeviceScope(Device& device) : DeviceScope() { SetDefaultDevice(&device); }
+
+    // TODO(hvy): Maybe unnecessary.
+    explicit DeviceScope(Backend* backend, int index = 0) : DeviceScope(backend->GetDevice(index)) {}
 
     DeviceScope(const DeviceScope&) = delete;
     DeviceScope(DeviceScope&&) = delete;
@@ -56,16 +56,16 @@ public:
 
     ~DeviceScope() { Exit(); }
 
-    // Explicitly recovers the original device_id. It will invalidate the scope object so that dtor will do nothing.
+    // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
         if (!exited_) {
-            SetDefaultDeviceId(orig_);
+            SetDefaultDevice(orig_);
             exited_ = true;
         }
     }
 
 private:
-    DeviceId orig_;
+    Device* orig_;
     bool exited_;
 };
 

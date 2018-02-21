@@ -6,14 +6,15 @@
 namespace xchainer {
 namespace {
 
-thread_local DeviceId thread_local_device_id = internal::kNullDeviceId;
-static_assert(std::is_pod<decltype(thread_local_device_id)>::value, "thread_local_device_id must be POD");
+thread_local Device* t_default_device = nullptr;
+static_assert(std::is_pod<decltype(t_default_device)>::value, "t_default_device must be POD");
 
 }  // namespace
 
 namespace internal {
 
-const DeviceId& GetDefaultDeviceIdNoExcept() noexcept { return thread_local_device_id; }
+Device* GetDefaultDeviceNoExcept() noexcept { return t_default_device; }
+
 }  // namespace internal
 
 DeviceId::DeviceId(const std::string& device_name) {
@@ -46,14 +47,13 @@ std::ostream& operator<<(std::ostream& os, const DeviceId& device_id) {
     return os;
 }
 
-const DeviceId& GetDefaultDeviceId() {
-    if (thread_local_device_id.is_null()) {
+Device& GetDefaultDevice() {
+    if (t_default_device == nullptr) {
         throw XchainerError("Default device_id is not set.");
-    } else {
-        return thread_local_device_id;
     }
+    return *t_default_device;
 }
 
-void SetDefaultDeviceId(const DeviceId& device_id) { thread_local_device_id = device_id; }
+void SetDefaultDevice(Device* device) { t_default_device = device; }
 
 }  // namespace xchainer
