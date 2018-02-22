@@ -83,21 +83,21 @@ public:
 
     explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
 
-    static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, Device* device_ptr = nullptr);
+    static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, Device& device = GetDefaultDevice());
 
-    static Array Empty(const Shape& shape, Dtype dtype, Device* device_ptr = nullptr);
-    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, Device* device_ptr = nullptr);
-    static Array Full(const Shape& shape, Scalar scalar, Device* device_ptr = nullptr);
-    static Array Zeros(const Shape& shape, Dtype dtype, Device* device_ptr = nullptr);
-    static Array Ones(const Shape& shape, Dtype dtype, Device* device_ptr = nullptr);
+    static Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
+    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device = GetDefaultDevice());
+    static Array Full(const Shape& shape, Scalar scalar, Device& device = GetDefaultDevice());
+    static Array Zeros(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
+    static Array Ones(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
 
     // Creates an array which has the same shape and dtype as the other array.
     // The new array is allocated in the default device. The device of the other array
     // is ignored.
-    static Array EmptyLike(const Array& array, Device* device_ptr = nullptr);
-    static Array FullLike(const Array& array, Scalar scalar, Device* device_ptr = nullptr);
-    static Array ZerosLike(const Array& array, Device* device_ptr = nullptr);
-    static Array OnesLike(const Array& array, Device* device_ptr = nullptr);
+    static Array EmptyLike(const Array& array, Device& device = GetDefaultDevice());
+    static Array FullLike(const Array& array, Scalar scalar, Device& device = GetDefaultDevice());
+    static Array ZerosLike(const Array& array, Device& device = GetDefaultDevice());
+    static Array OnesLike(const Array& array, Device& device = GetDefaultDevice());
 
     // Creates a copy. It will be connected to all the graphs.
     Array Copy() const;
@@ -159,8 +159,7 @@ public:
     std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; };
 
 private:
-    Array(const Shape& shape, Dtype dtype, Device& device, std::shared_ptr<void> data, bool is_contiguous = true,
-          int64_t offset = 0);
+    Array(const Shape& shape, Dtype dtype, Device& device, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
 
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
