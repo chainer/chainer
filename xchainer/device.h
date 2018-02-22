@@ -3,11 +3,12 @@
 #include <memory>
 #include <string>
 
-#include "xchainer/array.h"
 #include "xchainer/backend.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
+
+class Array;
 
 // Device base class.
 // Note that these member functions may be called from the framework or user code.
