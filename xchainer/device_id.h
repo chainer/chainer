@@ -24,7 +24,9 @@ private:
     int index_;
 };
 
-inline bool operator==(const DeviceId& lhs, const DeviceId& rhs) { return lhs.backend() == rhs.backend() && lhs.index() == rhs.index(); }
+inline bool operator==(const DeviceId& lhs, const DeviceId& rhs) {
+    return lhs.backend_name() == rhs.backend_name() && lhs.index() == rhs.index();
+}
 
 inline bool operator!=(const DeviceId& lhs, const DeviceId& rhs) { return !(lhs == rhs); }
 
