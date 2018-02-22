@@ -38,7 +38,7 @@ private:
 // Check that Array data exists on the specified device
 void ExpectDataExistsOnDevice(const Device& expected_device, const Array& array) {
     // Check device member of the Array
-    EXPECT_EQ(expected_device, array.device());
+    EXPECT_EQ(&expected_device, &array.device());
 
     // Check device of data pointee
     if (expected_device.backend().GetName() == "native") {
