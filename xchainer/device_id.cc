@@ -35,7 +35,7 @@ std::string DeviceId::ToString() const {
 }
 
 std::ostream& operator<<(std::ostream& os, const DeviceId& device_id) {
-    os << backend_name_ << ':' << index_;
+    os << device_id.backend_name() << ':' << device_id.index();
     return os;
 }
 
