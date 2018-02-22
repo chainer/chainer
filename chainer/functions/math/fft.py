@@ -5,7 +5,7 @@ from chainer.utils import type_check
 
 class FFT(function_node.FunctionNode):
 
-    """Fast Fourie transform."""
+    """Fast Fourier transform."""
 
     def __init__(self, method):
         self._method = method
@@ -36,7 +36,7 @@ class FFT(function_node.FunctionNode):
 
 
 def fft(real, imag):
-    """Fast Fourie transform.
+    """Fast Fourier transform.
 
     Args:
         real (chainer.Variable): Real part of the input.
@@ -51,7 +51,7 @@ def fft(real, imag):
 
 
 def ifft(real, imag):
-    """Inverse fast Fourie transform.
+    """Inverse fast Fourier transform.
 
     Args:
         real (chainer.Variable): Real part of the input.
