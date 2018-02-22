@@ -14,10 +14,10 @@ False
 >>> xc.backward(y)
 >>> a.get_grad()
 array([[1., 1., 1.],
-       [1., 1., 1.]], dtype=float32, device_id=('native', 0))
+       [1., 1., 1.]], dtype=float32, device='native:0')
 >>> y.get_grad()
 array([[0.5, 0.5, 0.5],
-       [0.5, 0.5, 0.5]], dtype=float32, device_id=('native', 0))
+       [0.5, 0.5, 0.5]], dtype=float32, device='native:0')
 
 On GPU
 ------
@@ -33,7 +33,7 @@ TODO(sonots): Fix bus error
 .. >>> xc.backward(y)
 .. >>> a.get_grad()
 .. array([[1., 1., 1.],
-..        [1., 1., 1.]], dtype=float32, device_id=('cuda', 0))
+..        [1., 1., 1.]], dtype=float32, device='cuda:0')
 .. >>> y.get_grad()
 .. array([[1., 1., 1.],
-..        [1., 1., 1.]], dtype=float32, device_id=('cuda', 0))
+..        [1., 1., 1.]], dtype=float32, device='cuda:0')
