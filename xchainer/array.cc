@@ -234,7 +234,7 @@ void Array::Add(const Array& rhs, Array& out) const {
     internal::SetUpOpNodes("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     Device& device = GetDefaultDevice();
-    // TODO(sonots): Use device.backend->Add()
+    // TODO(sonots): Use device.Add()
     if (device.backend().GetName() == "native") {
         xchainer::Add(*this, rhs, out);
 #ifdef XCHAINER_ENABLE_CUDA
@@ -261,7 +261,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     Device& device = GetDefaultDevice();
-    // TODO(sonots): Use device.backend->Mul()
+    // TODO(sonots): Use device.Mul()
     if (device.backend().GetName() == "native") {
         xchainer::Mul(*this, rhs, out);
 #ifdef XCHAINER_ENABLE_CUDA

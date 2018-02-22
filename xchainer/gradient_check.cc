@@ -24,7 +24,7 @@ namespace gradient_internal {
 void Synchronize() {
 #ifdef XCHAINER_ENABLE_CUDA
     Device& device = GetDefaultDevice();
-    // TODO(sonots): Use device.backend->Synchronize()
+    // TODO(sonots): Use device.Synchronize()
     if (device.backend().GetName() == "cuda") {
         cuda::CheckError(cudaDeviceSynchronize());
     }

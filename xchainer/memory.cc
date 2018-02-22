@@ -43,7 +43,7 @@ bool IsPointerCudaMemory(const void* ptr) {
 }
 
 std::shared_ptr<void> Allocate(Device& device, size_t bytesize) {
-    // TODO(sonots): Use device.backend().Allocate()
+    // TODO(sonots): Use device.Allocate()
     if (device.backend().GetName() == "native") {
         return std::make_unique<uint8_t[]>(bytesize);
 #ifdef XCHAINER_ENABLE_CUDA
@@ -91,7 +91,7 @@ void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
 }
 
 std::shared_ptr<void> MemoryFromBuffer(Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
-// TODO(sonots): Use device.backend().FromBuffer()
+// TODO(sonots): Use device.FromBuffer()
 #ifdef XCHAINER_ENABLE_CUDA
     if (device.backend().GetName() == "native") {
         if (IsPointerCudaMemory(src_ptr.get())) {
