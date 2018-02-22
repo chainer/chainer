@@ -387,7 +387,7 @@ Assign a Parameter object directly to an attribute within a \
             value = d[name]
             if isinstance(value, numpy.ndarray):
                 d[name] = intel64.ideep.array(
-                    value, itype=intel64.ideep4.wgt_array)
+                    value, itype=intel64.ideep.wgt_array)
         self._cpu = True
         return self
 
