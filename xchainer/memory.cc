@@ -1,6 +1,7 @@
 #include "xchainer/memory.h"
 
 #include <cassert>
+#include <cstring>
 
 #ifdef XCHAINER_ENABLE_CUDA
 #include <cuda.h>
