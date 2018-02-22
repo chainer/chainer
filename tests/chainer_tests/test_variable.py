@@ -63,9 +63,16 @@ class TestVariable(unittest.TestCase):
         a = self.x
         if gpu:
             a = cuda.to_gpu(a)
+            xp = cuda.cupy
+        else:
+            xp = np
         x = chainer.Variable(a)
-        self.assertIs(x.data, a)
-        self.assertIs(x.array, a)
+        if isinstance(self.x, np.ndarray):
+            self.assertIs(x.data, a)
+            self.assertIs(x.array, a)
+        self.assertIsInstance(x.data, xp.ndarray)
+        self.assertIsInstance(x.array, xp.ndarray)
+        self.assertIs(x.data, x.array)
         self.assertEqual(x.shape, self.x.shape)
         self.assertEqual(x.ndim, self.x.ndim)
         self.assertEqual(x.size, self.x.size)
@@ -321,7 +328,7 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(np.empty((3,), dtype=np.float32))
         a.grad = np.ndarray((3,), dtype=np.float32)
 
-    def test_grad_type_check_type(self):
+    def test_grad_type_check_pass_type(self):
         a = chainer.Variable(np.empty((), dtype=np.float32))
         with self.assertRaises(TypeError):
             a.grad = np.float32()
