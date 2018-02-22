@@ -235,10 +235,10 @@ void Array::Add(const Array& rhs, Array& out) const {
 
     Device& device = GetDefaultDevice();
     // TODO(sonots): Use device.backend->Add()
-    if (device.backend()->GetName() == "native") {
+    if (device.backend().GetName() == "native") {
         xchainer::Add(*this, rhs, out);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (device.backend()->GetName() == "cuda") {
+    } else if (device.backend().GetName() == "cuda") {
         xchainer::cuda::Add(*this, rhs, out);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
@@ -262,10 +262,10 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     Device& device = GetDefaultDevice();
     // TODO(sonots): Use device.backend->Mul()
-    if (device.backend()->GetName() == "native") {
+    if (device.backend().GetName() == "native") {
         xchainer::Mul(*this, rhs, out);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (device.backend()->GetName() == "cuda") {
+    } else if (device.backend().GetName() == "cuda") {
         xchainer::cuda::Mul(*this, rhs, out);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
