@@ -303,9 +303,15 @@ class TestWorkspace(unittest.TestCase):
         self.assertEqual(size, cuda.get_max_workspace_size())
 
 
-@testing.parameterize(
-    {'c_contiguous': True},
-    {'c_contiguous': False},
+@testing.parameterize(*(testing.product({
+    'c_contiguous': [True],
+    'device_dtype': [int, numpy.uint8, numpy.int8, numpy.uint16,
+                     numpy.int16, numpy.uint32, numpy.int32, numpy.uint64,
+                     numpy.int64]
+}) + testing.product({
+    'c_contiguous': [False],
+    'device_dtype': [int]
+}))
 )
 class TestToGPU(unittest.TestCase):
 
@@ -329,11 +335,11 @@ class TestToGPU(unittest.TestCase):
 
     @attr.multi_gpu(2)
     def test_cupy_array2(self):
-        x = cuda.to_gpu(self.x, device=0)
+        x = cuda.to_gpu(self.x, device=self.device_dtype(0))
         with x.device:
             if not self.c_contiguous:
                 x = cuda.cupy.asfortranarray(x)
-        y = cuda.to_gpu(x, device=1)
+        y = cuda.to_gpu(x, device=self.device_dtype(1))
         self.assertIsInstance(y, cuda.ndarray)
         self.assertEqual(int(y.device), 1)
 
@@ -347,7 +353,8 @@ class TestToGPU(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_numpy_array_async2(self):
         with testing.assert_warns(DeprecationWarning):
-            y = cuda.to_gpu(self.x, device=1, stream=cuda.Stream.null)
+            y = cuda.to_gpu(self.x, device=self.device_dtype(1),
+                            stream=cuda.Stream.null)
         self.assertIsInstance(y, cuda.ndarray)
         cuda.cupy.testing.assert_array_equal(self.x, y)
         self.assertEqual(int(y.device), 1)
@@ -374,12 +381,13 @@ class TestToGPU(unittest.TestCase):
 
     @attr.multi_gpu(2)
     def test_cupy_array_async2(self):
-        x = cuda.to_gpu(self.x, device=0)
+        x = cuda.to_gpu(self.x, device=self.device_dtype(0))
         with x.device:
             if not self.c_contiguous:
                 x = cuda.cupy.asfortranarray(x)
         with testing.assert_warns(DeprecationWarning):
-            y = cuda.to_gpu(x, device=1, stream=cuda.Stream.null)
+            y = cuda.to_gpu(x, device=self.device_dtype(1),
+                            stream=cuda.Stream.null)
         self.assertIsInstance(y, cuda.ndarray)
         self.assertIsNot(x, y)  # Do copy
         cuda.cupy.testing.assert_array_equal(x, y)
