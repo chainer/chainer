@@ -1141,7 +1141,6 @@ class TestIntel64(unittest.TestCase):
 
     def test_cpu_to_intel64(self):
         link = self.link
-        prev_y = link.y
         link.to_intel64()
 
         # Arrays should be converted to ideep.mdarray
