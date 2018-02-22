@@ -42,11 +42,11 @@ bool IsPointerCudaMemory(const void* ptr) {
 }
 
 std::shared_ptr<void> Allocate(Device& device, size_t bytesize) {
-    // TODO(sonots): Use device.backend->Allocate()
-    if (device.backend()->GetName() == "native") {
+    // TODO(sonots): Use device.backend().Allocate()
+    if (device.backend().GetName() == "native") {
         return std::make_unique<uint8_t[]>(bytesize);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (device.backend()->GetName() == "cuda") {
+    } else if (device.backend().GetName() == "cuda") {
         void* raw_ptr = nullptr;
         // Be careful to be exception-safe, i.e., do not throw before creating shared_ptr
         cudaError_t status = cudaMallocManaged(&raw_ptr, bytesize, cudaMemAttachGlobal);
@@ -90,9 +90,9 @@ void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
 }
 
 std::shared_ptr<void> MemoryFromBuffer(Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
-// TODO(sonots): Use device.backend->FromBuffer()
+// TODO(sonots): Use device.backend().FromBuffer()
 #ifdef XCHAINER_ENABLE_CUDA
-    if (device.backend()->GetName() == "native") {
+    if (device.backend().GetName() == "native") {
         if (IsPointerCudaMemory(src_ptr.get())) {
             std::shared_ptr<void> dst_ptr = Allocate(device, bytesize);
             cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyDeviceToHost));
@@ -100,7 +100,7 @@ std::shared_ptr<void> MemoryFromBuffer(Device& device, const std::shared_ptr<voi
         } else {
             return src_ptr;
         }
-    } else if (device.backend()->GetName() == "cuda") {
+    } else if (device.backend().GetName() == "cuda") {
         if (IsPointerCudaMemory(src_ptr.get())) {
             return src_ptr;
         } else {
@@ -113,7 +113,7 @@ std::shared_ptr<void> MemoryFromBuffer(Device& device, const std::shared_ptr<voi
     }
 #else
     (void)bytesize;  // unused
-    if (device.backend()->GetName() == "native") {
+    if (device.backend().GetName() == "native") {
         return src_ptr;
     } else {
         throw DeviceError("invalid device");
