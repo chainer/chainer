@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -32,6 +33,8 @@ private:
     virtual std::unique_ptr<Device> CreateDevice(int index) = 0;
 
     std::vector<std::unique_ptr<Device>> devices_;
+
+    std::mutex devices_mutex_;
 };
 
 }  // namespace xchainer
