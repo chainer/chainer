@@ -3,6 +3,7 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
+from chainer.backends import numexpr
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -19,6 +20,7 @@ class ReLU(function_node.FunctionNode):
 
     _use_cudnn = False
     _use_ideep = False
+    _use_numexpr = False
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -32,7 +34,10 @@ class ReLU(function_node.FunctionNode):
             # iDeep implementation
             self._use_ideep = True
             return self.forward_ideep(inputs)
-
+        elif numexpr.should_use_numexpr('>=auto'):
+            # NumExpr implementation
+            self._use_numexpr = True
+            return self.forward_numexpr(inputs)
         x, = inputs
         self.retain_outputs((0,))
         return utils.force_array(numpy.maximum(x, 0, dtype=x.dtype)),
@@ -43,6 +48,12 @@ class ReLU(function_node.FunctionNode):
         self.retain_outputs((0,))
 
         y = intel64.ideep.relu.Forward(intel64.ideep.array(x))
+        return y,
+
+    def forward_numexpr(self, inputs):
+        x, = inputs
+        self.retain_outputs((0,))
+        y = numexpr.numexpr.evaluate('where(x>0, x, 0)', casting='same_kind')
         return y,
 
     def forward_gpu(self, inputs):
