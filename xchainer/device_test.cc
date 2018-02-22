@@ -31,11 +31,6 @@ private:
 TEST_F(DeviceTest, Ctor) {
     NativeBackend native_backend;
     {
-        NativeDevice expect{native_backend, 0};
-        NativeDevice actual{native_backend, 0};
-        EXPECT_NE(&expect, &actual);
-    }
-    {
         NativeDevice device{native_backend, 0};
         EXPECT_EQ(&native_backend, &device.backend());
         EXPECT_EQ(0, device.index());
