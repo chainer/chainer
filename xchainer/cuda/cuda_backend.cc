@@ -8,7 +8,7 @@
 namespace xchainer {
 namespace cuda {
 
-std::string CudaBackend::GetName() const { return "cuda"; }
+std::string CudaBackend::GetName() const { return kDefaultName; }
 
 int CudaBackend::GetDeviceCount() const {
     int count = 0;

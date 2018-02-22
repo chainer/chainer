@@ -4,7 +4,7 @@
 
 namespace xchainer {
 
-std::string NativeBackend::GetName() const { return "native"; }
+std::string NativeBackend::GetName() const { return kDefaultName; }
 
 // TODO(sonots): Returns number of CPU cores
 int NativeBackend::GetDeviceCount() const { return 4; }

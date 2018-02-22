@@ -11,6 +11,8 @@ namespace cuda {
 
 class CudaBackend : public Backend {
 public:
+    static constexpr const char* kDefaultName = "cuda";
+
     std::string GetName() const override;
 
     int GetDeviceCount() const override;
