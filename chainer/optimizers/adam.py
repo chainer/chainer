@@ -112,34 +112,27 @@ class AdamRule(optimizer.UpdateRule):
             raise ValueError(
                 'eps of Adam optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
+        kernel_params = 'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, \
+                         T eta, T weight_decay_rate'
+        kernel_rets = 'T param, T m, T v'
+        kernel = '''
+            m += one_minus_beta1 * (grad - m);
+            v += one_minus_beta2 * (grad * grad - v);
+            {}
+            param -= eta * (lr * m / (sqrt({}) + eps) +
+                            weight_decay_rate * param);
+        '''.format(*(('vhat = max(vhat, v);', 'vhat') if hp.amsgrad else ('', 'v')))
+        kernel_args = (grad, self.lr, 1 - hp.beta1,
+            1 - hp.beta2, hp.eps,
+            hp.eta, hp.weight_decay_rate,
+            param.data, self.state['m'], self.state['v'])
         if hp.amsgrad:
-            cuda.elementwise(
-                'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, \
-                 T eta, T weight_decay_rate',
-                'T param, T m, T v, T vhat',
-                '''m += one_minus_beta1 * (grad - m);
-                   v += one_minus_beta2 * (grad * grad - v);
-                   vhat = max(vhat, v);
-                   param -= eta * (lr * m / (sqrt(vhat) + eps) +
-                                   weight_decay_rate * param);''',
-                'adam')(grad, self.lr, 1 - hp.beta1,
-                        1 - hp.beta2, hp.eps,
-                        hp.eta, hp.weight_decay_rate,
-                        param.data, self.state['m'], self.state['v'],
-                        self.state['vhat'])
-        else:
-            cuda.elementwise(
-                'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, \
-                 T eta, T weight_decay_rate',
-                'T param, T m, T v',
-                '''m += one_minus_beta1 * (grad - m);
-                   v += one_minus_beta2 * (grad * grad - v);
-                   param -= eta * (lr * m / (sqrt(v) + eps) +
-                                   weight_decay_rate * param);''',
-                'adam')(grad, self.lr, 1 - hp.beta1,
-                        1 - hp.beta2, hp.eps,
-                        hp.eta, hp.weight_decay_rate,
-                        param.data, self.state['m'], self.state['v'])
+            kernel_args += (self.state['vhat'],)
+            kernel_rets += ', T vhat'
+        cuda.elementwise(
+            kernel_params,
+            kernel_rets,
+            kernel, 'adam')(*kernel_args)
 
     @property
     def lr(self):
