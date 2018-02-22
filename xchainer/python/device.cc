@@ -1,10 +1,10 @@
-#include "xchainer/python/device_id.h"
+#include "xchainer/python/device.h"
 
 #include <memory>
 #include <sstream>
 
 #include "xchainer/backend.h"
-#include "xchainer/device_id.h"
+#include "xchainer/device.h"
 
 #include "xchainer/python/common.h"
 
@@ -14,7 +14,7 @@ namespace py = pybind11;  // standard convention
 
 class PyDeviceScope {
 public:
-    explicit PyDeviceScope(DeviceId target) : target_(target) {}
+    explicit PyDeviceScope(Device& target) : target_(target) {}
     void Enter() { scope_ = std::make_unique<DeviceScope>(target_); }
     void Exit(py::args args) {
         (void)args;  // unused
@@ -24,24 +24,20 @@ public:
 private:
     // TODO(beam2d): better to replace it by "optional"...
     std::unique_ptr<DeviceScope> scope_;
-    DeviceId target_;
+    Device& target_;
 };
 
-void InitXchainerDeviceId(pybind11::module& m) {
-    py::class_<DeviceId>(m, "DeviceId")
-        // We uses py::keep_alive because device_id keeps the pointer to the backend through its lifetime
-        .def(py::init<Backend*, int>(), py::keep_alive<1, 2>(), py::arg(), py::arg("index") = 0)
-        .def("__eq__", py::overload_cast<const DeviceId&, const DeviceId&>(&operator==))
-        .def("__ne__", py::overload_cast<const DeviceId&, const DeviceId&>(&operator!=))
-        .def("__repr__", &DeviceId::ToString)
-        .def_property_readonly("backend", &DeviceId::backend, py::return_value_policy::reference)
-        .def_property_readonly("index", &DeviceId::index);
+void InitXchainerDevice(pybind11::module& m) {
+    py::class_<Device>(m, "Device")
+        .def("__repr__", &Device::name)
+        .def_property_readonly("backend", &Device::backend, py::return_value_policy::reference)
+        .def_property_readonly("index", &Device::index);
 
-    m.def("get_default_device_id", []() { return GetDefaultDeviceId(); });
-    m.def("set_default_device_id", [](const DeviceId& device_id) { SetDefaultDeviceId(device_id); });
+    m.def("get_default_device", []() -> Device& { return GetDefaultDevice(); }, py::return_value_policy::reference);
+    m.def("set_default_device", [](Device& device) { SetDefaultDevice(&device); });
 
     py::class_<PyDeviceScope>(m, "DeviceScope").def("__enter__", &PyDeviceScope::Enter).def("__exit__", &PyDeviceScope::Exit);
-    m.def("device_scope", [](DeviceId device_id) { return PyDeviceScope(device_id); });
+    m.def("device_scope", [](Device& device) { return PyDeviceScope(device); });
 }
 
 }  // namespace xchainer
