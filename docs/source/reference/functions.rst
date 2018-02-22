@@ -112,6 +112,7 @@ Neural network connections
    chainer.functions.n_step_gru
    chainer.functions.n_step_lstm
    chainer.functions.n_step_rnn
+   chainer.functions.shift
 
 
 Evaluation functions
