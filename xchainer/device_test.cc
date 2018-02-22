@@ -68,9 +68,9 @@ TEST_F(DeviceTest, ThreadLocal) {
     NativeDevice device1{backend1, 1};
     SetDefaultDevice(&device1);
 
-    auto future = std::async(std::launch::async, [] {
-        NativeBackend backend2;
-        NativeDevice device2{backend2, 2};
+    NativeBackend backend2;
+    NativeDevice device2{backend2, 2};
+    auto future = std::async(std::launch::async, [&device2] {
         SetDefaultDevice(&device2);
         return &GetDefaultDevice();
     });
