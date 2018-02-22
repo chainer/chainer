@@ -42,7 +42,7 @@ def check_ideep_available():
         # redirect to the ideep website.
         msg = str(_error)
         if 'cannot open shared object file' in msg:
-            msg += ('\n\nEnsure ideep requirements are satisfied: '
+            msg += ('\n\nEnsure iDeep requirements are satisfied: '
                     'https://github.com/intel/ideep')
         raise RuntimeError(
             'iDeep is not available.\n'
