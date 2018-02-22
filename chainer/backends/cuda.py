@@ -134,14 +134,13 @@ if available:
     cuda.set_pinned_memory_allocator(pinned_memory_pool.malloc)
 
 
+_integer_types = six.integer_types + (numpy.integer,)
 if six.PY2:
     try:
         from future.types.newint import newint as _newint
-        _integer_types = six.integer_types + (_newint,)
+        _integer_types += (_newint,)
     except ImportError:
-        _integer_types = six.integer_types
-else:
-    _integer_types = six.integer_types
+        pass
 
 
 # ------------------------------------------------------------------------------
@@ -215,7 +214,7 @@ def get_device(*args):
 
 def _get_device(*args):
     for arg in args:
-        if type(arg) in _integer_types:
+        if type(arg) is not bool and isinstance(arg, _integer_types):
             check_cuda_available()
             return Device(arg)
         if isinstance(arg, ndarray):
