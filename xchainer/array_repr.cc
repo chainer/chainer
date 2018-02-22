@@ -240,7 +240,7 @@ struct ArrayReprImpl {
         // Print the footer
         PrintNTimes(os, ']', ndim);
         os << ", dtype=" << array.dtype();
-        os << ", device_id=('" << array.device_id().backend()->GetName() << "', " << array.device_id().index() << ")";
+        os << ", device_id=('" << array.device().backend().GetName() << "', " << array.device().index() << ")";
         const std::vector<std::shared_ptr<ArrayNode>>& nodes = array.nodes();
         if (!nodes.empty()) {
             os << ", graph_ids=[";
