@@ -157,12 +157,12 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
     CheckArrayRepr<double>("array([[[[3.25]]]], dtype=float64, device_id=('native', 0))", {3.25}, Shape({1, 1, 1, 1}), device);
 
     // Single graph
-    CheckArrayRepr<int32_t>("array([-2], dtype=int32, device_id=('native', 0), graph_ids=['graph_1'])", {-2}, Shape({1}),
-                            device, {"graph_1"});
+    CheckArrayRepr<int32_t>("array([-2], dtype=int32, device_id=('native', 0), graph_ids=['graph_1'])", {-2}, Shape({1}), device,
+                            {"graph_1"});
 
     // Two graphs
-    CheckArrayRepr<int32_t>("array([1], dtype=int32, device_id=('native', 0), graph_ids=['graph_1', 'graph_2'])", {1}, Shape({1}),
-                            device, {"graph_1", "graph_2"});
+    CheckArrayRepr<int32_t>("array([1], dtype=int32, device_id=('native', 0), graph_ids=['graph_1', 'graph_2'])", {1}, Shape({1}), device,
+                            {"graph_1", "graph_2"});
 
     // Multiple graphs
     CheckArrayRepr<int32_t>(
