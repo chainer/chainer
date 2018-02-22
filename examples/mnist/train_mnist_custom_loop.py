@@ -29,7 +29,8 @@ def main():
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
-                        help='Resume the training from snapshot')
+                        help='Resume the training from snapshot using model '
+                             'and state files in the specified directory')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
     args = parser.parse_args()
@@ -50,6 +51,11 @@ def main():
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
+
+    if args.resume:
+        # Resume from a snapshot
+        serializers.load_npz('{}/mlp.model'.format(args.resume), model)
+        serializers.load_npz('{}/mlp.state'.format(args.resume), optimizer)
 
     # Load the MNIST dataset
     train, test = chainer.datasets.get_mnist()
@@ -96,9 +102,9 @@ def main():
 
     # Save the model and the optimizer
     print('save the model')
-    serializers.save_npz('mlp.model', model)
+    serializers.save_npz('{}/mlp.model'.format(args.out), model)
     print('save the optimizer')
-    serializers.save_npz('mlp.state', optimizer)
+    serializers.save_npz('{}/mlp.state'.format(args.out), optimizer)
 
 
 if __name__ == '__main__':
