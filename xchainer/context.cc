@@ -11,7 +11,8 @@
 namespace xchainer {
 namespace {
 
-static std::atomic<Context*> g_default_context{nullptr};
+std::atomic<Context*> g_global_default_context{nullptr};
+thread_local Context* t_default_context{nullptr};
 
 }  // namespace
 
@@ -53,19 +54,25 @@ Device& Context::GetDevice(const DeviceId& device_id) {
     return backend.GetDevice(device_id.index());
 }
 
-Context& GetDefaultContext() {
-    Context* context = g_default_context;
+Context& GetGlobalDefaultContext() {
+    Context* context = g_global_default_context;
     if (context == nullptr) {
-        throw ContextError("Default context is not set.");
+        throw ContextError("Global default context is not set.");
     }
     return *context;
 }
 
-void SetDefaultContext(Context* context) { g_default_context = context; }
+void SetGlobalDefaultContext(Context* context) { g_global_default_context = context; }
 
-// TODO(hvy): Continue next mob programming sessions implementing the following functions.
-// TODO(hvy): Then, add Context to Backend.
-// Context& GetCurrentContext();
-// void SetCurrentContext(Context* context);
+Context& GetDefaultContext() {
+    if (t_default_context == nullptr) {
+        return GetGlobalDefaultContext();
+    }
+    return *t_default_context;
+}
+
+void SetDefaultContext(Context* context) {
+    t_default_context = context;
+}
 
 }  // namespace xchainer

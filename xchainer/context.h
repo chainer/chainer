@@ -33,7 +33,7 @@ public:
     Device& default_device() const {
         std::lock_guard<std::recursive_mutex> lock{mutex_};
         if (default_device_ == nullptr) {
-            throw ContextError("Default device is not set.");
+            throw ContextError("Global default device is not set.");
         }
         return *default_device_;
     }
@@ -45,11 +45,11 @@ private:
 };
 
 // Gets/sets the context that used by default when current context is not set.
-Context& GetDefaultContext();
-void SetDefaultContext(Context* context);
+Context& GetGlobalDefaultContext();
+void SetGlobalDefaultContext(Context* context);
 
 // Gets/sets thread local context.
-Context& GetCurrentContext();
-void SetCurrentContext(Context* context);
+Context& GetDefaultContext();
+void SetDefaultContext(Context* context);
 
 }  // namespace xchainer
