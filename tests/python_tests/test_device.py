@@ -4,8 +4,8 @@ import xchainer
 
 
 _devices_data = [
-    {'backend': xchainer.NativeBackend(), 'index': 0},
-    {'backend': xchainer.NativeBackend(), 'index': 1},
+    {'index': 0},
+    {'index': 1},
 ]
 
 
@@ -21,12 +21,12 @@ def device_data2(request):
 
 @pytest.fixture
 def device_instance1(request, device_data1):
-    return device_data1['backend'].get_device(device_data1['index'])
+    return xchainer.get_global_default_context().get_device('native', device_data1['index'])
 
 
 @pytest.fixture
 def device_instance2(request, device_data2):
-    return device_data2['backend'].get_device(device_data2['index'])
+    return xchainer.get_global_default_context().get_device('native', device_data2['index'])
 
 
 @pytest.fixture
@@ -39,7 +39,7 @@ def cache_restore_device(request):
 
 
 def test_creation():
-    backend = xchainer.NativeBackend()
+    backend = xchainer.get_global_default_context().get_backend('native')
     device = backend.get_device(0)
     assert device.backend is backend
     assert device.index == 0
