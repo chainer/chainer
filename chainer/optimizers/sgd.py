@@ -1,5 +1,6 @@
 from chainer.backends import cuda
 from chainer.backends import intel64
+from chainer.backends import numexpr
 from chainer import optimizer
 
 
@@ -33,6 +34,13 @@ class SGDRule(optimizer.UpdateRule):
             return
         if isinstance(param.data, intel64.mdarray):
             param.data.inplace_axpby(1.0, -self.hyperparam.lr, grad)
+        elif (numexpr.should_use_numexpr(">=auto")
+            and numexpr.inputs_all_ready((param,))):
+            p, lr = param.data, self.hyperparam.lr
+            numexpr.numexpr.evaluate(
+                'p - lr * grad',
+                out=p,
+            )
         else:
             param.data -= self.hyperparam.lr * grad
 

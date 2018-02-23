@@ -106,6 +106,7 @@ class LinearModel(object):
     testing.product({
         'use_cuda': [False],
         'use_ideep': ['never', 'always'],
+        'use_numexpr': ['never', 'always'],
     })
     # GPU tests
     + [{'use_cuda': True}])
