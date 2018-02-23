@@ -91,21 +91,20 @@ class Evaluator(extension.Extension):
         self.eval_hook = eval_hook
         self.eval_func = eval_func
 
-        if chainer.is_debug():
-            for key, iter in six.iteritems(iterator):
-                if (isinstance(iter, (iterators.SerialIterator,
-                                      iterators.MultiprocessIterator,
-                                      iterators.MultithreadIterator)) and
-                        getattr(iter, 'repeat', False)):
-                    msg = 'The `repeat` property of the iterator {} '
-                    'is set to `True`. Typically, the evaluator sweeps '
-                    'over iterators until they stop, '
-                    'but as the property being `True`, this iterator '
-                    'might not stop and evaluation could go into '
-                    'an infinite loop.'
-                    'We recommend to check the configuration '
-                    'of iterators'.format(key)
-                    warnings.warn(msg)
+        for key, iter in six.iteritems(iterator):
+            if (isinstance(iter, (iterators.SerialIterator,
+                                  iterators.MultiprocessIterator,
+                                  iterators.MultithreadIterator)) and
+                getattr(iter, 'repeat', False)):
+                msg = 'The `repeat` property of the iterator {} '
+                'is set to `True`. Typically, the evaluator sweeps '
+                'over iterators until they stop, '
+                'but as the property being `True`, this iterator '
+                'might not stop and evaluation could go into '
+                'an infinite loop.'
+                'We recommend to check the configuration '
+                'of iterators'.format(key)
+                warnings.warn(msg)
 
     def get_iterator(self, name):
         """Returns the iterator of the given name."""
