@@ -121,12 +121,11 @@ class AdamRule(optimizer.UpdateRule):
             {}
             param -= eta * (lr * m / (sqrt({}) + eps) +
                             weight_decay_rate * param);
-        '''.format(
-            *(('vhat = max(vhat, v);', 'vhat') if hp.amsgrad else ('', 'v')))
+        '''.format(*(('vhat = max(vhat, v);', 'vhat') if hp.amsgrad else ('', 'v')))
         kernel_args = (grad, self.lr, 1 - hp.beta1,
-                       1 - hp.beta2, hp.eps,
-                       hp.eta, hp.weight_decay_rate,
-                       param.data, self.state['m'], self.state['v'])
+            1 - hp.beta2, hp.eps,
+            hp.eta, hp.weight_decay_rate,
+            param.data, self.state['m'], self.state['v'])
         if hp.amsgrad:
             kernel_args += (self.state['vhat'],)
             kernel_rets += ', T vhat'
