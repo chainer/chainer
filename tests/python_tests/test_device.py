@@ -39,13 +39,18 @@ def cache_restore_device(request):
 
 
 def test_creation():
-    backend = xchainer.get_global_default_context().get_backend('native')
+    ctx = xchainer.get_global_default_context()
+    backend = ctx.get_backend('native')
     device = backend.get_device(0)
+    assert device.name == 'native:0'
     assert device.backend is backend
+    assert device.context is ctx
     assert device.index == 0
 
     device = backend.get_device(1)
+    assert device.name == 'native:1'
     assert device.backend is backend
+    assert device.context is ctx
     assert device.index == 1
 
 
