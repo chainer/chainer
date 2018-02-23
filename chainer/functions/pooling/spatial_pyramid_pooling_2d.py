@@ -5,7 +5,7 @@ import six
 import chainer
 
 
-def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_method):
+def spatial_pyramid_pooling_2d(x, pyramid_height, pooling):
     """Spatial pyramid pooling function.
 
     It outputs a fixed-length vector regardless of input feature map size.
@@ -38,7 +38,7 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_method):
         x (~chainer.Variable): Input variable. The shape of ``x`` should be
             ``(batchsize, # of channels, height, width)``.
         pyramid_height (int): Number of pyramid levels
-        pooling_method (str):
+        pooling (str):
             Currently, only ``max`` is supported, which performs a 2d max
             pooling operation.
 
@@ -74,7 +74,7 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_method):
         ksize = (ksize_h, ksize_w)
         pad = (pad_h, pad_w)
 
-        if pooling_method == 'max':
+        if pooling == 'max':
             pooler = chainer.functions.MaxPooling2D(
                 ksize=ksize, stride=None, pad=pad, cover_all=True)
         else:

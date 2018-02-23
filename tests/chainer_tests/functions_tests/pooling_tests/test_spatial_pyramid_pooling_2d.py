@@ -20,7 +20,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
     pyramid_height = 3
     output_dim = 63  # channels(c=3) * (1 + 4 + 16) = 63
     n, c, h, w = 2, 3, 9, 8
-    pooling_method = 'max'
+    pooling = 'max'
 
     def setUp(self):
         # Spacial pyramid pooling uses max pooling in its implementation.
@@ -44,7 +44,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
         x = chainer.Variable(x_data)
         with chainer.using_config('use_cudnn', use_cudnn):
             y = functions.spatial_pyramid_pooling_2d(
-                x, self.pyramid_height, self.pooling_method)
+                x, self.pyramid_height, self.pooling)
         self.assertEqual(y.data.dtype, self.dtype)
         y_data = cuda.to_cpu(y.data)
 
@@ -54,7 +54,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
         x = chainer.Variable(x_data)
         with chainer.using_config('use_cudnn', use_cudnn):
             y = functions.spatial_pyramid_pooling_2d(
-                x, self.pyramid_height, self.pooling_method)
+                x, self.pyramid_height, self.pooling)
         y_data = cuda.to_cpu(y.data)
 
         self.assertEqual(y_data.shape, (self.n, self.output_dim, 1, 1))
@@ -81,7 +81,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
         def f(x_data):
             return functions.spatial_pyramid_pooling_2d(
-                x_data, self.pyramid_height, self.pooling_method)
+                x_data, self.pyramid_height, self.pooling)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
                 f, x_data, y_grad, dtype=numpy.float64, atol=5e-4, rtol=5e-3)
@@ -104,7 +104,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
                               use_cudnn='always'):
         def f(x):
             y = functions.spatial_pyramid_pooling_2d(
-                x, self.pyramid_height, self.pooling_method)
+                x, self.pyramid_height, self.pooling)
             return y * y
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
