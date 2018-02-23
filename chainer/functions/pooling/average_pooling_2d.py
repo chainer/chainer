@@ -188,7 +188,8 @@ class AveragePooling2DGrad(function_node.FunctionNode):
 def average_pooling_2d(x, ksize, stride=None, pad=0):
     """Spatial average pooling function.
 
-    This function acts similarly to :class:`~functions.Convolution2D`, but
+    This function acts similarly to
+    :class:`~functions.connection.convolution_2d.Convolution2D`, but
     it computes the average of input spatial patch for each channel
     without any parameter instead of computing the inner products.
 

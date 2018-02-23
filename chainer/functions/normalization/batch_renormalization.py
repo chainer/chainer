@@ -222,7 +222,7 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
           Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
 
     .. seealso:: :class:`links.BatchRenormalization`
-    .. seealso:: :func:`functions.BatchNormalization`
+    .. seealso:: :class:`functions.normalization.batch_normalization.BatchNormalization`  # NOQA
 
     """
     return BatchRenormalizationFunction(eps, running_mean, running_var,
