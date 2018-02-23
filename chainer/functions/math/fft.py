@@ -35,31 +35,43 @@ class FFT(function_node.FunctionNode):
         return gxr, gxi
 
 
-def fft(real, imag):
+def fft(x):
     """Fast Fourier transform.
 
     Args:
-        real (chainer.Variable): Real part of the input.
-        imag (chainer.Variable): Imaginary part of the input.
+        x (tuple): ``(real, imag)`` where ``real`` is a
+            :class:`~chainer.Variable` storing the real part and
+            ``imag`` is a :class:`~chainer.Variable` storing the imaginary part.
 
     Returns:
         tuple: Returns ``(ry, ri)`` where ``ry`` is the real part of
         the result and ``ri`` is the imaginary part of the result.
 
+    .. note::
+       Currently this function supports a tuple as input. It will supports a
+       complex numbers directly in the future.
+
     """
+    real, imag = x
     return FFT('fft').apply((real, imag))
 
 
-def ifft(real, imag):
+def ifft(x):
     """Inverse fast Fourier transform.
 
     Args:
-        real (chainer.Variable): Real part of the input.
-        imag (chainer.Variable): Imaginary part of the input.
+        x (tuple): ``(real, imag)`` where ``real`` is a
+            :class:`~chainer.Variable` storing the real part and
+            ``imag`` is a :class:`~chainer.Variable` storing the imaginary part.
 
     Returns:
         tuple: Returns ``(ry, ri)`` where ``ry`` is the real part of
         the result and ``ri`` is the imaginary part of the result.
 
+    .. note::
+       Currently this function supports a tuple as input. It will supports a
+       complex numbers directly in the future.
+
     """
+    real, imag = x
     return FFT('ifft').apply((real, imag))

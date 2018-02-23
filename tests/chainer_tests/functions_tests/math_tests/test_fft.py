@@ -23,7 +23,7 @@ class TestFFT(unittest.TestCase):
         self.ig = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
     def check_forward(self, rx_data, ix_data):
-        ry, iy = getattr(chainer.functions, self.method)(rx_data, ix_data)
+        ry, iy = getattr(chainer.functions, self.method)((rx_data, ix_data))
 
         x = self.rx + self.ix * 1j
         y = getattr(numpy.fft, self.method)(x)
@@ -39,8 +39,11 @@ class TestFFT(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.rx), cuda.to_gpu(self.ix))
 
     def check_backward(self, rx_data, ix_data, rg_data, ig_data):
+        def f(real, imag):
+            return getattr(chainer.functions, self.method)((real, imag))
+
         gradient_check.check_backward(
-            getattr(chainer.functions, self.method), (rx_data, ix_data),
+            f, (rx_data, ix_data),
             (rg_data, ig_data), dtype='d', eps=2.0 ** -2, atol=1e-2, rtol=1e-3)
 
     def test_backward_cpu(self):
