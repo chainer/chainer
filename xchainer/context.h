@@ -48,8 +48,12 @@ private:
 Context& GetGlobalDefaultContext();
 void SetGlobalDefaultContext(Context* context);
 
-// Gets/sets thread local context.
+// Gets thread local default context.
 Context& GetDefaultContext();
+
+// Sets thread local default context.
+//
+// The thread local default device is reset to null if given context is different with previous default context.
 void SetDefaultContext(Context* context);
 
 }  // namespace xchainer

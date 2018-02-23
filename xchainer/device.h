@@ -59,6 +59,9 @@ Device* GetDefaultDeviceNoExcept() noexcept;
 
 Device& GetDefaultDevice();
 
+// Sets thread local device.
+//
+// Raises ContextError if context mismatches between given device and default context.
 void SetDefaultDevice(Device* device);
 
 // Scope object that switches the default device_id by RAII.
