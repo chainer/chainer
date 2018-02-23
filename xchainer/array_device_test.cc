@@ -27,20 +27,12 @@ namespace {
 
 class ArrayDeviceTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        context_session_.emplace();
-        orig_ = internal::GetDefaultDeviceNoExcept();
-        SetDefaultDevice(nullptr);
-    }
+    void SetUp() override { context_session_.emplace(); }
 
-    void TearDown() override {
-        SetDefaultDevice(orig_);
-        context_session_.reset();
-    }
+    void TearDown() override { context_session_.reset(); }
 
 private:
     nonstd::optional<testing::ContextSession> context_session_;
-    Device* orig_;
 };
 
 // Check that Array data exists on the specified device
