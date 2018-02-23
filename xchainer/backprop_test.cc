@@ -25,7 +25,6 @@
 #include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/shape.h"
-#include "xchainer/testing/context_session.h"
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
@@ -33,17 +32,12 @@ namespace {
 
 class BackpropTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
-    virtual void SetUp() {
-        context_session_.emplace();
+    void SetUp() override {
         std::string backend_name = ::testing::get<0>(GetParam());
-        Backend& backend = context_session_->context().GetBackend(backend_name);
-        device_scope_ = std::make_unique<DeviceScope>(&backend);
+        device_session_.emplace(DeviceId{backend_name, 0});
     }
 
-    virtual void TearDown() {
-        device_scope_.reset();
-        context_session_.reset();
-    }
+    void TearDown() override { device_session_.reset(); }
 
 public:
     Array MakeFullArray(const Shape& shape, float value) const { return Array::Full(shape, value); }
@@ -127,8 +121,7 @@ public:
     }
 
 private:
-    nonstd::optional<testing::ContextSession> context_session_;
-    std::unique_ptr<DeviceScope> device_scope_;
+    nonstd::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_P(BackpropTest, BackwardBasic) {
