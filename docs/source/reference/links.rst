@@ -71,6 +71,7 @@ Activation/loss/normalization functions with parameters
    chainer.links.CRF1d
    chainer.links.SimplifiedDropconnect
    chainer.links.PReLU
+   chainer.links.Swish
    chainer.links.Maxout
    chainer.links.NegativeSampling
 

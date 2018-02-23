@@ -44,6 +44,7 @@ Activation functions
    chainer.functions.slstm
    chainer.functions.softmax
    chainer.functions.softplus
+   chainer.functions.swish
    chainer.functions.tanh
    chainer.functions.tree_lstm
 
