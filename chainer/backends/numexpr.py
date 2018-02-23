@@ -3,12 +3,21 @@ from __future__ import absolute_import
 import chainer
 from chainer.configuration import config
 
+import numpy
+
 _numexpr_version = None
 _error = None
 
 try:
     import numexpr # NOQA
     _numexpr_version = 0
+    numexpr_dtypes = {
+        numpy.int32,
+        numpy.int64,
+        numpy.float32,
+        numpy.float64,
+        numpy.complex128,
+    }
 except ImportError as e:
     _error = e
 
@@ -65,3 +74,25 @@ def should_use_numexpr(level):
                          '(must be either of "always", "auto", or "never")' %
                          repr(use_numexpr))
     return flags[use_numexpr]
+
+def inputs_all_ready(inputs):
+    """Checks if input arrays are supported for numexpr optimization.
+
+    Information to be checked includes array types and data types.
+    The function checks ``inputs`` info. NumExpr optimization cannot be used
+    on arrays of numpy.float16
+
+    Args:
+        inputs (sequence of arrays or variables``):
+            Inputs to be checked.
+
+    Returns:
+        bool: ``True`` if all conditions meet.
+
+    """
+    if _numexpr_version is None:
+        return False
+
+    inputs = [x.data if isinstance(x, chainer.variable.Variable)
+              else x for x in inputs]
+    return all([ipt.dtype in numexpr_dtypes for ipt in inputs])

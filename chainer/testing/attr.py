@@ -30,6 +30,7 @@ if _error is None:
 
     cudnn = pytest.mark.cudnn
     ideep = pytest.mark.ideep
+    numexpr = pytest.mark.numexpr
     slow = pytest.mark.slow
 
 else:
@@ -39,6 +40,7 @@ else:
 
     cudnn = _dummy_callable
     ideep = _dummy_callable
+    numexpr = _dummy_callable
     slow = _dummy_callable
 
 

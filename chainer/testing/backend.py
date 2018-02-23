@@ -15,6 +15,7 @@ class BackendConfig(object):
         ('cudnn_deterministic', False),
         ('autotune', False),
         ('use_ideep', 'never'),
+        ('use_numexpr', 'never')
     ]
 
     def __init__(self, params):
@@ -48,6 +49,8 @@ class BackendConfig(object):
                 'autotune', self.autotune),
             chainer.using_config(
                 'use_ideep', self.use_ideep),
+            chainer.using_config(
+                'use_numexpr', self.use_numexpr),
         ]
         for c in self._contexts:
             c.__enter__()
@@ -86,6 +89,8 @@ class BackendConfig(object):
         else:
             if self.use_ideep != 'never':
                 marks.append(attr.ideep)
+            if self.use_numexpr != 'never':
+                marks.append(attr.numexpr)
 
         assert all(callable(_) for _ in marks)
         return marks

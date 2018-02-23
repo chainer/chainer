@@ -29,6 +29,7 @@ def _to_noncontiguous(arrays):
     testing.product({
         'use_cuda': [False],
         'use_ideep': ['never', 'always'],
+        'use_numexpr': ['never', 'always'],
     })
     # GPU tests
     + testing.product({

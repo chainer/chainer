@@ -34,7 +34,8 @@ class ReLU(function_node.FunctionNode):
             # iDeep implementation
             self._use_ideep = True
             return self.forward_ideep(inputs)
-        elif numexpr.should_use_numexpr('>=auto'):
+        elif (numexpr.should_use_numexpr('>=auto')
+                and numexpr.inputs_all_ready(inputs)):
             # NumExpr implementation
             self._use_numexpr = True
             return self.forward_numexpr(inputs)
@@ -80,6 +81,9 @@ class ReLU(function_node.FunctionNode):
             # cuDNN implementation
             x, = self.get_retained_inputs()
             return ReLUGradCudnn(x, y).apply((gy,))
+        if self._use_numexpr:
+            # NumExpr implementation
+            return ReLUGradNumexpr(y).apply((gy,))
         # Generic implementation
         return ReLUGrad2(y).apply((gy,))
 
@@ -118,6 +122,22 @@ class ReLUGrad2(function_node.FunctionNode):
     def backward(self, indexes, gy):
         return gy[0] * _heaviside(self.b),
 
+class ReLUGradNumexpr(ReLUGrad2):
+
+    def forward_cpu(self, inputs):
+        b, ipt0 = self.b, inputs[0].data
+        y = numexpr.numexpr.evaluate(
+            'where(b > 0, ipt0, 0)',
+            casting='same_kind',
+        )
+        return utils.force_array(y, dtype=y.dtype),
+
+    def backward(self, indexes, gy):
+        b, gy0 = self.b, gy[0].data
+        return numexpr.numexpr.evaluate(
+            'where(b > 0, gy0, 0)',
+            casting='same_kind',
+        ),
 
 class ReLUGrad3Base(function_node.FunctionNode):
     """Computes the gradient of the ReLU function.
