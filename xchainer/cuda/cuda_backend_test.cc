@@ -3,6 +3,7 @@
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
+#include "xchainer/context.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/device.h"
 
@@ -11,13 +12,15 @@ namespace cuda {
 namespace {
 
 TEST(CudaBackendTest, GetDeviceCount) {
-    int count;
+	Context ctx;
+    int count = 0;
     CheckError(cudaGetDeviceCount(&count));
-    EXPECT_EQ(count, CudaBackend().GetDeviceCount());
+    EXPECT_EQ(count, CudaBackend(ctx).GetDeviceCount());
 }
 
 TEST(CudaBackendTest, GetDevice) {
-    CudaBackend backend;
+	Context ctx;
+    CudaBackend backend{ctx};
     {
         Device& device = backend.GetDevice(0);
         EXPECT_EQ(&backend, &device.backend());
@@ -37,7 +40,10 @@ TEST(CudaBackendTest, GetDevice) {
     }
 }
 
-TEST(CudaBackendTest, GetName) { EXPECT_EQ("cuda", cuda::CudaBackend().GetName()); }
+TEST(CudaBackendTest, GetName) {
+	Context ctx;
+	EXPECT_EQ("cuda", CudaBackend(ctx).GetName());
+}
 
 }  // namespace
 }  // namespace cuda

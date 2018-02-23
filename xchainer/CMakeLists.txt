@@ -1,3 +1,4 @@
+add_subdirectory(testing)
 if(${CUDA_FOUND})
     add_subdirectory(cuda)
 endif()
@@ -12,6 +13,7 @@ install(FILES
     backend.h
     backprop.h
     constant.h
+    context.h
     device.h
     device_id.h
     dtype.h
@@ -31,6 +33,7 @@ add_library(xchainer SHARED
     array_repr.cc
     backend.cc
     backprop.cc
+    context.cc
     device.cc
     device_id.cc
     dtype.cc

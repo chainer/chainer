@@ -44,6 +44,7 @@ public:
     std::string name() const { return backend_.GetName() + ":" + std::to_string(index_); }
 
     Backend& backend() const { return backend_; }
+    Context& context() const { return backend_.context(); }
     int index() const { return index_; }
 
 private:
@@ -64,7 +65,7 @@ Device& GetDefaultDevice();
 // Raises ContextError if context mismatches between given device and default context.
 void SetDefaultDevice(Device* device);
 
-// Scope object that switches the default device_id by RAII.
+// Scope object that switches the default device by RAII.
 class DeviceScope {
 public:
     DeviceScope() : orig_(internal::GetDefaultDeviceNoExcept()), exited_(false) {}

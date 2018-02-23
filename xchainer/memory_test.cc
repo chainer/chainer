@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "xchainer/backend.h"
+#include "xchainer/context.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_device.h"
@@ -51,15 +52,16 @@ TEST(MemoryTest, IsPointerCudaMemory) {
 }
 
 TEST(MemoryTest, Allocate) {
+	Context ctx;
     size_t size = 3;
     {
-        NativeBackend native_backend;
+        NativeBackend native_backend{ctx};
         NativeDevice native_device{native_backend, 0};
         std::shared_ptr<void> ptr = Allocate(native_device, size);
         EXPECT_FALSE(IsPointerCudaMemory(ptr.get()));
     }
     {
-        cuda::CudaBackend cuda_backend;
+        cuda::CudaBackend cuda_backend{ctx};
         cuda::CudaDevice cuda_device{cuda_backend, 0};
         std::shared_ptr<void> ptr = Allocate(cuda_device, size);
         EXPECT_TRUE(IsPointerCudaMemory(ptr.get()));
@@ -74,7 +76,8 @@ TEST(MemoryTest, MemoryCopy) {
         (void)ptr;  // unused
     });
 
-    cuda::CudaBackend cuda_backend;
+	Context ctx;
+    cuda::CudaBackend cuda_backend{ctx};
     cuda::CudaDevice cuda_device{cuda_backend, 0};
 
     {
@@ -114,9 +117,10 @@ TEST(MemoryTest, MemoryFromBuffer) {
         (void)ptr;  // unused
     });
 
-    NativeBackend native_backend;
+	Context ctx;
+    NativeBackend native_backend{ctx};
     NativeDevice native_device{native_backend, 0};
-    cuda::CudaBackend cuda_backend;
+    cuda::CudaBackend cuda_backend{ctx};
     cuda::CudaDevice cuda_device{cuda_backend, 0};
 
     std::shared_ptr<void> gpu_src = Allocate(cuda_device, bytesize);

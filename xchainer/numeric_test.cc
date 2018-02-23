@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "xchainer/array.h"
+#include "xchainer/context.h"
 #include "xchainer/error.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/scalar.h"
@@ -16,13 +17,14 @@ namespace xchainer {
 class NumericTest : public ::testing::Test {
 protected:
     virtual void SetUp() {
-        backend_ = std::make_unique<NativeBackend>();
-        device_scope_ = std::make_unique<DeviceScope>(backend_.get());
+        context_ = std::make_unique<Context>();
+        Backend& backend = context_->GetBackend(NativeBackend::kDefaultName);
+        device_scope_ = std::make_unique<DeviceScope>(&backend);
     }
 
     virtual void TearDown() {
         device_scope_.reset();
-        backend_.reset();
+        context_.reset();
     }
 
 public:
@@ -55,7 +57,7 @@ public:
     }
 
 private:
-    std::unique_ptr<Backend> backend_;
+    std::unique_ptr<Context> context_;
     std::unique_ptr<DeviceScope> device_scope_;
 };
 

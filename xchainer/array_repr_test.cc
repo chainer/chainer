@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/native_device.h"
@@ -37,7 +38,8 @@ void CheckArrayRepr(const std::string& expected, const std::vector<T>& data_vec,
 }
 
 TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
-    NativeBackend backend;
+	Context ctx;
+    NativeBackend backend{ctx};
     NativeDevice device{backend, 0};
 
     // bool

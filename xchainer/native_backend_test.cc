@@ -2,18 +2,21 @@
 
 #include <gtest/gtest.h>
 
+#include "xchainer/context.h"
 #include "xchainer/device.h"
 
 namespace xchainer {
 namespace {
 
 TEST(NativeBackendTest, GetDeviceCount) {
+	Context ctx;
     // TODO(sonots): Get number of CPU cores
-    EXPECT_EQ(4, NativeBackend().GetDeviceCount());
+    EXPECT_EQ(4, NativeBackend{ctx}.GetDeviceCount());
 }
 
 TEST(NativeBackendTest, GetDevice) {
-    NativeBackend backend;
+	Context ctx;
+    NativeBackend backend{ctx};
     {
         Device& device = backend.GetDevice(0);
         EXPECT_EQ(&backend, &device.backend());
@@ -33,7 +36,10 @@ TEST(NativeBackendTest, GetDevice) {
     }
 }
 
-TEST(NativeBackendTest, GetName) { EXPECT_EQ("native", NativeBackend().GetName()); }
+TEST(NativeBackendTest, GetName) {
+	Context ctx;
+	EXPECT_EQ("native", NativeBackend{ctx}.GetName());
+}
 
 }  // namespace
 }  // namespace xchainer

@@ -14,6 +14,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/backend.h"
+#include "xchainer/context.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_runtime.h"
@@ -30,20 +31,15 @@ namespace {
 class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
     void SetUp() override {
+        context_ = std::make_unique<Context>();
         std::string backend_name = ::testing::get<0>(GetParam());
-        if (backend_name == "native") {
-            backend_ = std::make_unique<NativeBackend>();
-#ifdef XCHAINER_ENABLE_CUDA
-        } else if (backend_name == "cuda") {
-            backend_ = std::make_unique<cuda::CudaBackend>();
-#endif  // XCHAINER_ENABLE_CUDA
-        }
-        device_scope_ = std::make_unique<DeviceScope>(backend_.get());
+        Backend& backend = context_->GetBackend(backend_name);
+        device_scope_ = std::make_unique<DeviceScope>(&backend);
     }
 
     void TearDown() override {
         device_scope_.reset();
-        backend_.reset();
+        context_.reset();
     }
 
 public:
@@ -344,7 +340,7 @@ public:
     }
 
 private:
-    std::unique_ptr<Backend> backend_;
+    std::unique_ptr<Context> context_;
     std::unique_ptr<DeviceScope> device_scope_;
 };
 

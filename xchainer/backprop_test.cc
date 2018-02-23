@@ -8,11 +8,13 @@
 #include <cuda_runtime.h>
 #endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
+#include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
 #include "xchainer/backprop.h"
+#include "xchainer/context.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_runtime.h"
@@ -23,6 +25,7 @@
 #include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/shape.h"
+#include "xchainer/testing/context_session.h"
 
 namespace xchainer {
 namespace {
@@ -30,20 +33,15 @@ namespace {
 class BackpropTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
     virtual void SetUp() {
+        context_session_.emplace();
         std::string backend_name = ::testing::get<0>(GetParam());
-        if (backend_name == "native") {
-            backend_ = std::make_unique<NativeBackend>();
-#ifdef XCHAINER_ENABLE_CUDA
-        } else if (backend_name == "cuda") {
-            backend_ = std::make_unique<cuda::CudaBackend>();
-#endif  // XCHAINER_ENABLE_CUDA
-        }
-        device_scope_ = std::make_unique<DeviceScope>(backend_.get());
+        Backend& backend = context_session_->context().GetBackend(backend_name);
+        device_scope_ = std::make_unique<DeviceScope>(&backend);
     }
 
     virtual void TearDown() {
         device_scope_.reset();
-        backend_.reset();
+        context_session_.reset();
     }
 
 public:
@@ -128,7 +126,7 @@ public:
     }
 
 private:
-    std::unique_ptr<Backend> backend_;
+    nonstd::optional<testing::ContextSession> context_session_;
     std::unique_ptr<DeviceScope> device_scope_;
 };
 
@@ -318,7 +316,8 @@ INSTANTIATE_TEST_CASE_P(ForEachBackend, BackpropTest, ::testing::Values(
                                                           std::string{"native"}));
 
 TEST(BackpropEnableDoubleBackpropTest, Enabled) {
-    NativeBackend native_backend;
+    Context& ctx = GetDefaultContext();
+    NativeBackend native_backend{ctx};
     DeviceScope scope{&native_backend};
 
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
@@ -347,7 +346,8 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
 }
 
 TEST(BackpropEnableDoubleBackpropTest, Disabled) {
-    NativeBackend native_backend;
+    Context& ctx = GetDefaultContext();
+    NativeBackend native_backend{ctx};
     DeviceScope scope{&native_backend};
 
     Array x1 = Array::Full({2}, 1.f).RequireGrad();

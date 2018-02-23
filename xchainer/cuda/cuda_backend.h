@@ -13,6 +13,8 @@ class CudaBackend : public Backend {
 public:
     static constexpr const char* kDefaultName = "cuda";
 
+	using Backend::Backend;
+
     std::string GetName() const override;
 
     int GetDeviceCount() const override;

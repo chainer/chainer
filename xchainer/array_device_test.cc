@@ -6,9 +6,11 @@
 #include <cuda_runtime.h>
 #endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
+#include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
 #include "xchainer/backend.h"
+#include "xchainer/context.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_device.h"
@@ -18,6 +20,7 @@
 #include "xchainer/memory.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/native_device.h"
+#include "xchainer/testing/context_session.h"
 
 namespace xchainer {
 namespace {
@@ -25,13 +28,18 @@ namespace {
 class ArrayDeviceTest : public ::testing::Test {
 protected:
     void SetUp() override {
+		context_session_.emplace();
         orig_ = internal::GetDefaultDeviceNoExcept();
         SetDefaultDevice(nullptr);
     }
 
-    void TearDown() override { SetDefaultDevice(orig_); }
+    void TearDown() override {
+		SetDefaultDevice(orig_);
+		context_session_.reset();
+	}
 
 private:
+	nonstd::optional<testing::ContextSession> context_session_;
     Device* orig_;
 };
 
@@ -54,7 +62,8 @@ void ExpectDataExistsOnDevice(const Device& expected_device, const Array& array)
 void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
     // Fallback to default device which is CPU
     {
-        NativeBackend native_backend;
+        Context& ctx = GetDefaultContext();
+        NativeBackend native_backend{ctx};
         NativeDevice cpu_device{native_backend, 0};
         auto scope = std::make_unique<DeviceScope>(cpu_device);
         Array array = create_array_func();
@@ -63,7 +72,8 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
 #ifdef XCHAINER_ENABLE_CUDA
     // Fallback to default device which is GPU
     {
-        cuda::CudaBackend cuda_backend;
+        Context& ctx = GetDefaultContext();
+        cuda::CudaBackend cuda_backend{ctx};
         cuda::CudaDevice cuda_device{cuda_backend, 0};
         auto scope = std::make_unique<DeviceScope>(cuda_device);
         Array array = create_array_func();
@@ -74,7 +84,8 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
 
 // Check that Arrays are created on the specified device, if specified, without taking into account the default device
 void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_array_func) {
-    NativeBackend native_backend;
+	Context& ctx = GetDefaultContext();
+    NativeBackend native_backend{ctx};
     NativeDevice cpu_device{native_backend, 0};
 
     // Explicitly create on CPU
@@ -88,7 +99,7 @@ void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_arra
         ExpectDataExistsOnDevice(cpu_device, array);
     }
 #ifdef XCHAINER_ENABLE_CUDA
-    cuda::CudaBackend cuda_backend;
+    cuda::CudaBackend cuda_backend{ctx};
     cuda::CudaDevice cuda_device{cuda_backend, 0};
 
     {
@@ -165,7 +176,7 @@ TEST_F(ArrayDeviceTest, EmptyLike) {
         return Array::EmptyLike(array_orig);
     });
     CheckDeviceExplicit([&](Device& device) {
-        NativeBackend native_backend;
+        NativeBackend native_backend{device.context()};
         NativeDevice cpu_device{native_backend, 0};
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::EmptyLike(array_orig, device);
@@ -182,7 +193,7 @@ TEST_F(ArrayDeviceTest, FullLike) {
         return Array::FullLike(array_orig, scalar);
     });
     CheckDeviceExplicit([&](Device& device) {
-        NativeBackend native_backend;
+        NativeBackend native_backend{device.context()};
         NativeDevice cpu_device{native_backend, 0};
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::FullLike(array_orig, scalar, device);
@@ -198,7 +209,7 @@ TEST_F(ArrayDeviceTest, ZerosLike) {
         return Array::ZerosLike(array_orig);
     });
     CheckDeviceExplicit([&](Device& device) {
-        NativeBackend native_backend;
+        NativeBackend native_backend{device.context()};
         NativeDevice cpu_device{native_backend, 0};
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::ZerosLike(array_orig, device);
@@ -214,7 +225,7 @@ TEST_F(ArrayDeviceTest, OnesLike) {
         return Array::OnesLike(array_orig);
     });
     CheckDeviceExplicit([&](Device& device) {
-        NativeBackend native_backend;
+        NativeBackend native_backend{device.context()};
         NativeDevice cpu_device{native_backend, 0};
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::OnesLike(array_orig, device);

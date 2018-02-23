@@ -2,6 +2,7 @@
 
 #include <type_traits>
 
+#include "xchainer/context.h"
 #include "xchainer/error.h"
 
 namespace xchainer {

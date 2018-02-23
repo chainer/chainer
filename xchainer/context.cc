@@ -18,7 +18,7 @@ thread_local Context* t_default_context{nullptr};
 
 Backend& Context::GetBackend(const std::string& backend_name) {
     {
-        std::lock_guard<std::recursive_mutex> lock{mutex_};
+        std::lock_guard<std::mutex> lock{mutex_};
         auto it = backends_.find(backend_name);
         if (it != backends_.end()) {
             return *it->second;
@@ -29,11 +29,11 @@ Backend& Context::GetBackend(const std::string& backend_name) {
     // Lock is released here to avoid any deadlocks.
     std::unique_ptr<Backend> backend;
     if (backend_name == NativeBackend::kDefaultName) {
-        backend = std::make_unique<NativeBackend>();
+        backend = std::make_unique<NativeBackend>(*this);
     }
 #ifdef XCHAINER_ENABLE_CUDA
     else if (backend_name == cuda::CudaBackend::kDefaultName) {
-        backend = std::make_unique<cuda::CudaBackend>();
+        backend = std::make_unique<cuda::CudaBackend>(*this);
     }
 #endif  // XCHAINER_ENABLE_CUDA
     else {
@@ -43,7 +43,7 @@ Backend& Context::GetBackend(const std::string& backend_name) {
     {
         // In a multi-threaded case, backends_[backend_name] may already exist at this point.
         // In that case, the backend created above is thrown away.
-        std::lock_guard<std::recursive_mutex> lock{mutex_};
+        std::lock_guard<std::mutex> lock{mutex_};
         auto pair = backends_.emplace(backend_name, std::move(backend));
         return *pair.first->second;
     }
@@ -63,6 +63,14 @@ Context& GetGlobalDefaultContext() {
 }
 
 void SetGlobalDefaultContext(Context* context) { g_global_default_context = context; }
+
+namespace internal {
+
+Context* GetDefaultContextNoExcept() noexcept {
+	return t_default_context;
+}
+
+}  // namespace internal
 
 Context& GetDefaultContext() {
     if (t_default_context == nullptr) {

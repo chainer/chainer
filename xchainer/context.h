@@ -3,7 +3,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <unoredered_map>
+#include <unordered_map>
 
 #include "xchainer/backend.h"
 #include "xchainer/device.h"
@@ -26,12 +26,12 @@ public:
         if (this != &device.backend().context()) {
             throw ContextError("Context mismatch.");
         }
-        std::lock_guard<std::recursive_mutex> lock{mutex_};
+        std::lock_guard<std::mutex> lock{mutex_};
         default_device_ = &device;
     }
 
     Device& default_device() const {
-        std::lock_guard<std::recursive_mutex> lock{mutex_};
+        std::lock_guard<std::mutex> lock{mutex_};
         if (default_device_ == nullptr) {
             throw ContextError("Global default device is not set.");
         }
@@ -41,12 +41,18 @@ public:
 private:
     std::unordered_map<std::string, std::unique_ptr<Backend>> backends_;
     Device* default_device_ = nullptr;
-    std::recursive_mutex mutex_;
+    mutable std::mutex mutex_;
 };
 
 // Gets/sets the context that used by default when current context is not set.
 Context& GetGlobalDefaultContext();
 void SetGlobalDefaultContext(Context* context);
+
+namespace internal {
+
+Context* GetDefaultContextNoExcept() noexcept;
+
+}  // namespace internal
 
 // Gets thread local default context.
 Context& GetDefaultContext();
@@ -55,5 +61,34 @@ Context& GetDefaultContext();
 //
 // The thread local default device is reset to null if given context is different with previous default context.
 void SetDefaultContext(Context* context);
+
+// Scope object that switches the default context by RAII.
+class ContextScope {
+public:
+    ContextScope() : orig_(internal::GetDefaultContextNoExcept()), exited_(false) {}
+    explicit ContextScope(Context& context) : ContextScope() { SetDefaultContext(&context); }
+
+    ContextScope(const ContextScope&) = delete;
+    ContextScope& operator=(const ContextScope&) = delete;
+    ContextScope& operator=(ContextScope&& other) = delete;
+
+    ContextScope(ContextScope&& other): orig_(other.orig_), exited_(other.exited_) {
+		other.exited_ = true;
+	}
+
+    ~ContextScope() { Exit(); }
+
+    // Explicitly recovers the original context. It will invalidate the scope object so that dtor will do nothing.
+    void Exit() {
+        if (!exited_) {
+            SetDefaultContext(orig_);
+            exited_ = true;
+        }
+    }
+
+private:
+    Context* orig_;
+    bool exited_;
+};
 
 }  // namespace xchainer
