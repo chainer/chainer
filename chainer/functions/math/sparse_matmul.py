@@ -24,10 +24,12 @@ class sparse_coo_matrix(object):
             return x
         if self.data.ndim == 2:
             nb = self.data.shape[0]
-            x = xp.zeros((nb, self.shape[0], self.shape[1]), dtype=self.data.dtype)
+            x = xp.zeros((nb, self.shape[0], self.shape[1]),
+                         dtype=self.data.dtype)
             for i in range(nb):
                 nnz = len(xp.where(self.data[i] != 0)[0])
-                x[i, self.row[i, :nnz], self.col[i, :nnz]] = self.data[i, 0:nnz]
+                x[i, self.row[i, :nnz], self.col[i, :nnz]] = self.data[i,
+                                                                       0:nnz]
             return x
 
 
@@ -66,7 +68,7 @@ def sparse_dense2coo(x, ldnz=None, use_variable=False):
     else:
         raise ValueError('')
 
-    
+
 def _sparse_matmul(sp_data, sp_row, sp_col, sp_shape, dn,
                    transa, transb, transc):
     xp = cuda.get_array_module(dn)
@@ -90,20 +92,21 @@ def _sparse_matmul(sp_data, sp_row, sp_col, sp_shape, dn,
     C_dtype = B.dtype
     if B.dtype == xp.float16:
         C_dtype = xp.float32
-        
+
     _m, _ = A_shape
     if dn.ndim == 2:
         nb = 1
         _k, _n = B.shape
         nnz, = A_data.shape
-        C =  xp.zeros((_m, _n), dtype=C_dtype)
+        C = xp.zeros((_m, _n), dtype=C_dtype)
     else:
         nb, _k, _n = B.shape
         _, nnz = A_data.shape
-        C =  xp.zeros((nb, _m, _n), dtype=C_dtype)
+        C = xp.zeros((nb, _m, _n), dtype=C_dtype)
 
     size = nb * nnz * _n
-    _cupy_sparse_matmul()(nb, _m, _n, _k, nnz, A_data, A_row, A_col, B, C, size=size)
+    _cupy_sparse_matmul()(nb, _m, _n, _k, nnz, A_data, A_row, A_col, B, C,
+                          size=size)
 
     if B.dtype == xp.float16:
         C = C.astype(B.dtype)
@@ -146,14 +149,16 @@ def _cupy_sparse_matmul():
 class SparseMatMul(function_node.FunctionNode):
 
     def __init__(self, sp_row, sp_col, sp_shape,
-                 transa=False, transb=False, transc=False):
+                 transa=False, transb=False, transc=False,
+                 dtype=None):
         if sp_row.ndim != sp_col.ndim:
             raise ValueError('ndim of sp_row and sp_col must be the same.')
         if sp_row.ndim != 1 and sp_row.ndim != 2:
             raise ValueError('ndim of sp_row and sp_col must be one or two.')
         for i in range(sp_row.ndim):
             if sp_row.shape[i] != sp_col.shape[i]:
-                raise ValueError('shape of sp_row and sp_col must be the same.')
+                _msg = 'shape of sp_row and sp_col must be the same.'
+                raise ValueError(_msg)
         if len(sp_shape) != 2:
             raise ValueError('len(sp_shape) must be two.')
         self.sp_row = sp_row
@@ -162,6 +167,7 @@ class SparseMatMul(function_node.FunctionNode):
         self.transa = transa
         self.transb = transb
         self.transc = transc
+        self.dtype = dtype
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -177,15 +183,15 @@ class SparseMatMul(function_node.FunctionNode):
             type_check.expect(
                 sp_type.shape[0] == self.sp_row.shape[0],
                 dn_type.shape[0] == self.sp_row.shape[0],
-            )            
+            )
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         sp, dn = inputs
         c = _sparse_matmul(sp, self.sp_row, self.sp_col, self.sp_shape, dn,
                            self.transa, self.transb, self.transc)
-        return utils.force_array(c),
-        
+        return utils.force_array(c, self.dtype),
+
     def backward(self, indexes, grad_outputs):
         sp, dn = self.get_retained_inputs()
         g_c, = grad_outputs
@@ -195,15 +201,17 @@ class SparseMatMul(function_node.FunctionNode):
             g_sp = SparseMatMulGradSP(self.sp_row, self.sp_col, self.sp_shape,
                                       self.transc,
                                       not self.transb,
-                                      self.transa).apply((g_c, dn))[0]
-    
+                                      self.transa,
+                                      dtype=sp.dtype).apply((g_c, dn))[0]
+
         g_dn = None
         if 1 in indexes:
             g_dn = SparseMatMul(self.sp_row, self.sp_col, self.sp_shape,
                                 not self.transa,
                                 self.transc,
-                                self.transb).apply((sp, g_c))[0]
-                
+                                self.transb,
+                                dtype=dn.dtype).apply((sp, g_c))[0]
+
         return g_sp, g_dn
 
 
@@ -212,7 +220,7 @@ def _sparse_matmul_gradsp(a, b, c_row, c_col, c_shape,
     xp = cuda.get_array_module(a)
     if xp is numpy:
         raise RuntimeError('_sparse_matmul_gradsp is available only on GPU')
-    
+
     if transa:
         A = a.swapaxes(-1, -2)
     else:
@@ -240,12 +248,13 @@ def _sparse_matmul_gradsp(a, b, c_row, c_col, c_shape,
         _, nnz = C_row.shape
         C_data = xp.zeros((nb, nnz), dtype=A.dtype)
 
-    size = nb * nnz;
-    _cupy_sparse_matmul_gradsp()(nb, _m, _n, _k, nnz, A, B, C_data, C_row, C_col, size=size)
+    size = nb * nnz
+    _cupy_sparse_matmul_gradsp()(nb, _m, _n, _k, nnz, A, B,
+                                 C_data, C_row, C_col, size=size)
 
     return C_data
 
-    
+
 def _cupy_sparse_matmul_gradsp():
     return cuda.cupy.ElementwiseKernel(
         'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, \
@@ -285,14 +294,16 @@ def _cupy_sparse_matmul_gradsp():
 class SparseMatMulGradSP(function_node.FunctionNode):
 
     def __init__(self, sp_row, sp_col, sp_shape,
-                 transa=False, transb=False, transc=False):
+                 transa=False, transb=False, transc=False,
+                 dtype=None):
         if sp_row.ndim != sp_col.ndim:
             raise ValueError('ndim of sp_row and sp_col must be the same.')
         if sp_row.ndim != 1 and sp_row.ndim != 2:
             raise ValueError('ndim of sp_row and sp_col must be one or two.')
         for i in range(sp_row.ndim):
             if sp_row.shape[i] != sp_col.shape[i]:
-                raise ValueError('shape of sp_row and sp_col must be the same.')
+                _msg = 'shape of sp_row and sp_col must be the same.'
+                raise ValueError(_msg)
         if len(sp_shape) != 2:
             raise ValueError('len(sp_shape) must be two.')
         self.sp_row = sp_row
@@ -301,7 +312,8 @@ class SparseMatMulGradSP(function_node.FunctionNode):
         self.transa = transa
         self.transb = transb
         self.transc = transc
-        
+        self.dtype = dtype
+
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
         a_type, b_type = in_types
@@ -317,15 +329,16 @@ class SparseMatMulGradSP(function_node.FunctionNode):
                 a_type.shape[0] == self.sp_row.shape[0],
                 b_type.shape[0] == self.sp_row.shape[0],
             )
-                
+
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         a, b = inputs
-        c = _sparse_matmul_gradsp(a, b, self.sp_row, self.sp_col, self.sp_shape,
+        c = _sparse_matmul_gradsp(a, b,
+                                  self.sp_row, self.sp_col, self.sp_shape,
                                   self.transa, self.transb, self.transc)
-        return utils.force_array(c),
+        return utils.force_array(c, self.dtype),
 
-        
+
 def sparse_matmul(a, b, transa=False, transb=False):
     """Computes the batched multiplication of sparse and dense matrix.
 
@@ -341,16 +354,16 @@ def sparse_matmul(a, b, transa=False, transb=False):
         transb (bool): If ``True``, each matrix in ``b`` will be transposed.
 
     Returns:
-        _chainer.Variable or sparse_coo_matrix: Result of matrix multiplication.
+        _chainer.Variable or sparse_coo_matrix: Result of mat-mul.
     """
     if (isinstance(a, sparse_coo_matrix) and
-          isinstance(b, (chainer.Variable, numpy.ndarray, cuda.ndarray))):
+            isinstance(b, (chainer.Variable, numpy.ndarray, cuda.ndarray))):
         return SparseMatMul(a.row, a.col, a.shape,
                             transa=transa,
                             transb=transb,
                             transc=False).apply((a.data, b))[0]
     elif (isinstance(a, (chainer.Variable, numpy.ndarray, cuda.ndarray)) and
-        isinstance(b, sparse_coo_matrix)):
+          isinstance(b, sparse_coo_matrix)):
         return SparseMatMul(b.row, b.col, b.shape,
                             transa=not transb,
                             transb=not transa,
