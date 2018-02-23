@@ -323,9 +323,10 @@ class ROIPooling2D(function.Function):
 def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
     """Spatial Region of Interest (ROI) pooling function.
 
-    This function acts similarly to :class:`~functions.MaxPooling2D`, but
-    it computes the maximum of input spatial patch for each channel
-    with the region of interest.
+    This function acts similarly to
+    :class:`~functions.pooling.max_pooling_2d.MaxPooling2D`, but it computes
+    the maximum of input spatial patch for each channel with the region of
+    interest.
 
     Args:
         x (~chainer.Variable): Input variable. The shape is expected to be

@@ -110,7 +110,8 @@ def unpooling_nd(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
 
         This feature is experimental. The interface can change in the future.
 
-    This function acts similarly to :class:`~functions.DeconvolutionND`, but
+    This function acts similarly to
+    :class:`~functions.connection.deconvolution_nd.DeconvolutionND`, but
     it spreads input N-dimensional array's value without any parameter instead
     of computing the inner products.
 
