@@ -22,6 +22,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 import _docstring_check
+import _autosummary_check
 
 
 __version__ = pkg_resources.get_distribution('chainer').version
@@ -360,10 +361,16 @@ spelling_word_list_filename = 'spelling_wordlist.txt'
 
 def setup(app):
     app.connect('autodoc-process-docstring', _autodoc_process_docstring)
+    app.connect('build-finished', _build_finished)
 
 
 def _autodoc_process_docstring(app, what, name, obj, options, lines):
     _docstring_check.check(app, what, name, obj, options, lines)
+
+
+def _build_finished(app, exception):
+    if exception is None:
+        _autosummary_check.check(app, exception)
 
 
 def _import_object_from_name(module_name, fullname):
