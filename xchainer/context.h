@@ -21,26 +21,8 @@ public:
     // If the backend and/or device do not exist, this function automatically creates them.
     Device& GetDevice(const DeviceId& device_id);
 
-    // Gets/sets the default device of this context.
-    void set_default_device(Device& device) {
-        if (this != &device.backend().context()) {
-            throw ContextError("Context mismatch.");
-        }
-        std::lock_guard<std::mutex> lock{mutex_};
-        default_device_ = &device;
-    }
-
-    Device& default_device() const {
-        std::lock_guard<std::mutex> lock{mutex_};
-        if (default_device_ == nullptr) {
-            throw ContextError("Global default device is not set.");
-        }
-        return *default_device_;
-    }
-
 private:
     std::unordered_map<std::string, std::unique_ptr<Backend>> backends_;
-    Device* default_device_ = nullptr;
     mutable std::mutex mutex_;
 };
 
