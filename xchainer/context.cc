@@ -72,7 +72,10 @@ Context& GetDefaultContext() {
 }
 
 void SetDefaultContext(Context* context) {
-    t_default_context = context;
+    if (t_default_context != context) {
+        t_default_context = context;
+        SetDefaultDevice(nullptr);
+    }
 }
 
 }  // namespace xchainer

@@ -25,6 +25,11 @@ Device& GetDefaultDevice() {
     return *t_default_device;
 }
 
-void SetDefaultDevice(Device* device) { t_default_device = device; }
+void SetDefaultDevice(Device* device) {
+    if (device != nullptr && &device->backend().context() != &GetDefaultContext()) {
+        throw ContextError("Context mismatch between default device and default context");
+    }
+    t_default_device = device;
+}
 
 }  // namespace xchainer
