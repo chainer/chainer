@@ -122,10 +122,13 @@ class ReLUGrad2(function_node.FunctionNode):
     def backward(self, indexes, gy):
         return gy[0] * _heaviside(self.b),
 
+
 class ReLUGradNumexpr(ReLUGrad2):
 
     def forward_cpu(self, inputs):
-        b, ipt0 = self.b, inputs[0].data
+        # These need to be local variables for numexpr to pick them up
+        # There also cannot be any property access inside a numexpr call
+        b, ipt0 = self.b, inputs[0].data # NOQA
         y = numexpr.numexpr.evaluate(
             'where(b > 0, ipt0, 0)',
             casting='same_kind',
@@ -133,11 +136,12 @@ class ReLUGradNumexpr(ReLUGrad2):
         return utils.force_array(y, dtype=y.dtype),
 
     def backward(self, indexes, gy):
-        b, gy0 = self.b, gy[0].data
+        b, gy0 = self.b, gy[0].data # NOQA
         return numexpr.numexpr.evaluate(
             'where(b > 0, gy0, 0)',
             casting='same_kind',
         ),
+
 
 class ReLUGrad3Base(function_node.FunctionNode):
     """Computes the gradient of the ReLU function.

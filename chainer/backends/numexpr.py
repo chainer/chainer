@@ -9,7 +9,7 @@ _numexpr_version = None
 _error = None
 
 try:
-    import numexpr # NOQA
+    import numexpr  # NOQA
     _numexpr_version = 0
     numexpr_dtypes = {
         numpy.int32,
@@ -21,8 +21,10 @@ try:
 except ImportError as e:
     _error = e
 
+
 def is_numexpr_available():
     return _numexpr_version is not None
+
 
 def check_numexpr_available():
     """Checks if NumExpr is available.
@@ -35,6 +37,7 @@ def check_numexpr_available():
             'NumExpr is not available.\n'
             'Reason: {}'.format(type(_error).__name__, str(_error)))
 
+
 # ------------------------------------------------------------------------------
 # numexpr configuration
 # ------------------------------------------------------------------------------
@@ -42,6 +45,7 @@ _SHOULD_USE_NUMEXPR = {
     '==always': {'always': True, 'auto': False, 'never': False},
     '>=auto':   {'always': True, 'auto': True,  'never': False},
 }
+
 
 def should_use_numexpr(level):
     """Determines if we should use numexpr.
@@ -74,6 +78,7 @@ def should_use_numexpr(level):
                          '(must be either of "always", "auto", or "never")' %
                          repr(use_numexpr))
     return flags[use_numexpr]
+
 
 def inputs_all_ready(inputs):
     """Checks if input arrays are supported for numexpr optimization.
