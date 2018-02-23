@@ -98,7 +98,9 @@ class TestSparseMatMul(unittest.TestCase):
         func = F.math.sparse_matmul.SparseMatMul(
             sp_a.row, sp_a.col, sp_a.shape,
             transa=self.transa, transb=self.transb, transc=False)
-        op = lambda a, b: func.apply((a, b))[0]
+
+        def op(a, b):
+            return func.apply((a, b))[0]
         gradient_check.check_backward(
             op, (sp_a.data, b_data), c_grad, atol=atol, rtol=rtol,
             dtype=numpy.float32)
@@ -117,7 +119,9 @@ class TestSparseMatMul(unittest.TestCase):
         func = F.math.sparse_matmul.SparseMatMul(
             sp_a.row, sp_a.col, sp_a.shape,
             transa=self.transa, transb=self.transb, transc=False)
-        op = lambda a, b: func.apply((a, b))[0]
+
+        def op(a, b):
+            return func.apply((a, b))[0]
         gradient_check.check_double_backward(
             op, (sp_a.data, b_data), c_grad, (sp_gga.data, b_grad_grad),
             atol=atol, rtol=rtol, dtype=numpy.float32)
@@ -152,7 +156,9 @@ class TestSparseMatMul(unittest.TestCase):
         func = F.math.sparse_matmul.SparseMatMul(
             sp_b.row, sp_b.col, sp_b.shape,
             transa=not self.transb, transb=not self.transa, transc=True)
-        op = lambda b, a: func.apply((b, a))[0]
+
+        def op(b, a):
+            return func.apply((b, a))[0]
         gradient_check.check_backward(
             op, (sp_b.data, a_data), c_grad, atol=atol, rtol=rtol,
             dtype=numpy.float32)
@@ -171,7 +177,9 @@ class TestSparseMatMul(unittest.TestCase):
         func = F.math.sparse_matmul.SparseMatMul(
             sp_b.row, sp_b.col, sp_b.shape,
             transa=not self.transb, transb=not self.transa, transc=True)
-        op = lambda b, a: func.apply((b, a))[0]
+
+        def op(b, a):
+            return func.apply((b, a))[0]
         gradient_check.check_double_backward(
             op, (sp_b.data, a_data), c_grad, (sp_ggb.data, a_grad_grad),
             atol=atol, rtol=rtol, dtype=numpy.float32)
