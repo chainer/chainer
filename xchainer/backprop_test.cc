@@ -26,6 +26,7 @@
 #include "xchainer/op_node.h"
 #include "xchainer/shape.h"
 #include "xchainer/testing/context_session.h"
+#include "xchainer/testing/device_session.h"
 
 namespace xchainer {
 namespace {
@@ -316,9 +317,7 @@ INSTANTIATE_TEST_CASE_P(ForEachBackend, BackpropTest, ::testing::Values(
                                                           std::string{"native"}));
 
 TEST(BackpropEnableDoubleBackpropTest, Enabled) {
-    Context& ctx = GetDefaultContext();
-    NativeBackend native_backend{ctx};
-    DeviceScope scope{&native_backend};
+    testing::DeviceSession device_session({NativeBackend::kDefaultName, 0});
 
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
     Array x2 = Array::Full({2}, 2.f);
@@ -346,9 +345,7 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
 }
 
 TEST(BackpropEnableDoubleBackpropTest, Disabled) {
-    Context& ctx = GetDefaultContext();
-    NativeBackend native_backend{ctx};
-    DeviceScope scope{&native_backend};
+    testing::DeviceSession device_session({NativeBackend::kDefaultName, 0});
 
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
     Array x2 = Array::Full({2}, 2.f);

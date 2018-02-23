@@ -9,6 +9,7 @@
 #include <gtest/gtest-spi.h>
 #include <gtest/gtest.h>
 #include <gsl/gsl>
+#include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
 #include "xchainer/check_backward.h"
@@ -16,6 +17,7 @@
 #include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/shape.h"
+#include "xchainer/testing/device_session.h"
 
 namespace xchainer {
 namespace {
@@ -72,16 +74,9 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
 
 class CheckBackwardBaseTest : public ::testing::Test {
 protected:
-    virtual void SetUp() {
-        context_ = std::make_unique<Context>();
-        Backend& backend = context_->GetBackend(NativeBackend::kDefaultName);
-        device_scope_ = std::make_unique<DeviceScope>(&backend);
-    }
+    void SetUp() override { device_session_.emplace(DeviceId{NativeBackend::kDefaultName, 0}); }
 
-    virtual void TearDown() {
-        device_scope_.reset();
-        context_.reset();
-    }
+    void TearDown() override { device_session_.reset(); }
 
 protected:
     template <typename T>
@@ -107,8 +102,7 @@ protected:
     }
 
 private:
-    std::unique_ptr<Context> context_;
-    std::unique_ptr<DeviceScope> device_scope_;
+    nonstd::optional<testing::DeviceSession> device_session_;
 };
 
 class CheckBackwardUnaryTest : public CheckBackwardBaseTest, public ::testing::WithParamInterface<bool> {

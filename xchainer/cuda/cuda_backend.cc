@@ -2,6 +2,9 @@
 
 #include <cuda_runtime.h>
 
+#include <stdexcept>
+#include <string>
+
 #include "xchainer/cuda/cuda_device.h"
 #include "xchainer/cuda/cuda_runtime.h"
 
@@ -16,7 +19,14 @@ int CudaBackend::GetDeviceCount() const {
     return count;
 }
 
-std::unique_ptr<Device> CudaBackend::CreateDevice(int index) { return std::make_unique<CudaDevice>(*this, index); }
+std::unique_ptr<Device> CudaBackend::CreateDevice(int index) {
+    int device_count = GetDeviceCount();
+    if (index >= device_count) {
+        throw std::out_of_range("The index number (= " + std::to_string(index) + ") is not less than the device count (= " +
+                                std::to_string(device_count) + ')');
+    }
+    return std::make_unique<CudaDevice>(*this, index);
+}
 
 }  // namespace cuda
 }  // namespace xchainer

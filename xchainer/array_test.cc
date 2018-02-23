@@ -24,6 +24,7 @@
 #include "xchainer/memory.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
+#include "xchainer/testing/device_session.h"
 
 namespace xchainer {
 namespace {
@@ -31,16 +32,11 @@ namespace {
 class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
     void SetUp() override {
-        context_ = std::make_unique<Context>();
         std::string backend_name = ::testing::get<0>(GetParam());
-        Backend& backend = context_->GetBackend(backend_name);
-        device_scope_ = std::make_unique<DeviceScope>(&backend);
+        device_session_.emplace(DeviceId{backend_name, 0});
     }
 
-    void TearDown() override {
-        device_scope_.reset();
-        context_.reset();
-    }
+    void TearDown() override { device_session_.reset(); }
 
 public:
     template <typename T>
@@ -340,8 +336,7 @@ public:
     }
 
 private:
-    std::unique_ptr<Context> context_;
-    std::unique_ptr<DeviceScope> device_scope_;
+    nonstd::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_P(ArrayTest, CopyCtor) {

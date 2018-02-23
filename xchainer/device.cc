@@ -21,7 +21,7 @@ Device* GetDefaultDeviceNoExcept() noexcept { return t_default_device; }
 
 Device& GetDefaultDevice() {
     if (t_default_device == nullptr) {
-        throw XchainerError("Default device_id is not set.");
+        throw XchainerError("Default device is not set.");
     }
     return *t_default_device;
 }

@@ -3,6 +3,7 @@
 #include <future>
 
 #include <gtest/gtest.h>
+#include <nonstd/optional.hpp>
 
 #include "xchainer/backend.h"
 #include "xchainer/context.h"
@@ -13,25 +14,23 @@
 #include "xchainer/error.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/native_device.h"
+#include "xchainer/testing/context_session.h"
 
 namespace xchainer {
 namespace {
 
 class DeviceTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        orig_ = internal::GetDefaultDeviceNoExcept();
-        SetDefaultDevice(nullptr);
-    }
+    void SetUp() override { context_session_.emplace(); }
 
-    void TearDown() override { SetDefaultDevice(orig_); }
+    void TearDown() override { context_session_.reset(); }
 
 private:
-    Device* orig_;
+    nonstd::optional<testing::ContextSession> context_session_;
 };
 
 TEST_F(DeviceTest, Ctor) {
-	Context ctx;
+    Context& ctx = GetDefaultContext();
     NativeBackend native_backend{ctx};
     {
         NativeDevice device{native_backend, 0};
@@ -48,7 +47,7 @@ TEST_F(DeviceTest, Ctor) {
 TEST_F(DeviceTest, SetDefaultDevice) {
     ASSERT_THROW(GetDefaultDevice(), XchainerError);
 
-	Context ctx;
+    Context& ctx = GetDefaultContext();
     NativeBackend native_backend{ctx};
     NativeDevice native_device{native_backend, 0};
     SetDefaultDevice(&native_device);
@@ -68,14 +67,15 @@ TEST_F(DeviceTest, SetDefaultDevice) {
 }
 
 TEST_F(DeviceTest, ThreadLocal) {
-	Context ctx;
+    Context& ctx = GetDefaultContext();
     NativeBackend backend1{ctx};
     NativeDevice device1{backend1, 1};
     SetDefaultDevice(&device1);
 
     NativeBackend backend2{ctx};
     NativeDevice device2{backend2, 2};
-    auto future = std::async(std::launch::async, [&device2] {
+    auto future = std::async(std::launch::async, [&ctx, &device2] {
+        SetDefaultContext(&ctx);
         SetDefaultDevice(&device2);
         return &GetDefaultDevice();
     });
@@ -83,7 +83,7 @@ TEST_F(DeviceTest, ThreadLocal) {
 }
 
 TEST_F(DeviceTest, DeviceScopeCtor) {
-	Context ctx;
+    Context& ctx = GetDefaultContext();
     {
         // DeviceScope should work even if default device is not set
         NativeBackend backend{ctx};

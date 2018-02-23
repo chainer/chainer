@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 #include <gsl/gsl>
+#include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
 #include "xchainer/array_repr.h"
@@ -12,6 +13,7 @@
 #include "xchainer/device_id.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/shape.h"
+#include "xchainer/testing/device_session.h"
 
 namespace xchainer {
 namespace {
@@ -19,15 +21,11 @@ namespace {
 class NumericalGradientTest : public ::testing::Test {
 protected:
     virtual void SetUp() {
-        context_ = std::make_unique<Context>();
-        Backend& backend = context_->GetBackend(NativeBackend::kDefaultName);
-        device_scope_ = std::make_unique<DeviceScope>(&backend);
+        device_session_.emplace(DeviceId{NativeBackend::kDefaultName, 0});
+        GetDefaultDevice();
     }
 
-    virtual void TearDown() {
-        device_scope_.reset();
-        context_.reset();
-    }
+    virtual void TearDown() { device_session_.reset(); }
 
 public:
     using Arrays = std::vector<Array>;
@@ -77,8 +75,7 @@ public:
     }
 
 private:
-    std::unique_ptr<Context> context_;
-    std::unique_ptr<DeviceScope> device_scope_;
+    nonstd::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_F(NumericalGradientTest, NumericalGradientAdd) {

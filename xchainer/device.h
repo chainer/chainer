@@ -75,9 +75,10 @@ public:
     explicit DeviceScope(Backend* backend, int index = 0) : DeviceScope(backend->GetDevice(index)) {}
 
     DeviceScope(const DeviceScope&) = delete;
-    DeviceScope(DeviceScope&&) = delete;
     DeviceScope& operator=(const DeviceScope&) = delete;
     DeviceScope& operator=(DeviceScope&&) = delete;
+
+    DeviceScope(DeviceScope&& other) : orig_(other.orig_), exited_(other.exited_) { other.exited_ = true; }
 
     ~DeviceScope() { Exit(); }
 
