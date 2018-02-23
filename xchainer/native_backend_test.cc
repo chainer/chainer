@@ -9,13 +9,13 @@ namespace xchainer {
 namespace {
 
 TEST(NativeBackendTest, GetDeviceCount) {
-	Context ctx;
+    Context ctx;
     // TODO(sonots): Get number of CPU cores
     EXPECT_EQ(4, NativeBackend{ctx}.GetDeviceCount());
 }
 
 TEST(NativeBackendTest, GetDevice) {
-	Context ctx;
+    Context ctx;
     NativeBackend backend{ctx};
     {
         Device& device = backend.GetDevice(0);
@@ -37,8 +37,8 @@ TEST(NativeBackendTest, GetDevice) {
 }
 
 TEST(NativeBackendTest, GetName) {
-	Context ctx;
-	EXPECT_EQ("native", NativeBackend{ctx}.GetName());
+    Context ctx;
+    EXPECT_EQ("native", NativeBackend{ctx}.GetName());
 }
 
 }  // namespace

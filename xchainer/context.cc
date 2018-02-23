@@ -66,9 +66,7 @@ void SetGlobalDefaultContext(Context* context) { g_global_default_context = cont
 
 namespace internal {
 
-Context* GetDefaultContextNoExcept() noexcept {
-	return t_default_context;
-}
+Context* GetDefaultContextNoExcept() noexcept { return t_default_context; }
 
 }  // namespace internal
 

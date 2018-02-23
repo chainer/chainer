@@ -52,7 +52,7 @@ TEST(MemoryTest, IsPointerCudaMemory) {
 }
 
 TEST(MemoryTest, Allocate) {
-	Context ctx;
+    Context ctx;
     size_t size = 3;
     {
         NativeBackend native_backend{ctx};
@@ -76,7 +76,7 @@ TEST(MemoryTest, MemoryCopy) {
         (void)ptr;  // unused
     });
 
-	Context ctx;
+    Context ctx;
     cuda::CudaBackend cuda_backend{ctx};
     cuda::CudaDevice cuda_device{cuda_backend, 0};
 
@@ -117,7 +117,7 @@ TEST(MemoryTest, MemoryFromBuffer) {
         (void)ptr;  // unused
     });
 
-	Context ctx;
+    Context ctx;
     NativeBackend native_backend{ctx};
     NativeDevice native_device{native_backend, 0};
     cuda::CudaBackend cuda_backend{ctx};

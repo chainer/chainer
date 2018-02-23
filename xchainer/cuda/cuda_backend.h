@@ -13,7 +13,7 @@ class CudaBackend : public Backend {
 public:
     static constexpr const char* kDefaultName = "cuda";
 
-	using Backend::Backend;
+    using Backend::Backend;
 
     std::string GetName() const override;
 

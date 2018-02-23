@@ -28,18 +28,18 @@ namespace {
 class ArrayDeviceTest : public ::testing::Test {
 protected:
     void SetUp() override {
-		context_session_.emplace();
+        context_session_.emplace();
         orig_ = internal::GetDefaultDeviceNoExcept();
         SetDefaultDevice(nullptr);
     }
 
     void TearDown() override {
-		SetDefaultDevice(orig_);
-		context_session_.reset();
-	}
+        SetDefaultDevice(orig_);
+        context_session_.reset();
+    }
 
 private:
-	nonstd::optional<testing::ContextSession> context_session_;
+    nonstd::optional<testing::ContextSession> context_session_;
     Device* orig_;
 };
 
@@ -84,7 +84,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
 
 // Check that Arrays are created on the specified device, if specified, without taking into account the default device
 void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_array_func) {
-	Context& ctx = GetDefaultContext();
+    Context& ctx = GetDefaultContext();
     NativeBackend native_backend{ctx};
     NativeDevice cpu_device{native_backend, 0};
 

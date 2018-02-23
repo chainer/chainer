@@ -38,7 +38,7 @@ void CheckArrayRepr(const std::string& expected, const std::vector<T>& data_vec,
 }
 
 TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
-	Context ctx;
+    Context ctx;
     NativeBackend backend{ctx};
     NativeDevice device{backend, 0};
 

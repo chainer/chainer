@@ -12,7 +12,7 @@ class NativeBackend : public Backend {
 public:
     static constexpr const char* kDefaultName = "native";
 
-	using Backend::Backend;
+    using Backend::Backend;
 
     std::string GetName() const override;
 

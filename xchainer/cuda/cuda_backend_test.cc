@@ -12,14 +12,14 @@ namespace cuda {
 namespace {
 
 TEST(CudaBackendTest, GetDeviceCount) {
-	Context ctx;
+    Context ctx;
     int count = 0;
     CheckError(cudaGetDeviceCount(&count));
     EXPECT_EQ(count, CudaBackend(ctx).GetDeviceCount());
 }
 
 TEST(CudaBackendTest, GetDevice) {
-	Context ctx;
+    Context ctx;
     CudaBackend backend{ctx};
     {
         Device& device = backend.GetDevice(0);
@@ -41,8 +41,8 @@ TEST(CudaBackendTest, GetDevice) {
 }
 
 TEST(CudaBackendTest, GetName) {
-	Context ctx;
-	EXPECT_EQ("cuda", CudaBackend(ctx).GetName());
+    Context ctx;
+    EXPECT_EQ("cuda", CudaBackend(ctx).GetName());
 }
 
 }  // namespace

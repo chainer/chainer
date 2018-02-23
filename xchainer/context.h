@@ -54,9 +54,7 @@ public:
     ContextScope& operator=(const ContextScope&) = delete;
     ContextScope& operator=(ContextScope&& other) = delete;
 
-    ContextScope(ContextScope&& other): orig_(other.orig_), exited_(other.exited_) {
-		other.exited_ = true;
-	}
+    ContextScope(ContextScope&& other) : orig_(other.orig_), exited_(other.exited_) { other.exited_ = true; }
 
     ~ContextScope() { Exit(); }
 
