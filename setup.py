@@ -47,6 +47,7 @@ requirements = {
         'theano',
     ],
     'docs': [
+        'sphinx',
         'sphinx_rtd_theme',
     ],
     'travis': [
@@ -90,6 +91,7 @@ extras_require = {k: v for k, v in requirements.items() if k != 'install'}
 
 setup_requires = []
 install_requires = requirements['install']
+tests_require = requirements['test']
 
 
 def find_any_distribution(pkgs):
@@ -168,6 +170,6 @@ setup(
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
-    tests_require=requirements['test'],
+    tests_require=tests_require,
     extras_require=extras_require,
 )
