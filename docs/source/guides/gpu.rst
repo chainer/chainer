@@ -45,9 +45,9 @@ It also supports PyCUDA-like user-defined kernel generation, which enables us to
 
 .. note::
 
-   The :mod:`chainer.cuda` module imports many important symbols from CuPy.
+   The :mod:`chainer.backends.cuda` module imports many important symbols from CuPy.
    For example, the cupy namespace is referred as ``cuda.cupy`` in the Chainer code.
-   Note that the :mod:`chainer.cuda` module can be imported even if CUDA is not installed.
+   Note that the :mod:`chainer.backends.cuda` module can be imported even if CUDA is not installed.
 
 Chainer uses a memory pool for GPU memory allocation.
 As shown in the previous sections, Chainer constructs and destructs many arrays during learning and evaluating iterations.
@@ -81,7 +81,7 @@ Most operations of CuPy is done on the current device.
 Be careful that it causes an error to process an array on a non-current device.
 
 Chainer provides some convenient functions to automatically switch and choose the device.
-For example, the :func:`chainer.cuda.to_gpu` function copies a :class:`numpy.ndarray` object to a specified device:
+For example, the :func:`chainer.backends.cuda.to_gpu` function copies a :class:`numpy.ndarray` object to a specified device:
 
 .. testcode::
 
@@ -96,7 +96,7 @@ It is equivalent to the following code using CuPy:
    with cupy.cuda.Device(1):
        x_gpu = cupy.array(x_cpu)
 
-Moving a device array to the host can be done by :func:`chainer.cuda.to_cpu` as follows:
+Moving a device array to the host can be done by :func:`chainer.backends.cuda.to_cpu` as follows:
 
 .. testcode::
 
@@ -113,9 +113,9 @@ It is equivalent to the following code using CuPy:
 
    The *with* statements in these codes are required to select the appropriate CUDA device.
    If user uses only one device, these device switching is not needed.
-   :func:`chainer.cuda.to_cpu` and :func:`chainer.cuda.to_gpu` functions automatically switch the current device correctly.
+   :func:`chainer.backends.cuda.to_cpu` and :func:`chainer.backends.cuda.to_gpu` functions automatically switch the current device correctly.
 
-Chainer also provides a convenient function :func:`chainer.cuda.get_device_from_id` and :func:`chainer.cuda.get_device_from_array` to select a device.
+Chainer also provides a convenient function :func:`chainer.backends.cuda.get_device_from_id` and :func:`chainer.backends.cuda.get_device_from_array` to select a device.
 The former function accepts an integer or ``None``.
 When ``None`` is given, it returns *a dummy device object*.
 Otherwise, it returns a corresponding device object.
@@ -145,7 +145,7 @@ Since it accepts NumPy arrays, we can write a function that accepts both NumPy a
            return x + 1
 
 The compatibility of CuPy with NumPy enables us to write CPU/GPU generic code.
-It can be made easy by the :func:`chainer.cuda.get_array_module` function.
+It can be made easy by the :func:`chainer.backends.cuda.get_array_module` function.
 This function returns the :mod:`numpy` or :mod:`cupy` module based on arguments.
 A CPU/GPU generic function is defined using it like follows:
 
