@@ -36,7 +36,7 @@ class SGDRule(optimizer.UpdateRule):
             param.data.inplace_axpby(1.0, -self.hyperparam.lr, grad)
         elif (numexpr.should_use_numexpr(">=auto")
               and numexpr.inputs_all_ready((param,))):
-            p, lr = param.data, self.hyperparam.lr # NOQA
+            p, lr = param.data, self.hyperparam.lr  # NOQA
             numexpr.numexpr.evaluate(
                 'p - lr * grad',
                 out=p,
