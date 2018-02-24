@@ -1,11 +1,12 @@
 import math
-
 import six
+import warnings
 
 import chainer
 
 
-def spatial_pyramid_pooling_2d(x, pyramid_height, pooling):
+def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class=None,
+                               pooling=None):
     """Spatial pyramid pooling function.
 
     It outputs a fixed-length vector regardless of input feature map size.
@@ -38,9 +39,13 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling):
         x (~chainer.Variable): Input variable. The shape of ``x`` should be
             ``(batchsize, # of channels, height, width)``.
         pyramid_height (int): Number of pyramid levels
+        pooling_class (MaxPooling2D or AveragePooling2D):
+            *(deprecated since v4.0.0b)* Only MaxPooling2D is supported. Please
+            use the ``pooling`` argument instead since this argument is
+            deprecated.
         pooling (str):
             Currently, only ``max`` is supported, which performs a 2d max
-            pooling operation.
+            pooling operation. Replaces the ``pooling_class`` argument.
 
     Returns:
         ~chainer.Variable: Output variable. The shape of the output variable
@@ -74,7 +79,12 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling):
         ksize = (ksize_h, ksize_w)
         pad = (pad_h, pad_w)
 
-        if pooling == 'max':
+        if pooling_class is not None:
+            warnings.warn('pooling_class argument is deprecated. Please use '
+                          'the pooling argument.', DeprecationWarning)
+
+        if (pooling_class is chainer.functions.MaxPooling2D or
+                pooling == 'max'):
             pooler = chainer.functions.MaxPooling2D(
                 ksize=ksize, stride=None, pad=pad, cover_all=True)
         else:
