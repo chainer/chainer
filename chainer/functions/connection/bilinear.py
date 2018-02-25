@@ -79,11 +79,6 @@ class BilinearFunction(function_node.FunctionNode):
         e2 = _as_mat(inputs[1])
         W = inputs[2]
 
-        if not type_check.same_types(*inputs):
-            raise ValueError('numpy and cupy must not be used together\n'
-                             'type(W): {0}, type(e1): {1}, type(e2): {2}'
-                             .format(type(W), type(e1), type(e2)))
-
         xp = cuda.get_array_module(*inputs)
         y = xp.einsum('ij,ik,jkl->il', e1, e2, W)
 
@@ -236,7 +231,7 @@ def bilinear(e1, e2, W, V1=None, V2=None, b=None):
 
     See:
         `Reasoning With Neural Tensor Networks for Knowledge Base Completion
-        <http://papers.nips.cc/paper/5028-reasoning-with-neural-tensor-
+        <https://papers.nips.cc/paper/5028-reasoning-with-neural-tensor-
         networks-for-knowledge-base-completion>`_ [Socher+, NIPS2013].
 
     """

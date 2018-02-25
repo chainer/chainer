@@ -31,6 +31,8 @@ from chainer.functions.activation.softmax import softmax  # NOQA
 from chainer.functions.activation.softmax import Softmax  # NOQA
 from chainer.functions.activation.softplus import softplus  # NOQA
 from chainer.functions.activation.softplus import Softplus  # NOQA
+from chainer.functions.activation.swish import swish  # NOQA
+from chainer.functions.activation.swish import Swish  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
 from chainer.functions.activation.tanh import Tanh  # NOQA
 from chainer.functions.activation.tree_lstm import tree_lstm  # NOQA
@@ -184,6 +186,8 @@ from chainer.functions.math.cumsum import Cumsum  # NOQA
 from chainer.functions.math.det import batch_det  # NOQA
 from chainer.functions.math.det import BatchDet  # NOQA
 from chainer.functions.math.det import det  # NOQA
+from chainer.functions.math.erf import erf  # NOQA
+from chainer.functions.math.erfc import erfc  # NOQA
 from chainer.functions.math.exponential import exp  # NOQA
 from chainer.functions.math.exponential import Exp  # NOQA
 from chainer.functions.math.exponential import log  # NOQA

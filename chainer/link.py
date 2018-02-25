@@ -343,7 +343,7 @@ Assign a Parameter object directly to an attribute within a \
             if isinstance(value, cuda.ndarray):
                 d[name] = value.get()
             elif isinstance(value, intel64.mdarray):
-                d[name] = numpy.ndarray(value)
+                d[name] = numpy.array(value)
         self._cpu = True
         self._device_id = None
         return self
@@ -371,6 +371,8 @@ Assign a Parameter object directly to an attribute within a \
                 d[name].to_gpu()
             for name in self._persistent:
                 value = d[name]
+                if isinstance(value, intel64.mdarray):
+                    value = numpy.array(value)
                 if isinstance(value, numpy.ndarray):
                     d[name] = cuda.to_gpu(value)
             self._device_id = cuda.cupy.cuda.get_device_id()
@@ -385,9 +387,11 @@ Assign a Parameter object directly to an attribute within a \
             d[name].to_intel64()
         for name in self._persistent:
             value = d[name]
+            if isinstance(value, cuda.ndarray):
+                value = value.get()  # to numpy.ndarray
             if isinstance(value, numpy.ndarray):
                 d[name] = intel64.ideep.array(
-                    value, itype=intel64.ideep4.wgt_array)
+                    value, itype=intel64.ideep.wgt_array)
         self._cpu = True
         return self
 

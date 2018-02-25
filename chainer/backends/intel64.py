@@ -38,9 +38,15 @@ def check_ideep_available():
     Otherwise it raises ``RuntimeError``.
     """
     if _ideep_version is None:
+        # If the error is missing shared object, append a message to
+        # redirect to the ideep website.
+        msg = str(_error)
+        if 'cannot open shared object file' in msg:
+            msg += ('\n\nEnsure iDeep requirements are satisfied: '
+                    'https://github.com/intel/ideep')
         raise RuntimeError(
             'iDeep is not available.\n'
-            'Reason: {}'.format(type(_error).__name__, str(_error)))
+            'Reason: {}: {}'.format(type(_error).__name__, msg))
 
 
 def should_use_ideep(level):

@@ -1,5 +1,7 @@
-How to write a training loop in Chainer
-```````````````````````````````````````
+MNIST with a Manual Training Loop
+`````````````````````````````````
+
+.. include:: ../imports.rst
 
 .. currentmodule:: chainer
 
@@ -78,8 +80,8 @@ The code below shows how to create a :class:`~chainer.iterators.SerialIterator` 
     from chainer.datasets import mnist
     # This is a dummy code which is equivalent to this code
     # train, test = mnist.get_mnist(withlabel=True, ndim=1)
-    train = [(np.zeros((784,), 'f'), np.zeros((), 'f'))]
-    test = [(np.zeros((784,), 'f'), np.zeros((), 'f'))]
+    train = [(np.zeros((784,), np.float32), np.zeros((), np.float32))]
+    test = [(np.zeros((784,), np.float32), np.zeros((), np.float32))]
 
 .. testcode::
 
@@ -204,7 +206,7 @@ You can easily try out other optimizers as well. Please test and observe the res
 ''''''''''''''''''''''''
 
 We now show how to write the training loop. Since we are working on a digit classification problem, we will use
-:func:`~chainer.functions.softmax_cross_entropy` as the loss function for the optimizer to minimize. For other types of problems, such as regression models, other loss functions might be more appropriate. See the `Chainer documentation for detailed information on the various loss functions <http://docs.chainer.org/en/stable/reference/functions.html#loss-functions>`_ for more details.
+:func:`~chainer.functions.softmax_cross_entropy` as the loss function for the optimizer to minimize. For other types of problems, such as regression models, other loss functions might be more appropriate. See the `Chainer documentation for detailed information on the various loss functions <../reference/functions.html#loss-functions>`_ for more details.
 
 Our training loop will be structured as follows.
 
@@ -222,7 +224,7 @@ The training loop code is as follows:
 
     import numpy as np
     from chainer.dataset import concat_examples
-    from chainer.cuda import to_cpu
+    from chainer.backends.cuda import to_cpu
 
     max_epoch = 10
 

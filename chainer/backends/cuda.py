@@ -1,20 +1,26 @@
 """Device, context and memory management on CuPy.
 
+.. note::
+   The package ``chainer.cuda`` has been renamed to
+   :mod:`chainer.backends.cuda` as of v4.0.0, but the previous module path
+   ``chainer.cuda`` is also available.
+
 Chainer uses `CuPy <https://cupy.chainer.org/>`_ (with very thin wrapper)
 to exploit the speed of GPU computation. Following modules and classes defined
-in CuPy are imported to :mod:`chainer.cuda` module for convenience (refer to
-this table when reading chainer's source codes).
+in CuPy are imported to :mod:`chainer.backends.cuda` module for convenience
+(refer to this table when reading chainer's source codes).
 
-============================ =================================
- imported name                original name
-============================ =================================
- ``chainer.cuda.cupy``        :mod:`cupy`
- ``chainer.cuda.ndarray``     :class:`cupy.ndarray`
- ``chainer.cuda.cupy.cuda``   :mod:`cupy.cuda`
- ``chainer.cuda.Device``      :class:`cupy.cuda.Device`
- ``chainer.cuda.Event``       :class:`cupy.cuda.Event`
- ``chainer.cuda.Stream``      :class:`cupy.cuda.Stream`
-============================ =================================
+===================================== =================================
+ imported name                         original name
+===================================== =================================
+ ``chainer.backends.cuda.cupy``        :mod:`cupy`
+ ``chainer.backends.cuda.cupyx``       :mod:`cupyx`
+ ``chainer.backends.cuda.ndarray``     :class:`cupy.ndarray`
+ ``chainer.backends.cuda.cupy.cuda``   :mod:`cupy.cuda`
+ ``chainer.backends.cuda.Device``      :class:`cupy.cuda.Device`
+ ``chainer.backends.cuda.Event``       :class:`cupy.cuda.Event`
+ ``chainer.backends.cuda.Stream``      :class:`cupy.cuda.Stream`
+===================================== =================================
 
 Chainer replaces the default allocator of CuPy by its memory pool
 implementation. It enables us to reuse the device memory over multiple
@@ -40,6 +46,7 @@ try:
     import cupy
     from cupy import cuda  # NOQA
     from cupy.cuda import cublas  # NOQA
+    import cupyx  # NOQA
 
     from cupy import ndarray  # NOQA
 
@@ -136,14 +143,13 @@ if available:
     pinned_memory_pool = cupy.get_default_pinned_memory_pool()
 
 
+_integer_types = six.integer_types + (numpy.integer,)
 if six.PY2:
     try:
         from future.types.newint import newint as _newint
-        _integer_types = six.integer_types + (_newint,)
+        _integer_types += (_newint,)
     except ImportError:
-        _integer_types = six.integer_types
-else:
-    _integer_types = six.integer_types
+        pass
 
 
 # ------------------------------------------------------------------------------
@@ -217,7 +223,7 @@ def get_device(*args):
 
 def _get_device(*args):
     for arg in args:
-        if type(arg) in _integer_types:
+        if type(arg) is not bool and isinstance(arg, _integer_types):
             check_cuda_available()
             return Device(arg)
         if isinstance(arg, ndarray):

@@ -45,7 +45,7 @@ class Linear(link.Link):
 
         Define an input vector ``x`` as:
 
-        >>> x = np.array([[0, 1, 2, 3, 4]], 'f')
+        >>> x = np.array([[0, 1, 2, 3, 4]], np.float32)
 
         1. Give the first two arguments explicitly:
 

@@ -87,8 +87,8 @@ class SigmoidGrad(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         y, gy = self.get_retained_inputs()
-        g, = grad_outputs
-        return g * gy * (1 - 2 * y), g * y * (1 - y)
+        ggx, = grad_outputs
+        return ggx * gy * (1 - 2 * y), ggx * y * (1 - y)
 
 
 def sigmoid(x):
@@ -109,7 +109,7 @@ def sigmoid(x):
 
         It maps the input values into the range of :math:`[0, 1]`.
 
-        >>> x = np.arange(-2, 3, 2).astype('f')
+        >>> x = np.arange(-2, 3, 2).astype(np.float32)
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
         >>> F.sigmoid(x)

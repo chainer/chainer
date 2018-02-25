@@ -84,11 +84,11 @@ y(i, j, k, ...)`.
         ...               [8.0, 1.0, 2.0], # prediction label is 0
         ...               [-8.0, 1.0, 2.0], # prediction label is 2
         ...               [-8.0, -1.0, -2.0]]) # prediction label is 1
-        >>> t = np.array([1, 0, 2, 1], 'i')
+        >>> t = np.array([1, 0, 2, 1], np.int32)
         >>> F.accuracy(y, t).data \
 # 100% accuracy because all samples are correct
         array(1.)
-        >>> t = np.array([1, 0, 0, 0], 'i')
+        >>> t = np.array([1, 0, 0, 0], np.int32)
         >>> F.accuracy(y, t).data \
 # 50% accuracy because 1st and 2nd samples are correct.
         array(0.5)

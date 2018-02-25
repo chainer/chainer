@@ -35,7 +35,7 @@ Before contributing to Chainer, it is strongly recommended to understand the dev
 Versioning
 ~~~~~~~~~~
 
-The versioning of Chainer follows `PEP 440 <https://www.python.org/dev/peps/pep-0440/>`_ and a part of `Semantic versioning <http://semver.org/>`_.
+The versioning of Chainer follows `PEP 440 <https://www.python.org/dev/peps/pep-0440/>`_ and a part of `Semantic versioning <https://semver.org/>`_.
 The version number consists of three or four parts: ``X.Y.Zw`` where ``X`` denotes the **major version**, ``Y`` denotes the **minor version**, ``Z`` denotes the **revision number**, and the optional ``w`` denotes the prelease suffix.
 While the major, minor, and revision numbers follow the rule of semantic versioning, the pre-release suffix follows PEP 440 so that the version string is much friendly with Python eco-system.
 
@@ -210,17 +210,17 @@ Coding Guidelines
    Coding guidelines are updated at v3.0.
    Those who have contributed to older versions should read the guidelines again.
 
-We use `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ and a part of `OpenStack Style Guidelines <http://docs.openstack.org/developer/hacking/>`_ related to general coding style as our basic style guidelines.
+We use `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ and a part of `OpenStack Style Guidelines <https://docs.openstack.org/developer/hacking/>`_ related to general coding style as our basic style guidelines.
 
 To check your code, use ``autopep8`` and ``flake8`` command installed by ``hacking`` package::
 
   $ pip install autopep8 hacking
-  $ autopep8 --global-config .pep8 path/to/your/code.py
+  $ autopep8 path/to/your/code.py
   $ flake8 path/to/your/code.py
 
 The ``autopep8`` supports automatically correct Python code to conform to the PEP 8 style guide::
 
-  $ autopep8 --in-place --global-config .pep8 path/to/your/code.py
+  $ autopep8 --in-place path/to/your/code.py
 
 The ``flake8`` command lets you know the part of your code not obeying our style guidelines.
 Before sending a pull request, be sure to check that your code passes the ``flake8`` checking.
