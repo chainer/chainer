@@ -8,7 +8,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions.math.minmax
 from chainer import initializers
 import chainer.reporter
@@ -78,8 +78,8 @@ class TestGatherScatter(unittest.TestCase):
         for i in range(bsize):
             t[i] = i % 2
 
-        x = chainer.Variable(chainer.cuda.to_gpu(x))
-        t = chainer.Variable(chainer.cuda.to_gpu(t))
+        x = chainer.Variable(chainer.backends.cuda.to_gpu(x))
+        t = chainer.Variable(chainer.backends.cuda.to_gpu(t))
 
         loss0 = model0(x, t)
 
