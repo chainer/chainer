@@ -26,10 +26,19 @@ class GradientClipping(object):
         threshold (float): L2 norm threshold.
 
     Attributes:
-        threshold (float): L2 norm threshold of gradient norm.
+        ~GradientClipping.threshold (float): L2 norm threshold of gradient
+                                             norm.
+        ~GradientClipping.timing (string): Specifies when this hook should be
+                         called by the Optimizer/UpdateRule. Valid values are
+                         'pre' (before any updates) and 'post' (after any
+                         updates).
+
+    .. versionadded:: 4.0.0
+       The *timing* parameter.
 
     """
     name = 'GradientClipping'
+    timing = 'pre'
 
     def __init__(self, threshold):
         self.threshold = threshold
@@ -38,7 +47,6 @@ class GradientClipping(object):
         norm = numpy.sqrt(_sum_sqnorm(
             [p.grad for p in opt.target.params(False)]))
         rate = self.threshold / norm
-        print('rate={}'.format(rate))
         if rate < 1:
             for param in opt.target.params(False):
                 grad = param.grad
