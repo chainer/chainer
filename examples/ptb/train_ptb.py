@@ -216,7 +216,7 @@ def main():
     model.compute_accuracy = False  # we only want the perplexity
     if args.gpu >= 0:
         # Make a specified GPU current
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()
 
     # Set up an optimizer

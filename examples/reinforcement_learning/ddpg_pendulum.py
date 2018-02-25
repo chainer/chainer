@@ -73,7 +73,7 @@ def get_action(policy, obs):
     obs = policy.xp.asarray(obs[None], dtype=np.float32)
     with chainer.no_backprop_mode():
         action = policy(obs).data[0]
-    return chainer.cuda.to_cpu(action)
+    return chainer.backends.cuda.to_cpu(action)
 
 
 def update(Q, target_Q, policy, target_policy, opt_Q, opt_policy,
@@ -182,7 +182,7 @@ def main():
                     env.action_space.low, env.action_space.high,
                     n_units=args.unit)
     if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         Q.to_gpu(args.gpu)
         policy.to_gpu(args.gpu)
     target_Q = copy.deepcopy(Q)

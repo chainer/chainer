@@ -15,7 +15,7 @@ from chainer.testing import attr
 class TestPoolingNDKernelMemo(unittest.TestCase):
 
     def setUp(self):
-        chainer.cuda.clear_memo()
+        chainer.backends.cuda.clear_memo()
 
     def test_pooling_nd_kernel_forward_memo(self):
         ndim = self.ndim
