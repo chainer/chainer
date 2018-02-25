@@ -15,7 +15,7 @@ from chainer.utils import conv_nd_kernel
 class TestIm2colNDKernelMemo(unittest.TestCase):
 
     def setUp(self):
-        chainer.cuda.clear_memo()
+        chainer.backends.cuda.clear_memo()
 
     def test_im2col_nd_kernel_memo(self):
         ndim = self.ndim
@@ -34,7 +34,7 @@ class TestIm2colNDKernelMemo(unittest.TestCase):
 class TestCol2imNDKernelMemo(unittest.TestCase):
 
     def setUp(self):
-        chainer.cuda.clear_memo()
+        chainer.backends.cuda.clear_memo()
 
     def test_col2im_nd_kernel_memo(self):
         ndim = self.ndim

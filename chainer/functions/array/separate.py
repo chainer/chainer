@@ -1,5 +1,43 @@
+<<<<<<< HEAD
 from chainer.functions.array import reshape
 from chainer.functions.array import split_axis
+=======
+from chainer.backends import cuda
+from chainer import function_node
+from chainer.functions.array import stack
+from chainer.utils import type_check
+
+
+class Separate(function_node.FunctionNode):
+
+    """Function that separates a given array."""
+
+    def __init__(self, axis):
+        self.axis = axis
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 1)
+        x_type = in_types[0]
+        if self.axis >= 0:
+            type_check.expect(self.axis < x_type.ndim)
+        else:
+            type_check.expect(-self.axis <= x_type.ndim)
+
+    def forward(self, inputs):
+        x, = inputs
+        self._xp = cuda.get_array_module(x)
+        xs = self._xp.split(x, x.shape[self.axis], self.axis)
+        ys = [self._xp.squeeze(y, self.axis) for y in xs]
+        self._shape = ys[0].shape
+        self._dtype = x.dtype
+        return tuple(ys)
+
+    def backward(self, indexes, grad_outputs):
+        grad_outputs = [
+            self._xp.zeros(self._shape, dtype=self._dtype)
+            if g is None else g for g in grad_outputs]
+        return stack.stack(grad_outputs, self.axis),
+>>>>>>> 0be1b3812... Merge pull request #4259 from vilyaair/backends
 
 
 def separate(x, axis=0):
