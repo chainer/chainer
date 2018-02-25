@@ -10,7 +10,8 @@ import numpy as np
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+from chainer.backends import intel64
 import chainer.functions as F
 from chainer import initializers
 from chainer import testing
@@ -63,9 +64,16 @@ class TestVariable(unittest.TestCase):
         a = self.x
         if gpu:
             a = cuda.to_gpu(a)
+            xp = cuda.cupy
+        else:
+            xp = np
         x = chainer.Variable(a)
-        self.assertIs(x.data, a)
-        self.assertIs(x.array, a)
+        if isinstance(self.x, np.ndarray):
+            self.assertIs(x.data, a)
+            self.assertIs(x.array, a)
+        self.assertIsInstance(x.data, xp.ndarray)
+        self.assertIsInstance(x.array, xp.ndarray)
+        self.assertIs(x.data, x.array)
         self.assertEqual(x.shape, self.x.shape)
         self.assertEqual(x.ndim, self.x.ndim)
         self.assertEqual(x.size, self.x.size)
@@ -321,7 +329,7 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(np.empty((3,), dtype=np.float32))
         a.grad = np.ndarray((3,), dtype=np.float32)
 
-    def test_grad_type_check_type(self):
+    def test_grad_type_check_pass_type(self):
         a = chainer.Variable(np.empty((), dtype=np.float32))
         with self.assertRaises(TypeError):
             a.grad = np.float32()
@@ -1323,22 +1331,7 @@ class TestTranspose(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x))
 
 
-@testing.parameterize(
-    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
-     'str': 'variable(None)'},
-    {'x_shape': (2, 2,), 'dtype': np.float16,
-     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
-     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (2, 2,), 'dtype': np.float32,
-     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
-     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (2, 2,), 'dtype': np.float64,
-     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
-     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (3,),  'dtype': np.float32,
-     'repr': 'variable([ 0.,  1.,  2.])', 'str': 'variable([ 0.  1.  2.])'},
-)
-class TestUnnamedVariableToString(unittest.TestCase):
+class UnnamedVariableToStringTestBase(object):
 
     def setUp(self):
         if self.x_shape is None:
@@ -1364,6 +1357,50 @@ class TestUnnamedVariableToString(unittest.TestCase):
     def test_str_gpu(self):
         self.x.to_gpu()
         self.assertEqual(str(self.x), self.str)
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
+     'str': 'variable(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float16,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float64,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (3,),  'dtype': np.float32,
+     'repr': 'variable([ 0.,  1.,  2.])', 'str': 'variable([ 0.  1.  2.])'},
+)
+@testing.with_requires('numpy<1.14')
+class TestUnnamedVariableToStringLegacy(
+        UnnamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.13 or earlier.
+    pass
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
+     'str': 'variable(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float16,
+     'repr': 'variable([[0., 1.],\n          [2., 3.]])',
+     'str': 'variable([[0. 1.]\n          [2. 3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable([[0., 1.],\n          [2., 3.]])',
+     'str': 'variable([[0. 1.]\n          [2. 3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float64,
+     'repr': 'variable([[0., 1.],\n          [2., 3.]])',
+     'str': 'variable([[0. 1.]\n          [2. 3.]])'},
+    {'x_shape': (3,),  'dtype': np.float32,
+     'repr': 'variable([0., 1., 2.])', 'str': 'variable([0. 1. 2.])'},
+)
+@testing.with_requires('numpy>=1.14')
+class TestUnnamedVariableToStringModern(
+        UnnamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.14 or later.
+    pass
 
 
 class TestUnnamedVariableDim2Size0ToString(unittest.TestCase):
@@ -1396,16 +1433,7 @@ class TestUnnamedVariableDim2Size0ToString(unittest.TestCase):
         self.assertEqual(str(self.x), self.str)
 
 
-@testing.parameterize(
-    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
-     'str': 'variable x(None)'},
-    {'x_shape': (2, 2,), 'dtype': np.float32,
-     'repr': 'variable x([[ 0.,  1.],\n            [ 2.,  3.]])',
-     'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
-    {'x_shape': (), 'dtype': np.float32,
-     'repr': 'variable x(0.0)', 'str': 'variable x(0.0)'},
-)
-class TestNamedVariableToString(unittest.TestCase):
+class NamedVariableToStringTestBase(object):
 
     def setUp(self):
         if self.x_shape is None:
@@ -1431,6 +1459,38 @@ class TestNamedVariableToString(unittest.TestCase):
     def test_str_gpu(self):
         self.x.to_gpu()
         self.assertEqual(str(self.x), self.str)
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
+     'str': 'variable x(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable x([[ 0.,  1.],\n            [ 2.,  3.]])',
+     'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
+    {'x_shape': (), 'dtype': np.float32,
+     'repr': 'variable x(0.0)', 'str': 'variable x(0.0)'},
+)
+@testing.with_requires('numpy<1.14')
+class TestNamedVariableToStringLegacy(
+        NamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.13 or earlier.
+    pass
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
+     'str': 'variable x(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable x([[0., 1.],\n            [2., 3.]])',
+     'str': 'variable x([[0. 1.]\n            [2. 3.]])'},
+    {'x_shape': (), 'dtype': np.float32,
+     'repr': 'variable x(0.)', 'str': 'variable x(0.)'},
+)
+@testing.with_requires('numpy>=1.14')
+class TestNamedVariableToStringModern(
+        NamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.14 or later.
+    pass
 
 
 class TestNamedVariableDim2Size0ToString(unittest.TestCase):
@@ -1518,6 +1578,116 @@ class TestAsVariable(unittest.TestCase):
         y = chainer.as_variable(x)
         self.assertIs(x, y)
         self.assertTrue(y.requires_grad)
+
+
+@testing.parameterize(*testing.product({
+    'in_shape': [(4, 3, 2)],
+    'dtype': [np.float16, np.float32, np.float64],
+    'loss_scale': [None, 1, 10],
+}))
+class TestLossScale(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+        self.y = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+
+    def check_loss_scale(self, x_data, y_data):
+        x = chainer.Variable(x_data)
+        y = chainer.Variable(y_data)
+        z = x * y
+        loss = F.sum(z)
+        loss.backward(loss_scale=self.loss_scale)
+        if self.loss_scale is not None:
+            x.grad /= self.loss_scale
+            y.grad /= self.loss_scale
+        rtol, atol = 1e-4, 1e-5
+        if self.dtype is np.float16:
+            rtol, atol = 1e-1, 1e-2
+        testing.assert_allclose(x.data, y.grad, rtol=rtol, atol=atol)
+        testing.assert_allclose(y.data, x.grad, rtol=rtol, atol=atol)
+
+    def test_loss_scale_cpu(self):
+        self.check_loss_scale(self.x, self.y)
+
+    @attr.gpu
+    def test_loss_scale_gpu(self):
+        self.check_loss_scale(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
+
+
+@testing.parameterize(*testing.product({
+    # TODO(niboshi): shape () is not supported
+    'shape': [(0,), (3, 2)],
+    'dtype': [
+        np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32,
+        np.uint64, np.float16, np.float32, np.float64],
+}))
+@attr.ideep
+class TestIntel64(unittest.TestCase):
+    def setUp(self):
+        self.x_data = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+
+    def _check_variable_shape_and_dtype(self, var):
+        assert var.data.shape == self.shape
+        assert var.data.dtype == self.dtype
+        assert var.shape == self.shape
+        assert var.dtype == self.dtype
+
+    def test_cpu_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        prev_x_data = x.data
+        x.to_intel64()
+
+        # Converted to mdarray only if dtype == float32.
+        # Otherwise, data should be left untouched.
+        if self.dtype == np.float32:
+            assert isinstance(x.data, intel64.ideep.mdarray)
+        else:
+            assert x.data is prev_x_data
+
+        self._check_variable_shape_and_dtype(x)
+
+    def test_intel64_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        x.to_intel64()
+        prev_x_data = x.data
+        x.to_intel64()
+
+        # Data should be left untouched
+        assert x.data is prev_x_data
+
+    @attr.gpu
+    def test_gpu_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        x.to_gpu()
+        x.to_intel64()
+
+        # Converted to mdarray only if dtype == float32.
+        # Otherwise, data should be converted to numpy.ndarray.
+        if self.dtype == np.float32:
+            assert isinstance(x.data, intel64.ideep.mdarray)
+        else:
+            assert isinstance(x.data, np.ndarray)
+
+        self._check_variable_shape_and_dtype(x)
+
+    @attr.gpu
+    def test_intel64_to_gpu(self):
+        x = chainer.Variable(self.x_data)
+        x.to_intel64()
+        x.to_gpu()
+
+        # Data should be converted to cuda.ndarray
+        assert isinstance(x.data, cuda.cupy.ndarray)
+        self._check_variable_shape_and_dtype(x)
+
+    def test_intel64_to_cpu(self):
+        x = chainer.Variable(self.x_data)
+        x.to_intel64()
+        x.to_cpu()
+
+        # Data should be converted to numpy.ndarray
+        assert isinstance(x.data, np.ndarray)
+        self._check_variable_shape_and_dtype(x)
 
 
 testing.run_module(__name__, __file__)

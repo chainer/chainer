@@ -7,6 +7,7 @@ import numpy
 import six
 
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import initializers
 from chainer import variable
 
@@ -334,8 +335,6 @@ Assign a Parameter object directly to an attribute within a \
         Returns: self
 
         """
-        if self._cpu:
-            return self
         d = self.__dict__
         for name in self._params:
             d[name].to_cpu()
@@ -343,6 +342,8 @@ Assign a Parameter object directly to an attribute within a \
             value = d[name]
             if isinstance(value, cuda.ndarray):
                 d[name] = value.get()
+            elif isinstance(value, intel64.mdarray):
+                d[name] = numpy.array(value)
         self._cpu = True
         self._device_id = None
         return self
@@ -370,10 +371,28 @@ Assign a Parameter object directly to an attribute within a \
                 d[name].to_gpu()
             for name in self._persistent:
                 value = d[name]
+                if isinstance(value, intel64.mdarray):
+                    value = numpy.array(value)
                 if isinstance(value, numpy.ndarray):
                     d[name] = cuda.to_gpu(value)
             self._device_id = cuda.cupy.cuda.get_device_id()
         self._cpu = False
+        return self
+
+    def to_intel64(self):
+        """Copies parameter variables and persistent values to CPU."""
+        intel64.check_ideep_available()
+        d = self.__dict__
+        for name in self._params:
+            d[name].to_intel64()
+        for name in self._persistent:
+            value = d[name]
+            if isinstance(value, cuda.ndarray):
+                value = value.get()  # to numpy.ndarray
+            if isinstance(value, numpy.ndarray):
+                d[name] = intel64.ideep.array(
+                    value, itype=intel64.ideep.wgt_array)
+        self._cpu = True
         return self
 
     def params(self, include_uninit=True):
@@ -733,6 +752,13 @@ Assign a Link object directly to an attribute within a \
                 d[name].to_gpu()
         return self
 
+    def to_intel64(self):
+        super(Chain, self).to_intel64()
+        d = self.__dict__
+        for name in self._children:
+            d[name].to_intel64()
+        return self
+
     def params(self, include_uninit=True):
         for param in super(Chain, self).params(include_uninit):
             yield param
@@ -889,6 +915,12 @@ class ChainList(Link):
             super(ChainList, self).to_gpu()
             for link in self._children:
                 link.to_gpu()
+        return self
+
+    def to_intel64(self):
+        super(ChainList, self).to_intel64()
+        for link in self._children:
+            link.to_intel64()
         return self
 
     def params(self, include_uninit=True):

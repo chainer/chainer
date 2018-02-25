@@ -82,7 +82,8 @@ class UpdateRule(object):
     of each parameter defines how to update it.
 
     Hook functions can be set to any update rule instance. The hook function is
-    called just before any updates in the order of registrations.
+    called just before or after any updates (configurable) in the order of
+    registrations.
 
     An implementation of update rule should override :meth:`update_core` or
     its device-dependent variants (i.e., :meth:`update_core_cpu` and
@@ -104,12 +105,13 @@ class UpdateRule(object):
             update rule is not active (i.e., ``enabled = False``), the
             :meth:`update` method does not update the parameter.
         hyperparam (Hyperparameter): Hyperparameter of the update rule.
-        t (int): Number of updates made by this update rule.
+        ~UpdateRule.t (int): Number of updates made by this update rule.
 
     """
 
     def __init__(self, parent_hyperparam=None):
-        self._hooks = collections.OrderedDict()
+        self._pre_update_hooks = collections.OrderedDict()
+        self._post_update_hooks = collections.OrderedDict()
         self._state = None
         self.enabled = True
         self.hyperparam = Hyperparameter(parent_hyperparam)
@@ -122,30 +124,44 @@ class UpdateRule(object):
         """State dictionary."""
         return self._state
 
-    def add_hook(self, hook, name=None):
+    def add_hook(self, hook, name=None, timing='auto'):
         """Adds a hook function.
 
-        The hook function is called before any updates.
+        The hook function is called before or after any updates (see the timing
+        attribute).
 
         Args:
             hook (callable): Hook function to be added. It takes two
                 arguments: the update rule object and the parameter variable.
             name (str): Name of the hook function. The name attribute of the
                 hook function is used by default.
+            timing (str): Specifies when the hook is called. If 'auto', the
+                timimg property of the hook will decide the timing.
+                If 'pre', the hook will be called before any updates.
+                If 'post', the hook will be called after any updates.
+                If 'auto' and the timing property of the hook is not
+                available, timing will default to 'pre'.
 
         """
         if not callable(hook):
             raise TypeError('hook function must be callable')
+        if timing not in ('pre', 'post', 'auto'):
+            raise ValueError("timing must be one of ('pre', 'post', 'auto')")
+        if timing == 'auto':
+            timing = getattr(hook, 'timing', 'pre')
 
         if name is None:
             name = getattr(hook, 'name', getattr(hook, '__name__', None))
             if name is None:
                 raise ValueError(
                     'the name of the hook function is not specified')
-        if name in self._hooks:
+        if name in self._pre_update_hooks or name in self._post_update_hooks:
             raise ValueError('hook "{}" already exists'.format(name))
 
-        self._hooks[name] = hook
+        if timing == 'pre':
+            self._pre_update_hooks[name] = hook
+        else:
+            self._post_update_hooks[name] = hook
 
     def remove_hook(self, name):
         """Removes the specified hook function.
@@ -155,7 +171,10 @@ class UpdateRule(object):
                 function registered with this name will be removed.
 
         """
-        del self._hooks[name]
+        try:
+            del self._pre_update_hooks[name]
+        except KeyError:
+            del self._post_update_hooks[name]
 
     def update(self, param):
         """Invokes hook functions and updates the parameter.
@@ -179,18 +198,26 @@ class UpdateRule(object):
 
             if fp32_param.data is not None:
                 self._prepare(fp32_param)
-            for hook in six.itervalues(self._hooks):
+            if param._loss_scale is not None:
+                fp32_param.grad /= param._loss_scale
+            for hook in six.itervalues(self._pre_update_hooks):
                 hook(self, fp32_param)
             self.update_core(fp32_param)
+            for hook in six.itervalues(self._post_update_hooks):
+                hook(self, fp32_param)
 
             param.data = fp32_param.data.astype(param.dtype)
             fp32_param.grad = None
         else:
             if param.data is not None:
                 self._prepare(param)
-            for hook in six.itervalues(self._hooks):
+            if param._loss_scale is not None:
+                param.grad /= param._loss_scale
+            for hook in six.itervalues(self._pre_update_hooks):
                 hook(self, param)
             self.update_core(param)
+            for hook in six.itervalues(self._post_update_hooks):
+                hook(self, param)
 
     def update_core(self, param):
         """Updates the parameter.
@@ -255,6 +282,7 @@ class UpdateRule(object):
             serializer (~chainer.AbstractSerializer): Serializer object.
 
         """
+        self.t = serializer('t', self.t)
         if self.state is None:
             if isinstance(serializer, serializer_module.Deserializer):
                 # try to initialize the state to retrieve state entries
@@ -330,22 +358,28 @@ class Optimizer(object):
 
     Optimizer instance also supports *hook functions*. Hook function is
     registered by the :meth:`add_hook` method. Each hook function is called
-    in registration order in advance of the actual parameter update. If the
-    hook function has an attribute ``call_for_each_param`` and its value is
-    ``True``, the hook function is used as a hook function of all update rules
-    (i.e., it is invoked for every parameter by passing the corresponding
-    update rule and the parameter).
+    in registration order before of after the actual parameter update
+    (configurable). If the hook function has an attribute
+    ``call_for_each_param`` and its value is ``True``, the hook function is
+    used as a hook function of all update rules (i.e., it is invoked for every
+    parameter by passing the corresponding update rule and the parameter).
 
     Attributes:
-        target: Target link object. It is set by the :meth:`setup` method.
-        t: Number of update steps. It must be incremented by the
+        ~Optimizer.target: Target link object.
+            It is set by the :meth:`setup` method.
+        ~Optimizer.t: Number of update steps. It must be incremented by the
             :meth:`update` method.
         ~Optimizer.epoch: Current epoch. It is incremented by the
             :meth:`new_epoch` method.
 
     """
 
-    _hooks = None
+    target = None
+    t = 0
+    epoch = 0
+    _pre_update_hooks = None
+    _post_update_hooks = None
+    _loss_scale = None
 
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
@@ -357,13 +391,23 @@ class Optimizer(object):
         Args:
             link (~chainer.Link): Target link object.
 
+        Returns:
+            The optimizer instance.
+
+        .. note::
+           As of v4.0.0, this function returns the optimizer instance itself
+           so that you can instantiate and setup the optimizer in one line,
+           e.g., ``optimizer = SomeOptimizer().setup(link)``.
+
         """
         if not isinstance(link, link_module.Link):
             raise TypeError('optimization target must be a link')
         self.target = link
         self.t = 0
         self.epoch = 0
-        self._hooks = collections.OrderedDict()
+        self._pre_update_hooks = collections.OrderedDict()
+        self._post_update_hooks = collections.OrderedDict()
+        return self
 
     def update(self, lossfun=None, *args, **kwds):
         """Updates the parameters.
@@ -407,11 +451,12 @@ class Optimizer(object):
         """
         self.epoch += 1
 
-    def add_hook(self, hook, name=None):
+    def add_hook(self, hook, name=None, timing='auto'):
         """Registers a hook function.
 
         Hook function is typically called right after the gradient computation,
-        though the timing depends on the optimization method.
+        though the timing depends on the optimization method, and the timing
+        attribute.
 
         Args:
             hook (function): Hook function. If ``hook.call_for_each_param`` is
@@ -421,18 +466,34 @@ class Optimizer(object):
                 optimizer.
             name (str): Name of the registration. If omitted, ``hook.name`` is
                 used by default.
+            timing (str): Specifies when the hook is called. If 'auto', the
+                timimg property of the hook will decide the timing.
+                If 'pre', the hook will be called before any updates.
+                If 'post', the hook will be called after any updates.
 
         """
         if not callable(hook):
             raise TypeError('hook function is not callable')
-        if self._hooks is None:
+        if self._pre_update_hooks is None or self._post_update_hooks is None:
             raise RuntimeError('call `setup` method before `add_hook` method')
+        if timing not in ('pre', 'post', 'auto'):
+            raise ValueError("timing must be one of ('pre', 'post', 'auto')")
+        if timing == 'auto':
+            timing = getattr(hook, 'timing', None)
+            if timing not in ('pre', 'post'):
+                warnings.warn("Hook timing attribute not in ('pre', 'post'), "
+                              "defaulting timing to 'pre'.")
+                timing = 'pre'
 
         if name is None:
             name = hook.name
-        if name in self._hooks:
-            raise KeyError('hook %s already exists' % name)
-        self._hooks[name] = hook
+        if name in self._pre_update_hooks or name in self._post_update_hooks:
+            raise KeyError('hook "{}" already exists'.format(name))
+
+        if timing == 'pre':
+            self._pre_update_hooks[name] = hook
+        else:
+            self._post_update_hooks[name] = hook
 
     def remove_hook(self, name):
         """Removes a hook function.
@@ -441,11 +502,20 @@ class Optimizer(object):
             name (str): Registered name of the hook function to remove.
 
         """
-        del self._hooks[name]
+        try:
+            del self._pre_update_hooks[name]
+        except KeyError:
+            del self._post_update_hooks[name]
 
-    def call_hooks(self):
+    def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
-        for hook in six.itervalues(self._hooks):
+        if timing not in ('pre', 'post'):
+            raise ValueError("timing must be either 'pre' or 'post'")
+        if timing == 'pre':
+            hooks = self._pre_update_hooks
+        else:
+            hooks = self._post_update_hooks
+        for hook in six.itervalues(hooks):
             self._call_hook(hook)
 
     def _call_hook(self, hook):
@@ -478,6 +548,10 @@ class Optimizer(object):
             if rule is not None:
                 rule.serialize(serializer[name])
 
+    def set_loss_scale(self, loss_scale):
+        """Sets loss scaling factor."""
+        self._loss_scale = loss_scale
+
 
 class GradientMethod(Optimizer):
     """Base class of all single gradient-based optimizers.
@@ -506,12 +580,10 @@ class GradientMethod(Optimizer):
 
     """
 
-    def __init__(self, link=None):
+    def __init__(self):
         super(GradientMethod, self).__init__()
         self.hyperparam = Hyperparameter()
         self._use_fp32_update = False
-        if isinstance(link, link_module.Link):
-            self.setup(link)
 
     def setup(self, link):
         super(GradientMethod, self).setup(link)
@@ -519,6 +591,7 @@ class GradientMethod(Optimizer):
             param.update_rule = self.create_update_rule()
             if self._use_fp32_update:
                 param.update_rule.use_fp32_update()
+        return self
 
     def reallocate_cleared_grads(self):
         """Reallocate gradients cleared by :meth:`~chainer.Variable.cleargrad`.
@@ -535,9 +608,15 @@ class GradientMethod(Optimizer):
                     xp = cuda.get_array_module(param.data)
                     param.grad = xp.zeros_like(param.data)
 
-    def call_hooks(self):
+    def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
-        for hook in six.itervalues(self._hooks):
+        if timing not in ('pre', 'post'):
+            raise ValueError("timing must be either 'pre' or 'post'")
+        if timing == 'pre':
+            hooks = self._pre_update_hooks
+        else:
+            hooks = self._post_update_hooks
+        for hook in six.itervalues(hooks):
             self._call_hook(hook)
             self.reallocate_cleared_grads()
 
@@ -563,16 +642,20 @@ class GradientMethod(Optimizer):
                 self.target.cleargrads()
             else:
                 self.target.zerograds()
-            loss.backward()
+            loss.backward(loss_scale=self._loss_scale)
             del loss
 
         self.reallocate_cleared_grads()
 
-        self.call_hooks()
+        self.call_hooks('pre')
 
         self.t += 1
         for param in self.target.params():
             param.update()
+
+        self.reallocate_cleared_grads()
+
+        self.call_hooks('post')
 
     def use_cleargrads(self, use=True):
         """Enables or disables use of :func:`~chainer.Link.cleargrads` in `update`.

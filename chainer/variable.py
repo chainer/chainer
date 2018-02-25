@@ -9,6 +9,7 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
@@ -18,16 +19,16 @@ def _check_grad_type(func, x, gx):
     if x.data is None or gx is None:
         # ``x.data is None`` implies that the data array is not retained
         return
-    if not isinstance(gx, type(x.data)):
-        msg = ('Type of data and grad mismatch\n%s != %s' %
+    if not chainer.is_arrays_compatible((gx, x.data)):
+        msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
                (type(x.data), type(gx)))
         typ = TypeError
     elif gx.dtype != x.data.dtype:
-        msg = ('Dtype of data and grad mismatch\n%s != %s' %
+        msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
                (x.data.dtype, gx.dtype))
         typ = TypeError
     elif gx.shape != x.data.shape:
-        msg = ('Shape of data and grad mismatch\n%s != %s' %
+        msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
                (x.data.shape, gx.shape))
         typ = ValueError
     else:
@@ -454,7 +455,7 @@ class Variable(object):
                 ('requires_grad', True))
 
         if (data is not None and
-                not isinstance(data, (numpy.ndarray, cuda.ndarray))):
+                not isinstance(data, chainer.get_array_types())):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
 Actual: {0}'''.format(type(data))
             raise TypeError(msg)
@@ -465,6 +466,7 @@ Actual: {0}'''.format(type(data))
         self._requires_grad = requires_grad
         self._node = VariableNode(self, name)
         self._grad_var = None if grad is None else Variable(grad)
+        self._loss_scale = None
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -697,10 +699,18 @@ Actual: {0}'''.format(type(data))
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
-        if self.data is None:
+
+        data = self.data
+        if data is None:
             return
 
-        self._data = [cuda.to_cpu(self.data)]
+        if isinstance(data, cuda.ndarray):
+            # cupy.ndarray to numpy.ndarray
+            self._data = [cuda.to_cpu(data)]
+        elif isinstance(data, intel64.mdarray):
+            # ideep.mdarray to numpy.ndarray
+            self._data = [numpy.array(data)]
+
         if self._grad_var is not None:
             self._grad_var.to_cpu()
         # ensure that the node tracks the device migration
@@ -719,10 +729,37 @@ Actual: {0}'''.format(type(data))
         if self.data is None:
             self._initial_device = (cuda.Device().id
                                     if device is None else device)
+            self._data = [None]  # Renew placeholder to break sharing
         else:
             self._data = [cuda.to_gpu(self.data, device)]
             if self._grad_var is not None:
                 self._grad_var.to_gpu(device)
+            # ensure that the node tracks the device migration
+            node = self._node
+            if node._data is not None:
+                node.retain_data()
+
+    def to_intel64(self):
+        """Copies the data and gradient arrays to intel64 specific mdarray.
+
+        If the array is not suited for intel64, it will be converted to
+        :class:`numpy.ndarray`.
+        """
+        intel64.check_ideep_available()
+        data = self.data
+        if data is not None:
+            if isinstance(data, numpy.ndarray):
+                # numpy.ndarray to ideep
+                self._data = [
+                    intel64.ideep.array(
+                        data, itype=intel64.ideep.wgt_array)]
+            elif isinstance(data, cuda.ndarray):
+                # cupy.ndarray to ideep
+                self._data = [
+                    intel64.ideep.array(
+                        data.get(), itype=intel64.ideep.wgt_array)]
+        if self._grad_var is not None:
+            self._grad_var.to_intel64()
             # ensure that the node tracks the device migration
             node = self._node
             if node._data is not None:
@@ -842,7 +879,8 @@ Actual: {0}'''.format(type(data))
         """
         self._node.set_creator_node(fnode)
 
-    def backward(self, retain_grad=False, enable_double_backprop=False):
+    def backward(self, retain_grad=False, enable_double_backprop=False,
+                 loss_scale=None):
         """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
 
         On backprop,
@@ -862,8 +900,9 @@ Actual: {0}'''.format(type(data))
         1.0 as the initial error. This is useful on starting backprop from
         some scalar loss value.
 
-        Note that this method does not support *differentiable backprop*. Use
-        :func:`chainer.grad` to compute the gradient of gradients.
+        From v3, this method supports *differentiable backprop* (a.k.a. double
+        backprop, grad of grads). To enable it, pass
+        ``enable_double_backprop=True``.
 
         Args:
             retain_grad (bool): If ``True``, the gradient arrays of all
@@ -882,17 +921,25 @@ Actual: {0}'''.format(type(data))
                 enabling it results in larger memory consumption needed to
                 store the gradients w.r.t intermediate variables that are
                 required for the second gradient computation.
-
+            loss_scale (float): Loss scaling factor. Loss scaling is a usefull
+                technique to mitigate vanishing gradient issue that tends to
+                happen when low precision data type like float16 is used during
+                training. If you set loss scaling factor, gradients of loss
+                values are to be multiplied by the factor before backprop
+                starts. The factor is propagated to whole gradients in a
+                computational graph along the backprop. The gradients of
+                parameters are divided by the factor just before the parameters
+                are to be updated.
         """
         with chainer.using_config('enable_backprop', enable_double_backprop):
-            self._backward_main(retain_grad)
+            self._backward_main(retain_grad, loss_scale)
 
-    def _backward_main(self, retain_grad):
+    def _backward_main(self, retain_grad, loss_scale):
         self._node._check_old_style_gradient()
         if self.creator_node is None:
             return
         initial_device = None
-        if cuda.available and isinstance(self.data, cuda.cupy.ndarray):
+        if cuda.available and isinstance(self.data, cuda.ndarray):
             try:
                 initial_device = cuda.Device()
             except cuda.cupy.cuda.runtime.CUDARuntimeError as e:
@@ -912,6 +959,8 @@ Actual: {0}'''.format(type(data))
                     self.grad = numpy.ones_like(self.data)
                 else:
                     self.grad = cuda.cupy.ones_like(self.data)
+            if loss_scale is not None:
+                self.grad *= loss_scale
         grads[self._node] = self._grad_var
 
         def add_cand(cand):
@@ -932,9 +981,9 @@ Actual: {0}'''.format(type(data))
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
             inputs = func.inputs
-            target_input_indexes = [
+            target_input_indexes = tuple([
                 i for i, x in enumerate(inputs) if x.requires_grad
-            ]
+            ])
             if not target_input_indexes:
                 continue
             outputs = [y() for y in func.outputs]  # access via weak ref
@@ -984,6 +1033,7 @@ Actual: {0}'''.format(type(data))
                 else:
                     gx = None
                 in_grad.append(gx)
+            in_grad = tuple(in_grad)
 
             gxs = func.backward_accumulate(
                 target_input_indexes, out_grad, in_grad)
@@ -1033,6 +1083,7 @@ Actual: {0}'''.format(type(data))
                 x_var = x.get_variable_or_none()
                 if x_var is not None:
                     x_var._grad_var = grads[x]
+                    x_var._loss_scale = loss_scale
 
                 if x.creator_node is not None:
                     add_cand(x.creator_node)
@@ -1230,6 +1281,11 @@ class Parameter(Variable):
             if device is None:
                 device = cuda.Device().id
             self._initial_device = device
+
+    def to_intel64(self):
+        super(Parameter, self).to_intel64()
+        if self.data is None:
+            self._initial_device = None
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()

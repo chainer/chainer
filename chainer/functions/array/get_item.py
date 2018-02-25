@@ -93,7 +93,7 @@ def get_item(x, slices):
     .. note::
 
        See NumPy document for details of `indexing
-       <http://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_.
+       <https://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_.
 
     """
     return GetItem(slices).apply((x,))[0]

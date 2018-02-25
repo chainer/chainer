@@ -2,6 +2,7 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
@@ -12,6 +13,10 @@ class MaxPooling2D(pooling_2d.Pooling2D):
     """Max pooling over a set of 2d planes."""
 
     def forward_cpu(self, x):
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(x)):
+            return self._forward_ideep(x)
+
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
 
@@ -25,6 +30,31 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         # hits its bug when kh * kw >= 32.
         self.indexes = col.argmax(axis=2)
         y = col.max(axis=2)
+        return y,
+
+    def _forward_ideep(self, x):
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
+
+        n, c, h, w = x[0].shape
+        y_h = conv.get_conv_outsize(
+            h, self.kh, self.sy, self.ph, self.cover_all)
+        assert y_h > 0, 'Height in the output should be positive.'
+        y_w = conv.get_conv_outsize(
+            w, self.kw, self.sx, self.pw, self.cover_all)
+        assert y_w > 0, 'Width in the output should be positive.'
+        self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
+        self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
+
+        pp = intel64.ideep.pooling2DParam(
+            (n, c, y_h, y_w),
+            self.kh, self.kw,
+            self.sy, self.sx,
+            self.ph, self.pw,
+            self.pd, self.pr,
+            intel64.ideep.pooling2DParam.pooling_max)
+        y, self.indexes = intel64.ideep.pooling2D.Forward(
+            intel64.ideep.array(x[0]), pp)
         return y,
 
     def forward_gpu(self, x):
@@ -110,6 +140,10 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         self.mpool2d = mpool2d
 
     def forward_cpu(self, gy):
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(gy)):
+            return self._forward_ideep(gy)
+
         n, c, out_h, out_w = gy[0].shape
         h, w = self._in_shape[2:]
         kh, kw = self.kh, self.kw
@@ -126,6 +160,33 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         gcol = numpy.swapaxes(gcol, 3, 5)
 
         gx = conv.col2im_cpu(gcol, self.sy, self.sx, self.ph, self.pw, h, w)
+        return gx,
+
+    def _forward_ideep(self, gy):
+        # FIXME
+        # Here we expect indexes is returned from MKL-DNN
+        # otherwise, there are dtype mismatch for reorder (int64-->uint8)
+        if not isinstance(self.indexes, intel64.ideep.mdarray):
+            return self.forward_cpu(gy)
+
+        n, c, h, w = self._in_shape
+        y_h, y_w = gy[0].shape[2:]
+
+        self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
+        self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
+
+        pp = intel64.ideep.pooling2DParam(
+            self._in_shape,
+            self.kh, self.kw,
+            self.sy, self.sx,
+            self.ph, self.pw,
+            self.pd, self.pr,
+            intel64.ideep.pooling2DParam.pooling_max)
+
+        self.indexes = intel64.ideep.array(self.indexes)
+        gx = intel64.ideep.pooling2D.Backward(
+            intel64.ideep.array(gy[0]),
+            self.indexes, pp)
         return gx,
 
     def forward_gpu(self, gy):

@@ -40,9 +40,20 @@ class GradientNoise(object):
         noise_func (function): Noise generating function which by default
             is given by `Adding Gradient Noise Improves Learning for Very Deep\
             Networks <https://arxiv.org/pdf/1511.06807>`_.
+
+    Attributes:
+        ~GradientNoise.timing (string): Specifies when this hook should be
+                         called by the Optimizer/UpdateRule. Valid values are
+                         'pre' (before any updates) and 'post' (after any
+                         updates).
+
+    .. versionadded:: 4.0.0
+       The *timing* parameter.
+
     """
     name = 'GradientNoise'
     call_for_each_param = True
+    timing = 'pre'
 
     def __init__(self, eta, noise_func=exponential_decay_noise):
         self.eta = eta

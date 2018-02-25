@@ -27,7 +27,7 @@ def permutate_list(lst, indices, inv):
 
 
 class NStepRNNBase(link.ChainList):
-    """__init__(self, n_layers, in_size, out_size, dropout, use_bi_direction, activation)
+    """__init__(self, n_layers, in_size, out_size, dropout)
 
     Base link class for Stacked RNN/BiRNN links.
 
@@ -47,10 +47,6 @@ class NStepRNNBase(link.ChainList):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_bi_direction (bool): if ``True``, use Bi-directional RNN.
-            if ``False``, use Uni-directional RNN.
-        activation (str): Activation function name.
-            Please select ``tanh`` or ``relu``.
 
     .. seealso::
         :func:`chainer.links.NStepRNNReLU`
@@ -60,23 +56,28 @@ class NStepRNNBase(link.ChainList):
 
     """  # NOQA
 
-    def __init__(self, n_layers, in_size, out_size, dropout,
-                 use_bi_direction, activation, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs, use_cudnn='use_cudnn argument is not supported anymore. '
-            'Use chainer.using_config')
+            'Use chainer.using_config',
+            use_bi_direction='use_bi_direction is not supported anymore',
+            activation='activation is not supported anymore')
         argument.assert_kwargs_empty(kwargs)
 
         weights = []
-        direction = 2 if use_bi_direction else 1
+        if self.use_bi_direction:
+            direction = 2
+        else:
+            direction = 1
+
         for i in six.moves.range(n_layers):
             for di in six.moves.range(direction):
                 weight = link.Link()
                 with weight.init_scope():
-                    for j in six.moves.range(2):
-                        if i == 0 and j < 1:
+                    for j in six.moves.range(self.n_weights):
+                        if i == 0 and j < self.n_weights // 2:
                             w_in = in_size
-                        elif i > 0 and j < 1:
+                        elif i > 0 and j < self.n_weights // 2:
                             w_in = out_size * direction
                         else:
                             w_in = out_size
@@ -90,18 +91,30 @@ class NStepRNNBase(link.ChainList):
 
         super(NStepRNNBase, self).__init__(*weights)
 
+        self.ws = [[getattr(layer, 'w%d' % i)
+                    for i in six.moves.range(self.n_weights)]
+                   for layer in self]
+        self.bs = [[getattr(layer, 'b%d' % i)
+                    for i in six.moves.range(self.n_weights)]
+                   for layer in self]
+
         self.n_layers = n_layers
         self.dropout = dropout
-        self.activation = activation
         self.out_size = out_size
         self.direction = direction
-        self.rnn = rnn.n_step_birnn if use_bi_direction else rnn.n_step_rnn
 
     def init_hx(self, xs):
         shape = (self.n_layers * self.direction, len(xs), self.out_size)
         with cuda.get_device_from_id(self._device_id):
             hx = variable.Variable(self.xp.zeros(shape, dtype=xs[0].dtype))
         return hx
+
+    def rnn(self, *args):
+        """Calls RNN function.
+
+        This function must be implemented in a child class.
+        """
+        raise NotImplementedError
 
     def __call__(self, hx, xs, **kwargs):
         """__call__(self, hx, xs)
@@ -121,36 +134,55 @@ class NStepRNNBase(link.ChainList):
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
                 a sequence.
         """
+        (hy,), ys = self._call([hx], xs, **kwargs)
+        return hy, ys
+
+    def _call(self, hs, xs, **kwargs):
+        """Calls RNN function.
+
+        Args:
+            hs (list of ~chainer.Variable or None): Lisit of hidden states.
+                Its length depends on its implementation.
+                If ``None`` is specified zero-vector is used.
+            xs (list of ~chainer.Variable): List of input sequences.
+                Each element ``xs[i]`` is a :class:`chainer.Variable` holding
+                a sequence.
+
+        Returns:
+            tuple: hs
+        """
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '
             'Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
 
         assert isinstance(xs, (list, tuple))
-        xp = cuda.get_array_module(hx, *xs)
+        xp = cuda.get_array_module(*(list(hs) + list(xs)))
         indices = argsort_list_descent(xs)
         indices_array = xp.array(indices)
 
         xs = permutate_list(xs, indices, inv=False)
-        if hx is None:
-            hx = self.init_hx(xs)
-        else:
-            hx = permutate.permutate(hx, indices_array, axis=1, inv=False)
+        hxs = []
+        for hx in hs:
+            if hx is None:
+                hx = self.init_hx(xs)
+            else:
+                hx = permutate.permutate(hx, indices_array, axis=1, inv=False)
+            hxs.append(hx)
 
         trans_x = transpose_sequence.transpose_sequence(xs)
 
-        ws = [[w.w0, w.w1] for w in self]
-        bs = [[w.b0, w.b1] for w in self]
+        args = [self.n_layers, self.dropout] + hxs + \
+               [self.ws, self.bs, trans_x]
+        result = self.rnn(*args)
 
-        hy, trans_y = self.rnn(
-            self.n_layers, self.dropout, hx, ws, bs, trans_x,
-            activation=self.activation)
-
-        hy = permutate.permutate(hy, indices_array, axis=1, inv=True)
+        hys = [permutate.permutate(h, indices_array, axis=1, inv=True)
+               for h in result[:-1]]
+        trans_y = result[-1]
         ys = transpose_sequence.transpose_sequence(trans_y)
         ys = permutate_list(ys, indices, inv=True)
 
-        return hy, ys
+        return hys, ys
 
 
 class NStepRNNTanh(NStepRNNBase):
@@ -185,10 +217,11 @@ class NStepRNNTanh(NStepRNNBase):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
-        NStepRNNBase.__init__(
-            self, n_layers, in_size, out_size, dropout,
-            use_bi_direction=False,  activation='tanh', **kwargs)
+    n_weights = 2
+    use_bi_direction = False
+
+    def rnn(self, *args):
+        return rnn.n_step_rnn(*args, activation='tanh')
 
 
 class NStepRNNReLU(NStepRNNBase):
@@ -223,10 +256,11 @@ class NStepRNNReLU(NStepRNNBase):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
-        NStepRNNBase.__init__(
-            self, n_layers, in_size, out_size, dropout,
-            use_bi_direction=False, activation='relu', **kwargs)
+    n_weights = 2
+    use_bi_direction = False
+
+    def rnn(self, *args):
+        return rnn.n_step_rnn(*args, activation='relu')
 
 
 class NStepBiRNNTanh(NStepRNNBase):
@@ -262,10 +296,11 @@ class NStepBiRNNTanh(NStepRNNBase):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
-        NStepRNNBase.__init__(
-            self, n_layers, in_size, out_size, dropout,
-            use_bi_direction=True, activation='tanh', **kwargs)
+    n_weights = 2
+    use_bi_direction = True
+
+    def rnn(self, *args):
+        return rnn.n_step_birnn(*args, activation='tanh')
 
 
 class NStepBiRNNReLU(NStepRNNBase):
@@ -300,7 +335,8 @@ class NStepBiRNNReLU(NStepRNNBase):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
-        NStepRNNBase.__init__(
-            self, n_layers, in_size, out_size, dropout,
-            use_bi_direction=True, activation='relu', **kwargs)
+    n_weights = 2
+    use_bi_direction = True
+
+    def rnn(self, *args):
+        return rnn.n_step_birnn(*args, activation='relu')

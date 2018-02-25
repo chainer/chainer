@@ -12,11 +12,18 @@ class WeightDecay(object):
         rate (float): Coefficient for the weight decay.
 
     Attributes:
-        rate (float): Coefficient for the weight decay.
+        ~WeightDecay.rate (float): Coefficient for the weight decay.
+        ~WeightDecay.timing (string): Specifies when this hook should be called
+                         by the Optimizer/UpdateRule. Valid values are 'pre'
+                         (before any updates) and 'post' (after any updates).
+
+    .. versionadded:: 4.0.0
+       The *timing* parameter.
 
     """
     name = 'WeightDecay'
     call_for_each_param = True
+    timing = 'pre'
 
     def __init__(self, rate):
         self.rate = rate

@@ -51,7 +51,7 @@ def main():
     # ParallelUpdater implements the data-parallel gradient computation on
     # multiple GPUs. It accepts "devices" argument that specifies which GPU to
     # use.
-    updater = training.ParallelUpdater(
+    updater = training.updaters.ParallelUpdater(
         train_iter,
         optimizer,
         # The device of the name 'main' is used as a "master", while others are

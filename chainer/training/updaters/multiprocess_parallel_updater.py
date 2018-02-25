@@ -38,6 +38,8 @@ class _Worker(multiprocessing.Process):
         self.model.to_gpu(self.device)
         self.reporter = reporter.Reporter()
         self.reporter.add_observer('main', self.model)
+        self.reporter.add_observers('main',
+                                    self.model.namedlinks(skipself=True))
 
     def run(self):
         dev = cuda.Device(self.device)

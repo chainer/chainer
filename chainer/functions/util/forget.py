@@ -88,8 +88,8 @@ def forget(func, *xs):
 
        and, ``x`` and ``y`` be :class:`~chainer.Variable`\\ s:
 
-       >>> x = chainer.Variable(np.random.uniform(-1, 1, 5).astype('f'))
-       >>> y = chainer.Variable(np.random.uniform(-1, 1, 5).astype('f'))
+       >>> x = chainer.Variable(np.random.uniform(-1, 1, 5).astype(np.float32))
+       >>> y = chainer.Variable(np.random.uniform(-1, 1, 5).astype(np.float32))
 
        When ``z`` is calculated as ``z = f(x, y)``, its intermediate result
        ``x + y`` is stored in memory. Instead, if you call ``f`` with

@@ -189,15 +189,15 @@ def upsampling_2d(
         created and stored in the :attr:`~chainer.functions.MaxPooling2D`
         object when cuDNN is used for it.
 
-        >>> x = np.arange(1, 37).reshape(1, 1, 6, 6).astype('f')
+        >>> x = np.arange(1, 37).reshape(1, 1, 6, 6).astype(np.float32)
         >>> x = chainer.Variable(x)
         >>> x.data
-        array([[[[  1.,   2.,   3.,   4.,   5.,   6.],
-                 [  7.,   8.,   9.,  10.,  11.,  12.],
-                 [ 13.,  14.,  15.,  16.,  17.,  18.],
-                 [ 19.,  20.,  21.,  22.,  23.,  24.],
-                 [ 25.,  26.,  27.,  28.,  29.,  30.],
-                 [ 31.,  32.,  33.,  34.,  35.,  36.]]]], dtype=float32)
+        array([[[[ 1.,  2.,  3.,  4.,  5.,  6.],
+                 [ 7.,  8.,  9., 10., 11., 12.],
+                 [13., 14., 15., 16., 17., 18.],
+                 [19., 20., 21., 22., 23., 24.],
+                 [25., 26., 27., 28., 29., 30.],
+                 [31., 32., 33., 34., 35., 36.]]]], dtype=float32)
 
         This is the original ``x`` before max pooling.
 
@@ -205,9 +205,9 @@ def upsampling_2d(
         >>> with chainer.using_config('use_cudnn', 'never'):
         ...     pooled_x = p.apply((x,))[0]
         >>> pooled_x.data
-        array([[[[  8.,  10.,  12.],
-                 [ 20.,  22.,  24.],
-                 [ 32.,  34.,  36.]]]], dtype=float32)
+        array([[[[ 8., 10., 12.],
+                 [20., 22., 24.],
+                 [32., 34., 36.]]]], dtype=float32)
 
         This is the output of the max pooling operation.
         :meth:`~chainer.functions.upsampling_2d` needs
@@ -219,12 +219,12 @@ def upsampling_2d(
         >>> upsampled_x.shape
         (1, 1, 6, 6)
         >>> upsampled_x.data
-        array([[[[  0.,   0.,   0.,   0.,   0.,   0.],
-                 [  0.,   8.,   0.,  10.,   0.,  12.],
-                 [  0.,   0.,   0.,   0.,   0.,   0.],
-                 [  0.,  20.,   0.,  22.,   0.,  24.],
-                 [  0.,   0.,   0.,   0.,   0.,   0.],
-                 [  0.,  32.,   0.,  34.,   0.,  36.]]]], dtype=float32)
+        array([[[[ 0.,  0.,  0.,  0.,  0.,  0.],
+                 [ 0.,  8.,  0., 10.,  0., 12.],
+                 [ 0.,  0.,  0.,  0.,  0.,  0.],
+                 [ 0., 20.,  0., 22.,  0., 24.],
+                 [ 0.,  0.,  0.,  0.,  0.,  0.],
+                 [ 0., 32.,  0., 34.,  0., 36.]]]], dtype=float32)
 
     Args:
         x (~chainer.Variable): Input variable.

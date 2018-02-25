@@ -5,7 +5,6 @@ import chainer
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.math import sum as _sum
-from chainer.utils import array
 from chainer.utils import type_check
 
 
@@ -22,12 +21,12 @@ class BatchL2NormSquared(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0,))
-        x = array.as_mat(inputs[0])
+        x = inputs[0].reshape(len(inputs[0]), -1)
         return (x * x).sum(axis=1),
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0,))
-        x = array.as_mat(inputs[0])
+        x = inputs[0].reshape(len(inputs[0]), -1)
         l2normsquared_kernel = cuda.cupy.ReductionKernel(
             'T x', 'T y', 'x * x', 'a + b', 'y = a', '0', 'l2normsquared'
         )
@@ -61,9 +60,9 @@ class BatchL2NormSquaredGrad(function_node.FunctionNode):
         x, gy0 = self.get_retained_inputs()
         gy0 = gy0.reshape(-1, *((1,) * (x.ndim - 1)))
         gy0 = chainer.functions.broadcast_to(gy0, x.shape)
-        gg2 = 2 * grad_outputs[0]
-        gx = gg2 * gy0
-        ggy0 = gg2 * x
+        ggx2 = 2 * grad_outputs[0]
+        gx = ggx2 * gy0
+        ggy0 = ggx2 * x
         return gx, _sum.sum(ggy0, axis=tuple(six.moves.range(1, ggy0.ndim)))
 
 

@@ -1,5 +1,5 @@
-Standard Link implementations
-=============================
+Link and Chains
+===============
 
 .. module:: chainer.links
 
@@ -71,6 +71,7 @@ Activation/loss/normalization functions with parameters
    chainer.links.CRF1d
    chainer.links.SimplifiedDropconnect
    chainer.links.PReLU
+   chainer.links.Swish
    chainer.links.Maxout
    chainer.links.NegativeSampling
 
@@ -148,3 +149,16 @@ Compatibility with other frameworks
 
    chainer.links.TheanoFunction
    chainer.links.caffe.CaffeFunction
+
+Link and Chain base classes
+---------------------------
+
+.. module:: chainer
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Link
+   chainer.Chain
+   chainer.ChainList
