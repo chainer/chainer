@@ -99,7 +99,8 @@ class TestConvolution2DFunction(unittest.TestCase):
         with chainer.using_config('use_ideep', 'never'):
             y_cpu = F.convolution_2d(
                 x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all, dilate=self.dilate, groups=self.groups)
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
         return y_cpu,
 
     def check_forward(self, inputs, backend_config):
@@ -115,7 +116,8 @@ class TestConvolution2DFunction(unittest.TestCase):
         with backend_config:
             y_actual = F.convolution_2d(
                 x, W, b, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all, dilate=self.dilate, groups=self.groups)
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
 
         testing.assert_allclose(
             y_expected.data, y_actual.data, atol=5e-4, rtol=5e-3)
