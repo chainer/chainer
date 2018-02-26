@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import optimizer
 
 
@@ -18,8 +18,8 @@ class RMSpropRule(optimizer.UpdateRule):
     hyperparameters.
 
     Args:
-        parent_hyperparam (~chainer.Hyperparameter): Hyperparameter that
-            provides the default values.
+        parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
+            that provides the default values.
         lr (float): Learning rate.
         alpha (float): Exponential decay rate of the second order moment.
         eps (float): Small value for the numerical stability.
@@ -46,23 +46,34 @@ class RMSpropRule(optimizer.UpdateRule):
         if grad is None:
             return
         hp = self.hyperparam
+        eps = grad.dtype.type(hp.eps)
+        if hp.eps != 0 and eps == 0:
+            raise ValueError(
+                'eps of RMSprop optimizer is too small for {} ({})'.format(
+                    grad.dtype.name, hp.eps))
         ms = self.state['ms']
 
         ms *= hp.alpha
         ms += (1 - hp.alpha) * grad * grad
-        param.data -= hp.lr * grad / (numpy.sqrt(ms) + hp.eps)
+        param.data -= hp.lr * grad / (numpy.sqrt(ms) + eps)
 
     def update_core_gpu(self, param):
         grad = param.grad
         if grad is None:
             return
+        hp = self.hyperparam
+        eps = grad.dtype.type(hp.eps)
+        if eps == 0:
+            raise ValueError(
+                'eps of RMSprop optimizer is too small for {} ({})'.format(
+                    grad.dtype.name, hp.eps))
         cuda.elementwise(
             'T grad, T lr, T alpha, T eps',
             'T param, T ms',
             '''ms = alpha * ms + (1 - alpha) * grad * grad;
                param -= lr * grad / (sqrt(ms) + eps);''',
-            'rmsprop')(grad, self.hyperparam.lr, self.hyperparam.alpha,
-                       self.hyperparam.eps, param.data, self.state['ms'])
+            'rmsprop')(grad, hp.lr, hp.alpha,
+                       eps, param.data, self.state['ms'])
 
 
 class RMSprop(optimizer.GradientMethod):

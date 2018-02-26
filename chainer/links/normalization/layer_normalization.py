@@ -1,3 +1,6 @@
+import functools
+import operator
+
 from chainer.functions.normalization import layer_normalization
 from chainer import link
 from chainer import utils
@@ -7,6 +10,10 @@ from chainer import variable
 class LayerNormalization(link.Link):
 
     """Layer normalization layer on outputs of linear functions.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
 
     This link implements a "layer normalization" layer
     which normalizes the input units by statistics
@@ -33,7 +40,7 @@ class LayerNormalization(link.Link):
     Attributes:
         gamma (~chainer.Parameter): Scaling parameter.
         beta (~chainer.Parameter): Shifting parameter.
-        eps (float): Epsilon value for numerical stability.
+        ~LayerNormalization.eps (float): Epsilon value for numerical stability.
 
     See: `Layer Normalization <https://arxiv.org/abs/1607.06450>`_
     """
@@ -74,7 +81,8 @@ class LayerNormalization(link.Link):
 
         """
         if self.gamma.data is None:
-            self._initialize_params(x.size // x.shape[0])
+            in_size = functools.reduce(operator.mul, x.shape[1:], 1)
+            self._initialize_params(in_size)
 
         return layer_normalization.layer_normalization(
             x, self.gamma, self.beta, self.eps)

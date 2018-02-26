@@ -1,12 +1,14 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
+import chainer.functions
+
+from chainer.backends import cuda
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Softplus(function.Function):
+class Softplus(function_node.FunctionNode):
 
     """Softplus function."""
 
@@ -17,11 +19,11 @@ class Softplus(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
         x_type, = in_types
-
         type_check.expect(x_type.dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
-        x, = inputs
+        self.retain_inputs((0,))
+        x = inputs[0]
         # y = log(1 + exp(beta * x)) / beta
         bx = self.beta * x
         y = (numpy.fmax(bx, 0) +
@@ -29,7 +31,8 @@ class Softplus(function.Function):
         return utils.force_array(y, x.dtype),
 
     def forward_gpu(self, inputs):
-        x, = inputs
+        self.retain_inputs((0,))
+        x = inputs[0]
         y = cuda.elementwise(
             'T x, T beta, T beta_inv', 'T y',
             '''
@@ -40,21 +43,48 @@ class Softplus(function.Function):
         )(x, self.beta, self.beta_inv)
         return y,
 
-    def backward_cpu(self, inputs, grads):
-        x, = inputs
-        g, = grads
-        gx = (1 - 1 / (1 + numpy.exp(self.beta * x))) * g
+    def backward(self, indexes, grad_outputs):
+        x = self.get_retained_inputs()[0]
+        gy, = grad_outputs
+        return SoftplusGrad((self.beta,)).apply((x, gy))
+
+
+class SoftplusGrad(function_node.FunctionNode):
+
+    """Softplus gradient function."""
+
+    def __init__(self, inputs):
+        super(SoftplusGrad, self).__init__()
+        self.beta = inputs[0]
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 2)
+        x_type, gy_type = in_types
+        type_check.expect(x_type.dtype.kind == 'f')
+        type_check.expect(gy_type.dtype.kind == 'f')
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+        gx = (1 - 1 / (1 + numpy.exp(self.beta * x))) * gy
         return utils.force_array(gx, x.dtype),
 
-    def backward_gpu(self, inputs, grads):
-        x, = inputs
-        g, = grads
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
         gx = cuda.elementwise(
-            'T x, T g, T beta', 'T gx',
-            'gx = (1 - 1 / (1 + exp(beta * x))) * g',
-            'softplus_bwd'
-        )(x, g, self.beta)
+            'T x, T gy, T beta', 'T gx',
+            'gx = (1 - 1 / (1 + exp(beta * x))) * gy',
+            'softplus_bwd')(x, gy, self.beta)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        x, gy = self.get_retained_inputs()
+        ggx, = grad_outputs
+        e = chainer.functions.exp(self.beta * x)
+        gx = ggx * gy * self.beta * e / (1 + e) ** 2
+        ggy = SoftplusGrad((self.beta,)).apply((x, ggx))[0]
+        return gx, ggy
 
 
 def softplus(x, beta=1.0):
@@ -79,11 +109,12 @@ def softplus(x, beta=1.0):
 
     .. admonition:: Example
 
-        >>> x = np.arange(-2, 3, 2).astype('f')
+        >>> x = np.arange(-2, 3, 2).astype(np.float32)
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
         >>> F.softplus(x, beta=1.0).data
-        array([ 0.126928  ,  0.69314718,  2.12692809], dtype=float32)
+        array([0.126928 , 0.6931472, 2.126928 ], dtype=float32)
 
     """
-    return Softplus(beta=beta)(x)
+    y, = Softplus(beta=beta).apply((x,))
+    return y

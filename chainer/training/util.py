@@ -1,4 +1,4 @@
-from chainer.training.triggers import interval
+from chainer.training.triggers import interval_trigger
 
 
 def get_trigger(trigger):
@@ -36,7 +36,7 @@ def get_trigger(trigger):
     elif trigger is None:
         return _never_fire_trigger
     else:
-        return interval.IntervalTrigger(*trigger)
+        return interval_trigger.IntervalTrigger(*trigger)
 
 
 def _never_fire_trigger(trainer):

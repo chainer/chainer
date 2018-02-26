@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
@@ -11,8 +11,10 @@ from chainer.utils import type_check
 
 
 def r2_score(pred, true, sample_weight=None, multioutput="uniform_average"):
-    SS_res = numpy.sum((pred - true) ** 2, axis=0)
-    SS_tot = numpy.sum((true - numpy.mean(true, axis=0)) ** 2, axis=0)
+    SS_res = numpy.asarray(
+        numpy.sum((pred - true) ** 2, axis=0))
+    SS_tot = numpy.asarray(
+        numpy.sum((true - numpy.mean(true, axis=0)) ** 2, axis=0))
 
     if multioutput == 'uniform_average':
         if numpy.any(SS_tot == 0):
@@ -21,7 +23,11 @@ def r2_score(pred, true, sample_weight=None, multioutput="uniform_average"):
             return (1 - SS_res / SS_tot).mean()
     elif multioutput == 'raw_values':
         if numpy.any(SS_tot == 0):
-            return numpy.where(SS_tot != 0, 1 - SS_res / SS_tot, 0.0)
+            # Assign dummy value to avoid zero-division
+            SS_tot_iszero = SS_tot == 0
+            SS_tot[SS_tot_iszero] = 1
+
+            return numpy.where(SS_tot_iszero, 0.0, 1 - SS_res / SS_tot)
         else:
             return 1 - SS_res / SS_tot
 

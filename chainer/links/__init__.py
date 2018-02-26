@@ -3,6 +3,7 @@
 from chainer.links.activation.maxout import Maxout  # NOQA
 from chainer.links.activation.prelu import PReLU  # NOQA
 from chainer.links.activation.simplified_dropconnect import SimplifiedDropconnect  # NOQA
+from chainer.links.activation.swish import Swish  # NOQA
 from chainer.links.connection.bias import Bias  # NOQA
 from chainer.links.connection.bilinear import Bilinear  # NOQA
 from chainer.links.connection.convolution_2d import Convolution2D  # NOQA
@@ -21,6 +22,8 @@ from chainer.links.connection.inceptionbn import InceptionBN  # NOQA
 from chainer.links.connection.linear import Linear  # NOQA
 from chainer.links.connection.lstm import LSTM  # NOQA
 from chainer.links.connection.lstm import StatelessLSTM  # NOQA
+from chainer.links.connection.mgu import StatefulMGU  # NOQA
+from chainer.links.connection.mgu import StatelessMGU  # NOQA
 from chainer.links.connection.mlp_convolution_2d import MLPConvolution2D  # NOQA
 from chainer.links.connection.n_step_gru import NStepBiGRU  # NOQA
 from chainer.links.connection.n_step_gru import NStepGRU  # NOQA
@@ -47,5 +50,6 @@ from chainer.links.model.vision.resnet import ResNet152Layers  # NOQA
 from chainer.links.model.vision.resnet import ResNet50Layers  # NOQA
 from chainer.links.model.vision.vgg import VGG16Layers  # NOQA
 from chainer.links.normalization.batch_normalization import BatchNormalization  # NOQA
+from chainer.links.normalization.batch_renormalization import BatchRenormalization  # NOQA
 from chainer.links.normalization.layer_normalization import LayerNormalization  # NOQA
 from chainer.links.theano.theano_function import TheanoFunction  # NOQA

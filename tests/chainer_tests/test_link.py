@@ -7,7 +7,8 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
@@ -18,8 +19,9 @@ class TestLink(unittest.TestCase):
     def setUp(self):
         x_shape_0 = 2
         x_shape_1 = numpy.int64(3)
-        self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
-                                 u=(None, 'd'))
+        with testing.assert_warns(DeprecationWarning):
+            self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
+                                     u=(None, 'd'))
         with self.link.init_scope():
             self.link.y = chainer.Parameter(shape=(2,))
             self.link.v = chainer.Parameter()
@@ -80,38 +82,45 @@ class TestLink(unittest.TestCase):
         self.assertTrue(all(p is not param for param in self.link.params()))
 
     def test_add_param(self):
-        self.link.add_param('z', (2, 3))
+        with testing.assert_warns(DeprecationWarning):
+            self.link.add_param('z', (2, 3))
         self.check_param_init('z', (2, 3), 'f')
 
-        self.link.add_param('w', (2, 3), dtype='d')
+        with testing.assert_warns(DeprecationWarning):
+            self.link.add_param('w', (2, 3), dtype='d')
         self.check_param_init('w', (2, 3), 'd')
 
-        self.link.add_param('r')
+        with testing.assert_warns(DeprecationWarning):
+            self.link.add_param('r')
         self.check_param_uninit('r')
         self.link.r.initialize((2, 3))
         self.check_param_init('r', (2, 3), 'f')
 
-        self.link.add_param('s', dtype='d')
+        with testing.assert_warns(DeprecationWarning):
+            self.link.add_param('s', dtype='d')
         self.check_param_uninit('s')
         self.link.s.initialize((2, 3))
         self.check_param_init('s', (2, 3), 'd')
 
         initializer = initializers.Zero('d')
-        self.link.add_param('t', initializer=initializer)
+        with testing.assert_warns(DeprecationWarning):
+            self.link.add_param('t', initializer=initializer)
         self.check_param_uninit('t', initializer)
         self.link.t.initialize((2, 3))
         self.check_param_init('t', (2, 3), 'd', 0)
 
     def test_add_param_direct_initialization(self):
         z = numpy.random.rand(2, 3).astype('f')
-        self.link.add_param('z', initializer=z)
+        with testing.assert_warns(DeprecationWarning):
+            self.link.add_param('z', initializer=z)
         self.assertIsInstance(self.link.z.data, numpy.ndarray)
         numpy.testing.assert_array_equal(self.link.z.data, z)
 
     def test_add_param_duplicated_with_persistent(self):
         self.link.add_persistent('z', 'abc')
         with self.assertRaises(AttributeError):
-            self.link.add_param('z', (2, 3))
+            with testing.assert_warns(DeprecationWarning):
+                self.link.add_param('z', (2, 3))
 
     def test_add_persistent(self):
         self.assertTrue(hasattr(self.link, 'p'))
@@ -120,6 +129,17 @@ class TestLink(unittest.TestCase):
         self.link.add_persistent('q', 'abc')
         self.assertTrue(hasattr(self.link, 'q'))
         self.assertEqual(self.link.q, 'abc')
+
+    def test_delete(self):
+        del self.link.x
+        self.assertFalse(hasattr(self.link, 'x'))
+        self.assertNotIn('x', self.link._params)
+        self.assertNotIn('x', self.link._persistent)
+
+        del self.link.p
+        self.assertFalse(hasattr(self.link, 'p'))
+        self.assertNotIn('p', self.link._params)
+        self.assertNotIn('p', self.link._persistent)
 
     def test_copy(self):
         link = self.link.copy()
@@ -136,6 +156,47 @@ class TestLink(unittest.TestCase):
         self.assertIsNone(link.u.data)
         self.assertIs(link.p, self.link.p)
         self.assertIs(link.name, None)
+
+    @attr.gpu
+    def test_copy_and_to_gpu_init(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        self.assertIs(l0.x.data, l1.x.data)
+        l1.to_gpu()
+        self.assertIsNot(l0.x.data, l1.x.data)
+        self.assertIsInstance(l0.x.data, numpy.ndarray)
+        self.assertIsInstance(l1.x.data, cupy.ndarray)
+
+    @attr.gpu
+    def test_copy_and_to_gpu_uninit(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        self.assertIsNone(l0.u.data)
+        self.assertIsNone(l1.u.data)
+        l1.to_gpu()
+        l1.u.initialize((2, 3))
+        self.assertIsNone(l0.u.data)
+        self.assertIsInstance(l1.u.data, cupy.ndarray)
+
+    @attr.multi_gpu(2)
+    def test_copy_and_to_gpu_uninit_multi_gpu(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        l2 = l0.copy()
+        self.assertIsNone(l0.u.data)
+        self.assertIsNone(l1.u.data)
+        self.assertIsNone(l2.u.data)
+        l1.to_gpu()
+        l1.u.initialize((2, 3))
+        l2.to_gpu()
+        l2.u.initialize((2, 3))
+        self.assertIsNone(l0.u.data)
+        self.assertIsInstance(l1.u.data, cupy.ndarray)
+        self.assertIsInstance(l2.u.data, cupy.ndarray)
+        self.assertNotEqual(l1.u.data.data, l2.u.data.data)
 
     def _check_deepcopy(self, link):
         self.assertIsInstance(link._params, set)
@@ -314,7 +375,8 @@ class TestLink(unittest.TestCase):
     def test_zerograds(self):
         gx_expect = numpy.zeros_like(self.link.x.data)
         gy_expect = numpy.zeros_like(self.link.y.data)
-        self.link.zerograds()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.zerograds()
         numpy.testing.assert_array_equal(self.link.x.grad, gx_expect)
         numpy.testing.assert_array_equal(self.link.y.grad, gy_expect)
         self.link.u.initialize((2, 3))
@@ -445,14 +507,24 @@ class CountParameter(chainer.Parameter):
 class TestChain(unittest.TestCase):
 
     def setUp(self):
-        self.l1 = chainer.Link(x=(2, 3))
-        self.l2 = chainer.Link(x=2)
-        self.l3 = chainer.Link(x=None)
+        self.l1 = chainer.Link()
+        with self.l1.init_scope():
+            self.l1.x = chainer.Parameter(shape=(2, 3))
+        self.l2 = chainer.Link()
+        with self.l2.init_scope():
+            self.l2.x = chainer.Parameter(shape=2)
+        self.l3 = chainer.Link()
+        with self.l3.init_scope():
+            self.l3.x = chainer.Parameter()
 
-        self.c1 = chainer.Chain(l1=self.l1)
-        self.c1.add_link('l2', self.l2)
-        self.c2 = chainer.Chain(c1=self.c1)
+        self.c1 = chainer.Chain()
+        with self.c1.init_scope():
+            self.c1.l1 = self.l1
+        with testing.assert_warns(DeprecationWarning):
+            self.c1.add_link('l2', self.l2)
+        self.c2 = chainer.Chain()
         with self.c2.init_scope():
+            self.c2.c1 = self.c1
             self.c2.l3 = self.l3
 
     def test_init(self):
@@ -481,6 +553,11 @@ class TestChain(unittest.TestCase):
         l = chainer.Link()
         self.l1.l = l
         self.assertTrue(all(l is not link for link in self.l1.links()))
+
+    def test_delete_link(self):
+        del self.c1.l1
+        self.assertFalse(hasattr(self.c1, 'l1'))
+        self.assertNotIn('l1', self.c1._children)
 
     def test_copy(self):
         c2 = self.c2.copy()
@@ -668,7 +745,8 @@ class TestChain(unittest.TestCase):
 
     def test_zerograds(self):
         self.set_count_parameters()
-        self.c2.zerograds()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.zerograds()
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
         self.assertEqual(self.l1.x.count_zerograd, 1)
@@ -764,6 +842,18 @@ class TestChainList(unittest.TestCase):
     def test_append(self):
         self.assertIs(self.c2[1], self.l3)
         self.assertEqual(self.l3.name, '1')
+
+    def test_assign_param_in_init_scope(self):
+        p = chainer.Parameter()
+        with self.c1.init_scope():
+            self.c1.p = p
+        self.assertIn(p, self.c1.params())
+
+    def test_assign_link_in_init_scope(self):
+        l = chainer.Link()
+        with self.c1.init_scope():
+            with self.assertRaises(TypeError):
+                self.c1.l = l
 
     def test_iter(self):
         links = list(self.c2)
@@ -963,7 +1053,8 @@ class TestChainList(unittest.TestCase):
         numpy.testing.assert_array_equal(self.l3.x.data, l3.x.data)
 
     def test_zerograds(self):
-        self.c2.zerograds()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.zerograds()
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.zeros(3))
@@ -980,7 +1071,7 @@ class TestChainList(unittest.TestCase):
 
     def test_addgrads(self):
         l1 = chainer.Link()
-        with self.l1.init_scope():
+        with l1.init_scope():
             l1.x = chainer.Parameter(shape=(2, 3))
             l1.y = chainer.Parameter(shape=(2, 3))
         l2 = chainer.Link()
@@ -1041,5 +1132,135 @@ class TestChainList(unittest.TestCase):
             warnings.simplefilter('always')
             self.c2.count_params()
         self.assertEqual(len(w), 1)
+
+@attr.ideep
+class TestIntel64(unittest.TestCase):
+
+    def setUp(self):
+        self.link = chainer.Link()
+        shape = (2,)
+        dtype = numpy.float32
+        y_array = numpy.random.rand(*shape).astype(dtype)
+        pa_array = numpy.random.rand(*shape).astype(dtype)
+        ps_scalar = 2.4
+
+        with self.link.init_scope():
+            # Initialized parameter
+            self.link.y = chainer.Parameter(y_array)
+            # Uninitialized parameter
+            self.link.v = chainer.Parameter()
+            # Persistent ndarray
+            self.link.add_persistent('pa', pa_array)
+            # Persistent scalar
+            self.link.add_persistent('ps', ps_scalar)
+        self.y_array = y_array
+        self.pa_array = pa_array
+        self.ps_scalar = ps_scalar
+
+    def _assert_variable_array_equal(self, var, expected_array):
+        assert var.shape == expected_array.shape
+        assert var.dtype == expected_array.dtype
+        self._assert_arrays_equal(var.data, expected_array)
+
+    def _assert_arrays_equal(self, array, expected_array):
+        if isinstance(array, cuda.ndarray):
+            array = array.get()
+        assert array.shape == expected_array.shape
+        assert array.dtype == expected_array.dtype
+        assert (array == expected_array).all()
+
+    def test_cpu_to_intel64(self):
+        link = self.link
+        link.to_intel64()
+
+        # Arrays should be converted to ideep.mdarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, intel64.ideep.mdarray)
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, intel64.ideep.mdarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    def test_intel64_to_intel64(self):
+        link = self.link
+        link.to_intel64()
+        prev_y = link.y
+        prev_v = link.v
+        prev_pa = link.pa
+        prev_ps = link.ps
+        link.to_intel64()
+
+        # Everything should be left untouched
+
+        # Initialized parameter
+        assert link.y is prev_y
+        # Uninitialized parameter
+        assert link.v is prev_v
+        # Persistent ndarray
+        assert link.pa is prev_pa
+        # Persistent scalar
+        assert link.ps is prev_ps
+
+    @attr.gpu
+    def test_gpu_to_intel64(self):
+        link = self.link
+        link.to_gpu()
+        link.to_intel64()
+
+        # Arrays should be converted to ideep.mdarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, intel64.ideep.mdarray)
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, intel64.ideep.mdarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    @attr.gpu
+    def test_intel64_to_gpu(self):
+        link = self.link
+        link.to_intel64()
+        link.to_gpu()
+
+        # Arrays should be converted to cupy.ndarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, cuda.cupy.ndarray)
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, cuda.ndarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    def test_intel64_to_cpu(self):
+        link = self.link
+        link.to_intel64()
+        link.to_cpu()
+
+        # Arrays should be converted to numpy.ndarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, numpy.ndarray)
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, numpy.ndarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
 
 testing.run_module(__name__, __file__)

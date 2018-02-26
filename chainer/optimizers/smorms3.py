@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import optimizer
 
 
@@ -17,8 +17,8 @@ class SMORMS3Rule(optimizer.UpdateRule):
     hyperparameters.
 
     Args:
-        parent_hyperparam (~chainer.Hyperparameter): Hyperparameter that
-            provides the default values.
+        parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
+            that provides the default values.
         lr (float): Learning rate.
         eps (float): Small value for the numerical stability.
 

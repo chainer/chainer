@@ -11,7 +11,7 @@ matrix:
     - os: linux
       python: "3.4"
     - os: linux
-      python: "3.5.1"
+      python: "3.5"
 
     - os: osx
       language: generic
@@ -19,47 +19,48 @@ matrix:
       - PYTHON_VERSION=2.7.10
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
+      if: (branch = master OR branch = v3) AND (NOT type in (pull_request))
     - os: osx
       language: generic
       env:
-      - PYTHON_VERSION=3.4.3
+      - PYTHON_VERSION=3.4.4
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
+      if: (branch = master OR branch = v3) AND (NOT type in (pull_request))
     - os: osx
       language: generic
       env:
       - PYTHON_VERSION=3.5.1
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
+      if: (branch = master OR branch = v3) AND (NOT type in (pull_request))
 
 before_install:
+  # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
   - if [[ $TRAVIS_OS_NAME = "osx" ]]; then
       brew update >/dev/null;
       brew outdated pyenv || brew upgrade --quiet pyenv;
-      brew install homebrew/boneyard/pyenv-pip-rehash;
 
       PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" pyenv install -ks $PYTHON_VERSION;
       pyenv global $PYTHON_VERSION;
       python --version;
 
-      brew install homebrew/science/hdf5;
+      brew cask uninstall oclint;
+      brew install hdf5;
     fi
 
 install:
   - pip install -U pip wheel
   - python setup.py sdist
   - pip install dist/*.tar.gz
-  - pip install h5py pillow
-  - travis_wait pip install theano
-  - pip install nose hacking mock
-  - pip install autopep8
+  - travis_wait pip install -U -e .[travis]
 
 script:
   - flake8
-  - autopep8 -r . --global-config .pep8 --diff | tee check_autopep8
+  - autopep8 -r . --diff | tee check_autopep8
   - test ! -s check_autopep8
   - cd tests
-  - PYTHONWARNINGS='ignore::FutureWarning,module::DeprecationWarning' nosetests -a '!gpu,!slow' --with-doctest chainer_tests
+  - CHAINER_TEST_GPU_LIMIT=0 pytest -m "not slow and not cudnn and not ideep" chainer_tests
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
       cd ..;
       READTHEDOCS=True python setup.py develop;

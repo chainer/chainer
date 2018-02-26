@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -47,8 +47,8 @@ class TestSum(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            functions.Sum(self.axis, self.keepdims), x_data, y_grad, atol=1e-4,
-            dtype=numpy.float64)
+            lambda x: functions.sum(x, self.axis, self.keepdims),
+            x_data, y_grad, atol=1e-4, dtype=numpy.float64)
 
     @condition.retry(3)
     def test_backward_cpu(self):

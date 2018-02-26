@@ -29,7 +29,7 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
     def __init__(self, path, root, mean, crop_size, random=True):
         self.base = chainer.datasets.LabeledImageDataset(path, root)
-        self.mean = mean.astype('f')
+        self.mean = mean.astype(np.float32)
         self.crop_size = crop_size
         self.random = random
 
@@ -74,7 +74,8 @@ def main():
         'googlenetbn': googlenetbn.GoogLeNetBN,
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
-        'resnet50': resnet50.ResNet50
+        'resnet50': resnet50.ResNet50,
+        'resnext50': resnet50.ResNeXt50,
     }
 
     parser = argparse.ArgumentParser(
@@ -113,7 +114,8 @@ def main():
         print('Load model from', args.initmodel)
         chainer.serializers.load_npz(args.initmodel, model)
     if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()  # Make the GPU current
+        chainer.backends.cuda.get_device_from_id(
+            args.gpu).use()  # Make the GPU current
         model.to_gpu()
 
     # Load the datasets and mean file
@@ -132,11 +134,12 @@ def main():
     optimizer.setup(model)
 
     # Set up a trainer
-    updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
+    updater = training.updaters.StandardUpdater(
+        train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
-    val_interval = (10 if args.test else 100000), 'iteration'
-    log_interval = (10 if args.test else 1000), 'iteration'
+    val_interval = (1 if args.test else 100000), 'iteration'
+    log_interval = (1 if args.test else 1000), 'iteration'
 
     trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpu),
                    trigger=val_interval)

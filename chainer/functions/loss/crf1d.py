@@ -32,9 +32,9 @@ def crf1d(cost, xs, ys, reduce='mean'):
        lengths and transpose the sequences.
        For example, you have three input sequences:
 
-       >>> a1 = a2 = a3 = a4 = np.random.uniform(-1, 1, 3).astype('f')
-       >>> b1 = b2 = b3 = np.random.uniform(-1, 1, 3).astype('f')
-       >>> c1 = c2 = np.random.uniform(-1, 1, 3).astype('f')
+       >>> a1 = a2 = a3 = a4 = np.random.uniform(-1, 1, 3).astype(np.float32)
+       >>> b1 = b2 = b3 = np.random.uniform(-1, 1, 3).astype(np.float32)
+       >>> c1 = c2 = np.random.uniform(-1, 1, 3).astype(np.float32)
 
        >>> a = [a1, a2, a3, a4]
        >>> b = [b1, b2, b3]
@@ -56,8 +56,8 @@ def crf1d(cost, xs, ys, reduce='mean'):
        And then, call the function:
 
        >>> cost = chainer.Variable(
-       ...     np.random.uniform(-1, 1, (3, 3)).astype('f'))
-       >>> ys = [np.zeros(x.shape[0:1], dtype='i') for x in xs]
+       ...     np.random.uniform(-1, 1, (3, 3)).astype(np.float32))
+       >>> ys = [np.zeros(x.shape[0:1], dtype=np.int32) for x in xs]
        >>> loss = F.crf1d(cost, xs, ys)
 
        It calculates mean of the negative log-likelihood of the three
@@ -76,7 +76,7 @@ def crf1d(cost, xs, ys, reduce='mean'):
             and each :class:`~chainer.Variable` holds a :math:`B \\times K`
             matrix, where :math:`B` is mini-batch size, :math:`K` is the number
             of labels.
-            Note that :math:`B` s in all the variables are not necessary
+            Note that :math:`B`\\ s in all the variables are not necessary
             the same, i.e., it accepts the input sequences with different
             lengths.
         ys (list of Variable): Expected output labels. It needs to have the
@@ -90,13 +90,13 @@ def crf1d(cost, xs, ys, reduce='mean'):
 
     Returns:
         ~chainer.Variable: A variable holding the average negative
-            log-likelihood of the input sequences.
+        log-likelihood of the input sequences.
 
     .. note::
 
         See detail in the original paper: `Conditional Random Fields:
         Probabilistic Models for Segmenting and Labeling Sequence Data
-        <http://repository.upenn.edu/cis_papers/159/>`_.
+        <https://repository.upenn.edu/cis_papers/159/>`_.
 
     """
     if reduce not in ('mean', 'no'):
@@ -159,22 +159,22 @@ def argmax_crf1d(cost, xs):
             and each :class:`~chainer.Variable` holds a :math:`B \\times K`
             matrix, where :math:`B` is mini-batch size, :math:`K` is the number
             of labels.
-            Note that :math:`B` s in all the variables are not necessary
+            Note that :math:`B`\\ s in all the variables are not necessary
             the same, i.e., it accepts the input sequences with different
             lengths.
 
     Returns:
         tuple: A tuple of :class:`~chainer.Variable` object ``s`` and a
-            :class:`list` ``ps``.
-            The shape of ``s`` is ``(B,)``, where ``B`` is the mini-batch size.
-            i-th element of ``s``, ``s[i]``, represents log-likelihood of i-th
-            data.
-            ``ps`` is a list of :class:`numpy.ndarray` or
-            :class:`cupy.ndarray`, and denotes the state that maximizes the
-            point probability.
-            ``len(ps)`` is equal to ``len(xs)``, and shape of each ``ps[i]`` is
-            the mini-batch size of the corresponding ``xs[i]``. That means,
-            ``ps[i].shape == xs[i].shape[0:1]``.
+        :class:`list` ``ps``.
+        The shape of ``s`` is ``(B,)``, where ``B`` is the mini-batch size.
+        i-th element of ``s``, ``s[i]``, represents log-likelihood of i-th
+        data.
+        ``ps`` is a list of :class:`numpy.ndarray` or
+        :class:`cupy.ndarray`, and denotes the state that maximizes the
+        point probability.
+        ``len(ps)`` is equal to ``len(xs)``, and shape of each ``ps[i]`` is
+        the mini-batch size of the corresponding ``xs[i]``. That means,
+        ``ps[i].shape == xs[i].shape[0:1]``.
     """
     alpha = xs[0]
     alphas = []

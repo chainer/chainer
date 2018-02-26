@@ -7,18 +7,18 @@ import operator
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import conv
-import pooling_nd_helper
+from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 
 
 @testing.parameterize(*testing.product({
-    'dims': [(4,), (4, 3), (4, 3, 2)],
+    'dims': [(4,), (4, 3), (4, 3, 2), (1, 1, 1, 1)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 class TestAveragePoolingND(unittest.TestCase):
@@ -37,13 +37,14 @@ class TestAveragePoolingND(unittest.TestCase):
                          self.dims, self.ksize, self.stride, self.pad))
         gy_shape = (2, 3) + outs
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
 
         self.check_forward_options = {}
         self.check_backward_options = {'eps': 1e-2}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_backward_options = {
-                'eps': 1e-1, 'atol': 5e-3, 'rtol': 5e-2}
+                'eps': 1e-2, 'atol': 5e-3, 'rtol': 5e-2}
 
     def check_forward(self, x_data, use_cudnn='always'):
         dims = self.dims
@@ -68,22 +69,18 @@ class TestAveragePoolingND(unittest.TestCase):
                 testing.assert_allclose(
                     expect, y_data[k, c], **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.cudnn
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
     @attr.cudnn
-    @condition.retry(3)
     def test_forward_gpu_non_contiguous(self):
         self.check_forward(cuda.cupy.asfortranarray(cuda.to_gpu(self.x)))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), 'never')
 
@@ -104,45 +101,40 @@ class TestAveragePoolingND(unittest.TestCase):
                                                 pad=pad)
         testing.assert_allclose(y_nd.data, y_2d.data)
 
-    @condition.retry(3)
     def test_forward_consistency_regression_cpu(self):
         self.check_forward_consistency_regression(self.x)
 
     @attr.cudnn
-    @condition.retry(3)
     def test_forward_consistency_regression_gpu(self):
         self.check_forward_consistency_regression(cuda.to_gpu(self.x))
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_consistency_regression_no_cudnn(self):
         self.check_forward_consistency_regression(cuda.to_gpu(self.x), 'never')
 
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
+        def f(x):
+            return functions.average_pooling_nd(
+                x, self.ksize, stride=self.stride, pad=self.pad)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.AveragePoolingND(
-                    self.ndim, self.ksize, self.stride, self.pad),
-                x_data, y_grad, **self.check_backward_options)
+                f, x_data, y_grad, dtype=numpy.float64,
+                **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.cudnn
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.cudnn
-    @condition.retry(3)
     def test_backward_gpu_non_contiguous(self):
         self.check_backward(
             cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
             cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
@@ -163,7 +155,7 @@ class TestAveragePoolingND(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn):
             func_nd = functions.AveragePoolingND(self.ndim, ksize,
                                                  stride=stride, pad=pad)
-        y_nd = func_nd(x_nd)
+        y_nd = func_nd.apply((x_nd,))[0]
         y_nd.grad = gy_data
         y_nd.backward()
 
@@ -172,28 +164,60 @@ class TestAveragePoolingND(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn):
             func_2d = functions.AveragePooling2D(ksize, stride=stride, pad=pad,
                                                  cover_all=False)
-        y_2d = func_2d(x_2d)
+        y_2d = func_2d.apply((x_2d,))[0]
         y_2d.grad = gy_data
         y_2d.backward()
 
         # Test that the two result gradients are close enough.
         testing.assert_allclose(x_nd.grad, x_2d.grad)
 
-    @condition.retry(3)
     def test_backward_consistency_regression_cpu(self):
         self.check_backward_consistency_regression(self.x, self.gy)
 
     @attr.cudnn
-    @condition.retry(3)
     def test_backward_consistency_regression_gpu(self):
         self.check_backward_consistency_regression(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_consistency_regression_no_cudnn(self):
         self.check_backward_consistency_regression(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), use_cudnn='never')
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad,
+                              use_cudnn='always'):
+        def f(x):
+            y = functions.average_pooling_nd(
+                x, self.ksize, stride=self.stride, pad=self.pad)
+            return y * y
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, x_data, y_grad, x_grad_grad, **self.check_backward_options)
+
+    @condition.retry(10)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx, 'never')
+
+    @attr.gpu
+    @condition.retry(10)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    @condition.retry(10)
+    def test_double_backward_gpu_non_contiguous(self):
+        self.check_double_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
+
+    @attr.gpu
+    @condition.retry(10)
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+            'never')
 
 
 @testing.parameterize(*testing.product({
@@ -225,7 +249,7 @@ class TestAveragePoolingNDCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cudnn.cudnn.poolingForward') as func:
+            with mock.patch('cupy.cuda.cudnn.poolingForward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto') and
@@ -237,7 +261,7 @@ class TestAveragePoolingNDCudnnCall(unittest.TestCase):
             y = self.forward()
         # should be consistent to forward regardless of use_cudnn config
         y.grad = self.gy
-        with mock.patch('cupy.cudnn.cudnn.poolingBackward') as func:
+        with mock.patch('cupy.cuda.cudnn.poolingBackward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
 

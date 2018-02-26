@@ -1,21 +1,19 @@
 import numpy
 
-from chainer import cuda
+import chainer
+from chainer.backends import cuda
 from chainer import function
+from chainer.utils import argument
 from chainer.utils import type_check
 
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
+    libcudnn = cuda.cuda.cudnn
     _sampler_type = libcudnn.CUDNN_SAMPLER_BILINEAR
 
 
 class SpatialTransformerSampler(function.Function):
-
-    def __init__(self, use_cudnn=True):
-        self.use_cudnn = use_cudnn
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -36,8 +34,7 @@ class SpatialTransformerSampler(function.Function):
         return self._forward(inputs)
 
     def forward_gpu(self, inputs):
-        if not (cuda.cudnn_enabled and self.use_cudnn and
-                _cudnn_version >= 5000):
+        if not chainer.should_use_cudnn('>=auto', 5000):
             return self._forward(inputs)
         x, grid = inputs
         out_shape = x.shape[:2] + grid.shape[2:]
@@ -124,8 +121,7 @@ class SpatialTransformerSampler(function.Function):
         return self._backward(inputs, grad_outputs)
 
     def backward_gpu(self, inputs, grad_outputs):
-        if not (cuda.cudnn_enabled and self.use_cudnn and
-                _cudnn_version >= 5000):
+        if not chainer.should_use_cudnn('>=auto', 5000):
             return self._backward(inputs, grad_outputs)
         x, grid = inputs
         gy, = grad_outputs
@@ -237,7 +233,7 @@ class SpatialTransformerSampler(function.Function):
         if xp is numpy:
             scatter_add = numpy.add.at
         else:
-            scatter_add = xp.scatter_add
+            scatter_add = cuda.cupyx.scatter_add
         gx = xp.zeros_like(x_pad)
         gy = gy.reshape(B, C, -1)
         for b in range(B):
@@ -253,7 +249,7 @@ class SpatialTransformerSampler(function.Function):
         return gx, ggrid
 
 
-def spatial_transformer_sampler(x, grid, use_cudnn=True):
+def spatial_transformer_sampler(x, grid, **kwargs):
     """2D Spatial Transformer sampler.
 
     This is a differentiable image sampler. With a set of sampling points
@@ -278,6 +274,10 @@ def spatial_transformer_sampler(x, grid, use_cudnn=True):
     See detail in the following paper: `Spatial Transformer Networks \
     <https://arxiv.org/abs/1506.02025>`_.
 
+    .. note::
+
+        cuDNN supports SpatialTransformerSampler from version 5.0.0.
+
     Args:
         x (~chainer.Variable):  Input variable of shape :math:`(n, c_I, h, w)`.
         grid (~chainer.Variable): Coordinate variable of shape
@@ -294,13 +294,16 @@ def spatial_transformer_sampler(x, grid, use_cudnn=True):
 
             The coordinate :math:`(-1, -1)` corresponds to the upper-left
             corner of the input image.
-        use_cudnn (bool): If ``True``, then this function uses cuDNN if
-            available. Note that, cuDNN supports SpatialTransformerSampler
-            from version 5.0.0.
 
     Returns:
         ~chainer.Variable: Output feature map of shape \
             :math:`(n, c_I, h_O, w_O)`.
 
     """
-    return SpatialTransformerSampler(use_cudnn)(x, grid)
+    argument.check_unexpected_kwargs(
+        kwargs, use_cudnn="The argument \"use_cudnn\" is not "
+        "supported anymore. "
+        "Use chainer.using_config('use_cudnn', value) "
+        "context where value can be `always`, `never`, or `auto`.")
+    argument.assert_kwargs_empty(kwargs)
+    return SpatialTransformerSampler()(x, grid)

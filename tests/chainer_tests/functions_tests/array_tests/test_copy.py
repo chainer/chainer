@@ -4,8 +4,9 @@ import numpy
 
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
+from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 
@@ -20,12 +21,16 @@ def _to_gpu(x, device_id):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class Copy(unittest.TestCase):
+class TestCopy(unittest.TestCase):
 
     def setUp(self):
         self.x_data = numpy.random.uniform(
             -1, 1, (10, 5)).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, (10, 5)).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, (10, 5)).astype(self.dtype)
+        self.check_double_backward_options = {}
+        if self.dtype == numpy.float16:
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
 
     def check_forward(self, src_id, dst_id):
         x_data = _to_gpu(self.x_data, src_id)
@@ -93,6 +98,27 @@ class Copy(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_backward_multigpu(self):
         self.check_backward(0, 1)
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+        def f(x):
+            y = functions.copy(x, -1)
+            return y * y
+
+        gradient_check.check_double_backward(
+            f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
+            **self.check_double_backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x_data, self.gy, self.ggx)
+
+
+class TestCopyArgument(unittest.TestCase):
+
+    def setUp(self):
+        self.x_data = numpy.zeros((2, 3))
+
+    def test_call_forward_with_device(self):
+        functions.copy(self.x_data, cuda.DummyDevice)
 
 
 testing.run_module(__name__, __file__)

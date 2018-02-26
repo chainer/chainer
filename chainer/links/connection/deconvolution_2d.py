@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.connection import deconvolution_2d
 from chainer import initializers
 from chainer import link
@@ -16,6 +16,11 @@ class Deconvolution2D(link.Link):
 
     This link wraps the :func:`~chainer.functions.deconvolution_2d` function
     and holds the filter weight and bias vector as parameters.
+
+    Deconvolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size, 
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
 
     .. warning::
 
@@ -41,14 +46,12 @@ class Deconvolution2D(link.Link):
             It should be pair of height and width :math:`(out_H, out_W)`.
             Default value is ``None`` and the outsize is estimated by
             input size, stride and pad.
-        initialW (4-D array): Initial weight value. If ``None``, the default
-            initializer is used.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-        initial_bias (1-D array): Initial bias value. If ``None``, the bias
-            vector is set to zero.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 4.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     The filter weight has four dimensions :math:`(c_I, c_O, k_H, k_W)`
     which indicate the number of input channels, output channels,
@@ -80,7 +83,7 @@ class Deconvolution2D(link.Link):
 
         Let an input vector ``x`` be:
 
-        >>> x = np.arange(1 * 3 * 10 * 10, dtype='f').reshape(1, 3, 10, 10)
+        >>> x = np.arange(1 * 3 * 10 * 10, dtype=np.float32).reshape(1, 3, 10, 10)
 
         1. Give the first three arguments explicitly:
 
@@ -124,7 +127,7 @@ class Deconvolution2D(link.Link):
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  nobias=False, outsize=None, initialW=None, initial_bias=None,
-                 **kwargs):
+                 group=1, **kwargs):
         super(Deconvolution2D, self).__init__()
 
         argument.check_unexpected_kwargs(
@@ -142,6 +145,7 @@ class Deconvolution2D(link.Link):
         self.pad = _pair(pad)
         self.outsize = (None, None) if outsize is None else outsize
         self.out_channels = out_channels
+        self.group = int(group)
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
@@ -161,14 +165,19 @@ class Deconvolution2D(link.Link):
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
-        W_shape = (in_channels, self.out_channels, kh, kw)
+        if (self.out_channels % self.group != 0 or
+                in_channels % self.group != 0):
+            raise ValueError('number of input and output channels must be'
+                             'divisible by group count')
+        W_shape = (in_channels, int(self.out_channels / self.group), kh, kw)
         self.W.initialize(W_shape)
 
     def __call__(self, x):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(
-            x, self.W, self.b, self.stride, self.pad, self.outsize)
+            x, self.W, self.b, self.stride, self.pad, self.outsize,
+            group=self.group)
 
 
 def _pair(x):

@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import initializer
 
 
@@ -13,7 +13,8 @@ class Identity(initializer.Initializer):
     Note that arrays to be passed must be 2D squared matrices.
 
     Attributes:
-        scale (scalar): A constant to be multiplied to identity matrices.
+        ~Identity.scale (scalar): A constant to be multiplied to identity
+        matrices.
 
     """
 
@@ -33,21 +34,17 @@ class Identity(initializer.Initializer):
         xp.fill_diagonal(array, self.scale)
 
 
-class Constant(initializer.Initializer):
+class _Constant(initializer.Initializer):
 
-    """Initializes array with constant value.
+    fill_value = None
 
-    Attributes:
-        fill_value (scalar or numpy.ndarray or cupy.ndarray):
-            A constant to be assigned to the initialized array.
-            Broadcast is allowed on this assignment.
-        dtype: Data type specifier.
-
-    """
-
-    def __init__(self, fill_value, dtype=None):
-        self.fill_value = fill_value
-        super(Constant, self).__init__(dtype)
+    def __init__(self, dtype=None):
+        if not (isinstance(self.fill_value, (numpy.ndarray, cuda.ndarray)) or
+                numpy.isscalar(self.fill_value)):
+            raise ValueError(
+                'fill_value must be either scalar, numpy.ndarray or '
+                'cupy.ndarray.')
+        super(_Constant, self).__init__(dtype)
 
     def __call__(self, array):
         if self.dtype is not None:
@@ -56,40 +53,48 @@ class Constant(initializer.Initializer):
         array[...] = xp.asarray(self.fill_value)
 
 
-def Zero(dtype=None):
-    """Returns initializer that initializes array with the all-zero array.
+class Constant(_Constant):
 
-    Args:
-        dtype: Data type specifier.
+    """Initializes array with constant value.
 
-    Returns:
-        numpy.ndarray or cupy.ndarray: An initialized array.
-
-    """
-    return Constant(0.0, dtype=dtype)
-
-
-def One(dtype=None):
-    """Returns initializer that initializes array with the all-one array.
-
-    Args:
-        dtype: Data type specifier.
-
-    Returns:
-        numpy.ndarray or cupy.ndarray: An initialized array.
+    Attributes:
+        ~Constant.fill_value (scalar or numpy.ndarray or cupy.ndarray):
+            A constant to be assigned to the initialized array.
+            Broadcast is allowed on this assignment.
+        ~Constant.dtype: Data type specifier.
 
     """
-    return Constant(1.0, dtype=dtype)
+
+    def __init__(self, fill_value, dtype=None):
+        self.fill_value = fill_value
+        super(Constant, self).__init__(dtype)
 
 
-def NaN(dtype=None):
-    """Returns initializer that initializes array with the all-NaN array.
+class Zero(_Constant):
+    """Initializes array to all-zero.
 
-    Args:
-        dtype: Data type specifier.
-
-    Returns:
-        An initializer that initializes an array by NaN.
-
+    Attributes:
+        ~Zero.dtype: Data type specifier.
     """
-    return Constant(numpy.nan, dtype=dtype)
+
+    fill_value = 0.0
+
+
+class One(_Constant):
+    """Initializes array to all-one.
+
+    Attributes:
+        ~One.dtype: Data type specifier.
+    """
+
+    fill_value = 1.0
+
+
+class NaN(_Constant):
+    """Initializes array to all-NaN.
+
+    Attributes:
+        ~NaN.dtype: Data type specifier.
+    """
+
+    fill_value = numpy.nan

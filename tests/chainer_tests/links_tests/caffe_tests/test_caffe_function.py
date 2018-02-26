@@ -1,5 +1,4 @@
 import os
-import pkg_resources
 import tempfile
 import unittest
 
@@ -10,9 +9,8 @@ import six
 import chainer
 from chainer import links
 from chainer.links import caffe
+from chainer.links.caffe.caffe_function import caffe_pb
 from chainer import testing
-if links.caffe.caffe_function.available:
-    from chainer.links.caffe.caffe_function import caffe_pb
 
 
 def _iter_init(param, data):
@@ -44,8 +42,6 @@ def _make_param(data):
     return param
 
 
-@unittest.skipUnless(links.caffe.caffe_function.available,
-                     'protobuf>=3.0.0 is required for py3')
 class TestCaffeFunctionBase(unittest.TestCase):
 
     def setUp(self):
@@ -473,6 +469,35 @@ class TestAveragePooling(TestCaffeFunctionBaseMock):
         self.call(['x'], ['y'])
         self.mock.assert_called_once_with(
             self.inputs[0], 2, stride=4, pad=6)
+
+
+class TestGlobalPooling(TestCaffeFunctionBaseMock):
+
+    func_name = 'chainer.functions.max_pooling_2d'
+    in_shapes = [(3, 2, 3, 4)]
+    out_shapes = [(3, 2, 3, 4)]
+
+    data = {
+        'layer': [
+            {
+                'name': 'l1',
+                'type': 'Pooling',
+                'bottom': ['x'],
+                'top': ['y'],
+                'pooling_param': {
+                    'pool': 0,  # MAX
+                    'global_pooling': True,
+                }
+            }
+        ]
+    }
+
+    def test_global_pooling(self):
+        self.init_func()
+        self.assertEqual(len(self.func.layers), 1)
+        self.call(['x'], ['y'])
+        self.mock.assert_called_once_with(
+            self.inputs[0], (3, 4), stride=1, pad=0)
 
 
 class TestStochasticPooling(TestCaffeFunctionBase):
@@ -1199,30 +1224,6 @@ class TestSplit(TestCaffeFunctionBase):
     def test_split(self):
         self.init_func()
         self.assertEqual(self.func.split_map, {'y': 'x', 'z': 'x'})
-
-
-class TestCaffeFunctionAvailable(unittest.TestCase):
-
-    @unittest.skipUnless(six.PY2, 'Only for Py2')
-    def test_py2_available(self):
-        self.assertTrue(links.caffe.caffe_function.available)
-
-    @unittest.skipUnless(six.PY3, 'Only for Py3')
-    def test_py3_available(self):
-        ws = pkg_resources.WorkingSet()
-        try:
-            ws.require('protobuf<3.0.0')
-            ver = 2
-        except pkg_resources.VersionConflict:
-            ver = 3
-
-        if ver >= 3:
-            self.assertTrue(links.caffe.caffe_function.available)
-        else:
-            self.assertFalse(links.caffe.caffe_function.available)
-
-            with self.assertRaises(RuntimeError):
-                caffe.CaffeFunction('')
 
 
 testing.run_module(__name__, __file__)

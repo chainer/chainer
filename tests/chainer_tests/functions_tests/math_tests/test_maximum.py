@@ -3,12 +3,11 @@ import unittest
 import chainer
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import type_check
 
 
@@ -20,21 +19,32 @@ class TestMaximum(unittest.TestCase):
 
     def setUp(self):
         shape = self.shape
-        self.x1 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.x2 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        # Avoid close values for stability in numerical gradient.
-        for i in numpy.ndindex(shape):
-            if -0.125 < self.x1[i] - self.x2[i] < 0.125:
-                self.x1[i] = -0.5
-                self.x2[i] = 0.5
-        self.y_expected = numpy.maximum(self.x1, self.x2)
         self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.ggx1 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.ggx2 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
+        self.check_double_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
+            eps = 2 ** -3
             self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
             self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+                'atol': 1e-2, 'rtol': 1e-1, 'dtype': numpy.float64}
+            self.check_double_backward_options = {
+                'atol': 1e-2, 'rtol': 1e-1, 'dtype': numpy.float64}
+        else:
+            eps = 1e-2
+        self.check_backward_options['eps'] = eps
+
+        self.x1 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.x2 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+
+        # Avoid close values for stability in numerical gradient.
+        idx = abs(self.x1 - self.x2) < 2 * eps
+        self.x1[idx] = -0.5
+        self.x2[idx] = 0.5
+
+        self.y_expected = numpy.maximum(self.x1, self.x2)
 
     def check_forward(self, x1_data, x2_data, y_expected):
         x1 = chainer.Variable(x1_data)
@@ -44,12 +54,10 @@ class TestMaximum(unittest.TestCase):
         testing.assert_allclose(
             y_expected, y.data, **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x1, self.x2, self.y_expected)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         x1 = cuda.to_gpu(self.x1)
         x2 = cuda.to_gpu(self.x2)
@@ -61,17 +69,39 @@ class TestMaximum(unittest.TestCase):
         gradient_check.check_backward(
             func, x, y_grad, **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x1, self.x2, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         x1 = cuda.to_gpu(self.x1)
         x2 = cuda.to_gpu(self.x2)
         gy = cuda.to_gpu(self.gy)
         self.check_backward(x1, x2, gy)
+
+    def check_double_backward(
+            self, x1_data, x2_data, y_grad, x1_grad, x2_grad):
+        x = (x1_data, x2_data)
+        x_grad_grad = (x1_grad, x2_grad)
+
+        def func(x1, x2):
+            y = functions.maximum(x1, x2)
+            return y * y
+        gradient_check.check_double_backward(
+            func, x, y_grad, x_grad_grad, **self.check_double_backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.x1, self.x2, self.gy, self.ggx1, self.ggx2)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        x1 = cuda.to_gpu(self.x1)
+        x2 = cuda.to_gpu(self.x2)
+        gy = cuda.to_gpu(self.gy)
+        ggx1 = cuda.to_gpu(self.ggx1)
+        ggx2 = cuda.to_gpu(self.ggx2)
+        self.check_double_backward(x1, x2, gy, ggx1, ggx2)
 
 
 @testing.parameterize(*testing.product({

@@ -11,7 +11,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#      https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,7 +31,7 @@
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -184,7 +184,7 @@ class ROIPooling2D(function.Function):
             }
             top_data = maxval;
             argmax_data = maxidx;
-            ''', 'roi_poolig_2d_fwd'
+            ''', 'roi_pooling_2d_fwd'
         )(bottom_data, self.spatial_scale, channels, height, width,
           self.outh, self.outw, bottom_rois, top_data,
           self.argmax_data)

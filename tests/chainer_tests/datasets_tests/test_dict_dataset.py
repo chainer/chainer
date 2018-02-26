@@ -2,7 +2,7 @@ import unittest
 
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import datasets
 from chainer import testing
 from chainer.testing import attr
@@ -21,6 +21,17 @@ class TestDictDataset(unittest.TestCase):
 
         for i in range(len(x)):
             example = dd[i]
+            self.assertIn('x', example)
+            self.assertIn('y', example)
+
+            numpy.testing.assert_array_equal(
+                cuda.to_cpu(example['x']), cuda.to_cpu(x[i]))
+            numpy.testing.assert_array_equal(
+                cuda.to_cpu(example['y']), cuda.to_cpu(y[i]))
+
+        example_range = dd[0: len(x)]
+        for i in range(len(x)):
+            example = example_range[i]
             self.assertIn('x', example)
             self.assertIn('y', example)
 

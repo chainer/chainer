@@ -2,8 +2,11 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import configuration
+from chainer import function_node
+from chainer.functions.connection import convolution_nd
+from chainer.functions.connection import deconvolution_2d
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
@@ -11,7 +14,8 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cudnn.cudnn
+    libcudnn = cuda.cuda.cudnn
+    _cudnn_version_ = libcudnn.getVersion()
     _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
     _bwd_filter_pref = \
         libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
@@ -19,7 +23,9 @@ if cuda.cudnn_enabled:
         libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
 
 
-class DeconvolutionND(function.Function):
+class DeconvolutionND(function_node.FunctionNode):
+
+    cover_all = None
 
     def __init__(self, ndim, stride=1, pad=0, outsize=None):
         self.ndim = ndim
@@ -45,10 +51,13 @@ class DeconvolutionND(function.Function):
         if self.outs is not None:
             for i, (out, s, p) in enumerate(zip(
                     self.outs, self.stride, self.pad)):
+                lower_bound = conv.get_conv_outsize(
+                    out, w_type.shape[i + 2], s, p)
+                upper_bound = conv.get_conv_outsize(
+                    out, w_type.shape[i + 2], s, p, cover_all=True)
                 type_check.expect(
-                    x_type.shape[i + 2] ==
-                    conv.get_conv_outsize(out, w_type.shape[i + 2], s, p)
-                )
+                    lower_bound <= x_type.shape[i + 2],
+                    x_type.shape[i + 2] <= upper_bound)
 
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
@@ -59,13 +68,14 @@ class DeconvolutionND(function.Function):
             )
 
     def _use_cudnn(self, x, W):
-        return (chainer.should_use_cudnn('>=auto') and
-                self.ndim > 1 and x.dtype == W.dtype)
+        return (
+            chainer.should_use_cudnn('>=auto')
+            and not self.cover_all
+            and self.ndim > 1
+            and x.dtype == W.dtype)
 
     def _forward_xp(self, x, W, b, xp):
         ndim = self.ndim
-        ksize = W.shape[2:]     # W: C_I, C_O, k_1, k_2, ..., k_N
-        dims = x.shape[2:]      # x: n, C_I, d_1, d_2, ..., d_N
         stride = self.stride
         pad = self.pad
 
@@ -74,12 +84,6 @@ class DeconvolutionND(function.Function):
         # Roll n, which is batch size, before the first.
         gcol = xp.rollaxis(gcol, ndim + 1)
 
-        if self.outs is None:
-            self.outs = tuple(
-                conv.get_deconv_outsize(d, k, s, p)
-                for d, k, s, p in zip(dims, ksize, stride, pad))
-            assert all(out > 0 for out in self.outs), \
-                'Output sizes should be positive.'
         # y: n, C_O, d_1, d_2, ..., d_N
         if xp is numpy:
             y = conv_nd.col2im_nd_cpu(gcol, stride, pad, self.outs)
@@ -93,19 +97,11 @@ class DeconvolutionND(function.Function):
 
     def _forward_cudnn(self, x, W, b):
         c = W.shape[1]          # W: C_I, C_O, k_1, k_2, ..., k_N
-        ksize = W.shape[2:]
         n, in_c = x.shape[:2]   # x: n, C_I, d_1, d_2, ..., d_N
-        dims = x.shape[2:]
         ndim = self.ndim
         colon = slice(None)
 
         # Make empty array for output.
-        if self.outs is None:
-            self.outs = tuple(
-                conv.get_deconv_outsize(d, k, s, p)
-                for d, k, s, p in zip(dims, ksize, self.stride, self.pad))
-            assert all(out > 0 for out in self.outs), \
-                'Output sizes should be positive.'
         y_shape = (n, c) + self.outs  # (n, c_O, out_1, out_2, ..., out_N)
         y = cuda.cupy.empty(y_shape, dtype=x.dtype)
 
@@ -120,8 +116,8 @@ class DeconvolutionND(function.Function):
         x_desc = cudnn.create_tensor_descriptor(x)
         y_desc = cudnn.create_tensor_descriptor(y)
         self.filter_desc = cudnn.create_filter_descriptor(W)
-        self.conv_desc = cudnn.create_convolution_descriptor(
-            self.pad, self.stride, x.dtype)
+        conv_param = self.pad, self.stride, x.dtype
+        self.conv_desc = cudnn.create_convolution_descriptor(*conv_param)
         if b is not None:
             b_index = (None, colon) + (None,) * ndim
             self.bias_desc = cudnn.create_tensor_descriptor(b[b_index])
@@ -132,10 +128,17 @@ class DeconvolutionND(function.Function):
         zero = numpy.array(0, dtype=oz_dtype).ctypes
         workspace_size = cuda.get_max_workspace_size()
         workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-        algo = libcudnn.getConvolutionBackwardDataAlgorithm(
-            handle, self.filter_desc.value, x_desc.value,
-            self.conv_desc.value, y_desc.value, _bwd_data_pref,
-            workspace_size)
+        if configuration.config.autotune and _cudnn_version_ >= 5000:
+            algo = deconvolution_2d.get_algorithm(W, x, y, conv_param, handle,
+                                                  self.filter_desc, x_desc,
+                                                  self.conv_desc, y_desc,
+                                                  workspace)
+        else:
+            algo = libcudnn.getConvolutionBackwardDataAlgorithm(
+                handle, self.filter_desc.value, x_desc.value,
+                self.conv_desc.value, y_desc.value, _bwd_data_pref,
+                workspace_size)
+
         libcudnn.convolutionBackwardData_v3(
             handle, one.data, self.filter_desc.value, W.data.ptr,
             x_desc.value, x.data.ptr, self.conv_desc.value,
@@ -152,18 +155,19 @@ class DeconvolutionND(function.Function):
         return y,
 
     def forward(self, inputs):
+        self.retain_inputs((0, 1))  # only retain x and W
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
+        if self.outs is None:
+            dims = x.shape[2:]
+            ksize = W.shape[2:]
+            self.outs = tuple(
+                conv.get_deconv_outsize(d, k, s, p)
+                for d, k, s, p in zip(dims, ksize, self.stride, self.pad))
+            assert all(out > 0 for out in self.outs), \
+                'Output sizes should be positive.'
+        self._set_cover_all(x, W)
 
         xp = cuda.get_array_module(*inputs)
         if xp is numpy:
@@ -262,19 +266,33 @@ class DeconvolutionND(function.Function):
         else:
             return gx, gW, gb
 
-    def backward(self, inputs, grad_outputs):
-        x, W = inputs[:2]
-        b = inputs[2] if len(inputs) == 3 else None
+    def backward(self, indexes, grad_outputs):
+        x, W = self.get_retained_inputs()
+        gy, = grad_outputs
 
-        gy = grad_outputs[0]
+        ret = []
+        if 0 in indexes:
+            gx = chainer.functions.convolution_nd(
+                gy, W, stride=self.stride, pad=self.pad,
+                cover_all=self.cover_all)
+            ret.append(gx)
+        if 1 in indexes:
+            gW, = convolution_nd.ConvolutionNDGradW(self).apply((gy, x))
+            ret.append(gW)
+        if 2 in indexes:
+            axis = (0,) + tuple(six.moves.range(2, gy.ndim))
+            gb = chainer.functions.sum(gy, axis=axis)
+            ret.append(gb)
 
-        xp = cuda.get_array_module(*inputs)
-        if xp is numpy:
-            return self._backward_xp(x, W, b, gy, numpy)
-        elif self._use_cudnn(x, W):
-            return self._backward_cudnn(x, W, b, gy)
-        else:
-            return self._backward_xp(x, W, b, gy, cuda.cupy)
+        return ret
+
+    def _set_cover_all(self, x, W):
+        x_shape = x.shape[2:]
+        k_shape = W.shape[2:]
+        self.cover_all = any(
+            ix != conv.get_conv_outsize(oy, k, s, p)
+            for (ix, oy, k, s, p)
+            in zip(x_shape, self.outs, k_shape, self.stride, self.pad))
 
 
 def deconvolution_nd(x, W, b=None, stride=1, pad=0, outsize=None):
@@ -313,7 +331,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
 
     .. math::
 
-       l_n = s_n (d_n - 1)  + k_n - 2 p_n \ \ (n = 1, ..., N)
+       l_n = s_n (d_n - 1)  + k_n - 2 p_n \\ \\ (n = 1, ..., N)
 
     If ``outsize`` option is given, the output size is determined by
     ``outsize``. In this case, the ``outsize`` :math:`(l_1, l_2, ..., l_N)`
@@ -321,7 +339,13 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
 
     .. math::
 
-       d_n = \\lfloor (l_n + 2p_n - k_n) / s_n \\rfloor + 1 \ \ (n = 1, ..., N)
+       d_n = \\lfloor (l_n + 2p_n - k_n) / s_n \\rfloor + 1 \\ \\ \
+       (n = 1, ..., N)
+
+    Deconvolution links can use a feature of cuDNN called autotuning, which
+    selects the most efficient CNN algorithm for images of fixed-size,
+    can provide a significant performance boost for fixed neural nets.
+    To enable, set `chainer.using_config('autotune', True)`
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -361,13 +385,15 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         >>> d1, d2, d3 = 5, 10, 15
         >>> k1, k2, k3 = 10, 10, 10
         >>> p1, p2, p3 = 5, 5, 5
-        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).astype('f')
+        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).\
+astype(np.float32)
         >>> x.shape
         (10, 3, 5, 10, 15)
-        >>> W = np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).astype('f')
+        >>> W = np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).\
+astype(np.float32)
         >>> W.shape
         (3, 1, 10, 10, 10)
-        >>> b = np.random.uniform(0, 1, (c_o)).astype('f')
+        >>> b = np.random.uniform(0, 1, (c_o)).astype(np.float32)
         >>> b.shape
         (1,)
         >>> s1, s2, s3 = 2, 4, 6
@@ -388,13 +414,15 @@ pad=(p1, p2, p3))
         >>> d1, d2, d3 = 5, 10, 15
         >>> k1, k2, k3 = 10, 10, 10
         >>> p1, p2, p3 = 5, 5, 5
-        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).astype('f')
+        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).\
+astype(np.float32)
         >>> x.shape
         (10, 3, 5, 10, 15)
-        >>> W = np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).astype('f')
+        >>> W = np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).\
+astype(np.float32)
         >>> W.shape
         (3, 1, 10, 10, 10)
-        >>> b = np.random.uniform(0, 1, (c_o)).astype('f')
+        >>> b = np.random.uniform(0, 1, (c_o)).astype(np.float32)
         >>> b.shape
         (1,)
         >>> s1, s2, s3 = 2, 4, 6
@@ -415,7 +443,6 @@ pad=(p1, p2, p3), outsize=(l1, l2, l3))
     """
     ndim = len(x.shape[2:])
     func = DeconvolutionND(ndim, stride, pad, outsize)
-    if b is None:
-        return func(x, W)
-    else:
-        return func(x, W, b)
+    args = (x, W) if b is None else (x, W, b)
+    y, = func.apply(args)
+    return y
