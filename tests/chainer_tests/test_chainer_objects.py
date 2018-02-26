@@ -86,7 +86,7 @@ class TestFunctions(unittest.TestCase):
             # Report the error
             s = six.StringIO()
             s.write(
-                'Some functions have mutable values as default values:\n\n')
+                'Some functions have mutable values as default arguments:\n\n')
             for func, arg_name, value_type in badlist:
                 s.write('{}.{}: arg=\'{}\' type={}\n'.format(
                     func.__module__, func.__name__, arg_name, value_type))
