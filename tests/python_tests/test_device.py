@@ -54,6 +54,12 @@ def test_creation():
     assert device.index == 1
 
 
+def test_synchronize():
+    ctx = xchainer.get_global_default_context()
+    device = ctx.get_device('native', 0)
+    device.synchronize()
+
+
 @pytest.mark.usefixtures('cache_restore_device')
 def test_default_device(device_instance1):
     device = device_instance1
