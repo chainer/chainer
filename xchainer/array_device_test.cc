@@ -236,13 +236,13 @@ TEST_F(ArrayDeviceTest, CheckDevicesCompatibleMultipleDevices) {
     NativeDevice cpu_device_1{native_backend, 1};
     auto scope = std::make_unique<DeviceScope>(cpu_device_0);
 
-    Array a = Array::Empty(shape, dtype, cpu_device_0);
-    Array b = Array::Empty(shape, dtype, cpu_device_0);
-    Array c = Array::Empty(shape, dtype, cpu_device_1);
+    Array a_device_0 = Array::Empty(shape, dtype, cpu_device_0);
+    Array b_device_0 = Array::Empty(shape, dtype, cpu_device_0);
+    Array c_device_1 = Array::Empty(shape, dtype, cpu_device_1);
 
-    EXPECT_NO_THROW(CheckDevicesCompatible({a}));
-    EXPECT_NO_THROW(CheckDevicesCompatible({a, b}));
-    EXPECT_THROW(CheckDevicesCompatible({a, c}), DeviceError);
+    EXPECT_NO_THROW(CheckDevicesCompatible({a_device_0}));
+    EXPECT_NO_THROW(CheckDevicesCompatible({a_device_0, b_device_0}));
+    EXPECT_THROW(CheckDevicesCompatible({a_device_0, c_device_1}), DeviceError);
 }
 
 TEST_F(ArrayDeviceTest, CheckDevicesCompatibleBasicArithmetics) {
@@ -255,31 +255,31 @@ TEST_F(ArrayDeviceTest, CheckDevicesCompatibleBasicArithmetics) {
     NativeDevice cpu_device_1{native_backend, 1};
     auto scope = std::make_unique<DeviceScope>(cpu_device_0);
 
-    Array a = Array::Empty(shape, dtype, cpu_device_0);
-    Array b = Array::Empty(shape, dtype, cpu_device_0);
-    Array c = Array::Empty(shape, dtype, cpu_device_1);
+    Array a_device_0 = Array::Empty(shape, dtype, cpu_device_0);
+    Array b_device_0 = Array::Empty(shape, dtype, cpu_device_0);
+    Array c_device_1 = Array::Empty(shape, dtype, cpu_device_1);
 
     {
         // Asserts no throw, and similarly for the following three cases
-        Array d = a + b;
-        EXPECT_EQ(&cpu_device_0, &d.device());
+        Array d_device_0 = a_device_0 + b_device_0;
+        EXPECT_EQ(&cpu_device_0, &d_device_0.device());
     }
     {
-        Array d = a * b;
-        EXPECT_EQ(&cpu_device_0, &d.device());
+        Array d_device_0 = a_device_0 * b_device_0;
+        EXPECT_EQ(&cpu_device_0, &d_device_0.device());
     }
     {
-        a += b;
-        EXPECT_EQ(&cpu_device_0, &a.device());
+        a_device_0 += b_device_0;
+        EXPECT_EQ(&cpu_device_0, &a_device_0.device());
     }
     {
-        a *= b;
-        EXPECT_EQ(&cpu_device_0, &a.device());
+        a_device_0 *= b_device_0;
+        EXPECT_EQ(&cpu_device_0, &a_device_0.device());
     }
-    { EXPECT_THROW(a + c, DeviceError); }
-    { EXPECT_THROW(a += c, DeviceError); }
-    { EXPECT_THROW(a * c, DeviceError); }
-    { EXPECT_THROW(a *= c, DeviceError); }
+    { EXPECT_THROW(a_device_0 + c_device_1, DeviceError); }
+    { EXPECT_THROW(a_device_0 += c_device_1, DeviceError); }
+    { EXPECT_THROW(a_device_0 * c_device_1, DeviceError); }
+    { EXPECT_THROW(a_device_0 *= c_device_1, DeviceError); }
 }
 
 }  // namespace
