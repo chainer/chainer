@@ -6,7 +6,7 @@ import six
 
 from chainer.backends import cuda
 from chainer import configuration
-from chainer import FunctionNode
+from chainer.function_node import FunctionNode
 from chainer import testing
 from chainer import variable
 
