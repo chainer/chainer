@@ -4,8 +4,14 @@ from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 import numpy
+import warnings
 
-from scipy import sparse
+try:
+    from scipy import sparse
+except ImportError:
+    warnings.warn("SciPy seems not available on your system. A CPU"
+                  " implementation of sparse_matmul uses SciPy, so that you"
+                  " cannot use sparse_matmul on CPU.")
 
 
 class sparse_coo_matrix(object):
