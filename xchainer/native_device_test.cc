@@ -22,5 +22,14 @@ TEST(NativeDeviceTest, Ctor) {
     }
 }
 
+TEST(NativeDeviceTest, Allocate) {
+    size_t size = 3;
+    NativeBackend backend;
+    NativeDevice device{backend, 0};
+    std::shared_ptr<void> ptr = device.Allocate(size);
+
+    EXPECT_NE(nullptr, ptr);
+}
+
 }  // namespace
 }  // namespace xchainer
