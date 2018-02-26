@@ -152,9 +152,6 @@ class Sequential(link.ChainList):
             for layer in other:
                 ret.append(layer)
             return ret
-        elif callable(other):
-            self.append(other)
-            return self
         else:
             raise ValueError('add (+) operator supports only callable '
                              'objects, but {} is not callable'.format(
