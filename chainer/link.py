@@ -6,6 +6,7 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
