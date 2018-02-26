@@ -24,10 +24,10 @@ TEST(CudaDeviceTest, Ctor) {
 }
 
 TEST(CudaDeviceTest, Allocate) {
-    size_t size = 3;
+    size_t bytesize = 3;
     CudaBackend backend;
     CudaDevice device{backend, 0};
-    std::shared_ptr<void> ptr = device.Allocate(size);
+    std::shared_ptr<void> ptr = device.Allocate(bytesize);
 
     cudaPointerAttributes attr = {};
     CheckError(cudaPointerGetAttributes(&attr, ptr.get()));

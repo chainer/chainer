@@ -23,10 +23,10 @@ TEST(NativeDeviceTest, Ctor) {
 }
 
 TEST(NativeDeviceTest, Allocate) {
-    size_t size = 3;
+    size_t bytesize = 3;
     NativeBackend backend;
     NativeDevice device{backend, 0};
-    std::shared_ptr<void> ptr = device.Allocate(size);
+    std::shared_ptr<void> ptr = device.Allocate(bytesize);
 
     EXPECT_NE(nullptr, ptr);
 }
