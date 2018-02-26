@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -21,6 +21,10 @@ class TestSquaredDifference(unittest.TestCase):
         self.x1 = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
         self.x2 = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
         self.g = numpy.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+        self.ggx1 = numpy.random.uniform(
+            -1, 1, self.in_shape).astype(self.dtype)
+        self.ggx2 = numpy.random.uniform(
+            -1, 1, self.in_shape).astype(self.dtype)
 
     def check_forward(self, x1_data, x2_data):
         x1 = chainer.Variable(x1_data)
@@ -41,7 +45,7 @@ class TestSquaredDifference(unittest.TestCase):
     def check_backward(self, x1, x2, g_data):
         x_data = (x1, x2)
         gradient_check.check_backward(
-            functions.SquaredDifference(),
+            functions.squared_difference,
             x_data, g_data, dtype=numpy.float64, atol=1e-2, rtol=2e-2)
 
     @condition.retry(3)
@@ -55,6 +59,29 @@ class TestSquaredDifference(unittest.TestCase):
         x2 = cuda.to_gpu(self.x2)
         g = cuda.to_gpu(self.g)
         self.check_backward(x1, x2, g)
+
+    def check_double_backward(self, x1, x2, g_data, ggx1, ggx2):
+        x_data = (x1, x2)
+        ggx_data = (ggx1, ggx2)
+        gradient_check.check_double_backward(
+            functions.squared_difference,
+            x_data, g_data, ggx_data, dtype=numpy.float64,
+            atol=1e-2, rtol=2e-2)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.x1, self.x2, self.g, self.ggx1, self.ggx2)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        x1 = cuda.to_gpu(self.x1)
+        x2 = cuda.to_gpu(self.x2)
+        g = cuda.to_gpu(self.g)
+        ggx1 = cuda.to_gpu(self.ggx1)
+        ggx2 = cuda.to_gpu(self.ggx2)
+        self.check_double_backward(x1, x2, g, ggx1, ggx2)
 
 
 testing.run_module(__name__, __file__)

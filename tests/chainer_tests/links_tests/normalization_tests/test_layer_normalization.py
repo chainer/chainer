@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
@@ -151,6 +151,18 @@ class TestDefaultInitializer(unittest.TestCase):
         testing.assert_allclose(numpy.ones(self.size), self.link.gamma.data)
         testing.assert_allclose(
             numpy.zeros(self.size), self.link.beta.data)
+
+
+class TestEmptyBatchInitialize(unittest.TestCase):
+
+    def setUp(self):
+        self.link = _create_ln()
+        self.shape = (0, 3)
+        self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+
+    def test_empty_batch_dim(self):
+        y = self.link(chainer.Variable(self.x))
+        assert y.shape == self.shape
 
 
 @testing.parameterize(*testing.product({

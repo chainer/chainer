@@ -2,16 +2,16 @@ import unittest
 
 import numpy
 
-from chainer import cuda
+import chainer
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': [True, False],
+    'use_cudnn': ['always', 'never'],
 }))
 class TestSpatialTransformerGrid(unittest.TestCase):
 
@@ -22,9 +22,11 @@ class TestSpatialTransformerGrid(unittest.TestCase):
         self.grads = numpy.random.uniform(
             size=(B, 2) + self.output_shape).astype(self.theta.dtype)
 
-    def check_forward(self, theta, output_shape, use_cudnn=True):
-        grid = functions.spatial_transformer_grid(
-            theta, output_shape, use_cudnn).data
+        self.check_backward_options = {
+            'atol': 1e-4, 'rtol': 1e-3}
+
+    def check_forward(self, theta, output_shape):
+        grid = functions.spatial_transformer_grid(theta, output_shape).data
 
         theta = cuda.to_cpu(theta)
         B = theta.shape[0]
@@ -46,25 +48,23 @@ class TestSpatialTransformerGrid(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.check_forward(
-            cuda.to_gpu(self.theta), self.output_shape, self.use_cudnn)
+        self.check_forward(cuda.to_gpu(self.theta), self.output_shape)
 
-    def check_backward(self, theta, output_shape, grads, use_cudnn=True):
-        gradient_check.check_backward(
-            functions.SpatialTransformerGrid(output_shape, use_cudnn),
-            (theta,), (grads,), atol=1e-4, rtol=1e-3)
+    def check_backward(self, theta, output_shape, grads):
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            gradient_check.check_backward(
+                functions.SpatialTransformerGrid(output_shape),
+                (theta,), (grads,), dtype=numpy.float64,
+                **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.theta, self.output_shape, self.grads)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.theta),
-                            self.output_shape,
-                            cuda.to_gpu(self.grads),
-                            self.use_cudnn)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            self.check_backward(cuda.to_gpu(self.theta), self.output_shape,
+                                cuda.to_gpu(self.grads))
 
 
 testing.run_module(__name__, __file__)

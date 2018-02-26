@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import optimizer
 
 
@@ -19,8 +19,8 @@ class RMSpropGravesRule(optimizer.UpdateRule):
     the hyperparameters.
 
     Args:
-        parent_hyperparam (~chainer.Hyperparameter): Hyperparameter that
-            provides the default values.
+        parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
+            that provides the default values.
         lr (float): Learning rate.
         alpha (float): Exponential decay rate of the first and second order
             moments of the raw gradient.
@@ -87,7 +87,7 @@ class RMSpropGraves(optimizer.GradientMethod):
 
     """Alex Graves's RMSprop.
 
-    See: http://arxiv.org/abs/1308.0850
+    See: https://arxiv.org/abs/1308.0850
 
     Args:
         lr (float): Learning rate.

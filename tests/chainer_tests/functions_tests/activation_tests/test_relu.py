@@ -4,84 +4,121 @@ import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
+from chainer.testing import backend
+
+
+def _to_noncontiguous(arrays):
+    xp = cuda.get_array_module(*arrays)
+    return [xp.asfortranarray(a) for a in arrays]
 
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'c_contiguous': [True, False],
 }))
+@testing.fix_random()
+@backend.inject_backend_tests(
+    ['test_forward', 'test_backward', 'test_double_backward'],
+    # CPU tests
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    }))
 class TestReLU(unittest.TestCase):
 
     def setUp(self):
         # Avoid unstability of numerical grad
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        for i in numpy.ndindex(self.shape):
-            if -0.1 < self.x[i] < 0.1:
-                self.x[i] = 0.5
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        x[(-0.1 < x) & (x < 0.1)] = 0.5
+        gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.inputs = [x]
+        self.grad_outputs = [gy]
+        self.grad_grad_inputs = [ggx]
         self.check_backward_options = {}
+        self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
-            self.check_backward_options = {'dtype': numpy.float64}
+            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
-    def check_forward(self, x_data, use_cudnn='always'):
+    def forward_cpu(self, inputs):
+        x, = inputs
+        expected = x.copy()
+        expected[expected < 0] = 0
+        return expected,
+
+    def check_forward(self, inputs, backend_config):
+        y_expected, = self.forward_cpu(inputs)
+
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
+        if not self.c_contiguous:
+            inputs = _to_noncontiguous(inputs)
+
+        x_data, = inputs
         x = chainer.Variable(x_data)
-        with chainer.using_config('use_cudnn', use_cudnn):
+        with backend_config:
             y = functions.relu(x)
-        self.assertEqual(y.data.dtype, self.dtype)
+        assert y.data.dtype == self.dtype
 
-        expected = self.x.copy()
-        for i in numpy.ndindex(self.x.shape):
-            if self.x[i] < 0:
-                expected[i] = 0
+        testing.assert_allclose(y_expected, y.data)
 
-        testing.assert_allclose(
-            expected, y.data)
+    def test_forward(self, backend_config):
+        self.check_forward(self.inputs, backend_config)
 
-    @condition.retry(3)
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
+    def check_backward(self, inputs, grad_outputs, backend_config):
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
+            grad_outputs = cuda.to_gpu(grad_outputs)
+        if not self.c_contiguous:
+            inputs = _to_noncontiguous(inputs)
+            grad_outputs = _to_noncontiguous(grad_outputs)
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu_no_cudnn(self):
-        self.check_forward(cuda.to_gpu(self.x), 'never')
-
-    def check_backward(self, x_data, y_grad, use_cudnn='always'):
-        with chainer.using_config('use_cudnn', use_cudnn):
+        with backend_config:
             gradient_check.check_backward(
-                functions.ReLU(), x_data, y_grad,
+                functions.relu, inputs, grad_outputs, dtype=numpy.float64,
                 **self.check_backward_options)
 
-    @condition.retry(3)
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
+    def test_backward(self, backend_config):
+        self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+    def check_double_backward(
+            self, inputs, grad_outputs, grad_grad_inputs, backend_config):
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
+            grad_outputs = cuda.to_gpu(grad_outputs)
+            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
+        if not self.c_contiguous:
+            inputs = _to_noncontiguous(inputs)
+            grad_outputs = _to_noncontiguous(grad_outputs)
+            grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu_non_contiguous(self):
-        self.check_backward(cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
-                            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)))
+        def f(x):
+            x = functions.relu(x)
+            return x * x
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_cpu_no_cudnn(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
+        x, = inputs
+        gy, = grad_outputs
+        ggx, = grad_grad_inputs
+        with backend_config:
+            gradient_check.check_double_backward(
+                f, x, gy, ggx, dtype=numpy.float64,
+                **self.check_double_backward_options)
+
+    def test_double_backward(self, backend_config):
+        self.check_double_backward(
+            self.inputs, self.grad_outputs, self.grad_grad_inputs,
+            backend_config)
 
 
 @testing.parameterize(*testing.product({

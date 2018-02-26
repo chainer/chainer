@@ -5,7 +5,9 @@ import mock
 import numpy as np
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+from chainer import functions
+from chainer import links
 from chainer import optimizer
 from chainer import optimizers
 from chainer import testing
@@ -286,6 +288,26 @@ class SimpleLink(chainer.Link):
             self.param.grad = g
 
 
+class UninitializedChain(chainer.Chain):
+
+    def __init__(self):
+        super(UninitializedChain, self).__init__()
+        w = 10
+        with self.init_scope():
+            self.f0 = links.Linear(w)
+            self.f1 = links.Linear(w)
+            self.f2 = links.Linear(w)
+        self.count = 0
+
+    def __call__(self, h):
+        h = self.f0(h)
+        if self.count % 2 == 1:
+            h = self.f1(h)
+        h = self.f2(h)
+        self.count += 1
+        return functions.sum(h)
+
+
 class TestOptimizerWeightDecay(unittest.TestCase):
 
     def setUp(self):
@@ -314,6 +336,18 @@ class TestOptimizerWeightDecay(unittest.TestCase):
     def test_weight_decay_gpu(self):
         self.target.to_gpu()
         self.check_weight_decay()
+
+    def test_call_hooks_uninitialized_param(self):
+        target = UninitializedChain()
+        opt = optimizers.MomentumSGD()
+        opt.setup(target)
+        opt.add_hook(optimizer.WeightDecay(rate=0.0005))
+        target(np.ones((4, 10), dtype=np.float32))
+        opt.call_hooks()
+
+        # This test is for asserting that calling the hook on a chain
+        # with uninitialized parameters does not crash, so if we reach
+        # here, the test has passed.
 
 
 class TestOptimizerLasso(unittest.TestCase):
@@ -344,6 +378,18 @@ class TestOptimizerLasso(unittest.TestCase):
     def test_lasso_gpu(self):
         self.target.to_gpu()
         self.check_lasso()
+
+    def test_call_hooks_uninitialized_param(self):
+        target = UninitializedChain()
+        opt = optimizers.MomentumSGD()
+        opt.setup(target)
+        opt.add_hook(optimizer.Lasso(rate=0.0005))
+        target(np.ones((4, 10), dtype=np.float32))
+        opt.call_hooks()
+
+        # This test is for asserting that calling the hook on a chain
+        # with uninitialized parameters does not crash, so if we reach
+        # here, the test has passed.
 
 
 class TestOptimizerGradientNoise(unittest.TestCase):
@@ -386,6 +432,18 @@ class TestOptimizerGradientNoise(unittest.TestCase):
         self.target.to_gpu()
         self.check_gradient_noise()
 
+    def test_call_hooks_uninitialized_param(self):
+        target = UninitializedChain()
+        opt = optimizers.MomentumSGD()
+        opt.setup(target)
+        opt.add_hook(optimizer.GradientNoise(eta=1))
+        target(np.ones((4, 10), dtype=np.float32))
+        opt.call_hooks()
+
+        # This test is for asserting that calling the hook on a chain
+        # with uninitialized parameters does not crash, so if we reach
+        # here, the test has passed.
+
 
 class TestGradientHardClipping(unittest.TestCase):
 
@@ -416,6 +474,18 @@ class TestGradientHardClipping(unittest.TestCase):
     def test_hardclipping_gpu(self):
         self.target.to_gpu()
         self.check_hardclipping()
+
+    def test_call_hooks_uninitialized_param(self):
+        target = UninitializedChain()
+        opt = optimizers.MomentumSGD()
+        opt.setup(target)
+        opt.add_hook(optimizer.GradientClipping(threshold=1))
+        target(np.ones((4, 10), dtype=np.float32))
+        opt.call_hooks()
+
+        # This test is for asserting that calling the hook on a chain
+        # with uninitialized parameters does not crash, so if we reach
+        # here, the test has passed.
 
 
 class TestGradientMethod(unittest.TestCase):
@@ -455,6 +525,56 @@ class TestGradientMethod(unittest.TestCase):
             self.target[0].param)
         self.target[1].param.update_rule.update.assert_called_once_with(
             self.target[1].param)
+
+    def test_update_cpu(self):
+        self.setup_cpu()
+        self.check_update()
+
+    @attr.gpu
+    def test_update_gpu(self):
+        self.setup_gpu()
+        self.check_update()
+
+
+@testing.parameterize(*testing.product({
+    'shape': [(4, 3, 2)],
+    'dtype': [np.float16, np.float32, np.float64],
+    'loss_scale': [None, 1, 10],
+}))
+class TestGradientMethodLossScale(unittest.TestCase):
+
+    def setUp(self):
+        param0_data = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        param0_grad = np.copy(param0_data)
+        param1_data = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        param1_grad = np.copy(param1_data)
+        self.target = chainer.ChainList(
+            SimpleLink(param0_data, param0_grad),
+            SimpleLink(param1_data, param1_grad))
+        lr = 1.0
+        if self.loss_scale is not None:
+            lr = self.loss_scale
+            for i in range(2):
+                self.target[i].param._loss_scale = self.loss_scale
+        self.optimizer = chainer.optimizers.SGD(lr)
+
+    def setup_cpu(self):
+        self.optimizer.setup(self.target)
+
+    def setup_gpu(self, device=None):
+        self.target.to_gpu(device)
+        self.optimizer.setup(self.target)
+
+    def check_update(self):
+        self.optimizer.update()
+        xp = cuda.get_array_module(self.target[0].param)
+        expected_data = xp.zeros(self.shape, dtype=self.dtype)
+        rtol, atol = 1e-4, 1e-5
+        if self.dtype is np.float16:
+            rtol, atol = 1e-1, 1e-2
+        for i in range(2):
+            testing.assert_allclose(self.target[i].param.data, expected_data,
+                                    rtol=rtol, atol=atol)
 
     def test_update_cpu(self):
         self.setup_cpu()

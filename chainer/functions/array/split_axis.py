@@ -3,13 +3,13 @@ import collections
 import six
 
 import chainer
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer.backends import intel64
+from chainer import function_node
 from chainer.utils import type_check
-from chainer import variable
 
 
-class SplitAxis(function.Function):
+class SplitAxis(function_node.FunctionNode):
 
     """Function that splits multiple arrays along the specified axis."""
 
@@ -41,35 +41,86 @@ class SplitAxis(function.Function):
                 self.indices_or_sections, 'sections')
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
 
-    def forward(self, x):
-        self.retain_inputs(())
+    def forward(self, inputs):
+        # Currently iDeep only supports 4 dims
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(inputs, (4,))
+                and self._ideep_is_supported(inputs)):
+            return self._forward_ideep(inputs)
+
+        x, = inputs
         if isinstance(self.indices_or_sections, collections.Iterable):
-            cdimx = x[0].shape[self.axis]
+            cdimx = x.shape[self.axis]
             ind = list(self.indices_or_sections)
             ind.append(cdimx)
-        self._xp = cuda.get_array_module(*x)
-        self._x_shape = x[0].shape
-        self._x_dtype = x[0].dtype
-        return tuple(self._xp.split(x[0], self.indices_or_sections, self.axis))
+        self._xp = cuda.get_array_module(x)
+        ret = tuple(self._xp.split(x, self.indices_or_sections, self.axis))
+        self._shapes = [r.shape for r in ret]
+        return ret
 
-    def backward(self, x, gys):
-        if any(gy is None for gy in gys):
-            gx = self._xp.zeros(self._x_shape, dtype=self._x_dtype)
-            gxs = self._xp.split(gx, self.indices_or_sections, self.axis)
-            for gxi, gy in six.moves.zip(gxs, gys):
-                if gy is None:
-                    continue
-                gxi[:] = gy
-            return gx,
+    def _ideep_is_supported(self, inputs):
+        # Returns True if iDeep supports current configuration of inputs and
+        # arguments. This is workaround for limitation in iDeep internal
+        # implementation.
+        ios = self.indices_or_sections
+        if isinstance(ios, collections.Iterable):
+            if len(ios) == 0:
+                return False  # Empty sequence
+            if ios[0] == 0:
+                return False  # Sequence starting with 0
+            for i in six.moves.range(1, len(ios)):
+                if ios[i-1] == ios[i]:
+                    return False  # Sequence with duplicate index
         else:
-            return self._xp.concatenate(gys, axis=self.axis),
+            if ios == 1:
+                return False  # 1
+
+        # Workaround for iDeep segfault issue
+        # See:
+        #   https://github.com/chainer/chainer/pull/4281#issuecomment-365830630
+        # TODO(niboshi): Remove this after iDeep is fixed.
+        # Note: inputs[0].ndim is always 4.
+        if (self.axis == 1 or self.axis == -3) and inputs[0].shape[1] == 8:
+            return False
+
+        return True
+
+    def _forward_ideep(self, inputs):
+        x, = inputs
+        offsets = intel64.ideep.intVector()
+        # TODO(iDeep)
+        # bypass python3 issue when transfer array to std::vector<>
+        # https://github.com/SimpleITK/SimpleITK/issues/106
+        ios = self.indices_or_sections
+        axis = self.axis % x.ndim
+        if isinstance(ios, collections.Iterable):
+            for i in ios:
+                offsets.push_back(int(i))
+        else:
+            d = x.shape[self.axis]
+            step = d // ios
+            for i in six.moves.range(step, d, step):
+                offsets.push_back(i)
+        ret = intel64.ideep.concat.Backward(
+            intel64.ideep.array(x), offsets, axis)
+        self._shapes = [r.shape for r in ret]
+        return ret
+
+    def backward(self, indexes, grad_outputs):
+        dtype = self.inputs[0].dtype
+        grads = [
+            self._xp.zeros(shape, dtype=dtype) if gy is None else gy
+            for gy, shape in six.moves.zip(grad_outputs, self._shapes)]
+        return chainer.functions.concat(grads, self.axis),
 
 
 def split_axis(x, indices_or_sections, axis, force_tuple=True):
     """Splits given variables along an axis.
 
     Args:
-        x (tuple of Variables): Variables to be split.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            A variable to be split.
         indices_or_sections (int or 1-D array): If this argument is an integer,
             N, the array will be divided into N equal arrays along axis.
             If it is a 1-D array of sorted integers, it
@@ -82,10 +133,10 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
 
     Returns:
         tuple or Variable: Tuple of :class:`~chainer.Variable` objects
-             if the number of outputs is more than 1 or
-             :class:`~chainer.Variable` otherwise.
-             When ``force_tuple`` is ``True``, returned value is always a tuple
-             regardless of the number of outputs.
+        if the number of outputs is more than 1 or
+        :class:`~chainer.Variable` otherwise.
+        When ``force_tuple`` is ``True``, returned value is always a tuple
+        regardless of the number of outputs.
 
     .. note::
         This function raises :class:`ValueError` if at least
@@ -93,7 +144,7 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
         (i.e. ``axis``-th value of its shape is zero).
 
     """
-    res = SplitAxis(indices_or_sections, axis)(x)
-    if force_tuple and isinstance(res, variable.Variable):
-        res = (res,)
-    return res
+    res = SplitAxis(indices_or_sections, axis).apply((x,))
+    if force_tuple or len(res) != 1:
+        return res
+    return res[0]

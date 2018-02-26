@@ -1,18 +1,16 @@
-Standard Function implementations
-=================================
+Functions
+=========
 
 .. module:: chainer.functions
 
-Chainer provides basic :class:`~chainer.Function` implementations in the
+Chainer provides basic :class:`~chainer.FunctionNode` implementations in the
 :mod:`chainer.functions` package. Most of them are wrapped by plain Python
 functions, which users should use.
 
 .. note::
    As of v1.5, the concept of parameterized functions are gone, and they are
    replaced by corresponding :class:`~chainer.Link` implementations. They are
-   still put in the :mod:`~chainer.functions` namespace for backward
-   compatibility, though it is strongly recommended to use them via the
-   :mod:`chainer.links` package.
+   found in the :mod:`~chainer.links` namespace.
 
 ..
    For contributors that want to update these lists:
@@ -46,6 +44,7 @@ Activation functions
    chainer.functions.slstm
    chainer.functions.softmax
    chainer.functions.softplus
+   chainer.functions.swish
    chainer.functions.tanh
    chainer.functions.tree_lstm
 
@@ -65,6 +64,7 @@ Array manipulations
    chainer.functions.dstack
    chainer.functions.expand_dims
    chainer.functions.flatten
+   chainer.functions.flip
    chainer.functions.fliplr
    chainer.functions.flipud
    chainer.functions.get_item
@@ -76,6 +76,7 @@ Array manipulations
    chainer.functions.reshape
    chainer.functions.resize_images
    chainer.functions.rollaxis
+   chainer.functions.scatter_add
    chainer.functions.select_item
    chainer.functions.separate
    chainer.functions.space2depth
@@ -113,6 +114,7 @@ Neural network connections
    chainer.functions.n_step_gru
    chainer.functions.n_step_lstm
    chainer.functions.n_step_rnn
+   chainer.functions.shift
 
 
 Evaluation functions
@@ -125,7 +127,11 @@ Evaluation functions
    chainer.functions.accuracy
    chainer.functions.binary_accuracy
    chainer.functions.classification_summary
+   chainer.functions.f1_score
+   chainer.functions.precision
    chainer.functions.r2_score
+   chainer.functions.recall
+
 
 Loss functions
 --------------
@@ -134,6 +140,7 @@ Loss functions
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.absolute_error
    chainer.functions.bernoulli_nll
    chainer.functions.black_out
    chainer.functions.connectionist_temporal_classification
@@ -141,6 +148,7 @@ Loss functions
    chainer.functions.crf1d
    chainer.functions.argmax_crf1d
    chainer.functions.cross_covariance
+   chainer.functions.decov
    chainer.functions.gaussian_kl_divergence
    chainer.functions.gaussian_nll
    chainer.functions.hinge
@@ -160,20 +168,30 @@ Mathematical functions
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.absolute
    chainer.functions.arccos
    chainer.functions.arcsin
    chainer.functions.arctan
+   chainer.functions.arctan2
    chainer.functions.argmax
    chainer.functions.argmin
    chainer.functions.average
    chainer.functions.batch_inv
    chainer.functions.batch_l2_norm_squared
+   chainer.functions.batch_matmul
    chainer.functions.bias
    chainer.functions.ceil
    chainer.functions.clip
    chainer.functions.cos
    chainer.functions.cosh
+   chainer.functions.cumsum
+   chainer.functions.det
+   chainer.functions.batch_det
+   chainer.functions.erf
+   chainer.functions.erfc
    chainer.functions.exp
+   chainer.functions.expm1
+   chainer.functions.fix
    chainer.functions.fmod
    chainer.functions.floor
    chainer.functions.identity
@@ -195,12 +213,14 @@ Mathematical functions
    chainer.functions.scale
    chainer.functions.sin
    chainer.functions.sinh
+   chainer.functions.sign
    chainer.functions.sqrt
    chainer.functions.square
    chainer.functions.squared_difference
    chainer.functions.sum
    chainer.functions.tanh
    chainer.functions.tan
+   chainer.functions.tensordot
 
 Noise injections
 ----------------
@@ -211,7 +231,9 @@ Noise injections
 
    chainer.functions.dropout
    chainer.functions.gaussian
+   chainer.functions.gumbel_softmax
    chainer.functions.simplified_dropconnect
+   chainer.functions.zoneout
 
 Normalization functions
 -----------------------
@@ -221,7 +243,9 @@ Normalization functions
    :nosignatures:
 
    chainer.functions.batch_normalization
+   chainer.functions.batch_renormalization
    chainer.functions.fixed_batch_normalization
+   chainer.functions.fixed_batch_renormalization
    chainer.functions.layer_normalization
    chainer.functions.local_response_normalization
    chainer.functions.normalize
@@ -241,6 +265,7 @@ Spatial pooling
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
    chainer.functions.unpooling_2d
+   chainer.functions.unpooling_nd
    chainer.functions.upsampling_2d
 
 
@@ -252,3 +277,48 @@ Utility functions
    :nosignatures:
 
    chainer.functions.forget
+
+Function base
+-------------
+
+.. module:: chainer
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Function
+   chainer.FunctionAdapter
+   chainer.FunctionNode
+   chainer.force_backprop_mode
+   chainer.no_backprop_mode
+   chainer.grad
+
+Function hooks
+--------------
+
+Chainer provides a function-hook mechanism that enriches
+the behavior of forward and backward propagation of :class:`~chainer.Function`.
+
+Base class
+----------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.FunctionHook
+
+.. module:: chainer.function_hooks
+
+Concrete function hooks
+-----------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.function_hooks.CUDAProfileHook
+   chainer.function_hooks.CupyMemoryProfileHook
+   chainer.function_hooks.PrintHook
+   chainer.function_hooks.TimerHook

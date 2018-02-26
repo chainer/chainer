@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -40,7 +40,7 @@ class TestFlatten(unittest.TestCase):
 
     def check_backward(self, x_data, g_data):
         gradient_check.check_backward(
-            functions.Flatten(), x_data, g_data, dtype=numpy.float64)
+            functions.flatten, x_data, g_data, dtype=numpy.float64)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.g)

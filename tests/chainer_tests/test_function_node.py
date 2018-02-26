@@ -1,3 +1,4 @@
+from __future__ import print_function
 import threading
 import unittest
 
@@ -6,12 +7,24 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import type_check
 
 
+def make_array(start, shape, dtype):
+    size = numpy.product(shape, dtype='i')
+    a = numpy.arange(start, start + size)
+    a = a.reshape(shape)
+    a = a.astype(dtype, copy=False)
+    return a
+
+
+@testing.parameterize(*testing.product({
+    'y_shape': [(4,), (0,), (2, 3), ()],
+    'x_shape': [(3,), (0,), (4, 1), ()],
+}))
 class TestFunctionNode(unittest.TestCase):
 
     def _get_method(self, prefix, gpu):
@@ -19,12 +32,15 @@ class TestFunctionNode(unittest.TestCase):
         return getattr(self.f, prefix + '_' + suffix)
 
     def setUp(self):
-        y1 = numpy.arange(4).astype(numpy.float32)
-        y2 = numpy.arange(4).astype(numpy.float32) + 1
-        gx1 = chainer.Variable(numpy.arange(3).astype(numpy.float32))
+        y_shape = self.y_shape
+        x_shape = self.x_shape
+        y1 = make_array(1, y_shape, numpy.float32)
+        y2 = make_array(2, y_shape, numpy.float32)
+        gx1 = chainer.Variable(
+            make_array(1, x_shape, numpy.float32))
         gx2 = None
-        gy1 = numpy.arange(4).astype(numpy.float32)
-        gy2 = numpy.arange(4).astype(numpy.float32)
+        gy1 = make_array(1, y_shape, numpy.float32)
+        gy2 = make_array(1, y_shape, numpy.float32)
 
         f = chainer.FunctionNode()
         f.check_type_forward = mock.MagicMock()
@@ -33,16 +49,16 @@ class TestFunctionNode(unittest.TestCase):
         f.backward = mock.MagicMock(return_value=(gx1, gx2))
         self.f = f
 
-        self.x1 = numpy.arange(3).astype(numpy.float32)
-        self.x2 = numpy.arange(3).astype(numpy.int32)
+        self.x1 = make_array(0, x_shape, numpy.float32)
+        self.x2 = make_array(0, x_shape, numpy.int32)
         self.y1 = y1
         self.y2 = y2
         self.gx1 = gx1
         self.gx2 = gx2
         self.gx1_orig = chainer.Variable(
-            numpy.arange(3, 6).astype(numpy.float32))
+            make_array(3, x_shape, numpy.float32))
         self.gx2_orig = chainer.Variable(
-            numpy.arange(2, 5).astype(numpy.float32))
+            make_array(2, x_shape, numpy.float32))
         self.gx1_accum = gx1 + self.gx1_orig
         self.gy1 = gy1
         self.gy2 = gy2
@@ -124,12 +140,12 @@ class TestFunctionNode(unittest.TestCase):
         self.assertEqual(len(ts), 2)
 
         t1 = ts[0]
-        self.assertEqual(t1.shape, (3,))
-        self.assertEqual(t1.dtype, numpy.float32)
+        assert t1.shape == self.x_shape
+        assert t1.dtype == numpy.float32
 
         t2 = ts[1]
-        self.assertEqual(t2.shape, (3,))
-        self.assertEqual(t2.dtype, numpy.int32)
+        assert t2.shape == self.x_shape
+        assert t2.dtype == numpy.int32
 
     def check_apply(self):
         x1 = chainer.Variable(self.x1)
@@ -166,9 +182,11 @@ class TestFunctionNode(unittest.TestCase):
         self.assertEqual(len(ys), 2)
         self.check_check_type_forward()
 
+        xp = cuda.get_array_module(x1)
+
         for y in ys:
             self.assertIsInstance(y, chainer.Variable)
-            self.assertIsInstance(y.data, type(x1))
+            self.assertIsInstance(y.data, xp.ndarray)
             self.assertFalse(y.requires_grad)
 
     def test_apply_all_ndarray_cpu(self):
@@ -469,6 +487,201 @@ class TestFunctionNodeRetaining(unittest.TestCase):
         self.assertEqual(len(self.f1.backward_outputs), 1)
         numpy.testing.assert_array_equal(self.f1.backward_outputs[0].data,
                                          self.f1_output_data[1])
+
+
+def _get_value(x):
+    if isinstance(x, chainer.Variable):
+        return x.data
+    return x
+
+
+class TestGradTypeCheck(unittest.TestCase):
+
+    def test_type_check(self):
+        x = chainer.Variable(numpy.random.uniform(-1, 1, (2, 3)).astype('f'))
+        y = x * x
+        gx = chainer.Variable(numpy.random.uniform(-1, 1, (2, 3)).astype('f'))
+        gy = chainer.Variable(numpy.random.uniform(-1, 1, (2, 3)).astype('f'))
+
+        chainer.grad([y], [x], [gx], [gy])
+        chainer.grad((y,), (x,), (gx,), (gy,))
+
+        with self.assertRaises(TypeError):
+            chainer.grad(y, [x], [gx], [gy])
+        with self.assertRaises(TypeError):
+            chainer.grad([y], x, [gx], [gy])
+        with self.assertRaises(TypeError):
+            chainer.grad([y], [x], gx, [gy])
+        with self.assertRaises(TypeError):
+            chainer.grad([y], [x], [gx], gy)
+
+
+class GradTestBase(object):
+
+    shape = 3,
+    x_names = ()
+    y_names = ()
+    loss_scale = None
+
+    def _init_attrs(self, names):
+        ret = []
+        for name in names:
+            v = chainer.Variable(
+                numpy.random.randint(-4, 6, self.shape).astype('f'), name=name)
+            ret.append(v)
+            setattr(self, name, v)
+        return ret
+
+    def _init_ones(self, names):
+        ret = []
+        for name in names:
+            v = chainer.Variable(numpy.ones(self.shape, dtype='f'))
+            ret.append(v)
+            setattr(self, name, v)
+        return ret
+
+    @staticmethod
+    def _get_value(x):
+        if isinstance(x, chainer.Variable):
+            return x.data
+        return x
+
+    @staticmethod
+    def _to_grad_names(names):
+        return ['g%s' % name for name in names]
+
+    def setUp(self):
+        self.xs = self._init_attrs(self.x_names)
+        self.gxs = self._init_attrs(self._to_grad_names(self.x_names))
+        self.gys = self._init_attrs(self._to_grad_names(self.y_names))
+        if self.loss_scale is not None:
+            self._init_ones(self._to_grad_names(self.y_names))
+            self.gys = None
+
+    def use_gpu(self):
+        for value in six.itervalues(self.__dict__):
+            if isinstance(value, chainer.Variable):
+                value.to_gpu()
+
+    def forward(self):
+        raise NotImplementedError
+
+    def expected_grad(self):
+        raise NotImplementedError
+
+    def expected_double_grad(self):
+        raise NotImplementedError
+
+    def _print_variables(self, name, vs):
+        print('{}: '.format(name), end='')
+        print(*(self._get_value(v) for v in vs), sep=', ')
+
+    def _print_inputs(self):
+        self._print_variables('xs  ', self.xs)
+        self._print_variables('gxs ', self.gxs)
+        self._print_variables('gys ', self.gys)
+
+    def check_grad(self):
+        self.forward()
+        ys = [getattr(self, name) for name in self.y_names]
+        gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
+                           loss_scale=self.loss_scale)
+
+        expected = self.expected_grad()
+        for i, gx in enumerate(self.gxs):
+            expected[i] += gx
+
+        self.assertEqual(len(gxs), len(expected))
+        try:
+            for a, e in zip(gxs, expected):
+                testing.assert_allclose(self._get_value(a), self._get_value(e))
+        except Exception:
+            self._print_inputs()
+            self._print_variables('gxs (actual)  ', gxs)
+            self._print_variables('gxs (expected)', expected)
+            raise
+
+    def test_grad_cpu(self):
+        self.check_grad()
+
+    @attr.gpu
+    def test_grad_gpu(self):
+        self.use_gpu()
+        self.check_grad()
+
+    def check_double_grad(self):
+        self.forward()
+        ys = [getattr(self, name) for name in self.y_names]
+        gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
+                           enable_double_backprop=True,
+                           loss_scale=self.loss_scale)
+        y = sum(gxs)
+        ggxs = chainer.grad([y], self.xs)
+
+        expected = self.expected_double_grad()
+        self.assertEqual(len(ggxs), len(expected))
+        try:
+            for a, e in zip(ggxs, expected):
+                testing.assert_allclose(self._get_value(a), self._get_value(e))
+        except Exception:
+            self._print_inputs()
+            self._print_variables('gxs            ', gxs)
+            self._print_variables('ggxs (actual)  ', ggxs)
+            self._print_variables('ggxs (expected)', expected)
+            raise
+
+    def test_double_grad_cpu(self):
+        self.check_double_grad()
+
+    @attr.gpu
+    def test_double_grad_gpu(self):
+        self.use_gpu()
+        self.check_double_grad()
+
+
+@testing.parameterize(*testing.product({
+    'loss_scale': [None, 1, 10],
+}))
+class TestGradSimple(GradTestBase, unittest.TestCase):
+
+    x_names = 'x',
+    y_names = 'y',
+
+    def forward(self):
+        self.y = self.x * self.x
+
+    def expected_grad(self):
+        grad = 2 * self.x * self.gy
+        if self.loss_scale is not None:
+            grad *= self.loss_scale
+        return [grad]
+
+    def expected_double_grad(self):
+        ggrad = 2 * self.gy
+        if self.loss_scale is not None:
+            ggrad *= self.loss_scale
+        return [ggrad]
+
+
+class TestGradComplex(GradTestBase, unittest.TestCase):
+
+    x_names = 'x1', 'x2'
+    y_names = 'y1', 'y2'
+
+    def forward(self):
+        self.z = self.x1 * self.x1
+        self.y1 = self.z + self.x1 * self.x2 + self.x2
+        self.y2 = self.z + self.y1
+
+    def expected_grad(self):
+        dz_dx = 2 * self.x1
+        dy1_dx = self.gy1 + self.gy2
+        return [dy1_dx * (dz_dx + self.x2) + self.gy2 * dz_dx,
+                dy1_dx * (self.x1 + 1)]
+
+    def expected_double_grad(self):
+        dy1_dx = self.gy1 + self.gy2
+        return [3 * dy1_dx + 2 * self.gy2, dy1_dx]
 
 
 testing.run_module(__name__, __file__)
