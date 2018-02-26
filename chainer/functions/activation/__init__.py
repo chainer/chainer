@@ -1,0 +1,17 @@
+from chainer.functions.activation import clipped_relu  # NOQA
+from chainer.functions.activation import crelu  # NOQA
+from chainer.functions.activation import elu  # NOQA
+from chainer.functions.activation import hard_sigmoid  # NOQA
+from chainer.functions.activation import leaky_relu  # NOQA
+from chainer.functions.activation import log_softmax  # NOQA
+from chainer.functions.activation import lstm  # NOQA
+from chainer.functions.activation import maxout  # NOQA
+from chainer.functions.activation import prelu  # NOQA
+from chainer.functions.activation import relu  # NOQA
+from chainer.functions.activation import selu  # NOQA
+from chainer.functions.activation import sigmoid  # NOQA
+from chainer.functions.activation import slstm  # NOQA
+from chainer.functions.activation import softmax  # NOQA
+from chainer.functions.activation import softplus  # NOQA
+from chainer.functions.activation import tanh  # NOQA
+from chainer.functions.activation import tree_lstm  # NOQA

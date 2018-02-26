@@ -1,4 +1,4 @@
-from chainer.links.caffe import caffe_function
+from chainer.links.caffe import protobuf3  # NOQA
 
-
-CaffeFunction = caffe_function.CaffeFunction
+# import classes and functions
+from chainer.links.caffe.caffe_function import CaffeFunction  # NOQA

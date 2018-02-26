@@ -7,26 +7,20 @@ import numpy
 
 from chainer import _version
 from chainer import backends  # NOQA
-from chainer import configuration  # NOQA
+from chainer import computational_graph  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
-from chainer import function  # NOQA
-from chainer import function_hook  # NOQA
 from chainer import function_hooks  # NOQA
-from chainer import function_node  # NOQA
 from chainer import functions  # NOQA
-from chainer import initializer  # NOQA
+from chainer import gradient_check  # NOQA
 from chainer import initializers  # NOQA
 from chainer import iterators  # NOQA
-from chainer import link  # NOQA
 from chainer import links  # NOQA
-from chainer import optimizer  # NOQA
 from chainer import optimizers  # NOQA
-from chainer import reporter  # NOQA
-from chainer import serializer  # NOQA
 from chainer import serializers  # NOQA
+from chainer import testing  # NOQA
 from chainer import training  # NOQA
-from chainer import variable  # NOQA
+from chainer import utils  # NOQA
 
 
 # import class and function

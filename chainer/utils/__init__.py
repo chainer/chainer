@@ -1,9 +1,13 @@
 import numpy
 
-from chainer.utils import walker_alias  # NOQA
+from chainer.utils import argument  # NOQA
+from chainer.utils import array  # NOQA
+from chainer.utils import conv_nd  # NOQA
+from chainer.utils import conv_nd_kernel  # NOQA
+from chainer.utils import imgproc  # NOQA
+from chainer.utils import type_check  # NOQA
 
-
-# import class and function
+# import classes and functions
 from chainer.utils.conv import get_conv_outsize  # NOQA
 from chainer.utils.conv import get_deconv_outsize  # NOQA
 from chainer.utils.experimental import experimental  # NOQA

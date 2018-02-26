@@ -1,0 +1,17 @@
+from chainer.functions.loss import absolute_error  # NOQA
+from chainer.functions.loss import black_out  # NOQA
+from chainer.functions.loss import contrastive  # NOQA
+from chainer.functions.loss import crf1d  # NOQA
+from chainer.functions.loss import cross_covariance  # NOQA
+from chainer.functions.loss import ctc  # NOQA
+from chainer.functions.loss import decov  # NOQA
+from chainer.functions.loss import hinge  # NOQA
+from chainer.functions.loss import huber_loss  # NOQA
+from chainer.functions.loss import mean_absolute_error  # NOQA
+from chainer.functions.loss import mean_squared_error  # NOQA
+from chainer.functions.loss import negative_sampling  # NOQA
+from chainer.functions.loss import sigmoid_cross_entropy  # NOQA
+from chainer.functions.loss import softmax_cross_entropy  # NOQA
+from chainer.functions.loss import squared_error  # NOQA
+from chainer.functions.loss import triplet  # NOQA
+from chainer.functions.loss import vae  # NOQA
