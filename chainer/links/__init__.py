@@ -1,5 +1,14 @@
 """Collection of :class:`~chainer.Link` implementations."""
 
+from chainer.links import activation  # NOQA
+from chainer.links import caffe  # NOQA
+from chainer.links import connection  # NOQA
+from chainer.links import loss  # NOQA
+from chainer.links import model  # NOQA
+from chainer.links import normalization  # NOQA
+from chainer.links import theano  # NOQA
+
+# import classes and functions
 from chainer.links.activation.maxout import Maxout  # NOQA
 from chainer.links.activation.prelu import PReLU  # NOQA
 from chainer.links.activation.simplified_dropconnect import SimplifiedDropconnect  # NOQA

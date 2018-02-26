@@ -4,6 +4,19 @@ Functions are either implemented as :class:`~chainer.Function`\\ s or
 :class:`~chainer.FunctionNode`\\ s.
 """
 
+from chainer.functions import activation  # NOQA
+from chainer.functions import array  # NOQA
+from chainer.functions import connection  # NOQA
+from chainer.functions import evaluation  # NOQA
+from chainer.functions import loss  # NOQA
+from chainer.functions import math  # NOQA
+from chainer.functions import noise  # NOQA
+from chainer.functions import normalization  # NOQA
+from chainer.functions import pooling  # NOQA
+from chainer.functions import theano  # NOQA
+from chainer.functions import util  # NOQA
+
+# import classes and functions
 from chainer.functions.activation.clipped_relu import clipped_relu  # NOQA
 from chainer.functions.activation.clipped_relu import ClippedReLU  # NOQA
 from chainer.functions.activation.crelu import crelu  # NOQA
