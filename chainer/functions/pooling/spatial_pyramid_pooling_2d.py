@@ -83,7 +83,7 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class=None,
             warnings.warn('pooling_class argument is deprecated. Please use '
                           'the pooling argument.', DeprecationWarning)
 
-        if not (pooling_class is None) ^ (pooling is None):
+        if (pooling_class is None) == (pooling is None):
             raise ValueError('Specify the pooling operation either using the '
                              'pooling_class or the pooling argument.')
 
