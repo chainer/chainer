@@ -40,7 +40,7 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class=None,
             ``(batchsize, # of channels, height, width)``.
         pyramid_height (int): Number of pyramid levels
         pooling_class (MaxPooling2D or AveragePooling2D):
-            *(deprecated since v4.0.0rc1)* Only MaxPooling2D is supported.
+            *(deprecated since v4.0.0)* Only MaxPooling2D is supported.
             Please use the ``pooling`` argument instead since this argument is
             deprecated.
         pooling (str):
