@@ -37,6 +37,7 @@ void NativeDevice::Fill(Array& out, Scalar value) {
 }
 
 void NativeDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
+    CheckDevicesCompatible({lhs, rhs, out});
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
@@ -52,6 +53,7 @@ void NativeDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
 }
 
 void NativeDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
+    CheckDevicesCompatible({lhs, rhs, out});
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 

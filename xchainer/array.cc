@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 
@@ -265,6 +266,32 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 }
 
 }  // namespace
+
+void CheckDevicesCompatible(const std::vector<std::reference_wrapper<const Array>>& arrays) {
+    if (arrays.empty()) {
+        throw DeviceError("Cannot check device compatibility between Arrays in an empty vector. Supply at least one element");
+    }
+
+    if (arrays.size() > 1) {
+        if (std::any_of(arrays.begin() + 1, arrays.end(), [&arrays](const Array& array) {
+                const Device& device = array.device();
+                const Device& other = arrays[0].get().device();
+                return &device.context() != &other.context() || &device.backend() != &other.backend() || device.index() != other.index();
+            })) {
+            std::ostringstream os;
+            os << "Incompatible devices for operation\n";
+            os << "Devices: (";
+            for (size_t i = 0; i < arrays.size(); ++i) {
+                if (i > 0) {
+                    os << ", ";
+                }
+                os << arrays[i].get().device().name();
+            }
+            os << ")\n";
+            throw DeviceError(os.str());
+        }
+    }
+}
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent) {
     DebugDumpComputationalGraph(os, *internal::GetArrayNode(array, graph_id), indent);

@@ -66,6 +66,7 @@ void CudaDevice::Fill(Array& out, Scalar value) {
 
 // TODO(sonots): support stream
 void CudaDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
+    CheckDevicesCompatible({lhs, rhs, out});
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
@@ -83,6 +84,7 @@ void CudaDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
 
 // TODO(sonots): support stream
 void CudaDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
+    CheckDevicesCompatible({lhs, rhs, out});
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MulKernel<T>).block_size;

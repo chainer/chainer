@@ -224,5 +224,63 @@ TEST_F(ArrayDeviceTest, OnesLike) {
     });
 }
 
+TEST_F(ArrayDeviceTest, CheckDevicesCompatibleInvalidArguments) { EXPECT_THROW(CheckDevicesCompatible({}), DeviceError); }
+
+TEST_F(ArrayDeviceTest, CheckDevicesCompatibleMultipleDevices) {
+    Shape shape({2, 3});
+    Dtype dtype = Dtype::kFloat32;
+
+    Context& ctx = GetDefaultContext();
+    NativeBackend native_backend{ctx};
+    NativeDevice cpu_device_0{native_backend, 0};
+    NativeDevice cpu_device_1{native_backend, 1};
+    auto scope = std::make_unique<DeviceScope>(cpu_device_0);
+
+    Array a = Array::Empty(shape, dtype, cpu_device_0);
+    Array b = Array::Empty(shape, dtype, cpu_device_0);
+    Array c = Array::Empty(shape, dtype, cpu_device_1);
+
+    EXPECT_NO_THROW(CheckDevicesCompatible({a}));
+    EXPECT_NO_THROW(CheckDevicesCompatible({a, b}));
+    EXPECT_THROW(CheckDevicesCompatible({a, c}), DeviceError);
+}
+
+TEST_F(ArrayDeviceTest, CheckDevicesCompatibleBasicArithmetics) {
+    Shape shape({2, 3});
+    Dtype dtype = Dtype::kFloat32;
+
+    Context& ctx = GetDefaultContext();
+    NativeBackend native_backend{ctx};
+    NativeDevice cpu_device_0{native_backend, 0};
+    NativeDevice cpu_device_1{native_backend, 1};
+    auto scope = std::make_unique<DeviceScope>(cpu_device_0);
+
+    Array a = Array::Empty(shape, dtype, cpu_device_0);
+    Array b = Array::Empty(shape, dtype, cpu_device_0);
+    Array c = Array::Empty(shape, dtype, cpu_device_1);
+
+    {
+        // Asserts no throw, and similarly for the following three cases
+        Array d = a + b;
+        EXPECT_EQ(&cpu_device_0, &d.device());
+    }
+    {
+        Array d = a * b;
+        EXPECT_EQ(&cpu_device_0, &d.device());
+    }
+    {
+        a += b;
+        EXPECT_EQ(&cpu_device_0, &a.device());
+    }
+    {
+        a *= b;
+        EXPECT_EQ(&cpu_device_0, &a.device());
+    }
+    { EXPECT_THROW(a + c, DeviceError); }
+    { EXPECT_THROW(a += c, DeviceError); }
+    { EXPECT_THROW(a * c, DeviceError); }
+    { EXPECT_THROW(a *= c, DeviceError); }
+}
+
 }  // namespace
 }  // namespace xchainer

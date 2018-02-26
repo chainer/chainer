@@ -167,6 +167,9 @@ private:
     std::shared_ptr<internal::ArrayBody> body_;
 };
 
+// Throws an exception if the devices of the given Arrays are incompatible, else does nothing
+void CheckDevicesCompatible(const std::vector<std::reference_wrapper<const Array>>& arrays);
+
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent = 0);
 
 }  // namespace xchainer
