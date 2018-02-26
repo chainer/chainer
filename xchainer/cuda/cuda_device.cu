@@ -3,6 +3,7 @@
 #include "xchainer/array.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/dtype.h"
+#include "xchainer/memory.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
@@ -38,9 +39,12 @@ void CudaDevice::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize)
 }
 
 std::shared_ptr<void> CudaDevice::FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
-    (void)src_ptr;   // unused
-    (void)bytesize;  // unused
-    return nullptr;
+    if (internal::IsPointerCudaMemory(src_ptr.get())) {
+        throw XchainerError("src_ptr must reside in the main RAM");
+    }
+    std::shared_ptr<void> dst_ptr = Allocate(bytesize);
+    cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
+    return dst_ptr;
 }
 
 void CudaDevice::Fill(Array& out, Scalar value) {

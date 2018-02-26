@@ -8,6 +8,15 @@ namespace xchainer {
 namespace cuda {
 namespace {
 
+template <typename T>
+void ExpectDataEqual(const std::shared_ptr<void>& expected, const std::shared_ptr<void>& actual, size_t size) {
+    auto expected_raw_ptr = static_cast<const T*>(expected.get());
+    auto actual_raw_ptr = static_cast<const T*>(actual.get());
+    for (size_t i = 0; i < size; i++) {
+        EXPECT_EQ(expected_raw_ptr[i], actual_raw_ptr[i]);
+    }
+}
+
 TEST(CudaDeviceTest, Ctor) {
     CudaBackend backend;
 
@@ -31,6 +40,27 @@ TEST(CudaDeviceTest, Allocate) {
 
     cudaPointerAttributes attr = {};
     CheckError(cudaPointerGetAttributes(&attr, ptr.get()));
+    EXPECT_TRUE(attr.isManaged);
+    EXPECT_EQ(device.index(), attr.device);
+}
+
+TEST(CudaDeviceTest, FromBuffer) {
+    size_t size = 3;
+    size_t bytesize = size * sizeof(float);
+    float raw_data[] = {0, 1, 2};
+    std::shared_ptr<void> src(raw_data, [](float* ptr) {
+        (void)ptr;  // unused
+    });
+
+    CudaBackend backend;
+    CudaDevice device{backend, 0};
+
+    std::shared_ptr<void> dst = device.FromBuffer(src, bytesize);
+    ExpectDataEqual<float>(src, dst, size);
+    EXPECT_NE(src.get(), dst.get());
+
+    cudaPointerAttributes attr = {};
+    CheckError(cudaPointerGetAttributes(&attr, dst.get()));
     EXPECT_TRUE(attr.isManaged);
     EXPECT_EQ(device.index(), attr.device);
 }
