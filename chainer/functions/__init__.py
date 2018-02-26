@@ -327,4 +327,4 @@ from chainer.functions.util.forget import forget  # NOQA
 from chainer.functions.util.forget import Forget  # NOQA
 
 # Aliases
-mean = average
+from chainer.functions.math.average import average as mean  # NOQA
