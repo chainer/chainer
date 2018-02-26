@@ -27,7 +27,7 @@ TEST(CudaDeviceTest, Ctor) {
 TEST(CudaDeviceTest, Synchronize) {
     CudaBackend backend;
     CudaDevice device{backend, 0};
-    device.Synchronize();
+    EXPECT_NO_THROW(device.Synchronize());
 }
 
 }  // namespace
