@@ -401,7 +401,8 @@ class SparseMatMulGradSP(function_node.FunctionNode):
         type_check.expect(
             a_type.dtype.kind == 'f',
             b_type.dtype.kind == 'f',
-            a_type.ndim == 2 or 3,
+            a_type.ndim >= 2,
+            a_type.ndim <= 3,
             a_type.ndim == b_type.ndim,
         )
         a_ndim = type_check.eval(a_type.ndim)
