@@ -558,12 +558,10 @@ Assign a Parameter object directly to an attribute within a \
         for name in self._persistent:
             d[name] = serializer(name, d[name])
 
-    @property
-    def size(self):
+    def count_params(self):
         """Count the total size of parameters.
 
-        If the link containts uninitialized parameters, this raises a warning
-        message that says which parameter has not been initialized.
+        If the link containts uninitialized parameters, this raises warnings.
 
         Returns:
             The total size of parameters (int)

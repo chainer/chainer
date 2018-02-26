@@ -411,7 +411,7 @@ class TestLink(unittest.TestCase):
     @unittest.skipUnless(
         six.PY3, 'Python2.7 has a bug in catch_warnings, so this test is '
                  'skipped for Python2.7')
-    def test_size(self):
+    def test_count_params(self):
         self.assertEqual(self.link.size, 8)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
@@ -723,6 +723,15 @@ class TestChain(unittest.TestCase):
         mocks['l1'].assert_called_with('x', self.l1.x.data)
         mocks['l2'].assert_called_with('x', self.l2.x.data)
 
+    @unittest.skipUnless(
+        six.PY3, 'Python2.7 has a bug in catch_warnings, so this test is '
+                 'skipped for Python2.7')
+    def test_count_params(self):
+        self.assertEqual(self.c1.count_params(), 8)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.c2.count_params()
+        self.assertEqual(len(w), 1)
 
 class TestChainList(unittest.TestCase):
 
@@ -1023,5 +1032,14 @@ class TestChainList(unittest.TestCase):
         mocks['0'].assert_called_with('y', l1.y.data)
         mocks['1'].assert_called_with('x', l2.x.data)
 
+    @unittest.skipUnless(
+        six.PY3, 'Python2.7 has a bug in catch_warnings, so this test is '
+                 'skipped for Python2.7')
+    def test_count_params(self):
+        self.assertEqual(self.c1.count_params(), 8)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.c2.count_params()
+        self.assertEqual(len(w), 1)
 
 testing.run_module(__name__, __file__)
