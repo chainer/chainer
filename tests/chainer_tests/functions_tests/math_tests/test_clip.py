@@ -35,13 +35,7 @@ class TestClip(unittest.TestCase):
         y = functions.clip(x, self.x_min, self.x_max)
         self.assertEqual(y.data.dtype, self.dtype)
 
-        y_expect = self.x.copy()
-        for i in numpy.ndindex(self.x.shape):
-            if self.x[i] < self.x_min:
-                y_expect[i] = self.x_min
-            elif self.x[i] > self.x_max:
-                y_expect[i] = self.x_max
-
+        y_expect = self.x.clip(self.x_min, self.x_max)
         testing.assert_allclose(y_expect, y.data)
 
     def test_forward_cpu(self):

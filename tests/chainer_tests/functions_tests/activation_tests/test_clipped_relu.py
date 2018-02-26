@@ -50,6 +50,14 @@ class TestClippedReLU(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
+    def test_forward_ClippedReLU(self):
+        x = chainer.Variable(self.x)
+        with testing.assert_warns(DeprecationWarning):
+            y = functions.ClippedReLU(self.z).apply((x,))[0]
+        self.assertEqual(y.data.dtype, self.dtype)
+        y_expect = self.x.clip(0, self.z)
+        testing.assert_allclose(y_expect, y.data)
+
     def check_backward(self, x_data, y_grad):
         def f(x):
             return functions.clipped_relu(x, self.z)
