@@ -57,6 +57,24 @@ class TestFFT(unittest.TestCase):
             cuda.to_gpu(self.rx), cuda.to_gpu(self.ix),
             cuda.to_gpu(self.rg), cuda.to_gpu(self.ig))
 
+    def test_backward_real_cpu(self):
+        self.check_backward(self.rx, self.ix, self.rg, None)
+
+    def test_backward_imag_cpu(self):
+        self.check_backward(self.rx, self.ix, None, self.ig)
+
+    @attr.gpu
+    def test_backward_real_gpu(self):
+        self.check_backward(
+            cuda.to_gpu(self.rx), cuda.to_gpu(self.ix),
+            cuda.to_gpu(self.rg), None)
+
+    @attr.gpu
+    def test_backward_imag_gpu(self):
+        self.check_backward(
+            cuda.to_gpu(self.rx), cuda.to_gpu(self.ix),
+            None, cuda.to_gpu(self.ig))
+
     def check_double_backward(self, rx, ix, rg, ig, grx, gix):
         def f(rx, ix):
             ry, iy = chainer.functions.fft((rx, ix))

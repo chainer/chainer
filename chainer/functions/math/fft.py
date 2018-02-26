@@ -31,6 +31,11 @@ class FFT(function_node.FunctionNode):
 
     def backward(self, inputs, grads):
         gr, gi = grads
+        xp = cuda.get_array_module(*grads)
+        if gr is None:
+            gr = xp.zeros_like(gi.data)
+        if gi is None:
+            gi = xp.zeros_like(gr.data)
         gxi, gxr = FFT(self._method).apply((gi, gr))
         return gxr, gxi
 
