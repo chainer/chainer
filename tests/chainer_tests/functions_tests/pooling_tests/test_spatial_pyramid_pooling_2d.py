@@ -176,19 +176,29 @@ class TestInvalidArguments(unittest.TestCase):
         self.x = numpy.random.randn(5, 3, 5, 5)
         self.v = chainer.Variable(self.x.astype(numpy.int32))
 
-    def check_ambiguous_pooling(self):
+    def check_ambiguous_poolings(self):
+        with self.assertRaises(ValueError):
+            functions.spatial_pyramid_pooling_2d(self.v, 3)
+
         with testing.assert_warns(DeprecationWarning), \
                 self.assertRaises(ValueError):
             functions.spatial_pyramid_pooling_2d(
                 self.v, 3, pooling_class=functions.MaxPooling2D, pooling='max')
 
-    def test_ambiguous_pooling(self):
-        self.check_ambiguous_pooling()
+    def check_invalid_poolings(self):
+        with self.assertRaises(ValueError):
+            functions.spatial_pyramid_pooling_2d(self.v, 3, pooling='avg')
 
-    @attr.gpu
-    def test_ambiguous_pooling_gpu(self):
-        self.v.to_gpu()
-        self.check_ambiguous_pooling()
+        with testing.assert_warns(DeprecationWarning), \
+                self.assertRaises(ValueError):
+            functions.spatial_pyramid_pooling_2d(
+                self.v, 3, pooling_class=functions.AveragePooling2D)
+
+    def test_ambiguous_pooling(self):
+        self.check_ambiguous_poolings()
+
+    def test_invalid_pooling(self):
+        self.check_invalid_poolings()
 
 
 @testing.parameterize(*testing.product({

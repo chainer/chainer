@@ -92,7 +92,8 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class=None,
             pooler = chainer.functions.MaxPooling2D(
                 ksize=ksize, stride=None, pad=pad, cover_all=True)
         else:
-            raise NotImplementedError()
+            pooler = pooling if pooling is not None else pooling_class
+            raise ValueError('Unsupported pooling operation: ', pooler)
 
         y_var = pooler.apply((x,))[0]
         n, c, h, w = y_var.shape
