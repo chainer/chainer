@@ -13,5 +13,6 @@ from chainer.functions.activation import sigmoid  # NOQA
 from chainer.functions.activation import slstm  # NOQA
 from chainer.functions.activation import softmax  # NOQA
 from chainer.functions.activation import softplus  # NOQA
+from chainer.functions.activation import swish  # NOQA
 from chainer.functions.activation import tanh  # NOQA
 from chainer.functions.activation import tree_lstm  # NOQA
