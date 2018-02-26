@@ -170,6 +170,27 @@ class TestInvalidDtype(unittest.TestCase):
             self.check_invalid_dtype()
 
 
+class TestInvalidArguments(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.randn(5, 3, 5, 5)
+        self.v = chainer.Variable(self.x.astype(numpy.int32))
+
+    def check_ambiguous_pooling(self):
+        with testing.assert_warns(DeprecationWarning), \
+                self.assertRaises(ValueError):
+            functions.spatial_pyramid_pooling_2d(
+                self.v, 3, pooling_class=functions.MaxPooling2D, pooling='max')
+
+    def test_ambiguous_pooling(self):
+        self.check_ambiguous_pooling()
+
+    @attr.gpu
+    def test_ambiguous_pooling_gpu(self):
+        self.v.to_gpu()
+        self.check_ambiguous_pooling()
+
+
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
