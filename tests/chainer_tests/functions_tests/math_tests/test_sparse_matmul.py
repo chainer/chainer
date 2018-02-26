@@ -10,6 +10,12 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.utils import type_check
 
+_scipy_available = True
+try:
+    from scipy import sparse  # NOQA
+except ImportError:
+    _scipy_available = False
+
 
 def _setup_tensor(_min, _max, shape, dtype, threshold=None):
     y = numpy.random.uniform(_min, _max, shape).astype(dtype)
@@ -83,6 +89,8 @@ class TestSparseMatMul(unittest.TestCase):
         testing.assert_allclose(self.forward_answer, c.data, atol, rtol)
 
     def test_SPDN_sparse_matmul_forward_cpu(self):
+        if not _scipy_available:
+            return
         if self.a_dtype == numpy.float16 or self.b_dtype == numpy.float16:
             self.check_SPDN_forward(self.a, self.b, atol=1e-3, rtol=1e-3)
         else:
@@ -110,6 +118,8 @@ class TestSparseMatMul(unittest.TestCase):
             dtype=numpy.float32)
 
     def test_SPDN_sparse_matmul_backward_cpu(self):
+        if not _scipy_available:
+            return
         self.check_SPDN_backward(
             self.a, self.b, self.gc, atol=1e-2, rtol=1e-2)
 
@@ -135,6 +145,8 @@ class TestSparseMatMul(unittest.TestCase):
             atol=atol, rtol=rtol, dtype=numpy.float32)
 
     def test_SPDN_sparse_matmul_double_backward_cpu(self):
+        if not _scipy_available:
+            return
         self.check_SPDN_double_backward(
             self.a, self.b, self.gc, self.gga, self.ggb,
             atol=1e-2, rtol=1e-2)
@@ -156,6 +168,8 @@ class TestSparseMatMul(unittest.TestCase):
         testing.assert_allclose(self.forward_answer, c.data, atol, rtol)
 
     def test_DNSP_sparse_matmul_forward_cpu(self):
+        if not _scipy_available:
+            return
         if self.a_dtype == numpy.float16 or self.b_dtype == numpy.float16:
             self.check_DNSP_forward(self.a, self.b, atol=1e-3, rtol=1e-3)
         else:
@@ -183,6 +197,8 @@ class TestSparseMatMul(unittest.TestCase):
             dtype=numpy.float32)
 
     def test_DNSP_tensordot_backward_cpu(self):
+        if not _scipy_available:
+            return
         self.check_DNSP_backward(
             self.a, self.b, self.gc, atol=1e-2, rtol=1e-2)
 
@@ -208,6 +224,8 @@ class TestSparseMatMul(unittest.TestCase):
             atol=atol, rtol=rtol, dtype=numpy.float32)
 
     def test_DNSP_sparse_matmul_double_backward_cpu(self):
+        if not _scipy_available:
+            return
         self.check_DNSP_double_backward(
             self.a, self.b, self.gc, self.gga, self.ggb,
             atol=1e-2, rtol=1e-2)
