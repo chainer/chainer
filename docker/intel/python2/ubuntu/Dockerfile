@@ -49,4 +49,4 @@ RUN pip install --default-timeout=10000 wheel \
     filelock \
     distribute
 
-RUN pip3 install chainer==4.0.0b4
+RUN pip install chainer==4.0.0b4
