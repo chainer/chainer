@@ -956,7 +956,7 @@ Actual: {0}'''.format(type(data))
         if self.data.size == 1 and self._grad_var is None:
             if self.data.ndim != 0:
                 warnings.warn(
-                    'Treating as a scalar a variable with only one element'
+                    'Treating a scalar as a variable with only one element'
                     ' in Variable.backward is deprecated. A scalar variable'
                     ' must be a 0-dimensional array. Apply'
                     ' chainer.functions.squeeze to obtain a scalar variable.'
