@@ -8,7 +8,7 @@ import progressbar
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import training
@@ -255,7 +255,7 @@ def main():
 
     model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit)
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
+        chainer.backends.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
 
     optimizer = chainer.optimizers.Adam()

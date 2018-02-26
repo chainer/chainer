@@ -1,5 +1,5 @@
-Standard Function implementations
-=================================
+Functions
+=========
 
 .. module:: chainer.functions
 
@@ -44,6 +44,7 @@ Activation functions
    chainer.functions.slstm
    chainer.functions.softmax
    chainer.functions.softplus
+   chainer.functions.swish
    chainer.functions.tanh
    chainer.functions.tree_lstm
 
@@ -113,6 +114,7 @@ Neural network connections
    chainer.functions.n_step_gru
    chainer.functions.n_step_lstm
    chainer.functions.n_step_rnn
+   chainer.functions.shift
 
 
 Evaluation functions
@@ -275,3 +277,48 @@ Utility functions
    :nosignatures:
 
    chainer.functions.forget
+
+Function base
+-------------
+
+.. module:: chainer
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Function
+   chainer.FunctionAdapter
+   chainer.FunctionNode
+   chainer.force_backprop_mode
+   chainer.no_backprop_mode
+   chainer.grad
+
+Function hooks
+--------------
+
+Chainer provides a function-hook mechanism that enriches
+the behavior of forward and backward propagation of :class:`~chainer.Function`.
+
+Base class
+----------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.FunctionHook
+
+.. module:: chainer.function_hooks
+
+Concrete function hooks
+-----------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.function_hooks.CUDAProfileHook
+   chainer.function_hooks.CupyMemoryProfileHook
+   chainer.function_hooks.PrintHook
+   chainer.function_hooks.TimerHook

@@ -31,6 +31,8 @@ from chainer.functions.activation.softmax import softmax  # NOQA
 from chainer.functions.activation.softmax import Softmax  # NOQA
 from chainer.functions.activation.softplus import softplus  # NOQA
 from chainer.functions.activation.softplus import Softplus  # NOQA
+from chainer.functions.activation.swish import swish  # NOQA
+from chainer.functions.activation.swish import Swish  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
 from chainer.functions.activation.tanh import Tanh  # NOQA
 from chainer.functions.activation.tree_lstm import tree_lstm  # NOQA

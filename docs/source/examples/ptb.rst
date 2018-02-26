@@ -1,5 +1,5 @@
-Write an RNN Language Model
-****************************
+RNN Language Models
+*******************
 
 .. currentmodule:: chainer
 

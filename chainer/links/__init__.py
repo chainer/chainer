@@ -3,6 +3,7 @@
 from chainer.links.activation.maxout import Maxout  # NOQA
 from chainer.links.activation.prelu import PReLU  # NOQA
 from chainer.links.activation.simplified_dropconnect import SimplifiedDropconnect  # NOQA
+from chainer.links.activation.swish import Swish  # NOQA
 from chainer.links.connection.bias import Bias  # NOQA
 from chainer.links.connection.bilinear import Bilinear  # NOQA
 from chainer.links.connection.convolution_2d import Convolution2D  # NOQA

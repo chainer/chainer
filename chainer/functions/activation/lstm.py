@@ -187,6 +187,14 @@ class LSTMGrad(function.Function):
 
         c_prev, x, c, gc, gh = inputs
         ggc_prev, ggx = grads
+        batch = len(x)
+
+        if gc is None:
+            gc = xp.zeros_like(c)
+        if gh is None:
+            gh = xp.zeros_like(c[:batch])
+        if ggc_prev is None:
+            ggc_prev = xp.zeros_like(c_prev)
 
         gc_prev = xp.empty_like(c_prev)
         gx = xp.empty_like(x)
@@ -194,7 +202,6 @@ class LSTMGrad(function.Function):
         ggc = xp.empty_like(ggc_prev)
         ggh = xp.empty_like(gh)
 
-        batch = len(x)
         gc_prev[batch:] = 0
         gc_next[batch:] = 0
         ggc[batch:] = ggc_prev[batch:]

@@ -6,7 +6,7 @@ import warnings
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
 

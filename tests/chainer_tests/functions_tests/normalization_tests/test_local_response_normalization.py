@@ -3,7 +3,7 @@ import unittest
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing

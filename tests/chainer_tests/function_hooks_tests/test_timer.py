@@ -5,7 +5,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_hooks
 from chainer import functions
 from chainer.functions.math import basic_math

@@ -64,9 +64,16 @@ class TestVariable(unittest.TestCase):
         a = self.x
         if gpu:
             a = cuda.to_gpu(a)
+            xp = cuda.cupy
+        else:
+            xp = np
         x = chainer.Variable(a)
-        self.assertIs(x.data, a)
-        self.assertIs(x.array, a)
+        if isinstance(self.x, np.ndarray):
+            self.assertIs(x.data, a)
+            self.assertIs(x.array, a)
+        self.assertIsInstance(x.data, xp.ndarray)
+        self.assertIsInstance(x.array, xp.ndarray)
+        self.assertIs(x.data, x.array)
         self.assertEqual(x.shape, self.x.shape)
         self.assertEqual(x.ndim, self.x.ndim)
         self.assertEqual(x.size, self.x.size)
@@ -322,7 +329,7 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(np.empty((3,), dtype=np.float32))
         a.grad = np.ndarray((3,), dtype=np.float32)
 
-    def test_grad_type_check_type(self):
+    def test_grad_type_check_pass_type(self):
         a = chainer.Variable(np.empty((), dtype=np.float32))
         with self.assertRaises(TypeError):
             a.grad = np.float32()
@@ -1549,6 +1556,21 @@ class TestVariableDoubleBackward(unittest.TestCase):
         y.backward(enable_double_backprop=True)
         with self.assertRaises(RuntimeError):
             x.grad_var.backward()
+
+    def test_grad_raise_double_backprop(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        y = IdentityFunction()(x)
+        y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            chainer.grad([x.grad_var], [y.grad_var])
+
+    def test_grad_raise_double_backprop_2(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        z = F.identity(x)  # new style
+        y = IdentityFunction()(z)  # old style
+        y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            chainer.grad([x.grad_var], [y.grad_var])
 
 
 class TestAsVariable(unittest.TestCase):
