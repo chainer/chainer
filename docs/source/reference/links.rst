@@ -163,3 +163,4 @@ Link and Chain base classes
    chainer.Link
    chainer.Chain
    chainer.ChainList
+   chainer.Sequential
