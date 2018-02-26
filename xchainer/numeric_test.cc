@@ -1,29 +1,26 @@
 #include "xchainer/numeric.h"
 
-#include <gtest/gtest.h>
-
 #include <memory>
 #include <vector>
 
+#include <gtest/gtest.h>
+#include <nonstd/optional.hpp>
+
 #include "xchainer/array.h"
+#include "xchainer/context.h"
 #include "xchainer/error.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
+#include "xchainer/testing/device_session.h"
 
 namespace xchainer {
 
 class NumericTest : public ::testing::Test {
 protected:
-    virtual void SetUp() {
-        backend_ = std::make_unique<NativeBackend>();
-        device_scope_ = std::make_unique<DeviceScope>(backend_.get());
-    }
+    void SetUp() override { device_session_.emplace(DeviceId{NativeBackend::kDefaultName, 0}); }
 
-    virtual void TearDown() {
-        device_scope_.reset();
-        backend_.reset();
-    }
+    void TearDown() override { device_session_.reset(); }
 
 public:
     template <typename T>
@@ -55,8 +52,7 @@ public:
     }
 
 private:
-    std::unique_ptr<Backend> backend_;
-    std::unique_ptr<DeviceScope> device_scope_;
+    nonstd::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_F(NumericTest, AllClose) {

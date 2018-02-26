@@ -16,16 +16,16 @@
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/device_id.h"
+#include "xchainer/device.h"
 
 namespace xchainer {
 namespace gradient_internal {
 
 void Synchronize() {
 #ifdef XCHAINER_ENABLE_CUDA
-    DeviceId device_id = GetDefaultDeviceId();
-    // TODO(sonots): Use device_id.backend->Synchronize()
-    if (device_id.backend()->GetName() == "cuda") {
+    Device& device = GetDefaultDevice();
+    // TODO(sonots): Use device.Synchronize()
+    if (device.backend().GetName() == "cuda") {
         cuda::CheckError(cudaDeviceSynchronize());
     }
 #endif  // XCHAINER_ENABLE_CUDA

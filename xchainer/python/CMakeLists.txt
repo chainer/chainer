@@ -2,7 +2,8 @@ add_library(_core.so MODULE
     core_module.cc
     array.cc
     backend.cc
-    device_id.cc
+    context.cc
+    device.cc
     dtype.cc
     error.cc
     scalar.cc

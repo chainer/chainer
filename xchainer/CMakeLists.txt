@@ -1,3 +1,4 @@
+add_subdirectory(testing)
 if(${CUDA_FOUND})
     add_subdirectory(cuda)
 endif()
@@ -12,6 +13,7 @@ install(FILES
     backend.h
     backprop.h
     constant.h
+    context.h
     device.h
     device_id.h
     dtype.h
@@ -31,6 +33,8 @@ add_library(xchainer SHARED
     array_repr.cc
     backend.cc
     backprop.cc
+    context.cc
+    device.cc
     device_id.cc
     dtype.cc
     gradient_check.cc
@@ -55,13 +59,13 @@ install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)
     set(srcs
-        array_device_id_test.cc
+        array_device_test.cc
         array_repr_test.cc
         array_test.cc
         check_backward.cc
         check_backward_test.cc
         backprop_test.cc
-        device_id_test.cc
+        device_test.cc
         dtype_test.cc
         gradient_check_test.cc
         memory_test.cc

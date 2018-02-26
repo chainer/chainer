@@ -34,9 +34,8 @@ _signed_dtypes = [
 # TODO(sonots): xchainer python main program should create default backend rather than creating at here
 @pytest.fixture(scope='session', autouse=True)
 def scope_session():
-    backend = xchainer.NativeBackend()
-    device_id = xchainer.DeviceId(backend)
-    with xchainer.device_scope(device_id):
+    device = xchainer.get_global_default_context().get_device('native', 0)
+    with xchainer.device_scope(device):
         yield
 
 

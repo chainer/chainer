@@ -14,15 +14,17 @@
 
 #include "xchainer/array.h"
 #include "xchainer/backend.h"
+#include "xchainer/context.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/device_id.h"
+#include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/memory.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
+#include "xchainer/testing/device_session.h"
 
 namespace xchainer {
 namespace {
@@ -31,20 +33,10 @@ class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>>
 protected:
     void SetUp() override {
         std::string backend_name = ::testing::get<0>(GetParam());
-        if (backend_name == "native") {
-            backend_ = std::make_unique<NativeBackend>();
-#ifdef XCHAINER_ENABLE_CUDA
-        } else if (backend_name == "cuda") {
-            backend_ = std::make_unique<cuda::CudaBackend>();
-#endif  // XCHAINER_ENABLE_CUDA
-        }
-        device_scope_ = std::make_unique<DeviceScope>(backend_.get());
+        device_session_.emplace(DeviceId{backend_name, 0});
     }
 
-    void TearDown() override {
-        device_scope_.reset();
-        backend_.reset();
-    }
+    void TearDown() override { device_session_.reset(); }
 
 public:
     template <typename T>
@@ -63,7 +55,7 @@ public:
     void ExpectEqualCopy(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
-        EXPECT_EQ(expected.device_id(), actual.device_id());
+        EXPECT_EQ(&expected.device(), &actual.device());
 
         // Deep copy, therefore assert different addresses to data
         EXPECT_NE(expected.data().get(), actual.data().get());
@@ -90,7 +82,7 @@ public:
     void ExpectEqual(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
         EXPECT_EQ(expected.shape(), actual.shape());
-        EXPECT_EQ(expected.device_id(), actual.device_id());
+        EXPECT_EQ(&expected.device(), &actual.device());
         ExpectDataEqual<T>(expected, actual);
     }
 
@@ -118,7 +110,7 @@ public:
     template <typename T>
     void ExpectDataEqual(T expected, const Array& actual) {
 #ifdef XCHAINER_ENABLE_CUDA
-        if (actual.device_id().backend()->GetName() == "cuda") {
+        if (actual.device().backend().GetName() == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
@@ -141,14 +133,14 @@ public:
     }
 
     void ExpectDataExistsOnDefaultDevice(const Array& array) {
-        DeviceId device_id = GetDefaultDeviceId();
+        Device& device = GetDefaultDevice();
 
         // Check device_id accessor
-        EXPECT_EQ(device_id, array.device_id());
+        EXPECT_EQ(&device, &array.device());
 
-        if (device_id.backend()->GetName() == "native") {
+        if (device.backend().GetName() == "native") {
             EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
-        } else if (device_id.backend()->GetName() == "cuda") {
+        } else if (device.backend().GetName() == "cuda") {
             EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
         } else {
             FAIL() << "invalid device_id";
@@ -183,10 +175,10 @@ public:
         ExpectDataExistsOnDefaultDevice(x);
 
         // TODO(sonots): Polymorphism using device_id.backend->XXX()?
-        DeviceId device_id = GetDefaultDeviceId();
-        if (device_id.backend()->GetName() == "native") {
+        Device& device = GetDefaultDevice();
+        if (device.backend().GetName() == "native") {
             EXPECT_EQ(data.get(), x.data().get());
-        } else if (device_id.backend()->GetName() == "cuda") {
+        } else if (device.backend().GetName() == "cuda") {
             EXPECT_NE(data.get(), x.data().get());
         } else {
             FAIL() << "invalid device_id";
@@ -344,8 +336,7 @@ public:
     }
 
 private:
-    std::unique_ptr<Backend> backend_;
-    std::unique_ptr<DeviceScope> device_scope_;
+    nonstd::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_P(ArrayTest, CopyCtor) {

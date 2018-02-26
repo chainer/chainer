@@ -10,6 +10,10 @@ namespace xchainer {
 
 class NativeBackend : public Backend {
 public:
+    static constexpr const char* kDefaultName = "native";
+
+    using Backend::Backend;
+
     std::string GetName() const override;
 
     int GetDeviceCount() const override;

@@ -6,7 +6,8 @@
 #include "xchainer/python/array.h"
 #include "xchainer/python/backend.h"
 #include "xchainer/python/common.h"
-#include "xchainer/python/device_id.h"
+#include "xchainer/python/context.h"
+#include "xchainer/python/device.h"
 #include "xchainer/python/dtype.h"
 #include "xchainer/python/error.h"
 #include "xchainer/python/scalar.h"
@@ -48,8 +49,9 @@ void InitXchainerModule(pybind11::module& m) {
 
 PYBIND11_MODULE(_core, m) {  // NOLINT
     xchainer::InitXchainerModule(m);
+    xchainer::InitXchainerContext(m);
     xchainer::InitXchainerBackend(m);
-    xchainer::InitXchainerDeviceId(m);
+    xchainer::InitXchainerDevice(m);
     xchainer::InitXchainerDtype(m);
     xchainer::InitXchainerError(m);
     xchainer::InitXchainerScalar(m);

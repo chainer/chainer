@@ -4,6 +4,6 @@
 
 namespace xchainer {
 
-void InitXchainerDeviceId(pybind11::module&);
+void InitXchainerContext(pybind11::module&);
 
 }  // namespace xchainer

@@ -20,7 +20,6 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
-#include "xchainer/device_id.h"
 #include "xchainer/error.h"
 #include "xchainer/memory.h"
 #include "xchainer/op_node.h"
@@ -30,11 +29,11 @@ namespace xchainer {
 namespace internal {
 
 // Private definition of ArrayBody
-ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, const DeviceId& device_id, bool is_contiguous, std::shared_ptr<void> data,
-                     int64_t offset, std::vector<std::shared_ptr<ArrayNode>> nodes)
+ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, Device& device, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+                     std::vector<std::shared_ptr<ArrayNode>> nodes)
     : shape_(shape),
       dtype_(dtype),
-      device_id_(device_id),
+      device_(device),
       is_contiguous_(is_contiguous),
       data_(std::move(data)),
       offset_(offset),
@@ -109,12 +108,12 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 }  // namespace internal
 
-Array::Array(const Shape& shape, Dtype dtype, const DeviceId& device_id, std::shared_ptr<void> data, bool is_contiguous, int64_t offset)
-    : body_(std::make_shared<internal::ArrayBody>(shape, dtype, device_id, is_contiguous, std::move(data), offset)) {}
+Array::Array(const Shape& shape, Dtype dtype, Device& device, std::shared_ptr<void> data, bool is_contiguous, int64_t offset)
+    : body_(std::make_shared<internal::ArrayBody>(shape, dtype, device, is_contiguous, std::move(data), offset)) {}
 
 Array::Array(const Array& other)
-    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.device_id(), other.is_contiguous(),
-                                                  other.body_->data_, other.offset(), other.body_->nodes_)) {}
+    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.device(), other.is_contiguous(), other.body_->data_,
+                                                  other.offset(), other.body_->nodes_)) {}
 
 const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return internal::GetArrayNode(*this, graph_id)->grad(); }
 
@@ -122,39 +121,37 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) { internal::GetMutableA
 
 void Array::ClearGrad(const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
 
-Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, const DeviceId& device_id) {
+Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
-    std::shared_ptr<void> device_id_data = internal::MemoryFromBuffer(device_id, data, bytesize);
-    return {shape, dtype, device_id, device_id_data};
+    std::shared_ptr<void> device_data = internal::MemoryFromBuffer(device, data, bytesize);
+    return {shape, dtype, device, device_data};
 }
 
-Array Array::Empty(const Shape& shape, Dtype dtype, const DeviceId& device_id) {
+Array Array::Empty(const Shape& shape, Dtype dtype, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
-    std::shared_ptr<void> data = internal::Allocate(device_id, bytesize);
-    return {shape, dtype, device_id, data};
+    std::shared_ptr<void> data = internal::Allocate(device, bytesize);
+    return {shape, dtype, device, data};
 }
 
-Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype, const DeviceId& device_id) {
-    Array array = Empty(shape, dtype, device_id);
+Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device) {
+    Array array = Empty(shape, dtype, device);
     array.Fill(scalar);
     return array;
 }
 
-Array Array::Full(const Shape& shape, Scalar scalar, const DeviceId& device_id) { return Full(shape, scalar, scalar.dtype(), device_id); }
+Array Array::Full(const Shape& shape, Scalar scalar, Device& device) { return Full(shape, scalar, scalar.dtype(), device); }
 
-Array Array::Zeros(const Shape& shape, Dtype dtype, const DeviceId& device_id) { return Full(shape, 0, dtype, device_id); }
+Array Array::Zeros(const Shape& shape, Dtype dtype, Device& device) { return Full(shape, 0, dtype, device); }
 
-Array Array::Ones(const Shape& shape, Dtype dtype, const DeviceId& device_id) { return Full(shape, 1, dtype, device_id); }
+Array Array::Ones(const Shape& shape, Dtype dtype, Device& device) { return Full(shape, 1, dtype, device); }
 
-Array Array::EmptyLike(const Array& array, const DeviceId& device_id) { return Empty(array.shape(), array.dtype(), device_id); }
+Array Array::EmptyLike(const Array& array, Device& device) { return Empty(array.shape(), array.dtype(), device); }
 
-Array Array::FullLike(const Array& array, Scalar scalar, const DeviceId& device_id) {
-    return Full(array.shape(), scalar, array.dtype(), device_id);
-}
+Array Array::FullLike(const Array& array, Scalar scalar, Device& device) { return Full(array.shape(), scalar, array.dtype(), device); }
 
-Array Array::ZerosLike(const Array& array, const DeviceId& device_id) { return Zeros(array.shape(), array.dtype(), device_id); }
+Array Array::ZerosLike(const Array& array, Device& device) { return Zeros(array.shape(), array.dtype(), device); }
 
-Array Array::OnesLike(const Array& array, const DeviceId& device_id) { return Ones(array.shape(), array.dtype(), device_id); }
+Array Array::OnesLike(const Array& array, Device& device) { return Ones(array.shape(), array.dtype(), device); }
 
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
@@ -193,7 +190,7 @@ Array Array::AsConstant(CopyKind kind) const {
             return std::move(out);
         }
         case CopyKind::kView:
-            return Array{shape(), dtype(), device_id(), body_->data_, is_contiguous(), offset()};
+            return Array{shape(), dtype(), device(), body_->data_, is_contiguous(), offset()};
         default:
             assert(false);  // should never be reached
     }
@@ -210,7 +207,7 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
             return std::move(out);
         }
         case CopyKind::kView: {
-            Array out{shape(), dtype(), device_id(), body_->data_, is_contiguous(), offset()};
+            Array out{shape(), dtype(), device(), body_->data_, is_contiguous(), offset()};
 
             // Duplicate the array nodes only when graph IDs are not found in specified graph_ids.
             for (const std::shared_ptr<ArrayNode>& node : nodes()) {
@@ -236,16 +233,16 @@ void Array::Add(const Array& rhs, Array& out) const {
     auto rhs_backward_function = lhs_backward_function;
     internal::SetUpOpNodes("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
-    DeviceId device_id = GetDefaultDeviceId();
-    // TODO(sonots): Use device_id.backend->Add()
-    if (device_id.backend()->GetName() == "native") {
+    Device& device = GetDefaultDevice();
+    // TODO(sonots): Use device.Add()
+    if (device.backend().GetName() == "native") {
         xchainer::Add(*this, rhs, out);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (device_id.backend()->GetName() == "cuda") {
+    } else if (device.backend().GetName() == "cuda") {
         xchainer::cuda::Add(*this, rhs, out);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
-        throw DeviceError("invalid device_id");
+        throw DeviceError("invalid device");
     }
 }
 
@@ -263,20 +260,20 @@ void Array::Mul(const Array& rhs, Array& out) const {
     };
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
-    DeviceId device_id = GetDefaultDeviceId();
-    // TODO(sonots): Use device_id.backend->Mul()
-    if (device_id.backend()->GetName() == "native") {
+    Device& device = GetDefaultDevice();
+    // TODO(sonots): Use device.Mul()
+    if (device.backend().GetName() == "native") {
         xchainer::Mul(*this, rhs, out);
 #ifdef XCHAINER_ENABLE_CUDA
-    } else if (device_id.backend()->GetName() == "cuda") {
+    } else if (device.backend().GetName() == "cuda") {
         xchainer::cuda::Mul(*this, rhs, out);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
-        throw DeviceError("invalid device_id");
+        throw DeviceError("invalid device");
     }
 }
 
-void Array::Fill(Scalar value) { device_id().backend()->GetDevice(device_id().index()).Fill(*this, value); }
+void Array::Fill(Scalar value) { device().Fill(*this, value); }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 

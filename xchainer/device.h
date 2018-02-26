@@ -3,11 +3,12 @@
 #include <memory>
 #include <string>
 
-#include "xchainer/array.h"
 #include "xchainer/backend.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
+
+class Array;
 
 // Device base class.
 // Note that these member functions may be called from the framework or user code.
@@ -43,11 +44,55 @@ public:
     std::string name() const { return backend_.GetName() + ":" + std::to_string(index_); }
 
     Backend& backend() const { return backend_; }
+    Context& context() const { return backend_.context(); }
     int index() const { return index_; }
 
 private:
     Backend& backend_;
     int index_;
+};
+
+namespace internal {
+
+Device* GetDefaultDeviceNoExcept() noexcept;
+
+}  // namespace internal
+
+Device& GetDefaultDevice();
+
+// Sets thread local device.
+//
+// Raises ContextError if context mismatches between given device and default context.
+void SetDefaultDevice(Device* device);
+
+// Scope object that switches the default device by RAII.
+class DeviceScope {
+public:
+    DeviceScope() : orig_(internal::GetDefaultDeviceNoExcept()), exited_(false) {}
+    explicit DeviceScope(Device& device) : DeviceScope() { SetDefaultDevice(&device); }
+
+    // TODO(hvy): Maybe unnecessary.
+    explicit DeviceScope(Backend* backend, int index = 0) : DeviceScope(backend->GetDevice(index)) {}
+
+    DeviceScope(const DeviceScope&) = delete;
+    DeviceScope& operator=(const DeviceScope&) = delete;
+    DeviceScope& operator=(DeviceScope&&) = delete;
+
+    DeviceScope(DeviceScope&& other) : orig_(other.orig_), exited_(other.exited_) { other.exited_ = true; }
+
+    ~DeviceScope() { Exit(); }
+
+    // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
+    void Exit() {
+        if (!exited_) {
+            SetDefaultDevice(orig_);
+            exited_ = true;
+        }
+    }
+
+private:
+    Device* orig_;
+    bool exited_;
 };
 
 }  // namespace xchainer

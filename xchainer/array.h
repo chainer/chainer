@@ -11,7 +11,7 @@
 
 #include "xchainer/array_repr.h"
 #include "xchainer/constant.h"
-#include "xchainer/device_id.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
@@ -37,7 +37,7 @@ namespace internal {
 // the code is made simple and we can use inline access to each member from member accessor functions of Array.
 class ArrayBody {
 public:
-    ArrayBody(const Shape& shape, Dtype dtype, const DeviceId& device_id, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+    ArrayBody(const Shape& shape, Dtype dtype, Device& device, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
               std::vector<std::shared_ptr<ArrayNode>> nodes = std::vector<std::shared_ptr<ArrayNode>>());
 
 private:
@@ -45,7 +45,7 @@ private:
 
     Shape shape_;
     Dtype dtype_;
-    DeviceId device_id_;
+    Device& device_;
     bool is_contiguous_;
     std::shared_ptr<void> data_;
     int64_t offset_;
@@ -83,21 +83,21 @@ public:
 
     explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
 
-    static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, const DeviceId& device_id = GetDefaultDeviceId());
+    static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, Device& device = GetDefaultDevice());
 
-    static Array Empty(const Shape& shape, Dtype dtype, const DeviceId& device_id = GetDefaultDeviceId());
-    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, const DeviceId& device_id = GetDefaultDeviceId());
-    static Array Full(const Shape& shape, Scalar scalar, const DeviceId& device_id = GetDefaultDeviceId());
-    static Array Zeros(const Shape& shape, Dtype dtype, const DeviceId& device_id = GetDefaultDeviceId());
-    static Array Ones(const Shape& shape, Dtype dtype, const DeviceId& device_id = GetDefaultDeviceId());
+    static Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
+    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device = GetDefaultDevice());
+    static Array Full(const Shape& shape, Scalar scalar, Device& device = GetDefaultDevice());
+    static Array Zeros(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
+    static Array Ones(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
 
     // Creates an array which has the same shape and dtype as the other array.
-    // The new array is allocated in the default device_id. The device_id of the other array
+    // The new array is allocated in the default device. The device of the other array
     // is ignored.
-    static Array EmptyLike(const Array& array, const DeviceId& device_id = GetDefaultDeviceId());
-    static Array FullLike(const Array& array, Scalar scalar, const DeviceId& device_id = GetDefaultDeviceId());
-    static Array ZerosLike(const Array& array, const DeviceId& device_id = GetDefaultDeviceId());
-    static Array OnesLike(const Array& array, const DeviceId& device_id = GetDefaultDeviceId());
+    static Array EmptyLike(const Array& array, Device& device = GetDefaultDevice());
+    static Array FullLike(const Array& array, Scalar scalar, Device& device = GetDefaultDevice());
+    static Array ZerosLike(const Array& array, Device& device = GetDefaultDevice());
+    static Array OnesLike(const Array& array, Device& device = GetDefaultDevice());
 
     // Creates a copy. It will be connected to all the graphs.
     Array Copy() const;
@@ -139,7 +139,7 @@ public:
 
     Dtype dtype() const { return body_->dtype_; }
 
-    const DeviceId& device_id() const { return body_->device_id_; }
+    Device& device() const { return body_->device_; }
 
     int8_t ndim() const { return shape().ndim(); }
 
@@ -159,8 +159,7 @@ public:
     std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; };
 
 private:
-    Array(const Shape& shape, Dtype dtype, const DeviceId& device_id, std::shared_ptr<void> data, bool is_contiguous = true,
-          int64_t offset = 0);
+    Array(const Shape& shape, Dtype dtype, Device& device, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
 
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
