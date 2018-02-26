@@ -579,9 +579,13 @@ Assign a Parameter object directly to an attribute within a \
             d[name] = serializer(name, d[name])
 
     def count_params(self):
-        """Count the total size of parameters.
+        """Counts the total number of parameters.
 
-        If the link containts uninitialized parameters, this raises warnings.
+        This method counts the total number of scalar values included in all
+        the :class:`~chainer.Parameters` held by this link and its descendants.
+
+        If the link containts uninitialized parameters, this method raises a
+        warning.
 
         Returns:
             The total size of parameters (int)
@@ -592,8 +596,9 @@ Assign a Parameter object directly to an attribute within a \
         for name, param in self.namedparams():
             if param.array is None:
                 warnings.warn(
-                    '{} has not been initialized, so the resulting size will '
-                    'not include the number of parameters in it.'.format(name))
+                    'Parameter \'{}\' has not been initialized, so the '
+                    'resulting count will not include the number of parameters'
+                    ' in it.'.format(name))
                 continue
             size += param.size
         return size
