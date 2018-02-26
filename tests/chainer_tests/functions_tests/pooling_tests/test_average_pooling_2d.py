@@ -5,7 +5,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -26,7 +26,10 @@ def _to_fcontiguous(arrays):
 @backend.inject_backend_tests(
     ['test_forward', 'test_backward', 'test_double_backward'],
     # CPU tests
-    [{'use_cuda': False}]
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
     # GPU tests
     + testing.product({
         'use_cuda': [True],

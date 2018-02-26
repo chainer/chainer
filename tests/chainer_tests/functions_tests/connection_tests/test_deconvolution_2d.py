@@ -4,7 +4,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
@@ -46,9 +46,10 @@ def _pair(x):
 @backend.inject_backend_tests(
     ['test_forward', 'test_backward', 'test_double_backward'],
     # CPU tests
-    [{
-        'use_cuda': False,
-    }]
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
     # GPU tests
     + testing.product([
         [{'use_cuda': True}],
@@ -120,9 +121,10 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         x_cpu = chainer.Variable(x)
         W_cpu = chainer.Variable(W)
         b_cpu = None if b is None else chainer.Variable(b)
-        y_cpu = F.deconvolution_2d(
-            x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            outsize=self.outsize, dilate=self.dilate, group=self.group)
+        with chainer.using_config('use_ideep', 'never'):
+            y_cpu = F.deconvolution_2d(
+                x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
+                outsize=self.outsize, dilate=self.dilate, group=self.group)
         return y_cpu,
 
     def check_forward(self, inputs, backend_config):
@@ -144,14 +146,10 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         assert y_expected.data.dtype == self.x_dtype
         assert y_actual.data.dtype == self.x_dtype
         testing.assert_allclose(
-            y_expected.data, y_actual.data.get(), **self.test_forward_options)
+            y_expected.data, y_actual.data, **self.test_forward_options)
 
     @attr.gpu
     def test_forward(self, backend_config):
-        # Forward test does not currently target CPU backend.
-        # It only tests for consistency between GPU and CPU computation.
-        if not backend_config.use_cuda:
-            return
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):

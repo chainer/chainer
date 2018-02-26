@@ -22,12 +22,22 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 import _docstring_check
+import _autosummary_check
 
 
 __version__ = pkg_resources.get_distribution('chainer').version
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
+rtd_version = os.environ.get('READTHEDOCS_VERSION')
+if rtd_version == 'latest':
+    tag = 'master'
+else:
+    tag = 'v{}'.format(__version__)
+extlinks = {
+    'blob': ('https://github.com/chainer/chainer/blob/{}/%s'.format(tag), ''),
+    'tree': ('https://github.com/chainer/chainer/tree/{}/%s'.format(tag), ''),
+}
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -45,6 +55,7 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx.ext.doctest',
+              'sphinx.ext.extlinks',
               'sphinx.ext.intersphinx',
               'sphinx.ext.mathjax',
               'sphinx.ext.napoleon',
@@ -327,7 +338,7 @@ autosummary_generate = True
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'cupy': ('https://docs-cupy.chainer.org/en/latest/', None),
 }
 
@@ -350,10 +361,16 @@ spelling_word_list_filename = 'spelling_wordlist.txt'
 
 def setup(app):
     app.connect('autodoc-process-docstring', _autodoc_process_docstring)
+    app.connect('build-finished', _build_finished)
 
 
 def _autodoc_process_docstring(app, what, name, obj, options, lines):
     _docstring_check.check(app, what, name, obj, options, lines)
+
+
+def _build_finished(app, exception):
+    if exception is None:
+        _autosummary_check.check(app, exception)
 
 
 def _import_object_from_name(module_name, fullname):
@@ -428,12 +445,6 @@ def _get_sourcefile_and_linenumber(obj):
 def linkcode_resolve(domain, info):
     if domain != 'py' or not info['module']:
         return None
-
-    rtd_version = os.environ.get('READTHEDOCS_VERSION')
-    if rtd_version == 'latest':
-        tag = 'master'
-    else:
-        tag = 'v{}'.format(__version__)
 
     # Import the object from module path
     obj = _import_object_from_name(info['module'], info['fullname'])

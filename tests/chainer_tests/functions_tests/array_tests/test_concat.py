@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
 from chainer.testing import backend
@@ -27,6 +27,20 @@ from chainer.testing import backend
         {'shape': (2, 7, 3), 'axis': -2,
          'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
                     [slice(None), slice(5, None)]]},
+        {'shape': (7, 3, 2, 2), 'axis': 0,
+         'slices': [slice(None, 2), slice(2, 5), slice(5, None)]},
+        {'shape': (2, 7, 3, 5), 'axis': 1,
+         'slices': [[slice(None), slice(None, 2), slice(None)],
+                    [slice(None), slice(2, 5), slice(None)],
+                    [slice(None), slice(5, None), slice(None)]]},
+        {'shape': (2, 7, 3, 5), 'axis': -1,
+         'slices': [[slice(None), slice(None), slice(None), slice(None, 2)],
+                    [slice(None), slice(None), slice(None), slice(2, 3)],
+                    [slice(None), slice(None), slice(None), slice(3, None)]]},
+        {'shape': (2, 7, 3, 5), 'axis': -3,
+         'slices': [[slice(None), slice(None, 2), slice(None)],
+                    [slice(None), slice(2, 5), slice(None)],
+                    [slice(None), slice(5, None), slice(None)]]},
     ],
     [
         {'dtype': numpy.float16},
@@ -37,7 +51,10 @@ from chainer.testing import backend
 @backend.inject_backend_tests(
     ['test_forward', 'test_backward'],
     # CPU tests
-    [{'use_cuda': False}]
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
     # GPU tests
     + [{'use_cuda': True}])
 class TestConcat(unittest.TestCase):

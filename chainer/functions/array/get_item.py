@@ -68,12 +68,11 @@ def get_item(x, slices):
     """Extract elements from array with specified shape, axes and offsets.
 
     Args:
-        x (~chainer.Variable): A variable to be sliced.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): A variable to be sliced.
         slices (int, slice, Ellipsis, None, integer array-like, boolean\
         array-like or tuple of them):
-            It is an integer, a slice, an ellipsis,
-            a numpy.newaxis, an integer array-like, a boolean array-like
-            or tuple of them.
+            An object to specify the selection of elements.
 
     Returns:
         A :class:`~chainer.Variable` object which contains sliced array of
@@ -93,7 +92,27 @@ def get_item(x, slices):
     .. note::
 
        See NumPy document for details of `indexing
-       <http://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_.
+       <https://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_.
+
+    .. admonition:: Example
+
+        >>> x = np.arange(12).reshape((2, 2, 3))
+        >>> x
+        array([[[ 0,  1,  2],
+                [ 3,  4,  5]],
+        <BLANKLINE>
+               [[ 6,  7,  8],
+                [ 9, 10, 11]]])
+        >>> F.get_item(x, 0)
+        variable([[0, 1, 2],
+                  [3, 4, 5]])
+        >>> F.get_item(x, (0, 0, slice(0, 2, 1)))  # equals x[0, 0, 0:2:1]
+        variable([0, 1])
+        >>> F.get_item(x, (Ellipsis, 2))  # equals x[..., 2]
+        variable([[ 2,  5],
+                  [ 8, 11]])
+        >>> F.get_item(x, (1, np.newaxis, 1, 0))  # equals x[1, None, 1, 0]
+        variable([9])
 
     """
     return GetItem(slices).apply((x,))[0]

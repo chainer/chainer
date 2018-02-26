@@ -24,7 +24,7 @@ def no_backprop_mode():
     that calling :func:`~chainer.Variable.backward` on ``y`` has no effect on
     the gradients of ``x``.
 
-    >>> x = chainer.Variable(np.array([1,], 'f'))
+    >>> x = chainer.Variable(np.array([1,], np.float32))
     >>> with chainer.no_backprop_mode():
     ...     y = x + 1
     >>> y.backward()
@@ -53,7 +53,7 @@ def force_backprop_mode():
     :func:`~chainer.Variable.backward` on ``y`` will compute and accumulate the
     gradients of the variables in the graph, in this case only ``x``.
 
-    >>> x = chainer.Variable(np.array([1,], 'f'))
+    >>> x = chainer.Variable(np.array([1,], np.float32))
     >>> with chainer.no_backprop_mode():
     ...     with chainer.force_backprop_mode():
     ...         y = x + 1

@@ -38,9 +38,9 @@ def maxout(x, pool_size, axis=1):
         combination with a Linear link.
 
         >>> in_size, out_size, pool_size = 10, 10, 10
-        >>> bias = np.arange(out_size * pool_size).astype('f')
+        >>> bias = np.arange(out_size * pool_size).astype(np.float32)
         >>> l = L.Linear(in_size, out_size * pool_size, initial_bias=bias)
-        >>> x = np.zeros((1, in_size), 'f')  # prepare data
+        >>> x = np.zeros((1, in_size), np.float32)  # prepare data
         >>> x = l(x)
         >>> y = F.maxout(x, pool_size)
         >>> x.shape
