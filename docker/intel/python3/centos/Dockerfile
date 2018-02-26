@@ -2,7 +2,6 @@ FROM centos:7
 
 USER root
 
-
 RUN yum -y install epel-release &&\
     yum upgrade -y
 
@@ -34,7 +33,6 @@ RUN yum install -y \
 
 RUN yum clean all
 
-
 RUN mkdir Downloads && \
     cd Downloads && \
     wget https://www.python.org/ftp/python/3.5.2/Python-3.5.2.tgz && \
@@ -50,7 +48,6 @@ RUN mkdir Downloads && \
 RUN export LD_LIBRARY_PATH="$HOME/.chainer/lib:$HOME/.local/lib:/usr/local/lib" && \
     export LIBRARY_PATH="$LD_LIBRARY_PATH"
 
-
 RUN wget https://nchc.dl.sourceforge.net/project/swig/swig/swig-3.0.12/swig-3.0.12.tar.gz && \
      tar -xf swig-3.0.12.tar.gz && \
      cd swig-3.0.12/ && \
@@ -59,7 +56,6 @@ RUN wget https://nchc.dl.sourceforge.net/project/swig/swig/swig-3.0.12/swig-3.0.
      make install && \
      cd ../../
 
-
 RUN pip3 install --default-timeout=10000 six \
     h5py \
     nose \
@@ -67,7 +63,4 @@ RUN pip3 install --default-timeout=10000 six \
     Pillow \
     filelock
 
-
-RUN git clone -b master_v3 https://github.com/intel/chainer && \
-    cd chainer && \
-    python3 setup.py install
+RUN pip3 install chainer==4.0.0b4

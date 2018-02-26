@@ -32,10 +32,8 @@ RUN yum install -y \
 
 RUN yum clean all
 
-
 RUN export LD_LIBRARY_PATH="$HOME/.chainer/lib:$HOME/.local/lib:/usr/local/lib" && \
     export LIBRARY_PATH="$LD_LIBRARY_PATH"
-
 
 RUN  mkdir Downloads && \
      cd Downloads && \
@@ -47,7 +45,6 @@ RUN  mkdir Downloads && \
      make install && \
      cd ../../
 
-
 RUN pip install --default-timeout=10000 six \
     h5py \
     nose \
@@ -55,7 +52,4 @@ RUN pip install --default-timeout=10000 six \
     Pillow \
     filelock
 
-
-RUN git clone -b master_v3 https://github.com/intel/chainer && \
-    cd chainer && \
-    python setup.py install
+RUN pip3 install chainer==4.0.0b4
