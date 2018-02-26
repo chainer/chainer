@@ -107,6 +107,7 @@ Neural network connections
    chainer.functions.dilated_convolution_2d
    chainer.functions.embed_id
    chainer.functions.linear
+   chainer.functions.local_convolution_2d
    chainer.functions.n_step_bigru
    chainer.functions.n_step_bilstm
    chainer.functions.n_step_birnn
