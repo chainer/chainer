@@ -56,7 +56,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
                 y = functions.spatial_pyramid_pooling_2d(
                     x, self.pyramid_height, self.pooling_class)
         else:
-            raise ValueError('Pooling operation must be specified.')
+            assert False
         return y
 
     def check_forward(self, x_data, use_cudnn='always'):
