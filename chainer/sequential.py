@@ -44,7 +44,7 @@ class Sequential(link.ChainList):
 
         where ``x`` denotes a mini-batch of ``n_in``-dimensional input vectors.
 
-        Furthermore, :class:`~Sequential` supports build-in list APIs, so you
+        Furthermore, :class:`~Sequential` supports built-in list APIs, so you
         can concatenate :class:`~Sequential` objects to create a longer
         :class:`~Sequential` model easily with the same ways as Python lists::
 
@@ -76,7 +76,7 @@ class Sequential(link.ChainList):
         (``VGG16Layers``) and finally add a lambda function to extract the
         ``prob`` output.
 
-        Note that a :class:`~Sequential` link which has at least one ``lmabda``
+        Note that a :class:`~Sequential` link which has at least one ``lambda``
         function as its member cannot be pickled. So, please use ``partial``
         method from ``functools`` package instead::
 
@@ -97,7 +97,8 @@ class Sequential(link.ChainList):
     Args:
         layers: The layers which are called in its order. Each component should
             be a callable object including :class:`~Link` object and
-            :class:`~Function` class.
+            functions defined under the :mod:`chainer.functions`, e.g.,
+            :obj:`~chainer.functions.relu`, etc.
 
     """
 
@@ -155,7 +156,7 @@ class Sequential(link.ChainList):
             self.append(other)
             return self
         else:
-            raise ValueError('add (+) operator is support only callable '
+            raise ValueError('add (+) operator supports only callable '
                              'objects, but {} is not callable'.format(
                                  str(type(other))))
 
@@ -188,9 +189,9 @@ class Sequential(link.ChainList):
 
         It should be noted that the input variable is given directly to the
         first layer and all intermediate outputs generated during the forward
-        pass are also directly feeded to the next layer. Therefore, the number
-        of output at a layer should be the same as the number of input at the
-        next layer.
+        pass are also directly fed to the next layer. Therefore, the number
+        of outputs at a layer should be the same as the number of inputs at
+        the next layer.
 
         Args:
             x: Input variables.
@@ -216,9 +217,9 @@ class Sequential(link.ChainList):
         if n_lambda > 0:
             raise ValueError(
                 'This Sequential object has at least one lambda function as '
-                'its component. Lambda function can\'t be pickled, so please '
+                'its component. Lambda function can not be pickled, so please '
                 'consider to use functools.partial instead of the lambda '
-                'function or use "dill" which is an external package that '
+                'function or use "dill", which is an external package that '
                 'enables pickling an object including lambda functions intead '
                 'of built-in pickle.')
         return super(Sequential, self).__reduce__()
