@@ -22,5 +22,11 @@ TEST(NativeDeviceTest, Ctor) {
     }
 }
 
+TEST(NativeDeviceTest, Synchronize) {
+    NativeBackend backend;
+    NativeDevice device{backend, 0};
+    EXPECT_NO_THROW(device.Synchronize());
+}
+
 }  // namespace
 }  // namespace xchainer
