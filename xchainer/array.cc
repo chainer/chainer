@@ -273,11 +273,8 @@ void CheckDevicesCompatible(const std::vector<std::reference_wrapper<const Array
     }
 
     if (arrays.size() > 1) {
-        if (std::any_of(arrays.begin() + 1, arrays.end(), [&arrays](const Array& array) {
-                const Device& device = array.device();
-                const Device& other = arrays[0].get().device();
-                return &device.context() != &other.context() || &device.backend() != &other.backend() || device.index() != other.index();
-            })) {
+        if (std::any_of(arrays.begin() + 1, arrays.end(),
+                        [&arrays](const Array& array) { return &array.device() != &arrays[0].get().device(); })) {
             std::ostringstream os;
             os << "Incompatible devices for operation\n";
             os << "Devices: (";
