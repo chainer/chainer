@@ -1,6 +1,5 @@
 FROM ubuntu:16.04
 
-
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
     build-essential \
@@ -25,10 +24,8 @@ RUN apt-get update -y && \
     curl && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-
 RUN export LD_LIBRARY_PATH="$HOME/.chainer/lib:$HOME/.local/lib:/usr/local/lib" && \
     export LIBRARY_PATH="$LD_LIBRARY_PATH"
-
 
 RUN  mkdir Downloads && \
      cd Downloads && \
@@ -51,8 +48,4 @@ RUN pip3 install --default-timeout=10000 wheel \
     filelock \
     distribute
 
-
-RUN git clone -b master_v3 https://github.com/intel/chainer && \
-    cd chainer  && \
-    python3 setup.py install
-
+RUN pip3 install chainer==4.0.0b4
