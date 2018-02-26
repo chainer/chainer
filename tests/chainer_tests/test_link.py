@@ -811,6 +811,7 @@ class TestChain(unittest.TestCase):
             self.c2.count_params()
         self.assertEqual(len(w), 1)
 
+
 class TestChainList(unittest.TestCase):
 
     def setUp(self):
@@ -1132,6 +1133,7 @@ class TestChainList(unittest.TestCase):
             warnings.simplefilter('always')
             self.c2.count_params()
         self.assertEqual(len(w), 1)
+
 
 @attr.ideep
 class TestIntel64(unittest.TestCase):
