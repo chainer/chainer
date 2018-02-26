@@ -23,6 +23,13 @@ TEST(CudaDeviceTest, Ctor) {
     }
 }
 
+// TODO(sonots): Any ways to test cudaDeviceSynchronize()?
+TEST(CudaDeviceTest, Synchronize) {
+    CudaBackend backend;
+    CudaDevice device{backend, 0};
+    device.Synchronize();
+}
+
 }  // namespace
 }  // namespace cuda
 }  // namespace xchainer
