@@ -24,15 +24,13 @@ def _setup_tensor(_min, _max, shape, dtype, threshold=None):
         {'m': 3, 'n': 4, 'k': 2},
     ],
     [
-        {'transa': False, 'transb': False},
-        {'transa': False, 'transb': True},
-        {'transa': True, 'transb': False},
-        {'transa': True, 'transb': True},
+        {'transa': False}, {'transa': True},
     ],
     [
-        {'nbatch': 0},
-        {'nbatch': 1},
-        {'nbatch': 4},
+        {'transb': False}, {'transb': True},
+    ],
+    [
+        {'nbatch': 0}, {'nbatch': 1}, {'nbatch': 4},
     ],
     [
         {'a_dtype': numpy.float16},
@@ -222,47 +220,55 @@ class TestSparseMatMul(unittest.TestCase):
             cuda.to_gpu(self.ggb), atol=1e-2, rtol=1e-2)
 
 
+@testing.parameterize(*testing.product_dict(
+    [
+        {'transa': False}, {'transa': True},
+    ],
+    [
+        {'transb': False}, {'transb': True},
+    ],
+))
 class TestSparseMatMulInvalid(unittest.TestCase):
 
     def test_invalid_ndim(self):
         a = _setup_tensor(.5, 1, (2, 3, 3), numpy.float32, .75)
-        sp_a = F.sparse_dense2coo(a)
         b = _setup_tensor(.5, 1, (3, 3), numpy.float32, .75)
+        sp_a = F.sparse_dense2coo(a)
         sp_b = F.sparse_dense2coo(b)
         with self.assertRaises(type_check.InvalidType):
-            F.sparse_matmul(sp_a, b)
+            F.sparse_matmul(sp_a, b, self.transa, self.transb)
         with self.assertRaises(type_check.InvalidType):
-            F.sparse_matmul(a, sp_b)
+            F.sparse_matmul(a, sp_b, self.transa, self.transb)
 
     def test_invalid_nbatch(self):
         a = _setup_tensor(.5, 1, (2, 3, 3), numpy.float32, .75)
-        sp_a = F.sparse_dense2coo(a)
         b = _setup_tensor(.5, 1, (3, 3, 3), numpy.float32, .75)
+        sp_a = F.sparse_dense2coo(a)
         sp_b = F.sparse_dense2coo(b)
         with self.assertRaises(type_check.InvalidType):
-            F.sparse_matmul(sp_a, b)
+            F.sparse_matmul(sp_a, b, self.transa, self.transb)
         with self.assertRaises(type_check.InvalidType):
-            F.sparse_matmul(a, sp_b)
+            F.sparse_matmul(a, sp_b, self.transa, self.transb)
 
     def test_invalid_shape(self):
         a = _setup_tensor(.5, 1, (1, 2, 3), numpy.float32, .75)
-        sp_a = F.sparse_dense2coo(a)
         b = _setup_tensor(.5, 1, (1, 4, 5), numpy.float32, .75)
+        sp_a = F.sparse_dense2coo(a)
         sp_b = F.sparse_dense2coo(b)
         with self.assertRaises(type_check.InvalidType):
-            F.sparse_matmul(sp_a, b)
+            F.sparse_matmul(sp_a, b, self.transa, self.transb)
         with self.assertRaises(type_check.InvalidType):
-            F.sparse_matmul(a, sp_b)
+            F.sparse_matmul(a, sp_b, self.transa, self.transb)
 
     def test_invalid_inputs(self):
         a = _setup_tensor(.5, 1, (1, 3, 3), numpy.float32, .75)
-        sp_a = F.sparse_dense2coo(a)
         b = _setup_tensor(.5, 1, (1, 3, 3), numpy.float32, .75)
+        sp_a = F.sparse_dense2coo(a)
         sp_b = F.sparse_dense2coo(b)
         with self.assertRaises(ValueError):
-            F.sparse_matmul(sp_a, sp_b)
+            F.sparse_matmul(sp_a, sp_b, self.transa, self.transb)
         with self.assertRaises(ValueError):
-            F.sparse_matmul(a, b)
+            F.sparse_matmul(a, b, self.transa, self.transb)
 
 
 testing.run_module(__name__, __file__)
