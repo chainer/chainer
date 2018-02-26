@@ -6,19 +6,10 @@
 #include <string>
 #include <unordered_map>
 
-#ifdef XCHAINER_ENABLE_CUDA
-#include <cuda.h>
-#include <cuda_runtime.h>
-#endif  // XCHAINER_ENABLE_CUDA
 #include <gsl/gsl>
 
-#include "xchainer/array_math.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/backend.h"
-#ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/cuda/array_math.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/memory.h"
@@ -233,17 +224,7 @@ void Array::Add(const Array& rhs, Array& out) const {
     auto rhs_backward_function = lhs_backward_function;
     internal::SetUpOpNodes("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
-    Device& device = GetDefaultDevice();
-    // TODO(sonots): Use device.Add()
-    if (device.backend().GetName() == "native") {
-        xchainer::Add(*this, rhs, out);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device.backend().GetName() == "cuda") {
-        xchainer::cuda::Add(*this, rhs, out);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
+    device().Add(*this, rhs, out);
 }
 
 void Array::Mul(const Array& rhs, Array& out) const {
@@ -260,17 +241,7 @@ void Array::Mul(const Array& rhs, Array& out) const {
     };
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
-    Device& device = GetDefaultDevice();
-    // TODO(sonots): Use device.Mul()
-    if (device.backend().GetName() == "native") {
-        xchainer::Mul(*this, rhs, out);
-#ifdef XCHAINER_ENABLE_CUDA
-    } else if (device.backend().GetName() == "cuda") {
-        xchainer::cuda::Mul(*this, rhs, out);
-#endif  // XCHAINER_ENABLE_CUDA
-    } else {
-        throw DeviceError("invalid device");
-    }
+    device().Mul(*this, rhs, out);
 }
 
 void Array::Fill(Scalar value) { device().Fill(*this, value); }
