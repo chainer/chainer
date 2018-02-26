@@ -590,7 +590,7 @@ Assign a Parameter object directly to an attribute within a \
 
         size = 0
         for name, param in self.namedparams():
-            if param.data is None:
+            if param.array is None:
                 warnings.warn(
                     '{} has not been initialized, so the resulting size will '
                     'not include the number of parameters in it.'.format(name))

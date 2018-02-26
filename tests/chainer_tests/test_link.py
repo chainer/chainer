@@ -474,10 +474,10 @@ class TestLink(unittest.TestCase):
         six.PY3, 'Python2.7 has a bug in catch_warnings, so this test is '
                  'skipped for Python2.7')
     def test_count_params(self):
-        self.assertEqual(self.link.size, 8)
+        self.assertEqual(self.link.count_params(), 8)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            self.link.size
+            self.link.count_params()
         self.assertEqual(len(w), 2)
 
 
