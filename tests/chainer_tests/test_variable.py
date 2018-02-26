@@ -1749,24 +1749,6 @@ class TestLazyGradSum(unittest.TestCase):
         self.gy12 = gy12
         self.gx = gy00 + gy01 + gy02
 
-    def tearDown(self):
-        self.x = None
-        self.y10 = None
-        self.f10 = None
-        self.gy00 = None
-        self.y11 = None
-        self.f11 = None
-        self.gy01 = None
-        self.y12 = None
-        self.f12 = None
-        self.gy02 = None
-        self.y = None
-        self.f2 = None
-        self.gy10 = None
-        self.gy11 = None
-        self.gy12 = None
-        self.gx = None
-
     def forward(self, x):
         y0 = F.identity(x)
         y10 = self.f10.apply((y0,))
