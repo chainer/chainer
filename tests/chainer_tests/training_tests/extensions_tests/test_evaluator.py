@@ -36,9 +36,13 @@ class DummyIterator(dataset.Iterator):
 
     def __init__(self, return_values):
         self.iterator = iter(return_values)
+        self.finalized = False
 
     def __next__(self):
         return next(self.iterator)
+
+    def finalize(self):
+        self.finalized = True
 
 
 class DummyConverter(object):
@@ -92,6 +96,9 @@ class TestEvaluator(unittest.TestCase):
                 self.target.args[i], self.batches[i])
 
         self.assertAlmostEqual(mean['target/loss'], self.expect_mean, places=4)
+
+        self.evaluator.finalize()
+        self.assertTrue(self.iterator.finalized)
 
     def test_call(self):
         mean = self.evaluator()
@@ -184,6 +191,35 @@ class TestEvaluatorDictData(unittest.TestCase):
         expect_mean = numpy.mean(
             [numpy.sum(x['x']) + numpy.sum(x['y']) for x in self.batches])
         self.assertAlmostEqual(mean['target/loss'], expect_mean, places=4)
+
+
+class TestEvaluatorWithEvalFunc(unittest.TestCase):
+
+    def setUp(self):
+        self.data = [
+            numpy.random.uniform(-1, 1, (3, 4)).astype('f') for _ in range(2)]
+        self.batches = [
+            numpy.random.uniform(-1, 1, (2, 3, 4)).astype('f')
+            for _ in range(2)]
+
+        self.iterator = DummyIterator(self.data)
+        self.converter = DummyConverter(self.batches)
+        self.target = DummyModel(self)
+        self.evaluator = extensions.Evaluator(
+            self.iterator, {}, converter=self.converter,
+            eval_func=self.target)
+
+    def test_evaluate(self):
+        reporter = chainer.Reporter()
+        reporter.add_observer('target', self.target)
+        with reporter:
+            self.evaluator.evaluate()
+
+        # The model gets results of converter.
+        self.assertEqual(len(self.target.args), len(self.batches))
+        for i in range(len(self.batches)):
+            numpy.testing.assert_array_equal(
+                self.target.args[i], self.batches[i])
 
 
 testing.run_module(__name__, __file__)

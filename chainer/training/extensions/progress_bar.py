@@ -6,7 +6,6 @@ import time
 
 from chainer.training import extension
 from chainer.training.extensions import util
-from chainer.training import trigger
 
 
 class ProgressBar(extension.Extension):
@@ -44,10 +43,7 @@ class ProgressBar(extension.Extension):
         # initialize some attributes at the first call
         if training_length is None:
             t = trainer.stop_trigger
-            if not isinstance(t, trigger.IntervalTrigger):
-                raise TypeError(
-                    'cannot retrieve the training length from %s' % type(t))
-            training_length = self._training_length = t.period, t.unit
+            training_length = t.get_training_length()
 
         stat_template = self._status_template
         if stat_template is None:

@@ -3,15 +3,27 @@ import six
 
 class TupleDataset(object):
 
-    """Dataset of a tuple of datasets.
+    """Dataset of tuples from multiple equal-length datasets.
 
-    It combines multiple datasets into one dataset. Each example is represented
-    by a tuple whose ``i``-th item corresponds to the i-th dataset.
+    A ``TupleDataset`` combines multiple equal-length datasets into a single
+    dataset of tuples. The ``i``-th tuple contains the ``i``-th example from
+    each of the argument datasets, in the same order that they were supplied.
+
+    Recall that in Chainer, a dataset is defined as an iterable that supports
+    both ``__getitem__`` and ``__len__``. The ``__getitem__`` method should
+    support indexing by both an integer and a slice.
+
+    As an example, consider creating a ``TupleDataset`` from two argument
+    datasets ``d1 = [8, 0, 5, 1]`` and ``d2 = [3, 1, 7, 4]`` as
+    ``tuple_dataset = TupleDataset(d1, d2)``. The ``tuple_dataset`` will
+    then contain the examples ``(8, 3), (0, 1), (5, 7), (1, 4)``. Note that
+    this behavior is similar to that of the built-in :func:`zip` function.
 
     Args:
-        datasets: Underlying datasets. The ``i``-th one is used for the
-            ``i``-th item of each example. All datasets must have the same
-            length.
+        datasets: Underlying datasets that will be aggregated. Each dataset
+            must be an iterable that implements ``__getitem__`` and
+            ``__len__``. The ``j``-th dataset will be used for the ``j``-th
+            item of each example tuple. All datasets must have the same length.
 
     """
 

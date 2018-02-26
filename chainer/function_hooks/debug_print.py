@@ -1,12 +1,12 @@
 from __future__ import print_function
 import sys
 
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_hook
 from chainer import variable
 
 
-class PrintHook(function.FunctionHook):
+class PrintHook(function_hook.FunctionHook):
     """Function hook that prints debug information.
 
     This function hook outputs the debug information of input arguments of
@@ -34,7 +34,7 @@ class PrintHook(function.FunctionHook):
 
         >>> from chainer import function_hooks
         >>> l = L.Linear(10, 10)
-        >>> x = chainer.Variable(np.zeros((1, 10), 'f'))
+        >>> x = chainer.Variable(np.zeros((1, 10), np.float32))
         >>> with chainer.function_hooks.PrintHook():
         ...     y = l(x)
         ...     z = F.sum(y)

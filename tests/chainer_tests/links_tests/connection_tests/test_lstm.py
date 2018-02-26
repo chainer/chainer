@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import links
 from chainer import testing
@@ -237,6 +237,26 @@ class TestLSTMInvalidSize(unittest.TestCase):
         self.link.to_gpu()
         self.check_forward_invalid_size(cuda.to_gpu(self.x1),
                                         cuda.to_gpu(self.x2))
+
+
+class TestLSTMInitialize(unittest.TestCase):
+
+    def test_initialize_bias_default(self):
+        link = links.LSTM(2, 3)
+        numpy.testing.assert_array_equal(
+            link.upward.b.data,
+            numpy.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]))
+
+
+class TestLSTMEmptyBatchInitialize(unittest.TestCase):
+
+    def setUp(self):
+        self.link = links.LSTM(4)
+        self.x = numpy.random.uniform(-1, 1, (0, 3)).astype(numpy.float32)
+
+    def test_empty_batch_dim(self):
+        y = self.link(chainer.Variable(self.x))
+        assert y.shape == (0, 4)
 
 
 @testing.parameterize(*testing.product_dict(

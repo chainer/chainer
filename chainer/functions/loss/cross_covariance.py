@@ -1,12 +1,13 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
+import chainer
+from chainer.backends import cuda
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class CrossCovariance(function.Function):
+class CrossCovariance(function_node.FunctionNode):
 
     """Cross-covariance loss."""
 
@@ -17,7 +18,7 @@ class CrossCovariance(function.Function):
 
         if reduce not in ('half_squared_sum', 'no'):
             raise ValueError(
-                "only 'half_squared_sum' and 'no' are valid "
+                "Only 'half_squared_sum' and 'no' are valid "
                 "for 'reduce', but '%s' is given" % reduce)
         self.reduce = reduce
 
@@ -26,44 +27,60 @@ class CrossCovariance(function.Function):
         z_type, y_type = in_types
 
         type_check.expect(
-            z_type.dtype == numpy.float32,
-            z_type.ndim == 2,
             y_type.dtype == numpy.float32,
+            z_type.dtype == numpy.float32,
             y_type.ndim == 2,
-
+            z_type.ndim == 2,
             z_type.shape[0] == y_type.shape[0]
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
         y, z = inputs
+        self.retain_inputs((0, 1))
 
-        self.y_centered = y - y.mean(axis=0, keepdims=True)
-        self.z_centered = z - z.mean(axis=0, keepdims=True)
-        self.covariance = self.y_centered.T.dot(self.z_centered)
-        self.covariance /= len(y)
+        y_centered = y - y.mean(axis=0, keepdims=True)
+        z_centered = z - z.mean(axis=0, keepdims=True)
+        covariance = y_centered.T.dot(z_centered)
+        covariance /= len(y)
 
         if self.reduce == 'half_squared_sum':
-            cost = xp.vdot(self.covariance, self.covariance)
+            xp = cuda.get_array_module(*inputs)
+            cost = xp.vdot(covariance, covariance)
             cost *= y.dtype.type(0.5)
             return utils.force_array(cost),
         else:
-            return self.covariance,
+            return covariance,
 
-    def backward(self, inputs, grad_outputs):
-        y, z = inputs
+    def backward(self, indexes, grad_outputs):
+        y, z = self.get_retained_inputs()
         gcost, = grad_outputs
+
+        y_mean = chainer.functions.mean(y, axis=0, keepdims=True)
+        z_mean = chainer.functions.mean(z, axis=0, keepdims=True)
+        y_centered = y - chainer.functions.broadcast_to(y_mean, y.shape)
+        z_centered = z - chainer.functions.broadcast_to(z_mean, z.shape)
         gcost_div_n = gcost / gcost.dtype.type(len(y))
 
+        ret = []
         if self.reduce == 'half_squared_sum':
-            gy = self.z_centered.dot(self.covariance.T)
-            gz = self.y_centered.dot(self.covariance)
-            gy *= gcost_div_n
-            gz *= gcost_div_n
+            covariance = chainer.functions.matmul(y_centered.T, z_centered)
+            covariance /= len(y)
+            if 0 in indexes:
+                gy = chainer.functions.matmul(z_centered, covariance.T)
+                gy *= chainer.functions.broadcast_to(gcost_div_n, gy.shape)
+                ret.append(gy)
+            if 1 in indexes:
+                gz = chainer.functions.matmul(y_centered, covariance)
+                gz *= chainer.functions.broadcast_to(gcost_div_n, gz.shape)
+                ret.append(gz)
         else:
-            gy = self.z_centered.dot(gcost_div_n.T)
-            gz = self.y_centered.dot(gcost_div_n)
-        return gy, gz
+            if 0 in indexes:
+                gy = chainer.functions.matmul(z_centered, gcost_div_n.T)
+                ret.append(gy)
+            if 1 in indexes:
+                gz = chainer.functions.matmul(y_centered, gcost_div_n)
+                ret.append(gz)
+        return ret
 
 
 def cross_covariance(y, z, reduce='half_squared_sum'):
@@ -102,4 +119,4 @@ def cross_covariance(y, z, reduce='half_squared_sum'):
        See https://arxiv.org/abs/1412.6583v3 for details.
 
     """
-    return CrossCovariance(reduce)(y, z)
+    return CrossCovariance(reduce).apply((y, z))[0]

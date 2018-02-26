@@ -10,6 +10,7 @@ except ImportError as e:
     available = False
     _import_error = e
 
+import chainer
 from chainer.dataset.convert import concat_examples
 from chainer.dataset import download
 from chainer import function
@@ -67,8 +68,8 @@ class VGG16Layers(link.Chain):
             ``chainer.initializers.Normal(scale=0.01)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~VGG16Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -107,7 +108,7 @@ class VGG16Layers(link.Chain):
         if pretrained_model == 'auto':
             _retrieve(
                 'VGG_ILSVRC_16_layers.npz',
-                'http://www.robots.ox.ac.uk/%7Evgg/software/very_deep/'
+                'https://www.robots.ox.ac.uk/%7Evgg/software/very_deep/'
                 'caffe/VGG_ILSVRC_16_layers.caffemodel',
                 self)
         elif pretrained_model:
@@ -171,7 +172,8 @@ class VGG16Layers(link.Chain):
            See :func:`chainer.using_config`.
 
         Args:
-            x (~chainer.Variable): Input variable.
+            x (~chainer.Variable): Input variable. It should be prepared by
+                ``prepare`` function.
             layers (list of str): The list of layer names you want to extract.
 
         Returns:
@@ -250,6 +252,8 @@ class VGG16Layers(link.Chain):
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
+                When you specify a color image as a :class:`numpy.ndarray`,
+                make sure that color order is RGB.
             oversample (bool): If ``True``, it averages results across
                 center, corners, and mirrors. Otherwise, it uses only the
                 center.
@@ -266,7 +270,7 @@ class VGG16Layers(link.Chain):
         else:
             x = x[:, :, 16:240, 16:240]
         # Use no_backprop_mode to reduce memory consumption
-        with function.no_backprop_mode():
+        with function.no_backprop_mode(), chainer.using_config('train', False):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:

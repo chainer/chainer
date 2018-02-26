@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.loss import negative_sampling
 from chainer import links
 from chainer import testing
@@ -78,6 +78,10 @@ class TestNegativeSampling(unittest.TestCase):
 
     @attr.gpu
     def test_backward_cpu_gpu(self):
+        # TODO(niboshi):
+        # Fix this test. The code seems to fix the samples in order to avoid
+        # random behavior, but resulting grads are always zero-tensors, no
+        # matter what are sampled.
         x = chainer.Variable(self.x)
         t = chainer.Variable(self.t)
         y = self.link(x, t)

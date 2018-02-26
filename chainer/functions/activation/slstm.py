@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -253,14 +253,18 @@ def slstm(c_prev1, c_prev2, x1, x2):
         Most typical preparation of ``x1``, ``x2`` is:
 
         >>> n_units = 100
-        >>> h1 = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> h2 = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> c1 = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> c2 = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> model1 = chainer.Chain(w=L.Linear(n_units, 4 * n_units),
-        ...                        v=L.Linear(n_units, 4 * n_units))
-        >>> model2 = chainer.Chain(w=L.Linear(n_units, 4 * n_units),
-        ...                        v=L.Linear(n_units, 4 * n_units))
+        >>> h1 = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> h2 = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> c1 = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> c2 = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> model1 = chainer.Chain()
+        >>> with model1.init_scope():
+        ...   model1.w = L.Linear(n_units, 4 * n_units)
+        ...   model1.v = L.Linear(n_units, 4 * n_units)
+        >>> model2 = chainer.Chain()
+        >>> with model2.init_scope():
+        ...   model2.w = L.Linear(n_units, 4 * n_units)
+        ...   model2.v = L.Linear(n_units, 4 * n_units)
         >>> x1 = model1.w(c1) + model1.v(h1)
         >>> x2 = model2.w(c2) + model2.v(h2)
         >>> c, h = F.slstm(c1, c2, x1, x2)

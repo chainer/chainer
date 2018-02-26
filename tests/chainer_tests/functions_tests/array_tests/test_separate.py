@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.array import separate
 from chainer import gradient_check
 from chainer import testing
@@ -16,6 +16,7 @@ from chainer.testing import attr
         {'shape': (2, 3, 4), 'axis': 1},
         {'shape': (2, 3, 4), 'axis': 2},
         {'shape': (2, 3, 4), 'axis': -1},
+        {'shape': (2, 3, 4), 'axis': -3},
         {'shape': (2,), 'axis': 0},
         {'shape': (2,), 'axis': -1},
     ],
@@ -33,10 +34,6 @@ class TestSeparate(unittest.TestCase):
         del yshape[self.axis]
         self.gys = [numpy.random.uniform(-1, 1, yshape).astype(self.dtype)
                     for _ in range(self.shape[self.axis])]
-        self.check_backward_options = {}
-        if self.dtype == numpy.float16:
-            self.check_backward_options = {
-                'eps': 2 ** -5, 'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -59,8 +56,7 @@ class TestSeparate(unittest.TestCase):
         def f(x):
             return separate.separate(x, self.axis)
 
-        gradient_check.check_backward(
-            f, x_data, gys_data, **self.check_backward_options)
+        gradient_check.check_backward(f, x_data, gys_data, dtype='d')
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gys)

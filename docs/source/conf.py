@@ -15,14 +15,29 @@
 import inspect
 import os
 import pkg_resources
+import re
 import six
 import sys
+
+
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+import _docstring_check
+import _autosummary_check
 
 
 __version__ = pkg_resources.get_distribution('chainer').version
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
+rtd_version = os.environ.get('READTHEDOCS_VERSION')
+if rtd_version == 'latest':
+    tag = 'master'
+else:
+    tag = 'v{}'.format(__version__)
+extlinks = {
+    'blob': ('https://github.com/chainer/chainer/blob/{}/%s'.format(tag), ''),
+    'tree': ('https://github.com/chainer/chainer/tree/{}/%s'.format(tag), ''),
+}
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -40,6 +55,7 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx.ext.doctest',
+              'sphinx.ext.extlinks',
               'sphinx.ext.intersphinx',
               'sphinx.ext.mathjax',
               'sphinx.ext.napoleon',
@@ -204,7 +220,7 @@ if on_rtd:
 #html_split_index = False
 
 # If true, links to the reST sources are added to the pages.
-#html_show_sourcelink = True
+html_show_sourcelink = False
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 #html_show_sphinx = True
@@ -322,7 +338,7 @@ autosummary_generate = True
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'cupy': ('https://docs-cupy.chainer.org/en/latest/', None),
 }
 
@@ -343,6 +359,20 @@ spelling_lang = 'en_US'
 spelling_word_list_filename = 'spelling_wordlist.txt'
 
 
+def setup(app):
+    app.connect('autodoc-process-docstring', _autodoc_process_docstring)
+    app.connect('build-finished', _build_finished)
+
+
+def _autodoc_process_docstring(app, what, name, obj, options, lines):
+    _docstring_check.check(app, what, name, obj, options, lines)
+
+
+def _build_finished(app, exception):
+    if exception is None:
+        _autosummary_check.check(app, exception)
+
+
 def _import_object_from_name(module_name, fullname):
     obj = sys.modules.get(module_name)
     if obj is None:
@@ -352,39 +382,87 @@ def _import_object_from_name(module_name, fullname):
     return obj
 
 
-def linkcode_resolve(domain, info):
-    if domain != 'py' or not info['module']:
-        return None
+def _is_egg_directory(path):
+    return (path.endswith('.egg') and
+            os.path.isdir(os.path.join(path, 'EGG-INFO')))
 
-    rtd_version = os.environ.get('READTHEDOCS_VERSION')
-    if rtd_version == 'latest':
-        tag = 'master'
-    else:
-        tag = 'v{}'.format(__version__)
-    repo_root_dir = os.path.realpath('..')
 
-    # Import the object from module path
-    obj = _import_object_from_name(info['module'], info['fullname'])
+def _is_git_root(path):
+    return os.path.isdir(os.path.join(path, '.git'))
+
+
+_source_root = None
+
+
+def _find_source_root(source_abs_path):
+    # Note that READTHEDOCS* environment variable cannot be used, because they
+    # are not set under docker environment.
+    global _source_root
+    if _source_root is None:
+        dir = os.path.dirname(source_abs_path)
+        while True:
+            if _is_egg_directory(dir) or _is_git_root(dir):
+                # Reached the root directory
+                _source_root = dir
+                break
+
+            dir_ = os.path.dirname(dir)
+            if len(dir_) == len(dir):
+                raise RuntimeError('Couldn\'t parse root directory from '
+                                   'source file: {}'.format(source_abs_path))
+            dir = dir_
+    return _source_root
+
+
+def _get_source_relative_path(source_abs_path):
+    return os.path.relpath(source_abs_path, _find_source_root(source_abs_path))
+
+
+def _get_sourcefile_and_linenumber(obj):
+    # Retrieve the original function wrapped by contextlib.contextmanager
+    if callable(obj):
+        closure = getattr(obj, '__closure__', None)
+        if closure is not None:
+            obj = closure[0].cell_contents
 
     # Get the source file name and line number at which obj is defined.
     try:
         filename = inspect.getsourcefile(obj)
     except TypeError:
         # obj is not a module, class, function, ..etc.
-        return None
+        return None, None
 
     # inspect can return None for cython objects
     if filename is None:
-        return None
+        return None, None
 
     # Get the source line number
     _, linenum = inspect.getsourcelines(obj)
-    assert isinstance(linenum, six.integer_types)
+
+    return filename, linenum
+
+
+def linkcode_resolve(domain, info):
+    if domain != 'py' or not info['module']:
+        return None
+
+    # Import the object from module path
+    obj = _import_object_from_name(info['module'], info['fullname'])
+
+    # If it's not defined in the internal module, return None.
+    mod = inspect.getmodule(obj)
+    if mod is None:
+        return None
+    if not (mod.__name__ == 'chainer' or mod.__name__.startswith('chainer.')):
+        return None
+
+    # Retrieve source file name and line number
+    filename, linenum = _get_sourcefile_and_linenumber(obj)
+    if filename is None or linenum is None:
+        return None
 
     filename = os.path.realpath(filename)
-    if not filename.startswith(repo_root_dir):
-        return None
-    relpath = os.path.relpath(filename, repo_root_dir)
+    relpath = _get_source_relative_path(filename)
 
     return 'https://github.com/chainer/chainer/blob/{}/{}#L{}'.format(
         tag, relpath, linenum)

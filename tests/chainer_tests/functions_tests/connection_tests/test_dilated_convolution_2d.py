@@ -4,13 +4,11 @@ import mock
 import numpy
 
 import chainer
-from chainer import cuda
-from chainer import functions
-from chainer.functions.connection import dilated_convolution_2d
+from chainer.backends import cuda
+import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*(testing.product({
@@ -49,18 +47,17 @@ class TestDilatedConvolution2DFunction(unittest.TestCase):
             self.gy = numpy.random.uniform(
                 -1, 1, (2, 2, 2, 2)).astype(self.x_dtype)
         self.check_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
+        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
         if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
             self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
+            self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
 
     @attr.gpu
     def test_forward_consistency(self, nobias=False):
         x_cpu = chainer.Variable(self.x)
         W_cpu = chainer.Variable(self.W)
         b_cpu = None if nobias else chainer.Variable(self.b)
-        y_cpu = functions.dilated_convolution_2d(
+        y_cpu = F.dilated_convolution_2d(
             x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
             dilate=self.dilate, cover_all=self.cover_all)
 
@@ -68,7 +65,7 @@ class TestDilatedConvolution2DFunction(unittest.TestCase):
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
         b_gpu = None if nobias else chainer.Variable(cuda.to_gpu(self.b))
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            y_gpu = functions.dilated_convolution_2d(
+            y_gpu = F.dilated_convolution_2d(
                 x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
                 dilate=self.dilate, cover_all=self.cover_all)
 
@@ -104,41 +101,39 @@ class TestDilatedConvolution2DFunction(unittest.TestCase):
         if b_data is not None:
             args = args + (b_data,)
 
+        def f(*args):
+            return F.dilated_convolution_2d(*args, stride=self.stride,
+                                            pad=self.pad, dilate=self.dilate,
+                                            cover_all=self.cover_all)
+
         with chainer.using_config('use_cudnn', self.use_cudnn):
             gradient_check.check_backward(
-                dilated_convolution_2d.DilatedConvolution2DFunction(
-                    self.stride, self.pad, self.dilate, self.cover_all),
-                args, y_grad, **self.check_backward_options)
+                f, args, y_grad, dtype=numpy.float64,
+                **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.W, self.b, self.gy)
 
-    @condition.retry(3)
     def test_backward_cpu_nobias(self):
         self.check_backward(self.x, self.W, None, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             cuda.to_gpu(self.b), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_nobias(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             None, cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_im2col(self):
         self.use_cudnn = 'never'
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
                             cuda.to_gpu(self.b), cuda.to_gpu(self.gy))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu_im2col_nobias(self):
         self.use_cudnn = 'never'
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.W),
@@ -168,24 +163,26 @@ class TestDilatedConvolution2DCudnnCall(unittest.TestCase):
             -1, 1, (2, 2, 2, 2)).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.expect = chainer.should_use_cudnn('>=auto')
+            if cuda.cuda.cudnn.getVersion() < 6000:
+                self.expect = False
 
     def forward(self):
         x = chainer.Variable(self.x)
         W = chainer.Variable(self.W)
-        return functions.dilated_convolution_2d(
+        return F.dilated_convolution_2d(
             x, W, None, stride=self.stride, pad=self.pad, dilate=self.dilate)
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cudnn.cudnn.convolutionForward') as func:
+            with mock.patch('cupy.cuda.cudnn.convolutionForward') as func:
                 self.forward()
                 self.assertEqual(func.called, self.expect)
 
-    def test_call_cudnn_backrward(self):
+    def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            name = 'cupy.cudnn.cudnn.convolutionBackwardData_v3'
+            name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
             with mock.patch(name) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)

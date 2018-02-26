@@ -4,12 +4,11 @@ import numpy as np
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import type_check
 
 
@@ -28,6 +27,7 @@ class TestBatchL2NormSquared(unittest.TestCase):
     def setUp(self):
         self.x = np.random.uniform(-1, 1, self.shape).astype(np.float32)
         self.gy = np.random.uniform(-1, 1, self.shape[0]).astype(np.float32)
+        self.ggx = np.random.uniform(-1, 1, self.shape).astype(np.float32)
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -43,27 +43,38 @@ class TestBatchL2NormSquared(unittest.TestCase):
 
         testing.assert_allclose(y_expect, y_data)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            functions.BatchL2NormSquared(), x_data, y_grad, eps=1)
+            functions.batch_l2_norm_squared, x_data, y_grad, eps=1)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+        gradient_check.check_double_backward(
+            functions.batch_l2_norm_squared,
+            x_data, y_grad, x_grad_grad, dtype=np.float64)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x),
+            cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggx))
 
 
 class TestBatchL2NormSquaredTypeError(unittest.TestCase):

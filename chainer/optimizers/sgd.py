@@ -1,4 +1,5 @@
-from chainer import cuda
+from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import optimizer
 
 
@@ -14,8 +15,8 @@ class SGDRule(optimizer.UpdateRule):
     hyperparameters.
 
     Args:
-        parent_hyperparam (~chainer.Hyperparameter): Hyperparameter that
-            provides the default values.
+        parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
+            that provides the default values.
         lr (float): Learning rate.
 
     """
@@ -30,7 +31,10 @@ class SGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        param.data -= self.hyperparam.lr * grad
+        if isinstance(param.data, intel64.mdarray):
+            param.data.inplace_axpby(1.0, -self.hyperparam.lr, grad)
+        else:
+            param.data -= self.hyperparam.lr * grad
 
     def update_core_gpu(self, param):
         grad = param.grad

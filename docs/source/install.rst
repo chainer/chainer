@@ -1,14 +1,14 @@
 .. _install-guide:
 
-Installation Guide
-==================
+Installation
+============
 
 Recommended Environments
 ------------------------
 
 We recommend these Linux distributions.
 
-* `Ubuntu <http://www.ubuntu.com/>`__ 14.04/16.04 LTS 64bit
+* `Ubuntu <https://www.ubuntu.com/>`__ 14.04/16.04 LTS 64bit
 * `CentOS <https://www.centos.org/>`__ 7 64bit
 
 The following versions of Python can be used: 2.7.6+, 3.4.3+, 3.5.1+, and 3.6.0+.
@@ -30,7 +30,7 @@ Before installing Chainer, we recommend to upgrade ``setuptools`` if you are usi
 The following Python packages are required to install Chainer.
 The latest version of each package will automatically be installed if missing.
 
-* `NumPy <http://www.numpy.org/>`__ 1.9, 1.10, 1.11, 1.12
+* `NumPy <http://www.numpy.org/>`__ 1.9, 1.10, 1.11, 1.12, 1.13
 * `Six <https://pythonhosted.org/six/>`__ 1.9+
 
 The following packages are optional dependencies.
@@ -38,7 +38,7 @@ Chainer can be installed without them, in which case the corresponding features 
 
 * CUDA/cuDNN support
 
-  * `cupy <https://cupy.chainer.org/>`__ 1.0+
+  * `cupy <https://cupy.chainer.org/>`__ 4.0+
 
 * Caffe model support
 
@@ -73,17 +73,15 @@ Install Chainer from source
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The tarball of the source tree is available via ``pip download chainer`` or from `the release notes page <https://github.com/chainer/chainer/releases>`_.
-You can use ``setup.py`` to install Chainer from the tarball::
+You can install Chainer from the tarball::
 
-  $ tar zxf chainer-x.x.x.tar.gz
-  $ cd chainer-x.x.x
-  $ python setup.py install
+  $ pip install chainer-x.x.x.tar.gz
 
 You can also install the development version of Chainer from a cloned Git repository::
 
   $ git clone https://github.com/chainer/chainer.git
   $ cd chainer
-  $ python setup.py install
+  $ pip install .
 
 
 .. _install_error:
@@ -110,10 +108,10 @@ Once CuPy is correctly set up, Chainer will automatically enable CUDA support.
 
 You can refer to the following flags to confirm if CUDA/cuDNN support is actually available.
 
-``chainer.cuda.available``
-   ``True`` iff Chainer successfully imports :mod:`cupy`.
-``chainer.cuda.cudnn_enabled``
-   ``True`` iff cuDNN support is available.
+``chainer.backends.cuda.available``
+   ``True`` if Chainer successfully imports :mod:`cupy`.
+``chainer.backends.cuda.cudnn_enabled``
+   ``True`` if cuDNN support is available.
 
 
 Support image dataset
@@ -193,8 +191,8 @@ Or run the interpreter directly::
   $ nvidia-docker run -it chainer/chainer /usr/bin/python
 
 
-FAQ
----
+Install Issues
+--------------
 
 The installer says "hdf5.h is not found"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

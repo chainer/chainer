@@ -17,7 +17,7 @@ import numpy as np
 from PIL import Image
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer.links import caffe
 

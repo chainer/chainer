@@ -10,6 +10,7 @@ except ImportError as e:
     available = False
     _import_error = e
 
+import chainer
 from chainer.dataset.convert import concat_examples
 from chainer.dataset import download
 from chainer import function
@@ -72,8 +73,8 @@ class ResNetLayers(link.Chain):
             50, 101, or 152.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNetLayers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -168,7 +169,8 @@ class ResNetLayers(link.Chain):
            See :func:`chainer.using_config`.
 
         Args:
-            x (~chainer.Variable): Input variable.
+            x (~chainer.Variable): Input variable. It should be prepared by
+                ``prepare`` function.
             layers (list of str): The list of layer names you want to extract.
 
         Returns:
@@ -247,6 +249,8 @@ class ResNetLayers(link.Chain):
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
+                When you specify a color image as a :class:`numpy.ndarray`,
+                make sure that color order is RGB.
             oversample (bool): If ``True``, it averages results across
                 center, corners, and mirrors. Otherwise, it uses only the
                 center.
@@ -263,7 +267,7 @@ class ResNetLayers(link.Chain):
         else:
             x = x[:, :, 16:240, 16:240]
         # Use no_backprop_mode to reduce memory consumption
-        with function.no_backprop_mode():
+        with function.no_backprop_mode(), chainer.using_config('train', False):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:
@@ -320,8 +324,8 @@ class ResNet50Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNet50Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -373,8 +377,8 @@ class ResNet101Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNet101Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -425,8 +429,8 @@ class ResNet152Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
 
     Attributes:
-        available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+        ~ResNet152Layers.available_layers (list of str): The list of available
+            layer names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -696,14 +700,7 @@ def _make_npz(path_npz, path_caffemodel, model, n_layers):
             'from \'https://github.com/KaimingHe/deep-residual-networks\', '
             'and place it on {}'.format(path_caffemodel))
 
-    if n_layers == 50:
-        ResNet50Layers.convert_caffemodel_to_npz(path_caffemodel, path_npz, 50)
-    elif n_layers == 101:
-        ResNet101Layers.convert_caffemodel_to_npz(
-            path_caffemodel, path_npz, 101)
-    elif n_layers == 152:
-        ResNet152Layers.convert_caffemodel_to_npz(
-            path_caffemodel, path_npz, 152)
+    ResNetLayers.convert_caffemodel_to_npz(path_caffemodel, path_npz, n_layers)
     npz.load_npz(path_npz, model)
     return model
 
