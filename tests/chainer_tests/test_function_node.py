@@ -354,7 +354,7 @@ class TestFunctionNodeForwardDebug(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'return_data': (numpy.array([float('nan')], numpy.float32),),
+    {'return_data': (numpy.array(float('nan'), numpy.float32),),
      'valid': False},
     {'return_data': (None,), 'valid': True},
 )
@@ -363,7 +363,7 @@ class TestFunctionNodeBackwardDebug(unittest.TestCase):
     def setUp(self):
         self.original_debug = chainer.is_debug()
         chainer.set_debug(True)
-        self.one = numpy.array([1], numpy.float32)
+        self.one = numpy.array(1, numpy.float32)
         self.f = chainer.FunctionNode()
         self.return_value = tuple(None if x is None else chainer.Variable(x)
                                   for x in self.return_data)

@@ -1535,7 +1535,7 @@ class IdentityFunction(chainer.Function):
 class TestVariableDoubleBackward(unittest.TestCase):
 
     def test_default_backward(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.empty((), np.float32))
         y = F.identity(x)
         y.backward()
         self.assertIsNone(x.grad_var.creator)
@@ -1543,14 +1543,14 @@ class TestVariableDoubleBackward(unittest.TestCase):
         self.assertIsNone(y.grad_var.grad_var)
 
     def test_raise_double_backprop(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.empty((), np.float32))
         y = IdentityFunction()(x)
         y.backward(enable_double_backprop=True)
         with self.assertRaises(RuntimeError):
             x.grad_var.backward()
 
     def test_raise_double_backprop_2(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.empty((), np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
         y.backward(enable_double_backprop=True)
