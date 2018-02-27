@@ -143,15 +143,17 @@ class TestParameterStatistics(TestParameterStatisticsBase, unittest.TestCase):
 
         pattern = r'^(.+/){2,}(data|grad)/.+[^/]$'
         for name in six.iterkeys(self.trainer.observation):
-            if self.report_params and self.report_grads:
-                assert any(attr in name for attr in ['data', 'grad'])
-            elif self.report_params:
-                assert 'data' in name
-            elif self.report_grads:
-                assert 'grad' in name
             if self.prefix is not None:
-                name.startswith(self.prefix)
-            self.assertTrue(re.match(pattern, name))
+                assert name.startswith(self.prefix)
+
+            match = re.search(pattern, name)
+            assert match is not None
+            if self.report_params and self.report_grads:
+                pass
+            elif self.report_params:
+                assert 'data' == match.group(2)
+            elif self.report_grads:
+                assert 'grad' == match.group(2)
 
 
 @testing.parameterize(
