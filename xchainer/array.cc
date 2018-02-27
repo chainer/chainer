@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 
