@@ -2,6 +2,7 @@
 
 #include <type_traits>
 
+#include "xchainer/array.h"
 #include "xchainer/context.h"
 #include "xchainer/error.h"
 
@@ -12,6 +13,12 @@ thread_local Device* t_default_device = nullptr;
 static_assert(std::is_pod<decltype(t_default_device)>::value, "t_default_device must be POD");
 
 }  // namespace
+
+void Device::CheckDevicesCompatible(const Array& array) {
+    if (this != &array.device()) {
+        throw DeviceError("Device (" + name() + ") is not compatible with array's device (" + array.device().name() + ").");
+    }
+}
 
 namespace internal {
 

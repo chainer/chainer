@@ -34,15 +34,35 @@ void NativeDevice::Fill(Array& out, Scalar value) {
 }
 
 void NativeDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
-    (void)lhs;  // unused
-    (void)rhs;  // unused
-    (void)out;  // unused
+    CheckDevicesCompatible(lhs, rhs, out);
+    VisitDtype(lhs.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        int64_t total_size = lhs.GetTotalSize();
+        auto* ldata = static_cast<const T*>(lhs.data().get());
+        auto* rdata = static_cast<const T*>(rhs.data().get());
+        auto* odata = static_cast<T*>(out.data().get());
+
+        for (int64_t i = 0; i < total_size; i++) {
+            odata[i] = ldata[i] + rdata[i];
+        }
+    });
 }
 
 void NativeDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
-    (void)lhs;  // unused
-    (void)rhs;  // unused
-    (void)out;  // unused
+    CheckDevicesCompatible(lhs, rhs, out);
+    VisitDtype(lhs.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        int64_t total_size = lhs.GetTotalSize();
+        auto* ldata = static_cast<const T*>(lhs.data().get());
+        auto* rdata = static_cast<const T*>(rhs.data().get());
+        auto* odata = static_cast<T*>(out.data().get());
+
+        for (int64_t i = 0; i < total_size; i++) {
+            odata[i] = ldata[i] * rdata[i];
+        }
+    });
 }
 
 void NativeDevice::Synchronize() {}

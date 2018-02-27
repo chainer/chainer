@@ -224,5 +224,42 @@ TEST_F(ArrayDeviceTest, OnesLike) {
     });
 }
 
+TEST_F(ArrayDeviceTest, CheckDevicesCompatibleBasicArithmetics) {
+    Shape shape({2, 3});
+    Dtype dtype = Dtype::kFloat32;
+
+    Context& ctx = GetDefaultContext();
+    NativeBackend native_backend{ctx};
+    NativeDevice cpu_device_0{native_backend, 0};
+    NativeDevice cpu_device_1{native_backend, 1};
+    DeviceScope scope{cpu_device_0};
+
+    Array a_device_0 = Array::Empty(shape, dtype, cpu_device_0);
+    Array b_device_0 = Array::Empty(shape, dtype, cpu_device_0);
+    Array c_device_1 = Array::Empty(shape, dtype, cpu_device_1);
+
+    {
+        // Asserts no throw, and similarly for the following three cases
+        Array d_device_0 = a_device_0 + b_device_0;
+        EXPECT_EQ(&cpu_device_0, &d_device_0.device());
+    }
+    {
+        Array d_device_0 = a_device_0 * b_device_0;
+        EXPECT_EQ(&cpu_device_0, &d_device_0.device());
+    }
+    {
+        a_device_0 += b_device_0;
+        EXPECT_EQ(&cpu_device_0, &a_device_0.device());
+    }
+    {
+        a_device_0 *= b_device_0;
+        EXPECT_EQ(&cpu_device_0, &a_device_0.device());
+    }
+    { EXPECT_THROW(a_device_0 + c_device_1, DeviceError); }
+    { EXPECT_THROW(a_device_0 += c_device_1, DeviceError); }
+    { EXPECT_THROW(a_device_0 * c_device_1, DeviceError); }
+    { EXPECT_THROW(a_device_0 *= c_device_1, DeviceError); }
+}
+
 }  // namespace
 }  // namespace xchainer

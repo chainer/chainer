@@ -1,5 +1,6 @@
 #pragma once
 
+#include "xchainer/array.h"
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/device.h"
 
