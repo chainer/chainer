@@ -2,11 +2,8 @@ import six
 
 import numpy
 
-<<<<<<< HEAD
 from chainer import cuda
-=======
 from chainer.backends import intel64
->>>>>>> 1609057727d0e9ec7296b0715c9280d7e64e36ae
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
@@ -98,10 +95,12 @@ class LinearFunction(function_node.FunctionNode):
                 gx, = LinearGradData().apply((W, gy))
                 ret.append(chainer.functions.cast(gx, x.dtype))
             if 1 in indexes:
-                gW, = LinearGradWeight(W.dtype, self._n_batch_axes).apply((x, gy))
+                gW, = LinearGradWeight(
+                    W.dtype, self._n_batch_axes).apply((x, gy))
                 ret.append(chainer.functions.cast(gW, W.dtype))
             if 2 in indexes:
-                gb = chainer.functions.sum(gy, axis=tuple(six.moves.range(self._n_batch_axes)))
+                gb = chainer.functions.sum(
+                    gy, axis=tuple(six.moves.range(self._n_batch_axes)))
                 ret.append(gb)
 
         return ret

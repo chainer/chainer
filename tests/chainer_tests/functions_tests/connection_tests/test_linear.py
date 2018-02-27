@@ -43,7 +43,8 @@ class TestNonparameterizedLinear(unittest.TestCase):
             b = numpy.random.uniform(-1, 1, 2).astype(self.x_dtype)
 
         batch_shape = (4,) + (2,) * (self.n_batch_axes - 1)
-        x = numpy.random.uniform(-1, 1, batch_shape + (3,)).astype(self.x_dtype)
+        x = numpy.random.uniform(
+            -1, 1, batch_shape + (3,)).astype(self.x_dtype)
         gy = numpy.random.uniform(-1, 1, (2,)).astype(self.x_dtype)
         ggx = numpy.random.uniform(-1, 1, x.shape).astype(self.x_dtype)
         ggW = numpy.random.uniform(-1, 1, W.shape).astype(self.W_dtype)
