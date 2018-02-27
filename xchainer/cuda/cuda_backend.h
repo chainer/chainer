@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <tuple>
 
 #include "xchainer/backend.h"
 #include "xchainer/device.h"
@@ -18,6 +19,8 @@ public:
     std::string GetName() const override;
 
     int GetDeviceCount() const override;
+
+    bool SupportsTransfer(Device& src_device, Device& dst_device) override;
 
 private:
     std::unique_ptr<Device> CreateDevice(int index) override;

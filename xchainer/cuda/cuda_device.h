@@ -21,6 +21,12 @@ public:
     void Mul(const Array& lhs, const Array& rhs, Array& out) override;
 
     void Synchronize() override;
+
+    std::tuple<std::shared_ptr<void>, size_t> TransferDataFrom(Device& src_device, const std::shared_ptr<void>& src_ptr, size_t offset,
+                                                               size_t bytesize) override;
+
+    std::tuple<std::shared_ptr<void>, size_t> TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr, size_t offset,
+                                                             size_t bytesize) override;
 };
 
 }  // namespace cuda

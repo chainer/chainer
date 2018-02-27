@@ -64,4 +64,17 @@ void NativeDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
 
 void NativeDevice::Synchronize() {}
 
+std::tuple<std::shared_ptr<void>, size_t> NativeDevice::TransferDataFrom(Device& src_device, const std::shared_ptr<void>& src_ptr,
+                                                                         size_t offset, size_t bytesize) {
+    (void)src_device;  // unused
+    std::shared_ptr<void> dst_ptr = Allocate(bytesize);
+    MemoryCopy(dst_ptr.get(), &static_cast<int8_t*>(src_ptr.get())[offset], bytesize);
+    return std::make_tuple(std::move(dst_ptr), size_t{0});
+}
+
+std::tuple<std::shared_ptr<void>, size_t> NativeDevice::TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr,
+                                                                       size_t offset, size_t bytesize) {
+    return dst_device.TransferDataFrom(*this, src_ptr, offset, bytesize);
+}
+
 }  // namespace xchainer

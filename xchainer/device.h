@@ -47,6 +47,22 @@ public:
     Context& context() const { return backend_.context(); }
     int index() const { return index_; }
 
+    // Transfers the data from the specified device to this device.
+    // It is usually preceded by a call to Backend::SupportsTransfer(), thus this function can assume transfer between the devices are
+    // supported.
+    //
+    // It returns a tuple of (data, offset).
+    virtual std::tuple<std::shared_ptr<void>, size_t> TransferDataFrom(Device& src_device, const std::shared_ptr<void>& src_ptr,
+                                                                       size_t offset, size_t bytesize) = 0;
+
+    // Transfers the data from this device to the specified device.
+    // It is usually preceded by a call to Backend::SupportsTransfer(), thus this function can assume transfer between the devices are
+    // supported.
+    //
+    // It returns a tuple of (data, offset).
+    virtual std::tuple<std::shared_ptr<void>, size_t> TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr,
+                                                                     size_t offset, size_t bytesize) = 0;
+
 protected:
     // Throws an exception if array devices are incompatible, else does nothing.
     template <typename... Arrays>

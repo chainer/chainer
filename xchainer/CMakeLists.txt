@@ -62,6 +62,7 @@ if(ENABLE_TEST)
         array_repr_test.cc
         array_test.cc
         backprop_test.cc
+        array_to_device_test.cc
         check_backward.cc
         check_backward_test.cc
         context_test.cc

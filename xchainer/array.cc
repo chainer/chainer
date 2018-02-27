@@ -144,6 +144,48 @@ Array Array::ZerosLike(const Array& array, Device& device) { return Zeros(array.
 
 Array Array::OnesLike(const Array& array, Device& device) { return Ones(array.shape(), array.dtype(), device); }
 
+Array Array::ToDevice(Device& dst_device) const {
+    Device& src_device = body_->device_;
+
+    // TODO(niboshi): Offset is assumed to be 0. It should be taken into account.
+    std::shared_ptr<void> data;
+    int64_t offset = 0;
+    size_t bytesize = GetTotalBytes();
+
+    if (&src_device == &dst_device) {
+        // Devices are identical
+        // Allocate new memory and copy
+        data = dst_device.Allocate(bytesize);
+        dst_device.MemoryCopy(data.get(), body_->data_.get(), bytesize);
+        offset = 0;
+    } else if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
+        // Use src backend for transfer
+        std::tuple<std::shared_ptr<void>, size_t> data_tuple = src_device.TransferDataTo(dst_device, body_->data_, 0, bytesize);
+        data = std::move(std::get<0>(data_tuple));
+        offset = static_cast<int64_t>(std::get<1>(data_tuple));
+    } else if (dst_device.backend().SupportsTransfer(src_device, dst_device)) {
+        // Use dst backend for transfer
+        std::tuple<std::shared_ptr<void>, size_t> data_tuple = dst_device.TransferDataFrom(src_device, body_->data_, 0, bytesize);
+        data = std::move(std::get<0>(data_tuple));
+        offset = static_cast<int64_t>(std::get<1>(data_tuple));
+    } else {
+        // Neither backends support transfer
+        std::ostringstream ss;
+        ss << "Transfer between devices is not supported: src='" << src_device.name() << "' dst='" << dst_device.name() << "'";
+        throw XchainerError(ss.str());
+    }
+
+    // Create output array
+    Array out{body_->shape_, body_->dtype_, dst_device, std::move(data), body_->is_contiguous_, offset};
+
+    // Connect the graph.
+    // Backward operation is implemented as backward-transfer.
+    internal::SetUpOpNodes("transfer", {*this}, out,
+                           {[&src_device](const Array& gout, const std::vector<GraphId>&) -> Array { return gout.ToDevice(src_device); }},
+                           {});
+    return out;
+}
+
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
     return *this;

@@ -28,5 +28,9 @@ std::unique_ptr<Device> CudaBackend::CreateDevice(int index) {
     return std::make_unique<CudaDevice>(*this, index);
 }
 
+bool CudaBackend::SupportsTransfer(Device& src_device, Device& dst_device) {
+    return &src_device.backend() == this && &dst_device.backend() == this;
+}
+
 }  // namespace cuda
 }  // namespace xchainer

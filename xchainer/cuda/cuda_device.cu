@@ -6,6 +6,7 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/dtype.h"
 #include "xchainer/memory.h"
+#include "xchainer/native_backend.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
@@ -114,6 +115,28 @@ void CudaDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
 void CudaDevice::Synchronize() {
     CheckError(cudaSetDevice(index()));
     CheckError(cudaDeviceSynchronize());
+}
+
+std::tuple<std::shared_ptr<void>, size_t> CudaDevice::TransferDataFrom(Device& src_device, const std::shared_ptr<void>& src_ptr,
+                                                                       size_t offset, size_t bytesize) {
+    (void)src_device;  // unused
+
+    // src_device is either a native device or a CUDA device, so the direct access is always possible.
+    std::shared_ptr<void> dst_ptr = Allocate(bytesize);
+    MemoryCopy(dst_ptr.get(), &static_cast<int8_t*>(src_ptr.get())[offset], bytesize);
+    return std::make_tuple(std::move(dst_ptr), 0);
+}
+
+std::tuple<std::shared_ptr<void>, size_t> CudaDevice::TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr,
+                                                                     size_t offset, size_t bytesize) {
+    if (dst_device.backend().GetName() == NativeBackend::kDefaultName) {
+        // Synchronize the source data on CUDA device so that the native device can read it.
+        Synchronize();
+    }
+
+    std::shared_ptr<void> dst_ptr = dst_device.Allocate(bytesize);
+    dst_device.MemoryCopy(dst_ptr.get(), &static_cast<int8_t*>(src_ptr.get())[offset], bytesize);
+    return std::make_tuple(std::move(dst_ptr), 0);
 }
 
 }  // namespace cuda
