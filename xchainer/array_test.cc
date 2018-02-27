@@ -66,6 +66,7 @@ public:
 
         // Shallow copy, therefore assert the same address to data
         EXPECT_EQ(expected.data().get(), actual.data().get());
+        EXPECT_EQ(&expected.device(), &actual.device());
 
         // Views should have different array bodies.
         EXPECT_NE(expected.body(), actual.body());
@@ -928,6 +929,8 @@ TEST_P(ArrayTest, AsConstantCopy) {
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
         Array b = a.AsConstant(CopyKind::kCopy);
 
+        EXPECT_EQ(&b.device(), &a.device());
+
         ExpectEqualCopy<bool>(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
         EXPECT_FALSE(b.IsGradRequired("graph_2"));
@@ -946,6 +949,8 @@ TEST_P(ArrayTest, AsConstantCopy) {
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
         ASSERT_TRUE(a.IsGradRequired("graph_3"));
         Array b = a.AsConstant({"graph_1", "graph_2"}, CopyKind::kCopy);
+
+        EXPECT_EQ(&b.device(), &a.device());
 
         ExpectEqualCopy<bool>(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
