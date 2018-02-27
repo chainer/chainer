@@ -25,7 +25,7 @@ class TestTimeTrigger(unittest.TestCase):
         # first event is triggerred on time==1.0
         self.trainer.elapsed_time = 1.2
         assert self.trigger(self.trainer)
-        
+
         self.trainer.elapsed_time = 1.3
         assert not self.trigger(self.trainer)
 
