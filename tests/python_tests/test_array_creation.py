@@ -45,6 +45,13 @@ def test_empty(shape, dtype):
     check_basic_creation(a, shape, dtype)
 
 
+def test_empty_cuda(shape, dtype):
+    device = xchainer.get_default_context().get_device('cuda', 0)
+    with xchainer.device_scope(device):
+        a = xchainer.empty(shape, dtype)
+    check_basic_creation(a, shape, dtype)
+
+
 def test_empty_like(shape, dtype):
     t = create_dummy_array(shape, dtype)
     a = xchainer.empty_like(t)
