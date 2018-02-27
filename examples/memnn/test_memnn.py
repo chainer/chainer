@@ -4,8 +4,6 @@ import argparse
 
 import numpy
 
-import chainer
-
 import babi
 import memnn
 
