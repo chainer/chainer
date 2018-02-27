@@ -11,7 +11,6 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_repr.h"
-#include "xchainer/backend.h"
 #include "xchainer/error.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
@@ -21,20 +20,10 @@
 namespace xchainer {
 namespace gradient_internal {
 
-void Synchronize() {
-#ifdef XCHAINER_ENABLE_CUDA
-    Device& device = GetDefaultDevice();
-    // TODO(sonots): Use device.Synchronize()
-    if (device.backend().GetName() == "cuda") {
-        cuda::CheckError(cudaDeviceSynchronize());
-    }
-#endif  // XCHAINER_ENABLE_CUDA
-}
-
 Array& Subtract(const Array& lhs, const Array& rhs, Array& out) {
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Synchronize();
+        GetDefaultDevice().Synchronize();
         auto* ldata = static_cast<const T*>(lhs.data().get());
         auto* rdata = static_cast<const T*>(rhs.data().get());
         auto* odata = static_cast<T*>(out.data().get());
@@ -49,7 +38,7 @@ Array& Subtract(const Array& lhs, const Array& rhs, Array& out) {
 Array& Divide(const Array& lhs, const Array& rhs, Array& out) {
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Synchronize();
+        GetDefaultDevice().Synchronize();
         auto* ldata = static_cast<const T*>(lhs.data().get());
         auto* rdata = static_cast<const T*>(rhs.data().get());
         auto* odata = static_cast<T*>(out.data().get());
