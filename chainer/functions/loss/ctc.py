@@ -295,16 +295,16 @@ def connectionist_temporal_classification(
         x (list or tuple of :class:`~chainer.Variable`):
             A list of unnormalized probabilities for labels.
             Each element of ``x``, ``x[i]`` is a :class:`~chainer.Variable`
-            object whic has shape ``(B, V)`` where ``B``
+            object which has shape ``(B, V)`` where ``B``
             is the batch size and ``V`` is the number of labels.
-            Softmax of ``x[i]`` represents the probabilities of labels at time
-            ``i``.
+            The softmax of ``x[i]`` represents the probabilities of the labels
+            at time ``i``.
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Expected label sequence.
             Its shape is ``(B, M)`` where ``B`` is the batch size and ``M`` is
             the maximum length of the label sequences.
-            All elements in ``t`` must be lesser than ``V``, the number of
+            All elements in ``t`` must be less than ``V``, the number of
             labels.
         blank_symbol (int): Index of blank_symbol.
             This value must be non-negative.
@@ -312,13 +312,13 @@ def connectionist_temporal_classification(
         :class:`cupy.ndarray` or ``None``):
             Length of valid sequence for each of mini batch ``x`` (optional).
             Its shape must be ``(B,)``.
-            If input_length is skipped, It regards that
+            If the ``input_length`` is skipped, it assumes that
             all of ``x`` is valid input.
         label_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray` or ``None``):
             Length of valid sequence for each of mini batch ``t`` (optional).
             Its shape must be ``(B,)``.
-            If label_length is skipped, It regards that
+            If the ``label_length`` is skipped, it assumes that
             all of ``t`` is valid input.
         reduce (str): Reduction option. Its value must be either
             ``'mean'`` or ``'no'``. Otherwise,
