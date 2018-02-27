@@ -163,6 +163,21 @@ and we can not infer the latent variable :math:`\bf z` from a sample.
 3.2 How GAN works?
 -------------------
 
+As explained above, GAN uses the two models, the generator and the discriminator. In other words,
+we setup two neural networks for GAN.
+
+When training the networks, we should match the distribution of the samples
+:math:`{\bf s} \sim p({\bf s})` generated from the true distribution with the distribution of the samples
+:math:`{\bf s} = G ({\bf z})` generated from the generator.
+
+.. image:: ../../image/dcgan/gan-overview.png
+
+In the GAN, learn generator G which matches the distribution to the idea of ​​Nash equilibrium of game theory. Specifically, while learning the identifier D, the generator G is also learned so that it can not be identified.
+
+As an example of intuitively describing the above, the relationship between counterfeiters of banknotes and police is frequently used. Counterfeiters make counterfeit notes that are as similar as possible to real banknotes. The police try to distinguish real bank notes from counterfeit notes. It is supposed that the ability of the police gradually rises, so that real banknotes and counterfeit notes can be recognized well. At that time, counterfeiters will not be able to use counterfeit banknotes, so they will further build counterfeit banknotes closer to real. As the police further improve so that they can distinguish real and counterfeit notes ... repeatedly, the counterfeiter will eventually be able to produce counterfeit banknotes indistinguishable from genuine.
+
+The learning process using mathematical expressions is as follows. First, since the classifier D (x) is a probability of identifying whether it is a true model, it can be expressed as follows.
+
 3.3 What is DCGAN?
 -------------------
 
