@@ -61,9 +61,10 @@ if(ENABLE_TEST)
         array_device_test.cc
         array_repr_test.cc
         array_test.cc
+        backprop_test.cc
         check_backward.cc
         check_backward_test.cc
-        backprop_test.cc
+        context_test.cc
         device_test.cc
         dtype_test.cc
         gradient_check_test.cc
