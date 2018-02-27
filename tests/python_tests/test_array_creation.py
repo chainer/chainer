@@ -40,15 +40,40 @@ def check_basic_creation(a, shape, dtype):
     assert not a.is_grad_required()
 
 
+def check_device(a, device_id=None):
+    if device_id is None:
+        device = xchainer.get_default_device()
+    else:
+        device = xchainer.get_default_context().get_device(device_id)
+    assert a.device is device
+
+
 def test_empty(shape, dtype):
     a = xchainer.empty(shape, dtype)
     check_basic_creation(a, shape, dtype)
+    check_device(a)
+
+
+def test_empty_device(shape, dtype):
+    a = xchainer.empty(shape, dtype, 'native:1')
+    check_basic_creation(a, shape, dtype)
+    check_device(a, 'native:1')
 
 
 def test_empty_like(shape, dtype):
     t = create_dummy_array(shape, dtype)
     a = xchainer.empty_like(t)
     check_basic_creation(a, shape, dtype)
+    check_device(a)
+
+    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+
+
+def test_empty_like_device(shape, dtype):
+    t = create_dummy_array(shape, dtype)
+    a = xchainer.empty_like(t, 'native:1')
+    check_basic_creation(a, shape, dtype)
+    check_device(a, 'native:1')
 
     assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
 
@@ -56,6 +81,16 @@ def test_empty_like(shape, dtype):
 def test_zeros(shape, dtype):
     a = xchainer.zeros(shape, dtype)
     check_basic_creation(a, shape, dtype)
+    check_device(a)
+
+    value = False if dtype == xchainer.bool else 0
+    assert all([el == value for el in a._debug_flat_data])
+
+
+def test_zeros_device(shape, dtype):
+    a = xchainer.zeros(shape, dtype, 'native:1')
+    check_basic_creation(a, shape, dtype)
+    check_device(a, 'native:1')
 
     value = False if dtype == xchainer.bool else 0
     assert all([el == value for el in a._debug_flat_data])
@@ -65,6 +100,19 @@ def test_zeros_like(shape, dtype):
     t = create_dummy_array(shape, dtype)
     a = xchainer.zeros_like(t)
     check_basic_creation(a, shape, dtype)
+    check_device(a)
+
+    value = False if dtype == xchainer.bool else 0
+    assert all([el == value for el in a._debug_flat_data])
+
+    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+
+
+def test_zeros_like_device(shape, dtype):
+    t = create_dummy_array(shape, dtype)
+    a = xchainer.zeros_like(t, 'native:1')
+    check_basic_creation(a, shape, dtype)
+    check_device(a, 'native:1')
 
     value = False if dtype == xchainer.bool else 0
     assert all([el == value for el in a._debug_flat_data])
@@ -75,6 +123,16 @@ def test_zeros_like(shape, dtype):
 def test_ones(shape, dtype):
     a = xchainer.ones(shape, dtype)
     check_basic_creation(a, shape, dtype)
+    check_device(a)
+
+    value = True if dtype == xchainer.bool else 1
+    assert all([el == value for el in a._debug_flat_data])
+
+
+def test_ones_device(shape, dtype):
+    a = xchainer.ones(shape, dtype, 'native:1')
+    check_basic_creation(a, shape, dtype)
+    check_device(a, 'native:1')
 
     value = True if dtype == xchainer.bool else 1
     assert all([el == value for el in a._debug_flat_data])
@@ -84,6 +142,7 @@ def test_ones_like(shape, dtype):
     t = create_dummy_array(shape, dtype)
     a = xchainer.ones_like(t)
     check_basic_creation(a, shape, dtype)
+    check_device(a)
 
     value = True if dtype == xchainer.bool else 1
     assert all([el == value for el in a._debug_flat_data])
@@ -91,8 +150,26 @@ def test_ones_like(shape, dtype):
     assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
 
 
-def check_full(shape, value, dtype):
-    a = xchainer.full(shape, value, dtype)
+def test_ones_like_device(shape, dtype):
+    t = create_dummy_array(shape, dtype)
+    a = xchainer.ones_like(t, 'native:1')
+    check_basic_creation(a, shape, dtype)
+    check_device(a, 'native:1')
+
+    value = True if dtype == xchainer.bool else 1
+    assert all([el == value for el in a._debug_flat_data])
+
+    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+
+
+def check_full(shape, value, dtype, device=None):
+    if device is None:
+        a = xchainer.full(shape, value, dtype)
+        check_device(a)
+    else:
+        a = xchainer.full(shape, value, dtype, device)
+        check_device(a, device)
+
     check_basic_creation(a, shape, dtype)
 
     if math.isnan(value):
@@ -101,10 +178,16 @@ def check_full(shape, value, dtype):
         assert a._debug_flat_data == [value] * a.total_size
 
 
-def check_full_with_scalar(shape, scalar):
+def check_full_with_scalar(shape, scalar, device=None):
     assert isinstance(scalar, xchainer.Scalar), 'This test must be done on xchainer.Scalar'
 
-    a = xchainer.full(shape, scalar)
+    if device is None:
+        a = xchainer.full(shape, scalar)
+        check_device(a)
+    else:
+        a = xchainer.full(shape, scalar, device)
+        check_device(a, device)
+
     check_basic_creation(a, shape, scalar.dtype)
 
     if scalar.dtype in (xchainer.float32, xchainer.float64) and math.isnan(float(scalar)):
@@ -113,7 +196,7 @@ def check_full_with_scalar(shape, scalar):
         assert a._debug_flat_data == [scalar.tolist()] * a.total_size
 
 
-def check_full_with_py_scalar(shape, value):
+def check_full_with_py_scalar(shape, value, device=None):
     if isinstance(value, bool):
         dtype = xchainer.bool_
     elif isinstance(value, int):
@@ -123,7 +206,13 @@ def check_full_with_py_scalar(shape, value):
     else:
         assert False, 'This test should be done on either of (bool, int, float)'
 
-    a = xchainer.full(shape, value)
+    if device is None:
+        a = xchainer.full(shape, value)
+        check_device(a)
+    else:
+        a = xchainer.full(shape, value, device)
+        check_device(a, device)
+
     check_basic_creation(a, shape, dtype)
 
     if isinstance(value, float) and math.isnan(value):
@@ -132,9 +221,16 @@ def check_full_with_py_scalar(shape, value):
         assert a._debug_flat_data == [value] * a.total_size
 
 
-def check_full_like(shape, value, dtype):
+def check_full_like(shape, value, dtype, device=None):
     t = create_dummy_array(shape, dtype)
-    a = xchainer.full_like(t, value)
+
+    if device is None:
+        a = xchainer.full_like(t, value)
+        check_device(a)
+    else:
+        a = xchainer.full_like(t, value, device)
+        check_device(a, device)
+
     check_basic_creation(a, shape, dtype)
 
     if math.isnan(value):
@@ -148,36 +244,51 @@ def check_full_like(shape, value, dtype):
 def test_full_full_like_0(shape, dtype):
     value = False if dtype == xchainer.bool else 0
     check_full(shape, value, dtype)
+    check_full(shape, value, dtype, 'native:1')
     check_full_with_scalar(shape, xchainer.Scalar(value, dtype))
+    check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
     check_full_like(shape, value, dtype)
+    check_full_like(shape, value, dtype, 'native:1')
 
 
 def test_full_full_like_1(shape, dtype):
     value = True if dtype == xchainer.bool else 1
     check_full(shape, value, dtype)
+    check_full(shape, value, dtype, 'native:1')
     check_full_with_scalar(shape, xchainer.Scalar(value, dtype))
+    check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
     check_full_like(shape, value, dtype)
+    check_full_like(shape, value, dtype, 'native:1')
 
 
 def test_full_full_like_neg1(shape, signed_dtype):
     dtype = signed_dtype
     value = -1
     check_full(shape, value, dtype)
+    check_full(shape, value, dtype, 'native:1')
     check_full_with_scalar(shape, xchainer.Scalar(value, dtype))
+    check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
     check_full_like(shape, value, dtype)
+    check_full_like(shape, value, dtype, 'native:1')
 
 
 def test_full_full_like_nan(shape, float_dtype):
     dtype = float_dtype
     value = float('nan')
     check_full(shape, value, dtype)
+    check_full(shape, value, dtype, 'native:1')
     check_full_with_scalar(shape, xchainer.Scalar(value, dtype))
+    check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
     check_full_like(shape, value, dtype)
+    check_full_like(shape, value, dtype, 'native:1')
 
 
 def test_full_full_like_inf(shape, float_dtype):
     dtype = float_dtype
     value = float('inf')
     check_full(shape, value, dtype)
+    check_full(shape, value, dtype, 'native:1')
     check_full_with_scalar(shape, xchainer.Scalar(value, dtype))
+    check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
     check_full_like(shape, value, dtype)
+    check_full_like(shape, value, dtype, 'native:1')
