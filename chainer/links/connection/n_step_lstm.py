@@ -97,6 +97,10 @@ class NStepLSTM(NStepLSTMBase):
     def rnn(self, *args):
         return rnn.n_step_lstm(*args)
 
+    @property
+    def n_cell(self):
+        return 2
+
 
 class NStepBiLSTM(NStepLSTMBase):
     """__init__(self, n_layers, in_size, out_size, dropout)
@@ -139,3 +143,7 @@ class NStepBiLSTM(NStepLSTMBase):
 
     def rnn(self, *args):
         return rnn.n_step_bilstm(*args)
+
+    @property
+    def n_cell(self):
+        return 2
