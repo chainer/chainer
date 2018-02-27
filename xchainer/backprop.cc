@@ -30,9 +30,11 @@ public:
 
     void Run() {
         for (size_t i = 0; i < outputs_.size(); ++i) {
+            const Array& output = outputs_[i];
             const std::shared_ptr<ArrayNode>& array_node = output_array_nodes_[i];
+
             if (!array_node->grad()) {
-                array_node->set_grad(Array::OnesLike(outputs_[i]));
+                array_node->set_grad(Array::OnesLike(output, output.device()));
             }
             PushNextOpNode(array_node);
         }
