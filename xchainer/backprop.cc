@@ -21,24 +21,29 @@ struct OpNodeComparator {
 
 class BackwardImpl {
 public:
-    BackwardImpl(const Array& output, const GraphId& graph_id, DoubleBackpropOption double_backprop)
-        : output_(output), output_array_node_(internal::GetMutableArrayNode(output, graph_id)), double_backprop_(double_backprop){};
+    BackwardImpl(const std::vector<std::reference_wrapper<const Array>>& outputs, const GraphId& graph_id,
+                 DoubleBackpropOption double_backprop)
+        : outputs_(outputs), graph_id_(graph_id), double_backprop_(double_backprop) {
+        for (const Array& output : outputs) {
+            output_array_nodes_.push_back(internal::GetMutableArrayNode(output, graph_id));
+        }
+    };
 
     void Run() {
-        GraphId graph_id = output_array_node_->graph_id();
-
-        if (!output_array_node_->grad()) {
-            output_array_node_->set_grad(Array::OnesLike(output_));
+        for (size_t i = 0; i < outputs_.size(); ++i) {
+            const std::shared_ptr<ArrayNode>& array_node = output_array_nodes_[i];
+            if (!array_node->grad()) {
+                array_node->set_grad(Array::OnesLike(outputs_[i]));
+            }
+            PushNextOpNode(array_node);
         }
-
-        PushNextOpNode(output_array_node_);
 
         while (!candidate_op_nodes_.empty()) {
             std::pop_heap(candidate_op_nodes_.begin(), candidate_op_nodes_.end(), OpNodeComparator{});
             std::shared_ptr<OpNode> op_node = std::move(candidate_op_nodes_.back());
             candidate_op_nodes_.pop_back();
 
-            std::vector<Array> gxs = ComputeNextGradients(*op_node, graph_id);
+            std::vector<Array> gxs = ComputeNextGradients(*op_node, graph_id_);
             AccumulateNextGradients(*op_node, gxs);
 
             for (const auto& next_array_node : op_node->next_nodes()) {
@@ -71,7 +76,10 @@ private:
             gxs.emplace_back(backward_function(*gy, graph_ids_to_stop_gradient));
         }
 
-        if (previous_array_node != output_array_node_) {
+        // This may be slow if output_array_nodes_.size() (== outputs_.size()) is large.
+        if (std::find_if(output_array_nodes_.begin(), output_array_nodes_.end(), [&previous_array_node](const auto& ref) {
+                return previous_array_node == ref.get();
+            }) == output_array_nodes_.end()) {
             previous_array_node->ClearGrad();
         }
 
@@ -81,7 +89,7 @@ private:
     void AccumulateNextGradients(const OpNode& op_node, const std::vector<Array>& gxs) {
         gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node.next_nodes();
         assert(next_array_nodes.size() == gxs.size());
-        for (decltype(next_array_nodes)::index_type i = 0; i < next_array_nodes.size(); ++i) {
+        for (size_t i = 0; i < next_array_nodes.size(); ++i) {
             const Array& gx = gxs[i];
             const std::shared_ptr<ArrayNode>& next_array_node = next_array_nodes[i];
             const nonstd::optional<Array>& grad = next_array_node->grad();
@@ -117,8 +125,9 @@ private:
     std::unordered_map<const OpNode*, std::shared_ptr<ArrayNode>> previous_array_node_map_;
 
     // Arguments to Backward()
-    const Array& output_;
-    const std::shared_ptr<ArrayNode>& output_array_node_;
+    const std::vector<std::reference_wrapper<const Array>>& outputs_;
+    std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>> output_array_nodes_;
+    const GraphId& graph_id_;
     DoubleBackpropOption double_backprop_;
 };
 
@@ -126,9 +135,16 @@ private:
 
 void Backward(const Array& output, const GraphId& graph_id, DoubleBackpropOption double_backprop) {
     // TODO(takagi): Operations that have multiple outputs
-    // TODO(takagi): Begin backprop from multiple outputs
-    // BackwardImpl{output, graph_id, leave_graph}.run();
-    BackwardImpl{output, graph_id, double_backprop}.Run();
+    BackwardImpl{{output}, graph_id, double_backprop}.Run();
+}
+
+void Backward(const std::vector<Array>& outputs, const GraphId& graph_id, DoubleBackpropOption double_backprop) {
+    BackwardImpl{{outputs.begin(), outputs.end()}, graph_id, double_backprop}.Run();
+}
+
+void Backward(const std::vector<std::reference_wrapper<const Array>>& outputs, const GraphId& graph_id,
+              DoubleBackpropOption double_backprop) {
+    BackwardImpl{outputs, graph_id, double_backprop}.Run();
 }
 
 }  // namespace xchainer

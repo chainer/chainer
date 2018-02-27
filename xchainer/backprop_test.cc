@@ -1,6 +1,7 @@
 #include "xchainer/backprop.h"
-#include <algorithm>
 
+#include <algorithm>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -73,6 +74,14 @@ public:
         }
     }
 
+    void CheckArrayHasGrad(const Array& a) const { EXPECT_TRUE(a.GetGrad().has_value()); }
+
+    void CheckArrayHasGrad(const std::vector<Array>& as) const {
+        for (const auto& a : as) {
+            CheckArrayHasGrad(a);
+        }
+    }
+
     // Checks the correctness of Backward() applied to the output of a given function.
     // Gradients are only computed w.r.t. target_inputs, and are compared to expected_grads.
     template <typename Fprop, typename... Args>
@@ -81,12 +90,13 @@ public:
 
         std::for_each(target_inputs.begin(), target_inputs.end(), [](auto& x) { x.RequireGrad(); });
 
+        // y may be Array or vector<Array>
         auto y = fprop(target_inputs, args...);
         Backward(y);
         for (size_t i = 0; i < expected_grads.size(); ++i) {
             ExpectEqual<float>(expected_grads[i], *target_inputs[i].GetGrad());
         }
-        EXPECT_TRUE(y.GetGrad().has_value());
+        CheckArrayHasGrad(y);
     }
 
     template <typename Fprop>
@@ -134,6 +144,16 @@ TEST_P(BackpropTest, BackwardBasic) {
 TEST_P(BackpropTest, BackwardWithExtraInputs) {
     CheckBackpropSingleElementExtraInputs({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
     CheckBackpropSingleElementExtraInputs({2.0f}, {4.0f}, {4.0f}, [](auto& xs, auto& ys) { return xs[0] * ys[0]; });
+}
+
+TEST_P(BackpropTest, BackwardMultipleOutputs) {
+    CheckBackpropSingleElement({2.0f, 3.0f}, {4.0f, 6.0f}, [](auto& xs) -> std::vector<Array> { return {xs[0] * xs[0], xs[1] * xs[1]}; });
+    CheckBackpropSingleElement({2.0f, 3.0f}, {4.0f, 3.0f}, [](auto& xs) -> std::vector<Array> { return {xs[0] * xs[1], xs[0] + xs[1]}; });
+    CheckBackpropSingleElement({2.0f, 3.0f}, {21.0f, 16.0f},
+                               [](auto& xs) -> std::vector<Array> {
+                                   Array z = xs[0] * xs[1];
+                                   return {xs[0] * z, xs[1] * z};
+                               });
 }
 
 TEST_P(BackpropTest, BackwardSoleArrayNode) {
