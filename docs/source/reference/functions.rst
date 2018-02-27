@@ -191,10 +191,12 @@ Mathematical functions
    chainer.functions.erfc
    chainer.functions.exp
    chainer.functions.expm1
+   chainer.functions.fft
    chainer.functions.fix
    chainer.functions.fmod
    chainer.functions.floor
    chainer.functions.identity
+   chainer.functions.ifft
    chainer.functions.inv
    chainer.functions.linear_interpolate
    chainer.functions.log
