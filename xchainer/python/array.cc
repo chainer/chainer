@@ -215,6 +215,52 @@ void InitXchainerArray(pybind11::module& m) {
 
             return list;
         });
+
+    m.def("empty",
+          [](const Shape& shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+              return Array::Empty(shape, dtype, GetDevice(device_id)).move_body();
+          },
+          py::arg("shape"), py::arg("dtype"), py::arg("device") = nullptr)
+        .def("full",
+             [](const Shape& shape, Scalar value, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+                 return Array::Full(shape, value, dtype, GetDevice(device_id)).move_body();
+             },
+             py::arg("shape"), py::arg("value"), py::arg("dtype"), py::arg("device") = nullptr)
+        .def("full",
+             [](const Shape& shape, Scalar value, const nonstd::optional<std::string>& device_id) {
+                 return Array::Full(shape, value, GetDevice(device_id)).move_body();
+             },
+             py::arg("shape"), py::arg("value"), py::arg("device") = nullptr)
+        .def("zeros",
+             [](const Shape& shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+                 return Array::Zeros(shape, dtype, GetDevice(device_id)).move_body();
+             },
+             py::arg("shape"), py::arg("dtype"), py::arg("device") = nullptr)
+        .def("ones",
+             [](const Shape& shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+                 return Array::Ones(shape, dtype, GetDevice(device_id)).move_body();
+             },
+             py::arg("shape"), py::arg("dtype"), py::arg("device") = nullptr)
+        .def("empty_like",
+             [](const ArrayBodyPtr& other, const nonstd::optional<std::string>& device_id) {
+                 return Array::EmptyLike(Array{other}, GetDevice(device_id)).move_body();
+             },
+             py::arg("other"), py::arg("device") = nullptr)
+        .def("full_like",
+             [](const ArrayBodyPtr& other, Scalar value, const nonstd::optional<std::string>& device_id) {
+                 return Array::FullLike(Array{other}, value, GetDevice(device_id)).move_body();
+             },
+             py::arg("other"), py::arg("value"), py::arg("device") = nullptr)
+        .def("zeros_like",
+             [](const ArrayBodyPtr& other, const nonstd::optional<std::string>& device_id) {
+                 return Array::ZerosLike(Array{other}, GetDevice(device_id)).move_body();
+             },
+             py::arg("other"), py::arg("device") = nullptr)
+        .def("ones_like",
+             [](const ArrayBodyPtr& other, const nonstd::optional<std::string>& device_id) {
+                 return Array::OnesLike(Array{other}, GetDevice(device_id)).move_body();
+             },
+             py::arg("other"), py::arg("device") = nullptr);
 }
 
 }  // namespace xchainer
