@@ -7,8 +7,8 @@ import numpy
 import six
 
 import chainer
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer import function_hook
 from chainer.utils import type_check
 from chainer import variable
@@ -222,8 +222,18 @@ Use apply() method instead.\
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
+        # Check for input array types
+        if not chainer.is_arrays_compatible(in_data):
+            raise ValueError(
+                'incompatible array types are mixed in the forward input '
+                '({}).\n'
+                '{}'.format(
+                    self.label,
+                    ', '.join(str(type(x)) for x in in_data)))
+
         is_debug = chainer.is_debug()
         if is_debug:
+            # Keep stack trace for debug
             self.stack = traceback.extract_stack()
 
         if configuration.config.type_check:
@@ -243,7 +253,20 @@ Use apply() method instead.\
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             outputs = self.forward(in_data)
-            assert type(outputs) is tuple
+
+        # Check for output array types
+        if not isinstance(outputs, tuple):
+            raise TypeError(
+                'forward output must be a tuple ({})\n'
+                'Actual: {}'.format(self.label, type(outputs)))
+
+        if not chainer.is_arrays_compatible(outputs):
+            raise ValueError(
+                'incompatible array types are mixed in the forward output '
+                '({}).\n'
+                '{}'.format(
+                    self.label,
+                    ', '.join(str(type(x)) for x in outputs)))
 
         for hook in hooks:
             hook.forward_postprocess(self, in_data)
@@ -447,7 +470,7 @@ Use apply() method instead.\
             target_input_indexes (tuple of int): Indices of the input variables
                 w.r.t. which the gradients are required. It is guaranteed that
                 this tuple contains at least one element.
-            grad_outputs (tuple of :class:`~chainer.Variable`\ s): Gradients
+            grad_outputs (tuple of :class:`~chainer.Variable`\\ s): Gradients
                 w.r.t. the output variables.
                 If the gradient w.r.t. an output variable is not
                 given, the corresponding element is ``None``.
@@ -509,6 +532,10 @@ Use apply() method instead.\
            This behavior might be changed in a future version.
 
         """
+        assert isinstance(target_input_indexes, tuple)
+        assert isinstance(grad_outputs, tuple)
+        assert isinstance(grad_inputs, tuple)
+
         # The default implementation uses backward(). You can override this
         # method without using backward().
         gxs = self.backward(target_input_indexes, grad_outputs)
@@ -625,7 +652,7 @@ Use apply() method instead.\
 
 
 def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
-         retain_grad=False, enable_double_backprop=False):
+         retain_grad=False, enable_double_backprop=False, loss_scale=None):
     """Computes the gradient of output variables w.r.t.\\  the input variables.
 
     This function implements the backpropagation algorithm. While
@@ -674,6 +701,14 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             the memory consumption (and possibly the computational time) to
             remember the intermediate gradient values for the second
             backpropagation.
+        loss_scale (float): Loss scaling factor. Loss scaling is a usefull
+            technique to mitigate vanishing gradient issue that tends to happen
+            when low precision data type like float16 is used during training.
+            If you set loss scaling factor, gradients of loss values are to be
+            multiplied by the factor before backprop starts. The factor is
+            propagated to whole gradients in a computational graph along the
+            backprop. The gradients of parameters are divided by the factor
+            just before the parameters are to be updated.
 
     Returns:
         A list of gradient variables w.r.t. the inputs.
@@ -693,6 +728,12 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         raise TypeError(
             'grad_inputs must be a tuple or a list or None, not {}.'.format(
                 type(grad_inputs)))
+
+    for v in outputs:
+        # Raise error here if v is created by Function.backward.
+        # In such case, we don't know exact inputs of the creator.
+        v.node._check_old_style_gradient()
+
     # The implementation consists of three steps.
 
     # 1. Backward enumeration: all the nodes reachable backward from the output
@@ -709,6 +750,10 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             continue
         visited_funcs.add(func)
         for x in func.inputs:
+            # Raise error here if x is created by Function.backward.
+            # In such case, we don't know exact inputs of the creator.
+            x._check_old_style_gradient()
+
             if not x.requires_grad:
                 continue
             forward_graph[x].append(func)
@@ -750,6 +795,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                 else:
                     gy_data = cuda.cupy.ones_like(y.data)
                 gy = variable.Variable(gy_data, requires_grad=False)
+            if loss_scale is not None:
+                gy.data *= loss_scale
         grads[y.node] = gy
 
     if grad_inputs is not None:
@@ -760,7 +807,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     # Backprop implementation. It edits grads which will only contain the
     # gradients w.r.t. the inputs.
     with chainer.using_config('enable_backprop', enable_double_backprop):
-        _backprop(outputs, inputs, grad_required, retain_grad, grads)
+        _backprop(outputs, inputs, grad_required, retain_grad, grads,
+                  loss_scale)
 
     # Extract the gradients w.r.t. the inputs and return them.
     ret = [grads.get(x.node, None) for x in inputs]
@@ -771,7 +819,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     return ret
 
 
-def _backprop(outputs, inputs, grad_required, retain_grad, grads):
+def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
     candidate_funcs, push_candidate, pop_candidate = _get_ordered_func_heap()
 
     for y in outputs:
@@ -794,6 +842,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
                 gys.append(None)
                 continue
             gys.append(grads.get(y, None))
+        gys = tuple(gys)
 
         # Collect the gradients w.r.t. the inputs
         #
@@ -814,6 +863,8 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
             else:
                 gxs.append(grads.get(x, None))
                 selected_inputs.add(x)
+        gxs = tuple(gxs)
+        input_indexes = tuple(input_indexes)
 
         if not input_indexes:
             continue
@@ -848,6 +899,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
                 v = node.get_variable_or_none()
                 if v is not None:
                     v.grad_var = g
+                    v._loss_scale = loss_scale
 
             creator = node.creator_node
             if creator is not None:

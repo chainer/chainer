@@ -63,7 +63,7 @@ class Convolution2D(link.Link):
 
         Let an input vector ``x`` be:
 
-        >>> x = np.arange(1 * 3 * 10 * 10, dtype='f').reshape(1, 3, 10, 10)
+        >>> x = np.arange(1 * 3 * 10 * 10, dtype=np.float32).reshape(1, 3, 10, 10)
 
         1. Give the first three arguments explicitly:
 
@@ -103,7 +103,8 @@ class Convolution2D(link.Link):
     """  # NOQA
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None, **kwargs):
+                 nobias=False, initialW=None, initial_bias=None, group=1,
+                 **kwargs):
         super(Convolution2D, self).__init__()
 
         argument.check_unexpected_kwargs(
@@ -121,6 +122,7 @@ class Convolution2D(link.Link):
         self.pad = _pair(pad)
         self.dilate = _pair(dilate)
         self.out_channels = out_channels
+        self.group = int(group)
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
@@ -138,7 +140,11 @@ class Convolution2D(link.Link):
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
-        W_shape = (self.out_channels, in_channels, kh, kw)
+        if (self.out_channels % self.group != 0 or
+                in_channels % self.group != 0):
+            raise ValueError('number of input and output channels must be'
+                             'divisible by group count')
+        W_shape = (self.out_channels, int(in_channels / self.group), kh, kw)
         self.W.initialize(W_shape)
 
     def __call__(self, x):
@@ -154,7 +160,8 @@ class Convolution2D(link.Link):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
-            x, self.W, self.b, self.stride, self.pad, dilate=self.dilate)
+            x, self.W, self.b, self.stride, self.pad, dilate=self.dilate,
+            group=self.group)
 
 
 def _pair(x):

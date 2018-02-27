@@ -1,5 +1,5 @@
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -70,14 +70,14 @@ def crelu(x, axis=1):
 
     .. admonition:: Example
 
-        >>> x = np.array([[-1, 0], [2, -3]], 'f')
+        >>> x = np.array([[-1, 0], [2, -3]], np.float32)
         >>> x
         array([[-1.,  0.],
                [ 2., -3.]], dtype=float32)
         >>> y = F.crelu(x, axis=1)
         >>> y.data
-        array([[ 0.,  0.,  1.,  0.],
-               [ 2.,  0.,  0.,  3.]], dtype=float32)
+        array([[0., 0., 1., 0.],
+               [2., 0., 0., 3.]], dtype=float32)
 
     """
     return CReLU(axis=axis).apply((x,))[0]

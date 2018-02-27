@@ -6,13 +6,25 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import type_check
 
 
+def make_array(start, shape, dtype):
+    size = numpy.product(shape, dtype='i')
+    a = numpy.arange(start, start + size)
+    a = a.reshape(shape)
+    a = a.astype(dtype, copy=False)
+    return a
+
+
+@testing.parameterize(*testing.product({
+    'y_shape': [(4,), (0,), (2, 3), ()],
+    'x_shape': [(3,), (0,), (4, 1), ()],
+}))
 class TestFunction(unittest.TestCase):
 
     def _get_method(self, prefix, gpu):
@@ -20,12 +32,14 @@ class TestFunction(unittest.TestCase):
         return getattr(self.f, prefix + '_' + suffix)
 
     def setUp(self):
-        y1 = numpy.arange(4).astype(numpy.float32)
-        y2 = numpy.arange(4).astype(numpy.float32) + 1
-        gx1 = numpy.arange(3).astype(numpy.float32)
+        y_shape = self.y_shape
+        x_shape = self.x_shape
+        y1 = make_array(1, y_shape, numpy.float32)
+        y2 = make_array(2, y_shape, numpy.float32)
+        gx1 = make_array(1, x_shape, numpy.float32)
         gx2 = None
-        gy1 = numpy.arange(4).astype(numpy.float32)
-        gy2 = numpy.arange(4).astype(numpy.float32)
+        gy1 = make_array(1, y_shape, numpy.float32)
+        gy2 = make_array(1, y_shape, numpy.float32)
 
         f = chainer.Function()
         f.check_type_forward = mock.MagicMock()
@@ -35,8 +49,8 @@ class TestFunction(unittest.TestCase):
         f.backward_gpu = mock.MagicMock()
         self.f = f
 
-        self.x1 = numpy.arange(3).astype(numpy.float32)
-        self.x2 = numpy.arange(3).astype(numpy.int32)
+        self.x1 = make_array(0, x_shape, numpy.float32)
+        self.x2 = make_array(0, x_shape, numpy.int32)
         self.y1 = y1
         self.y2 = y2
         self.gx1 = gx1
@@ -103,12 +117,12 @@ class TestFunction(unittest.TestCase):
         self.assertEqual(len(ts), 2)
 
         t1 = ts[0]
-        self.assertEqual(t1.shape, (3,))
-        self.assertEqual(t1.dtype, numpy.float32)
+        assert t1.shape == self.x_shape
+        assert t1.dtype == numpy.float32
 
         t2 = ts[1]
-        self.assertEqual(t2.shape, (3,))
-        self.assertEqual(t2.dtype, numpy.int32)
+        assert t2.shape == self.x_shape
+        assert t2.dtype == numpy.int32
 
     def check_call(self, check_backward=False):
         x1 = chainer.Variable(self.x1)
@@ -145,12 +159,15 @@ class TestFunction(unittest.TestCase):
         device = 1
         self.setup_gpu(device)
 
-        test_case = self
-
         def check_current_device(ret):
-            def meth(self, *args, **kwargs):
+            def meth(func_self, *args, **kwargs):
                 current_device = cuda.cupy.cuda.Device().id
-                test_case.assertEqual(current_device, device)
+                # TODO(niboshi):
+                # This test fails with zero-sized arrays because CUDA device is
+                # not defined for such arrays.
+                # See: https://github.com/chainer/chainer/issues/3702
+                if not (self.y1.size == 0 or self.x1.size == 0):
+                    assert current_device == device
                 return ret
             return meth
 
@@ -167,9 +184,11 @@ class TestFunction(unittest.TestCase):
         self.assertEqual(len(ys), 2)
         self.check_check_type_forward()
 
+        xp = cuda.get_array_module(x1)
+
         for y in ys:
             self.assertIsInstance(y, chainer.Variable)
-            self.assertIsInstance(y.data, type(x1))
+            self.assertIsInstance(y.data, xp.ndarray)
             self.assertFalse(y.requires_grad)
 
     def test_call_all_ndarray_cpu(self):
@@ -356,7 +375,7 @@ class TestFunctionForwardDebug(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'return_value': (numpy.array([float('nan')], numpy.float32),),
+    {'return_value': (numpy.array(float('nan'), numpy.float32),),
      'valid': False},
     {'return_value': (None,), 'valid': True},
 )
@@ -365,7 +384,7 @@ class TestFunctionBackwardDebug(unittest.TestCase):
     def setUp(self):
         self.original_debug = chainer.is_debug()
         chainer.set_debug(True)
-        self.one = numpy.array([1], numpy.float32)
+        self.one = numpy.array(1, numpy.float32)
         self.f = chainer.Function()
 
     def tearDown(self):

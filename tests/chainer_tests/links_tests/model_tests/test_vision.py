@@ -2,7 +2,7 @@ import unittest
 
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.links.model.vision import googlenet
 from chainer.links.model.vision import resnet
 from chainer.links.model.vision import vgg

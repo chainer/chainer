@@ -1,10 +1,9 @@
 import unittest
 
 import numpy
-import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
@@ -57,15 +56,13 @@ class TestEmbedID(unittest.TestCase):
     @attr.gpu
     def test_forward_mixed_cpu_gpu_1(self):
         # self.link is not sent to gpu
-        with six.assertRaisesRegex(self, ValueError, "numpy and cupy must not \
-be used together.*"):
+        with self.assertRaises(ValueError):
             self.check_forward(cuda.to_gpu(self.x))
 
     @attr.gpu
     def test_forward_mixed_cpu_gpu_2(self):
         self.link.to_gpu()
-        with six.assertRaisesRegex(self, ValueError, "numpy and cupy must not \
-be used together.*"):
+        with self.assertRaises(ValueError):
             # self.x is not sent to gpu
             self.check_forward(self.x)
 
