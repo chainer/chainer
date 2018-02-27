@@ -22,6 +22,15 @@ functions, which users should use.
    KEEP EACH LIST IN LEXICOGRAPHICAL ORDER.
 
 
+Arithmetic functions
+--------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.functions.add
+
 Activation functions
 --------------------
 
