@@ -74,6 +74,14 @@ def _check_ndarray_equal_ndarray(ndarray1, ndarray2):
     assert ndarray1.flags == ndarray2.flags
 
 
+def _check_device(a, device_id=None):
+    if device_id is None:
+        device = xchainer.get_default_device()
+    else:
+        device = xchainer.get_default_context().get_device(device_id)
+    assert a.device is device
+
+
 def _size(tup):
     return functools.reduce(operator.mul, tup, 1)
 
@@ -99,28 +107,42 @@ def array_init_inputs(shape_data, dtype):
     return shape_tup, dtype
 
 
-def test_init(array_init_inputs):
-    shape_tup, dtype = array_init_inputs
-
+def _check_init(shape_tup, dtype, device=None):
     shape = xchainer.Shape(shape_tup)
 
     data_list = _create_dummy_data(shape_tup, dtype)
 
-    array = xchainer.Array(shape, dtype, data_list)
+    if device is None:
+        array = xchainer.Array(shape, dtype, data_list)
+        _check_device(array)
+    else:
+        array = xchainer.Array(shape, dtype, data_list, device)
+        _check_device(array, device)
 
     _check_array(array, dtype, shape, _size(shape_tup), data_list)
 
 
-def test_numpy_init(array_init_inputs):
-    shape_tup, dtype = array_init_inputs
+def test_init(array_init_inputs):
+    _check_init(*array_init_inputs)
 
+
+def test_init_device(array_init_inputs):
+    _check_init(*array_init_inputs, 'native:1')
+
+
+def _check_numpy_init(shape_tup, dtype, device=None):
     shape = xchainer.Shape(shape_tup)
 
     numpy_dtype = getattr(numpy, dtype.name)
 
     ndarray = _create_dummy_ndarray(shape_tup, numpy_dtype)
 
-    array = xchainer.Array(ndarray)
+    if device is None:
+        array = xchainer.Array(ndarray)
+        _check_device(array)
+    else:
+        array = xchainer.Array(ndarray, device)
+        _check_device(array, device)
 
     _check_array(array, dtype, shape, _size(shape_tup), ndarray.ravel().tolist())
     _check_array_equals_ndarray(array, ndarray)
@@ -138,6 +160,14 @@ def test_numpy_init(array_init_inputs):
     data_recovered_to_modify = numpy.array(array)
     data_recovered_to_modify *= _create_dummy_ndarray(shape_tup, numpy_dtype)
     _check_array_equals_ndarray(array, data_recovered)
+
+
+def test_numpy_init(array_init_inputs):
+    _check_numpy_init(*array_init_inputs)
+
+
+def test_numpy_init_device(array_init_inputs):
+    _check_numpy_init(*array_init_inputs, 'native:1')
 
 
 def test_view(array_init_inputs):
