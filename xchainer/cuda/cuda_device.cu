@@ -20,8 +20,15 @@ __global__ void FillKernel(T* odata, T value, int64_t total_size) {
 }  // namespace
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
-    (void)bytesize;  // unused
-    return nullptr;
+    CheckError(cudaSetDevice(index()));
+    void* raw_ptr = nullptr;
+    // Be careful to be exception-safe, i.e.,
+    // do not throw any exceptions before creating shared_ptr when memory allocation is succeeded
+    cudaError_t status = cudaMallocManaged(&raw_ptr, bytesize, cudaMemAttachGlobal);
+    if (status != cudaSuccess) {
+        cuda::Throw(status);
+    }
+    return std::shared_ptr<void>{raw_ptr, cudaFree};
 }
 
 void CudaDevice::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
