@@ -8,6 +8,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 
@@ -176,6 +177,8 @@ void InitXchainerArray(pybind11::module& m) {
                  }
              },
              py::arg("grad"), py::arg("graph_id") = kDefaultGraphId)
+        .def_property_readonly("device", [](const ArrayBodyPtr& self) -> Device& { return Array{self}.device(); },
+                               py::return_value_policy::reference)
         .def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); })
         .def_property_readonly("element_bytes", [](const ArrayBodyPtr& self) { return Array{self}.element_bytes(); })
         .def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.is_contiguous(); })
