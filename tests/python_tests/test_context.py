@@ -28,8 +28,8 @@ def test_get_backend():
 
     assert context.get_backend('native') is backend
 
-    with pytest.raises(xchainer.XchainerError):
-        context.get_backend('something_does_not_exist')
+    with pytest.raises(xchainer.BackendError):
+        context.get_backend('something_that_does_not_exist')
 
 
 def test_get_device():
@@ -42,8 +42,8 @@ def test_get_device():
     assert context.get_device('native:0') is device
     assert context.get_device('native', 0) is device
 
-    with pytest.raises(xchainer.XchainerError):
-        context.get_device('something_does_not_exist:0')
+    with pytest.raises(xchainer.BackendError):
+        context.get_device('something_that_does_not_exist:0')
 
 
 @pytest.mark.usefixtures('cache_restore_context')
