@@ -39,7 +39,7 @@ ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, Device& device, bool is_co
       offset_(offset),
       nodes_(std::move(nodes)) {}
 
-void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
+void SetUpOpNodes(const std::string& name, const std::vector<ConstArrayRef>& inputs, Array& out,
                   const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
                   const std::vector<GraphId>& graph_ids_to_stop_gradients) {
     if (inputs.size() != backward_functions.size()) {
