@@ -34,7 +34,7 @@ map :math:`f` from an input :math:`x` to an output :math:`y`.
 .. math::
     f: x \mapsto y
     
-Therefore, the purpose of model learning is obtaining the map :math:`f` from training data.
+Therefore, the purpose of model training is obtaining the map :math:`f` from training data.
 In the case of unsupervised learning, we use datasets of inputs
 :math:`\{s^{(n)}\}=\{d_1, d_2, \cdots, d_N\}` as the training data,
 and create model :math:`f`.
@@ -58,13 +58,13 @@ We assign each :math:`x` and :math:`y` of :math:`f: x \mapsto y` as following.
 
 In the case, because we models the probability distribution :math:`p` explicitly,
 we can calculate the likelihood :math:`p(s)`. So, we can maximize the likelihood.
-There is an advantage that the learning process is simple. However, there is a
+There is an advantage that the training process is simple. However, there is a
 disadvantage that we have to make a mechanism for sampling because we have only
 the process for calculating the likelihood.
 
 In the fitst place, we often just want to sample :math:`s \sim p(s)`
 according to the distribution in practice. The likelihood :math:`p(s)` is used
-only for model learning. In the case, we sometimes do not model the probability distribution
+only for model training. In the case, we sometimes do not model the probability distribution
 :math:`p(s)` directly but other targets to facilitate sampling. 
 
 The first case is to model the probability distributions :math:`p(z)` and :math:`p(s|z)`
@@ -126,7 +126,7 @@ The VAE models the probability distribution :math:`p({\bf s})` that generates th
 :math:`p_{\mathrm {model}}({\bf z})` and :math:`p_{\mathrm {model}}({\bf s} | {\bf z})`
 using the latent variable :math:`\bf z`.
 
-When learning a model using the maximum likelihood estimation on :math:`\{{\bf s}^{(n)}\}`,
+When training a model using the maximum likelihood estimation on :math:`\{{\bf s}^{(n)}\}`,
 we should calculate :math:`p_{\mathrm {model}}({\bf s})` or :math:`p_{\mathrm {model}}({\bf z}|{\bf s})`
 explicitly. However, because :math:`p_{\mathrm {model}}({\bf s})` includes integral operator as
 shown in above equation, it is difficult to calculate :math:`p_{\mathrm {model}}({\bf s})` and
@@ -135,22 +135,35 @@ shown in above equation, it is difficult to calculate :math:`p_{\mathrm {model}}
 So, VAE approximates :math:`p_{\mathrm {model}}({\bf z}|{\bf s})` with
 :math:`q_{\mathrm {model}}({\bf z}|{\bf s})`.
 As a result, we can calculate the lower bound of the likelihood,
-and learn the model by maximizing the lower bound of the likelihood. The advantage of VAE is
+and train the model by maximizing the lower bound of the likelihood. The advantage of VAE is
 that sampling is low cost, and you can estimate latent variables by
 :math:`q_{\mathrm {model}}({\bf z}|{\bf s})`.
 The disadvantage is that calculation of the probability distribution :math:`p_{\mathrm {model}}({\bf s})`
-is difficult, and approximate values are used for learning model.
+is difficult, and approximate values are used for training model.
 
-2.3 Generarive Adversarial Networks (GAN)
-------------------------------------------
 
-3. Details of GAN
-==================
+3. Generarive Adversarial Networks (GAN)
+=========================================
 
-3.1 How GAN works?
+3.1 What is GAN?
+-----------------
+
+Unlike FVBNs and VAE, GAN does not explicitly models the probability distribution :math:`p({\bf s})`
+that generates the training data. Instead, we model a generator :math:`G: {\bf z} \mapsto {\bf s}`.
+The generator :math:`G` samples :math:`{\bf s} \sim p({\bf s})` from the latent variable :math:`\bf z`.
+Apart from the generator :math:`G`, we create a discriminator :math:`D({\bf x})`
+which identified the samples from the generator :math:`G` and the true samples from training data.
+While training the discriminator :math:`D`, the generator :math:`G` is also trained so that
+th generated samples can not be identified by the discriminator.
+The advantages of GAN are low sampling cost and state-of-the-art in image generation.
+The disadvantage is that we can not calculate the probability distribution
+:math:`p_{\mathrm {model}}({\bf s})` because we do not model any probability distribution,
+and we can not infer the latent variable :math:`\bf z` from a sample.
+
+3.2 How GAN works?
 -------------------
 
-3.1 What is DCGAN?
+3.3 What is DCGAN?
 -------------------
 
 4. Implementation of DCGAN in Chainer
