@@ -794,10 +794,10 @@ class GradientLARS(object):
            \\beta  : weight_decay
            \\eta   : lars_coeeficient
            \\lamda : local_lr
-                     = \\eta * \\frac{\|w\|}{\|\\nabla L(w)\|＋\\beta * \|w\|}
+                     = \\eta * \\frac{\|w\|}{\|\\nabla L(w)\| + \\beta * \|w\|}
     In GradientLARS
         lr : lr in chainer.optimizers.SGD or chainer.optimizers.MomentumSGD
-        clip_rate : \\frac{\|w\|}{\|\\nabla L(w)\|＋\\beta * \|w\|}
+        clip_rate : \\frac{\|w\|}{\|\\nabla L(w)\| + \\beta * \|w\|}
     Then
         \\gamma * \\lamda in arXiv = lr * clip_rate in GradientLARS and
         \\gamma * \\eta in arXiv = lr in GradientLARS
