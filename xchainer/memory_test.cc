@@ -123,8 +123,6 @@ TEST(MemoryTest, MemoryFromBuffer) {
     cuda::CudaBackend cuda_backend{ctx};
     cuda::CudaDevice cuda_device{cuda_backend, 0};
 
-    std::shared_ptr<void> gpu_src = Allocate(cuda_device, bytesize);
-    MemoryCopy(gpu_src.get(), cpu_src.get(), size);
     {
         // cpu to cpu
         std::shared_ptr<void> cpu_dst = MemoryFromBuffer(native_device, cpu_src, bytesize);
@@ -137,17 +135,10 @@ TEST(MemoryTest, MemoryFromBuffer) {
         ExpectDataEqual<float>(cpu_src, gpu_dst, size);
         EXPECT_NE(cpu_src.get(), gpu_dst.get());
     }
-    {
-        // gpu to cpu
-        std::shared_ptr<void> cpu_dst = MemoryFromBuffer(native_device, gpu_src, bytesize);
-        ExpectDataEqual<float>(gpu_src, cpu_dst, size);
-        EXPECT_NE(gpu_src.get(), cpu_dst.get());
-    }
+    std::shared_ptr<void> gpu_src = Allocate(cuda_device, bytesize);
     {
         // gpu to gpu
-        std::shared_ptr<void> gpu_dst = MemoryFromBuffer(cuda_device, gpu_src, bytesize);
-        ExpectDataEqual<float>(gpu_src, gpu_dst, size);
-        EXPECT_EQ(gpu_src.get(), gpu_dst.get());
+        EXPECT_THROW(MemoryFromBuffer(cuda_device, gpu_src, bytesize), XchainerError);
     }
 }
 

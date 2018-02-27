@@ -15,9 +15,8 @@ void NativeDevice::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesiz
 }
 
 std::shared_ptr<void> NativeDevice::FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
-    (void)src_ptr;   // unused
     (void)bytesize;  // unused
-    return nullptr;
+    return src_ptr;
 }
 
 void NativeDevice::Fill(Array& out, Scalar value) {

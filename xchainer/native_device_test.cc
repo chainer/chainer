@@ -31,6 +31,21 @@ TEST(NativeDeviceTest, Allocate) {
     EXPECT_NE(nullptr, ptr);
 }
 
+TEST(NativeDeviceTest, FromBuffer) {
+    size_t size = 3;
+    size_t bytesize = size * sizeof(float);
+    float raw_data[] = {0, 1, 2};
+    std::shared_ptr<void> src(raw_data, [](float* ptr) {
+        (void)ptr;  // unused
+    });
+
+    NativeDevice backend;
+    NativeDevice device{backend, 0};
+
+    std::shared_ptr<void> dst = device.FromBuffer(src, bytesize);
+    EXPECT_EQ(src.get(), dst.get());
+}
+
 TEST(NativeDeviceTest, Synchronize) {
     NativeBackend backend;
     NativeDevice device{backend, 0};
