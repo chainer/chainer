@@ -32,7 +32,7 @@ class LinearFunction(function_node.FunctionNode):
         type_check.expect(
             x_type.dtype.kind == 'f',
             w_type.dtype.kind == 'f',
-            x_type.ndim == self._n_batch_axes + 1,
+            x_type.ndim > self._n_batch_axes,
             w_type.ndim == 2,
             x_type.shape[self._n_batch_axes] == w_type.shape[1],
         )
