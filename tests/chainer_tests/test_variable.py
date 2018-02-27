@@ -1573,6 +1573,54 @@ class TestVariableDoubleBackward(unittest.TestCase):
             chainer.grad([x.grad_var], [y.grad_var])
 
 
+class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
+    # Tests for old-styled (1-element array) scalar.
+    # See: https://github.com/chainer/chainer/pull/4199
+
+    def test_default_backward(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        y = F.identity(x)
+        with testing.assert_warns(DeprecationWarning):
+            y.backward()
+        self.assertIsNone(x.grad_var.creator)
+        x.grad_var.backward()
+        self.assertIsNone(y.grad_var.grad_var)
+
+    def test_raise_double_backprop(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        y = IdentityFunction()(x)
+        with testing.assert_warns(DeprecationWarning):
+            y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            x.grad_var.backward()
+
+    def test_raise_double_backprop_2(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        z = F.identity(x)  # new style
+        y = IdentityFunction()(z)  # old style
+        with testing.assert_warns(DeprecationWarning):
+            y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            x.grad_var.backward()
+
+    def test_grad_raise_double_backprop(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        y = IdentityFunction()(x)
+        with testing.assert_warns(DeprecationWarning):
+            y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            chainer.grad([x.grad_var], [y.grad_var])
+
+    def test_grad_raise_double_backprop_2(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        z = F.identity(x)  # new style
+        y = IdentityFunction()(z)  # old style
+        with testing.assert_warns(DeprecationWarning):
+            y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            chainer.grad([x.grad_var], [y.grad_var])
+
+
 class TestAsVariable(unittest.TestCase):
 
     def check_to_variable_from_array(self, x):
