@@ -4,7 +4,7 @@ import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -39,10 +39,6 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1, (self.n, self.output_dim, 1, 1)).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.check_backward_options = {'dtype': numpy.float64}
-        if self.dtype == numpy.float16:
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -88,7 +84,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
                 x_data, self.pyramid_height, self.pooling_class)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                f, x_data, y_grad, **self.check_backward_options)
+                f, x_data, y_grad, dtype=numpy.float64, atol=5e-4, rtol=5e-3)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -112,7 +108,8 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
             return y * y
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
-                f, x_data, y_grad, x_grad_grad, **self.check_backward_options)
+                f, x_data, y_grad, x_grad_grad,
+                dtype=numpy.float64, atol=5e-3, rtol=5e-3)
 
     @condition.retry(3)
     def test_double_backward_cpu(self):
@@ -182,7 +179,7 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cudnn.cudnn.poolingForward') as func:
+            with mock.patch('cupy.cuda.cudnn.poolingForward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))
@@ -193,7 +190,7 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
             y = self.forward()
         y.grad = self.gy
         # should be consistent to forward regardless of use_cudnn config
-        with mock.patch('cupy.cudnn.cudnn.poolingBackward') as func:
+        with mock.patch('cupy.cuda.cudnn.poolingBackward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
 

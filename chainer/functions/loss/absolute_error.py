@@ -1,14 +1,14 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class AbsoluteError(function.Function):
+class AbsoluteError(function_node.FunctionNode):
 
-    """Absolute error function."""
+    """Element-wise absolute error function."""
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -23,18 +23,34 @@ class AbsoluteError(function.Function):
         self.diff = x0 - x1
         return utils.force_array(abs(self.diff), dtype=x0.dtype),
 
-    def backward(self, inputs, gy):
-        xp = cuda.get_array_module(*inputs)
-        g = gy[0] * xp.sign(self.diff)
-        return (
-            utils.force_array(g, dtype=gy[0].dtype),
-            utils.force_array(-g, dtype=gy[0].dtype))
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        gx = gy * cuda.get_array_module(gy).sign(self.diff)
+        return gx, -gx
 
 
 def absolute_error(x0, x1):
-    """Absolute error function.
+    """Element-wise absolute error function.
 
-    This function computes absolute error between two variables.
+    Computes the element-wise absolute error :math:`L` between two inputs
+    :math:`x_0` and :math:`x_1` defined as follows.
+
+    .. math::
+
+        L = |x_0 - x_1|
+
+    Args:
+        x0 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+                :class:`cupy.ndarray`):
+            First input variable.
+        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+                :class:`cupy.ndarray`):
+            Second input variable.
+
+    Returns:
+        ~chainer.Variable:
+            An array representing the element-wise absolute error between the
+            two inputs.
 
     """
-    return AbsoluteError()(x0, x1)
+    return AbsoluteError().apply((x0, x1))[0]

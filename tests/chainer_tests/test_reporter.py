@@ -1,11 +1,12 @@
 import contextlib
+import tempfile
 import unittest
 
 import numpy
 
 import chainer
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 from chainer import functions
 from chainer import testing
 from chainer.testing import attr
@@ -215,6 +216,212 @@ class TestSummary(unittest.TestCase):
         mean, std = self.summary.make_statistics()
         testing.assert_allclose(mean, 2.)
         testing.assert_allclose(std, numpy.sqrt(2. / 3.))
+
+    def test_serialize(self):
+        self.summary.add(1.)
+        self.summary.add(2.)
+
+        summary = chainer.reporter.Summary()
+        testing.save_and_load_npz(self.summary, summary)
+        summary.add(3.)
+
+        mean = summary.compute_mean()
+        testing.assert_allclose(mean, 2.)
+
+        mean, std = summary.make_statistics()
+        testing.assert_allclose(mean, 2.)
+        testing.assert_allclose(std, numpy.sqrt(2. / 3.))
+
+    @attr.gpu
+    def test_serialize_cupy(self):
+        xp = cuda.cupy
+        self.summary.add(xp.array(1, 'f'))
+        self.summary.add(xp.array(2, 'f'))
+
+        summary = chainer.reporter.Summary()
+        testing.save_and_load_npz(self.summary, summary)
+        summary.add(xp.array(3, 'f'))
+
+        mean = summary.compute_mean()
+        testing.assert_allclose(mean, 2.)
+
+        mean, std = summary.make_statistics()
+        testing.assert_allclose(mean, 2.)
+        testing.assert_allclose(std, numpy.sqrt(2. / 3.))
+
+    def test_serialize_backward_compat(self):
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            # old version does not save anything
+            numpy.savez(f, dummy=0)
+            with testing.assert_warns(UserWarning):
+                chainer.serializers.load_npz(f.name, self.summary)
+
+        self.summary.add(2.)
+        self.summary.add(3.)
+
+        mean = self.summary.compute_mean()
+        testing.assert_allclose(mean, 2.5)
+
+        mean, std = self.summary.make_statistics()
+        testing.assert_allclose(mean, 2.5)
+        testing.assert_allclose(std, 0.5)
+
+
+class TestDictSummary(unittest.TestCase):
+
+    def setUp(self):
+        self.summary = chainer.reporter.DictSummary()
+
+    def check(self, summary, data):
+        mean = summary.compute_mean()
+        self.assertEqual(set(mean.keys()), set(data.keys()))
+        for name in data.keys():
+            m = sum(data[name]) / len(data[name])
+            testing.assert_allclose(mean[name], m)
+
+        stats = summary.make_statistics()
+        self.assertEqual(
+            set(stats.keys()),
+            set(data.keys()).union(name + '.std' for name in data.keys()))
+        for name in data.keys():
+            m = sum(data[name]) / len(data[name])
+            s = numpy.sqrt(
+                sum(x * x for x in data[name]) / len(data[name]) - m * m)
+            testing.assert_allclose(stats[name], m)
+            testing.assert_allclose(stats[name + '.std'], s)
+
+    def test(self):
+        self.summary.add({'numpy': numpy.array(3, 'f'), 'int': 1, 'float': 4.})
+        self.summary.add({'numpy': numpy.array(1, 'f'), 'int': 5, 'float': 9.})
+        self.summary.add({'numpy': numpy.array(2, 'f'), 'int': 6, 'float': 5.})
+        self.summary.add({'numpy': numpy.array(3, 'f'), 'int': 5, 'float': 8.})
+
+        self.check(self.summary, {
+            'numpy': (3., 1., 2., 3.),
+            'int': (1, 5, 6, 5),
+            'float': (4., 9., 5., 8.),
+        })
+
+    @attr.gpu
+    def test_cupy(self):
+        xp = cuda.cupy
+        self.summary.add({'cupy': xp.array(3, 'f')})
+        self.summary.add({'cupy': xp.array(1, 'f')})
+        self.summary.add({'cupy': xp.array(2, 'f')})
+        self.summary.add({'cupy': xp.array(3, 'f')})
+
+        self.check(self.summary, {'cupy': (3., 1., 2., 3.)})
+
+    def test_sparse(self):
+        self.summary.add({'a': 3., 'b': 1.})
+        self.summary.add({'a': 1., 'b': 5., 'c': 9.})
+        self.summary.add({'b': 6.})
+        self.summary.add({'a': 3., 'b': 5., 'c': 8.})
+
+        self.check(self.summary, {
+            'a': (3., 1., 3.),
+            'b': (1., 5., 6., 5.),
+            'c': (9., 8.),
+        })
+
+    def test_serialize(self):
+        self.summary.add({'numpy': numpy.array(3, 'f'), 'int': 1, 'float': 4.})
+        self.summary.add({'numpy': numpy.array(1, 'f'), 'int': 5, 'float': 9.})
+        self.summary.add({'numpy': numpy.array(2, 'f'), 'int': 6, 'float': 5.})
+
+        summary = chainer.reporter.DictSummary()
+        testing.save_and_load_npz(self.summary, summary)
+        summary.add({'numpy': numpy.array(3, 'f'), 'int': 5, 'float': 8.})
+
+        self.check(summary, {
+            'numpy': (3., 1., 2., 3.),
+            'int': (1, 5, 6, 5),
+            'float': (4., 9., 5., 8.),
+        })
+
+    @attr.gpu
+    def test_serialize_cupy(self):
+        xp = cuda.cupy
+        self.summary.add({'cupy': xp.array(3, 'f')})
+        self.summary.add({'cupy': xp.array(1, 'f')})
+        self.summary.add({'cupy': xp.array(2, 'f')})
+
+        summary = chainer.reporter.DictSummary()
+        testing.save_and_load_npz(self.summary, summary)
+        summary.add({'cupy': xp.array(3, 'f')})
+
+        self.check(summary, {'cupy': (3., 1., 2., 3.)})
+
+    def test_serialize_names_with_slash(self):
+        self.summary.add({'a/b': 3., '/a/b': 1., 'a/b/': 4.})
+        self.summary.add({'a/b': 1., '/a/b': 5., 'a/b/': 9.})
+        self.summary.add({'a/b': 2., '/a/b': 6., 'a/b/': 5.})
+
+        summary = chainer.reporter.DictSummary()
+        testing.save_and_load_npz(self.summary, summary)
+        summary.add({'a/b': 3., '/a/b': 5., 'a/b/': 8.})
+
+        self.check(summary, {
+            'a/b': (3., 1., 2., 3.),
+            '/a/b': (1., 5., 6., 5.),
+            'a/b/': (4., 9., 5., 8.),
+        })
+
+    def test_serialize_overwrite_different_names(self):
+        self.summary.add({'a': 3., 'b': 1.})
+        self.summary.add({'a': 1., 'b': 5.})
+
+        summary = chainer.reporter.DictSummary()
+        summary.add({'c': 5.})
+        testing.save_and_load_npz(self.summary, summary)
+
+        self.check(summary, {
+            'a': (3., 1.),
+            'b': (1., 5.),
+        })
+
+    def test_serialize_overwrite_rollback(self):
+        self.summary.add({'a': 3., 'b': 1.})
+        self.summary.add({'a': 1., 'b': 5.})
+
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            chainer.serializers.save_npz(f.name, self.summary)
+            self.summary.add({'a': 2., 'b': 6., 'c': 5.})
+            self.summary.add({'a': 3., 'b': 4., 'c': 6.})
+            chainer.serializers.load_npz(f.name, self.summary)
+
+        self.summary.add({'a': 3., 'b': 5., 'c': 8.})
+
+        self.check(self.summary, {
+            'a': (3., 1., 3.),
+            'b': (1., 5., 5.),
+            'c': (8.,),
+        })
+
+    def test_serialize_backward_compat(self):
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            # old version does not save anything
+            numpy.savez(f, dummy=0)
+            with testing.assert_warns(UserWarning):
+                chainer.serializers.load_npz(f.name, self.summary)
+
+    def test_serialize_backward_compat_overwrite(self):
+        self.summary.add({'a': 3., 'b': 1., 'c': 4.})
+        self.summary.add({'a': 1., 'b': 5., 'c': 9.})
+
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            # old version does not save anything
+            numpy.savez(f, dummy=0)
+            with testing.assert_warns(UserWarning):
+                chainer.serializers.load_npz(f.name, self.summary)
+
+        self.summary.add({'a': 9., 'b': 2.})
+        self.summary.add({'a': 6., 'b': 5.})
+
+        self.check(self.summary, {
+            'a': (9., 6.),
+            'b': (2., 5.),
+        })
 
 
 testing.run_module(__name__, __file__)

@@ -4,7 +4,7 @@ import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -30,9 +30,11 @@ class TestSigmoid(unittest.TestCase):
 
         self.check_forward_options = {}
         self.check_backward_options = {}
+        self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-            self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+            self.check_backward_options = {'atol': 1e-2, 'rtol': 5e-2}
+            self.check_double_backward_options = {'atol': 1e-2, 'rtol': 5e-2}
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -85,7 +87,8 @@ class TestSigmoid(unittest.TestCase):
 
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
-                f, x_data, y_grad, x_grad_grad, dtype=numpy.float64)
+                f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
+                **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)

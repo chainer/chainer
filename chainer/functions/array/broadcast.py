@@ -1,7 +1,7 @@
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -64,11 +64,11 @@ def broadcast(*args):
 
     .. admonition:: Example
 
-        >>> x = np.random.uniform(0, 1, (3, 2)).astype('f')
+        >>> x = np.random.uniform(0, 1, (3, 2)).astype(np.float32)
         >>> y = F.broadcast(x)
         >>> np.all(x == y.data)
         True
-        >>> z = np.random.uniform(0, 1, (3, 2)).astype('f')
+        >>> z = np.random.uniform(0, 1, (3, 2)).astype(np.float32)
         >>> y, w = F.broadcast(x, z)
         >>> np.all(x == y.data) & np.all(z == w.data)
         True

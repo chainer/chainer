@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -26,11 +26,10 @@ def _inverse_indices(indices):
     xp = cuda.get_array_module(indices)
     r = xp.empty_like(indices)
     if xp is numpy:
-        for i, ind in enumerate(indices):
-            r[ind] = i
+        r[indices] = numpy.arange(len(indices))
     else:
         cuda.elementwise(
-            'int32 ind', 'raw int32 r',
+            'S ind', 'raw S r',
             'r[ind] = i',
             'inverse_indices'
         )(indices, r)
@@ -54,17 +53,16 @@ class Permutate(function_node.FunctionNode):
             type_check.expect(x_type.ndim > self.axis)
 
         type_check.expect(
-            ind_type.dtype == numpy.int32,
+            ind_type.dtype.kind == 'i',
             ind_type.ndim == 1,
             x_type.shape[self.axis] == ind_type.shape[0],
         )
 
     def _permutate(self, x, indices, inv):
-        xp = cuda.get_array_module(x)
         if inv:
             indices = _inverse_indices(indices)
 
-        return xp.take(x, indices, axis=self.axis)
+        return x[((slice(None),) * self.axis) + (indices,)]
 
     def forward(self, inputs):
         self.retain_inputs((1,))
@@ -109,28 +107,28 @@ def permutate(x, indices, axis=0, inv=False):
 
     .. admonition:: Example
 
-        >>> x = np.arange(6).reshape((3, 2)).astype('f')
+        >>> x = np.arange(6).reshape((3, 2)).astype(np.float32)
         >>> x
-        array([[ 0.,  1.],
-               [ 2.,  3.],
-               [ 4.,  5.]], dtype=float32)
-        >>> indices = np.array([2, 0, 1], 'i')
+        array([[0., 1.],
+               [2., 3.],
+               [4., 5.]], dtype=float32)
+        >>> indices = np.array([2, 0, 1], np.int32)
         >>> y = F.permutate(x, indices)
         >>> y.data
-        array([[ 4.,  5.],
-               [ 0.,  1.],
-               [ 2.,  3.]], dtype=float32)
+        array([[4., 5.],
+               [0., 1.],
+               [2., 3.]], dtype=float32)
         >>> y = F.permutate(x, indices, inv=True)
         >>> y.data
-        array([[ 2.,  3.],
-               [ 4.,  5.],
-               [ 0.,  1.]], dtype=float32)
-        >>> indices = np.array([1, 0], 'i')
+        array([[2., 3.],
+               [4., 5.],
+               [0., 1.]], dtype=float32)
+        >>> indices = np.array([1, 0], np.int32)
         >>> y = F.permutate(x, indices, axis=1)
         >>> y.data
-        array([[ 1.,  0.],
-               [ 3.,  2.],
-               [ 5.,  4.]], dtype=float32)
+        array([[1., 0.],
+               [3., 2.],
+               [5., 4.]], dtype=float32)
 
     """
     y, = Permutate(axis, inv).apply((x, indices))

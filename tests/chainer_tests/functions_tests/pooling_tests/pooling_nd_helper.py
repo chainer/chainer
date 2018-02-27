@@ -1,11 +1,9 @@
 import itertools
-import nose.tools
 import six
 
 from chainer import testing
 
 
-@nose.tools.nottest
 def pooling_patches(dims, ksize, stride, pad, cover_all):
     """Return tuples of slices that indicate pooling patches."""
     # Left-top indexes of each pooling patch.

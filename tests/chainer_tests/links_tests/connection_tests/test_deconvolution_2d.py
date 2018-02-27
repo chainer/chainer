@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links as L
 from chainer import testing
@@ -77,7 +77,7 @@ class TestDeconvolution2D(unittest.TestCase):
 
         gradient_check.check_backward(
             self.link, x_data, y_grad, params, dtype=numpy.float64,
-            atol=1e-4, rtol=1e-3)
+            atol=1e-3, rtol=1e-2)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)

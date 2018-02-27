@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -66,7 +66,8 @@ class TestRollaxis(unittest.TestCase):
             return y * y
 
         gradient_check.check_double_backward(
-            f, x_data, g_data, gg_data, **self.check_double_backward_options)
+            f, x_data, g_data, gg_data, dtype='d',
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.g, self.gg)
