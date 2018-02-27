@@ -73,7 +73,7 @@ class NStepGRU(NStepGRUBase):
 
     @property
     def n_cell(self):
-        return 2
+        return 1
 
 
 class NStepBiGRU(NStepGRUBase):
@@ -115,4 +115,4 @@ class NStepBiGRU(NStepGRUBase):
 
     @property
     def n_cell(self):
-        return 2
+        return 1
