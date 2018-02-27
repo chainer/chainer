@@ -1,6 +1,7 @@
 import unittest
 
 import chainer
+from chainer import testing
 
 
 class DummyTrainer(object):
@@ -30,3 +31,6 @@ class TestTimeTrigger(unittest.TestCase):
         # second event is triggerred on time==2.0, and is not on time==2.2
         self.trainer.elapsed_time = 2.1
         assert self.trigger(self.trainer)
+
+
+testing.run_module(__name__, __file__)
