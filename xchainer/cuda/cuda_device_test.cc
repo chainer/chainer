@@ -44,7 +44,7 @@ TEST(CudaDeviceTest, Allocate) {
     EXPECT_EQ(device.index(), attr.device);
 }
 
-TEST(NativeDeviceTest, MemoryCopy) {
+TEST(CudaDeviceTest, MemoryCopy) {
     size_t size = 3;
     size_t bytesize = size * sizeof(float);
     float raw_data[] = {0, 1, 2};
