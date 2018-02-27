@@ -1,9 +1,9 @@
 from __future__ import division
 import os
-import six
 import warnings
 
 import numpy
+import six
 
 import chainer
 from chainer.backends import cuda

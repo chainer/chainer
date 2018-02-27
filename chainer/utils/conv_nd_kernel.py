@@ -1,4 +1,5 @@
 import functools
+
 import six
 
 from chainer.backends import cuda
