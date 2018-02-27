@@ -6,20 +6,12 @@
 #include <string>
 #include <type_traits>
 
-#ifdef XCHAINER_ENABLE_CUDA
-#include <cuda_runtime.h>
-#endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
 #include "xchainer/backend.h"
 #include "xchainer/context.h"
-#ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/cuda/cuda_backend.h"
-#include "xchainer/cuda/cuda_device.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/memory.h"
@@ -95,12 +87,7 @@ public:
 
     template <typename T>
     void ExpectDataEqual(const T* expected_data, const Array& actual) {
-#ifdef XCHAINER_ENABLE_CUDA
-        std::string backend_name = ::testing::get<0>(GetParam());
-        if (backend_name == "cuda") {
-            cuda::CheckError(cudaDeviceSynchronize());
-        }
-#endif  // XCHAINER_ENABLE_CUDA
+        actual.device().Synchronize();
         auto total_size = actual.shape().GetTotalSize();
         const T* actual_data = static_cast<const T*>(actual.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
@@ -110,11 +97,7 @@ public:
 
     template <typename T>
     void ExpectDataEqual(T expected, const Array& actual) {
-#ifdef XCHAINER_ENABLE_CUDA
-        if (actual.device().backend().GetName() == "cuda") {
-            cuda::CheckError(cudaDeviceSynchronize());
-        }
-#endif  // XCHAINER_ENABLE_CUDA
+        actual.device().Synchronize();
         auto total_size = actual.shape().GetTotalSize();
         const T* actual_data = static_cast<const T*>(actual.data().get());
         for (decltype(total_size) i = 0; i < total_size; i++) {
@@ -175,7 +158,6 @@ public:
         ExpectDataEqual<T>(data.get(), x);
         ExpectDataExistsOnDefaultDevice(x);
 
-        // TODO(sonots): Polymorphism using device_id.backend->XXX()?
         Device& device = GetDefaultDevice();
         if (device.backend().GetName() == "native") {
             EXPECT_EQ(data.get(), x.data().get());
