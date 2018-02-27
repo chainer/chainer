@@ -19,7 +19,7 @@ void Backward(const Array& output, const GraphId& graph_id = kDefaultGraphId,
 void Backward(const std::vector<Array>& outputs, const GraphId& graph_id = kDefaultGraphId,
               DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
-void Backward(const std::vector<std::reference_wrapper<const Array>>& outputs, const GraphId& graph_id = kDefaultGraphId,
+void Backward(const std::vector<ConstArrayRef>& outputs, const GraphId& graph_id = kDefaultGraphId,
               DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
 }  // namespace xchainer

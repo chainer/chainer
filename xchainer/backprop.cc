@@ -21,8 +21,7 @@ struct OpNodeComparator {
 
 class BackwardImpl {
 public:
-    BackwardImpl(const std::vector<std::reference_wrapper<const Array>>& outputs, const GraphId& graph_id,
-                 DoubleBackpropOption double_backprop)
+    BackwardImpl(const std::vector<ConstArrayRef>& outputs, const GraphId& graph_id, DoubleBackpropOption double_backprop)
         : outputs_(outputs), graph_id_(graph_id), double_backprop_(double_backprop) {
         for (const Array& output : outputs) {
             output_array_nodes_.push_back(internal::GetMutableArrayNode(output, graph_id));
@@ -125,7 +124,7 @@ private:
     std::unordered_map<const OpNode*, std::shared_ptr<ArrayNode>> previous_array_node_map_;
 
     // Arguments to Backward()
-    const std::vector<std::reference_wrapper<const Array>>& outputs_;
+    const std::vector<ConstArrayRef>& outputs_;
     std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>> output_array_nodes_;
     const GraphId& graph_id_;
     DoubleBackpropOption double_backprop_;
@@ -142,8 +141,7 @@ void Backward(const std::vector<Array>& outputs, const GraphId& graph_id, Double
     BackwardImpl{{outputs.begin(), outputs.end()}, graph_id, double_backprop}.Run();
 }
 
-void Backward(const std::vector<std::reference_wrapper<const Array>>& outputs, const GraphId& graph_id,
-              DoubleBackpropOption double_backprop) {
+void Backward(const std::vector<ConstArrayRef>& outputs, const GraphId& graph_id, DoubleBackpropOption double_backprop) {
     BackwardImpl{outputs, graph_id, double_backprop}.Run();
 }
 
