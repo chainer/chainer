@@ -118,7 +118,7 @@ jobs:
             source activate testenv
 
             python setup.py build --debug --build-temp ./build --build-lib ./build develop
-            pytest -m='not cuda' --cov --no-cov-on-fail --cov-fail-under=80 --cov-report html:build/coverage/python
+            XCHAINER_TEST_CUDA_LIMIT=0 pytest --cov --no-cov-on-fail --cov-fail-under=80 --cov-report html:build/coverage/python
 
       # cmake
       - run:
