@@ -55,9 +55,10 @@ TEST(CudaDeviceTest, MemoryCopy) {
     CudaDevice backend;
     CudaDevice device{backend, 0};
 
-    std::shared_ptr<void> dst = device.Allocate(bytesize);
-    device.MemoryCopy(dst.get(), src.get(), bytesize);
-    ExpectDataEqual<float>(src, dst, size);
+    std::shared_ptr<void> gpu_src = MemoryFromBuffer(cuda_device, src, bytesize);
+    std::shared_ptr<void> gpu_dst = device.Allocate(bytesize);
+    device.MemoryCopy(gtpu_dst.get(), gpu_src.get(), bytesize);
+    ExpectDataEqual<float>(gpu_src, gpu_dst, size);
 }
 
 TEST(CudaDeviceTest, FromBuffer) {
