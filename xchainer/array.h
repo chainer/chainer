@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -20,6 +21,9 @@ namespace xchainer {
 
 class Array;
 class ArrayNode;
+
+using ArrayRef = std::reference_wrapper<Array>;
+using ConstArrayRef = std::reference_wrapper<const Array>;
 
 using GraphId = std::string;
 
@@ -52,7 +56,7 @@ private:
     std::vector<std::shared_ptr<ArrayNode>> nodes_;
 };
 
-void SetUpOpNodes(const std::string& name, const std::vector<std::reference_wrapper<const Array>>& inputs, Array& out,
+void SetUpOpNodes(const std::string& name, const std::vector<ConstArrayRef>& inputs, Array& out,
                   const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
                   const std::vector<GraphId>& graph_ids_to_stop_gradients = {});
 

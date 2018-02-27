@@ -73,7 +73,10 @@ void CudaDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
     (void)out;  // unused
 }
 
-void CudaDevice::Synchronize() { CheckError(cudaDeviceSynchronize()); }
+void CudaDevice::Synchronize() {
+    CheckError(cudaSetDevice(index()));
+    CheckError(cudaDeviceSynchronize());
+}
 
 }  // namespace cuda
 }  // namespace xchainer

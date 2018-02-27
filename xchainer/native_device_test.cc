@@ -22,6 +22,15 @@ TEST(NativeDeviceTest, Ctor) {
     }
 }
 
+TEST(NativeDeviceTest, Allocate) {
+    size_t bytesize = 3;
+    NativeBackend backend;
+    NativeDevice device{backend, 0};
+    std::shared_ptr<void> ptr = device.Allocate(bytesize);
+
+    EXPECT_NE(nullptr, ptr);
+}
+
 TEST(NativeDeviceTest, FromBuffer) {
     size_t size = 3;
     size_t bytesize = size * sizeof(float);
@@ -35,6 +44,12 @@ TEST(NativeDeviceTest, FromBuffer) {
 
     std::shared_ptr<void> dst = device.FromBuffer(src, bytesize);
     EXPECT_EQ(src.get(), dst.get());
+}
+
+TEST(NativeDeviceTest, Synchronize) {
+    NativeBackend backend;
+    NativeDevice device{backend, 0};
+    EXPECT_NO_THROW(device.Synchronize());
 }
 
 }  // namespace

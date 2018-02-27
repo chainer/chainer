@@ -33,10 +33,10 @@ TEST(CudaDeviceTest, Ctor) {
 }
 
 TEST(CudaDeviceTest, Allocate) {
-    size_t size = 3;
+    size_t bytesize = 3;
     CudaBackend backend;
     CudaDevice device{backend, 0};
-    std::shared_ptr<void> ptr = device.Allocate(size);
+    std::shared_ptr<void> ptr = device.Allocate(bytesize);
 
     cudaPointerAttributes attr = {};
     CheckError(cudaPointerGetAttributes(&attr, ptr.get()));
@@ -63,6 +63,13 @@ TEST(CudaDeviceTest, FromBuffer) {
     CheckError(cudaPointerGetAttributes(&attr, dst.get()));
     EXPECT_TRUE(attr.isManaged);
     EXPECT_EQ(device.index(), attr.device);
+}
+
+// TODO(sonots): Any ways to test cudaDeviceSynchronize()?
+TEST(CudaDeviceTest, Synchronize) {
+    CudaBackend backend;
+    CudaDevice device{backend, 0};
+    EXPECT_NO_THROW(device.Synchronize());
 }
 
 }  // namespace
