@@ -19,3 +19,6 @@ class TimeTrigger(object):
             return True
         else:
             return False
+
+    def serialize(self, serializer):
+        self._next_time = serializer('next_time', self._next_time)
