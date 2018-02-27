@@ -7,10 +7,10 @@ Write a Sequance to Seqeunce (seq2seq) Model
 ================
 
 The **sequence to sequence (seq2seq) model**\ [1][2] is a learning model that converts an input
-sequence into an output sequence. In this context, the **sequence** is the list of symbols,
-s.t the list of words which consists the sentence. The seq2seq model has archived great success
-in the field such as the machine translation, the dialogue system, the question answering,
-and the text summarization. All of these tasks can be regarded as the task to learn model
+sequence into an output sequence. In this context, the **sequence** is a list of symbols,
+corresponding to the words in a sentence. The seq2seq model has achieved great success
+in fields such as machine translation, dialogue systems, question answering,
+and text summarization. All of these tasks can be regarded as the task to learn a model
 that converts an input sequence into an output sequence.
 
 1. Basic Idea of Seq2seq Model
@@ -27,7 +27,7 @@ Let the input sequence and the output sequence be :math:`\bf X` and :math:`\bf Y
 The :math:`i`-th element of the input sequence is represented as :math:`{\bf x}_i`, 
 and the :math:`j`-th element of the output sequence is also represented as :math:`{\bf y}_j`.
 Generally, each of the :math:`{\bf x}_i` and the :math:`{\bf y}_j` is the one-hot vector of
-the symbols. For example, in the natural language processing(NLP), the one-hot vector
+the symbols. For example, in natural language processing(NLP), the one-hot vector
 represents the word and its size becomes the vocabulary size.
 
 Let's think about the seq2seq model in the context of NLP.
@@ -43,7 +43,7 @@ the following equations:
     {\bf Y} &= ({\bf y}_1, ..., {\bf y}_J) = ({\bf y}_j)_{j=1}^J
 
 :math:`I` and :math:`J` are the length of the input sequence and the output sequence.
-As the convention of NLP, :math:`{\bf y}_0` is the one-hot vector of `BOS`, which is the
+Using the typical NLP notation, :math:`{\bf y}_0` is the one-hot vector of `BOS`, which is the
 virtual word representing the beginning of the sentence, and :math:`{\bf y}_{J+1}` is that
 of `EOS`, which is the virtual word representing the end of the sentence.
 
@@ -57,21 +57,21 @@ However, the seq2seq model does not model the probability :math:`P({\bf Y}|{\bf 
 Actually, it models the probability :math:`P({\bf y}_j|{\bf Y}_{<j}, {\bf X})`, which is the
 probability of generating the :math:`j`-th element of the output sequence :math:`{\bf y}_j`
 given the :math:`{\bf Y}_{<j}` and :math:`{\bf X}`. :math:`{\bf Y}_{<j}` means the output
-sequence from :math:`1` to :math:`j-1`, or :math:`({\bf y}_j)_{j=1}^{j-1}`. In these notations,
+sequence from :math:`1` to :math:`j-1`, or :math:`({\bf y}_j)_{j=1}^{j-1}`. In this notation,
 you can write the model :math:`P_{\theta}({\bf Y}|{\bf X})` with the product of
 :math:`P_{\theta}({\bf y}_j|{\bf Y}_{<j}, {\bf X})`:
 
 .. math::
     P_{\theta}({\bf Y}|{\bf X}) = \prod_{j=1}^{J+1} P_{\theta}({\bf y}_j|{\bf Y}_{<j}, {\bf X})
 
-The Process of Seq2seq Model
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Processing Steps in Seq2seq Model
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Then, let's think about the process of seq2seq model. The feature of seq2seq model is that
-it consists of the two process:
+Now, let's think about the processing steps in seq2seq model. The feature of seq2seq model is that
+it consists of the two processes:
 
-#. The process which generating the fixed size vector :math:`\bf z` from the input sequence :math:`\bf X`
-#. The process which generating the output sequence :math:`\bf Y` from :math:`\bf z`
+#. The process that generates the fixed size vector :math:`\bf z` from the input sequence :math:`\bf X`
+#. The process that generates the output sequence :math:`\bf Y` from :math:`\bf z`
 
 In other words, the information of :math:`\bf X` is conveyed by :math:`\bf z`, and
 :math:`P_{\theta}({\bf y}_j|{\bf Y}_{<j}, {\bf X})` is actually calculated by
@@ -159,8 +159,8 @@ The encoder recurrent layer generates the hidden vectors from the embedding vect
 When processing the :math:`i`-th embedding vector, the input and the output of the layer
 are the following:
 
-- The input is :math:`{\bf \bar x}_i` : the embedding vector which represents :math:`i`-th word
-- The output is :math:`{\bf h}_i^{(s)}` : the hidden vector of :math:`i`-th position
+- The input is :math:`{\bf \bar x}_i` : the embedding vector which represents the :math:`i`-th word
+- The output is :math:`{\bf h}_i^{(s)}` : the hidden vector of the :math:`i`-th position
 
 For example, when using the uni-directional RNN of one layer, the process
 can be represented as the following function :math:`\Psi^{(s)}`:
@@ -179,9 +179,9 @@ The decoder embedding layer converts the each word in the output sentence to the
 When processing the :math:`j`-th word in the output sentence, the input and the output
 of the layer are the following:
 
-- The input is :math:`{\bf y}_{j-1}` : the one-hot vector which represents :math:`(j-1)`-th word generated
+- The input is :math:`{\bf y}_{j-1}` : the one-hot vector which represents the :math:`(j-1)`-th word generated
   by the decoder output layer
-- The output is :math:`{\bf \bar y}_j` : the embedding vector which represents :math:`(j-1)`-th word
+- The output is :math:`{\bf \bar y}_j` : the embedding vector which represents the :math:`(j-1)`-th word
 
 Each embedding vector is calculated by the following equation:
 
@@ -240,9 +240,8 @@ are the following:
 2. Implementation of Seq2seq Model
 ===================================
 
-**There is an example for neural machine translation by seq2seq model
-in the official repository, so we will explain how to implement a seq2seq model
-in Chainer based on that:**
+**The official Chainer repository includes a neural machine translation example using the seq2seq model.
+We will now provide an overview of the example and explain its implementation in detail.**
 `chainer/examples/seq2seq <https://github.com/chainer/chainer/tree/master/examples/seq2seq>`_
 
 2.1 Model Overview
@@ -284,7 +283,7 @@ Define all training settings here.
 2.2.3 Define Network Structure
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A seq2seq model written in Chainer is shown below. It implements the model
+The Chainer implementation of seq2seq is shown below.  It implements the model
 depicted in the above figure.
 
 .. literalinclude:: ../../../examples/seq2seq/seq2seq.py
