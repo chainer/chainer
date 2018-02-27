@@ -95,7 +95,7 @@ as shown in the following figure:
 
 .. image:: ../../image/dcgan/class-generative-model.png
 
-Besides GAN, other famous generative models are Fully visible belief networks (FVBNs), Variational autoencoder
+Besides GAN, other famous generative models are Fully visible belief networks (FVBNs) and Variational autoencoder
 (VAE).
 
 2.1 Fully Visible Belief Networks (FVBNs)
@@ -116,6 +116,30 @@ The disadvantage is that sampling cost can be expensive because each dimension c
 
 2.2 Variational Auto-Encoder (VAE)
 -----------------------------------
+
+The VAE models the probability distribution :math:`p({\bf s})` that generates the training data as follows:
+
+.. math::
+    p_{\mathrm {model}}({\bf s}) = \int p_{\mathrm {model}}({\bf s}|{\bf z}) p_{\mathrm {model}}({\bf z}) d{\bf z}
+
+:math:`p_{\mathrm {model}}({\bf s})` is modeled by the two probability distributions
+:math:`p_{\mathrm {model}}({\bf z})` and :math:`p_{\mathrm {model}}({\bf s} | {\bf z})`
+using the latent variable :math:`\bf z`.
+
+When learning a model using the maximum likelihood estimation on :math:`\{{\bf s}^{(n)}\}`,
+we should calculate :math:`p_{\mathrm {model}}({\bf s})` or :math:`p_{\mathrm {model}}({\bf z}|{\bf s})`
+explicitly. However, because :math:`p_{\mathrm {model}}({\bf s})` includes integral operator as
+shown in above equation, it is difficult to calculate :math:`p_{\mathrm {model}}({\bf s})` and
+:math:`p_{\mathrm {model}}({\bf z}|{\bf s})`.
+
+So, VAE approximates :math:`p_{\mathrm {model}}({\bf z}|{\bf s})` with
+:math:`q_{\mathrm {model}}({\bf z}|{\bf s})`.
+As a result, we can calculate the lower bound of the likelihood,
+and learn the model by maximizing the lower bound of the likelihood. The advantage of VAE is
+that sampling is low cost, and you can estimate latent variables by
+:math:`q_{\mathrm {model}}({\bf z}|{\bf s})`.
+The disadvantage is that calculation of the probability distribution :math:`p_{\mathrm {model}}({\bf s})`
+is difficult, and approximate values are used for learning model.
 
 2.3 Generarive Adversarial Networks (GAN)
 ------------------------------------------
