@@ -69,6 +69,7 @@ if(ENABLE_TEST)
         gradient_check_test.cc
         memory_test.cc
         native_backend_test.cc
+        native_device_test.cc
         numeric_test.cc
         scalar_test.cc
         shape_test.cc
