@@ -146,7 +146,7 @@ class TestParameterStatistics(TestParameterStatisticsBase, unittest.TestCase):
             if self.prefix is not None:
                 assert name.startswith(self.prefix)
 
-            match = re.search(pattern, name)
+            match = re.match(pattern, name)
             assert match is not None
             if self.report_params and self.report_grads:
                 pass
