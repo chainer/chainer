@@ -51,8 +51,8 @@ protected:
     // Throws an exception if array devices are incompatible, else does nothing.
     template <typename... Arrays>
     void CheckDevicesCompatible(const Array& first, const Arrays&... rest) {
-      CheckDevicesCompatible(first);
-      CheckDevicesCompatible(rest...);
+        CheckDevicesCompatible(first);
+        CheckDevicesCompatible(rest...);
     }
 
 private:
