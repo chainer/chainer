@@ -138,10 +138,11 @@ class TestGradientLARS(unittest.TestCase):
 
     def setUp(self):
         self.target = chainer.ChainList(
-            SimpleLink(np.arange(3).astype(np.float32),
-                       np.arange(3).astype(np.float32)),
-            SimpleLink(np.arange(3).astype(np.float32) * 0.0001,
-                       np.arange(3).astype(np.float32) * 0.0001))
+            SimpleLink(np.arange(6).astype(np.float32).reshape(2, 3),
+                       np.arange(3, -3, -1).astype(np.float32).reshape(2, 3)),
+            SimpleLink(np.arange(6).astype(np.float32).reshape(2, 3) * 0.0001,
+                       np.arange(3, -3, -1).astype(np.float32).reshape(2, 3))
+        )
 
     def check_LARS(self):
         w0 = self.target[0].param.data
@@ -155,8 +156,8 @@ class TestGradientLARS(unittest.TestCase):
 
         p0_norm = xp.linalg.norm(w0)
         g0_norm = xp.linalg.norm(g0)
-        local_rate = p0_norm / (eps + g0_norm + weight_decay * p0_norm)
-        expect0 = w0 - local_rate * (g0 + weight_decay * w0)
+        clip_rate = p0_norm / (eps + g0_norm + weight_decay * p0_norm)
+        expect0 = w0 - clip_rate * (g0 + weight_decay * w0)
         expect1 = w1 - 1.0 * (g1 + weight_decay * w1)
 
         opt = optimizers.SGD(lr=1)
