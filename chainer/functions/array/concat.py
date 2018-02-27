@@ -3,6 +3,7 @@ import six
 
 import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -40,8 +41,22 @@ class Concat(function_node.FunctionNode):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(xs, (4,))):
+            # iDeep implementation
+            return self._forward_ideep(xs)
+
+        # Generic implementation
         xp = cuda.get_array_module(*xs)
         return xp.concatenate(xs, self.axis),
+
+    def _forward_ideep(self, xs):
+        xs_mdarray = intel64.ideep.mdarrayVector()
+        for x in xs:
+            xs_mdarray.push_back(intel64.ideep.array(x))
+        ndim = xs[0].ndim
+        axis = self.axis % ndim
+        return intel64.ideep.concat.Forward(xs_mdarray, axis),
 
     def backward(self, indexes, grad_outputs):
         if len(self.inputs) == 1:

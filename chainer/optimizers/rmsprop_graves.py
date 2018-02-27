@@ -87,7 +87,7 @@ class RMSpropGraves(optimizer.GradientMethod):
 
     """Alex Graves's RMSprop.
 
-    See: http://arxiv.org/abs/1308.0850
+    See: https://arxiv.org/abs/1308.0850
 
     Args:
         lr (float): Learning rate.

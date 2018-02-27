@@ -18,7 +18,7 @@ import time
 import numpy as np
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import optimizers
@@ -230,5 +230,5 @@ for epoch in range(n_epoch):
         evaluate(model, develop_trees)
         print('')
 
-print('Test evaluateion')
+print('Test evaluation')
 evaluate(model, test_trees)

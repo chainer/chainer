@@ -41,7 +41,7 @@ def main():
     # Prepare VAE model, defined in net.py
     model = net.VAE(784, args.dimz, 500)
     if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()
 
     # Setup an optimizer

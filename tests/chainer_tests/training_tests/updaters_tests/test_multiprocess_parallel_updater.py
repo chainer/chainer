@@ -1,10 +1,17 @@
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
 import unittest
 
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+import chainer.functions.math.minmax
 from chainer import initializers
+import chainer.reporter
 from chainer import testing
 from chainer.testing import attr
 import chainer.training.updaters.multiprocess_parallel_updater as mpu
@@ -71,8 +78,8 @@ class TestGatherScatter(unittest.TestCase):
         for i in range(bsize):
             t[i] = i % 2
 
-        x = chainer.Variable(chainer.cuda.to_gpu(x))
-        t = chainer.Variable(chainer.cuda.to_gpu(t))
+        x = chainer.Variable(chainer.backends.cuda.to_gpu(x))
+        t = chainer.Variable(chainer.backends.cuda.to_gpu(t))
 
         loss0 = model0(x, t)
 
@@ -168,7 +175,7 @@ class TestRawArray(unittest.TestCase):
                         numpy.int32(0)) for i in range(100)]
 
             batch_size = 5
-            devices = (1,)
+            devices = (0,)
             iters = [chainer.iterators.SerialIterator(i, batch_size) for i in
                      chainer.datasets.split_dataset_n_random(
                          dataset, len(devices))]
@@ -179,6 +186,109 @@ class TestRawArray(unittest.TestCase):
             updater.update()
 
             self.assertEqual(model.call_called, 1)
+
+
+class TestChildReporter(unittest.TestCase):
+
+    def check_update_uses_raw_array(self, n_devices):
+        device_ids_tuple = 'tuple([{}])'.format(
+            ', '.join([str(n) for n in range(n_devices)]))
+        code = '''
+import numpy
+import chainer
+from chainer.training import trainer
+import chainer.training.updaters.multiprocess_parallel_updater as mpu
+class SimpleNetChild(chainer.Chain):
+
+    def __init__(self):
+        super(SimpleNetChild, self).__init__()
+        with self.init_scope():
+            self.conv = chainer.links.Convolution2D(2, 2, 3)
+
+    def __call__(self, x):
+
+        h = chainer.functions.relu(self.conv(x))
+
+        chainer.reporter.report({
+            'h_max': chainer.functions.math.minmax.max(h)}, self)
+
+        return h
+
+
+class SimpleNetChildReporter(chainer.Chain):
+
+    def __init__(self):
+        super(SimpleNetChildReporter, self).__init__()
+        with self.init_scope():
+            self.c1 = SimpleNetChild()
+            self.fc = chainer.links.Linear(18, 2)
+        self.call_called = 0
+
+    def clear(self):
+        self.loss = None
+
+    def __call__(self, x, t):
+
+        self.call_called += 1
+
+        h = chainer.functions.relu(self.c1(x))
+        y = self.fc(h)
+
+        self.loss = chainer.functions.softmax_cross_entropy(y, t)
+        chainer.reporter.report({'loss': self.loss}, self)
+
+        return self.loss
+
+if __name__ == '__main__':
+    model = SimpleNetChildReporter()
+    dataset = [(numpy.full((2, 5, 5), i, numpy.float32),
+                numpy.int32(0)) for i in range(100)]
+
+    batch_size = 5
+    devices = {{{device_ids_tuple}}}
+    iters = [chainer.iterators.SerialIterator(i, batch_size) for i in
+             chainer.datasets.split_dataset_n_random(
+                 dataset, len(devices))]
+    optimizer = chainer.optimizers.SGD(lr=1.0)
+    optimizer.setup(model)
+    updater = mpu.MultiprocessParallelUpdater(
+        iters, optimizer, devices=devices)
+    trainer = trainer.Trainer(updater, (1, 'iteration'), '/tmp')
+    trainer.run()
+    assert model.call_called == 1
+'''.replace('{{{device_ids_tuple}}}', device_ids_tuple)
+
+        temp_dir = tempfile.mkdtemp()
+        try:
+            script_path = os.path.join(temp_dir, 'script.py')
+            with open(script_path, 'w') as f:
+                f.write(code)
+            proc = subprocess.Popen(
+                [sys.executable, script_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            stdoutdata, stderrdata = proc.communicate()
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        ret = proc.returncode
+        assert ret == 0, (
+            'Import test failed.\n'
+            '[code]:\n{}\n'
+            '[stdout]:{!r}\n'
+            '[stderr]:{!r}'.format(
+                code, stdoutdata, stderrdata))
+
+    @attr.gpu
+    @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
+                         'MultiprocessParallelUpdater is not available.')
+    def test_single_device(self):
+        self.check_update_uses_raw_array(1)
+
+    @attr.multi_gpu(2)
+    @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
+                         'MultiprocessParallelUpdater is not available.')
+    def test_multi_device(self):
+        self.check_update_uses_raw_array(2)
 
 
 testing.run_module(__name__, __file__)

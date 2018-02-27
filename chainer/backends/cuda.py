@@ -1,20 +1,26 @@
 """Device, context and memory management on CuPy.
 
+.. note::
+   The package ``chainer.cuda`` has been renamed to
+   :mod:`chainer.backends.cuda` as of v4.0.0, but the previous module path
+   ``chainer.cuda`` is also available.
+
 Chainer uses `CuPy <https://cupy.chainer.org/>`_ (with very thin wrapper)
 to exploit the speed of GPU computation. Following modules and classes defined
-in CuPy are imported to :mod:`chainer.cuda` module for convenience (refer to
-this table when reading chainer's source codes).
+in CuPy are imported to :mod:`chainer.backends.cuda` module for convenience
+(refer to this table when reading chainer's source codes).
 
-============================ =================================
- imported name                original name
-============================ =================================
- ``chainer.cuda.cupy``        :mod:`cupy`
- ``chainer.cuda.ndarray``     :class:`cupy.ndarray`
- ``chainer.cuda.cupy.cuda``   :mod:`cupy.cuda`
- ``chainer.cuda.Device``      :class:`cupy.cuda.Device`
- ``chainer.cuda.Event``       :class:`cupy.cuda.Event`
- ``chainer.cuda.Stream``      :class:`cupy.cuda.Stream`
-============================ =================================
+===================================== =================================
+ imported name                         original name
+===================================== =================================
+ ``chainer.backends.cuda.cupy``        :mod:`cupy`
+ ``chainer.backends.cuda.cupyx``       :mod:`cupyx`
+ ``chainer.backends.cuda.ndarray``     :class:`cupy.ndarray`
+ ``chainer.backends.cuda.cupy.cuda``   :mod:`cupy.cuda`
+ ``chainer.backends.cuda.Device``      :class:`cupy.cuda.Device`
+ ``chainer.backends.cuda.Event``       :class:`cupy.cuda.Event`
+ ``chainer.backends.cuda.Stream``      :class:`cupy.cuda.Stream`
+===================================== =================================
 
 Chainer replaces the default allocator of CuPy by its memory pool
 implementation. It enables us to reuse the device memory over multiple
@@ -30,8 +36,8 @@ import numpy
 import six
 
 import chainer
+from chainer.backends import intel64
 from chainer.configuration import config
-
 
 available = False
 cudnn_enabled = False
@@ -40,6 +46,7 @@ try:
     import cupy
     from cupy import cuda  # NOQA
     from cupy.cuda import cublas  # NOQA
+    import cupyx  # NOQA
 
     from cupy import ndarray  # NOQA
 
@@ -136,14 +143,13 @@ if available:
     pinned_memory_pool = cupy.get_default_pinned_memory_pool()
 
 
+_integer_types = six.integer_types + (numpy.integer,)
 if six.PY2:
     try:
         from future.types.newint import newint as _newint
-        _integer_types = six.integer_types + (_newint,)
+        _integer_types += (_newint,)
     except ImportError:
-        _integer_types = six.integer_types
-else:
-    _integer_types = six.integer_types
+        pass
 
 
 # ------------------------------------------------------------------------------
@@ -186,8 +192,8 @@ def get_device(*args):
     .. note::
 
         This API is deprecated. Please use
-        :func:`~chainer.cuda.get_device_from_id`
-        or :func:`~chainer.cuda.get_device_from_array` instead.
+        :func:`~chainer.backends.cuda.get_device_from_id`
+        or :func:`~chainer.backends.cuda.get_device_from_array` instead.
 
     This is a convenient utility to select a correct device if the type of
     ``arg`` is unknown (i.e., one can use this function on arrays that may be
@@ -217,7 +223,7 @@ def get_device(*args):
 
 def _get_device(*args):
     for arg in args:
-        if type(arg) in _integer_types:
+        if type(arg) is not bool and isinstance(arg, _integer_types):
             check_cuda_available()
             return Device(arg)
         if isinstance(arg, ndarray):
@@ -238,7 +244,7 @@ def to_gpu(array, device=None, stream=None):
     """Copies the given CPU array to the specified device.
 
     Args:
-        array (numpy.ndarray, cupy.ndarray, None, list or tuple):
+        array (*array*, None, list or tuple):
             Array or arrays to be sent to GPU.
         device: Device specifier.
         stream (~cupy.cuda.Stream): *(deprecated since v3.0.0)*
@@ -255,7 +261,7 @@ def to_gpu(array, device=None, stream=None):
     """
     if stream is not None:
         warnings.warn(
-            'The stream option is deprecated in chainer.cuda.to_gpu. '
+            'The stream option is deprecated in chainer.backends.cuda.to_gpu. '
             'Please remove it.', DeprecationWarning)
 
     check_cuda_available()
@@ -281,12 +287,15 @@ def _array_to_gpu(array, device, stream):
     assert device is DummyDevice or isinstance(device, Device)
     if array is None:
         return None
+
     if isinstance(array, (numpy.number, numpy.bool_)):
         array = numpy.asarray(array)
+    elif isinstance(array, intel64.mdarray):
+        array = numpy.asarray(array)
+
     if not isinstance(array, (cupy.ndarray, numpy.ndarray)):
         raise TypeError(
-            'The array sent to gpu must be numpy.ndarray or cupy.ndarray, '
-            'or a NumPy scalar.'
+            'The array sent to gpu must be an array or a NumPy scalar.'
             '\nActual type: {0}.'.format(type(array)))
 
     array_dev = get_device_from_array(array)
@@ -329,7 +338,7 @@ def to_cpu(array, stream=None):
     """Copies the given GPU array to host CPU.
 
     Args:
-        array (numpy.ndarray, cupy.ndarray, None, list or tuple):
+        array (*array*, None, list or tuple):
             Array or arrays to be sent to CPU.
         stream (cupy.cuda.Stream): CUDA stream.
 
@@ -368,7 +377,7 @@ def _array_to_cpu(array, stream):
             return array.get(stream)
     elif isinstance(array, (numpy.number, numpy.bool_)):
         return numpy.asarray(array)
-    elif isinstance(array, numpy.ndarray):
+    elif isinstance(array, chainer.get_cpu_array_types()):
         return array
     else:
         raise TypeError(
@@ -444,8 +453,8 @@ def clear_memo():
     """Clears the memoized results for all functions decorated by memoize.
 
     This function works like :func:`cupy.clear_memo` as a counterpart for
-    :func:`chainer.cuda.memoize`. It can be used even if CUDA is not available.
-    In such a case, this function does nothing.
+    :func:`chainer.backends.cuda.memoize`. It can be used even if CUDA is
+    not available. In such a case, this function does nothing.
 
     """
     if available:
@@ -459,7 +468,7 @@ def clear_memo():
 def elementwise(in_params, out_params, operation, name, **kwargs):
     """Creates an elementwise kernel function.
 
-    This function uses :func:`~chainer.cuda.memoize` to cache the
+    This function uses :func:`~chainer.backends.cuda.memoize` to cache the
     kernel object, i.e. the resulting kernel object is cached for each argument
     combination and CUDA device.
 
@@ -478,9 +487,9 @@ def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
            identity, name,  **kwargs):
     """Creates a global reduction kernel function.
 
-    This function uses :func:`~chainer.cuda.memoize` to cache the resulting
-    kernel object, i.e. the resulting kernel object is cached for each argument
-    combination and CUDA device.
+    This function uses :func:`~chainer.backends.cuda.memoize` to cache the
+    resulting kernel object, i.e. the resulting kernel object is cached for
+    each argument combination and CUDA device.
 
     The arguments are the same as those for
     :class:`cupy.ReductionKernel`, except that the ``name`` argument is
@@ -580,7 +589,7 @@ def should_use_cudnn(level, lowest_version=0):
     """Determines if we should use cuDNN.
 
     This function checks ``chainer.config.use_cudnn``,
-    ``chainer.cuda.cudnn_enabled``, and the cuDNN version. Note that
+    ``chainer.backends.cuda.cudnn_enabled``, and the cuDNN version. Note that
     ``cudnn_enabled`` flag is fixed at loading of :mod:`chainer` module.
 
     Args:

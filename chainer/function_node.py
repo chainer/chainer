@@ -223,11 +223,9 @@ Use apply() method instead.\
         requires_grad = any([x.requires_grad for x in input_vars])
 
         # Check for input array types
-        xp = cuda.get_array_module(*in_data)
-        if not all([x is None or isinstance(x, xp.ndarray)
-                    for x in in_data]):
+        if not chainer.is_arrays_compatible(in_data):
             raise ValueError(
-                'numpy and cupy arrays are mixed in the forward input '
+                'incompatible array types are mixed in the forward input '
                 '({}).\n'
                 '{}'.format(
                     self.label,
@@ -262,11 +260,9 @@ Use apply() method instead.\
                 'forward output must be a tuple ({})\n'
                 'Actual: {}'.format(self.label, type(outputs)))
 
-        xp = cuda.get_array_module(*outputs)
-        if not all([x is None or isinstance(x, xp.ndarray)
-                    for x in outputs]):
+        if not chainer.is_arrays_compatible(outputs):
             raise ValueError(
-                'numpy and cupy arrays are mixed in the forward output '
+                'incompatible array types are mixed in the forward output '
                 '({}).\n'
                 '{}'.format(
                     self.label,
@@ -536,6 +532,10 @@ Use apply() method instead.\
            This behavior might be changed in a future version.
 
         """
+        assert isinstance(target_input_indexes, tuple)
+        assert isinstance(grad_outputs, tuple)
+        assert isinstance(grad_inputs, tuple)
+
         # The default implementation uses backward(). You can override this
         # method without using backward().
         gxs = self.backward(target_input_indexes, grad_outputs)
@@ -707,7 +707,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             If you set loss scaling factor, gradients of loss values are to be
             multiplied by the factor before backprop starts. The factor is
             propagated to whole gradients in a computational graph along the
-            backporp. The gradients of parameters are divided by the factor
+            backprop. The gradients of parameters are divided by the factor
             just before the parameters are to be updated.
 
     Returns:
@@ -728,6 +728,12 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         raise TypeError(
             'grad_inputs must be a tuple or a list or None, not {}.'.format(
                 type(grad_inputs)))
+
+    for v in outputs:
+        # Raise error here if v is created by Function.backward.
+        # In such case, we don't know exact inputs of the creator.
+        v.node._check_old_style_gradient()
+
     # The implementation consists of three steps.
 
     # 1. Backward enumeration: all the nodes reachable backward from the output
@@ -744,6 +750,10 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             continue
         visited_funcs.add(func)
         for x in func.inputs:
+            # Raise error here if x is created by Function.backward.
+            # In such case, we don't know exact inputs of the creator.
+            x._check_old_style_gradient()
+
             if not x.requires_grad:
                 continue
             forward_graph[x].append(func)
@@ -832,6 +842,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
                 gys.append(None)
                 continue
             gys.append(grads.get(y, None))
+        gys = tuple(gys)
 
         # Collect the gradients w.r.t. the inputs
         #
@@ -852,6 +863,8 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
             else:
                 gxs.append(grads.get(x, None))
                 selected_inputs.add(x)
+        gxs = tuple(gxs)
+        input_indexes = tuple(input_indexes)
 
         if not input_indexes:
             continue

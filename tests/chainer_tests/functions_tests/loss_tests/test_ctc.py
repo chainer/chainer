@@ -4,7 +4,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -49,13 +49,22 @@ class CTCTestBase(object):
                      self.alpha(x, l, t - 1, u - 1) +
                      self.alpha(x, l, t - 1, u)))
 
-    def check_forward(self, t_data, xs_data, l_length, x_length):
-        x = tuple(chainer.Variable(x_data) for x_data in xs_data)
-        t = chainer.Variable(t_data)
+    def check_forward(self, t_data, xs_data, l_length, x_length,
+                      wrap_variable=True):
+        if wrap_variable:
+            x = tuple(chainer.Variable(x_data) for x_data in xs_data)
+            t = chainer.Variable(t_data)
+        else:
+            x = xs_data
+            t = t_data
 
         args = (x, t, self.blank_symbol)
         if self.use_length:
-            args += (chainer.Variable(x_length), chainer.Variable(l_length))
+            if wrap_variable:
+                args += (chainer.Variable(x_length),
+                         chainer.Variable(l_length))
+            else:
+                args += (x_length, l_length)
         loss = functions.connectionist_temporal_classification(
             *args, reduce=self.reduce).data
 
@@ -81,12 +90,24 @@ class CTCTestBase(object):
         self.check_forward(self.t, tuple(self.x),
                            self.l_length, self.x_length)
 
+    def test_forward_without_wrap_cpu(self):
+        self.check_forward(self.t, tuple(self.x),
+                           self.l_length, self.x_length, wrap_variable=False)
+
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.t),
                            tuple(cuda.to_gpu(x_data) for x_data in self.x),
                            cuda.to_gpu(self.l_length),
                            cuda.to_gpu(self.x_length))
+
+    @attr.gpu
+    def test_forward_without_wrap_gpu(self):
+        self.check_forward(cuda.to_gpu(self.t),
+                           tuple(cuda.to_gpu(x_data) for x_data in self.x),
+                           cuda.to_gpu(self.l_length),
+                           cuda.to_gpu(self.x_length),
+                           wrap_variable=False)
 
     # expected value(via numerical differentiation) from t_data
     def check_backward(self, t_data, xs_data, l_length, x_length, gy_data):

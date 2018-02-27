@@ -4,7 +4,7 @@ import io
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 
 
 def split_text(text, char_based=False):
@@ -50,12 +50,12 @@ def make_array(tokens, vocab, add_eos=True):
     ids = [vocab.get(token, unk_id) for token in tokens]
     if add_eos:
         ids.append(eos_id)
-    return numpy.array(ids, 'i')
+    return numpy.array(ids, numpy.int32)
 
 
 def transform_to_array(dataset, vocab, with_label=True):
     if with_label:
-        return [(make_array(tokens, vocab), numpy.array([cls], 'i'))
+        return [(make_array(tokens, vocab), numpy.array([cls], numpy.int32))
                 for tokens, cls in dataset]
     else:
         return [make_array(tokens, vocab)
@@ -71,7 +71,8 @@ def convert_seq(batch, device=None, with_label=True):
         else:
             xp = cuda.cupy.get_array_module(*batch)
             concat = xp.concatenate(batch, axis=0)
-            sections = numpy.cumsum([len(x) for x in batch[:-1]], dtype='i')
+            sections = numpy.cumsum([len(x)
+                                     for x in batch[:-1]], dtype=numpy.int32)
             concat_dev = chainer.dataset.to_device(device, concat)
             batch_dev = cuda.cupy.split(concat_dev, sections)
             return batch_dev
