@@ -2,8 +2,8 @@ import six
 
 import numpy
 
-from chainer import cuda
 from chainer.backends import intel64
+from chainer import cuda
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
@@ -12,7 +12,7 @@ from chainer.utils import type_check
 class LinearFunction(function_node.FunctionNode):
 
     _config_use_ideep = None
-    
+
     def __init__(self, n_batch_axes=1):
         super(LinearFunction, self).__init__()
         if n_batch_axes < 1:
@@ -89,7 +89,7 @@ class LinearFunction(function_node.FunctionNode):
         x, W = self.get_retained_inputs()
         gy, = grad_outputs
         ret = []
-        
+
         with chainer.using_config('use_ideep', self._config_use_ideep):
             if 0 in indexes:
                 gx, = LinearGradData().apply((W, gy))
@@ -156,7 +156,7 @@ class LinearGradWeight(function_node.FunctionNode):
 
     _config_use_ideep = None
 
-    def __init__(self, w_dype, n_batch_axes=1):
+    def __init__(self, w_dtype, n_batch_axes=1):
         super(LinearGradWeight, self).__init__()
         self._w_dtype = w_dtype
         if n_batch_axes < 1:
@@ -186,7 +186,7 @@ class LinearGradWeight(function_node.FunctionNode):
             xp = cuda.get_array_module(*inputs)
             ax = six.moves.range(self._n_batch_axes)
             gW = xp.tensordot(
-                gy, x, axes=(ax, ax)).astype(W.dtype, copy=False)
+                gy, x, axes=(ax, ax)).astype(x.dtype, copy=False)
         else:
             gW = gy.T.dot(x).astype(self._w_dtype, copy=False)
         return gW,
