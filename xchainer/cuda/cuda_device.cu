@@ -49,9 +49,8 @@ std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
 }
 
 void CudaDevice::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
-    (void)dst_ptr;   // unused
-    (void)src_ptr;   // unused
-    (void)bytesize;  // unused
+    CheckError(cudaSetDevice(index()));
+    CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyDeviceToDevice));
 }
 
 std::shared_ptr<void> CudaDevice::FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
