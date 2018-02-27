@@ -135,11 +135,6 @@ TEST(MemoryTest, MemoryFromBuffer) {
         ExpectDataEqual<float>(cpu_src, gpu_dst, size);
         EXPECT_NE(cpu_src.get(), gpu_dst.get());
     }
-    std::shared_ptr<void> gpu_src = Allocate(cuda_device, bytesize);
-    {
-        // gpu to gpu
-        EXPECT_THROW(MemoryFromBuffer(cuda_device, gpu_src, bytesize), XchainerError);
-    }
 }
 
 #endif  // XCHAINER_ENABLE_CUDA
