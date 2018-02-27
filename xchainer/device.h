@@ -48,6 +48,7 @@ public:
     int index() const { return index_; }
 
 protected:
+    // Throws an exception if array devices are incompatible, else does nothing.
     template <typename... Arrays>
     void CheckDevicesCompatible(const Array& first, const Arrays&... rest) {
       CheckDevicesCompatible(first);
@@ -55,7 +56,6 @@ protected:
     }
 
 private:
-    // Throws an exception if the given array is not compatible with this device, else does nothing.
     void CheckDevicesCompatible(const Array& array);
 
     Backend& backend_;
