@@ -186,7 +186,7 @@ Array Array::AsConstant(CopyKind kind) const {
             Array out = Array::EmptyLike(*this);
             // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
             // is_contiguous_ and offset_ into account
-            internal::MemoryCopy(out.data().get(), body_->data_.get(), GetTotalBytes());
+            internal::MemoryCopy(device(), out.data().get(), body_->data_.get(), GetTotalBytes());
             return std::move(out);
         }
         case CopyKind::kView:
@@ -203,7 +203,7 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
             internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }}, graph_ids);
             // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
             // is_contiguous_ and offset_ into account
-            internal::MemoryCopy(out.data().get(), body_->data_.get(), GetTotalBytes());
+            internal::MemoryCopy(device(), out.data().get(), body_->data_.get(), GetTotalBytes());
             return std::move(out);
         }
         case CopyKind::kView: {

@@ -1,7 +1,6 @@
 #include "xchainer/memory.h"
 
 #include <cassert>
-#include <cstring>
 
 #ifdef XCHAINER_ENABLE_CUDA
 #include <cuda.h>
@@ -44,32 +43,7 @@ bool IsPointerCudaMemory(const void* ptr) {
 
 std::shared_ptr<void> Allocate(Device& device, size_t bytesize) { return device.Allocate(bytesize); }
 
-void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
-#ifdef XCHAINER_ENABLE_CUDA
-    bool is_dst_cuda_memory = IsPointerCudaMemory(dst_ptr);
-    bool is_src_cuda_memory = IsPointerCudaMemory(src_ptr);
-    if (is_dst_cuda_memory) {
-        if (is_src_cuda_memory) {
-            // Copy from device to device is faster even in unified memory
-            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyDeviceToDevice));
-        } else {
-            // For pre-6.x GPU architecture, we encountered SEGV with std::memcpy
-            // ref. https://github.com/pfnet/xchainer/pull/74
-            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyHostToDevice));
-        }
-    } else {
-        if (is_src_cuda_memory) {
-            // For pre-6.x GPU architecture, we encountered SEGV with std::memcpy
-            // ref. https://github.com/pfnet/xchainer/pull/74
-            cuda::CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyDeviceToHost));
-        } else {
-            std::memcpy(dst_ptr, src_ptr, bytesize);
-        }
-    }
-#else
-    std::memcpy(dst_ptr, src_ptr, bytesize);
-#endif  // XCHAINER_ENABLE_CUDA
-}
+void MemoryCopy(Device& device, void* dst_ptr, const void* src_ptr, size_t bytesize) { device.MemoryCopy(dst_ptr, src_ptr, bytesize); }
 
 std::shared_ptr<void> MemoryFromBuffer(Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
     return device.FromBuffer(src_ptr, bytesize);

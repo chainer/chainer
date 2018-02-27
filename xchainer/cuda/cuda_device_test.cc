@@ -44,6 +44,22 @@ TEST(CudaDeviceTest, Allocate) {
     EXPECT_EQ(device.index(), attr.device);
 }
 
+TEST(NativeDeviceTest, MemoryCopy) {
+    size_t size = 3;
+    size_t bytesize = size * sizeof(float);
+    float raw_data[] = {0, 1, 2};
+    std::shared_ptr<void> src(raw_data, [](float* ptr) {
+        (void)ptr;  // unused
+    });
+
+    CudaDevice backend;
+    CudaDevice device{backend, 0};
+
+    std::shared_ptr<void> dst = device.Allocate(bytesize);
+    device.MemoryCopy(dst.get(), src.get(), bytesize);
+    ExpectDataEqual<float>(src, dst, size);
+}
+
 TEST(CudaDeviceTest, FromBuffer) {
     size_t size = 3;
     size_t bytesize = size * sizeof(float);

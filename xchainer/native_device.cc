@@ -1,5 +1,7 @@
 #include "xchainer/native_device.h"
 
+#include <cstring>
+
 #include "xchainer/array.h"
 #include "xchainer/dtype.h"
 #include "xchainer/scalar.h"
@@ -8,11 +10,7 @@ namespace xchainer {
 
 std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) { return std::make_unique<uint8_t[]>(bytesize); }
 
-void NativeDevice::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
-    (void)dst_ptr;   // unused
-    (void)src_ptr;   // unused
-    (void)bytesize;  // unused
-}
+void NativeDevice::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) { std::memcpy(dst_ptr, src_ptr, bytesize); }
 
 std::shared_ptr<void> NativeDevice::FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
     (void)bytesize;  // unused

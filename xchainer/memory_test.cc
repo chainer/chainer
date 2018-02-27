@@ -77,34 +77,23 @@ TEST(MemoryTest, MemoryCopy) {
     });
 
     Context ctx;
+    NativeBackend native_backend{ctx};
+    NativeDevice native_device{native_backend, 0};
     cuda::CudaBackend cuda_backend{ctx};
     cuda::CudaDevice cuda_device{cuda_backend, 0};
 
+    // cpu to cpu
     {
-        // cpu to cpu
         std::shared_ptr<void> cpu_dst = std::make_unique<float[]>(size);
-        MemoryCopy(cpu_dst.get(), cpu_src.get(), bytesize);
+        MemoryCopy(native_device, cpu_dst.get(), cpu_src.get(), bytesize);
         ExpectDataEqual<float>(cpu_src, cpu_dst, size);
     }
-    {
-        // cpu to gpu
-        std::shared_ptr<void> gpu_dst = Allocate(cuda_device, bytesize);
-        MemoryCopy(gpu_dst.get(), cpu_src.get(), bytesize);
-        ExpectDataEqual<float>(cpu_src, gpu_dst, size);
-    }
 
-    std::shared_ptr<void> gpu_src = Allocate(cuda_device, bytesize);
-    MemoryCopy(gpu_src.get(), cpu_src.get(), bytesize);
+    // gpu to gpu
     {
-        // gpu to cpu
-        std::shared_ptr<void> cpu_dst = std::make_unique<float[]>(size);
-        MemoryCopy(cpu_dst.get(), gpu_src.get(), bytesize);
-        ExpectDataEqual<float>(gpu_src, cpu_dst, size);
-    }
-    {
-        // gpu to gpu
+        std::shared_ptr<void> gpu_src = MemoryFromBuffer(cuda_device, cpu_src, bytesize);
         std::shared_ptr<void> gpu_dst = Allocate(cuda_device, bytesize);
-        MemoryCopy(gpu_dst.get(), gpu_src.get(), bytesize);
+        MemoryCopy(cuda_device, gpu_dst.get(), gpu_src.get(), bytesize);
         ExpectDataEqual<float>(gpu_src, gpu_dst, size);
     }
 }
