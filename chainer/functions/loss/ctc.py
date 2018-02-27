@@ -295,7 +295,7 @@ def connectionist_temporal_classification(
         x (list or tuple of :class:`~chainer.Variable`):
             A list of unnormalized probabilities for labels.
             Each element of ``x``, ``x[i]`` is a :class:`~chainer.Variable`
-            object which has shape ``(B, V)`` where ``B``
+            object, which has shape ``(B, V)``, where ``B``
             is the batch size and ``V`` is the number of labels.
             The softmax of ``x[i]`` represents the probabilities of the labels
             at time ``i``.
