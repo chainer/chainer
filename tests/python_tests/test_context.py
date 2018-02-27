@@ -53,7 +53,7 @@ def test_default_context():
 
     xchainer.set_global_default_context(None)
     xchainer.set_default_context(None)
-    with pytest.raises(xchainer.XchainerError):
+    with pytest.raises(xchainer.ContextError):
         xchainer.get_default_context()
 
     xchainer.set_global_default_context(None)
@@ -74,7 +74,7 @@ def test_global_default_context():
     context = xchainer.Context()
 
     xchainer.set_global_default_context(None)
-    with pytest.raises(xchainer.XchainerError):
+    with pytest.raises(xchainer.ContextError):
         xchainer.get_global_default_context()
 
     xchainer.set_global_default_context(context)
