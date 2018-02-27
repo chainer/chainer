@@ -3,7 +3,6 @@
 #include "xchainer/array.h"
 #include "xchainer/backprop.h"
 #include "xchainer/constant.h"
-#include "xchainer/context.h"
 #include "xchainer/python/array.h"
 #include "xchainer/python/backend.h"
 #include "xchainer/python/common.h"
