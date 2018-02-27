@@ -6,6 +6,7 @@ CUDA_ADD_LIBRARY(xchainer_cuda STATIC
 if(${ENABLE_TEST})
   add_executable(xchainer_cuda_test
       cuda_backend_test.cc
+      cuda_device_test.cc
   )
   target_link_libraries(xchainer_cuda_test
       xchainer

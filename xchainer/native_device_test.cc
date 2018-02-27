@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include "xchainer/context.h"
 #include "xchainer/native_backend.h"
 
 namespace xchainer {
@@ -17,26 +18,27 @@ void ExpectDataEqual(const std::shared_ptr<void>& expected, const std::shared_pt
 }
 
 TEST(NativeDeviceTest, Ctor) {
-    NativeBackend backend;
-
+    Context ctx;
+    NativeBackend backend{ctx};
     {
         NativeDevice device{backend, 0};
-        EXPECT_EQ(&backend, &deivce.backend());
+        EXPECT_EQ(&backend, &device.backend());
         EXPECT_EQ(0, device.index());
     }
     {
         NativeDevice device{backend, 1};
-        EXPECT_EQ(&backend, &deivce.backend());
+        EXPECT_EQ(&backend, &device.backend());
         EXPECT_EQ(1, device.index());
     }
 }
 
 TEST(NativeDeviceTest, Allocate) {
-    size_t bytesize = 3;
-    NativeBackend backend;
+    Context ctx;
+    NativeBackend backend{ctx};
     NativeDevice device{backend, 0};
-    std::shared_ptr<void> ptr = device.Allocate(bytesize);
 
+    size_t bytesize = 3;
+    std::shared_ptr<void> ptr = device.Allocate(bytesize);
     EXPECT_NE(nullptr, ptr);
 }
 
@@ -48,7 +50,8 @@ TEST(NativeDeviceTest, MemoryCopy) {
         (void)ptr;  // unused
     });
 
-    NativeDevice backend;
+    Context ctx;
+    NativeBackend backend{ctx};
     NativeDevice device{backend, 0};
 
     std::shared_ptr<void> dst = device.Allocate(bytesize);
@@ -64,7 +67,8 @@ TEST(NativeDeviceTest, FromBuffer) {
         (void)ptr;  // unused
     });
 
-    NativeDevice backend;
+    Context ctx;
+    NativeBackend backend{ctx};
     NativeDevice device{backend, 0};
 
     std::shared_ptr<void> dst = device.FromBuffer(src, bytesize);
@@ -72,7 +76,8 @@ TEST(NativeDeviceTest, FromBuffer) {
 }
 
 TEST(NativeDeviceTest, Synchronize) {
-    NativeBackend backend;
+    Context ctx;
+    NativeBackend backend{ctx};
     NativeDevice device{backend, 0};
     EXPECT_NO_THROW(device.Synchronize());
 }
