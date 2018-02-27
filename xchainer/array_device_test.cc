@@ -224,27 +224,6 @@ TEST_F(ArrayDeviceTest, OnesLike) {
     });
 }
 
-TEST_F(ArrayDeviceTest, CheckDevicesCompatibleInvalidArguments) { EXPECT_THROW(CheckDevicesCompatible({}), DeviceError); }
-
-TEST_F(ArrayDeviceTest, CheckDevicesCompatibleMultipleDevices) {
-    Shape shape({2, 3});
-    Dtype dtype = Dtype::kFloat32;
-
-    Context& ctx = GetDefaultContext();
-    NativeBackend native_backend{ctx};
-    NativeDevice cpu_device_0{native_backend, 0};
-    NativeDevice cpu_device_1{native_backend, 1};
-    auto scope = std::make_unique<DeviceScope>(cpu_device_0);
-
-    Array a_device_0 = Array::Empty(shape, dtype, cpu_device_0);
-    Array b_device_0 = Array::Empty(shape, dtype, cpu_device_0);
-    Array c_device_1 = Array::Empty(shape, dtype, cpu_device_1);
-
-    EXPECT_NO_THROW(CheckDevicesCompatible({a_device_0}));
-    EXPECT_NO_THROW(CheckDevicesCompatible({a_device_0, b_device_0}));
-    EXPECT_THROW(CheckDevicesCompatible({a_device_0, c_device_1}), DeviceError);
-}
-
 TEST_F(ArrayDeviceTest, CheckDevicesCompatibleBasicArithmetics) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
@@ -253,7 +232,7 @@ TEST_F(ArrayDeviceTest, CheckDevicesCompatibleBasicArithmetics) {
     NativeBackend native_backend{ctx};
     NativeDevice cpu_device_0{native_backend, 0};
     NativeDevice cpu_device_1{native_backend, 1};
-    auto scope = std::make_unique<DeviceScope>(cpu_device_0);
+    DeviceScope scope{cpu_device_0};
 
     Array a_device_0 = Array::Empty(shape, dtype, cpu_device_0);
     Array b_device_0 = Array::Empty(shape, dtype, cpu_device_0);

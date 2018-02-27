@@ -68,7 +68,7 @@ void CudaDevice::Fill(Array& out, Scalar value) {
 
 // TODO(sonots): support stream
 void CudaDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
-    CheckDevicesCompatible({lhs, rhs, out});
+    CheckDevicesCompatible(lhs, rhs, out);
     cudaSetDevice(index());
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
@@ -87,7 +87,7 @@ void CudaDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
 
 // TODO(sonots): support stream
 void CudaDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
-    CheckDevicesCompatible({lhs, rhs, out});
+    CheckDevicesCompatible(lhs, rhs, out);
     cudaSetDevice(index());
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;

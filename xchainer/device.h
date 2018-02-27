@@ -47,7 +47,17 @@ public:
     Context& context() const { return backend_.context(); }
     int index() const { return index_; }
 
+protected:
+    template <typename... Arrays>
+    void CheckDevicesCompatible(const Array& first, const Arrays&... rest) {
+      CheckDevicesCompatible(first);
+      CheckDevicesCompatible(rest...);
+    }
+
 private:
+    // Throws an exception if the given array is not compatible with this device, else does nothing.
+    void CheckDevicesCompatible(const Array& array);
+
     Backend& backend_;
     int index_;
 };
