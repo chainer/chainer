@@ -1,6 +1,6 @@
 import os
-import unittest
 import pytest
+import unittest
 
 _cuda_limit = int(os.getenv('XCHAINER_TEST_CUDA_LIMIT', '-1'))
 
