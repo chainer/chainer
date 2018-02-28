@@ -166,8 +166,12 @@ protected:
 protected:
     void CheckDoubleBackwardBaseComputation(Fprop fprop, Arrays& inputs, Arrays& grad_outputs, const Arrays& grad_grad_inputs,
                                             const Arrays& eps, double atol, double rtol, const GraphId& graph_id) {
-        std::for_each(inputs.begin(), inputs.end(), [&graph_id](auto& input) { input.RequireGrad(graph_id); });
-        std::for_each(grad_outputs.begin(), grad_outputs.end(), [&graph_id](auto& grad_output) { grad_output.RequireGrad(graph_id); });
+        for (auto& input : inputs) {
+            input.RequireGrad(graph_id);
+        }
+        for (auto& grad_output : grad_outputs) {
+            grad_output.RequireGrad(graph_id);
+        }
 
         // A failure occurs if backward computation and numerical gradients have differences
         CheckDoubleBackwardComputation(fprop, inputs, grad_outputs, grad_grad_inputs, eps, atol, rtol, graph_id);

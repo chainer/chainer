@@ -51,7 +51,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
     std::vector<ConstArrayRef> outputs_ref{outputs.begin(), outputs.end()};
     std::vector<ConstArrayRef> outputs_requiring_grad;
     std::copy_if(outputs_ref.begin(), outputs_ref.end(), std::back_inserter(outputs_requiring_grad),
-                 [graph_id](ConstArrayRef& a) { return a.get().IsGradRequired(graph_id); });
+                 [&graph_id](const Array& a) { return a.IsGradRequired(graph_id); });
     Backward(outputs_requiring_grad, graph_id, DoubleBackpropOption::kEnable);
 
     std::vector<nonstd::optional<Array>> backward_grads;
@@ -148,7 +148,7 @@ void CheckDoubleBackwardComputation(std::function<std::vector<Array>(const std::
         // Just convert std::vector<nonstd::optional<Array>> to std::vector<Array> so that CalculateNumericalGradient can accept
         std::vector<Array> backward_grads;
         std::transform(optional_backward_grads.begin(), optional_backward_grads.end(), std::back_inserter(backward_grads),
-                       [&graph_id](const nonstd::optional<Array>& optional_backward_grad) {
+                       [](const nonstd::optional<Array>& optional_backward_grad) {
                            if (optional_backward_grad.has_value()) {
                                return *optional_backward_grad;
                            } else {
