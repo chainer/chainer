@@ -61,7 +61,7 @@ std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
 void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
     assert(internal::IsPointerCudaMemory(dst));
     if (&src_device == this || nullptr != dynamic_cast<CudaDevice*>(&src_device)) {
-        // Copy between CUDA device
+        // Copy between CUDA devices
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
         assert(nullptr != dynamic_cast<NativeDevice*>(&src_device) && "CudaDevice only supports copy between cuda or native devices.");
@@ -73,11 +73,11 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
 void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) {
     assert(internal::IsPointerCudaMemory(src));
     if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
-        // Copy between CUDA device
+        // Copy between CUDA devices
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
         assert(nullptr != dynamic_cast<NativeDevice*>(&dst_device) && "CudaDevice only supports copy between cuda or native devices.");
-        // Copy to native device
+        // Copy from native device
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToHost));
     }
 }
