@@ -155,13 +155,13 @@ Array& Array::operator*=(const Array& rhs) {
 }
 
 Array Array::operator+(const Array& rhs) const {
-    Array out = Array::EmptyLike(*this);
+    Array out = Array::EmptyLike(*this, device());
     Add(rhs, out);
     return out;
 }
 
 Array Array::operator*(const Array& rhs) const {
-    Array out = Array::EmptyLike(*this);
+    Array out = Array::EmptyLike(*this, device());
     Mul(rhs, out);
     return out;
 }
@@ -174,7 +174,7 @@ Array Array::Copy() const {
 Array Array::AsConstant(CopyKind kind) const {
     switch (kind) {
         case CopyKind::kCopy: {
-            Array out = Array::EmptyLike(*this);
+            Array out = Array::EmptyLike(*this, device());
             // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
             // is_contiguous_ and offset_ into account
             internal::MemoryCopy(device(), out.data().get(), body_->data_.get(), GetTotalBytes());
@@ -190,7 +190,7 @@ Array Array::AsConstant(CopyKind kind) const {
 Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) const {
     switch (kind) {
         case CopyKind::kCopy: {
-            Array out = Array::EmptyLike(*this);
+            Array out = Array::EmptyLike(*this, device());
             internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }}, graph_ids);
             // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
             // is_contiguous_ and offset_ into account

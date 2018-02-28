@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <functional>
-#include <iostream>
 #include <vector>
 
 #ifdef XCHAINER_ENABLE_CUDA

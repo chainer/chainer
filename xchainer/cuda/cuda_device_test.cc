@@ -1,8 +1,11 @@
 #include "xchainer/cuda/cuda_device.h"
 
+#include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
+#include "xchainer/context.h"
 #include "xchainer/cuda/cuda_backend.h"
+#include "xchainer/cuda/cuda_runtime.h"
 
 namespace xchainer {
 namespace cuda {
@@ -18,30 +21,38 @@ void ExpectDataEqual(const std::shared_ptr<void>& expected, const std::shared_pt
 }
 
 TEST(CudaDeviceTest, Ctor) {
-    CudaBackend backend;
-
+    Context ctx;
+    CudaBackend backend{ctx};
     {
         CudaDevice device{backend, 0};
-        EXPECT_EQ(&backend, &deivce.backend());
+        EXPECT_EQ(&backend, &device.backend());
         EXPECT_EQ(0, device.index());
     }
     {
         CudaDevice device{backend, 1};
-        EXPECT_EQ(&backend, &deivce.backend());
+        EXPECT_EQ(&backend, &device.backend());
         EXPECT_EQ(1, device.index());
     }
 }
 
 TEST(CudaDeviceTest, Allocate) {
-    size_t bytesize = 3;
-    CudaBackend backend;
+    Context ctx;
+    CudaBackend backend{ctx};
     CudaDevice device{backend, 0};
-    std::shared_ptr<void> ptr = device.Allocate(bytesize);
 
-    cudaPointerAttributes attr = {};
-    CheckError(cudaPointerGetAttributes(&attr, ptr.get()));
-    EXPECT_TRUE(attr.isManaged);
-    EXPECT_EQ(device.index(), attr.device);
+    {
+        size_t bytesize = 3;
+        std::shared_ptr<void> ptr = device.Allocate(bytesize);
+
+        cudaPointerAttributes attr = {};
+        CheckError(cudaPointerGetAttributes(&attr, ptr.get()));
+        EXPECT_TRUE(attr.isManaged);
+        EXPECT_EQ(device.index(), attr.device);
+    }
+    {
+        size_t bytesize = 0;
+        EXPECT_NO_THROW(device.Allocate(bytesize));
+    }
 }
 
 TEST(CudaDeviceTest, MemoryCopy) {
@@ -52,12 +63,13 @@ TEST(CudaDeviceTest, MemoryCopy) {
         (void)ptr;  // unused
     });
 
-    CudaDevice backend;
+    Context ctx;
+    CudaBackend backend{ctx};
     CudaDevice device{backend, 0};
 
-    std::shared_ptr<void> gpu_src = MemoryFromBuffer(cuda_device, src, bytesize);
+    std::shared_ptr<void> gpu_src = device.FromBuffer(src, bytesize);
     std::shared_ptr<void> gpu_dst = device.Allocate(bytesize);
-    device.MemoryCopy(gtpu_dst.get(), gpu_src.get(), bytesize);
+    device.MemoryCopy(gpu_dst.get(), gpu_src.get(), bytesize);
     ExpectDataEqual<float>(gpu_src, gpu_dst, size);
 }
 
@@ -69,7 +81,8 @@ TEST(CudaDeviceTest, FromBuffer) {
         (void)ptr;  // unused
     });
 
-    CudaBackend backend;
+    Context ctx;
+    CudaBackend backend{ctx};
     CudaDevice device{backend, 0};
 
     std::shared_ptr<void> dst = device.FromBuffer(src, bytesize);
@@ -84,7 +97,8 @@ TEST(CudaDeviceTest, FromBuffer) {
 
 // TODO(sonots): Any ways to test cudaDeviceSynchronize()?
 TEST(CudaDeviceTest, Synchronize) {
-    CudaBackend backend;
+    Context ctx;
+    CudaBackend backend{ctx};
     CudaDevice device{backend, 0};
     EXPECT_NO_THROW(device.Synchronize());
 }
