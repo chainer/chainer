@@ -48,12 +48,11 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
         }
     }
 
-    // TODO(sonots): Use new Backward API which accepts a vector of arrays
-    for (auto& output : outputs) {
-        if (output.IsGradRequired(graph_id)) {
-            Backward(output, graph_id, DoubleBackpropOption::kEnable);
-        }
-    }
+    std::vector<ConstArrayRef> outputs_ref{outputs.begin(), outputs.end()};
+    std::vector<ConstArrayRef> outputs_requiring_grad;
+    std::copy_if(outputs_ref.begin(), outputs_ref.end(), std::back_inserter(outputs_requiring_grad),
+                 [graph_id](ConstArrayRef& a) { return a.get().IsGradRequired(graph_id); });
+    Backward(outputs_requiring_grad, graph_id, DoubleBackpropOption::kEnable);
 
     std::vector<nonstd::optional<Array>> backward_grads;
     std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads),
