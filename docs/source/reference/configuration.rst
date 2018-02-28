@@ -78,7 +78,7 @@ Note that the default values are set in the global config.
 
    The default value is given by ``CHAINER_USE_IDEEP`` environment variable (set to ``'always'``, ``'auto'`` or ``'never'``) if available, otherwise uses ``'never'``.
 
-   Note that in spite of the configuration, optimizers will use iDeep if and only if the chain is converted to iDeep (e.g., ``model.to_intel64()``).
+   Note that in spite of the configuration, optimizers will use iDeep if and only if the link is converted manually to iDeep (e.g., ``model.to_intel64()``).
 ``chainer.config.cudnn_use_tensor_core``
    Flag to configure whether or not to enable Tensor Core operatons in cuDNN.
 
