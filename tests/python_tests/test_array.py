@@ -104,12 +104,12 @@ def array_init_inputs(shape_data, dtype):
     return shape_tup, dtype
 
 
-def _check_init(shape_tup, dtype, device=None, explicit_device=False):
+def _check_init(shape_tup, dtype, device=None, with_device=True):
     shape = xchainer.Shape(shape_tup)
 
     data_list = _create_dummy_data(shape_tup, dtype)
 
-    if device is not None or explicit_device:
+    if with_device:
         array = xchainer.Array(shape, dtype, data_list, device)
     else:
         array = xchainer.Array(shape, dtype, data_list)
@@ -117,16 +117,16 @@ def _check_init(shape_tup, dtype, device=None, explicit_device=False):
     _check_array(array, dtype, shape, _size(shape_tup), data_list, device)
 
 
-def test_init(array_init_inputs):
-    _check_init(*array_init_inputs)
+def test_init_without_device(array_init_inputs):
+    _check_init(*array_init_inputs, with_device=False)
 
 
-def test_init_device(array_init_inputs):
-    _check_init(*array_init_inputs, 'native:1')
+def test_init_with_device(array_init_inputs):
+    _check_init(*array_init_inputs, device='native:1')
 
 
-def test_init_explicitly_none_device(array_init_inputs):
-    _check_init(*array_init_inputs, None, True)
+def test_init_with_none_device(array_init_inputs):
+    _check_init(*array_init_inputs, device=None)
 
 
 def _check_numpy_init(shape_tup, dtype, device=None):
