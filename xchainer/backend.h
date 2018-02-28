@@ -34,8 +34,6 @@ public:
     Device& GetDevice(int index);
 
     // Queries if the backend supports data transfer between two devices.
-    // If allow_alias is true, this function should return true only if this backend can make a memory alias
-    // out of a memory on dst_device that can also be used from src_device.
     virtual bool SupportsTransfer(Device& src_device, Device& dst_device) = 0;
 
 private:
