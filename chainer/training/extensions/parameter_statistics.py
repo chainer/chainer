@@ -1,5 +1,3 @@
-from types import MappingProxyType
-
 import numpy
 import six
 
@@ -54,7 +52,7 @@ class ParameterStatistics(extension.Extension):
     report_key_template = ('{prefix}{link_name}{param_name}/{attr_name}/'
                            '{function_name}')
 
-    default_statistics = MappingProxyType({
+    default_statistics = {
         'mean': lambda x: cuda.get_array_module(x).mean(x),
         'std': lambda x: cuda.get_array_module(x).std(x),
         'min': lambda x: cuda.get_array_module(x).min(x),
@@ -62,7 +60,7 @@ class ParameterStatistics(extension.Extension):
         'zeros': lambda x: cuda.get_array_module(x).count_nonzero(x == 0),
         'percentile': lambda x: cuda.get_array_module(x).percentile(
             x, (0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87))
-    })
+    }
 
     def __init__(self, links, statistics=default_statistics,
                  report_params=True, report_grads=True, prefix=None,
