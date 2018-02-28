@@ -11,4 +11,5 @@ Neural Net Examples
    rnn
    ptb
    word2vec
+   seq2seq
 
