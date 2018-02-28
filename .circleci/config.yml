@@ -128,7 +128,7 @@ jobs:
 
             mkdir -p build
             pushd build
-            cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON -DWARNINGS_AS_ERRORS=ON ..
+            cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON -DWARNINGS_AS_ERRORS=ON -DCMAKE_INSTALL_PREFIX=$HOME/local ..
             popd
 
       # clang-tidy (normal source files)
@@ -159,6 +159,16 @@ jobs:
 
             pushd build
             make
+            popd
+
+      # make install
+      - run:
+          name: make install
+          command: |
+            source activate testenv
+
+            pushd build
+            make install
             popd
 
       # ClangFormat
