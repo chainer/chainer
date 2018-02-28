@@ -69,6 +69,7 @@ from chainer.functions.array.pad_sequence import pad_sequence  # NOQA
 from chainer.functions.array.pad_sequence import PadSequence  # NOQA
 from chainer.functions.array.permutate import permutate  # NOQA
 from chainer.functions.array.permutate import Permutate  # NOQA
+from chainer.functions.array.repeat import repeat  # NOQA
 from chainer.functions.array.reshape import reshape  # NOQA
 from chainer.functions.array.reshape import Reshape  # NOQA
 from chainer.functions.array.resize_images import resize_images  # NOQA
