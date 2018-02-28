@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <sstream>
+#include <string>
 
 #include "xchainer/backend.h"
 #include "xchainer/context.h"
@@ -39,6 +40,7 @@ void InitXchainerDevice(pybind11::module& m) {
 
     m.def("get_default_device", []() -> Device& { return GetDefaultDevice(); }, py::return_value_policy::reference);
     m.def("set_default_device", [](Device& device) { SetDefaultDevice(&device); });
+    m.def("set_default_device", [](const std::string& device_name) { SetDefaultDevice(&GetDefaultContext().GetDevice(device_name)); });
 
     py::class_<PyDeviceScope>(m, "DeviceScope").def("__enter__", &PyDeviceScope::Enter).def("__exit__", &PyDeviceScope::Exit);
     m.def("device_scope", [](Device& device) { return PyDeviceScope(device); });

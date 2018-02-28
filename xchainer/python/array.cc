@@ -2,12 +2,16 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <string>
 
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>
+#include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
+#include "xchainer/context.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 
@@ -69,7 +73,11 @@ Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
     throw DtypeError("unsupported NumPy dtype");
 }
 
-ArrayBodyPtr MakeArray(const Shape& shape, Dtype dtype, py::list list) {
+Device& GetDevice(const nonstd::optional<std::string>& device_id) {
+    return device_id.has_value() ? GetDefaultContext().GetDevice(device_id.value()) : GetDefaultDevice();
+}
+
+ArrayBodyPtr MakeArray(const Shape& shape, Dtype dtype, py::list list, const nonstd::optional<std::string>& device_id) {
     auto total_size = shape.GetTotalSize();
     auto bytes = GetElementSize(dtype) * total_size;
     if (static_cast<size_t>(total_size) != list.size()) {
@@ -82,10 +90,11 @@ ArrayBodyPtr MakeArray(const Shape& shape, Dtype dtype, py::list list) {
         using T = typename decltype(pt)::type;
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
-    return Array::FromBuffer(shape, dtype, ptr).move_body();
+
+    return Array::FromBuffer(shape, dtype, ptr, GetDevice(device_id)).move_body();
 }
 
-ArrayBodyPtr MakeArray(py::array array) {
+ArrayBodyPtr MakeArray(py::array array, const nonstd::optional<std::string>& device_id) {
     if ((array.flags() & py::array::c_style) == 0) {
         throw DimensionError("cannot convert non-contiguous NumPy array to Array");
     }
@@ -97,7 +106,7 @@ ArrayBodyPtr MakeArray(py::array array) {
     // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
     std::shared_ptr<void> data(std::make_shared<py::array>(std::move(array)), array.mutable_data());
 
-    return Array::FromBuffer(shape, dtype, data).move_body();
+    return Array::FromBuffer(shape, dtype, data, GetDevice(device_id)).move_body();
 }
 
 py::buffer_info MakeNumpyArrayFromArray(internal::ArrayBody& self) {
@@ -129,8 +138,10 @@ py::buffer_info MakeNumpyArrayFromArray(internal::ArrayBody& self) {
 
 void InitXchainerArray(pybind11::module& m) {
     py::class_<internal::ArrayBody, ArrayBodyPtr>{m, "Array", py::buffer_protocol()}
-        .def(py::init(py::overload_cast<const Shape&, Dtype, py::list>(&MakeArray)))
-        .def(py::init(py::overload_cast<py::array>(&MakeArray)))
+        .def(py::init(py::overload_cast<const Shape&, Dtype, py::list, const nonstd::optional<std::string>&>(&MakeArray)), py::arg("shape"),
+             py::arg("dtype"), py::arg("data"), py::arg("device") = nullptr)
+        .def(py::init(py::overload_cast<py::array, const nonstd::optional<std::string>&>(&MakeArray)), py::arg("data"),
+             py::arg("device") = nullptr)
         .def_buffer(&MakeNumpyArrayFromArray)
         .def("view",
              [](const ArrayBodyPtr& self) {
@@ -176,6 +187,8 @@ void InitXchainerArray(pybind11::module& m) {
                  }
              },
              py::arg("grad"), py::arg("graph_id") = kDefaultGraphId)
+        .def_property_readonly("device", [](const ArrayBodyPtr& self) -> Device& { return Array{self}.device(); },
+                               py::return_value_policy::reference)
         .def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); })
         .def_property_readonly("element_bytes", [](const ArrayBodyPtr& self) { return Array{self}.element_bytes(); })
         .def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.is_contiguous(); })
@@ -202,6 +215,52 @@ void InitXchainerArray(pybind11::module& m) {
 
             return list;
         });
+
+    m.def("empty",
+          [](const Shape& shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+              return Array::Empty(shape, dtype, GetDevice(device_id)).move_body();
+          },
+          py::arg("shape"), py::arg("dtype"), py::arg("device") = nullptr)
+        .def("full",
+             [](const Shape& shape, Scalar value, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+                 return Array::Full(shape, value, dtype, GetDevice(device_id)).move_body();
+             },
+             py::arg("shape"), py::arg("value"), py::arg("dtype"), py::arg("device") = nullptr)
+        .def("full",
+             [](const Shape& shape, Scalar value, const nonstd::optional<std::string>& device_id) {
+                 return Array::Full(shape, value, GetDevice(device_id)).move_body();
+             },
+             py::arg("shape"), py::arg("value"), py::arg("device") = nullptr)
+        .def("zeros",
+             [](const Shape& shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+                 return Array::Zeros(shape, dtype, GetDevice(device_id)).move_body();
+             },
+             py::arg("shape"), py::arg("dtype"), py::arg("device") = nullptr)
+        .def("ones",
+             [](const Shape& shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+                 return Array::Ones(shape, dtype, GetDevice(device_id)).move_body();
+             },
+             py::arg("shape"), py::arg("dtype"), py::arg("device") = nullptr)
+        .def("empty_like",
+             [](const ArrayBodyPtr& other, const nonstd::optional<std::string>& device_id) {
+                 return Array::EmptyLike(Array{other}, GetDevice(device_id)).move_body();
+             },
+             py::arg("other"), py::arg("device") = nullptr)
+        .def("full_like",
+             [](const ArrayBodyPtr& other, Scalar value, const nonstd::optional<std::string>& device_id) {
+                 return Array::FullLike(Array{other}, value, GetDevice(device_id)).move_body();
+             },
+             py::arg("other"), py::arg("value"), py::arg("device") = nullptr)
+        .def("zeros_like",
+             [](const ArrayBodyPtr& other, const nonstd::optional<std::string>& device_id) {
+                 return Array::ZerosLike(Array{other}, GetDevice(device_id)).move_body();
+             },
+             py::arg("other"), py::arg("device") = nullptr)
+        .def("ones_like",
+             [](const ArrayBodyPtr& other, const nonstd::optional<std::string>& device_id) {
+                 return Array::OnesLike(Array{other}, GetDevice(device_id)).move_body();
+             },
+             py::arg("other"), py::arg("device") = nullptr);
 }
 
 }  // namespace xchainer

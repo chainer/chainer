@@ -102,6 +102,12 @@ Run tests with coverage:
 $ pytest --cov --no-cov-on-fail --cov-fail-under=80
 ```
 
+Run tests without CUDA GPU:
+
+```shell-session
+$ pytest -m 'not cuda'
+```
+
 ### Run the C++ test suite
 
 The test suite is built by default unless `-DENABLE_TEST=OFF` is passed to `cmake`.
