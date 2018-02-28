@@ -84,9 +84,13 @@ public:
         auto y = fprop(target_inputs, args...);
         Backward(y);
         for (size_t i = 0; i < expected_grads.size(); ++i) {
-            ExpectEqual<float>(expected_grads[i], *target_inputs[i].GetGrad());
+            auto& target_input = target_inputs[i];
+            ASSERT_TRUE(target_input.GetGrad().has_value());
+            EXPECT_EQ(&target_input.device(), &target_input.GetGrad()->device());
+            ExpectEqual<float>(expected_grads[i], *target_input.GetGrad());
         }
-        EXPECT_TRUE(y.GetGrad().has_value());
+        ASSERT_TRUE(y.GetGrad().has_value());
+        EXPECT_EQ(&y.device(), &y.GetGrad()->device());
     }
 
     template <typename Fprop>
