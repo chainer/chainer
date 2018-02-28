@@ -129,9 +129,9 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
 
 class CudnnRNNWeightConcat(function.Function):
 
-    """Concatenates weight matrixes for cuDNN's RNN.
+    """Concatenates weight matrices for cuDNN's RNN.
 
-    This function concatenates weight matrixes for RNNs into one large array.
+    This function concatenates weight matrices for RNNs into one large array.
     Its format is defined in cuDNN's API.
 
     """
