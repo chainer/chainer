@@ -7,9 +7,11 @@ import numpy
 import six
 
 import chainer
+from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_hook
+from chainer.utils import experimental
 from chainer.utils import type_check
 from chainer import variable
 
@@ -126,6 +128,7 @@ class FunctionNode(object):
     _output_indexes_to_retain = None
     _retained_output_data = None
     _local_function_hooks = None
+    lazy_grad_sum = False
 
     @property
     def local_function_hooks(self):
@@ -303,6 +306,10 @@ Use apply() method instead.\
                     ret[index].retain_data()
                     retained_data.append(outputs[index])
                 self._retained_output_data = tuple(retained_data)
+
+            self.lazy_grad_sum = configuration.config.lazy_grad_sum
+            if self.lazy_grad_sum:
+                experimental('config.lazy_grad_sum')
 
         return ret
 
@@ -548,10 +555,21 @@ Use apply() method instead.\
                 'number of gradients returned by %s (%s) is incorrect.'
                 % (self._impl_name, self.label))
 
-        return tuple([gx if g_input is None else
-                      g_input if gx is None else
-                      gx + g_input
-                      for gx, g_input in six.moves.zip(gxs, grad_inputs)])
+        if self.lazy_grad_sum:
+            gxs_output = ()
+            for i, (gx, g_input) in enumerate(six.moves.zip(gxs, grad_inputs)):
+                sum_gx = _backprop_utils.concat_variable(gx, g_input)
+                j = target_input_indexes[i]
+                if self.inputs[j].creator is None and \
+                        isinstance(sum_gx, tuple):
+                    sum_gx = chainer.functions.add(*sum_gx)
+                gxs_output += sum_gx,
+            return gxs_output
+        else:
+            return tuple([gx if g_input is None else
+                          g_input if gx is None else
+                          gx + g_input
+                          for gx, g_input in six.moves.zip(gxs, grad_inputs)])
 
     def get_retained_inputs(self):
         """Returns a tuple of retained input variables.
@@ -870,6 +888,9 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
             continue
 
         # Do backward
+        gys = tuple([gy if not isinstance(gy, tuple) else
+                     chainer.functions.add(*gy)
+                     for gy in gys])
         new_gxs = func.backward_accumulate(input_indexes, gys, gxs)
 
         # Delete output gradients that are not required to return
@@ -889,7 +910,15 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
                 # Accumulate the duplicated gradients here
                 cur_gx = grads.get(node, None)
                 if cur_gx is not None:
-                    g = g + cur_gx
+                    if func.lazy_grad_sum:
+                        if x.creator is None:
+                            g = _backprop_utils.add(g, cur_gx)
+                        else:
+                            g = _backprop_utils.concat_variable(g, cur_gx)
+                    # cur_gx can't be tuple, the lazy_grad_sum can't
+                    # be enabled in its sibling node.
+                    else:
+                        g = g + cur_gx
             else:
                 selected_inputs.add(node)
 

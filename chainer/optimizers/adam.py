@@ -1,7 +1,7 @@
 from __future__ import division
 import math
 
-import numpy as np
+import numpy
 
 from chainer.backends import cuda
 from chainer import optimizer
@@ -105,10 +105,10 @@ class AdamRule(optimizer.UpdateRule):
 
         if hp.amsgrad:
             vhat = self.state['vhat']
-            np.maximum(vhat, v, out=vhat)
+            numpy.maximum(vhat, v, out=vhat)
         else:
             vhat = v
-        param.data -= hp.eta * (self.lr * m / (np.sqrt(vhat) + hp.eps) +
+        param.data -= hp.eta * (self.lr * m / (numpy.sqrt(vhat) + hp.eps) +
                                 hp.weight_decay_rate * param.data)
 
     def update_core_gpu(self, param):

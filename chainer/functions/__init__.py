@@ -32,7 +32,6 @@ from chainer.functions.activation.softmax import Softmax  # NOQA
 from chainer.functions.activation.softplus import softplus  # NOQA
 from chainer.functions.activation.softplus import Softplus  # NOQA
 from chainer.functions.activation.swish import swish  # NOQA
-from chainer.functions.activation.swish import Swish  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
 from chainer.functions.activation.tanh import Tanh  # NOQA
 from chainer.functions.activation.tree_lstm import tree_lstm  # NOQA
@@ -176,6 +175,7 @@ from chainer.functions.loss.vae import gaussian_nll  # NOQA
 
 from chainer.functions.math.average import average  # NOQA
 from chainer.functions.math.basic_math import absolute  # NOQA
+from chainer.functions.math.basic_math import add  # NOQA
 from chainer.functions.math.batch_l2_norm_squared import batch_l2_norm_squared  # NOQA
 from chainer.functions.math.batch_l2_norm_squared import BatchL2NormSquared  # NOQA
 from chainer.functions.math.bias import bias  # NOQA

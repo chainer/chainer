@@ -1,7 +1,8 @@
+import six
+
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
-import six
 
 
 def _flip(array, axis):

@@ -11,4 +11,4 @@ Trainer triggers
    chainer.training.triggers.ManualScheduleTrigger
    chainer.training.triggers.MaxValueTrigger
    chainer.training.triggers.MinValueTrigger
-
+   chainer.training.triggers.TimeTrigger

@@ -1705,4 +1705,92 @@ class TestIntel64(unittest.TestCase):
         self._check_variable_shape_and_dtype(x)
 
 
+@testing.parameterize(*testing.product({
+    'shape': [(3,), (3, 2), (3, 2, 2), (3, 2, 2, 3)],
+    'dtype': [
+        np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32,
+        np.uint64, np.float16, np.float32, np.float64],
+}))
+class TestLazyGradSum(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+
+        y10 = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy00 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        f10 = chainer.FunctionNode()
+        f10.check_type_forward = mock.MagicMock()
+        f10.forward_cpu = mock.MagicMock(return_value=(y10,))
+        f10.retain_outputs((0,))
+        f10.backward = mock.MagicMock(return_value=(gy00,))
+        self.y10 = y10
+        self.f10 = f10
+        self.gy00 = gy00
+
+        y11 = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy01 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        f11 = chainer.FunctionNode()
+        f11.check_type_forward = mock.MagicMock()
+        f11.forward_cpu = mock.MagicMock(return_value=(y11,))
+        f11.retain_outputs((0,))
+        f11.backward = mock.MagicMock(return_value=(gy01,))
+        self.y11 = y11
+        self.f11 = f11
+        self.gy01 = gy01
+
+        y12 = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy02 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        f12 = chainer.FunctionNode()
+        f12.check_type_forward = mock.MagicMock()
+        f12.forward_cpu = mock.MagicMock(return_value=(y12,))
+        f12.retain_outputs((0,))
+        f12.backward = mock.MagicMock(return_value=(gy02,))
+        self.y12 = y12
+        self.f12 = f12
+        self.gy02 = gy02
+
+        y = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy10 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        gy11 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        gy12 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        f2 = chainer.FunctionNode()
+        f2.check_type_forward = mock.MagicMock()
+        f2.forward_cpu = mock.MagicMock(return_value=(y,))
+        f12.retain_outputs((0,))
+        f2.backward = mock.MagicMock(return_value=(gy10, gy11, gy12))
+        self.y = y
+        self.f2 = f2
+        self.gy10 = gy10
+        self.gy11 = gy11
+        self.gy12 = gy12
+        self.gx = gy00 + gy01 + gy02
+
+    def forward(self, x):
+        y0 = F.identity(x)
+        y10 = self.f10.apply((y0,))
+        y11 = self.f11.apply((y0,))
+        y12 = self.f12.apply((y0,))
+        y = self.f2.apply((y10[0], y11[0], y12[0]))
+        return y
+
+    def check_backward(self):
+        x = chainer.Variable(self.x)
+        y = self.forward(x)
+        y[0].grad = np.ones(y[0].shape, y[0].dtype)
+        y[0].backward()
+        testing.assert_allclose(self.gx.data, x.grad, atol=1e-3, rtol=1e-2)
+
+    def test_backward_cpu(self):
+        with chainer.using_config('lazy_grad_sum', False):
+            self.check_backward()
+        with chainer.using_config('lazy_grad_sum', True):
+            self.check_backward()
+
+
 testing.run_module(__name__, __file__)
