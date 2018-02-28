@@ -117,8 +117,8 @@ class NStepRNNBase(link.ChainList):
         raise NotImplementedError
 
     @property
-    def n_cell(self):
-        """Return the number of cells.
+    def n_cells(self):
+        """Returns the number of cells.
 
         This function must be implemented in a child class.
         """
@@ -232,7 +232,7 @@ class NStepRNNTanh(NStepRNNBase):
         return rnn.n_step_rnn(*args, activation='tanh')
 
     @property
-    def n_cell(self):
+    def n_cells(self):
         return 1
 
 
@@ -275,7 +275,7 @@ class NStepRNNReLU(NStepRNNBase):
         return rnn.n_step_rnn(*args, activation='relu')
 
     @property
-    def n_cell(self):
+    def n_cells(self):
         return 1
 
 
@@ -319,7 +319,7 @@ class NStepBiRNNTanh(NStepRNNBase):
         return rnn.n_step_birnn(*args, activation='tanh')
 
     @property
-    def n_cell(self):
+    def n_cells(self):
         return 1
 
 
@@ -362,5 +362,5 @@ class NStepBiRNNReLU(NStepRNNBase):
         return rnn.n_step_birnn(*args, activation='relu')
 
     @property
-    def n_cell(self):
+    def n_cells(self):
         return 1

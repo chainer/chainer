@@ -98,7 +98,7 @@ class NStepLSTM(NStepLSTMBase):
         return rnn.n_step_lstm(*args)
 
     @property
-    def n_cell(self):
+    def n_cells(self):
         return 2
 
 
@@ -145,5 +145,5 @@ class NStepBiLSTM(NStepLSTMBase):
         return rnn.n_step_bilstm(*args)
 
     @property
-    def n_cell(self):
+    def n_cells(self):
         return 2
