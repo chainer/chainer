@@ -102,10 +102,9 @@ TEST_P(CudaBackendTransferTest, TransferFrom) {
     EXPECT_EQ(device1.index(), attr.device);
 }
 
-INSTANTIATE_TEST_CASE_P(Device, CudaBackendTransferTest,
-                        ::testing::Values(std::make_tuple(0, 0),  // transfer between same devices
-                                          std::make_tuple(0, 1)   // transfer between dfferent CUDA devices
-                                          ));
+INSTANTIATE_TEST_CASE_P(Device, CudaBackendTransferTest, ::testing::Values(std::make_tuple(0, 0),  // transfer between same devices
+                                                                           std::make_tuple(0, 1)   // transfer between dfferent CUDA devices
+                                                                           ));
 
 }  // namespace
 }  // namespace cuda
