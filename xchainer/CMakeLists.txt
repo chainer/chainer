@@ -8,7 +8,6 @@ endif()
 
 install(FILES
     array.h
-    array_math.h
     array_repr.h
     backend.h
     backprop.h
@@ -46,6 +45,8 @@ add_library(xchainer SHARED
     )
 
 target_link_libraries(xchainer
+    PUBLIC
+    ${CMAKE_DL_LIBS}
     PRIVATE
     -Wl,--whole-archive)
 if(${CUDA_FOUND})
@@ -57,6 +58,7 @@ target_link_libraries(xchainer
 install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)
+    add_subdirectory(context_testdata)
     set(srcs
         array_device_test.cc
         array_repr_test.cc
@@ -80,6 +82,9 @@ if(ENABLE_TEST)
     else()
         add_executable(xchainer_test ${srcs})
     endif()
+
+    target_compile_definitions(xchainer_test PRIVATE
+        XCHAINER_TEST_DIR="${CMAKE_CURRENT_BINARY_DIR}")
 
     target_link_libraries(xchainer_test
         xchainer
