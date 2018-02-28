@@ -30,10 +30,10 @@
 namespace xchainer {
 namespace {
 
-class BackpropTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
+class BackpropTest : public ::testing::TestWithParam<std::string> {
 protected:
     void SetUp() override {
-        std::string backend_name = ::testing::get<0>(GetParam());
+        std::string backend_name = GetParam();
         device_session_.emplace(DeviceId{backend_name, 0});
     }
 
@@ -60,7 +60,7 @@ public:
     template <typename T>
     void ExpectDataEqual(const Array& expected, const Array& actual) const {
 #ifdef XCHAINER_ENABLE_CUDA
-        std::string backend_name = ::testing::get<0>(GetParam());
+        std::string backend_name = GetParam();
         if (backend_name == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
@@ -157,7 +157,7 @@ TEST_P(BackpropTest, DoubleBackprop) {
 
 #ifdef XCHAINER_ENABLE_CUDA
 TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
-    std::string another_backend = ::testing::get<0>(GetParam()) == "cuda" ? "native" : "cuda";
+    std::string another_backend = GetParam() == "cuda" ? "native" : "cuda";
     CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f},
                                [another_backend](auto& xs) {
                                    auto ret = xs[0] * xs[1];
