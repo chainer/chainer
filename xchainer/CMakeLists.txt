@@ -8,7 +8,6 @@ endif()
 
 install(FILES
     array.h
-    array_math.h
     array_repr.h
     backend.h
     backprop.h

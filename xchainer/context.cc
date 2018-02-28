@@ -13,8 +13,6 @@
 #include "xchainer/error.h"
 #include "xchainer/native_backend.h"
 
-#include <iostream>
-
 namespace xchainer {
 namespace {
 
@@ -89,7 +87,6 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         // In that case, the backend created above is thrown away.
         std::lock_guard<std::mutex> lock{mutex_};
         auto pair = backends_.emplace(backend_name, std::move(backend));
-        std::cout << pair.first->second->GetName() << std::endl;
         return *pair.first->second;
     }
 }
