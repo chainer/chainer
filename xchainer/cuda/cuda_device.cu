@@ -65,7 +65,7 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
         assert(nullptr != dynamic_cast<NativeDevice*>(&src_device) && "CudaDevice only supports copy between cuda or native devices.");
-        // Copy to native device
+        // Copy from native device
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyHostToDevice));
     }
 }
@@ -77,7 +77,7 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
         assert(nullptr != dynamic_cast<NativeDevice*>(&dst_device) && "CudaDevice only supports copy between cuda or native devices.");
-        // Copy from native device
+        // Copy to native device
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToHost));
     }
 }
