@@ -53,6 +53,12 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
 endif()
 include_directories("${PROJECT_SOURCE_DIR}")
 
+# dl libs
+if(DEFINED CMAKE_DL_LIBS)
+else()
+    message(FATAL_ERROR "libdl not found")
+endif()
+
 # pybind11
 if(${BUILD_PYTHON})
     get_third_party(pybind11)

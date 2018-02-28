@@ -46,6 +46,8 @@ add_library(xchainer SHARED
     )
 
 target_link_libraries(xchainer
+    PUBLIC
+    ${CMAKE_DL_LIBS}
     PRIVATE
     -Wl,--whole-archive)
 if(${CUDA_FOUND})
