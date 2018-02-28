@@ -72,6 +72,14 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
     return {out};
 }
 
+template <typename T>
+Array MakeArray(const Shape& shape, const T* data) {
+    int64_t size = shape.GetTotalSize();
+    auto a = std::make_unique<T[]>(size);
+    std::copy(data, data + size, a.get());
+    return Array::FromBuffer(shape, TypeToDtype<T>, std::move(a));
+}
+
 class CheckBackwardBaseTest : public ::testing::Test {
 protected:
     void SetUp() override { device_session_.emplace(DeviceId{NativeBackend::kDefaultName, 0}); }
@@ -79,14 +87,6 @@ protected:
     void TearDown() override { device_session_.reset(); }
 
 protected:
-    template <typename T>
-    Array MakeArray(const Shape& shape, const T* data) const {
-        int64_t size = shape.GetTotalSize();
-        auto a = std::make_unique<T[]>(size);
-        std::copy(data, data + size, a.get());
-        return Array::FromBuffer(shape, TypeToDtype<T>, std::move(a));
-    }
-
     void CheckBackwardBaseComputation(bool expect_correct, Fprop fprop, Arrays& inputs, const Arrays& grad_outputs, const Arrays& eps,
                                       double atol, double rtol, const GraphId& graph_id) {
         bool is_none_of_grad_required =
@@ -157,6 +157,55 @@ private:
     std::vector<bool> requires_grads;
 };
 
+class CheckDoubleBackwardBaseTest : public ::testing::Test {
+protected:
+    void SetUp() override { device_session_.emplace(DeviceId{NativeBackend::kDefaultName, 0}); }
+
+    void TearDown() override { device_session_.reset(); }
+
+protected:
+    void CheckDoubleBackwardBaseComputation(Fprop fprop, Arrays& inputs, Arrays& grad_outputs, const Arrays& grad_grad_inputs,
+                                            const Arrays& eps, double atol, double rtol, const GraphId& graph_id) {
+        std::for_each(inputs.begin(), inputs.end(), [&graph_id](auto& input) { input.RequireGrad(graph_id); });
+        std::for_each(grad_outputs.begin(), grad_outputs.end(), [&graph_id](auto& grad_output) { grad_output.RequireGrad(graph_id); });
+
+        // A failure occurs if backward computation and numerical gradients have differences
+        CheckDoubleBackwardComputation(fprop, inputs, grad_outputs, grad_grad_inputs, eps, atol, rtol, graph_id);
+    }
+
+private:
+    nonstd::optional<testing::DeviceSession> device_session_;
+};
+
+class CheckDoubleBackwardUnaryTest : public CheckDoubleBackwardBaseTest {
+protected:
+    template <typename T>
+    void CheckDoubleBackwardUnaryComputation(Fprop fprop, const Shape& shape, const T* input_data, const T* grad_output_data,
+                                             const T* grad_grad_input_data, const T* eps_input_data, const T* eps_grad_output_data,
+                                             double atol, double rtol, const GraphId& graph_id) {
+        Arrays inputs{MakeArray(shape, input_data)};
+        Arrays grad_outputs{MakeArray(shape, grad_output_data)};
+        Arrays grad_grad_inputs{MakeArray(shape, grad_grad_input_data)};
+        Arrays eps{MakeArray(shape, eps_input_data), MakeArray(shape, eps_grad_output_data)};
+        CheckDoubleBackwardBaseComputation(fprop, inputs, grad_outputs, grad_grad_inputs, eps, atol, rtol, graph_id);
+    }
+};
+
+class CheckDoubleBackwardBinaryTest : public CheckDoubleBackwardBaseTest {
+protected:
+    template <typename T>
+    void CheckDoubleBackwardBinaryComputation(Fprop fprop, const Shape& shape, const T* input_data1, const T* input_data2,
+                                              const T* grad_output_data, const T* grad_grad_input_data1, const T* grad_grad_input_data2,
+                                              const T* eps_input_data1, const T* eps_input_data2, const T* eps_grad_output_data,
+                                              double atol, double rtol, const GraphId& graph_id) {
+        Arrays inputs{MakeArray(shape, input_data1), MakeArray(shape, input_data2)};
+        Arrays grad_outputs{MakeArray(shape, grad_output_data)};
+        Arrays grad_grad_inputs{MakeArray(shape, grad_grad_input_data1), MakeArray(shape, grad_grad_input_data2)};
+        Arrays eps{MakeArray(shape, eps_input_data1), MakeArray(shape, eps_input_data2), MakeArray(shape, eps_grad_output_data)};
+        CheckDoubleBackwardBaseComputation(fprop, inputs, grad_outputs, grad_grad_inputs, eps, atol, rtol, graph_id);
+    }
+};
+
 TEST_P(CheckBackwardUnaryTest, CorrectBackward) {
     float input_data[]{1.f, 2.f, 1.f};
     float grad_output_data[]{0.f, -2.f, 1.f};
@@ -192,6 +241,32 @@ TEST_P(CheckBackwardBinaryTest, IncorrectBackward) {
     float grad_output_data[]{4.f, -2.f, 3.f};
     CheckBackwardBinaryComputation(false, &IncorrectBackwardBinaryFunc, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1,
                                    eps_data2, 1e-5, 1e-4, "graph_1");
+}
+
+TEST_F(CheckDoubleBackwardUnaryTest, CorrectBackward) {
+    float input_data[]{1.f, 2.f, 3.f};
+    float grad_output_data[]{1.f, 1.f, 1.f};
+    float grad_grad_input_data[]{1.f, 1.f, 1.f};
+    float eps_input_data[]{1e-3f, 1e-3f, 1e-3f};
+    float eps_grad_output_data[]{1e-3f, 1e-3f, 1e-3f};
+    Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[0]}; };
+    CheckDoubleBackwardUnaryComputation(fprop, {1, 3}, input_data, grad_output_data, grad_grad_input_data, eps_input_data,
+                                        eps_grad_output_data, 1e-4, 1e-3, "graph_1");
+}
+
+TEST_F(CheckDoubleBackwardBinaryTest, CorrectBackward) {
+    float input_data1[]{1.f, 2.f, 3.f};
+    float input_data2[]{1.f, 1.f, 1.f};
+    float grad_output_data[]{1.f, 1.f, 1.f};
+    float grad_grad_input_data1[]{1.f, 1.f, 1.f};
+    float grad_grad_input_data2[]{1.f, 1.f, 1.f};
+    float eps_input_data1[]{1e-3f, 1e-3f, 1e-3f};
+    float eps_input_data2[]{1e-3f, 1e-3f, 1e-3f};
+    float eps_grad_output_data[]{1e-3f, 1e-3f, 1e-3f};
+    Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[1]}; };
+    CheckDoubleBackwardBinaryComputation(fprop, {1, 3}, input_data1, input_data2, grad_output_data, grad_grad_input_data1,
+                                         grad_grad_input_data2, eps_input_data1, eps_input_data2, eps_grad_output_data, 1e-4, 1e-3,
+                                         "graph_1");
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachSingleSetRequiresGrad, CheckBackwardUnaryTest, ::testing::Bool());
