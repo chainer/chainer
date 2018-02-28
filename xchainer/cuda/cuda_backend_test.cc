@@ -77,7 +77,7 @@ TEST(CudaBackendIncompatibleTransferTest, SupportsTransferDifferentContexts) {
     CudaBackend backend0{ctx0};
     CudaBackend backend1{ctx1};
     Device& device0 = backend0.GetDevice(0);
-    Device& device1 = backend1.GetDevice(1);
+    Device& device1 = backend1.GetDevice(0);
     EXPECT_FALSE(backend0.SupportsTransfer(device0, device1));
 }
 
@@ -87,7 +87,7 @@ TEST(CudaBackendIncompatibleTransferTest, SupportsTransferNativeBackends) {
     NativeBackend native_backend0{ctx};
     NativeBackend native_backend1{ctx};
     Device& device0 = native_backend0.GetDevice(0);
-    Device& device1 = native_backend1.GetDevice(1);
+    Device& device1 = native_backend1.GetDevice(0);
     EXPECT_FALSE(cuda_backend.SupportsTransfer(device0, device1));
 }
 
@@ -103,7 +103,7 @@ TEST(CudaBackendIncompatibleTransferTest, SupportsTransferDifferentCudaBackends)
     DerivedCudaBackend<0> backend0{ctx};
     DerivedCudaBackend<1> backend1{ctx};
     Device& device0 = backend0.GetDevice(0);
-    Device& device1 = backend1.GetDevice(1);
+    Device& device1 = backend1.GetDevice(0);
     EXPECT_FALSE(backend0.SupportsTransfer(device0, device1));
 }
 

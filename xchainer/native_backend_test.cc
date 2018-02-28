@@ -73,7 +73,7 @@ TEST(NativeBackendIncompatibleTransferTest, SupportsTransferDifferentContexts) {
     NativeBackend backend0{ctx0};
     NativeBackend backend1{ctx1};
     Device& device0 = backend0.GetDevice(0);
-    Device& device1 = backend1.GetDevice(1);
+    Device& device1 = backend1.GetDevice(0);
     EXPECT_FALSE(backend0.SupportsTransfer(device0, device1));
 }
 
@@ -89,7 +89,7 @@ TEST(NativeBackendIncompatibleTransferTest, SupportsTransferDifferentNativeBacke
     DerivedNativeBackend<0> backend0{ctx};
     DerivedNativeBackend<1> backend1{ctx};
     Device& device0 = backend0.GetDevice(0);
-    Device& device1 = backend1.GetDevice(1);
+    Device& device1 = backend1.GetDevice(0);
     EXPECT_FALSE(backend0.SupportsTransfer(device0, device1));
 }
 
