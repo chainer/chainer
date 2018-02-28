@@ -488,6 +488,45 @@ TEST_P(ArrayTest, Empty) {
     CheckEmpty<double>();
 }
 
+TEST_P(ArrayTest, EmptyWithVariousShapes) {
+    {
+        Array x = Array::Empty(Shape{}, Dtype::kFloat32);
+        EXPECT_EQ(0, x.ndim());
+        EXPECT_EQ(1, x.GetTotalSize());
+        EXPECT_EQ(int64_t{sizeof(float)}, x.GetTotalBytes());
+    }
+    {
+        Array x = Array::Empty(Shape{0}, Dtype::kFloat32);
+        EXPECT_EQ(1, x.ndim());
+        EXPECT_EQ(0, x.GetTotalSize());
+        EXPECT_EQ(0, x.GetTotalBytes());
+    }
+    {
+        Array x = Array::Empty(Shape{1}, Dtype::kFloat32);
+        EXPECT_EQ(1, x.ndim());
+        EXPECT_EQ(1, x.GetTotalSize());
+        EXPECT_EQ(int64_t{sizeof(float)}, x.GetTotalBytes());
+    }
+    {
+        Array x = Array::Empty(Shape{2, 3}, Dtype::kFloat32);
+        EXPECT_EQ(2, x.ndim());
+        EXPECT_EQ(6, x.GetTotalSize());
+        EXPECT_EQ(6 * int64_t{sizeof(float)}, x.GetTotalBytes());
+    }
+    {
+        Array x = Array::Empty(Shape{1, 1, 1}, Dtype::kFloat32);
+        EXPECT_EQ(3, x.ndim());
+        EXPECT_EQ(1, x.GetTotalSize());
+        EXPECT_EQ(int64_t{sizeof(float)}, x.GetTotalBytes());
+    }
+    {
+        Array x = Array::Empty(Shape{2, 0, 3}, Dtype::kFloat32);
+        EXPECT_EQ(3, x.ndim());
+        EXPECT_EQ(0, x.GetTotalSize());
+        EXPECT_EQ(0, x.GetTotalBytes());
+    }
+}
+
 TEST_P(ArrayTest, EmptyLike) {
     CheckEmptyLike<bool>();
     CheckEmptyLike<int8_t>();

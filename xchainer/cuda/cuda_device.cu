@@ -44,6 +44,9 @@ __global__ void MulKernel(const T* ldata, const T* rdata, T* odata, int64_t tota
 }  // namespace
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
+    if (bytesize == 0) {
+        return nullptr;
+    }
     CheckError(cudaSetDevice(index()));
     void* raw_ptr = nullptr;
     // Be careful to be exception-safe, i.e.,
