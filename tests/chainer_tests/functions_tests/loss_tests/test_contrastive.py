@@ -77,9 +77,11 @@ class TestContrastive(unittest.TestCase):
                            cuda.to_gpu(self.t))
 
     def check_backward(self, x0_data, x1_data, t_data, gy_data):
+        def f(x0, x1, t):
+            return functions.contrastive(x0, x1, t, self.margin, self.reduce)
+
         gradient_check.check_backward(
-            functions.Contrastive(self.margin, self.reduce),
-            (x0_data, x1_data, t_data), gy_data, dtype='d',
+            f, (x0_data, x1_data, t_data), gy_data, dtype='d',
             **self.check_backward_options)
 
     def test_backward_cpu(self):

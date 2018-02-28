@@ -123,11 +123,14 @@ class TestCumsumInvalidTypeAxis(unittest.TestCase):
 
 class TestCumsumInvalidTypeError(unittest.TestCase):
 
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (2, 3, 4)).astype('f')
+
     def test_invalid_type_axis(self):
         with self.assertRaises(TypeError):
-            functions.Cumsum([0])
+            functions.cumsum(self.x, [0])
         with self.assertRaises(TypeError):
-            functions.Cumsum((0,))
+            functions.cumsum(self.x, (0,))
 
 
 testing.run_module(__name__, __file__)

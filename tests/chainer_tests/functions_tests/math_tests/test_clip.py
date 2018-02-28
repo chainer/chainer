@@ -84,9 +84,12 @@ class TestClip(unittest.TestCase):
 
 class TestClipInvalidInterval(unittest.TestCase):
 
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+
     def test_invalid_interval(self):
         with self.assertRaises(AssertionError):
-            functions.Clip(1.0, -1.0)
+            functions.clip(self.x, 1.0, -1.0)
 
 
 testing.run_module(__name__, __file__)

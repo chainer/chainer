@@ -72,7 +72,7 @@ class TestLocalResponseNormalization(unittest.TestCase):
 
         with backend_config:
             gradient_check.check_backward(
-                functions.LocalResponseNormalization(), inputs, grad_outputs,
+                functions.local_response_normalization, inputs, grad_outputs,
                 eps=1, dtype=numpy.float64, **self.check_backward_options)
 
     def test_backward(self, backend_config):

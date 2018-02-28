@@ -179,15 +179,15 @@ class TestMax(unittest.TestCase):
 
     def test_invalid_axis_type(self):
         with self.assertRaises(TypeError):
-            functions.Max([0])
+            functions.max(self.x, [0])
 
     def test_invalid_axis_type_in_tuple(self):
         with self.assertRaises(TypeError):
-            functions.Max((1, 'x'))
+            functions.max(self.x, (1, 'x'))
 
     def test_duplicate_axis(self):
         with self.assertRaises(ValueError):
-            functions.Max((0, 0))
+            functions.max(self.x, (0, 0))
 
     def test_pos_neg_duplicate_axis(self):
         with self.assertRaises(ValueError):
@@ -363,15 +363,15 @@ class TestMin(unittest.TestCase):
 
     def test_invalid_axis_type(self):
         with self.assertRaises(TypeError):
-            functions.Min([0])
+            functions.min(self.x, [0])
 
     def test_invalid_axis_type_in_tuple(self):
         with self.assertRaises(TypeError):
-            functions.Min((1, 'x'))
+            functions.min(self.x, (1, 'x'))
 
     def test_duplicate_axis(self):
         with self.assertRaises(ValueError):
-            functions.Min((0, 0))
+            functions.min(self.x, (0, 0))
 
     def test_pos_neg_duplicate_axis(self):
         with self.assertRaises(ValueError):
@@ -380,8 +380,8 @@ class TestMin(unittest.TestCase):
 
 @testing.parameterize(*testing.product_dict(
     [
-        {'function_name': 'argmax', 'function_class': functions.ArgMax},
-        {'function_name': 'argmin', 'function_class': functions.ArgMin},
+        {'function_name': 'argmax'},
+        {'function_name': 'argmin'},
     ],
     [
         {'axis': None},
@@ -436,11 +436,11 @@ class TestArgMinMax(unittest.TestCase):
 
     def test_invalid_axis_type(self):
         with self.assertRaises(TypeError):
-            self.function_class([0])
+            self.function(self.x, [0])
 
     def test_invalid_axis_type_in_tuple(self):
         with self.assertRaises(TypeError):
-            self.function_class((1, 'x'))
+            self.function(self.x, (1, 'x'))
 
 
 testing.run_module(__name__, __file__)
