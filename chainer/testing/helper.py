@@ -17,10 +17,6 @@ def _check_mock_available():
             'mock is not available: Reason: {}'.format(_mock_error))
 
 
-# For the default value of a keyword argument which accepts explicit `None`
-_default = object()
-
-
 def with_requires(*requirements):
     """Run a test case only when given requirements are satisfied.
 
@@ -98,7 +94,8 @@ def patch(target, *args, **kwargs):
 
     """
     _check_mock_available()
-    wraps = kwargs.pop('wraps', _default)
-    if wraps is _default:
+    try:
+        wraps = kwargs.pop('wraps')
+    except KeyError:
         wraps = _import_object_from_name(target)
     return mock.patch(target, *args, wraps=wraps, **kwargs)
