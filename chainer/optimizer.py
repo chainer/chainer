@@ -786,7 +786,7 @@ class GradientLARS(object):
     This hook function scales all gradient arrays to fit to the weight norm.
 
     In <https://arxiv.org/abs/1708.03888>
-        \\nabla w_{t+1} = m * \\nabla w_t
+        \\Delta w_{t+1} = m * \\Delta w_t
                         + \\gamma * \\lambda * (\\nabla L_t(w) + \\beta w_t)
         where
            \\gamma : learning_rate
