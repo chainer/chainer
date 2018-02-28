@@ -47,7 +47,7 @@ class TestGaussian(unittest.TestCase):
         # tested in order to reuse the same noise for the numerical gradient
         # computations (the noise is generated once during its first forward
         # pass, then reused)
-        # TODO(hvy): Do no expose interals of the tested function using
+        # TODO(hvy): Do no expose internals of the tested function using
         # e.g. numpy.random.RandomState
         gaussian = functions.Gaussian()
 

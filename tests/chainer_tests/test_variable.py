@@ -356,7 +356,7 @@ class TestVariable(unittest.TestCase):
         self.check_double_backprop(True)
 
     def test_backward_no_grad_required(self):
-        class DummyId(F.Identity):
+        class DummyId(chainer.functions.math.identity.Identity):
 
             def backward(self, a, b):
                 raise Exception('backward should not be called on inputs that '
