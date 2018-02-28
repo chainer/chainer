@@ -66,3 +66,19 @@
     padding: 0.2em 0 0.2em 1em;
     border-top: solid 0.3em #66cc66;
 }
+
+/* External links in menus */
+.wy-menu a.external:after {
+    font-family: "FontAwesome";
+    font-size: 0.7em;
+    vertical-align: top;
+    content: " \f0a9";
+}
+
+/* External links in content */
+.rst-content a.external:after {
+    font-family: "FontAwesome";
+    font-size: 0.7em;
+    vertical-align: top;
+    content: " \f0a9";
+}

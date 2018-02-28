@@ -4,7 +4,7 @@ import itertools
 import numpy
 from six import moves
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import conv_nd

@@ -5,7 +5,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer.serializers import npz
@@ -152,6 +152,17 @@ class TestLinearParameterShapePlaceholder(unittest.TestCase):
         npz.load_npz(temp_file_path, lin2)
         w2 = lin2.W.data
         self.assertEqual((w1 == w2).all(), True)
+
+
+class TestEmptyBatchInitialize(unittest.TestCase):
+
+    def setUp(self):
+        self.link = links.Linear(4)
+        self.x = numpy.random.uniform(-1, 1, (0, 3)).astype(numpy.float32)
+
+    def test_empty_batch_dim(self):
+        y = self.link(chainer.Variable(self.x))
+        assert y.shape == (0, 4)
 
 
 class TestInvalidLinear(unittest.TestCase):

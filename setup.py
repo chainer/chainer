@@ -20,28 +20,108 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
         sys.exit(1)
 
 
+def cupy_requirement(pkg):
+    return '{}==4.0.0b4'.format(pkg)
+
+
+requirements = {
+    'install': [
+        'filelock',
+        'numpy>=1.9.0',
+        'protobuf>=3.0.0',
+        'six>=1.9.0',
+    ],
+    'cuda': [
+        cupy_requirement('cupy'),
+    ],
+    'stylecheck': [
+        'hacking',
+        'autopep8',
+    ],
+    'test': [
+        'pytest',
+        'mock',
+    ],
+    'doctest': [
+        'matplotlib',
+        'theano',
+    ],
+    'docs': [
+        'sphinx',
+        'sphinx_rtd_theme',
+    ],
+    'travis': [
+        '-r stylecheck',
+        '-r test',
+        'pytest-timeout',
+        'pytest-cov',
+        'theano',
+        'h5py',
+        'pillow',
+    ],
+    'appveyor': [
+        '-r stylecheck',
+        '-r test',
+        'pytest-timeout',
+        'pytest-cov',
+    ],
+}
+
+
+def reduce_requirements(key):
+    # Resolve recursive requirements notation (-r)
+    reqs = requirements[key]
+    resolved_reqs = []
+    for req in reqs:
+        if req.startswith('-r'):
+            depend_key = req[2:].lstrip()
+            reduce_requirements(depend_key)
+            resolved_reqs += requirements[depend_key]
+        else:
+            resolved_reqs.append(req)
+    requirements[key] = resolved_reqs
+
+
+for k in requirements.keys():
+    reduce_requirements(k)
+
+
+extras_require = {k: v for k, v in requirements.items() if k != 'install'}
+
+
 setup_requires = []
-install_requires = [
-    'filelock',
-    'numpy>=1.9.0',
-    'protobuf>=3.0.0',
-    'six>=1.9.0',
-]
-cupy_require = 'cupy==3.0.0a1'
+install_requires = requirements['install']
+tests_require = requirements['test']
 
-cupy_pkg = None
-try:
-    cupy_pkg = pkg_resources.get_distribution('cupy')
-except pkg_resources.DistributionNotFound:
-    pass
 
+def find_any_distribution(pkgs):
+    for pkg in pkgs:
+        try:
+            return pkg_resources.get_distribution(pkg)
+        except pkg_resources.DistributionNotFound:
+            pass
+    return None
+
+
+# Currently cupy provides source package (cupy) and binary wheel packages
+# (cupy-cudaXX). Chainer can use any one of these packages.
+cupy_pkg = find_any_distribution([
+    'cupy-cuda91',
+    'cupy-cuda90',
+    'cupy-cuda80',
+    'cupy',
+])
 if cupy_pkg is not None:
-    install_requires.append(cupy_require)
-    print('Use %s' % cupy_require)
+    req = cupy_requirement(cupy_pkg.project_name)
+    install_requires.append(req)
+    print('Use %s' % req)
+else:
+    print('No CuPy installation detected')
 
 here = os.path.abspath(os.path.dirname(__file__))
 __version__ = imp.load_source(
     '_version', os.path.join(here, 'chainer', '_version.py')).__version__
+
 
 setup(
     name='chainer',
@@ -52,6 +132,7 @@ setup(
     url='https://chainer.org/',
     license='MIT License',
     packages=['chainer',
+              'chainer.backends',
               'chainer.dataset',
               'chainer.datasets',
               'chainer.functions',
@@ -90,6 +171,6 @@ setup(
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
-    tests_require=['mock',
-                   'pytest'],
+    tests_require=tests_require,
+    extras_require=extras_require,
 )

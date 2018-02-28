@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -183,9 +183,9 @@ class TestCupyIndicesGetItem(unittest.TestCase):
         slices = []
         for i, s in enumerate(self.slices):
             if isinstance(s, numpy.ndarray):
-                s = chainer.cuda.cupy.array(s)
+                s = chainer.backends.cuda.cupy.array(s)
             if isinstance(s, list):
-                s = chainer.cuda.cupy.array(s, dtype=numpy.int32)
+                s = chainer.backends.cuda.cupy.array(s, dtype=numpy.int32)
             slices.append(s)
         slices = tuple(slices)
         x = chainer.Variable(x_data)
@@ -202,9 +202,9 @@ class TestCupyIndicesGetItem(unittest.TestCase):
         slices = []
         for i, s in enumerate(self.slices):
             if isinstance(s, numpy.ndarray):
-                s = chainer.cuda.cupy.array(s)
+                s = chainer.backends.cuda.cupy.array(s)
             if isinstance(s, list):
-                s = chainer.cuda.cupy.array(s, dtype=numpy.int32)
+                s = chainer.backends.cuda.cupy.array(s, dtype=numpy.int32)
             slices.append(s)
         slices = tuple(slices)
 

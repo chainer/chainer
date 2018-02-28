@@ -41,7 +41,7 @@ def _gen_case(base, module, i, param):
         def wrap(*args, **kwargs):
             try:
                 return method(*args, **kwargs)
-            except AssertionError as e:
+            except Exception as e:
                 s = six.StringIO()
                 s.write('Parameterized test failed.\n\n')
                 s.write('Base test method: {}.{}\n'.format(
@@ -51,7 +51,11 @@ def _gen_case(base, module, i, param):
                     s.write('  {}: {}\n'.format(k, v))
                 s.write('\n')
                 s.write('{}: {}\n'.format(type(e).__name__, e))
-                raise AssertionError(s.getvalue())
+                e_new = AssertionError(s.getvalue())
+                if sys.version_info < (3,):
+                    six.reraise(AssertionError, e_new, sys.exc_info()[2])
+                else:
+                    six.raise_from(e_new.with_traceback(e.__traceback__), None)
         return wrap
 
     # ismethod for Python 2 and isfunction for Python 3
@@ -81,10 +85,31 @@ def parameterize(*params):
 
 
 def product(parameter):
-    keys = sorted(parameter)
-    values = [parameter[key] for key in keys]
-    values_product = itertools.product(*values)
-    return [dict(zip(keys, vals)) for vals in values_product]
+    if isinstance(parameter, dict):
+        keys = sorted(parameter)
+        values = [parameter[key] for key in keys]
+        values_product = itertools.product(*values)
+        return [dict(zip(keys, vals)) for vals in values_product]
+
+    elif isinstance(parameter, list):
+        # list of lists of dicts
+        if not all(isinstance(_, list) for _ in parameter):
+            raise TypeError('parameter must be list of lists of dicts')
+        if not all(isinstance(_, dict) for l in parameter for _ in l):
+            raise TypeError('parameter must be list of lists of dicts')
+
+        lst = []
+        for dict_lst in itertools.product(*parameter):
+            a = {}
+            for d in dict_lst:
+                a.update(d)
+            lst.append(a)
+        return lst
+
+    else:
+        raise TypeError(
+            'parameter must be either dict or list. Actual: {}'.format(
+                type(parameter)))
 
 
 def product_dict(*parameters):

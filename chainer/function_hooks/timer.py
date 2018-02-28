@@ -3,7 +3,7 @@ import time
 
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_hook
 
 
@@ -32,7 +32,7 @@ class TimerHook(function_hook.FunctionHook):
         and *Occurrence* is the number of calls.
     Attributes:
         call_history: List of measurement results. It consists of pairs of
-            the function that calls this hook and the elapsed time
+            the name of the function that calls this hook and the elapsed time
             the function consumes.
     """
 
@@ -75,7 +75,7 @@ class TimerHook(function_hook.FunctionHook):
             # Note that `get_elapsed_time` returns result in milliseconds
             elapsed_time = cuda.cupy.cuda.get_elapsed_time(
                 start, stop) / 1000
-        self.call_history.append((function, elapsed_time))
+        self.call_history.append((function._impl_name, elapsed_time))
 
         assert self._depth > 0
         self._depth -= 1
@@ -104,8 +104,7 @@ class TimerHook(function_hook.FunctionHook):
             values are dictionaries of `elapsed_time` and `occurrrence`.
         """
         summary = {}
-        for func, elapsed_time in self.call_history:
-            function_name = func._impl_name
+        for function_name, elapsed_time in self.call_history:
             if function_name not in summary:
                 summary[function_name] = {'elapsed_time': 0, 'occurrence': 0}
             record = summary[function_name]
