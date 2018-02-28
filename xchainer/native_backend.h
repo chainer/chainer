@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <string>
-#include <tuple>
 
 #include "xchainer/backend.h"
 #include "xchainer/device.h"

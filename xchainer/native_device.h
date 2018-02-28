@@ -1,5 +1,9 @@
 #pragma once
 
+#include <memory>
+#include <tuple>
+
+#include "xchainer/array.h"
 #include "xchainer/device.h"
 #include "xchainer/native_backend.h"
 

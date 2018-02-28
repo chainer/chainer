@@ -1,9 +1,15 @@
 #include "xchainer/cuda/cuda_device.h"
 
+#include <algorithm>
+#include <memory>
+#include <tuple>
+#include <utility>
+
 #include <cuda_runtime.h>
 
 #include "xchainer/array.h"
 #include "xchainer/cuda/cuda_runtime.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/memory.h"
 #include "xchainer/native_backend.h"
