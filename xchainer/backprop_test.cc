@@ -30,10 +30,10 @@
 namespace xchainer {
 namespace {
 
-class BackpropTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
+class BackpropTest : public ::testing::TestWithParam<std::string> {
 protected:
     void SetUp() override {
-        std::string backend_name = ::testing::get<0>(GetParam());
+        std::string backend_name = GetParam();
         device_session_.emplace(DeviceId{backend_name, 0});
     }
 
@@ -60,7 +60,7 @@ public:
     template <typename T>
     void ExpectDataEqual(const Array& expected, const Array& actual) const {
 #ifdef XCHAINER_ENABLE_CUDA
-        std::string backend_name = ::testing::get<0>(GetParam());
+        std::string backend_name = GetParam();
         if (backend_name == "cuda") {
             cuda::CheckError(cudaDeviceSynchronize());
         }
@@ -84,9 +84,13 @@ public:
         auto y = fprop(target_inputs, args...);
         Backward(y);
         for (size_t i = 0; i < expected_grads.size(); ++i) {
-            ExpectEqual<float>(expected_grads[i], *target_inputs[i].GetGrad());
+            auto& target_input = target_inputs[i];
+            ASSERT_TRUE(target_input.GetGrad().has_value());
+            EXPECT_EQ(&target_input.device(), &target_input.GetGrad()->device());
+            ExpectEqual<float>(expected_grads[i], *target_input.GetGrad());
         }
-        EXPECT_TRUE(y.GetGrad().has_value());
+        ASSERT_TRUE(y.GetGrad().has_value());
+        EXPECT_EQ(&y.device(), &y.GetGrad()->device());
     }
 
     template <typename Fprop>
@@ -154,6 +158,19 @@ TEST_P(BackpropTest, DoubleBackprop) {
     };
     CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop);
 }
+
+#ifdef XCHAINER_ENABLE_CUDA
+TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
+    std::string another_backend = GetParam() == "cuda" ? "native" : "cuda";
+    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f},
+                               [another_backend](auto& xs) {
+                                   auto ret = xs[0] * xs[1];
+                                   // This device switch also affects backward
+                                   SetDefaultDevice(&GetDefaultContext().GetDevice({another_backend, 0}));
+                                   return ret;
+                               });
+}
+#endif
 
 TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     GraphId graph_x = "graph_x";
