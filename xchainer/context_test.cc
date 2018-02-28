@@ -1,5 +1,6 @@
 #include "xchainer/context.h"
 
+#include <cstdlib>
 #include <future>
 
 #include <gtest/gtest.h>
@@ -17,6 +18,11 @@ TEST(Context, GetBackend) {
     Context ctx;
     Backend& backend = ctx.GetBackend("native");
     EXPECT_EQ(&backend, &ctx.GetBackend("native"));
+}
+
+TEST(Context, BackendNotFound) {
+    Context ctx;
+    EXPECT_THROW(ctx.GetBackend("something_that_does_not_exist"), BackendError);
 }
 
 TEST(Context, GetDevice) {
@@ -99,6 +105,20 @@ TEST(ContextTest, ContextScopeCtor) {
         // not recovered here because the scope has already existed
     }
     ASSERT_EQ(&ctx2, &GetDefaultContext());
+}
+
+TEST(ContextTest, UserDefinedBackend) {
+    ::setenv("XCHAINER_PATH", XCHAINER_TEST_DIR "/context_testdata", 1);
+    Context ctx;
+    Backend& backend0 = ctx.GetBackend("backend0");
+    EXPECT_EQ("backend0", backend0.GetName());
+    Backend& backend0_2 = ctx.GetBackend("backend0");
+    EXPECT_EQ(&backend0, &backend0_2);
+    Backend& backend1 = ctx.GetBackend("backend1");
+    EXPECT_EQ("backend1", backend1.GetName());
+
+    Device& device0 = ctx.GetDevice(std::string("backend0:0"));
+    EXPECT_EQ(&backend0, &device0.backend());
 }
 
 }  // namespace

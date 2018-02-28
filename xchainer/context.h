@@ -4,6 +4,7 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "xchainer/backend.h"
 #include "xchainer/device.h"
@@ -13,6 +14,8 @@ namespace xchainer {
 
 class Context {
 public:
+    ~Context();
+
     // Gets the backend specified by the name.
     // If the backend does not exist, this function automatically creates it.
     Backend& GetBackend(const std::string& backend_name);
@@ -23,6 +26,7 @@ public:
 
 private:
     std::unordered_map<std::string, std::unique_ptr<Backend>> backends_;
+    std::vector<void*> dlopen_handles_;
     mutable std::mutex mutex_;
 };
 

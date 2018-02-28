@@ -13,6 +13,8 @@
 #include "xchainer/error.h"
 #include "xchainer/native_backend.h"
 
+#include <iostream>
+
 namespace xchainer {
 namespace {
 
@@ -33,6 +35,14 @@ std::string GetXchainerPath() {
 }
 
 }  // namespace
+
+Context::~Context() {
+    // Need to call dtor of all backends before closing shared objects
+    backends_.clear();
+    for (void* handle : dlopen_handles_) {
+        ::dlclose(handle);
+    }
+}
 
 Backend& Context::GetBackend(const std::string& backend_name) {
     {
@@ -61,7 +71,10 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         if (handle == nullptr) {
             throw BackendError("Backend not found: '" + backend_name + "'");
         }
-        auto close_handle = gsl::finally([handle]() { ::dlclose(handle); });
+        {
+            std::lock_guard<std::mutex> lock{mutex_};
+            dlopen_handles_.push_back(handle);
+        }
 
         // Create backend
         auto create_backend = reinterpret_cast<std::unique_ptr<Backend> (*)(Context&)>(::dlsym(handle, "CreateBackend"));
@@ -76,6 +89,7 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         // In that case, the backend created above is thrown away.
         std::lock_guard<std::mutex> lock{mutex_};
         auto pair = backends_.emplace(backend_name, std::move(backend));
+        std::cout << pair.first->second->GetName() << std::endl;
         return *pair.first->second;
     }
 }
