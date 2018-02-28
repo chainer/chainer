@@ -1,6 +1,11 @@
 #include "xchainer/context.h"
 
+#include <dlfcn.h>
+
 #include <atomic>
+#include <cstdlib>
+
+#include <gsl/gsl>
 
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_backend.h"
@@ -13,6 +18,19 @@ namespace {
 
 std::atomic<Context*> g_global_default_context{nullptr};
 thread_local Context* t_default_context{nullptr};
+
+std::string GetXchainerPath() {
+    char* xchainer_path = std::getenv("XCHAINER_PATH");
+    if (xchainer_path != nullptr) {
+        return xchainer_path;
+    }
+
+    char* home_path = std::getenv("HOME");
+    if (home_path == nullptr) {
+        throw XchainerError("Xchainer path is not defined. Set either XCHAINER_PATH or HOME.");
+    }
+    return std::string(home_path) + "/.xchainer";
+}
 
 }  // namespace
 
@@ -37,7 +55,20 @@ Backend& Context::GetBackend(const std::string& backend_name) {
     }
 #endif  // XCHAINER_ENABLE_CUDA
     else {
-        throw BackendError("Backend not found: '" + backend_name + "'");
+        // Load .so file
+        std::string so_file_path = GetXchainerPath() + "/backends/" + backend_name + ".so";
+        void* handle = ::dlopen(so_file_path.c_str(), RTLD_NOW | RTLD_LOCAL);
+        if (handle == nullptr) {
+            throw BackendError("Backend not found: '" + backend_name + "'");
+        }
+        auto close_handle = gsl::finally([handle]() { ::dlclose(handle); });
+
+        // Create backend
+        auto create_backend = reinterpret_cast<std::unique_ptr<Backend> (*)(Context&)>(::dlsym(handle, "CreateBackend"));
+        if (create_backend == nullptr) {
+            throw BackendError("Invalid backend plugin: CreateBackend is not found in '" + so_file_path + "'.");
+        }
+        backend = create_backend(*this);
     }
 
     {
