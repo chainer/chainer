@@ -167,6 +167,21 @@ def test_numpy_init_device(array_init_inputs):
     _check_numpy_init(*array_init_inputs, 'native:1')
 
 
+def test_to_device_device():
+    a = xchainer.ones((2,), xchainer.float32, device="native:0")
+    # TODO(niboshi): Replace rhs with `xchainer.get_device(...)`
+    dst_device = xchainer.get_default_context().get_device("native:1")
+    b = a.to_device(dst_device)
+    assert b.device is dst_device
+
+
+def test_to_device_device_name():
+    a = xchainer.ones((2,), xchainer.float32, device="native:0")
+    b = a.to_device("native:1")
+    # TODO(niboshi): Replace rhs with `xchainer.get_device(...)`
+    assert b.device is xchainer.get_default_context().get_device("native:1")
+
+
 def test_view(array_init_inputs):
     shape_tup, dtype_name = array_init_inputs
     shape = xchainer.Shape(shape_tup)
