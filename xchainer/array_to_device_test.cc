@@ -199,13 +199,10 @@ TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     float data0[]{1.0f, 2.0f};
     float data1[]{3.0f, 4.0f};
     float data2[]{5.0f, 6.0f};
-    float datay[]{8.0f, 14.0f};  // d0 * d1 + d2
     Shape shape{2, 1};
     Array a0 = Array::FromBuffer(shape, Dtype::kFloat32, std::shared_ptr<float>(data0, nop), dev0);
     Array a1 = Array::FromBuffer(shape, Dtype::kFloat32, std::shared_ptr<float>(data1, nop), dev0);
     Array a2 = Array::FromBuffer(shape, Dtype::kFloat32, std::shared_ptr<float>(data2, nop), dev1);
-    Array ay = Array::FromBuffer(shape, Dtype::kFloat32, std::shared_ptr<float>(datay, nop));
-
     a0.RequireGrad();
     a1.RequireGrad();
     a2.RequireGrad();
@@ -215,6 +212,7 @@ TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     ASSERT_EQ(&dev0, &a1.device());
     ASSERT_EQ(&dev1, &a2.device());
 
+    // Forward
     Array b = a0 * a1;
     Array b_dev1 = b.ToDevice(dev1);
     Array c = b_dev1 + a2;
@@ -223,18 +221,28 @@ TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     EXPECT_EQ(&dev0, &b.device());
     EXPECT_EQ(&dev1, &b_dev1.device());
     EXPECT_EQ(&dev1, &c.device());
-    EXPECT_EQ(&dev1, &c.device());
     EXPECT_TRUE(b.IsGradRequired());
     EXPECT_TRUE(b_dev1.IsGradRequired());
     EXPECT_TRUE(c.IsGradRequired());
-    ExpectArraysEqual(ay, c);
+    float datay[]{8.0f, 14.0f};  // d0 * d1 + d2
+    ExpectArraysEqual(c, Array::FromBuffer(shape, Dtype::kFloat32, std::shared_ptr<float>(datay, nop)));
 
+    // Backward
     Backward(c);
 
     // Check backward correctness
+    ASSERT_TRUE(a0.GetGrad().has_value());
+    ASSERT_TRUE(a1.GetGrad().has_value());
+    ASSERT_TRUE(a2.GetGrad().has_value());
     EXPECT_EQ(&dev0, &a0.GetGrad()->device());
     EXPECT_EQ(&dev0, &a1.GetGrad()->device());
     EXPECT_EQ(&dev1, &a2.GetGrad()->device());
+    float data0_grad[]{3.0f, 4.0f};
+    float data1_grad[]{1.0f, 2.0f};
+    float data2_grad[]{1.0f, 1.0f};
+    ExpectArraysEqual(*a0.GetGrad(), Array::FromBuffer(shape, Dtype::kFloat32, std::shared_ptr<float>(data0_grad, nop)));
+    ExpectArraysEqual(*a1.GetGrad(), Array::FromBuffer(shape, Dtype::kFloat32, std::shared_ptr<float>(data1_grad, nop)));
+    ExpectArraysEqual(*a2.GetGrad(), Array::FromBuffer(shape, Dtype::kFloat32, std::shared_ptr<float>(data2_grad, nop)));
 }
 
 }  // namespace
