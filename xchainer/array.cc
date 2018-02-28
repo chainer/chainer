@@ -153,11 +153,9 @@ Array Array::ToDevice(Device& dst_device) const {
     size_t bytesize = GetTotalBytes();
 
     if (&src_device == &dst_device) {
-        // Devices are identical
-        // Allocate new memory and copy
-        data = dst_device.Allocate(bytesize);
-        dst_device.MemoryCopyFrom(data.get(), body_->data_.get(), bytesize, src_device);
-        offset = 0;
+        // Devices are identical. Return an alias.
+        data = body_->data_;
+        offset = body_->offset_;
     } else if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
         // Use src backend for transfer
         std::tuple<std::shared_ptr<void>, size_t> data_tuple = src_device.TransferDataTo(dst_device, body_->data_, 0, bytesize);

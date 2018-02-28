@@ -152,7 +152,9 @@ TEST_P(ArrayToDeviceCompatibleTest, ToDevice) {
 
     EXPECT_EQ(&b.device(), &dst_dev) << "Array::ToDevice must allocate an array on the specified device.";
     EXPECT_EQ(&a.device(), &src_dev) << "Array::ToDevice must not alter the device of the original array.";
-    EXPECT_NE(a.data().get(), b.data().get()) << "Array::ToDevice must not return an alias.";
+    if (&dst_dev == &src_dev) {
+        EXPECT_EQ(a.data().get(), b.data().get()) << "Array::ToDevice must return an alias in same-device transfer.";
+    }
     EXPECT_EQ(internal::GetDefaultDeviceNoExcept(), default_device) << "Array::ToDevice must not alter the default device.";
     ExpectArraysEqual(a, b);
 }

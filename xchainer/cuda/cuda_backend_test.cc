@@ -3,13 +3,38 @@
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
+#include "xchainer/array.h"
 #include "xchainer/context.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/device.h"
+#include "xchainer/memory.h"
 
 namespace xchainer {
 namespace cuda {
 namespace {
+
+template <typename T>
+void ExpectDataEqual(const std::shared_ptr<void>& expected, const std::shared_ptr<void>& actual, size_t size) {
+    auto expected_raw_ptr = static_cast<const T*>(expected.get());
+    auto actual_raw_ptr = static_cast<const T*>(actual.get());
+    for (size_t i = 0; i < size; i++) {
+        EXPECT_EQ(expected_raw_ptr[i], actual_raw_ptr[i]);
+    }
+}
+
+void ExpectArraysEqual(const Array& expected, const Array& actual) {
+    EXPECT_EQ(expected.dtype(), actual.dtype());
+    EXPECT_EQ(expected.shape(), actual.shape());
+    VisitDtype(expected.dtype(), [&expected, &actual](auto pt) {
+        using T = typename decltype(pt)::type;
+        int64_t total_size = expected.GetTotalSize();
+        const T* data1 = static_cast<const T*>(expected.data().get());
+        const T* data2 = static_cast<const T*>(actual.data().get());
+        for (int64_t i = 0; i < total_size; ++i) {
+            EXPECT_EQ(data1[i], data2[i]);
+        }
+    });
+}
 
 TEST(CudaBackendTest, GetDeviceCount) {
     Context ctx;
@@ -45,27 +70,87 @@ TEST(CudaBackendTest, GetName) {
     EXPECT_EQ("cuda", CudaBackend(ctx).GetName());
 }
 
-TEST(CudaBackendTest, SupportsTransfer) {
-    Context ctx;
-    CudaBackend backend{ctx};
-    Device& device0 = backend.GetDevice(0);
-    Device& device1 = backend.GetDevice(1);
+// Data transfer test
+class CudaBackendTransferTest : public ::testing::TestWithParam<::testing::tuple<std::string, std::string>> {};
 
-    EXPECT_TRUE(backend.SupportsTransfer(device0, device0));
+INSTANTIATE_TEST_CASE_P(Devices, CudaBackendTransferTest, ::testing::Values(std::make_tuple("cuda:0", "cuda:0"),   // cuda:0 <-> cuda:0
+                                                                            std::make_tuple("cuda:0", "cuda:1"),   // cuda:0 <-> cuda:1
+                                                                            std::make_tuple("cuda:0", "native:0")  // cuda:0 <-> native:0
+                                                                            ));
+
+TEST_P(CudaBackendTransferTest, SupportsTransfer) {
+    Context ctx;
+    Backend& backend = ctx.GetBackend("cuda");
+    Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
+    Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
     EXPECT_TRUE(backend.SupportsTransfer(device0, device1));
 }
 
-// Data transfer test
-class CudaBackendTransferTest : public ::testing::TestWithParam<::testing::tuple<int, int>> {};
+TEST_P(CudaBackendTransferTest, MemoryCopyFrom) {
+    size_t size = 3;
+    size_t bytesize = size * sizeof(float);
+    float raw_data[] = {0, 1, 2};
+    std::shared_ptr<void> src_orig(raw_data, [](float* ptr) {
+        (void)ptr;  // unused
+    });
 
-TEST_P(CudaBackendTransferTest, TransferTo) {
     Context ctx;
-    CudaBackend backend{ctx};
-    Device& device0 = backend.GetDevice(::testing::get<0>(GetParam()));
-    Device& device1 = backend.GetDevice(::testing::get<1>(GetParam()));
+    Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
+    Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
+
+    std::shared_ptr<void> src = device1.FromBuffer(src_orig, bytesize);
+    std::shared_ptr<void> dst = device0.Allocate(bytesize);
+    device0.MemoryCopyFrom(dst.get(), src.get(), bytesize, device1);
+    ExpectDataEqual<float>(src, dst, size);
+}
+
+TEST_P(CudaBackendTransferTest, MemoryCopyTo) {
+    size_t size = 3;
+    size_t bytesize = size * sizeof(float);
+    float raw_data[] = {0, 1, 2};
+    std::shared_ptr<void> src_orig(raw_data, [](float* ptr) {
+        (void)ptr;  // unused
+    });
+
+    Context ctx;
+    Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
+    Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
+
+    std::shared_ptr<void> src = device0.FromBuffer(src_orig, bytesize);
+    std::shared_ptr<void> dst = device1.Allocate(bytesize);
+    device0.MemoryCopyTo(dst.get(), src.get(), bytesize, device1);
+    ExpectDataEqual<float>(src, dst, size);
+}
+
+TEST_P(CudaBackendTransferTest, TransferDataFrom) {
+    Context ctx;
+    Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
+    Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
     size_t bytesize = 5;
     auto data = device1.Allocate(bytesize);
+
+    // Transfer
+    // TODO(niboshi): Offset is fixed to 0
+    std::tuple<std::shared_ptr<void>, size_t> tuple = device0.TransferDataFrom(device1, data, 0, bytesize);
+
+    EXPECT_EQ(0, std::memcmp(data.get(), std::get<0>(tuple).get(), bytesize));
+    // TODO(niboshi): Test offset
+
+    // Destination is ALWAYS CUDA device
+    cudaPointerAttributes attr = {};
+    CheckError(cudaPointerGetAttributes(&attr, std::get<0>(tuple).get()));
+    EXPECT_TRUE(attr.isManaged);
+    EXPECT_EQ(device0.index(), attr.device);
+}
+
+TEST_P(CudaBackendTransferTest, TransferDataTo) {
+    Context ctx;
+    Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
+    Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
+
+    size_t bytesize = 5;
+    auto data = device0.Allocate(bytesize);
 
     // Transfer
     // TODO(niboshi): Offset is fixed to 0
@@ -74,37 +159,68 @@ TEST_P(CudaBackendTransferTest, TransferTo) {
     EXPECT_EQ(0, std::memcmp(data.get(), std::get<0>(tuple).get(), bytesize));
     // TODO(niboshi): Test offset
 
-    cudaPointerAttributes attr = {};
-    CheckError(cudaPointerGetAttributes(&attr, std::get<0>(tuple).get()));
-    EXPECT_TRUE(attr.isManaged);
-    EXPECT_EQ(device1.index(), attr.device);
+    if (nullptr != dynamic_cast<CudaBackend*>(&device1.backend())) {
+        // Destination is CUDA device
+        cudaPointerAttributes attr = {};
+        CheckError(cudaPointerGetAttributes(&attr, std::get<0>(tuple).get()));
+        EXPECT_TRUE(attr.isManaged);
+        EXPECT_EQ(device1.index(), attr.device);
+    } else {
+        // Destination is native device
+        EXPECT_FALSE(internal::IsPointerCudaMemory(std::get<0>(tuple).get()));
+    }
 }
 
-TEST_P(CudaBackendTransferTest, TransferFrom) {
+TEST_P(CudaBackendTransferTest, ArrayToDeviceFrom) {
     Context ctx;
-    CudaBackend backend{ctx};
-    Device& device0 = backend.GetDevice(::testing::get<0>(GetParam()));
-    Device& device1 = backend.GetDevice(::testing::get<1>(GetParam()));
+    Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
+    Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
-    size_t bytesize = 5;
-    auto data = device1.Allocate(bytesize);
+    // Allocate the source array
+    float data[] = {1.0f, 2.0f};
+    auto nop = [](void* p) {
+        (void)p;  // unused
+    };
+    Array a = Array::FromBuffer({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device1);
 
     // Transfer
-    // TODO(niboshi): Offset is fixed to 0
-    std::tuple<std::shared_ptr<void>, size_t> tuple = device1.TransferDataFrom(device0, data, 0, bytesize);
+    Array b = a.ToDevice(device0);
 
-    EXPECT_EQ(0, std::memcmp(data.get(), std::get<0>(tuple).get(), bytesize));
-    // TODO(niboshi): Test offset
-
-    cudaPointerAttributes attr = {};
-    CheckError(cudaPointerGetAttributes(&attr, std::get<0>(tuple).get()));
-    EXPECT_TRUE(attr.isManaged);
-    EXPECT_EQ(device1.index(), attr.device);
+    EXPECT_EQ(&b.device(), &device0);
+    EXPECT_EQ(&a.device(), &device1);
+    if (&device0 == &device1) {
+        EXPECT_EQ(a.data().get(), b.data().get()) << "Array::ToDevice() must return alias when transferring to the same native device.";
+    } else {
+        EXPECT_NE(a.data().get(), b.data().get())
+            << "Array::ToDevice() must not return alias when transferring to different native device.";
+    }
+    ExpectArraysEqual(a, b);
 }
 
-INSTANTIATE_TEST_CASE_P(Device, CudaBackendTransferTest, ::testing::Values(std::make_tuple(0, 0),  // transfer between same devices
-                                                                           std::make_tuple(0, 1)   // transfer between dfferent CUDA devices
-                                                                           ));
+TEST_P(CudaBackendTransferTest, ArrayToDeviceTo) {
+    Context ctx;
+    Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
+    Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
+
+    // Allocate the source array
+    float data[] = {1.0f, 2.0f};
+    auto nop = [](void* p) {
+        (void)p;  // unused
+    };
+    Array a = Array::FromBuffer({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device0);
+
+    // Transfer
+    Array b = a.ToDevice(device1);
+
+    EXPECT_EQ(&b.device(), &device1);
+    EXPECT_EQ(&a.device(), &device0);
+    if (&device0 == &device1) {
+        EXPECT_EQ(a.data().get(), b.data().get()) << "Array::ToDevice() must return alias when transferring to the same CUDA device.";
+    } else {
+        EXPECT_NE(a.data().get(), b.data().get()) << "Array::ToDevice() must not return alias when transferring to a different device.";
+    }
+    ExpectArraysEqual(a, b);
+}
 
 }  // namespace
 }  // namespace cuda
