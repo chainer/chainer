@@ -12,6 +12,7 @@
 #include "xchainer/native_backend.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
+#include "xchainer/testing/array.h"
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
@@ -24,30 +25,23 @@ protected:
 
 public:
     template <typename T>
-    Array MakeArray(const Shape& shape, std::initializer_list<T> data) {
-        auto a = std::make_unique<T[]>(data.size());
-        std::copy(data.begin(), data.end(), a.get());
-        return Array::FromBuffer(shape, TypeToDtype<T>, std::move(a));
-    }
-
-    template <typename T>
     void CheckAllClose(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<T> bdata, double rtol, double atol) {
-        Array a = MakeArray<T>(shape, adata);
-        Array b = MakeArray<T>(shape, bdata);
+        Array a = testing::MakeArray<T>(shape, adata);
+        Array b = testing::MakeArray<T>(shape, bdata);
         EXPECT_TRUE(AllClose(a, b, rtol, atol));
     }
 
     template <typename T>
     void CheckNotAllClose(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<T> bdata, double rtol, double atol) {
-        Array a = MakeArray<T>(shape, adata);
-        Array b = MakeArray<T>(shape, bdata);
+        Array a = testing::MakeArray<T>(shape, adata);
+        Array b = testing::MakeArray<T>(shape, bdata);
         EXPECT_FALSE(AllClose(a, b, rtol, atol));
     }
 
     template <typename T, typename U>
     void CheckAllCloseThrow(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<U> bdata, double rtol, double atol) {
-        Array a = MakeArray<T>(shape, adata);
-        Array b = MakeArray<U>(shape, bdata);
+        Array a = testing::MakeArray<T>(shape, adata);
+        Array b = testing::MakeArray<U>(shape, bdata);
         EXPECT_THROW(AllClose(a, b, rtol, atol), DtypeError);
     }
 

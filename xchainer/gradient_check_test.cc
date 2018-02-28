@@ -13,6 +13,7 @@
 #include "xchainer/device_id.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/shape.h"
+#include "xchainer/testing/array.h"
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
@@ -29,21 +30,6 @@ protected:
 
 public:
     using Arrays = std::vector<Array>;
-
-    template <typename T>
-    Array MakeArray(std::initializer_list<int64_t> shape, std::initializer_list<T> data) {
-        auto a = std::make_unique<T[]>(data.size());
-        std::copy(data.begin(), data.end(), a.get());
-        return Array::FromBuffer(shape, TypeToDtype<T>, std::move(a));
-    }
-
-    template <typename T>
-    Array MakeArray(const Shape& shape, const T* data) {
-        int64_t size = shape.GetTotalSize();
-        auto a = std::make_unique<T[]>(size);
-        std::copy(data, data + size, a.get());
-        return Array::FromBuffer(shape, TypeToDtype<T>, std::move(a));
-    }
 
     template <typename T>
     void CheckElementwiseNumericalGradient(const std::function<Arrays(const Arrays&)>& func, const Arrays& center_inputs,
@@ -79,21 +65,22 @@ private:
 };
 
 TEST_F(NumericalGradientTest, NumericalGradientAdd) {
+    using DATA = std::array<float, 6>;
     Shape shape{2, 3};
-    float data1[]{1.f, 2.f, -3.f, 4.f, 0.5f, 3.f};
-    float data2[]{0.f, 1.3f, 2.f, 3.f, -0.5f, 3.f};
-    float eps1[]{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
-    float eps2[]{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
-    float grad_output_data[]{1.f, -2.f, 3.f, 0.f, 3.2f, -1.f};
+    DATA data1{1.f, 2.f, -3.f, 4.f, 0.5f, 3.f};
+    DATA data2{0.f, 1.3f, 2.f, 3.f, -0.5f, 3.f};
+    DATA eps1{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
+    DATA eps2{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
+    DATA grad_output_data{1.f, -2.f, 3.f, 0.f, 3.2f, -1.f};
 
     Arrays inputs = {
-        MakeArray(shape, data1), MakeArray(shape, data2),
+        testing::MakeArray(shape, data1), testing::MakeArray(shape, data2),
     };
     Arrays eps = {
-        MakeArray(shape, eps1), MakeArray(shape, eps2),
+        testing::MakeArray(shape, eps1), testing::MakeArray(shape, eps2),
     };
     Arrays grad_outputs = {
-        MakeArray(shape, grad_output_data),
+        testing::MakeArray(shape, grad_output_data),
     };
 
     // Forward function
@@ -107,21 +94,22 @@ TEST_F(NumericalGradientTest, NumericalGradientAdd) {
 }
 
 TEST_F(NumericalGradientTest, NumericalGradientMul) {
+    using DATA = std::array<float, 6>;
     Shape shape{2, 3};
-    float data1[]{1.f, 2.f, 3.f, 4.f, -2.f, -3.f};
-    float data2[]{0.f, 1.f, 2.f, 3.f, 2.f, 3.f};
-    float eps1[]{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
-    float eps2[]{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
-    float grad_output_data[]{1.f, -2.f, 3.f, 0.f, 2.2f, 1.f};
+    DATA data1{1.f, 2.f, 3.f, 4.f, -2.f, -3.f};
+    DATA data2{0.f, 1.f, 2.f, 3.f, 2.f, 3.f};
+    DATA eps1{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
+    DATA eps2{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
+    DATA grad_output_data{1.f, -2.f, 3.f, 0.f, 2.2f, 1.f};
 
     Arrays inputs = {
-        MakeArray(shape, data1), MakeArray(shape, data2),
+        testing::MakeArray(shape, data1), testing::MakeArray(shape, data2),
     };
     Arrays eps = {
-        MakeArray(shape, eps1), MakeArray(shape, eps2),
+        testing::MakeArray(shape, eps1), testing::MakeArray(shape, eps2),
     };
     Arrays grad_outputs = {
-        MakeArray(shape, grad_output_data),
+        testing::MakeArray(shape, grad_output_data),
     };
 
     // Forward function
