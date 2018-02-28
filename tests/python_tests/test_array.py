@@ -25,7 +25,7 @@ def _create_dummy_ndarray(shape_tup, numpy_dtype):
     return numpy.arange(_size(shape_tup)).reshape(shape_tup).astype(numpy_dtype)
 
 
-def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list):
+def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list, device_id=None):
     assert isinstance(array.dtype, xchainer.Dtype)
     assert isinstance(array.shape, xchainer.Shape)
     assert array.dtype == expected_dtype
@@ -36,6 +36,11 @@ def _check_array(array, expected_dtype, expected_shape, expected_total_size, exp
     assert array._debug_flat_data == expected_data_list
     assert array.is_contiguous
     assert array.offset == 0
+    if device_id is None:
+        device = xchainer.get_default_device()
+    else:
+        device = xchainer.get_default_context().get_device(device_id)
+    assert array.device is device
 
 
 def _check_arrays_equal_copy(array_a, array_b):
@@ -99,30 +104,44 @@ def array_init_inputs(shape_data, dtype):
     return shape_tup, dtype
 
 
-def test_init(array_init_inputs):
-    shape_tup, dtype = array_init_inputs
-
+def _check_init(shape_tup, dtype, device=None, with_device=True):
     shape = xchainer.Shape(shape_tup)
 
     data_list = _create_dummy_data(shape_tup, dtype)
 
-    array = xchainer.Array(shape, dtype, data_list)
+    if with_device:
+        array = xchainer.Array(shape, dtype, data_list, device)
+    else:
+        array = xchainer.Array(shape, dtype, data_list)
 
-    _check_array(array, dtype, shape, _size(shape_tup), data_list)
+    _check_array(array, dtype, shape, _size(shape_tup), data_list, device)
 
 
-def test_numpy_init(array_init_inputs):
-    shape_tup, dtype = array_init_inputs
+def test_init_without_device(array_init_inputs):
+    _check_init(*array_init_inputs, with_device=False)
 
+
+def test_init_with_device(array_init_inputs):
+    _check_init(*array_init_inputs, device='native:1')
+
+
+def test_init_with_none_device(array_init_inputs):
+    _check_init(*array_init_inputs, device=None)
+
+
+def _check_numpy_init(shape_tup, dtype, device=None):
     shape = xchainer.Shape(shape_tup)
 
     numpy_dtype = getattr(numpy, dtype.name)
 
     ndarray = _create_dummy_ndarray(shape_tup, numpy_dtype)
 
-    array = xchainer.Array(ndarray)
+    if device is None:
+        array = xchainer.Array(ndarray)
+    else:
+        array = xchainer.Array(ndarray, device)
 
-    _check_array(array, dtype, shape, _size(shape_tup), ndarray.ravel().tolist())
+    _check_array(array, dtype, shape, _size(shape_tup), ndarray.ravel().tolist(), device)
     _check_array_equals_ndarray(array, ndarray)
 
     # test possibly freed memory
@@ -138,6 +157,14 @@ def test_numpy_init(array_init_inputs):
     data_recovered_to_modify = numpy.array(array)
     data_recovered_to_modify *= _create_dummy_ndarray(shape_tup, numpy_dtype)
     _check_array_equals_ndarray(array, data_recovered)
+
+
+def test_numpy_init(array_init_inputs):
+    _check_numpy_init(*array_init_inputs)
+
+
+def test_numpy_init_device(array_init_inputs):
+    _check_numpy_init(*array_init_inputs, 'native:1')
 
 
 def test_view(array_init_inputs):
