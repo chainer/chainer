@@ -168,6 +168,9 @@ class TestNStepLSTM(unittest.TestCase):
                 cuda.to_gpu(self.gc),
                 [cuda.to_gpu(gy) for gy in self.gys])
 
+    def test_n_cells(self):
+        self.assertEqual(self.rnn.n_cells, 2)
+
 
 @testing.parameterize(*testing.product({
     'hidden_none': [True, False],
@@ -359,6 +362,9 @@ class TestNStepBiLSTM(unittest.TestCase):
                 cuda.to_gpu(self.gh),
                 cuda.to_gpu(self.gc),
                 [cuda.to_gpu(gy) for gy in self.gys])
+
+    def test_n_cells(self):
+        self.assertEqual(self.rnn.n_cells, 2)
 
 
 testing.run_module(__name__, __file__)

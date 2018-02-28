@@ -154,6 +154,9 @@ class TestNStepGRU(unittest.TestCase):
                 cuda.to_gpu(self.gh),
                 [cuda.to_gpu(gy) for gy in self.gys])
 
+    def test_n_cells(self):
+        self.assertEqual(self.rnn.n_cells, 1)
+
 
 @testing.parameterize(*testing.product({
     'hidden_none': [True, False],
@@ -321,6 +324,9 @@ class TestNStepBiGRU(unittest.TestCase):
                 [cuda.to_gpu(x) for x in self.xs],
                 cuda.to_gpu(self.gh),
                 [cuda.to_gpu(gy) for gy in self.gys])
+
+    def test_n_cells(self):
+        self.assertEqual(self.rnn.n_cells, 1)
 
 
 testing.run_module(__name__, __file__)
