@@ -221,7 +221,7 @@ This is a list of commonly used trainer extensions:
   :class:`~chainer.training.extensions.PlotReport`
      This extension plots the values specified by its arguments and saves it as a image file.
 
-This is not the exhaustive list of built-in extensions.
+This is not an exhaustive list of built-in extensions.
 Please take a look at :ref:`extensions` for more of them.
 
 7. Start Training
