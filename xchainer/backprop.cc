@@ -1,6 +1,7 @@
 #include "xchainer/backprop.h"
 
 #include <algorithm>
+#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>

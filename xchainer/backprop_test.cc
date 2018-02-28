@@ -1,7 +1,6 @@
 #include "xchainer/backprop.h"
 
 #include <algorithm>
-#include <functional>
 #include <string>
 #include <vector>
 
