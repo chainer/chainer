@@ -1,6 +1,6 @@
 #include "xchainer/backprop.h"
-#include <algorithm>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -73,6 +73,20 @@ public:
         }
     }
 
+    void CheckArrayGrad(const Array& a) const {
+        ASSERT_TRUE(a.GetGrad().has_value());
+        EXPECT_EQ(&a.device(), &a.GetGrad()->device());
+    }
+
+    void CheckArrayGrad(const std::vector<Array>& as) const {
+        for (const auto& a : as) {
+            CheckArrayGrad(a);
+        }
+    }
+
+    void CallBackward(const Array& a) const { Backward(a); }
+    void CallBackward(const std::vector<Array>& a) const { Backward({a.begin(), a.end()}); }
+
     // Checks the correctness of Backward() applied to the output of a given function.
     // Gradients are only computed w.r.t. target_inputs, and are compared to expected_grads.
     template <typename Fprop, typename... Args>
@@ -81,16 +95,16 @@ public:
 
         std::for_each(target_inputs.begin(), target_inputs.end(), [](auto& x) { x.RequireGrad(); });
 
+        // y may be Array or vector<Array>
         auto y = fprop(target_inputs, args...);
-        Backward(y);
+        CallBackward(y);
         for (size_t i = 0; i < expected_grads.size(); ++i) {
             auto& target_input = target_inputs[i];
             ASSERT_TRUE(target_input.GetGrad().has_value());
             EXPECT_EQ(&target_input.device(), &target_input.GetGrad()->device());
             ExpectEqual<float>(expected_grads[i], *target_input.GetGrad());
         }
-        ASSERT_TRUE(y.GetGrad().has_value());
-        EXPECT_EQ(&y.device(), &y.GetGrad()->device());
+        CheckArrayGrad(y);
     }
 
     template <typename Fprop>
@@ -138,6 +152,27 @@ TEST_P(BackpropTest, BackwardBasic) {
 TEST_P(BackpropTest, BackwardWithExtraInputs) {
     CheckBackpropSingleElementExtraInputs({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
     CheckBackpropSingleElementExtraInputs({2.0f}, {4.0f}, {4.0f}, [](auto& xs, auto& ys) { return xs[0] * ys[0]; });
+}
+
+TEST_P(BackpropTest, BackwardMultipleOutputs) {
+    CheckBackpropSingleElement({2.0f, 3.0f}, {4.0f, 6.0f}, [](auto& xs) -> std::vector<Array> { return {xs[0] * xs[0], xs[1] * xs[1]}; });
+    CheckBackpropSingleElement({2.0f, 3.0f}, {4.0f, 3.0f}, [](auto& xs) -> std::vector<Array> { return {xs[0] * xs[1], xs[0] + xs[1]}; });
+    CheckBackpropSingleElement({2.0f, 3.0f}, {21.0f, 16.0f},
+                               [](auto& xs) -> std::vector<Array> {
+                                   Array z = xs[0] * xs[1];
+                                   return {xs[0] * z, xs[1] * z};
+                               });
+}
+
+TEST_P(BackpropTest, TryBackwardFromArrayWithoutNode) {
+    auto xs = MakeFullArrays({1}, {2.0f, 3.0f});
+    auto y1 = xs[0] * xs[1];  // without graph
+    EXPECT_THROW(Backward(y1), XchainerError);
+    for (auto& x : xs) {
+        x.RequireGrad();
+    }
+    auto y2 = xs[0] * xs[1];  // with graph
+    EXPECT_THROW(Backward({y1, y2}), XchainerError);
 }
 
 TEST_P(BackpropTest, BackwardSoleArrayNode) {
