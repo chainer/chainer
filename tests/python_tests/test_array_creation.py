@@ -31,16 +31,13 @@ def create_dummy_array(shape, dtype):
     return xchainer.Array(shape, dtype, data_list)
 
 
-def check_basic_creation(a, shape, dtype):
+def check_basic_creation(a, shape, dtype, device_id=None):
     assert a.shape == shape
     assert a.dtype == dtype
     assert a.is_contiguous
     assert a.offset == 0
     assert a.total_size == functools.reduce(operator.mul, shape, 1)
     assert not a.is_grad_required()
-
-
-def check_device(a, device_id=None):
     if device_id is None:
         device = xchainer.get_default_device()
     else:
@@ -51,20 +48,17 @@ def check_device(a, device_id=None):
 def test_empty(shape, dtype):
     a = xchainer.empty(shape, dtype)
     check_basic_creation(a, shape, dtype)
-    check_device(a)
 
 
 def test_empty_device(shape, dtype):
     a = xchainer.empty(shape, dtype, 'native:1')
-    check_basic_creation(a, shape, dtype)
-    check_device(a, 'native:1')
+    check_basic_creation(a, shape, dtype, 'native:1')
 
 
 def test_empty_like(shape, dtype):
     t = create_dummy_array(shape, dtype)
     a = xchainer.empty_like(t)
     check_basic_creation(a, shape, dtype)
-    check_device(a)
 
     assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
 
@@ -72,8 +66,7 @@ def test_empty_like(shape, dtype):
 def test_empty_like_device(shape, dtype):
     t = create_dummy_array(shape, dtype)
     a = xchainer.empty_like(t, 'native:1')
-    check_basic_creation(a, shape, dtype)
-    check_device(a, 'native:1')
+    check_basic_creation(a, shape, dtype, 'native:1')
 
     assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
 
@@ -81,7 +74,6 @@ def test_empty_like_device(shape, dtype):
 def test_zeros(shape, dtype):
     a = xchainer.zeros(shape, dtype)
     check_basic_creation(a, shape, dtype)
-    check_device(a)
 
     value = False if dtype == xchainer.bool else 0
     assert all([el == value for el in a._debug_flat_data])
@@ -89,8 +81,7 @@ def test_zeros(shape, dtype):
 
 def test_zeros_device(shape, dtype):
     a = xchainer.zeros(shape, dtype, 'native:1')
-    check_basic_creation(a, shape, dtype)
-    check_device(a, 'native:1')
+    check_basic_creation(a, shape, dtype, 'native:1')
 
     value = False if dtype == xchainer.bool else 0
     assert all([el == value for el in a._debug_flat_data])
@@ -100,7 +91,6 @@ def test_zeros_like(shape, dtype):
     t = create_dummy_array(shape, dtype)
     a = xchainer.zeros_like(t)
     check_basic_creation(a, shape, dtype)
-    check_device(a)
 
     value = False if dtype == xchainer.bool else 0
     assert all([el == value for el in a._debug_flat_data])
@@ -111,8 +101,7 @@ def test_zeros_like(shape, dtype):
 def test_zeros_like_device(shape, dtype):
     t = create_dummy_array(shape, dtype)
     a = xchainer.zeros_like(t, 'native:1')
-    check_basic_creation(a, shape, dtype)
-    check_device(a, 'native:1')
+    check_basic_creation(a, shape, dtype, 'native:1')
 
     value = False if dtype == xchainer.bool else 0
     assert all([el == value for el in a._debug_flat_data])
@@ -123,7 +112,6 @@ def test_zeros_like_device(shape, dtype):
 def test_ones(shape, dtype):
     a = xchainer.ones(shape, dtype)
     check_basic_creation(a, shape, dtype)
-    check_device(a)
 
     value = True if dtype == xchainer.bool else 1
     assert all([el == value for el in a._debug_flat_data])
@@ -131,8 +119,7 @@ def test_ones(shape, dtype):
 
 def test_ones_device(shape, dtype):
     a = xchainer.ones(shape, dtype, 'native:1')
-    check_basic_creation(a, shape, dtype)
-    check_device(a, 'native:1')
+    check_basic_creation(a, shape, dtype, 'native:1')
 
     value = True if dtype == xchainer.bool else 1
     assert all([el == value for el in a._debug_flat_data])
@@ -142,7 +129,6 @@ def test_ones_like(shape, dtype):
     t = create_dummy_array(shape, dtype)
     a = xchainer.ones_like(t)
     check_basic_creation(a, shape, dtype)
-    check_device(a)
 
     value = True if dtype == xchainer.bool else 1
     assert all([el == value for el in a._debug_flat_data])
@@ -153,8 +139,7 @@ def test_ones_like(shape, dtype):
 def test_ones_like_device(shape, dtype):
     t = create_dummy_array(shape, dtype)
     a = xchainer.ones_like(t, 'native:1')
-    check_basic_creation(a, shape, dtype)
-    check_device(a, 'native:1')
+    check_basic_creation(a, shape, dtype, 'native:1')
 
     value = True if dtype == xchainer.bool else 1
     assert all([el == value for el in a._debug_flat_data])
@@ -165,12 +150,10 @@ def test_ones_like_device(shape, dtype):
 def check_full(shape, value, dtype, device=None):
     if device is None:
         a = xchainer.full(shape, value, dtype)
-        check_device(a)
     else:
         a = xchainer.full(shape, value, dtype, device)
-        check_device(a, device)
 
-    check_basic_creation(a, shape, dtype)
+    check_basic_creation(a, shape, dtype, device)
 
     if math.isnan(value):
         assert all([math.isnan(el) for el in a._debug_flat_data])
@@ -183,12 +166,10 @@ def check_full_with_scalar(shape, scalar, device=None):
 
     if device is None:
         a = xchainer.full(shape, scalar)
-        check_device(a)
     else:
         a = xchainer.full(shape, scalar, device)
-        check_device(a, device)
 
-    check_basic_creation(a, shape, scalar.dtype)
+    check_basic_creation(a, shape, scalar.dtype, device)
 
     if scalar.dtype in (xchainer.float32, xchainer.float64) and math.isnan(float(scalar)):
         assert all([math.isnan(el) for el in a._debug_flat_data])
@@ -208,12 +189,10 @@ def check_full_with_py_scalar(shape, value, device=None):
 
     if device is None:
         a = xchainer.full(shape, value)
-        check_device(a)
     else:
         a = xchainer.full(shape, value, device)
-        check_device(a, device)
 
-    check_basic_creation(a, shape, dtype)
+    check_basic_creation(a, shape, dtype, device)
 
     if isinstance(value, float) and math.isnan(value):
         assert all([math.isnan(el) for el in a._debug_flat_data])
@@ -226,12 +205,10 @@ def check_full_like(shape, value, dtype, device=None):
 
     if device is None:
         a = xchainer.full_like(t, value)
-        check_device(a)
     else:
         a = xchainer.full_like(t, value, device)
-        check_device(a, device)
 
-    check_basic_creation(a, shape, dtype)
+    check_basic_creation(a, shape, dtype, device)
 
     if math.isnan(value):
         assert all([math.isnan(el) for el in a._debug_flat_data])
