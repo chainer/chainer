@@ -1,5 +1,6 @@
-import numpy
 import unittest
+
+import numpy
 
 from chainer.backends import cuda
 from chainer import function

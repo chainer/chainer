@@ -1,7 +1,7 @@
-import numpy
-
 import functools
 import operator
+
+import numpy
 import six
 
 import chainer

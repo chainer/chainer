@@ -1,4 +1,5 @@
 import copy
+
 import six
 
 from chainer.dataset import convert
