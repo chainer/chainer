@@ -64,14 +64,16 @@ def test_synchronize():
 def test_default_device(device_instance1):
     device = device_instance1
     xchainer.set_default_device(device)
-    assert xchainer.get_default_device() == device.backend.get_device(device.index)
+    assert xchainer.get_default_device() is device
+    assert xchainer.get_default_device() is device.backend.get_device(device.index)
 
 
 @pytest.mark.usefixtures('cache_restore_device')
 def test_default_device_with_name(device_instance1):
     device = device_instance1
     xchainer.set_default_device(device.name)
-    assert xchainer.get_default_device() == device.backend.get_device(device.index)
+    assert xchainer.get_default_device() is device
+    assert xchainer.get_default_device() is device.backend.get_device(device.index)
 
 
 @pytest.mark.usefixtures('cache_restore_device')
