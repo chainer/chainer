@@ -28,7 +28,7 @@ public:
         GraphId graph_id = output_array_node_->graph_id();
 
         if (!output_array_node_->grad()) {
-            output_array_node_->set_grad(Array::OnesLike(output_));
+            output_array_node_->set_grad(Array::OnesLike(output_, output_.device()));
         }
 
         PushNextOpNode(output_array_node_);

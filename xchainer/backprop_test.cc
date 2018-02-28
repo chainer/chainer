@@ -155,6 +155,19 @@ TEST_P(BackpropTest, DoubleBackprop) {
     CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop);
 }
 
+#ifdef XCHAINER_ENABLE_CUDA
+TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
+    std::string another_backend = ::testing::get<0>(GetParam()) == "cuda" ? "native" : "cuda";
+    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f},
+                               [another_backend](auto& xs) {
+                                   auto ret = xs[0] * xs[1];
+                                   // This device switch also affects backward
+                                   SetDefaultDevice(&GetDefaultContext().GetDevice({another_backend, 0}));
+                                   return ret;
+                               });
+}
+#endif
+
 TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     GraphId graph_x = "graph_x";
     GraphId graph_y = "graph_y";
