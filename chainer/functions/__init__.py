@@ -112,6 +112,7 @@ from chainer.functions.connection.depthwise_convolution_2d import depthwise_conv
 from chainer.functions.connection.dilated_convolution_2d import dilated_convolution_2d  # NOQA
 from chainer.functions.connection.embed_id import embed_id  # NOQA
 from chainer.functions.connection.linear import linear  # NOQA
+from chainer.functions.connection.local_convolution_2d import local_convolution_2d  # NOQA
 from chainer.functions.connection.n_step_gru import n_step_bigru  # NOQA
 from chainer.functions.connection.n_step_gru import n_step_gru  # NOQA
 from chainer.functions.connection.n_step_gru import NStepBiGRU  # NOQA
