@@ -68,6 +68,13 @@ def test_default_device(device_instance1):
 
 
 @pytest.mark.usefixtures('cache_restore_device')
+def test_default_device_with_name(device_instance1):
+    device = device_instance1
+    xchainer.set_default_device(device.name)
+    assert xchainer.get_default_device() == device.backend.get_device(device.index)
+
+
+@pytest.mark.usefixtures('cache_restore_device')
 def test_eq(device_instance1, device_instance2):
     if device_instance1 == device_instance2:
         return
