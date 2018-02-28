@@ -8,6 +8,7 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/device.h"
 #include "xchainer/memory.h"
+#include "xchainer/native_backend.h"
 
 namespace xchainer {
 namespace cuda {
@@ -68,6 +69,42 @@ TEST(CudaBackendTest, GetDevice) {
 TEST(CudaBackendTest, GetName) {
     Context ctx;
     EXPECT_EQ("cuda", CudaBackend(ctx).GetName());
+}
+
+TEST(CudaBackendIncompatibleTransferTest, SupportsTransferDifferentContexts) {
+    Context ctx0;
+    Context ctx1;
+    CudaBackend backend0{ctx0};
+    CudaBackend backend1{ctx1};
+    Device& device0 = backend0.GetDevice(0);
+    Device& device1 = backend1.GetDevice(1);
+    EXPECT_FALSE(backend0.SupportsTransfer(device0, device1));
+}
+
+TEST(CudaBackendIncompatibleTransferTest, SupportsTransferNativeBackends) {
+    Context ctx;
+    CudaBackend cuda_backend{ctx};
+    NativeBackend native_backend0{ctx};
+    NativeBackend native_backend1{ctx};
+    Device& device0 = native_backend0.GetDevice(0);
+    Device& device1 = native_backend1.GetDevice(1);
+    EXPECT_FALSE(cuda_backend.SupportsTransfer(device0, device1));
+}
+
+template <int N>
+class DerivedCudaBackend : public CudaBackend {
+public:
+    using CudaBackend::CudaBackend;
+    std::string GetName() const override { return "derived" + std::to_string(N); }
+};
+
+TEST(CudaBackendIncompatibleTransferTest, SupportsTransferDifferentCudaBackends) {
+    Context ctx;
+    DerivedCudaBackend<0> backend0{ctx};
+    DerivedCudaBackend<1> backend1{ctx};
+    Device& device0 = backend0.GetDevice(0);
+    Device& device1 = backend1.GetDevice(1);
+    EXPECT_FALSE(backend0.SupportsTransfer(device0, device1));
 }
 
 // Data transfer test

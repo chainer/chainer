@@ -67,6 +67,32 @@ TEST(NativeBackendTest, GetName) {
     EXPECT_EQ("native", NativeBackend{ctx}.GetName());
 }
 
+TEST(NativeBackendIncompatibleTransferTest, SupportsTransferDifferentContexts) {
+    Context ctx0;
+    Context ctx1;
+    NativeBackend backend0{ctx0};
+    NativeBackend backend1{ctx1};
+    Device& device0 = backend0.GetDevice(0);
+    Device& device1 = backend1.GetDevice(1);
+    EXPECT_FALSE(backend0.SupportsTransfer(device0, device1));
+}
+
+template <int N>
+class DerivedNativeBackend : public NativeBackend {
+public:
+    using NativeBackend::NativeBackend;
+    std::string GetName() const override { return "derived" + std::to_string(N); }
+};
+
+TEST(NativeBackendIncompatibleTransferTest, SupportsTransferDifferentNativeBackends) {
+    Context ctx;
+    DerivedNativeBackend<0> backend0{ctx};
+    DerivedNativeBackend<1> backend1{ctx};
+    Device& device0 = backend0.GetDevice(0);
+    Device& device1 = backend1.GetDevice(1);
+    EXPECT_FALSE(backend0.SupportsTransfer(device0, device1));
+}
+
 // Data transfer test
 class NativeBackendTransferTest : public ::testing::TestWithParam<::testing::tuple<std::string, std::string>> {};
 
