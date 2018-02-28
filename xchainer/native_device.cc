@@ -10,7 +10,27 @@ namespace xchainer {
 
 std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) { return std::make_unique<uint8_t[]>(bytesize); }
 
-void NativeDevice::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) { std::memcpy(dst_ptr, src_ptr, bytesize); }
+void NativeDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
+    assert(nullptr != dynamic_cast<NativeDevice*>(&src_device) && "Native device only supports copy between native devices");
+    std::memcpy(dst, src, bytesize);
+}
+
+void NativeDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) {
+    assert(nullptr != dynamic_cast<NativeDevice*>(&dst_device) && "Native device only supports copy between native devices");
+    std::memcpy(dst, src, bytesize);
+}
+
+std::tuple<std::shared_ptr<void>, size_t> NativeDevice::TransferDataFrom(Device& src_device, const std::shared_ptr<void>& src_ptr,
+                                                                         size_t offset, size_t bytesize) {
+    std::shared_ptr<void> dst_ptr = Allocate(bytesize);
+    MemoryCopyFrom(dst_ptr.get(), &static_cast<int8_t*>(src_ptr.get())[offset], bytesize, src_device);
+    return std::make_tuple(std::move(dst_ptr), size_t{0});
+}
+
+std::tuple<std::shared_ptr<void>, size_t> NativeDevice::TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr,
+                                                                       size_t offset, size_t bytesize) {
+    return dst_device.TransferDataFrom(*this, src_ptr, offset, bytesize);
+}
 
 std::shared_ptr<void> NativeDevice::FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
     (void)bytesize;  // unused
@@ -63,18 +83,5 @@ void NativeDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
 }
 
 void NativeDevice::Synchronize() {}
-
-std::tuple<std::shared_ptr<void>, size_t> NativeDevice::TransferDataFrom(Device& src_device, const std::shared_ptr<void>& src_ptr,
-                                                                         size_t offset, size_t bytesize) {
-    (void)src_device;  // unused
-    std::shared_ptr<void> dst_ptr = Allocate(bytesize);
-    MemoryCopy(dst_ptr.get(), &static_cast<int8_t*>(src_ptr.get())[offset], bytesize);
-    return std::make_tuple(std::move(dst_ptr), size_t{0});
-}
-
-std::tuple<std::shared_ptr<void>, size_t> NativeDevice::TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr,
-                                                                       size_t offset, size_t bytesize) {
-    return dst_device.TransferDataFrom(*this, src_ptr, offset, bytesize);
-}
 
 }  // namespace xchainer

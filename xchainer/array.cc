@@ -156,7 +156,7 @@ Array Array::ToDevice(Device& dst_device) const {
         // Devices are identical
         // Allocate new memory and copy
         data = dst_device.Allocate(bytesize);
-        dst_device.MemoryCopy(data.get(), body_->data_.get(), bytesize);
+        dst_device.MemoryCopyFrom(data.get(), body_->data_.get(), bytesize, src_device);
         offset = 0;
     } else if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
         // Use src backend for transfer
@@ -219,7 +219,7 @@ Array Array::AsConstant(CopyKind kind) const {
             Array out = Array::EmptyLike(*this, device());
             // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
             // is_contiguous_ and offset_ into account
-            internal::MemoryCopy(device(), out.data().get(), body_->data_.get(), GetTotalBytes());
+            device().MemoryCopyFrom(out.data().get(), body_->data_.get(), GetTotalBytes(), device());
             return std::move(out);
         }
         case CopyKind::kView:
@@ -236,7 +236,7 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
             internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }}, graph_ids);
             // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
             // is_contiguous_ and offset_ into account
-            internal::MemoryCopy(device(), out.data().get(), body_->data_.get(), GetTotalBytes());
+            device().MemoryCopyFrom(out.data().get(), body_->data_.get(), GetTotalBytes(), device());
             return std::move(out);
         }
         case CopyKind::kView: {

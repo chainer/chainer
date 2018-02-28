@@ -21,12 +21,30 @@ public:
     // Allocates a memory chunk on this device.
     virtual std::shared_ptr<void> Allocate(size_t bytesize) = 0;
 
-    // Copies the data between two memory chunks.
+    // Copies the data between devices.
+    // The other device may or may not be the same as this device.
     // The caller must guarantee that:
-    // - both dst_ptr and src_ptr reside in this device.
-    // - a copy between these memory regions can be done transparently, e.g. without sychronization,
-    // - and these memory regions are not overlapped.
-    virtual void MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) = 0;
+    // - Data transfer between the devices is supported by this backend.
+    //   That is, Backend::SupportsTransfer must return true for the devices.
+    // - Memory regions are not overlapped.
+    virtual void MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) = 0;
+    virtual void MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) = 0;
+
+    // Transfers the data from the specified device to this device.
+    // It is usually preceded by a call to Backend::SupportsTransfer(), thus this function can assume transfer between the devices are
+    // supported.
+    //
+    // It returns a tuple of (data, offset).
+    virtual std::tuple<std::shared_ptr<void>, size_t> TransferDataFrom(Device& src_device, const std::shared_ptr<void>& src_ptr,
+                                                                       size_t offset, size_t bytesize) = 0;
+
+    // Transfers the data from this device to the specified device.
+    // It is usually preceded by a call to Backend::SupportsTransfer(), thus this function can assume transfer between the devices are
+    // supported.
+    //
+    // It returns a tuple of (data, offset).
+    virtual std::tuple<std::shared_ptr<void>, size_t> TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr,
+                                                                     size_t offset, size_t bytesize) = 0;
 
     // Creates a data buffer filled with the specified data on this device.
     //
@@ -47,22 +65,6 @@ public:
     Backend& backend() const { return backend_; }
     Context& context() const { return backend_.context(); }
     int index() const { return index_; }
-
-    // Transfers the data from the specified device to this device.
-    // It is usually preceded by a call to Backend::SupportsTransfer(), thus this function can assume transfer between the devices are
-    // supported.
-    //
-    // It returns a tuple of (data, offset).
-    virtual std::tuple<std::shared_ptr<void>, size_t> TransferDataFrom(Device& src_device, const std::shared_ptr<void>& src_ptr,
-                                                                       size_t offset, size_t bytesize) = 0;
-
-    // Transfers the data from this device to the specified device.
-    // It is usually preceded by a call to Backend::SupportsTransfer(), thus this function can assume transfer between the devices are
-    // supported.
-    //
-    // It returns a tuple of (data, offset).
-    virtual std::tuple<std::shared_ptr<void>, size_t> TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr,
-                                                                     size_t offset, size_t bytesize) = 0;
 
 protected:
     // Throws an exception if array devices are incompatible, else does nothing.

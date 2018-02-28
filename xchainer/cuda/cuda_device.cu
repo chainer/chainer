@@ -12,7 +12,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/memory.h"
-#include "xchainer/native_backend.h"
+#include "xchainer/native_device.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
@@ -58,14 +58,47 @@ std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
     return std::shared_ptr<void>{raw_ptr, cudaFree};
 }
 
-void CudaDevice::MemoryCopy(void* dst_ptr, const void* src_ptr, size_t bytesize) {
-    CheckError(cudaSetDevice(index()));
-    CheckError(cudaMemcpy(dst_ptr, src_ptr, bytesize, cudaMemcpyDeviceToDevice));
+void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
+    assert(internal::IsPointerCudaMemory(dst));
+    if (&src_device == this || nullptr != dynamic_cast<CudaDevice*>(&src_device)) {
+        // Copy between CUDA device
+        CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
+    } else {
+        assert(nullptr != dynamic_cast<NativeDevice*>(&src_device) && "CudaDevice only supports copy between cuda or native devices.");
+        // Copy to native device
+        CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyHostToDevice));
+    }
+}
+
+void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) {
+    assert(internal::IsPointerCudaMemory(src));
+    if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
+        // Copy between CUDA device
+        CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
+    } else {
+        assert(nullptr != dynamic_cast<NativeDevice*>(&dst_device) && "CudaDevice only supports copy between cuda or native devices.");
+        // Copy to native device
+        CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToHost));
+    }
+}
+
+std::tuple<std::shared_ptr<void>, size_t> CudaDevice::TransferDataFrom(Device& src_device, const std::shared_ptr<void>& src_ptr,
+                                                                       size_t offset, size_t bytesize) {
+    std::shared_ptr<void> dst_ptr = Allocate(bytesize);
+    MemoryCopyFrom(dst_ptr.get(), &static_cast<int8_t*>(src_ptr.get())[offset], bytesize, src_device);
+    return std::make_tuple(std::move(dst_ptr), 0);
+}
+
+std::tuple<std::shared_ptr<void>, size_t> CudaDevice::TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr,
+                                                                     size_t offset, size_t bytesize) {
+    std::shared_ptr<void> dst_ptr = dst_device.Allocate(bytesize);
+    MemoryCopyTo(dst_ptr.get(), &static_cast<int8_t*>(src_ptr.get())[offset], bytesize, dst_device);
+    return std::make_tuple(std::move(dst_ptr), 0);
 }
 
 std::shared_ptr<void> CudaDevice::FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
     std::shared_ptr<void> dst_ptr = Allocate(bytesize);
-    cuda::CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
+    CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
     return dst_ptr;
 }
 
@@ -124,28 +157,6 @@ void CudaDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
 void CudaDevice::Synchronize() {
     CheckError(cudaSetDevice(index()));
     CheckError(cudaDeviceSynchronize());
-}
-
-std::tuple<std::shared_ptr<void>, size_t> CudaDevice::TransferDataFrom(Device& src_device, const std::shared_ptr<void>& src_ptr,
-                                                                       size_t offset, size_t bytesize) {
-    (void)src_device;  // unused
-
-    // src_device is either a native device or a CUDA device, so the direct access is always possible.
-    std::shared_ptr<void> dst_ptr = Allocate(bytesize);
-    MemoryCopy(dst_ptr.get(), &static_cast<int8_t*>(src_ptr.get())[offset], bytesize);
-    return std::make_tuple(std::move(dst_ptr), 0);
-}
-
-std::tuple<std::shared_ptr<void>, size_t> CudaDevice::TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr,
-                                                                     size_t offset, size_t bytesize) {
-    if (dst_device.backend().GetName() == NativeBackend::kDefaultName) {
-        // Synchronize the source data on CUDA device so that the native device can read it.
-        Synchronize();
-    }
-
-    std::shared_ptr<void> dst_ptr = dst_device.Allocate(bytesize);
-    dst_device.MemoryCopy(dst_ptr.get(), &static_cast<int8_t*>(src_ptr.get())[offset], bytesize);
-    return std::make_tuple(std::move(dst_ptr), 0);
 }
 
 }  // namespace cuda
