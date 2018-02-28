@@ -81,6 +81,9 @@ public:
         }
     }
 
+    void CallBackward(const Array& a) const { Backward(a); }
+    void CallBackward(const std::vector<Array>& a) const { Backward({a.begin(), a.end()}); }
+
     // Checks the correctness of Backward() applied to the output of a given function.
     // Gradients are only computed w.r.t. target_inputs, and are compared to expected_grads.
     template <typename Fprop, typename... Args>
@@ -91,7 +94,7 @@ public:
 
         // y may be Array or vector<Array>
         auto y = fprop(target_inputs, args...);
-        Backward(y);
+        CallBackward(y);
         for (size_t i = 0; i < expected_grads.size(); ++i) {
             ExpectEqual<float>(expected_grads[i], *target_inputs[i].GetGrad());
         }
@@ -163,7 +166,7 @@ TEST_P(BackpropTest, TryBackwardFromArrayWithoutNode) {
         x.RequireGrad();
     }
     auto y2 = xs[0] * xs[1];  // with graph
-    EXPECT_THROW(Backward(std::vector<ConstArrayRef>{y1, y2}), XchainerError);
+    EXPECT_THROW(Backward({y1, y2}), XchainerError);
 }
 
 TEST_P(BackpropTest, BackwardSoleArrayNode) {

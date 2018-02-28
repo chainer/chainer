@@ -141,11 +141,8 @@ private:
 
 void Backward(const Array& output, const GraphId& graph_id, DoubleBackpropOption double_backprop) {
     // TODO(takagi): Operations that have multiple outputs
-    BackwardImpl{{output}, graph_id, double_backprop}.Run();
-}
-
-void Backward(const std::vector<Array>& outputs, const GraphId& graph_id, DoubleBackpropOption double_backprop) {
-    BackwardImpl{{outputs.begin(), outputs.end()}, graph_id, double_backprop}.Run();
+    std::vector<ConstArrayRef> outputs{output};
+    BackwardImpl{outputs, graph_id, double_backprop}.Run();
 }
 
 void Backward(const std::vector<ConstArrayRef>& outputs, const GraphId& graph_id, DoubleBackpropOption double_backprop) {
