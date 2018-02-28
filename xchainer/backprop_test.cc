@@ -155,6 +155,17 @@ TEST_P(BackpropTest, BackwardMultipleOutputs) {
                                });
 }
 
+TEST_P(BackpropTest, TryBackwardFromArrayWithoutNode) {
+    auto xs = MakeFullArrays({1}, {2.0f, 3.0f});
+    auto y1 = xs[0] * xs[1];  // without graph
+    EXPECT_THROW(Backward(y1), XchainerError);
+    for (auto& x : xs) {
+        x.RequireGrad();
+    }
+    auto y2 = xs[0] * xs[1];  // with graph
+    EXPECT_THROW(Backward(std::vector<ConstArrayRef>{y1, y2}), XchainerError);
+}
+
 TEST_P(BackpropTest, BackwardSoleArrayNode) {
     auto x = Array::Full({1}, 2.0f);
     x.RequireGrad();

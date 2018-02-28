@@ -11,6 +11,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
+#include "xchainer/error.h"
 #include "xchainer/op_node.h"
 
 namespace xchainer {
@@ -25,6 +26,9 @@ public:
     BackwardImpl(const std::vector<ConstArrayRef>& outputs, const GraphId& graph_id, DoubleBackpropOption double_backprop)
         : outputs_(outputs), graph_id_(graph_id), double_backprop_(double_backprop) {
         for (const Array& output : outputs) {
+            if (!output.IsGradRequired(graph_id)) {
+                throw XchainerError("Cannot start backprop from an array whose gradient is not required (on graph '" + graph_id + "')");
+            }
             output_array_nodes_.push_back(internal::GetMutableArrayNode(output, graph_id));
         }
     };
