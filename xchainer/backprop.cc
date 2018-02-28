@@ -130,7 +130,8 @@ private:
     // the backward. This mapping also works as a bookkeeping of op nodes that have already been seen.
     std::unordered_map<const OpNode*, std::shared_ptr<ArrayNode>> previous_array_node_map_;
 
-    // Arguments to Backward()
+    // Arguments to Backward().
+    // Be careful that references require the referred objects alive (it should be guaranteed by Backward()).
     const std::vector<ConstArrayRef>& outputs_;
     std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>> output_array_nodes_;
     const GraphId& graph_id_;
@@ -141,7 +142,7 @@ private:
 
 void Backward(const Array& output, const GraphId& graph_id, DoubleBackpropOption double_backprop) {
     // TODO(takagi): Operations that have multiple outputs
-    std::vector<ConstArrayRef> outputs{output};
+    std::vector<ConstArrayRef> outputs{output};  // Do not inline it; we need to guarantee that the vector is alive until Run() finishes.
     BackwardImpl{outputs, graph_id, double_backprop}.Run();
 }
 
