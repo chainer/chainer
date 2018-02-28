@@ -57,7 +57,7 @@ class ParameterStatistics(extension.Extension):
                                                      99.87))
     }
 
-    def __init__(self, links, statistics=default_statistics,
+    def __init__(self, links, statistics=None,
                  report_params=True, report_grads=True, prefix=None,
                  trigger=(1, 'epoch')):
 
@@ -65,6 +65,8 @@ class ParameterStatistics(extension.Extension):
             links = links,
         self._links = links
 
+        if statistics is None:
+            statistics = self.default_statistics
         self._statistics = statistics
 
         attrs = []

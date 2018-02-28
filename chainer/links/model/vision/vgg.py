@@ -160,7 +160,7 @@ class VGG16Layers(link.Chain):
         caffemodel = CaffeFunction(path_caffemodel)
         npz.save_npz(path_npz, caffemodel, compression=False)
 
-    def __call__(self, x, layers=['prob'], **kwargs):
+    def __call__(self, x, layers=None, **kwargs):
         """__call__(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
@@ -183,6 +183,9 @@ class VGG16Layers(link.Chain):
 
         """
 
+        if layers is None:
+            layers = ['prob']
+
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '
             'Use chainer.using_config')
@@ -201,7 +204,7 @@ class VGG16Layers(link.Chain):
                 target_layers.remove(key)
         return activations
 
-    def extract(self, images, layers=['fc7'], size=(224, 224), **kwargs):
+    def extract(self, images, layers=None, size=(224, 224), **kwargs):
         """extract(self, images, layers=['fc7'], size=(224, 224))
 
         Extracts all the feature maps of given images.
@@ -235,6 +238,9 @@ class VGG16Layers(link.Chain):
             the corresponding feature map variable.
 
         """
+
+        if layers is None:
+            layers = ['fc7']
 
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '

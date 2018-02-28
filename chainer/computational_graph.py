@@ -85,12 +85,16 @@ class ComputationalGraph(object):
 
     """
 
-    def __init__(self, nodes, edges, variable_style=_var_style,
-                 function_style=_func_style, rankdir='TB',
+    def __init__(self, nodes, edges, variable_style=None,
+                 function_style=None, rankdir='TB',
                  remove_variable=False, show_name=True):
         self.nodes = nodes
         self.edges = edges
+        if variable_style is None:
+            variable_style = _var_style
         self.variable_style = variable_style
+        if function_style is None:
+            function_style = _func_style
         self.function_style = function_style
         if rankdir not in ('TB', 'BT', 'LR', 'RL'):
             raise ValueError('rankdir must be in TB, BT, LR or RL.')
@@ -191,8 +195,8 @@ def _skip_variable(nodes, edges):
 
 
 def build_computational_graph(
-        outputs, remove_split=True, variable_style=_var_style,
-        function_style=_func_style, rankdir='TB', remove_variable=False,
+        outputs, remove_split=True, variable_style=None,
+        function_style=None, rankdir='TB', remove_variable=False,
         show_name=True):
     """Builds a graph of functions and variables backward-reachable from outputs.
 
@@ -252,6 +256,10 @@ def build_computational_graph(
     """
     if not remove_split:
         raise ValueError('remove_split=False is not supported anymore')
+    if variable_style is None:
+        variable_style = _var_style
+    if function_style is None:
+        function_style = _func_style
 
     cands = []
     seen_edges = set()
