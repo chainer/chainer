@@ -25,7 +25,7 @@ def _create_dummy_ndarray(shape_tup, numpy_dtype):
     return numpy.arange(_size(shape_tup)).reshape(shape_tup).astype(numpy_dtype)
 
 
-def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list):
+def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list, device_id=None):
     assert isinstance(array.dtype, xchainer.Dtype)
     assert isinstance(array.shape, xchainer.Shape)
     assert array.dtype == expected_dtype
@@ -36,6 +36,11 @@ def _check_array(array, expected_dtype, expected_shape, expected_total_size, exp
     assert array._debug_flat_data == expected_data_list
     assert array.is_contiguous
     assert array.offset == 0
+    if device_id is None:
+        device = xchainer.get_default_device()
+    else:
+        device = xchainer.get_default_context().get_device(device_id)
+    assert array.device is device
 
 
 def _check_arrays_equal_copy(array_a, array_b):
@@ -74,14 +79,6 @@ def _check_ndarray_equal_ndarray(ndarray1, ndarray2):
     assert ndarray1.flags == ndarray2.flags
 
 
-def _check_device(a, device_id=None):
-    if device_id is None:
-        device = xchainer.get_default_device()
-    else:
-        device = xchainer.get_default_context().get_device(device_id)
-    assert a.device is device
-
-
 def _size(tup):
     return functools.reduce(operator.mul, tup, 1)
 
@@ -114,12 +111,10 @@ def _check_init(shape_tup, dtype, device=None):
 
     if device is None:
         array = xchainer.Array(shape, dtype, data_list)
-        _check_device(array)
     else:
         array = xchainer.Array(shape, dtype, data_list, device)
-        _check_device(array, device)
 
-    _check_array(array, dtype, shape, _size(shape_tup), data_list)
+    _check_array(array, dtype, shape, _size(shape_tup), data_list, device)
 
 
 def test_init(array_init_inputs):
@@ -139,12 +134,10 @@ def _check_numpy_init(shape_tup, dtype, device=None):
 
     if device is None:
         array = xchainer.Array(ndarray)
-        _check_device(array)
     else:
         array = xchainer.Array(ndarray, device)
-        _check_device(array, device)
 
-    _check_array(array, dtype, shape, _size(shape_tup), ndarray.ravel().tolist())
+    _check_array(array, dtype, shape, _size(shape_tup), ndarray.ravel().tolist(), device)
     _check_array_equals_ndarray(array, ndarray)
 
     # test possibly freed memory
