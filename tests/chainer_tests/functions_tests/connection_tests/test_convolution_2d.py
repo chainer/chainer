@@ -271,8 +271,7 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         name = 'cupy.cuda.cudnn.convolutionForward'
-        name2 = 'chainer.functions.connection.convolution_2d' \
-            '.Convolution2DFunction._tensor_core_adjust_algo'
+        name2 = 'cupy.cudnn.check_convolution_forward_algorithm'
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
@@ -280,16 +279,15 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
                     name
                 ) as func, mock.patch(
                     name2
-                ) as tensor_core_adjust_algo:
+                ) as tensor_core_check_algo:
                     self.forward()
                     self.assertEqual(func.called, self.should_call_cudnn)
                     if not self.can_use_tensor_core:
-                        self.assertEqual(tensor_core_adjust_algo.called, False)
+                        self.assertEqual(tensor_core_check_algo.called, False)
 
     def test_call_cudnn_backward(self):
         name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
-        name2 = 'chainer.functions.connection.convolution_2d' \
-            '.Convolution2DGradW._tensor_core_adjust_algo'
+        name2 = 'cupy.cudnn.check_convolution_backward_data_algorithm'
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
@@ -299,11 +297,11 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
                     name
                 ) as func, mock.patch(
                     name2
-                ) as tensor_core_adjust_algo:
+                ) as tensor_core_check_algo:
                     y.backward()
                     self.assertEqual(func.called, self.should_call_cudnn)
                     if not self.can_use_tensor_core:
-                        self.assertEqual(tensor_core_adjust_algo.called, False)
+                        self.assertEqual(tensor_core_check_algo.called, False)
 
 
 @testing.parameterize(*testing.product({
