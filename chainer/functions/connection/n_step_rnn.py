@@ -150,7 +150,7 @@ class CudnnRNNWeightConcat(function.Function):
         type_check.expect(
             in_types.size() == n_params * 2)
 
-        w_types = in_types[0:n_params]
+        w_types = in_types[:n_params]
         b_types = in_types[n_params:]
 
         in_size = w_types[0].shape[1]
