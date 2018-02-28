@@ -1,5 +1,6 @@
+import pytest
+
 import xchainer
-from xchainer.testing import mark
 
 
 def test_name_native():
@@ -15,13 +16,13 @@ def test_get_device_native():
     assert device is backend.get_device(0)
 
 
-@mark.cuda
+@pytest.mark.cuda
 def test_name_cuda():
     backend = xchainer.get_global_default_context().get_backend('cuda')
     assert 'cuda' == backend.name
 
 
-@mark.cuda
+@pytest.mark.cuda
 def test_get_device_cuda():
     backend = xchainer.get_global_default_context().get_backend('cuda')
     device = backend.get_device(0)

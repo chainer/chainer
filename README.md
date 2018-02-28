@@ -105,7 +105,7 @@ $ pytest --cov --no-cov-on-fail --cov-fail-under=80
 Run tests without CUDA GPU:
 
 ```shell-session
-$ XCHAINER_TEST_CUDA_LIMIT=0 pytest 
+$ pytest -m 'not cuda'
 ```
 
 ### Run the C++ test suite
