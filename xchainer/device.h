@@ -87,6 +87,7 @@ Device* GetDefaultDeviceNoExcept() noexcept;
 
 }  // namespace internal
 
+// Gets the default device. If the default device is null in this thread, it sets and returns the "native:0" device of the default context.
 Device& GetDefaultDevice();
 
 // Sets thread local device.

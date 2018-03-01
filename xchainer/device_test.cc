@@ -3,6 +3,7 @@
 #include <future>
 
 #include <gtest/gtest.h>
+#include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
 #include "xchainer/backend.h"
@@ -45,9 +46,9 @@ TEST_F(DeviceTest, Ctor) {
 }
 
 TEST_F(DeviceTest, SetDefaultDevice) {
-    ASSERT_THROW(GetDefaultDevice(), XchainerError);
-
     Context& ctx = GetDefaultContext();
+    EXPECT_EQ(&ctx.GetDevice({"native", 0}), &GetDefaultDevice());
+
     NativeBackend native_backend{ctx};
     NativeDevice native_device{native_backend, 0};
     SetDefaultDevice(&native_device);
@@ -80,6 +81,21 @@ TEST_F(DeviceTest, ThreadLocal) {
         return &GetDefaultDevice();
     });
     ASSERT_NE(&GetDefaultDevice(), future.get());
+}
+
+TEST_F(DeviceTest, ThreadLocalDefault) {
+    Context& ctx = GetDefaultContext();
+    SetGlobalDefaultContext(&ctx);
+    auto reset_global = gsl::finally([] { SetGlobalDefaultContext(nullptr); });
+
+    Device& device = ctx.GetDevice({"native", 0});
+
+    NativeBackend backend1{ctx};
+    NativeDevice device1{backend1, 1};
+    SetDefaultDevice(&device1);
+    auto future = std::async(std::launch::async, [] { return &GetDefaultDevice(); });
+
+    EXPECT_EQ(&device, future.get());
 }
 
 TEST_F(DeviceTest, DeviceScopeCtor) {
