@@ -55,24 +55,6 @@ TEST(CudaDeviceTest, Allocate) {
     }
 }
 
-TEST(CudaDeviceTest, MemoryCopy) {
-    size_t size = 3;
-    size_t bytesize = size * sizeof(float);
-    float raw_data[] = {0, 1, 2};
-    std::shared_ptr<void> src(raw_data, [](float* ptr) {
-        (void)ptr;  // unused
-    });
-
-    Context ctx;
-    CudaBackend backend{ctx};
-    CudaDevice device{backend, 0};
-
-    std::shared_ptr<void> gpu_src = device.FromBuffer(src, bytesize);
-    std::shared_ptr<void> gpu_dst = device.Allocate(bytesize);
-    device.MemoryCopy(gpu_dst.get(), gpu_src.get(), bytesize);
-    ExpectDataEqual<float>(gpu_src, gpu_dst, size);
-}
-
 TEST(CudaDeviceTest, FromBuffer) {
     size_t size = 3;
     size_t bytesize = size * sizeof(float);

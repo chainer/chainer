@@ -18,6 +18,8 @@ public:
 
     int GetDeviceCount() const override;
 
+    bool SupportsTransfer(Device& src_device, Device& dst_device) override;
+
 private:
     std::unique_ptr<Device> CreateDevice(int index) override;
 };

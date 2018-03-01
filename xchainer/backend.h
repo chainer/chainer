@@ -32,6 +32,9 @@ public:
     // Throws out_of_range exception if index >= GetDeviceCount().
     Device& GetDevice(int index);
 
+    // Queries if the backend supports data transfer between two devices.
+    virtual bool SupportsTransfer(Device& src_device, Device& dst_device) = 0;
+
 private:
     // Creates a new device.
     // This function is called from GetDevice().

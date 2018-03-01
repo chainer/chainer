@@ -7,6 +7,7 @@
 
 #include "xchainer/cuda/cuda_device.h"
 #include "xchainer/cuda/cuda_runtime.h"
+#include "xchainer/native_backend.h"
 
 namespace xchainer {
 namespace cuda {
@@ -26,6 +27,18 @@ std::unique_ptr<Device> CudaBackend::CreateDevice(int index) {
                                 std::to_string(device_count) + ')');
     }
     return std::make_unique<CudaDevice>(*this, index);
+}
+
+bool CudaBackend::SupportsTransfer(Device& src_device, Device& dst_device) {
+    Backend& src_backend = src_device.backend();
+    Backend& dst_backend = dst_device.backend();
+    if (&src_backend == this) {
+        return &dst_backend == this || nullptr != dynamic_cast<NativeBackend*>(&dst_backend);
+    } else if (&dst_backend == this) {
+        return &src_backend == this || nullptr != dynamic_cast<NativeBackend*>(&src_backend);
+    } else {
+        return false;
+    }
 }
 
 }  // namespace cuda

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <ostream>
 #include <string>
 #include <unordered_map>
 
@@ -144,6 +145,44 @@ Array Array::ZerosLike(const Array& array, Device& device) { return Zeros(array.
 
 Array Array::OnesLike(const Array& array, Device& device) { return Ones(array.shape(), array.dtype(), device); }
 
+Array Array::ToDevice(Device& dst_device) const {
+    Device& src_device = body_->device_;
+
+    // TODO(niboshi): Offset is assumed to be 0. It should be taken into account.
+    std::shared_ptr<void> data;
+    int64_t offset = 0;
+    size_t bytesize = GetTotalBytes();
+
+    if (&src_device == &dst_device) {
+        // Devices are identical. Return an alias.
+        data = body_->data_;
+        offset = body_->offset_;
+    } else if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
+        // Use src backend for transfer
+        std::tuple<std::shared_ptr<void>, size_t> data_tuple = src_device.TransferDataTo(dst_device, body_->data_, 0, bytesize);
+        data = std::move(std::get<0>(data_tuple));
+        offset = static_cast<int64_t>(std::get<1>(data_tuple));
+    } else if (dst_device.backend().SupportsTransfer(src_device, dst_device)) {
+        // Use dst backend for transfer
+        std::tuple<std::shared_ptr<void>, size_t> data_tuple = dst_device.TransferDataFrom(src_device, body_->data_, 0, bytesize);
+        data = std::move(std::get<0>(data_tuple));
+        offset = static_cast<int64_t>(std::get<1>(data_tuple));
+    } else {
+        // Neither backends support transfer
+        throw XchainerError("Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'");
+    }
+
+    // Create output array
+    Array out{body_->shape_, body_->dtype_, dst_device, std::move(data), body_->is_contiguous_, offset};
+
+    // Connect the graph.
+    // Backward operation is implemented as backward-transfer.
+    internal::SetUpOpNodes("transfer", {*this}, out,
+                           {[&src_device](const Array& gout, const std::vector<GraphId>&) -> Array { return gout.ToDevice(src_device); }},
+                           {});
+    return out;
+}
+
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
     return *this;
@@ -177,7 +216,7 @@ Array Array::AsConstant(CopyKind kind) const {
             Array out = Array::EmptyLike(*this, device());
             // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
             // is_contiguous_ and offset_ into account
-            internal::MemoryCopy(device(), out.data().get(), body_->data_.get(), GetTotalBytes());
+            device().MemoryCopyFrom(out.data().get(), body_->data_.get(), GetTotalBytes(), device());
             return std::move(out);
         }
         case CopyKind::kView:
@@ -194,7 +233,7 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
             internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }}, graph_ids);
             // TODO(takagi): When non-C-contiguous orders are supported, we cannot blindly copy all elements but need to take
             // is_contiguous_ and offset_ into account
-            internal::MemoryCopy(device(), out.data().get(), body_->data_.get(), GetTotalBytes());
+            device().MemoryCopyFrom(out.data().get(), body_->data_.get(), GetTotalBytes(), device());
             return std::move(out);
         }
         case CopyKind::kView: {

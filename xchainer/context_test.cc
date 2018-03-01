@@ -8,6 +8,8 @@
 
 #include "xchainer/backend.h"
 #include "xchainer/device.h"
+#include "xchainer/native_backend.h"
+#include "xchainer/native_device.h"
 
 namespace xchainer {
 namespace {
@@ -107,6 +109,29 @@ TEST(ContextTest, ContextScopeCtor) {
     ASSERT_EQ(&ctx2, &GetDefaultContext());
 }
 
+TEST(ContextTest, ContextScopeResetDevice) {
+    SetGlobalDefaultContext(nullptr);
+    SetDefaultContext(nullptr);
+    Context ctx1;
+    Context ctx2;
+    {
+        ContextScope ctx_scope1{ctx1};
+        NativeBackend backend1{ctx1};
+        NativeDevice device1{backend1, 0};
+        DeviceScope dev_scope1{device1};
+
+        {
+            ContextScope ctx_scope2{ctx2};
+            EXPECT_THROW(GetDefaultDevice(), XchainerError);
+            NativeBackend backend2{ctx2};
+            NativeDevice device2{backend2, 0};
+            SetDefaultDevice(&device2);
+        }
+
+        EXPECT_EQ(&device1, &GetDefaultDevice());
+    }
+}
+
 TEST(ContextTest, UserDefinedBackend) {
     ::setenv("XCHAINER_PATH", XCHAINER_TEST_DIR "/context_testdata", 1);
     Context ctx;
@@ -119,6 +144,24 @@ TEST(ContextTest, UserDefinedBackend) {
 
     Device& device0 = ctx.GetDevice(std::string("backend0:0"));
     EXPECT_EQ(&backend0, &device0.backend());
+}
+
+TEST(ContextTest, GetBackendOnDefaultContext) {
+    // xchainer::GetBackend
+    Context ctx;
+    SetDefaultContext(&ctx);
+    Backend& backend = GetBackend("native");
+    EXPECT_EQ(&ctx, &backend.context());
+    EXPECT_EQ("native", backend.GetName());
+}
+
+TEST(ContextTest, GetDeviceOnDefaultContext) {
+    // xchainer::GetDevice
+    Context ctx;
+    SetDefaultContext(&ctx);
+    Device& device = GetDevice({"native:0"});
+    EXPECT_EQ(&ctx, &device.backend().context());
+    EXPECT_EQ("native:0", device.name());
 }
 
 }  // namespace
