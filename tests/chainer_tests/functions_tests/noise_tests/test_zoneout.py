@@ -1,6 +1,6 @@
-import contextlib
 import unittest
 
+import mock
 import numpy
 
 import chainer
@@ -9,23 +9,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-
-
-@contextlib.contextmanager
-def _fixed_random_seed(xp, seed):
-    if xp is numpy:
-        state = xp.random.get_state()
-        xp.random.seed(seed)
-    else:
-        state = xp.random.get_random_state()
-        xp.random.set_random_state(xp.random.RandomState(seed))
-    try:
-        yield
-    finally:
-        if xp is numpy:
-            xp.random.set_state(state)
-        else:
-            xp.random.set_random_state(state)
 
 
 def _zoneout(h, x, creator):
@@ -80,13 +63,17 @@ class TestZoneout(unittest.TestCase):
     def check_double_backward(
             self, h_data, x_data, y_grad, h_grad_grad, x_grad_grad):
         xp = cuda.get_array_module(h_data)
+        flag_x = xp.random.rand(*x_data.shape)
 
         def f(h, x):
             # As forward computation is executed multiple times in
-            # check_double_backward, explicitly set a seed to force using the
-            # same flag.
-            with _fixed_random_seed(xp, 0):
+            # check_double_backward, use a fixed flag.
+            xp_str = 'numpy' if xp is numpy else 'cupy'
+            with mock.patch(
+                    '{}.random.rand'.format(xp_str),
+                    return_value=flag_x) as mock_rand:
                 y = functions.zoneout(h, x, self.ratio)
+                mock_rand.assert_called_once_with(*x.shape)
             return y * y
 
         gradient_check.check_double_backward(
