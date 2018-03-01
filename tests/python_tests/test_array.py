@@ -43,13 +43,17 @@ def _check_array(array, expected_dtype, expected_shape, expected_total_size, exp
     assert array.device is device
 
 
-def _check_arrays_equal_copy(array_a, array_b):
+def _check_arrays_equal(array_a, array_b):
     assert array_a.dtype == array_b.dtype
     assert array_a.shape == array_b.shape
     assert array_a.element_bytes == array_b.element_bytes
     assert array_a.total_size == array_b.total_size
     assert array_a.total_bytes == array_b.total_bytes
     assert array_a._debug_flat_data == array_b._debug_flat_data
+
+
+def _check_arrays_equal_copy(array_a, array_b):
+    _check_arrays_equal(array_a, array_b)
     assert array_b.is_contiguous
     assert 0 == array_b.offset
 
@@ -167,19 +171,17 @@ def test_numpy_init_device(array_init_inputs):
     _check_numpy_init(*array_init_inputs, 'native:1')
 
 
-def test_to_device_device():
+def test_to_device():
     a = xchainer.ones((2,), xchainer.float32, device="native:0")
-    # TODO(niboshi): Replace rhs with `xchainer.get_device(...)`
-    dst_device = xchainer.get_default_context().get_device("native:1")
-    b = a.to_device(dst_device)
-    assert b.device is dst_device
+    dst_device = xchainer.get_device("native:1")
 
+    b0 = a.to_device(dst_device)  # by device instance
+    assert b0.device is dst_device
+    _check_arrays_equal(a, b0)
 
-def test_to_device_device_name():
-    a = xchainer.ones((2,), xchainer.float32, device="native:0")
-    b = a.to_device("native:1")
-    # TODO(niboshi): Replace rhs with `xchainer.get_device(...)`
-    assert b.device is xchainer.get_default_context().get_device("native:1")
+    b1 = a.to_device("native:1")  # by device name
+    assert b1.device is dst_device
+    _check_arrays_equal(a, b1)
 
 
 def test_view(array_init_inputs):
