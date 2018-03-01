@@ -5,6 +5,7 @@
 #include "xchainer/array.h"
 #include "xchainer/context.h"
 #include "xchainer/error.h"
+#include "xchainer/native_backend.h"
 
 namespace xchainer {
 namespace {
@@ -28,7 +29,7 @@ Device* GetDefaultDeviceNoExcept() noexcept { return t_default_device; }
 
 Device& GetDefaultDevice() {
     if (t_default_device == nullptr) {
-        t_default_device = &GetDefaultContext().GetDevice({"native", 0});
+        t_default_device = &GetDefaultContext().GetDevice({NativeBackend::kDefaultName, 0});
     }
     return *t_default_device;
 }
