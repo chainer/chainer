@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <ostream>
 #include <string>
 #include <unordered_map>
 
@@ -168,9 +169,7 @@ Array Array::ToDevice(Device& dst_device) const {
         offset = static_cast<int64_t>(std::get<1>(data_tuple));
     } else {
         // Neither backends support transfer
-        std::ostringstream ss;
-        ss << "Transfer between devices is not supported: src='" << src_device.name() << "' dst='" << dst_device.name() << "'";
-        throw XchainerError(ss.str());
+        throw XchainerError("Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'");
     }
 
     // Create output array
