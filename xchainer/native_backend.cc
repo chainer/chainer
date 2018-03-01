@@ -21,4 +21,8 @@ std::unique_ptr<Device> NativeBackend::CreateDevice(int index) {
     return std::make_unique<NativeDevice>(*this, index);
 }
 
+bool NativeBackend::SupportsTransfer(Device& src_device, Device& dst_device) {
+    return &src_device.backend() == this && &dst_device.backend() == this;
+}
+
 }  // namespace xchainer

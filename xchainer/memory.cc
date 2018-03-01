@@ -43,7 +43,9 @@ bool IsPointerCudaMemory(const void* ptr) {
 
 std::shared_ptr<void> Allocate(Device& device, size_t bytesize) { return device.Allocate(bytesize); }
 
-void MemoryCopy(Device& device, void* dst_ptr, const void* src_ptr, size_t bytesize) { device.MemoryCopy(dst_ptr, src_ptr, bytesize); }
+void MemoryCopy(Device& device, void* dst_ptr, const void* src_ptr, size_t bytesize) {
+    device.MemoryCopyFrom(dst_ptr, src_ptr, bytesize, device);
+}
 
 std::shared_ptr<void> MemoryFromBuffer(Device& device, const std::shared_ptr<void>& src_ptr, size_t bytesize) {
     return device.FromBuffer(src_ptr, bytesize);

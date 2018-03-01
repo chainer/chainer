@@ -103,6 +103,11 @@ public:
     static Array ZerosLike(const Array& array, Device& device = GetDefaultDevice());
     static Array OnesLike(const Array& array, Device& device = GetDefaultDevice());
 
+    // Transfers the array to another device.
+    // If the destination is the same device, an array with aliased data is returned.
+    // TODO(niboshi): Currently control over whether to make an alias is not supported.
+    Array ToDevice(Device& dst_device) const;
+
     // Creates a copy. It will be connected to all the graphs.
     Array Copy() const;
 
