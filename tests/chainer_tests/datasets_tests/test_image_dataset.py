@@ -1,4 +1,5 @@
 import os
+import pickle
 import unittest
 
 import numpy
@@ -118,14 +119,22 @@ class TestMultiZippedImageDataset(unittest.TestCase):
     def test_len(self):
         self.assertEqual(len(self.dataset), 5)
 
-    def test_get(self):
+    def _get_check(self, ds):
         image_formats = ((4, 300, 300), (1, 300, 300), (4, 285, 1000),
                          (3, 404, 1417), (4, 404, 1417))
         for i in range(5):
             fmt = image_formats[i]
-            img = self.dataset.get_example(i)
+            img = ds.get_example(i)
             self.assertEqual(img.dtype, self.dtype)
             self.assertEqual(img.shape, fmt)
+
+    def test_get(self):
+        self._get_check(self.dataset)
+
+    def test_pickle_unpickle(self):
+        dss = pickle.dumps(self.dataset)
+        ds = pickle.loads(dss)
+        self._get_check(ds)
 
 
 testing.run_module(__name__, __file__)
