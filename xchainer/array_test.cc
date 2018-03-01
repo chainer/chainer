@@ -10,6 +10,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/array_node.h"
 #include "xchainer/backend.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
