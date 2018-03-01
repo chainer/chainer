@@ -169,7 +169,8 @@ Here are the environment variables Chainer uses.
 |                                           | If it is not set, the seed value is generated from Python random module.                              |
 |                                           | Set an integer value in decimal format.                                                               |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
-| ``CHAINER_DATASET_ROOT``                  | Default directory path to store datasets downloaded by :doc:`core/dataset`.                           |
+| ``CHAINER_DATASET_ROOT``                  | Default directory path to store the downloaded datasets.                                              |
+|                                           | See :doc:`datasets` for details.                                                                      |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_CUDNN``                         | Set ``0`` to completely disable cuDNN in Chainer.                                                     |
 |                                           | In this case, cuDNN will not be used regardless of ``CHAINER_USE_CUDNN`` and                          |
