@@ -2,7 +2,6 @@ import unittest
 
 import functools
 import math
-import mock
 import numpy
 from operator import mul
 import six
@@ -289,7 +288,7 @@ class TestMaxPoolingNDCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cuda.cudnn.poolingForward') as func:
+            with testing.patch('cupy.cuda.cudnn.poolingForward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto') and
@@ -301,7 +300,7 @@ class TestMaxPoolingNDCudnnCall(unittest.TestCase):
             y = self.forward()
         # should be consistent to forward regardless of use_cudnn config
         y.grad = self.gy
-        with mock.patch('cupy.cuda.cudnn.poolingBackward') as func:
+        with testing.patch('cupy.cuda.cudnn.poolingBackward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
 
