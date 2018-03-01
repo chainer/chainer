@@ -122,7 +122,7 @@ TEST(ContextTest, ContextScopeResetDevice) {
 
         {
             ContextScope ctx_scope2{ctx2};
-            EXPECT_THROW(GetDefaultDevice(), XchainerError);
+            ASSERT_NE(&device1, &GetDefaultDevice());
             NativeBackend backend2{ctx2};
             NativeDevice device2{backend2, 0};
             SetDefaultDevice(&device2);
