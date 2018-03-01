@@ -109,3 +109,16 @@ def test_device_scope(device_instance1, device_instance2):
     with scope:
         assert xchainer.get_default_device() == device2
     assert xchainer.get_default_device() == device1
+
+
+@pytest.mark.usefixtures('cache_restore_device')
+def test_device_scope_with_name(device_instance1, device_instance2):
+    if device_instance1 == device_instance2:
+        return
+
+    device1 = device_instance1
+    device2 = device_instance2
+
+    xchainer.set_default_device(device1)
+    with xchainer.device_scope(device2.name):
+        assert xchainer.get_default_device() == device2
