@@ -198,7 +198,8 @@ protected:
         Arrays inputs{testing::MakeArray(shape, input_data1), testing::MakeArray(shape, input_data2)};
         Arrays grad_outputs{testing::MakeArray(shape, grad_output_data)};
         Arrays grad_grad_inputs{testing::MakeArray(shape, grad_grad_input_data1), testing::MakeArray(shape, grad_grad_input_data2)};
-        Arrays eps{testing::MakeArray(shape, eps_input_data1), testing::MakeArray(shape, eps_input_data2), testing::MakeArray(shape, eps_grad_output_data)};
+        Arrays eps{testing::MakeArray(shape, eps_input_data1), testing::MakeArray(shape, eps_input_data2),
+                   testing::MakeArray(shape, eps_grad_output_data)};
         CheckDoubleBackwardBaseComputation(fprop, inputs, grad_outputs, grad_grad_inputs, eps, atol, rtol, graph_id);
     }
 };
