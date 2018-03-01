@@ -3,7 +3,6 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <tuple>
 #include <vector>
 
 namespace xchainer {
