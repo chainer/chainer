@@ -35,6 +35,6 @@ Mixed
 >>> a = xc.Array((3,), xc.Dtype.float32, [1, 2, 3])
 >>> b = xc.Array((3,), xc.Dtype.float32, [4, 5, 6])
 >>> c = xc.Array((3,), xc.Dtype.float32, [7, 8, 9])
->>> y = a + b * c;
+>>> y = a + b * c
 >>> y
 array([29., 42., 57.], dtype=float32, device='native:0')
