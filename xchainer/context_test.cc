@@ -121,5 +121,32 @@ TEST(ContextTest, UserDefinedBackend) {
     EXPECT_EQ(&backend0, &device0.backend());
 }
 
+TEST(ContextTest, GetBackendOnDefaultContext) {
+    Context ctx;
+    SetDefaultContext(&ctx);
+    Backend& backend = GetBackend("native");
+    // xchainer::GetBackend
+    EXPECT_EQ(&ctx, &backend.context());
+    EXPECT_EQ("native", backend.GetName());
+}
+
+TEST(ContextTest, GetDeviceOnDefaultContext0) {
+    Context ctx;
+    SetDefaultContext(&ctx);
+    // xchainer::GetDevice with device_name
+    Device& device = GetDevice({"native:0"});
+    EXPECT_EQ(&ctx, &device.backend().context());
+    EXPECT_EQ("native:0", device.name());
+}
+
+TEST(ContextTest, GetDeviceOnDefaultContext1) {
+    Context ctx;
+    SetDefaultContext(&ctx);
+    // xchainer::GetDevice with backend_name and index
+    Device& device = GetDevice({"native", 0});
+    EXPECT_EQ(&ctx, &device.backend().context());
+    EXPECT_EQ("native:0", device.name());
+}
+
 }  // namespace
 }  // namespace xchainer
