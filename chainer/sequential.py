@@ -272,7 +272,9 @@ class Sequential(link.ChainList):
 
         self._layers.insert(i, layer)
         if isinstance(layer, link.Link):
-            self.add_link(layer)
+            self._children.insert(i, layer)
+            for i, layer in enumerate(self.children()):
+                layer.name = str(i)
 
     def remove(self, layer):
         if layer in self:
