@@ -110,14 +110,15 @@ Scalar Get(const Array& out, int64_t flat_index) {
 }
 
 Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs,
-                                  const Arrays& eps) {
+                                  const Arrays& eps, const GraphId& graph_id) {
     // TODO(niboshi): Currently only elementwise functions are supported.
     // TODO(niboshi): Implement arithmetic operations and avoid manual synchronize
     const int nin = inputs.size();
     const int nout = grad_outputs.size();
 
     if (eps.size() != static_cast<size_t>(nin)) {
-        throw XchainerError("Invalid number of eps arrays");
+        throw XchainerError("Invalid number of eps arrays where number of inputs: " + std::to_string(nin) + ", eps: " +
+                            std::to_string(eps.size()));
     }
 
     for (int i = 0; i < nin; ++i) {
@@ -132,11 +133,10 @@ Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, con
 
     Dtype dtype = inputs[0].dtype();
 
-    auto eval = [&](int i_in, int64_t in_flat_index, Scalar eps_scalar, float multiplier) -> Arrays {
-        // TODO(niboshi): In this deep copy, currently xs and inputs are connected with the computational graph.
-        // We should avoid this connection.
+    auto eval = [&, graph_id](int i_in, int64_t in_flat_index, Scalar eps_scalar, float multiplier) -> Arrays {
         Arrays xs;
-        std::transform(inputs.begin(), inputs.end(), std::back_inserter(xs), [](const Array& x) { return x.Copy(); });
+        std::transform(inputs.begin(), inputs.end(), std::back_inserter(xs),
+                       [graph_id](const Array& x) { return x.AsConstant(CopyKind::kCopy).RequireGrad(graph_id); });
 
         Set(xs.at(i_in), in_flat_index, Get(xs.at(i_in), in_flat_index) + Scalar(static_cast<float>(eps_scalar) * multiplier, dtype));
         return func(xs);
