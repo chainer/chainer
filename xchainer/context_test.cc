@@ -112,7 +112,8 @@ TEST(ContextTest, ContextScopeCtor) {
 TEST(ContextTest, ContextScopeResetDevice) {
     SetGlobalDefaultContext(nullptr);
     SetDefaultContext(nullptr);
-    Context ctx1, ctx2;
+    Context ctx1;
+    Context ctx2;
     {
         ContextScope ctx_scope1{ctx1};
         NativeBackend backend1{ctx1};
