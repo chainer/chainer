@@ -1,5 +1,5 @@
-Acceptance tests for pluggable backend system
-=============================================
+Acceptance tests for pluggable backend system on GPU
+====================================================
 
 Using two backends in one script
 --------------------------------
