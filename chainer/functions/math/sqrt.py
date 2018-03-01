@@ -50,7 +50,7 @@ class Rsqrt(function_node.FunctionNode):
             out = xp.reciprocal(xp.sqrt(x, dtype=dtype), dtype=dtype)
         else:
             # CuPy provides `rsqrt` which is faster than `1.0 / sqrt(x)`.
-            out = xp.ext.rsqrt(x, dtype=dtype)
+            out = cuda.cupyx.rsqrt(x, dtype=dtype)
         return utils.force_array(out),
 
     def backward(self, indexes, grad_outputs):
