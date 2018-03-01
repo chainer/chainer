@@ -40,6 +40,15 @@ void InitXchainerContext(pybind11::module& m) {
              },
              py::return_value_policy::reference);
 
+    m.def("get_backend", &GetBackend, py::return_value_policy::reference);
+    m.def("get_device", [](const std::string& device_name) -> Device& { return GetDevice({device_name}); },
+          py::return_value_policy::reference);
+    m.def("get_device",
+          [](const std::string& backend_name, int index) -> Device& {
+              return GetDevice({backend_name, index});
+          },
+          py::return_value_policy::reference);
+
     m.def("get_default_context", &GetDefaultContext, py::return_value_policy::reference);
     m.def("set_default_context", &SetDefaultContext);
 

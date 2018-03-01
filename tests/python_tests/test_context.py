@@ -47,6 +47,25 @@ def test_get_device():
 
 
 @pytest.mark.usefixtures('cache_restore_context')
+def test_xchainer_get_backend():
+    context = xchainer.Context()
+    with xchainer.context_scope(context):
+        backend = xchainer.get_backend('native')
+        assert backend.context is context
+        assert backend.name == 'native'
+
+
+@pytest.mark.usefixtures('cache_restore_context')
+def test_xchainer_get_device():
+    context = xchainer.Context()
+    with xchainer.context_scope(context):
+        device = xchainer.get_device('native:0')
+        assert device.context is context
+        assert device.name == 'native:0'
+        assert device is xchainer.get_device('native', 0)
+
+
+@pytest.mark.usefixtures('cache_restore_context')
 def test_default_context():
     context = xchainer.Context()
     global_context = xchainer.Context()
