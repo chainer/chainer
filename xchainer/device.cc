@@ -28,7 +28,7 @@ Device* GetDefaultDeviceNoExcept() noexcept { return t_default_device; }
 
 Device& GetDefaultDevice() {
     if (t_default_device == nullptr) {
-        throw XchainerError("Default device is not set.");
+        t_default_device = &GetDefaultContext().GetDevice({"native", 0});
     }
     return *t_default_device;
 }
