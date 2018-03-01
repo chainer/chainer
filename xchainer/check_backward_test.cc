@@ -105,9 +105,9 @@ protected:
         requires_grad = GetParam();
     }
 
-    template <typename DATA>
-    void CheckBackwardUnaryComputation(bool expect_correct, const Fprop& fprop, const Shape& shape, DATA input_data, DATA grad_output_data,
-                                       DATA eps_data, double atol, double rtol, const GraphId& graph_id) {
+    template <typename Data>
+    void CheckBackwardUnaryComputation(bool expect_correct, const Fprop& fprop, const Shape& shape, Data input_data, Data grad_output_data,
+                                       Data eps_data, double atol, double rtol, const GraphId& graph_id) {
         Arrays inputs{testing::MakeArray(shape, input_data)};
         if (requires_grad) {
             inputs[0].RequireGrad(graph_id);
@@ -129,9 +129,9 @@ protected:
         requires_grads = {std::get<0>(GetParam()), std::get<1>(GetParam())};
     }
 
-    template <typename DATA>
-    void CheckBackwardBinaryComputation(bool expect_correct, const Fprop& fprop, const Shape& shape, DATA input_data1, DATA input_data2,
-                                        DATA grad_output_data, DATA eps_data1, DATA eps_data2, double atol, double rtol,
+    template <typename Data>
+    void CheckBackwardBinaryComputation(bool expect_correct, const Fprop& fprop, const Shape& shape, Data input_data1, Data input_data2,
+                                        Data grad_output_data, Data eps_data1, Data eps_data2, double atol, double rtol,
                                         const GraphId& graph_id) {
         Arrays inputs{testing::MakeArray(shape, input_data1), testing::MakeArray(shape, input_data2)};
         if (requires_grads[0]) {
@@ -176,9 +176,9 @@ private:
 
 class CheckDoubleBackwardUnaryTest : public CheckDoubleBackwardBaseTest {
 protected:
-    template <typename DATA>
-    void CheckDoubleBackwardUnaryComputation(const Fprop& fprop, const Shape& shape, DATA input_data, DATA grad_output_data,
-                                             DATA grad_grad_input_data, DATA eps_input_data, DATA eps_grad_output_data, double atol,
+    template <typename Data>
+    void CheckDoubleBackwardUnaryComputation(const Fprop& fprop, const Shape& shape, Data input_data, Data grad_output_data,
+                                             Data grad_grad_input_data, Data eps_input_data, Data eps_grad_output_data, double atol,
                                              double rtol, const GraphId& graph_id) {
         Arrays inputs{testing::MakeArray(shape, input_data)};
         Arrays grad_outputs{testing::MakeArray(shape, grad_output_data)};
@@ -190,10 +190,10 @@ protected:
 
 class CheckDoubleBackwardBinaryTest : public CheckDoubleBackwardBaseTest {
 protected:
-    template <typename DATA>
-    void CheckDoubleBackwardBinaryComputation(const Fprop& fprop, const Shape& shape, DATA input_data1, DATA input_data2,
-                                              DATA grad_output_data, DATA grad_grad_input_data1, DATA grad_grad_input_data2,
-                                              DATA eps_input_data1, DATA eps_input_data2, DATA eps_grad_output_data, double atol,
+    template <typename Data>
+    void CheckDoubleBackwardBinaryComputation(const Fprop& fprop, const Shape& shape, Data input_data1, Data input_data2,
+                                              Data grad_output_data, Data grad_grad_input_data1, Data grad_grad_input_data2,
+                                              Data eps_input_data1, Data eps_input_data2, Data eps_grad_output_data, double atol,
                                               double rtol, const GraphId& graph_id) {
         Arrays inputs{testing::MakeArray(shape, input_data1), testing::MakeArray(shape, input_data2)};
         Arrays grad_outputs{testing::MakeArray(shape, grad_output_data)};
@@ -205,68 +205,68 @@ protected:
 };
 
 TEST_P(CheckBackwardUnaryTest, CorrectBackward) {
-    using DATA = std::array<float, 3>;
-    DATA input_data{1.f, 2.f, 1.f};
-    DATA grad_output_data{0.f, -2.f, 1.f};
-    DATA eps_data{1e-3f, 1e-3f, 1e-3f};
+    using Data = std::array<float, 3>;
+    Data input_data{1.f, 2.f, 1.f};
+    Data grad_output_data{0.f, -2.f, 1.f};
+    Data eps_data{1e-3f, 1e-3f, 1e-3f};
     Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[0]}; };
     CheckBackwardUnaryComputation(true, fprop, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "graph_1");
 }
 
 TEST_P(CheckBackwardUnaryTest, IncorrectBackward) {
-    using DATA = std::array<float, 3>;
-    DATA input_data{-2.f, 3.f, 1.f};
-    DATA grad_output_data{0.f, -2.f, 1.f};
-    DATA eps_data{1e-3f, 1e-3f, 1e-3f};
+    using Data = std::array<float, 3>;
+    Data input_data{-2.f, 3.f, 1.f};
+    Data grad_output_data{0.f, -2.f, 1.f};
+    Data eps_data{1e-3f, 1e-3f, 1e-3f};
     CheckBackwardUnaryComputation(false, &IncorrectBackwardUnaryFunc, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4,
                                   "graph_1");
 }
 
 TEST_P(CheckBackwardBinaryTest, CorrectBackward) {
-    using DATA = std::array<float, 3>;
-    DATA input_data1{1.f, 2.f, 1.f};
-    DATA input_data2{0.f, 1.f, 2.f};
-    DATA eps_data1{1e-3f, 1e-3f, 1e-3f};
-    DATA eps_data2{1e-3f, 1e-3f, 1e-3f};
-    DATA grad_output_data{1.f, -2.f, 3.f};
+    using Data = std::array<float, 3>;
+    Data input_data1{1.f, 2.f, 1.f};
+    Data input_data2{0.f, 1.f, 2.f};
+    Data eps_data1{1e-3f, 1e-3f, 1e-3f};
+    Data eps_data2{1e-3f, 1e-3f, 1e-3f};
+    Data grad_output_data{1.f, -2.f, 3.f};
     Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[1]}; };
     CheckBackwardBinaryComputation(true, fprop, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1, eps_data2, 1e-5, 1e-4,
                                    "graph_1");
 }
 
 TEST_P(CheckBackwardBinaryTest, IncorrectBackward) {
-    using DATA = std::array<float, 3>;
-    DATA input_data1{1.f, -2.f, 1.f};
-    DATA input_data2{0.f, 1.4f, 2.f};
-    DATA eps_data1{1e-3f, 1e-3f, 1e-3f};
-    DATA eps_data2{1e-3f, 1e-3f, 1e-3f};
-    DATA grad_output_data{4.f, -2.f, 3.f};
+    using Data = std::array<float, 3>;
+    Data input_data1{1.f, -2.f, 1.f};
+    Data input_data2{0.f, 1.4f, 2.f};
+    Data eps_data1{1e-3f, 1e-3f, 1e-3f};
+    Data eps_data2{1e-3f, 1e-3f, 1e-3f};
+    Data grad_output_data{4.f, -2.f, 3.f};
     CheckBackwardBinaryComputation(false, &IncorrectBackwardBinaryFunc, {1, 3}, input_data1, input_data2, grad_output_data, eps_data1,
                                    eps_data2, 1e-5, 1e-4, "graph_1");
 }
 
 TEST_F(CheckDoubleBackwardUnaryTest, CorrectBackward) {
-    using DATA = std::array<float, 3>;
-    DATA input_data{1.f, 2.f, 3.f};
-    DATA grad_output_data{1.f, 1.f, 1.f};
-    DATA grad_grad_input_data{1.f, 1.f, 1.f};
-    DATA eps_input_data{1e-3f, 1e-3f, 1e-3f};
-    DATA eps_grad_output_data{1e-3f, 1e-3f, 1e-3f};
+    using Data = std::array<float, 3>;
+    Data input_data{1.f, 2.f, 3.f};
+    Data grad_output_data{1.f, 1.f, 1.f};
+    Data grad_grad_input_data{1.f, 1.f, 1.f};
+    Data eps_input_data{1e-3f, 1e-3f, 1e-3f};
+    Data eps_grad_output_data{1e-3f, 1e-3f, 1e-3f};
     Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[0]}; };
     CheckDoubleBackwardUnaryComputation(fprop, {1, 3}, input_data, grad_output_data, grad_grad_input_data, eps_input_data,
                                         eps_grad_output_data, 1e-4, 1e-3, "graph_1");
 }
 
 TEST_F(CheckDoubleBackwardBinaryTest, CorrectBackward) {
-    using DATA = std::array<float, 3>;
-    DATA input_data1{1.f, 2.f, 3.f};
-    DATA input_data2{1.f, 1.f, 1.f};
-    DATA grad_output_data{1.f, 1.f, 1.f};
-    DATA grad_grad_input_data1{1.f, 1.f, 1.f};
-    DATA grad_grad_input_data2{1.f, 1.f, 1.f};
-    DATA eps_input_data1{1e-3f, 1e-3f, 1e-3f};
-    DATA eps_input_data2{1e-3f, 1e-3f, 1e-3f};
-    DATA eps_grad_output_data{1e-3f, 1e-3f, 1e-3f};
+    using Data = std::array<float, 3>;
+    Data input_data1{1.f, 2.f, 3.f};
+    Data input_data2{1.f, 1.f, 1.f};
+    Data grad_output_data{1.f, 1.f, 1.f};
+    Data grad_grad_input_data1{1.f, 1.f, 1.f};
+    Data grad_grad_input_data2{1.f, 1.f, 1.f};
+    Data eps_input_data1{1e-3f, 1e-3f, 1e-3f};
+    Data eps_input_data2{1e-3f, 1e-3f, 1e-3f};
+    Data eps_grad_output_data{1e-3f, 1e-3f, 1e-3f};
     Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[1]}; };
     CheckDoubleBackwardBinaryComputation(fprop, {1, 3}, input_data1, input_data2, grad_output_data, grad_grad_input_data1,
                                          grad_grad_input_data2, eps_input_data1, eps_input_data2, eps_grad_output_data, 1e-4, 1e-3,

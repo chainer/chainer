@@ -65,13 +65,13 @@ private:
 };
 
 TEST_F(NumericalGradientTest, NumericalGradientAdd) {
-    using DATA = std::array<float, 6>;
+    using Data = std::array<float, 6>;
     Shape shape{2, 3};
-    DATA data1{1.f, 2.f, -3.f, 4.f, 0.5f, 3.f};
-    DATA data2{0.f, 1.3f, 2.f, 3.f, -0.5f, 3.f};
-    DATA eps1{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
-    DATA eps2{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
-    DATA grad_output_data{1.f, -2.f, 3.f, 0.f, 3.2f, -1.f};
+    Data data1{1.f, 2.f, -3.f, 4.f, 0.5f, 3.f};
+    Data data2{0.f, 1.3f, 2.f, 3.f, -0.5f, 3.f};
+    Data eps1{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
+    Data eps2{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
+    Data grad_output_data{1.f, -2.f, 3.f, 0.f, 3.2f, -1.f};
 
     Arrays inputs = {
         testing::MakeArray(shape, data1), testing::MakeArray(shape, data2),
@@ -94,13 +94,13 @@ TEST_F(NumericalGradientTest, NumericalGradientAdd) {
 }
 
 TEST_F(NumericalGradientTest, NumericalGradientMul) {
-    using DATA = std::array<float, 6>;
+    using Data = std::array<float, 6>;
     Shape shape{2, 3};
-    DATA data1{1.f, 2.f, 3.f, 4.f, -2.f, -3.f};
-    DATA data2{0.f, 1.f, 2.f, 3.f, 2.f, 3.f};
-    DATA eps1{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
-    DATA eps2{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
-    DATA grad_output_data{1.f, -2.f, 3.f, 0.f, 2.2f, 1.f};
+    Data data1{1.f, 2.f, 3.f, 4.f, -2.f, -3.f};
+    Data data2{0.f, 1.f, 2.f, 3.f, 2.f, 3.f};
+    Data eps1{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
+    Data eps2{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
+    Data grad_output_data{1.f, -2.f, 3.f, 0.f, 2.2f, 1.f};
 
     Arrays inputs = {
         testing::MakeArray(shape, data1), testing::MakeArray(shape, data2),
