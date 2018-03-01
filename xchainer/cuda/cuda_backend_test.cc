@@ -18,7 +18,7 @@ template <typename T>
 void ExpectDataEqual(const std::shared_ptr<void>& expected, const std::shared_ptr<void>& actual, size_t size) {
     auto expected_raw_ptr = static_cast<const T*>(expected.get());
     auto actual_raw_ptr = static_cast<const T*>(actual.get());
-    for (size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; ++i) {
         EXPECT_EQ(expected_raw_ptr[i], actual_raw_ptr[i]);
     }
 }
