@@ -10,6 +10,7 @@ except ImportError as e:
 import bisect
 import io
 import six
+import threading
 import zipfile
 
 from chainer.dataset import dataset_mixin
@@ -201,9 +202,14 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
     and other networked file systems. If zipfile becomes too large you
     may consider ``MultiZippedImageDataset`` as a handy alternative.
 
+    Known issue: pickle and unpickle on same process may cause race
+    condition on ZipFile. Pickle of this class is expected to be sent
+    to different processess via ChainerMN.
+
     Args:
         zipfilename (str): a string to point zipfile path
         dtype: Data type of resulting image arrays
+
     """
 
     def __init__(self, zipfilename, dtype=numpy.float32):
@@ -212,6 +218,7 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
         self._zf_pid = os.getpid()
         self._dtype = dtype
         self._paths = [x for x in self._zf.namelist() if not x.endswith('/')]
+        self._lock = threading.Lock()
 
     def __len__(self):
         return len(self._paths)
@@ -219,17 +226,20 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
     def __getstate__(self):
         d = self.__dict__.copy()
         d['_zf'] = None
+        d['_lock'] = None
         return d
 
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self._lock = threading.Lock()
+
     def get_example(self, i):
-        # we need to keep lock as small as possible
-        # in addition, PIL may seek() on the file -- zipfile won't support it
-
-        if self._zf is None or self._zf_pid != os.getpid():
-            self._zf_pid = os.getpid()
-            self._zf = zipfile.ZipFile(self._zipfilename)
-
-        image_file_mem = self._zf.read(self._paths[i])
+        # PIL may seek() on the file -- zipfile won't support it
+        with self._lock:
+            if self._zf is None or self._zf_pid != os.getpid():
+                self._zf_pid = os.getpid()
+                self._zf = zipfile.ZipFile(self._zipfilename)
+            image_file_mem = self._zf.read(self._paths[i])
         image_file = io.BytesIO(image_file_mem)
         image = _read_image_as_array(image_file, self._dtype)
         return _postprocess_image(image)
@@ -240,3 +250,4 @@ def _check_pillow_availability():
         raise ImportError('PIL cannot be loaded. Install Pillow!\n'
                           'The actual import error is as follows:\n' +
                           str(_import_error))
+
