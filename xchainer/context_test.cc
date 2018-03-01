@@ -8,6 +8,8 @@
 
 #include "xchainer/backend.h"
 #include "xchainer/device.h"
+#include "xchainer/native_backend.h"
+#include "xchainer/native_device.h"
 
 namespace xchainer {
 namespace {
@@ -105,6 +107,28 @@ TEST(ContextTest, ContextScopeCtor) {
         // not recovered here because the scope has already existed
     }
     ASSERT_EQ(&ctx2, &GetDefaultContext());
+}
+
+TEST(ContextTest, ContextScopeResetDevice) {
+    SetGlobalDefaultContext(nullptr);
+    SetDefaultContext(nullptr);
+    Context ctx1, ctx2;
+    {
+        ContextScope ctx_scope1{ctx1};
+        NativeBackend backend1{ctx1};
+        NativeDevice device1{backend1, 0};
+        DeviceScope dev_scope1{device1};
+
+        {
+            ContextScope ctx_scope2{ctx2};
+            EXPECT_THROW(GetDefaultDevice(), XchainerError);
+            NativeBackend backend2{ctx2};
+            NativeDevice device2{backend2, 0};
+            SetDefaultDevice(&device2);
+        }
+
+        EXPECT_EQ(&device1, &GetDefaultDevice());
+    }
 }
 
 TEST(ContextTest, UserDefinedBackend) {
