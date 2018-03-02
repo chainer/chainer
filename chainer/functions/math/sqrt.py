@@ -56,7 +56,7 @@ class Rsqrt(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         x, = self.get_retained_inputs()
         gy, = grad_outputs
-        return - gy * (x ** -1.5) / 2.0,
+        return gy * (x ** -1.5) * -0.5,
 
 
 def sqrt(x):
