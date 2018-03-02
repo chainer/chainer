@@ -138,7 +138,7 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
             def f(x, t):
                 return functions.softmax_cross_entropy(
                     x, t, cache_score=self.cache_score,
-                    class_weight=self.class_weight)
+                    class_weight=class_weight)
 
             gradient_check.check_backward(
                 f, (x_data, t_data), None, **self.check_backward_options)
@@ -403,7 +403,7 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
         def f(x, t):
             return functions.softmax_cross_entropy(
                 x, t, cache_score=self.cache_score,
-                class_weight=self.class_weight, reduce='no')
+                class_weight=class_weight, reduce='no')
 
         gradient_check.check_backward(
             f, (x_data, t_data), g_data,
