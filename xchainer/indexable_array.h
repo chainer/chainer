@@ -10,12 +10,13 @@
 #include "xchainer/constant.h"
 #include "xchainer/indexer.h"
 #include "xchainer/macro.h"
+#include "xchainer/strides.h"
 
 namespace xchainer {
 namespace indexable_array_detail {
 
 // Adds `const` to To if From is const
-template<typename To, typename From>
+template <typename To, typename From>
 using WithConstnessOf = std::conditional_t<std::is_const<From>::value, std::add_const_t<To>, std::remove_const_t<To>>;
 
 }  // namespace indexable_array_detail
@@ -29,16 +30,12 @@ class IndexableArray {
 public:
     using ElementType = T;
 
-    // TODO(takagi): Define Strides class and use it.
-    IndexableArray(T* data, gsl::span<const int64_t> strides) : data_(data) {
-        Expects(strides.size() == n_dim);
+    IndexableArray(T* data, const Strides& strides) : data_(data) {
+        Expects(strides.ndim() == n_dim);
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
-    explicit IndexableArray(indexable_array_detail::WithConstnessOf<Array, T>& array) {
-        // TODO(takagi): Implement it.
-        assert(false);
-    }
+    explicit IndexableArray(indexable_array_detail::WithConstnessOf<Array, T>& array) : IndexableArray{array.raw_data(), array.strides()} {}
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return n_dim; }
 
@@ -67,14 +64,11 @@ class IndexableArray<T, kDynamicNdim> {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, gsl::span<const int64_t> strides) : data_(data), ndim_(gsl::narrow_cast<int8_t>(strides.size())) {
+    IndexableArray(T* data, const Strides& strides) : data_(data), ndim_(strides.ndim()) {
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
-    explicit IndexableArray(indexable_array_detail::WithConstnessOf<Array, T>& array) {
-        // TODO(takagi): Implement it.
-        assert(false);
-    }
+    explicit IndexableArray(indexable_array_detail::WithConstnessOf<Array, T>& array) : IndexableArray{array.raw_data(), array.strides()} {}
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
 
