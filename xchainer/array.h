@@ -68,11 +68,11 @@ public:
     static Array ZerosLike(const Array& array, Device& device = GetDefaultDevice());
     static Array OnesLike(const Array& array, Device& device = GetDefaultDevice());
 
+    explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
+
     // Deep copy ctor and copy assignment
     Array(const Array& other);
     Array(Array&& other) = default;
-
-    explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
 
     Array& operator=(Array&& other) = delete;
     Array& operator=(const Array&) = delete;
