@@ -18,7 +18,8 @@ def _to_noncontiguous(arrays):
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'n_batch_axes': [1, 2],
+    'x_shape': [{'n_batch_axes': 1, 'data_shape': (3,)},
+                {'n_batch_axes': 3, 'data_shape': (3, 5)}],
     'c_contiguous': [True, False],
     'nobias': [True, False],
 }))
@@ -36,16 +37,19 @@ def _to_noncontiguous(arrays):
 class TestNonparameterizedLinear(unittest.TestCase):
 
     def setUp(self):
-        W = numpy.random.uniform(-1, 1, (2, 3)).astype(self.W_dtype)
+        self.n_batch_axes = self.x_shape['n_batch_axes']
+        data_shape = self.x_shape['data_shape']
+        input_size = int(numpy.prod(data_shape))
+        W = numpy.random.uniform(-1, 1, (2, input_size)).astype(self.W_dtype)
         if self.nobias:
             b = None
         else:
             b = numpy.random.uniform(-1, 1, 2).astype(self.x_dtype)
 
-        batch_shape = (4,) + (2,) * (self.n_batch_axes - 1)
+        batch_shape = (4,) + (2,) * (self.n_batch_axes - 1)  # Longer case: (4, 2, 2)
         x = numpy.random.uniform(
-            -1, 1, batch_shape + (3,)).astype(self.x_dtype)
-        gy = numpy.random.uniform(-1, 1, (2,)).astype(self.x_dtype)
+            -1, 1, batch_shape + data_shape).astype(self.x_dtype)  # Longer case: (4, 2, 2, 3, 5)
+        gy = numpy.random.uniform(-1, 1, batch_shape + (2,)).astype(self.x_dtype)
         ggx = numpy.random.uniform(-1, 1, x.shape).astype(self.x_dtype)
         ggW = numpy.random.uniform(-1, 1, W.shape).astype(self.W_dtype)
         if self.nobias:

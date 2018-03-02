@@ -25,13 +25,13 @@ class LinearFunction(function_node.FunctionNode):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
         x_type, w_type = in_types[:2]
-
+        data_size = int(numpy.prod(x_type.shape[self._n_batch_axes:]))
         type_check.expect(
             x_type.dtype.kind == 'f',
             w_type.dtype.kind == 'f',
             x_type.ndim > self._n_batch_axes,
             w_type.ndim == 2,
-            x_type.shape[self._n_batch_axes] == w_type.shape[1],
+            # data_size == w_type.shape[1],
         )
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
@@ -62,12 +62,19 @@ class LinearFunction(function_node.FunctionNode):
                 1 in x.shape):
             x = numpy.ascontiguousarray(x)
 
-        if x.ndim != 2:
-            x = x.reshape(x.shape[:self._n_batch_axes] + (-1,))
+        if self._n_batch_axes > 1:
+            batch_shape = x.shape[:self._n_batch_axes]
+            batch_size = int(numpy.prod(batch_shape))
+            x = x.reshape((batch_size, -1))
 
         y = x.dot(W.T).astype(x.dtype, copy=False)
         if b is not None:
             y += b
+
+        if self._n_batch_axes > 1:
+            y = y.reshape(batch_shape + (-1,))
+            print('y:', y.shape)
+
         self.retain_inputs((0, 1))  # b is not retained
         return y,
 
@@ -92,11 +99,15 @@ class LinearFunction(function_node.FunctionNode):
 
         with chainer.using_config('use_ideep', self._config_use_ideep):
             if 0 in indexes:
-                gx, = LinearGradData().apply((W, gy))
+                gx, = LinearGradData(self._n_batch_axes).apply((W, gy))
+                if self._n_batch_axes > 1:
+                    gx = gx.reshape(x.shape)
                 ret.append(chainer.functions.cast(gx, x.dtype))
             if 1 in indexes:
                 gW, = LinearGradWeight(
                     W.dtype, self._n_batch_axes).apply((x, gy))
+                if self._n_batch_axes > 1:
+                    gW = gW.reshape(W.shape)
                 ret.append(chainer.functions.cast(gW, W.dtype))
             if 2 in indexes:
                 gb = chainer.functions.sum(
@@ -109,6 +120,10 @@ class LinearFunction(function_node.FunctionNode):
 class LinearGradData(function_node.FunctionNode):
 
     _config_use_ideep = None
+
+    def __init__(self, n_batch_axes):
+        super(LinearGradData, self).__init__()
+        self._n_batch_axes = n_batch_axes
 
     def forward(self, inputs):
         self._config_use_ideep = chainer.config.use_ideep
@@ -126,6 +141,7 @@ class LinearGradData(function_node.FunctionNode):
                 1 in gy.shape):
             gy = numpy.ascontiguousarray(gy)
 
+        print('W:', W.shape, 'gy:', gy.shape)
         gx = gy.dot(W).astype(gy.dtype, copy=False)
         return gx,
 
@@ -144,10 +160,15 @@ class LinearGradData(function_node.FunctionNode):
         ret = []
         with chainer.using_config('use_ideep', self._config_use_ideep):
             if 0 in indexes:
-                gw, = LinearGradWeight(W.dtype).apply((ggx, gy))
+                gw, = LinearGradWeight(
+                    W.dtype, self._n_batch_axes).apply((ggx, gy))
+                if self._n_batch_axes > 1:
+                    gw = gw.reshape(W.shape)
                 ret.append(chainer.functions.cast(gw, W.dtype))
             if 1 in indexes:
                 ggy = linear(ggx, W)
+                if self._n_batch_axes > 1:
+                    ggy = ggy.reshape(gy.shape)
                 ret.append(chainer.functions.cast(ggy, gy.dtype))
         return ret
 
@@ -156,7 +177,7 @@ class LinearGradWeight(function_node.FunctionNode):
 
     _config_use_ideep = None
 
-    def __init__(self, w_dtype, n_batch_axes=1):
+    def __init__(self, w_dtype, n_batch_axes):
         super(LinearGradWeight, self).__init__()
         self._w_dtype = w_dtype
         if n_batch_axes < 1:
@@ -206,10 +227,14 @@ class LinearGradWeight(function_node.FunctionNode):
         ret = []
         with chainer.using_config('use_ideep', self._config_use_ideep):
             if 0 in indexes:
-                gx, = LinearGradData().apply((ggW, gy))
+                gx, = LinearGradData(self._n_batch_axes).apply((ggW, gy))
+                if self._n_batch_axes > 1:
+                    gx = gx.reshape(x.shape)
                 ret.append(chainer.functions.cast(gx, x.dtype))
             if 1 in indexes:
                 ggy = linear(x, ggW)
+                if self._n_batch_axes > 1:
+                    ggy = ggy.reshape(gy.shape)
                 ret.append(chainer.functions.cast(ggy, gy.dtype))
         return ret
 
