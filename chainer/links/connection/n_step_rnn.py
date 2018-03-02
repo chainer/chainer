@@ -141,10 +141,10 @@ class NStepRNNBase(link.ChainList):
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
-              to an input ``xs[t]``. Its shape is ``(B_t, N)`` for 
-              uni-directional RNN and ``(B_t, 2N)`` for bi-directional RNN 
-              where ``B_t`` is mini-batch size for time ``t``, and 
-              ``N`` is size of hidden units. Note that ``B_t`` is the same 
+              to an input ``xs[t]``. Its shape is ``(B_t, N)`` for
+              uni-directional RNN and ``(B_t, 2N)`` for bi-directional RNN
+              where ``B_t`` is mini-batch size for time ``t``, and
+              ``N`` is size of hidden units. Note that ``B_t`` is the same
               value as ``xs[t]``.
         """
         (hy,), ys = self._call([hx], xs, **kwargs)

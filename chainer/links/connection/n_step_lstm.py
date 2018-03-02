@@ -61,10 +61,10 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
               ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
-              to an input ``xs[t]``. Its shape is ``(B_t, N)`` for 
+              to an input ``xs[t]``. Its shape is ``(B_t, N)`` for
               uni-directional LSTM and ``(B_t, 2N)`` for bi-directional LSTM
-              where ``B_t`` is the mini-batch size for time ``t``, and ``N`` 
-              is size of hidden units. Note that ``B_t`` is the same value 
+              where ``B_t`` is the mini-batch size for time ``t``, and ``N``
+              is size of hidden units. Note that ``B_t`` is the same value
               as ``xs[t]``.
         """
         (hy, cy), ys = self._call([hx, cx], xs, **kwargs)
