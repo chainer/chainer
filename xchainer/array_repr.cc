@@ -232,13 +232,14 @@ struct ArrayReprImpl {
             ++cur_line_size;
         });
 
-        // In case of an empty Array, print the header here
         if (array.GetTotalSize() == 0) {
-            os << "array([";
+            // In case of an empty Array, print the header here
+            os << "array([]";
+        } else {
+            PrintNTimes(os, ']', ndim);
         }
 
         // Print the footer
-        PrintNTimes(os, ']', ndim);
         os << ", dtype=" << array.dtype();
         os << ", device='" << array.device().name() << "'";
         const std::vector<std::shared_ptr<ArrayNode>>& nodes = array.nodes();
