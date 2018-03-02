@@ -234,7 +234,8 @@ struct ArrayReprImpl {
 
         // In case of an empty Array, print the header here
         if (array.GetTotalSize() == 0) {
-            os << "array([";
+            os << "array(";
+            PrintNTimes(os, '[', ndim);
         }
 
         // Print the footer
