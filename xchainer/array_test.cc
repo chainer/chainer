@@ -17,6 +17,7 @@
 #include "xchainer/memory.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
+#include "xchainer/testing/array.h"
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
@@ -32,18 +33,6 @@ protected:
     void TearDown() override { device_session_.reset(); }
 
 public:
-    template <typename T>
-    Array MakeArray(const Shape& shape, std::shared_ptr<void> data) {
-        return Array::FromBuffer(shape, TypeToDtype<T>, data);
-    }
-
-    template <typename T>
-    Array MakeArray(const Shape& shape, std::initializer_list<T> data) {
-        auto a = std::make_unique<T[]>(data.size());
-        std::copy(data.begin(), data.end(), a.get());
-        return MakeArray<T>(shape, std::move(a));
-    }
-
     template <typename T>
     void ExpectEqualCopy(const Array& expected, const Array& actual) {
         EXPECT_EQ(expected.dtype(), actual.dtype());
@@ -324,7 +313,7 @@ private:
 };
 
 TEST_P(ArrayTest, CopyCtor) {
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
     Array b = a;
 
     // A copy-constructed instance must be a view
@@ -350,7 +339,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
 
     // A view must not be affected by move
     {
-        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
         Array b = a;  // view
         Array c = std::move(a);
         ASSERT_EQ(a.body(), nullptr);
@@ -359,7 +348,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
 
     // A copy must not be affected by move
     {
-        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
         Array b = a.Copy();  // copy
         Array c = std::move(a);
         EXPECT_EQ(a.body(), nullptr);
@@ -368,7 +357,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
 
     // Array body must be transferred by move
     {
-        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+        Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
         auto body = a.body();
         Array c = std::move(a);
         EXPECT_EQ(a.body(), nullptr);
@@ -377,7 +366,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
 }
 
 TEST_P(ArrayTest, ArrayBodyCtor) {
-    Array a = MakeArray<float>({3, 1}, {1, 2, 3});
+    Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
     auto body = a.body();
     Array b{body};
     EXPECT_EQ(body, b.body());
@@ -397,7 +386,7 @@ TEST_P(ArrayTest, ArrayMoveAssignmentOperator) {
 TEST_P(ArrayTest, SetRequiresGrad) {
     // Default graph
     {
-        Array x = MakeArray<bool>({1}, {true});
+        Array x = testing::MakeArray<bool>({1}, {true});
         ASSERT_FALSE(x.IsGradRequired());
         x.RequireGrad();
         ASSERT_TRUE(x.IsGradRequired());
@@ -406,7 +395,7 @@ TEST_P(ArrayTest, SetRequiresGrad) {
     // User-specified graph
     {
         GraphId graph_id = "graph_1";
-        Array x = MakeArray<bool>({1}, {true});
+        Array x = testing::MakeArray<bool>({1}, {true});
         ASSERT_FALSE(x.IsGradRequired(graph_id));
         x.RequireGrad(graph_id);
         ASSERT_TRUE(x.IsGradRequired(graph_id));
@@ -418,8 +407,8 @@ TEST_P(ArrayTest, Grad) {
     Shape shape{2, 3};
     using T = float;
 
-    Array x = MakeArray<T>(shape, {5, 3, 2, 1, 4, 6});
-    Array g = MakeArray<T>(shape, {8, 4, 6, 3, 2, 1});
+    Array x = testing::MakeArray<T>(shape, {5, 3, 2, 1, 4, 6});
+    Array g = testing::MakeArray<T>(shape, {8, 4, 6, 3, 2, 1});
 
     x.RequireGrad(graph_id);
     g.RequireGrad(graph_id);
@@ -698,23 +687,23 @@ TEST_P(ArrayTest, OnesLike) {
 
 TEST_P(ArrayTest, IAdd) {
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-        Array e = MakeArray<bool>({4, 1}, {true, true, true, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array e = testing::MakeArray<bool>({4, 1}, {true, true, true, false});
         a += b;
         ExpectEqual<bool>(e, a);
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
-        Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
-        Array e = MakeArray<int8_t>({3, 1}, {2, 4, 6});
+        Array a = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array b = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array e = testing::MakeArray<int8_t>({3, 1}, {2, 4, 6});
         a += b;
         ExpectEqual<int8_t>(e, a);
     }
     {
-        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
-        Array b = MakeArray<float>({3, 1}, {1, 2, 3});
-        Array e = MakeArray<float>({3, 1}, {2, 4, 6});
+        Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = testing::MakeArray<float>({3, 1}, {1, 2, 3});
+        Array e = testing::MakeArray<float>({3, 1}, {2, 4, 6});
         a += b;
         ExpectEqual<float>(e, a);
     }
@@ -722,23 +711,23 @@ TEST_P(ArrayTest, IAdd) {
 
 TEST_P(ArrayTest, IMul) {
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-        Array e = MakeArray<bool>({4, 1}, {true, false, false, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array e = testing::MakeArray<bool>({4, 1}, {true, false, false, false});
         a *= b;
         ExpectEqual<bool>(e, a);
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
-        Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
-        Array e = MakeArray<int8_t>({3, 1}, {1, 4, 9});
+        Array a = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array b = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array e = testing::MakeArray<int8_t>({3, 1}, {1, 4, 9});
         a *= b;
         ExpectEqual<int8_t>(e, a);
     }
     {
-        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
-        Array b = MakeArray<float>({3, 1}, {1, 2, 3});
-        Array e = MakeArray<float>({3, 1}, {1, 4, 9});
+        Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = testing::MakeArray<float>({3, 1}, {1, 2, 3});
+        Array e = testing::MakeArray<float>({3, 1}, {1, 4, 9});
         a *= b;
         ExpectEqual<float>(e, a);
     }
@@ -746,23 +735,23 @@ TEST_P(ArrayTest, IMul) {
 
 TEST_P(ArrayTest, Add) {
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-        Array e = MakeArray<bool>({4, 1}, {true, true, true, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array e = testing::MakeArray<bool>({4, 1}, {true, true, true, false});
         Array o = a + b;
         ExpectEqual<bool>(e, o);
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
-        Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
-        Array e = MakeArray<int8_t>({3, 1}, {2, 4, 6});
+        Array a = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array b = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array e = testing::MakeArray<int8_t>({3, 1}, {2, 4, 6});
         Array o = a + b;
         ExpectEqual<int8_t>(e, o);
     }
     {
-        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
-        Array b = MakeArray<float>({3, 1}, {1, 2, 3});
-        Array e = MakeArray<float>({3, 1}, {2, 4, 6});
+        Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = testing::MakeArray<float>({3, 1}, {1, 2, 3});
+        Array e = testing::MakeArray<float>({3, 1}, {2, 4, 6});
         Array o = a + b;
         ExpectEqual<float>(e, o);
     }
@@ -770,23 +759,23 @@ TEST_P(ArrayTest, Add) {
 
 TEST_P(ArrayTest, Mul) {
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-        Array e = MakeArray<bool>({4, 1}, {true, false, false, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array e = testing::MakeArray<bool>({4, 1}, {true, false, false, false});
         Array o = a * b;
         ExpectEqual<bool>(e, o);
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
-        Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
-        Array e = MakeArray<int8_t>({3, 1}, {1, 4, 9});
+        Array a = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array b = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array e = testing::MakeArray<int8_t>({3, 1}, {1, 4, 9});
         Array o = a * b;
         ExpectEqual<int8_t>(e, o);
     }
     {
-        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
-        Array b = MakeArray<float>({3, 1}, {1, 2, 3});
-        Array e = MakeArray<float>({3, 1}, {1, 4, 9});
+        Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = testing::MakeArray<float>({3, 1}, {1, 2, 3});
+        Array e = testing::MakeArray<float>({3, 1}, {1, 4, 9});
         Array o = a * b;
         ExpectEqual<float>(e, o);
     }
@@ -794,25 +783,25 @@ TEST_P(ArrayTest, Mul) {
 
 TEST_P(ArrayTest, ChainedMath) {
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-        Array e = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array e = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
         Array c = a * b;
         Array o = a + c;
         ExpectEqual<bool>(e, o);
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
-        Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
-        Array e = MakeArray<int8_t>({3, 1}, {2, 6, 12});
+        Array a = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array b = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array e = testing::MakeArray<int8_t>({3, 1}, {2, 6, 12});
         Array c = a * b;
         Array o = a + c;
         ExpectEqual<int8_t>(e, o);
     }
     {
-        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
-        Array b = MakeArray<float>({3, 1}, {1, 2, 3});
-        Array e = MakeArray<float>({3, 1}, {2, 6, 12});
+        Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = testing::MakeArray<float>({3, 1}, {1, 2, 3});
+        Array e = testing::MakeArray<float>({3, 1}, {2, 6, 12});
         Array c = a * b;
         Array o = a + c;
         ExpectEqual<float>(e, o);
@@ -821,25 +810,25 @@ TEST_P(ArrayTest, ChainedMath) {
 
 TEST_P(ArrayTest, ChainedInplaceMath) {
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
-        Array e = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array e = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
         b *= a;
         a += b;
         ExpectEqual<bool>(e, a);
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
-        Array b = MakeArray<int8_t>({3, 1}, {1, 2, 3});
-        Array e = MakeArray<int8_t>({3, 1}, {2, 6, 12});
+        Array a = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array b = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array e = testing::MakeArray<int8_t>({3, 1}, {2, 6, 12});
         b *= a;
         a += b;
         ExpectEqual<int8_t>(e, a);
     }
     {
-        Array a = MakeArray<float>({3, 1}, {1, 2, 3});
-        Array b = MakeArray<float>({3, 1}, {1, 2, 3});
-        Array e = MakeArray<float>({3, 1}, {2, 6, 12});
+        Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
+        Array b = testing::MakeArray<float>({3, 1}, {1, 2, 3});
+        Array e = testing::MakeArray<float>({3, 1}, {2, 6, 12});
         b *= a;
         a += b;
         ExpectEqual<float>(e, a);
@@ -849,8 +838,8 @@ TEST_P(ArrayTest, ChainedInplaceMath) {
 TEST_P(ArrayTest, ComputationalGraph) {
     // c = a + b
     // o = a * c
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
 
     GraphId graph_id = "graph_1";
     a.RequireGrad(graph_id);
@@ -910,31 +899,31 @@ TEST_P(ArrayTest, ComputationalGraph) {
 TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
     GraphId graph_id = "graph_1";
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
         a.RequireGrad(graph_id);
         b.RequireGrad(graph_id);
         EXPECT_THROW({ a += b; }, XchainerError);
     }
 
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
         a.RequireGrad(graph_id);
         b.RequireGrad(graph_id);
         EXPECT_THROW({ a *= b; }, XchainerError);
     }
 
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
         a.RequireGrad(graph_id);
         EXPECT_THROW({ a *= b; }, XchainerError);
     }
 
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-        Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
         b.RequireGrad(graph_id);
         EXPECT_THROW({ a *= b; }, XchainerError);
     }
@@ -942,17 +931,17 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
 
 TEST_P(ArrayTest, Copy) {
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
         Array o = a.Copy();
         ExpectEqualCopy<bool>(a, o);
     }
     {
-        Array a = MakeArray<int8_t>({3, 1}, {1, 2, 3});
+        Array a = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array o = a.Copy();
         ExpectEqualCopy<bool>(a, o);
     }
     {
-        Array a = MakeArray<float>({3, 1}, {1.0f, 2.0f, 3.0f});
+        Array a = testing::MakeArray<float>({3, 1}, {1.0f, 2.0f, 3.0f});
         Array o = a.Copy();
         ExpectEqualCopy<bool>(a, o);
     }
@@ -961,7 +950,7 @@ TEST_P(ArrayTest, Copy) {
 TEST_P(ArrayTest, AsConstantCopy) {
     // Stop gradients on all graphs
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
         a.RequireGrad("graph_1");
         a.RequireGrad("graph_2");
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
@@ -980,7 +969,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
 
     // Stop gradients on graphs
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
         a.RequireGrad("graph_1");
         a.RequireGrad("graph_2");
         a.RequireGrad("graph_3");
@@ -1005,7 +994,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
 TEST_P(ArrayTest, AsConstantView) {
     // Stop gradients on all graphs
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
         a.RequireGrad("graph_1");
         a.RequireGrad("graph_2");
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
@@ -1022,7 +1011,7 @@ TEST_P(ArrayTest, AsConstantView) {
 
     // Stop gradients on some graphs
     {
-        Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
         a.RequireGrad("graph_1");
         a.RequireGrad("graph_2");
         a.RequireGrad("graph_3");
@@ -1043,8 +1032,8 @@ TEST_P(ArrayTest, AsConstantView) {
 }
 
 TEST_P(ArrayTest, AddBackward) {
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
 
     a.RequireGrad();
     b.RequireGrad();
@@ -1052,7 +1041,7 @@ TEST_P(ArrayTest, AddBackward) {
     Array o = a + b;
 
     auto op_node = internal::GetArrayNode(o)->next_node();
-    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
+    Array go = testing::MakeArray<bool>({4, 1}, {true, true, true, true});
     Array ga = op_node->backward_functions()[0](go, {kDefaultGraphId});
     Array gb = op_node->backward_functions()[1](go, {kDefaultGraphId});
 
@@ -1061,8 +1050,8 @@ TEST_P(ArrayTest, AddBackward) {
 }
 
 TEST_P(ArrayTest, MulBackward) {
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
 
     a.RequireGrad();
     b.RequireGrad();
@@ -1070,7 +1059,7 @@ TEST_P(ArrayTest, MulBackward) {
     Array o = a * b;
 
     auto op_node = internal::GetArrayNode(o)->next_node();
-    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
+    Array go = testing::MakeArray<bool>({4, 1}, {true, true, true, true});
     Array ga = op_node->backward_functions()[0](go, {kDefaultGraphId});
     Array gb = op_node->backward_functions()[1](go, {kDefaultGraphId});
 
@@ -1083,8 +1072,8 @@ TEST_P(ArrayTest, MulBackward) {
 
 TEST_P(ArrayTest, MulBackwardCapture) {
     Array y = [this]() {
-        Array x1 = MakeArray<float>({1}, {2.0f});
-        Array x2 = MakeArray<float>({1}, {3.0f});
+        Array x1 = testing::MakeArray<float>({1}, {2.0f});
+        Array x2 = testing::MakeArray<float>({1}, {3.0f});
         x1.RequireGrad();
         x2.RequireGrad();
         return x1 * x2;
@@ -1092,15 +1081,15 @@ TEST_P(ArrayTest, MulBackwardCapture) {
     auto op_node = internal::GetArrayNode(y)->next_node();
     auto lhs_func = op_node->backward_functions()[0];
     auto rhs_func = op_node->backward_functions()[1];
-    Array gy = MakeArray<float>({1}, {1.0f});
+    Array gy = testing::MakeArray<float>({1}, {1.0f});
 
     Array gx1 = lhs_func(gy, {kDefaultGraphId});
-    Array e1 = MakeArray<float>({1}, {3.0f});
+    Array e1 = testing::MakeArray<float>({1}, {3.0f});
     ExpectEqual<bool>(e1, gx1);
     EXPECT_FALSE(gx1.IsGradRequired());
 
     Array gx2 = rhs_func(gy, {kDefaultGraphId});
-    Array e2 = MakeArray<float>({1}, {2.0f});
+    Array e2 = testing::MakeArray<float>({1}, {2.0f});
     ExpectEqual<bool>(e2, gx2);
     EXPECT_FALSE(gx2.IsGradRequired());
 }
@@ -1109,14 +1098,14 @@ TEST_P(ArrayTest, MulBackwardMultipleGraphs) {
     GraphId graph_id1 = "graph_1";
     GraphId graph_id2 = "graph_2";
 
-    Array a = MakeArray<bool>({4, 1}, {true, true, false, false});
-    Array b = MakeArray<bool>({4, 1}, {true, false, true, false});
+    Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
+    Array b = testing::MakeArray<bool>({4, 1}, {true, false, true, false});
 
     a.RequireGrad(graph_id1);
     b.RequireGrad(graph_id2);
 
     Array o = a * b;
-    Array go = MakeArray<bool>({4, 1}, {true, true, true, true});
+    Array go = testing::MakeArray<bool>({4, 1}, {true, true, true, true});
 
     auto op_node1 = internal::GetArrayNode(o, graph_id1)->next_node();
     Array ga = op_node1->backward_functions()[0](go, {graph_id1});
@@ -1132,7 +1121,7 @@ TEST_P(ArrayTest, MulBackwardMultipleGraphs) {
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
-    Array a = MakeArray<float>({1}, {2.0f});
+    Array a = testing::MakeArray<float>({1}, {2.0f});
 
     EXPECT_FALSE(a.IsGradRequired());
 
@@ -1145,7 +1134,7 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
 TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
     GraphId graph_id = "graph_1";
 
-    Array a = MakeArray<float>({1}, {2.0f});
+    Array a = testing::MakeArray<float>({1}, {2.0f});
 
     ASSERT_FALSE(a.IsGradRequired(graph_id));
 
@@ -1156,21 +1145,21 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsCtor) {
-    Array a = MakeArray<float>({1}, {2.0f}).RequireGrad();
+    Array a = testing::MakeArray<float>({1}, {2.0f}).RequireGrad();
 
     EXPECT_TRUE(a.IsGradRequired());
     EXPECT_THROW(a.RequireGrad(), XchainerError);
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsRequireGrad) {
-    Array a = MakeArray<float>({1}, {2.0f});
+    Array a = testing::MakeArray<float>({1}, {2.0f});
 
     EXPECT_THROW(a.RequireGrad().RequireGrad(), XchainerError);
 }
 
 TEST_P(ArrayTest, MultipleGraphsForward) {
-    Array a = MakeArray<float>({1}, {2.0f});
-    Array b = MakeArray<float>({1}, {2.0f});
+    Array a = testing::MakeArray<float>({1}, {2.0f});
+    Array b = testing::MakeArray<float>({1}, {2.0f});
 
     GraphId graph_id_1 = "graph_1";
     GraphId graph_id_2 = "graph_2";
