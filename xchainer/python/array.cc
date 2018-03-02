@@ -153,6 +153,17 @@ void InitXchainerArray(pybind11::module& m) {
         .def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).move_body(); })
         .def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); })
         .def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); })
+        .def("to_device", [](const ArrayBodyPtr& self, Device& device) { return Array{self}.ToDevice(device).move_body(); })
+        .def("to_device",
+             [](const ArrayBodyPtr& self, const std::string& device_name) {
+                 Device& device = GetDefaultContext().GetDevice({device_name});
+                 return Array{self}.ToDevice(device).move_body();
+             })
+        .def("to_device",
+             [](const ArrayBodyPtr& self, const std::string& backend_name, int index) {
+                 Device& device = GetDefaultContext().GetDevice({backend_name, index});
+                 return Array{self}.ToDevice(device).move_body();
+             })
         .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
         .def("as_constant", [](const ArrayBodyPtr& self,
                                bool copy) { return Array{self}.AsConstant(copy ? CopyKind::kCopy : CopyKind::kView).move_body(); },
