@@ -35,7 +35,7 @@ add_library(xchainer SHARED
     device.cc
     device_id.cc
     dtype.cc
-    gradient_check.cc
+    numerical_gradient.cc
     native_backend.cc
     native_device.cc
     memory.cc
@@ -70,7 +70,7 @@ if(ENABLE_TEST)
         context_test.cc
         device_test.cc
         dtype_test.cc
-        gradient_check_test.cc
+        numerical_gradient_test.cc
         memory_test.cc
         native_backend_test.cc
         native_device_test.cc

@@ -1,4 +1,4 @@
-#include "xchainer/gradient_check.h"
+#include "xchainer/numerical_gradient.h"
 
 #include <algorithm>
 #include <functional>
@@ -17,7 +17,7 @@
 #include "xchainer/device.h"
 
 namespace xchainer {
-namespace gradient_internal {
+namespace numerical_gradient_internal {
 
 Array& Subtract(const Array& lhs, const Array& rhs, Array& out) {
     VisitDtype(lhs.dtype(), [&](auto pt) {
@@ -167,5 +167,5 @@ Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, con
     return grads;
 }
 
-}  // namespace gradient_internal
+}  // namespace numerical_gradient_internal
 }  // namespace xchainer

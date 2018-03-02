@@ -12,8 +12,8 @@
 #include "xchainer/array_node.h"
 #include "xchainer/backward.h"
 #include "xchainer/error.h"
-#include "xchainer/gradient_check.h"
 #include "xchainer/numeric.h"
+#include "xchainer/numerical_gradient.h"
 
 namespace xchainer {
 namespace {
