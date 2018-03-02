@@ -122,3 +122,6 @@ def test_device_scope_with_name(device_instance1, device_instance2):
     xchainer.set_default_device(device1)
     with xchainer.device_scope(device2.name):
         assert xchainer.get_default_device() == device2
+
+    with xchainer.device_scope(device2.backend.name, device2.index):
+        assert xchainer.get_default_device() == device2
