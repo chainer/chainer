@@ -250,4 +250,3 @@ def _check_pillow_availability():
         raise ImportError('PIL cannot be loaded. Install Pillow!\n'
                           'The actual import error is as follows:\n' +
                           str(_import_error))
-
