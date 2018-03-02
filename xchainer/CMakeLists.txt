@@ -10,7 +10,7 @@ install(FILES
     array.h
     array_repr.h
     backend.h
-    backprop.h
+    backward.h
     constant.h
     context.h
     device.h
@@ -30,7 +30,7 @@ add_library(xchainer SHARED
     array.cc
     array_repr.cc
     backend.cc
-    backprop.cc
+    backward.cc
     context.cc
     device.cc
     device_id.cc
@@ -64,7 +64,7 @@ if(ENABLE_TEST)
         array_repr_test.cc
         array_test.cc
         array_to_device_test.cc
-        backprop_test.cc
+        backward_test.cc
         check_backward.cc
         check_backward_test.cc
         context_test.cc

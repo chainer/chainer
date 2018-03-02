@@ -9,7 +9,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/backend.h"
-#include "xchainer/backprop.h"
+#include "xchainer/backward.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/native_backend.h"

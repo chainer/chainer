@@ -10,7 +10,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
-#include "xchainer/backprop.h"
+#include "xchainer/backward.h"
 #include "xchainer/error.h"
 #include "xchainer/gradient_check.h"
 #include "xchainer/numeric.h"

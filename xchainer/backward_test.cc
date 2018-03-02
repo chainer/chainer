@@ -1,4 +1,4 @@
-#include "xchainer/backprop.h"
+#include "xchainer/backward.h"
 
 #include <algorithm>
 #include <string>
@@ -13,7 +13,6 @@
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
-#include "xchainer/backprop.h"
 #include "xchainer/context.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_backend.h"

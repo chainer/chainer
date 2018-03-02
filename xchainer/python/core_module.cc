@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 
 #include "xchainer/array.h"
-#include "xchainer/backprop.h"
+#include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/python/array.h"
 #include "xchainer/python/backend.h"
