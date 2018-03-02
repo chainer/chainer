@@ -183,6 +183,10 @@ def test_to_device():
     assert b1.device is dst_device
     _check_arrays_equal(a, b1)
 
+    b2 = a.to_device("native", 1)  # by backend name and index
+    assert b2.device is dst_device
+    _check_arrays_equal(a, b2)
+
 
 def test_view(array_init_inputs):
     shape_tup, dtype_name = array_init_inputs
