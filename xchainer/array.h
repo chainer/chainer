@@ -16,6 +16,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
+#include "xchainer/strides.h"
 
 namespace xchainer {
 
@@ -41,16 +42,16 @@ namespace internal {
 // the code is made simple and we can use inline access to each member from member accessor functions of Array.
 class ArrayBody {
 public:
-    ArrayBody(const Shape& shape, Dtype dtype, Device& device, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+    ArrayBody(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset,
               std::vector<std::shared_ptr<ArrayNode>> nodes = std::vector<std::shared_ptr<ArrayNode>>());
 
 private:
     friend class ::xchainer::Array;
 
     Shape shape_;
+    Strides strides_;
     Dtype dtype_;
     Device& device_;
-    bool is_contiguous_;
     std::shared_ptr<void> data_;
     int64_t offset_;
     std::vector<std::shared_ptr<ArrayNode>> nodes_;
@@ -140,6 +141,9 @@ public:
 
     int64_t GetTotalBytes() const { return GetTotalSize() * element_bytes(); }
 
+    // TODO(hvy): Fix me!
+    bool IsContiguous() const { return true; }
+
     std::string ToString() const;
 
     const std::shared_ptr<internal::ArrayBody>& body() { return body_; }
@@ -154,13 +158,17 @@ public:
 
     const Shape& shape() const { return body_->shape_; }
 
+    const Strides& strides() const { return body_->strides_; }
+
     int64_t element_bytes() const { return GetElementSize(dtype()); }
 
     const std::shared_ptr<void>& data() { return body_->data_; }
 
     std::shared_ptr<const void> data() const { return body_->data_; }
 
-    bool is_contiguous() const { return body_->is_contiguous_; }
+    void* raw_data() { return body_->data_.get(); }
+
+    const void* raw_data() const { return body_->data_.get(); }
 
     int64_t offset() const { return body_->offset_; }
 
@@ -168,7 +176,7 @@ public:
     std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; };
 
 private:
-    Array(const Shape& shape, Dtype dtype, Device& device, std::shared_ptr<void> data, bool is_contiguous = true, int64_t offset = 0);
+    Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;

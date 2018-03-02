@@ -115,23 +115,13 @@ py::buffer_info MakeNumpyArrayFromArray(internal::ArrayBody& self) {
         (void)ptr;  // unused
     }))};
 
-    if (!array.is_contiguous()) {
+    if (!array.IsContiguous()) {
         throw DimensionError("cannot convert non-contiguous Array to NumPy array");
     }
 
-    int64_t itemsize{GetElementSize(array.dtype())};
-    const Shape& shape = array.shape();
-
     // compute C-contiguous strides
-    size_t ndim = array.ndim();
-    std::vector<size_t> strides(ndim);
-    if (ndim > 0) {
-        std::partial_sum(shape.crbegin(), shape.crend() - 1, strides.rbegin() + 1, std::multiplies<size_t>());
-        strides.back() = 1;
-        std::transform(strides.crbegin(), strides.crend(), strides.rbegin(), [&itemsize](size_t item) { return item * itemsize; });
-    }
-
-    return py::buffer_info(array.data().get(), itemsize, std::string(1, GetCharCode(array.dtype())), ndim, shape, strides);
+    return py::buffer_info(array.data().get(), array.element_bytes(), std::string(1, GetCharCode(array.dtype())), array.ndim(),
+                           array.shape(), array.strides());
 }
 
 }  // namespace
@@ -202,7 +192,7 @@ void InitXchainerArray(pybind11::module& m) {
                                py::return_value_policy::reference)
         .def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); })
         .def_property_readonly("element_bytes", [](const ArrayBodyPtr& self) { return Array{self}.element_bytes(); })
-        .def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.is_contiguous(); })
+        .def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.IsContiguous(); })
         .def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return Array{self}.ndim(); })
         .def_property_readonly("offset", [](const ArrayBodyPtr& self) { return Array{self}.offset(); })
         .def_property_readonly("shape", [](const ArrayBodyPtr& self) { return Array{self}.shape(); })

@@ -21,15 +21,9 @@ namespace xchainer {
 namespace internal {
 
 // Private definition of ArrayBody
-ArrayBody::ArrayBody(const Shape& shape, Dtype dtype, Device& device, bool is_contiguous, std::shared_ptr<void> data, int64_t offset,
+ArrayBody::ArrayBody(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset,
                      std::vector<std::shared_ptr<ArrayNode>> nodes)
-    : shape_(shape),
-      dtype_(dtype),
-      device_(device),
-      is_contiguous_(is_contiguous),
-      data_(std::move(data)),
-      offset_(offset),
-      nodes_(std::move(nodes)) {}
+    : shape_(shape), strides_(strides), dtype_(dtype), device_(device), data_(std::move(data)), offset_(offset), nodes_(std::move(nodes)) {}
 
 void SetUpOpNodes(const std::string& name, const std::vector<ConstArrayRef>& inputs, Array& out,
                   const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
@@ -100,11 +94,11 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 }  // namespace internal
 
-Array::Array(const Shape& shape, Dtype dtype, Device& device, std::shared_ptr<void> data, bool is_contiguous, int64_t offset)
-    : body_(std::make_shared<internal::ArrayBody>(shape, dtype, device, is_contiguous, std::move(data), offset)) {}
+Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
+    : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
 
 Array::Array(const Array& other)
-    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.dtype(), other.device(), other.is_contiguous(), other.body_->data_,
+    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.strides(), other.dtype(), other.device(), other.body_->data_,
                                                   other.offset(), other.body_->nodes_)) {}
 
 const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return internal::GetArrayNode(*this, graph_id)->grad(); }
@@ -116,13 +110,13 @@ void Array::ClearGrad(const GraphId& graph_id) { internal::GetMutableArrayNode(*
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
     std::shared_ptr<void> device_data = internal::MemoryFromBuffer(device, data, bytesize);
-    return {shape, dtype, device, device_data};
+    return {shape, Strides{shape, dtype}, dtype, device, device_data};
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
     std::shared_ptr<void> data = internal::Allocate(device, bytesize);
-    return {shape, dtype, device, data};
+    return {shape, Strides{shape, dtype}, dtype, device, data};
 }
 
 Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device) {
@@ -172,8 +166,8 @@ Array Array::ToDevice(Device& dst_device) const {
         throw XchainerError("Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'");
     }
 
-    // Create output array
-    Array out{body_->shape_, body_->dtype_, dst_device, std::move(data), body_->is_contiguous_, offset};
+    // Create contiguous output array.
+    Array out{body_->shape_, Strides{body_->shape_, body_->dtype_}, body_->dtype_, dst_device, std::move(data), offset};
 
     // Connect the graph.
     // Backward operation is implemented as backward-transfer.
@@ -220,7 +214,7 @@ Array Array::AsConstant(CopyKind kind) const {
             return std::move(out);
         }
         case CopyKind::kView:
-            return Array{shape(), dtype(), device(), body_->data_, is_contiguous(), offset()};
+            return Array{shape(), strides(), dtype(), device(), body_->data_, offset()};
         default:
             assert(false);  // should never be reached
     }
@@ -237,7 +231,7 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
             return std::move(out);
         }
         case CopyKind::kView: {
-            Array out{shape(), dtype(), device(), body_->data_, is_contiguous(), offset()};
+            Array out{shape(), strides(), dtype(), device(), body_->data_, offset()};
 
             // Duplicate the array nodes only when graph IDs are not found in specified graph_ids.
             for (const std::shared_ptr<ArrayNode>& node : nodes()) {
