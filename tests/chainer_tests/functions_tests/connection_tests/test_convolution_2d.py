@@ -18,7 +18,7 @@ from chainer.testing import condition
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
     'dilate': [1],
-    'group': [1, 2],
+    'groups': [1, 2],
     'nobias': [True, False],
 }) + testing.product({
     'c_contiguous': [False],
@@ -26,7 +26,7 @@ from chainer.testing import condition
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'dilate': [1],
-    'group': [1, 2],
+    'groups': [1, 2],
     'nobias': [True, False],
 })))
 @backend.inject_backend_tests(
@@ -56,8 +56,8 @@ class TestConvolution2DFunction(unittest.TestCase):
         batches = 2
         in_channels_a_group = 3
         out_channels_a_group = 2
-        in_channels = in_channels_a_group * self.group
-        out_channels = out_channels_a_group * self.group
+        in_channels = in_channels_a_group * self.groups
+        out_channels = out_channels_a_group * self.groups
         kh, kw = (3, 3)
         self.stride = 2
         self.pad = (int(kh / 2) * self.dilate, int(kw / 2) * self.dilate)
@@ -98,7 +98,8 @@ class TestConvolution2DFunction(unittest.TestCase):
         with chainer.using_config('use_ideep', 'never'):
             y_cpu = F.convolution_2d(
                 x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all, dilate=self.dilate, group=self.group)
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
         return y_cpu,
 
     def check_forward(self, inputs, backend_config):
@@ -114,7 +115,8 @@ class TestConvolution2DFunction(unittest.TestCase):
         with backend_config:
             y_actual = F.convolution_2d(
                 x, W, b, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all, dilate=self.dilate, group=self.group)
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
 
         testing.assert_allclose(
             y_expected.data, y_actual.data, atol=5e-4, rtol=5e-3)
@@ -151,7 +153,7 @@ class TestConvolution2DFunction(unittest.TestCase):
         def f(*args):
             return F.convolution_2d(*args, stride=self.stride, pad=self.pad,
                                     cover_all=self.cover_all,
-                                    dilate=self.dilate, group=self.group)
+                                    dilate=self.dilate, groups=self.groups)
 
         with backend_config:
             gradient_check.check_backward(
@@ -205,7 +207,7 @@ class TestConvolution2DFunction(unittest.TestCase):
         def f(*args):
             y = F.convolution_2d(*args, stride=self.stride, pad=self.pad,
                                  cover_all=self.cover_all, dilate=self.dilate,
-                                 group=self.group)
+                                 groups=self.groups)
             return y * y  # make the function nonlinear
 
         with backend_config:
@@ -225,13 +227,13 @@ class TestConvolution2DFunction(unittest.TestCase):
     'cudnn_deterministic': [False, True],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'dilate': [1],
-    'group': [1, 2],
+    'groups': [1, 2],
 }) + testing.product({
     'use_cudnn': ['always', 'auto', 'never'],
     'cudnn_deterministic': [False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'dilate': [2],
-    'group': [1, 2],
+    'groups': [1, 2],
 })))
 @attr.cudnn
 class TestConvolution2DCudnnCall(unittest.TestCase):
@@ -240,8 +242,8 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
         batches = 2
         in_channels_a_group = 3
         out_channels_a_group = 2
-        in_channels = in_channels_a_group * self.group
-        out_channels = out_channels_a_group * self.group
+        in_channels = in_channels_a_group * self.groups
+        out_channels = out_channels_a_group * self.groups
         kh, kw = (3, 3)
         self.stride = 2
         self.pad = (int(kh / 2) * self.dilate, int(kw / 2) * self.dilate)
@@ -256,7 +258,7 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
             self.should_call_cudnn = chainer.should_use_cudnn('>=auto')
             if self.dilate > 1 and cuda.cuda.cudnn.getVersion() < 6000:
                 self.should_call_cudnn = False
-            if self.group > 1 and cuda.cuda.cudnn.getVersion() < 7000:
+            if self.groups > 1 and cuda.cuda.cudnn.getVersion() < 7000:
                 self.should_call_cudnn = False
             self.can_use_tensor_core = True
             if self.dilate > 1:
@@ -266,7 +268,7 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
         x = chainer.Variable(self.x)
         W = chainer.Variable(self.W)
         return F.convolution_2d(x, W, None, stride=self.stride, pad=self.pad,
-                                dilate=self.dilate, group=self.group)
+                                dilate=self.dilate, groups=self.groups)
 
     def test_call_cudnn_forward(self):
         name = 'cupy.cuda.cudnn.convolutionForward'
@@ -302,7 +304,7 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
 @testing.parameterize(*testing.product({
     'c_contiguous': [True, False],
     'nobias': [True, False],
-    'group': [1, 2],
+    'groups': [1, 2],
 }))
 @attr.gpu
 @attr.cudnn
@@ -314,8 +316,8 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         batch_sz = 2
         in_channels_a_group = 64
         out_channels_a_group = 64
-        in_channels = in_channels_a_group * self.group
-        out_channels = out_channels_a_group * self.group
+        in_channels = in_channels_a_group * self.groups
+        out_channels = out_channels_a_group * self.groups
         kh, kw = (3, 3)
         in_h, in_w = (32, 128)
         out_h, out_w = (16, 64)
@@ -331,7 +333,7 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1, (batch_sz, out_channels, out_h, out_w)).astype(x_dtype)
         self.should_call_cudnn = True
-        if self.group > 1 and cuda.cuda.cudnn.getVersion() < 7000:
+        if self.groups > 1 and cuda.cuda.cudnn.getVersion() < 7000:
             self.should_call_cudnn = False
 
     def test_called(self):
@@ -398,7 +400,7 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         W = chainer.Variable(W_data)
         b = None if self.nobias else chainer.Variable(b_data)
         y = F.convolution_2d(x, W, b, stride=self.stride, pad=self.pad,
-                             cover_all=False, group=self.group)
+                             cover_all=False, groups=self.groups)
         return x, W, b, y
 
 
