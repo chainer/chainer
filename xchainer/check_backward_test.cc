@@ -1,4 +1,4 @@
-#include "xchainer/gradient_check.h"
+#include "xchainer/numerical_gradient.h"
 
 #include <algorithm>
 #include <memory>
