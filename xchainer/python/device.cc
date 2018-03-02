@@ -45,6 +45,9 @@ void InitXchainerDevice(pybind11::module& m) {
     py::class_<PyDeviceScope>(m, "DeviceScope").def("__enter__", &PyDeviceScope::Enter).def("__exit__", &PyDeviceScope::Exit);
     m.def("device_scope", [](Device& device) { return PyDeviceScope(device); });
     m.def("device_scope", [](const std::string& device_name) { return PyDeviceScope(GetDefaultContext().GetDevice(device_name)); });
+    m.def("device_scope", [](const std::string& backend_name, int index) {
+        return PyDeviceScope(GetDefaultContext().GetDevice({backend_name, index}));
+    });
 }
 
 }  // namespace xchainer
