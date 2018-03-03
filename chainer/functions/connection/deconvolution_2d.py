@@ -49,7 +49,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
     cover_all = None
     _use_ideep = False
 
-    def __init__(self, stride=1, pad=0, outsize=None, group=1, **kwargs):
+    def __init__(self, stride=1, pad=0, outsize=None, groups=1, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs,
             deterministic="deterministic argument is not supported anymore. "
@@ -66,7 +66,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self.ph, self.pw = _pair(pad)
         self.outh, self.outw = (None, None) if outsize is None else outsize
         self.dy, self.dx = _pair(dilate)
-        self.group = group
+        self.groups = groups
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -140,7 +140,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         self._calc_out_size(x, W)
 
-        if self.group > 1:
+        if self.groups > 1:
             # Grouped convolution implementation
             return self._forward_grouped_convolution(x, W, b)
 
@@ -208,14 +208,14 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             and ((self.dy == 1 and self.dx == 1)
                  or (_cudnn_version_ >= 6000
                      and not configuration.config.cudnn_deterministic))
-            and (self.group <= 1 or _cudnn_version_ >= 7000)
+            and (self.groups <= 1 or _cudnn_version_ >= 7000)
         )
 
         if use_cudnn:
             # cuDNN implementation
             return self._forward_cudnn(x, W, b)
 
-        elif self.group > 1:
+        elif self.groups > 1:
             return self._forward_grouped_convolution(x, W, b)
 
         else:
@@ -243,7 +243,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         # kH, kW: kernel height, kernel width
         # xC, xH, xW: x channels, x height, x width
         # yC, yH, yW: y channels, y height, y width
-        G = self.group
+        G = self.groups
         N, xC, xH, xW = x.shape
         xCg = int(xC / G)
         _, yCg, kH, kW = W.shape
@@ -277,7 +277,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         n = x.shape[0]
         # out_c = W.shape[1]
         yCg = W.shape[1]
-        yC = yCg * self.group
+        yC = yCg * self.groups
 
         use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
 
@@ -298,7 +298,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         conv_desc = cudnn.create_convolution_descriptor(
             *conv_param, dilation=dilation,
             use_tensor_core=use_tensor_core,
-            group=self.group)
+            groups=self.groups)
         if b is not None:
             bias_desc = cudnn.create_tensor_descriptor(
                 b[None, :, None, None])
@@ -353,7 +353,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             gx = chainer.functions.convolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
                 cover_all=self.cover_all, dilate=(self.dy, self.dx),
-                group=self.group)
+                groups=self.groups)
             ret.append(gx)
         if 1 in indexes:
             if self.cover_all is None:
@@ -376,7 +376,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                                           self.pw, d=self.dx))
 
 
-def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, group=1,
+def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, groups=1,
                      **kwargs):
     """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None)
 
@@ -491,7 +491,7 @@ astype(np.float32)
     dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
 
     func = Deconvolution2DFunction(stride, pad, outsize, dilate=dilate,
-                                   group=group)
+                                   groups=groups)
     if b is None:
         args = x, W
     else:
