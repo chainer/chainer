@@ -7,8 +7,6 @@ import numpy as np
 
 import chainer
 from chainer.backends import cuda
-from chainer import functions
-from chainer import links
 from chainer import optimizer
 from chainer import optimizers
 from chainer import testing
