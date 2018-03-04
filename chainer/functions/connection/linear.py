@@ -31,7 +31,8 @@ class LinearFunction(function_node.FunctionNode):
             w_type.dtype.kind == 'f',
             x_type.ndim > self._n_batch_axes,
             w_type.ndim == 2,
-            numpy.prod(list(x_type.shape[:self._n_batch_axes])) == w_type.shape[1],
+            type_check.prod(
+                x_type.shape[self._n_batch_axes:]) == w_type.shape[1],
         )
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
@@ -64,7 +65,7 @@ class LinearFunction(function_node.FunctionNode):
 
         if self._n_batch_axes > 1:
             batch_shape = x.shape[:self._n_batch_axes]
-            batch_size = int(numpy.prod(batch_shape))
+            batch_size = numpy.prod(batch_shape)
             x = x.reshape((batch_size, -1))
 
         y = x.dot(W.T).astype(x.dtype, copy=False)
