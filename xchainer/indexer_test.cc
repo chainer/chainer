@@ -1,15 +1,9 @@
 #include "xchainer/indexer.h"
 
-#include <numeric>
-#include <vector>
-
 #include <gtest/gtest.h>
-
-#include "xchainer/shape.h"
 
 namespace xchainer {
 namespace {
-
 
 TEST(IndexerTest, Ctor) {
     Indexer<0> indexer({});
