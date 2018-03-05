@@ -1,3 +1,4 @@
+add_subdirectory(testing)
 if(${CUDA_FOUND})
     add_subdirectory(cuda)
 endif()
@@ -7,36 +8,50 @@ endif()
 
 install(FILES
     array.h
-    array_math.h
     array_repr.h
-    backprop.h
+    backend.h
+    backward.h
     constant.h
+    context.h
     device.h
+    device_id.h
     dtype.h
     error.h
+    indexable_array.h
+    indexer.h
+    macro.h
     memory.h
+    native_backend.h
+    native_device.h
     scalar.h
     shape.h
+    strides.h
     xchainer.h
     DESTINATION include/xchainer
     )
 
 add_library(xchainer SHARED
     array.cc
-    array_fill.cc
-    array_math.cc
     array_repr.cc
-    backprop.cc
+    backend.cc
+    backward.cc
+    context.cc
     device.cc
+    device_id.cc
     dtype.cc
-    gradient_check.cc
     memory.cc
+    native_backend.cc
+    native_device.cc
     numeric.cc
+    numerical_gradient.cc
     scalar.cc
     shape.cc
+    strides.cc
     )
 
 target_link_libraries(xchainer
+    PUBLIC
+    ${CMAKE_DL_LIBS}
     PRIVATE
     -Wl,--whole-archive)
 if(${CUDA_FOUND})
@@ -48,16 +63,22 @@ target_link_libraries(xchainer
 install(TARGETS xchainer DESTINATION lib)
 
 if(ENABLE_TEST)
+    add_subdirectory(context_testdata)
     set(srcs
+        array_device_test.cc
         array_repr_test.cc
         array_test.cc
+        array_to_device_test.cc
+        backward_test.cc
         check_backward.cc
         check_backward_test.cc
-        backprop_test.cc
+        context_test.cc
         device_test.cc
         dtype_test.cc
-        gradient_check_test.cc
+        numerical_gradient_test.cc
         memory_test.cc
+        native_backend_test.cc
+        native_device_test.cc
         numeric_test.cc
         scalar_test.cc
         shape_test.cc
@@ -67,6 +88,9 @@ if(ENABLE_TEST)
     else()
         add_executable(xchainer_test ${srcs})
     endif()
+
+    target_compile_definitions(xchainer_test PRIVATE
+        XCHAINER_TEST_DIR="${CMAKE_CURRENT_BINARY_DIR}")
 
     target_link_libraries(xchainer_test
         xchainer

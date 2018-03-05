@@ -8,6 +8,34 @@ jobs:
       # Checkout
       - checkout
 
+      # Checkout postprocess
+      - run:
+          name: Checkout postprocess
+          command: |
+            if [[ -n "${CIRCLE_PULL_REQUEST}" ]]
+            then
+                # CIRCLE_PR_NUMBER is available only if PR is created from a fork (unavailable if created from a branch).
+                # So, manually construct it from CIRCLE_PULL_REQUEST environment variable.
+                CIRCLE_PR_NUMBER=$(basename "${CIRCLE_PULL_REQUEST}")
+
+                # Update PR refs for testing.
+                FETCH_REFS="+master:master"
+                FETCH_REFS="${FETCH_REFS} +refs/pull/${CIRCLE_PR_NUMBER}/head:pr/${CIRCLE_PR_NUMBER}/head"
+                FETCH_REFS="${FETCH_REFS} +refs/pull/${CIRCLE_PR_NUMBER}/merge:pr/${CIRCLE_PR_NUMBER}/merge"
+
+                # Retrieve the refs
+                echo "git fetch -u origin ${FETCH_REFS}"
+                git fetch -u origin ${FETCH_REFS}
+
+                # Checkout master and merge PR head ref. If conflicts occur, exit with non-zero.
+                echo "git checkout master"
+                git checkout master
+                git config user.name 'xchainer' # need to configure something to git merge
+                git config user.email 'xchainer@xchainer.org'
+                echo "git merge --no-commit \"pr/${CIRCLE_PR_NUMBER}/head\""
+                git merge --no-commit "pr/${CIRCLE_PR_NUMBER}/head"
+            fi
+
       # Environment info
       - run:
           name: Environment info
@@ -16,9 +44,20 @@ jobs:
 
             echo "PWD: $PWD"
 
+            echo
+            echo "----- g++ -----"
             g++ --version
+
+            echo
+            echo "----- cmake -----"
             cmake --version
-            clang-format --version
+
+            echo
+            echo "----- clang-tidy -----"
+            clang-tidy --version
+
+            echo
+            echo "----- python -----"
             python --version
 
             echo
@@ -54,7 +93,63 @@ jobs:
             source activate testenv
 
             python setup.py build --debug --build-temp ./build --build-lib ./build develop
-            pytest -m='not cuda' --cov --no-cov-on-fail --cov-fail-under=80 --cov-report html:build/coverage/python
+
+            # Run all non-CUDA tests except doctests
+            pytest -m='not cuda' -p no:doctest --cov --no-cov-on-fail --cov-fail-under=80 --cov-report html:build/coverage/python
+
+            # Run all non-CUDA doctests
+            find tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
+
+      # cmake
+      - run:
+          name: cmake
+          command: |
+            source activate testenv
+
+            mkdir -p build
+            pushd build
+            cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON -DWARNINGS_AS_ERRORS=ON -DCMAKE_INSTALL_PREFIX=$HOME/local ..
+            popd
+
+      # clang-tidy (normal source files)
+      - run:
+          name: clang-tidy (normal source files)
+          command: |
+            source activate testenv
+
+            pushd build
+            bash ../scripts/run-clang-tidy.sh normal
+            popd
+
+      # clang-tidy (test source files)
+      - run:
+          name: clang-tidy (test source files)
+          command: |
+            source activate testenv
+
+            pushd build
+            bash ../scripts/run-clang-tidy.sh test
+            popd
+
+      # make
+      - run:
+          name: make
+          command: |
+            source activate testenv
+
+            pushd build
+            make
+            popd
+
+      # make install
+      - run:
+          name: make install
+          command: |
+            source activate testenv
+
+            pushd build
+            make install
+            popd
 
       # ClangFormat
       - run:
@@ -68,7 +163,17 @@ jobs:
           command: |
             source activate testenv
 
-            ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON .. && make clang-tidy && make && ctest -V )
+            pushd build
+            ctest -V
+            popd
+
+      # coverage
+      - run:
+          name: coverage
+          command: |
+            source activate testenv
+
+            # coverage
             lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
             genhtml build/coverage.info -o build/coverage/cpp
 

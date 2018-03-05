@@ -10,15 +10,10 @@ if(ENABLE_CLANG_TIDY)
         # Let cmake generate compile_commands.json
         set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
-        file(GLOB_RECURSE SOURCE_FILES RELATIVE ${CMAKE_BINARY_DIR} *.cc)
-
         add_custom_target(
             clang-tidy
-            COMMAND ${CLANG_TIDY} ${SOURCE_FILES}
-            )
-        add_custom_target(
-            clang-tidy-fix
-            COMMAND ${CLANG_TIDY} -fix ${SOURCE_FILES}
+            COMMAND bash ${PROJECT_SOURCE_DIR}/scripts/run-clang-tidy.sh normal
+            COMMAND bash ${PROJECT_SOURCE_DIR}/scripts/run-clang-tidy.sh test
             )
     endif()
 endif()

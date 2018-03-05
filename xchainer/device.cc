@@ -1,35 +1,44 @@
 #include "xchainer/device.h"
 
+#include <type_traits>
+
+#include "xchainer/array.h"
+#include "xchainer/context.h"
 #include "xchainer/error.h"
+#include "xchainer/native_backend.h"
 
 namespace xchainer {
 namespace {
 
-thread_local Device thread_local_device = {"cpu"};
+thread_local Device* t_default_device = nullptr;
+static_assert(std::is_pod<decltype(t_default_device)>::value, "t_default_device must be POD");
 
 }  // namespace
 
-Device MakeDevice(const std::string& name) {
-    Device device = {};
-    if (name.size() >= sizeof(device.name)) {
-        throw DeviceError("device name is too long; should be shorter than 8 characters");
+void Device::CheckDevicesCompatible(const Array& array) {
+    if (this != &array.device()) {
+        throw DeviceError("Device (" + name() + ") is not compatible with array's device (" + array.device().name() + ").");
     }
-    std::copy(name.begin(), name.end(), static_cast<char*>(device.name));
-    return device;
 }
 
-Device GetCurrentDevice() { return thread_local_device; }
+namespace internal {
 
-void SetCurrentDevice(const Device& device) {
-    if (device != Device{"cpu"} && device != Device{"cuda"}) {
-        throw DeviceError("invalid device");
+Device* GetDefaultDeviceNoExcept() noexcept { return t_default_device; }
+
+}  // namespace internal
+
+Device& GetDefaultDevice() {
+    if (t_default_device == nullptr) {
+        t_default_device = &GetDefaultContext().GetDevice({NativeBackend::kDefaultName, 0});
     }
-    thread_local_device = device;
+    return *t_default_device;
 }
 
-void SetCurrentDevice(const std::string& name) {
-    auto device = MakeDevice(name);
-    SetCurrentDevice(device);
+void SetDefaultDevice(Device* device) {
+    if (device != nullptr && &device->backend().context() != &GetDefaultContext()) {
+        throw ContextError("Context mismatch between default device and default context.");
+    }
+    t_default_device = device;
 }
 
 }  // namespace xchainer

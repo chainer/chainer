@@ -10,6 +10,18 @@ public:
     using runtime_error::runtime_error;
 };
 
+// Error on using invalid contexts.
+class ContextError : public XchainerError {
+public:
+    using XchainerError::XchainerError;
+};
+
+// Error on using invalid backends.
+class BackendError : public XchainerError {
+public:
+    using XchainerError::XchainerError;
+};
+
 // Error on using invalid devices.
 class DeviceError : public XchainerError {
 public:

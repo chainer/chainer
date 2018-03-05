@@ -1,11 +1,23 @@
 #include "xchainer/array_repr.h"
 
+#include <cassert>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
+#include <vector>
+
+#ifdef XCHAINER_ENABLE_CUDA
+#include <cuda_runtime.h>
+#endif  // XCHAINER_ENABLE_CUDA
 
 #include "xchainer/array.h"
+#include "xchainer/array_node.h"
+#include "xchainer/backend.h"
+#ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/cuda_runtime.h"
+#endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/dtype.h"
 #include "xchainer/shape.h"
 
@@ -131,7 +143,7 @@ private:
 
 class BoolFormatter {
 public:
-    void Scan(bool value) { (void)value; }
+    void Scan(bool value) { (void)value; /* unused */ }
 
     void Print(std::ostream& os, bool value) const {
         os << (value ? " True" : "False");  // NOLINTER
@@ -140,7 +152,7 @@ public:
 
 template <typename T>
 using Formatter = std::conditional_t<std::is_same<T, bool>::value, BoolFormatter,
-                                     std::conditional_t<std::is_floating_point<T>::value, FloatFormatter, IntFormatter> >;
+                                     std::conditional_t<std::is_floating_point<T>::value, FloatFormatter, IntFormatter>>;
 
 struct ArrayReprImpl {
     template <typename T, typename Visitor>
@@ -152,7 +164,12 @@ struct ArrayReprImpl {
         std::copy(shape.cbegin(), shape.cend(), std::back_inserter(indexer));
         std::shared_ptr<const T> data = std::static_pointer_cast<const T>(array.data());
 
-        for (int64_t i = 0; i < array.total_size(); ++i) {
+// TODO(hvy): Only synchronize devices when it is really needed
+#ifdef XCHAINER_ENABLE_CUDA
+        cuda::CheckError(cudaDeviceSynchronize());
+#endif  // XCHAINER_ENABLE_CUDA
+
+        for (int64_t i = 0; i < array.GetTotalSize(); ++i) {
             // Increment indexer
             for (int j = shape.ndim() - 1; j >= 0; --j) {
                 indexer[j]++;
@@ -173,7 +190,7 @@ struct ArrayReprImpl {
 
         // Let formatter scan all elements to print.
         VisitElements<T>(array, [&formatter](T value, const int64_t* index) {
-            (void)index;
+            (void)index;  // unused
             formatter.Scan(value);
         });
 
@@ -215,20 +232,37 @@ struct ArrayReprImpl {
             ++cur_line_size;
         });
 
-        // In case of an empty Array, print the header here
-        if (array.total_size() == 0) {
-            os << "array([";
+        if (array.GetTotalSize() == 0) {
+            // In case of an empty Array, print the header here
+            os << "array([]";
+        } else {
+            PrintNTimes(os, ']', ndim);
         }
 
         // Print the footer
-        PrintNTimes(os, ']', ndim);
-        os << ", dtype=" << array.dtype() << ')';
+        os << ", shape=" << array.shape();
+        os << ", dtype=" << array.dtype();
+        os << ", device='" << array.device().name() << "'";
+        const std::vector<std::shared_ptr<ArrayNode>>& nodes = array.nodes();
+        if (!nodes.empty()) {
+            os << ", graph_ids=[";
+            for (size_t i = 0; i < nodes.size(); ++i) {
+                if (i > 0) {
+                    os << ", ";
+                }
+                os << '\'' << nodes[i]->graph_id() << '\'';
+            }
+            os << ']';
+        }
+        os << ')';
     }
 };
 
 }  // namespace
 
 std::ostream& operator<<(std::ostream& os, const Array& array) {
+    // TODO(hvy): We need to determine the output specification of this function, whether or not to align with Python repr specification,
+    // and also whether this functionality should be defined in C++ layer or Python layer.
     VisitDtype(array.dtype(), [&](auto pt) { ArrayReprImpl{}.operator()<typename decltype(pt)::type>(array, os); });
     return os;
 }

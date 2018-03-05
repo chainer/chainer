@@ -20,6 +20,7 @@ include(cmake/third-party.cmake)
 option(BUILD_PYTHON "Build Python binding" OFF)
 option(ENABLE_TEST "Enable building test" ON)
 option(ENABLE_COVERAGE "Enable test coverage with gcov" OFF)
+option(WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" OFF)
 
 # C++ setup
 set(CMAKE_CXX_STANDARD 14)
@@ -44,8 +45,19 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
     endif()
+
+    # cmake -DWARNINGS_AS_ERRORS=ON|OFF
+    if (WARNINGS_AS_ERRORS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+    endif()
 endif()
 include_directories("${PROJECT_SOURCE_DIR}")
+
+# dl libs
+if(DEFINED CMAKE_DL_LIBS)
+else()
+    message(FATAL_ERROR "libdl not found")
+endif()
 
 # pybind11
 if(${BUILD_PYTHON})

@@ -4,8 +4,8 @@ import xchainer
 
 
 _devices_data = [
-    {'name': 'cpu'},
-    {'name': 'cuda'},
+    {'index': 0},
+    {'index': 1},
 ]
 
 
@@ -20,76 +20,108 @@ def device_data2(request):
 
 
 @pytest.fixture
-def device_init_inputs1(request, device_data1):
-    return device_data1['name']
+def device_instance1(request, device_data1):
+    return xchainer.get_global_default_context().get_device('native', device_data1['index'])
 
 
 @pytest.fixture
-def device_init_inputs2(request, device_data2):
-    return device_data2['name']
+def device_instance2(request, device_data2):
+    return xchainer.get_global_default_context().get_device('native', device_data2['index'])
 
 
 @pytest.fixture
 def cache_restore_device(request):
-    device = xchainer.get_current_device()
+    device = xchainer.get_default_device()
 
     def restore_device():
-        xchainer.set_current_device(device)
+        xchainer.set_default_device(device)
     request.addfinalizer(restore_device)
 
 
-@pytest.mark.usefixtures('cache_restore_device')
-def test_current_device(device_init_inputs1):
-    name = device_init_inputs1
-    xchainer.set_current_device(name)
-    assert xchainer.get_current_device() == xchainer.Device(name)
+def test_creation():
+    ctx = xchainer.get_global_default_context()
+    backend = ctx.get_backend('native')
+    device = backend.get_device(0)
+    assert device.name == 'native:0'
+    assert device.backend is backend
+    assert device.context is ctx
+    assert device.index == 0
+
+    device = backend.get_device(1)
+    assert device.name == 'native:1'
+    assert device.backend is backend
+    assert device.context is ctx
+    assert device.index == 1
+
+
+def test_synchronize():
+    ctx = xchainer.get_global_default_context()
+    device = ctx.get_device('native', 0)
+    device.synchronize()
 
 
 @pytest.mark.usefixtures('cache_restore_device')
-def test_eq(device_init_inputs1, device_init_inputs2):
-    if device_init_inputs1 == device_init_inputs2:
+def test_default_device(device_instance1):
+    device = device_instance1
+    xchainer.set_default_device(device)
+    assert xchainer.get_default_device() is device
+
+
+@pytest.mark.usefixtures('cache_restore_device')
+def test_default_device_with_name(device_instance1):
+    device = device_instance1
+    xchainer.set_default_device(device.name)
+    assert xchainer.get_default_device() is device
+
+
+@pytest.mark.usefixtures('cache_restore_device')
+def test_eq(device_instance1, device_instance2):
+    if device_instance1 == device_instance2:
         return
 
-    name1 = device_init_inputs1
-    name2 = device_init_inputs2
+    device1 = device_instance1
+    device2 = device_instance2
 
-    device1_1 = xchainer.Device(name1)
-    device1_2 = xchainer.Device(name1)
-    device2 = xchainer.Device(name2)
+    device1_1 = device1.backend.get_device(device1.index)
+    device1_2 = device1.backend.get_device(device1.index)
+    device2_1 = device2.backend.get_device(device2.index)
 
     assert device1_1 == device1_2
-    assert device1_1 != device2
+    assert device1_1 != device2_1
     assert not (device1_1 != device1_2)
-    assert not (device1_1 == device2)
+    assert not (device1_1 == device2_1)
 
 
 @pytest.mark.usefixtures('cache_restore_device')
-def test_device_scope(device_init_inputs1, device_init_inputs2):
-    if device_init_inputs1 == device_init_inputs2:
+def test_device_scope(device_instance1, device_instance2):
+    if device_instance1 == device_instance2:
         return
 
-    name1 = device_init_inputs1
-    name2 = device_init_inputs2
+    device1 = device_instance1
+    device2 = device_instance2
 
-    device1 = xchainer.Device(name1)
-    device2 = xchainer.Device(name2)
+    xchainer.set_default_device(device1)
+    with xchainer.device_scope(device2):
+        assert xchainer.get_default_device() == device2
 
-    xchainer.set_current_device(name1)
-    with xchainer.device_scope(name2):
-        assert xchainer.get_current_device() == device2
-
-    scope = xchainer.device_scope(name2)
-    assert xchainer.get_current_device() == device1
+    scope = xchainer.device_scope(device2)
+    assert xchainer.get_default_device() == device1
     with scope:
-        assert xchainer.get_current_device() == device2
-    assert xchainer.get_current_device() == device1
+        assert xchainer.get_default_device() == device2
+    assert xchainer.get_default_device() == device1
 
 
-def test_init_invalid_lengt():
-    with pytest.raises(xchainer.DeviceError):
-        xchainer.Device('a' * 8)  # too long device name
+@pytest.mark.usefixtures('cache_restore_device')
+def test_device_scope_with_name(device_instance1, device_instance2):
+    if device_instance1 == device_instance2:
+        return
 
+    device1 = device_instance1
+    device2 = device_instance2
 
-def test_set_current_invalid_name():
-    with pytest.raises(xchainer.DeviceError):
-        xchainer.set_current_device('invalid_device')
+    xchainer.set_default_device(device1)
+    with xchainer.device_scope(device2.name):
+        assert xchainer.get_default_device() == device2
+
+    with xchainer.device_scope(device2.backend.name, device2.index):
+        assert xchainer.get_default_device() == device2
