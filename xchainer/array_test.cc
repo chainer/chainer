@@ -368,6 +368,13 @@ TEST_P(ArrayTest, ArrayMoveAssignmentOperator) {
     }
 }
 
+TEST_P(ArrayTest, IsContiguous) {
+    {
+        Array x = Array::Empty({1}, Dtype::kFloat32);
+        ASSERT_TRUE(x.IsContiguous());
+    }
+}
+
 TEST_P(ArrayTest, SetRequiresGrad) {
     // Default graph
     {

@@ -117,8 +117,7 @@ public:
 
     int64_t GetTotalBytes() const { return GetTotalSize() * element_bytes(); }
 
-    // TODO(hvy): Fix me!
-    bool IsContiguous() const { return true; }
+    bool IsContiguous() const;
 
     std::string ToString() const;
 
