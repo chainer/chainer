@@ -8,9 +8,12 @@
 
 #include <gsl/gsl>
 
-#include "xchainer/array_node.h"
+#include "xchainer/graph.h"
 
 namespace xchainer {
+
+class Array;
+class ArrayNode;
 
 class OpNode {
 public:

@@ -8,6 +8,7 @@ endif()
 
 install(FILES
     array.h
+    array_body.h
     array_repr.h
     backend.h
     backward.h
@@ -17,6 +18,7 @@ install(FILES
     device_id.h
     dtype.h
     error.h
+    graph.h
     indexable_array.h
     indexer.h
     macro.h
