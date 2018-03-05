@@ -17,11 +17,15 @@ install(FILES
     device_id.h
     dtype.h
     error.h
+    indexable_array.h
+    indexer.h
+    macro.h
+    memory.h
     native_backend.h
     native_device.h
-    memory.h
     scalar.h
     shape.h
+    strides.h
     xchainer.h
     DESTINATION include/xchainer
     )
@@ -35,13 +39,14 @@ add_library(xchainer SHARED
     device.cc
     device_id.cc
     dtype.cc
-    numerical_gradient.cc
+    memory.cc
     native_backend.cc
     native_device.cc
-    memory.cc
     numeric.cc
+    numerical_gradient.cc
     scalar.cc
     shape.cc
+    strides.cc
     )
 
 target_link_libraries(xchainer

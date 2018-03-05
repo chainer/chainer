@@ -42,7 +42,7 @@ public:
         // Deep copy, therefore assert different addresses to data
         EXPECT_NE(expected.data().get(), actual.data().get());
 
-        EXPECT_TRUE(actual.is_contiguous());
+        EXPECT_TRUE(actual.IsContiguous());
         EXPECT_EQ(0, actual.offset());
 
         ExpectDataEqual<T>(expected, actual);
@@ -102,7 +102,7 @@ public:
     void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
         EXPECT_EQ(a.dtype(), b.dtype());
         EXPECT_EQ(a.shape(), b.shape());
-        EXPECT_EQ(a.is_contiguous(), b.is_contiguous());
+        EXPECT_EQ(a.IsContiguous(), b.IsContiguous());
         EXPECT_EQ(a.offset(), b.offset());
     }
 
@@ -141,7 +141,7 @@ public:
         EXPECT_EQ(3 * 2, x.GetTotalSize());
         EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
         EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetTotalBytes());
-        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
 
         // Array::data
@@ -165,7 +165,7 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataExistsOnDefaultDevice(x);
     }
@@ -179,7 +179,7 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataExistsOnDefaultDevice(x);
     }
@@ -204,7 +204,7 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnDefaultDevice(x);
@@ -222,7 +222,7 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), scalar.dtype());
-        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(value, x);
         ExpectDataExistsOnDefaultDevice(x);
@@ -237,7 +237,7 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
         ExpectDataExistsOnDefaultDevice(x);
@@ -255,7 +255,7 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
@@ -271,7 +271,7 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
@@ -285,7 +285,7 @@ public:
         EXPECT_NE(x.data(), nullptr);
         EXPECT_EQ(x.shape(), Shape({3, 2}));
         EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
@@ -301,7 +301,7 @@ public:
         EXPECT_NE(x.data(), x_orig.data());
         EXPECT_EQ(x.shape(), x_orig.shape());
         EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_TRUE(x.is_contiguous());
+        EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
