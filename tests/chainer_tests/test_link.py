@@ -5,7 +5,8 @@ import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
@@ -153,6 +154,47 @@ class TestLink(unittest.TestCase):
         self.assertIsNone(link.u.data)
         self.assertIs(link.p, self.link.p)
         self.assertIs(link.name, None)
+
+    @attr.gpu
+    def test_copy_and_to_gpu_init(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        self.assertIs(l0.x.data, l1.x.data)
+        l1.to_gpu()
+        self.assertIsNot(l0.x.data, l1.x.data)
+        self.assertIsInstance(l0.x.data, numpy.ndarray)
+        self.assertIsInstance(l1.x.data, cupy.ndarray)
+
+    @attr.gpu
+    def test_copy_and_to_gpu_uninit(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        self.assertIsNone(l0.u.data)
+        self.assertIsNone(l1.u.data)
+        l1.to_gpu()
+        l1.u.initialize((2, 3))
+        self.assertIsNone(l0.u.data)
+        self.assertIsInstance(l1.u.data, cupy.ndarray)
+
+    @attr.multi_gpu(2)
+    def test_copy_and_to_gpu_uninit_multi_gpu(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        l2 = l0.copy()
+        self.assertIsNone(l0.u.data)
+        self.assertIsNone(l1.u.data)
+        self.assertIsNone(l2.u.data)
+        l1.to_gpu()
+        l1.u.initialize((2, 3))
+        l2.to_gpu()
+        l2.u.initialize((2, 3))
+        self.assertIsNone(l0.u.data)
+        self.assertIsInstance(l1.u.data, cupy.ndarray)
+        self.assertIsInstance(l2.u.data, cupy.ndarray)
+        self.assertNotEqual(l1.u.data.data, l2.u.data.data)
 
     def _check_deepcopy(self, link):
         self.assertIsInstance(link._params, set)
@@ -1059,6 +1101,136 @@ class TestChainList(unittest.TestCase):
 
         mocks['0'].assert_called_with('y', l1.y.data)
         mocks['1'].assert_called_with('x', l2.x.data)
+
+
+@attr.ideep
+class TestIntel64(unittest.TestCase):
+
+    def setUp(self):
+        self.link = chainer.Link()
+        shape = (2,)
+        dtype = numpy.float32
+        y_array = numpy.random.rand(*shape).astype(dtype)
+        pa_array = numpy.random.rand(*shape).astype(dtype)
+        ps_scalar = 2.4
+
+        with self.link.init_scope():
+            # Initialized parameter
+            self.link.y = chainer.Parameter(y_array)
+            # Uninitialized parameter
+            self.link.v = chainer.Parameter()
+            # Persistent ndarray
+            self.link.add_persistent('pa', pa_array)
+            # Persistent scalar
+            self.link.add_persistent('ps', ps_scalar)
+        self.y_array = y_array
+        self.pa_array = pa_array
+        self.ps_scalar = ps_scalar
+
+    def _assert_variable_array_equal(self, var, expected_array):
+        assert var.shape == expected_array.shape
+        assert var.dtype == expected_array.dtype
+        self._assert_arrays_equal(var.data, expected_array)
+
+    def _assert_arrays_equal(self, array, expected_array):
+        if isinstance(array, cuda.ndarray):
+            array = array.get()
+        assert array.shape == expected_array.shape
+        assert array.dtype == expected_array.dtype
+        assert (array == expected_array).all()
+
+    def test_cpu_to_intel64(self):
+        link = self.link
+        link.to_intel64()
+
+        # Arrays should be converted to ideep.mdarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, intel64.ideep.mdarray)
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, intel64.ideep.mdarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    def test_intel64_to_intel64(self):
+        link = self.link
+        link.to_intel64()
+        prev_y = link.y
+        prev_v = link.v
+        prev_pa = link.pa
+        prev_ps = link.ps
+        link.to_intel64()
+
+        # Everything should be left untouched
+
+        # Initialized parameter
+        assert link.y is prev_y
+        # Uninitialized parameter
+        assert link.v is prev_v
+        # Persistent ndarray
+        assert link.pa is prev_pa
+        # Persistent scalar
+        assert link.ps is prev_ps
+
+    @attr.gpu
+    def test_gpu_to_intel64(self):
+        link = self.link
+        link.to_gpu()
+        link.to_intel64()
+
+        # Arrays should be converted to ideep.mdarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, intel64.ideep.mdarray)
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, intel64.ideep.mdarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    @attr.gpu
+    def test_intel64_to_gpu(self):
+        link = self.link
+        link.to_intel64()
+        link.to_gpu()
+
+        # Arrays should be converted to cupy.ndarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, cuda.cupy.ndarray)
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, cuda.ndarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    def test_intel64_to_cpu(self):
+        link = self.link
+        link.to_intel64()
+        link.to_cpu()
+
+        # Arrays should be converted to numpy.ndarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, numpy.ndarray)
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, numpy.ndarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
 
 
 testing.run_module(__name__, __file__)

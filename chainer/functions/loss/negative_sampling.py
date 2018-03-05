@@ -1,12 +1,18 @@
 import numpy
 import six
 
-from chainer import cuda
-from chainer import function
+import chainer
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class NegativeSamplingFunction(function.Function):
+def _sigmoid_grad(x, y, gy):
+    return chainer.functions.activation.sigmoid.SigmoidGrad((x,)).apply(
+        (y, gy))[0]
+
+
+class NegativeSamplingFunction(function_node.FunctionNode):
 
     ignore_label = -1
 
@@ -19,6 +25,7 @@ class NegativeSamplingFunction(function.Function):
         self.sampler = sampler
         self.sample_size = sample_size
         self.reduce = reduce
+        self.wx = None
 
     def _make_samples(self, t):
         if hasattr(self, 'samples'):
@@ -45,7 +52,9 @@ class NegativeSamplingFunction(function.Function):
         )
 
     def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
         x, t, W = inputs
+
         self.ignore_mask = (t != self.ignore_label)
         self._make_samples(t)
 
@@ -53,21 +62,22 @@ class NegativeSamplingFunction(function.Function):
         wx = numpy.einsum(
             'ij,ikj->ik', x[self.ignore_mask], w[self.ignore_mask])
         wx[:, 0] *= -1
-        y = numpy.sum(numpy.logaddexp(wx, 0), axis=1)
 
         loss = numpy.zeros(len(x), numpy.float32)
-        loss[self.ignore_mask] = y
+        loss[self.ignore_mask] = numpy.sum(numpy.logaddexp(wx, 0), axis=1)
 
         if self.reduce == 'sum':
             loss = numpy.array(loss.sum(), 'f')
         return loss,
 
     def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
         x, t, W = inputs
+
         self.ignore_mask = (t != self.ignore_label)
-        n_in = x.shape[1]
         self._make_samples(t)
 
+        n_in = x.shape[1]
         self.wx = cuda.elementwise(
             'raw T W, raw T x, bool mask, S k, int32 c, int32 m', 'T wx',
             '''
@@ -104,20 +114,40 @@ class NegativeSamplingFunction(function.Function):
             ''',
             'negative_sampling_forward'
         )(self.wx, n_in, self.sample_size + 1, self.ignore_mask[:, None])
+
         if self.reduce == 'sum':
             loss = loss.sum()
         else:  # 'no':
             loss = loss.sum(axis=1)
         return loss,
 
-    def backward_cpu(self, inputs, grads):
-        x, t, W = inputs
-        gloss, = grads
+    def backward(self, indexes, grad_outputs):
+        x, t, W = self.get_retained_inputs()
+        gy, = grad_outputs
+        return NegativeSamplingFunctionGrad(
+            self.reduce, self.ignore_mask, self.sample_size, self.samples,
+            self.wx).apply((x, W, gy))
+
+
+class NegativeSamplingFunctionGrad(function_node.FunctionNode):
+
+    def __init__(self, reduce, ignore_mask, sample_size, samples, wx):
+        self.reduce = reduce
+        self.ignore_mask = ignore_mask
+        self.sample_size = sample_size
+        self.samples = samples
+        self.wx = wx
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
+        x, W, gloss = inputs
 
         gx = numpy.zeros_like(x)
         gW = numpy.zeros_like(W)
+
         for i in numpy.arange(len(self.ignore_mask))[self.ignore_mask]:
             ix = x[i]
+
             k = self.samples[i]
             if self.reduce == 'sum':
                 igy = gloss
@@ -137,14 +167,13 @@ class NegativeSamplingFunction(function.Function):
                 gW[ik] += ig * ix
         return gx, None, gW
 
-    def backward_gpu(self, inputs, grads):
-        cupy = cuda.cupy
-        x, t, W = inputs
-        gy, = grads
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
+        x, W, gy = inputs
 
-        n_in = x.shape[1]
         if self.reduce == 'no':
             gy = gy[:, None]
+
         g = cuda.elementwise(
             'T wx, T gy, int32 m', 'T g',
             '''
@@ -159,7 +188,10 @@ class NegativeSamplingFunction(function.Function):
             ''',
             'negative_sampling_calculate_g'
         )(self.wx, gy, self.sample_size + 1)
+
+        cupy = cuda.cupy
         gx = cupy.zeros_like(x)
+        n_in = x.shape[1]
         cuda.elementwise(
             'raw T g, raw T W, bool mask, raw S k, int32 c, int32 m', 'T gx',
             '''
@@ -175,6 +207,7 @@ class NegativeSamplingFunction(function.Function):
             'negative_sampling_calculate_gx'
         )(g, W, self.ignore_mask[:, None], self.samples, n_in,
           self.sample_size + 1, gx)
+
         gW = cupy.zeros_like(W)
         cuda.elementwise(
             'T g, raw T x, S k, bool mask, int32 c, int32 m',
@@ -191,6 +224,92 @@ class NegativeSamplingFunction(function.Function):
         )(g, x, self.samples, self.ignore_mask[:, None], n_in,
           self.sample_size + 1, gW)
         return gx, None, gW
+
+    def backward(self, indexes, grad_outputs):
+        x, W, gy = self.get_retained_inputs()
+
+        xp = cuda.get_array_module(x.data)
+
+        if 0 in indexes:
+            gx = chainer.Variable(xp.zeros_like(x.data))
+        if 1 in indexes:
+            gW = chainer.Variable(xp.zeros_like(W.data))
+        if 2 in indexes:
+            ggy = chainer.Variable(xp.zeros_like(gy.data))
+
+        ggx, _, ggW = grad_outputs
+
+        pos_neg_mask = xp.ones(self.sample_size + 1)
+        pos_neg_mask[0] *= -1
+
+        for i in xp.arange(len(self.ignore_mask))[self.ignore_mask]:
+            # Partial forward pass to obtain intermediate `Variable`s
+            ix = x[i]
+            k = self.samples[i]
+
+            if self.reduce == 'sum':
+                igy = gy
+            else:
+                igy = gy[i]
+
+            w = W[k]
+            f = chainer.functions.flatten(
+                chainer.functions.matmul(w, ix[:, None])) * pos_neg_mask
+            sigf = chainer.functions.sigmoid(f)
+            g = chainer.functions.broadcast_to(igy, f.shape) * sigf \
+                * pos_neg_mask
+
+            dgW_dg = chainer.functions.flatten(
+                chainer.functions.matmul(ggW[k], ix[:, None])) * pos_neg_mask
+            dgW_df = chainer.functions.broadcast_to(igy, f.shape) \
+                * _sigmoid_grad(f, sigf, dgW_dg) * pos_neg_mask
+            dgx_dg = chainer.functions.flatten(
+                chainer.functions.matmul(ggx[i][None, :], w, transb=True))
+            dgx_df = chainer.functions.broadcast_to(igy, f.shape) \
+                * _sigmoid_grad(f, sigf, dgx_dg)
+
+            if 0 in indexes:
+                # deriative of gx
+                dgx = chainer.functions.matmul(w, dgx_df[:, None], transa=True)
+
+                # derivative of gW
+                dgx += chainer.functions.matmul(g[None, :], ggW[k]).T
+                dgx += chainer.functions.matmul(
+                    w, dgW_df[:, None], transa=True)
+
+                gx = chainer.functions.scatter_add(
+                    gx, i, chainer.functions.flatten(dgx))
+
+            if 1 in indexes:
+                # deriative of gx
+                shape = ggx[i].shape
+                for ik, ig, idgx_df in six.moves.zip(k, g, dgx_df):
+                    ig = chainer.functions.broadcast_to(ig, shape)
+                    idgx_df = chainer.functions.broadcast_to(idgx_df, shape)
+                    gW = chainer.functions.scatter_add(
+                        gW, ik, ig * ggx[i] + idgx_df * ix)
+
+                # derivative of gW
+                gW = chainer.functions.scatter_add(
+                    gW, k,
+                    chainer.functions.matmul(dgW_df[:, None], ix[None, :]))
+
+            if 2 in indexes:
+                dgx_dg *= pos_neg_mask
+                dggy = chainer.functions.sum((dgx_dg + dgW_dg) * sigf)
+                if self.reduce == 'sum':
+                    ggy += dggy
+                else:
+                    ggy = chainer.functions.scatter_add(ggy, i, dggy)
+
+        ret = []
+        if 0 in indexes:
+            ret.append(gx)
+        if 1 in indexes:
+            ret.append(gW)
+        if 2 in indexes:
+            ret.append(ggy)
+        return ret
 
 
 def negative_sampling(x, t, W, sampler, sample_size, reduce='sum'):
@@ -253,4 +372,7 @@ def negative_sampling(x, t, W, sampler, sample_size, reduce='sum'):
     .. seealso:: :class:`~chainer.links.NegativeSampling`.
 
     """
-    return NegativeSamplingFunction(sampler, sample_size, reduce)(x, t, W)
+    return (
+        NegativeSamplingFunction(sampler, sample_size, reduce)
+        .apply((x, t, W))
+    )[0]

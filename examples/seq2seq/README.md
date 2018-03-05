@@ -9,7 +9,7 @@ In this simple example script, an input sequence is processed by a stacked LSTM-
 
 This example requires additional libraries.
 
-- [NLTK](http://www.nltk.org/).
+- [NLTK](https://www.nltk.org/).
 - progressbar2
 
 ```

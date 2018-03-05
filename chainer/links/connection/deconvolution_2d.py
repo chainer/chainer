@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.connection import deconvolution_2d
 from chainer import initializers
 from chainer import link
@@ -83,7 +83,7 @@ class Deconvolution2D(link.Link):
 
         Let an input vector ``x`` be:
 
-        >>> x = np.arange(1 * 3 * 10 * 10, dtype='f').reshape(1, 3, 10, 10)
+        >>> x = np.arange(1 * 3 * 10 * 10, dtype=np.float32).reshape(1, 3, 10, 10)
 
         1. Give the first three arguments explicitly:
 
@@ -127,7 +127,7 @@ class Deconvolution2D(link.Link):
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  nobias=False, outsize=None, initialW=None, initial_bias=None,
-                 **kwargs):
+                 groups=1, **kwargs):
         super(Deconvolution2D, self).__init__()
 
         argument.check_unexpected_kwargs(
@@ -145,6 +145,7 @@ class Deconvolution2D(link.Link):
         self.pad = _pair(pad)
         self.outsize = (None, None) if outsize is None else outsize
         self.out_channels = out_channels
+        self.groups = int(groups)
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
@@ -164,14 +165,21 @@ class Deconvolution2D(link.Link):
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
-        W_shape = (in_channels, self.out_channels, kh, kw)
+        if self.out_channels % self.groups != 0:
+            raise ValueError('the number of output channels must be'
+                             'divisible by the number of groups')
+        if in_channels % self.groups != 0:
+            raise ValueError('the number of input channels must be'
+                             'divisible by the number of groups')
+        W_shape = (in_channels, int(self.out_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)
 
     def __call__(self, x):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(
-            x, self.W, self.b, self.stride, self.pad, self.outsize)
+            x, self.W, self.b, self.stride, self.pad, self.outsize,
+            groups=self.groups)
 
 
 def _pair(x):

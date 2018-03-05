@@ -14,3 +14,27 @@ Optimizers
    chainer.optimizers.RMSpropGraves
    chainer.optimizers.SGD
    chainer.optimizers.SMORMS3
+
+Optimizer base classes
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Optimizer
+   chainer.UpdateRule
+   chainer.optimizer.Hyperparameter
+   chainer.GradientMethod
+
+Hook functions
+~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.optimizer.WeightDecay
+   chainer.optimizer.Lasso
+   chainer.optimizer.GradientClipping
+   chainer.optimizer.GradientNoise

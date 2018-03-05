@@ -1,10 +1,12 @@
+import math
 import unittest
+import warnings
 
 import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
@@ -257,6 +259,216 @@ class NumericalGradientEpsTest(unittest.TestCase):
         self.check_different_eps(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
 
 
+default_eps = 1e-3
+
+
+# `result`: True if `func` is non-differentiable on `x`
+@testing.parameterize(*[
+    {'func': 'zero', 'x': [-100.], 'result': False},
+    {'func': 'zero', 'x': [100.], 'result': False},
+    {'func': 'zero', 'x': [0.], 'result': False},
+    {'func': 'zero', 'x': [default_eps / 10], 'result': False},
+    {'func': 'zero', 'x': numpy.random.normal(size=(3, 2)), 'result': False},
+    {'func': 'zero', 'x': numpy.random.normal(size=()), 'result': False},
+    {'func': 'linear', 'x': [-100.], 'result': False},
+    {'func': 'linear', 'x': [100.], 'result': False},
+    {'func': 'linear', 'x': [0.], 'result': False},
+    {'func': 'linear', 'x': numpy.random.normal(size=(3, 2)), 'result': False},
+    {'func': 'linear', 'x': numpy.random.normal(size=()), 'result': False},
+    # (Invalid input domain)
+    {'func': 'linear', 'x': [numpy.inf], 'result': False,
+     'ignore_warning': RuntimeWarning},
+    {'func': 'quadratic', 'x': [-100.], 'result': False},
+    {'func': 'quadratic', 'x': [100.], 'result': False},
+    {'func': 'quadratic', 'x': [0.], 'result': False},
+    {'func': 'cubic', 'x': [-100.], 'result': False},
+    {'func': 'cubic', 'x': [100.], 'result': False},
+    {'func': 'cubic', 'x': [0.], 'result': False},
+    # Too large epsilon
+    {'func': 'cubic', 'x': [0.], 'eps': 1e-1, 'result': True},
+    {'func': 'abs', 'x': [0.], 'result': True},
+    {'func': 'abs', 'x': [[3, 1], [0, 2]], 'result': True},
+    {'func': 'abs', 'x': [default_eps * 0.8], 'result': True},
+    {'func': 'abs', 'x': [-default_eps * 0.8], 'result': True},
+    {'func': 'abs', 'x': [default_eps * 1.2], 'result': False},
+    {'func': 'abs', 'x': [-default_eps * 1.2], 'result': False},
+    {'func': 'abs', 'x': [100.], 'result': False},
+    {'func': 'abs', 'x': [-100.], 'result': False},
+    {'func': 'step', 'x': [0.], 'result': True},
+    {'func': 'step', 'x': [default_eps * 0.8], 'result': True},
+    {'func': 'step', 'x': [-default_eps * 0.8], 'result': True},
+    {'func': 'step', 'x': [default_eps * 1.2], 'result': False},
+    {'func': 'step', 'x': [-default_eps * 1.2], 'result': False},
+    {'func': 'step', 'x': [100.], 'result': False},
+    {'func': 'step', 'x': [-100.], 'result': False},
+    {'func': 'clip', 'x': [0.], 'result': True},
+    {'func': 'clip', 'x': [1.], 'result': True},
+    {'func': 'clip', 'x': [0.5], 'result': False},
+    {'func': 'floor', 'x': [0.], 'result': True},
+    {'func': 'floor', 'x': [100 + default_eps * 0.8], 'result': True},
+    {'func': 'floor', 'x': [100 - default_eps * 0.8], 'result': True},
+    {'func': 'floor', 'x': [100 + default_eps * 1.2], 'result': False},
+    {'func': 'floor', 'x': [100 - default_eps * 1.2], 'result': False},
+    {'func': 'exp', 'x': [-100], 'result': False},
+    {'func': 'exp', 'x': [0.], 'result': False},
+    {'func': 'exp', 'x': [13.], 'result': False},
+    {'func': 'log', 'x': [100.], 'result': False},
+    # (Smaller epsilon is required because slope is steep)
+    {'func': 'log', 'x': [1e-3], 'eps': 1e-6, 'result': False},
+    {'func': 'log', 'x': [0.], 'result': True,
+     'ignore_warning': RuntimeWarning},
+    # (Invalid input domain)
+    {'func': 'log', 'x': [-10.], 'result': False,
+     'ignore_warning': RuntimeWarning},
+    {'func': 'tan', 'x': [default_eps * 1.2], 'result': False},
+    {'func': 'tan', 'x': [default_eps * 0.8], 'result': False},
+    {'func': 'tan', 'x': [math.pi / 2], 'result': True},
+    {'func': 'tan', 'x': [-math.pi / 2], 'result': True},
+    {'func': 'tan', 'x': [3 * math.pi / 2], 'result': True},
+    {'func': 'tan', 'x': [3 * math.pi / 2 + default_eps * 0.8],
+     'result': True},
+    {'func': 'tan', 'x': [3 * math.pi / 2 - default_eps * 0.8],
+     'result': True},
+    # (Smaller epsilon is required because slope is steep)
+    {'func': 'tan', 'x': [3 * math.pi / 2 + 1e-3], 'eps': 1e-6,
+     'result': False},
+    # (Smaller epsilon is required because slope is steep)
+    {'func': 'tan', 'x': [3 * math.pi / 2 - 1e-3], 'eps': 1e-6,
+     'result': False},
+    {'func': 'nan_segment', 'x': [0.], 'result': False},
+    {'func': 'nan_segment', 'x': [-1.], 'result': True},
+    {'func': 'nan_segment', 'x': [1.], 'result': True},
+])
+class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
+
+    def setUp(self):
+        self.eps = getattr(self, 'eps', default_eps)
+        self.ignore_warning = getattr(self, 'ignore_warning', None)
+
+    def _func_zero(self, x):
+        xp = cuda.get_array_module(x)
+        return xp.zeros_like(x),
+
+    def _func_linear(self, x):
+        return 2 * x,
+
+    def _func_quadratic(self, x):
+        return x * x + 2.,
+
+    def _func_cubic(self, x):
+        return -3 * x ** 3 + 2 * x ** 2 + 1,
+
+    def _func_abs(self, x):
+        return abs(x),
+
+    def _func_step(self, x):
+        xp = cuda.get_array_module(x)
+        y = xp.zeros_like(x)
+        y[x > 0] = 1
+        return y,
+
+    def _func_clip(self, x):
+        y = x.clip(0, 1)
+        return y,
+
+    def _func_floor(self, x):
+        xp = cuda.get_array_module(x)
+        return xp.floor(x),
+
+    def _func_exp(self, x):
+        xp = cuda.get_array_module(x)
+        return xp.exp(x),
+
+    def _func_log(self, x):
+        xp = cuda.get_array_module(x)
+        return xp.log(x),
+
+    def _func_tan(self, x):
+        xp = cuda.get_array_module(x)
+        return xp.tan(x),
+
+    def _func_nan_segment(self, x):
+        xp = cuda.get_array_module(x)
+        y = xp.ones_like(x)
+        y[-1 < x < 1] = numpy.nan
+        return y,
+
+    def check_positive(self, xp, func_name, inputs, eps, nout):
+        # Should be non-differentiable
+        func = getattr(self, '_func_{}'.format(func_name))
+        grad_outputs = [
+            xp.random.uniform(-1, 1, _.shape).astype(_.dtype) for _ in inputs]
+
+        def f():
+            return func(*inputs) * nout
+
+        try:
+            gradient_check.numerical_grad(
+                f, inputs, grad_outputs, eps=eps,
+                detect_nondifferentiable=True)
+        except gradient_check.NondifferentiableError:
+            pass
+        else:
+            raise AssertionError(
+                'Function `{}` is expected to be non-differentiable, '
+                'but determined to be differentiable.\n\n'
+                'eps: {}\n'
+                'inputs: {}\n'
+                'xp: {}\n'
+                ''.format(
+                    func_name, eps, inputs, xp.__name__))
+
+    def check_negative(self, xp, func_name, inputs, eps, nout):
+        # Should be differentiable
+        func = getattr(self, '_func_{}'.format(func_name))
+        grad_outputs = [
+            xp.random.uniform(-1, 1, _.shape).astype(_.dtype) for _ in inputs]
+
+        def f():
+            return func(*inputs) * nout
+
+        try:
+            gradient_check.numerical_grad(
+                f, inputs, grad_outputs, eps=eps,
+                detect_nondifferentiable=True)
+        except gradient_check.NondifferentiableError as e:
+            raise AssertionError(
+                'Function `{}` is expected to be differentiable, '
+                'but determined to be non-differentiable.\n\n'
+                'eps: {}\n'
+                'inputs: {}\n'
+                'xp: {}\n\n'
+                '{}: {}'
+                ''.format(
+                    func_name, eps, inputs, xp.__name__,
+                    e.__class__.__name__, e))
+
+    def check(self, xp, nout):
+        inputs = [xp.asarray(self.x).astype(numpy.float32)]
+        with warnings.catch_warnings():
+            if self.ignore_warning:
+                warnings.simplefilter('ignore', self.ignore_warning)
+
+            if self.result:
+                self.check_positive(xp, self.func, inputs, self.eps, nout)
+            else:
+                self.check_negative(xp, self.func, inputs, self.eps, nout)
+
+    def test_cpu(self):
+        self.check(numpy, 1)
+
+    @attr.gpu
+    def test_gpu(self):
+        self.check(cuda.cupy, 1)
+
+    def test_2_outputs_cpu(self):
+        self.check(numpy, 2)
+
+    @attr.gpu
+    def test_2_outputs_gpu(self):
+        self.check(cuda.cupy, 2)
+
+
 class AssertAllCloseTest(unittest.TestCase):
 
     def setUp(self):
@@ -390,6 +602,45 @@ class TestCheckBackward(unittest.TestCase):
 
         gradient_check.check_backward(f, (x1, x2), g1, eps=eps,
                                       no_grads=[False, True], dtype=self.dtype)
+
+
+class IdentNoneIsZero(chainer.Function):
+    """Identity function but following None-grad convention for RNNs"""
+
+    def forward(self, inputs):
+        return inputs
+
+    def backward(self, inputs, grads):
+        return tuple(
+            numpy.zeros_like(x) if g is None else g
+            for x, g in zip(inputs, grads)
+        )
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [None, numpy.float32, numpy.float64],
+    'size': [3, 1]
+}))
+class TestCheckBackwardNoneConvention(unittest.TestCase):
+    dtype = numpy.float64
+
+    def test_multiple_output(self):
+        size = self.size
+        x1 = numpy.arange(size).astype('f')
+        x2 = numpy.arange(size).astype('f')
+        g1 = numpy.ones(size, dtype='f')
+        g2 = numpy.ones(size, dtype='f')
+
+        def f(x, y):
+            s, t = IdentNoneIsZero()(x, y)
+            return s, t
+
+        gradient_check.check_backward(
+            f, (x1, x2), (g1, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+        gradient_check.check_backward(
+            f, (x1, x2), (g1, None), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+        gradient_check.check_backward(
+            f, (x1, x2), (None, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
 
 
 class TestCheckBackwardFailure(unittest.TestCase):
