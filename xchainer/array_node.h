@@ -5,10 +5,9 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/op_node.h"
 
 namespace xchainer {
-
-class OpNode;
 
 class ArrayNode {
 public:

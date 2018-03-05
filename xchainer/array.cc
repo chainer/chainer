@@ -9,6 +9,8 @@
 
 #include <gsl/gsl>
 
+#include "xchainer/array_body.h"
+#include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/backend.h"
 #include "xchainer/device.h"
@@ -19,11 +21,6 @@
 
 namespace xchainer {
 namespace internal {
-
-// Private definition of ArrayBody
-ArrayBody::ArrayBody(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset,
-                     std::vector<std::shared_ptr<ArrayNode>> nodes)
-    : shape_(shape), strides_(strides), dtype_(dtype), device_(device), data_(std::move(data)), offset_(offset), nodes_(std::move(nodes)) {}
 
 void SetUpOpNodes(const std::string& name, const std::vector<ConstArrayRef>& inputs, Array& out,
                   const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
@@ -94,19 +91,6 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 }  // namespace internal
 
-Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
-    : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
-
-Array::Array(const Array& other)
-    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.strides(), other.dtype(), other.device(), other.body_->data_,
-                                                  other.offset(), other.body_->nodes_)) {}
-
-const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return internal::GetArrayNode(*this, graph_id)->grad(); }
-
-void Array::SetGrad(Array grad, const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->set_grad(std::move(grad)); }
-
-void Array::ClearGrad(const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
-
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
     std::shared_ptr<void> device_data = internal::MemoryFromBuffer(device, data, bytesize);
@@ -138,6 +122,40 @@ Array Array::FullLike(const Array& array, Scalar scalar, Device& device) { retur
 Array Array::ZerosLike(const Array& array, Device& device) { return Zeros(array.shape(), array.dtype(), device); }
 
 Array Array::OnesLike(const Array& array, Device& device) { return Ones(array.shape(), array.dtype(), device); }
+
+Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
+    : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
+
+Array::Array(const Array& other)
+    : body_(std::make_shared<internal::ArrayBody>(other.shape(), other.strides(), other.dtype(), other.device(), other.body_->data_,
+                                                  other.offset(), other.body_->nodes_)) {}
+
+Array& Array::operator+=(const Array& rhs) {
+    Add(rhs, *this);
+    return *this;
+}
+
+Array& Array::operator*=(const Array& rhs) {
+    Mul(rhs, *this);
+    return *this;
+}
+
+Array Array::operator+(const Array& rhs) const {
+    Array out = Array::EmptyLike(*this, device());
+    Add(rhs, out);
+    return out;
+}
+
+Array Array::operator*(const Array& rhs) const {
+    Array out = Array::EmptyLike(*this, device());
+    Mul(rhs, out);
+    return out;
+}
+
+Array Array::Copy() const {
+    // No graph will be disconnected.
+    return AsConstant({}, CopyKind::kCopy);
+}
 
 Array Array::ToDevice(Device& dst_device) const {
     Device& src_device = body_->device_;
@@ -175,33 +193,6 @@ Array Array::ToDevice(Device& dst_device) const {
                            {[&src_device](const Array& gout, const std::vector<GraphId>&) -> Array { return gout.ToDevice(src_device); }},
                            {});
     return out;
-}
-
-Array& Array::operator+=(const Array& rhs) {
-    Add(rhs, *this);
-    return *this;
-}
-
-Array& Array::operator*=(const Array& rhs) {
-    Mul(rhs, *this);
-    return *this;
-}
-
-Array Array::operator+(const Array& rhs) const {
-    Array out = Array::EmptyLike(*this, device());
-    Add(rhs, out);
-    return out;
-}
-
-Array Array::operator*(const Array& rhs) const {
-    Array out = Array::EmptyLike(*this, device());
-    Mul(rhs, out);
-    return out;
-}
-
-Array Array::Copy() const {
-    // No graph will be disconnected.
-    return AsConstant({}, CopyKind::kCopy);
 }
 
 Array Array::AsConstant(CopyKind kind) const {
@@ -247,6 +238,16 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
     }
 }
 
+void Array::Fill(Scalar value) { device().Fill(*this, value); }
+
+const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return internal::GetArrayNode(*this, graph_id)->grad(); }
+
+void Array::SetGrad(Array grad, const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->set_grad(std::move(grad)); }
+
+void Array::ClearGrad(const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
+
+std::string Array::ToString() const { return ArrayRepr(*this); }
+
 void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
@@ -276,10 +277,6 @@ void Array::Mul(const Array& rhs, Array& out) const {
 
     device().Mul(*this, rhs, out);
 }
-
-void Array::Fill(Scalar value) { device().Fill(*this, value); }
-
-std::string Array::ToString() const { return ArrayRepr(*this); }
 
 namespace {
 
