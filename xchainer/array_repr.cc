@@ -240,6 +240,7 @@ struct ArrayReprImpl {
         }
 
         // Print the footer
+        os << ", shape=" << array.shape();
         os << ", dtype=" << array.dtype();
         os << ", device='" << array.device().name() << "'";
         const std::vector<std::shared_ptr<ArrayNode>>& nodes = array.nodes();
