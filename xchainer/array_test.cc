@@ -368,13 +368,6 @@ TEST_P(ArrayTest, ArrayMoveAssignmentOperator) {
     }
 }
 
-TEST_P(ArrayTest, IsContiguous) {
-    {
-        Array x = Array::Empty({1}, Dtype::kFloat32);
-        ASSERT_TRUE(x.IsContiguous());
-    }
-}
-
 TEST_P(ArrayTest, SetRequiresGrad) {
     // Default graph
     {
@@ -475,36 +468,42 @@ TEST_P(ArrayTest, EmptyWithVariousShapes) {
         EXPECT_EQ(0, x.ndim());
         EXPECT_EQ(1, x.GetTotalSize());
         EXPECT_EQ(int64_t{sizeof(float)}, x.GetTotalBytes());
+        EXPECT_TRUE(x.IsContiguous());
     }
     {
         Array x = Array::Empty(Shape{0}, Dtype::kFloat32);
         EXPECT_EQ(1, x.ndim());
         EXPECT_EQ(0, x.GetTotalSize());
         EXPECT_EQ(0, x.GetTotalBytes());
+        EXPECT_TRUE(x.IsContiguous());
     }
     {
         Array x = Array::Empty(Shape{1}, Dtype::kFloat32);
         EXPECT_EQ(1, x.ndim());
         EXPECT_EQ(1, x.GetTotalSize());
         EXPECT_EQ(int64_t{sizeof(float)}, x.GetTotalBytes());
+        EXPECT_TRUE(x.IsContiguous());
     }
     {
         Array x = Array::Empty(Shape{2, 3}, Dtype::kFloat32);
         EXPECT_EQ(2, x.ndim());
         EXPECT_EQ(6, x.GetTotalSize());
         EXPECT_EQ(6 * int64_t{sizeof(float)}, x.GetTotalBytes());
+        EXPECT_TRUE(x.IsContiguous());
     }
     {
         Array x = Array::Empty(Shape{1, 1, 1}, Dtype::kFloat32);
         EXPECT_EQ(3, x.ndim());
         EXPECT_EQ(1, x.GetTotalSize());
         EXPECT_EQ(int64_t{sizeof(float)}, x.GetTotalBytes());
+        EXPECT_TRUE(x.IsContiguous());
     }
     {
         Array x = Array::Empty(Shape{2, 0, 3}, Dtype::kFloat32);
         EXPECT_EQ(3, x.ndim());
         EXPECT_EQ(0, x.GetTotalSize());
         EXPECT_EQ(0, x.GetTotalBytes());
+        EXPECT_TRUE(x.IsContiguous());
     }
 }
 
