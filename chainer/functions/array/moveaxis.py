@@ -18,6 +18,9 @@ def _normalize_axis_tuple(axis, ndim, xp):
 def _moveaxis(a, source, destination, xp):
     if hasattr(xp, 'moveaxis'):
         return xp.moveaxis(a, source, destination)
+    if len(source) != len(destination):
+        raise ValueError('Length of source and destination are '
+                         'different.')
     source = _normalize_axis_tuple(source, a.ndim, xp)
     destination = _normalize_axis_tuple(destination, a.ndim, xp)
     order = [n for n in six.moves.range(a.ndim) if n not in source]
@@ -47,9 +50,6 @@ class Moveaxis(function_node.FunctionNode):
                                  'different.')
             if not all(isinstance(a, int) for a in destination):
                 raise ValueError('int or tuple of int are required.')
-            if len(source) != len(destination):
-                raise ValueError('Length of source and destination are '
-                                 'different.')
             if len(set(source)) != len(source):
                 raise ValueError('duplicate value in source axis: ({})'.format(
                     ', '.join(map(str, source))))
