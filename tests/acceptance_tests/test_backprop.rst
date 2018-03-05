@@ -14,7 +14,7 @@ False
 >>> xc.backward(y)
 >>> a.get_grad()
 array([[1., 1., 1.],
-       [1., 1., 1.]], dtype=float32, device='native:0')
+       [1., 1., 1.]], shape=(2, 3), dtype=float32, device='native:0')
 >>> y.get_grad()
 array([[0.5, 0.5, 0.5],
-       [0.5, 0.5, 0.5]], dtype=float32, device='native:0')
+       [0.5, 0.5, 0.5]], shape=(2, 3), dtype=float32, device='native:0')
