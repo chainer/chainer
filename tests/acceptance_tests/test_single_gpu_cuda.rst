@@ -36,3 +36,17 @@ Mixed
 >>> y = a + b * c;
 >>> y
 array([29., 42., 57.], shape=(3,), dtype=float32, device='cuda:0')
+
+Array.copy() copies the array on the same device
+------------------------------------------------
+
+>>> with xc.device_scope('native'):  # Allocate arrays on CPU
+...     a = xc.Array((2, 3), xc.float32, [0, 1, 2, 3, 4, 5]).require_grad()
+...
+>>> a.device
+native:0
+>>> with xc.device_scope('cuda'):
+...     a = a.copy()
+...
+>>> a.device
+native:0
