@@ -12,6 +12,7 @@
 #include "xchainer/python/error.h"
 #include "xchainer/python/scalar.h"
 #include "xchainer/python/shape.h"
+#include "xchainer/python/strides.h"
 
 namespace xchainer {
 
@@ -47,5 +48,6 @@ PYBIND11_MODULE(_core, m) {  // NOLINT
     xchainer::InitXchainerError(m);
     xchainer::InitXchainerScalar(m);
     xchainer::InitXchainerShape(m);
+    xchainer::InitXchainerStrides(m);
     xchainer::InitXchainerArray(m);
 }
