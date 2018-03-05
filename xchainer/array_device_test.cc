@@ -17,7 +17,6 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
-#include "xchainer/memory.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/native_device.h"
 #include "xchainer/testing/context_session.h"
@@ -35,21 +34,6 @@ private:
     nonstd::optional<testing::ContextSession> context_session_;
 };
 
-// Check that Array data exists on the specified device
-void ExpectDataExistsOnDevice(const Device& expected_device, const Array& array) {
-    // Check device member of the Array
-    EXPECT_EQ(&expected_device, &array.device());
-
-    // Check device of data pointee
-    if (expected_device.backend().GetName() == "native") {
-        EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
-    } else if (expected_device.backend().GetName() == "cuda") {
-        EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
-    } else {
-        FAIL() << "invalid device";
-    }
-}
-
 // Check that Arrays are created on the default device if no other devices are specified
 void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
     // Fallback to default device which is CPU
@@ -59,7 +43,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
         NativeDevice cpu_device{native_backend, 0};
         auto scope = std::make_unique<DeviceScope>(cpu_device);
         Array array = create_array_func();
-        ExpectDataExistsOnDevice(cpu_device, array);
+        EXPECT_EQ(&cpu_device, &array.device());
     }
 #ifdef XCHAINER_ENABLE_CUDA
     // Fallback to default device which is GPU
@@ -69,7 +53,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
         cuda::CudaDevice cuda_device{cuda_backend, 0};
         auto scope = std::make_unique<DeviceScope>(cuda_device);
         Array array = create_array_func();
-        ExpectDataExistsOnDevice(cuda_device, array);
+        EXPECT_EQ(&cuda_device, &array.device());
     }
 #endif
 }
@@ -83,12 +67,12 @@ void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_arra
     // Explicitly create on CPU
     {
         Array array = create_array_func(cpu_device);
-        ExpectDataExistsOnDevice(cpu_device, array);
+        EXPECT_EQ(&cpu_device, &array.device());
     }
     {
         auto scope = std::make_unique<DeviceScope>(cpu_device);
         Array array = create_array_func(cpu_device);
-        ExpectDataExistsOnDevice(cpu_device, array);
+        EXPECT_EQ(&cpu_device, &array.device());
     }
 #ifdef XCHAINER_ENABLE_CUDA
     cuda::CudaBackend cuda_backend{ctx};
@@ -97,22 +81,22 @@ void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_arra
     {
         auto scope = std::make_unique<DeviceScope>(cuda_device);
         Array array = create_array_func(cpu_device);
-        ExpectDataExistsOnDevice(cpu_device, array);
+        EXPECT_EQ(&cpu_device, &array.device());
     }
     // Explicitly create on GPU
     {
         Array array = create_array_func(cuda_device);
-        ExpectDataExistsOnDevice(cuda_device, array);
+        EXPECT_EQ(&cuda_device, &array.device());
     }
     {
         auto scope = std::make_unique<DeviceScope>(cpu_device);
         Array array = create_array_func(cuda_device);
-        ExpectDataExistsOnDevice(cuda_device, array);
+        EXPECT_EQ(&cuda_device, &array.device());
     }
     {
         auto scope = std::make_unique<DeviceScope>(cuda_device);
         Array array = create_array_func(cuda_device);
-        ExpectDataExistsOnDevice(cuda_device, array);
+        EXPECT_EQ(&cuda_device, &array.device());
     }
 #endif  // XCHAINER_ENABLE_CUDA
 }

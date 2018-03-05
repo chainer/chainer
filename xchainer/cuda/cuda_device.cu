@@ -11,7 +11,6 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
-#include "xchainer/memory.h"
 #include "xchainer/native_device.h"
 #include "xchainer/scalar.h"
 
@@ -59,7 +58,7 @@ std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
 }
 
 void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
-    assert(internal::IsPointerCudaMemory(dst));
+    assert(IsPointerCudaMemory(dst));
     if (&src_device == this || nullptr != dynamic_cast<CudaDevice*>(&src_device)) {
         // Copy between CUDA devices
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
@@ -71,7 +70,7 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
 }
 
 void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) {
-    assert(internal::IsPointerCudaMemory(src));
+    assert(IsPointerCudaMemory(src));
     if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
         // Copy between CUDA devices
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
