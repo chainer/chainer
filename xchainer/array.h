@@ -117,7 +117,7 @@ public:
 
     int64_t GetTotalBytes() const { return GetTotalSize() * element_bytes(); }
 
-    bool IsContiguous() const;
+    bool IsContiguous() const { return xchainer::IsContiguous(shape(), strides(), element_bytes()); }
 
     std::string ToString() const;
 

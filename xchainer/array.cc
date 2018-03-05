@@ -245,19 +245,6 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) { internal::GetMutableA
 
 void Array::ClearGrad(const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
 
-bool Array::IsContiguous() const {
-    Expects(shape().size() == strides().size());
-    int64_t elem_bytes = element_bytes();
-    auto shape_it = shape().rbegin();
-    for (auto strides_it = strides().rbegin(); strides_it != strides().rend(); ++shape_it, ++strides_it) {
-        if (*strides_it != elem_bytes) {
-            return false;
-        }
-        elem_bytes *= *shape_it;
-    }
-    return true;
-}
-
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
 void Array::Add(const Array& rhs, Array& out) const {

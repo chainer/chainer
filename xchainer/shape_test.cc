@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include "xchainer/dtype.h"
+#include "xchainer/strides.h"
+
 namespace xchainer {
 namespace {
 
@@ -87,6 +90,19 @@ TEST(ShapeTest, ToString) {
     {
         const Shape shape = {2, 3, 4};
         EXPECT_EQ(shape.ToString(), "(2, 3, 4)");
+    }
+}
+
+TEST(ShapeTest, IsContiguous) {
+    {
+        Shape shape{2, 3, 4};
+        Strides strides{shape, GetElementSize(Dtype::kFloat64)};
+        EXPECT_TRUE(IsContiguous(shape, strides, GetElementSize(Dtype::kFloat64)));
+    }
+    {
+        Shape shape{2, 3, 4};
+        Strides strides{shape, GetElementSize(Dtype::kFloat64)};
+        EXPECT_FALSE(IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
     }
 }
 

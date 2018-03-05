@@ -12,6 +12,8 @@
 
 namespace xchainer {
 
+class Strides;
+
 class Shape {
     using DimsType = std::array<int64_t, kMaxNdim>;
 
@@ -84,5 +86,7 @@ inline bool operator!=(const Shape& lhs, const Shape& rhs) { return lhs.span() !
 std::ostream& operator<<(std::ostream&, const Shape&);
 
 void CheckEqual(const Shape& lhs, const Shape& rhs);
+
+bool IsContiguous(const Shape& shape, const Strides& strides, int64_t element_bytes);
 
 }  // namespace xchainer

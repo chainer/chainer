@@ -3,6 +3,8 @@
 #include <functional>
 #include <numeric>
 
+#include "xchainer/strides.h"
+
 namespace xchainer {
 
 int64_t Shape::GetTotalSize() const {
@@ -34,6 +36,18 @@ void CheckEqual(const Shape& lhs, const Shape& rhs) {
     if (lhs != rhs) {
         throw DimensionError("shape mismatched");
     }
+}
+
+bool IsContiguous(const Shape& shape, const Strides& strides, int64_t element_bytes) {
+    Expects(shape.size() == strides.size());
+    auto shape_it = shape.rbegin();
+    for (auto strides_it = strides.rbegin(); strides_it != strides.rend(); ++shape_it, ++strides_it) {
+        if (*strides_it != element_bytes) {
+            return false;
+        }
+        element_bytes *= *shape_it;
+    }
+    return true;
 }
 
 }  // namespace xchainer
