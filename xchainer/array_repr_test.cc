@@ -156,7 +156,8 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         "array([[ 0.  ,  1.  ,  2.  ],\n"
         "       [-3.25,  4.  ,  5.  ]], shape=(2, 3), dtype=float64, device='native:0')",
         {0, 1, 2, -3.25, 4, 5}, Shape({2, 3}), device);
-    CheckArrayRepr<double>("array([[[[3.25]]]], shape=(1, 1, 1, 1), dtype=float64, device='native:0')", {3.25}, Shape({1, 1, 1, 1}), device);
+    CheckArrayRepr<double>("array([[[[3.25]]]], shape=(1, 1, 1, 1), dtype=float64, device='native:0')", {3.25}, Shape({1, 1, 1, 1}),
+                           device);
 
     // 0-sized
     CheckArrayRepr<int32_t>("array([], shape=(0, 1, 2), dtype=int32, device='native:0', graph_ids=['graph_1'])", {}, Shape({0, 1, 2}),
