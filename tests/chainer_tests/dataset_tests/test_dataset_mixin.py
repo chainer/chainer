@@ -16,6 +16,27 @@ class SimpleDataset(dataset.DatasetMixin):
     def get_example(self, i):
         return self.values[i]
 
+    @property
+    def features_length(self):
+        return 1
+
+
+class SimpleDataset2(dataset.DatasetMixin):
+
+    def __init__(self, values1, values2):
+        self.values1 = values1
+        self.values2 = values2
+
+    def __len__(self):
+        return len(self.values1)
+
+    def get_example(self, i):
+        return self.values1[i], self.values2
+
+    @property
+    def features_length(self):
+        return 2
+
 
 class TestDatasetMixin(unittest.TestCase):
 
@@ -77,6 +98,24 @@ class TestDatasetMixin(unittest.TestCase):
         for i in range(100):
             self.assertEqual(ds[i * 4096:(i + 1) * 4096],
                              ds.values[i * 4096:(i + 1) * 4096])
+
+    def test_dataset_mixin_features(self):
+        # Single feature test (SimpleDataset)
+        ds = self.ds
+
+        f0 = ds.features[:]
+        self.assertTrue((f0 == ds.values).all())
+        del f0
+
+        # Multiple features test (SimpleDataset2)
+        v0 = [1, 2, 3, 4, 5]
+        v1 = numpy.array([-1, -2, -3, -4, -5])
+        ds = SimpleDataset2(v0, v1)
+
+        f0, f1 = ds.features[:, :]
+        #self.assertTrue((f0 == v0).all())
+        self.assertTrue((f1 == v1).all())
+        del f0, f1
 
 
 testing.run_module(__name__, __file__)

@@ -61,6 +61,10 @@ class SubDataset(dataset_mixin.DatasetMixin):
     def __len__(self):
         return self._size
 
+    @property
+    def features_length(self):
+        return self._dataset.features.features_length
+
     def get_example(self, i):
         if i >= 0:
             if i >= self._size:

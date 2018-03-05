@@ -45,3 +45,7 @@ class TransformDataset(dataset_mixin.DatasetMixin):
     def get_example(self, i):
         in_data = self._dataset[i]
         return self._transform(in_data)
+
+    @property
+    def features_length(self):
+        return self._dataset.features.features_length

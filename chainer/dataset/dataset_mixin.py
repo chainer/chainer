@@ -1,6 +1,9 @@
 import numpy
 import six
 
+from chainer.dataset.indexer import BaseFeaturesIndexer, \
+    ExtractBySliceNotSupportedError
+
 
 class DatasetMixin(object):
 
@@ -15,6 +18,8 @@ class DatasetMixin(object):
     :meth:`__len__` operator explicitly.
 
     """
+    _features_indexer = None
+    _cache_features = None
 
     def __getitem__(self, index):
         """Returns an example or a sequence of examples.
@@ -84,3 +89,94 @@ class DatasetMixin(object):
 
         """
         raise NotImplementedError
+
+    @property
+    def features_length(self):
+        """Feature size
+        
+        It should return the number of variables returned by `get_example`.
+
+        """
+        raise NotImplementedError
+
+    def extract_feature_by_slice(self, slice_index, j):
+        """This method may be override to support efficient feature extraction.
+        
+        If not override, `ExtractBySliceNotSupportedError` is raised by default, 
+        and in this case `extract_feature` is used instead.
+
+        Args:
+            slice_index (slice): slice of data index to be extracted
+            j (int): `j`-th feature to be extracted
+
+        Returns: feature
+
+        """
+        raise ExtractBySliceNotSupportedError
+
+    def extract_feature(self, i, j):
+        """Extracts `i`-th data's `j`-th feature
+        
+        This method may be override to support efficient feature extraction.
+
+        Args:
+            i (int): `i`-th data to be extracted
+            j (int): `j`-th feature to be extracted
+
+        Returns: feature
+
+        """
+        if self._features_indexer._extract_single_feature:
+            data = self.get_example(i)
+        else:
+            if i not in self._cache_features:
+                print('[DEBUG] caching features...')
+                self._cache_features[i] = self.get_example(i)
+            data = self._cache_features[i]
+        if isinstance(data, tuple):
+            return data[j]
+        elif j == 0:
+            return data
+        else:
+            raise ValueError('[Error] unexpected behavior')
+
+    @property
+    def features(self):
+        if self._features_indexer is None:
+            self._features_indexer = DatasetMixinFeaturesIndexer(self)
+        return self._features_indexer
+
+    def preprocess_extract_feature(self, item):
+        self._cache_features = {}
+
+    def postprocess_extract_feature(self, item):
+        del self._cache_features
+
+
+class DatasetMixinFeaturesIndexer(BaseFeaturesIndexer):
+    """FeaturesIndexer for DatasetMixin"""
+
+    def __init__(self, dataset):
+        """
+
+        Args:
+            dataset (DatasetMixin): DatasetMixin instance
+        """
+        super(DatasetMixinFeaturesIndexer, self).__init__(dataset)
+        self.feature_cache = None
+
+    @property
+    def features_length(self):
+        return self.dataset.features_length
+
+    def extract_feature_by_slice(self, slice_index, j):
+        return self.dataset.extract_feature_by_slice(slice_index, j)
+
+    def extract_feature(self, i, j):
+        return self.dataset.extract_feature(i, j)
+
+    def preprocess(self, item):
+        self.dataset.preprocess_extract_feature(item)
+
+    def postprocess(self, item):
+        self.dataset.postprocess_extract_feature(item)
