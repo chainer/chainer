@@ -1,3 +1,5 @@
+import numpy
+
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
@@ -25,6 +27,36 @@ class Sqrt(function_node.FunctionNode):
         gx = self.get_retained_outputs()[0]
         gy = grad_outputs[0]
         return gy / (gx * 2.0),
+
+
+class Rsqrt(function_node.FunctionNode):
+
+    @property
+    def label(self):
+        return 'rsqrt'
+
+    def check_type_forward(self, in_types):
+        type_check.expect(
+            in_types.size() == 1,
+            in_types[0].dtype.kind == 'f',
+        )
+
+    def forward(self, inputs):
+        self.retain_inputs((0,))
+        x, = inputs
+        xp = cuda.get_array_module(x)
+        dtype = x.dtype
+        if xp is numpy:
+            out = xp.reciprocal(xp.sqrt(x, dtype=dtype), dtype=dtype)
+        else:
+            # CuPy provides `rsqrt` which is faster than `1.0 / sqrt(x)`.
+            out = cuda.cupyx.rsqrt(x, dtype=dtype)
+        return utils.force_array(out),
+
+    def backward(self, indexes, grad_outputs):
+        x, = self.get_retained_inputs()
+        gy, = grad_outputs
+        return gy * (x ** -1.5) * -0.5,
 
 
 def sqrt(x):
@@ -59,4 +91,4 @@ def rsqrt(x):
 
     .. seealso:: :func:`~chainer.functions.sqrt`
     """
-    return 1.0 / sqrt(x)
+    return Rsqrt().apply((x,))[0]
