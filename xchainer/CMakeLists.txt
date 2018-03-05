@@ -84,6 +84,7 @@ if(ENABLE_TEST)
         numeric_test.cc
         scalar_test.cc
         shape_test.cc
+        strides_test.cc
         )
     if(${CUDA_FOUND})
         CUDA_ADD_EXECUTABLE(xchainer_test ${srcs})
