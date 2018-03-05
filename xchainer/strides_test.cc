@@ -23,6 +23,18 @@ TEST(StridesTest, Ctor) {
         CheckSpanEqual({48, 16, 4}, strides.span());
     }
     {
+        const Strides strides{{2, 3, 4}, 4};
+        EXPECT_EQ(3, strides.ndim());
+        EXPECT_EQ(size_t{3}, strides.size());
+        CheckSpanEqual({48, 16, 4}, strides.span());
+    }
+    {
+        const Strides strides{{2, 3, 4}, Dtype::kInt32};
+        EXPECT_EQ(3, strides.ndim());
+        EXPECT_EQ(size_t{3}, strides.size());
+        CheckSpanEqual({48, 16, 4}, strides.span());
+    }
+    {
         const std::array<int64_t, kMaxNdim + 1> too_long = {1};
         EXPECT_THROW(Strides(gsl::make_span(too_long)), DimensionError);
     }
