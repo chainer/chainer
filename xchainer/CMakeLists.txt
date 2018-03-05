@@ -77,6 +77,7 @@ if(ENABLE_TEST)
         context_test.cc
         device_test.cc
         dtype_test.cc
+        indexer_test.cc
         numerical_gradient_test.cc
         memory_test.cc
         native_backend_test.cc
