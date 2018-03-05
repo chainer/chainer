@@ -1,11 +1,10 @@
 import unittest
 
-import mock
 import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -85,7 +84,7 @@ class TestSoftmaxCrossEntropy(unittest.TestCase):
         self.assertEqual(loss.data.shape, ())
         self.assertEqual(loss.data.dtype, self.dtype)
         if not self.enable_double_backprop:
-            self.assertEqual(hasattr(loss.creator, 'y'), self.cache_score)
+            assert (loss.creator.y is not None) == self.cache_score
         loss_value = float(cuda.to_cpu(loss.data))
 
         # Compute expected value
@@ -263,7 +262,7 @@ class TestSoftmaxCrossEntropyCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cuda.cudnn.softmaxForward') as func:
+            with testing.patch('cupy.cuda.cudnn.softmaxForward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))
@@ -365,7 +364,7 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
         self.assertEqual(loss.shape, t_data.shape)
         self.assertEqual(loss.data.dtype, self.dtype)
         if not self.enable_double_backprop:
-            self.assertEqual(hasattr(loss.creator, 'y'), self.cache_score)
+            assert (loss.creator.y is not None) == self.cache_score
         loss_value = cuda.to_cpu(loss.data)
 
         x = numpy.rollaxis(self.x, 1, self.x.ndim).reshape(

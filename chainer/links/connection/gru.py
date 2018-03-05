@@ -70,7 +70,7 @@ class StatelessGRU(GRUBase):
 
     See:
         - `On the Properties of Neural Machine Translation: Encoder-Decoder
-          Approaches <http://www.aclweb.org/anthology/W14-4012>`_
+          Approaches <https://www.aclweb.org/anthology/W14-4012>`_
           [Cho+, SSST2014].
         - `Empirical Evaluation of Gated Recurrent Neural Networks on Sequence
           Modeling <https://arxiv.org/abs/1412.3555>`_
@@ -86,8 +86,8 @@ class StatelessGRU(GRUBase):
 
         >>> in_size = 10
         >>> out_size = 20
-        >>> x = np.zeros((1, in_size), dtype='f')
-        >>> h = np.zeros((1, out_size), dtype='f')
+        >>> x = np.zeros((1, in_size), dtype=np.float32)
+        >>> h = np.zeros((1, out_size), dtype=np.float32)
 
         1. Give both  ``in_size`` and ``out_size`` arguments:
 
@@ -172,7 +172,7 @@ class StatefulGRU(GRUBase):
 
         >>> in_size = 10
         >>> out_size = 20
-        >>> x = np.zeros((1, in_size), dtype='f')
+        >>> x = np.zeros((1, in_size), dtype=np.float32)
 
         1. Give only ``in_size`` and ``out_size`` arguments:
 
@@ -183,9 +183,9 @@ class StatefulGRU(GRUBase):
 
         2. Give all optional arguments:
 
-            >>> init = np.zeros((out_size, in_size), dtype='f')
-            >>> inner_init = np.zeros((out_size, out_size), dtype='f')
-            >>> bias = np.zeros((1, out_size), dtype='f')
+            >>> init = np.zeros((out_size, in_size), dtype=np.float32)
+            >>> inner_init = np.zeros((out_size, out_size), dtype=np.float32)
+            >>> bias = np.zeros((1, out_size), dtype=np.float32)
             >>> l = L.StatefulGRU(in_size, out_size, init=init,
             ...     inner_init=inner_init, bias_init=bias)
             >>> h_new = l(x)

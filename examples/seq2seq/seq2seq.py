@@ -8,7 +8,7 @@ import progressbar
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import training
@@ -150,7 +150,7 @@ class Seq2seq(chainer.Chain):
     def __call__(self, xs, ys):
         xs = [x[::-1] for x in xs]
 
-        eos = self.xp.array([EOS], 'i')
+        eos = self.xp.array([EOS], numpy.int32)
         ys_in = [F.concat([eos, y], axis=0) for y in ys]
         ys_out = [F.concat([y, eos], axis=0) for y in ys]
 
@@ -196,7 +196,7 @@ class Seq2seq(chainer.Chain):
             if self.use_bidirectional:
                 h = h[::2]
                 c = c[::2]
-            ys = self.xp.full(batch, EOS, 'i')
+            ys = self.xp.full(batch, EOS, numpy.int32)
             result = []
             for i in range(max_length):
                 eys = self.embed_y(ys)
@@ -210,10 +210,13 @@ class Seq2seq(chainer.Chain):
                     cys = F.concat([cys, cvs], axis=1)
 
                 wy = self.W(cys)
-                ys = self.xp.argmax(wy.data, axis=1).astype('i')
+                ys = self.xp.argmax(wy.data, axis=1).astype(numpy.int32)
                 result.append(ys)
 
-        result = cuda.to_cpu(self.xp.stack(result).T)
+        # Using `xp.concatenate(...)` instead of `xp.stack(result)` here to
+        # support NumPy 1.9.
+        result = cuda.to_cpu(
+            self.xp.concatenate([self.xp.expand_dims(x, 0) for x in result]).T)
 
         # Remove EOS taggs
         outs = []
@@ -234,7 +237,8 @@ def convert(batch, device):
         else:
             xp = cuda.cupy.get_array_module(*batch)
             concat = xp.concatenate(batch, axis=0)
-            sections = numpy.cumsum([len(x) for x in batch[:-1]], dtype='i')
+            sections = numpy.cumsum([len(x)
+                                     for x in batch[:-1]], dtype=numpy.int32)
             concat_dev = chainer.dataset.to_device(device, concat)
             batch_dev = cuda.cupy.split(concat_dev, sections)
             return batch_dev
@@ -300,7 +304,8 @@ def load_data(vocabulary, path):
     with open(path) as f:
         for line in bar(f, max_value=n_lines):
             words = line.strip().split()
-            array = numpy.array([vocabulary.get(w, UNK) for w in words], 'i')
+            array = numpy.array([vocabulary.get(w, UNK)
+                                 for w in words], numpy.int32)
             data.append(array)
     return data
 
@@ -358,6 +363,7 @@ def main():
                         help='use bidirectional LSTM encoder')
     args = parser.parse_args()
 
+    # Load pre-processed dataset
     source_ids = load_vocabulary(args.SOURCE_VOCAB)
     target_ids = load_vocabulary(args.TARGET_VOCAB)
     train_source = load_data(source_ids, args.SOURCE)
@@ -383,19 +389,33 @@ def main():
     target_words = {i: w for w, i in target_ids.items()}
     source_words = {i: w for w, i in source_ids.items()}
 
+
+<< << << < HEAD
     model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit,
                     args.dropout, args.use_attention, args.use_bidirectional)
+== == == =
+# Setup model
+    model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit)
+>>>>>> > master
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
+        chainer.backends.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
 
+<< << << < HEAD
     optimizer = chainer.optimizers.Adam(alpha=1e-4)
+== == == =
+# Setup optimizer
+    optimizer = chainer.optimizers.Adam()
+>>>>>> > master
     optimizer.setup(model)
 
+    # Setup iterator
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
-    updater = training.StandardUpdater(
+
+    # Setup updater and trainer
+    updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'))
+    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
     trainer.extend(extensions.LogReport(
         trigger=(args.log_interval, 'iteration')))
     trainer.extend(extensions.PrintReport(
@@ -430,8 +450,8 @@ def main():
             target_sentence = ' '.join([target_words[y] for y in target])
             result_sentence = ' '.join([target_words[y] for y in result])
             print('# source : ' + source_sentence)
-            print('#  result : ' + result_sentence)
-            print('#  expect : ' + target_sentence)
+            print('# result : ' + result_sentence)
+            print('# expect : ' + target_sentence)
 
         trainer.extend(
             translate, trigger=(args.validation_interval, 'iteration'))

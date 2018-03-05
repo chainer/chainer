@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import optimizer
 
 
@@ -74,9 +74,8 @@ class AdaGrad(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, lr=_default_hyperparam.lr,
-                 eps=_default_hyperparam.eps, model=None):
-        super(AdaGrad, self).__init__(model)
+    def __init__(self, lr=_default_hyperparam.lr, eps=_default_hyperparam.eps):
+        super(AdaGrad, self).__init__()
         self.hyperparam.lr = lr
         self.hyperparam.eps = eps
 

@@ -9,4 +9,4 @@ So, you can apply this example to another problems such as named entity recognit
 This example uses traditional linear-chain CRF model.
 And of course you can extends this model with RNN, LSTM, Bi-LSTM and CNN.
 
-You need to install nltk (http://www.nltk.org/) to execute the example.
+You need to install nltk (https://www.nltk.org/) to execute the example.

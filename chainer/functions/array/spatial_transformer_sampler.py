@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import argument
 from chainer.utils import type_check
@@ -233,7 +233,7 @@ class SpatialTransformerSampler(function.Function):
         if xp is numpy:
             scatter_add = numpy.add.at
         else:
-            scatter_add = xp.scatter_add
+            scatter_add = cuda.cupyx.scatter_add
         gx = xp.zeros_like(x_pad)
         gy = gy.reshape(B, C, -1)
         for b in range(B):

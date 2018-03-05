@@ -1,8 +1,9 @@
 import itertools
+
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.utils.conv import get_conv_outsize
 from chainer.utils import conv_nd_kernel
 

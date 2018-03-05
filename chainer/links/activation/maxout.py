@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.activation import maxout
 from chainer import link
 from chainer.links.connection import linear
