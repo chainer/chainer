@@ -227,6 +227,8 @@ def linear(x, W, b=None, n_batch_axes=1):
         batch_shape = x.shape[:n_batch_axes]
         batch_size = numpy.prod(batch_shape)
         x = x.reshape(batch_size, -1)
+    elif x.ndim > 2:
+        x = x.reshape(x.shape[0], -1)
     if b is None:
         args = x, W
     else:
