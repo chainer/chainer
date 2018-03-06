@@ -142,12 +142,8 @@ class TestMaxPoolingND(unittest.TestCase):
             return functions.max_pooling_nd(
                 x, self.ksize, stride=self.stride, pad=self.pad,
                 cover_all=self.cover_all)
-        with chainer.using_config('use_cudnn', use_cudnn):
-            def f(x):
-                return functions.max_pooling_nd(
-                    x, self.ksize, stride=self.stride, pad=self.pad,
-                    cover_all=self.cover_all)
 
+        with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
                 f, x_data, y_grad, dtype='d', **self.check_backward_options)
 
