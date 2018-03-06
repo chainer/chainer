@@ -156,7 +156,7 @@ struct ArrayReprImpl {
         // TODO(niboshi): Replace with Indxer class.
         auto shape = array.shape();
         Indexer<kDynamicNdim> indexer{shape};
-        IndexableArray<const T> iarray{static_cast<const T*>(array.data().get()), array.strides()};
+        IndexableArray<const T> iarray{array};
 
         array.device().Synchronize();
 
