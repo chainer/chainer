@@ -15,7 +15,6 @@
 #include "xchainer/backend.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
-#include "xchainer/memory.h"
 #include "xchainer/op_node.h"
 #include "xchainer/scalar.h"
 
@@ -72,7 +71,7 @@ bool HasArrayNode(const Array& array, const GraphId& graph_id) {
 
 const std::shared_ptr<ArrayNode>& CreateArrayNode(Array& array, const GraphId& graph_id) {
     if (HasArrayNode(array, graph_id)) {
-        throw XchainerError("Duplicate graph registration: " + graph_id);
+        throw XchainerError("Duplicate graph registration: '" + graph_id + "'.");
     }
     array.nodes().emplace_back(std::make_shared<ArrayNode>(graph_id));
     return array.nodes().back();
@@ -84,7 +83,7 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
     auto it =
         std::find_if(array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); });
     if (it == array.nodes().end()) {
-        throw XchainerError("Cannot find ArrayNode for graph_id: " + graph_id + ", array: " + array.ToString());
+        throw XchainerError("Array does not belong to the graph: '" + graph_id + "'.");
     }
     return *it;
 }
@@ -93,13 +92,13 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
-    std::shared_ptr<void> device_data = internal::MemoryFromBuffer(device, data, bytesize);
+    std::shared_ptr<void> device_data = device.FromBuffer(data, bytesize);
     return {shape, Strides{shape, dtype}, dtype, device, device_data};
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
-    std::shared_ptr<void> data = internal::Allocate(device, bytesize);
+    std::shared_ptr<void> data = device.Allocate(bytesize);
     return {shape, Strides{shape, dtype}, dtype, device, data};
 }
 
@@ -181,7 +180,7 @@ Array Array::ToDevice(Device& dst_device) const {
         offset = static_cast<int64_t>(std::get<1>(data_tuple));
     } else {
         // Neither backends support transfer
-        throw XchainerError("Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'");
+        throw XchainerError("Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'.");
     }
 
     // Create contiguous output array.

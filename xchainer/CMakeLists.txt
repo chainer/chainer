@@ -22,7 +22,6 @@ install(FILES
     indexable_array.h
     indexer.h
     macro.h
-    memory.h
     native_backend.h
     native_device.h
     scalar.h
@@ -41,7 +40,6 @@ add_library(xchainer SHARED
     device.cc
     device_id.cc
     dtype.cc
-    memory.cc
     native_backend.cc
     native_device.cc
     numeric.cc
@@ -77,13 +75,14 @@ if(ENABLE_TEST)
         context_test.cc
         device_test.cc
         dtype_test.cc
+        indexer_test.cc
         numerical_gradient_test.cc
-        memory_test.cc
         native_backend_test.cc
         native_device_test.cc
         numeric_test.cc
         scalar_test.cc
         shape_test.cc
+        strides_test.cc
         )
     if(${CUDA_FOUND})
         CUDA_ADD_EXECUTABLE(xchainer_test ${srcs})
