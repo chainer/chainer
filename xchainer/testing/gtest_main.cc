@@ -1,6 +1,19 @@
 #include <gtest/gtest.h>
+#include <iostream>
 
-int main(int argc, char **argv) {
+#include "xchainer/testing/util.h"
+
+int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    int status = RUN_ALL_TESTS();
+
+    if (xchainer::testing::GetMinSkippedNativeDevice() >= 0) {
+        std::cout << "SKIPPED: NATIVE tests requiring devices more than " << xchainer::testing::GetMinSkippedNativeDevice() << "."
+                  << std::endl;
+    }
+    if (xchainer::testing::GetMinSkippedCudaDevice() >= 0) {
+        std::cout << "SKIPPED: CUDA tests requiring devices more than " << xchainer::testing::GetMinSkippedCudaDevice() << "." << std::endl;
+    }
+
+    return status;
 }

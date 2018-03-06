@@ -7,5 +7,6 @@ install(FILES
 
 if(${ENABLE_TEST})
     add_library(xchainer_testing SHARED
+        util.cc
         gtest_main.cc)
 endif()

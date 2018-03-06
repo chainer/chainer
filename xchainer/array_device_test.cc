@@ -39,17 +39,13 @@ private:
 
 // Check that Arrays are created on the default device if no other devices are specified
 void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
-    if (!testing::IsDeviceAvailable(10)) {
-        const ::testing::TestInfo* const test_info =
-              ::testing::UnitTest::GetInstance()->current_test_info();
-        std::cout << "[     SKIP ] " << test_info->test_case_name() << "." << test_info->name() << std::endl;
-        return;
-    }
-
     // Fallback to default device which is CPU
     {
         Context& ctx = GetDefaultContext();
         NativeBackend native_backend{ctx};
+
+        SKIP_UNLESS_DEVICE_AVAILABLE(native_backend, 10);
+
         NativeDevice cpu_device{native_backend, 0};
         auto scope = std::make_unique<DeviceScope>(cpu_device);
         Array array = create_array_func();
@@ -60,6 +56,9 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
     {
         Context& ctx = GetDefaultContext();
         cuda::CudaBackend cuda_backend{ctx};
+
+        SKIP_UNLESS_DEVICE_AVAILABLE(cuda_backend, 10);
+
         cuda::CudaDevice cuda_device{cuda_backend, 0};
         auto scope = std::make_unique<DeviceScope>(cuda_device);
         Array array = create_array_func();

@@ -1,35 +1,26 @@
 #pragma once
 
-#include <cstdlib>
-#include <string>
+#include <mutex>
 
 #include "xchainer/backend.h"
 
-#define SKIP_UNLESS_DEVICE_AVAILABLE(num) \
-    if (!IsDeviceAvailable((num))) { return; }
+#define SKIP_UNLESS_DEVICE_AVAILABLE(backend, num)                             \
+    do {                                                                       \
+        if (xchainer::testing::SkipsUnlessDeviceAvailable((backend), (num))) { \
+            return;                                                            \
+        }                                                                      \
+    } while (0)
 
 namespace xchainer {
 namespace testing {
 
-bool IsDeviceAvailable(int num, Backend& backend = GetDefaultDevice().backend()) {
-    int limit = 0;
-    const char* env = nullptr;
-    if (backend.GetName() == "native") {
-        env = std::getenv("XCHAINER_TEST_NATIVE_LIMIT");
-    } else if (backend.GetName() == "cuda") {
-        env = std::getenv("XCHAINER_TEST_CUDA_LIMIT");
-    } else {
-        throw BackendError("invalid backend: " + backend.GetName());
-    }
-    if (env == nullptr) {
-        limit = backend.GetDeviceCount();
-    }
-    else {
-        limit = std::stoi(env);
-    }
-    return num < limit;
-}
+int GetMinSkippedNativeDevice();
+
+int GetMinSkippedCudaDevice();
+
+bool IsDeviceAvailable(Backend& backend, int num);
+
+bool SkipsUnlessDeviceAvailable(Backend& backend, int num);
 
 }  // namespace testing
 }  // namespace xchainer
-
