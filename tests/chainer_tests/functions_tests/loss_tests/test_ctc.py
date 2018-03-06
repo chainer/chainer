@@ -113,7 +113,8 @@ class CTCTestBase(object):
     def check_backward(self, t_data, xs_data, l_length, x_length, gy_data):
         def f(input_length, label_length, t, *x):
             return functions.connectionist_temporal_classification(
-                x, t, self.blank_symbol, x_length, l_length, reduce=self.reduce)
+                x, t, self.blank_symbol, x_length, l_length,
+                reduce=self.reduce)
 
         gradient_check.check_backward(
             f, (x_length, l_length, t_data) + xs_data, gy_data,
