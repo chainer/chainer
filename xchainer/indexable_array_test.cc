@@ -1,6 +1,7 @@
 #include "xchainer/indexable_array.h"
 
 #include <array>
+#include <numeric>
 
 #include <gtest/gtest.h>
 
