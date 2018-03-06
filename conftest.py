@@ -1,5 +1,6 @@
 import pytest
 import os
+import xchainer
 
 def pytest_configure(config):
     _register_cuda_marker(config)
@@ -28,6 +29,13 @@ def _setup_cuda_marker(item):
     cuda_marker = item.get_marker('cuda')
     if cuda_marker is not None:
         required_num = cuda_marker.args[0] if cuda_marker.args else 1
-        minimum_num = int(os.getenv('XCHAINER_TEST_CUDA_LIMIT', '-1'))
-        if 0 <= minimum_num and minimum_num < required_num:
+        if _cuda_limit() < required_num:
             pytest.skip('{} NVIDIA GPUs required'.format(required_num))
+
+
+def _cuda_limit():
+    if os.getenv('XCHAINER_TEST_CUDA_LIMIT') is None:
+        backend = xchainer.get_global_default_context().get_backend('cuda')
+        return backend.get_device_count()
+    else:
+        return int(os.getenv('XCHAINER_TEST_CUDA_LIMIT'))
