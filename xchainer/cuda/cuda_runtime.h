@@ -20,6 +20,8 @@ void CheckError(cudaError_t error);
 
 void Throw(cudaError_t error);
 
+bool IsPointerCudaMemory(const void* ptr);
+
 // Occupancy
 #ifdef __CUDACC__
 

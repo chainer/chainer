@@ -7,7 +7,6 @@
 #include "xchainer/context.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/device.h"
-#include "xchainer/memory.h"
 #include "xchainer/native_backend.h"
 
 namespace xchainer {
@@ -204,7 +203,7 @@ TEST_P(CudaBackendTransferTest, TransferDataTo) {
         EXPECT_EQ(device1.index(), attr.device);
     } else {
         // Destination is native device
-        EXPECT_FALSE(internal::IsPointerCudaMemory(std::get<0>(tuple).get()));
+        EXPECT_FALSE(IsPointerCudaMemory(std::get<0>(tuple).get()));
     }
 }
 

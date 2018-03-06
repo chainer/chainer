@@ -15,7 +15,6 @@
 #include "xchainer/backend.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
-#include "xchainer/memory.h"
 #include "xchainer/op_node.h"
 #include "xchainer/scalar.h"
 
@@ -93,13 +92,13 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
-    std::shared_ptr<void> device_data = internal::MemoryFromBuffer(device, data, bytesize);
+    std::shared_ptr<void> device_data = device.FromBuffer(data, bytesize);
     return {shape, Strides{shape, dtype}, dtype, device, device_data};
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
-    std::shared_ptr<void> data = internal::Allocate(device, bytesize);
+    std::shared_ptr<void> data = device.Allocate(bytesize);
     return {shape, Strides{shape, dtype}, dtype, device, data};
 }
 

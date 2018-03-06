@@ -15,7 +15,6 @@
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
-#include "xchainer/memory.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/testing/array.h"
@@ -107,21 +106,6 @@ public:
         EXPECT_EQ(a.offset(), b.offset());
     }
 
-    void ExpectDataExistsOnDefaultDevice(const Array& array) {
-        Device& device = GetDefaultDevice();
-
-        // Check device_id accessor
-        EXPECT_EQ(&device, &array.device());
-
-        if (device.backend().GetName() == "native") {
-            EXPECT_FALSE(internal::IsPointerCudaMemory(array.data().get()));
-        } else if (device.backend().GetName() == "cuda") {
-            EXPECT_TRUE(internal::IsPointerCudaMemory(array.data().get()));
-        } else {
-            FAIL() << "invalid device_id";
-        }
-    }
-
     template <bool is_const, typename T>
     void CheckFromBuffer(const Shape& shape, std::initializer_list<T> raw_data) {
         using TargetArray = std::conditional_t<is_const, const Array, Array>;
@@ -147,9 +131,9 @@ public:
 
         // Array::data
         ExpectDataEqual<T>(data.get(), x);
-        ExpectDataExistsOnDefaultDevice(x);
 
         Device& device = GetDefaultDevice();
+        EXPECT_EQ(&device, &x.device());
         if (device.backend().GetName() == "native") {
             EXPECT_EQ(data.get(), x.data().get());
         } else if (device.backend().GetName() == "cuda") {
@@ -168,7 +152,7 @@ public:
         EXPECT_EQ(x.dtype(), dtype);
         EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
-        ExpectDataExistsOnDefaultDevice(x);
+        EXPECT_EQ(&GetDefaultDevice(), &x.device());
     }
 
     template <typename T>
@@ -182,7 +166,7 @@ public:
         EXPECT_EQ(x.dtype(), x_orig.dtype());
         EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
-        ExpectDataExistsOnDefaultDevice(x);
+        EXPECT_EQ(&GetDefaultDevice(), &x.device());
     }
 
     template <typename T>
@@ -208,7 +192,7 @@ public:
         EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
-        ExpectDataExistsOnDefaultDevice(x);
+        EXPECT_EQ(&GetDefaultDevice(), &x.device());
     }
 
     template <typename T>
@@ -226,7 +210,7 @@ public:
         EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(value, x);
-        ExpectDataExistsOnDefaultDevice(x);
+        EXPECT_EQ(&GetDefaultDevice(), &x.device());
     }
 
     template <typename T>
@@ -241,7 +225,7 @@ public:
         EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
         ExpectDataEqual(expected, x);
-        ExpectDataExistsOnDefaultDevice(x);
+        EXPECT_EQ(&GetDefaultDevice(), &x.device());
     }
 
     template <typename T>
@@ -260,7 +244,7 @@ public:
         EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
-        ExpectDataExistsOnDefaultDevice(x);
+        EXPECT_EQ(&GetDefaultDevice(), &x.device());
     }
 
     template <typename T>
@@ -276,7 +260,7 @@ public:
         EXPECT_EQ(0, x.offset());
         T expected{0};
         ExpectDataEqual(expected, x);
-        ExpectDataExistsOnDefaultDevice(x);
+        EXPECT_EQ(&GetDefaultDevice(), &x.device());
     }
 
     template <typename T>
@@ -290,7 +274,7 @@ public:
         EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
-        ExpectDataExistsOnDefaultDevice(x);
+        EXPECT_EQ(&GetDefaultDevice(), &x.device());
     }
 
     template <typename T>
@@ -306,7 +290,7 @@ public:
         EXPECT_EQ(0, x.offset());
         T expected{1};
         ExpectDataEqual(expected, x);
-        ExpectDataExistsOnDefaultDevice(x);
+        EXPECT_EQ(&GetDefaultDevice(), &x.device());
     }
 
 private:
