@@ -27,7 +27,6 @@ def test_attr(strides_init_inputs):
     strides = xchainer.Strides(tup)
 
     assert strides.ndim == len(tup)
-    assert strides.size == len(tup)
     assert str(strides) == str(tup)
 
 

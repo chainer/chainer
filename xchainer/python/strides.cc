@@ -33,8 +33,7 @@ void InitXchainerStrides(pybind11::module& m) {
                  }
              })
         .def("__repr__", static_cast<std::string (Strides::*)() const>(&Strides::ToString))
-        .def_property_readonly("ndim", &Strides::ndim)
-        .def_property_readonly("size", &Strides::size);
+        .def_property_readonly("ndim", &Strides::ndim);
 
     py::implicitly_convertible<py::tuple, Strides>();
 }

@@ -31,7 +31,6 @@ def test_attr(shape_init_inputs):
     shape = xchainer.Shape(tup)
 
     assert shape.ndim == len(tup)
-    assert shape.size == len(tup)
     assert str(shape) == str(tup)
 
     expected_total_size = functools.reduce(operator.mul, tup, 1)
