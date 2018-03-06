@@ -1,5 +1,7 @@
 #include "xchainer/strides.h"
 
+#include <vector>
+
 #include <gtest/gtest.h>
 
 namespace xchainer {
@@ -19,6 +21,12 @@ TEST(StridesTest, Ctor) {
     {
         const std::array<int64_t, 3> dims = {48, 16, 4};
         const Strides strides(gsl::make_span(dims));
+        EXPECT_EQ(3, strides.ndim());
+        CheckSpanEqual({48, 16, 4}, strides.span());
+    }
+    {
+        const std::vector<int64_t> dims = {48, 16, 4};
+        const Strides strides(dims.begin(), dims.end());
         EXPECT_EQ(3, strides.ndim());
         CheckSpanEqual({48, 16, 4}, strides.span());
     }

@@ -34,6 +34,13 @@ public:
     // by initializer list
     Strides(std::initializer_list<int64_t> dims) : Strides(gsl::make_span(dims.begin(), dims.end())) {}
 
+    // by iterators
+    template<typename InputIt>
+    Strides(InputIt first, InputIt last) : dims_(), ndim_(last - first) {
+        CheckNdim();
+        std::copy(first, last, dims_.begin());
+    }
+
     // copy
     Strides(const Strides&) = default;
     Strides& operator=(const Strides&) = delete;
