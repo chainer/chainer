@@ -12,29 +12,55 @@
 namespace xchainer {
 namespace testing {
 
+namespace {
+
 std::atomic<int> g_skipped_native_test_count{0};
 std::atomic<int> g_skipped_cuda_test_count{0};
+
+int GetNativeLimit(Backend& backend) {
+    static int limit = -1;
+    if (limit > 0) return limit;
+    const char* env = std::getenv("XCHAINER_TEST_NATIVE_LIMIT");
+    if (env == nullptr) {
+        limit = backend.GetDeviceCount();
+    } else {
+        limit = std::stoi(env);
+        if (limit < 0) {
+            throw XchainerError("invalid number of XCHAINER_TEST_NATIVE_LIMIT: " + std::string(env));
+        }
+    }
+    return limit;
+}
+
+int GetCudaLimit(Backend& backend) {
+    static int limit = -1;
+    if (limit > 0) return limit;
+    const char* env = std::getenv("XCHAINER_TEST_CUDA_LIMIT");
+    if (env == nullptr) {
+        limit = backend.GetDeviceCount();
+    } else {
+        limit = std::stoi(env);
+        if (limit < 0) {
+            throw XchainerError("invalid number of XCHAINER_TEST_CUDA_LIMIT: " + std::string(env));
+        }
+    }
+    return limit;
+}
+
+}  // namespace
 
 int GetSkippedNativeTestCount() { return g_skipped_native_test_count; }
 
 int GetSkippedCudaTestCount() { return g_skipped_cuda_test_count; }
 
 int GetDeviceLimit(Backend& backend) {
-    int limit = 0;
-    const char* env = nullptr;
     if (backend.GetName() == "native") {
-        env = std::getenv("XCHAINER_TEST_NATIVE_LIMIT");
+        return GetNativeLimit(backend);
     } else if (backend.GetName() == "cuda") {
-        env = std::getenv("XCHAINER_TEST_CUDA_LIMIT");
+        return GetCudaLimit(backend);
     } else {
         throw BackendError("invalid backend: " + backend.GetName());
     }
-    if (env == nullptr) {
-        limit = backend.GetDeviceCount();
-    } else {
-        limit = std::stoi(env);
-    }
-    return limit;
 }
 
 bool SkipsUnlessDeviceAvailable(Backend& backend, int num) {

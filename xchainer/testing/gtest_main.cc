@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-#include "xchainer/testing/util.h"
-#include "xchainer/context.h"
 #include "xchainer/backend.h"
+#include "xchainer/context.h"
+#include "xchainer/testing/util.h"
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
         std::cout << "[  SKIPPED ] " << xchainer::testing::GetSkippedCudaTestCount() << " CUDA tests requiring devices more than "
                   << xchainer::testing::GetDeviceLimit(backend) << "." << std::endl;
     }
-#endif // XCHAINER_ENABLE_CUDA
+#endif  // XCHAINER_ENABLE_CUDA
 
     return status;
 }
