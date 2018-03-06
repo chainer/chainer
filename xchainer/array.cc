@@ -72,7 +72,7 @@ bool HasArrayNode(const Array& array, const GraphId& graph_id) {
 
 const std::shared_ptr<ArrayNode>& CreateArrayNode(Array& array, const GraphId& graph_id) {
     if (HasArrayNode(array, graph_id)) {
-        throw XchainerError("Duplicate graph registration: " + graph_id);
+        throw XchainerError("Duplicate graph registration: '" + graph_id + "'.");
     }
     array.nodes().emplace_back(std::make_shared<ArrayNode>(graph_id));
     return array.nodes().back();
@@ -181,7 +181,7 @@ Array Array::ToDevice(Device& dst_device) const {
         offset = static_cast<int64_t>(std::get<1>(data_tuple));
     } else {
         // Neither backends support transfer
-        throw XchainerError("Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'");
+        throw XchainerError("Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'.");
     }
 
     // Create contiguous output array.
