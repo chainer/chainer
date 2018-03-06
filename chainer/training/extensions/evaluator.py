@@ -3,7 +3,6 @@ import warnings
 
 import six
 
-import chainer
 from chainer import configuration
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
@@ -96,7 +95,7 @@ class Evaluator(extension.Extension):
             if (isinstance(iter, (iterators.SerialIterator,
                                   iterators.MultiprocessIterator,
                                   iterators.MultithreadIterator)) and
-                getattr(iter, 'repeat', False)):
+                    getattr(iter, 'repeat', False)):
                 msg = 'The `repeat` property of the iterator {} '
                 'is set to `True`. Typically, the evaluator sweeps '
                 'over iterators until they stop, '
