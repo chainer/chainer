@@ -45,7 +45,8 @@ class TestNonparameterizedLinear(unittest.TestCase):
         batch_shape = (4,) + (2,) * (self.n_batch_axes - 1)
         x = numpy.random.uniform(
             -1, 1, batch_shape + (3,)).astype(self.x_dtype)
-        gy = numpy.random.uniform(-1, 1, (2,)).astype(self.x_dtype)
+        batch_size = numpy.prod(batch_shape)
+        gy = numpy.random.uniform(-1, 1, (batch_size, 2)).astype(self.x_dtype)
         ggx = numpy.random.uniform(-1, 1, x.shape).astype(self.x_dtype)
         ggW = numpy.random.uniform(-1, 1, W.shape).astype(self.W_dtype)
         if self.nobias:
@@ -76,6 +77,10 @@ class TestNonparameterizedLinear(unittest.TestCase):
 
     def forward_cpu(self, inputs):
         x, W, b = inputs
+        if self.n_batch_axes > 1:
+            batch_shape = x.shape[:self.n_batch_axes]
+            batch_size = numpy.prod(batch_shape)
+            x = x.reshape(batch_size, -1)
         y = x.dot(W.T)
         if b is not None:
             y += b
@@ -185,4 +190,3 @@ class TestLinearBackwardNoncontiguousGradOutputs(unittest.TestCase):
 
 
 testing.run_module(__name__, __file__)
-
