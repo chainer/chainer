@@ -1,10 +1,11 @@
 #include "xchainer/testing/util.h"
 
-#include <gtest/gtest.h>
-
 #include <atomic>
 #include <cstdlib>
 #include <string>
+
+#include <gtest/gtest.h>
+#include <gsl/gsl>
 
 #include "xchainer/backend.h"
 #include "xchainer/error.h"
@@ -18,6 +19,7 @@ std::atomic<int> g_skipped_native_test_count{0};
 std::atomic<int> g_skipped_cuda_test_count{0};
 
 int GetNativeDeviceLimit(Backend& backend) {
+    Expects(backend.GetName() == "native");
     static int limit = -1;
     if (limit >= 0) return limit;
     const char* env = std::getenv("XCHAINER_TEST_NATIVE_DEVICE_LIMIT");
@@ -33,6 +35,7 @@ int GetNativeDeviceLimit(Backend& backend) {
 }
 
 int GetCudaDeviceLimit(Backend& backend) {
+    Expects(backend.GetName() == "cuda");
     static int limit = -1;
     if (limit >= 0) return limit;
     const char* env = std::getenv("XCHAINER_TEST_CUDA_DEVICE_LIMIT");
