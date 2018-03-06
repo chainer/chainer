@@ -18,6 +18,8 @@ namespace {
 std::mutex g_device_available_mutex;
 int g_min_skipped_native_device = -1;
 int g_min_skipped_cuda_device = -1;
+int g_skipped_native_test_count = 0;
+int g_skipped_cuda_test_count = 0;
 
 bool IsDeviceAvailable(Backend& backend, int num) {
     int limit = 0;
@@ -37,11 +39,15 @@ bool IsDeviceAvailable(Backend& backend, int num) {
     return num < limit;
 }
 
-} // namespace
+}  // namespace
 
 int GetMinSkippedNativeDevice() { return g_min_skipped_native_device; }
 
 int GetMinSkippedCudaDevice() { return g_min_skipped_cuda_device; }
+
+int GetSkippedNativeTestCount() { return g_skipped_native_test_count; }
+
+int GetSkippedCudaTestCount() { return g_skipped_cuda_test_count; }
 
 bool SkipsUnlessDeviceAvailable(Backend& backend, int num) {
     if (IsDeviceAvailable(backend, num)) {
@@ -51,12 +57,14 @@ bool SkipsUnlessDeviceAvailable(Backend& backend, int num) {
     {
         std::lock_guard<std::mutex> lock{g_device_available_mutex};
         if (backend.GetName() == "native") {
+            ++g_skipped_native_test_count;
             if (g_min_skipped_native_device < 0) {
                 g_min_skipped_native_device = num;
             } else {
                 g_min_skipped_native_device = std::min(g_min_skipped_native_device, num);
             }
         } else if (backend.GetName() == "cuda") {
+            ++g_skipped_cuda_test_count;
             if (g_min_skipped_cuda_device < 0) {
                 g_min_skipped_cuda_device = num;
             } else {
