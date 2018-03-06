@@ -56,14 +56,14 @@ void NativeDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> lhs_indexable_array{lhs};
-        IndexableArray<const T> rhs_indexable_array{rhs};
-        IndexableArray<T> out_indexable_array{out};
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<T> out_iarray{out};
         Indexer<> indexer{lhs.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); i++) {
             indexer.Set(i);
-            out_indexable_array[indexer] = lhs_indexable_array[indexer] + rhs_indexable_array[indexer];
+            out_iarray[indexer] = lhs_iarray[indexer] + rhs_iarray[indexer];
         }
     });
 }
@@ -72,14 +72,14 @@ void NativeDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> lhs_indexable_array{lhs};
-        IndexableArray<const T> rhs_indexable_array{rhs};
-        IndexableArray<T> out_indexable_array{out};
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<T> out_iarray{out};
         Indexer<> indexer{lhs.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); i++) {
             indexer.Set(i);
-            out_indexable_array[indexer] = lhs_indexable_array[indexer] * rhs_indexable_array[indexer];
+            out_iarray[indexer] = lhs_iarray[indexer] * rhs_iarray[indexer];
         }
     });
 }
