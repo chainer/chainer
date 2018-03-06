@@ -185,7 +185,7 @@ class LinearGradWeight(function_node.FunctionNode):
         return ret
 
 
-def linear(x, W, b=None):
+def linear(x, W, b=None, n_batch_axes=1):
     """Linear function, or affine transformation.
 
     It accepts two or three arguments: an input minibatch ``x``, a weight
@@ -223,9 +223,10 @@ def linear(x, W, b=None):
         (3, 5)
 
     """
-    if x.ndim > 2:
-        x = x.reshape(len(x), -1)
-
+    if n_batch_axes > 1:
+        batch_shape = x.shape[:n_batch_axes]
+        batch_size = numpy.prod(batch_shape)
+        x = x.reshape(batch_size, -1)
     if b is None:
         args = x, W
     else:

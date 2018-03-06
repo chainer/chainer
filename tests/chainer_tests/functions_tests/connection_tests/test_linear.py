@@ -18,6 +18,7 @@ def _to_noncontiguous(arrays):
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'n_batch_axes': [1, 2],
     'c_contiguous': [True, False],
     'nobias': [True, False],
 }))
@@ -35,15 +36,16 @@ def _to_noncontiguous(arrays):
 class TestNonparameterizedLinear(unittest.TestCase):
 
     def setUp(self):
-        W = numpy.random.uniform(
-            -1, 1, (2, 3)).astype(self.W_dtype)
+        W = numpy.random.uniform(-1, 1, (2, 3)).astype(self.W_dtype)
         if self.nobias:
             b = None
         else:
             b = numpy.random.uniform(-1, 1, 2).astype(self.x_dtype)
 
-        x = numpy.random.uniform(-1, 1, (4, 3)).astype(self.x_dtype)
-        gy = numpy.random.uniform(-1, 1, (4, 2)).astype(self.x_dtype)
+        batch_shape = (4,) + (2,) * (self.n_batch_axes - 1)
+        x = numpy.random.uniform(
+            -1, 1, batch_shape + (3,)).astype(self.x_dtype)
+        gy = numpy.random.uniform(-1, 1, (2,)).astype(self.x_dtype)
         ggx = numpy.random.uniform(-1, 1, x.shape).astype(self.x_dtype)
         ggW = numpy.random.uniform(-1, 1, W.shape).astype(self.W_dtype)
         if self.nobias:
@@ -82,10 +84,10 @@ class TestNonparameterizedLinear(unittest.TestCase):
     def forward(self, *inputs):
         if len(inputs) == 3:
             x, W, b = inputs
-            y = functions.linear(x, W, b)
+            y = functions.linear(x, W, b, n_batch_axes=self.n_batch_axes)
         else:
             x, W = inputs
-            y = functions.linear(x, W)
+            y = functions.linear(x, W, n_batch_axes=self.n_batch_axes)
         return y,
 
     def check_forward(self, inputs, backend_config):
@@ -183,3 +185,4 @@ class TestLinearBackwardNoncontiguousGradOutputs(unittest.TestCase):
 
 
 testing.run_module(__name__, __file__)
+
