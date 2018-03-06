@@ -24,4 +24,11 @@ Device& Backend::GetDevice(int index) {
     return *devices_[index];
 }
 
+bool Backend::IsDeviceAvailable(int index) {
+    if (index < 0) {
+        throw std::out_of_range("The index number (= " + std::to_string(index) + ") is negative");
+    }
+    return index < GetDeviceCount();
+}
+
 }  // namespace xchainer
