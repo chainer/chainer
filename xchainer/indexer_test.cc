@@ -34,16 +34,16 @@ TEST(IndexerTest, Rank3) {
     EXPECT_EQ(3, indexer.shape()[1]);
     EXPECT_EQ(4, indexer.shape()[2]);
 
-    int64_t lin = 0;
+    int64_t raw_i = 0;
     for (int64_t i = 0; i < 2; ++i) {
         for (int64_t j = 0; j < 3; ++j) {
             for (int64_t k = 0; k < 4; ++k) {
-                indexer.Set(lin);
+                indexer.Set(raw_i);
                 EXPECT_EQ(i, indexer.index()[0]);
                 EXPECT_EQ(j, indexer.index()[1]);
                 EXPECT_EQ(k, indexer.index()[2]);
-                EXPECT_EQ(lin, indexer.raw_index());
-                lin++;
+                EXPECT_EQ(raw_i, indexer.raw_index());
+                raw_i++;
             }
         }
     }
@@ -78,16 +78,16 @@ TEST(DynamicIndexerTest, Rank3) {
     EXPECT_EQ(3, indexer.shape()[1]);
     EXPECT_EQ(4, indexer.shape()[2]);
 
-    int64_t lin = 0;
+    int64_t raw_i = 0;
     for (int64_t i = 0; i < 2; ++i) {
         for (int64_t j = 0; j < 3; ++j) {
             for (int64_t k = 0; k < 4; ++k) {
-                indexer.Set(lin);
+                indexer.Set(raw_i);
                 EXPECT_EQ(i, indexer.index()[0]);
                 EXPECT_EQ(j, indexer.index()[1]);
                 EXPECT_EQ(k, indexer.index()[2]);
-                EXPECT_EQ(lin, indexer.raw_index());
-                lin++;
+                EXPECT_EQ(raw_i, indexer.raw_index());
+                raw_i++;
             }
         }
     }
