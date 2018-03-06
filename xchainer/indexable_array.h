@@ -7,6 +7,7 @@
 
 #include <gsl/gsl>
 
+#include "xchainer/array.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/indexer.h"
