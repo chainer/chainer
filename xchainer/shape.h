@@ -31,7 +31,7 @@ public:
     Shape(std::initializer_list<int64_t> dims) : Shape(gsl::make_span(dims.begin(), dims.end())) {}
 
     // by iterators
-    template<typename InputIt>
+    template <typename InputIt>
     Shape(InputIt first, InputIt last) : dims_(), ndim_(last - first) {
         CheckNdim();
         std::copy(first, last, dims_.begin());

@@ -35,7 +35,7 @@ public:
     Strides(std::initializer_list<int64_t> dims) : Strides(gsl::make_span(dims.begin(), dims.end())) {}
 
     // by iterators
-    template<typename InputIt>
+    template <typename InputIt>
     Strides(InputIt first, InputIt last) : dims_(), ndim_(last - first) {
         CheckNdim();
         std::copy(first, last, dims_.begin());
