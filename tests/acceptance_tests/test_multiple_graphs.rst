@@ -23,7 +23,7 @@ array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', graph_ids=['we
 >>> w.get_grad('input')
 Traceback (most recent call last):
   ...
-xchainer.XchainerError: Cannot find ArrayNode for graph_id: 'input'.
+xchainer.XchainerError: Array does not belong to the graph: 'input'.
 
 >>> z = gx * w  # == w * w
 >>> xc.backward(z, graph_id='weight')
@@ -32,7 +32,7 @@ array([ 8., 10., 12.], shape=(3,), dtype=float32, device='native:0')
 >>> x.get_grad('weight')
 Traceback (most recent call last):
   ...
-xchainer.XchainerError: Cannot find ArrayNode for graph_id: 'weight'.
+xchainer.XchainerError: Array does not belong to the graph: 'weight'.
 
 
 Double backprop with single graph

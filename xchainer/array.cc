@@ -84,7 +84,7 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
     auto it =
         std::find_if(array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); });
     if (it == array.nodes().end()) {
-        throw XchainerError("Cannot find ArrayNode for graph_id: '" + graph_id + "'.");
+        throw XchainerError("Array does not belong to the graph: '" + graph_id + "'.");
     }
     return *it;
 }
