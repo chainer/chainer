@@ -21,21 +21,18 @@ public:
     using const_iterator = DimsType::const_iterator;
     using const_reverse_iterator = DimsType::const_reverse_iterator;
 
-    // by gsl:span
-    Shape(gsl::span<const int64_t> dims) : dims_(), ndim_(gsl::narrow_cast<int8_t>(dims.size())) {
-        CheckNdim();
-        std::copy(dims.begin(), dims.end(), dims_.begin());
-    }
-
-    // by initializer list
-    Shape(std::initializer_list<int64_t> dims) : Shape(gsl::make_span(dims.begin(), dims.end())) {}
-
     // by iterators
     template <typename InputIt>
     Shape(InputIt first, InputIt last) : dims_(), ndim_(last - first) {
         CheckNdim();
         std::copy(first, last, dims_.begin());
     }
+
+    // by gsl:span
+    Shape(gsl::span<const int64_t> dims) : Shape(dims.begin(), dims.end()) {}
+
+    // by initializer list
+    Shape(std::initializer_list<int64_t> dims) : Shape(dims.begin(), dims.end()) {}
 
     // copy
     Shape(const Shape&) = default;

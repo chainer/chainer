@@ -25,21 +25,18 @@ public:
     Strides(const Shape& shape, Dtype dtype) : Strides{shape, GetElementSize(dtype)} {}
     Strides(const Shape& shape, int64_t element_size);
 
-    // by gsl:span
-    Strides(gsl::span<const int64_t> dims) : dims_(), ndim_(gsl::narrow_cast<int8_t>(dims.size())) {
-        CheckNdim();
-        std::copy(dims.begin(), dims.end(), dims_.begin());
-    }
-
-    // by initializer list
-    Strides(std::initializer_list<int64_t> dims) : Strides(gsl::make_span(dims.begin(), dims.end())) {}
-
     // by iterators
     template <typename InputIt>
     Strides(InputIt first, InputIt last) : dims_(), ndim_(last - first) {
         CheckNdim();
         std::copy(first, last, dims_.begin());
     }
+
+    // by gsl:span
+    Strides(gsl::span<const int64_t> dims) : Strides(dims.begin(), dims.end()) {}
+
+    // by initializer list
+    Strides(std::initializer_list<int64_t> dims) : Strides(dims.begin(), dims.end()) {}
 
     // copy
     Strides(const Strides&) = default;
