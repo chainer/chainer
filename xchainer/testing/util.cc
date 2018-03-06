@@ -2,9 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
+#include <atomic>
 #include <cstdlib>
-#include <mutex>
 #include <string>
 
 #include "xchainer/backend.h"
@@ -13,9 +12,8 @@
 namespace xchainer {
 namespace testing {
 
-std::mutex g_device_available_mutex;
-int g_skipped_native_test_count = 0;
-int g_skipped_cuda_test_count = 0;
+std::atomic<int> g_skipped_native_test_count{0};
+std::atomic<int> g_skipped_cuda_test_count{0};
 
 int GetSkippedNativeTestCount() { return g_skipped_native_test_count; }
 
@@ -47,7 +45,6 @@ bool SkipsUnlessDeviceAvailable(Backend& backend, int num) {
     const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
     std::cout << "[     SKIP ] " << test_info->test_case_name() << "." << test_info->name() << std::endl;
 
-    std::lock_guard<std::mutex> lock{g_device_available_mutex};
     if (backend.GetName() == "native") {
         ++g_skipped_native_test_count;
     } else if (backend.GetName() == "cuda") {
