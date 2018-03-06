@@ -19,7 +19,6 @@ from chainer.functions.activation.sigmoid import sigmoid  # NOQA
 from chainer.functions.activation.slstm import slstm  # NOQA
 from chainer.functions.activation.softmax import softmax  # NOQA
 from chainer.functions.activation.softplus import softplus  # NOQA
-from chainer.functions.activation.softplus import Softplus  # NOQA
 from chainer.functions.activation.swish import swish  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
 from chainer.functions.activation.tree_lstm import tree_lstm  # NOQA
@@ -44,7 +43,6 @@ from chainer.functions.array.moveaxis import moveaxis  # NOQA
 from chainer.functions.array.pad import pad  # NOQA
 from chainer.functions.array.pad_sequence import pad_sequence  # NOQA
 from chainer.functions.array.permutate import permutate  # NOQA
-from chainer.functions.array.permutate import Permutate  # NOQA
 from chainer.functions.array.repeat import repeat  # NOQA
 from chainer.functions.array.reshape import reshape  # NOQA
 from chainer.functions.array.resize_images import resize_images  # NOQA
@@ -129,7 +127,6 @@ from chainer.functions.math.exponential import log  # NOQA
 from chainer.functions.math.exponential import log10  # NOQA
 from chainer.functions.math.exponential import log2  # NOQA
 from chainer.functions.math.exponential_m1 import expm1  # NOQA
-from chainer.functions.math.exponential_m1 import Expm1  # NOQA
 from chainer.functions.math.fft import fft  # NOQA
 from chainer.functions.math.fft import ifft  # NOQA
 from chainer.functions.math.fix import fix  # NOQA
