@@ -21,7 +21,7 @@ def _setup_cuda_marker(item):
     declare that one NVIDIA GPU is required to run.
 
     Tests can also be annotated as ``@pytest.mark.cuda(2)`` to declare number of
-    NVIDIA GPUs required to run. When running tests, if ``XCHAINER_TEST_CUDA_LIMIT``
+    NVIDIA GPUs required to run. When running tests, if ``XCHAINER_TEST_CUDA_DEVICE_LIMIT``
     environment variable is set to value greater than or equals to 0, test cases
     that require GPUs more than the limit will be skipped.
     """
@@ -39,12 +39,12 @@ def _get_cuda_limit():
     global _cuda_limit
     if _cuda_limit is not None:
         return _cuda_limit
-    if os.getenv('XCHAINER_TEST_CUDA_LIMIT') is None:
+    if os.getenv('XCHAINER_TEST_CUDA_DEVICE_LIMIT') is None:
         try:
             backend = xchainer.get_global_default_context().get_backend('cuda')
             _cuda_limit = backend.get_device_count()
         except xchainer.BackendError:
             _cuda_limit = 0
     else:
-        _cuda_limit = int(os.getenv('XCHAINER_TEST_CUDA_LIMIT'))
+        _cuda_limit = int(os.getenv('XCHAINER_TEST_CUDA_DEVICE_LIMIT'))
     return _cuda_limit
