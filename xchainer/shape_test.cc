@@ -97,12 +97,12 @@ TEST(ShapeTest, IsContiguous) {
     {
         Shape shape{2, 3, 4};
         Strides strides{shape, GetElementSize(Dtype::kFloat64)};
-        EXPECT_TRUE(IsContiguous(shape, strides, GetElementSize(Dtype::kFloat64)));
+        EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat64)));
     }
     {
         Shape shape{2, 3, 4};
         Strides strides{shape, GetElementSize(Dtype::kFloat64)};
-        EXPECT_FALSE(IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+        EXPECT_FALSE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
     }
 }
 
