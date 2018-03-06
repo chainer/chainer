@@ -1,6 +1,5 @@
 import unittest
 
-import mock
 import numpy
 import six
 
@@ -263,7 +262,7 @@ class TestSoftmaxCrossEntropyCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cuda.cudnn.softmaxForward') as func:
+            with testing.patch('cupy.cuda.cudnn.softmaxForward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))

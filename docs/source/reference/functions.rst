@@ -22,6 +22,15 @@ functions, which users should use.
    KEEP EACH LIST IN LEXICOGRAPHICAL ORDER.
 
 
+Arithmetic functions
+--------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.functions.add
+
 Activation functions
 --------------------
 
@@ -73,6 +82,7 @@ Array manipulations
    chainer.functions.pad
    chainer.functions.pad_sequence
    chainer.functions.permutate
+   chainer.functions.repeat
    chainer.functions.reshape
    chainer.functions.resize_images
    chainer.functions.rollaxis
@@ -108,6 +118,7 @@ Neural network connections
    chainer.functions.dilated_convolution_2d
    chainer.functions.embed_id
    chainer.functions.linear
+   chainer.functions.local_convolution_2d
    chainer.functions.n_step_bigru
    chainer.functions.n_step_bilstm
    chainer.functions.n_step_birnn

@@ -39,7 +39,7 @@ class TestNonparameterizedLinear(unittest.TestCase):
     def setUp(self):
         self.n_batch_axes = self.x_shape['n_batch_axes']
         data_shape = self.x_shape['data_shape']
-        input_size = int(numpy.prod(data_shape))
+        input_size = numpy.prod(data_shape)
         W = numpy.random.uniform(-1, 1, (2, input_size)).astype(self.W_dtype)
         if self.nobias:
             b = None
@@ -49,7 +49,8 @@ class TestNonparameterizedLinear(unittest.TestCase):
         batch_shape = (4,) + (2,) * (self.n_batch_axes - 1)  # Longer case: (4, 2, 2)
         x = numpy.random.uniform(
             -1, 1, batch_shape + data_shape).astype(self.x_dtype)  # Longer case: (4, 2, 2, 3, 5)
-        gy = numpy.random.uniform(-1, 1, batch_shape + (2,)).astype(self.x_dtype)
+        batch_size = numpy.prod(batch_shape)
+        gy = numpy.random.uniform(-1, 1, (batch_size, 2)).astype(self.x_dtype)
         ggx = numpy.random.uniform(-1, 1, x.shape).astype(self.x_dtype)
         ggW = numpy.random.uniform(-1, 1, W.shape).astype(self.W_dtype)
         if self.nobias:
@@ -80,6 +81,10 @@ class TestNonparameterizedLinear(unittest.TestCase):
 
     def forward_cpu(self, inputs):
         x, W, b = inputs
+        if self.n_batch_axes > 1:
+            batch_shape = x.shape[:self.n_batch_axes]
+            batch_size = numpy.prod(batch_shape)
+            x = x.reshape(batch_size, -1)
         y = x.dot(W.T)
         if b is not None:
             y += b

@@ -316,6 +316,47 @@ Actual: 1 < 2"""
             f.apply((v,))
 
 
+class TestFunctionNodeInconsistentBackends(unittest.TestCase):
+
+    def setUp(self):
+        self.x1 = numpy.random.rand(2, 3).astype(numpy.float32)
+        self.x2 = numpy.random.rand(2, 3).astype(numpy.float32)
+
+    @attr.gpu
+    def test_inconsistent_inputs(self):
+        class FunctionNode(chainer.FunctionNode):
+
+            def forward(self, inputs):
+                return inputs
+
+        f = FunctionNode()
+
+        # Cause inconsistency between inputs
+        x1 = cuda.to_gpu(self.x1)
+
+        x1 = chainer.Variable(x1)
+        x2 = chainer.Variable(self.x2)
+
+        with self.assertRaises(ValueError):
+            f.apply((x1, x2))
+
+    @attr.gpu
+    def test_inconsistent_outputs(self):
+        class FunctionNode(chainer.FunctionNode):
+
+            def forward(self, inputs):
+                # Cause inconsistency between outputs
+                return inputs[0], cuda.to_gpu(inputs[1])
+
+        f = FunctionNode()
+
+        x1 = chainer.Variable(self.x1)
+        x2 = chainer.Variable(self.x2)
+
+        with self.assertRaises(ValueError):
+            f.apply((x1, x2))
+
+
 @testing.parameterize(
     {'return_value': (numpy.array([float('nan')], numpy.float32),),
      'valid': False},
