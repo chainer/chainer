@@ -152,8 +152,6 @@ using Formatter = std::conditional_t<std::is_same<T, bool>::value, BoolFormatter
 struct ArrayReprImpl {
     template <typename T, typename Visitor>
     void VisitElements(const Array& array, Visitor&& visitor) const {
-        // TODO(niboshi): Contiguousness is assumed.
-        // TODO(niboshi): Replace with Indxer class.
         auto shape = array.shape();
         Indexer<kDynamicNdim> indexer{shape};
         IndexableArray<const T> iarray{array};
