@@ -36,7 +36,6 @@ void InitXchainerShape(pybind11::module& m) {
              })
         .def("__repr__", static_cast<std::string (Shape::*)() const>(&Shape::ToString))
         .def_property_readonly("ndim", &Shape::ndim)
-        .def_property_readonly("size", &Shape::size)
         .def_property_readonly("total_size", &Shape::GetTotalSize);
 
     py::implicitly_convertible<py::tuple, Shape>();
