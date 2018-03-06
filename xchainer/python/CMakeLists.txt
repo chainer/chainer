@@ -8,6 +8,7 @@ add_library(_core.so MODULE
     error.cc
     scalar.cc
     shape.cc
+    strides.cc
     )
 target_link_libraries(_core.so
     PRIVATE

@@ -196,6 +196,7 @@ void InitXchainerArray(pybind11::module& m) {
         .def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return Array{self}.ndim(); })
         .def_property_readonly("offset", [](const ArrayBodyPtr& self) { return Array{self}.offset(); })
         .def_property_readonly("shape", [](const ArrayBodyPtr& self) { return Array{self}.shape(); })
+        .def_property_readonly("strides", [](const ArrayBodyPtr& self) { return Array{self}.strides(); })
         .def_property_readonly("total_bytes", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalBytes(); })
         .def_property_readonly("total_size", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalSize(); })
         .def_property_readonly("_debug_data_memory_address",  // These methods starting with `_debug_` are stubs for testing
