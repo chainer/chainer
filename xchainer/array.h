@@ -165,6 +165,8 @@ private:
     std::shared_ptr<internal::ArrayBody> body_;
 };
 
+Array Transpose(const Array& a);
+
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent = 0);
 
 }  // namespace xchainer

@@ -931,6 +931,11 @@ TEST_P(ArrayTest, Transpose) {
 
         ExpectEqual<bool>(a, a.Transpose().Transpose());
     }
+    // as a free function
+    {
+        Array a = Array::Empty({2, 3, 4}, Dtype::kBool);
+        ExpectEqual<bool>(a.Transpose(), Transpose(a));
+    }
 }
 
 TEST_P(ArrayTest, Copy) {
