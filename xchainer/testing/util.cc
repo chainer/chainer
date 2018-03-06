@@ -66,23 +66,22 @@ int GetDeviceLimit(Backend& backend) {
     }
 }
 
-bool SkipIfDeviceUnavailable(Backend& backend, int num) {
-    if (num < GetDeviceLimit(backend)) {
+bool SkipIfDeviceUnavailable(Backend& backend, int required_num) {
+    if (GetDeviceLimit(backend) < required_num) {
+        const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+        std::cout << "[     SKIP ] " << test_info->test_case_name() << "." << test_info->name() << std::endl;
+
+        if (backend.GetName() == "native") {
+            ++g_skipped_native_test_count;
+        } else if (backend.GetName() == "cuda") {
+            ++g_skipped_cuda_test_count;
+        } else {
+            throw BackendError("invalid backend: " + backend.GetName());
+        }
+        return true;
+    } else {
         return false;
     }
-
-    const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
-    std::cout << "[     SKIP ] " << test_info->test_case_name() << "." << test_info->name() << std::endl;
-
-    if (backend.GetName() == "native") {
-        ++g_skipped_native_test_count;
-    } else if (backend.GetName() == "cuda") {
-        ++g_skipped_cuda_test_count;
-    } else {
-        throw BackendError("invalid backend: " + backend.GetName());
-    }
-
-    return true;
 }
 
 }  // namespace testing

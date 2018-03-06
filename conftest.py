@@ -1,5 +1,7 @@
-import pytest
 import os
+
+import pytest
+
 import xchainer
 
 def pytest_configure(config):

@@ -1,5 +1,6 @@
-#include <gtest/gtest.h>
 #include <iostream>
+
+#include <gtest/gtest.h>
 
 #include "xchainer/backend.h"
 #include "xchainer/context.h"
