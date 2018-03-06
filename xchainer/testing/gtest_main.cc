@@ -2,19 +2,27 @@
 #include <iostream>
 
 #include "xchainer/testing/util.h"
+#include "xchainer/context.h"
+#include "xchainer/backend.h"
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     int status = RUN_ALL_TESTS();
 
-    if (xchainer::testing::GetMinSkippedNativeDevice() >= 0) {
+    if (xchainer::testing::GetSkippedNativeTestCount() > 0) {
+        xchainer::Context ctx;
+        xchainer::Backend& backend = ctx.GetBackend("native");
         std::cout << "[  SKIPPED ] " << xchainer::testing::GetSkippedNativeTestCount() << " NATIVE tests requiring devices more than "
-                  << xchainer::testing::GetMinSkippedNativeDevice() << "." << std::endl;
+                  << xchainer::testing::GetDeviceLimit(backend) << "." << std::endl;
     }
-    if (xchainer::testing::GetMinSkippedCudaDevice() >= 0) {
+#ifdef XCHAINER_ENABLE_CUDA
+    if (xchainer::testing::GetSkippedCudaTestCount() > 0) {
+        xchainer::Context ctx;
+        xchainer::Backend& backend = ctx.GetBackend("cuda");
         std::cout << "[  SKIPPED ] " << xchainer::testing::GetSkippedCudaTestCount() << " CUDA tests requiring devices more than "
-                  << xchainer::testing::GetMinSkippedNativeDevice() << "." << std::endl;
+                  << xchainer::testing::GetDeviceLimit(backend) << "." << std::endl;
     }
+#endif // XCHAINER_ENABLE_CUDA
 
     return status;
 }

@@ -13,15 +13,15 @@
 namespace xchainer {
 namespace testing {
 
-namespace {
-
 std::mutex g_device_available_mutex;
-int g_min_skipped_native_device = -1;
-int g_min_skipped_cuda_device = -1;
 int g_skipped_native_test_count = 0;
 int g_skipped_cuda_test_count = 0;
 
-bool IsDeviceAvailable(Backend& backend, int num) {
+int GetSkippedNativeTestCount() { return g_skipped_native_test_count; }
+
+int GetSkippedCudaTestCount() { return g_skipped_cuda_test_count; }
+
+int GetDeviceLimit(Backend& backend) {
     int limit = 0;
     const char* env = nullptr;
     if (backend.GetName() == "native") {
@@ -36,47 +36,26 @@ bool IsDeviceAvailable(Backend& backend, int num) {
     } else {
         limit = std::stoi(env);
     }
-    return num < limit;
+    return limit;
 }
 
-}  // namespace
-
-int GetMinSkippedNativeDevice() { return g_min_skipped_native_device; }
-
-int GetMinSkippedCudaDevice() { return g_min_skipped_cuda_device; }
-
-int GetSkippedNativeTestCount() { return g_skipped_native_test_count; }
-
-int GetSkippedCudaTestCount() { return g_skipped_cuda_test_count; }
-
 bool SkipsUnlessDeviceAvailable(Backend& backend, int num) {
-    if (IsDeviceAvailable(backend, num)) {
+    if (num < GetDeviceLimit(backend)) {
         return false;
-    }
-
-    {
-        std::lock_guard<std::mutex> lock{g_device_available_mutex};
-        if (backend.GetName() == "native") {
-            ++g_skipped_native_test_count;
-            if (g_min_skipped_native_device < 0) {
-                g_min_skipped_native_device = num;
-            } else {
-                g_min_skipped_native_device = std::min(g_min_skipped_native_device, num);
-            }
-        } else if (backend.GetName() == "cuda") {
-            ++g_skipped_cuda_test_count;
-            if (g_min_skipped_cuda_device < 0) {
-                g_min_skipped_cuda_device = num;
-            } else {
-                g_min_skipped_cuda_device = std::min(g_min_skipped_cuda_device, num);
-            }
-        } else {
-            throw BackendError("invalid backend: " + backend.GetName());
-        }
     }
 
     const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
     std::cout << "[     SKIP ] " << test_info->test_case_name() << "." << test_info->name() << std::endl;
+
+    std::lock_guard<std::mutex> lock{g_device_available_mutex};
+    if (backend.GetName() == "native") {
+        ++g_skipped_native_test_count;
+    } else if (backend.GetName() == "cuda") {
+        ++g_skipped_cuda_test_count;
+    } else {
+        throw BackendError("invalid backend: " + backend.GetName());
+    }
+
     return true;
 }
 

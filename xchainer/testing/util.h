@@ -14,13 +14,11 @@
 namespace xchainer {
 namespace testing {
 
-int GetMinSkippedNativeDevice();
-
-int GetMinSkippedCudaDevice();
-
 int GetSkippedNativeTestCount();
 
 int GetSkippedCudaTestCount();
+
+int GetDeviceLimit(Backend& backend);
 
 bool SkipsUnlessDeviceAvailable(Backend& backend, int num);
 
