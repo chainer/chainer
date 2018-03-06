@@ -15,6 +15,7 @@
 #include "xchainer/native_backend.h"
 #include "xchainer/native_device.h"
 #include "xchainer/testing/context_session.h"
+#include "xchainer/testing/util.h"
 
 namespace xchainer {
 namespace {
@@ -188,6 +189,9 @@ TEST(ArrayToDeviceIncompatibleTest, ToDeviceIncompatible) {
 TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     testing::ContextSession context_session;
     NativeBackend backend{context_session.context()};
+
+    XCHAINER_REQUIRE_DEVICE(backend, 3);
+
     Device& dev0 = backend.GetDevice(0);
     Device& dev1 = backend.GetDevice(1);
     Device& dev2 = backend.GetDevice(2);  // default device
