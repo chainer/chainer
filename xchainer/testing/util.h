@@ -4,11 +4,11 @@
 
 #include "xchainer/backend.h"
 
-#define XCHAINER_REQUIRE_DEVICE(backend, num)                     \
-    do {                                                          \
-        if (xchainer::testing::RequireDevice((backend), (num))) { \
-            return;                                               \
-        }                                                         \
+#define XCHAINER_REQUIRE_DEVICE(backend, num)                               \
+    do {                                                                    \
+        if (xchainer::testing::SkipIfDeviceUnavailable((backend), (num))) { \
+            return;                                                         \
+        }                                                                   \
     } while (0)
 
 namespace xchainer {
@@ -20,7 +20,7 @@ int GetSkippedCudaTestCount();
 
 int GetDeviceLimit(Backend& backend);
 
-bool RequireDevice(Backend& backend, int num);
+bool SkipIfDeviceUnavailable(Backend& backend, int num);
 
 }  // namespace testing
 }  // namespace xchainer

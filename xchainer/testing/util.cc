@@ -66,7 +66,7 @@ int GetDeviceLimit(Backend& backend) {
     }
 }
 
-bool RequireDevice(Backend& backend, int num) {
+bool SkipIfDeviceUnavailable(Backend& backend, int num) {
     if (num < GetDeviceLimit(backend)) {
         return false;
     }
