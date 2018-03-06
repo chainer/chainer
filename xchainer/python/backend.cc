@@ -14,7 +14,6 @@ void InitXchainerBackend(pybind11::module& m) {
     py::class_<Backend>(m, "Backend")
         .def("get_device", &Backend::GetDevice, py::return_value_policy::reference)
         .def("get_device_count", &Backend::GetDeviceCount)
-        .def("is_device_available", &Backend::IsDeviceAvailable)
         .def_property_readonly("name", &Backend::GetName)
         .def_property_readonly("context", &Backend::context, py::return_value_policy::reference);
 }

@@ -21,11 +21,6 @@ def test_get_device_count_native():
     assert backend.get_device_count() > 0
 
 
-def test_is_device_available_native():
-    backend = xchainer.get_global_default_context().get_backend('native')
-    assert backend.is_device_available(0)
-
-
 @pytest.mark.cuda
 def test_name_cuda():
     backend = xchainer.get_global_default_context().get_backend('cuda')
@@ -45,9 +40,3 @@ def test_get_device_cuda():
 def test_get_device_count_cuda():
     backend = xchainer.get_global_default_context().get_backend('cuda')
     assert backend.get_device_count() > 0
-
-
-@pytest.mark.cuda
-def test_is_device_available_cuda():
-    backend = xchainer.get_global_default_context().get_backend('cuda')
-    assert backend.is_device_available(0)
