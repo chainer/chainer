@@ -28,7 +28,7 @@ int GetNativeDeviceLimit(Backend& backend) {
     } else {
         limit = std::stoi(env);
         if (limit < 0) {
-            throw XchainerError("invalid number of XCHAINER_TEST_NATIVE_DEVICE_LIMIT: " + std::string(env));
+            throw XchainerError("XCHAINER_TEST_NATIVE_DEVICE_LIMIT must be non-negative integer: " + std::string(env));
         }
     }
     return limit;
@@ -44,7 +44,7 @@ int GetCudaDeviceLimit(Backend& backend) {
     } else {
         limit = std::stoi(env);
         if (limit < 0) {
-            throw XchainerError("invalid number of XCHAINER_TEST_CUDA_DEVICE_LIMIT: " + std::string(env));
+            throw XchainerError("XCHAINER_TEST_CUDA_DEVICE_LIMIT must be non-negative integer: " + std::string(env));
         }
     }
     return limit;

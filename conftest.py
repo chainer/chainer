@@ -50,5 +50,5 @@ def _get_cuda_limit():
     else:
         _cuda_limit = int(os.getenv('XCHAINER_TEST_CUDA_DEVICE_LIMIT'))
         if _cuda_limit < 0:
-            raise xchainer.XchainerError('invalid number of XCHAINER_TEST_DUDA_DEVICE_LIMIT: {}'.format(_cuda_limit))
+            raise xchainer.XchainerError('XCHAINER_TEST_DUDA_DEVICE_LIMIT must be non-negative integer: {}'.format(_cuda_limit))
     return _cuda_limit
