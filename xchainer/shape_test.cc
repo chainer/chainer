@@ -1,5 +1,7 @@
 #include "xchainer/shape.h"
 
+#include <vector>
+
 #include <gtest/gtest.h>
 
 #include "xchainer/dtype.h"
@@ -23,6 +25,12 @@ TEST(ShapeTest, Ctor) {
     {
         const std::array<int64_t, 3> dims = {2, 3, 4};
         const Shape shape(gsl::make_span(dims));
+        EXPECT_EQ(3, shape.ndim());
+        CheckSpanEqual({2, 3, 4}, shape.span());
+    }
+    {
+        const std::vector<int64_t> dims = {2, 3, 4};
+        const Shape shape(dims.begin(), dims.end());
         EXPECT_EQ(3, shape.ndim());
         CheckSpanEqual({2, 3, 4}, shape.span());
     }
