@@ -13,13 +13,11 @@
 namespace xchainer {
 namespace testing {
 
+namespace {
+
 std::mutex g_device_available_mutex;
 int g_min_skipped_native_device = -1;
 int g_min_skipped_cuda_device = -1;
-
-int GetMinSkippedNativeDevice() { return g_min_skipped_native_device; }
-
-int GetMinSkippedCudaDevice() { return g_min_skipped_cuda_device; }
 
 bool IsDeviceAvailable(Backend& backend, int num) {
     int limit = 0;
@@ -38,6 +36,12 @@ bool IsDeviceAvailable(Backend& backend, int num) {
     }
     return num < limit;
 }
+
+} // namespace
+
+int GetMinSkippedNativeDevice() { return g_min_skipped_native_device; }
+
+int GetMinSkippedCudaDevice() { return g_min_skipped_cuda_device; }
 
 bool SkipsUnlessDeviceAvailable(Backend& backend, int num) {
     if (IsDeviceAvailable(backend, num)) {

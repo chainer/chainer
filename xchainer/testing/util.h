@@ -18,8 +18,6 @@ int GetMinSkippedNativeDevice();
 
 int GetMinSkippedCudaDevice();
 
-bool IsDeviceAvailable(Backend& backend, int num);
-
 bool SkipsUnlessDeviceAvailable(Backend& backend, int num);
 
 }  // namespace testing
