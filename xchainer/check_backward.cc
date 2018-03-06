@@ -19,9 +19,9 @@ namespace xchainer {
 namespace {
 
 std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector<Array>(const std::vector<Array>&)> func,
-                                                       const std::vector<Array>& inputs, const std::vector<Array>& grad_outputs,
+                                                       std::vector<Array>& inputs, const std::vector<Array>& grad_outputs,
                                                        const GraphId& graph_id) {
-    for (auto& input : inputs) {
+    for (const auto& input : inputs) {
         if (internal::HasArrayNode(input, graph_id) && internal::GetArrayNode(input, graph_id)->next_node()) {
             throw XchainerError("BackwardGradients: All inputs must be leaf nodes of computational graph");
         }
@@ -42,7 +42,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
     }
 
     // Clear gradients which may exist if func calls backward inside of itself.
-    for (Array& input : const_cast<std::vector<Array>&>(inputs)) {
+    for (Array& input : inputs) {
         if (input.IsGradRequired(graph_id)) {
             input.ClearGrad(graph_id);
         }
@@ -72,8 +72,9 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
 void CheckBackwardComputation(std::function<std::vector<Array>(const std::vector<Array>&)> func, const std::vector<Array>& inputs,
                               const std::vector<Array>& grad_outputs, const std::vector<Array>& eps, double atol, double rtol,
                               const GraphId& graph_id) {
+    std::vector<Array> inputs_copy{inputs};
     const std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps, graph_id);
-    const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs, grad_outputs, graph_id);
+    const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_copy, grad_outputs, graph_id);
     ASSERT_EQ(backward_grads.size(), numerical_grads.size());
 
     std::ostringstream failure_os;
@@ -122,11 +123,11 @@ void CheckDoubleBackwardComputation(std::function<std::vector<Array>(const std::
                                     const std::vector<Array>& grad_outputs, const std::vector<Array>& grad_grad_inputs,
                                     const std::vector<Array>& eps, double atol, double rtol, const GraphId& graph_id) {
     // LIMITATION: All inputs must require gradients unlike CheckBackwardComputation
-    std::for_each(inputs.begin(), inputs.end(), [&graph_id](auto& input) {
+    for (const auto& input : inputs) {
         if (!input.IsGradRequired(graph_id)) {
             throw XchainerError("All inputs must require gradients");
         }
-    });
+    }
 
     const std::size_t nin = inputs.size();
     const std::size_t n_grad_outputs = grad_outputs.size();
@@ -138,10 +139,10 @@ void CheckDoubleBackwardComputation(std::function<std::vector<Array>(const std::
     std::copy(inputs.begin(), inputs.end(), std::back_inserter(inputs_and_grad_outputs));
     std::copy(grad_outputs.begin(), grad_outputs.end(), std::back_inserter(inputs_and_grad_outputs));
 
-    auto first_order_grad_func = [func, nin, n_grad_outputs, graph_id](const std::vector<Array>& inputs_and_grad_outputs) {
+    auto first_order_grad_func = [&func, nin, n_grad_outputs, &graph_id](const std::vector<Array>& inputs_and_grad_outputs) {
         // Just revert (split) inputs_and_grad_outputs into inputs and grad_outputs
-        std::vector<Array> inputs(inputs_and_grad_outputs.begin(), inputs_and_grad_outputs.begin() + nin);
-        std::vector<Array> grad_outputs(inputs_and_grad_outputs.begin() + nin, inputs_and_grad_outputs.end());
+        std::vector<Array> inputs{inputs_and_grad_outputs.begin(), inputs_and_grad_outputs.begin() + nin};
+        std::vector<Array> grad_outputs{inputs_and_grad_outputs.begin() + nin, inputs_and_grad_outputs.end()};
 
         std::vector<nonstd::optional<Array>> optional_backward_grads = BackwardGradients(func, inputs, grad_outputs, graph_id);
 

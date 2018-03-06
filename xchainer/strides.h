@@ -28,7 +28,7 @@ public:
     // by gsl:span
     Strides(gsl::span<const int64_t> dims) : dims_(), ndim_(gsl::narrow_cast<int8_t>(dims.size())) {
         CheckNdim();
-        std::copy(dims.begin(), dims.end(), const_cast<DimsType&>(dims_).begin());
+        std::copy(dims.begin(), dims.end(), dims_.begin());
     }
 
     // by initializer list
