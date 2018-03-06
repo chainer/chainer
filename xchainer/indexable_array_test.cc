@@ -33,7 +33,7 @@ TEST(IndexableArrayTest, Rank1) {
 
 TEST(IndexableArrayTest, Rank3) {
     std::array<int, 2 * 3 * 4> values;
-    std::iota(values.begin(), values.end(), 0ll);
+    std::iota(values.begin(), values.end(), 0);
     const int64_t elemsize = sizeof(values[0]);
     const Strides strides = {3 * 4 * elemsize, 4 * elemsize, elemsize};
     IndexableArray<int, 3> indexable_array(&values[0], strides);
@@ -75,7 +75,7 @@ TEST(DynamicIndexableArrayTest, Rank1) {
 
 TEST(DynamicIndexableArrayTest, Rank3) {
     std::array<int, 2 * 3 * 4> values;
-    std::iota(values.begin(), values.end(), 0ll);
+    std::iota(values.begin(), values.end(), 0);
     const int64_t elemsize = sizeof(values[0]);
     const Strides strides = {3 * 4 * elemsize, 4 * elemsize, elemsize};
     IndexableArray<int> indexable_array(&values[0], strides);
