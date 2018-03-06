@@ -920,6 +920,19 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
     }
 }
 
+TEST_P(ArrayTest, Transpose) {
+    // as a member function
+    {
+        Array a = Array::Empty({2, 3, 4}, Dtype::kBool);
+
+        Array b = a.Transpose();
+        EXPECT_EQ(Shape({4, 3, 2}), b.shape());
+        EXPECT_EQ(Strides({1, 4, 12}), b.strides());
+
+        ExpectEqual<bool>(a, a.Transpose().Transpose());
+    }
+}
+
 TEST_P(ArrayTest, Copy) {
     {
         Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
