@@ -4,6 +4,7 @@ import pytest
 
 import xchainer
 
+
 def pytest_configure(config):
     _register_cuda_marker(config)
 
@@ -36,6 +37,7 @@ def _setup_cuda_marker(item):
 
 
 _cuda_limit = None
+
 
 def _get_cuda_limit():
     global _cuda_limit
