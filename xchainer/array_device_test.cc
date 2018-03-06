@@ -21,6 +21,9 @@
 #include "xchainer/native_device.h"
 #include "xchainer/testing/context_session.h"
 
+#include <iostream>
+#include "xchainer/testing/util.h"
+
 namespace xchainer {
 namespace {
 
@@ -36,6 +39,13 @@ private:
 
 // Check that Arrays are created on the default device if no other devices are specified
 void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
+    if (!testing::IsDeviceAvailable(10)) {
+        const ::testing::TestInfo* const test_info =
+              ::testing::UnitTest::GetInstance()->current_test_info();
+        std::cout << "[     SKIP ] " << test_info->test_case_name() << "." << test_info->name() << std::endl;
+        return;
+    }
+
     // Fallback to default device which is CPU
     {
         Context& ctx = GetDefaultContext();
