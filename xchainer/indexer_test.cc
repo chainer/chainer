@@ -21,6 +21,7 @@ TEST(IndexerTest, Rank1) {
     for (int64_t i = 0; i < 3; ++i) {
         indexer.Set(i);
         EXPECT_EQ(i, indexer.index()[0]);
+        EXPECT_EQ(i, indexer.raw_index());
     }
 }
 
@@ -64,6 +65,7 @@ TEST(DynamicIndexerTest, Rank1) {
     for (int64_t i = 0; i < 3; ++i) {
         indexer.Set(i);
         EXPECT_EQ(i, indexer.index()[0]);
+        EXPECT_EQ(i, indexer.raw_index());
     }
 }
 
