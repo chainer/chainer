@@ -6,10 +6,9 @@ import xchainer
 _strides_data = [
     {'tuple': ()},
     {'tuple': (0,)},
-    {'tuple': (1,)},
-    {'tuple': (2, 3)},
-    {'tuple': (1, 1, 1)},
-    {'tuple': (2, 0, 3)},
+    {'tuple': (4,)},
+    {'tuple': (16, 4)},
+    {'tuple': (48, 16, 4)},
 ]
 
 
