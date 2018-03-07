@@ -1174,11 +1174,12 @@ TEST_P(ArrayTest, MultipleGraphsForward) {
     EXPECT_FALSE(o.IsGradRequired("graph_3"));
 }
 
-INSTANTIATE_TEST_CASE_P(ForEachBackend, ArrayTest, ::testing::Values(
+INSTANTIATE_TEST_CASE_P(ForEachBackend, ArrayTest,
+                        ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
-                                                       std::string{"cuda"},
+                            std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
-                                                       std::string{"native"}));
+                            std::string{"native"}));
 
 }  // namespace
 }  // namespace xchainer
