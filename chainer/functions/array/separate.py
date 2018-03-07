@@ -1,4 +1,4 @@
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.array import stack
 from chainer.utils import type_check
@@ -58,7 +58,7 @@ def separate(x, axis=0):
 
     .. admonition:: Example
 
-        >>> x = np.arange(6).reshape((2, 3)).astype('f')
+        >>> x = np.arange(6).reshape((2, 3)).astype(np.float32)
         >>> x
         array([[0., 1., 2.],
                [3., 4., 5.]], dtype=float32)

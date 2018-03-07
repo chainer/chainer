@@ -4,6 +4,7 @@ import six
 
 import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -41,6 +42,12 @@ class SplitAxis(function_node.FunctionNode):
             type_check.expect(in_types[0].shape[self.axis] % sections == 0)
 
     def forward(self, inputs):
+        # Currently iDeep only supports 4 dims
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(inputs, (4,))
+                and self._ideep_is_supported(inputs)):
+            return self._forward_ideep(inputs)
+
         x, = inputs
         if isinstance(self.indices_or_sections, collections.Iterable):
             cdimx = x.shape[self.axis]
@@ -48,6 +55,54 @@ class SplitAxis(function_node.FunctionNode):
             ind.append(cdimx)
         self._xp = cuda.get_array_module(x)
         ret = tuple(self._xp.split(x, self.indices_or_sections, self.axis))
+        self._shapes = [r.shape for r in ret]
+        return ret
+
+    def _ideep_is_supported(self, inputs):
+        # Returns True if iDeep supports current configuration of inputs and
+        # arguments. This is workaround for limitation in iDeep internal
+        # implementation.
+        ios = self.indices_or_sections
+        if isinstance(ios, collections.Iterable):
+            if len(ios) == 0:
+                return False  # Empty sequence
+            if ios[0] == 0:
+                return False  # Sequence starting with 0
+            for i in six.moves.range(1, len(ios)):
+                if ios[i-1] == ios[i]:
+                    return False  # Sequence with duplicate index
+        else:
+            if ios == 1:
+                return False  # 1
+
+        # Workaround for iDeep segfault issue
+        # See:
+        #   https://github.com/chainer/chainer/pull/4281#issuecomment-365830630
+        # TODO(niboshi): Remove this after iDeep is fixed.
+        # Note: inputs[0].ndim is always 4.
+        if (self.axis == 1 or self.axis == -3) and inputs[0].shape[1] == 8:
+            return False
+
+        return True
+
+    def _forward_ideep(self, inputs):
+        x, = inputs
+        offsets = intel64.ideep.intVector()
+        # TODO(iDeep)
+        # bypass python3 issue when transfer array to std::vector<>
+        # https://github.com/SimpleITK/SimpleITK/issues/106
+        ios = self.indices_or_sections
+        axis = self.axis % x.ndim
+        if isinstance(ios, collections.Iterable):
+            for i in ios:
+                offsets.push_back(int(i))
+        else:
+            d = x.shape[self.axis]
+            step = d // ios
+            for i in six.moves.range(step, d, step):
+                offsets.push_back(i)
+        ret = intel64.ideep.concat.Backward(
+            intel64.ideep.array(x), offsets, axis)
         self._shapes = [r.shape for r in ret]
         return ret
 

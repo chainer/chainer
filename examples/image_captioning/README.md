@@ -21,8 +21,8 @@ During training, the loss is the softmax cross entropy of predicting the next wo
 
 ### More About the Language Model
 
-The internals of the language models is a neural network with [LSTM](http://docs.chainer.org/en/stable/reference/generated/chainer.links.LSTM.html) layers.
-However, Chainer also has a [NStepLSTM](http://docs.chainer.org/en/stable/reference/generated/chainer.links.NStepLSTM.html) layer which does not require sequential passes (for-loops in the code) which is faster. Using the latter, you do not have to align the caption lengths in the training data neither, which you usually do if using the former.
+The internals of the language models is a neural network with [LSTM](https://docs.chainer.org/en/stable/reference/generated/chainer.links.LSTM.html) layers.
+However, Chainer also has a [NStepLSTM](https://docs.chainer.org/en/stable/reference/generated/chainer.links.NStepLSTM.html) layer which does not require sequential passes (for-loops in the code) which is faster. Using the latter, you do not have to align the caption lengths in the training data neither, which you usually do if using the former.
 This example uses NStepLSTM by default, but also includes the equivalent code implmenented using standard LSTM as a reference.
 When training with LSTM, you may want to specify the maximum caption length `--max-caption-length` to which all captions will be capped.
 

@@ -154,7 +154,7 @@ def log_softmax(x):
 
     .. admonition:: Example
 
-        >>> x = np.array([[0, 1, 2], [0, 2, 4]], 'f')
+        >>> x = np.array([[0, 1, 2], [0, 2, 4]], np.float32)
         >>> x
         array([[0., 1., 2.],
                [0., 2., 4.]], dtype=float32)

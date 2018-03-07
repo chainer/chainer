@@ -46,7 +46,7 @@ before_install:
       python --version;
 
       brew cask uninstall oclint;
-      brew install homebrew/science/hdf5;
+      brew install hdf5;
     fi
 
 install:
@@ -57,10 +57,10 @@ install:
 
 script:
   - flake8
-  - autopep8 -r . --global-config .pep8 --diff | tee check_autopep8
+  - autopep8 -r . --diff | tee check_autopep8
   - test ! -s check_autopep8
   - cd tests
-  - CHAINER_TEST_GPU_LIMIT=0 pytest -m "not slow and not cudnn" chainer_tests
+  - CHAINER_TEST_GPU_LIMIT=0 pytest -m "not slow and not cudnn and not ideep" chainer_tests
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
       cd ..;
       READTHEDOCS=True python setup.py develop;

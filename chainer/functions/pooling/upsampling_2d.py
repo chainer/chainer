@@ -189,7 +189,7 @@ def upsampling_2d(
         created and stored in the :attr:`~chainer.functions.MaxPooling2D`
         object when cuDNN is used for it.
 
-        >>> x = np.arange(1, 37).reshape(1, 1, 6, 6).astype('f')
+        >>> x = np.arange(1, 37).reshape(1, 1, 6, 6).astype(np.float32)
         >>> x = chainer.Variable(x)
         >>> x.data
         array([[[[ 1.,  2.,  3.,  4.,  5.,  6.],

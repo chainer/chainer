@@ -1,4 +1,5 @@
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import optimizer
 
 
@@ -35,14 +36,24 @@ class MomentumSGDRule(optimizer.UpdateRule):
         with cuda.get_device_from_array(param.data):
             self.state['v'] = xp.zeros_like(param.data)
 
+        # For iDeep
+        if intel64.inputs_all_ready((self.state['v'],)):
+            self.state['v'] = intel64.ideep.array(
+                self.state['v'], itype=intel64.ideep.wgt_array)
+
     def update_core_cpu(self, param):
         grad = param.grad
         if grad is None:
             return
         v = self.state['v']
-        v *= self.hyperparam.momentum
-        v -= self.hyperparam.lr * grad
-        param.data += v
+        if isinstance(v, intel64.mdarray):
+            v.inplace_axpby(self.hyperparam.momentum, -
+                            self.hyperparam.lr, grad)
+            param.data += v
+        else:
+            v *= self.hyperparam.momentum
+            v -= self.hyperparam.lr * grad
+            param.data += v
 
     def update_core_gpu(self, param):
         grad = param.grad

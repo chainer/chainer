@@ -1,4 +1,5 @@
 import collections
+
 import numpy
 import six
 
@@ -156,7 +157,7 @@ class ConcatWithAsyncTransfer(object):
 
         from chainer.dataset import convert
         ...
-        updater = chainer.training.StandardUpdater(
+        updater = chainer.training.updaters.StandardUpdater(
                        ...,
                        converter=convert.ConcatWithAsyncTransfer(),
                        ...)

@@ -42,13 +42,25 @@ Suppose the following code:
    F.maximum(v1, v2)
 
 Prior to v4, the above code raises an exception like ``ValueError: object __array__ method not producing an array``, which was difficult to understand.
-In v4, the error message would become ``ValueError: numpy and cupy arrays are mixed in the forward input (Maximum)``.
+In v4, the error message would become ``ValueError: incompatible array types are mixed in the forward input (Maximum)``.
 This kind of error usually occurs by mistake (for example, not performing ``to_gpu`` for some variables).
 
 .. attention::
 
    As the argument validation is strictened, call of functions intentionally mixing NumPy/CuPy arrays in arguments will not work in Chainer v4.
    Please transfer all arrays to the same device before calling functions.
+
+References to Function Nodes Not Retained in TimerHook and CupyMemoryProfilerHook
+---------------------------------------------------------------------------------
+
+To reduce memory consumption, references to the function nodes will no longer be retained in the :class:`chainer.function_hooks.CupyMemoryProfileHook` and :class:`chainer.function_hooks.TimerHook`.
+See the discussion in `#4300 <https://github.com/chainer/chainer/pull/4300>`_ for more details.
+
+.. attention::
+
+   The existing code using function nodes retained in ``call_history`` attribute of these hooks will not work.
+   The first element of ``call_history`` became the name of the function, instead of the function node instance itself.
+   You can define your own function hook if you need to access the function node instances.
 
 Update of Docker Images
 -----------------------
@@ -58,6 +70,13 @@ This change was introduced because CUDA 7.5 does not support NVIDIA Pascal GPUs.
 
 To use these images, you may need to upgrade the NVIDIA driver on your host.
 See `Requirements of nvidia-docker <https://github.com/NVIDIA/nvidia-docker/wiki/CUDA#requirements>`_ for details.
+
+CuPy v4
+-------
+
+Chainer v4 requires CuPy v4 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v4 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v4>`_ for details.
+
 
 Chainer v3
 ==========
@@ -105,6 +124,12 @@ See the discussion in `#2955 <https://github.com/chainer/chainer/pull/2955>`_ fo
    The existing code using ``use_cudnn`` argument of :func:`chainer.functions.spatial_transformer_grid` and :func:`chainer.functions.spatial_transformer_sampler` require modification to work with Chainer v3.
    Please use the configuration context (e.g., ``with chainer.using_config('use_cudnn', 'auto'):``) to enable or disable use of cuDNN.
    See :ref:`configuration` for details.
+
+CuPy v2
+-------
+
+Chainer v3 requires CuPy v2 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v2 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v2>`_ for details.
 
 
 Chainer v2

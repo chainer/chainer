@@ -40,7 +40,7 @@ def swapaxes(x, axis1, axis2):
 
     .. admonition:: Example
 
-        >>> x = np.array([[[0, 1, 2], [3, 4, 5]]], 'f')
+        >>> x = np.array([[[0, 1, 2], [3, 4, 5]]], np.float32)
         >>> x.shape
         (1, 2, 3)
         >>> y = F.swapaxes(x, axis1=0, axis2=1)
