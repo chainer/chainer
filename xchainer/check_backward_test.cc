@@ -56,7 +56,7 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
     auto lhs_backward_function = [other = rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)->Array {
         return gout + other.AsConstant(graph_ids_to_stop_gradient);
     };
-    auto rhs_backward_function = lhs_backward_function;
+    auto& rhs_backward_function = lhs_backward_function;
     internal::SetUpOpNodes("incorrect_binary", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     VisitDtype(lhs.dtype(), [&](auto pt) {
@@ -119,7 +119,7 @@ protected:
     }
 
 private:
-    bool requires_grad;
+    bool requires_grad{};
 };
 
 class CheckBackwardBinaryTest : public CheckBackwardBaseTest, public ::testing::WithParamInterface<std::tuple<bool, bool>> {

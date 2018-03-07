@@ -6,7 +6,6 @@
 namespace xchainer {
 
 Backend::Backend(Context& context) : context_(context) {}
-Backend::~Backend() {}
 
 Device& Backend::GetDevice(int index) {
     if (index < 0) {

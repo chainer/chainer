@@ -43,8 +43,9 @@ public:
 
     std::vector<Array> MakeFullArrays(const Shape& shape, const std::vector<float>& values) const {
         std::vector<Array> ret;
+        ret.reserve(values.size());
         for (float value : values) {
-            ret.push_back(Array::Full(shape, value));
+            ret.emplace_back(Array::Full(shape, value));
         }
         return ret;
     }
@@ -115,22 +116,23 @@ public:
     void CheckBackpropExtraInputs(std::vector<Array>& target_inputs, std::vector<Array>& other_inputs, std::vector<Array>& expected_grads,
                                   Fprop&& fprop) const {
         CheckBackpropImpl(target_inputs, expected_grads, fprop, other_inputs);
-        for (size_t i = 0; i < other_inputs.size(); ++i) {
-            EXPECT_THROW(other_inputs[i].GetGrad(), XchainerError);
+        for (const Array& other_input : other_inputs) {
+            EXPECT_THROW(other_input.GetGrad(), XchainerError);
         }
     }
 
     // Simple versions. It makes and uses an array with one element for each input.
     template <typename Fprop>
-    void CheckBackpropSingleElement(std::vector<float> target_inputs, std::vector<float> expected_grads, Fprop&& fprop) const {
+    void CheckBackpropSingleElement(const std::vector<float>& target_inputs, const std::vector<float>& expected_grads,
+                                    Fprop&& fprop) const {
         auto xs = MakeFullArrays({1}, target_inputs);
         auto expected_gxs = MakeFullArrays({1}, expected_grads);
         CheckBackprop(xs, expected_gxs, std::forward<Fprop>(fprop));
     }
 
     template <typename Fprop>
-    void CheckBackpropSingleElementExtraInputs(std::vector<float> target_inputs, std::vector<float> other_inputs,
-                                               std::vector<float> expected_grads, Fprop&& fprop) const {
+    void CheckBackpropSingleElementExtraInputs(const std::vector<float>& target_inputs, const std::vector<float>& other_inputs,
+                                               const std::vector<float>& expected_grads, Fprop&& fprop) const {
         auto xs = MakeFullArrays({1}, target_inputs);
         auto other_xs = MakeFullArrays({1}, other_inputs);
         auto expected_gxs = MakeFullArrays({1}, expected_grads);

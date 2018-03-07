@@ -90,7 +90,7 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 }  // namespace internal
 
-Array Array::FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, Device& device) {
+Array Array::FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
     std::shared_ptr<void> device_data = device.FromBuffer(data, bytesize);
     return {shape, Strides{shape, dtype}, dtype, device, device_data};

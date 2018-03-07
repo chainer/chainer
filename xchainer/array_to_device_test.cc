@@ -45,7 +45,7 @@ private:
 };
 
 // Instantiate the global test configuration
-static TestConfig g_config;
+TestConfig g_config;
 
 // Test backend class
 class TestBackend : public NativeBackend {
@@ -103,9 +103,8 @@ protected:
     Device* GetDefaultDevice() {
         if (default_backend_num_ < 0) {
             return nullptr;
-        } else {
-            return &backends_[default_backend_num_]->GetDevice(0);
         }
+        return &backends_[default_backend_num_]->GetDevice(0);
     }
 
     Device& GetSourceDevice() { return backends_[src_backend_num_]->GetDevice(0); }

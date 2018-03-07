@@ -22,9 +22,9 @@ namespace {
 
 class NumericalGradientTest : public ::testing::TestWithParam<std::string> {
 protected:
-    virtual void SetUp() { device_session_.emplace(DeviceId{GetParam(), 0}); }
+    void SetUp() override { device_session_.emplace(DeviceId{GetParam(), 0}); }
 
-    virtual void TearDown() { device_session_.reset(); }
+    void TearDown() override { device_session_.reset(); }
 
 public:
     using Arrays = std::vector<Array>;

@@ -104,7 +104,8 @@ ArrayBodyPtr MakeArray(py::array array, const nonstd::optional<std::string>& dev
     Shape shape(info.shape);
 
     // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
-    std::shared_ptr<void> data(std::make_shared<py::array>(std::move(array)), array.mutable_data());
+    void* underlying_data = array.mutable_data();
+    std::shared_ptr<void> data{std::make_shared<py::array>(std::move(array)), underlying_data};
 
     return Array::FromBuffer(shape, dtype, data, GetDevice(device_id)).move_body();
 }
@@ -168,11 +169,10 @@ void InitXchainerArray(pybind11::module& m) {
         .def("get_grad",
              [](const ArrayBodyPtr& self, const GraphId& graph_id) -> ConstArrayBodyPtr {
                  const nonstd::optional<Array>& grad = Array{self}.GetGrad(graph_id);
-                 if (grad.has_value()) {
-                     return grad->body();
-                 } else {
+                 if (!grad.has_value()) {
                      return nullptr;
                  }
+                 return grad->body();
              },
              py::arg("graph_id") = kDefaultGraphId)
         .def("set_grad",
@@ -197,7 +197,7 @@ void InitXchainerArray(pybind11::module& m) {
         .def_property_readonly("total_bytes", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalBytes(); })
         .def_property_readonly("total_size", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalSize(); })
         .def_property_readonly("_debug_data_memory_address",  // These methods starting with `_debug_` are stubs for testing
-                               [](const ArrayBodyPtr& self) { return reinterpret_cast<std::uintptr_t>(Array{self}.data().get()); })
+                               [](const ArrayBodyPtr& self) -> const void* { return Array{self}.data().get(); })
         .def_property_readonly("_debug_flat_data", [](const ArrayBodyPtr& self) {
             py::list list;
             Array array{self};

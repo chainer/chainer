@@ -14,7 +14,7 @@ class Device;
 class Backend {
 public:
     explicit Backend(Context& context);
-    virtual ~Backend();
+    virtual ~Backend() = default;
 
     // Returns the name of this backend. This name should be unique within the context.
     virtual std::string GetName() const = 0;
