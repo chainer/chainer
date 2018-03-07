@@ -278,11 +278,7 @@ class _PrefetchLoop(object):
 
         # Use a distinct RandomState in the thread
         # for deterministic random number generation.
-        # To support 32-bit platform and numpy < 1.11,
-        # the seed is taken in a verbose manner.
-        seed = numpy.asscalar(
-            numpy.random.randint(-(1 << 31), 1 << 31, 1).astype('uint32'))
-        self._random = numpy.random.RandomState(seed)
+        self._random = random_state.derive_random_state()
 
         self._interruption_testing = _interruption_testing
 
