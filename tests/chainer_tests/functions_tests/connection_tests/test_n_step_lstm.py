@@ -20,6 +20,9 @@ def _split(inputs, pos):
     return inputs[:pos], inputs[pos:]
 
 
+@testing.parameterize(*testing.product({
+    'rnn_algo': ['standard', 'static', 'dynamic'],
+}))
 class TestNStepLSTM(unittest.TestCase):
 
     batches = [3, 2, 1]
@@ -69,7 +72,7 @@ class TestNStepLSTM(unittest.TestCase):
         bs = [[chainer.Variable(b) for b in bs]
               for bs in bs_data]
         hy, cy, ys = functions.n_step_lstm(
-            self.n_layers, self.dropout, h, c, ws, bs, xs)
+            self.n_layers, self.dropout, h, c, ws, bs, xs, rnn_algo=self.rnn_algo)
 
         e_hy = self.hx.copy()
         e_cy = self.cx.copy()
@@ -141,7 +144,7 @@ class TestNStepLSTM(unittest.TestCase):
                 bs.append(biases)
             xs = inputs
             hy, cy, ys = functions.n_step_lstm(
-                self.n_layers, self.dropout, hx, cx, ws, bs, xs)
+                self.n_layers, self.dropout, hx, cx, ws, bs, xs, rnn_algo=self.rnn_algo)
             return (hy, cy) + ys
 
         gradient_check.check_backward(
@@ -165,6 +168,9 @@ class TestNStepLSTM(unittest.TestCase):
                 [cuda.to_gpu(dy) for dy in self.dys])
 
 
+@testing.parameterize(*testing.product({
+    'rnn_algo': ['standard', 'static', 'dynamic'],
+}))
 class TestNStepBiLSTM(unittest.TestCase):
 
     batches = [3, 2, 1]
@@ -217,7 +223,7 @@ class TestNStepBiLSTM(unittest.TestCase):
         bs = [[chainer.Variable(b) for b in bs]
               for bs in bs_data]
         hy, cy, ys = functions.n_step_bilstm(
-            self.n_layers, self.dropout, h, c, ws, bs, xs)
+            self.n_layers, self.dropout, h, c, ws, bs, xs, rnn_algo=self.rnn_algo)
 
         xs_next = self.xs
         e_hy = self.hx.copy()
@@ -321,7 +327,7 @@ class TestNStepBiLSTM(unittest.TestCase):
                 bs.append(biases)
             xs = inputs
             hy, cy, ys = functions.n_step_bilstm(
-                self.n_layers, self.dropout, hx, cx, ws, bs, xs)
+                self.n_layers, self.dropout, hx, cx, ws, bs, xs, rnn_algo=self.rnn_algo)
             return (hy, cy) + ys
 
         gradient_check.check_backward(

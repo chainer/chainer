@@ -145,6 +145,8 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
     }
 
 _rnn_persistent_algo = None
+print 'cuda.cudnn_enabled:', cuda.cudnn_enabled
+print '_cudnn_version:', _cudnn_version
 if cuda.cudnn_enabled and _cudnn_version >= 6000:
     _rnn_persistent_algo = {
         'standard': libcudnn.CUDNN_RNN_ALGO_STANDARD,
@@ -175,13 +177,16 @@ class BaseNStepRNN(function.Function):
                              % (rnn_mode, candidate_list))
 
         is_enable_cudnn_v6 = isinstance(_rnn_persistent_algo, dict)
-        if is_enable_cudnn_v6 and rnn_algo not in _rnn_persistent_algo:
-            candidate_list = ','.join(_rnn_persistent_algo.keys())
-            raise ValueError('Invalid rnn_algo: "%s". Please select from [%s]'
-                             % (rnn_algo, candidate_list))
+        print 'is_enable_cudnn_v6:', is_enable_cudnn_v6
+        print 'rnn_algo:', rnn_algo
+        if is_enable_cudnn_v6 and rnn_algo in _rnn_persistent_algo:
+            #candidate_list = ','.join(_rnn_persistent_algo.keys())
+            #raise ValueError('Invalid rnn_algo: "%s". Please select from [%s]'
+            #                 % (rnn_algo, candidate_list))
             _rnn_algo = _rnn_persistent_algo[rnn_algo]
         else:
             _rnn_algo = None
+            
 
         self.rnn_dir = _rnn_dirs[rnn_dir]
         self.rnn_mode = _rnn_modes[rnn_mode]
@@ -330,6 +335,7 @@ class BaseNStepRNN(function.Function):
             libcudnn.CUDNN_LINEAR_INPUT, self.rnn_dir, self.rnn_mode,
             libcudnn.CUDNN_DATA_FLOAT, algo=self.rnn_algo)
 
+        print 'self.rnn_algo:', self.rnn_algo
         if self.rnn_algo == libcudnn.CUDNN_RNN_ALGO_PERSIST_DYNAMIC:
             batchsize = len(x_list[0])
             global _prev_batchsize
