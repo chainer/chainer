@@ -13,7 +13,7 @@ namespace xchainer {
 
 // Kernel object to index typed arrays.
 //
-// Indexer holds the shape information. It can be used to access elements of TypedArray by linear indexes.
+// Indexer holds the shape information. It can be used to access elements of IndexableArray by linear indexes.
 template <int8_t n_dim = kDynamicNdim>
 class Indexer {
 public:
