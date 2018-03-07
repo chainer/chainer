@@ -118,8 +118,12 @@ TupleDataset
 
 ConcatenatedDataset
 ~~~~~~~~~~~~~~~~~~~
-.. autoclass:: ConcatenatedDataset
-   :members:
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+    chainer.datasets.ConcatenatedDataset
 
 SubDataset
 ~~~~~~~~~~

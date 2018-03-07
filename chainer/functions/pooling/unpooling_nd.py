@@ -110,7 +110,7 @@ def unpooling_nd(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
 
         This feature is experimental. The interface can change in the future.
 
-    This function acts similary to :class:`~functions.DeconvolutionND`, but
+    This function acts similarly to :class:`~functions.DeconvolutionND`, but
     it spreads input N-dimensional array's value without any parameter instead
     of computing the inner products.
 
@@ -130,7 +130,7 @@ def unpooling_nd(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
             operation :math:`(out_1, out_2, ..., out_N)`. If ``None``, the size
             is estimated from input size, stride and padding.
         cover_all (bool): If ``True``, the pooling window is assumed to cover
-            all of the ouput array, eventually the output size may be smaller
+            all of the output array, eventually the output size may be smaller
             than that in the case ``cover_all`` is ``False``.
 
     Returns:
