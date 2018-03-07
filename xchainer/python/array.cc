@@ -150,6 +150,7 @@ void InitXchainerArray(pybind11::module& m) {
                  Device& device = GetDefaultContext().GetDevice({backend_name, index});
                  return Array{self}.ToDevice(device).move_body();
              })
+        .def("transpose", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); })
         .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
         .def("as_constant",
              [](const ArrayBodyPtr& self, bool copy) {
