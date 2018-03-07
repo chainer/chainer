@@ -10,59 +10,60 @@ from chainer import function_node
 from chainer.utils import type_check
 
 
+def _get_indices_or_sections(indices_or_sections):
+    """Checks and convert ``indices_or_sections`` argument
+
+    Converted value is one of: 1-D numpy.ndarray, list, int, and
+    NumPy int scalar.
+
+    Returns:
+        A binary tuple in which the 1st element is indices (sequence) and
+        the 2nd element is sections (scalar).
+        Only one of the two is not ``None`` and the other is ``None``.
+
+    """
+    ios = indices_or_sections
+    is_seq = False
+    if isinstance(ios, numpy.ndarray):
+        # numpy.ndarray
+        if ios.dtype.kind != 'i':
+            raise TypeError('indices_or_sections must be integers')
+        if ios.ndim >= 2:
+            raise TypeError('indices_or_sections must be 1-D sequence')
+        is_seq = ios.ndim != 0
+    elif isinstance(ios, collections.Sequence):
+        # Any sequence except numpy.ndarray
+        ios = list(ios)
+        is_seq = True
+    elif isinstance(indices_or_sections, six.integer_types):
+        # int
+        pass
+    else:
+        raise TypeError(
+            'indices_or_sections must be integer or 1-D array.\n'
+            'Actual: {}'.format(type(indices_or_sections)))
+
+    if is_seq and chainer.is_debug():
+        for p, n in six.moves.zip(ios, ios[1:]):
+            if p > n:
+                raise ValueError('indices_or_sections must be sorted')
+
+    if is_seq:
+        return ios, None
+    else:
+        return None, ios
+
+
 class SplitAxis(function_node.FunctionNode):
 
     """Function that splits multiple arrays along the specified axis."""
 
     def __init__(self, indices_or_sections, axis):
-        indices, sections = self._get_indices_or_sections(indices_or_sections)
+        indices, sections = _get_indices_or_sections(indices_or_sections)
         assert (indices is None) != (sections is None)
         self.indices = indices
         self.sections = sections
         self.axis = axis
-
-    def _get_indices_or_sections(self, indices_or_sections):
-        """Checks and convert ``indices_or_sections`` argument
-
-        Converted value is one of: 1-D numpy.ndarray, list, int, and
-        NumPy int scalar.
-
-        Returns:
-            A binary tuple in which the 1st element is indices (sequence) and
-            the 2nd element is sections (scalar).
-            Only one of the two is not ``None`` and the other is ``None``.
-
-        """
-        ios = indices_or_sections
-        is_seq = False
-        if isinstance(ios, numpy.ndarray):
-            # numpy.ndarray
-            if ios.dtype.kind != 'i':
-                raise TypeError('indices_or_sections must be integers')
-            if ios.ndim >= 2:
-                raise TypeError('indices_or_sections must be 1-D sequence')
-            is_seq = ios.ndim != 0
-        elif isinstance(ios, collections.Sequence):
-            # Any sequence except numpy.ndarray
-            ios = list(ios)
-            is_seq = True
-        elif isinstance(indices_or_sections, six.integer_types):
-            # int
-            pass
-        else:
-            raise TypeError(
-                'indices_or_sections must be integer or 1-D array.\n'
-                'Actual: {}'.format(type(indices_or_sections)))
-
-        if is_seq and chainer.is_debug():
-            for p, n in six.moves.zip(ios, ios[1:]):
-                if p > n:
-                    raise ValueError('indices_or_sections must be sorted')
-
-        if is_seq:
-            return ios, None
-        else:
-            return None, ios
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
