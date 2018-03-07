@@ -1,6 +1,7 @@
 #include "xchainer/numerical_gradient.h"
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -19,12 +20,9 @@
 namespace xchainer {
 namespace {
 
-class NumericalGradientTest : public ::testing::Test {
+class NumericalGradientTest : public ::testing::TestWithParam<std::string> {
 protected:
-    virtual void SetUp() {
-        device_session_.emplace(DeviceId{NativeBackend::kDefaultName, 0});
-        GetDefaultDevice();
-    }
+    virtual void SetUp() { device_session_.emplace(DeviceId{GetParam(), 0}); }
 
     virtual void TearDown() { device_session_.reset(); }
 
@@ -49,6 +47,8 @@ public:
         Arrays grads = CalculateNumericalGradient(checked_func, center_inputs, grad_outputs, eps);
 
         EXPECT_EQ(grads.size(), expected_grads.size());
+
+        GetDefaultDevice().Synchronize();
         for (size_t i = 0; i < nin; ++i) {
             auto grads_data = static_cast<const T*>(grads[i].data().get());
             auto expected_grads_data = static_cast<const T*>(expected_grads.at(i).data().get());
@@ -64,7 +64,7 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_F(NumericalGradientTest, NumericalGradientAdd) {
+TEST_P(NumericalGradientTest, NumericalGradientAdd) {
     using Data = std::array<float, 6>;
     Shape shape{2, 3};
     Data data1{1.f, 2.f, -3.f, 4.f, 0.5f, 3.f};
@@ -95,7 +95,7 @@ TEST_F(NumericalGradientTest, NumericalGradientAdd) {
     CheckElementwiseNumericalGradient<float>(forward, inputs, grad_outputs, eps, expected_grads);
 }
 
-TEST_F(NumericalGradientTest, NumericalGradientMul) {
+TEST_P(NumericalGradientTest, NumericalGradientMul) {
     using Data = std::array<float, 6>;
     Shape shape{2, 3};
     Data data1{1.f, 2.f, 3.f, 4.f, -2.f, -3.f};
@@ -125,6 +125,13 @@ TEST_F(NumericalGradientTest, NumericalGradientMul) {
     // Check
     CheckElementwiseNumericalGradient<float>(forward, inputs, grad_outputs, eps, expected_grads);
 }
+
+INSTANTIATE_TEST_CASE_P(ForEachBackend, NumericalGradientTest,
+                        ::testing::Values(
+#ifdef XCHAINER_ENABLE_CUDA
+                            std::string{"cuda"},
+#endif  // XCHAINER_ENABLE_CUDA
+                            std::string{"native"}));
 
 }  // namespace
 }  // namespace xchainer
