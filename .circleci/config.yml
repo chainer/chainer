@@ -14,6 +14,8 @@ jobs:
             apt-get install openssh-client  # To avoid warning on checkout
             apt-get install -y bzip2  # To install miniconda
 
+            update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-4.0 1
+
             # To avoid configuring PATH environment variable in every steps
             echo 'export PATH="$HOME"/miniconda/bin:"$PATH"' >> $BASH_ENV
 
