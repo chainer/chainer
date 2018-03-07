@@ -31,7 +31,7 @@ This table compares Chainer with other actively developed deep learning framewor
    "Misc","Runtime debugging","debug mode, typechecking, pdb","pdb","tfdbg",,,,"Monitor","pdb",,"Java debuggers","cntk.debugging",,"Gallium.jl","gdb","pdb"
    ,"Trainer abstraction","native","`tnt <https://github.com/pytorch/tnt>`_",,"`Blocks <https://github.com/mila-udem/blocks>`_, `Lasagne <https://github.com/Lasagne/Lasagne>`_, `Keras <https://github.com/fchollet/keras>`_","native","`torchnet <https://github.com/torchnet/torchnet>`_",,,"native","native","native","native",,,"native"
    ,"Reporter abstraction","native","tnt","native",,,"torchnet","native",,,"native","native",,,,
-   ,"Web interface",,,"`TensorBoard <https://github.com/tensorflow/tensorboard>`_",,,,,,,"DL4J-UI",,"Nervana Cloud",,,
+   ,"Web interface","`tensorboardX <https://github.com/lanpa/tensorboard-pytorch>`_","`tensorboardX <https://github.com/lanpa/tensorboard-pytorch>`_, `visdom <https://github.com/lanpa/tensorboard-pytorch>`_","`TensorBoard <https://github.com/tensorflow/tensorboard>`_",,,,,,,"DL4J-UI",,"Nervana Cloud",,,
    ,"Graph compilation engine",,2017,"`XLA <https://github.com/tensorflow/tensorflow/tree/master/tensorflow/compiler/xla/>`_",,2017,,"`NNVM <https://github.com/dmlc/nnvm>`_",,,,,"ngraph",,,
 
 .. [1] Define-by-run is in development as of June 2017 and tracked in `dmlc/mxnet#5705 <https://github.com/dmlc/mxnet/pull/5705>`_. It is also possible using the much slower MinPy extension.

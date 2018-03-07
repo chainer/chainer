@@ -1,9 +1,10 @@
+from chainer.functions.activation import sigmoid
+from chainer.functions.activation import tanh
 from chainer.functions.activation import tree_lstm
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
-from chainer.links.connection import linear
-
 from chainer import link
+from chainer.links.connection import linear
 from chainer import utils
 
 
@@ -47,7 +48,7 @@ class ChildSumTreeLSTM(link.Chain):
 
     See the paper for details: `Improved Semantic Representations From \
     Tree-Structured Long Short-Term Memory Networks \
-    <http://www.aclweb.org/anthology/P15-1150>`_.
+    <https://www.aclweb.org/anthology/P15-1150>`_.
 
     """
 
@@ -81,8 +82,7 @@ class ChildSumTreeLSTM(link.Chain):
         cs = cshsx[:len(cshsx) // 2]
         hs = cshsx[len(cshsx) // 2:-1]
         x = cshsx[-1]
-        assert(len(cs) >= 1)
-        assert(len(hs) >= 1)
+        assert(len(cshsx) % 2 == 1)
         assert(len(cs) == len(hs))
 
         if x is None:
@@ -91,7 +91,7 @@ class ChildSumTreeLSTM(link.Chain):
             elif any(h is not None for h in hs):
                 base = [h for h in hs if h is not None][0]
             else:
-                raise ValueError('All inputs are None.')
+                raise ValueError('All inputs (cs, hs, x) are None.')
             batchsize, dtype = base.shape[0], base.dtype
             x = self.xp.zeros(
                 (batchsize, self.in_size), dtype=dtype)
@@ -100,6 +100,13 @@ class ChildSumTreeLSTM(link.Chain):
         W_x_aio_in, W_x_f_in = split_axis.split_axis(
             W_x_in, [3 * self.state_size], axis=1)
 
+        if len(hs) == 0:
+            aio_in = W_x_aio_in
+            a, i, o = split_axis.split_axis(aio_in, 3, axis=1)
+            c = sigmoid.sigmoid(i) * tanh.tanh(a)
+            h = sigmoid.sigmoid(o) * tanh.tanh(c)
+            return c, h
+
         hs = self._pad_zero_nodes(
             hs, (x.shape[0], self.state_size), dtype=x.dtype)
         cs = self._pad_zero_nodes(
@@ -107,7 +114,8 @@ class ChildSumTreeLSTM(link.Chain):
 
         aio_in = self.W_h_aio(sum(hs)) + W_x_aio_in
         W_h_fs_in = concat.concat(split_axis.split_axis(
-            self.W_h_f(concat.concat(hs, axis=0)), len(hs), axis=0), axis=1)
+            self.W_h_f(concat.concat(hs, axis=0)), len(hs), axis=0),
+            axis=1)
         f_in = W_h_fs_in + \
             concat.concat([W_x_f_in] * len(hs), axis=1)
         tree_lstm_in = concat.concat([aio_in, f_in], axis=1)
@@ -164,7 +172,7 @@ class NaryTreeLSTM(link.Chain):
 
     See the papers for details: `Improved Semantic Representations From \
     Tree-Structured Long Short-Term Memory Networks \
-    <http://www.aclweb.org/anthology/P15-1150>`_, and
+    <https://www.aclweb.org/anthology/P15-1150>`_, and
     `A Fast Unified Model for Parsing and Sentence Understanding \
     <https://arxiv.org/pdf/1603.06021.pdf>`_.
 
@@ -179,7 +187,7 @@ class NaryTreeLSTM(link.Chain):
     """
 
     def __init__(self, in_size, out_size, n_ary=2):
-        assert(n_ary >= 2)
+        assert(n_ary >= 1)
         super(NaryTreeLSTM, self).__init__()
         with self.init_scope():
             self.W_x = linear.Linear(in_size, (3 + n_ary) * out_size)
@@ -220,7 +228,7 @@ class NaryTreeLSTM(link.Chain):
             elif any(h is not None for h in hs):
                 base = [h for h in hs if h is not None][0]
             else:
-                raise ValueError('All inputs are None.')
+                raise ValueError('All inputs (cs, hs, x) are None.')
             batchsize, dtype = base.shape[0], base.dtype
             x = self.xp.zeros(
                 (batchsize, self.in_size), dtype=dtype)

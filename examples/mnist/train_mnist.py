@@ -60,7 +60,7 @@ def main():
     model = L.Classifier(MLP(args.unit, 10))
     if args.gpu >= 0:
         # Make a specified GPU current
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
 
     # Setup an optimizer

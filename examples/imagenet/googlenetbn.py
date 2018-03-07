@@ -31,9 +31,9 @@ class GoogLeNetBN(chainer.Chain):
             self.inc4b = L.InceptionBN(
                 None, 192, 96, 128, 96, 128, 'avg', 128)
             self.inc4c = L.InceptionBN(
-                None, 128, 128, 160, 128, 160, 'avg', 128)
+                None, 160, 128, 160, 128, 160, 'avg', 128)
             self.inc4d = L.InceptionBN(
-                None, 64, 128, 192, 160, 192, 'avg', 128)
+                None, 96, 128, 192, 160, 192, 'avg', 128)
             self.inc4e = L.InceptionBN(
                 None, 0, 128, 192, 192, 256, 'max', stride=2)
             self.inc5a = L.InceptionBN(

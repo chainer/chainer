@@ -7,6 +7,7 @@ import unittest
 
 from chainer import serializers
 from chainer import testing
+from chainer.testing import condition
 from chainer import training
 
 
@@ -78,7 +79,7 @@ class TestTrigger(unittest.TestCase):
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
 
-    @testing.condition.repeat(10)
+    @condition.repeat(10)
     def test_trigger_sparse_call(self):
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
@@ -91,7 +92,7 @@ class TestTrigger(unittest.TestCase):
                 self.assertEqual(trigger(trainer), accumulated)
                 accumulated = False
 
-    @testing.condition.repeat(10)
+    @condition.repeat(10)
     def test_resumed_trigger_sparse_call(self):
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)

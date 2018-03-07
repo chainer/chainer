@@ -2,7 +2,7 @@ import unittest
 
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.connection import convolution_2d
 from chainer.functions.connection import depthwise_convolution_2d
 from chainer import gradient_check

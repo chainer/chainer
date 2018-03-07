@@ -1,5 +1,5 @@
-Standard Link implementations
-=============================
+Link and Chains
+===============
 
 .. module:: chainer.links
 
@@ -39,6 +39,7 @@ Learnable connections
    chainer.links.Inception
    chainer.links.InceptionBN
    chainer.links.Linear
+   chainer.links.LocalConvolution2D
    chainer.links.LSTM
    chainer.links.MLPConvolution2D
    chainer.links.NaryTreeLSTM
@@ -75,6 +76,7 @@ Activation/loss/normalization functions with parameters
    chainer.links.CRF1d
    chainer.links.SimplifiedDropconnect
    chainer.links.PReLU
+   chainer.links.Swish
    chainer.links.Maxout
    chainer.links.NegativeSampling
 
@@ -152,3 +154,16 @@ Compatibility with other frameworks
 
    chainer.links.TheanoFunction
    chainer.links.caffe.CaffeFunction
+
+Link and Chain base classes
+---------------------------
+
+.. module:: chainer
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Link
+   chainer.Chain
+   chainer.ChainList

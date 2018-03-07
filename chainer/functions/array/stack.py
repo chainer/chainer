@@ -1,4 +1,41 @@
 import chainer
+from chainer.backends import cuda
+from chainer import function_node
+from chainer.utils import type_check
+
+
+class Stack(function_node.FunctionNode):
+
+    """Concatenate variables along a new axis."""
+
+    def __init__(self, axis):
+        self.axis = axis
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() > 0)
+        type_check.expect(
+            -in_types[0].ndim - 1 <= self.axis,
+            self.axis <= in_types[0].ndim
+        )
+        dtype = in_types[0].dtype
+        shape = in_types[0].shape
+        for x_type in in_types[1:]:
+            type_check.expect(
+                x_type.dtype == dtype,
+                x_type.shape == shape,
+            )
+
+    def forward(self, inputs):
+        xp = cuda.get_array_module(*inputs)
+        if hasattr(xp, 'stack'):
+            return xp.stack(inputs, axis=self.axis),
+        else:
+            # Old numpy does not have numpy.stack.
+            return xp.concatenate(
+                [xp.expand_dims(x, self.axis) for x in inputs], self.axis),
+
+    def backward(self, inputs, grads):
+        return chainer.functions.separate(grads[0], self.axis)
 
 
 def stack(xs, axis=0):
@@ -86,5 +123,4 @@ def stack(xs, axis=0):
         (3, 4, 2)
 
     """
-    xs = [chainer.functions.expand_dims(x, axis) for x in xs]
-    return chainer.functions.concat(xs, axis)
+    return Stack(axis).apply(xs)[0]

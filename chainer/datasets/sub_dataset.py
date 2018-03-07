@@ -96,6 +96,9 @@ def split_dataset(dataset, split_at, order=None):
 
     """
     n_examples = len(dataset)
+    if not isinstance(split_at, (six.integer_types, numpy.integer)):
+        raise TypeError('split_at must be int, got {} instead'
+                        .format(type(split_at)))
     if split_at < 0:
         raise ValueError('split_at must be non-negative')
     if split_at >= n_examples:
