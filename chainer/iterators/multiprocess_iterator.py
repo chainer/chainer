@@ -11,6 +11,7 @@ import numpy
 import six
 
 from chainer.dataset import iterator
+from chainer.iterators import random_state
 
 
 _response_time = 1.
@@ -93,7 +94,10 @@ class MultiprocessIterator(iterator.Iterator):
             self._previous_epoch_detail, self._order) = prefetch_state
         if batch is None:
             raise StopIteration
-        else:
+
+        def dummy_state():
+            raise NotImplementedError
+        with random_state.set_random_state(dummy_state):
             return batch
 
     next = __next__

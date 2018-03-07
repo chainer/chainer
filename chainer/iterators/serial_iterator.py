@@ -3,6 +3,7 @@ from __future__ import division
 import numpy
 
 from chainer.dataset import iterator
+from chainer.iterators import random_state
 
 
 class SerialIterator(iterator.Iterator):
@@ -77,7 +78,10 @@ class SerialIterator(iterator.Iterator):
             self.is_new_epoch = False
             self.current_position = i_end
 
-        return batch
+        def dummy_state():
+            raise NotImplementedError
+        with random_state.set_random_state(dummy_state):
+            return batch
 
     next = __next__
 
