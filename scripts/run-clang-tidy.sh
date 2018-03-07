@@ -51,7 +51,7 @@ if [ "$target" == "normal" ]; then
     grep_regex="^[^ ]+: error: .*"
     # Avoid checks that cause warnings which are difficult to fix
     clang_tidy_checks+=(
-        -cppcoreguidelines-pro-bounds-array-to-pointer-decay  # "warning: do not implicitly decay an array into a pointer" (on assert)
+        -cppcoreguidelines-pro-bounds-array-to-pointer-decay  # on assert
     )
 
 else
@@ -60,12 +60,12 @@ else
     grep_regex="^[^ ]+: error: .*"
     # Avoid checks that cause warnings in google-test implementation
     clang_tidy_checks+=(
-        -cppcoreguidelines-pro-bounds-array-to-pointer-decay  # See above
-        -cppcoreguidelines-pro-type-vararg  # "warning: do not call c-style vararg functions" (on EXPECT_EQ, etc.)
-        -cppcoreguidelines-special-member-functions  # "warning: class 'FooTest_Bar_Test' defines a copy constructor and a copy assignment operator but does not define a destructor, a move constructor or a move assignment operator" (on TEST, etc.)
-        -cert-err58-cpp  # "warning: initialization of 'test_info_' with static storage duration may throw an exception that cannot be caught" (on TEST, etc.)
-        -modernize-use-equals-default  # "warning: use '= default' to define a trivial default constructor" (on TEST, etc.)
-        -modernize-use-equals-delete  # "warning: use '= delete' to prohibit calling of a special member function" (on TEST, etc.)
+        -cppcoreguidelines-pro-bounds-array-to-pointer-decay  # on assert
+        -cppcoreguidelines-pro-type-vararg  # on EXPECT_EQ, etc.
+        -cppcoreguidelines-special-member-functions  # on TEST, etc.
+        -cert-err58-cpp  # on TEST, etc.
+        -modernize-use-equals-default  # on TEST, etc.
+        -modernize-use-equals-delete  # on TEST, etc.
     )
 fi
 
