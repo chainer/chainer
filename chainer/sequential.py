@@ -153,27 +153,17 @@ class Sequential(link.ChainList):
                 ret.append(layer)
             return ret
         else:
-            raise ValueError('add (+) operator supports only callable '
-                             'objects, but {} is not callable'.format(
-                                 str(type(other))))
-
-    def __radd__(self, other):
-        if callable(other):
-            return Sequential(other) + self
-        else:
-            raise ValueError('add (+) operator is support only callable '
-                             'objects, but {} is not callable'.format(
+            raise ValueError('add (+) operator supports only objects of'
+                             'Sequential class, but {} is given.'.format(
                                  str(type(other))))
 
     def __iadd__(self, other):
         if isinstance(other, Sequential):
             for layer in other:
                 self.append(layer)
-        elif callable(other):
-            self.append(other)
         else:
-            raise ValueError('add (+) operator is support only callable '
-                             'objects, but {} is not callable'.format(
+            raise ValueError('add (+) operator supports only objects of'
+                             'Sequential class, but {} is given.'.format(
                                  str(type(other))))
         return self
 
@@ -316,6 +306,7 @@ class Sequential(link.ChainList):
         return layer
 
     def clear(self):
+        # TODO(mitmul): Reduce the computational cost here
         for i, _ in enumerate(self._children):
             del self._children[i]
         self._layers = []
