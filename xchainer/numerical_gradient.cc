@@ -117,8 +117,8 @@ Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func, con
     const int nout = grad_outputs.size();
 
     if (eps.size() != static_cast<size_t>(nin)) {
-        throw XchainerError("Invalid number of eps arrays where number of inputs: " + std::to_string(nin) + ", eps: " +
-                            std::to_string(eps.size()));
+        throw XchainerError("Invalid number of eps arrays where number of inputs: " + std::to_string(nin) +
+                            ", eps: " + std::to_string(eps.size()));
     }
 
     for (int i = 0; i < nin; ++i) {
