@@ -929,12 +929,12 @@ TEST_P(ArrayTest, Copy) {
     {
         Array a = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array o = a.Copy();
-        ExpectEqualCopy<bool>(a, o);
+        ExpectEqualCopy<int8_t>(a, o);
     }
     {
         Array a = testing::MakeArray<float>({3, 1}, {1.0f, 2.0f, 3.0f});
         Array o = a.Copy();
-        ExpectEqualCopy<bool>(a, o);
+        ExpectEqualCopy<float>(a, o);
     }
 }
 
@@ -1076,12 +1076,12 @@ TEST_P(ArrayTest, MulBackwardCapture) {
 
     Array gx1 = lhs_func(gy, {kDefaultGraphId});
     Array e1 = testing::MakeArray<float>({1}, {3.0f});
-    ExpectEqual<bool>(e1, gx1);
+    ExpectEqual<float>(e1, gx1);
     EXPECT_FALSE(gx1.IsGradRequired());
 
     Array gx2 = rhs_func(gy, {kDefaultGraphId});
     Array e2 = testing::MakeArray<float>({1}, {2.0f});
-    ExpectEqual<bool>(e2, gx2);
+    ExpectEqual<float>(e2, gx2);
     EXPECT_FALSE(gx2.IsGradRequired());
 }
 
