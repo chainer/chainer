@@ -46,7 +46,7 @@ class TestNonparameterizedLinear(unittest.TestCase):
         else:
             b = numpy.random.uniform(-1, 1, 2).astype(self.x_dtype)
 
-        batch_shape = (4,) + (2,) * (self.n_batch_axes - 1) 
+        batch_shape = (4,) + (2,) * (self.n_batch_axes - 1)
         x = numpy.random.uniform(
             -1, 1, batch_shape + data_shape).astype(self.x_dtype)
         batch_size = numpy.prod(batch_shape)
