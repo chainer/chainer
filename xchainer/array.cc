@@ -151,6 +151,12 @@ Array Array::operator*(const Array& rhs) const {
     return out;
 }
 
+Array Array::Transpose() const {
+    Shape out_shape{shape().rbegin(), shape().rend()};
+    Strides out_strides{strides().rbegin(), strides().rend()};
+    return Array{out_shape, out_strides, dtype(), device(), body_->data_, offset()};
+}
+
 Array Array::Copy() const {
     // No graph will be disconnected.
     return AsConstant({}, CopyKind::kCopy);

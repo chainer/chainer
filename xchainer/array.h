@@ -82,6 +82,9 @@ public:
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
 
+    // Returns a transposed view of the array.
+    Array Transpose() const;
+
     // Creates a copy. It will be connected to all the graphs.
     Array Copy() const;
 
