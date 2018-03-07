@@ -52,6 +52,8 @@ int GetCudaDeviceLimit(Backend& backend) {
 
 }  // namespace
 
+namespace internal {
+
 int GetSkippedNativeTestCount() { return g_skipped_native_test_count; }
 
 int GetSkippedCudaTestCount() { return g_skipped_cuda_test_count; }
@@ -84,5 +86,6 @@ bool SkipIfDeviceUnavailable(Backend& backend, int required_num) {
     }
 }
 
+}  // namespace internal
 }  // namespace testing
 }  // namespace xchainer
