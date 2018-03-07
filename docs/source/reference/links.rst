@@ -35,6 +35,7 @@ Learnable connections
    chainer.links.Inception
    chainer.links.InceptionBN
    chainer.links.Linear
+   chainer.links.LocalConvolution2D
    chainer.links.LSTM
    chainer.links.MLPConvolution2D
    chainer.links.NaryTreeLSTM

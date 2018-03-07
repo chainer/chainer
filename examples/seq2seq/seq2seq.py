@@ -228,6 +228,7 @@ def main():
                         help='directory to output the result')
     args = parser.parse_args()
 
+    # Load pre-processed dataset
     source_ids = load_vocabulary(args.SOURCE_VOCAB)
     target_ids = load_vocabulary(args.TARGET_VOCAB)
     train_source = load_data(source_ids, args.SOURCE)
@@ -253,15 +254,20 @@ def main():
     target_words = {i: w for w, i in target_ids.items()}
     source_words = {i: w for w, i in source_ids.items()}
 
+    # Setup model
     model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit)
     if args.gpu >= 0:
         chainer.backends.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
 
+    # Setup optimizer
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
+    # Setup iterator
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
+
+    # Setup updater and trainer
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
@@ -299,8 +305,8 @@ def main():
             target_sentence = ' '.join([target_words[y] for y in target])
             result_sentence = ' '.join([target_words[y] for y in result])
             print('# source : ' + source_sentence)
-            print('#  result : ' + result_sentence)
-            print('#  expect : ' + target_sentence)
+            print('# result : ' + result_sentence)
+            print('# expect : ' + target_sentence)
 
         trainer.extend(
             translate, trigger=(args.validation_interval, 'iteration'))
