@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 
 import chainer
@@ -50,6 +52,19 @@ class BatchNormalization(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         x, gamma, beta = inputs
+
+        if x.shape[0] == 1:
+            warnings.warn(
+                'A batch with no more than one sample has been given'
+                ' to F.batch_normalization. F.batch_normalization'
+                ' will always output a zero tensor for such batches.'
+                ' This could be caused by incorrect configuration in'
+                ' your code (such as running evaluation while'
+                ' chainer.config.train=True),'
+                ' but could also happen in the last batch of training'
+                ' if non-repeating iterator is used.',
+                UserWarning)
+
         xp = cuda.get_array_module(x)
         if self.running_mean is None:
             self.running_mean = xp.zeros_like(gamma)

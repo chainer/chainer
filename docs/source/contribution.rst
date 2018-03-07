@@ -215,12 +215,12 @@ We use `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ and a part of `OpenS
 To check your code, use ``autopep8`` and ``flake8`` command installed by ``hacking`` package::
 
   $ pip install autopep8 hacking
-  $ autopep8 --global-config .pep8 path/to/your/code.py
+  $ autopep8 path/to/your/code.py
   $ flake8 path/to/your/code.py
 
 The ``autopep8`` supports automatically correct Python code to conform to the PEP 8 style guide::
 
-  $ autopep8 --in-place --global-config .pep8 path/to/your/code.py
+  $ autopep8 --in-place path/to/your/code.py
 
 The ``flake8`` command lets you know the part of your code not obeying our style guidelines.
 Before sending a pull request, be sure to check that your code passes the ``flake8`` checking.

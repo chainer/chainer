@@ -50,7 +50,7 @@ def main():
 
     if args.gpu >= 0:
         # Make a specified GPU current
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         gen.to_gpu()  # Copy the model to the GPU
         dis.to_gpu()
 

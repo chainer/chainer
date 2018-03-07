@@ -20,6 +20,10 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
         sys.exit(1)
 
 
+def cupy_requirement(pkg):
+    return '{}==4.0.0b4'.format(pkg)
+
+
 requirements = {
     'install': [
         'filelock',
@@ -28,7 +32,7 @@ requirements = {
         'six>=1.9.0',
     ],
     'cuda': [
-        'cupy==4.0.0b3',
+        cupy_requirement('cupy'),
     ],
     'stylecheck': [
         'hacking',
@@ -43,6 +47,7 @@ requirements = {
         'theano',
     ],
     'docs': [
+        'sphinx',
         'sphinx_rtd_theme',
     ],
     'travis': [
@@ -86,16 +91,32 @@ extras_require = {k: v for k, v in requirements.items() if k != 'install'}
 
 setup_requires = []
 install_requires = requirements['install']
+tests_require = requirements['test']
 
-cupy_pkg = None
-try:
-    cupy_pkg = pkg_resources.get_distribution('cupy')
-except pkg_resources.DistributionNotFound:
-    pass
 
+def find_any_distribution(pkgs):
+    for pkg in pkgs:
+        try:
+            return pkg_resources.get_distribution(pkg)
+        except pkg_resources.DistributionNotFound:
+            pass
+    return None
+
+
+# Currently cupy provides source package (cupy) and binary wheel packages
+# (cupy-cudaXX). Chainer can use any one of these packages.
+cupy_pkg = find_any_distribution([
+    'cupy-cuda91',
+    'cupy-cuda90',
+    'cupy-cuda80',
+    'cupy',
+])
 if cupy_pkg is not None:
-    install_requires.append(requirements['cuda'])
-    print('Use %s' % requirements['cuda'])
+    req = cupy_requirement(cupy_pkg.project_name)
+    install_requires.append(req)
+    print('Use %s' % req)
+else:
+    print('No CuPy installation detected')
 
 here = os.path.abspath(os.path.dirname(__file__))
 __version__ = imp.load_source(
@@ -150,6 +171,6 @@ setup(
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
-    tests_require=requirements['test'],
+    tests_require=tests_require,
     extras_require=extras_require,
 )

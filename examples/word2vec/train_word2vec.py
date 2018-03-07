@@ -10,7 +10,7 @@ import numpy as np
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.initializers as I
 import chainer.links as L
@@ -177,7 +177,7 @@ def main():
     args = parser.parse_args()
 
     if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         cuda.check_cuda_available()
 
     print('GPU: {}'.format(args.gpu))

@@ -1,11 +1,10 @@
 import unittest
 
-import mock
 import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -327,7 +326,7 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch(
+            with testing.patch(
                     'cupy.cuda.cudnn.batchNormalizationForwardTraining'
             ) as func:
                 self.forward()
@@ -337,7 +336,7 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            with mock.patch(
+            with testing.patch(
                     'cupy.cuda.cudnn.batchNormalizationBackward'
             ) as func:
                 y.backward()

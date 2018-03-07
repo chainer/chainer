@@ -4,8 +4,8 @@ RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
     python3-dev \
     python3-pip \
-    python3-setuptools \
-    python3-wheel && \
+    python3-wheel \
+    python3-setuptools && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-RUN pip3 install cupy==4.0.0b3 chainer==4.0.0b3
+RUN pip3 install cupy-cuda80==4.0.0b4 chainer==4.0.0b4

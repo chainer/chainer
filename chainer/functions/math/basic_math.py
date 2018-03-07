@@ -170,16 +170,46 @@ class AddConstant(function_node.FunctionNode):
         return gy[0],
 
 
-def add(self, rhs):  # lhs + rhs
+class MultiAdd(function_node.FunctionNode):
+
+    def check_type_forward(self, in_types):
+        for in_type in in_types:
+            type_check.expect(
+                in_types[0].dtype == in_type.dtype,
+                in_types[0].shape == in_type.shape
+            )
+
+    def forward(self, xs):
+        self.len = len(xs)
+        if len(xs) == 1:
+            return xs
+        # The output should a new array. Add the first 2 arrays
+        # and get the result y. Then add the rest arrays to y.
+        y = xs[0] + xs[1]
+        for x in xs[2:]:
+            y += x
+
+        return utils.force_array(y),
+
+    def backward(self, indexes, gy):
+        gys = (gy[0],) * self.len
+        return gys
+
+
+def add(*xs):  # lhs + rhs or add more than 2 variables
     """Element-wise addition.
 
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if isinstance(rhs, variable.Variable):
-        return Add().apply((self, rhs))[0]
-    _check_constant_type(rhs)
-    return AddConstant(rhs).apply((self,))[0]
+    if len(xs) == 2:
+        lhs, rhs = xs
+        if isinstance(rhs, variable.Variable):
+            return Add().apply((lhs, rhs))[0]
+        _check_constant_type(rhs)
+        return AddConstant(rhs).apply((lhs,))[0]
+    else:
+        return MultiAdd().apply(xs)[0]
 
 
 class Sub(function_node.FunctionNode):

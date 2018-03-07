@@ -64,9 +64,16 @@ class TestVariable(unittest.TestCase):
         a = self.x
         if gpu:
             a = cuda.to_gpu(a)
+            xp = cuda.cupy
+        else:
+            xp = np
         x = chainer.Variable(a)
-        self.assertIs(x.data, a)
-        self.assertIs(x.array, a)
+        if isinstance(self.x, np.ndarray):
+            self.assertIs(x.data, a)
+            self.assertIs(x.array, a)
+        self.assertIsInstance(x.data, xp.ndarray)
+        self.assertIsInstance(x.array, xp.ndarray)
+        self.assertIs(x.data, x.array)
         self.assertEqual(x.shape, self.x.shape)
         self.assertEqual(x.ndim, self.x.ndim)
         self.assertEqual(x.size, self.x.size)
@@ -322,7 +329,7 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(np.empty((3,), dtype=np.float32))
         a.grad = np.ndarray((3,), dtype=np.float32)
 
-    def test_grad_type_check_type(self):
+    def test_grad_type_check_pass_type(self):
         a = chainer.Variable(np.empty((), dtype=np.float32))
         with self.assertRaises(TypeError):
             a.grad = np.float32()
@@ -1528,7 +1535,7 @@ class IdentityFunction(chainer.Function):
 class TestVariableDoubleBackward(unittest.TestCase):
 
     def test_default_backward(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.empty((), np.float32))
         y = F.identity(x)
         y.backward()
         self.assertIsNone(x.grad_var.creator)
@@ -1536,9 +1543,54 @@ class TestVariableDoubleBackward(unittest.TestCase):
         self.assertIsNone(y.grad_var.grad_var)
 
     def test_raise_double_backprop(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.empty((), np.float32))
         y = IdentityFunction()(x)
         y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            x.grad_var.backward()
+
+    def test_raise_double_backprop_2(self):
+        x = chainer.Variable(np.empty((), np.float32))
+        z = F.identity(x)  # new style
+        y = IdentityFunction()(z)  # old style
+        y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            x.grad_var.backward()
+
+    def test_grad_raise_double_backprop(self):
+        x = chainer.Variable(np.empty((), np.float32))
+        y = IdentityFunction()(x)
+        y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            chainer.grad([x.grad_var], [y.grad_var])
+
+    def test_grad_raise_double_backprop_2(self):
+        x = chainer.Variable(np.empty((), np.float32))
+        z = F.identity(x)  # new style
+        y = IdentityFunction()(z)  # old style
+        y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            chainer.grad([x.grad_var], [y.grad_var])
+
+
+class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
+    # Tests for old-styled (1-element array) scalar.
+    # See: https://github.com/chainer/chainer/pull/4199
+
+    def test_default_backward(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        y = F.identity(x)
+        with testing.assert_warns(DeprecationWarning):
+            y.backward()
+        self.assertIsNone(x.grad_var.creator)
+        x.grad_var.backward()
+        self.assertIsNone(y.grad_var.grad_var)
+
+    def test_raise_double_backprop(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        y = IdentityFunction()(x)
+        with testing.assert_warns(DeprecationWarning):
+            y.backward(enable_double_backprop=True)
         with self.assertRaises(RuntimeError):
             x.grad_var.backward()
 
@@ -1546,9 +1598,27 @@ class TestVariableDoubleBackward(unittest.TestCase):
         x = chainer.Variable(np.empty(1, np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
-        y.backward(enable_double_backprop=True)
+        with testing.assert_warns(DeprecationWarning):
+            y.backward(enable_double_backprop=True)
         with self.assertRaises(RuntimeError):
             x.grad_var.backward()
+
+    def test_grad_raise_double_backprop(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        y = IdentityFunction()(x)
+        with testing.assert_warns(DeprecationWarning):
+            y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            chainer.grad([x.grad_var], [y.grad_var])
+
+    def test_grad_raise_double_backprop_2(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        z = F.identity(x)  # new style
+        y = IdentityFunction()(z)  # old style
+        with testing.assert_warns(DeprecationWarning):
+            y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            chainer.grad([x.grad_var], [y.grad_var])
 
 
 class TestAsVariable(unittest.TestCase):
@@ -1681,6 +1751,94 @@ class TestIntel64(unittest.TestCase):
         # Data should be converted to numpy.ndarray
         assert isinstance(x.data, np.ndarray)
         self._check_variable_shape_and_dtype(x)
+
+
+@testing.parameterize(*testing.product({
+    'shape': [(3,), (3, 2), (3, 2, 2), (3, 2, 2, 3)],
+    'dtype': [
+        np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32,
+        np.uint64, np.float16, np.float32, np.float64],
+}))
+class TestLazyGradSum(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+
+        y10 = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy00 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        f10 = chainer.FunctionNode()
+        f10.check_type_forward = mock.MagicMock()
+        f10.forward_cpu = mock.MagicMock(return_value=(y10,))
+        f10.retain_outputs((0,))
+        f10.backward = mock.MagicMock(return_value=(gy00,))
+        self.y10 = y10
+        self.f10 = f10
+        self.gy00 = gy00
+
+        y11 = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy01 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        f11 = chainer.FunctionNode()
+        f11.check_type_forward = mock.MagicMock()
+        f11.forward_cpu = mock.MagicMock(return_value=(y11,))
+        f11.retain_outputs((0,))
+        f11.backward = mock.MagicMock(return_value=(gy01,))
+        self.y11 = y11
+        self.f11 = f11
+        self.gy01 = gy01
+
+        y12 = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy02 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        f12 = chainer.FunctionNode()
+        f12.check_type_forward = mock.MagicMock()
+        f12.forward_cpu = mock.MagicMock(return_value=(y12,))
+        f12.retain_outputs((0,))
+        f12.backward = mock.MagicMock(return_value=(gy02,))
+        self.y12 = y12
+        self.f12 = f12
+        self.gy02 = gy02
+
+        y = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy10 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        gy11 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        gy12 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        f2 = chainer.FunctionNode()
+        f2.check_type_forward = mock.MagicMock()
+        f2.forward_cpu = mock.MagicMock(return_value=(y,))
+        f12.retain_outputs((0,))
+        f2.backward = mock.MagicMock(return_value=(gy10, gy11, gy12))
+        self.y = y
+        self.f2 = f2
+        self.gy10 = gy10
+        self.gy11 = gy11
+        self.gy12 = gy12
+        self.gx = gy00 + gy01 + gy02
+
+    def forward(self, x):
+        y0 = F.identity(x)
+        y10 = self.f10.apply((y0,))
+        y11 = self.f11.apply((y0,))
+        y12 = self.f12.apply((y0,))
+        y = self.f2.apply((y10[0], y11[0], y12[0]))
+        return y
+
+    def check_backward(self):
+        x = chainer.Variable(self.x)
+        y = self.forward(x)
+        y[0].grad = np.ones(y[0].shape, y[0].dtype)
+        y[0].backward()
+        testing.assert_allclose(self.gx.data, x.grad, atol=1e-3, rtol=1e-2)
+
+    def test_backward_cpu(self):
+        with chainer.using_config('lazy_grad_sum', False):
+            self.check_backward()
+        with chainer.using_config('lazy_grad_sum', True):
+            self.check_backward()
 
 
 testing.run_module(__name__, __file__)

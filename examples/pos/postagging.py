@@ -95,7 +95,7 @@ def main():
 
     model = CRF(len(vocab), len(pos_vocab))
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
+        chainer.backends.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)

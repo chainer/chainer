@@ -7,7 +7,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import link
 from chainer import links
 from chainer import optimizers

@@ -6,8 +6,8 @@ import numpy
 import six
 
 import chainer
+from chainer.backends import cuda
 from chainer import basic_math
-from chainer import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
@@ -231,6 +231,82 @@ class TestBinaryOp(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
+    'shape': [(3, 2), ()],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
+class TestMultipleAdd(unittest.TestCase):
+
+    def setUp(self):
+        self.x1 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
+        self.x2 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
+        self.x3 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
+        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggx1 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggx2 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggx3 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+
+    def check_forward(self, func, x1_data, x2_data, x3_data):
+        x1 = chainer.Variable(x1_data)
+        x2 = chainer.Variable(x2_data)
+        x3 = chainer.Variable(x3_data)
+        y = func(x1, x2, x3)
+        options = {}
+        if self.dtype == numpy.float16:
+            options = {'atol': 1e-4, 'rtol': 1e-3}
+        testing.assert_allclose(
+            (self.x1 + self.x2 + self.x3), y.data, **options)
+
+    def forward_cpu(self, func):
+        self.check_forward(func, self.x1, self.x2, self.x3)
+
+    def test_add_forward_cpu(self):
+        func = chainer.functions.add
+        self.forward_cpu(func)
+
+    def check_backward(self, func, x1_data, x2_data, x3_data, y_grad):
+        options = {}
+        if self.dtype == numpy.float16:
+            options = {'atol': 5e-3, 'rtol': 5e-2}
+        gradient_check.check_backward(func, (x1_data, x2_data, x3_data),
+                                      y_grad,
+                                      dtype=numpy.float64, **options)
+
+    def backward_cpu(self, func):
+        self.check_backward(func, self.x1, self.x2, self.x3, self.gy)
+
+    def test_add_backward_cpu(self):
+        func = chainer.functions.add
+        self.backward_cpu(func)
+
+    def check_double_backward(
+            self, func, x1_data, x2_data, x3_data, y_grad,
+            ggx1_data, ggx2_data, ggx3_data, **args):
+        options = {}
+        if self.dtype == numpy.float16:
+            options = {'atol': 5e-3, 'rtol': 5e-2}
+        options.update(args)
+
+        def _func(*xs):
+            y = func(*xs)
+            return y * y
+
+        gradient_check.check_double_backward(
+            _func, (x1_data, x2_data, x3_data), y_grad, (ggx1_data,
+                                                         ggx2_data, ggx3_data),
+            dtype=numpy.float64, **options)
+
+    def double_backward_cpu(self, func, **options):
+        self.check_double_backward(
+            func, self.x1, self.x2, self.x3, self.gy,
+            self.ggx1, self.ggx2, self.ggx3,
+            **options)
+
+    def test_double_backward_cpu(self):
+        func = chainer.functions.add
+        self.double_backward_cpu(func, atol=5e-2, rtol=5e-2)
+
+
+@testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 class TestBinaryOpConstant(unittest.TestCase):
@@ -297,7 +373,7 @@ class TestBinaryOpConstant(unittest.TestCase):
         x = chainer.Variable(cuda.to_gpu(lhs))
         y = func(x, rhs)
         self.assertEqual(y.data.dtype, self.dtype)
-        y.grad = chainer.cuda.cupy.ones_like(y.data).astype(self.dtype)
+        y.grad = cuda.cupy.ones_like(y.data).astype(self.dtype)
         y.backward()
         self.assertEqual(x.grad.dtype, self.dtype)
 
