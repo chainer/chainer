@@ -26,9 +26,10 @@ class GradientClipping(object):
         threshold (float): L2 norm threshold.
 
     Attributes:
-        ~GradientClipping.threshold (float): L2 norm threshold of gradient
-                                             norm.
-        ~GradientClipping.timing (string): Specifies when this hook should be
+        ~optimizer_hooks.GradientClipping.threshold (float): L2
+                         norm threshold of gradient norm.
+        ~optimizer_hooks.GradientClipping.timing (string): Specifies
+                         when this hook should be
                          called by the Optimizer/UpdateRule. Valid values are
                          'pre' (before any updates) and 'post' (after any
                          updates).

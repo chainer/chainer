@@ -42,8 +42,9 @@ class GradientNoise(object):
             Networks <https://arxiv.org/pdf/1511.06807>`_.
 
     Attributes:
-        ~GradientNoise.timing (string): Specifies when this hook should be
-                         called by the Optimizer/UpdateRule. Valid values are
+        ~optimizer_hooks.GradientNoise.timing (string): Specifies
+                         when this hook should be called by the
+                         Optimizer/UpdateRule. Valid values are
                          'pre' (before any updates) and 'post' (after any
                          updates).
 

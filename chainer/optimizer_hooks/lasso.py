@@ -11,8 +11,9 @@ class Lasso(object):
         rate (float): Coefficient for the weight decay.
 
     Attributes:
-        ~Lasso.rate (float): Coefficient for the weight decay.
-        ~Lasso.timing (string): Specifies when this hook should be called by
+        ~optimizer_hooks.Lasso.rate (float): Coefficient for the weight decay.
+        ~optimizer_hooks.Lasso.timing (string): Specifies
+                         when this hook should be called by
                          the Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
 

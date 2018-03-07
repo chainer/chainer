@@ -12,9 +12,11 @@ class WeightDecay(object):
         rate (float): Coefficient for the weight decay.
 
     Attributes:
-        ~WeightDecay.rate (float): Coefficient for the weight decay.
-        ~WeightDecay.timing (string): Specifies when this hook should be called
-                         by the Optimizer/UpdateRule. Valid values are 'pre'
+        ~optimizer_hooks.WeightDecay.rate (float): Coefficient
+                         for the weight decay.
+        ~optimizer_hooks.WeightDecay.timing (string): Specifies
+                         when this hook should be called by the
+                         Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
 
     .. versionadded:: 4.0.0

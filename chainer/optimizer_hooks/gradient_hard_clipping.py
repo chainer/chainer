@@ -13,14 +13,15 @@ class GradientHardClipping(object):
         upper_bound (float): The upper bound of the gradient value.
 
     Attributes:
-        ~GradientHardClipping.lower_bound (float): The lower bound of the
-                                                   gradient value.
-        ~GradientHardClipping.upper_bound (float): The upper bound of the
-                                                   gradient value.
-        ~GradientHardClipping.timing (string): Specifies when this hook should
-                         be called by the Optimizer/UpdateRule. Valid values
-                         are 'pre' (before any updates) and 'post' (after any
-                         updates).
+        ~optimizer_hooks.GradientHardClipping.lower_bound (float): The
+                         lower bound of the gradient value.
+        ~optimizer_hooks.GradientHardClipping.upper_bound (float): The
+                         upper bound of the gradient value.
+        ~optimizer_hooks.GradientHardClipping.timing (string): Specifies
+                         when this hook should be called by the
+                         Optimizer/UpdateRule. Valid values are 'pre'
+                         (before any updates) and 'post'
+                         (after any updates).
 
     .. versionadded:: 4.0.0
        The *timing* parameter.
