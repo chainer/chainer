@@ -29,20 +29,22 @@ __global__ void FillKernel(T* odata, T value, int64_t total_size) {
 }
 
 template <typename T>
-__global__ void AddKernel(IndexableArray<const T> ldata, IndexableArray<const T> rdata, IndexableArray<T> odata, Indexer<> indexer) {
+__global__ void AddKernel(IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray,
+                          Indexer<> indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
-        odata[indexer] = ldata[indexer] + rdata[indexer];
+        out_iarray[indexer] = lhs_iarray[indexer] + rhs_iarray[indexer];
     }
 }
 
 template <typename T>
-__global__ void MulKernel(IndexableArray<const T> ldata, IndexableArray<const T> rdata, IndexableArray<T> odata, Indexer<> indexer) {
+__global__ void MulKernel(IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray,
+                          Indexer<> indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
-        odata[indexer] = ldata[indexer] * rdata[indexer];
+        out_iarray[indexer] = lhs_iarray[indexer] * rhs_iarray[indexer];
     }
 }
 
