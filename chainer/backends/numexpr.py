@@ -11,7 +11,7 @@ _error = None
 try:
     import numexpr  # NOQA
     _numexpr_version = 0
-    numexpr_dtypes = {
+    _numexpr_dtypes = {
         numpy.int32,
         numpy.int64,
         numpy.float32,
@@ -100,4 +100,4 @@ def inputs_all_ready(inputs):
 
     inputs = [x.data if isinstance(x, chainer.variable.Variable)
               else x for x in inputs]
-    return all([ipt.dtype in numexpr_dtypes for ipt in inputs])
+    return all([ipt.dtype in _numexpr_dtypes for ipt in inputs])
