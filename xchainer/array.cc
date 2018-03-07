@@ -152,8 +152,8 @@ Array Array::operator*(const Array& rhs) const {
 }
 
 Array Array::Transpose() const {
-    Shape out_shape{shape().span().rbegin(), shape().span().rend()};
-    Strides out_strides{strides().span().rbegin(), strides().span().rend()};
+    Shape out_shape{shape().rbegin(), shape().rend()};
+    Strides out_strides{strides().rbegin(), strides().rend()};
     return Array{out_shape, out_strides, dtype(), device(), body_->data_, offset()};
 }
 
