@@ -27,6 +27,8 @@ public:
 
     void Fill(Array& out, Scalar value) override;
 
+    void Copy(const Array& src, Array& out) override;
+
     void Add(const Array& lhs, const Array& rhs, Array& out) override;
     void Mul(const Array& lhs, const Array& rhs, Array& out) override;
 

@@ -53,6 +53,26 @@ void NativeDevice::Fill(Array& out, Scalar value) {
     });
 }
 
+void NativeDevice::Copy(const Array& src, Array& out) {
+    assert(nullptr != dynamic_cast<NativeDevice*>(&src.device()) && "Native device only supports copy between native devices");
+    CheckDevicesCompatible(src, out);
+
+    // TODO(hvy): Need to take offset_ into account.
+    // TODO(hvy): Use MemoryCopyFrom/To if contiguity, offset and dtype match.
+
+    VisitDtype(src.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> src_iarray{src};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{src.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); i++) {
+            indexer.Set(i);
+            out_iarray[indexer] = src_iarray[indexer];
+        }
+    });
+}
+
 void NativeDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {

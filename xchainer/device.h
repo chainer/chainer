@@ -54,6 +54,8 @@ public:
 
     virtual void Fill(Array& out, Scalar value) = 0;
 
+    virtual void Copy(const Array& src, Array& out) = 0;
+
     virtual void Add(const Array& lhs, const Array& rhs, Array& out) = 0;
     virtual void Mul(const Array& lhs, const Array& rhs, Array& out) = 0;
 

@@ -30,6 +30,14 @@ __global__ void FillKernel(IndexableArray<T> out_iarray, T value, Indexer<> inde
 }
 
 template <typename T>
+__global__ void CopyKernel(IndexableArray<const T> src_iarray, IndexableArray<T> out_iarray, Indexer<> indexer) {
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < indexer.total_size(); i += blockDim.x * gridDim.x) {
+        indexer.Set(i);
+        out_iarray[indexer] = src_iarray[indexer];
+    }
+}
+
+template <typename T>
 __global__ void AddKernel(IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray,
                           Indexer<> indexer) {
     const int64_t total_size = indexer.total_size();
@@ -121,6 +129,30 @@ void CudaDevice::Fill(Array& out, Scalar value) {
         int64_t block_size = std::min<int64_t>(indexer.total_size(), kMaxBlockSize);
 
         FillKernel<<<grid_size, block_size>>>(out_iarray, static_cast<T>(value), indexer);
+    });
+}
+
+void CudaDevice::Copy(const Array& src, Array& out) {
+    // TODO(hvy): Add additional device support check for copy.
+    CheckDevicesCompatible(src, out);
+
+    // TODO(hvy): Need to take offset_ into account.
+    // TODO(hvy): Use MemoryCopyFrom/To if contiguity, offset and dtype match.
+
+    cudaSetDevice(index());
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&CopyKernel<T>).block_size;
+
+        IndexableArray<const T> src_iarray{src};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{out.shape()};
+
+        int64_t total_size = indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        CopyKernel<<<grid_size, block_size>>>(src_iarray, out_iarray, indexer);
     });
 }
 
