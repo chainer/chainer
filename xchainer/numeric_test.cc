@@ -1,6 +1,7 @@
 #include "xchainer/numeric.h"
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -17,9 +18,9 @@
 
 namespace xchainer {
 
-class NumericTest : public ::testing::Test {
+class NumericTest : public ::testing::TestWithParam<std::string> {
 protected:
-    void SetUp() override { device_session_.emplace(DeviceId{NativeBackend::kDefaultName, 0}); }
+    void SetUp() override { device_session_.emplace(DeviceId{GetParam(), 0}); }
 
     void TearDown() override { device_session_.reset(); }
 
@@ -49,7 +50,7 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_F(NumericTest, AllClose) {
+TEST_P(NumericTest, AllClose) {
     CheckAllClose<bool>({2}, {true, false}, {true, false}, 0., 0.);
     CheckAllClose<bool>({2}, {true, false}, {false, true}, 0., 1.);
     CheckAllClose<bool>({2}, {false, false}, {true, true}, 1., 0.);
@@ -120,7 +121,7 @@ TEST_F(NumericTest, AllClose) {
     }
 }
 
-TEST_F(NumericTest, AllCloseMixed) {
+TEST_P(NumericTest, AllCloseMixed) {
     CheckAllCloseThrow<bool, int8_t>({3}, {true, false, true}, {1, 2, 3}, 2., 1.);
     CheckAllCloseThrow<int16_t, int8_t>({3}, {1, 2, 3}, {4, 5, 6}, 8., 7.);
     CheckAllCloseThrow<int8_t, int32_t>({3}, {1, 2, 3}, {4, 5, 6}, 8., 7.);
@@ -128,5 +129,12 @@ TEST_F(NumericTest, AllCloseMixed) {
     CheckAllCloseThrow<int32_t, float>({3}, {1, 2, 3}, {1.f, 2.f, 3.f}, 2., 1.);
     CheckAllCloseThrow<double, int32_t>({3}, {1., 2., 3.}, {1, 2, 3}, 2., 1.);
 }
+
+INSTANTIATE_TEST_CASE_P(ForEachBackend, NumericTest,
+                        ::testing::Values(
+#ifdef XCHAINER_ENABLE_CUDA
+                            std::string{"cuda"},
+#endif  // XCHAINER_ENABLE_CUDA
+                            std::string{"native"}));
 
 }  // namespace xchainer

@@ -63,6 +63,7 @@ Array operator/(const Array& lhs, const Array& rhs) {
 
 template <typename T>
 T SumImpl(const Array& array) {
+    array.device().Synchronize();
     int64_t size = array.GetTotalSize();
     T s = 0;
     for (int64_t i = 0; i < size; ++i) {
@@ -89,6 +90,7 @@ Scalar Norm(const Array& x) {
 Scalar VectorDot(const Array& x, const Array& y) { return Sum(x * y); }
 
 void Set(Array& out, int64_t flat_index, Scalar value) {
+    out.device().Synchronize();
     if (out.dtype() == Dtype::kFloat32) {
         static_cast<float*>(out.data().get())[flat_index] = static_cast<float>(value);
     } else if (out.dtype() == Dtype::kFloat64) {
@@ -99,6 +101,7 @@ void Set(Array& out, int64_t flat_index, Scalar value) {
 }
 
 Scalar Get(const Array& out, int64_t flat_index) {
+    out.device().Synchronize();
     if (out.dtype() == Dtype::kFloat32) {
         return static_cast<const float*>(out.data().get())[flat_index];
     } else if (out.dtype() == Dtype::kFloat64) {
