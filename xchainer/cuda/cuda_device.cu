@@ -11,6 +11,8 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 #include "xchainer/native_device.h"
 #include "xchainer/scalar.h"
 
@@ -27,16 +29,20 @@ __global__ void FillKernel(T* odata, T value, int64_t total_size) {
 }
 
 template <typename T>
-__global__ void AddKernel(const T* ldata, const T* rdata, T* odata, int64_t total_size) {
+__global__ void AddKernel(IndexableArray<const T> ldata, IndexableArray<const T> rdata, IndexableArray<T> odata, Indexer<> indexer) {
+    const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
-        odata[i] = ldata[i] + rdata[i];
+        indexer.Set(i);
+        odata[indexer] = ldata[indexer] + rdata[indexer];
     }
 }
 
 template <typename T>
-__global__ void MulKernel(const T* ldata, const T* rdata, T* odata, int64_t total_size) {
+__global__ void MulKernel(IndexableArray<const T> ldata, IndexableArray<const T> rdata, IndexableArray<T> odata, Indexer<> indexer) {
+    const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
-        odata[i] = ldata[i] * rdata[i];
+        indexer.Set(i);
+        odata[indexer] = ldata[indexer] * rdata[indexer];
     }
 }
 
@@ -123,14 +129,16 @@ void CudaDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
 
-        int64_t total_size = lhs.GetTotalSize();
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{lhs.shape()};
+
+        int64_t total_size = indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-        auto* ldata = static_cast<const T*>(lhs.data().get());
-        auto* rdata = static_cast<const T*>(rhs.data().get());
-        auto* odata = static_cast<T*>(out.data().get());
-        AddKernel<<<grid_size, block_size>>>(ldata, rdata, odata, total_size);
+        AddKernel<<<grid_size, block_size>>>(lhs_iarray, rhs_iarray, out_iarray, indexer);
     });
 }
 
@@ -142,14 +150,16 @@ void CudaDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MulKernel<T>).block_size;
 
-        int64_t total_size = lhs.GetTotalSize();
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{lhs.shape()};
+
+        int64_t total_size = indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-        auto* ldata = static_cast<const T*>(lhs.data().get());
-        auto* rdata = static_cast<const T*>(rhs.data().get());
-        auto* odata = static_cast<T*>(out.data().get());
-        MulKernel<<<grid_size, block_size>>>(ldata, rdata, odata, total_size);
+        MulKernel<<<grid_size, block_size>>>(lhs_iarray, rhs_iarray, out_iarray, indexer);
     });
 }
 
