@@ -935,7 +935,6 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
 }
 
 TEST_P(ArrayTest, Transpose) {
-    // as a member function
     {
         Array a = testing::MakeArray<int32_t>({2, 3}, {0, 1, 2, 3, 4, 5});
         Array b = a.Transpose();
@@ -945,11 +944,6 @@ TEST_P(ArrayTest, Transpose) {
 
         Array e = testing::MakeArray<int32_t>({3, 2}, {0, 3, 1, 4, 2, 5});
         ExpectEqual<int32_t>(e, b);
-    }
-    // as a free function
-    {
-        Array a = Array::Zeros({2, 3, 4}, Dtype::kBool);
-        ExpectEqual<bool>(a.Transpose(), Transpose(a));
     }
 }
 

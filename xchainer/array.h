@@ -165,9 +165,6 @@ private:
     std::shared_ptr<internal::ArrayBody> body_;
 };
 
-// Returns a transposed view of the array.
-Array Transpose(const Array& a);
-
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent = 0);
 
 }  // namespace xchainer
