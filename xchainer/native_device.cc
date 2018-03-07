@@ -4,6 +4,8 @@
 
 #include "xchainer/array.h"
 #include "xchainer/dtype.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
@@ -54,14 +56,14 @@ void NativeDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{lhs.shape()};
 
-        int64_t total_size = lhs.GetTotalSize();
-        auto* ldata = static_cast<const T*>(lhs.data().get());
-        auto* rdata = static_cast<const T*>(rhs.data().get());
-        auto* odata = static_cast<T*>(out.data().get());
-
-        for (int64_t i = 0; i < total_size; i++) {
-            odata[i] = ldata[i] + rdata[i];
+        for (int64_t i = 0; i < indexer.total_size(); i++) {
+            indexer.Set(i);
+            out_iarray[indexer] = lhs_iarray[indexer] + rhs_iarray[indexer];
         }
     });
 }
@@ -70,14 +72,14 @@ void NativeDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{lhs.shape()};
 
-        int64_t total_size = lhs.GetTotalSize();
-        auto* ldata = static_cast<const T*>(lhs.data().get());
-        auto* rdata = static_cast<const T*>(rhs.data().get());
-        auto* odata = static_cast<T*>(out.data().get());
-
-        for (int64_t i = 0; i < total_size; i++) {
-            odata[i] = ldata[i] * rdata[i];
+        for (int64_t i = 0; i < indexer.total_size(); i++) {
+            indexer.Set(i);
+            out_iarray[indexer] = lhs_iarray[indexer] * rhs_iarray[indexer];
         }
     });
 }
