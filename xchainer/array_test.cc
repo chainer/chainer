@@ -12,6 +12,7 @@
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
+#include "xchainer/check_backward.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
@@ -938,6 +939,22 @@ TEST_P(ArrayTest, Transpose) {
     }
 }
 
+TEST_P(ArrayTest, TransposeBackward) {
+    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0].Transpose()}; },
+                             {Array::Zeros({2, 3}, Dtype::kFloat32).RequireGrad()},
+                             {testing::MakeArray({3, 2}, {1.f, 2.f, 3.f, 4.f, 5.f, 6.f})}, {Array::Full({2, 3}, 1e-5f)});
+}
+
+TEST_P(ArrayTest, TransposeDoubleBackward) {
+    CheckDoubleBackwardComputation(
+        [](const std::vector<Array>& xs) -> std::vector<Array> {
+            auto t = xs[0].Transpose();
+            return {t * t};  // to make it nonlinear
+        },
+        {Array::Zeros({2, 3}, Dtype::kFloat32).RequireGrad()}, {testing::MakeArray({3, 2}, {1.f, 2.f, 3.f, 4.f, 5.f, 6.f}).RequireGrad()},
+        {testing::MakeArray({2, 3}, {-1.f, -2.f, -3.f, -4.f, -5.f, -6.f})}, {Array::Full({2, 3}, 1e-5f), Array::Full({3, 2}, 1e-5f)});
+}
+
 TEST_P(ArrayTest, Copy) {
     {
         Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
@@ -1192,11 +1209,12 @@ TEST_P(ArrayTest, MultipleGraphsForward) {
     EXPECT_FALSE(o.IsGradRequired("graph_3"));
 }
 
-INSTANTIATE_TEST_CASE_P(ForEachBackend, ArrayTest, ::testing::Values(
+INSTANTIATE_TEST_CASE_P(ForEachBackend, ArrayTest,
+                        ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
-                                                       std::string{"cuda"},
+                            std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
-                                                       std::string{"native"}));
+                            std::string{"native"}));
 
 }  // namespace
 }  // namespace xchainer
