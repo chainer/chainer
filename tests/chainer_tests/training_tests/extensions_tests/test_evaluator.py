@@ -225,7 +225,6 @@ class TestEvaluatorWithEvalFunc(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'debug': [True, False],
     'repeat': [True, False],
     'iterator_class': ['serial_iterator',
                        'multiprocess_iterator',
@@ -252,15 +251,10 @@ class TestEvaluatorRepeat(unittest.TestCase):
         self.context.__exit__()
 
     def test_serial_iterator(self):
-        with chainer.using_config('debug', self.debug):
-            with warnings.catch_warnings(record=True) as w:
-                extensions.Evaluator(self.iterator, {})
+        with warnings.catch_warnings(record=True) as w:
+            extensions.Evaluator(self.iterator, {})
 
-        if self.debug and self.repeat:
-            expect = 1
-        else:
-            expect = 0
-
+        expect = 1 if self.repeat else 0
         assert len(w) == expect
 
 
