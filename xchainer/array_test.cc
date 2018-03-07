@@ -15,6 +15,8 @@
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/testing/array.h"
@@ -71,8 +73,20 @@ public:
 
     template <typename T>
     void ExpectDataEqual(const Array& expected, const Array& actual) {
-        const T* expected_data = static_cast<const T*>(expected.data().get());
-        ExpectDataEqual(expected_data, actual);
+        actual.device().Synchronize();
+        IndexableArray<const T> expected_iarray{expected};
+        IndexableArray<const T> actual_iarray{actual};
+        Indexer<> indexer{actual.shape()};
+        for (int64_t i = 0; i < indexer.total_size(); i++) {
+            indexer.Set(i);
+            const auto& expected = expected_iarray[indexer];
+            const auto& actual = actual_iarray[indexer];
+            if (std::isnan(expected)) {
+                EXPECT_TRUE(std::isnan(actual)) << "where i is " << i;
+            } else {
+                EXPECT_EQ(expected, actual) << "where i is " << i;
+            }
+        }
     }
 
     template <typename T>
@@ -923,13 +937,14 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
 TEST_P(ArrayTest, Transpose) {
     // as a member function
     {
-        Array a = Array::Zeros({2, 3, 4}, Dtype::kBool);
-
+        Array a = testing::MakeArray<int32_t>({2, 3}, {0, 1, 2, 3, 4, 5});
         Array b = a.Transpose();
-        EXPECT_EQ(Shape({4, 3, 2}), b.shape());
-        EXPECT_EQ(Strides({1, 4, 12}), b.strides());
 
-        ExpectEqual<bool>(a, a.Transpose().Transpose());
+        EXPECT_EQ(Shape({3, 2}), b.shape());
+        EXPECT_EQ(Strides({4, 12}), b.strides());
+
+        Array e = testing::MakeArray<int32_t>({3, 2}, {0, 3, 1, 4, 2, 5});
+        ExpectEqual<int32_t>(e, b);
     }
     // as a free function
     {
