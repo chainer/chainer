@@ -44,10 +44,11 @@ void NativeDevice::Fill(Array& out, Scalar value) {
         using T = typename decltype(pt)::type;
         T c_value{value};
 
-        int64_t size = out.GetTotalSize();
-        auto* ptr = static_cast<T*>(out.data().get());
-        for (int64_t i = 0; i < size; ++i) {
-            ptr[i] = c_value;
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{out.shape()};
+        for (int64_t i = 0; i < indexer.total_size(); i++) {
+            indexer.Set(i);
+            out_iarray[indexer] = c_value;
         }
     });
 }
