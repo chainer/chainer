@@ -303,8 +303,6 @@ void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, 
 
 }  // namespace
 
-Array Transpose(const Array& a) { return a.Transpose(); }
-
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent) {
     DebugDumpComputationalGraph(os, *internal::GetArrayNode(array, graph_id), indent);
 }
