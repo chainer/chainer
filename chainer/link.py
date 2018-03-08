@@ -348,7 +348,7 @@ Assign a Parameter object directly to an attribute within a \
         self._device_id = None
         return self
 
-    def to_gpu(self, device=None):
+    def to_gpu(self, device=None, sticky=None):
         """Copies parameter variables and persistent values to GPU.
 
         This method does not handle non-registered attributes. If some of such
@@ -358,6 +358,12 @@ Assign a Parameter object directly to an attribute within a \
         Args:
             device: Target device specifier. If omitted, the current device is
                 used.
+            sticky (bool): If ``True``, the link will be transferred to the
+                specified GPU device even if the Link is already on another
+                GPU. If ``False``, ``to_gpu`` does nothing if the Link is
+                already on GPU. If omitted, ``True`` is used as the default
+                in Chainer v4. Note that the default is planned to be changed
+                to ``False`` in the future release (possibly in Chainer v5).
 
         Returns: self
 
@@ -365,6 +371,37 @@ Assign a Parameter object directly to an attribute within a \
         cuda.check_cuda_available()
         d = self.__dict__
         with cuda._get_device(device):
+            device_id = cuda.cupy.cuda.get_device_id()
+
+            if not self._cpu:
+                # The link is already on GPU.
+                if self._device_id == device_id:
+                    # The link is already on the requested device; nothing
+                    # to do.
+                    return
+                elif sticky is None:
+                    # Sticky option is omitted. As the default behavior is
+                    # planned to be changed, raise a warning.
+                    warnings.warn('''\
+You are trying to transfer a Link to GPU-{dst} which is already on GPU-{src}.
+`Link.to_gpu` in Chainer v4 and prior versions are "sticky" by default; \
+if the Link is already on GPU, `to_gpu` does nothing.
+
+In Chainer v4, `sticky` option has been introduced to `Link.to_gpu` to \
+control this behavior.
+You can specify `sticky=True` option to `to_gpu` to perform inter-GPU transfer.
+If you don't want to perform inter-GPU transfer, explicitly specify
+`sticky=False` so that you can disable this warning.
+
+The default behavior is planned to be changed to "non-sticky" in the future \
+release (possibly in Chainer v5).
+'''.format(dst=device_id, src=self._device_id), FutureWarning)
+                    return
+                elif sticky is True:
+                    # Sticky mode is explicitly requested. Do not perform
+                    # inter-GPU transfer.
+                    return
+
             for name in self._params:
                 d[name].to_gpu()
             for name in self._persistent:
@@ -373,7 +410,7 @@ Assign a Parameter object directly to an attribute within a \
                     value = numpy.array(value)
                 if isinstance(value, (numpy.ndarray, cuda.ndarray)):
                     d[name] = cuda.to_gpu(value)
-            self._device_id = cuda.cupy.cuda.get_device_id()
+            self._device_id = device_id
         self._cpu = False
         return self
 
