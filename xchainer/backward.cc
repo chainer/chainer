@@ -51,7 +51,7 @@ public:
 
             {
                 std::vector<Array> gxs = ComputeNextGradients(*op_node, graph_id_);
-                AccumulateNextGradients(*op_node, gxs);
+                AccumulateNextGradients(*op_node, std::move(gxs));
             }
 
             for (const auto& next_array_node : op_node->next_nodes()) {
@@ -94,7 +94,7 @@ private:
         return gxs;
     }
 
-    void AccumulateNextGradients(const OpNode& op_node, std::vector<Array>& gxs) {
+    void AccumulateNextGradients(const OpNode& op_node, std::vector<Array> gxs) {
         gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node.next_nodes();
         assert(next_array_nodes.size() == gxs.size());
         for (size_t i = 0; i < next_array_nodes.size(); ++i) {
