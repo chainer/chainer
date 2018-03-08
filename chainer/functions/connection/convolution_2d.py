@@ -522,6 +522,12 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, groups=1,
             into some output pixels.
         dilate (int or pair of ints): Dilation factor of filter applications.
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (:class:`int`): Number of groups of channels. If the number
+            is greater than 1, input tensor :math:`W` is divided into some
+            blocks by this value. For each tensor blocks, convolution
+            operation will be executed independently. Input channel size
+            :math:`c_I` and output channel size :math:`c_O` must be exactly
+            divisible by this value.
 
     Returns:
         ~chainer.Variable:

@@ -7,7 +7,7 @@ from chainer import variable
 
 class Convolution2D(link.Link):
 
-    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None)
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None, groups=1)
 
     Two-dimensional convolutional layer.
 
@@ -48,6 +48,12 @@ class Convolution2D(link.Link):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        groups (:class:`int`): Number of groups of channels. If the number
+            is greater than 1, input tensor :math:`W` is divided into some
+            blocks by this value channel-wise. For each tensor blocks,
+            convolution operation will be executed independently. Input channel
+            size ``in_channels`` and output channel size ``out_channels`` must
+            be exactly divisible by this value.
 
     .. seealso::
        See :func:`chainer.functions.convolution_2d` for the definition of
