@@ -389,24 +389,15 @@ def main():
     target_words = {i: w for w, i in target_ids.items()}
     source_words = {i: w for w, i in source_ids.items()}
 
-
-<< << << < HEAD
     model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit,
                     args.dropout, args.use_attention, args.use_bidirectional)
-== == == =
-# Setup model
-    model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit)
->>>>>> > master
+
     if args.gpu >= 0:
         chainer.backends.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
 
-<< << << < HEAD
+    # Setup optimizer
     optimizer = chainer.optimizers.Adam(alpha=1e-4)
-== == == =
-# Setup optimizer
-    optimizer = chainer.optimizers.Adam()
->>>>>> > master
     optimizer.setup(model)
 
     # Setup iterator
