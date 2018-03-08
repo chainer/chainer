@@ -5,6 +5,7 @@
 #include <initializer_list>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
