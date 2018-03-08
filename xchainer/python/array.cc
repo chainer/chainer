@@ -115,11 +115,6 @@ py::buffer_info MakeNumpyArrayFromArray(internal::ArrayBody& self) {
         (void)ptr;  // unused
     }))};
 
-    if (!array.IsContiguous()) {
-        throw DimensionError("cannot convert non-contiguous Array to NumPy array");
-    }
-
-    // compute C-contiguous strides
     return py::buffer_info(array.data().get(), array.element_bytes(), std::string(1, GetCharCode(array.dtype())), array.ndim(),
                            array.shape(), array.strides());
 }
