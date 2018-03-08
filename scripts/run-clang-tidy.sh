@@ -42,15 +42,36 @@ fi
 # find_command: find command to search for source files
 # grep_regex: Regex expression to search for error (or warning) lines
 
+clang_tidy_checks=()
 if [ "$target" == "normal" ]; then
-    find_command=(find "$rel_source_dir" -name "*.cc" -not -name "*_test.cc" -print0)
+    # *.cc files, but not *_test.cc nor files in xchainer/testing
+    find_command=(find "$rel_source_dir" -path "$rel_source_dir"/testing -prune -o -name "*.cc" -not -name "*_test.cc" -print0)
     # TODO(niboshi): report warnings too by replacing with the next line.
     #grep_regex="^[^ ]+: (warning|error): .*"
     grep_regex="^[^ ]+: error: .*"
+    # Avoid checks that cause warnings which are difficult to fix
+    clang_tidy_checks+=(
+        -cppcoreguidelines-pro-bounds-array-to-pointer-decay  # on assert
+    )
 
 else
-    find_command=(find "$rel_source_dir" -name "*_test.cc" -print0)
+    # *_test.cc files in any directories and *_.cc files in xchainer/testing
+    find_command=(find "$rel_source_dir" \( -path "$rel_source_dir/testing/*" -name "*.cc" -o -name "*_test.cc" \) -print0)
     grep_regex="^[^ ]+: error: .*"
+    # Avoid checks that cause warnings in google-test implementation
+    clang_tidy_checks+=(
+        -cppcoreguidelines-pro-bounds-array-to-pointer-decay  # on assert
+        -cppcoreguidelines-pro-type-vararg  # on EXPECT_EQ, etc.
+        -cppcoreguidelines-special-member-functions  # on TEST, etc.
+        -cert-err58-cpp  # on TEST, etc.
+        -modernize-use-equals-default  # on TEST, etc.
+        -modernize-use-equals-delete  # on TEST, etc.
+    )
+fi
+
+clang_tidy_opts=()
+if [ ${#clang_tidy_checks[@]} -gt 0 ]; then
+   clang_tidy_opts+=(-checks=$(printf "%s," "${clang_tidy_checks[@]}"))
 fi
 
 # Run clang-tidy.
@@ -59,7 +80,7 @@ fi
 # Keep that in mind when the script is to be modified.
 
 set +e  # Temporarily disable error detection to capture errors in the pipes
-"${find_command[@]}" | xargs -0 clang-tidy | awk '
+"${find_command[@]}" | xargs -0 clang-tidy "${clang_tidy_opts[@]+"${clang_tidy_opts[@]}"}" | awk '
     { print }
     /'"$grep_regex"'/ { n = n == 255 ? 255 : n+1 }
     END { exit n }'
