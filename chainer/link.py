@@ -780,12 +780,11 @@ Assign a Link object directly to an attribute within a \
             d[name].to_cpu()
         return self
 
-    def to_gpu(self, device=None):
-        with cuda._get_device(device):
-            super(Chain, self).to_gpu()
-            d = self.__dict__
-            for name in self._children:
-                d[name].to_gpu()
+    def to_gpu(self, device=None, sticky=None):
+        super(Chain, self).to_gpu(device, sticky)
+        d = self.__dict__
+        for name in self._children:
+            d[name].to_gpu(device, sticky)
         return self
 
     def to_intel64(self):
@@ -946,11 +945,10 @@ class ChainList(Link):
             link.to_cpu()
         return self
 
-    def to_gpu(self, device=None):
-        with cuda._get_device(device):
-            super(ChainList, self).to_gpu()
-            for link in self._children:
-                link.to_gpu()
+    def to_gpu(self, device=None, sticky=None):
+        super(ChainList, self).to_gpu(device, sticky)
+        for link in self._children:
+            link.to_gpu(device, sticky)
         return self
 
     def to_intel64(self):
