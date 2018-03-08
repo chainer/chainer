@@ -5,6 +5,7 @@
 #include <initializer_list>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
@@ -12,6 +13,7 @@
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
+#include "xchainer/check_backward.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
@@ -935,16 +937,30 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
 }
 
 TEST_P(ArrayTest, Transpose) {
-    {
-        Array a = testing::MakeArray<int32_t>({2, 3}, {0, 1, 2, 3, 4, 5});
-        Array b = a.Transpose();
+    Array a = testing::MakeArray<int32_t>({2, 3}, {0, 1, 2, 3, 4, 5});
+    Array b = a.Transpose();
 
-        EXPECT_EQ(Shape({3, 2}), b.shape());
-        EXPECT_EQ(Strides({4, 12}), b.strides());
+    EXPECT_EQ(Shape({3, 2}), b.shape());
+    EXPECT_EQ(Strides({4, 12}), b.strides());
 
-        Array e = testing::MakeArray<int32_t>({3, 2}, {0, 3, 1, 4, 2, 5});
-        ExpectEqual<int32_t>(e, b);
-    }
+    Array e = testing::MakeArray<int32_t>({3, 2}, {0, 3, 1, 4, 2, 5});
+    ExpectEqual<int32_t>(e, b);
+}
+
+TEST_P(ArrayTest, TransposeBackward) {
+    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0].Transpose()}; },
+                             {Array::Zeros({2, 3}, Dtype::kFloat32).RequireGrad()},
+                             {testing::MakeArray({3, 2}, {1.f, 2.f, 3.f, 4.f, 5.f, 6.f})}, {Array::Full({2, 3}, 1e-5f)});
+}
+
+TEST_P(ArrayTest, TransposeDoubleBackward) {
+    CheckDoubleBackwardComputation(
+        [](const std::vector<Array>& xs) -> std::vector<Array> {
+            auto t = xs[0].Transpose();
+            return {t * t};  // to make it nonlinear
+        },
+        {testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f}).RequireGrad()}, {Array::Ones({3, 2}, Dtype::kFloat32).RequireGrad()},
+        {Array::Ones({2, 3}, Dtype::kFloat32)}, {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
 }
 
 TEST_P(ArrayTest, Copy) {

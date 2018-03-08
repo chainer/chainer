@@ -154,7 +154,9 @@ Array Array::operator*(const Array& rhs) const {
 Array Array::Transpose() const {
     Shape out_shape{shape().rbegin(), shape().rend()};
     Strides out_strides{strides().rbegin(), strides().rend()};
-    return Array{out_shape, out_strides, dtype(), device(), body_->data_, offset()};
+    Array out{out_shape, out_strides, dtype(), device(), body_->data_, offset()};
+    internal::SetUpOpNodes("transpose", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout.Transpose(); }});
+    return out;
 }
 
 Array Array::Copy() const {
