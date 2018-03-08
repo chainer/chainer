@@ -133,12 +133,7 @@ void CudaDevice::Fill(Array& out, Scalar value) {
 }
 
 void CudaDevice::Copy(const Array& src, Array& out) {
-    // TODO(hvy): Add additional device support check for copy.
     CheckDevicesCompatible(src, out);
-
-    // TODO(hvy): Need to take offset_ into account.
-    // TODO(hvy): Use MemoryCopyFrom/To if contiguity, offset and dtype match.
-
     cudaSetDevice(index());
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;

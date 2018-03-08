@@ -70,12 +70,14 @@ public:
 
     explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
 
+    Array() = default;
+
     // Deep copy ctor and copy assignment
     Array(const Array& other);
     Array(Array&& other) = default;
 
-    Array& operator=(Array&& other) = delete;
     Array& operator=(const Array&) = delete;
+    Array& operator=(Array&& other) = default;
 
     Array& operator+=(const Array& rhs);
     Array& operator*=(const Array& rhs);

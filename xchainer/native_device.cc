@@ -54,12 +54,7 @@ void NativeDevice::Fill(Array& out, Scalar value) {
 }
 
 void NativeDevice::Copy(const Array& src, Array& out) {
-    assert(nullptr != dynamic_cast<NativeDevice*>(&src.device()) && "Native device only supports copy between native devices");
     CheckDevicesCompatible(src, out);
-
-    // TODO(hvy): Need to take offset_ into account.
-    // TODO(hvy): Use MemoryCopyFrom/To if contiguity, offset and dtype match.
-
     VisitDtype(src.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> src_iarray{src};

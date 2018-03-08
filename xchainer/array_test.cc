@@ -377,12 +377,7 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
     EXPECT_THROW(internal::GetArrayNode(b), XchainerError);
 }
 
-TEST_P(ArrayTest, ArrayMoveAssignmentOperator) {
-    {
-        // TODO(hvy): Change the following expectations when copy assignment is implemented (not explicitly deleted)
-        EXPECT_FALSE(std::is_nothrow_move_assignable<Array>::value);
-    }
-}
+TEST_P(ArrayTest, ArrayMoveAssignmentOperator) { EXPECT_TRUE(std::is_nothrow_move_assignable<Array>::value); }
 
 TEST_P(ArrayTest, SetRequiresGrad) {
     // Default graph

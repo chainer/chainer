@@ -7,6 +7,8 @@
 #include "xchainer/context.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/device.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 #include "xchainer/native_backend.h"
 
 namespace xchainer {
@@ -25,13 +27,19 @@ void ExpectDataEqual(const std::shared_ptr<void>& expected, const std::shared_pt
 void ExpectArraysEqual(const Array& expected, const Array& actual) {
     EXPECT_EQ(expected.dtype(), actual.dtype());
     EXPECT_EQ(expected.shape(), actual.shape());
+
     VisitDtype(expected.dtype(), [&expected, &actual](auto pt) {
         using T = typename decltype(pt)::type;
-        int64_t total_size = expected.GetTotalSize();
-        const T* data1 = static_cast<const T*>(expected.data().get());
-        const T* data2 = static_cast<const T*>(actual.data().get());
-        for (int64_t i = 0; i < total_size; ++i) {
-            EXPECT_EQ(data1[i], data2[i]);
+        IndexableArray<const T> expected_iarray{expected};
+        IndexableArray<const T> actual_iarray{actual};
+        Indexer<> indexer{expected.shape()};
+
+        actual.device().Synchronize();
+        expected.device().Synchronize();
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            EXPECT_EQ(expected_iarray[indexer], actual_iarray[indexer]);
         }
     });
 }
