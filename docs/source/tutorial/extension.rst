@@ -107,7 +107,7 @@ You can specify a function which takes a :class:`~chainer.training.Trainer` obje
 .. _class:
 
 Write a class inherited from the Extension class
---------------------------------------------
+------------------------------------------------
 
 This is the way to define your own extension with the maximum degree of freedom. You can keep any values inside of the extension and serialize them.
 
