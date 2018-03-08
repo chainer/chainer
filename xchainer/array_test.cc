@@ -958,8 +958,8 @@ TEST_P(ArrayTest, TransposeDoubleBackward) {
             auto t = xs[0].Transpose();
             return {t * t};  // to make it nonlinear
         },
-        {Array::Zeros({2, 3}, Dtype::kFloat32).RequireGrad()}, {testing::MakeArray({3, 2}, {1.f, 2.f, 3.f, 4.f, 5.f, 6.f}).RequireGrad()},
-        {testing::MakeArray({2, 3}, {-1.f, -2.f, -3.f, -4.f, -5.f, -6.f})}, {Array::Full({2, 3}, 1e-5f), Array::Full({3, 2}, 1e-5f)});
+        {testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f}).RequireGrad()}, {Array::Ones({3, 2}, Dtype::kFloat32).RequireGrad()},
+        {Array::Ones({2, 3}, Dtype::kFloat32)}, {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
 }
 
 TEST_P(ArrayTest, Copy) {
