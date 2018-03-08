@@ -188,7 +188,7 @@ class MultiAdd(function_node.FunctionNode):
                 and intel64.inputs_all_ready(xs)):
             y = intel64.ideep.multi_add(xs)
         else:
-            # The output should a new array. Add the first 2 arrays
+            # The output should be a new array. Add the first 2 arrays
             # and get the result y. Then add the rest arrays to y.
             y = xs[0] + xs[1]
             for x in xs[2:]:
