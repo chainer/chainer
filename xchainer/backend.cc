@@ -5,6 +5,8 @@
 
 namespace xchainer {
 
+Backend::~Backend() = default;
+
 Backend::Backend(Context& context) : context_(context) {}
 
 Device& Backend::GetDevice(int index) {
