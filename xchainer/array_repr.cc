@@ -8,17 +8,12 @@
 #include <sstream>
 #include <vector>
 
-#ifdef XCHAINER_ENABLE_CUDA
-#include <cuda_runtime.h>
-#endif  // XCHAINER_ENABLE_CUDA
-
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
-#ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/cuda/cuda_runtime.h"
-#endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/dtype.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -157,30 +152,16 @@ using Formatter = std::conditional_t<std::is_same<T, bool>::value, BoolFormatter
 struct ArrayReprImpl {
     template <typename T, typename Visitor>
     void VisitElements(const Array& array, Visitor&& visitor) const {
-        // TODO(niboshi): Contiguousness is assumed.
-        // TODO(niboshi): Replace with Indxer class.
         auto shape = array.shape();
-        std::vector<int64_t> indexer;
-        std::copy(shape.cbegin(), shape.cend(), std::back_inserter(indexer));
-        std::shared_ptr<const T> data = std::static_pointer_cast<const T>(array.data());
+        Indexer<kDynamicNdim> indexer{shape};
+        IndexableArray<const T> iarray{array};
 
-// TODO(hvy): Only synchronize devices when it is really needed
-#ifdef XCHAINER_ENABLE_CUDA
-        cuda::CheckError(cudaDeviceSynchronize());
-#endif  // XCHAINER_ENABLE_CUDA
+        array.device().Synchronize();
 
-        for (int64_t i = 0; i < array.GetTotalSize(); ++i) {
-            // Increment indexer
-            for (int j = shape.ndim() - 1; j >= 0; --j) {
-                indexer[j]++;
-                if (indexer[j] >= shape[j]) {
-                    indexer[j] = 0;
-                } else {
-                    break;
-                }
-            }
-
-            visitor(data.get()[i], &indexer[0]);
+        int64_t total_size = array.GetTotalSize();
+        for (int64_t i = 0; i < total_size; ++i) {
+            indexer.Set(i);
+            visitor(iarray, indexer);
         }
     }
 
@@ -189,48 +170,49 @@ struct ArrayReprImpl {
         Formatter<T> formatter;
 
         // Let formatter scan all elements to print.
-        VisitElements<T>(array, [&formatter](T value, const int64_t* index) {
-            (void)index;  // unused
-            formatter.Scan(value);
+        VisitElements<T>(array, [&formatter](const IndexableArray<const T> iarray, const Indexer<kDynamicNdim>& indexer) {
+            formatter.Scan(iarray[indexer]);
         });
 
         // Print values using the formatter.
         const int8_t ndim = array.ndim();
         int cur_line_size = 0;
-        VisitElements<T>(array, [ndim, &cur_line_size, &formatter, &os](T value, const int64_t* index) {
-            int8_t trailing_zeros = 0;
-            if (ndim > 0) {
-                for (auto it = index + ndim; --it >= index;) {
-                    if (*it == 0) {
-                        ++trailing_zeros;
-                    } else {
-                        break;
+        VisitElements<T>(
+            array, [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T>& iarray, const Indexer<kDynamicNdim>& indexer) {
+                int8_t trailing_zeros = 0;
+                if (ndim > 0) {
+                    const int64_t* index = indexer.index();
+                    for (auto it = index + ndim; --it >= index;) {
+                        if (*it == 0) {
+                            ++trailing_zeros;
+                        } else {
+                            break;
+                        }
                     }
                 }
-            }
-            if (trailing_zeros == ndim) {
-                // This is the first iteration, so print the header
-                os << "array(";
-                PrintNTimes(os, '[', ndim);
-            } else if (trailing_zeros > 0) {
-                PrintNTimes(os, ']', trailing_zeros);
-                os << ',';
-                PrintNTimes(os, '\n', trailing_zeros);
-                PrintNTimes(os, ' ', 6 + ndim - trailing_zeros);
-                PrintNTimes(os, '[', trailing_zeros);
-                cur_line_size = 0;
-            } else {
-                if (cur_line_size == 10) {
-                    os << ",\n";
-                    PrintNTimes(os, ' ', 6 + ndim);
+                if (trailing_zeros == ndim) {
+                    // This is the first iteration, so print the header
+                    os << "array(";
+                    PrintNTimes(os, '[', ndim);
+                } else if (trailing_zeros > 0) {
+                    PrintNTimes(os, ']', trailing_zeros);
+                    os << ',';
+                    PrintNTimes(os, '\n', trailing_zeros);
+                    PrintNTimes(os, ' ', 6 + ndim - trailing_zeros);
+                    PrintNTimes(os, '[', trailing_zeros);
                     cur_line_size = 0;
                 } else {
-                    os << ", ";
+                    if (cur_line_size == 10) {
+                        os << ",\n";
+                        PrintNTimes(os, ' ', 6 + ndim);
+                        cur_line_size = 0;
+                    } else {
+                        os << ", ";
+                    }
                 }
-            }
-            formatter.Print(os, value);
-            ++cur_line_size;
-        });
+                formatter.Print(os, iarray[indexer]);
+                ++cur_line_size;
+            });
 
         if (array.GetTotalSize() == 0) {
             // In case of an empty Array, print the header here

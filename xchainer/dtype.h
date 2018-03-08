@@ -88,7 +88,7 @@ XCHAINER_DEFINE_PRIMITIVE_TYPE("float64", 'd', Dtype::kFloat64, DtypeKind::kFloa
 
 // Dtype mapped from primitive type.
 template <typename T>
-constexpr Dtype TypeToDtype = PrimitiveType<T>::kDtype;
+constexpr Dtype TypeToDtype = PrimitiveType<std::remove_const_t<T>>::kDtype;
 
 // Invokes a function by passing PrimitiveType<T> corresponding to given dtype value.
 //

@@ -41,4 +41,4 @@ private:
     GraphId graph_id_;
 };
 
-}  // xchainer
+}  // namespace xchainer

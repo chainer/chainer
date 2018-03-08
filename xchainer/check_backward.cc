@@ -31,8 +31,8 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
 
     const std::size_t nout = outputs.size();
     if (nout != grad_outputs.size()) {
-        throw XchainerError("BackwardGradients: Size of function outputs: " + std::to_string(nout) + " and size of grad outputs: " +
-                            std::to_string(grad_outputs.size()) + " must be same");
+        throw XchainerError("BackwardGradients: Size of function outputs: " + std::to_string(nout) +
+                            " and size of grad outputs: " + std::to_string(grad_outputs.size()) + " must be same");
     }
 
     for (std::size_t i = 0; i < nout; ++i) {

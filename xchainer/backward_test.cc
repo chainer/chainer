@@ -156,11 +156,10 @@ TEST_P(BackpropTest, BackwardWithExtraInputs) {
 TEST_P(BackpropTest, BackwardMultipleOutputs) {
     CheckBackpropSingleElement({2.0f, 3.0f}, {4.0f, 6.0f}, [](auto& xs) -> std::vector<Array> { return {xs[0] * xs[0], xs[1] * xs[1]}; });
     CheckBackpropSingleElement({2.0f, 3.0f}, {4.0f, 3.0f}, [](auto& xs) -> std::vector<Array> { return {xs[0] * xs[1], xs[0] + xs[1]}; });
-    CheckBackpropSingleElement({2.0f, 3.0f}, {21.0f, 16.0f},
-                               [](auto& xs) -> std::vector<Array> {
-                                   Array z = xs[0] * xs[1];
-                                   return {xs[0] * z, xs[1] * z};
-                               });
+    CheckBackpropSingleElement({2.0f, 3.0f}, {21.0f, 16.0f}, [](auto& xs) -> std::vector<Array> {
+        Array z = xs[0] * xs[1];
+        return {xs[0] * z, xs[1] * z};
+    });
 }
 
 TEST_P(BackpropTest, TryBackwardFromArrayWithoutNode) {
@@ -196,13 +195,12 @@ TEST_P(BackpropTest, DoubleBackprop) {
 #ifdef XCHAINER_ENABLE_CUDA
 TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
     std::string another_backend = GetParam() == "cuda" ? "native" : "cuda";
-    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f},
-                               [another_backend](auto& xs) {
-                                   auto ret = xs[0] * xs[1];
-                                   // This device switch also affects backward
-                                   SetDefaultDevice(&GetDefaultContext().GetDevice({another_backend, 0}));
-                                   return ret;
-                               });
+    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [another_backend](auto& xs) {
+        auto ret = xs[0] * xs[1];
+        // This device switch also affects backward
+        SetDefaultDevice(&GetDefaultContext().GetDevice({another_backend, 0}));
+        return ret;
+    });
 }
 #endif
 
@@ -354,11 +352,12 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     EXPECT_FALSE(x2.GetGrad(graph_id_1));
 }
 
-INSTANTIATE_TEST_CASE_P(ForEachBackend, BackpropTest, ::testing::Values(
+INSTANTIATE_TEST_CASE_P(ForEachBackend, BackpropTest,
+                        ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
-                                                          std::string{"cuda"},
+                            std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
-                                                          std::string{"native"}));
+                            std::string{"native"}));
 
 TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     testing::DeviceSession device_session({NativeBackend::kDefaultName, 0});

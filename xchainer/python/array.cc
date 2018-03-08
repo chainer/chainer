@@ -155,8 +155,10 @@ void InitXchainerArray(pybind11::module& m) {
                  return Array{self}.ToDevice(device).move_body();
              })
         .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
-        .def("as_constant", [](const ArrayBodyPtr& self,
-                               bool copy) { return Array{self}.AsConstant(copy ? CopyKind::kCopy : CopyKind::kView).move_body(); },
+        .def("as_constant",
+             [](const ArrayBodyPtr& self, bool copy) {
+                 return Array{self}.AsConstant(copy ? CopyKind::kCopy : CopyKind::kView).move_body();
+             },
              py::arg("copy") = false)
         .def("as_constant",
              [](const ArrayBodyPtr& self, const std::vector<GraphId>& graph_ids, bool copy) {

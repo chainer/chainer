@@ -7,7 +7,9 @@
 
 #include <gsl/gsl>
 
+#include "xchainer/array.h"
 #include "xchainer/constant.h"
+#include "xchainer/dtype.h"
 #include "xchainer/indexer.h"
 #include "xchainer/macro.h"
 #include "xchainer/strides.h"
@@ -35,7 +37,10 @@ public:
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
-    explicit IndexableArray(indexable_array_detail::WithConstnessOf<Array, T>& array) : IndexableArray{array.raw_data(), array.strides()} {}
+    explicit IndexableArray(indexable_array_detail::WithConstnessOf<Array, T>& array)
+        : IndexableArray{static_cast<T*>(array.raw_data()), array.strides()} {
+        Expects(TypeToDtype<T> == array.dtype());
+    }
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return n_dim; }
 
@@ -68,7 +73,10 @@ public:
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
-    explicit IndexableArray(indexable_array_detail::WithConstnessOf<Array, T>& array) : IndexableArray{array.raw_data(), array.strides()} {}
+    explicit IndexableArray(indexable_array_detail::WithConstnessOf<Array, T>& array)
+        : IndexableArray{static_cast<T*>(array.raw_data()), array.strides()} {
+        Expects(TypeToDtype<T> == array.dtype());
+    }
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
 
