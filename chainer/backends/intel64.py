@@ -103,6 +103,10 @@ def inputs_all_ready(inputs, supported_ndim=(2, 4)):
         bool: ``True`` if all conditions meet.
 
     """
+
+    def check_array_type(a):
+        return isinstance(a, ideep.mdarray) or ideep.check_type([a])
+
     if _ideep_version is None:
         return False
 
@@ -110,5 +114,4 @@ def inputs_all_ready(inputs, supported_ndim=(2, 4)):
               else x for x in inputs]
 
     return (ideep.check_ndim(inputs, supported_ndim)
-            and (all([isinstance(a, ideep.mdarray) for a in inputs])
-                 or ideep.check_type(inputs)))
+            and all([check_array_type(a) for a in inputs]))

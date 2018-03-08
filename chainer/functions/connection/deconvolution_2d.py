@@ -110,6 +110,11 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 raise RuntimeError('Width in the output must be positive.')
 
     def forward_cpu(self, inputs):
+        if ((self.dy == 1 and self.dx == 1)
+                and intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(inputs)):
+            self._use_ideep = True
+
         self.retain_inputs((0, 1))  # only retain x and W
         if len(inputs) == 2:
             (x, W), b = inputs, None
@@ -122,17 +127,12 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             # Grouped convolution implementation
             return self._forward_grouped_convolution(x, W, b)
 
-        elif ((self.dy == 1 and self.dx == 1)
-              and intel64.should_use_ideep('>=auto')
-              and intel64.inputs_all_ready(inputs)):
-            # iDeep implementation
-            self._use_ideep = True
-            return self._forward_ideep(x, W, b)
-
-        else:
-            return self._forward_cpu_core(x, W, b)
+        return self._forward_cpu_core(x, W, b)
 
     def _forward_cpu_core(self, x, W, b):
+        if self._use_ideep:
+            return self._forward_ideep(x, W, b)
+
         gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
         gcol = numpy.rollaxis(gcol, 3)
         y = conv.col2im_cpu(
@@ -140,7 +140,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             dy=self.dy, dx=self.dx)
         # b, k, h, w
         if b is not None:
-            y += b.reshape(1, b.size, 1, 1)
+            y += b.reshape((1, b.size, 1, 1))
         return y,
 
     def _forward_ideep(self, x, W, b):
@@ -166,7 +166,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             param)
 
         if b is not None:
-            y += b.reshape(1, b.size, 1, 1)
+            y += b.reshape((1, b.size, 1, 1))
         return y,
 
     def forward_gpu(self, inputs):
@@ -228,11 +228,11 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         xp = cuda.get_array_module(x)
 
-        _x = x.reshape(N, G, xCg, xH, xW)
+        _x = x.reshape((N, G, xCg, xH, xW))
         _x = xp.rollaxis(_x, 1)  # (G, N, xCg, xH, xW)
-        _W = W.reshape(G, xCg, yCg, kH, kW)
+        _W = W.reshape((G, xCg, yCg, kH, kW))
         if b is not None:
-            _b = b.reshape(G, yCg)
+            _b = b.reshape((G, yCg))
 
         _ys = []
         for g in six.moves.range(G):
