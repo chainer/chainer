@@ -26,7 +26,8 @@ def _get_indices_or_sections(indices_or_sections):
     is_seq = False
     if isinstance(ios, numpy.ndarray):
         # numpy.ndarray
-        if ios.dtype.kind != 'i':
+        if ios.dtype.kind != 'i' and ios.size > 0:
+            # Note: numpy.array([]) (dtype is float64) should be accepted.
             raise TypeError('indices_or_sections must be integers')
         if ios.ndim >= 2:
             raise TypeError('indices_or_sections must be 1-D sequence')
