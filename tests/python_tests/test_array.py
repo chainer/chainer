@@ -229,7 +229,6 @@ def test_transpose(array_init_inputs):
         assert array.element_bytes == array_transpose.element_bytes
         assert array.total_size == array_transpose.total_size
         assert array.total_bytes == array_transpose.total_bytes
-        assert array._debug_flat_data == array_transpose._debug_flat_data
         _check_arrays_equal(array, array_transpose.transpose())
 
     _check_transpose(array.transpose())
