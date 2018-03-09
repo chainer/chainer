@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "xchainer/backend.h"
 
 #define XCHAINER_REQUIRE_DEVICE(backend, required_num)                                         \
@@ -20,6 +22,8 @@ int GetSkippedCudaTestCount();
 int GetDeviceLimit(Backend& backend);
 
 bool SkipIfDeviceUnavailable(Backend& backend, int required_num);
+
+bool SkipIfDeviceUnavailable(const std::string& backend_name, int required_num);
 
 }  // namespace internal
 }  // namespace testing

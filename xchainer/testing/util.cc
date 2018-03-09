@@ -8,6 +8,7 @@
 #include <gsl/gsl>
 
 #include "xchainer/backend.h"
+#include "xchainer/context.h"
 #include "xchainer/error.h"
 
 namespace xchainer {
@@ -84,6 +85,10 @@ bool SkipIfDeviceUnavailable(Backend& backend, int required_num) {
     } else {
         return false;
     }
+}
+
+bool SkipIfDeviceUnavailable(const std::string& backend_name, int required_num) {
+    return SkipIfDeviceUnavailable(GetDefaultContext().GetBackend(backend_name), required_num);
 }
 
 }  // namespace internal
