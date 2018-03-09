@@ -23,10 +23,96 @@
 #include "xchainer/op_node.h"
 #include "xchainer/slice.h"
 #include "xchainer/testing/array.h"
+#include "xchainer/testing/context_session.h"
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
 namespace {
+
+template <typename T>
+void ExpectDataEqual(const Array& expected, const Array& actual) {
+    actual.device().Synchronize();
+    IndexableArray<const T> expected_iarray{expected};
+    IndexableArray<const T> actual_iarray{actual};
+    Indexer<> indexer{actual.shape()};
+    for (int64_t i = 0; i < indexer.total_size(); i++) {
+        indexer.Set(i);
+        const auto& expected = expected_iarray[indexer];
+        const auto& actual = actual_iarray[indexer];
+        if (std::isnan(expected)) {
+            EXPECT_TRUE(std::isnan(actual)) << "where i is " << i;
+        } else {
+            EXPECT_EQ(expected, actual) << "where i is " << i;
+        }
+    }
+}
+
+template <typename T>
+void ExpectDataEqual(const T* expected_data, const Array& actual) {
+    actual.device().Synchronize();
+    auto total_size = actual.shape().GetTotalSize();
+    const T* actual_data = static_cast<const T*>(actual.data().get());
+    for (decltype(total_size) i = 0; i < total_size; i++) {
+        EXPECT_EQ(expected_data[i], actual_data[i]) << "where i is " << i;
+    }
+}
+
+template <typename T>
+void ExpectDataEqual(T expected, const Array& actual) {
+    actual.device().Synchronize();
+    auto total_size = actual.shape().GetTotalSize();
+    const T* actual_data = static_cast<const T*>(actual.data().get());
+    for (decltype(total_size) i = 0; i < total_size; i++) {
+        if (std::isnan(expected)) {
+            EXPECT_TRUE(std::isnan(actual_data[i])) << "where i is " << i;
+        } else {
+            EXPECT_EQ(expected, actual_data[i]) << "where i is " << i;
+        }
+    }
+}
+
+template <typename T>
+void ExpectEqual(const Array& expected, const Array& actual) {
+    EXPECT_EQ(expected.dtype(), actual.dtype());
+    EXPECT_EQ(expected.shape(), actual.shape());
+    EXPECT_EQ(&expected.device(), &actual.device());
+    ExpectDataEqual<T>(expected, actual);
+}
+
+template <typename T>
+void ExpectEqualCopy(const Array& expected, const Array& actual) {
+    EXPECT_EQ(expected.dtype(), actual.dtype());
+    EXPECT_EQ(expected.shape(), actual.shape());
+    EXPECT_EQ(&expected.device(), &actual.device());
+
+    // Deep copy, therefore assert different addresses to data
+    EXPECT_NE(expected.data().get(), actual.data().get());
+
+    EXPECT_TRUE(actual.IsContiguous());
+    EXPECT_EQ(0, actual.offset());
+
+    ExpectDataEqual<T>(expected, actual);
+}
+
+void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
+    EXPECT_EQ(a.dtype(), b.dtype());
+    EXPECT_EQ(a.shape(), b.shape());
+    EXPECT_EQ(a.IsContiguous(), b.IsContiguous());
+    EXPECT_EQ(a.offset(), b.offset());
+}
+
+template <typename T>
+void ExpectEqualView(const Array& expected, const Array& actual) {
+    ExpectEqual<T>(expected, actual);
+    ExpectArraysEqualAttributes(expected, actual);
+
+    // Shallow copy, therefore assert the same address to data
+    EXPECT_EQ(expected.data().get(), actual.data().get());
+    EXPECT_EQ(&expected.device(), &actual.device());
+
+    // Views should have different array bodies.
+    EXPECT_NE(expected.body(), actual.body());
+}
 
 class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
@@ -38,91 +124,6 @@ protected:
     void TearDown() override { device_session_.reset(); }
 
 public:
-    template <typename T>
-    void ExpectEqualCopy(const Array& expected, const Array& actual) {
-        EXPECT_EQ(expected.dtype(), actual.dtype());
-        EXPECT_EQ(expected.shape(), actual.shape());
-        EXPECT_EQ(&expected.device(), &actual.device());
-
-        // Deep copy, therefore assert different addresses to data
-        EXPECT_NE(expected.data().get(), actual.data().get());
-
-        EXPECT_TRUE(actual.IsContiguous());
-        EXPECT_EQ(0, actual.offset());
-
-        ExpectDataEqual<T>(expected, actual);
-    }
-
-    template <typename T>
-    void ExpectEqualView(const Array& expected, const Array& actual) {
-        ExpectEqual<T>(expected, actual);
-        ExpectArraysEqualAttributes(expected, actual);
-
-        // Shallow copy, therefore assert the same address to data
-        EXPECT_EQ(expected.data().get(), actual.data().get());
-        EXPECT_EQ(&expected.device(), &actual.device());
-
-        // Views should have different array bodies.
-        EXPECT_NE(expected.body(), actual.body());
-    }
-
-    template <typename T>
-    void ExpectEqual(const Array& expected, const Array& actual) {
-        EXPECT_EQ(expected.dtype(), actual.dtype());
-        EXPECT_EQ(expected.shape(), actual.shape());
-        EXPECT_EQ(&expected.device(), &actual.device());
-        ExpectDataEqual<T>(expected, actual);
-    }
-
-    template <typename T>
-    void ExpectDataEqual(const Array& expected, const Array& actual) {
-        actual.device().Synchronize();
-        IndexableArray<const T> expected_iarray{expected};
-        IndexableArray<const T> actual_iarray{actual};
-        Indexer<> indexer{actual.shape()};
-        for (int64_t i = 0; i < indexer.total_size(); i++) {
-            indexer.Set(i);
-            const auto& expected = expected_iarray[indexer];
-            const auto& actual = actual_iarray[indexer];
-            if (std::isnan(expected)) {
-                EXPECT_TRUE(std::isnan(actual)) << "where i is " << i;
-            } else {
-                EXPECT_EQ(expected, actual) << "where i is " << i;
-            }
-        }
-    }
-
-    template <typename T>
-    void ExpectDataEqual(const T* expected_data, const Array& actual) {
-        actual.device().Synchronize();
-        auto total_size = actual.shape().GetTotalSize();
-        const T* actual_data = static_cast<const T*>(actual.data().get());
-        for (decltype(total_size) i = 0; i < total_size; i++) {
-            EXPECT_EQ(expected_data[i], actual_data[i]) << "where i is " << i;
-        }
-    }
-
-    template <typename T>
-    void ExpectDataEqual(T expected, const Array& actual) {
-        actual.device().Synchronize();
-        auto total_size = actual.shape().GetTotalSize();
-        const T* actual_data = static_cast<const T*>(actual.data().get());
-        for (decltype(total_size) i = 0; i < total_size; i++) {
-            if (std::isnan(expected)) {
-                EXPECT_TRUE(std::isnan(actual_data[i])) << "where i is " << i;
-            } else {
-                EXPECT_EQ(expected, actual_data[i]) << "where i is " << i;
-            }
-        }
-    }
-
-    void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
-        EXPECT_EQ(a.dtype(), b.dtype());
-        EXPECT_EQ(a.shape(), b.shape());
-        EXPECT_EQ(a.IsContiguous(), b.IsContiguous());
-        EXPECT_EQ(a.offset(), b.offset());
-    }
-
     template <bool is_const, typename T>
     void CheckFromBuffer(const Shape& shape, std::initializer_list<T> raw_data) {
         using TargetArray = std::conditional_t<is_const, const Array, Array>;
@@ -961,111 +962,6 @@ TEST_P(ArrayTest, TransposeDoubleBackward) {
         {Array::Ones({2, 3}, Dtype::kFloat32)}, {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
 }
 
-TEST_P(ArrayTest, GetItem) {
-    {
-        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({0});
-        Array e = testing::MakeArray<int32_t>({}, {0});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({1});
-        Array e = testing::MakeArray<int32_t>({}, {1});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({2});
-        Array e = testing::MakeArray<int32_t>({}, {2});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({2, 3}, {0, 1, 2, 3, 4, 5});
-        Array b = a.GetItem({0});
-        Array e = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({2, 3}, {0, 1, 2, 3, 4, 5});
-        Array b = a.GetItem({1});
-        Array e = testing::MakeArray<int32_t>({3}, {3, 4, 5});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({Slice{0, 3}});
-        Array e = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({Slice{0, 2}});
-        Array e = testing::MakeArray<int32_t>({2}, {0, 1});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({Slice{1, 3}});
-        Array e = testing::MakeArray<int32_t>({2}, {1, 2});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({Slice{0, 0}});
-        Array e = testing::MakeArray<int32_t>({0}, {});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({Slice{0, 1}});
-        Array e = testing::MakeArray<int32_t>({1}, {0});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({Slice{2, 0, -1}});
-        Array e = testing::MakeArray<int32_t>({2}, {2, 1});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({Slice{2, nonstd::nullopt, -1}});
-        Array e = testing::MakeArray<int32_t>({3}, {2, 1, 0});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({Slice{nonstd::nullopt, 0, -1}});
-        Array e = testing::MakeArray<int32_t>({2}, {2, 1});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({Slice{nonstd::nullopt, -1, -1}});
-        Array e = testing::MakeArray<int32_t>({3}, {2, 1, 0});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({6}, {0, 1, 2, 3, 4, 5});
-        Array b = a.GetItem({Slice{0, 6, 2}});
-        Array e = testing::MakeArray<int32_t>({3}, {0, 2, 4});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({6}, {0, 1, 2, 3, 4, 5});
-        Array b = a.GetItem({Slice{1, 6, 2}});
-        Array e = testing::MakeArray<int32_t>({3}, {1, 3, 5});
-        ExpectEqual<int32_t>(e, b);
-    }
-    {
-        Array a = testing::MakeArray<int32_t>({6}, {0, 1, 2, 3, 4, 5});
-        Array b = a.GetItem({Slice{5, -1, -2}});
-        Array e = testing::MakeArray<int32_t>({3}, {5, 3, 1});
-        ExpectEqual<int32_t>(e, b);
-    }
-}
-
 TEST_P(ArrayTest, Copy) {
     {
         Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
@@ -1326,6 +1222,59 @@ INSTANTIATE_TEST_CASE_P(ForEachBackend, ArrayTest,
                             std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
                             std::string{"native"}));
+
+struct ArrayGetItemTestParam {
+    Shape input_shape;
+    std::vector<ArrayIndex> indices;
+    Shape output_shape;
+    std::vector<int32_t> output_data;
+};
+
+std::ostream& operator<<(std::ostream& os, const ArrayGetItemTestParam& param) {
+    // TODO(niboshi): Print indices
+    os << param.input_shape << ", " << param.output_shape << ", [";
+    for (int32_t x : param.output_data) {
+        os << x << ", ";
+    }
+    return os << "]";
+}
+
+class ArrayGetItemTest : public ::testing::TestWithParam<ArrayGetItemTestParam> {
+public:
+    void SetUp() override { context_session_.emplace(); }
+
+    void TearDown() override { context_session_.reset(); }
+
+private:
+    nonstd::optional<testing::ContextSession> context_session_;
+};
+
+TEST_P(ArrayGetItemTest, GetItem) {
+    const ArrayGetItemTestParam& param = GetParam();
+    std::vector<int32_t> input_data(param.input_shape.GetTotalSize());
+    std::iota(input_data.begin(), input_data.end(), 0);
+    Array a = testing::MakeArray<int32_t>(param.input_shape, input_data);
+    Array b = a.GetItem(param.indices);
+    Array e = testing::MakeArray<int32_t>(param.output_shape, param.output_data);
+    ExpectEqual<int32_t>(e, b);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    ForEachInputs, ArrayGetItemTest,
+    ::testing::Values(ArrayGetItemTestParam{{3}, {0}, {}, {0}}, ArrayGetItemTestParam{{3}, {1}, {}, {1}},
+                      ArrayGetItemTestParam{{3}, {2}, {}, {2}}, ArrayGetItemTestParam{{3}, {-1}, {}, {2}},
+                      ArrayGetItemTestParam{{2, 3}, {0}, {3}, {0, 1, 2}}, ArrayGetItemTestParam{{2, 3}, {1}, {3}, {3, 4, 5}},
+                      ArrayGetItemTestParam{{3}, {Slice{0, 3}}, {3}, {0, 1, 2}}, ArrayGetItemTestParam{{3}, {Slice{0, 2}}, {2}, {0, 1}},
+                      ArrayGetItemTestParam{{3}, {Slice{1, 3}}, {2}, {1, 2}}, ArrayGetItemTestParam{{3}, {Slice{0, 0}}, {0}, {}},
+                      ArrayGetItemTestParam{{3}, {Slice{0, 1}}, {1}, {0}}, ArrayGetItemTestParam{{3}, {Slice{2, 0, -1}}, {2}, {2, 1}},
+                      ArrayGetItemTestParam{{3}, {Slice{-2, -1}}, {1}, {1}},
+                      ArrayGetItemTestParam{{3}, {Slice{2, nonstd::nullopt, -1}}, {3}, {2, 1, 0}},
+                      ArrayGetItemTestParam{{3}, {Slice{nonstd::nullopt, 0, -1}}, {2}, {2, 1}},
+                      ArrayGetItemTestParam{{3}, {Slice{nonstd::nullopt, -1, -1}}, {0}, {}},
+                      ArrayGetItemTestParam{{6}, {Slice{0, 6, 2}}, {3}, {0, 2, 4}},
+                      ArrayGetItemTestParam{{6}, {Slice{1, 6, 2}}, {3}, {1, 3, 5}},
+                      ArrayGetItemTestParam{{6}, {Slice{5, nonstd::nullopt, -2}}, {3}, {5, 3, 1}},
+                      ArrayGetItemTestParam{{2, 3}, {0, 0}, {}, {0}}, ArrayGetItemTestParam{{2, 3}, {1, 1}, {}, {4}}));
 
 }  // namespace
 }  // namespace xchainer

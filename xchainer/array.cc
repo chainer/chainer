@@ -166,10 +166,16 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
     int64_t i_in = 0;
     for (const ArrayIndex& index : indices) {
         switch (index.tag()) {
-            case ArrayIndexTag::kSingleElement:
-                out_offset += strides()[i_in] * index.index();
+            case ArrayIndexTag::kSingleElement: {
+                int64_t dim = shape()[i_in];
+                if (index.index() < -dim || dim <= index.index()) {
+                    throw DimensionError("Index " + std::to_string(index.index()) + " is out of bounds for axis " + std::to_string(i_in) +
+                                         " with size " + std::to_string(dim));
+                }
+                out_offset += strides()[i_in] * ((index.index() + dim) % dim);
                 i_in++;
                 break;
+            }
             case ArrayIndexTag::kSlice: {
                 const Slice& slice = index.slice();
                 int64_t slice_length = slice.GetLength(shape()[i_in]);

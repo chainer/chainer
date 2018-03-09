@@ -24,14 +24,30 @@ public:
 
     int64_t step() const { return step_; }
 
-    int64_t GetStart(int64_t dim) const { return start_.value_or(step_ > 0 ? 0 : dim - 1); }
+    int64_t GetStart(int64_t dim) const {
+        if (start_.has_value()) {
+            if (*start_ < 0) {
+                return std::max(int64_t{0}, *start_ + dim);
+            }
+            return std::min(*start_, dim);
+        }
+        return step_ > 0 ? 0 : dim - 1;
+    }
 
-    int64_t GetStop(int64_t dim) const { return stop_.value_or(step_ > 0 ? dim : -1); }
+    int64_t GetStop(int64_t dim) const {
+        if (stop_.has_value()) {
+            if (*stop_ < 0) {
+                return std::max(int64_t{-1}, *stop_ + dim);
+            }
+            return std::min(*stop_, dim);
+        }
+        return step_ > 0 ? dim : -1;
+    }
 
     // Returns the number of elements after slicing an axis of length dim.
     int64_t GetLength(int64_t dim) const {
         // TODO(hvy): Round according to step sign, nicely.
-        return std::max((GetStop(dim) - GetStart(dim) + (step_ > 0 ? -1 : 1)) / step_ + 1, int64_t{0});
+        return std::max(int64_t{0}, (GetStop(dim) - GetStart(dim) + (step_ > 0 ? -1 : 1)) / step_ + 1);
     }
 
 private:
