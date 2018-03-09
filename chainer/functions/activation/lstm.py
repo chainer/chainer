@@ -251,11 +251,6 @@ def lstm_grad_grad(
 
     gc_bar = gh * sig_o * gtanh_c + gc
 
-    if isinstance(c_prev, numpy.ndarray):
-        xp = numpy
-    else:
-        xp = cuda.cupy.fusion
-
     gc_prev[:] = ggf * gc_bar * gsig_f
     ga[:] = (gga * sig_i * ggtanh_a + ggi * gtanh_a * gsig_i) * gc_bar
     gi[:] = (gga * gtanh_a * gsig_i + ggi * tanh_a * ggsig_i) * gc_bar
