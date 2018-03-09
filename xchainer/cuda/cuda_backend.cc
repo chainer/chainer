@@ -34,11 +34,11 @@ bool CudaBackend::SupportsTransfer(Device& src_device, Device& dst_device) {
     Backend& dst_backend = dst_device.backend();
     if (&src_backend == this) {
         return &dst_backend == this || nullptr != dynamic_cast<NativeBackend*>(&dst_backend);
-    } else if (&dst_backend == this) {
-        return &src_backend == this || nullptr != dynamic_cast<NativeBackend*>(&src_backend);
-    } else {
-        return false;
     }
+    if (&dst_backend == this) {
+        return &src_backend == this || nullptr != dynamic_cast<NativeBackend*>(&src_backend);
+    }
+    return false;
 }
 
 }  // namespace cuda

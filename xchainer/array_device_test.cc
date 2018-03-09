@@ -105,7 +105,7 @@ TEST_F(ArrayDeviceTest, FromBuffer) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
     float raw_data[] = {0.f, 1.f, 2.f, 3.f, 4.f, 5.f};
-    std::shared_ptr<void> data(raw_data, [](float* ptr) {
+    std::shared_ptr<void> data(raw_data, [](const float* ptr) {
         (void)ptr;  // unused
     });
     CheckDeviceFallback([&]() { return Array::FromBuffer(shape, dtype, data); });

@@ -59,7 +59,7 @@ TEST(CudaDeviceTest, FromBuffer) {
     size_t size = 3;
     size_t bytesize = size * sizeof(float);
     float raw_data[] = {0, 1, 2};
-    std::shared_ptr<void> src(raw_data, [](float* ptr) {
+    std::shared_ptr<void> src(raw_data, [](const float* ptr) {
         (void)ptr;  // unused
     });
 

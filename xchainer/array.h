@@ -52,7 +52,7 @@ enum class CopyKind {
 // The main data structure of multi-dimensional array.
 class Array {
 public:
-    static Array FromBuffer(const Shape& shape, Dtype dtype, std::shared_ptr<void> data, Device& device = GetDefaultDevice());
+    static Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
 
     static Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
     static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device = GetDefaultDevice());

@@ -29,7 +29,7 @@ public:
             if (!output.IsGradRequired(graph_id)) {
                 throw XchainerError("Cannot start backprop from an array whose gradient is not required (on graph '" + graph_id + "')");
             }
-            output_array_nodes_.push_back(internal::GetMutableArrayNode(output, graph_id));
+            output_array_nodes_.emplace_back(internal::GetMutableArrayNode(output, graph_id));
         }
     };
 
@@ -49,8 +49,10 @@ public:
             std::shared_ptr<OpNode> op_node = std::move(candidate_op_nodes_.back());
             candidate_op_nodes_.pop_back();
 
-            std::vector<Array> gxs = ComputeNextGradients(*op_node, graph_id_);
-            AccumulateNextGradients(*op_node, gxs);
+            {
+                std::vector<Array> gxs = ComputeNextGradients(*op_node, graph_id_);
+                AccumulateNextGradients(*op_node, std::move(gxs));
+            }
 
             for (const auto& next_array_node : op_node->next_nodes()) {
                 PushNextOpNode(next_array_node);
@@ -92,11 +94,11 @@ private:
         return gxs;
     }
 
-    void AccumulateNextGradients(const OpNode& op_node, const std::vector<Array>& gxs) {
+    void AccumulateNextGradients(const OpNode& op_node, std::vector<Array> gxs) {
         gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node.next_nodes();
         assert(next_array_nodes.size() == gxs.size());
         for (size_t i = 0; i < next_array_nodes.size(); ++i) {
-            const Array& gx = gxs[i];
+            Array& gx = gxs[i];
             const std::shared_ptr<ArrayNode>& next_array_node = next_array_nodes[i];
             const nonstd::optional<Array>& grad = next_array_node->grad();
             if (grad) {
@@ -134,7 +136,7 @@ private:
     // Be careful that references require the referred objects alive (it should be guaranteed by Backward()).
     const std::vector<ConstArrayRef>& outputs_;
     std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>> output_array_nodes_;
-    const GraphId& graph_id_;
+    const GraphId& graph_id_;  // NOLINT: intentionally holding a reference
     DoubleBackpropOption double_backprop_;
 };
 

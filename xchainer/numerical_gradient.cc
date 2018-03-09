@@ -75,11 +75,11 @@ T SumImpl(const Array& array) {
 Scalar Sum(const Array& x) {
     if (x.dtype() == Dtype::kFloat32) {
         return Scalar(SumImpl<float>(x));
-    } else if (x.dtype() == Dtype::kFloat64) {
-        return Scalar(SumImpl<double>(x));
-    } else {
-        assert(false);
     }
+    if (x.dtype() == Dtype::kFloat64) {
+        return Scalar(SumImpl<double>(x));
+    }
+    assert(false);  // should never be reached
 }
 
 Scalar Norm(const Array& x) {
@@ -104,11 +104,11 @@ Scalar Get(const Array& out, int64_t flat_index) {
     out.device().Synchronize();
     if (out.dtype() == Dtype::kFloat32) {
         return static_cast<const float*>(out.data().get())[flat_index];
-    } else if (out.dtype() == Dtype::kFloat64) {
-        return static_cast<const double*>(out.data().get())[flat_index];
-    } else {
-        assert(false);
     }
+    if (out.dtype() == Dtype::kFloat64) {
+        return static_cast<const double*>(out.data().get())[flat_index];
+    }
+    assert(false);  // should never be reached
     return 0;
 }
 

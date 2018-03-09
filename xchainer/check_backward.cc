@@ -18,7 +18,7 @@
 namespace xchainer {
 namespace {
 
-std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector<Array>(const std::vector<Array>&)> func,
+std::vector<nonstd::optional<Array>> BackwardGradients(const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
                                                        std::vector<Array>& inputs, const std::vector<Array>& grad_outputs,
                                                        const GraphId& graph_id) {
     for (const auto& input : inputs) {
@@ -57,11 +57,10 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
     std::vector<nonstd::optional<Array>> backward_grads;
     std::transform(inputs.begin(), inputs.end(), std::back_inserter(backward_grads),
                    [&graph_id](const Array& input) -> nonstd::optional<Array> {
-                       if (input.IsGradRequired(graph_id)) {
-                           return input.GetGrad(graph_id);
-                       } else {
+                       if (!input.IsGradRequired(graph_id)) {
                            return nonstd::nullopt;
                        }
+                       return input.GetGrad(graph_id);
                    });
 
     return backward_grads;
@@ -69,13 +68,14 @@ std::vector<nonstd::optional<Array>> BackwardGradients(std::function<std::vector
 
 }  // namespace
 
-void CheckBackwardComputation(std::function<std::vector<Array>(const std::vector<Array>&)> func, const std::vector<Array>& inputs,
+void CheckBackwardComputation(const std::function<std::vector<Array>(const std::vector<Array>&)>& func, const std::vector<Array>& inputs,
                               const std::vector<Array>& grad_outputs, const std::vector<Array>& eps, double atol, double rtol,
                               const GraphId& graph_id) {
     std::vector<Array> inputs_copy{inputs};
     const std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps, graph_id);
     const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_copy, grad_outputs, graph_id);
-    ASSERT_EQ(backward_grads.size(), numerical_grads.size());
+    // TODO(niboshi): NOLINT is put only temporarily. It should be removed after moving this file to testing.
+    ASSERT_EQ(backward_grads.size(), numerical_grads.size());  // NOLINT
 
     std::ostringstream failure_os;
     const int nin = backward_grads.size();
@@ -103,9 +103,10 @@ void CheckBackwardComputation(std::function<std::vector<Array>(const std::vector
     }
 }
 
-void CheckDoubleBackwardComputation(std::function<std::vector<Array>(const std::vector<Array>&)> func, const std::vector<Array>& inputs,
-                                    const std::vector<Array>& grad_outputs, const std::vector<Array>& grad_grad_inputs,
-                                    const std::vector<Array>& eps, double atol, double rtol, const GraphId& graph_id) {
+void CheckDoubleBackwardComputation(const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
+                                    const std::vector<Array>& inputs, const std::vector<Array>& grad_outputs,
+                                    const std::vector<Array>& grad_grad_inputs, const std::vector<Array>& eps, double atol, double rtol,
+                                    const GraphId& graph_id) {
     // LIMITATION: All inputs must require gradients unlike CheckBackwardComputation
     for (const auto& input : inputs) {
         if (!input.IsGradRequired(graph_id)) {
@@ -134,11 +135,10 @@ void CheckDoubleBackwardComputation(std::function<std::vector<Array>(const std::
         std::vector<Array> backward_grads;
         std::transform(optional_backward_grads.begin(), optional_backward_grads.end(), std::back_inserter(backward_grads),
                        [](const nonstd::optional<Array>& optional_backward_grad) {
-                           if (optional_backward_grad.has_value()) {
-                               return *optional_backward_grad;
-                           } else {
+                           if (!optional_backward_grad.has_value()) {
                                throw XchainerError("All gradients must exist");
                            }
+                           return *optional_backward_grad;
                        });
         return backward_grads;
     };
@@ -147,7 +147,8 @@ void CheckDoubleBackwardComputation(std::function<std::vector<Array>(const std::
         CalculateNumericalGradient(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, eps, graph_id);
     const std::vector<nonstd::optional<Array>> backward_grads =
         BackwardGradients(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, graph_id);
-    ASSERT_EQ(backward_grads.size(), numerical_grads.size());
+    // TODO(niboshi): NOLINT is put only temporarily. It should be removed after moving this file to testing.
+    ASSERT_EQ(backward_grads.size(), numerical_grads.size());  // NOLINT
 
     std::ostringstream failure_os;
     const int n_backward_grads = backward_grads.size();

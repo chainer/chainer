@@ -81,7 +81,7 @@ private:
         }
     }
 
-    DimsType dims_;
+    DimsType dims_{};
     int8_t ndim_;
 };
 

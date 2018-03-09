@@ -19,7 +19,7 @@ namespace {
 
 template <typename T>
 void CheckArrayRepr(const std::string& expected, const std::vector<T>& data_vec, Shape shape, Device& device,
-                    const std::vector<GraphId> graph_ids = {}) {
+                    const std::vector<GraphId>& graph_ids = {}) {
     // Copy to a contiguous memory block because std::vector<bool> is not packed as a sequence of bool's.
     std::shared_ptr<T> data_ptr = std::make_unique<T[]>(data_vec.size());
     std::copy(data_vec.begin(), data_vec.end(), data_ptr.get());

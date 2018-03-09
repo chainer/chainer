@@ -56,7 +56,7 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
     auto lhs_backward_function = [other = rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)->Array {
         return gout + other.AsConstant(graph_ids_to_stop_gradient);
     };
-    auto rhs_backward_function = lhs_backward_function;
+    auto& rhs_backward_function = lhs_backward_function;
     internal::SetUpOpNodes("incorrect_binary", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     VisitDtype(lhs.dtype(), [&](auto pt) {
@@ -102,14 +102,14 @@ class CheckBackwardUnaryTest : public CheckBackwardBaseTest, public ::testing::W
 protected:
     void SetUp() override {
         CheckBackwardBaseTest::SetUp();
-        requires_grad = GetParam();
+        requires_grad_ = GetParam();
     }
 
     template <typename Data>
     void CheckBackwardUnaryComputation(bool expect_correct, const Fprop& fprop, const Shape& shape, Data input_data, Data grad_output_data,
                                        Data eps_data, double atol, double rtol, const GraphId& graph_id) {
         Arrays inputs{testing::MakeArray(shape, input_data)};
-        if (requires_grad) {
+        if (requires_grad_) {
             inputs[0].RequireGrad(graph_id);
         }
 
@@ -119,14 +119,14 @@ protected:
     }
 
 private:
-    bool requires_grad;
+    bool requires_grad_{};
 };
 
 class CheckBackwardBinaryTest : public CheckBackwardBaseTest, public ::testing::WithParamInterface<std::tuple<bool, bool>> {
 protected:
     void SetUp() override {
         CheckBackwardBaseTest::SetUp();
-        requires_grads = {std::get<0>(GetParam()), std::get<1>(GetParam())};
+        requires_grads_ = {std::get<0>(GetParam()), std::get<1>(GetParam())};
     }
 
     template <typename Data>
@@ -134,10 +134,10 @@ protected:
                                         Data grad_output_data, Data eps_data1, Data eps_data2, double atol, double rtol,
                                         const GraphId& graph_id) {
         Arrays inputs{testing::MakeArray(shape, input_data1), testing::MakeArray(shape, input_data2)};
-        if (requires_grads[0]) {
+        if (requires_grads_[0]) {
             inputs[0].RequireGrad(graph_id);
         }
-        if (requires_grads[1]) {
+        if (requires_grads_[1]) {
             inputs[1].RequireGrad(graph_id);
         }
 
@@ -147,7 +147,7 @@ protected:
     }
 
 private:
-    std::vector<bool> requires_grads;
+    std::vector<bool> requires_grads_;
 };
 
 class CheckDoubleBackwardBaseTest : public ::testing::Test {

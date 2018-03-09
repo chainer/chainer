@@ -30,7 +30,7 @@ namespace {
 class ArrayTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
 protected:
     void SetUp() override {
-        std::string backend_name = ::testing::get<0>(GetParam());
+        const std::string& backend_name = ::testing::get<0>(GetParam());
         device_session_.emplace(DeviceId{backend_name, 0});
     }
 
@@ -343,7 +343,6 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
         Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
         Array b = a;  // view
         Array c = std::move(a);
-        ASSERT_EQ(a.body(), nullptr);
         ExpectEqual<float>(b, c);
     }
 
@@ -352,7 +351,6 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
         Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
         Array b = a.Copy();  // copy
         Array c = std::move(a);
-        EXPECT_EQ(a.body(), nullptr);
         ExpectEqualCopy<float>(b, c);
     }
 
@@ -361,7 +359,6 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
         Array a = testing::MakeArray<float>({3, 1}, {1, 2, 3});
         auto body = a.body();
         Array c = std::move(a);
-        EXPECT_EQ(a.body(), nullptr);
         EXPECT_EQ(body, c.body());
     }
 }
