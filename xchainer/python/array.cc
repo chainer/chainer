@@ -14,6 +14,8 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 
 #include "xchainer/python/common.h"
 
@@ -205,10 +207,12 @@ void InitXchainerArray(pybind11::module& m) {
             // Copy data into the list
             VisitDtype(array.dtype(), [&array, &list](auto pt) {
                 using T = typename decltype(pt)::type;
-                auto size = array.GetTotalSize();
-                const T& data = *std::static_pointer_cast<const T>(array.data());
-                for (int64_t i = 0; i < size; ++i) {
-                    list.append((&data)[i]);
+                IndexableArray<const T> iarray{array};
+                Indexer<> indexer{array.shape()};
+
+                for (int64_t i = 0; i < indexer.total_size(); ++i) {
+                    indexer.Set(i);
+                    list.append(iarray[indexer]);
                 }
             });
 
