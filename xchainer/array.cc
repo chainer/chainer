@@ -175,14 +175,8 @@ Array Array::ToDevice(Device& dst_device) const {
     nonstd::optional<Array> out;
 
     if (&src_device == &dst_device) {
-        if (IsContiguous()) {
-            // Return an alias.
-            out.emplace(Array{body_->shape_, Strides{body_->shape_, body_->dtype_}, body_->dtype_, dst_device, body_->data_, offset});
-        } else {
-            // Return a new contiguous array.
-            out.emplace(EmptyLike(*this, dst_device));
-            dst_device.Copy(*this, out.value());
-        }
+        // Return an alias.
+        out.emplace(Array{body_->shape_, body_->strides_, body_->dtype_, dst_device, body_->data_, offset});
     } else if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
         // Use src backend for transfer.
         // TODO(hvy): Make the array contiguous before transferring the data in order to support views, instead of the opposite.
