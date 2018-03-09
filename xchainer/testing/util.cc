@@ -22,7 +22,9 @@ std::atomic<int> g_skipped_cuda_test_count{0};
 int GetNativeDeviceLimit(Backend& backend) {
     Expects(backend.GetName() == "native");
     static int limit = -1;
-    if (limit >= 0) return limit;
+    if (limit >= 0) {
+        return limit;
+    }
     const char* env = std::getenv("XCHAINER_TEST_NATIVE_DEVICE_LIMIT");
     if (env == nullptr) {
         limit = backend.GetDeviceCount();
@@ -38,7 +40,9 @@ int GetNativeDeviceLimit(Backend& backend) {
 int GetCudaDeviceLimit(Backend& backend) {
     Expects(backend.GetName() == "cuda");
     static int limit = -1;
-    if (limit >= 0) return limit;
+    if (limit >= 0) {
+        return limit;
+    }
     const char* env = std::getenv("XCHAINER_TEST_CUDA_DEVICE_LIMIT");
     if (env == nullptr) {
         limit = backend.GetDeviceCount();
@@ -62,29 +66,28 @@ int GetSkippedCudaTestCount() { return g_skipped_cuda_test_count; }
 int GetDeviceLimit(Backend& backend) {
     if (backend.GetName() == "native") {
         return GetNativeDeviceLimit(backend);
-    } else if (backend.GetName() == "cuda") {
-        return GetCudaDeviceLimit(backend);
-    } else {
-        throw BackendError("invalid backend: " + backend.GetName());
     }
+    if (backend.GetName() == "cuda") {
+        return GetCudaDeviceLimit(backend);
+    }
+    throw BackendError("invalid backend: " + backend.GetName());
 }
 
 bool SkipIfDeviceUnavailable(Backend& backend, int required_num) {
-    if (GetDeviceLimit(backend) < required_num) {
-        const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
-        std::cout << "[     SKIP ] " << test_info->test_case_name() << "." << test_info->name() << std::endl;
-
-        if (backend.GetName() == "native") {
-            ++g_skipped_native_test_count;
-        } else if (backend.GetName() == "cuda") {
-            ++g_skipped_cuda_test_count;
-        } else {
-            throw BackendError("invalid backend: " + backend.GetName());
-        }
-        return true;
-    } else {
+    if (GetDeviceLimit(backend) >= required_num) {
         return false;
     }
+    const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+    std::cout << "[     SKIP ] " << test_info->test_case_name() << "." << test_info->name() << std::endl;
+
+    if (backend.GetName() == "native") {
+        ++g_skipped_native_test_count;
+    } else if (backend.GetName() == "cuda") {
+        ++g_skipped_cuda_test_count;
+    } else {
+        throw BackendError("invalid backend: " + backend.GetName());
+    }
+    return true;
 }
 
 bool SkipIfDeviceUnavailable(const std::string& backend_name, int required_num) {
