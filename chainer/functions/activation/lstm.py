@@ -256,29 +256,22 @@ def lstm_grad_grad(
     else:
         xp = cuda.cupy.fusion
 
-    xp.multiply(ggf * gc_bar, gsig_f, out=gc_prev)
-    xp.multiply(
-        (gga * sig_i * ggtanh_a + ggi * gtanh_a * gsig_i), gc_bar,
-        out=ga)
-    xp.multiply(
-        (gga * gtanh_a * gsig_i + ggi * tanh_a * ggsig_i), gc_bar,
-        out=gi)
-    xp.add(
-        ggc_prev * (gh * sig_o * gtanh_c + gc) * gsig_f,
-        ggf * gc_bar * c_prev * ggsig_f, out=gf)
+    gc_prev[:] = ggf * gc_bar * gsig_f
+    ga[:] = (gga * sig_i * ggtanh_a + ggi * gtanh_a * gsig_i) * gc_bar
+    gi[:] = (gga * gtanh_a * gsig_i + ggi * tanh_a * ggsig_i) * gc_bar
+    gf[:] = (ggc_prev * (gh * sig_o * gtanh_c + gc) * gsig_f +
+             ggf * gc_bar * c_prev * ggsig_f)
 
-    xp.add(
-        ggc_prev * sig_f +
-        gga * sig_i * gtanh_a +
-        ggi * tanh_a * gsig_i,
-        ggf * c_prev * gsig_f, out=ggc)
+    ggc[:] = (ggc_prev * sig_f +
+              gga * sig_i * gtanh_a +
+              ggi * tanh_a * gsig_i +
+              ggf * c_prev * gsig_f)
 
     dgc_do = gh * gsig_o * gtanh_c
-    xp.add(ggc * dgc_do, ggo * gh * tanh_c * ggsig_o, out=go)
+    go[:] = ggc * dgc_do + ggo * gh * tanh_c * ggsig_o
     dgc_dc = gh * sig_o * ggtanh_c
-    xp.add(
-        ggc * dgc_dc, ggo * gh * gtanh_c * gsig_o, out=gc_next)
-    xp.add(ggc * sig_o * gtanh_c, ggo * tanh_c * gsig_o, out=ggh)
+    gc_next[:] = ggc * dgc_dc + ggo * gh * gtanh_c * gsig_o
+    ggh[:] = ggc * sig_o * gtanh_c + ggo * tanh_c * gsig_o
     return gc_prev, ga, gi, gf, go, gc_next, ggc, ggh
 
 
