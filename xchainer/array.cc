@@ -185,6 +185,7 @@ Array Array::ToDevice(Device& dst_device) const {
         }
     } else if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
         // Use src backend for transfer.
+        // TODO(hvy): Make the array contiguous before transferring the data in order to support views, instead of the opposite.
         std::tuple<std::shared_ptr<void>, size_t> data_tuple = src_device.TransferDataTo(dst_device, body_->data_, 0, bytesize);
         data = std::move(std::get<0>(data_tuple));
         offset = static_cast<int64_t>(std::get<1>(data_tuple));
@@ -192,6 +193,7 @@ Array Array::ToDevice(Device& dst_device) const {
         dst_device.Copy({body_->shape_, body_->strides_, body_->dtype_, dst_device, std::move(data), offset}, out.value());
     } else if (dst_device.backend().SupportsTransfer(src_device, dst_device)) {
         // Use dst backend for transfer.
+        // TODO(hvy): Make the array contiguous before transferring the data in order to support views, instead of the opposite.
         std::tuple<std::shared_ptr<void>, size_t> data_tuple = dst_device.TransferDataFrom(src_device, body_->data_, 0, bytesize);
         data = std::move(std::get<0>(data_tuple));
         offset = static_cast<int64_t>(std::get<1>(data_tuple));
