@@ -21,6 +21,7 @@
 #include "xchainer/indexer.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
+#include "xchainer/slice.h"
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/device_session.h"
 
@@ -963,20 +964,104 @@ TEST_P(ArrayTest, TransposeDoubleBackward) {
 TEST_P(ArrayTest, GetItem) {
     {
         Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
-        Array b = a.GetItem({{0}});
+        Array b = a.GetItem({0});
         Array e = testing::MakeArray<int32_t>({}, {0});
         ExpectEqual<int32_t>(e, b);
     }
     {
+        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        Array b = a.GetItem({1});
+        Array e = testing::MakeArray<int32_t>({}, {1});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        Array b = a.GetItem({2});
+        Array e = testing::MakeArray<int32_t>({}, {2});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
         Array a = testing::MakeArray<int32_t>({2, 3}, {0, 1, 2, 3, 4, 5});
-        Array b = a.GetItem({{0}});
+        Array b = a.GetItem({0});
         Array e = testing::MakeArray<int32_t>({3}, {0, 1, 2});
         ExpectEqual<int32_t>(e, b);
     }
     {
         Array a = testing::MakeArray<int32_t>({2, 3}, {0, 1, 2, 3, 4, 5});
-        Array b = a.GetItem({{1}});
+        Array b = a.GetItem({1});
         Array e = testing::MakeArray<int32_t>({3}, {3, 4, 5});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        Array b = a.GetItem({Slice{0, 3}});
+        Array e = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        Array b = a.GetItem({Slice{0, 2}});
+        Array e = testing::MakeArray<int32_t>({2}, {0, 1});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        Array b = a.GetItem({Slice{1, 3}});
+        Array e = testing::MakeArray<int32_t>({2}, {1, 2});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        Array b = a.GetItem({Slice{0, 0}});
+        Array e = testing::MakeArray<int32_t>({0}, {});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        Array b = a.GetItem({Slice{0, 1}});
+        Array e = testing::MakeArray<int32_t>({1}, {0});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        Array b = a.GetItem({Slice{2, 0, -1}});
+        Array e = testing::MakeArray<int32_t>({2}, {2, 1});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        Array b = a.GetItem({Slice{2, nonstd::nullopt, -1}});
+        Array e = testing::MakeArray<int32_t>({3}, {2, 1, 0});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        Array b = a.GetItem({Slice{nonstd::nullopt, 0, -1}});
+        Array e = testing::MakeArray<int32_t>({2}, {2, 1});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        Array b = a.GetItem({Slice{nonstd::nullopt, -1, -1}});
+        Array e = testing::MakeArray<int32_t>({3}, {2, 1, 0});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({6}, {0, 1, 2, 3, 4, 5});
+        Array b = a.GetItem({Slice{0, 6, 2}});
+        Array e = testing::MakeArray<int32_t>({3}, {0, 2, 4});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({6}, {0, 1, 2, 3, 4, 5});
+        Array b = a.GetItem({Slice{1, 6, 2}});
+        Array e = testing::MakeArray<int32_t>({3}, {1, 3, 5});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({6}, {0, 1, 2, 3, 4, 5});
+        Array b = a.GetItem({Slice{5, -1, -2}});
+        Array e = testing::MakeArray<int32_t>({3}, {5, 3, 1});
         ExpectEqual<int32_t>(e, b);
     }
 }

@@ -164,19 +164,21 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
     std::vector<int64_t> out_strides;
     int64_t out_offset = offset();
     int64_t i_in = 0;
-    for (size_t i = 0; i < indices.size(); ++i) {
-        const ArrayIndex& index = indices[i];
-        switch (indices[i].tag()) {
+    for (const ArrayIndex& index : indices) {
+        switch (index.tag()) {
             case ArrayIndexTag::kSingleElement:
                 out_offset += strides()[i_in] * index.index();
                 i_in++;
                 break;
-            case ArrayIndexTag::kSlice:
-                out_shape.push_back(index.slice().GetLength(shape()[i_in]));
-                out_strides.push_back(strides()[i_in]);
-                out_offset += strides()[i_in] * index.slice().GetStart(shape()[i_in]);
+            case ArrayIndexTag::kSlice: {
+                const Slice& slice = index.slice();
+                int64_t slice_length = slice.GetLength(shape()[i_in]);
+                out_offset += strides()[i_in] * slice.GetStart(shape()[i_in]);
+                out_shape.push_back(slice_length);
+                out_strides.push_back(strides()[i_in] * slice.step());
                 i_in++;
                 break;
+            }
             case ArrayIndexTag::kNewAxis:
                 out_shape.push_back(1);
                 out_strides.push_back(0);

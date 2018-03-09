@@ -29,7 +29,10 @@ public:
     int64_t GetStop(int64_t dim) const { return stop_.value_or(step_ > 0 ? dim : -1); }
 
     // Returns the number of elements after slicing an axis of length dim.
-    int64_t GetLength(int64_t dim) const { return std::max((GetStop(dim) - GetStart(dim)) / step_, int64_t{0}); }
+    int64_t GetLength(int64_t dim) const {
+        // TODO(hvy): Round according to step sign, nicely.
+        return std::max((GetStop(dim) - GetStart(dim) + (step_ > 0 ? -1 : 1)) / step_ + 1, int64_t{0});
+    }
 
 private:
     nonstd::optional<int64_t> start_;
