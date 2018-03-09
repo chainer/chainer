@@ -16,15 +16,13 @@ class NewAxis {};
 
 class ArrayIndex {
 public:
-    ArrayIndex(int64_t index) : tag_(ArrayIndexTag::kSingleElement), index_(index) {};
-    ArrayIndex(Slice slice) : tag_(ArrayIndexTag::kSlice), slice_(slice) {};
+    ArrayIndex(int64_t index) : tag_(ArrayIndexTag::kSingleElement), index_(index){};
+    ArrayIndex(Slice slice) : tag_(ArrayIndexTag::kSlice), slice_(slice){};
     ArrayIndex(NewAxis new_axis) : tag_(ArrayIndexTag::kNewAxis) {
         (void)new_axis;  // unused
     };
 
-    ArrayIndexTag tag() const {
-        return tag_;
-    }
+    ArrayIndexTag tag() const { return tag_; }
 
     int64_t index() const {
         if (tag_ != ArrayIndexTag::kSingleElement) {
@@ -42,10 +40,8 @@ public:
 
 private:
     ArrayIndexTag tag_;
-    union {
-        int64_t index_;
-        Slice slice_;
-    };
+    int64_t index_{};
+    Slice slice_;
 };
 
 }  // namespace xchainer

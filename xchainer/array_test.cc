@@ -960,6 +960,27 @@ TEST_P(ArrayTest, TransposeDoubleBackward) {
         {Array::Ones({2, 3}, Dtype::kFloat32)}, {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
 }
 
+TEST_P(ArrayTest, GetItem) {
+    {
+        Array a = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        Array b = a.GetItem({{0}});
+        Array e = testing::MakeArray<int32_t>({}, {0});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({2, 3}, {0, 1, 2, 3, 4, 5});
+        Array b = a.GetItem({{0}});
+        Array e = testing::MakeArray<int32_t>({3}, {0, 1, 2});
+        ExpectEqual<int32_t>(e, b);
+    }
+    {
+        Array a = testing::MakeArray<int32_t>({2, 3}, {0, 1, 2, 3, 4, 5});
+        Array b = a.GetItem({{1}});
+        Array e = testing::MakeArray<int32_t>({3}, {3, 4, 5});
+        ExpectEqual<int32_t>(e, b);
+    }
+}
+
 TEST_P(ArrayTest, Copy) {
     {
         Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});

@@ -167,22 +167,22 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
     for (size_t i = 0; i < indices.size(); ++i) {
         const ArrayIndex& index = indices[i];
         switch (indices[i].tag()) {
-        case ArrayIndexTag::kSingleElement:
-            out_offset += strides()[i_in] * index.index();
-            i_in++;
-            break;
-        case ArrayIndexTag::kSlice:
-            out_shape.push_back(index.slice().GetLength(shape()[i_in]));
-            out_strides.push_back(strides()[i_in]);
-            out_offset += strides()[i_in] * index.slice().GetStart(shape()[i_in]);
-            i_in++;
-            break;
-        case ArrayIndexTag::kNewAxis:
-            out_shape.push_back(1);
-            out_strides.push_back(0);
-            break;
-        default:
-            assert(false);
+            case ArrayIndexTag::kSingleElement:
+                out_offset += strides()[i_in] * index.index();
+                i_in++;
+                break;
+            case ArrayIndexTag::kSlice:
+                out_shape.push_back(index.slice().GetLength(shape()[i_in]));
+                out_strides.push_back(strides()[i_in]);
+                out_offset += strides()[i_in] * index.slice().GetStart(shape()[i_in]);
+                i_in++;
+                break;
+            case ArrayIndexTag::kNewAxis:
+                out_shape.push_back(1);
+                out_strides.push_back(0);
+                break;
+            default:
+                assert(false);
         }
     }
     for (int64_t i = i_in; i < ndim(); ++i) {
