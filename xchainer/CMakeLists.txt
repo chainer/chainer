@@ -9,6 +9,7 @@ endif()
 install(FILES
     array.h
     array_body.h
+    array_index.h
     array_repr.h
     backend.h
     backward.h
@@ -26,6 +27,7 @@ install(FILES
     native_device.h
     scalar.h
     shape.h
+    slice.h
     strides.h
     xchainer.h
     DESTINATION include/xchainer

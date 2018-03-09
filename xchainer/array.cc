@@ -159,6 +159,39 @@ Array Array::Transpose() const {
     return out;
 }
 
+Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
+    std::vector<int64_t> out_shape;
+    std::vector<int64_t> out_strides;
+    int64_t out_offset = offset();
+    int64_t i_in = 0;
+    for (size_t i = 0; i < indices.size(); ++i) {
+        const ArrayIndex& index = indices[i];
+        switch (indices[i].tag()) {
+        case ArrayIndexTag::kSingleElement:
+            out_offset += strides()[i_in] * index.index();
+            i_in++;
+            break;
+        case ArrayIndexTag::kSlice:
+            out_shape.push_back(index.slice().GetLength(shape()[i_in]));
+            out_strides.push_back(strides()[i_in]);
+            out_offset += strides()[i_in] * index.slice().GetStart(shape()[i_in]);
+            i_in++;
+            break;
+        case ArrayIndexTag::kNewAxis:
+            out_shape.push_back(1);
+            out_strides.push_back(0);
+            break;
+        default:
+            assert(false);
+        }
+    }
+    for (int64_t i = i_in; i < ndim(); ++i) {
+        out_shape.push_back(shape()[i]);
+        out_strides.push_back(strides()[i]);
+    }
+    return {{out_shape.begin(), out_shape.end()}, {out_strides.begin(), out_strides.end()}, dtype(), device(), body_->data_, out_offset};
+}
+
 Array Array::Copy() const {
     // No graph will be disconnected.
     return AsConstant({}, CopyKind::kCopy);
