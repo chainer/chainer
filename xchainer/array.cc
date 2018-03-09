@@ -202,12 +202,14 @@ Array Array::ToDevice(Device& dst_device) const {
         throw XchainerError("Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'.");
     }
 
+    assert(out.has_value());
+
     // Connect the graph.
     // Backward operation is implemented as backward-transfer.
-    internal::SetUpOpNodes("transfer", {*this}, out.value(),
+    internal::SetUpOpNodes("transfer", {*this}, *out,
                            {[&src_device](const Array& gout, const std::vector<GraphId>&) -> Array { return gout.ToDevice(src_device); }},
                            {});
-    return std::move(out.value());
+    return std::move(*out);
 }
 
 Array Array::AsConstant(CopyKind kind) const {
