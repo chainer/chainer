@@ -4,6 +4,16 @@
 
 #include "xchainer/backend.h"
 
+// Skip a test if required number of devices are unavailable.
+//
+// EXAMPLE:
+//
+//     TEST(ArrayTest, FooTest) {
+//        XCHAINER_REQUIRE_DEVICE(cuda_backend, 2);  // backend instance
+//        // XCHAINER_REQUIRE_DEVICE("cuda", 2);  // backend name for default context
+//
+//        // Write your tests here
+//     }
 #define XCHAINER_REQUIRE_DEVICE(backend, required_num)                                         \
     do {                                                                                       \
         if (xchainer::testing::internal::SkipIfDeviceUnavailable((backend), (required_num))) { \
