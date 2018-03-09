@@ -172,31 +172,31 @@ Array Array::ToDevice(Device& dst_device) const {
     int64_t offset = 0;
     size_t bytesize = GetTotalBytes();
 
-    Array out;
+    nonstd::optional<Array> out;
 
     if (&src_device == &dst_device) {
         if (IsContiguous()) {
             // Return an alias.
-            out = Array{body_->shape_, Strides{body_->shape_, body_->dtype_}, body_->dtype_, dst_device, body_->data_, offset};
+            out.emplace(Array{body_->shape_, Strides{body_->shape_, body_->dtype_}, body_->dtype_, dst_device, body_->data_, offset});
         } else {
             // Return a new contiguous array.
-            out = EmptyLike(*this, dst_device);
-            dst_device.Copy(*this, out);
+            out.emplace(EmptyLike(*this, dst_device));
+            dst_device.Copy(*this, out.value());
         }
     } else if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
         // Use src backend for transfer.
         std::tuple<std::shared_ptr<void>, size_t> data_tuple = src_device.TransferDataTo(dst_device, body_->data_, 0, bytesize);
         data = std::move(std::get<0>(data_tuple));
         offset = static_cast<int64_t>(std::get<1>(data_tuple));
-        out = EmptyLike(*this, dst_device);
-        dst_device.Copy({body_->shape_, body_->strides_, body_->dtype_, dst_device, std::move(data), offset}, out);
+        out.emplace(EmptyLike(*this, dst_device));
+        dst_device.Copy({body_->shape_, body_->strides_, body_->dtype_, dst_device, std::move(data), offset}, out.value());
     } else if (dst_device.backend().SupportsTransfer(src_device, dst_device)) {
         // Use dst backend for transfer.
         std::tuple<std::shared_ptr<void>, size_t> data_tuple = dst_device.TransferDataFrom(src_device, body_->data_, 0, bytesize);
         data = std::move(std::get<0>(data_tuple));
         offset = static_cast<int64_t>(std::get<1>(data_tuple));
-        out = EmptyLike(*this, dst_device);
-        dst_device.Copy({body_->shape_, body_->strides_, body_->dtype_, dst_device, std::move(data), offset}, out);
+        out.emplace(EmptyLike(*this, dst_device));
+        dst_device.Copy({body_->shape_, body_->strides_, body_->dtype_, dst_device, std::move(data), offset}, out.value());
     } else {
         // Neither backends support transfer.
         throw XchainerError("Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'.");
@@ -204,10 +204,10 @@ Array Array::ToDevice(Device& dst_device) const {
 
     // Connect the graph.
     // Backward operation is implemented as backward-transfer.
-    internal::SetUpOpNodes("transfer", {*this}, out,
+    internal::SetUpOpNodes("transfer", {*this}, out.value(),
                            {[&src_device](const Array& gout, const std::vector<GraphId>&) -> Array { return gout.ToDevice(src_device); }},
                            {});
-    return std::move(out);
+    return std::move(out.value());
 }
 
 Array Array::AsConstant(CopyKind kind) const {
