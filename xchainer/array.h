@@ -93,6 +93,9 @@ public:
     // Returns a view selected with the indices.
     Array GetItem(const std::vector<ArrayIndex>& indices) const;
 
+    // Returns a reshaped array.
+    Array Reshape(const Shape& shape) const;
+
     // Creates a copy. It will be connected to all the graphs.
     Array Copy() const;
 

@@ -205,6 +205,55 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
     return {{out_shape.begin(), out_shape.end()}, {out_strides.begin(), out_strides.end()}, dtype(), device(), body_->data_, out_offset};
 }
 
+Array Array::Reshape(const Shape& shape) const {
+    const Shape& in_shape = this->shape();
+    const Strides& in_strides = strides();
+
+    // If the shape is unchanged, just return a view.
+    if (in_shape == shape) {
+        return *this;
+    }
+
+    // Check for invalid shape.
+    int64_t total_size = in_shape.GetTotalSize();
+    if (total_size != shape.GetTotalSize()) {
+        throw DimensionError("Cannot reshape array of size " + std::to_string(total_size) + " into shape " + shape.ToString());
+    }
+
+    // Determine if reshape can be done without copy.
+    bool can_reshape_with_view = true;
+    for (int i = 1; i < in_shape.ndim(); ++i) {
+        if (in_strides[i - 1] % in_strides[i] != 0) {
+            can_reshape_with_view = false;
+            break;
+        }
+    }
+
+    if (!can_reshape_with_view) {
+        // TODO(niboshi): Implement it
+        throw XchainerError("Reshape that requires a copy is not implemented yet.");
+    }
+
+    // Construct the new strides
+    Ensures(in_shape.ndim() > 0);
+    Ensures(shape.ndim() > 0);
+
+    std::vector<int64_t> out_rev_strides;
+    out_rev_strides.reserve(shape.size());
+
+    int64_t st = *in_strides.rbegin();
+    for (int8_t i = shape.ndim() - 1; i >= 0; --i) {
+        out_rev_strides.push_back(st);
+        st = st * shape[i];
+    }
+
+    Array out{shape, {out_rev_strides.rbegin(), out_rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
+    // TODO(niboshi): Implement backward
+    Ensures(out.shape() == shape);
+    Ensures(out.strides().size() == shape.size());
+    return out;
+}
+
 Array Array::Copy() const {
     // No graph will be disconnected.
     return AsConstant({}, CopyKind::kCopy);
