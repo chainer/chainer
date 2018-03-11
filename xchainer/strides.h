@@ -77,7 +77,7 @@ public:
 private:
     void CheckNdim() const {
         if (ndim_ > kMaxNdim) {
-            throw DimensionError("too many dimensions");
+            throw DimensionError("too many dimensions: " + std::to_string(ndim_));
         }
     }
 
