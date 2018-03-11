@@ -74,6 +74,20 @@ public:
     // span
     gsl::span<const int64_t> span() const { return {&dims_[0], static_cast<size_t>(ndim_)}; }
 
+    size_t GetTotalBytes(const Shape& shape) const {
+        Expects(shape.ndim() == ndim_);
+        if (shape.ndim() == 0) {
+            return 0;
+        }
+        return GetTotalBytes(shape[0]);
+    }
+
+    size_t GetTotalBytes(int64_t first_dim) const {
+        Expects(first_dim >= 0);
+        Expects(ndim_ > 0);
+        return static_cast<size_t>(first_dim * std::abs(dims_[0]));
+    }
+
 private:
     void CheckNdim() const {
         if (ndim_ > kMaxNdim) {

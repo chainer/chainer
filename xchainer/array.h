@@ -53,6 +53,8 @@ enum class CopyKind {
 class Array {
 public:
     static Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
+    static Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides,
+                            Device& device = GetDefaultDevice());
 
     static Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
     static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device = GetDefaultDevice());

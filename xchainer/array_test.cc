@@ -934,13 +934,27 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
 }
 
 TEST_P(ArrayTest, Transpose) {
-    Array a = testing::MakeArray<int32_t>({2, 3}, {0, 1, 2, 3, 4, 5});
+    Array a = testing::MakeArray({2, 3})      //
+                  .WithLinearData<int32_t>()  //
+                  .WithPadding(0);
     Array b = a.Transpose();
 
     EXPECT_EQ(Shape({3, 2}), b.shape());
     EXPECT_EQ(Strides({4, 12}), b.strides());
 
-    Array e = testing::MakeArray<int32_t>({3, 2}, {0, 3, 1, 4, 2, 5});
+    Array e = testing::MakeArray({3, 2}).WithData<int32_t>({0, 3, 1, 4, 2, 5});
+    ExpectEqual<int32_t>(e, b);
+}
+
+TEST_P(ArrayTest, TransposeNoncontiguous) {
+    Array a = testing::MakeArray({2, 3})      //
+                  .WithLinearData<int32_t>()  //
+                  .WithPadding(1);
+    Array b = a.Transpose();
+
+    EXPECT_EQ(Shape({3, 2}), b.shape());
+
+    Array e = testing::MakeArray({3, 2}).WithData<int32_t>({0, 3, 1, 4, 2, 5});
     ExpectEqual<int32_t>(e, b);
 }
 
@@ -956,8 +970,9 @@ TEST_P(ArrayTest, TransposeDoubleBackward) {
             auto t = xs[0].Transpose();
             return {t * t};  // to make it nonlinear
         },
-        {testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f}).RequireGrad()}, {Array::Ones({3, 2}, Dtype::kFloat32).RequireGrad()},
-        {Array::Ones({2, 3}, Dtype::kFloat32)}, {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
+        {(*testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
+        {Array::Ones({3, 2}, Dtype::kFloat32).RequireGrad()}, {Array::Ones({2, 3}, Dtype::kFloat32)},
+        {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
 }
 
 TEST_P(ArrayTest, Copy) {
@@ -1176,7 +1191,7 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsCtor) {
-    Array a = testing::MakeArray<float>({1}, {2.0f}).RequireGrad();
+    Array a = (*testing::MakeArray<float>({1}, {2.0f})).RequireGrad();
 
     EXPECT_TRUE(a.IsGradRequired());
     EXPECT_THROW(a.RequireGrad(), XchainerError);
