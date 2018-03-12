@@ -1,26 +1,50 @@
 #include "xchainer/python/array_index.h"
 
 #include "xchainer/array_index.h"
-#include "xchainer/slice.h"
 
-#include "xchainer/python/common.h"
+#include "xchainer/python/slice.h"
 
 namespace xchainer {
+namespace python {
 
 namespace py = pybind11;
 
-void InitXchainerArrayIndex(pybind11::module& m) {
-    py::class_<ArrayIndex>{m, "ArrayIndex"}
-            .def(py::init([](py::int_ index) { return ArrayIndex(py::cast<int64_t>(index)); }))
-            .def(py::init([](const Slice& slice) { return ArrayIndex(slice); }))
-            .def(py::init([](py::none none) {
-                (void)none;  // unused
-                return ArrayIndex(NewAxis{});
-            }));
+namespace {
 
-    py::implicitly_convertible<py::int_, ArrayIndex>();
-    py::implicitly_convertible<Slice, ArrayIndex>();
-    py::implicitly_convertible<py::none, ArrayIndex>();
+ArrayIndex MakeArrayIndex(py::handle handle) {
+    PyObject* obj = handle.ptr();
+    if (obj == Py_None) {
+        return ArrayIndex(NewAxis{});
+    }
+    if (PYBIND11_LONG_CHECK(obj)) {
+        return ArrayIndex(py::cast<int64_t>(handle));
+    }
+    if (PySlice_Check(obj)) {
+        return ArrayIndex(internal::MakeSlice(py::cast<py::slice>(handle)));
+    }
+    throw XchainerError("only integers, slices (`:`), xchainer.newaxis (`None`) are valid indices");
 }
 
+std::vector<ArrayIndex> MakeArrayIndicesFromTuple(py::tuple tup) {
+    std::vector<ArrayIndex> indicies;
+    for (auto& handle : tup) {
+        indicies.emplace_back(MakeArrayIndex(handle));
+    }
+    return indicies;
+}
+
+} // namespace
+
+namespace internal {
+
+std::vector<ArrayIndex> MakeArrayIndices(py::handle handle) {
+    PyObject* obj = handle.ptr();
+    if (PyTuple_Check(obj)) {
+        return MakeArrayIndicesFromTuple(py::cast<py::tuple>(handle));
+    }
+    return {MakeArrayIndex(handle)};
+}
+
+}  // namespace internal
+}  // namespace python
 }  // namespace xchainer

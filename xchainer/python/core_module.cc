@@ -53,7 +53,5 @@ PYBIND11_MODULE(_core, m) {  // NOLINT
     xchainer::InitXchainerScalar(m);
     xchainer::InitXchainerShape(m);
     xchainer::InitXchainerStrides(m);
-    xchainer::InitXchainerSlice(m);
-    xchainer::InitXchainerArrayIndex(m);
     xchainer::InitXchainerArray(m);
 }

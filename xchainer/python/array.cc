@@ -20,6 +20,7 @@
 #include "xchainer/slice.h"
 
 #include "xchainer/python/common.h"
+#include "xchainer/python/array_index.h"
 
 namespace xchainer {
 
@@ -129,45 +130,6 @@ py::buffer_info MakeNumpyArrayFromArray(internal::ArrayBody& self) {
             array.strides());
 }
 
-Slice MakeSlice(const py::slice& slice) {
-    auto py_slice_obj = reinterpret_cast<PySliceObject*>(slice.ptr());
-    nonstd::optional<int64_t> start;
-    nonstd::optional<int64_t> stop;
-    nonstd::optional<int64_t> step;
-    if (py_slice_obj->start != Py_None) {
-        start.emplace(py::cast<int64_t>(py_slice_obj->start));
-    }
-    if (py_slice_obj->stop != Py_None) {
-        stop.emplace(py::cast<int64_t>(py_slice_obj->stop));
-    }
-    if (py_slice_obj->step != Py_None) {
-        step.emplace(py::cast<int64_t>(py_slice_obj->step));
-    }
-    return Slice(start, stop, step);
-}
-
-ArrayIndex MakeArrayIndex(py::handle handle) {
-    PyObject* obj = handle.ptr();
-    if (obj == Py_None) {
-        return ArrayIndex(NewAxis{});
-    }
-    if (PYBIND11_LONG_CHECK(obj)) {
-        return ArrayIndex(py::cast<int64_t>(handle));
-    }
-    if (PySlice_Check(obj)) {
-        return ArrayIndex(MakeSlice(py::cast<py::slice>(handle)));
-    }
-    throw XchainerError("only integers, slices (`:`), xchainer.newaxis (`None`) are valid indices");
-}
-
-std::vector<ArrayIndex> MakeArrayIndicesFromTuple(py::tuple tup) {
-    std::vector<ArrayIndex> indicies;
-    for (auto& handle : tup) {
-        indicies.emplace_back(MakeArrayIndex(handle));
-    }
-    return indicies;
-}
-
 }  // namespace
 
 void InitXchainerArray(pybind11::module& m) {
@@ -192,8 +154,8 @@ void InitXchainerArray(pybind11::module& m) {
             .def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); })
             .def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); })
             .def("__getitem__",
-                 [](const ArrayBodyPtr& self, const py::tuple& tup) {
-                     return Array{self}.GetItem(MakeArrayIndicesFromTuple(tup)).move_body();
+                 [](const ArrayBodyPtr& self, const py::handle& handle) {
+                     return Array{self}.GetItem(python::internal::MakeArrayIndices(handle)).move_body();
                  })
             .def("to_device", [](const ArrayBodyPtr& self, Device& device) { return Array{self}.ToDevice(device).move_body(); })
             .def("to_device",

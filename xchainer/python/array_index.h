@@ -1,9 +1,19 @@
 #pragma once
 
+#include <vector>
+
 #include <pybind11/pybind11.h>
 
+#include "xchainer/array_index.h"
+
 namespace xchainer {
+namespace python {
+namespace internal {
 
-void InitXchainerArrayIndex(pybind11::module&);
+namespace py = pybind11;
 
+std::vector<ArrayIndex> MakeArrayIndices(py::handle handle);
+
+}  // namespace internal
+}  // namespace python
 }  // namespace xchainer
