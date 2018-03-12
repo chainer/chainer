@@ -1,7 +1,5 @@
 #include "xchainer/strides.h"
 
-#include <algorithm>
-#include <iterator>
 #include <ostream>
 #include <sstream>
 
