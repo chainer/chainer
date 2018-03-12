@@ -1,5 +1,7 @@
 #include "xchainer/strides.h"
 
+#include <algorithm>
+#include <iterator>
 #include <ostream>
 #include <sstream>
 
@@ -40,6 +42,16 @@ void CheckEqual(const Strides& lhs, const Strides& rhs) {
     if (lhs != rhs) {
         throw DimensionError("strides mismatched");
     }
+}
+
+size_t Strides::GetTotalBytes(const Shape& shape) const {
+    Expects(shape.ndim() == ndim_);
+    if (shape.ndim() == 0) {
+        return 0;
+    }
+    auto it_max_stride = std::max_element(begin(), end());
+    ssize_t i_max = std::distance(begin(), it_max_stride);
+    return static_cast<size_t>(dims_[i_max] * shape[i_max]);
 }
 
 }  // namespace xchainer
