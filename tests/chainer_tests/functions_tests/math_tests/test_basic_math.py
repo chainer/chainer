@@ -259,6 +259,9 @@ class TestMultipleAdd(unittest.TestCase):
         self.ggx3 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
     def check_forward(self, func, x1_data, x2_data, x3_data, backend_config):
+        if backend_config.use_cuda:
+            x1_data, x2_data, x3_data = cuda.to_gpu(
+                (x1_data, x2_data, x3_data))
         x1 = chainer.Variable(x1_data)
         x2 = chainer.Variable(x2_data)
         x3 = chainer.Variable(x3_data)
@@ -279,6 +282,9 @@ class TestMultipleAdd(unittest.TestCase):
 
     def check_backward(self, func, x1_data, x2_data, x3_data, y_grad,
                        backend_config):
+        if backend_config.use_cuda:
+            x1_data, x2_data, x3_data, y_grad = cuda.to_gpu(
+                (x1_data, x2_data, x3_data, y_grad))
         options = {}
         if self.dtype == numpy.float16:
             options = {'atol': 5e-3, 'rtol': 5e-2}
@@ -298,6 +304,9 @@ class TestMultipleAdd(unittest.TestCase):
     def check_double_backward(
             self, func, backend_config, x1_data, x2_data, x3_data, y_grad,
             ggx1_data, ggx2_data, ggx3_data, **args):
+        if backend_config.use_cuda:
+            x1_data, x2_data, x3_data, y_grad, ggx1_data, ggx2_data, ggx3_data = cuda.to_gpu(
+                (x1_data, x2_data, x3_data, y_grad, ggx1_data, ggx2_data, ggx3_data))
         options = {}
         if self.dtype == numpy.float16:
             options = {'atol': 5e-3, 'rtol': 5e-2}
