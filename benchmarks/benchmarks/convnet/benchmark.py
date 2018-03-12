@@ -1,9 +1,5 @@
 import chainer
-from chainer import cuda
 from chainer import optimizers
-
-import cupy
-import numpy
 
 from benchmarks import BenchmarkBase
 from benchmarks.utils import backends
@@ -13,8 +9,7 @@ from benchmarks.utils import parameterize
 
 
 class _ConvnetBase(BenchmarkBase):
-    """
-    Benchmark code from convnet-benchmark.
+    """Benchmark code from convnet-benchmark.
 
     https://github.com/soumith/convnet-benchmarks/tree/master/chainer
     """
@@ -56,7 +51,7 @@ class _ConvnetBase(BenchmarkBase):
         chainer.config.train = True
 
         x = xp.ndarray((batchsize, 3, model.insize,
-                           model.insize), dtype=xp.float32)
+                        model.insize), dtype=xp.float32)
         x.fill(33333)
 
         if arch == 'googlenet':

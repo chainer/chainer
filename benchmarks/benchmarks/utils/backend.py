@@ -1,6 +1,5 @@
 from functools import wraps
 import inspect
-import os
 import warnings
 
 import chainer

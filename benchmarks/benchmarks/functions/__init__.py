@@ -56,7 +56,8 @@ class UnaryMathFunctionBenchmark(FunctionBenchmark):
     """The base class for benchmark of unary element-wise math functions.
 
     Unlike `FunctionBenchmark`, this class automatically generates inputs and
-    grads."""
+    grads.
+    """
 
     def setup_benchmark(
             self, function, shape=(1000, 1000), dtype=numpy.float32):

@@ -1,7 +1,7 @@
 import chainer.functions as F
 
-from benchmarks.utils import backends
 from benchmarks.functions import UnaryMathFunctionBenchmark
+from benchmarks.utils import backends
 
 
 @backends('gpu', 'cpu')
