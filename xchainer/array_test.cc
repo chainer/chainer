@@ -192,7 +192,7 @@ public:
     }
 
     template <typename T>
-    void CheckFill(T expected, Scalar scalar) {
+    void CheckContiguousFill(T expected, Scalar scalar) {
         Dtype dtype = TypeToDtype<T>;
         Array x = Array::Empty(Shape{3, 2}, dtype);
         x.Fill(scalar);
@@ -200,8 +200,8 @@ public:
     }
 
     template <typename T>
-    void CheckFill(T value) {
-        CheckFill(value, value);
+    void CheckContiguousFill(T value) {
+        CheckContiguousFill(value, value);
     }
 
     template <typename T>
@@ -530,75 +530,75 @@ TEST_P(ArrayTest, EmptyLike) {
     CheckEmptyLike<double>();
 }
 
-TEST_P(ArrayTest, Fill) {
-    CheckFill(true);
-    CheckFill(false);
-    CheckFill(int8_t{0});
-    CheckFill(int8_t{-1});
-    CheckFill(int8_t{5});
-    CheckFill(int8_t{-128});
-    CheckFill(int8_t{127});
-    CheckFill(int16_t{0});
-    CheckFill(int16_t{-3});
-    CheckFill(int32_t{0});
-    CheckFill(int32_t{-3});
-    CheckFill(int64_t{0});
-    CheckFill(int64_t{-3});
-    CheckFill(uint8_t{0});
-    CheckFill(uint8_t{255});
-    CheckFill(float{0});
-    CheckFill(float{std::numeric_limits<float>::infinity()});
-    CheckFill(float{std::nanf("")});
-    CheckFill(double{0});
-    CheckFill(double{std::numeric_limits<double>::infinity()});
-    CheckFill(double{std::nan("")});
+TEST_P(ArrayTest, ContiguousFill) {
+    CheckContiguousFill(true);
+    CheckContiguousFill(false);
+    CheckContiguousFill(int8_t{0});
+    CheckContiguousFill(int8_t{-1});
+    CheckContiguousFill(int8_t{5});
+    CheckContiguousFill(int8_t{-128});
+    CheckContiguousFill(int8_t{127});
+    CheckContiguousFill(int16_t{0});
+    CheckContiguousFill(int16_t{-3});
+    CheckContiguousFill(int32_t{0});
+    CheckContiguousFill(int32_t{-3});
+    CheckContiguousFill(int64_t{0});
+    CheckContiguousFill(int64_t{-3});
+    CheckContiguousFill(uint8_t{0});
+    CheckContiguousFill(uint8_t{255});
+    CheckContiguousFill(float{0});
+    CheckContiguousFill(float{std::numeric_limits<float>::infinity()});
+    CheckContiguousFill(float{std::nanf("")});
+    CheckContiguousFill(double{0});
+    CheckContiguousFill(double{std::numeric_limits<double>::infinity()});
+    CheckContiguousFill(double{std::nan("")});
 
-    CheckFill(true, Scalar(int32_t{1}));
-    CheckFill(true, Scalar(int32_t{2}));
-    CheckFill(true, Scalar(int32_t{-1}));
-    CheckFill(false, Scalar(int32_t{0}));
-    CheckFill(int8_t{1}, Scalar(int32_t{1}));
-    CheckFill(int8_t{1}, Scalar(int64_t{1}));
-    CheckFill(int8_t{1}, Scalar(uint8_t{1}));
-    CheckFill(int8_t{1}, Scalar(true));
-    CheckFill(int8_t{1}, Scalar(1.0f));
-    CheckFill(int8_t{1}, Scalar(1.0));
-    CheckFill(int16_t{1}, Scalar(int32_t{1}));
-    CheckFill(int16_t{1}, Scalar(int64_t{1}));
-    CheckFill(int16_t{1}, Scalar(uint8_t{1}));
-    CheckFill(int16_t{1}, Scalar(true));
-    CheckFill(int16_t{1}, Scalar(1.0f));
-    CheckFill(int16_t{1}, Scalar(1.0));
-    CheckFill(int32_t{1}, Scalar(int32_t{1}));
-    CheckFill(int32_t{1}, Scalar(int64_t{1}));
-    CheckFill(int32_t{1}, Scalar(uint8_t{1}));
-    CheckFill(int32_t{1}, Scalar(true));
-    CheckFill(int32_t{1}, Scalar(1.0f));
-    CheckFill(int32_t{1}, Scalar(1.0));
-    CheckFill(int64_t{1}, Scalar(int32_t{1}));
-    CheckFill(int64_t{1}, Scalar(int64_t{1}));
-    CheckFill(int64_t{1}, Scalar(uint8_t{1}));
-    CheckFill(int64_t{1}, Scalar(true));
-    CheckFill(int64_t{1}, Scalar(1.0f));
-    CheckFill(int64_t{1}, Scalar(1.0));
-    CheckFill(uint8_t{1}, Scalar(int32_t{1}));
-    CheckFill(uint8_t{1}, Scalar(int64_t{1}));
-    CheckFill(uint8_t{1}, Scalar(uint8_t{1}));
-    CheckFill(uint8_t{1}, Scalar(true));
-    CheckFill(uint8_t{1}, Scalar(1.0f));
-    CheckFill(uint8_t{1}, Scalar(1.0));
-    CheckFill(float{1}, Scalar(int32_t{1}));
-    CheckFill(float{1}, Scalar(int64_t{1}));
-    CheckFill(float{1}, Scalar(uint8_t{1}));
-    CheckFill(float{1}, Scalar(true));
-    CheckFill(float{1}, Scalar(1.0f));
-    CheckFill(float{1}, Scalar(1.0));
-    CheckFill(double{1}, Scalar(int32_t{1}));
-    CheckFill(double{1}, Scalar(int64_t{1}));
-    CheckFill(double{1}, Scalar(uint8_t{1}));
-    CheckFill(double{1}, Scalar(true));
-    CheckFill(double{1}, Scalar(1.0f));
-    CheckFill(double{1}, Scalar(1.0));
+    CheckContiguousFill(true, Scalar(int32_t{1}));
+    CheckContiguousFill(true, Scalar(int32_t{2}));
+    CheckContiguousFill(true, Scalar(int32_t{-1}));
+    CheckContiguousFill(false, Scalar(int32_t{0}));
+    CheckContiguousFill(int8_t{1}, Scalar(int32_t{1}));
+    CheckContiguousFill(int8_t{1}, Scalar(int64_t{1}));
+    CheckContiguousFill(int8_t{1}, Scalar(uint8_t{1}));
+    CheckContiguousFill(int8_t{1}, Scalar(true));
+    CheckContiguousFill(int8_t{1}, Scalar(1.0f));
+    CheckContiguousFill(int8_t{1}, Scalar(1.0));
+    CheckContiguousFill(int16_t{1}, Scalar(int32_t{1}));
+    CheckContiguousFill(int16_t{1}, Scalar(int64_t{1}));
+    CheckContiguousFill(int16_t{1}, Scalar(uint8_t{1}));
+    CheckContiguousFill(int16_t{1}, Scalar(true));
+    CheckContiguousFill(int16_t{1}, Scalar(1.0f));
+    CheckContiguousFill(int16_t{1}, Scalar(1.0));
+    CheckContiguousFill(int32_t{1}, Scalar(int32_t{1}));
+    CheckContiguousFill(int32_t{1}, Scalar(int64_t{1}));
+    CheckContiguousFill(int32_t{1}, Scalar(uint8_t{1}));
+    CheckContiguousFill(int32_t{1}, Scalar(true));
+    CheckContiguousFill(int32_t{1}, Scalar(1.0f));
+    CheckContiguousFill(int32_t{1}, Scalar(1.0));
+    CheckContiguousFill(int64_t{1}, Scalar(int32_t{1}));
+    CheckContiguousFill(int64_t{1}, Scalar(int64_t{1}));
+    CheckContiguousFill(int64_t{1}, Scalar(uint8_t{1}));
+    CheckContiguousFill(int64_t{1}, Scalar(true));
+    CheckContiguousFill(int64_t{1}, Scalar(1.0f));
+    CheckContiguousFill(int64_t{1}, Scalar(1.0));
+    CheckContiguousFill(uint8_t{1}, Scalar(int32_t{1}));
+    CheckContiguousFill(uint8_t{1}, Scalar(int64_t{1}));
+    CheckContiguousFill(uint8_t{1}, Scalar(uint8_t{1}));
+    CheckContiguousFill(uint8_t{1}, Scalar(true));
+    CheckContiguousFill(uint8_t{1}, Scalar(1.0f));
+    CheckContiguousFill(uint8_t{1}, Scalar(1.0));
+    CheckContiguousFill(float{1}, Scalar(int32_t{1}));
+    CheckContiguousFill(float{1}, Scalar(int64_t{1}));
+    CheckContiguousFill(float{1}, Scalar(uint8_t{1}));
+    CheckContiguousFill(float{1}, Scalar(true));
+    CheckContiguousFill(float{1}, Scalar(1.0f));
+    CheckContiguousFill(float{1}, Scalar(1.0));
+    CheckContiguousFill(double{1}, Scalar(int32_t{1}));
+    CheckContiguousFill(double{1}, Scalar(int64_t{1}));
+    CheckContiguousFill(double{1}, Scalar(uint8_t{1}));
+    CheckContiguousFill(double{1}, Scalar(true));
+    CheckContiguousFill(double{1}, Scalar(1.0f));
+    CheckContiguousFill(double{1}, Scalar(1.0));
 }
 
 TEST_P(ArrayTest, FullWithGivenDtype) {
