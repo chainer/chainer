@@ -615,7 +615,12 @@ def test_array_require_grad_multiple_graphs_forward():
 def test_getitem(input_shape, indices, output_shape, output_data):
     total_size = functools.reduce(operator.mul, input_shape, 1)
     input_data = list(range(0, total_size))
-    a = xchainer.Array(input_shape, xchainer.int32, input_data)
-    b = a[indices]
+    x = xchainer.Array(input_shape, xchainer.int32, input_data)
+    y = x[indices]
     e = xchainer.Array(output_shape, xchainer.int32, output_data)
-    _check_arrays_equal(e, b)
+    _check_arrays_equal(y, e)
+
+    n = numpy.array(input_data, numpy.int32).reshape(input_shape)
+    _check_array_equals_ndarray(y, n[indices])
+
+
