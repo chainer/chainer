@@ -594,3 +594,28 @@ def test_array_require_grad_multiple_graphs_forward():
     # No unspecified graphs are generated
     assert not y.is_grad_required(xchainer.DEFAULT_GRAPH_ID)
     assert not y.is_grad_required('graph_3')
+
+
+@pytest.mark.parametrize("input_shape,indices,output_shape,output_data", [
+    # integer indexing - non-tuple indexing
+    ((3,), 0, (), [0]),
+    ((3,), 1, (), [1]),
+    ((3,), 2, (), [2]),
+    ((3,), -1, (), [2]),
+    ((2, 3), 0, (3,), [0, 1, 2]),
+    ((2, 3), 1, (3,), [3, 4, 5]),
+    # integer indexining - tuple indexing
+    ((3,), (0,), (), [0]),
+    ((3,), (1,), (), [1]),
+    ((3,), (2,), (), [2]),
+    ((3,), (-1,), (), [2]),
+    ((2, 3), (0,), (3,), [0, 1, 2]),
+    ((2, 3), (1,), (3,), [3, 4, 5]),
+])
+def test_getitem(input_shape, indices, output_shape, output_data):
+    total_size = functools.reduce(operator.mul, input_shape, 1)
+    input_data = list(range(0, total_size))
+    a = xchainer.Array(input_shape, xchainer.int32, input_data)
+    b = a[indices]
+    e = xchainer.Array(output_shape, xchainer.int32, output_data)
+    _check_arrays_equal(e, b)

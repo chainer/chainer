@@ -19,8 +19,8 @@
 #include "xchainer/indexer.h"
 #include "xchainer/slice.h"
 
-#include "xchainer/python/common.h"
 #include "xchainer/python/array_index.h"
+#include "xchainer/python/common.h"
 
 namespace xchainer {
 

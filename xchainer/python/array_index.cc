@@ -22,7 +22,7 @@ ArrayIndex MakeArrayIndex(py::handle handle) {
     if (PySlice_Check(obj)) {
         return ArrayIndex(internal::MakeSlice(py::cast<py::slice>(handle)));
     }
-    throw XchainerError("only integers, slices (`:`), xchainer.newaxis (`None`) are valid indices");
+    throw py::index_error("only integers, slices (`:`), xchainer.newaxis (`None`) are valid indices");
 }
 
 std::vector<ArrayIndex> MakeArrayIndicesFromTuple(py::tuple tup) {
