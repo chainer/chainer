@@ -220,7 +220,18 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
         out_shape.push_back(shape()[i]);
         out_strides.push_back(strides()[i]);
     }
-    return {{out_shape.begin(), out_shape.end()}, {out_strides.begin(), out_strides.end()}, dtype(), device(), body_->data_, out_offset};
+
+    Array out{{out_shape.begin(), out_shape.end()}, {out_strides.begin(), out_strides.end()}, dtype(), device(), body_->data_, out_offset};
+
+    auto backward_function = [ indices, other = *this ](const Array& gout, const std::vector<GraphId>&) {
+        Array gin = Array::ZerosLike(other, other.device());
+        gout.AddAt(indices, gin);
+        return gin;
+    };
+
+    internal::SetUpOpNodes("get_item", {*this}, out, {backward_function});
+
+    return out;
 }
 
 Array Array::Copy() const {
@@ -352,6 +363,13 @@ void Array::Mul(const Array& rhs, Array& out) const {
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     device().Mul(*this, rhs, out);
+}
+
+void Array::AddAt(const std::vector<ArrayIndex>& indices, Array& out) const {
+    internal::SetUpOpNodes(
+            "add_at", {*this}, out, {[indices](const Array& gout, const std::vector<GraphId>&) { return gout.GetItem(indices); }});
+
+    device().AddAt(*this, indices, out);
 }
 
 namespace {

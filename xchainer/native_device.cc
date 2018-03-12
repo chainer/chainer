@@ -100,6 +100,24 @@ void NativeDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
     });
 }
 
+void NativeDevice::AddAt(const Array& in, const std::vector<ArrayIndex>& indices, Array& out) {
+    CheckDevicesCompatible(in, out);
+    VisitDtype(in.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        // TODO(hvy): Refactor indexable array creation to be initialized efficiently
+        IndexableArray<const T> in_iarray{in};
+        IndexableArray<T> out_iarray{reinterpret_cast<T*>(reinterpret_cast<char*>(out.raw_data()) + out.GetItem(indices).offset()),
+                                     out.GetItem(indices).strides()};
+        Indexer<> indexer{in.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); i++) {
+            indexer.Set(i);
+            out_iarray[indexer] += in_iarray[indexer];
+        }
+    });
+}
+
 void NativeDevice::Synchronize() {}
 
 }  // namespace xchainer

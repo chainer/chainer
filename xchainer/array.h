@@ -182,6 +182,8 @@ private:
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 
+    void AddAt(const std::vector<ArrayIndex>& indices, Array& out) const;
+
     std::shared_ptr<internal::ArrayBody> body_;
 };
 

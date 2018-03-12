@@ -193,6 +193,29 @@ void CudaDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
     });
 }
 
+void CudaDevice::AddAt(const Array& in, const std::vector<ArrayIndex>& indices, Array& out) {
+    CheckDevicesCompatible(in, out);
+    cudaSetDevice(index());
+    VisitDtype(in.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
+
+        // TODO(hvy): Refactor indexable array creation to be initialized efficiently
+        IndexableArray<const T> lhs_iarray{in};
+        IndexableArray<const T> rhs_iarray{reinterpret_cast<T*>(reinterpret_cast<char*>(out.raw_data()) + out.GetItem(indices).offset()),
+                                           out.GetItem(indices).strides()};
+        IndexableArray<T> out_iarray{reinterpret_cast<T*>(reinterpret_cast<char*>(out.raw_data()) + out.GetItem(indices).offset()),
+                                     out.GetItem(indices).strides()};
+        Indexer<> indexer{out.shape()};
+
+        int64_t total_size = indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        AddKernel<<<grid_size, block_size>>>(lhs_iarray, rhs_iarray, out_iarray, indexer);
+    });
+}
+
 void CudaDevice::Synchronize() {
     CheckError(cudaSetDevice(index()));
     CheckError(cudaDeviceSynchronize());

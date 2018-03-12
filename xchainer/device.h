@@ -3,7 +3,9 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <vector>
 
+#include "xchainer/array_index.h"
 #include "xchainer/backend.h"
 #include "xchainer/scalar.h"
 
@@ -60,6 +62,7 @@ public:
     virtual void Copy(const Array& src, Array& out) = 0;
 
     virtual void Add(const Array& lhs, const Array& rhs, Array& out) = 0;
+    virtual void AddAt(const Array& in, const std::vector<ArrayIndex>& indices, Array& out) = 0;
     virtual void Mul(const Array& lhs, const Array& rhs, Array& out) = 0;
 
     virtual void Synchronize() = 0;
