@@ -98,7 +98,7 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t eleme
     if (shape.ndim() == 0) {
         return 0;
     }
-    // Calculates the distance between the first and the last element, plus single element size.
+    // Calculate the distance between the first and the last element, plus single element size.
     size_t total_bytes = element_size;
     for (int8_t i = 0; i < shape.ndim(); ++i) {
         total_bytes += (shape[i] - 1) * std::abs(strides[i]);
