@@ -104,7 +104,7 @@ def inputs_all_ready(inputs, supported_ndim=(2, 4)):
 
     """
 
-    def check_array_type(a):
+    def _is_supported_array_type(a):
         return isinstance(a, ideep.mdarray) or ideep.check_type([a])
 
     if _ideep_version is None:
@@ -114,4 +114,4 @@ def inputs_all_ready(inputs, supported_ndim=(2, 4)):
               else x for x in inputs]
 
     return (ideep.check_ndim(inputs, supported_ndim)
-            and all([check_array_type(a) for a in inputs]))
+            and all([_is_supported_array_type(a) for a in inputs]))
