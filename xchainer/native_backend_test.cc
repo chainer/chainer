@@ -96,7 +96,8 @@ TEST(NativeBackendIncompatibleTransferTest, SupportsTransferDifferentNativeBacke
 // Data transfer test
 class NativeBackendTransferTest : public ::testing::TestWithParam<::testing::tuple<std::string, std::string>> {};
 
-INSTANTIATE_TEST_CASE_P(Devices, NativeBackendTransferTest,
+INSTANTIATE_TEST_CASE_P(Devices,
+                        NativeBackendTransferTest,
                         ::testing::Values(std::make_tuple("native:0", "native:0"),  // native:0 <-> native:0
                                           std::make_tuple("native:0", "native:1")   // native:0 <-> native:1
                                           ));

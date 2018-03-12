@@ -117,7 +117,8 @@ TEST(CudaBackendIncompatibleTransferTest, SupportsTransferDifferentCudaBackends)
 // Data transfer test
 class CudaBackendTransferTest : public ::testing::TestWithParam<::testing::tuple<std::string, std::string>> {};
 
-INSTANTIATE_TEST_CASE_P(Devices, CudaBackendTransferTest,
+INSTANTIATE_TEST_CASE_P(Devices,
+                        CudaBackendTransferTest,
                         ::testing::Values(std::make_tuple("cuda:0", "cuda:0"),   // cuda:0 <-> cuda:0
                                           std::make_tuple("cuda:0", "cuda:1"),   // cuda:0 <-> cuda:1
                                           std::make_tuple("cuda:0", "native:0")  // cuda:0 <-> native:0

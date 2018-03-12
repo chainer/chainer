@@ -5,3 +5,5 @@ ColumnLimit: 140
 IndentWidth: 4
 DerivePointerAlignment: false
 PointerAlignment: Left
+BinPackArguments: false
+BinPackParameters: false

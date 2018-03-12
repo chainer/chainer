@@ -30,8 +30,11 @@ public:
     using Arrays = std::vector<Array>;
 
     template <typename T>
-    void CheckElementwiseNumericalGradient(const std::function<Arrays(const Arrays&)>& func, const Arrays& center_inputs,
-                                           const Arrays& grad_outputs, const Arrays& eps, const Arrays& expected_grads) {
+    void CheckElementwiseNumericalGradient(const std::function<Arrays(const Arrays&)>& func,
+                                           const Arrays& center_inputs,
+                                           const Arrays& grad_outputs,
+                                           const Arrays& eps,
+                                           const Arrays& expected_grads) {
         size_t nin = center_inputs.size();
 
         auto checked_func = [&](const Arrays& inputs) -> Arrays {
@@ -126,7 +129,8 @@ TEST_P(NumericalGradientTest, NumericalGradientMul) {
     CheckElementwiseNumericalGradient<float>(forward, inputs, grad_outputs, eps, expected_grads);
 }
 
-INSTANTIATE_TEST_CASE_P(ForEachBackend, NumericalGradientTest,
+INSTANTIATE_TEST_CASE_P(ForEachBackend,
+                        NumericalGradientTest,
                         ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
                             std::string{"cuda"},

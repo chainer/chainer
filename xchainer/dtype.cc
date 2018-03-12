@@ -49,7 +49,14 @@ Dtype GetDtype(const std::string& name) {
 
 std::vector<Dtype> GetAllDtypes() {
     return {
-        Dtype::kBool, Dtype::kInt8, Dtype::kInt16, Dtype::kInt32, Dtype::kInt64, Dtype::kUInt8, Dtype::kFloat32, Dtype::kFloat64,
+        Dtype::kBool,
+        Dtype::kInt8,
+        Dtype::kInt16,
+        Dtype::kInt32,
+        Dtype::kInt64,
+        Dtype::kUInt8,
+        Dtype::kFloat32,
+        Dtype::kFloat64,
     };
 }
 

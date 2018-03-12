@@ -159,7 +159,8 @@ TEST_P(ArrayToDeviceCompatibleTest, ToDevice) {
     ExpectArraysEqual(a, b);
 }
 
-INSTANTIATE_TEST_CASE_P(BackendCombination, ArrayToDeviceCompatibleTest,
+INSTANTIATE_TEST_CASE_P(BackendCombination,
+                        ArrayToDeviceCompatibleTest,
                         ::testing::Values(std::make_tuple(-1, 0, 0),  // transfer between same devices
                                           std::make_tuple(-1, 0, 1),  // transfer to 1
                                           std::make_tuple(-1, 2, 0),  // transfer from 2

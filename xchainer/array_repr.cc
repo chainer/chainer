@@ -146,7 +146,8 @@ public:
 };
 
 template <typename T>
-using Formatter = std::conditional_t<std::is_same<T, bool>::value, BoolFormatter,
+using Formatter = std::conditional_t<std::is_same<T, bool>::value,
+                                     BoolFormatter,
                                      std::conditional_t<std::is_floating_point<T>::value, FloatFormatter, IntFormatter>>;
 
 struct ArrayReprImpl {

@@ -130,7 +130,8 @@ TEST_P(NumericTest, AllCloseMixed) {
     CheckAllCloseThrow<double, int32_t>({3}, {1., 2., 3.}, {1, 2, 3}, 2., 1.);
 }
 
-INSTANTIATE_TEST_CASE_P(ForEachBackend, NumericTest,
+INSTANTIATE_TEST_CASE_P(ForEachBackend,
+                        NumericTest,
                         ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
                             std::string{"cuda"},
