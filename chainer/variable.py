@@ -1274,6 +1274,7 @@ class Parameter(Variable):
 
     initializer = None
     _grad_initializer = None
+    _initial_backend = None
     _initial_device = None
 
     def __init__(self, initializer=None, shape=None, name=None):
@@ -1314,6 +1315,7 @@ class Parameter(Variable):
     def to_cpu(self):
         super(Parameter, self).to_cpu()
         if self.data is None:
+            self._initial_backend = None
             self._initial_device = None
 
     def to_gpu(self, device=None):
@@ -1321,11 +1323,13 @@ class Parameter(Variable):
         if self.data is None:
             if device is None:
                 device = cuda.Device().id
+            self._initial_backend = 'cuda'
             self._initial_device = device
 
     def to_intel64(self):
         super(Parameter, self).to_intel64()
         if self.data is None:
+            self._initial_backend = 'intel64'
             self._initial_device = None
 
     def cleargrad(self):
@@ -1360,6 +1364,10 @@ class Parameter(Variable):
 
         self.data = data
         self.grad = grad
+
+        # Convert the array for iDeep.
+        if self._initial_backend == 'intel64':
+            self.to_intel64()
 
     def update(self):
         """Updates the data array using the gradient and the update rule.
