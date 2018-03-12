@@ -31,7 +31,7 @@ Array& Subtract(const Array& lhs, const Array& rhs, Array& out) {
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer<> indexer{out.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); i++) {
             indexer.Set(i);
@@ -51,7 +51,7 @@ Array& Divide(const Array& lhs, const Array& rhs, Array& out) {
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer<> indexer{out.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); i++) {
             indexer.Set(i);
@@ -160,7 +160,6 @@ Arrays CalculateNumericalGradient(
     };
 
     Arrays grads;
-
     for (int i = 0; i < nin; ++i) {
         Array grad_i = Array::ZerosLike(inputs.at(i));
         int64_t size = grad_i.GetTotalSize();
