@@ -1,6 +1,7 @@
 add_library(_core.so MODULE
     core_module.cc
     array.cc
+    array_index.cc
     backend.cc
     context.cc
     device.cc
@@ -8,6 +9,7 @@ add_library(_core.so MODULE
     error.cc
     scalar.cc
     shape.cc
+    slice.cc
     strides.cc
     )
 target_link_libraries(_core.so
