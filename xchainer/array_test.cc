@@ -601,6 +601,34 @@ TEST_P(ArrayTest, ContiguousFill) {
     CheckContiguousFill(double{1}, Scalar(1.0));
 }
 
+TEST_P(ArrayTest, NonContiguousFill) {
+    Dtype dtype = Dtype::kFloat32;
+    float value = 1.0f;
+    {
+        Array a = Array::Zeros(Shape{3, 3}, dtype);
+        Array b = a.Transpose();
+        b.Fill(value);
+        ExpectDataEqual(value, b);
+        ExpectDataEqual(value, a);
+    }
+    {
+        Array a = Array::Zeros(Shape{3, 3}, dtype);
+        a.GetItem({1}).Fill(value);
+        ExpectDataEqual(value, a.GetItem({1}));
+        // check other rows are not affected
+        ExpectDataEqual(0.0f, a.GetItem({0}));
+        ExpectDataEqual(0.0f, a.GetItem({2}));
+    }
+    {
+        Array a = Array::Zeros(Shape{3, 3}, dtype);
+        a.GetItem({Slice{}, {1}}).Fill(value);
+        ExpectDataEqual(value, a.GetItem({Slice{}, {1}}));
+        // check other columns are not affected
+        ExpectDataEqual(0.0f, a.GetItem({Slice{}, {0}}));
+        ExpectDataEqual(0.0f, a.GetItem({Slice{}, {2}}));
+    }
+}
+
 TEST_P(ArrayTest, FullWithGivenDtype) {
     CheckFullWithGivenDtype(true);
     CheckFullWithGivenDtype(int8_t{2});
