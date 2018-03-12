@@ -45,6 +45,13 @@ std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId&
 
 const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
+// Returns the minimum number of bytes required to pack the data with specified strides and shape.
+size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size);
+
+// Creates an array with given data packed with specified strides
+Array ArrayFromBuffer(
+        const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device = GetDefaultDevice());
+
 }  // namespace internal
 
 enum class CopyKind {
@@ -56,8 +63,6 @@ enum class CopyKind {
 class Array {
 public:
     static Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
-    static Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides,
-                            Device& device = GetDefaultDevice());
 
     static Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
     static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device = GetDefaultDevice());
@@ -164,6 +169,9 @@ public:
     std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; };
 
 private:
+    friend Array internal::ArrayFromBuffer(
+            const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device);
+
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
     void Add(const Array& rhs, Array& out) const;

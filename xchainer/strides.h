@@ -74,11 +74,6 @@ public:
     // span
     gsl::span<const int64_t> span() const { return {&dims_[0], static_cast<size_t>(ndim_)}; }
 
-    // Returns the number of bytes required to pack the data with specified strides and shape.
-    // Currently it may include extra bytes for padding.
-    // This function does not support some irregular combinations, such as shape=(2, 3) and strides=(6, 5).
-    size_t GetTotalBytes(const Shape& shape) const;
-
 private:
     void CheckNdim() const {
         if (ndim_ > kMaxNdim) {
