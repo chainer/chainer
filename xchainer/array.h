@@ -6,11 +6,13 @@
 #include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array_body.h"
+#include "xchainer/array_index.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
@@ -87,6 +89,9 @@ public:
 
     // Returns a transposed view of the array.
     Array Transpose() const;
+
+    // Returns a view selected with the indices.
+    Array GetItem(const std::vector<ArrayIndex>& indices) const;
 
     // Creates a copy. It will be connected to all the graphs.
     Array Copy() const;
