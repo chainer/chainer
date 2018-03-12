@@ -4,11 +4,10 @@
 
 #include "xchainer/python/slice.h"
 
-namespace xchainer {
-namespace python {
-
 namespace py = pybind11;
 
+namespace xchainer {
+namespace python {
 namespace {
 
 ArrayIndex MakeArrayIndex(py::handle handle) {
@@ -47,4 +46,7 @@ std::vector<ArrayIndex> MakeArrayIndices(py::handle handle) {
 
 }  // namespace internal
 }  // namespace python
+
+void InitXchainerArrayIndex(py::module& m) { m.attr("newaxis") = Py_None; }
+
 }  // namespace xchainer
