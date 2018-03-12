@@ -117,11 +117,14 @@ TEST(CudaBackendIncompatibleTransferTest, SupportsTransferDifferentCudaBackends)
 // Data transfer test
 class CudaBackendTransferTest : public ::testing::TestWithParam<::testing::tuple<std::string, std::string>> {};
 
-INSTANTIATE_TEST_CASE_P(Devices, CudaBackendTransferTest,
-                        ::testing::Values(std::make_tuple("cuda:0", "cuda:0"),   // cuda:0 <-> cuda:0
-                                          std::make_tuple("cuda:0", "cuda:1"),   // cuda:0 <-> cuda:1
-                                          std::make_tuple("cuda:0", "native:0")  // cuda:0 <-> native:0
-                                          ));
+INSTANTIATE_TEST_CASE_P(
+        Devices,
+        CudaBackendTransferTest,
+        ::testing::Values(
+                std::make_tuple("cuda:0", "cuda:0"),   // cuda:0 <-> cuda:0
+                std::make_tuple("cuda:0", "cuda:1"),   // cuda:0 <-> cuda:1
+                std::make_tuple("cuda:0", "native:0")  // cuda:0 <-> native:0
+                ));
 
 TEST_P(CudaBackendTransferTest, SupportsTransfer) {
     Context ctx;
@@ -237,7 +240,7 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceFrom) {
         EXPECT_EQ(a.data().get(), b.data().get()) << "Array::ToDevice() must return alias when transferring to the same native device.";
     } else {
         EXPECT_NE(a.data().get(), b.data().get())
-            << "Array::ToDevice() must not return alias when transferring to different native device.";
+                << "Array::ToDevice() must not return alias when transferring to different native device.";
     }
     ExpectArraysEqual(a, b);
 }

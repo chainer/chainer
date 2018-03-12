@@ -114,7 +114,7 @@ private:
         // look like a leaf node of the graph. Note that this move does not invalidates the array_node object itself; it is guaranteed by
         // the standard that shared_ptr becomes null after move-assigned to another.
         std::shared_ptr<OpNode> next_op_node =
-            double_backprop_ == DoubleBackpropOption::kEnable ? array_node->next_node() : array_node->move_next_node();
+                double_backprop_ == DoubleBackpropOption::kEnable ? array_node->next_node() : array_node->move_next_node();
 
         if (next_op_node) {
             if (previous_array_node_map_.find(next_op_node.get()) == previous_array_node_map_.end()) {

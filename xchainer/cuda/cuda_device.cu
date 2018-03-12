@@ -38,8 +38,8 @@ __global__ void CopyKernel(IndexableArray<const T> src_iarray, IndexableArray<T>
 }
 
 template <typename T>
-__global__ void AddKernel(IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray,
-                          Indexer<> indexer) {
+__global__ void AddKernel(
+        IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray, Indexer<> indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
@@ -48,8 +48,8 @@ __global__ void AddKernel(IndexableArray<const T> lhs_iarray, IndexableArray<con
 }
 
 template <typename T>
-__global__ void MulKernel(IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray,
-                          Indexer<> indexer) {
+__global__ void MulKernel(
+        IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray, Indexer<> indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
@@ -98,15 +98,15 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
     }
 }
 
-std::tuple<std::shared_ptr<void>, size_t> CudaDevice::TransferDataFrom(Device& src_device, const std::shared_ptr<void>& src_ptr,
-                                                                       size_t offset, size_t bytesize) {
+std::tuple<std::shared_ptr<void>, size_t> CudaDevice::TransferDataFrom(
+        Device& src_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) {
     std::shared_ptr<void> dst_ptr = Allocate(bytesize);
     MemoryCopyFrom(dst_ptr.get(), &static_cast<int8_t*>(src_ptr.get())[offset], bytesize, src_device);
     return std::make_tuple(std::move(dst_ptr), 0);
 }
 
-std::tuple<std::shared_ptr<void>, size_t> CudaDevice::TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr,
-                                                                     size_t offset, size_t bytesize) {
+std::tuple<std::shared_ptr<void>, size_t> CudaDevice::TransferDataTo(
+        Device& dst_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) {
     std::shared_ptr<void> dst_ptr = dst_device.Allocate(bytesize);
     MemoryCopyTo(dst_ptr.get(), &static_cast<int8_t*>(src_ptr.get())[offset], bytesize, dst_device);
     return std::make_tuple(std::move(dst_ptr), 0);

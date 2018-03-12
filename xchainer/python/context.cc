@@ -30,18 +30,20 @@ private:
 
 void InitXchainerContext(pybind11::module& m) {
     py::class_<Context>(m, "Context")
-        .def(py::init())
-        .def("get_backend", &Context::GetBackend, py::return_value_policy::reference)
-        .def("get_device", [](Context& self, const std::string& device_name) -> Device& { return self.GetDevice(device_name); },
-             py::return_value_policy::reference)
-        .def("get_device",
-             [](Context& self, const std::string& backend_name, int index) -> Device& {
-                 return self.GetDevice({backend_name, index});
-             },
-             py::return_value_policy::reference);
+            .def(py::init())
+            .def("get_backend", &Context::GetBackend, py::return_value_policy::reference)
+            .def("get_device",
+                 [](Context& self, const std::string& device_name) -> Device& { return self.GetDevice(device_name); },
+                 py::return_value_policy::reference)
+            .def("get_device",
+                 [](Context& self, const std::string& backend_name, int index) -> Device& {
+                     return self.GetDevice({backend_name, index});
+                 },
+                 py::return_value_policy::reference);
 
     m.def("get_backend", &GetBackend, py::return_value_policy::reference);
-    m.def("get_device", [](const std::string& device_name) -> Device& { return GetDevice({device_name}); },
+    m.def("get_device",
+          [](const std::string& device_name) -> Device& { return GetDevice({device_name}); },
           py::return_value_policy::reference);
     m.def("get_device",
           [](const std::string& backend_name, int index) -> Device& {
