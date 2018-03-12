@@ -38,8 +38,9 @@ public:
     }
 
     explicit IndexableArray(indexable_array_detail::WithConstnessOf<Array, T>& array)
-        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(
-        array.raw_data()) + array.offset()), array.strides()} {
+        : IndexableArray{
+              reinterpret_cast<T*>(reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(array.raw_data()) + array.offset()),
+              array.strides()} {
         Expects(TypeToDtype<T> == array.dtype());
     }
 
