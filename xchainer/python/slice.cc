@@ -9,7 +9,7 @@ namespace internal {
 namespace py = pybind11;
 
 Slice MakeSlice(const py::slice& slice) {
-    auto py_slice_obj = reinterpret_cast<PySliceObject*>(slice.ptr());
+    auto py_slice_obj = reinterpret_cast<PySliceObject*>(slice.ptr());  // NOLINT: reinterpret_cast
     nonstd::optional<int64_t> start;
     nonstd::optional<int64_t> stop;
     nonstd::optional<int64_t> step;
