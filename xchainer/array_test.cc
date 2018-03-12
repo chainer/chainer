@@ -1259,22 +1259,57 @@ TEST_P(ArrayGetItemTest, GetItem) {
     ExpectEqual<int32_t>(e, b);
 }
 
+// Inputs array elements are integers starting from 0.
+INSTANTIATE_TEST_CASE_P(IndexingWithNothing, ArrayGetItemTest,
+                        ::testing::Values(ArrayGetItemTestParam{{}, {}, {}, {0}}, ArrayGetItemTestParam{{3}, {}, {3}, {0, 1, 2}},
+                                          ArrayGetItemTestParam{{2, 2, 2}, {}, {2, 2, 2}, {0, 1, 2, 3, 4, 5, 6, 7}}));
+
+INSTANTIATE_TEST_CASE_P(IntegerIndexing, ArrayGetItemTest,
+                        ::testing::Values(ArrayGetItemTestParam{{3}, {0}, {}, {0}}, ArrayGetItemTestParam{{3}, {1}, {}, {1}},
+                                          ArrayGetItemTestParam{{3}, {2}, {}, {2}}, ArrayGetItemTestParam{{3}, {-1}, {}, {2}},
+                                          ArrayGetItemTestParam{{2, 3}, {0}, {3}, {0, 1, 2}},
+                                          ArrayGetItemTestParam{{2, 3}, {1}, {3}, {3, 4, 5}},
+                                          ArrayGetItemTestParam{{2, 3}, {0, 0}, {}, {0}}, ArrayGetItemTestParam{{2, 3}, {1, 1}, {}, {4}},
+                                          ArrayGetItemTestParam{{2, 3, 4}, {0, -2, 3}, {}, {7}},
+                                          ArrayGetItemTestParam{{2, 3, 4}, {1, 0}, {4}, {12, 13, 14, 15}}));
+
 INSTANTIATE_TEST_CASE_P(
-    ForEachInputs, ArrayGetItemTest,
-    ::testing::Values(ArrayGetItemTestParam{{3}, {0}, {}, {0}}, ArrayGetItemTestParam{{3}, {1}, {}, {1}},
-                      ArrayGetItemTestParam{{3}, {2}, {}, {2}}, ArrayGetItemTestParam{{3}, {-1}, {}, {2}},
-                      ArrayGetItemTestParam{{2, 3}, {0}, {3}, {0, 1, 2}}, ArrayGetItemTestParam{{2, 3}, {1}, {3}, {3, 4, 5}},
-                      ArrayGetItemTestParam{{3}, {Slice{0, 3}}, {3}, {0, 1, 2}}, ArrayGetItemTestParam{{3}, {Slice{0, 2}}, {2}, {0, 1}},
-                      ArrayGetItemTestParam{{3}, {Slice{1, 3}}, {2}, {1, 2}}, ArrayGetItemTestParam{{3}, {Slice{0, 0}}, {0}, {}},
-                      ArrayGetItemTestParam{{3}, {Slice{0, 1}}, {1}, {0}}, ArrayGetItemTestParam{{3}, {Slice{2, 0, -1}}, {2}, {2, 1}},
-                      ArrayGetItemTestParam{{3}, {Slice{-2, -1}}, {1}, {1}},
-                      ArrayGetItemTestParam{{3}, {Slice{2, nonstd::nullopt, -1}}, {3}, {2, 1, 0}},
-                      ArrayGetItemTestParam{{3}, {Slice{nonstd::nullopt, 0, -1}}, {2}, {2, 1}},
-                      ArrayGetItemTestParam{{3}, {Slice{nonstd::nullopt, -1, -1}}, {0}, {}},
-                      ArrayGetItemTestParam{{6}, {Slice{0, 6, 2}}, {3}, {0, 2, 4}},
-                      ArrayGetItemTestParam{{6}, {Slice{1, 6, 2}}, {3}, {1, 3, 5}},
-                      ArrayGetItemTestParam{{6}, {Slice{5, nonstd::nullopt, -2}}, {3}, {5, 3, 1}},
-                      ArrayGetItemTestParam{{2, 3}, {0, 0}, {}, {0}}, ArrayGetItemTestParam{{2, 3}, {1, 1}, {}, {4}}));
+    SliceIndexing, ArrayGetItemTest,
+    ::testing::Values(
+        ArrayGetItemTestParam{{3}, {Slice{}}, {3}, {0, 1, 2}}, ArrayGetItemTestParam{{3}, {Slice{2}}, {2}, {0, 1}},
+        ArrayGetItemTestParam{{3}, {Slice{0, 3}}, {3}, {0, 1, 2}}, ArrayGetItemTestParam{{3}, {Slice{0, 2}}, {2}, {0, 1}},
+        ArrayGetItemTestParam{{3}, {Slice{1, 3}}, {2}, {1, 2}}, ArrayGetItemTestParam{{3}, {Slice{0, 0}}, {0}, {}},
+        ArrayGetItemTestParam{{3}, {Slice{0, 1}}, {1}, {0}}, ArrayGetItemTestParam{{3}, {Slice{2, 0, -1}}, {2}, {2, 1}},
+        ArrayGetItemTestParam{{3}, {Slice{-2, -1}}, {1}, {1}}, ArrayGetItemTestParam{{3}, {Slice{2, nonstd::nullopt, -1}}, {3}, {2, 1, 0}},
+        ArrayGetItemTestParam{{3}, {Slice{nonstd::nullopt, 0, -1}}, {2}, {2, 1}},
+        ArrayGetItemTestParam{{3}, {Slice{nonstd::nullopt, -1, -1}}, {0}, {}}, ArrayGetItemTestParam{{6}, {Slice{0, 6, 2}}, {3}, {0, 2, 4}},
+        ArrayGetItemTestParam{{6}, {Slice{1, 6, 2}}, {3}, {1, 3, 5}},
+        ArrayGetItemTestParam{{6}, {Slice{5, nonstd::nullopt, -2}}, {3}, {5, 3, 1}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{}, Slice{}}, {2, 3}, {0, 1, 2, 3, 4, 5}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{1}, Slice{2}}, {1, 2}, {0, 1}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{0, 2}, Slice{0, 3}}, {2, 3}, {0, 1, 2, 3, 4, 5}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{0, 2}, Slice{0, -1}}, {2, 2}, {0, 1, 3, 4}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{0, 2}, Slice{2, 3}}, {2, 1}, {2, 5}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{0, nonstd::nullopt, -1}, Slice{2, 3}}, {1, 1}, {2}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{0, nonstd::nullopt, nonstd::nullopt}, Slice{-2, 0, -1}}, {2, 1}, {1, 4}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{1, 2}, Slice{0, 2}}, {1, 2}, {3, 4}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{-2, nonstd::nullopt, -1}, Slice{0, 3}}, {1, 3}, {0, 1, 2}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{-2, nonstd::nullopt, -1}, Slice{-3, nonstd::nullopt, -1}}, {1, 1}, {0}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{-2, nonstd::nullopt, -1}, Slice{nonstd::nullopt, nonstd::nullopt, -2}}, {1, 2}, {2, 0}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{1, 2}, Slice{nonstd::nullopt, nonstd::nullopt, 1}}, {1, 3}, {3, 4, 5}},
+        ArrayGetItemTestParam{{2, 3}, {Slice{1, 2}, Slice{nonstd::nullopt, nonstd::nullopt, 2}}, {1, 2}, {3, 5}},
+        ArrayGetItemTestParam{{2, 3, 4}, {Slice{1}, Slice{-2, 3}, Slice{1, nonstd::nullopt, -1}}, {1, 2, 2}, {5, 4, 9, 8}}));
+
+INSTANTIATE_TEST_CASE_P(NewAxisIndexing, ArrayGetItemTest,
+                        ::testing::Values(ArrayGetItemTestParam{{}, {NewAxis{}}, {1}, {0}},
+                                          ArrayGetItemTestParam{{3}, {NewAxis{}}, {1, 3}, {0, 1, 2}},
+                                          ArrayGetItemTestParam{{2, 3}, {NewAxis{}, NewAxis{}}, {1, 1, 2, 3}, {0, 1, 2, 3, 4, 5}}));
+
+INSTANTIATE_TEST_CASE_P(MixedIndexing, ArrayGetItemTest,
+                        ::testing::Values(ArrayGetItemTestParam{{2, 3}, {0, Slice{1, 3}}, {2}, {1, 2}},
+                                          ArrayGetItemTestParam{{4, 3}, {Slice{1, 3}, 1}, {2}, {4, 7}},
+                                          ArrayGetItemTestParam{{2, 3, 4}, {1, Slice{2}, Slice{1, 3}}, {2, 2}, {13, 14, 17, 18}},
+                                          ArrayGetItemTestParam{{2, 3}, {1, NewAxis{}, Slice{1, 3}}, {1, 2}, {4, 5}}));
 
 }  // namespace
 }  // namespace xchainer
