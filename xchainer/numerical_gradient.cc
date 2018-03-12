@@ -11,6 +11,8 @@
 #include "xchainer/array.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/error.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
@@ -20,30 +22,40 @@ namespace xchainer {
 namespace numerical_gradient_internal {
 
 Array& Subtract(const Array& lhs, const Array& rhs, Array& out) {
+    lhs.device().Synchronize();
+    rhs.device().Synchronize();
+    out.device().Synchronize();
+
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        GetDefaultDevice().Synchronize();
-        auto* ldata = static_cast<const T*>(lhs.data().get());
-        auto* rdata = static_cast<const T*>(rhs.data().get());
-        auto* odata = static_cast<T*>(out.data().get());
-        int64_t total_size = lhs.GetTotalSize();
-        for (int64_t i = 0; i < total_size; ++i) {
-            odata[i] = ldata[i] - rdata[i];
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{lhs.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); i++) {
+            indexer.Set(i);
+            out_iarray[indexer] = lhs_iarray[indexer] - rhs_iarray[indexer];
         }
     });
     return out;
 }
 
 Array& Divide(const Array& lhs, const Array& rhs, Array& out) {
+    lhs.device().Synchronize();
+    rhs.device().Synchronize();
+    out.device().Synchronize();
+
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        GetDefaultDevice().Synchronize();
-        auto* ldata = static_cast<const T*>(lhs.data().get());
-        auto* rdata = static_cast<const T*>(rhs.data().get());
-        auto* odata = static_cast<T*>(out.data().get());
-        int64_t total_size = lhs.GetTotalSize();
-        for (int64_t i = 0; i < total_size; ++i) {
-            odata[i] = ldata[i] / rdata[i];
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{lhs.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); i++) {
+            indexer.Set(i);
+            out_iarray[indexer] = lhs_iarray[indexer] / rhs_iarray[indexer];
         }
     });
     return out;
@@ -61,25 +73,21 @@ Array operator/(const Array& lhs, const Array& rhs) {
     return out;
 }
 
-template <typename T>
-T SumImpl(const Array& array) {
+Scalar Sum(const Array& array) {
     array.device().Synchronize();
-    int64_t size = array.GetTotalSize();
-    T s = 0;
-    for (int64_t i = 0; i < size; ++i) {
-        s += static_cast<const T*>(array.data().get())[i];
-    }
-    return s;
-}
 
-Scalar Sum(const Array& x) {
-    if (x.dtype() == Dtype::kFloat32) {
-        return Scalar(SumImpl<float>(x));
-    }
-    if (x.dtype() == Dtype::kFloat64) {
-        return Scalar(SumImpl<double>(x));
-    }
-    assert(false);  // should never be reached
+    return VisitDtype(array.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> iarray{array};
+        Indexer<> indexer{array.shape()};
+
+        T s = 0;
+        for (int64_t i = 0; i < indexer.total_size(); i++) {
+            indexer.Set(i);
+            s += iarray[indexer];
+        }
+        return Scalar{s};
+    });
 }
 
 Scalar Norm(const Array& x) {
@@ -91,25 +99,26 @@ Scalar VectorDot(const Array& x, const Array& y) { return Sum(x * y); }
 
 void Set(Array& out, int64_t flat_index, Scalar value) {
     out.device().Synchronize();
-    if (out.dtype() == Dtype::kFloat32) {
-        static_cast<float*>(out.data().get())[flat_index] = static_cast<float>(value);
-    } else if (out.dtype() == Dtype::kFloat64) {
-        static_cast<double*>(out.data().get())[flat_index] = static_cast<double>(value);
-    } else {
-        assert(false);
-    }
+
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<T> iarray{out};
+        Indexer<> indexer{out.shape()};
+        indexer.Set(flat_index);
+        iarray[indexer] = static_cast<T>(value);
+    });
 }
 
 Scalar Get(const Array& out, int64_t flat_index) {
     out.device().Synchronize();
-    if (out.dtype() == Dtype::kFloat32) {
-        return static_cast<const float*>(out.data().get())[flat_index];
-    }
-    if (out.dtype() == Dtype::kFloat64) {
-        return static_cast<const double*>(out.data().get())[flat_index];
-    }
-    assert(false);  // should never be reached
-    return 0;
+
+    return VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> iarray{out};
+        Indexer<> indexer{out.shape()};
+        indexer.Set(flat_index);
+        return Scalar{iarray[indexer]};
+    });
 }
 
 Arrays CalculateNumericalGradient(
@@ -151,6 +160,7 @@ Arrays CalculateNumericalGradient(
     };
 
     Arrays grads;
+
     for (int i = 0; i < nin; ++i) {
         Array grad_i = Array::ZerosLike(inputs.at(i));
         int64_t size = grad_i.GetTotalSize();
@@ -160,10 +170,10 @@ Arrays CalculateNumericalGradient(
             Arrays ys0 = eval(i, in_flat_index, eps_scalar, -1);
             Arrays ys1 = eval(i, in_flat_index, eps_scalar, 1);
 
-            Array denom = Array::FullLike(eps.at(i), Get(eps.at(i), in_flat_index)) * Array::FullLike(eps.at(i), Scalar(2, dtype));
-
             for (int j = 0; j < nout; ++j) {
                 Array dy = ys1.at(j) - ys0.at(j);
+                Array denom = Array::FullLike(dy, eps_scalar) * Array::FullLike(dy, Scalar(2, dtype));
+
                 Scalar g = VectorDot((ys1.at(j) - ys0.at(j)) / denom, grad_outputs.at(j));
                 Scalar g_ij = Get(grad_i, in_flat_index) + g;
                 Set(grad_i, in_flat_index, g_ij);

@@ -2,9 +2,11 @@
 
 #include <cmath>
 
+#include "xchainer/array.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
-#include "xchainer/scalar.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 
 namespace xchainer {
 
@@ -15,18 +17,19 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol) {
     if (a.dtype() != b.dtype()) {
         throw DtypeError("cannot compare Arrays of different Dtypes");
     }
+
+    a.device().Synchronize();
+    b.device().Synchronize();
+
     return VisitDtype(a.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
+        IndexableArray<const T> a_iarray{a};
+        IndexableArray<const T> b_iarray{b};
+        Indexer<> indexer{a.shape()};
 
-        a.device().Synchronize();
-        b.device().Synchronize();
-
-        int64_t total_size = a.GetTotalSize();
-        auto* adata = static_cast<const T*>(a.data().get());
-        auto* bdata = static_cast<const T*>(b.data().get());
-
-        for (int64_t i = 0; i < total_size; i++) {
-            if (std::abs(adata[i] - bdata[i]) > atol + rtol * std::abs(bdata[i])) {
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            if (std::abs(a_iarray[indexer] - b_iarray[indexer]) > atol + rtol * std::abs(b_iarray[indexer])) {
                 return false;
             }
         }
