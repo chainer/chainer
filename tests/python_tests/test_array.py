@@ -597,6 +597,10 @@ def test_array_require_grad_multiple_graphs_forward():
 
 
 @pytest.mark.parametrize("input_shape,indices,output_shape,output_data", [
+    # empty indexing
+    ((), (), (), [0]),
+    ((3,), (), (3,), [0, 1, 2]),
+    ((2, 2, 2), (), (2, 2, 2), [0, 1, 2, 3, 4, 5, 6, 7]),
     # integer indexing - non-tuple indexing
     ((3,), 0, (), [0]),
     ((3,), 1, (), [1]),
@@ -611,6 +615,14 @@ def test_array_require_grad_multiple_graphs_forward():
     ((3,), (-1,), (), [2]),
     ((2, 3), (0,), (3,), [0, 1, 2]),
     ((2, 3), (1,), (3,), [3, 4, 5]),
+    # slice indexing - non-tuple indexing
+    ((3,), slice(None), (3,), [0, 1, 2]),
+    ((3,), slice(2), (2,), [0, 1]),
+    ((3,), slice(0, 2), (2,), [0, 1]),
+    ((3,), slice(2, 0, -1), (2,), [2, 1]),
+    ((3,), slice(2, None, -1), (3,), [2, 1, 0]),
+    ((3,), slice(None, 0, 1), (0,), []),
+    ((3,), slice(None, -1, -1), (0,), []),
 ])
 def test_getitem(input_shape, indices, output_shape, output_data):
     total_size = functools.reduce(operator.mul, input_shape, 1)
@@ -621,6 +633,10 @@ def test_getitem(input_shape, indices, output_shape, output_data):
     _check_arrays_equal(y, e)
 
     n = numpy.array(input_data, numpy.int32).reshape(input_shape)
+    print(y)
+    print(y.strides)
+    print(n[indices])
+    print(n[indices].strides)
     _check_array_equals_ndarray(y, n[indices])
 
 
