@@ -173,8 +173,9 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
             case ArrayIndexTag::kSingleElement: {
                 int64_t dim = shape()[i_in];
                 if (index.index() < -dim || dim <= index.index()) {
-                    throw DimensionError("Index " + std::to_string(index.index()) + " is out of bounds for axis " + std::to_string(i_in) +
-                                         " with size " + std::to_string(dim));
+                    throw DimensionError(
+                            "Index " + std::to_string(index.index()) + " is out of bounds for axis " + std::to_string(i_in) +
+                            " with size " + std::to_string(dim));
                 }
                 out_offset += strides()[i_in] * ((index.index() + dim) % dim);
                 i_in++;
