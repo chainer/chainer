@@ -50,23 +50,27 @@ void ExpectDataEqual(const Array& expected, const Array& actual) {
 template <typename T>
 void ExpectDataEqual(const T* expected_data, const Array& actual) {
     actual.device().Synchronize();
-    auto total_size = actual.shape().GetTotalSize();
-    const T* actual_data = static_cast<const T*>(actual.data().get());
-    for (decltype(total_size) i = 0; i < total_size; i++) {
-        EXPECT_EQ(expected_data[i], actual_data[i]) << "where i is " << i;
+    IndexableArray<const T> actual_iarray{actual};
+    Indexer<> indexer{actual.shape()};
+    for (int64_t i = 0; i < indexer.total_size(); i++) {
+        indexer.Set(i);
+        const auto& actual = actual_iarray[indexer];
+        EXPECT_EQ(expected_data[i], actual) << "where i is " << i;
     }
 }
 
 template <typename T>
 void ExpectDataEqual(T expected, const Array& actual) {
     actual.device().Synchronize();
-    auto total_size = actual.shape().GetTotalSize();
-    const T* actual_data = static_cast<const T*>(actual.data().get());
-    for (decltype(total_size) i = 0; i < total_size; i++) {
+    IndexableArray<const T> actual_iarray{actual};
+    Indexer<> indexer{actual.shape()};
+    for (int64_t i = 0; i < indexer.total_size(); i++) {
+        indexer.Set(i);
+        const auto& actual = actual_iarray[indexer];
         if (std::isnan(expected)) {
-            EXPECT_TRUE(std::isnan(actual_data[i])) << "where i is " << i;
+            EXPECT_TRUE(std::isnan(actual)) << "where i is " << i;
         } else {
-            EXPECT_EQ(expected, actual_data[i]) << "where i is " << i;
+            EXPECT_EQ(expected, actual) << "where i is " << i;
         }
     }
 }
