@@ -80,7 +80,7 @@ fi
 # Keep that in mind when the script is to be modified.
 
 set +e  # Temporarily disable error detection to capture errors in the pipes
-"${find_command[@]}" | xargs -0 clang-tidy "${clang_tidy_opts[@]+"${clang_tidy_opts[@]}"}" | awk '
+"${find_command[@]}" | parallel --no-notice -0 clang-tidy "${clang_tidy_opts[@]+"${clang_tidy_opts[@]}"}" | awk '
     { print }
     /'"$grep_regex"'/ { n = n == 255 ? 255 : n+1 }
     END { exit n }'
