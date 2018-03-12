@@ -10,6 +10,7 @@ from chainer.functions.math import erf  # NOQA
 from chainer.functions.math import erfc  # NOQA
 from chainer.functions.math import exponential  # NOQA
 from chainer.functions.math import exponential_m1  # NOQA
+from chainer.functions.math import fft  # NOQA
 from chainer.functions.math import fix  # NOQA
 from chainer.functions.math import floor  # NOQA
 from chainer.functions.math import fmod  # NOQA

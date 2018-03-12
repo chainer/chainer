@@ -15,6 +15,7 @@ from chainer.functions.array import im2col  # NOQA
 from chainer.functions.array import pad  # NOQA
 from chainer.functions.array import pad_sequence  # NOQA
 from chainer.functions.array import permutate  # NOQA
+from chainer.functions.array import repeat  # NOQA
 from chainer.functions.array import reshape  # NOQA
 from chainer.functions.array import resize_images  # NOQA
 from chainer.functions.array import rollaxis  # NOQA

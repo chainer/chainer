@@ -12,6 +12,7 @@ from chainer.links.connection import highway  # NOQA
 from chainer.links.connection import inception  # NOQA
 from chainer.links.connection import inceptionbn  # NOQA
 from chainer.links.connection import linear  # NOQA
+from chainer.links.connection import local_convolution_2d  # NOQA
 from chainer.links.connection import lstm  # NOQA
 from chainer.links.connection import mgu  # NOQA
 from chainer.links.connection import mlp_convolution_2d  # NOQA
