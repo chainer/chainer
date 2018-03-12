@@ -35,16 +35,16 @@ public:
     // supported.
     //
     // It returns a tuple of (data, offset).
-    virtual std::tuple<std::shared_ptr<void>, size_t> TransferDataFrom(Device& src_device, const std::shared_ptr<void>& src_ptr,
-                                                                       size_t offset, size_t bytesize) = 0;
+    virtual std::tuple<std::shared_ptr<void>, size_t> TransferDataFrom(
+            Device& src_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) = 0;
 
     // Transfers the data from this device to the specified device.
     // It is usually preceded by a call to Backend::SupportsTransfer(), thus this function can assume transfer between the devices are
     // supported.
     //
     // It returns a tuple of (data, offset).
-    virtual std::tuple<std::shared_ptr<void>, size_t> TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr,
-                                                                     size_t offset, size_t bytesize) = 0;
+    virtual std::tuple<std::shared_ptr<void>, size_t> TransferDataTo(
+            Device& dst_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) = 0;
 
     // Creates a data buffer filled with the specified data on this device.
     //
@@ -53,6 +53,11 @@ public:
     virtual std::shared_ptr<void> FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
 
     virtual void Fill(Array& out, Scalar value) = 0;
+
+    // Copies the elements from one array to the other.
+    //
+    // The arrays must match in shape and dtype and need to reside on this device.
+    virtual void Copy(const Array& src, Array& out) = 0;
 
     virtual void Add(const Array& lhs, const Array& rhs, Array& out) = 0;
     virtual void Mul(const Array& lhs, const Array& rhs, Array& out) = 0;

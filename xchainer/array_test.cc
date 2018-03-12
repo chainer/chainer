@@ -374,13 +374,6 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
     EXPECT_THROW(internal::GetArrayNode(b), XchainerError);
 }
 
-TEST_P(ArrayTest, ArrayMoveAssignmentOperator) {
-    {
-        // TODO(hvy): Change the following expectations when copy assignment is implemented (not explicitly deleted)
-        EXPECT_FALSE(std::is_nothrow_move_assignable<Array>::value);
-    }
-}
-
 TEST_P(ArrayTest, SetRequiresGrad) {
     // Default graph
     {
@@ -934,9 +927,9 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
 }
 
 TEST_P(ArrayTest, Transpose) {
-    Array a = testing::MakeArray({2, 3})      //
-                  .WithLinearData<int32_t>()  //
-                  .WithPadding(0);
+    Array a = testing::MakeArray({2, 3})          //
+                      .WithLinearData<int32_t>()  //
+                      .WithPadding(0);
     Array b = a.Transpose();
 
     EXPECT_EQ(Shape({3, 2}), b.shape());
@@ -947,9 +940,9 @@ TEST_P(ArrayTest, Transpose) {
 }
 
 TEST_P(ArrayTest, TransposeNoncontiguous) {
-    Array a = testing::MakeArray({2, 3})      //
-                  .WithLinearData<int32_t>()  //
-                  .WithPadding(1);
+    Array a = testing::MakeArray({2, 3})          //
+                      .WithLinearData<int32_t>()  //
+                      .WithPadding(1);
     Array b = a.Transpose();
 
     EXPECT_EQ(Shape({3, 2}), b.shape());
@@ -959,20 +952,23 @@ TEST_P(ArrayTest, TransposeNoncontiguous) {
 }
 
 TEST_P(ArrayTest, TransposeBackward) {
-    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0].Transpose()}; },
-                             {Array::Zeros({2, 3}, Dtype::kFloat32).RequireGrad()},
-                             {testing::MakeArray({3, 2}, {1.f, 2.f, 3.f, 4.f, 5.f, 6.f})}, {Array::Full({2, 3}, 1e-5f)});
+    CheckBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0].Transpose()}; },
+            {Array::Zeros({2, 3}, Dtype::kFloat32).RequireGrad()},
+            {testing::MakeArray({3, 2}, {1.f, 2.f, 3.f, 4.f, 5.f, 6.f})},
+            {Array::Full({2, 3}, 1e-5f)});
 }
 
 TEST_P(ArrayTest, TransposeDoubleBackward) {
     CheckDoubleBackwardComputation(
-        [](const std::vector<Array>& xs) -> std::vector<Array> {
-            auto t = xs[0].Transpose();
-            return {t * t};  // to make it nonlinear
-        },
-        {(*testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
-        {Array::Ones({3, 2}, Dtype::kFloat32).RequireGrad()}, {Array::Ones({2, 3}, Dtype::kFloat32)},
-        {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto t = xs[0].Transpose();
+                return {t * t};  // to make it nonlinear
+            },
+            {(*testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
+            {Array::Ones({3, 2}, Dtype::kFloat32).RequireGrad()},
+            {Array::Ones({2, 3}, Dtype::kFloat32)},
+            {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
 }
 
 TEST_P(ArrayTest, Copy) {
@@ -1229,12 +1225,14 @@ TEST_P(ArrayTest, MultipleGraphsForward) {
     EXPECT_FALSE(o.IsGradRequired("graph_3"));
 }
 
-INSTANTIATE_TEST_CASE_P(ForEachBackend, ArrayTest,
-                        ::testing::Values(
+INSTANTIATE_TEST_CASE_P(
+        ForEachBackend,
+        ArrayTest,
+        ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
-                            std::string{"cuda"},
+                std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
-                            std::string{"native"}));
+                std::string{"native"}));
 
 }  // namespace
 }  // namespace xchainer

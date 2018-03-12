@@ -15,6 +15,7 @@
 #include "xchainer/native_backend.h"
 #include "xchainer/native_device.h"
 #include "xchainer/testing/context_session.h"
+#include "xchainer/testing/util.h"
 
 namespace xchainer {
 namespace {
@@ -27,10 +28,10 @@ public:
 
     TestConfig() {
         set_.insert({
-            Key{0, 0, 0},  // backend0 can transfer with itself
-            Key{0, 0, 1},  // backend0 can transfer to backend1
-            Key{0, 2, 0},  // backend0 can transfer from backend2
-                           // backend0 and backend3 are incompatible
+                Key{0, 0, 0},  // backend0 can transfer with itself
+                Key{0, 0, 1},  // backend0 can transfer to backend1
+                Key{0, 2, 0},  // backend0 can transfer from backend2
+                               // backend0 and backend3 are incompatible
         });
     }
 
@@ -158,12 +159,15 @@ TEST_P(ArrayToDeviceCompatibleTest, ToDevice) {
     ExpectArraysEqual(a, b);
 }
 
-INSTANTIATE_TEST_CASE_P(BackendCombination, ArrayToDeviceCompatibleTest,
-                        ::testing::Values(std::make_tuple(-1, 0, 0),  // transfer between same devices
-                                          std::make_tuple(-1, 0, 1),  // transfer to 1
-                                          std::make_tuple(-1, 2, 0),  // transfer from 2
-                                          std::make_tuple(2, 0, 1)    // checks default device does not change
-                                          ));
+INSTANTIATE_TEST_CASE_P(
+        BackendCombination,
+        ArrayToDeviceCompatibleTest,
+        ::testing::Values(
+                std::make_tuple(-1, 0, 0),  // transfer between same devices
+                std::make_tuple(-1, 0, 1),  // transfer to 1
+                std::make_tuple(-1, 2, 0),  // transfer from 2
+                std::make_tuple(2, 0, 1)    // checks default device does not change
+                ));
 
 // Test for incompatible transfer
 TEST(ArrayToDeviceIncompatibleTest, ToDeviceIncompatible) {
@@ -188,6 +192,9 @@ TEST(ArrayToDeviceIncompatibleTest, ToDeviceIncompatible) {
 TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     testing::ContextSession context_session;
     NativeBackend backend{context_session.context()};
+
+    XCHAINER_REQUIRE_DEVICE(backend, 3);
+
     Device& dev0 = backend.GetDevice(0);
     Device& dev1 = backend.GetDevice(1);
     Device& dev2 = backend.GetDevice(2);  // default device

@@ -30,8 +30,12 @@ public:
     using Arrays = std::vector<Array>;
 
     template <typename T>
-    void CheckElementwiseNumericalGradient(const std::function<Arrays(const Arrays&)>& func, const Arrays& center_inputs,
-                                           const Arrays& grad_outputs, const Arrays& eps, const Arrays& expected_grads) {
+    void CheckElementwiseNumericalGradient(
+            const std::function<Arrays(const Arrays&)>& func,
+            const Arrays& center_inputs,
+            const Arrays& grad_outputs,
+            const Arrays& eps,
+            const Arrays& expected_grads) {
         size_t nin = center_inputs.size();
 
         auto checked_func = [&](const Arrays& inputs) -> Arrays {
@@ -74,15 +78,15 @@ TEST_P(NumericalGradientTest, NumericalGradientAdd) {
     Data grad_output_data{1.f, -2.f, 3.f, 0.f, 3.2f, -1.f};
 
     Arrays inputs = {
-        testing::MakeArray(shape, data1),
-        testing::MakeArray(shape, data2),
+            testing::MakeArray(shape, data1),
+            testing::MakeArray(shape, data2),
     };
     Arrays eps = {
-        testing::MakeArray(shape, eps1),
-        testing::MakeArray(shape, eps2),
+            testing::MakeArray(shape, eps1),
+            testing::MakeArray(shape, eps2),
     };
     Arrays grad_outputs = {
-        testing::MakeArray(shape, grad_output_data),
+            testing::MakeArray(shape, grad_output_data),
     };
 
     // Forward function
@@ -105,15 +109,15 @@ TEST_P(NumericalGradientTest, NumericalGradientMul) {
     Data grad_output_data{1.f, -2.f, 3.f, 0.f, 2.2f, 1.f};
 
     Arrays inputs = {
-        testing::MakeArray(shape, data1),
-        testing::MakeArray(shape, data2),
+            testing::MakeArray(shape, data1),
+            testing::MakeArray(shape, data2),
     };
     Arrays eps = {
-        testing::MakeArray(shape, eps1),
-        testing::MakeArray(shape, eps2),
+            testing::MakeArray(shape, eps1),
+            testing::MakeArray(shape, eps2),
     };
     Arrays grad_outputs = {
-        testing::MakeArray(shape, grad_output_data),
+            testing::MakeArray(shape, grad_output_data),
     };
 
     // Forward function
@@ -126,12 +130,14 @@ TEST_P(NumericalGradientTest, NumericalGradientMul) {
     CheckElementwiseNumericalGradient<float>(forward, inputs, grad_outputs, eps, expected_grads);
 }
 
-INSTANTIATE_TEST_CASE_P(ForEachBackend, NumericalGradientTest,
-                        ::testing::Values(
+INSTANTIATE_TEST_CASE_P(
+        ForEachBackend,
+        NumericalGradientTest,
+        ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
-                            std::string{"cuda"},
+                std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
-                            std::string{"native"}));
+                std::string{"native"}));
 
 }  // namespace
 }  // namespace xchainer
