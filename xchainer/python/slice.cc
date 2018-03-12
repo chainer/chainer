@@ -12,12 +12,14 @@ namespace py = pybind11;
 
 void InitXchainerSlice(pybind11::module& m) {
     py::class_<Slice>{m, "Slice"}
-            .def(py::init([](int64_t stop) { return Slice(stop); }))
-            .def(py::init([](int64_t start, int64_t stop) { return Slice(start, stop); }))
-            .def(py::init([](nonstd::optional<int64_t> start, nonstd::optional<int64_t> stop, nonstd::optional<int64_t> step) {
-                return Slice(start, stop, step);
+            .def(py::init([](const nonstd::optional<int64_t>& stop) { return Slice(nonstd::nullopt, stop, nonstd::nullopt); }))
+            .def(py::init([](const nonstd::optional<int64_t>& start, const nonstd::optional<int64_t>& stop) {
+                return Slice(start, stop, nonstd::nullopt);
             }))
-            .def(py::init([](py::slice slice) {
+            .def(py::init([](const nonstd::optional<int64_t>& start,
+                             const nonstd::optional<int64_t>& stop,
+                             const nonstd::optional<int64_t>& step) { return Slice(start, stop, step); }))
+            .def(py::init([](const py::slice& slice) {
                 auto py_slice_obj = reinterpret_cast<PySliceObject*>(slice.ptr());
                 nonstd::optional<int64_t> start;
                 nonstd::optional<int64_t> stop;
