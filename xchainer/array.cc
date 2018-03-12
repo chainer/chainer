@@ -231,7 +231,7 @@ Array Array::Reshape(const Shape& shape) const {
 
     if (!can_reshape_with_view) {
         // TODO(niboshi): Implement it
-        throw XchainerError("Reshape that requires a copy is not implemented yet.");
+        throw NotImplementedError("Reshape that requires a copy is not implemented yet.");
     }
 
     // Construct the new strides
