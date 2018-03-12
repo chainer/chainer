@@ -50,7 +50,7 @@ std::ostream& operator<<(std::ostream& os, const Shape& shape) {
 
 void CheckEqual(const Shape& lhs, const Shape& rhs) {
     if (lhs != rhs) {
-        throw DimensionError("Shapes does not match: " + lhs.ToString() + ", " + rhs.ToString() + ".");
+        throw DimensionError("Shapes do not match: " + lhs.ToString() + ", " + rhs.ToString() + ".");
     }
 }
 
