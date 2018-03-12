@@ -38,6 +38,8 @@ void InitXchainerSlice(pybind11::module& m) {
             .def_property_readonly("start", &Slice::start)
             .def_property_readonly("stop", &Slice::stop)
             .def_property_readonly("step", &Slice::step);
+
+    py::implicitly_convertible<py::slice, Slice>();
 }
 
 }  // namespace xchainer
