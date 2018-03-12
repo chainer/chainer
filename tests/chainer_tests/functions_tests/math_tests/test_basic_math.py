@@ -305,10 +305,10 @@ class TestMultipleAdd(unittest.TestCase):
             self, func, backend_config, x1_data, x2_data, x3_data, y_grad,
             ggx1_data, ggx2_data, ggx3_data, **args):
         if backend_config.use_cuda:
-            x1_data, x2_data, x3_data, y_grad,
-            ggx1_data, ggx2_data, ggx3_data = cuda.to_gpu(
+            (x1_data, x2_data, x3_data, y_grad,
+                ggx1_data, ggx2_data, ggx3_data) = cuda.to_gpu(
                 (x1_data, x2_data, x3_data, y_grad,
-                 ggx1_data, ggx2_data, ggx3_data))
+                    ggx1_data, ggx2_data, ggx3_data))
         options = {}
         if self.dtype == numpy.float16:
             options = {'atol': 5e-3, 'rtol': 5e-2}
