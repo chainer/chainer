@@ -1257,6 +1257,17 @@ TEST_P(ArrayGetItemTest, GetItem) {
     Array b = a.GetItem(param.indices);
     Array e = testing::MakeArray<int32_t>(param.output_shape, param.output_data);
     ExpectEqual<int32_t>(e, b);
+
+    // Check if strides are 0 for new axes.
+    int8_t output_axis = 0;
+    for (const ArrayIndex& index : param.indices) {
+        if (index.tag() == ArrayIndexTag::kNewAxis) {
+            EXPECT_EQ(0, b.strides()[output_axis]);
+        }
+        if (index.tag() != ArrayIndexTag::kSingleElement) {
+            ++output_axis;
+        }
+    }
 }
 
 // Inputs array elements are integers starting from 0.
