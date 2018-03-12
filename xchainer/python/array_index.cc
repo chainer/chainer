@@ -33,7 +33,7 @@ std::vector<ArrayIndex> MakeArrayIndicesFromTuple(py::tuple tup) {
     return indicies;
 }
 
-} // namespace
+}  // namespace
 
 namespace internal {
 
