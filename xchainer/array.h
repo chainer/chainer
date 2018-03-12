@@ -74,8 +74,8 @@ public:
     Array(const Array& other);
     Array(Array&& other) = default;
 
-    Array& operator=(Array&& other) = delete;
     Array& operator=(const Array&) = delete;
+    Array& operator=(Array&& other) = delete;
 
     Array& operator+=(const Array& rhs);
     Array& operator*=(const Array& rhs);
@@ -89,7 +89,9 @@ public:
     Array Copy() const;
 
     // Transfers the array to another device. It will be connected to all the graphs.
+    //
     // If the destination is the same device, an array with aliased data is returned.
+    // Otherwise, a C-contiguous Array will be created on the target device.
     // TODO(niboshi): Currently control over whether to make an alias is not supported.
     Array ToDevice(Device& dst_device) const;
 

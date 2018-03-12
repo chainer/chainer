@@ -54,6 +54,11 @@ public:
 
     virtual void Fill(Array& out, Scalar value) = 0;
 
+    // Copies the elements from one array to the other.
+    //
+    // The arrays must match in shape and dtype and need to reside on this device.
+    virtual void Copy(const Array& src, Array& out) = 0;
+
     virtual void Add(const Array& lhs, const Array& rhs, Array& out) = 0;
     virtual void Mul(const Array& lhs, const Array& rhs, Array& out) = 0;
 
