@@ -17,6 +17,10 @@ void InitXchainerArrayIndex(pybind11::module& m) {
                 (void)none;  // unused
                 return ArrayIndex(NewAxis{});
             }));
+
+    py::implicitly_convertible<py::int_, ArrayIndex>();
+    py::implicitly_convertible<Slice, ArrayIndex>();
+    py::implicitly_convertible<py::none, ArrayIndex>();
 }
 
 }  // namespace xchainer
