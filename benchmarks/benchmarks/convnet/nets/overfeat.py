@@ -1,5 +1,3 @@
-# flake8: noqa
-
 import chainer
 import chainer.functions as F
 import chainer.links as L
@@ -11,11 +9,11 @@ class overfeat(chainer.Chain):
     def __init__(self):
         super(overfeat, self).__init__()
         with self.init_scope():
-            self.conv1 = L.Convolution2D(   3,   96, 11, stride=4)
-            self.conv2 = L.Convolution2D(  96,  256,  5, pad=0)
-            self.conv3 = L.Convolution2D( 256,  512,  3, pad=1)
-            self.conv4 = L.Convolution2D( 512, 1024,  3, pad=1)
-            self.conv5 = L.Convolution2D(1024, 1024,  3, pad=1)
+            self.conv1 = L.Convolution2D(3,    96,   11, stride=4)
+            self.conv2 = L.Convolution2D(96,   256,  5, pad=0)
+            self.conv3 = L.Convolution2D(256,  512,  3, pad=1)
+            self.conv4 = L.Convolution2D(512,  1024, 3, pad=1)
+            self.conv5 = L.Convolution2D(1024, 1024, 3, pad=1)
             self.fc6 = L.Linear(1024 * 6 * 6, 3072)
             self.fc7 = L.Linear(3072, 4096)
             self.fc8 = L.Linear(4096, 1000)

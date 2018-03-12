@@ -1,5 +1,3 @@
-# flake8: noqa
-
 import chainer
 import chainer.functions as F
 import chainer.links as L
@@ -11,8 +9,8 @@ class vgga(chainer.Chain):
     def __init__(self):
         super(vgga, self).__init__()
         with self.init_scope():
-            self.conv1 = L.Convolution2D(  3,  64, 3, stride=1, pad=1)
-            self.conv2 = L.Convolution2D( 64, 128, 3, stride=1, pad=1)
+            self.conv1 = L.Convolution2D(3,   64,  3, stride=1, pad=1)
+            self.conv2 = L.Convolution2D(64,  128, 3, stride=1, pad=1)
             self.conv3 = L.Convolution2D(128, 256, 3, stride=1, pad=1)
             self.conv4 = L.Convolution2D(256, 256, 3, stride=1, pad=1)
             self.conv5 = L.Convolution2D(256, 512, 3, stride=1, pad=1)

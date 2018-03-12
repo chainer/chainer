@@ -113,11 +113,11 @@ def _inject_backend_mode(klass, modes):
                     _benchmark_backend_ideep = True
 
                 with _BackendConfig({
-                        'use_cudnn': use_cudnn,
-                        'use_ideep': use_ideep,
-                        '_benchmark_backend_gpu': _benchmark_backend_gpu,
-                        '_benchmark_backend_ideep': _benchmark_backend_ideep,
-                        }):
+                    'use_cudnn': use_cudnn,
+                    'use_ideep': use_ideep,
+                    '_benchmark_backend_gpu': _benchmark_backend_gpu,
+                    '_benchmark_backend_ideep': _benchmark_backend_ideep,
+                }):
 
                     # Inject self.xp
                     assert not hasattr(self, 'xp')
