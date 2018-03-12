@@ -90,6 +90,7 @@ if(ENABLE_TEST)
     add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
         ${CMAKE_BINARY_DIR}/googletest-build
         EXCLUDE_FROM_ALL)
+    include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
 endif()
 
 add_subdirectory(xchainer)

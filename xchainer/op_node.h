@@ -19,12 +19,14 @@ class OpNode {
 public:
     OpNode() = default;
     OpNode(std::string name) : name_(std::move(name)), rank_(0), next_nodes_(), backward_functions_() {}
-    OpNode(std::string name, int64_t rank, std::vector<std::shared_ptr<ArrayNode>> next_nodes,
+    OpNode(std::string name,
+           int64_t rank,
+           std::vector<std::shared_ptr<ArrayNode>> next_nodes,
            std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>> backward_functions)
         : name_(std::move(name)), rank_(rank), next_nodes_(std::move(next_nodes)), backward_functions_(std::move(backward_functions)) {}
 
-    void RegisterNextNode(std::shared_ptr<ArrayNode> next_node,
-                          std::function<Array(const Array&, const std::vector<GraphId>&)> backward_function) {
+    void RegisterNextNode(
+            std::shared_ptr<ArrayNode> next_node, std::function<Array(const Array&, const std::vector<GraphId>&)> backward_function) {
         next_nodes_.push_back(std::move(next_node));
         backward_functions_.push_back(std::move(backward_function));
     }

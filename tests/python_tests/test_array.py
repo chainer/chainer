@@ -216,6 +216,25 @@ def test_view_must_not_share_properties():
     assert not view.is_grad_required(), 'A view must not share is_grad_required with the original array.'
 
 
+def test_transpose(array_init_inputs):
+    shape_tup, dtype = array_init_inputs
+    shape = xchainer.Shape(shape_tup)
+    data_list = _create_dummy_data(shape_tup, dtype)
+
+    array = xchainer.Array(shape, dtype, data_list)
+
+    def _check_transpose(array_transpose):
+        assert xchainer.Shape(shape_tup[::-1]) == array_transpose.shape
+        assert array.dtype == array_transpose.dtype
+        assert array.element_bytes == array_transpose.element_bytes
+        assert array.total_size == array_transpose.total_size
+        assert array.total_bytes == array_transpose.total_bytes
+        _check_arrays_equal(array, array_transpose.transpose())
+
+    _check_transpose(array.transpose())
+    _check_transpose(array.T)
+
+
 def test_copy(array_init_inputs):
     shape_tup, dtype = array_init_inputs
 

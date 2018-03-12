@@ -31,12 +31,12 @@ private:
 
 void InitXchainerDevice(pybind11::module& m) {
     py::class_<Device>(m, "Device")
-        .def("__repr__", &Device::name)
-        .def("synchronize", &Device::Synchronize)
-        .def_property_readonly("name", &Device::name)
-        .def_property_readonly("backend", &Device::backend, py::return_value_policy::reference)
-        .def_property_readonly("context", &Device::context, py::return_value_policy::reference)
-        .def_property_readonly("index", &Device::index);
+            .def("__repr__", &Device::name)
+            .def("synchronize", &Device::Synchronize)
+            .def_property_readonly("name", &Device::name)
+            .def_property_readonly("backend", &Device::backend, py::return_value_policy::reference)
+            .def_property_readonly("context", &Device::context, py::return_value_policy::reference)
+            .def_property_readonly("index", &Device::index);
 
     m.def("get_default_device", []() -> Device& { return GetDefaultDevice(); }, py::return_value_policy::reference);
     m.def("set_default_device", [](Device& device) { SetDefaultDevice(&device); });
