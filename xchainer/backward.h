@@ -12,12 +12,14 @@ enum class DoubleBackpropOption : bool {
     kEnable = true,
 };
 
-void Backward(const Array& output,
-              const GraphId& graph_id = kDefaultGraphId,
-              DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
+void Backward(
+        const Array& output,
+        const GraphId& graph_id = kDefaultGraphId,
+        DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
-void Backward(const std::vector<ConstArrayRef>& outputs,
-              const GraphId& graph_id = kDefaultGraphId,
-              DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
+void Backward(
+        const std::vector<ConstArrayRef>& outputs,
+        const GraphId& graph_id = kDefaultGraphId,
+        DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
 }  // namespace xchainer

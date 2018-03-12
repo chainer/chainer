@@ -113,10 +113,8 @@ public:
     }
 
     template <typename Fprop>
-    void CheckBackpropExtraInputs(std::vector<Array>& target_inputs,
-                                  std::vector<Array>& other_inputs,
-                                  std::vector<Array>& expected_grads,
-                                  Fprop&& fprop) const {
+    void CheckBackpropExtraInputs(
+            std::vector<Array>& target_inputs, std::vector<Array>& other_inputs, std::vector<Array>& expected_grads, Fprop&& fprop) const {
         CheckBackpropImpl(target_inputs, expected_grads, fprop, other_inputs);
         for (const Array& other_input : other_inputs) {
             EXPECT_THROW(other_input.GetGrad(), XchainerError);
@@ -125,19 +123,19 @@ public:
 
     // Simple versions. It makes and uses an array with one element for each input.
     template <typename Fprop>
-    void CheckBackpropSingleElement(const std::vector<float>& target_inputs,
-                                    const std::vector<float>& expected_grads,
-                                    Fprop&& fprop) const {
+    void CheckBackpropSingleElement(
+            const std::vector<float>& target_inputs, const std::vector<float>& expected_grads, Fprop&& fprop) const {
         auto xs = MakeFullArrays({1}, target_inputs);
         auto expected_gxs = MakeFullArrays({1}, expected_grads);
         CheckBackprop(xs, expected_gxs, std::forward<Fprop>(fprop));
     }
 
     template <typename Fprop>
-    void CheckBackpropSingleElementExtraInputs(const std::vector<float>& target_inputs,
-                                               const std::vector<float>& other_inputs,
-                                               const std::vector<float>& expected_grads,
-                                               Fprop&& fprop) const {
+    void CheckBackpropSingleElementExtraInputs(
+            const std::vector<float>& target_inputs,
+            const std::vector<float>& other_inputs,
+            const std::vector<float>& expected_grads,
+            Fprop&& fprop) const {
         auto xs = MakeFullArrays({1}, target_inputs);
         auto other_xs = MakeFullArrays({1}, other_inputs);
         auto expected_gxs = MakeFullArrays({1}, expected_grads);
@@ -359,13 +357,14 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     EXPECT_FALSE(x2.GetGrad(graph_id_1));
 }
 
-INSTANTIATE_TEST_CASE_P(ForEachBackend,
-                        BackpropTest,
-                        ::testing::Values(
+INSTANTIATE_TEST_CASE_P(
+        ForEachBackend,
+        BackpropTest,
+        ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
-                            std::string{"cuda"},
+                std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
-                            std::string{"native"}));
+                std::string{"native"}));
 
 TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     testing::DeviceSession device_session({NativeBackend::kDefaultName, 0});

@@ -112,19 +112,20 @@ Scalar Get(const Array& out, int64_t flat_index) {
     return 0;
 }
 
-Arrays CalculateNumericalGradient(std::function<Arrays(const Arrays&)> func,
-                                  const Arrays& inputs,
-                                  const Arrays& grad_outputs,
-                                  const Arrays& eps,
-                                  const GraphId& graph_id) {
+Arrays CalculateNumericalGradient(
+        std::function<Arrays(const Arrays&)> func,
+        const Arrays& inputs,
+        const Arrays& grad_outputs,
+        const Arrays& eps,
+        const GraphId& graph_id) {
     // TODO(niboshi): Currently only elementwise functions are supported.
     // TODO(niboshi): Implement arithmetic operations and avoid manual synchronize
     const int nin = inputs.size();
     const int nout = grad_outputs.size();
 
     if (eps.size() != static_cast<size_t>(nin)) {
-        throw XchainerError("Invalid number of eps arrays where number of inputs: " + std::to_string(nin) +
-                            ", eps: " + std::to_string(eps.size()));
+        throw XchainerError(
+                "Invalid number of eps arrays where number of inputs: " + std::to_string(nin) + ", eps: " + std::to_string(eps.size()));
     }
 
     for (int i = 0; i < nin; ++i) {

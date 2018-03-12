@@ -21,11 +21,12 @@
 namespace xchainer {
 namespace internal {
 
-void SetUpOpNodes(const std::string& name,
-                  const std::vector<ConstArrayRef>& inputs,
-                  Array& out,
-                  const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
-                  const std::vector<GraphId>& graph_ids_to_stop_gradients) {
+void SetUpOpNodes(
+        const std::string& name,
+        const std::vector<ConstArrayRef>& inputs,
+        Array& out,
+        const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
+        const std::vector<GraphId>& graph_ids_to_stop_gradients) {
     if (inputs.size() != backward_functions.size()) {
         throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");
     }
@@ -83,8 +84,8 @@ const std::shared_ptr<ArrayNode>& CreateArrayNode(Array& array, const GraphId& g
 std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id) { return GetMutableArrayNode(array, graph_id); }
 
 const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id) {
-    auto it =
-        std::find_if(array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); });
+    auto it = std::find_if(
+            array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); });
     if (it == array.nodes().end()) {
         throw XchainerError("Array does not belong to the graph: '" + graph_id + "'.");
     }
@@ -130,7 +131,7 @@ Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& de
 
 Array::Array(const Array& other)
     : body_(std::make_shared<internal::ArrayBody>(
-          other.shape(), other.strides(), other.dtype(), other.device(), other.body_->data_, other.offset(), other.body_->nodes_)) {}
+              other.shape(), other.strides(), other.dtype(), other.device(), other.body_->data_, other.offset(), other.body_->nodes_)) {}
 
 Array& Array::operator+=(const Array& rhs) {
     Add(rhs, *this);
@@ -205,11 +206,12 @@ Array Array::ToDevice(Device& dst_device) const {
 
     // Connect the graph.
     // Backward operation is implemented as backward-transfer.
-    internal::SetUpOpNodes("transfer",
-                           {*this},
-                           *out,
-                           {[&src_device](const Array& gout, const std::vector<GraphId>&) -> Array { return gout.ToDevice(src_device); }},
-                           {});
+    internal::SetUpOpNodes(
+            "transfer",
+            {*this},
+            *out,
+            {[&src_device](const Array& gout, const std::vector<GraphId>&) -> Array { return gout.ToDevice(src_device); }},
+            {});
     return std::move(*out);
 }
 

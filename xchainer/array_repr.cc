@@ -146,9 +146,10 @@ public:
 };
 
 template <typename T>
-using Formatter = std::conditional_t<std::is_same<T, bool>::value,
-                                     BoolFormatter,
-                                     std::conditional_t<std::is_floating_point<T>::value, FloatFormatter, IntFormatter>>;
+using Formatter = std::conditional_t<
+        std::is_same<T, bool>::value,
+        BoolFormatter,
+        std::conditional_t<std::is_floating_point<T>::value, FloatFormatter, IntFormatter>>;
 
 struct ArrayReprImpl {
     template <typename T, typename Visitor>
@@ -179,41 +180,42 @@ struct ArrayReprImpl {
         const int8_t ndim = array.ndim();
         int cur_line_size = 0;
         VisitElements<T>(
-            array, [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T>& iarray, const Indexer<kDynamicNdim>& indexer) {
-                int8_t trailing_zeros = 0;
-                if (ndim > 0) {
-                    const int64_t* index = indexer.index();
-                    for (auto it = index + ndim; --it >= index;) {
-                        if (*it == 0) {
-                            ++trailing_zeros;
-                        } else {
-                            break;
+                array,
+                [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T>& iarray, const Indexer<kDynamicNdim>& indexer) {
+                    int8_t trailing_zeros = 0;
+                    if (ndim > 0) {
+                        const int64_t* index = indexer.index();
+                        for (auto it = index + ndim; --it >= index;) {
+                            if (*it == 0) {
+                                ++trailing_zeros;
+                            } else {
+                                break;
+                            }
                         }
                     }
-                }
-                if (trailing_zeros == ndim) {
-                    // This is the first iteration, so print the header
-                    os << "array(";
-                    PrintNTimes(os, '[', ndim);
-                } else if (trailing_zeros > 0) {
-                    PrintNTimes(os, ']', trailing_zeros);
-                    os << ',';
-                    PrintNTimes(os, '\n', trailing_zeros);
-                    PrintNTimes(os, ' ', 6 + ndim - trailing_zeros);
-                    PrintNTimes(os, '[', trailing_zeros);
-                    cur_line_size = 0;
-                } else {
-                    if (cur_line_size == 10) {
-                        os << ",\n";
-                        PrintNTimes(os, ' ', 6 + ndim);
+                    if (trailing_zeros == ndim) {
+                        // This is the first iteration, so print the header
+                        os << "array(";
+                        PrintNTimes(os, '[', ndim);
+                    } else if (trailing_zeros > 0) {
+                        PrintNTimes(os, ']', trailing_zeros);
+                        os << ',';
+                        PrintNTimes(os, '\n', trailing_zeros);
+                        PrintNTimes(os, ' ', 6 + ndim - trailing_zeros);
+                        PrintNTimes(os, '[', trailing_zeros);
                         cur_line_size = 0;
                     } else {
-                        os << ", ";
+                        if (cur_line_size == 10) {
+                            os << ",\n";
+                            PrintNTimes(os, ' ', 6 + ndim);
+                            cur_line_size = 0;
+                        } else {
+                            os << ", ";
+                        }
                     }
-                }
-                formatter.Print(os, iarray[indexer]);
-                ++cur_line_size;
-            });
+                    formatter.Print(os, iarray[indexer]);
+                    ++cur_line_size;
+                });
 
         if (array.GetTotalSize() == 0) {
             // In case of an empty Array, print the header here

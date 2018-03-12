@@ -17,24 +17,24 @@ Dtype GetDtype(const std::string& name) {
     };
 
     static const Pair kMapping[] = {
-        // full name
-        {"bool", Dtype::kBool},
-        {"int8", Dtype::kInt8},
-        {"int16", Dtype::kInt16},
-        {"int32", Dtype::kInt32},
-        {"int64", Dtype::kInt64},
-        {"uint8", Dtype::kUInt8},
-        {"float32", Dtype::kFloat32},
-        {"float64", Dtype::kFloat64},
-        // character code
-        {"?", Dtype::kBool},
-        {"b", Dtype::kInt8},
-        {"h", Dtype::kInt16},
-        {"i", Dtype::kInt32},
-        {"q", Dtype::kInt64},
-        {"B", Dtype::kUInt8},
-        {"f", Dtype::kFloat32},
-        {"d", Dtype::kFloat64},
+            // full name
+            {"bool", Dtype::kBool},
+            {"int8", Dtype::kInt8},
+            {"int16", Dtype::kInt16},
+            {"int32", Dtype::kInt32},
+            {"int64", Dtype::kInt64},
+            {"uint8", Dtype::kUInt8},
+            {"float32", Dtype::kFloat32},
+            {"float64", Dtype::kFloat64},
+            // character code
+            {"?", Dtype::kBool},
+            {"b", Dtype::kInt8},
+            {"h", Dtype::kInt16},
+            {"i", Dtype::kInt32},
+            {"q", Dtype::kInt64},
+            {"B", Dtype::kUInt8},
+            {"f", Dtype::kFloat32},
+            {"d", Dtype::kFloat64},
     };
     static_assert(std::is_pod<decltype(kMapping)>::value, "static variable must be POD to comply with the coding guideline");
 
@@ -49,14 +49,14 @@ Dtype GetDtype(const std::string& name) {
 
 std::vector<Dtype> GetAllDtypes() {
     return {
-        Dtype::kBool,
-        Dtype::kInt8,
-        Dtype::kInt16,
-        Dtype::kInt32,
-        Dtype::kInt64,
-        Dtype::kUInt8,
-        Dtype::kFloat32,
-        Dtype::kFloat64,
+            Dtype::kBool,
+            Dtype::kInt8,
+            Dtype::kInt16,
+            Dtype::kInt32,
+            Dtype::kInt64,
+            Dtype::kUInt8,
+            Dtype::kFloat32,
+            Dtype::kFloat64,
     };
 }
 

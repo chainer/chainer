@@ -96,11 +96,13 @@ TEST(NativeBackendIncompatibleTransferTest, SupportsTransferDifferentNativeBacke
 // Data transfer test
 class NativeBackendTransferTest : public ::testing::TestWithParam<::testing::tuple<std::string, std::string>> {};
 
-INSTANTIATE_TEST_CASE_P(Devices,
-                        NativeBackendTransferTest,
-                        ::testing::Values(std::make_tuple("native:0", "native:0"),  // native:0 <-> native:0
-                                          std::make_tuple("native:0", "native:1")   // native:0 <-> native:1
-                                          ));
+INSTANTIATE_TEST_CASE_P(
+        Devices,
+        NativeBackendTransferTest,
+        ::testing::Values(
+                std::make_tuple("native:0", "native:0"),  // native:0 <-> native:0
+                std::make_tuple("native:0", "native:1")   // native:0 <-> native:1
+                ));
 
 TEST_P(NativeBackendTransferTest, SupportsTransfer) {
     Context ctx;
@@ -199,7 +201,7 @@ TEST_P(NativeBackendTransferTest, ArrayToDevice) {
         EXPECT_EQ(a.data().get(), b.data().get()) << "Array::ToDevice() must return alias when transferring to the same native device.";
     } else {
         EXPECT_NE(a.data().get(), b.data().get())
-            << "Array::ToDevice() must not return alias when transferring to a different native device.";
+                << "Array::ToDevice() must not return alias when transferring to a different native device.";
     }
     ExpectArraysEqual(a, b);
 }
