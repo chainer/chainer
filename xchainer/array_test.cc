@@ -1170,6 +1170,32 @@ TEST_P(ArrayTest, MulBackward) {
     EXPECT_FALSE(gb.IsGradRequired());
 }
 
+/*
+TEST_P(ArrayTest, AddAtBackward) {
+    CheckBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                std::vector<ArrayIndex> indices{1, Slice{1, 3}};
+                return {xs[0].AddAt(indices, xs[1])};
+            },
+            {testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f}).RequireGrad(), testing::MakeArray({2}, {-1.f, 2.f}).RequireGrad()},
+            {Array::Ones({2, 3}, Dtype::kFloat32)},
+            {Array::Full({2, 3}, 1e-3f), Array::Full({2}, 1e-3f)});
+}
+
+TEST_P(ArrayTest, AddAtDoubleBackward) {
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                std::vector<ArrayIndex> indices{1, Slice{0, 2}};
+                auto y = xs[0].AddAt(indices, xs[1]);
+                return {y * y};  // to make it nonlinear
+            },
+            {testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f}).RequireGrad(), testing::MakeArray({2}, {-1.f, 2.f}).RequireGrad()},
+            {Array::Ones({2, 3}, Dtype::kFloat32)},
+            {Array::Ones({2, 3}, Dtype::kFloat32).RequireGrad(), Array::Ones({2}, Dtype::kFloat32).RequireGrad()},
+            {Array::Full({2, 3}, 1e-3f), Array::Full({2}, 1e-3f), Array::Full({2}, 1e-3)});
+}
+*/
+
 TEST_P(ArrayTest, MulBackwardCapture) {
     Array y = [this]() {
         Array x1 = testing::MakeArray<float>({1}, {2.0f});

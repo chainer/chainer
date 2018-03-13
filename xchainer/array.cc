@@ -173,6 +173,12 @@ Array Array::operator*(const Array& rhs) const {
     return out;
 }
 
+Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const {
+    Array out = Array::ZerosLike(*this, device());
+    AddAt(indices, addend, out);
+    return out;
+}
+
 Array Array::Transpose() const {
     Shape out_shape{shape().rbegin(), shape().rend()};
     Strides out_strides{strides().rbegin(), strides().rend()};
@@ -225,8 +231,7 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
 
     auto backward_function = [ indices, other = *this ](const Array& gout, const std::vector<GraphId>&) {
         Array gin = Array::ZerosLike(other, other.device());
-        gout.AddAt(indices, gin);
-        return gin;
+        return gin.AddAt(indices, gout);
     };
 
     internal::SetUpOpNodes("get_item", {*this}, out, {backward_function});
@@ -365,12 +370,21 @@ void Array::Mul(const Array& rhs, Array& out) const {
     device().Mul(*this, rhs, out);
 }
 
-void Array::AddAt(const std::vector<ArrayIndex>& indices, Array& out) const {
-    internal::SetUpOpNodes(
-            "add_at", {*this}, out, {[indices](const Array& gout, const std::vector<GraphId>&) { return gout.GetItem(indices); }});
-
+void Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend, Array& out) const {
+    Array this_view = this->GetItem(indices);
     Array out_view = out.GetItem(indices);
-    device().Add(*this, out_view, out_view);
+
+    // TODO(sonots): dtype conversion
+    CheckEqual(dtype(), addend.dtype());
+    // TODO(sonots): broadcasting
+    CheckEqual(this_view.shape(), addend.shape());
+    CheckEqual(out_view.shape(), addend.shape());
+
+    auto this_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
+    auto addend_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.GetItem(indices); };
+    internal::SetUpOpNodes("add_at", {*this, addend}, out, {this_backward_function, addend_backward_function});
+
+    device().Add(this_view, addend, out_view);
 }
 
 namespace {

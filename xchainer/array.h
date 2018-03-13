@@ -94,6 +94,11 @@ public:
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
 
+    // Returns an array where elements specified indices are addend.
+    //
+    // The original values of this array are not changed.
+    Array AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const;
+
     // Returns a transposed view of the array.
     Array Transpose() const;
 
@@ -182,7 +187,7 @@ private:
     void Add(const Array& rhs, Array& out) const;
     void Mul(const Array& rhs, Array& out) const;
 
-    void AddAt(const std::vector<ArrayIndex>& indices, Array& out) const;
+    void AddAt(const std::vector<ArrayIndex>& indices, const Array& addend, Array& out) const;
 
     std::shared_ptr<internal::ArrayBody> body_;
 };
