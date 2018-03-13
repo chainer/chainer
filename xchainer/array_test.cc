@@ -992,17 +992,6 @@ TEST_P(ArrayTest, TransposeDoubleBackward) {
             {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
 }
 
-TEST_P(ArrayTest, Reshape) {
-    Array a = testing::MakeArray<int32_t>({2, 3}, {0, 1, 2, 3, 4, 5});
-    Array b = a.Transpose();
-
-    EXPECT_EQ(Shape({3, 2}), b.shape());
-    EXPECT_EQ(Strides({4, 12}), b.strides());
-
-    Array e = testing::MakeArray<int32_t>({3, 2}, {0, 3, 1, 4, 2, 5});
-    ExpectEqual<int32_t>(e, b);
-}
-
 TEST_P(ArrayTest, Copy) {
     {
         Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
