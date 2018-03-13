@@ -35,7 +35,7 @@ void ExpectDataEqual(const Array& expected, const Array& actual) {
     IndexableArray<const T> expected_iarray{expected};
     IndexableArray<const T> actual_iarray{actual};
     Indexer<> indexer{actual.shape()};
-    for (int64_t i = 0; i < indexer.total_size(); i++) {
+    for (int64_t i = 0; i < indexer.total_size(); ++i) {
         indexer.Set(i);
         const auto& expected = expected_iarray[indexer];
         const auto& actual = actual_iarray[indexer];
@@ -52,7 +52,7 @@ void ExpectDataEqual(const T* expected_data, const Array& actual) {
     actual.device().Synchronize();
     IndexableArray<const T> actual_iarray{actual};
     Indexer<> indexer{actual.shape()};
-    for (int64_t i = 0; i < indexer.total_size(); i++) {
+    for (int64_t i = 0; i < indexer.total_size(); ++i) {
         indexer.Set(i);
         const auto& actual = actual_iarray[indexer];
         EXPECT_EQ(expected_data[i], actual) << "where i is " << i;
@@ -64,7 +64,7 @@ void ExpectDataEqual(T expected, const Array& actual) {
     actual.device().Synchronize();
     IndexableArray<const T> actual_iarray{actual};
     Indexer<> indexer{actual.shape()};
-    for (int64_t i = 0; i < indexer.total_size(); i++) {
+    for (int64_t i = 0; i < indexer.total_size(); ++i) {
         indexer.Set(i);
         const auto& actual = actual_iarray[indexer];
         if (std::isnan(expected)) {

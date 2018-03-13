@@ -215,7 +215,7 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
                             " with size " + std::to_string(dim));
                 }
                 out_offset += strides()[i_in] * ((index.index() + dim) % dim);
-                i_in++;
+                ++i_in;
                 break;
             }
             case ArrayIndexTag::kSlice: {
@@ -224,7 +224,7 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
                 out_offset += strides()[i_in] * slice.GetStart(shape()[i_in]);
                 out_shape.push_back(slice_length);
                 out_strides.push_back(strides()[i_in] * slice.step());
-                i_in++;
+                ++i_in;
                 break;
             }
             case ArrayIndexTag::kNewAxis:

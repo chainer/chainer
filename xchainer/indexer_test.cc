@@ -43,7 +43,7 @@ TEST(IndexerTest, Rank3) {
                 EXPECT_EQ(j, indexer.index()[1]);
                 EXPECT_EQ(k, indexer.index()[2]);
                 EXPECT_EQ(raw_i, indexer.raw_index());
-                raw_i++;
+                ++raw_i;
             }
         }
     }
@@ -87,7 +87,7 @@ TEST(DynamicIndexerTest, Rank3) {
                 EXPECT_EQ(j, indexer.index()[1]);
                 EXPECT_EQ(k, indexer.index()[2]);
                 EXPECT_EQ(raw_i, indexer.raw_index());
-                raw_i++;
+                ++raw_i;
             }
         }
     }
