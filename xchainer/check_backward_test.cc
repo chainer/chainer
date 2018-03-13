@@ -14,6 +14,8 @@
 #include "xchainer/array.h"
 #include "xchainer/check_backward.h"
 #include "xchainer/context.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/shape.h"
@@ -35,11 +37,13 @@ Arrays IncorrectBackwardUnaryFunc(const Arrays& inputs) {
 
     VisitDtype(in.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        int64_t total_size = in.GetTotalSize();
-        auto* ldata = static_cast<const T*>(in.data().get());
-        auto* odata = static_cast<T*>(out.data().get());
-        for (int64_t i = 0; i < total_size; i++) {
-            odata[i] = ldata[i];
+        IndexableArray<const T> in_iarray{in};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{out.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            out_iarray[indexer] = in_iarray[indexer];
         }
     });
 
@@ -61,12 +65,14 @@ Arrays IncorrectBackwardBinaryFunc(const Arrays& inputs) {
 
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        int64_t total_size = lhs.GetTotalSize();
-        auto* ldata = static_cast<const T*>(lhs.data().get());
-        auto* rdata = static_cast<const T*>(rhs.data().get());
-        auto* odata = static_cast<T*>(out.data().get());
-        for (int64_t i = 0; i < total_size; i++) {
-            odata[i] = ldata[i] * rdata[i];
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{out.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            out_iarray[indexer] = lhs_iarray[indexer] * rhs_iarray[indexer];
         }
     });
 
