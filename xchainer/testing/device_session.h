@@ -11,7 +11,7 @@ namespace testing {
 
 class DeviceSession {
 public:
-    DeviceSession(const DeviceId& device_id) : device_{context_session_.context().GetDevice(device_id)}, device_scope_{device_} {}
+    explicit DeviceSession(const DeviceId& device_id) : device_{context_session_.context().GetDevice(device_id)}, device_scope_{device_} {}
 
     Device& device() { return device_; }
 
