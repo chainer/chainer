@@ -9,20 +9,14 @@ namespace internal {
 namespace py = pybind11;
 
 Slice MakeSlice(const py::slice& slice) {
-    const auto* py_slice_obj = reinterpret_cast<const PySliceObject*>(slice.ptr());  // NOLINT: reinterpret_cast
-    nonstd::optional<int64_t> start;
-    nonstd::optional<int64_t> stop;
-    nonstd::optional<int64_t> step;
-    if (py_slice_obj->start != Py_None) {
-        start.emplace(py::cast<int64_t>(py_slice_obj->start));
-    }
-    if (py_slice_obj->stop != Py_None) {
-        stop.emplace(py::cast<int64_t>(py_slice_obj->stop));
-    }
-    if (py_slice_obj->step != Py_None) {
-        step.emplace(py::cast<int64_t>(py_slice_obj->step));
-    }
-    return Slice{start, stop, step};
+    const auto* py_slice = reinterpret_cast<const PySliceObject*>(slice.ptr());  // NOLINT: reinterpret_cast
+    auto to_optional = [](PyObject* var) -> nonstd::optional<int64_t> {
+        if (var == Py_None) {
+            return nonstd::nullopt;
+        }
+        return py::cast<int64_t>(var);
+    };
+    return Slice{to_optional(py_slice->start), to_optional(py_slice->stop), to_optional(py_slice->step)};
 }
 
 }  // namespace internal
