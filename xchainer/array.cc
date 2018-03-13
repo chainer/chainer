@@ -249,7 +249,7 @@ Array Array::Reshape(const Shape& shape) const {
             reduced_shape.push_back(in_shape[0]);
             reduced_strides.push_back(in_strides[0]);
             // Reduce the remaining
-            for (int i = 1; i < in_shape.ndim(); ++i) {
+            for (int8_t i = 1; i < in_shape.ndim(); ++i) {
                 int64_t dim = in_shape[i];
                 int64_t st = in_strides[i];
                 Expects(dim > 0);
