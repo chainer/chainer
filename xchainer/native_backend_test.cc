@@ -1,6 +1,7 @@
 #include "xchainer/native_backend.h"
 
 #include <cstring>
+#include <tuple>
 
 #include <gtest/gtest.h>
 
