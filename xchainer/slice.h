@@ -4,6 +4,8 @@
 
 #include <nonstd/optional.hpp>
 
+#include "xchainer/error.h"
+
 namespace xchainer {
 
 class Slice {
