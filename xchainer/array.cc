@@ -369,7 +369,8 @@ void Array::AddAt(const std::vector<ArrayIndex>& indices, Array& out) const {
     internal::SetUpOpNodes(
             "add_at", {*this}, out, {[indices](const Array& gout, const std::vector<GraphId>&) { return gout.GetItem(indices); }});
 
-    device().AddAt(*this, indices, out);
+    Array out_view = out.GetItem(indices);
+    device().Add(*this, out_view, out_view);
 }
 
 namespace {

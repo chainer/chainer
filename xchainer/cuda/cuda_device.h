@@ -32,8 +32,6 @@ public:
     void Add(const Array& lhs, const Array& rhs, Array& out) override;
     void Mul(const Array& lhs, const Array& rhs, Array& out) override;
 
-    void AddAt(const Array& in, const std::vector<ArrayIndex>& indices, Array& out) override;
-
     void Synchronize() override;
 };
 

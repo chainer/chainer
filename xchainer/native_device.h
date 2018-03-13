@@ -2,10 +2,8 @@
 
 #include <memory>
 #include <tuple>
-#include <vector>
 
 #include "xchainer/array.h"
-#include "xchainer/array_index.h"
 #include "xchainer/device.h"
 #include "xchainer/native_backend.h"
 
@@ -35,8 +33,6 @@ public:
 
     void Add(const Array& lhs, const Array& rhs, Array& out) override;
     void Mul(const Array& lhs, const Array& rhs, Array& out) override;
-
-    void AddAt(const Array& in, const std::vector<ArrayIndex>& indices, Array& out) override;
 
     void Synchronize() override;
 };
