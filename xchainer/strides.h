@@ -38,7 +38,7 @@ public:
     }
 
     // by gsl:span
-    Strides(gsl::span<const int64_t> dims) : Strides{dims.begin(), dims.end()} {}
+    explicit Strides(gsl::span<const int64_t> dims) : Strides{dims.begin(), dims.end()} {}
 
     // by initializer list
     Strides(std::initializer_list<int64_t> dims) : Strides{dims.begin(), dims.end()} {}
