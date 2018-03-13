@@ -174,8 +174,23 @@ Array Array::operator*(const Array& rhs) const {
 }
 
 Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const {
-    Array out = Array::ZerosLike(*this, device());
-    AddAt(indices, addend, out);
+    // TODO(sonots): dtype conversion
+    CheckEqual(dtype(), addend.dtype());
+
+    Array out = this->AsConstant(CopyKind::kView);
+    Array this_view = this->GetItem(indices);
+    Array out_view = out.GetItem(indices);
+
+    // TODO(sonots): broadcasting
+    CheckEqual(this_view.shape(), addend.shape());
+    CheckEqual(out_view.shape(), addend.shape());
+
+    auto this_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
+    auto addend_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.GetItem(indices); };
+    internal::SetUpOpNodes("add_at", {*this, addend}, out, {this_backward_function, addend_backward_function});
+
+    device().Add(addend, out_view, out_view);
+
     return out;
 }
 
@@ -368,24 +383,6 @@ void Array::Mul(const Array& rhs, Array& out) const {
     internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     device().Mul(*this, rhs, out);
-}
-
-void Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend, Array& out) const {
-    Array this_view = this->GetItem(indices);
-    Array out_view = out.GetItem(indices);
-
-    // TODO(sonots): dtype conversion
-    CheckEqual(dtype(), addend.dtype());
-    // TODO(sonots): broadcasting
-    CheckEqual(this_view.shape(), addend.shape());
-    CheckEqual(out_view.shape(), addend.shape());
-
-    auto this_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
-    auto addend_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.GetItem(indices); };
-    internal::SetUpOpNodes("add_at", {*this, addend}, out, {this_backward_function, addend_backward_function});
-
-    device().Add(*this, out, out);
-    device().Add(addend, out_view, out_view);
 }
 
 namespace {
