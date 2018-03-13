@@ -1419,24 +1419,23 @@ INSTANTIATE_TEST_CASE_P(
         ForEachInputs,
         ArrayReshapeTest,
         ::testing::Values(
-                ArrayReshapeTestParam{{}, {}},                //
-                ArrayReshapeTestParam{{0}, {0}},              //
-                ArrayReshapeTestParam{{1}, {1}},              //
-                ArrayReshapeTestParam{{5}, {5}},              //
-                ArrayReshapeTestParam{{2, 3}, {2, 3}},        //
-                ArrayReshapeTestParam{{1}, {}},               //
-                ArrayReshapeTestParam{{1}, {}},               //
-                ArrayReshapeTestParam{{}, {1}},               //
-                ArrayReshapeTestParam{{1, 1}, {}},            //
-                ArrayReshapeTestParam{{}, {1, 1}},            //
-                ArrayReshapeTestParam{{6}, {2, 3}},           //
-                ArrayReshapeTestParam{{2, 3}, {6}},           //
-                ArrayReshapeTestParam{{2, 0, 3}, {5, 0, 7}},  //
-                ArrayReshapeTestParam{{5}, {1, 1, 5, 1, 1}},  //
-                ArrayReshapeTestParam{{1, 1, 5, 1, 1}, {5}},  //
-                ArrayReshapeTestParam{{2, 3}, {3, 2}},        //
-                ArrayReshapeTestParam{{2, 3, 4}, {3, 4, 2}}   //
-                ));
+                ArrayReshapeTestParam{{}, {}},
+                ArrayReshapeTestParam{{0}, {0}},
+                ArrayReshapeTestParam{{1}, {1}},
+                ArrayReshapeTestParam{{5}, {5}},
+                ArrayReshapeTestParam{{2, 3}, {2, 3}},
+                ArrayReshapeTestParam{{1}, {}},
+                ArrayReshapeTestParam{{1}, {}},
+                ArrayReshapeTestParam{{}, {1}},
+                ArrayReshapeTestParam{{1, 1}, {}},
+                ArrayReshapeTestParam{{}, {1, 1}},
+                ArrayReshapeTestParam{{6}, {2, 3}},
+                ArrayReshapeTestParam{{2, 3}, {6}},
+                ArrayReshapeTestParam{{2, 0, 3}, {5, 0, 7}},
+                ArrayReshapeTestParam{{5}, {1, 1, 5, 1, 1}},
+                ArrayReshapeTestParam{{1, 1, 5, 1, 1}, {5}},
+                ArrayReshapeTestParam{{2, 3}, {3, 2}},
+                ArrayReshapeTestParam{{2, 3, 4}, {3, 4, 2}}));
 
 }  // namespace
 }  // namespace xchainer
