@@ -384,7 +384,8 @@ void Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend, A
     auto addend_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.GetItem(indices); };
     internal::SetUpOpNodes("add_at", {*this, addend}, out, {this_backward_function, addend_backward_function});
 
-    device().Add(this_view, addend, out_view);
+    device().Add(*this, out, out);
+    device().Add(addend, out_view, out_view);
 }
 
 namespace {
