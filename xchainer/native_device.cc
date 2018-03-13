@@ -25,7 +25,7 @@ void NativeDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Dev
 std::tuple<std::shared_ptr<void>, size_t> NativeDevice::TransferDataFrom(
         Device& src_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) {
     std::shared_ptr<void> dst_ptr = Allocate(bytesize);
-    MemoryCopyFrom(dst_ptr.get(), &static_cast<int8_t*>(src_ptr.get())[offset], bytesize, src_device);
+    MemoryCopyFrom(dst_ptr.get(), &(static_cast<int8_t*>(src_ptr.get())[offset]), bytesize, src_device);
     return std::make_tuple(std::move(dst_ptr), 0);
 }
 
