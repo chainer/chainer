@@ -11,7 +11,6 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
 #include "xchainer/check_backward.h"
