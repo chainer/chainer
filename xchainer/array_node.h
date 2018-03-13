@@ -26,7 +26,7 @@ public:
 
     const nonstd::optional<Array>& grad() const noexcept { return grad_; }
 
-    void set_grad(Array grad) { grad_.emplace(std::move(grad)); };
+    void set_grad(Array grad) { grad_.emplace(std::move(grad)); }
 
     GraphId graph_id() const { return graph_id_; }
 
