@@ -15,28 +15,32 @@ void CheckSpanEqual(std::initializer_list<int64_t> expect, gsl::span<const int64
 }
 
 TEST(ShapeTest, Ctor) {
-    {
-        const Shape shape = {2, 3, 4};
+    {  // Default ctor
+        const Shape shape{};
+        EXPECT_EQ(0, shape.ndim());
+    }
+    {  // From std::initializer_list
+        const Shape shape{2, 3, 4};
         EXPECT_EQ(3, shape.ndim());
         EXPECT_EQ(size_t{3}, shape.size());
         CheckSpanEqual({2, 3, 4}, shape.span());
         EXPECT_EQ(2 * 3 * 4, shape.GetTotalSize());
     }
-    {
-        const std::array<int64_t, 3> dims = {2, 3, 4};
-        const Shape shape(gsl::make_span(dims));
+    {  // From gsl::span
+        const std::array<int64_t, 3> dims{2, 3, 4};
+        const Shape shape{gsl::make_span(dims)};
         EXPECT_EQ(3, shape.ndim());
         CheckSpanEqual({2, 3, 4}, shape.span());
     }
-    {
-        const std::vector<int64_t> dims = {2, 3, 4};
-        const Shape shape(dims.begin(), dims.end());
+    {  // From iterators
+        const std::vector<int64_t> dims{2, 3, 4};
+        const Shape shape{dims.begin(), dims.end()};
         EXPECT_EQ(3, shape.ndim());
         CheckSpanEqual({2, 3, 4}, shape.span());
     }
-    {
-        const std::array<int64_t, kMaxNdim + 1> too_long = {1};
-        EXPECT_THROW(Shape(gsl::make_span(too_long)), DimensionError);
+    {  // Too many dimensions
+        const std::array<int64_t, kMaxNdim + 1> too_long{1};
+        EXPECT_THROW(Shape{gsl::make_span(too_long)}, DimensionError);
     }
 }
 

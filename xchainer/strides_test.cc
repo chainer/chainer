@@ -12,39 +12,43 @@ void CheckSpanEqual(std::initializer_list<int64_t> expect, gsl::span<const int64
 }
 
 TEST(StridesTest, Ctor) {
-    {
-        const Strides strides = {48, 16, 4};
+    {  // Default ctor
+        const Strides strides{};
+        EXPECT_EQ(0, strides.ndim());
+    }
+    {  // From std::initializer_list
+        const Strides strides{48, 16, 4};
         EXPECT_EQ(3, strides.ndim());
         EXPECT_EQ(size_t{3}, strides.size());
         CheckSpanEqual({48, 16, 4}, strides.span());
     }
-    {
-        const std::array<int64_t, 3> dims = {48, 16, 4};
-        const Strides strides(gsl::make_span(dims));
+    {  // From gsl::span
+        const std::array<int64_t, 3> dims{48, 16, 4};
+        const Strides strides{gsl::make_span(dims)};
         EXPECT_EQ(3, strides.ndim());
         CheckSpanEqual({48, 16, 4}, strides.span());
     }
-    {
-        const std::vector<int64_t> dims = {48, 16, 4};
-        const Strides strides(dims.begin(), dims.end());
+    {  // From iterators
+        const std::vector<int64_t> dims{48, 16, 4};
+        const Strides strides{dims.begin(), dims.end()};
         EXPECT_EQ(3, strides.ndim());
         CheckSpanEqual({48, 16, 4}, strides.span());
     }
-    {
+    {  // From shape and element size
         const Strides strides{{2, 3, 4}, 4};
         EXPECT_EQ(3, strides.ndim());
         EXPECT_EQ(size_t{3}, strides.size());
         CheckSpanEqual({48, 16, 4}, strides.span());
     }
-    {
+    {  // From shape and dtype
         const Strides strides{{2, 3, 4}, Dtype::kInt32};
         EXPECT_EQ(3, strides.ndim());
         EXPECT_EQ(size_t{3}, strides.size());
         CheckSpanEqual({48, 16, 4}, strides.span());
     }
-    {
-        const std::array<int64_t, kMaxNdim + 1> too_long = {1};
-        EXPECT_THROW(Strides(gsl::make_span(too_long)), DimensionError);
+    {  // Too many dimensions
+        const std::array<int64_t, kMaxNdim + 1> too_long{1};
+        EXPECT_THROW(Strides{gsl::make_span(too_long)}, DimensionError);
     }
 }
 
