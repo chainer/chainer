@@ -1,10 +1,13 @@
 #include "xchainer/array.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <initializer_list>
+#include <limits>
 #include <numeric>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 
