@@ -235,6 +235,60 @@ def test_transpose(array_init_inputs):
     _check_transpose(array.T)
 
 
+def test_transpose(array_init_inputs):
+    shape_tup, dtype = array_init_inputs
+    shape = xchainer.Shape(shape_tup)
+    data_list = _create_dummy_data(shape_tup, dtype)
+
+    array = xchainer.Array(shape, dtype, data_list)
+
+    def _check_transpose(array_transpose):
+        assert xchainer.Shape(shape_tup[::-1]) == array_transpose.shape
+        assert array.dtype == array_transpose.dtype
+        assert array.element_bytes == array_transpose.element_bytes
+        assert array.total_size == array_transpose.total_size
+        assert array.total_bytes == array_transpose.total_bytes
+        _check_arrays_equal(array, array_transpose.transpose())
+
+    _check_transpose(array.transpose())
+    _check_transpose(array.T)
+
+
+@pytest.mark.parametrize('a_shape,b_shape', [
+    ((0,), (0,)),
+    ((1,), (1,)),
+    ((5,), (5,)),
+    ((2, 3), (2, 3)),
+    ((6,), (2, 3)),
+    ((2, 3), (6,)),
+    ((2, 0, 3), (5, 0, 7)),
+    ((5,), (1, 1, 5, 1, 1)),
+    ((1, 1, 5, 1, 1), (5,)),
+    ((2, 3), (3, 2)),
+    ((2, 3, 4), (3, 4, 2)),
+])
+def test_reshape(a_shape, b_shape):
+    size = functools.reduce(operator.mul, a_shape, 1)
+    dtype = numpy.float32
+
+    a_np = numpy.arange(size, dtype=dtype).reshape(a_shape)
+    b_np = a_np.reshape(b_shape)
+
+    a_xc = xchainer.Array(a_np)
+
+    def check(b_xc):
+        assert b_np.shape == b_xc.shape
+        assert b_np.strides == b_xc.strides
+        _check_arrays_equal(xchainer.Array(b_np), b_xc)
+
+    # by shape
+    check(a_xc.reshape(xchainer.Shape(b_shape)))
+    # by tuple
+    check(a_xc.reshape(b_shape))
+    # by variable length args
+    check(a_xc.reshape(*b_shape))
+
+
 def test_copy(array_init_inputs):
     shape_tup, dtype = array_init_inputs
 
