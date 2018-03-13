@@ -13,14 +13,14 @@ namespace xchainer {
 // Type safe, dynamically typed scalar value.
 class Scalar {
 public:
-    Scalar(bool v) : bool_(v), dtype_(Dtype::kBool) {}
-    Scalar(int8_t v) : int8_(v), dtype_(Dtype::kInt8) {}
-    Scalar(int16_t v) : int16_(v), dtype_(Dtype::kInt16) {}
-    Scalar(int32_t v) : int32_(v), dtype_(Dtype::kInt32) {}
-    Scalar(int64_t v) : int64_(v), dtype_(Dtype::kInt64) {}
-    Scalar(uint8_t v) : uint8_(v), dtype_(Dtype::kUInt8) {}
-    Scalar(float v) : float32_(v), dtype_(Dtype::kFloat32) {}
-    Scalar(double v) : float64_(v), dtype_(Dtype::kFloat64) {}
+    Scalar(bool v) : bool_(v), dtype_(Dtype::kBool) {}          // NOLINT: runtime/explicit
+    Scalar(int8_t v) : int8_(v), dtype_(Dtype::kInt8) {}        // NOLINT: runtime/explicit
+    Scalar(int16_t v) : int16_(v), dtype_(Dtype::kInt16) {}     // NOLINT: runtime/explicit
+    Scalar(int32_t v) : int32_(v), dtype_(Dtype::kInt32) {}     // NOLINT: runtime/explicit
+    Scalar(int64_t v) : int64_(v), dtype_(Dtype::kInt64) {}     // NOLINT: runtime/explicit
+    Scalar(uint8_t v) : uint8_(v), dtype_(Dtype::kUInt8) {}     // NOLINT: runtime/explicit
+    Scalar(float v) : float32_(v), dtype_(Dtype::kFloat32) {}   // NOLINT: runtime/explicit
+    Scalar(double v) : float64_(v), dtype_(Dtype::kFloat64) {}  // NOLINT: runtime/explicit
 
     template <typename T>
     Scalar(T v, Dtype dtype) : dtype_(dtype) {
