@@ -179,9 +179,9 @@ public:
 
     int64_t offset() const { return body_->offset_; }
 
-    const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return body_->nodes_; };
+    const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return body_->nodes_; }
 
-    std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; };
+    std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; }
 
 private:
     friend Array internal::ArrayFromBuffer(
