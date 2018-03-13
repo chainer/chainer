@@ -123,10 +123,9 @@ INSTANTIATE_TEST_CASE_P(
         Devices,
         CudaBackendTransferTest,
         ::testing::Values(
-                std::make_tuple("cuda:0", "cuda:0"),   // cuda:0 <-> cuda:0
-                std::make_tuple("cuda:0", "cuda:1"),   // cuda:0 <-> cuda:1
-                std::make_tuple("cuda:0", "native:0")  // cuda:0 <-> native:0
-                ));
+                std::make_tuple("cuda:0", "cuda:0"),      // cuda:0 <-> cuda:0
+                std::make_tuple("cuda:0", "cuda:1"),      // cuda:0 <-> cuda:1
+                std::make_tuple("cuda:0", "native:0")));  // cuda:0 <-> native:0
 
 TEST_P(CudaBackendTransferTest, SupportsTransfer) {
     Context ctx;
