@@ -68,7 +68,9 @@ def snapshot(savefun=npz.save_npz,
             output file path and the trainer object.
         filename (str): Name of the file into which the trainer is serialized.
             It can be a format string, where the trainer object is passed to
-            the :meth:`str.format` method.
+            the :meth:`str.format` method. Permission of the target file will
+            be OS default. See :meth:`umask` command to confirm the default
+            permission.
 
     """
     @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
@@ -82,6 +84,9 @@ def _snapshot_object(trainer, target, filename, savefun):
     fn = filename.format(trainer)
     prefix = 'tmp' + fn
     fd, tmppath = tempfile.mkstemp(prefix=prefix, dir=trainer.out)
+    umask = os.umask(0)
+    os.umask(umask)
+    os.chmod(tmppath, 0o666 & ~umask)
     try:
         savefun(tmppath, target)
     except Exception:
