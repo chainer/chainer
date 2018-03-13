@@ -184,6 +184,7 @@ jobs:
             popd
 
       # Python test
+      # NOTE: `python setup.py build` should be done after `make` so that we can reuse compiled object files.
       - run:
           name: Python test
           command: |
