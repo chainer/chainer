@@ -113,6 +113,11 @@ TEST(ShapeTest, IsContiguous) {
         EXPECT_FALSE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat64)));
     }
     {
+        Shape shape{2, 3};
+        Strides strides{12, 4};
+        EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
         Shape shape{2, 3, 4};
         Strides strides{48, 16, 4};
         EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
@@ -120,6 +125,71 @@ TEST(ShapeTest, IsContiguous) {
     {
         Shape shape{2, 3, 4};
         Strides strides{32, 16, 4};
+        EXPECT_FALSE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{};
+        Strides strides{};
+        EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{0};
+        Strides strides{8};
+        EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{0, 0};
+        Strides strides{24, 8};
+        EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{1, 2};
+        Strides strides{12, 4};
+        EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{1, 3};
+        Strides strides{-12, 4};
+        EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{1, 2, 4};
+        Strides strides{48, 16, 4};
+        EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{1, 3};
+        Strides strides{0, 4};
+        EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{1, 1, 2, 3};
+        Strides strides{0, 0, 12, 4};
+        EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{1, 1, 2, 3};
+        Strides strides{240, 80, 20, 4};
+        EXPECT_FALSE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{1, 1, 2};
+        Strides strides{48, 16, 4};
+        EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{1, 2};
+        Strides strides{0, 4};
+        EXPECT_TRUE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{2, 2};
+        Strides strides{16, 4};
+        EXPECT_FALSE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
+    }
+    {
+        Shape shape{2, 1, 2};
+        Strides strides{48, 16, 4};
         EXPECT_FALSE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
     }
 }
