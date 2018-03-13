@@ -170,7 +170,11 @@ void CheckDoubleBackwardComputation(
     std::ostringstream failure_os;
     const int n_backward_grads = backward_grads.size();
     for (int i = 0; i < n_backward_grads; ++i) {
-        if (!AllClose(*backward_grads[i], numerical_grads[i], atol, rtol)) {
+        if (!backward_grads[i].has_value()) {
+            failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
+                       << "Graph name: " << graph_id << "\n"
+                       << "Missing gradients. Maybe the given function was not twice differentiable.";
+        } else if (!AllClose(*backward_grads[i], numerical_grads[i], atol, rtol)) {
             failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
                        << "Graph name: " << graph_id << "\n"
                        << "Atol: " << atol << "\n"
