@@ -1425,7 +1425,6 @@ INSTANTIATE_TEST_CASE_P(
                 ArrayReshapeTestParam{{5}, {5}},
                 ArrayReshapeTestParam{{2, 3}, {2, 3}},
                 ArrayReshapeTestParam{{1}, {}},
-                ArrayReshapeTestParam{{1}, {}},
                 ArrayReshapeTestParam{{}, {1}},
                 ArrayReshapeTestParam{{1, 1}, {}},
                 ArrayReshapeTestParam{{}, {1, 1}},
