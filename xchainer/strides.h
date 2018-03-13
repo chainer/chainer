@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <initializer_list>
+#include <iterator>
 #include <sstream>
 
 #include <gsl/gsl>
@@ -29,7 +30,7 @@ public:
 
     // by iterators
     template <typename InputIt>
-    Strides(InputIt first, InputIt last) : dims_{}, ndim_{gsl::narrow_cast<int8_t>(last - first)} {
+    Strides(InputIt first, InputIt last) : dims_{}, ndim_{gsl::narrow_cast<int8_t>(std::distance(first, last))} {
         CheckNdim();
         std::copy(first, last, dims_.begin());
     }
