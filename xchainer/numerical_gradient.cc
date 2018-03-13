@@ -33,7 +33,7 @@ Array& Subtract(const Array& lhs, const Array& rhs, Array& out) {
         IndexableArray<T> out_iarray{out};
         Indexer<> indexer{out.shape()};
 
-        for (int64_t i = 0; i < indexer.total_size(); i++) {
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
             out_iarray[indexer] = lhs_iarray[indexer] - rhs_iarray[indexer];
         }
@@ -53,7 +53,7 @@ Array& Divide(const Array& lhs, const Array& rhs, Array& out) {
         IndexableArray<T> out_iarray{out};
         Indexer<> indexer{out.shape()};
 
-        for (int64_t i = 0; i < indexer.total_size(); i++) {
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
             out_iarray[indexer] = lhs_iarray[indexer] / rhs_iarray[indexer];
         }
@@ -82,7 +82,7 @@ Scalar Sum(const Array& array) {
         Indexer<> indexer{array.shape()};
 
         T s = 0;
-        for (int64_t i = 0; i < indexer.total_size(); i++) {
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
             s += iarray[indexer];
         }

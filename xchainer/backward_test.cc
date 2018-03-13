@@ -68,7 +68,7 @@ public:
         auto total_size = expected.shape().GetTotalSize();
         const T* expected_data = static_cast<const T*>(expected.data().get());
         const T* actual_data = static_cast<const T*>(actual.data().get());
-        for (decltype(total_size) i = 0; i < total_size; i++) {
+        for (decltype(total_size) i = 0; i < total_size; ++i) {
             EXPECT_EQ(expected_data[i], actual_data[i]);
         }
     }

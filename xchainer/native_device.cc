@@ -46,7 +46,7 @@ void NativeDevice::Fill(Array& out, Scalar value) {
 
         IndexableArray<T> out_iarray{out};
         Indexer<> indexer{out.shape()};
-        for (int64_t i = 0; i < indexer.total_size(); i++) {
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
             out_iarray[indexer] = c_value;
         }
@@ -61,7 +61,7 @@ void NativeDevice::Copy(const Array& src, Array& out) {
         IndexableArray<T> out_iarray{out};
         Indexer<> indexer{src.shape()};
 
-        for (int64_t i = 0; i < indexer.total_size(); i++) {
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
             out_iarray[indexer] = src_iarray[indexer];
         }
@@ -77,7 +77,7 @@ void NativeDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
         IndexableArray<T> out_iarray{out};
         Indexer<> indexer{lhs.shape()};
 
-        for (int64_t i = 0; i < indexer.total_size(); i++) {
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
             out_iarray[indexer] = lhs_iarray[indexer] + rhs_iarray[indexer];
         }
@@ -93,7 +93,7 @@ void NativeDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
         IndexableArray<T> out_iarray{out};
         Indexer<> indexer{lhs.shape()};
 
-        for (int64_t i = 0; i < indexer.total_size(); i++) {
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
             out_iarray[indexer] = lhs_iarray[indexer] * rhs_iarray[indexer];
         }
