@@ -173,6 +173,25 @@ Array Array::operator*(const Array& rhs) const {
     return out;
 }
 
+Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const {
+    // TODO(sonots): dtype conversion
+    CheckEqual(dtype(), addend.dtype());
+
+    Array out = this->AsConstant(CopyKind::kCopy);
+    Array out_view = out.GetItem(indices);
+
+    // TODO(sonots): broadcasting
+    CheckEqual(out_view.shape(), addend.shape());
+
+    device().Add(addend, out_view, out_view);
+
+    auto this_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
+    auto addend_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.GetItem(indices); };
+    internal::SetUpOpNodes("add_at", {*this, addend}, out, {this_backward_function, addend_backward_function});
+
+    return out;
+}
+
 Array Array::Transpose() const {
     Shape out_shape{shape().rbegin(), shape().rend()};
     Strides out_strides{strides().rbegin(), strides().rend()};
@@ -220,7 +239,16 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
         out_shape.push_back(shape()[i]);
         out_strides.push_back(strides()[i]);
     }
-    return {{out_shape.begin(), out_shape.end()}, {out_strides.begin(), out_strides.end()}, dtype(), device(), body_->data_, out_offset};
+
+    Array out{{out_shape.begin(), out_shape.end()}, {out_strides.begin(), out_strides.end()}, dtype(), device(), body_->data_, out_offset};
+
+    auto backward_function = [ indices, other = *this ](const Array& gout, const std::vector<GraphId>&) {
+        Array gin = Array::ZerosLike(other, other.device());
+        return gin.AddAt(indices, gout);
+    };
+    internal::SetUpOpNodes("get_item", {*this}, out, {backward_function});
+
+    return out;
 }
 
 Array Array::Copy() const {

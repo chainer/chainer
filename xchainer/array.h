@@ -94,6 +94,11 @@ public:
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
 
+    // Returns an array where elements at indices are added by the addends.
+    //
+    // The original values of this array are not altered.
+    Array AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const;
+
     // Returns a transposed view of the array.
     Array Transpose() const;
 
