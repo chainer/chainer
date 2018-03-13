@@ -283,6 +283,7 @@ class TestMultipleAdd(unittest.TestCase):
 
     def check_backward(self, func, x1_data, x2_data, x3_data, y_grad,
                        backend_config):
+        # convert to cupy.ndarray for GPU tests
         if backend_config.use_cuda:
             x1_data, x2_data, x3_data, y_grad = cuda.to_gpu(
                 (x1_data, x2_data, x3_data, y_grad))
