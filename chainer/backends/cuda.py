@@ -144,12 +144,6 @@ if available:
 
 
 _integer_types = six.integer_types + (numpy.integer,)
-if six.PY2:
-    try:
-        from future.types.newint import newint as _newint
-        _integer_types += (_newint,)
-    except ImportError:
-        pass
 
 
 # ------------------------------------------------------------------------------
