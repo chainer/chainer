@@ -12,6 +12,8 @@
 #include "xchainer/backward.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/native_device.h"
 #include "xchainer/testing/context_session.h"
@@ -126,11 +128,13 @@ void ExpectArraysEqual(const Array& expected, const Array& actual) {
     EXPECT_EQ(expected.shape(), actual.shape());
     VisitDtype(expected.dtype(), [&expected, &actual](auto pt) {
         using T = typename decltype(pt)::type;
-        int64_t total_size = expected.GetTotalSize();
-        const T* data1 = static_cast<const T*>(expected.data().get());
-        const T* data2 = static_cast<const T*>(actual.data().get());
-        for (int64_t i = 0; i < total_size; ++i) {
-            EXPECT_EQ(data1[i], data2[i]);
+        IndexableArray<const T> expected_iarray{expected};
+        IndexableArray<const T> actual_iarray{actual};
+        Indexer<> indexer{expected.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            EXPECT_EQ(expected_iarray[indexer], actual_iarray[indexer]);
         }
     });
 }
@@ -157,6 +161,32 @@ TEST_P(ArrayToDeviceCompatibleTest, ToDevice) {
     }
     EXPECT_EQ(internal::GetDefaultDeviceNoExcept(), default_device) << "Array::ToDevice must not alter the default device.";
     ExpectArraysEqual(a, b);
+}
+
+TEST_P(ArrayToDeviceCompatibleTest, ToDeviceNonContiguous) {
+    Device& src_dev = GetSourceDevice();
+    Device& dst_dev = GetDestinationDevice();
+    Device* default_device = internal::GetDefaultDeviceNoExcept();
+
+    // Allocate the source array
+    float data[] = {1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f};
+    auto nop = [](void* p) {
+        (void)p;  // unused
+    };
+    Array a = Array::FromBuffer({2, 4}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), src_dev);
+    Array b = a.GetItem({Slice{0, 2}, Slice{1, 3}});
+    assert(!b.IsContiguous());
+
+    // Transfer
+    Array c = b.ToDevice(dst_dev);
+
+    EXPECT_EQ(&c.device(), &dst_dev) << "Array::ToDevice must allocate an array on the specified device.";
+    EXPECT_EQ(&b.device(), &src_dev) << "Array::ToDevice must not alter the device of the original array.";
+    if (&dst_dev == &src_dev) {
+        EXPECT_EQ(b.data().get(), c.data().get()) << "Array::ToDevice must return an alias in same-device transfer.";
+    }
+    EXPECT_EQ(internal::GetDefaultDeviceNoExcept(), default_device) << "Array::ToDevice must not alter the default device.";
+    ExpectArraysEqual(b, c);
 }
 
 INSTANTIATE_TEST_CASE_P(
