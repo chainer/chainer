@@ -678,6 +678,11 @@ def test_array_require_grad_multiple_graphs_forward():
     ((4, 3), (slice(1, 3), 1), (2,), [4, 7]),
     ((2, 3, 4), (1, slice(2,), slice(1, 3)), (2, 2), [13, 14, 17, 18]),
     ((2, 3), (1, xchainer.newaxis, slice(1, 3)), (1, 2), [4, 5]),
+    ((2, 3, 4), (slice(0, 1), slice(1, 2), slice(1, 3), xchainer.newaxis), (1, 1, 2, 1), [5, 6]),
+    ((2, 3, 4), (slice(0, 1), slice(1, 2), xchainer.newaxis, slice(1, 3)), (1, 1, 1, 2), [5, 6]),
+    ((2, 3, 4), (slice(0, 1), xchainer.newaxis, slice(1, 2), slice(1, 3)), (1, 1, 1, 2), [5, 6]),
+    ((2, 3, 4), (xchainer.newaxis, slice(0, 1), slice(1, 2), slice(1, 3)), (1, 1, 1, 2), [5, 6]),
+    ((2, 3, 4), (1, slice(2,), xchainer.newaxis, slice(1, 3), xchainer.newaxis), (2, 1, 2, 1), [13, 14, 17, 18]),
 ])
 def test_getitem(input_shape, indices, output_shape, output_data):
     total_size = functools.reduce(operator.mul, input_shape, 1)
