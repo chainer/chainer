@@ -183,7 +183,6 @@ Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) 
 
     // TODO(sonots): broadcasting
     CheckEqual(this_view.shape(), addend.shape());
-    CheckEqual(out_view.shape(), addend.shape());
 
     auto this_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
     auto addend_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.GetItem(indices); };
