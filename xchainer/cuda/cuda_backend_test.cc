@@ -1,5 +1,7 @@
 #include "xchainer/cuda/cuda_backend.h"
 
+#include <tuple>
+
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
