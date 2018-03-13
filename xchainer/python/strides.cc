@@ -1,5 +1,9 @@
 #include "xchainer/python/strides.h"
 
+#include <algorithm>
+#include <string>
+#include <vector>
+
 #include <pybind11/operators.h>
 
 #include "xchainer/strides.h"
