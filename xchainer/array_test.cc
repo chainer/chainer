@@ -1005,6 +1005,30 @@ TEST_P(ArrayTest, TransposeDoubleBackward) {
             {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
 }
 
+TEST_P(ArrayTest, GetItemBackward) {
+    CheckBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                std::vector<ArrayIndex> indices{1, Slice{1, 3}};
+                return {xs[0].GetItem(indices)};
+            },
+            {testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f}).RequireGrad()},
+            {Array::Ones({2}, Dtype::kFloat32)},
+            {Array::Full({2, 3}, 1e-3f)});
+}
+
+TEST_P(ArrayTest, GetItemDoubleBackward) {
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                std::vector<ArrayIndex> indices{0, Slice{1, 3}};
+                auto y = xs[0].GetItem(indices);
+                return {y * y};  // to make it nonlinear
+            },
+            {testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f}).RequireGrad()},
+            {Array::Ones({2}, Dtype::kFloat32).RequireGrad()},
+            {Array::Ones({2, 3}, Dtype::kFloat32)},
+            {Array::Full({2, 3}, 1e-3f), Array::Full({2}, 1e-3f)});
+}
+
 TEST_P(ArrayTest, Copy) {
     {
         Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
@@ -1390,36 +1414,6 @@ INSTANTIATE_TEST_CASE_P(
                 ArrayGetItemTestParam{{4, 3}, {Slice{1, 3}, 1}, {2}, {4, 7}},
                 ArrayGetItemTestParam{{2, 3, 4}, {1, Slice{2}, Slice{1, 3}}, {2, 2}, {13, 14, 17, 18}},
                 ArrayGetItemTestParam{{2, 3}, {1, NewAxis{}, Slice{1, 3}}, {1, 2}, {4, 5}}));
-
-TEST_P(ArrayTest, GetItemBackward) {
-    Array input = testing::MakeArray<float>({2, 3}, {0, 1, 2, 3, 4, 5});
-    input.RequireGrad();
-    CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                std::vector<ArrayIndex> indices{1, Slice{1, 3}};
-                return {xs[0].GetItem(indices)};
-            },
-            {input},
-            {testing::MakeArray({2}, {1.f, 2.f})},
-            {Array::Full({2, 3}, 1e-5f)},
-            1e-3,
-            1e-2);
-}
-
-TEST_P(ArrayTest, GetItemDoubleBackward) {
-    CheckDoubleBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                std::vector<ArrayIndex> indices{0, Slice{1, 3}};
-                auto y = xs[0].GetItem(indices);
-                return {y * y};  // to make it nonlinear
-            },
-            {testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f}).RequireGrad()},
-            {Array::Ones({2}, Dtype::kFloat32).RequireGrad()},
-            {Array::Ones({2, 3}, Dtype::kFloat32)},
-            {Array::Full({2, 3}, 0.01f), Array::Full({2}, 0.01f)},
-            1e-3,
-            1e-2);
-}
 
 }  // namespace
 }  // namespace xchainer
