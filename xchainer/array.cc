@@ -184,11 +184,11 @@ Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) 
     // TODO(sonots): broadcasting
     CheckEqual(this_view.shape(), addend.shape());
 
+    device().Add(addend, out_view, out_view);
+
     auto this_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
     auto addend_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.GetItem(indices); };
     internal::SetUpOpNodes("add_at", {*this, addend}, out, {this_backward_function, addend_backward_function});
-
-    device().Add(addend, out_view, out_view);
 
     return out;
 }
@@ -247,7 +247,6 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
         Array gin = Array::ZerosLike(other, other.device());
         return gin.AddAt(indices, gout);
     };
-
     internal::SetUpOpNodes("get_item", {*this}, out, {backward_function});
 
     return out;
