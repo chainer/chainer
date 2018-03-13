@@ -2,6 +2,7 @@
 
 #include <ostream>
 #include <sstream>
+#include <string>
 
 #include <gsl/gsl>
 

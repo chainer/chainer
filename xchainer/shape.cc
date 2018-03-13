@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <numeric>
+#include <string>
 
 #include "xchainer/strides.h"
 
