@@ -299,7 +299,7 @@ Array Array::Reshape(const Shape& shape) const {
             // TODO(niboshi): Implement it
             throw NotImplementedError("Reshape that requires a copy is not implemented yet.");
         }
-        Ensures(strides_vec.size() == static_cast<size_t>(shape.ndim()));
+        Ensures(strides_vec.size() == shape.size());
 
         strides = Strides{strides_vec.begin(), strides_vec.end()};
     }
