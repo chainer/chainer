@@ -11,8 +11,15 @@ namespace internal {
 
 bool IsContiguous(const Shape& shape, const Strides& strides, int64_t element_bytes) {
     Expects(shape.size() == strides.size());
+    int64_t total_size = shape.GetTotalSize();
+    if (total_size == 0 || total_size == 1) {
+        return true;
+    }
     auto shape_it = shape.rbegin();
     for (auto strides_it = strides.rbegin(); strides_it != strides.rend(); ++shape_it, ++strides_it) {
+        if (*shape_it == 1) {
+            continue;
+        }
         if (*strides_it != element_bytes) {
             return false;
         }
