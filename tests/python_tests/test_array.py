@@ -261,8 +261,11 @@ def test_reshape(a_shape, b_shape):
     a_xc = xchainer.Array(a_np)
 
     def check(b_xc):
+        assert b_xc is not a_xc
         assert b_np.shape == b_xc.shape
-        assert b_np.strides == b_xc.strides
+        assert b_xc.is_contiguous
+        assert a_xc._debug_data_memory_address == b_xc._debug_data_memory_address, 'Reshape must be done without copy'
+        assert b_xc.strides == b_np.strides, 'Strides after reshape must match NumPy behavior'
         _check_arrays_equal(xchainer.Array(b_np), b_xc)
 
     # by shape
