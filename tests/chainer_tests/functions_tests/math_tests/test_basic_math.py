@@ -259,6 +259,7 @@ class TestMultipleAdd(unittest.TestCase):
         self.ggx3 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
     def check_forward(self, func, x1_data, x2_data, x3_data, backend_config):
+        # convert to cupy.ndarray for GPU tests
         if backend_config.use_cuda:
             x1_data, x2_data, x3_data = cuda.to_gpu(
                 (x1_data, x2_data, x3_data))
