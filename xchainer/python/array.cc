@@ -154,7 +154,7 @@ void InitXchainerArray(pybind11::module& m) {
             .def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); })
             .def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); })
             .def("__getitem__",
-                 [](const ArrayBodyPtr& self, const py::handle& handle) {
+                 [](const ArrayBodyPtr& self, py::handle handle) {
                      return Array{self}.GetItem(python::internal::MakeArrayIndices(handle)).move_body();
                  })
             .def("to_device", [](const ArrayBodyPtr& self, Device& device) { return Array{self}.ToDevice(device).move_body(); })

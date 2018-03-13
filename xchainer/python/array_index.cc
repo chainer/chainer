@@ -11,15 +11,14 @@ namespace python {
 namespace {
 
 ArrayIndex MakeArrayIndex(py::handle handle) {
-    PyObject* obj = handle.ptr();
-    if (obj == Py_None) {
-        return ArrayIndex(NewAxis{});
+    if (handle.is_none()) {
+        return ArrayIndex{NewAxis{}};
     }
-    if (PYBIND11_LONG_CHECK(obj)) {
-        return ArrayIndex(py::cast<int64_t>(handle));
+    if (py::int_::check_(handle)) {
+        return ArrayIndex{py::cast<int64_t>(handle)};
     }
-    if (PySlice_Check(obj)) {
-        return ArrayIndex(internal::MakeSlice(py::cast<py::slice>(handle)));
+    if (py::slice::check_(handle)) {
+        return ArrayIndex{internal::MakeSlice(py::cast<py::slice>(handle))};
     }
     throw py::index_error("only integers, slices (`:`), xchainer.newaxis (`None`) are valid indices");
 }
@@ -37,8 +36,7 @@ std::vector<ArrayIndex> MakeArrayIndicesFromTuple(py::tuple tup) {
 namespace internal {
 
 std::vector<ArrayIndex> MakeArrayIndices(py::handle handle) {
-    PyObject* obj = handle.ptr();
-    if (PyTuple_Check(obj)) {
+    if (py::tuple::check_(handle)) {
         return MakeArrayIndicesFromTuple(py::cast<py::tuple>(handle));
     }
     return {MakeArrayIndex(handle)};
@@ -47,6 +45,6 @@ std::vector<ArrayIndex> MakeArrayIndices(py::handle handle) {
 }  // namespace internal
 }  // namespace python
 
-void InitXchainerArrayIndex(py::module& m) { m.attr("newaxis") = Py_None; }
+void InitXchainerArrayIndex(py::module& m) { m.attr("newaxis") = py::none(); }
 
 }  // namespace xchainer
