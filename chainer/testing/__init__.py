@@ -1,8 +1,3 @@
-from chainer.testing import attr  # NOQA
-from chainer.testing import backend  # NOQA
-from chainer.testing import condition  # NOQA
-
-# import classes and functions
 from chainer.testing.array import assert_allclose  # NOQA
 from chainer.testing.helper import assert_warns  # NOQA
 from chainer.testing.helper import patch  # NOQA
