@@ -177,12 +177,11 @@ Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) 
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), addend.dtype());
 
-    Array out = this->AsConstant(CopyKind::kView);
-    Array this_view = this->GetItem(indices);
+    Array out = this->AsConstant(CopyKind::kCopy);
     Array out_view = out.GetItem(indices);
 
     // TODO(sonots): broadcasting
-    CheckEqual(this_view.shape(), addend.shape());
+    CheckEqual(out_view.shape(), addend.shape());
 
     device().Add(addend, out_view, out_view);
 
