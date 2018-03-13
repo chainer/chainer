@@ -69,7 +69,7 @@ def _check_array_equals_ndarray(array, ndarray):
     assert array.element_bytes == ndarray.itemsize
     assert array.total_bytes == ndarray.itemsize * ndarray.size
     assert array._debug_flat_data == ndarray.ravel().tolist()
-    # assert array.is_contiguous == ndarray.flags['C_CONTIGUOUS']
+    assert array.is_contiguous == ndarray.flags['C_CONTIGUOUS']
 
 
 def _check_ndarray_equal_ndarray(ndarray1, ndarray2):
@@ -689,5 +689,3 @@ def test_getitem(input_shape, indices, output_shape, output_data):
 
     n = numpy.array(input_data, numpy.int32).reshape(input_shape)
     _check_array_equals_ndarray(y, n[indices])
-
-
