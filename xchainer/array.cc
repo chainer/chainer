@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <cstring>
 #include <ostream>
 #include <string>
@@ -92,12 +93,29 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
     return *it;
 }
 
+size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size) {
+    Expects(shape.ndim() == strides.ndim());
+    if (shape.ndim() == 0) {
+        return 0;
+    }
+    // Calculate the distance between the first and the last element, plus single element size.
+    size_t total_bytes = element_size;
+    for (int8_t i = 0; i < shape.ndim(); ++i) {
+        total_bytes += (shape[i] - 1) * std::abs(strides[i]);
+    }
+    return total_bytes;
+}
+
+Array ArrayFromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device) {
+    auto bytesize = internal::GetRequiredBytes(shape, strides, GetElementSize(dtype));
+    std::shared_ptr<void> device_data = device.FromBuffer(data, bytesize);
+    return {shape, strides, dtype, device, device_data};
+}
+
 }  // namespace internal
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
-    auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
-    std::shared_ptr<void> device_data = device.FromBuffer(data, bytesize);
-    return {shape, Strides{shape, dtype}, dtype, device, device_data};
+    return internal::ArrayFromBuffer(shape, dtype, data, {shape, dtype}, device);
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype, Device& device) {
