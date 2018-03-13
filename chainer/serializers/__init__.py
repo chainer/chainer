@@ -1,4 +1,3 @@
-# import classes and functions
 from chainer.serializers.hdf5 import HDF5Deserializer  # NOQA
 from chainer.serializers.hdf5 import HDF5Serializer  # NOQA
 from chainer.serializers.hdf5 import load_hdf5  # NOQA
