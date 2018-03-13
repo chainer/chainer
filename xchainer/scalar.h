@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdint>
 #include <ostream>
+#include <string>
 
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"

@@ -1,10 +1,12 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <initializer_list>
 #include <iterator>
 #include <sstream>
+#include <string>
 
 #include <gsl/gsl>
 
