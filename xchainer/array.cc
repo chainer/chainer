@@ -272,7 +272,7 @@ Array Array::Reshape(const Shape& shape) const {
             }
 
             Ensures(reduced_shape.size() == reduced_strides.size());
-            Ensures(reduced_shape.size() > 0);
+            Ensures(!reduced_shape.empty());
 
             // Construct the strides for no-copy reshape.
             // If it's not possible, strides_vec will be empty.
@@ -308,7 +308,7 @@ Array Array::Reshape(const Shape& shape) const {
         strides = Strides{strides_vec.begin(), strides_vec.end()};
     }
 
-    Array out{shape, std::move(strides), dtype(), device(), body_->data_, offset()};
+    Array out{shape, strides, dtype(), device(), body_->data_, offset()};
     // TODO(niboshi): Implement backward
     Ensures(out.shape() == shape);
     Ensures(out.strides().size() == shape.size());
