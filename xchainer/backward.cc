@@ -18,7 +18,7 @@ namespace xchainer {
 namespace {
 
 struct OpNodeComparator {
-    bool operator()(const std::shared_ptr<OpNode>& lhs, const std::shared_ptr<OpNode>& rhs) const { return lhs->rank() < rhs->rank(); };
+    bool operator()(const std::shared_ptr<OpNode>& lhs, const std::shared_ptr<OpNode>& rhs) const { return lhs->rank() < rhs->rank(); }
 };
 
 class BackwardImpl {
@@ -31,7 +31,7 @@ public:
             }
             output_array_nodes_.emplace_back(internal::GetMutableArrayNode(output, graph_id));
         }
-    };
+    }
 
     void Run() {
         for (size_t i = 0; i < outputs_.size(); ++i) {
@@ -62,7 +62,7 @@ public:
                 op_node->Unchain();
             }
         }
-    };
+    }
 
 private:
     std::vector<Array> ComputeNextGradients(const OpNode& op_node, const GraphId& graph_id) {
