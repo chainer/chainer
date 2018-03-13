@@ -9,6 +9,7 @@
 #include <unordered_map>
 
 #include <gsl/gsl>
+#include <nonstd/optional.hpp>
 
 #include "xchainer/array_body.h"
 #include "xchainer/array_node.h"
@@ -248,6 +249,111 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
     };
     internal::SetUpOpNodes("get_item", {*this}, out, {backward_function});
 
+    return out;
+}
+
+Array Array::Reshape(const Shape& shape) const {
+    const Shape& in_shape = this->shape();
+    const Strides& in_strides = strides();
+
+    // If the shape is unchanged, just return a view.
+    if (in_shape == shape) {
+        return *this;
+    }
+
+    // Check for invalid shape.
+    int64_t total_size = in_shape.GetTotalSize();
+    if (total_size != shape.GetTotalSize()) {
+        throw DimensionError("Cannot reshape array of size " + std::to_string(total_size) + " into shape " + shape.ToString());
+    }
+
+    int64_t element_size = GetElementSize(dtype());
+    Strides strides;
+    if (total_size == 0) {
+        // Calculate the strides for 0-sized array.
+        std::vector<int64_t> rev_strides_vec;
+        rev_strides_vec.push_back(element_size);
+        for (int8_t i = shape.ndim() - 1; i >= 1; --i) {
+            rev_strides_vec.push_back(rev_strides_vec.back() * std::max(int64_t{1}, shape[i]));
+        }
+        strides = Strides{rev_strides_vec.rbegin(), rev_strides_vec.rend()};
+    } else {
+        // Calculate the strides for non-0-sized array.
+
+        // reduced_shape and reduced_strides are the shortest shape and strides which can be convertible from input shape and strides
+        // without copy.
+        std::vector<int64_t> reduced_shape;
+        std::vector<int64_t> reduced_strides;
+        if (in_shape.ndim() == 0) {
+            // Input shape is (). Treat as if it were (1).
+            reduced_shape.push_back(int64_t{1});
+            reduced_strides.push_back(element_size);
+        } else {
+            // Add the first pair
+            reduced_shape.reserve(in_shape.ndim());
+            reduced_strides.reserve(in_shape.ndim());
+            reduced_shape.push_back(in_shape[0]);
+            reduced_strides.push_back(in_strides[0]);
+            // Reduce the remaining
+            for (int8_t i = 1; i < in_shape.ndim(); ++i) {
+                int64_t dim = in_shape[i];
+                int64_t st = in_strides[i];
+                Expects(dim > 0);
+                if (dim * st == reduced_strides.back()) {
+                    // If the pair is compatible with the previous stride, reduce the pair to it.
+                    reduced_shape.back() *= dim;
+                    reduced_strides.back() = st;
+                } else {
+                    // Otherwise, add a new shape and stride.
+                    reduced_shape.push_back(dim);
+                    reduced_strides.push_back(st);
+                }
+            }
+        }
+        Ensures(reduced_shape.size() == reduced_strides.size());
+        Ensures(!reduced_shape.empty());
+
+        // Construct the strides for no-copy reshape.
+        // If it's not possible, can_reshape_without_copy will be false.
+        bool can_reshape_without_copy = true;
+        std::vector<int64_t> strides_vec;
+        if (shape.ndim() > 0) {
+            int64_t last_stride = reduced_shape[0] * reduced_strides[0];
+            size_t i_dim = 0;
+            strides_vec.reserve(shape.ndim());
+            for (int64_t dim : shape) {
+                if (dim == 0) {
+                    strides_vec.push_back(last_stride);
+                    continue;
+                }
+                if (i_dim >= reduced_shape.size() || reduced_shape[i_dim] % dim != 0) {
+                    strides_vec.clear();
+                    can_reshape_without_copy = false;
+                    break;
+                }
+                reduced_shape[i_dim] /= dim;
+                last_stride = reduced_shape[i_dim] * reduced_strides[i_dim];
+                strides_vec.push_back(last_stride);
+                if (reduced_strides[i_dim] == 1) {
+                    ++i_dim;
+                }
+            }
+        }
+
+        if (!can_reshape_without_copy) {
+            // Reshape without copy is not possible.
+            // TODO(niboshi): Implement it
+            throw NotImplementedError("Reshape that requires a copy is not implemented yet.");
+        }
+        Ensures(strides_vec.size() == shape.size());
+
+        strides = Strides{strides_vec.begin(), strides_vec.end()};
+    }
+
+    Array out{shape, strides, dtype(), device(), body_->data_, offset()};
+    // TODO(niboshi): Implement backward
+    Ensures(out.shape() == shape);
+    Ensures(out.strides().size() == shape.size());
     return out;
 }
 
