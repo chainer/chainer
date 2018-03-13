@@ -200,10 +200,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         if b is not None:
             _b = b.reshape((G, oCg))
 
-        if self._use_ideep:
-            _ys = intel64.ideep.mdarrayVector()
-        else:
-            _ys = []
+        _ys = []
 
         for g in six.moves.range(G):
             _bg = None if b is None else _b[g, ]
@@ -212,14 +209,14 @@ class Convolution2DFunction(function_node.FunctionNode):
             else:
                 _y, = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
 
-            if self._use_ideep:
-                _ys.push_back(_y)
-            else:
-                _ys.append(_y)
+            _ys.append(_y)
 
         # (N, oC, oH, oW)
         if self._use_ideep:
-            y = intel64.ideep._ideep4py.concat.Forward(_ys, 1)
+            __ys = intel64.ideep.mdarrayVector()
+            for _y in _ys:
+                __ys.push_back(_y)
+            y = intel64.ideep._ideep4py.concat.Forward(__ys, 1)
         else:
             y = xp.concatenate(_ys, axis=1)
 
