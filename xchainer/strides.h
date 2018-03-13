@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <initializer_list>
+#include <iterator>
 #include <sstream>
 
 #include <gsl/gsl>
@@ -21,30 +22,32 @@ public:
     using const_iterator = DimsType::const_iterator;
     using const_reverse_iterator = DimsType::const_reverse_iterator;
 
+    Strides() : dims_{}, ndim_{0} {}
+
     // Creates strides for contiguous array.
     Strides(const Shape& shape, Dtype dtype) : Strides{shape, GetElementSize(dtype)} {}
     Strides(const Shape& shape, int64_t element_size);
 
     // by iterators
     template <typename InputIt>
-    Strides(InputIt first, InputIt last) : dims_(), ndim_(last - first) {
+    Strides(InputIt first, InputIt last) : dims_{}, ndim_{gsl::narrow_cast<int8_t>(std::distance(first, last))} {
         CheckNdim();
         std::copy(first, last, dims_.begin());
     }
 
     // by gsl:span
-    Strides(gsl::span<const int64_t> dims) : Strides(dims.begin(), dims.end()) {}
+    Strides(gsl::span<const int64_t> dims) : Strides{dims.begin(), dims.end()} {}
 
     // by initializer list
-    Strides(std::initializer_list<int64_t> dims) : Strides(dims.begin(), dims.end()) {}
+    Strides(std::initializer_list<int64_t> dims) : Strides{dims.begin(), dims.end()} {}
 
     // copy
     Strides(const Strides&) = default;
-    Strides& operator=(const Strides&) = delete;
+    Strides& operator=(const Strides&) = default;
 
     // move
     Strides(Strides&&) = default;
-    Strides& operator=(Strides&&) = delete;
+    Strides& operator=(Strides&&) = default;
 
     std::string ToString() const;
 

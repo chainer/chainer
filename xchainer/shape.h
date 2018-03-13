@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <initializer_list>
+#include <iterator>
 #include <sstream>
 
 #include <gsl/gsl>
@@ -21,26 +22,28 @@ public:
     using const_iterator = DimsType::const_iterator;
     using const_reverse_iterator = DimsType::const_reverse_iterator;
 
+    Shape() : dims_{}, ndim_{0} {}
+
     // by iterators
     template <typename InputIt>
-    Shape(InputIt first, InputIt last) : dims_(), ndim_(last - first) {
+    Shape(InputIt first, InputIt last) : dims_{}, ndim_{gsl::narrow_cast<int8_t>(std::distance(first, last))} {
         CheckNdim();
         std::copy(first, last, dims_.begin());
     }
 
     // by gsl:span
-    Shape(gsl::span<const int64_t> dims) : Shape(dims.begin(), dims.end()) {}
+    Shape(gsl::span<const int64_t> dims) : Shape{dims.begin(), dims.end()} {}
 
     // by initializer list
-    Shape(std::initializer_list<int64_t> dims) : Shape(dims.begin(), dims.end()) {}
+    Shape(std::initializer_list<int64_t> dims) : Shape{dims.begin(), dims.end()} {}
 
     // copy
     Shape(const Shape&) = default;
-    Shape& operator=(const Shape&) = delete;
+    Shape& operator=(const Shape&) = default;
 
     // move
     Shape(Shape&&) = default;
-    Shape& operator=(Shape&&) = delete;
+    Shape& operator=(Shape&&) = default;
 
     int64_t GetTotalSize() const;
 
