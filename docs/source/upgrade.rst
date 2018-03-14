@@ -55,6 +55,12 @@ See the discussion in `#2955 <https://github.com/chainer/chainer/pull/2955>`_ fo
    Please use the configuration context (e.g., ``with chainer.using_config('use_cudnn', 'auto'):``) to enable or disable use of cuDNN.
    See :ref:`configuration` for details.
 
+CuPy v2
+-------
+
+Chainer v3 requires CuPy v2 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v2 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v2>`_ for details.
+
 
 Chainer v2
 ==========
