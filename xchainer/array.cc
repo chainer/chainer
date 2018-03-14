@@ -376,8 +376,10 @@ Array Array::ToDevice(Device& dst_device) const {
         assert(src_contig.offset() == 0);
         std::shared_ptr<void> dst_data;
         if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
+            // Use src backend for transfer.
             dst_data = std::get<0>(src_device.TransferDataTo(dst_device, src_contig.data(), 0, src_contig.GetTotalBytes()));
         } else if (dst_device.backend().SupportsTransfer(src_device, dst_device)) {
+            // Use dst backend for transfer.
             dst_data = std::get<0>(dst_device.TransferDataFrom(src_device, src_contig.data(), 0, src_contig.GetTotalBytes()));
         } else {
             // Neither backends support transfer.
