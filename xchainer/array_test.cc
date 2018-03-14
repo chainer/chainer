@@ -1454,8 +1454,8 @@ INSTANTIATE_TEST_CASE_P(
                 ArrayGetItemTestParam{{2, 3}, {1, NewAxis{}, Slice{1, 3}}, {1, 2}, {4, 5}}));
 
 TEST(ArrayReshapeTest, Reshape) {
-    testing::ContextSession context_session{};
     using T = int32_t;
+    testing::ContextSession context_session{};
     Shape input_shape{2, 3, 4};
     Shape output_shape{3, 4, 2};
 
