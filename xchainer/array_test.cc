@@ -815,6 +815,120 @@ TEST_P(ArrayTest, Mul) {
     }
 }
 
+TEST_P(ArrayTest, NonContiguousIAdd) {
+    {
+        Array a = testing::MakeArray({2, 3}).WithLinearData<int32_t>();
+        Array a_view = a.Transpose();
+        Array b = Array::OnesLike(a_view);
+        Array e_view = testing::MakeArray<int32_t>({3, 2}, {1, 4, 2, 5, 3, 6});
+        Array e = testing::MakeArray<int32_t>({2, 3}, {1, 2, 3, 4, 5, 6});
+        a_view += b;
+        ExpectEqual<int32_t>(e_view, a_view);
+        ExpectEqual<int32_t>(e, a);
+    }
+    {
+        Array a = testing::MakeArray({3, 3}).WithLinearData<int32_t>();
+        Array a_view = a.GetItem({1});
+        Array b = Array::OnesLike(a_view);
+        Array e_view = testing::MakeArray<int32_t>({3}, {4, 5, 6});
+        Array e = testing::MakeArray<int32_t>({3, 3}, {0, 1, 2, 4, 5, 6, 6, 7, 8});
+        a_view += b;
+        ExpectEqual<int32_t>(e_view, a_view);
+        ExpectEqual<int32_t>(e, a);
+    }
+    {
+        Array a = testing::MakeArray({3, 3}).WithLinearData<int32_t>();
+        Array a_view = a.GetItem({Slice{}, Slice{1, 2}});
+        Array b = Array::OnesLike(a_view);
+        Array e_view = testing::MakeArray<int32_t>({3, 1}, {2, 5, 8});
+        Array e = testing::MakeArray<int32_t>({3, 3}, {0, 2, 2, 3, 5, 5, 6, 8, 8});
+        a_view += b;
+        ExpectEqual<int32_t>(e_view, a_view);
+        ExpectEqual<int32_t>(e, a);
+    }
+}
+
+TEST_P(ArrayTest, NonContiguousIMul) {
+    {
+        Array a = testing::MakeArray({2, 3}).WithLinearData<int32_t>();
+        Array a_view = a.Transpose();
+        Array b = Array::FullLike(a_view, 2);
+        Array e = testing::MakeArray<int32_t>({2, 3}, {0, 2, 4, 6, 8, 10});
+        Array e_view = testing::MakeArray<int32_t>({3, 2}, {0, 6, 2, 8, 4, 10});
+        a_view *= b;
+        ExpectEqual<int32_t>(e_view, a_view);
+        ExpectEqual<int32_t>(e, a);
+    }
+    {
+        Array a = testing::MakeArray({3, 3}).WithLinearData<int32_t>();
+        Array a_view = a.GetItem({1});
+        Array b = Array::FullLike(a_view, 2);
+        Array e = testing::MakeArray<int32_t>({3, 3}, {0, 1, 2, 6, 8, 10, 6, 7, 8});
+        Array e_view = testing::MakeArray<int32_t>({3}, {6, 8, 10});
+        a_view *= b;
+        ExpectEqual<int32_t>(e_view, a_view);
+        ExpectEqual<int32_t>(e, a);
+    }
+    {
+        Array a = testing::MakeArray({3, 3}).WithLinearData<int32_t>();
+        Array a_view = a.GetItem({Slice{}, Slice{1, 2}});
+        Array b = Array::FullLike(a_view, 2);
+        Array e = testing::MakeArray<int32_t>({3, 3}, {0, 2, 2, 3, 8, 5, 6, 14, 8});
+        Array e_view = testing::MakeArray<int32_t>({3, 1}, {2, 8, 14});
+        a_view *= b;
+        ExpectEqual<int32_t>(e_view, a_view);
+        ExpectEqual<int32_t>(e, a);
+    }
+}
+
+TEST_P(ArrayTest, NonContiguousAdd) {
+    {
+        Array a = Array(testing::MakeArray({2, 3}).WithLinearData<int32_t>()).Transpose();
+        Array b = Array::OnesLike(a);
+        Array e = testing::MakeArray<int32_t>({3, 2}, {1, 4, 2, 5, 3, 6});
+        Array o = a + b;
+        ExpectEqual<int32_t>(e, o);
+    }
+    {
+        Array a = Array(testing::MakeArray({3, 3}).WithLinearData<int32_t>()).GetItem({1});
+        Array b = Array::OnesLike(a);
+        Array e = testing::MakeArray<int32_t>({3}, {4, 5, 6});
+        Array o = a + b;
+        ExpectEqual<int32_t>(e, o);
+    }
+    {
+        Array a = Array(testing::MakeArray({3, 3}).WithLinearData<int32_t>()).GetItem({Slice{}, Slice{1, 2}});
+        Array b = Array::OnesLike(a);
+        Array e = testing::MakeArray<int32_t>({3, 1}, {2, 5, 8});
+        Array o = a + b;
+        ExpectEqual<int32_t>(e, o);
+    }
+}
+
+TEST_P(ArrayTest, NonContiguousMul) {
+    {
+        Array a = Array(testing::MakeArray({2, 3}).WithLinearData<int32_t>()).Transpose();
+        Array b = Array::FullLike(a, 2);
+        Array e = testing::MakeArray<int32_t>({3, 2}, {0, 6, 2, 8, 4, 10});
+        Array o = a * b;
+        ExpectEqual<int32_t>(e, o);
+    }
+    {
+        Array a = Array(testing::MakeArray({3, 3}).WithLinearData<int32_t>()).GetItem({1});
+        Array b = Array::FullLike(a, 2);
+        Array e = testing::MakeArray<int32_t>({3}, {6, 8, 10});
+        Array o = a * b;
+        ExpectEqual<int32_t>(e, o);
+    }
+    {
+        Array a = Array(testing::MakeArray({3, 3}).WithLinearData<int32_t>()).GetItem({Slice{}, Slice{1, 2}});
+        Array b = Array::FullLike(a, 2);
+        Array e = testing::MakeArray<int32_t>({3, 1}, {2, 8, 14});
+        Array o = a * b;
+        ExpectEqual<int32_t>(e, o);
+    }
+}
+
 TEST_P(ArrayTest, ChainedMath) {
     {
         Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
