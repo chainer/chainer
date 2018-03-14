@@ -594,3 +594,103 @@ def test_array_require_grad_multiple_graphs_forward():
     # No unspecified graphs are generated
     assert not y.is_grad_required(xchainer.DEFAULT_GRAPH_ID)
     assert not y.is_grad_required('graph_3')
+
+
+@pytest.mark.parametrize("input_shape,indices,output_shape,output_data", [
+    # empty indexing
+    ((), (), (), [0]),
+    ((3,), (), (3,), [0, 1, 2]),
+    ((2, 2, 2), (), (2, 2, 2), [0, 1, 2, 3, 4, 5, 6, 7]),
+    # integer indexing - non-tuple indexing
+    ((3,), 0, (), [0]),
+    ((3,), 1, (), [1]),
+    ((3,), 2, (), [2]),
+    ((3,), -1, (), [2]),
+    ((2, 3), 0, (3,), [0, 1, 2]),
+    ((2, 3), 1, (3,), [3, 4, 5]),
+    # integer indexining - tuple indexing
+    ((3,), (0,), (), [0]),
+    ((3,), (1,), (), [1]),
+    ((3,), (2,), (), [2]),
+    ((3,), (-1,), (), [2]),
+    ((2, 3), (0,), (3,), [0, 1, 2]),
+    ((2, 3), (1,), (3,), [3, 4, 5]),
+    ((2, 3), (0, 0), (), [0]),
+    ((2, 3), (1, 1), (), [4]),
+    ((2, 3, 4), (0, -2, 3), (), [7]),
+    ((2, 3, 4), (1, 0), (4,), [12, 13, 14, 15]),
+    # slice indexing - non-tuple indexing
+    ((3,), slice(None), (3,), [0, 1, 2]),
+    ((3,), slice(2), (2,), [0, 1]),
+    ((3,), slice(0, 3), (3,), [0, 1, 2]),
+    ((3,), slice(0, 2), (2,), [0, 1]),
+    ((3,), slice(1, 3), (2,), [1, 2]),
+    ((3,), slice(0, 0), (0,), []),
+    ((3,), slice(0, 1), (1,), [0]),
+    ((3,), slice(2, 0, -1), (2,), [2, 1]),
+    ((3,), slice(-2, -1), (1,), [1]),
+    ((3,), slice(2, None, -1), (3,), [2, 1, 0]),
+    ((3,), slice(None, 0, 1), (0,), []),
+    ((3,), slice(None, -1, -1), (0,), []),
+    ((3,), slice(None, -2, -1), (1,), [2]),
+    ((6,), slice(0, 6, 2), (3,), [0, 2, 4]),
+    ((6,), slice(1, 6, 2), (3,), [1, 3, 5]),
+    ((6,), slice(5, None, -2), (3,), [5, 3, 1]),
+    # slice indexing - tuple indexing
+    ((3,), (slice(None),), (3,), [0, 1, 2]),
+    ((3,), (slice(2),), (2,), [0, 1]),
+    ((3,), (slice(0, 3),), (3,), [0, 1, 2]),
+    ((3,), (slice(0, 2),), (2,), [0, 1]),
+    ((3,), (slice(1, 3),), (2,), [1, 2]),
+    ((3,), (slice(0, 0),), (0,), []),
+    ((3,), (slice(0, 1),), (1,), [0]),
+    ((3,), (slice(2, 0, -1),), (2,), [2, 1]),
+    ((3,), (slice(-2, -1),), (1,), [1]),
+    ((3,), (slice(2, None, -1),), (3,), [2, 1, 0]),
+    ((3,), (slice(None, 0, 1),), (0,), []),
+    ((3,), (slice(None, -1, -1),), (0,), []),
+    ((3,), (slice(None, -2, -1),), (1,), [2]),
+    ((6,), (slice(0, 6, 2),), (3,), [0, 2, 4]),
+    ((6,), (slice(1, 6, 2),), (3,), [1, 3, 5]),
+    ((6,), (slice(5, None, -2),), (3,), [5, 3, 1]),
+    ((2, 3), (slice(None), slice(None)), (2, 3), [0, 1, 2, 3, 4, 5]),
+    ((2, 3), (slice(1), slice(2)), (1, 2), [0, 1]),
+    ((2, 3), (slice(0, 2), slice(0, 3)), (2, 3), [0, 1, 2, 3, 4, 5]),
+    ((2, 3), (slice(0, 2), slice(0, -1)), (2, 2), [0, 1, 3, 4]),
+    ((2, 3), (slice(0, None, -1), slice(2, 3)), (1, 1), [2]),
+    ((2, 3), (slice(0, None, None), slice(-2, 0, -1)), (2, 1), [1, 4]),
+    ((2, 3), (slice(1, 2), slice(0, 2)), (1, 2), [3, 4]),
+    ((2, 3), (slice(-2, None, -1), slice(0, 3)), (1, 3), [0, 1, 2]),
+    ((2, 3), (slice(-2, None, -1), slice(-3, None, -1)), (1, 1), [0]),
+    ((2, 3), (slice(-2, None, -1), slice(None, None, -2)), (1, 2), [2, 0]),
+    ((2, 3), (slice(1, 2), slice(None, None, 1)), (1, 3), [3, 4, 5]),
+    ((2, 3), (slice(1, 2), slice(None, None, 2)), (1, 2), [3, 5]),
+    ((2, 3, 4), (slice(1), slice(-2, 3), slice(1, None, -1)), (1, 2, 2), [5, 4, 9, 8]),
+    # newaxis indexing - non-tuple indexing
+    ((), xchainer.newaxis, (1,), [0]),
+    ((3,), xchainer.newaxis, (1, 3), [0, 1, 2]),
+    # newaxis indexing - tuple indexing
+    ((), (xchainer.newaxis,), (1,), [0]),
+    ((3,), (xchainer.newaxis,), (1, 3), [0, 1, 2]),
+    ((2, 3), (xchainer.newaxis, xchainer.newaxis), (1, 1, 2, 3), [0, 1, 2, 3, 4, 5]),
+    # mixed indexing - tuple indexing
+    ((2, 3), (0, slice(1, 3)), (2,), [1, 2]),
+    ((4, 3), (slice(1, 3), 1), (2,), [4, 7]),
+    ((2, 3, 4), (1, slice(2,), slice(1, 3)), (2, 2), [13, 14, 17, 18]),
+    ((2, 3), (1, xchainer.newaxis, slice(1, 3)), (1, 2), [4, 5]),
+    ((2, 3, 4), (slice(0, 1), slice(1, 2), slice(1, 3), xchainer.newaxis), (1, 1, 2, 1), [5, 6]),
+    ((2, 3, 4), (slice(0, 1), slice(1, 2), xchainer.newaxis, slice(1, 3)), (1, 1, 1, 2), [5, 6]),
+    ((2, 3, 4), (slice(0, 1), xchainer.newaxis, slice(1, 2), slice(1, 3)), (1, 1, 1, 2), [5, 6]),
+    ((2, 3, 4), (xchainer.newaxis, slice(0, 1), slice(1, 2), slice(1, 3)), (1, 1, 1, 2), [5, 6]),
+    ((2, 3, 4), (1, slice(2,), xchainer.newaxis, slice(1, 3), xchainer.newaxis), (2, 1, 2, 1), [13, 14, 17, 18]),
+])
+def test_getitem(input_shape, indices, output_shape, output_data):
+    total_size = functools.reduce(operator.mul, input_shape, 1)
+    input_data = list(range(0, total_size))
+    x = xchainer.Array(input_shape, xchainer.int32, input_data)
+    y = x[indices]
+    e = xchainer.Array(output_shape, xchainer.int32, output_data)
+    _check_arrays_equal(y, e)
+
+    n = numpy.array(input_data, numpy.int32).reshape(input_shape)
+    _check_array_equals_ndarray(y, n[indices])

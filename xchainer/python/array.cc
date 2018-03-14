@@ -9,6 +9,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/array_index.h"
 #include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
@@ -16,7 +17,9 @@
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/slice.h"
 
+#include "xchainer/python/array_index.h"
 #include "xchainer/python/common.h"
 
 namespace xchainer {
@@ -150,6 +153,10 @@ void InitXchainerArray(pybind11::module& m) {
             .def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).move_body(); })
             .def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); })
             .def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); })
+            .def("__getitem__",
+                 [](const ArrayBodyPtr& self, py::handle handle) {
+                     return Array{self}.GetItem(python::internal::MakeArrayIndices(handle)).move_body();
+                 })
             .def("to_device", [](const ArrayBodyPtr& self, Device& device) { return Array{self}.ToDevice(device).move_body(); })
             .def("to_device",
                  [](const ArrayBodyPtr& self, const std::string& device_name) {
