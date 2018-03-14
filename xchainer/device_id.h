@@ -11,7 +11,7 @@ class Backend;
 
 class DeviceId {
 public:
-    DeviceId(const std::string& device_name);  // NOLINT: runtime/explicit
+    DeviceId(const std::string& device_name);  // NOLINT(runtime/explicit)
     DeviceId(std::string backend_name, int index) : backend_name_(std::move(backend_name)), index_(index) {}
 
     const std::string& backend_name() const { return backend_name_; }
