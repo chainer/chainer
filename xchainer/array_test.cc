@@ -1455,63 +1455,29 @@ INSTANTIATE_TEST_CASE_P(
                 ArrayGetItemTestParam{{2, 3, 4}, {1, Slice{2}, Slice{1, 3}}, {2, 2}, {13, 14, 17, 18}},
                 ArrayGetItemTestParam{{2, 3}, {1, NewAxis{}, Slice{1, 3}}, {1, 2}, {4, 5}}));
 
-struct ArrayReshapeTestParam {
-    Shape input_shape;
-    Shape output_shape;
-};
+TEST(ArrayReshapeTest, Reshape) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+    Shape input_shape{2, 3, 4};
+    Shape output_shape{3, 4, 2};
 
-std::ostream& operator<<(std::ostream& os, const ArrayReshapeTestParam& param) {
-    return os << param.input_shape << ", " << param.output_shape;
-}
-
-class ArrayReshapeTest : public ::testing::TestWithParam<ArrayReshapeTestParam> {
-public:
-    void SetUp() override { context_session_.emplace(); }
-
-    void TearDown() override { context_session_.reset(); }
-
-private:
-    nonstd::optional<testing::ContextSession> context_session_;
-};
-
-// Reshape for contiguous input array
-TEST_P(ArrayReshapeTest, ReshapeContiguous) {
-    const ArrayReshapeTestParam& param = GetParam();
-    ASSERT_EQ(param.input_shape.GetTotalSize(), param.output_shape.GetTotalSize());
-
-    std::vector<int32_t> input_data(param.input_shape.GetTotalSize());
-    std::iota(input_data.begin(), input_data.end(), 0);
-    Array a = testing::MakeArray<int32_t>(param.input_shape, input_data);
-    Array b = a.Reshape(param.output_shape);
-    ASSERT_EQ(param.output_shape, b.shape());
+    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
+    Array b = a.Reshape(output_shape);
+    ASSERT_EQ(output_shape, b.shape());
     EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
-    Array e = testing::MakeArray<int32_t>(param.output_shape, input_data);
-    ExpectEqual<int32_t>(e, b);
+    Array e = testing::MakeArray(output_shape).WithLinearData<T>();
+    ExpectEqual<T>(e, b);
 }
 
-// TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
-// TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
+TEST(ArrayReshapeTest, InvalidReshape) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+    Shape input_shape{2, 3, 4};
+    Shape output_shape{2, 4, 4};
 
-INSTANTIATE_TEST_CASE_P(
-        ForEachInputs,
-        ArrayReshapeTest,
-        ::testing::Values(
-                ArrayReshapeTestParam{{}, {}},
-                ArrayReshapeTestParam{{0}, {0}},
-                ArrayReshapeTestParam{{1}, {1}},
-                ArrayReshapeTestParam{{5}, {5}},
-                ArrayReshapeTestParam{{2, 3}, {2, 3}},
-                ArrayReshapeTestParam{{1}, {}},
-                ArrayReshapeTestParam{{}, {1}},
-                ArrayReshapeTestParam{{1, 1}, {}},
-                ArrayReshapeTestParam{{}, {1, 1}},
-                ArrayReshapeTestParam{{6}, {2, 3}},
-                ArrayReshapeTestParam{{2, 3}, {6}},
-                ArrayReshapeTestParam{{2, 0, 3}, {5, 0, 7}},
-                ArrayReshapeTestParam{{5}, {1, 1, 5, 1, 1}},
-                ArrayReshapeTestParam{{1, 1, 5, 1, 1}, {5}},
-                ArrayReshapeTestParam{{2, 3}, {3, 2}},
-                ArrayReshapeTestParam{{2, 3, 4}, {3, 4, 2}}));
+    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
+    EXPECT_THROW(a.Reshape(output_shape), DimensionError);
+}
 
 }  // namespace
 }  // namespace xchainer

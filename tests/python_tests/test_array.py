@@ -235,6 +235,75 @@ def test_transpose(array_init_inputs):
     _check_transpose(array.T)
 
 
+@pytest.mark.parametrize('a_shape,b_shape', [
+    ((), ()),
+    ((0,), (0,)),
+    ((1,), (1,)),
+    ((5,), (5,)),
+    ((2, 3), (2, 3)),
+    ((1,), ()),
+    ((), (1,)),
+    ((1, 1), ()),
+    ((), (1, 1)),
+    ((6,), (2, 3)),
+    ((2, 3), (6,)),
+    ((2, 0, 3), (5, 0, 7)),
+    ((5,), (1, 1, 5, 1, 1)),
+    ((1, 1, 5, 1, 1), (5,)),
+    ((2, 3), (3, 2)),
+    ((2, 3, 4), (3, 4, 2)),
+])
+def test_reshape(a_shape, b_shape):
+    size = functools.reduce(operator.mul, a_shape, 1)
+    dtype = numpy.float32
+    a_np = numpy.arange(size, dtype=dtype).reshape(a_shape)
+    b_np = a_np.reshape(b_shape)
+    a_xc = xchainer.Array(a_np)
+
+    def check(b_xc):
+        assert b_xc is not a_xc
+        assert b_np.shape == b_xc.shape
+        assert b_xc.is_contiguous
+        assert a_xc._debug_data_memory_address == b_xc._debug_data_memory_address, 'Reshape must be done without copy'
+        assert b_xc.strides == b_np.strides, 'Strides after reshape must match NumPy behavior'
+        _check_arrays_equal(xchainer.Array(b_np), b_xc)
+
+    # by shape
+    check(a_xc.reshape(xchainer.Shape(b_shape)))
+    # by tuple
+    check(a_xc.reshape(b_shape))
+    # by list
+    check(a_xc.reshape(list(b_shape)))
+    # by variable length args
+    check(a_xc.reshape(*b_shape))
+
+# TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
+# TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
+
+
+@pytest.mark.parametrize('shape1,shape2', [
+    ((), (0,)),
+    ((), (2,)),
+    ((), (1, 2,)),
+    ((0,), (1,)),
+    ((0,), (1, 1, 1)),
+    ((2, 3), (2, 3, 2)),
+    ((2, 3, 4), (2, 3, 5)),
+])
+def test_invalid_reshape(shape1, shape2):
+    def check(a_shape, b_shape):
+        size = functools.reduce(operator.mul, a_shape, 1)
+        dtype = numpy.float32
+        a_np = numpy.arange(size, dtype=dtype).reshape(a_shape)
+        a_xc = xchainer.Array(a_np)
+
+        with pytest.raises(xchainer.DimensionError):
+            a_xc.reshape(b_shape)
+
+    check(shape1, shape2)
+    check(shape2, shape1)
+
+
 def test_copy(array_init_inputs):
     shape_tup, dtype = array_init_inputs
 
