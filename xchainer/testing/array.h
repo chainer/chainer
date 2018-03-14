@@ -12,6 +12,7 @@
 #include <gsl/gsl>
 
 #include "xchainer/array.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
@@ -27,6 +28,8 @@ public:
 
     Array operator*() const { return array(); }
 
+    Array Build(Device& device) const { return array(device); }
+
     template <typename T, typename InputIter>
     ArrayBuilder& WithData(InputIter first, InputIter last) {
         Expects(create_array_ == nullptr);
@@ -37,7 +40,7 @@ public:
         // Define create_array_ here to type-erase T of `data`.
         // Note: ArrayBuilder must be specified as an argument instead of capturing `this` pointer, because the ArrayBuilder instance could
         // be copied and thus `this` pointer could be invalidated at the moment the function is called.
-        create_array_ = [data](const ArrayBuilder& builder) -> Array {
+        create_array_ = [data](const ArrayBuilder& builder, Device& device) -> Array {
             Dtype dtype = TypeToDtype<T>;
             const Shape& shape = builder.shape_;
             Expects(static_cast<size_t>(shape.GetTotalSize()) == data.size());
@@ -69,7 +72,7 @@ public:
                     }
                 }
             }
-            return internal::ArrayFromBuffer(shape, dtype, std::move(ptr), std::move(strides));
+            return internal::ArrayFromBuffer(shape, dtype, std::move(ptr), std::move(strides), device);
         };
         return *this;
     }
@@ -112,9 +115,9 @@ public:
         return *this;
     }
 
-    Array array() const {
+    Array array(Device& device = GetDefaultDevice()) const {
         Expects(create_array_ != nullptr);
-        return create_array_(*this);
+        return create_array_(*this, device);
     }
 
 private:
@@ -145,7 +148,7 @@ private:
     std::vector<int64_t> padding_;
 
     // Using std::function to type-erase data type T
-    std::function<Array(const ArrayBuilder&)> create_array_;
+    std::function<Array(const ArrayBuilder&, Device&)> create_array_;
 };
 
 inline ArrayBuilder MakeArray(const Shape& shape) { return ArrayBuilder{shape}; }
