@@ -14,6 +14,7 @@ After reading this section, you will be able to:
 * Write your own functions
 * Define simple kernels in the function definition
 
+.. include:: ../imports.rst
 
 Differentiable Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~

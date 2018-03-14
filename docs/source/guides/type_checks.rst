@@ -1,5 +1,5 @@
-Type check
-----------
+Type Checks
+-----------
 
 .. currentmodule:: chainer
 

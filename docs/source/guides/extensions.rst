@@ -1,18 +1,17 @@
-Create your own trainer extension
-=================================
+Trainer Extensions
+==================
 
 .. currentmodule:: chainer
 
-In this section, you will learn about the following things:
+In this section, you will learn about the following topics:
 
-- :ref:`basic`
 - How to create your own trainer extension
 
     * :ref:`by defining a simple function<function>`
     * :ref:`by defining a function decorated with @make_extension <decorator>`
     * :ref:`by defining a class inherited from Extension class <class>`
 
-.. _basic:
+.. include:: ../imports.rst
 
 What is trainer Extension?
 --------------------------
@@ -21,8 +20,6 @@ What is trainer Extension?
 
 The :class:`~chainer.training.Trainer` object contains all information used in a training loop, e.g., models, optimizers, updaters, iterators, and datasets, etc. This makes it possible to change settings such as the learning rate of an optimizer.
 
-
-.. _function:
 
 Write a simple function
 -----------------------
