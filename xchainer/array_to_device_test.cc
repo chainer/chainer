@@ -12,8 +12,11 @@
 #include "xchainer/backward.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 #include "xchainer/native_backend.h"
 #include "xchainer/native_device.h"
+#include "xchainer/testing/array.h"
 #include "xchainer/testing/context_session.h"
 #include "xchainer/testing/util.h"
 
@@ -91,7 +94,7 @@ protected:
 
         // Set default backend (only if default_backend_num is non-negative)
         if (default_backend_num_ >= 0) {
-            device_scope_ = std::make_unique<DeviceScope>(*GetDefaultDevice());
+            device_scope_ = std::make_unique<DeviceScope>(*GetDefaultDevicePtr());
         }
     }
 
@@ -101,7 +104,7 @@ protected:
         backends_.clear();
     }
 
-    Device* GetDefaultDevice() {
+    Device* GetDefaultDevicePtr() {
         if (default_backend_num_ < 0) {
             return nullptr;
         }
@@ -126,11 +129,13 @@ void ExpectArraysEqual(const Array& expected, const Array& actual) {
     EXPECT_EQ(expected.shape(), actual.shape());
     VisitDtype(expected.dtype(), [&expected, &actual](auto pt) {
         using T = typename decltype(pt)::type;
-        int64_t total_size = expected.GetTotalSize();
-        const T* data1 = static_cast<const T*>(expected.data().get());
-        const T* data2 = static_cast<const T*>(actual.data().get());
-        for (int64_t i = 0; i < total_size; ++i) {
-            EXPECT_EQ(data1[i], data2[i]);
+        IndexableArray<const T> expected_iarray{expected};
+        IndexableArray<const T> actual_iarray{actual};
+        Indexer<> indexer{expected.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            EXPECT_EQ(expected_iarray[indexer], actual_iarray[indexer]);
         }
     });
 }
@@ -138,7 +143,7 @@ void ExpectArraysEqual(const Array& expected, const Array& actual) {
 TEST_P(ArrayToDeviceCompatibleTest, ToDevice) {
     Device& src_dev = GetSourceDevice();
     Device& dst_dev = GetDestinationDevice();
-    Device* default_device = internal::GetDefaultDeviceNoExcept();
+    Device& default_device = GetDefaultDevice();
 
     // Allocate the source array
     float data[] = {1.0f, 2.0f};
@@ -155,7 +160,30 @@ TEST_P(ArrayToDeviceCompatibleTest, ToDevice) {
     if (&dst_dev == &src_dev) {
         EXPECT_EQ(a.data().get(), b.data().get()) << "Array::ToDevice must return an alias in same-device transfer.";
     }
-    EXPECT_EQ(internal::GetDefaultDeviceNoExcept(), default_device) << "Array::ToDevice must not alter the default device.";
+    EXPECT_EQ(&GetDefaultDevice(), &default_device) << "Array::ToDevice must not alter the default device.";
+    ExpectArraysEqual(a, b);
+}
+
+TEST_P(ArrayToDeviceCompatibleTest, ToDeviceNonContiguous) {
+    Device& src_dev = GetSourceDevice();
+    Device& dst_dev = GetDestinationDevice();
+    Device& default_device = GetDefaultDevice();
+
+    Array a = testing::MakeArray({2, 4})          //
+                      .WithLinearData<int32_t>()  //
+                      .WithPadding(1)             //
+                      .WithDevice(src_dev);
+
+    // Transfer
+    Array b = a.ToDevice(dst_dev);
+
+    EXPECT_EQ(&b.device(), &dst_dev) << "Array::ToDevice must allocate an array on the specified device.";
+    EXPECT_EQ(&a.device(), &src_dev) << "Array::ToDevice must not alter the device of the original array.";
+    if (&dst_dev == &src_dev) {
+        EXPECT_EQ(a.data().get(), b.data().get()) << "Array::ToDevice must return an alias in same-device transfer.";
+    }
+    EXPECT_EQ(&GetDefaultDevice(), &default_device) << "Array::ToDevice must not alter the default device.";
+    EXPECT_EQ(&src_dev != &dst_dev, b.IsContiguous()) << "Array::ToDevice must return a contiguous array if device transfer occurs.";
     ExpectArraysEqual(a, b);
 }
 

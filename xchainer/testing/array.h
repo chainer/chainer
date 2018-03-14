@@ -12,6 +12,7 @@
 #include <gsl/gsl>
 
 #include "xchainer/array.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
@@ -21,7 +22,7 @@ namespace testing {
 
 class ArrayBuilder {
 public:
-    explicit ArrayBuilder(const Shape& shape) : shape_(shape) {}
+    explicit ArrayBuilder(const Shape& shape) : shape_(shape), device_(std::ref(GetDefaultDevice())) {}
 
     operator Array() const { return array(); }
 
@@ -69,7 +70,7 @@ public:
                     }
                 }
             }
-            return internal::ArrayFromBuffer(shape, dtype, std::move(ptr), std::move(strides));
+            return internal::ArrayFromBuffer(shape, dtype, std::move(ptr), std::move(strides), builder.device_);
         };
         return *this;
     }
@@ -112,6 +113,11 @@ public:
         return *this;
     }
 
+    Array WithDevice(Device& device) {
+        device_ = device;
+        return *this;
+    }
+
     Array array() const {
         Expects(create_array_ != nullptr);
         return create_array_(*this);
@@ -139,6 +145,8 @@ private:
     }
 
     Shape shape_;
+
+    std::reference_wrapper<Device> device_;
 
     // Padding bytes to each dimension.
     // TODO(niboshi): Support negative strides
