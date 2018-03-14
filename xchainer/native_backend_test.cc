@@ -157,11 +157,9 @@ TEST_P(NativeBackendTransferTest, TransferDataFrom) {
     auto data = device1.Allocate(bytesize);
 
     // Transfer
-    // TODO(niboshi): Offset is fixed to 0
-    std::tuple<std::shared_ptr<void>, size_t> tuple = device0.TransferDataFrom(device1, data, 0, bytesize);
+    std::shared_ptr<void> trans_data = device0.TransferDataFrom(device1, data, 0, bytesize);
 
-    EXPECT_EQ(0, std::memcmp(data.get(), std::get<0>(tuple).get(), bytesize));
-    // TODO(niboshi): Test offset
+    EXPECT_EQ(0, std::memcmp(data.get(), trans_data.get(), bytesize));
 }
 
 TEST_P(NativeBackendTransferTest, TransferDataTo) {
@@ -173,11 +171,9 @@ TEST_P(NativeBackendTransferTest, TransferDataTo) {
     auto data = device0.Allocate(bytesize);
 
     // Transfer
-    // TODO(niboshi): Offset is fixed to 0
-    std::tuple<std::shared_ptr<void>, size_t> tuple = device0.TransferDataTo(device1, data, 0, bytesize);
+    std::shared_ptr<void> trans_data = device0.TransferDataTo(device1, data, 0, bytesize);
 
-    EXPECT_EQ(0, std::memcmp(data.get(), std::get<0>(tuple).get(), bytesize));
-    // TODO(niboshi): Test offset
+    EXPECT_EQ(0, std::memcmp(data.get(), trans_data.get(), bytesize));
 }
 
 TEST_P(NativeBackendTransferTest, ArrayToDevice) {

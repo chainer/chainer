@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <string>
-#include <tuple>
 
 #include "xchainer/backend.h"
 #include "xchainer/scalar.h"
@@ -34,16 +33,16 @@ public:
     // It is usually preceded by a call to Backend::SupportsTransfer(), thus this function can assume transfer between the devices are
     // supported.
     //
-    // It returns a tuple of (data, offset).
-    virtual std::tuple<std::shared_ptr<void>, size_t> TransferDataFrom(
+    // It returns a pointer to the allocated memory.
+    virtual std::shared_ptr<void> TransferDataFrom(
             Device& src_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) = 0;
 
     // Transfers the data from this device to the specified device.
     // It is usually preceded by a call to Backend::SupportsTransfer(), thus this function can assume transfer between the devices are
     // supported.
     //
-    // It returns a tuple of (data, offset).
-    virtual std::tuple<std::shared_ptr<void>, size_t> TransferDataTo(
+    // It returns a pointer to the allocated memory.
+    virtual std::shared_ptr<void> TransferDataTo(
             Device& dst_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) = 0;
 
     // Creates a data buffer filled with the specified data on this device.

@@ -180,15 +180,13 @@ TEST_P(CudaBackendTransferTest, TransferDataFrom) {
     auto data = device1.Allocate(bytesize);
 
     // Transfer
-    // TODO(niboshi): Offset is fixed to 0
-    std::tuple<std::shared_ptr<void>, size_t> tuple = device0.TransferDataFrom(device1, data, 0, bytesize);
+    std::shared_ptr<void> trans_data = device0.TransferDataFrom(device1, data, 0, bytesize);
 
-    EXPECT_EQ(0, std::memcmp(data.get(), std::get<0>(tuple).get(), bytesize));
-    // TODO(niboshi): Test offset
+    EXPECT_EQ(0, std::memcmp(data.get(), trans_data.get(), bytesize));
 
     // Destination is ALWAYS CUDA device
     cudaPointerAttributes attr = {};
-    CheckError(cudaPointerGetAttributes(&attr, std::get<0>(tuple).get()));
+    CheckError(cudaPointerGetAttributes(&attr, trans_data.get()));
     EXPECT_TRUE(attr.isManaged);
     EXPECT_EQ(device0.index(), attr.device);
 }
@@ -202,21 +200,19 @@ TEST_P(CudaBackendTransferTest, TransferDataTo) {
     auto data = device0.Allocate(bytesize);
 
     // Transfer
-    // TODO(niboshi): Offset is fixed to 0
-    std::tuple<std::shared_ptr<void>, size_t> tuple = device0.TransferDataTo(device1, data, 0, bytesize);
+    std::shared_ptr<void> trans_data = device0.TransferDataTo(device1, data, 0, bytesize);
 
-    EXPECT_EQ(0, std::memcmp(data.get(), std::get<0>(tuple).get(), bytesize));
-    // TODO(niboshi): Test offset
+    EXPECT_EQ(0, std::memcmp(data.get(), trans_data.get(), bytesize));
 
     if (nullptr != dynamic_cast<CudaBackend*>(&device1.backend())) {
         // Destination is CUDA device
         cudaPointerAttributes attr = {};
-        CheckError(cudaPointerGetAttributes(&attr, std::get<0>(tuple).get()));
+        CheckError(cudaPointerGetAttributes(&attr, trans_data.get()));
         EXPECT_TRUE(attr.isManaged);
         EXPECT_EQ(device1.index(), attr.device);
     } else {
         // Destination is native device
-        EXPECT_FALSE(IsPointerCudaMemory(std::get<0>(tuple).get()));
+        EXPECT_FALSE(IsPointerCudaMemory(trans_data.get()));
     }
 }
 
