@@ -110,7 +110,9 @@ public:
     // TODO(niboshi): Support shape with dimension -1.
     Array Reshape(const Shape& shape) const;
 
-    // Creates a copy. It will be connected to all the graphs.
+    // Creates a copy.
+    // It will be connected to all the graphs.
+    // It will be always C-contiguous.
     Array Copy() const;
 
     // Transfers the array to another device. It will be connected to all the graphs.
@@ -121,9 +123,11 @@ public:
     Array ToDevice(Device& dst_device) const;
 
     // Creates a copy or a view. It will be disconnected from all the graphs.
+    // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
     Array AsConstant(CopyKind kind = CopyKind::kView) const;
 
     // Creates a copy or a view. It will be disconnected from the specified graphs.
+    // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
     Array AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind = CopyKind::kView) const;
 
     void Fill(Scalar value);
