@@ -373,20 +373,25 @@ Array Array::ToDevice(Device& dst_device) const {
     } else {
         // Make a contiguous copy, then transfer it to the destination device.
         Array src_contig = AsConstant(CopyKind::kCopy);
-        assert(src_contig.offset() == 0);
+
         std::shared_ptr<void> dst_data;
+        int64_t offset = 0;
         if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
             // Use src backend for transfer.
-            dst_data = std::get<0>(src_device.TransferDataTo(dst_device, src_contig.data(), 0, src_contig.GetTotalBytes()));
+            auto data_tuple = src_device.TransferDataTo(dst_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes());
+            dst_data = std::move(std::get<0>(data_tuple));
+            offset = std::get<1>(data_tuple);
         } else if (dst_device.backend().SupportsTransfer(src_device, dst_device)) {
             // Use dst backend for transfer.
-            dst_data = std::get<0>(dst_device.TransferDataFrom(src_device, src_contig.data(), 0, src_contig.GetTotalBytes()));
+            auto data_tuple = dst_device.TransferDataFrom(src_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes());
+            dst_data = std::move(std::get<0>(data_tuple));
+            offset = std::get<1>(data_tuple);
         } else {
             // Neither backends support transfer.
             throw XchainerError(
                     "Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'.");
         }
-        out.emplace(Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data), 0});
+        out.emplace(Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data), offset});
     }
 
     assert(out.has_value());
