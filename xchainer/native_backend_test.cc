@@ -1,6 +1,7 @@
 #include "xchainer/native_backend.h"
 
 #include <cstring>
+#include <tuple>
 
 #include <gtest/gtest.h>
 
@@ -100,9 +101,8 @@ INSTANTIATE_TEST_CASE_P(
         Devices,
         NativeBackendTransferTest,
         ::testing::Values(
-                std::make_tuple("native:0", "native:0"),  // native:0 <-> native:0
-                std::make_tuple("native:0", "native:1")   // native:0 <-> native:1
-                ));
+                std::make_tuple("native:0", "native:0"),    // native:0 <-> native:0
+                std::make_tuple("native:0", "native:1")));  // native:0 <-> native:1
 
 TEST_P(NativeBackendTransferTest, SupportsTransfer) {
     Context ctx;

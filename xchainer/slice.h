@@ -15,7 +15,7 @@ public:
         if (step_ == 0) {
             throw DimensionError("Step must not be zero.");
         }
-    };
+    }
     Slice() = default;
     explicit Slice(int64_t stop) : Slice(0, stop, 1) {}
     Slice(int64_t start, int64_t stop) : Slice(start, stop, 1) {}

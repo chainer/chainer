@@ -56,13 +56,11 @@ Backend& Context::GetBackend(const std::string& backend_name) {
     std::unique_ptr<Backend> backend;
     if (backend_name == NativeBackend::kDefaultName) {
         backend = std::make_unique<NativeBackend>(*this);
-    }
 #ifdef XCHAINER_ENABLE_CUDA
-    else if (backend_name == cuda::CudaBackend::kDefaultName) {
+    } else if (backend_name == cuda::CudaBackend::kDefaultName) {
         backend = std::make_unique<cuda::CudaBackend>(*this);
-    }
 #endif  // XCHAINER_ENABLE_CUDA
-    else {
+    } else {
         // Load .so file
         std::string so_file_path = GetXchainerPath() + "/backends/" + backend_name + ".so";
         void* handle = ::dlopen(so_file_path.c_str(), RTLD_NOW | RTLD_LOCAL);

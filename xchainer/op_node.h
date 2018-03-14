@@ -18,7 +18,7 @@ class ArrayNode;
 class OpNode {
 public:
     OpNode() = default;
-    OpNode(std::string name) : name_(std::move(name)), rank_(0), next_nodes_(), backward_functions_() {}
+    explicit OpNode(std::string name) : name_(std::move(name)), rank_(0), next_nodes_(), backward_functions_() {}
     OpNode(std::string name,
            int64_t rank,
            std::vector<std::shared_ptr<ArrayNode>> next_nodes,

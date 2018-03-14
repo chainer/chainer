@@ -14,15 +14,15 @@ namespace xchainer {
 // Kernel object to index typed arrays.
 //
 // Indexer holds the shape information. It can be used to access elements of IndexableArray by linear indexes.
-template <int8_t n_dim = kDynamicNdim>
+template <int8_t kNdim = kDynamicNdim>
 class Indexer {
 public:
     explicit Indexer(const Shape& shape) : total_size_(shape.GetTotalSize()) {
-        Expects(shape.size() == n_dim);
+        Expects(shape.size() == kNdim);
         std::copy(shape.begin(), shape.end(), shape_);
     }
 
-    XCHAINER_HOST_DEVICE int8_t ndim() const { return n_dim; }
+    XCHAINER_HOST_DEVICE int8_t ndim() const { return kNdim; }
 
     XCHAINER_HOST_DEVICE int64_t total_size() const { return total_size_; }
 
@@ -34,15 +34,15 @@ public:
 
     XCHAINER_HOST_DEVICE void Set(int64_t index) {
         raw_index_ = index;
-        for (int8_t i = n_dim; --i >= 0;) {
+        for (int8_t i = kNdim; --i >= 0;) {
             index_[i] = index % shape_[i];
             index /= shape_[i];
         }
     }
 
 private:
-    int64_t shape_[n_dim];
-    int64_t index_[n_dim];
+    int64_t shape_[kNdim];
+    int64_t index_[kNdim];
     int64_t raw_index_;
     int64_t total_size_;
 };

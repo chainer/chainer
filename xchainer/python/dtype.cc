@@ -1,5 +1,7 @@
 #include "xchainer/python/dtype.h"
 
+#include <string>
+
 #include "xchainer/dtype.h"
 
 #include "xchainer/python/common.h"

@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <sstream>
+#include <string>
 
 namespace xchainer {
 

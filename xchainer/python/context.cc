@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <sstream>
+#include <string>
 
 #include "xchainer/backend.h"
 #include "xchainer/context.h"

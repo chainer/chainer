@@ -21,7 +21,7 @@ namespace testing {
 
 class ArrayBuilder {
 public:
-    ArrayBuilder(const Shape& shape) : shape_(shape) {}
+    explicit ArrayBuilder(const Shape& shape) : shape_(shape) {}
 
     operator Array() const { return array(); }
 
@@ -148,7 +148,7 @@ private:
     std::function<Array(const ArrayBuilder&)> create_array_;
 };
 
-inline ArrayBuilder MakeArray(const Shape& shape) { return {shape}; }
+inline ArrayBuilder MakeArray(const Shape& shape) { return ArrayBuilder{shape}; }
 
 template <typename T, size_t N>
 ArrayBuilder MakeArray(const Shape& shape, const std::array<T, N>& data) {

@@ -1,10 +1,12 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <initializer_list>
 #include <iterator>
 #include <sstream>
+#include <string>
 
 #include <gsl/gsl>
 
@@ -32,7 +34,7 @@ public:
     }
 
     // by gsl:span
-    Shape(gsl::span<const int64_t> dims) : Shape{dims.begin(), dims.end()} {}
+    explicit Shape(gsl::span<const int64_t> dims) : Shape{dims.begin(), dims.end()} {}
 
     // by initializer list
     Shape(std::initializer_list<int64_t> dims) : Shape{dims.begin(), dims.end()} {}

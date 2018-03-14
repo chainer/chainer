@@ -1,17 +1,19 @@
 #include "xchainer/array.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <initializer_list>
+#include <limits>
 #include <numeric>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
 #include "xchainer/check_backward.h"

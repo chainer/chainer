@@ -163,11 +163,10 @@ INSTANTIATE_TEST_CASE_P(
         BackendCombination,
         ArrayToDeviceCompatibleTest,
         ::testing::Values(
-                std::make_tuple(-1, 0, 0),  // transfer between same devices
-                std::make_tuple(-1, 0, 1),  // transfer to 1
-                std::make_tuple(-1, 2, 0),  // transfer from 2
-                std::make_tuple(2, 0, 1)    // checks default device does not change
-                ));
+                std::make_tuple(-1, 0, 0),   // transfer between same devices
+                std::make_tuple(-1, 0, 1),   // transfer to 1
+                std::make_tuple(-1, 2, 0),   // transfer from 2
+                std::make_tuple(2, 0, 1)));  // checks default device does not change
 
 // Test for incompatible transfer
 TEST(ArrayToDeviceIncompatibleTest, ToDeviceIncompatible) {
