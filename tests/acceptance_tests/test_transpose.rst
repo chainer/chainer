@@ -25,6 +25,22 @@ array([[[1., 4.]],
 <BLANKLINE>
        [[3., 6.]]], shape=(3, 1, 2), dtype=float32, device='native:0')
 
+Copy a non-contiguous arrays
+----------------------------
+
+>>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6])
+>>> b = a.transpose()
+>>> b.is_contiguous
+False
+
+>>> c = b.copy()
+>>> c
+array([[1., 4.],
+       [2., 5.],
+       [3., 6.]], shape=(3, 2), dtype=float32, device='native:0')
+>>> c.is_contiguous
+True
+
 Mixed contiguity arithmetics and Backprop
 ----------------------------------------
 
