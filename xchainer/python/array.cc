@@ -164,22 +164,13 @@ void InitXchainerArray(pybind11::module& m) {
             .def("transpose", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); })
             .def("reshape", [](const ArrayBodyPtr& self, const Shape& shape) { return Array{self}.Reshape(shape).move_body(); })
             .def("reshape",
-                 [](const ArrayBodyPtr& self, py::tuple shape) {
-                     std::vector<int64_t> shape_vec;
-                     shape_vec.reserve(shape.size());
-                     std::transform(shape.begin(), shape.end(), std::back_inserter(shape_vec), [](const py::handle& obj) -> int64_t {
-                         return py::cast<int64_t>(obj);
-                     });
-                     return Array{self}.Reshape({shape_vec.begin(), shape_vec.end()}).move_body();
+                 [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {
+                     return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
                  })
             .def("reshape",
                  [](const ArrayBodyPtr& self, py::args args) {
-                     std::vector<int64_t> shape_vec;
-                     shape_vec.reserve(args.size());
-                     std::transform(args.begin(), args.end(), std::back_inserter(shape_vec), [](const py::handle& obj) -> int64_t {
-                         return py::cast<int64_t>(obj);
-                     });
-                     return Array{self}.Reshape({shape_vec.begin(), shape_vec.end()}).move_body();
+                     auto shape = py::cast<std::vector<int64_t>>(args);
+                     return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
                  })
             .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
             .def("as_constant",

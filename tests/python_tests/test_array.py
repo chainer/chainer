@@ -272,6 +272,8 @@ def test_reshape(a_shape, b_shape):
     check(a_xc.reshape(xchainer.Shape(b_shape)))
     # by tuple
     check(a_xc.reshape(b_shape))
+    # by list
+    check(a_xc.reshape(list(b_shape)))
     # by variable length args
     check(a_xc.reshape(*b_shape))
 
