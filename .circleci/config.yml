@@ -116,19 +116,11 @@ jobs:
             autopep8 setup.py python tests -r --global-config .pep8 --diff | tee check_autopep8
             test ! -s check_autopep8
 
-      # Python test
+      # ClangFormat
       - run:
-          name: Python test
+          name: ClangFormat
           command: |
-            source activate testenv
-
-            python setup.py build --debug --build-temp ./build --build-lib ./build develop
-
-            # Run all non-CUDA tests except doctests
-            pytest -m='not cuda' -p no:doctest --cov --no-cov-on-fail --cov-fail-under=80 --cov-report html:build/coverage/python
-
-            # Run all non-CUDA doctests
-            find tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
+            find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
 
       # cmake
       - run:
@@ -181,12 +173,6 @@ jobs:
             make install
             popd
 
-      # ClangFormat
-      - run:
-          name: ClangFormat
-          command: |
-            find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
-
       # C++ test
       - run:
           name: C++ test
@@ -196,6 +182,21 @@ jobs:
             pushd build
             ctest -V
             popd
+
+      # Python test
+      # NOTE: `python setup.py build` should be done after `make` so that we can reuse compiled object files.
+      - run:
+          name: Python test
+          command: |
+            source activate testenv
+
+            python setup.py build --debug --build-temp ./build --build-lib ./build develop
+
+            # Run all non-CUDA tests except doctests
+            pytest -m='not cuda' -p no:doctest --cov --no-cov-on-fail --cov-fail-under=80 --cov-report html:build/coverage/python
+
+            # Run all non-CUDA doctests
+            find tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
 
       # coverage
       - run:
