@@ -183,6 +183,7 @@ TEST_P(ArrayToDeviceCompatibleTest, ToDeviceNonContiguous) {
         EXPECT_EQ(a.data().get(), b.data().get()) << "Array::ToDevice must return an alias in same-device transfer.";
     }
     EXPECT_EQ(&GetDefaultDevice(), &default_device) << "Array::ToDevice must not alter the default device.";
+    EXPECT_EQ(&src_dev != &dst_dev, b.IsContiguous()) << "Array::ToDevice must return a contiguous array if device transfer occurs.";
     ExpectArraysEqual(a, b);
 }
 
