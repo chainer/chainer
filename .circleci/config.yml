@@ -102,6 +102,7 @@ jobs:
 
             pip install -U hacking autopep8
             pip install -U pytest pytest-cov coveralls
+            pip install -U cpplint
 
       # Python PEP-8 check
       - run:
@@ -121,6 +122,14 @@ jobs:
           name: ClangFormat
           command: |
             find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
+
+      # cpplint
+      - run:
+          name: cpplint
+          command: |
+            source activate testenv
+
+            find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 -P4 cpplint
 
       # cmake
       - run:
