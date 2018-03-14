@@ -94,7 +94,7 @@ protected:
 
         // Set default backend (only if default_backend_num is non-negative)
         if (default_backend_num_ >= 0) {
-            device_scope_ = std::make_unique<DeviceScope>(*GetDefaultDevice());
+            device_scope_ = std::make_unique<DeviceScope>(*GetDefaultDevicePtr());
         }
     }
 
@@ -104,7 +104,7 @@ protected:
         backends_.clear();
     }
 
-    Device* GetDefaultDevice() {
+    Device* GetDefaultDevicePtr() {
         if (default_backend_num_ < 0) {
             return nullptr;
         }
@@ -143,7 +143,7 @@ void ExpectArraysEqual(const Array& expected, const Array& actual) {
 TEST_P(ArrayToDeviceCompatibleTest, ToDevice) {
     Device& src_dev = GetSourceDevice();
     Device& dst_dev = GetDestinationDevice();
-    Device* default_device = internal::GetDefaultDeviceNoExcept();
+    Device& default_device = GetDefaultDevice();
 
     // Allocate the source array
     float data[] = {1.0f, 2.0f};
@@ -160,19 +160,19 @@ TEST_P(ArrayToDeviceCompatibleTest, ToDevice) {
     if (&dst_dev == &src_dev) {
         EXPECT_EQ(a.data().get(), b.data().get()) << "Array::ToDevice must return an alias in same-device transfer.";
     }
-    EXPECT_EQ(internal::GetDefaultDeviceNoExcept(), default_device) << "Array::ToDevice must not alter the default device.";
+    EXPECT_EQ(&GetDefaultDevice(), &default_device) << "Array::ToDevice must not alter the default device.";
     ExpectArraysEqual(a, b);
 }
 
 TEST_P(ArrayToDeviceCompatibleTest, ToDeviceNonContiguous) {
     Device& src_dev = GetSourceDevice();
     Device& dst_dev = GetDestinationDevice();
-    Device* default_device = internal::GetDefaultDeviceNoExcept();
+    Device& default_device = GetDefaultDevice();
 
     Array a = testing::MakeArray({2, 4})          //
                       .WithLinearData<int32_t>()  //
                       .WithPadding(1)             //
-                      .Build(src_dev);
+                      .WithDevice(src_dev);
 
     // Transfer
     Array b = a.ToDevice(dst_dev);
@@ -182,7 +182,7 @@ TEST_P(ArrayToDeviceCompatibleTest, ToDeviceNonContiguous) {
     if (&dst_dev == &src_dev) {
         EXPECT_EQ(a.data().get(), b.data().get()) << "Array::ToDevice must return an alias in same-device transfer.";
     }
-    EXPECT_EQ(internal::GetDefaultDeviceNoExcept(), default_device) << "Array::ToDevice must not alter the default device.";
+    EXPECT_EQ(&GetDefaultDevice(), &default_device) << "Array::ToDevice must not alter the default device.";
     ExpectArraysEqual(a, b);
 }
 
