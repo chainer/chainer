@@ -173,7 +173,6 @@ TEST_P(ArrayToDeviceCompatibleTest, ToDeviceNonContiguous) {
                       .WithLinearData<int32_t>()  //
                       .WithPadding(1)             //
                       .Build(src_dev);
-    assert(!a.IsContiguous());
 
     // Transfer
     Array b = a.ToDevice(dst_dev);
