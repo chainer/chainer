@@ -1047,22 +1047,26 @@ TEST_P(ArrayTest, Copy) {
     {
         Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false});
         Array o = a.Copy();
+        EXPECT_TRUE(o.IsContiguous());
         ExpectEqualCopy<bool>(a, o);
     }
     {
         Array a = testing::MakeArray<int8_t>({3, 1}, {1, 2, 3});
         Array o = a.Copy();
+        EXPECT_TRUE(o.IsContiguous());
         ExpectEqualCopy<int8_t>(a, o);
     }
     {
         Array a = testing::MakeArray<float>({3, 1}, {1.0f, 2.0f, 3.0f});
         Array o = a.Copy();
+        EXPECT_TRUE(o.IsContiguous());
         ExpectEqualCopy<float>(a, o);
     }
     {
         Array a = testing::MakeArray<float>({3, 1}, {1.0f, 2.0f, 3.0f})  //
                           .WithPadding(4);
         Array o = a.Copy();
+        EXPECT_TRUE(o.IsContiguous());
         ExpectEqualCopy<float>(a, o);
     }
 }
@@ -1078,6 +1082,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
         Array b = a.AsConstant(CopyKind::kCopy);
 
         EXPECT_EQ(&b.device(), &a.device());
+        EXPECT_TRUE(b.IsContiguous());
 
         ExpectEqualCopy<bool>(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
@@ -1099,6 +1104,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
         Array b = a.AsConstant({"graph_1", "graph_2"}, CopyKind::kCopy);
 
         EXPECT_EQ(&b.device(), &a.device());
+        EXPECT_TRUE(b.IsContiguous());
 
         ExpectEqualCopy<bool>(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
@@ -1116,6 +1122,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
                           .WithPadding(4);
         Array b = a.AsConstant(CopyKind::kCopy);
         EXPECT_EQ(&b.device(), &a.device());
+        EXPECT_TRUE(b.IsContiguous());
         ExpectEqualCopy<bool>(a, b);
     }
 }

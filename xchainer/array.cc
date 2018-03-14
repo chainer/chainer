@@ -360,7 +360,9 @@ Array Array::Reshape(const Shape& shape) const {
 
 Array Array::Copy() const {
     // No graph will be disconnected.
-    return AsConstant({}, CopyKind::kCopy);
+    Array out = AsConstant({}, CopyKind::kCopy);
+    Ensures(out.IsContiguous());
+    return out;
 }
 
 Array Array::ToDevice(Device& dst_device) const {
@@ -412,6 +414,8 @@ Array Array::AsConstant(CopyKind kind) const {
         case CopyKind::kCopy: {
             Array out = Array::EmptyLike(*this, device());
             device().Copy(*this, out);
+
+            Ensures(out.IsContiguous());
             return std::move(out);
         }
         case CopyKind::kView:
@@ -427,6 +431,8 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
             Array out = Array::EmptyLike(*this, device());
             internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }}, graph_ids);
             device().Copy(*this, out);
+
+            Ensures(out.IsContiguous());
             return std::move(out);
         }
         case CopyKind::kView: {
