@@ -22,7 +22,6 @@ namespace testing {
 
 class ArrayBuilder {
 public:
-<<<<<<< HEAD
     explicit ArrayBuilder(const Shape& shape) : shape_(shape), device_(std::ref(GetDefaultDevice())) {}
 
     operator Array() const { return array(); }
