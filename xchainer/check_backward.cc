@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 
-#include <gtest/gtest.h>
-
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backward.h"
@@ -83,8 +81,9 @@ void CheckBackwardComputation(
     std::vector<Array> inputs_copy{inputs};
     const std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps, graph_id);
     const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_copy, grad_outputs, graph_id);
-    // TODO(niboshi): NOLINT is put only temporarily. It should be removed after moving this file to testing.
-    ASSERT_EQ(backward_grads.size(), numerical_grads.size());  // NOLINT
+    if (backward_grads.size() != numerical_grads.size()) {
+        throw XchainerError("Number of gradient arrays mismatched b/w backprop and numerical grad");
+    }
 
     std::ostringstream failure_os;
     const int nin = backward_grads.size();
@@ -108,7 +107,7 @@ void CheckBackwardComputation(
     // Do nothing if all backward-numerical gradient pairs were close, else generate a nonfatal failure
     std::string failure_message = failure_os.str();
     if (!failure_message.empty()) {
-        ADD_FAILURE() << failure_message;
+        throw GradientCheckError(failure_message);
     }
 }
 
@@ -164,8 +163,9 @@ void CheckDoubleBackwardComputation(
             CalculateNumericalGradient(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, eps, graph_id);
     const std::vector<nonstd::optional<Array>> backward_grads =
             BackwardGradients(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, graph_id);
-    // TODO(niboshi): NOLINT is put only temporarily. It should be removed after moving this file to testing.
-    ASSERT_EQ(backward_grads.size(), numerical_grads.size());  // NOLINT
+    if (backward_grads.size() != numerical_grads.size()) {
+        throw XchainerError("Number of gradient arrays mismatched b/w backprop and numerical grad");
+    }
 
     std::ostringstream failure_os;
     const int n_backward_grads = backward_grads.size();
@@ -191,7 +191,7 @@ void CheckDoubleBackwardComputation(
     // Do nothing if all backward-numerical gradient pairs were close, else generate a nonfatal failure
     std::string failure_message = failure_os.str();
     if (!failure_message.empty()) {
-        ADD_FAILURE() << failure_message;
+        throw GradientCheckError(failure_message);
     }
 }
 

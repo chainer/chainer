@@ -13,6 +13,8 @@ namespace xchainer {
 // This function automatically checks if the backward procedure of `func` is
 // correctly implemented, starting from the initial gradient given by `grad_outputs`.
 //
+// It throws GradientCheckError when the test fails.
+//
 // Note that any previous inputs gradients are cleared and overwritten with the
 // computed gradients by `func`.
 void CheckBackwardComputation(
@@ -34,6 +36,8 @@ void CheckBackwardComputation(
 // It also computes the second gradient using `CalculateNumericalGradient`.
 // The resulting gradients are compared to confirm if the second-order gradients
 // are approximately correct.
+//
+// It throws GradientCheckError when the test fails.
 //
 // Note that this function **DOES NOT** check if the first-order differentiation
 // is correct; the numerical gradient assumes that the first-order gradient given
