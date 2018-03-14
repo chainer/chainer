@@ -728,8 +728,6 @@ Actual: {0}'''.format(type(data))
 
         """
         if self.data is None:
-            self._initial_device = (cuda.Device().id
-                                    if device is None else device)
             self._data = [None]  # Renew placeholder to break sharing
         else:
             self._data = [cuda.to_gpu(self.data, device)]
@@ -1274,6 +1272,7 @@ class Parameter(Variable):
 
     initializer = None
     _grad_initializer = None
+    _initial_backend = None
     _initial_device = None
 
     def __init__(self, initializer=None, shape=None, name=None):
@@ -1314,6 +1313,7 @@ class Parameter(Variable):
     def to_cpu(self):
         super(Parameter, self).to_cpu()
         if self.data is None:
+            self._initial_backend = None
             self._initial_device = None
 
     def to_gpu(self, device=None):
@@ -1321,11 +1321,13 @@ class Parameter(Variable):
         if self.data is None:
             if device is None:
                 device = cuda.Device().id
+            self._initial_backend = 'cuda'
             self._initial_device = device
 
     def to_intel64(self):
         super(Parameter, self).to_intel64()
         if self.data is None:
+            self._initial_backend = 'intel64'
             self._initial_device = None
 
     def cleargrad(self):
@@ -1350,7 +1352,7 @@ class Parameter(Variable):
             shape (tuple of int): Shape of the data array.
 
         """
-        xp = numpy if self._initial_device is None else cuda.cupy
+        xp = numpy if self._initial_backend != 'cuda' else cuda.cupy
         with cuda.get_device_from_id(self._initial_device):
             data = initializers.generate_array(self.initializer, shape, xp)
 
@@ -1360,6 +1362,10 @@ class Parameter(Variable):
 
         self.data = data
         self.grad = grad
+
+        # Convert the array for iDeep.
+        if self._initial_backend == 'intel64':
+            self.to_intel64()
 
     def update(self):
         """Updates the data array using the gradient and the update rule.
