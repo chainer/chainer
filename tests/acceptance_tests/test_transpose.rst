@@ -25,8 +25,8 @@ array([[[1., 4.]],
 <BLANKLINE>
        [[3., 6.]]], shape=(3, 1, 2), dtype=float32, device='native:0')
 
-Copy a non-contiguous arrays
-----------------------------
+Copy a non-contiguous array
+---------------------------
 
 >>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6])
 >>> b = a.transpose()
@@ -42,7 +42,7 @@ array([[1., 4.],
 True
 
 Mixed contiguity arithmetics and Backprop
-----------------------------------------
+-----------------------------------------
 
 >>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 >>> b = a.transpose()
