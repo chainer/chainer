@@ -1467,9 +1467,6 @@ TEST(ArrayReshapeTest, Reshape) {
     ExpectEqual<T>(e, b);
 }
 
-// TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
-// TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
-
 TEST(ArrayReshapeTest, InvalidReshape) {
     testing::ContextSession context_session{};
     using T = int32_t;

@@ -275,6 +275,9 @@ def test_reshape(a_shape, b_shape):
     # by variable length args
     check(a_xc.reshape(*b_shape))
 
+# TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
+# TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
+
 
 @pytest.mark.parametrize('shape1,shape2', [
     ((), (0,)),
