@@ -371,7 +371,8 @@ Array Array::ToDevice(Device& dst_device) const {
         // Return an alias.
         out.emplace(AsConstant(CopyKind::kView));
     } else {
-        Array src_contig = AsConstant(CopyKind::kCopy);  // Make a contiguous copy, then transfer it to the destination device.
+        // Make a contiguous copy, then transfer it to the destination device.
+        Array src_contig = AsConstant(CopyKind::kCopy);
         assert(src_contig.offset() == 0);
         std::shared_ptr<void> dst_data;
         if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
