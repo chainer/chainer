@@ -1059,6 +1059,12 @@ TEST_P(ArrayTest, Copy) {
         Array o = a.Copy();
         ExpectEqualCopy<float>(a, o);
     }
+    {
+        Array a = testing::MakeArray<float>({3, 1}, {1.0f, 2.0f, 3.0f})  //
+                          .WithPadding(4);
+        Array o = a.Copy();
+        ExpectEqualCopy<float>(a, o);
+    }
 }
 
 TEST_P(ArrayTest, AsConstantCopy) {
@@ -1103,6 +1109,15 @@ TEST_P(ArrayTest, AsConstantCopy) {
         EXPECT_TRUE(a.IsGradRequired("graph_2"));
         EXPECT_TRUE(a.IsGradRequired("graph_3"));
     }
+
+    // Non-contiguous
+    {
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false})  //
+                          .WithPadding(4);
+        Array b = a.AsConstant(CopyKind::kCopy);
+        EXPECT_EQ(&b.device(), &a.device());
+        ExpectEqualCopy<bool>(a, b);
+    }
 }
 
 TEST_P(ArrayTest, AsConstantView) {
@@ -1142,6 +1157,14 @@ TEST_P(ArrayTest, AsConstantView) {
         EXPECT_TRUE(a.IsGradRequired("graph_1"));
         EXPECT_TRUE(a.IsGradRequired("graph_2"));
         EXPECT_TRUE(a.IsGradRequired("graph_3"));
+    }
+    // Non-contiguous
+    {
+        Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false})  //
+                          .WithPadding(4);
+        Array b = a.AsConstant(CopyKind::kView);
+        EXPECT_EQ(&b.device(), &a.device());
+        ExpectEqualView<bool>(a, b);
     }
 }
 
