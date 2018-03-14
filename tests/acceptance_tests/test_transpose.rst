@@ -33,11 +33,11 @@ Mixed contiguity arithmetics and Backprop
 >>> b.is_contiguous
 False
 
->>> c = xc.Array((3, 2), xc.float32, [-2, 1, 3, -1, 1, 0]).require_grad()
+>>> c = xc.Array((3, 2), xc.float32, [-2, 1, 3, -1, 1, 0])
 >>> c
 array([[-2.,  1.],
        [ 3., -1.],
-       [ 1.,  0.]], shape=(3, 2), dtype=float32, device='native:0', graph_ids=['default'])
+       [ 1.,  0.]], shape=(3, 2), dtype=float32, device='native:0')
 >>> c.is_contiguous
 True
 
