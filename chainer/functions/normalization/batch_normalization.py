@@ -30,7 +30,7 @@ class BatchNormalization(function_node.FunctionNode):
         # value.
         self.eps = eps
         if chainer.should_use_cudnn('>=auto'):
-            if eps < 1e-5:
+            if eps < libcudnn.CUDNN_BN_MIN_EPSILON:
                 msg = 'cuDNN does not allow an eps value less than 1e-5.'
                 raise RuntimeError(msg)
         self.decay = decay
