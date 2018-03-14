@@ -1468,8 +1468,8 @@ TEST(ArrayReshapeTest, Reshape) {
 }
 
 TEST(ArrayReshapeTest, InvalidReshape) {
-    testing::ContextSession context_session{};
     using T = int32_t;
+    testing::ContextSession context_session{};
     Shape input_shape{2, 3, 4};
     Shape output_shape{2, 4, 4};
 
