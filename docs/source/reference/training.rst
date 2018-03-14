@@ -49,6 +49,7 @@ Extension
    chainer.training.extensions.ExponentialShift
    chainer.training.extensions.LinearShift
    chainer.training.extensions.LogReport
+   chainer.training.extensions.MicroAverage
    chainer.training.extensions.observe_lr
    chainer.training.extensions.observe_value
    chainer.training.extensions.snapshot
@@ -57,6 +58,7 @@ Extension
    chainer.training.extensions.PlotReport
    chainer.training.extensions.PrintReport
    chainer.training.extensions.ProgressBar
+   chainer.training.extensions.VariableStatisticsPlot
 
 Trigger
 -------
