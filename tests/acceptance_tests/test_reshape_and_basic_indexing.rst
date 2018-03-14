@@ -1,0 +1,63 @@
+Acceptance tests for reshape and basic indexing
+===============================================
+
+>>> import xchainer as xc
+>>> import numpy as np
+>>> a_np = np.arange(30).reshape(2, 3, 5)
+>>> a = xc.Array(a_np)
+>>> a
+array([[[ 0,  1,  2,  3,  4],
+        [ 5,  6,  7,  8,  9],
+        [10, 11, 12, 13, 14]],
+<BLANKLINE>
+       [[15, 16, 17, 18, 19],
+        [20, 21, 22, 23, 24],
+        [25, 26, 27, 28, 29]]], shape=(2, 3, 5), dtype=int64, device='native:0')
+
+Reshape
+-------
+
+>>> a.reshape((30,))
+array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
+       10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+       20, 21, 22, 23, 24, 25, 26, 27, 28, 29], shape=(30,), dtype=int64, device='native:0')
+>>> a.reshape((3, 2, 5))
+array([[[ 0,  1,  2,  3,  4],
+        [ 5,  6,  7,  8,  9]],
+<BLANKLINE>
+       [[10, 11, 12, 13, 14],
+        [15, 16, 17, 18, 19]],
+<BLANKLINE>
+       [[20, 21, 22, 23, 24],
+        [25, 26, 27, 28, 29]]], shape=(3, 2, 5), dtype=int64, device='native:0')
+>>> xc.ones((), xc.float32).reshape(1, 1, 1, 1)
+array([[[[1.]]]], shape=(1, 1, 1, 1), dtype=float32, device='native:0')
+>>> xc.ones((2, 0, 3), xc.float32).reshape(5, 0, 7)
+array([], shape=(5, 0, 7), dtype=float32, device='native:0')
+
+
+Basic indexing
+--------------
+
+>>> a[0, 1, -2]
+array(8, shape=(), dtype=int64, device='native:0')
+>>> a[:]
+array([[[ 0,  1,  2,  3,  4],
+        [ 5,  6,  7,  8,  9],
+        [10, 11, 12, 13, 14]],
+<BLANKLINE>
+       [[15, 16, 17, 18, 19],
+        [20, 21, 22, 23, 24],
+        [25, 26, 27, 28, 29]]], shape=(2, 3, 5), dtype=int64, device='native:0')
+>>> a[::-1, 1:, -3:5]
+array([[[22, 23, 24],
+        [27, 28, 29]],
+<BLANKLINE>
+       [[ 7,  8,  9],
+        [12, 13, 14]]], shape=(2, 2, 3), dtype=int64, device='native:0')
+>>> a[1, :, -2]
+array([18, 23, 28], shape=(3,), dtype=int64, device='native:0')
+>>> a[1, xc.newaxis, :, -2, xc.newaxis]
+array([[[18],
+        [23],
+        [28]]], shape=(1, 3, 1), dtype=int64, device='native:0')
