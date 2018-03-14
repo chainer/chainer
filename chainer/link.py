@@ -358,9 +358,9 @@ Assign a Parameter object directly to an attribute within a \
         Args:
             device: Target device specifier. If omitted, the current device is
                 used.
-            sticky (bool): If ``True``, the link will be transferred to the
+            sticky (bool): If ``False``, the link will be transferred to the
                 specified GPU device even if the Link is already on another
-                GPU. If ``False``, ``to_gpu`` does nothing if the Link is
+                GPU. If ``True``, ``to_gpu`` does nothing if the Link is
                 already on GPU. If omitted, ``True`` is used as the default
                 in Chainer v4. Note that the default is planned to be changed
                 to ``False`` in the future release (possibly in Chainer v5).
@@ -389,11 +389,12 @@ if the Link is already on GPU, `to_gpu` does nothing.
 
 In Chainer v4, `sticky` option has been introduced to `Link.to_gpu` to \
 control this behavior.
-You can specify `sticky=True` option to `to_gpu` to perform inter-GPU transfer.
-If you don't want to perform inter-GPU transfer, explicitly specify
-`sticky=False` so that you can disable this warning.
+You can specify `sticky=False` option to `to_gpu` to perform inter-GPU \
+transfer.
+If you don't want to perform inter-GPU transfer, explicitly specify \
+`sticky=True` so that you can disable this warning.
 
-The default behavior is planned to be changed to "non-sticky" in the future \
+The default behavior is planned to be changed to `sticky=False` in the future \
 release (possibly in Chainer v5).
 '''.format(dst=device_id, src=self._device_id), FutureWarning)
                     return
