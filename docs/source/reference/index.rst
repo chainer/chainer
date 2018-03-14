@@ -21,6 +21,5 @@ Reference
    initializers
    datasets
    iterators
-   triggers
    caffe
    graph

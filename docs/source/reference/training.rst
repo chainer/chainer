@@ -72,8 +72,10 @@ It is mainly used to determine when to call an extension. It is also used to det
 
    chainer.training.get_trigger
    chainer.training.triggers.BestValueTrigger
+   chainer.training.triggers.EarlyStoppingTrigger
    chainer.training.triggers.IntervalTrigger
    chainer.training.triggers.ManualScheduleTrigger
    chainer.training.triggers.MaxValueTrigger
    chainer.training.triggers.MinValueTrigger
+   chainer.training.triggers.TimeTrigger
 
