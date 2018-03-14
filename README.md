@@ -68,7 +68,29 @@ bash)
 $ find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 clang-format -i
 ```
 
-### C++ Lint
+### C++ Lint (cpplint)
+
+We use `cpplint`. To install it, run:
+
+```shell-session
+$ pip install cpplint
+```
+
+Run the following at the repository root:
+
+zsh)
+
+```shell-session
+$ cpplint xchainer/**/*.{cc,h,cu}
+```
+
+bash)
+
+```shell-session
+$ find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 cpplint
+```
+
+### C++ Lint (clang-tidy)
 
 We use `clang-tidy`. To install on Ubuntu, run:
 
