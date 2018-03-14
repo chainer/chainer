@@ -3,6 +3,7 @@ add_library(_core.so MODULE
     array.cc
     array_index.cc
     backend.cc
+    check_backward.cc
     context.cc
     device.cc
     dtype.cc
