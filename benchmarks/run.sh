@@ -17,9 +17,14 @@ function run_asv() {
   # version used in the benchmark virtualenv.
   pushd cupy
   git remote update
-  git clean -fdx
   git checkout "$(git show --format="%H" ${CUPY_COMMIT})"
-  python setup.py build_ext --inplace
+
+  # First try without git clean to use build cache as much as possible.
+  # If failed, rebuild it after git clean.
+  BUILD_COMMAND="python setup.py build_ext --inplace"
+  ${BUILD_COMMAND} || ( git clean -fdx && ${BUILD_COMMAND} )
+  python -c 'import cupy; import cupy.cudnn' || ( git clean -fdx && ${BUILD_COMMAND} )
+
   export PYTHONPATH="${PWD}:${PYTHONPATH:-}"
   popd
 
