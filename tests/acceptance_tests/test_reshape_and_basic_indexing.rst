@@ -3,6 +3,7 @@ Acceptance tests for reshape and basic indexing
 
 >>> import xchainer as xc
 >>> import numpy as np
+
 >>> a_np = np.arange(30).reshape(2, 3, 5)
 >>> a = xc.Array(a_np)
 >>> a
@@ -66,9 +67,7 @@ array([[[18],
 Backward
 --------
 
->>> import xchainer as xc
->>> import numpy as np
->>> a_np = np.arange(6).reshape(2, 3)
+>>> a_np = np.arange(6, dtype=np.float32).reshape(2, 3)
 >>> a = xc.Array(a_np).require_grad()
 >>> a
 array([[0., 1., 2.],
@@ -82,7 +81,8 @@ array([[0., 1.],
 >>> c
 array([2., 3.], shape=(2,), dtype=float32, device='native:0', graph_ids=['default'])
 
+>>> c.set_grad(xc.Array(np.array([5, 7], dtype=np.float32)))
 >>> xc.backward(c)
 >>> a.get_grad()
-array([[0., 0., 1.],
-       [1., 0., 0.]], shape=(2, 3), dtype=float32, device='native:0')
+array([[0., 0., 5.],
+       [7., 0., 0.]], shape=(2, 3), dtype=float32, device='native:0')
