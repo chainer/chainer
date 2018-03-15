@@ -25,6 +25,8 @@ def test_no_grad_required():
 
 
 def test_incorrect_backward_unary():
+    # as_constant() makes backward not corresponding to the mathematical differentiation of the forward computation,
+    # which should be detected by check_backward.
     def fprop(xs):
         x, = xs
         return (x * x).as_constant() + x,
@@ -47,6 +49,7 @@ def test_correct_backward_binary():
 
 
 def test_incorrect_backward_binary():
+    # See the comment of test_incorrect_backward_unary().
     def fprop(xs):
         x, y = xs
         return (x * y).as_constant() + x + y,
