@@ -352,7 +352,9 @@ Array Array::Reshape(const Shape& shape) const {
     }
 
     Array out{shape, strides, dtype(), device(), body_->data_, offset()};
-    // TODO(niboshi): Implement backward
+    internal::SetUpOpNodes(
+            "reshape", {*this}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }}, {});
+
     Ensures(out.shape() == shape);
     Ensures(out.strides().size() == shape.size());
     return out;
