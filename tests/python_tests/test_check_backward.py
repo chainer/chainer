@@ -24,12 +24,12 @@ def test_no_grad_required():
     _check_backward_unary(lambda xs: (xs[0] * xs[0],), False)
 
 
-@pytest.mark.xfail
 def test_incorrect_backward_unary():
     def fprop(xs):
         x, = xs
         return (x * x).as_constant() + x,
-    _check_backward_unary(fprop)
+    with pytest.raises(xchainer.GradientCheckError):
+        _check_backward_unary(fprop)
 
 
 def _check_backward_binary(fprop):
@@ -46,12 +46,12 @@ def test_correct_backward_binary():
     _check_backward_binary(lambda xs: (xs[0] * xs[1],))
 
 
-@pytest.mark.xfail
 def test_incorrect_backward_binary():
     def fprop(xs):
         x, y = xs
         return (x * y).as_constant() + x + y,
-    _check_backward_binary(fprop)
+    with pytest.raises(xchainer.GradientCheckError):
+        _check_backward_binary(fprop)
 
 
 def test_correct_double_backward_unary():
