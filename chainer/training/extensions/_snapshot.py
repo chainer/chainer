@@ -111,11 +111,9 @@ class Snapshot(extension.Extension):
 
     This is the list of built-in snapshot writers.
 
-        - :class:`chainer.training.extensions.snapshot_writers.Writer`
         - :class:`chainer.training.extensions.snapshot_writers.SimpleWriter`
         - :class:`chainer.training.extensions.snapshot_writers.ThreadWriter`
         - :class:`chainer.training.extensions.snapshot_writers.ProcessWriter`
-        - :class:`chainer.training.extensions.snapshot_writers.QueueWriter`
         - :class:`chainer.training.extensions.snapshot_writers.ThreadQueueWriter`
         - :class:`chainer.training.extensions.snapshot_writers.ProcessQueueWriter`
 
