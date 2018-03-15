@@ -105,12 +105,8 @@ from chainer.functions.array.where import Where  # NOQA
 
 from chainer.functions.connection.bilinear import bilinear  # NOQA
 from chainer.functions.connection.convolution_2d import convolution_2d  # NOQA
-from chainer.functions.connection.convolution_nd import convolution_1d  # NOQA
-from chainer.functions.connection.convolution_nd import convolution_3d  # NOQA
 from chainer.functions.connection.convolution_nd import convolution_nd  # NOQA
 from chainer.functions.connection.deconvolution_2d import deconvolution_2d  # NOQA
-from chainer.functions.connection.deconvolution_nd import deconvolution_1d  # NOQA
-from chainer.functions.connection.deconvolution_nd import deconvolution_3d  # NOQA
 from chainer.functions.connection.deconvolution_nd import deconvolution_nd  # NOQA
 from chainer.functions.connection.depthwise_convolution_2d import depthwise_convolution_2d  # NOQA
 from chainer.functions.connection.dilated_convolution_2d import dilated_convolution_2d  # NOQA
@@ -293,14 +289,10 @@ from chainer.functions.normalization.local_response_normalization import LocalRe
 
 from chainer.functions.pooling.average_pooling_2d import average_pooling_2d  # NOQA
 from chainer.functions.pooling.average_pooling_2d import AveragePooling2D  # NOQA
-from chainer.functions.pooling.average_pooling_nd import average_pooling_1d  # NOQA
-from chainer.functions.pooling.average_pooling_nd import average_pooling_3d  # NOQA
 from chainer.functions.pooling.average_pooling_nd import average_pooling_nd  # NOQA
 from chainer.functions.pooling.average_pooling_nd import AveragePoolingND  # NOQA
 from chainer.functions.pooling.max_pooling_2d import max_pooling_2d  # NOQA
 from chainer.functions.pooling.max_pooling_2d import MaxPooling2D  # NOQA
-from chainer.functions.pooling.max_pooling_nd import max_pooling_1d  # NOQA
-from chainer.functions.pooling.max_pooling_nd import max_pooling_3d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
 from chainer.functions.pooling.max_pooling_nd import MaxPoolingND  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
@@ -308,8 +300,6 @@ from chainer.functions.pooling.roi_pooling_2d import ROIPooling2D  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
 from chainer.functions.pooling.unpooling_2d import Unpooling2D  # NOQA
 from chainer.functions.pooling.unpooling_2d import unpooling_2d  # NOQA
-from chainer.functions.pooling.unpooling_nd import unpooling_1d  # NOQA
-from chainer.functions.pooling.unpooling_nd import unpooling_3d  # NOQA
 from chainer.functions.pooling.unpooling_nd import unpooling_nd  # NOQA
 from chainer.functions.pooling.unpooling_nd import UnpoolingND  # NOQA
 from chainer.functions.pooling.upsampling_2d import Upsampling2D  # NOQA
