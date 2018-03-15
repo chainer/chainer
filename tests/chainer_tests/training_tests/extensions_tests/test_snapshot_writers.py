@@ -8,6 +8,9 @@ from chainer import testing
 from chainer.training.extensions import snapshot_writers
 
 
+snapshot_writers_path = 'chainer.training.extensions.snapshot_writers'
+
+
 class TestSimpleWriter(unittest.TestCase):
 
     def setUp(self):
@@ -20,7 +23,7 @@ class TestSimpleWriter(unittest.TestCase):
         w.save = mock.MagicMock()
         w(self.filename, self.outdir, self.target)
 
-        self.assertEqual(w.save.call_count, 1)
+        assert w.save.call_count == 1
 
 
 class TestStandardWriter(unittest.TestCase):
@@ -33,14 +36,14 @@ class TestStandardWriter(unittest.TestCase):
     def test_call(self):
         w = snapshot_writers.StandardWriter()
         worker = mock.MagicMock()
-        name = 'chainer.training.extensions.snapshot_writers.StandardWriter.create_worker'
+        name = snapshot_writers_path + '.StandardWriter.create_worker'
         with mock.patch(name, return_value=worker):
             w(self.filename, self.outdir, self.target)
             w(self.filename, self.outdir, self.target)
             w.finalize()
 
-            self.assertEqual(worker.start.call_count, 2)
-            self.assertEqual(worker.join.call_count, 2)
+            assert worker.start.call_count == 2
+            assert worker.join.call_count == 2
 
 
 class TestThreadWriter(unittest.TestCase):
@@ -54,7 +57,7 @@ class TestThreadWriter(unittest.TestCase):
         w = snapshot_writers.ThreadWriter()
         worker = w.create_worker(self.filename, self.outdir, self.target)
 
-        self.assertIsInstance(worker, threading.Thread)
+        assert isinstance(worker, threading.Thread)
 
 
 class TestProcessWriter(unittest.TestCase):
@@ -68,7 +71,7 @@ class TestProcessWriter(unittest.TestCase):
         w = snapshot_writers.ProcessWriter()
         worker = w.create_worker(self.filename, self.outdir, self.target)
 
-        self.assertIsInstance(worker, multiprocessing.Process)
+        assert isinstance(worker, multiprocessing.Process)
 
 
 class TestQueueWriter(unittest.TestCase):
@@ -81,8 +84,8 @@ class TestQueueWriter(unittest.TestCase):
     def test_call(self):
         q = mock.MagicMock()
         consumer = mock.MagicMock()
-        names = ['chainer.training.extensions.snapshot_writers.QueueWriter.create_queue',
-                 'chainer.training.extensions.snapshot_writers.QueueWriter.create_consumer']
+        names = [snapshot_writers_path + '.QueueWriter.create_queue',
+                 snapshot_writers_path + '.QueueWriter.create_consumer']
         with mock.patch(names[0], return_value=q):
             with mock.patch(names[1], return_value=consumer):
                 w = snapshot_writers.QueueWriter()
@@ -90,14 +93,14 @@ class TestQueueWriter(unittest.TestCase):
                 w(self.filename, self.outdir, self.target)
                 w.finalize()
 
-                self.assertEqual(consumer.start.call_count, 1)
-                self.assertEqual(q.put.call_count, 3)
-                self.assertEqual(q.join.call_count, 1)
-                self.assertEqual(consumer.join.call_count, 1)
+                assert consumer.start.call_count == 1
+                assert q.put.call_count == 3
+                assert q.join.call_count, 1
+                assert consumer.join.call_count == 1
 
     def test_consume(self):
-        names = ['chainer.training.extensions.snapshot_writers.QueueWriter.create_queue',
-                 'chainer.training.extensions.snapshot_writers.QueueWriter.create_consumer']
+        names = [snapshot_writers_path + '.QueueWriter.create_queue',
+                 snapshot_writers_path + '.QueueWriter.create_consumer']
         with mock.patch(names[0]):
             with mock.patch(names[1]):
                 task = mock.MagicMock()
@@ -106,9 +109,9 @@ class TestQueueWriter(unittest.TestCase):
                 w = snapshot_writers.QueueWriter()
                 w.consume(q)
 
-                self.assertEqual(q.get.call_count, 3)
-                self.assertEqual(task[0].call_count, 2)
-                self.assertEqual(q.task_done.call_count, 3)
+                assert q.get.call_count == 3
+                assert task[0].call_count == 2
+                assert q.task_done.call_count == 3
 
 
 testing.run_module(__name__, __file__)

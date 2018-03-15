@@ -292,10 +292,10 @@ class TestSerialize(unittest.TestCase):
         obj = mock.MagicMock()
         target = npz.serialize(obj)
 
-        self.assertEqual(obj.serialize.call_count, 1)
+        assert obj.serialize.call_count == 1
         (serializer,), _ = obj.serialize.call_args
-        self.assertIsInstance(serializer, npz.DictionarySerializer)
-        self.assertIsInstance(target, dict)
+        assert isinstance(serializer, npz.DictionarySerializer)
+        assert isinstance(target, dict)
 
 
 @testing.parameterize(

@@ -17,8 +17,8 @@ class TestSnapshot(unittest.TestCase):
         snapshot(trainer)
         snapshot(trainer)
 
-        self.assertEqual(c.call_count, 2)
-        self.assertEqual(w.call_count, 1)
+        assert c.call_count == 2
+        assert w.call_count == 1
 
 
 testing.run_module(__name__, __file__)
