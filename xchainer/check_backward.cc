@@ -82,7 +82,7 @@ void CheckBackwardComputation(
     const std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps, graph_id);
     const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_copy, grad_outputs, graph_id);
     if (backward_grads.size() != numerical_grads.size()) {
-        throw XchainerError("Number of gradient arrays mismatched b/w backprop and numerical grad");
+        throw XchainerError("Number of gradient arrays mismatched between backprop and numerical grad");
     }
 
     std::ostringstream failure_os;
@@ -164,7 +164,7 @@ void CheckDoubleBackwardComputation(
     const std::vector<nonstd::optional<Array>> backward_grads =
             BackwardGradients(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, graph_id);
     if (backward_grads.size() != numerical_grads.size()) {
-        throw XchainerError("Number of gradient arrays mismatched b/w backprop and numerical grad");
+        throw XchainerError("Number of gradient arrays mismatched between backprop and numerical grad");
     }
 
     std::ostringstream failure_os;
