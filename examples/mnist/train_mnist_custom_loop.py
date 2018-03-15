@@ -6,7 +6,6 @@ models without using the Trainer class in chainer and instead write a
 training loop that manually computes the loss of minibatches and
 applies an optimizer to update the model.
 """
-from __future__ import print_function
 
 import argparse
 
@@ -80,7 +79,7 @@ def main():
         sum_accuracy += float(model.accuracy.data) * len(t.data)
 
         if train_iter.is_new_epoch:
-            print('epoch: ', train_iter.epoch)
+            print('epoch: {}'.format(train_iter.epoch))
             print('train mean loss: {}, accuracy: {}'.format(
                 sum_loss / train_count, sum_accuracy / train_count))
             # evaluation

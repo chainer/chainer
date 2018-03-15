@@ -8,7 +8,6 @@ origin label at the second column (this format is same as that used by Caffe's
 ImageDataLayer).
 
 """
-from __future__ import print_function
 import argparse
 import os
 import sys
