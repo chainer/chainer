@@ -1,6 +1,6 @@
 from chainer.serializers import npz
 from chainer.training import extension
-from chainer.training import writer
+from chainer.training.extensions import snapshot_writers
 
 
 def snapshot_object(target, filename, savefun=npz.save_npz):
@@ -33,7 +33,7 @@ def snapshot_object(target, filename, savefun=npz.save_npz):
     """
     return Snapshot(
         target=target,
-        writer=writer.SimpleWriter(savefun=savefun),
+        writer=snapshot_writers.SimpleWriter(savefun=savefun),
         filename=filename)
 
 
@@ -71,7 +71,7 @@ def snapshot(savefun=npz.save_npz,
 
     """
     return Snapshot(
-        writer=writer.SimpleWriter(savefun=savefun),
+        writer=snapshot_writers.SimpleWriter(savefun=savefun),
         filename=filename)
 
 
@@ -112,7 +112,7 @@ class Snapshot(extension.Extension):
     def __init__(self,
                  target=None,
                  condition=lambda: True,
-                 writer=writer.SimpleWriter(),
+                 writer=snapshot_writers.SimpleWriter(),
                  filename='snapshot_iter_{.updater.iteration}'):
         self._target = target
         self.filename = filename

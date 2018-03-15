@@ -5,7 +5,7 @@ import multiprocessing
 import threading
 
 from chainer import testing
-from chainer.training import writer
+from chainer.training.extensions import snapshot_writers
 
 
 class TestSimpleWriter(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestSimpleWriter(unittest.TestCase):
         self.target = mock.MagicMock()
 
     def test_call(self):
-        w = writer.SimpleWriter()
+        w = snapshot_writers.SimpleWriter()
         w.save = mock.MagicMock()
         w(self.filename, self.outdir, self.target)
 
@@ -31,9 +31,9 @@ class TestStandardWriter(unittest.TestCase):
         self.target = mock.MagicMock()
 
     def test_call(self):
-        w = writer.StandardWriter()
+        w = snapshot_writers.StandardWriter()
         worker = mock.MagicMock()
-        name = 'chainer.training.writer.StandardWriter.create_worker'
+        name = 'chainer.training.extensions.snapshot_writers.StandardWriter.create_worker'
         with mock.patch(name, return_value=worker):
             w(self.filename, self.outdir, self.target)
             w(self.filename, self.outdir, self.target)
@@ -51,7 +51,7 @@ class TestThreadWriter(unittest.TestCase):
         self.target = mock.MagicMock()
 
     def test_create_worker(self):
-        w = writer.ThreadWriter()
+        w = snapshot_writers.ThreadWriter()
         worker = w.create_worker(self.filename, self.outdir, self.target)
 
         self.assertIsInstance(worker, threading.Thread)
@@ -65,7 +65,7 @@ class TestProcessWriter(unittest.TestCase):
         self.target = mock.MagicMock()
 
     def test_create_worker(self):
-        w = writer.ProcessWriter()
+        w = snapshot_writers.ProcessWriter()
         worker = w.create_worker(self.filename, self.outdir, self.target)
 
         self.assertIsInstance(worker, multiprocessing.Process)
@@ -81,11 +81,11 @@ class TestQueueWriter(unittest.TestCase):
     def test_call(self):
         q = mock.MagicMock()
         consumer = mock.MagicMock()
-        names = ['chainer.training.writer.QueueWriter.create_queue',
-                 'chainer.training.writer.QueueWriter.create_consumer']
+        names = ['chainer.training.extensions.snapshot_writers.QueueWriter.create_queue',
+                 'chainer.training.extensions.snapshot_writers.QueueWriter.create_consumer']
         with mock.patch(names[0], return_value=q):
             with mock.patch(names[1], return_value=consumer):
-                w = writer.QueueWriter()
+                w = snapshot_writers.QueueWriter()
                 w(self.filename, self.outdir, self.target)
                 w(self.filename, self.outdir, self.target)
                 w.finalize()
@@ -96,14 +96,14 @@ class TestQueueWriter(unittest.TestCase):
                 self.assertEqual(consumer.join.call_count, 1)
 
     def test_consume(self):
-        names = ['chainer.training.writer.QueueWriter.create_queue',
-                 'chainer.training.writer.QueueWriter.create_consumer']
+        names = ['chainer.training.extensions.snapshot_writers.QueueWriter.create_queue',
+                 'chainer.training.extensions.snapshot_writers.QueueWriter.create_consumer']
         with mock.patch(names[0]):
             with mock.patch(names[1]):
                 task = mock.MagicMock()
                 q = mock.MagicMock()
                 q.get = mock.MagicMock(side_effect=[task, task, None])
-                w = writer.QueueWriter()
+                w = snapshot_writers.QueueWriter()
                 w.consume(q)
 
                 self.assertEqual(q.get.call_count, 3)
