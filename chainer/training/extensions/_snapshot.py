@@ -138,7 +138,7 @@ class Snapshot(extension.Extension):
 
         >>> from chainer.training import extensions
         >>> writer = extensions.snapshot_writers.ProcessWriter(
-        >>>     savefun = extensions.snapshots.util.save_npz)
+        >>>     savefun=extensions.snapshots.util.save_npz)
         >>> trainer.extend(extensions.Snapshot(writer=writer), trigger=(1, 'epoch'))
 
     .. seealso::
