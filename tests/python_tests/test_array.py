@@ -281,6 +281,27 @@ def test_reshape(a_shape, b_shape):
 # TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
 
 
+def test_reshape_backward():
+    x = xchainer.Array(numpy.arange(6, dtype=numpy.float32)).require_grad()
+    gy = xchainer.ones((2, 3), x.dtype)
+    eps = xchainer.full_like(x, 1e-3)
+    xchainer.check_backward(lambda a: (a[0].reshape(gy.shape),), [x], [gy], [eps])
+
+
+def test_reshape_double_backward():
+    x = xchainer.Array(numpy.arange(6, dtype=numpy.float32)).require_grad()
+    gy = xchainer.ones((2, 3), x.dtype).require_grad()
+    ggx = xchainer.ones_like(x)
+    eps_x = xchainer.full_like(x, 1e-3)
+    eps_gy = xchainer.full_like(gy, 1e-3)
+
+    def forward(a):
+        b = a[0].reshape(gy.shape)
+        return b * b,  # to make it nonlinear
+
+    xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
+
+
 @pytest.mark.parametrize('shape1,shape2', [
     ((), (0,)),
     ((), (2,)),
