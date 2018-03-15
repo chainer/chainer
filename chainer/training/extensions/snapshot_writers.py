@@ -94,6 +94,10 @@ class StandardWriter(Writer):
 
     """
 
+    _started = False
+    _finalized = False
+    _worker = None
+
     def __init__(self, savefun=npz.save_npz, **kwds):
         self._savefun = savefun
         self._kwds = kwds
@@ -127,13 +131,6 @@ class StandardWriter(Writer):
         raise NotImplementedError
 
     def finalize(self):
-        if not hasattr(self, '_started'):
-            return
-        if not hasattr(self, '_finalized'):
-            return
-        if not hasattr(self, '_worker'):
-            return
-
         if self._started:
             if not self._finalized:
                 self._worker.join()
@@ -191,6 +188,11 @@ class QueueWriter(Writer):
 
     """
 
+    _started = False
+    _finalized = False
+    _queue = None
+    _consumer = None
+
     def __init__(self, savefun=npz.save_npz, task=None):
         if task is None:
             self._task = self.create_task(savefun)
@@ -225,15 +227,6 @@ class QueueWriter(Writer):
                 q.task_done()
 
     def finalize(self):
-        if not hasattr(self, '_started'):
-            return
-        if not hasattr(self, '_finalized'):
-            return
-        if not hasattr(self, '_queue'):
-            return
-        if not hasattr(self, '_consumer'):
-            return
-
         if self._started:
             if not self._finalized:
                 self._queue.put(None)
