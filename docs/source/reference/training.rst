@@ -1,5 +1,12 @@
 .. module:: chainer.training
 
+
+.. snapshot_writers is referred to from within chainer.training.Snapshot docstring.
+.. toctree::
+   :hidden:
+
+   snapshot_writers
+
 Training Tools
 =========================
 
@@ -53,6 +60,7 @@ Extension
    chainer.training.extensions.observe_lr
    chainer.training.extensions.observe_value
    chainer.training.extensions.snapshot
+   chainer.training.extensions.Snapshot
    chainer.training.extensions.snapshot_object
    chainer.training.extensions.ParameterStatistics
    chainer.training.extensions.PlotReport

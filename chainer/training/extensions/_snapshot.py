@@ -96,7 +96,11 @@ class Snapshot(extension.Extension):
             boolean without any arguments. If it returns True the snapshot will
             be done. If not it will be skipped. The default is a method that
             always returns True.
-        writer: Writer object. It must be a callable object.
+        writer: Writer object.
+            It must be a callable object.
+            By default, it is
+            :class:`~chainer.training.extensions.snapshot_writers.SimpleWriter`.
+            See below for the list of built-in writers.
         filename (str): Name of the file into which the object is serialized.
             It can be a format string, where the trainer object is passed to
             the :meth:`str.format` method. For example,
@@ -104,6 +108,43 @@ class Snapshot(extension.Extension):
             ``'snapshot_10000'`` at the 10,000th iteration.
             Also it can be a callable object, where the trainer is passed as
             an argument.
+
+    This is the list of built-in snapshot writers.
+
+        - :class:`chainer.training.extensions.snapshot_writers.Writer`
+        - :class:`chainer.training.extensions.snapshot_writers.SimpleWriter`
+        - :class:`chainer.training.extensions.snapshot_writers.ThreadWriter`
+        - :class:`chainer.training.extensions.snapshot_writers.ProcessWriter`
+        - :class:`chainer.training.extensions.snapshot_writers.QueueWriter`
+        - :class:`chainer.training.extensions.snapshot_writers.ThreadQueueWriter`
+        - :class:`chainer.training.extensions.snapshot_writers.ProcessQueueWriter`
+
+    .. admonition:: Example
+
+        The simplest use of ``Snapshot`` extension is just like
+        :meth:`chainer.training.extensions.snapshot`.
+
+        >>> from chainer.training import extensions
+        >>> trainer.extend(extensions.Snapshot(), trigger=(1, 'epoch'))
+
+        If you want to use another writer, you can explicitly specify it.
+
+        >>> from chainer.training import extensions
+        >>> writer = extensions.snapshot_writers.ProcessWriter()
+        >>> trainer.extend(extensions.Snapshot(writer=writer), trigger=(1, 'epoch'))
+
+        To change the format, such as npz or hdf5, you can pass a saving
+        function as ``savefun`` argument of the writer.
+
+        >>> from chainer.training import extensions
+        >>> writer = extensions.snapshot_writers.ProcessWriter(
+        >>>     savefun = extensions.snapshots.util.save_npz)
+        >>> trainer.extend(extensions.Snapshot(writer=writer), trigger=(1, 'epoch'))
+
+    .. seealso::
+
+        - :meth:`chainer.training.extensions.snapshot`
+        - :meth:`chainer.training.extensions.snapshot_object`
 
     """
     trigger = 1, 'epoch'
