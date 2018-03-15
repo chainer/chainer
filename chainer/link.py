@@ -582,7 +582,8 @@ Assign a Parameter object directly to an attribute within a \
         """Counts the total number of parameters.
 
         This method counts the total number of scalar values included in all
-        the :class:`~chainer.Parameters` held by this link and its descendants.
+        the :class:`~chainer.Parameter`\\ s held by this link and its
+        descendants.
 
         If the link containts uninitialized parameters, this method raises a
         warning.
