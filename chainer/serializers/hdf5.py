@@ -1,6 +1,7 @@
+import sys
+
 import numpy
 import six
-import sys
 
 from chainer.backends import cuda
 from chainer import serializer
