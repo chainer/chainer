@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <memory>
-#include <utility>
 
 #include <cuda_runtime.h>
 
@@ -101,13 +100,13 @@ std::shared_ptr<void> CudaDevice::TransferDataFrom(
         Device& src_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) {
     std::shared_ptr<void> dst_ptr = Allocate(bytesize);
     MemoryCopyFrom(dst_ptr.get(), &(static_cast<int8_t*>(src_ptr.get())[offset]), bytesize, src_device);
-    return std::move(dst_ptr);
+    return dst_ptr;
 }
 
 std::shared_ptr<void> CudaDevice::TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) {
     std::shared_ptr<void> dst_ptr = dst_device.Allocate(bytesize);
     MemoryCopyTo(dst_ptr.get(), &(static_cast<int8_t*>(src_ptr.get())[offset]), bytesize, dst_device);
-    return std::move(dst_ptr);
+    return dst_ptr;
 }
 
 std::shared_ptr<void> CudaDevice::FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) {

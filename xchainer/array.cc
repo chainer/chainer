@@ -7,6 +7,7 @@
 #include <ostream>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
@@ -378,11 +379,10 @@ Array Array::ToDevice(Device& dst_device) const {
         std::shared_ptr<void> dst_data;
         if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
             // Use src backend for transfer.
-            dst_data = std::move(src_device.TransferDataTo(dst_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes()));
+            dst_data = src_device.TransferDataTo(dst_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes());
         } else if (dst_device.backend().SupportsTransfer(src_device, dst_device)) {
             // Use dst backend for transfer.
-            dst_data =
-                    std::move(dst_device.TransferDataFrom(src_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes()));
+            dst_data = dst_device.TransferDataFrom(src_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes());
         } else {
             // Neither backends support transfer.
             throw XchainerError(
