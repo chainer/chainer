@@ -37,7 +37,7 @@ This table compares Chainer with other actively developed deep learning framewor
 .. [1] Define-by-run is in development as of June 2017 and tracked in `dmlc/mxnet#5705 <https://github.com/dmlc/mxnet/pull/5705>`_. It is also possible using the much slower MinPy extension.
 .. [2] Symbolic autograd is in development as of June 2017 and tracked in `deeplearning4j/nd4j#1750 <https://github.com/deeplearning4j/nd4j/pull/1750>`_.
 .. [3] Symbolic autograd is available only with ngraph backend (experimental).
-.. [4] Some functions do not support higher-order differentiation. See `chainer/chainer#2970 <https://github.com/chainer/chainer/pull/2970>`_.
+.. [4] Some functions do not support higher-order differentiation. See `chainer/chainer#4449 <https://github.com/chainer/chainer/issues/4449>`_.
 .. [5] Nervana provides kernels that are meant to compete with cuDNN.
 .. [6] Multiprocessing provides a significant performance improvement only for frameworks that use Python at runtime.
 
