@@ -7,7 +7,11 @@ try:
 except ImportError as e:
     available = False
     _import_error = e
+import bisect
+import io
 import six
+import threading
+import zipfile
 
 from chainer.dataset import dataset_mixin
 
@@ -21,6 +25,13 @@ def _read_image_as_array(path, dtype):
         if hasattr(f, 'close'):
             f.close()
     return image
+
+
+def _postprocess_image(image):
+    if image.ndim == 2:
+        # image is greyscale
+        image = image[..., None]
+    return image.transpose(2, 0, 1)
 
 
 class ImageDataset(dataset_mixin.DatasetMixin):
@@ -78,10 +89,7 @@ class ImageDataset(dataset_mixin.DatasetMixin):
         path = os.path.join(self._root, self._paths[i])
         image = _read_image_as_array(path, self._dtype)
 
-        if image.ndim == 2:
-            # image is greyscale
-            image = image[:, :, numpy.newaxis]
-        return image.transpose(2, 0, 1)
+        return _postprocess_image(image)
 
 
 class LabeledImageDataset(dataset_mixin.DatasetMixin):
@@ -149,11 +157,92 @@ class LabeledImageDataset(dataset_mixin.DatasetMixin):
         full_path = os.path.join(self._root, path)
         image = _read_image_as_array(full_path, self._dtype)
 
-        if image.ndim == 2:
-            # image is greyscale
-            image = image[:, :, numpy.newaxis]
         label = numpy.array(int_label, dtype=self._label_dtype)
-        return image.transpose(2, 0, 1), label
+        return _postprocess_image(image), label
+
+
+class MultiZippedImageDataset(dataset_mixin.DatasetMixin):
+    """Dataset of images built from a list of paths to zip files.
+
+    This dataset reads an external image file in given zipfiles. The
+    zipfiles shall contain only image files.
+    This shall be able to replace ImageDataset and works better on NFS
+    and other networked file systems. The user shall find good balance
+    between zipfile size and number of zipfiles (e.g. granularity)
+
+    Args:
+        zipfilenames (list of strings): List of zipped archive filename.
+        dtype: Data type of resulting image arrays.
+    """
+
+    def __init__(self, zipfilenames, dtype=numpy.float32):
+        self._zfs = [ZippedImageDataset(fn, dtype) for fn in zipfilenames]
+        self._zpaths_accumlens = [0]
+        zplen = 0
+        for zf in self._zfs:
+            zplen += len(zf)
+            self._zpaths_accumlens.append(zplen)
+
+    def __len__(self):
+        return self._zpaths_accumlens[-1]
+
+    def get_example(self, i):
+        tgt = bisect.bisect(self._zpaths_accumlens, i) - 1
+
+        lidx = i - self._zpaths_accumlens[tgt]
+        return self._zfs[tgt].get_example(lidx)
+
+
+class ZippedImageDataset(dataset_mixin.DatasetMixin):
+    """Dataset of images built from a zip file.
+
+    This dataset reads an external image file in the given
+    zipfile. The zipfile shall contain only image files.
+    This shall be able to replace ImageDataset and works better on NFS
+    and other networked file systems. If zipfile becomes too large you
+    may consider ``MultiZippedImageDataset`` as a handy alternative.
+
+    Known issue: pickle and unpickle on same process may cause race
+    condition on ZipFile. Pickle of this class is expected to be sent
+    to different processess via ChainerMN.
+
+    Args:
+        zipfilename (str): a string to point zipfile path
+        dtype: Data type of resulting image arrays
+
+    """
+
+    def __init__(self, zipfilename, dtype=numpy.float32):
+        self._zipfilename = zipfilename
+        self._zf = zipfile.ZipFile(zipfilename)
+        self._zf_pid = os.getpid()
+        self._dtype = dtype
+        self._paths = [x for x in self._zf.namelist() if not x.endswith('/')]
+        self._lock = threading.Lock()
+
+    def __len__(self):
+        return len(self._paths)
+
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        d['_zf'] = None
+        d['_lock'] = None
+        return d
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self._lock = threading.Lock()
+
+    def get_example(self, i):
+        # PIL may seek() on the file -- zipfile won't support it
+        with self._lock:
+            if self._zf is None or self._zf_pid != os.getpid():
+                self._zf_pid = os.getpid()
+                self._zf = zipfile.ZipFile(self._zipfilename)
+            image_file_mem = self._zf.read(self._paths[i])
+        image_file = io.BytesIO(image_file_mem)
+        image = _read_image_as_array(image_file, self._dtype)
+        return _postprocess_image(image)
 
 
 def _check_pillow_availability():

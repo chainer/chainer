@@ -222,7 +222,7 @@ def main():
     # Set up an optimizer
     optimizer = chainer.optimizers.SGD(lr=1.0)
     optimizer.setup(model)
-    optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
+    optimizer.add_hook(chainer.optimizer_hooks.GradientClipping(args.gradclip))
 
     # Set up a trainer
     updater = BPTTUpdater(train_iter, optimizer, args.bproplen, args.gpu)
