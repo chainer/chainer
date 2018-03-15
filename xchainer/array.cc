@@ -371,8 +371,8 @@ Array Array::Reshape(const Shape& shape) const {
 }
 
 Array Array::Squeeze(const std::vector<size_t>& axes) const {
-    const Shape& in_shape = this->shape();
-    const Strides& in_strides = this->strides();
+    const Shape& in_shape = shape();
+    const Strides& in_strides = strides();
 
     size_t ndim = this->ndim();
 
