@@ -114,7 +114,9 @@ Neural network connections
    chainer.functions.convolution_2d
    chainer.functions.convolution_3d
    chainer.functions.convolution_nd
+   chainer.functions.deconvolution_1d
    chainer.functions.deconvolution_2d
+   chainer.functions.deconvolution_3d
    chainer.functions.deconvolution_nd
    chainer.functions.depthwise_convolution_2d
    chainer.functions.dilated_convolution_2d
