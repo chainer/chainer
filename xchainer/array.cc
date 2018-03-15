@@ -229,6 +229,16 @@ Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
                 ++i_in;
                 break;
             }
+            case ArrayIndexTag::kBroadcastable: {
+                int64_t dim = shape()[i_in];
+                if (dim != 1) {
+                    throw DimensionError("Can't mark axis with non-1 dimension as broadcastable");
+                }
+                out_shape.push_back(1);
+                out_strides.push_back(0);
+                ++i_in;
+                break;
+            }
             case ArrayIndexTag::kNewAxis:
                 out_shape.push_back(1);
                 out_strides.push_back(0);

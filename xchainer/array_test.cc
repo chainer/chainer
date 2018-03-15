@@ -1397,128 +1397,54 @@ INSTANTIATE_TEST_CASE_P(
 #endif  // XCHAINER_ENABLE_CUDA
                 std::string{"native"}));
 
-struct ArrayGetItemTestParam {
-    Shape input_shape;
-    std::vector<ArrayIndex> indices;
-    Shape output_shape;
-    std::vector<int32_t> output_data;
-};
+TEST(ArrayGetItemTest, GetItem) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+    Shape input_shape{2, 3, 1};
+    Shape output_shape{1, 2, 1};
+    std::vector<ArrayIndex> indices{-1, NewAxis{}, Slice{1, 3}, Broadcastable{}};
+    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
+    Array b = a.GetItem(indices);
 
-std::ostream& operator<<(std::ostream& os, const ArrayGetItemTestParam& param) {
-    // TODO(niboshi): Print indices
-    os << param.input_shape << ", " << param.output_shape << ", [";
-    for (int32_t x : param.output_data) {
-        os << x << ", ";
-    }
-    return os << "]";
+    EXPECT_EQ(output_shape, b.shape());
+    Array e = testing::MakeArray(output_shape).WithData<T>({4, 5});
+    ExpectEqual<T>(e, b);
+
+    // Check if strides are 0 for newaxis and broadcastable axis.
+    EXPECT_EQ(0, b.strides()[0]);
+    EXPECT_NE(0, b.strides()[1]);
+    EXPECT_EQ(0, b.strides()[2]);
 }
 
-class ArrayGetItemTest : public ::testing::TestWithParam<ArrayGetItemTestParam> {
-public:
-    void SetUp() override { context_session_.emplace(); }
-
-    void TearDown() override { context_session_.reset(); }
-
-private:
-    nonstd::optional<testing::ContextSession> context_session_;
-};
-
-TEST_P(ArrayGetItemTest, GetItem) {
-    const ArrayGetItemTestParam& param = GetParam();
-    std::vector<int32_t> input_data(param.input_shape.GetTotalSize());
-    std::iota(input_data.begin(), input_data.end(), 0);
-    Array a = testing::MakeArray<int32_t>(param.input_shape, input_data);
-    Array b = a.GetItem(param.indices);
-    Array e = testing::MakeArray<int32_t>(param.output_shape, param.output_data);
-    ExpectEqual<int32_t>(e, b);
-
-    // Check if strides are 0 for new axes.
-    int8_t output_axis = 0;
-    for (const ArrayIndex& index : param.indices) {
-        if (index.tag() == ArrayIndexTag::kNewAxis) {
-            EXPECT_EQ(0, b.strides()[output_axis]);
-        }
-        if (index.tag() != ArrayIndexTag::kSingleElement) {
-            ++output_axis;
-        }
-    }
+// Index out of bounds
+TEST(ArrayGetItemTest, InvalidGetItem1) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+    Shape input_shape{2, 3};
+    std::vector<ArrayIndex> indices{0, 0, 0};
+    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
+    EXPECT_THROW(a.GetItem(indices), DimensionError);
 }
 
-// Inputs array elements are integers starting from 0.
-INSTANTIATE_TEST_CASE_P(
-        IndexingWithNothing,
-        ArrayGetItemTest,
-        ::testing::Values(
-                ArrayGetItemTestParam{{}, {}, {}, {0}},
-                ArrayGetItemTestParam{{3}, {}, {3}, {0, 1, 2}},
-                ArrayGetItemTestParam{{2, 2, 2}, {}, {2, 2, 2}, {0, 1, 2, 3, 4, 5, 6, 7}}));
+// Too large dimension
+TEST(ArrayGetItemTest, InvalidGetItem2) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+    Shape input_shape{2, 3};
+    std::vector<ArrayIndex> indices{2};
+    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
+    EXPECT_THROW(a.GetItem(indices), DimensionError);
+}
 
-INSTANTIATE_TEST_CASE_P(
-        IntegerIndexing,
-        ArrayGetItemTest,
-        ::testing::Values(
-                ArrayGetItemTestParam{{3}, {0}, {}, {0}},
-                ArrayGetItemTestParam{{3}, {1}, {}, {1}},
-                ArrayGetItemTestParam{{3}, {2}, {}, {2}},
-                ArrayGetItemTestParam{{3}, {-1}, {}, {2}},
-                ArrayGetItemTestParam{{2, 3}, {0}, {3}, {0, 1, 2}},
-                ArrayGetItemTestParam{{2, 3}, {1}, {3}, {3, 4, 5}},
-                ArrayGetItemTestParam{{2, 3}, {0, 0}, {}, {0}},
-                ArrayGetItemTestParam{{2, 3}, {1, 1}, {}, {4}},
-                ArrayGetItemTestParam{{2, 3, 4}, {0, -2, 3}, {}, {7}},
-                ArrayGetItemTestParam{{2, 3, 4}, {1, 0}, {4}, {12, 13, 14, 15}}));
-
-INSTANTIATE_TEST_CASE_P(
-        SliceIndexing,
-        ArrayGetItemTest,
-        ::testing::Values(
-                ArrayGetItemTestParam{{3}, {Slice{}}, {3}, {0, 1, 2}},
-                ArrayGetItemTestParam{{3}, {Slice{2}}, {2}, {0, 1}},
-                ArrayGetItemTestParam{{3}, {Slice{0, 3}}, {3}, {0, 1, 2}},
-                ArrayGetItemTestParam{{3}, {Slice{0, 2}}, {2}, {0, 1}},
-                ArrayGetItemTestParam{{3}, {Slice{1, 3}}, {2}, {1, 2}},
-                ArrayGetItemTestParam{{3}, {Slice{0, 0}}, {0}, {}},
-                ArrayGetItemTestParam{{3}, {Slice{0, 1}}, {1}, {0}},
-                ArrayGetItemTestParam{{3}, {Slice{2, 0, -1}}, {2}, {2, 1}},
-                ArrayGetItemTestParam{{3}, {Slice{-2, -1}}, {1}, {1}},
-                ArrayGetItemTestParam{{3}, {Slice{2, nonstd::nullopt, -1}}, {3}, {2, 1, 0}},
-                ArrayGetItemTestParam{{3}, {Slice{nonstd::nullopt, 0, -1}}, {2}, {2, 1}},
-                ArrayGetItemTestParam{{3}, {Slice{nonstd::nullopt, -1, -1}}, {0}, {}},
-                ArrayGetItemTestParam{{6}, {Slice{0, 6, 2}}, {3}, {0, 2, 4}},
-                ArrayGetItemTestParam{{6}, {Slice{1, 6, 2}}, {3}, {1, 3, 5}},
-                ArrayGetItemTestParam{{6}, {Slice{5, nonstd::nullopt, -2}}, {3}, {5, 3, 1}},
-                ArrayGetItemTestParam{{2, 3}, {Slice{}, Slice{}}, {2, 3}, {0, 1, 2, 3, 4, 5}},
-                ArrayGetItemTestParam{{2, 3}, {Slice{1}, Slice{2}}, {1, 2}, {0, 1}},
-                ArrayGetItemTestParam{{2, 3}, {Slice{0, 2}, Slice{0, 3}}, {2, 3}, {0, 1, 2, 3, 4, 5}},
-                ArrayGetItemTestParam{{2, 3}, {Slice{0, 2}, Slice{0, -1}}, {2, 2}, {0, 1, 3, 4}},
-                ArrayGetItemTestParam{{2, 3}, {Slice{0, 2}, Slice{2, 3}}, {2, 1}, {2, 5}},
-                ArrayGetItemTestParam{{2, 3}, {Slice{0, nonstd::nullopt, -1}, Slice{2, 3}}, {1, 1}, {2}},
-                ArrayGetItemTestParam{{2, 3}, {Slice{0, nonstd::nullopt, nonstd::nullopt}, Slice{-2, 0, -1}}, {2, 1}, {1, 4}},
-                ArrayGetItemTestParam{{2, 3}, {Slice{1, 2}, Slice{0, 2}}, {1, 2}, {3, 4}},
-                ArrayGetItemTestParam{{2, 3}, {Slice{-2, nonstd::nullopt, -1}, Slice{0, 3}}, {1, 3}, {0, 1, 2}},
-                ArrayGetItemTestParam{{2, 3}, {Slice{-2, nonstd::nullopt, -1}, Slice{-3, nonstd::nullopt, -1}}, {1, 1}, {0}},
-                ArrayGetItemTestParam{
-                        {2, 3}, {Slice{-2, nonstd::nullopt, -1}, Slice{nonstd::nullopt, nonstd::nullopt, -2}}, {1, 2}, {2, 0}},
-                ArrayGetItemTestParam{{2, 3}, {Slice{1, 2}, Slice{nonstd::nullopt, nonstd::nullopt, 1}}, {1, 3}, {3, 4, 5}},
-                ArrayGetItemTestParam{{2, 3}, {Slice{1, 2}, Slice{nonstd::nullopt, nonstd::nullopt, 2}}, {1, 2}, {3, 5}},
-                ArrayGetItemTestParam{{2, 3, 4}, {Slice{1}, Slice{-2, 3}, Slice{1, nonstd::nullopt, -1}}, {1, 2, 2}, {5, 4, 9, 8}}));
-
-INSTANTIATE_TEST_CASE_P(
-        NewAxisIndexing,
-        ArrayGetItemTest,
-        ::testing::Values(
-                ArrayGetItemTestParam{{}, {NewAxis{}}, {1}, {0}},
-                ArrayGetItemTestParam{{3}, {NewAxis{}}, {1, 3}, {0, 1, 2}},
-                ArrayGetItemTestParam{{2, 3}, {NewAxis{}, NewAxis{}}, {1, 1, 2, 3}, {0, 1, 2, 3, 4, 5}}));
-
-INSTANTIATE_TEST_CASE_P(
-        MixedIndexing,
-        ArrayGetItemTest,
-        ::testing::Values(
-                ArrayGetItemTestParam{{2, 3}, {0, Slice{1, 3}}, {2}, {1, 2}},
-                ArrayGetItemTestParam{{4, 3}, {Slice{1, 3}, 1}, {2}, {4, 7}},
-                ArrayGetItemTestParam{{2, 3, 4}, {1, Slice{2}, Slice{1, 3}}, {2, 2}, {13, 14, 17, 18}},
-                ArrayGetItemTestParam{{2, 3}, {1, NewAxis{}, Slice{1, 3}}, {1, 2}, {4, 5}}));
+// Use of broadcastable on invalid axis
+TEST(ArrayGetItemTest, InvalidGetItem3) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+    Shape input_shape{2, 3};
+    std::vector<ArrayIndex> indices{Broadcastable{}};
+    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
+    EXPECT_THROW(a.GetItem(indices), DimensionError);
+}
 
 TEST(ArrayReshapeTest, Reshape) {
     using T = int32_t;
