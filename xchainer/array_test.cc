@@ -1544,5 +1544,54 @@ TEST(ArrayReshapeTest, InvalidReshape) {
     EXPECT_THROW(a.Reshape(output_shape), DimensionError);
 }
 
+TEST(ArrayBroadcastToTest, BroadcastTo) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+    Shape input_shape{2, 3};
+    Shape output_shape{3, 2, 3};
+
+    Array a = testing::MakeArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = a.BroadcastTo(output_shape);
+    ASSERT_EQ(output_shape, b.shape());
+    EXPECT_EQ(a.data().get(), b.data().get()) << "BroadcastTo must be done without copying data";
+    Array e = testing::MakeArray(output_shape).WithData<T>({1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6});
+    ExpectEqual<T>(e, b);
+}
+
+// TODO(niboshi): Test Array::BroadcastTo with broadcastable axis
+
+// Can't broadcast with incompatible axis
+TEST(ArrayBroadcastToTest, InvalidBroadcastTo1) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+    Shape input_shape{2, 3, 3};
+    Shape output_shape{2, 4, 3};
+
+    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
+    EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
+}
+
+// Can't broadcast from non-broadcastable 1-dim axis
+TEST(ArrayBroadcastToTest, InvalidBroadcastTo2) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+    Shape input_shape{2, 1, 3};
+    Shape output_shape{2, 4, 3};
+
+    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
+    EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
+}
+
+// Can't broadcast at the end
+TEST(ArrayBroadcastToTest, InvalidBroadcastTo3) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+    Shape input_shape{2, 3};
+    Shape output_shape{2, 3, 4};
+
+    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
+    EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
+}
+
 }  // namespace
 }  // namespace xchainer
