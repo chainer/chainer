@@ -1,10 +1,10 @@
-from __future__ import print_function
 import numpy
 import six
 import sys
 
 from chainer.backends import cuda
 from chainer import serializer
+
 
 try:
     import h5py
@@ -97,8 +97,8 @@ def save_hdf5(filename, obj, compression=4):
                 try:
                     f.create_dataset(key, data=arr, compression=compression)
                 except TypeError:
-                    print('A key named "{}" is unable to save in HDF5 format.',
-                          file=sys.stderr)
+                    sys.stderr.write(
+                        'A key named "{}" is unable to save in HDF5 format.\n')
                     # In Chainer, LogReport extension and PlotReport extension
                     # are # unable to save in HDF5 format. These extensions
                     # have a data type `numpy.dtype('O')` which is not
