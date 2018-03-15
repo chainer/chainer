@@ -38,6 +38,7 @@ add_library(xchainer SHARED
     array_repr.cc
     backend.cc
     backward.cc
+    check_backward.cc
     context.cc
     device.cc
     device_id.cc
@@ -72,7 +73,6 @@ if(ENABLE_TEST)
         array_test.cc
         array_to_device_test.cc
         backward_test.cc
-        check_backward.cc
         check_backward_test.cc
         context_test.cc
         device_test.cc

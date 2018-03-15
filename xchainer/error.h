@@ -46,4 +46,10 @@ public:
     using XchainerError::XchainerError;
 };
 
+// Error on failing gradient check
+class GradientCheckError : public XchainerError {
+public:
+    using XchainerError::XchainerError;
+};
+
 }  // namespace xchainer

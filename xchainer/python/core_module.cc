@@ -6,6 +6,7 @@
 #include "xchainer/python/array.h"
 #include "xchainer/python/array_index.h"
 #include "xchainer/python/backend.h"
+#include "xchainer/python/check_backward.h"
 #include "xchainer/python/common.h"
 #include "xchainer/python/context.h"
 #include "xchainer/python/device.h"
@@ -54,4 +55,5 @@ PYBIND11_MODULE(_core, m) {  // NOLINT
     xchainer::InitXchainerStrides(m);
     xchainer::InitXchainerArrayIndex(m);
     xchainer::InitXchainerArray(m);
+    xchainer::InitXchainerCheckBackward(m);
 }
