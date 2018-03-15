@@ -1470,6 +1470,57 @@ TEST(ArrayReshapeTest, InvalidReshape) {
     EXPECT_THROW(a.Reshape(output_shape), DimensionError);
 }
 
+TEST(ArrayReshapeTest, Squeeze) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+
+    // Squeeze all axes of unit-length.
+    {
+        Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
+        Array b = a.Squeeze({});
+        Array e = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
+        ExpectEqual<T>(e, b);
+    }
+
+    // Squeeze specified unit-length axes.
+    {
+        Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
+        Array b = a.Squeeze({0, 2, 4});
+        Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
+        ExpectEqual<T>(e, b);
+    }
+
+    // Multiple squeezes.
+    {
+        Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
+        Array b = a.Squeeze({0, 2});
+        Array c = b.Squeeze({3});
+        Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
+        ExpectEqual<T>(e, c);
+    }
+
+    // Try to squeeze non-unit-length axis.
+    {
+        Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
+        EXPECT_THROW(Array b = a.Squeeze({1}), DimensionError);
+    }
+
+    // Squeeze non-contiguous array.
+    {
+        Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(4);
+        Array b = a.Squeeze({0, 2, 4});
+        Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
+        ExpectEqual<T>(e, b);
+    }
+
+    // A view is returned if no axes can be squeezed out.
+    {
+        Array a = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
+        Array e = a.Squeeze({});
+        ExpectEqualView<T>(e, a);
+    }
+}
+
 TEST(ArrayBroadcastToTest, BroadcastTo) {
     using T = int32_t;
     testing::ContextSession context_session{};

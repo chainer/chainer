@@ -370,6 +370,73 @@ Array Array::Reshape(const Shape& shape) const {
     return out;
 }
 
+Array Array::Squeeze(const std::vector<size_t>& axes) const {
+    const Shape& in_shape = this->shape();
+    const Strides& in_strides = this->strides();
+
+    size_t ndim = this->ndim();
+
+    // Only axes of unit-length can be squeezed out.
+    std::vector<bool> squeeze_axes;
+    if (axes.empty()) {
+        // All axes are candidates for removal if none are specified.
+        std::transform(in_shape.cbegin(), in_shape.cend(), std::back_inserter(squeeze_axes), [](int64_t dim) { return dim == 1; });
+    } else {
+        squeeze_axes.resize(ndim, false);
+        for (size_t axis : axes) {
+            if (in_shape[axis] == 1) {
+                squeeze_axes[axis] = true;
+            } else {
+                std::ostringstream os;
+                os << "Cannot squeeze out axes with size not equal to one. ";
+                os << "Actual shape was " << in_shape.ToString();
+                os << "and axes ";
+                os << "(";
+                for (auto iter = axes.begin(); iter != axes.end(); ++iter) {
+                    if (iter != axes.begin()) {
+                        os << ", ";
+                    }
+                    os << *iter;
+                }
+                os << (axes.size() == 1 ? ",)." : ").");
+                throw DimensionError(os.str());
+            }
+        }
+    }
+
+    nonstd::optional<Array> out;
+
+    int n_unit_dims = std::count(squeeze_axes.begin(), squeeze_axes.end(), true);
+    if (n_unit_dims == 0) {
+        // Return an alias
+        out.emplace(AsConstant(CopyKind::kView));
+    } else {
+        std::vector<int64_t> out_shape;
+        std::vector<int64_t> out_strides;
+        out_shape.reserve(n_unit_dims);
+        out_strides.reserve(n_unit_dims);
+        for (size_t i = 0; i < ndim; ++i) {
+            if (!squeeze_axes[i]) {
+                out_shape.push_back(in_shape[i]);
+                out_strides.push_back(in_strides[i]);
+            }
+        }
+        out.emplace(Array{Shape{out_shape.begin(), out_shape.end()},
+                          Strides{out_strides.begin(), out_strides.end()},
+                          dtype(),
+                          device(),
+                          body_->data_,
+                          offset()});
+    }
+
+    assert(out.has_value());
+
+    internal::SetUpOpNodes(
+            "squeeze", {*this}, *out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }});
+
+    return std::move(*out);
+}
+
 Array Array::BroadcastTo(const Shape& shape) const {
     const Shape& in_shape = this->shape();
     const Strides& in_strides = this->strides();
@@ -417,7 +484,6 @@ Array Array::BroadcastTo(const Shape& shape) const {
     Ensures(rev_strides.size() == shape.size());
 
     return Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
-}
 
 Array Array::Copy() const {
     // No graph will be disconnected.
