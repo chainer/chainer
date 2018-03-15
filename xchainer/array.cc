@@ -406,7 +406,7 @@ Array Array::Squeeze(const std::vector<size_t>& axes) const {
 
     nonstd::optional<Array> out;
 
-    int n_unit_dims = std::count(squeeze_axes.begin(), squeeze_axes.end(), true);
+    size_t n_unit_dims = std::count(squeeze_axes.begin(), squeeze_axes.end(), true);
     if (n_unit_dims == 0) {
         // Return an alias
         out.emplace(AsConstant(CopyKind::kView));
@@ -415,6 +415,7 @@ Array Array::Squeeze(const std::vector<size_t>& axes) const {
         std::vector<int64_t> out_strides;
         out_shape.reserve(n_unit_dims);
         out_strides.reserve(n_unit_dims);
+        assert(squeeze_axes.size() <= ndim);
         for (size_t i = 0; i < ndim; ++i) {
             if (!squeeze_axes[i]) {
                 out_shape.push_back(in_shape[i]);
@@ -433,7 +434,6 @@ Array Array::Squeeze(const std::vector<size_t>& axes) const {
 
     internal::SetUpOpNodes(
             "squeeze", {*this}, *out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }});
-
     return std::move(*out);
 }
 
