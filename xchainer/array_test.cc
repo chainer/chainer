@@ -1540,18 +1540,17 @@ TEST_P(ArrayTest, SqueezeBackward) {
 }
 
 TEST_P(ArrayTest, SqueezeDoubleBackward) {
-    // TODO(hvy): Implement me. Currently depends on Array::Reshape being backpropable.
-    /*
-      CheckDoubleBackwardComputation(
-              [](const std::vector<Array>& xs) -> std::vector<Array> {
-                  auto y = xs[0].Squeeze({0, 2, 4});
-                  return {y * y};  // to make it nonlinear
-              },
-              {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(4)).RequireGrad()},
-              {(*testing::MakeArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)).RequireGrad()},
-              {testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>()},
-              {Array::Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f), Array::Full({2, 3, 1, 4}, 1e-2f)});
-    */
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = xs[0].Squeeze({0, 2, 4});
+                return {y * y};  // to make it nonlinear
+            },
+            {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(4)).RequireGrad()},
+            {(*testing::MakeArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)).RequireGrad()},
+            {testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>()},
+            {Array::Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f), Array::Full({2, 3, 1, 4}, 1e-2f)},
+            1e-4f,
+            1e-3f);
 }
 
 TEST(ArrayBroadcastToTest, BroadcastTo) {
