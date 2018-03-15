@@ -1,5 +1,6 @@
 from __future__ import print_function
 import sys
+import warnings
 
 from chainer.backends import cuda
 from chainer import function_hook
@@ -22,7 +23,7 @@ class PrintHook(function_hook.FunctionHook):
     Chainer's library code.
 
     Attributes:
-        sep: Separator of print function.
+        sep: *(deprecated since v4.0.0)* Ignored.
         end: Character to be added at the end of print function.
         file: Output file_like object that that redirect to.
         flush: If ``True``, this hook forcibly flushes the text stream
@@ -49,14 +50,16 @@ class PrintHook(function_hook.FunctionHook):
 
     name = 'PrintHook'
 
-    def __init__(self, sep='', end='\n', file=sys.stdout, flush=True):
-        self.sep = sep
+    def __init__(self, sep=None, end='\n', file=sys.stdout, flush=True):
+        if sep is not None:
+            warnings.warn('sep argument in chainer.function_hooks.PrintHook '
+                          'is deprecated.', DeprecationWarning)
         self.end = end
         self.file = file
         self.flush = flush
 
     def _print(self, msg):
-        print(msg, sep=self.sep, end=self.end, file=self.file)
+        print(msg, end=self.end, file=self.file)
 
     def _process(self, function, in_data, out_grad=None):
         self._print('function\t{}'.format(function.label))
