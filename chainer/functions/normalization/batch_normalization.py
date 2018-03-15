@@ -31,8 +31,9 @@ class BatchNormalization(function_node.FunctionNode):
         self.eps = eps
         if chainer.should_use_cudnn('>=auto'):
             if eps < libcudnn.CUDNN_BN_MIN_EPSILON:
-                msg = 'cuDNN does not allow an eps value less than 1e-5.'
-                raise RuntimeError(msg)
+                raise RuntimeError(
+                    'cuDNN does not allow an eps value '
+                    'less than {}.'.format(libcudnn.CUDNN_BN_MIN_EPSILON))
         self.decay = decay
 
     def check_type_forward(self, in_types):
