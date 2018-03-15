@@ -49,8 +49,7 @@ class TestNonparameterizedLinear(unittest.TestCase):
         batch_shape = (4,) + (2,) * (self.n_batch_axes - 1)
         x = numpy.random.uniform(
             -1, 1, batch_shape + data_shape).astype(self.x_dtype)
-        batch_size = numpy.prod(batch_shape)
-        gy = numpy.random.uniform(-1, 1, (batch_size, 2)).astype(self.x_dtype)
+        gy = numpy.random.uniform(-1, 1, batch_shape +(2,)).astype(self.x_dtype)
         ggx = numpy.random.uniform(-1, 1, x.shape).astype(self.x_dtype)
         ggW = numpy.random.uniform(-1, 1, W.shape).astype(self.W_dtype)
         if self.nobias:
@@ -88,6 +87,8 @@ class TestNonparameterizedLinear(unittest.TestCase):
         y = x.dot(W.T)
         if b is not None:
             y += b
+        if self.n_batch_axes > 1:
+            y = y.reshape(batch_shape + (-1,))
         return y,
 
     def forward(self, *inputs):

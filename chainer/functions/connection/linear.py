@@ -235,4 +235,6 @@ def linear(x, W, b=None, n_batch_axes=1):
         args = x, W, b
 
     y, = LinearFunction().apply(args)
+    if n_batch_axes > 1:
+        y = y.reshape(batch_shape + (-1,))
     return y
