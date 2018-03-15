@@ -82,10 +82,16 @@ class MSVAGRule(optimizer.UpdateRule):
         s = (vt - mt2) / (1 - rho)
 
         factor = numpy.clip(mt2 / (mt2 + rho * s), 0, 1)
-        factor[numpy.isnan(factor)] = 0
+        if isinstance(factor, numpy.ndarray):
+            factor[numpy.isnan(factor)] = 0
+        else:
+            if numpy.isnan(factor):
+                factor = 0
 
         param.data -= hp.eta * (hp.lr * mt * factor +
                                 hp.weight_decay_rate * param.data)
+
+        self.beta_power *= hp.beta
 
     def update_core_gpu(self, param):
         grad = param.grad
