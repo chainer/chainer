@@ -24,8 +24,8 @@ class BatchNormalization(function_node.FunctionNode):
         self.running_mean = mean
         self.running_var = var
 
-        # Note: cuDNN requires that eps be greater than or equal to
-        # CUDNN_BN_MIN_EPSILON, that is 1e-5. Otherwise, an error will occur.
+        # Note: cuDNN requires that eps be greater than or equals to
+        # CUDNN_BN_MIN_EPSILON. Otherwise, an error will occur.
         # See CUDNN_BN_MIN_EPSILON value in cudnn.h to verify minimum allowable
         # value.
         self.eps = eps
