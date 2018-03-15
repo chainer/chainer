@@ -61,3 +61,28 @@ array([18, 23, 28], shape=(3,), dtype=int64, device='native:0')
 array([[[18],
         [23],
         [28]]], shape=(1, 3, 1), dtype=int64, device='native:0')
+
+
+Backward
+--------
+
+>>> import xchainer as xc
+>>> import numpy as np
+>>> a_np = np.arange(6).reshape(2, 3)
+>>> a = xc.Array(a_np).require_grad()
+>>> a
+array([[0., 1., 2.],
+       [3., 4., 5.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
+>>> b = a.reshape(3, 2)
+>>> b
+array([[0., 1.],
+       [2., 3.],
+       [4., 5.]], shape=(3, 2), dtype=float32, device='native:0', graph_ids=['default'])
+>>> c = b[1, :]
+>>> c
+array([2., 3.], shape=(2,), dtype=float32, device='native:0', graph_ids=['default'])
+
+>>> xc.backward(c)
+>>> a.get_grad()
+array([[0., 0., 1.],
+       [1., 0., 0.]], shape=(2, 3), dtype=float32, device='native:0')
