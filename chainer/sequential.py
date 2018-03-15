@@ -134,8 +134,8 @@ class Sequential(link.ChainList):
                 if _link is layer:
                     del self._children[i]
                     break
-            for i, layer in enumerate(self._children):
-                layer.name = str(i)
+            for j, layer in enumerate(self._children[i:]):
+                layer.name = str(i + j)
 
     def __iter__(self):
         return iter(self._layers)
