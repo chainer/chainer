@@ -18,7 +18,7 @@ import time
 import numpy as np
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import optimizers
@@ -191,7 +191,7 @@ if args.gpu >= 0:
 # Setup optimizer
 optimizer = optimizers.AdaGrad(lr=0.1)
 optimizer.setup(model)
-optimizer.add_hook(chainer.optimizer.WeightDecay(0.0001))
+optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(0.0001))
 
 accum_loss = 0
 count = 0
@@ -230,5 +230,5 @@ for epoch in range(n_epoch):
         evaluate(model, develop_trees)
         print('')
 
-print('Test evaluateion')
+print('Test evaluation')
 evaluate(model, test_trees)

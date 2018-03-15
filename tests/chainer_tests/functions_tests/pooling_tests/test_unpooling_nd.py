@@ -5,7 +5,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -79,9 +79,13 @@ class TestUnpoolingND(unittest.TestCase):
             self.check_forward_options = {'atol': 2 ** -4, 'rtol': 2 ** -4}
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 2 ** -4, 'rtol': 2 ** -4}
+            self.check_double_backward_options = {}
         else:
             self.check_forward_options = {}
             self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_double_backward_options = {'atol': 3e-3, 'rtol': 3e-2}
+        self.ggx = numpy.random.uniform(
+            -1, 1, self.x.shape).astype(self.dtype)
 
     def check_forward(self, x_data):
         ksize = self.ksize
@@ -139,11 +143,12 @@ class TestUnpoolingND(unittest.TestCase):
         self.check_forward_consistency_regression(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
-        ndim = len(self.dims)
+        def f(x):
+            return functions.unpooling_nd(x, self.ksize, self.stride, self.pad,
+                                          cover_all=self.cover_all)
+
         gradient_check.check_backward(
-            functions.UnpoolingND(ndim, self.ksize, self.stride, self.pad,
-                                  cover_all=self.cover_all),
-            x_data, y_grad, **self.check_backward_options)
+            f, x_data, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -170,7 +175,7 @@ class TestUnpoolingND(unittest.TestCase):
         x_nd = chainer.Variable(xp.array(x_data))
         func_nd = functions.UnpoolingND(ndim, ksize, stride=stride,
                                         pad=pad, cover_all=self.cover_all)
-        y_nd = func_nd(x_nd)
+        y_nd = func_nd.apply((x_nd,))[0]
         y_nd.grad = gy_data
         y_nd.backward()
 
@@ -196,6 +201,46 @@ class TestUnpoolingND(unittest.TestCase):
     def test_backward_consistency_regression_gpu(self):
         self.check_backward_consistency_regression(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad,
+                              use_cudnn='always'):
+        def f(x):
+            outs = self.gy.shape[2:]
+            y = functions.unpooling_nd(
+                x, self.ksize, stride=self.stride, pad=self.pad,
+                outsize=outs, cover_all=self.cover_all)
+            return y * y
+
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
+                **self.check_double_backward_options)
+
+    @condition.retry(3)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.x, self.gy, self.ggx, 'never')
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_non_contiguous(self):
+        self.check_double_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+            'never')
 
 
 @testing.parameterize(*testing.product({

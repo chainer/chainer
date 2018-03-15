@@ -34,6 +34,14 @@ class StandardUpdater(_updater.Updater):
             indicates the host memory (CPU).
         loss_func: Loss function. The target link of the main optimizer is used
             by default.
+        loss_scale (float): Loss scaling factor. Loss scaling is a usefull
+            technique to mitigate vanishing gradient issue that tends to happen
+            when low precision data type like float16 is used during training.
+            If you set loss scaling factor, gradients of loss values are to be
+            multiplied by the factor before backprop starts. The factor is
+            propagated to whole gradients in a computational graph along the
+            backprop. The gradients of parameters are divided by the factor
+            just before the parameters are to be updated.
 
     Attributes:
         converter: Converter function.
@@ -45,7 +53,7 @@ class StandardUpdater(_updater.Updater):
     """
 
     def __init__(self, iterator, optimizer, converter=convert.concat_examples,
-                 device=None, loss_func=None):
+                 device=None, loss_func=None, loss_scale=None):
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
         self._iterators = iterator
@@ -62,6 +70,11 @@ class StandardUpdater(_updater.Updater):
         self.loss_func = loss_func
         self.device = device
         self.iteration = 0
+
+        self.loss_scale = loss_scale
+        if loss_scale is not None:
+            for optimizer in six.itervalues(self._optimizers):
+                optimizer.set_loss_scale(loss_scale)
 
     @property
     def epoch(self):

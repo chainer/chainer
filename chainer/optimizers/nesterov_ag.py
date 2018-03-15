@@ -67,7 +67,7 @@ class NesterovAG(optimizer.GradientMethod):
 
     """Nesterov's Accelerated Gradient.
 
-    See: http://arxiv.org/abs/1212.0901
+    See: https://arxiv.org/abs/1212.0901
 
     Args:
         lr (float): Learning rate.
@@ -76,8 +76,8 @@ class NesterovAG(optimizer.GradientMethod):
     """
 
     def __init__(self, lr=_default_hyperparam.lr,
-                 momentum=_default_hyperparam.momentum, model=None):
-        super(NesterovAG, self).__init__(model)
+                 momentum=_default_hyperparam.momentum):
+        super(NesterovAG, self).__init__()
         self.hyperparam.lr = lr
         self.hyperparam.momentum = momentum
 

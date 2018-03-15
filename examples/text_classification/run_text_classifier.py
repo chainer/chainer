@@ -33,7 +33,7 @@ def setup_model(args):
     chainer.serializers.load_npz(setup['model_path'], model)
     if args.gpu >= 0:
         # Make a specified GPU current
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
 
     return model, vocab, setup
