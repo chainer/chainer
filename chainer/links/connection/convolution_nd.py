@@ -86,3 +86,41 @@ class ConvolutionND(link.Link):
         """
         return convolution_nd.convolution_nd(
             x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all)
+
+
+class Convolution1D(ConvolutionND):
+    """1-dimensional convolution layer.
+
+    .. note::
+
+        This link wraps :class:`~chainer.links.ConvolutionND` by giving 1 to
+        the first argument ``ndim``, so see the details of the behavior in
+        the documentation of :class:`~chainer.links.ConvolutionND`.
+
+    """
+
+    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, initialW=None, initial_bias=None,
+                 cover_all=False):
+        super(Convolution1D, self).__init__(
+            1, in_channels, out_channels, ksize, stride, pad, nobias, initialW,
+            initial_bias, cover_all)
+
+
+class Convolution3D(ConvolutionND):
+    """3-dimensional convolution layer.
+
+    .. note::
+
+        This link wraps :class:`~chainer.links.ConvolutionND` by giving 3 to
+        the first argument ``ndim``, so see the details of the behavior in
+        the documentation of :class:`~chainer.links.ConvolutionND`.
+
+    """
+
+    def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, initialW=None, initial_bias=None,
+                 cover_all=False):
+        super(Convolution3D, self).__init__(
+            3, in_channels, out_channels, ksize, stride, pad, nobias, initialW,
+            initial_bias, cover_all)

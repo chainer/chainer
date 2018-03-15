@@ -446,3 +446,49 @@ pad=(p1, p2, p3), outsize=(l1, l2, l3))
     args = (x, W) if b is None else (x, W, b)
     y, = func.apply(args)
     return y
+
+
+def deconvolution_1d(x, W, b=None, stride=1, pad=0, outsize=None):
+    """1-dimensional deconvolution function.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.deconvolution_nd` with
+        ``ndim = 1``, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.deconvolution_nd`.
+
+    """
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
+
+    func = DeconvolutionND(1, stride, pad, outsize)
+    if b is None:
+        return func(x, W)
+    else:
+        return func(x, W, b)
+
+
+def deconvolution_3d(x, W, b=None, stride=1, pad=0, outsize=None):
+    """3-dimensional deconvolution function.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.deconvolution_nd` with
+        ``ndim = 3``, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.deconvolution_nd`.
+
+    """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
+
+    func = DeconvolutionND(3, stride, pad, outsize)
+    if b is None:
+        return func(x, W)
+    else:
+        return func(x, W, b)
