@@ -15,10 +15,9 @@ class EmbedID(link.Link):
         in_size (int): Number of different identifiers (a.k.a. vocabulary
             size).
         out_size (int): Size of embedding vector.
-        initialW (2-D array): Initial weight value. If ``None``, then the
-            matrix is initialized from the standard normal distribution.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2.
         ignore_label (int or None): If ``ignore_label`` is an int value,
             ``i``-th column of return value is filled with ``0``.
 
@@ -31,19 +30,19 @@ class EmbedID(link.Link):
 
         >>> W = np.array([[0, 0, 0],
         ...               [1, 1, 1],
-        ...               [2, 2, 2]]).astype('f')
+        ...               [2, 2, 2]]).astype(np.float32)
         >>> W
-        array([[ 0.,  0.,  0.],
-               [ 1.,  1.,  1.],
-               [ 2.,  2.,  2.]], dtype=float32)
+        array([[0., 0., 0.],
+               [1., 1., 1.],
+               [2., 2., 2.]], dtype=float32)
         >>> l = L.EmbedID(W.shape[0], W.shape[1], initialW=W)
-        >>> x = np.array([2, 1]).astype('i')
+        >>> x = np.array([2, 1]).astype(np.int32)
         >>> x
         array([2, 1], dtype=int32)
         >>> y = l(x)
         >>> y.data
-        array([[ 2.,  2.,  2.],
-               [ 1.,  1.,  1.]], dtype=float32)
+        array([[2., 2., 2.],
+               [1., 1., 1.]], dtype=float32)
 
     """
 

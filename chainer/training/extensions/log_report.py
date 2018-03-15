@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import tempfile
+import warnings
 
 import six
 
@@ -113,6 +114,11 @@ class LogReport(extension.Extension):
     def serialize(self, serializer):
         if hasattr(self._trigger, 'serialize'):
             self._trigger.serialize(serializer['_trigger'])
+
+        try:
+            self._summary.serialize(serializer['_summary'])
+        except KeyError:
+            warnings.warn('The statistics are not saved.')
 
         # Note that this serialization may lose some information of small
         # numerical differences.

@@ -36,9 +36,11 @@ class StatelessGRU(GRUBase):
     """Stateless Gated Recurrent Unit function (GRU).
 
     GRU function has six parameters :math:`W_r`, :math:`W_z`, :math:`W`,
-    :math:`U_r`, :math:`U_z`, and :math:`U`. All these parameters are
-    :math:`n \\times n` matrices, where :math:`n` is the dimension of
-    hidden vectors.
+    :math:`U_r`, :math:`U_z`, and :math:`U`.
+    The three parameters :math:`W_r`, :math:`W_z`, and :math:`W` are
+    :math:`n \\times m` matrices, and the others :math:`U_r`, :math:`U_z`,
+    and :math:`U` are :math:`n \\times n` matrices, where :math:`m` is the
+    length of input vectors and :math:`n` is the length of hidden vectors.
 
     Given two inputs a previous hidden vector :math:`h` and an input vector
     :math:`x`, GRU returns the next hidden vector :math:`h'` defined as
@@ -68,7 +70,7 @@ class StatelessGRU(GRUBase):
 
     See:
         - `On the Properties of Neural Machine Translation: Encoder-Decoder
-          Approaches <http://www.aclweb.org/anthology/W14-4012>`_
+          Approaches <https://www.aclweb.org/anthology/W14-4012>`_
           [Cho+, SSST2014].
         - `Empirical Evaluation of Gated Recurrent Neural Networks on Sequence
           Modeling <https://arxiv.org/abs/1412.3555>`_
@@ -76,6 +78,30 @@ class StatelessGRU(GRUBase):
 
 
     .. seealso:: :class:`~chainer.links.StatefulGRU`
+
+    .. admonition:: Example
+
+        There are several ways to make a ``StatelessGRU`` link.
+        Let ``x`` be a two-dimensional input array:
+
+        >>> in_size = 10
+        >>> out_size = 20
+        >>> x = np.zeros((1, in_size), dtype=np.float32)
+        >>> h = np.zeros((1, out_size), dtype=np.float32)
+
+        1. Give both  ``in_size`` and ``out_size`` arguments:
+
+            >>> l = L.StatelessGRU(in_size, out_size)
+            >>> h_new = l(h, x)
+            >>> h_new.shape
+            (1, 20)
+
+        2. Omit ``in_size`` argument or fill it with ``None``:
+
+            >>> l = L.StatelessGRU(None, out_size)
+            >>> h_new = l(h, x)
+            >>> h_new.shape
+            (1, 20)
 
     """
 
@@ -92,8 +118,10 @@ class StatefulGRU(GRUBase):
 
     Stateful GRU function has six parameters :math:`W_r`, :math:`W_z`,
     :math:`W`, :math:`U_r`, :math:`U_z`, and :math:`U`.
-    All these parameters are :math:`n \\times n` matrices,
-    where :math:`n` is the dimension of hidden vectors.
+    The three parameters :math:`W_r`, :math:`W_z`, and :math:`W` are
+    :math:`n \\times m` matrices, and the others :math:`U_r`, :math:`U_z`,
+    and :math:`U` are :math:`n \\times n` matrices, where :math:`m` is the
+    length of input vectors and :math:`n` is the length of hidden vectors.
 
     Given input vector :math:`x`, Stateful GRU returns the next
     hidden vector :math:`h'` defined as
@@ -136,6 +164,33 @@ class StatefulGRU(GRUBase):
         * :class:`~chainer.links.StatelessGRU`
         * :class:`~chainer.links.GRU`: an alias of
           :class:`~chainer.links.StatefulGRU`
+
+    .. admonition:: Example
+
+        There are several ways to make a ``StatefulGRU`` link.
+        Let ``x`` be a two-dimensional input array:
+
+        >>> in_size = 10
+        >>> out_size = 20
+        >>> x = np.zeros((1, in_size), dtype=np.float32)
+
+        1. Give only ``in_size`` and ``out_size`` arguments:
+
+            >>> l = L.StatefulGRU(in_size, out_size)
+            >>> h_new = l(x)
+            >>> h_new.shape
+            (1, 20)
+
+        2. Give all optional arguments:
+
+            >>> init = np.zeros((out_size, in_size), dtype=np.float32)
+            >>> inner_init = np.zeros((out_size, out_size), dtype=np.float32)
+            >>> bias = np.zeros((1, out_size), dtype=np.float32)
+            >>> l = L.StatefulGRU(in_size, out_size, init=init,
+            ...     inner_init=inner_init, bias_init=bias)
+            >>> h_new = l(x)
+            >>> h_new.shape
+            (1, 20)
 
     """
 

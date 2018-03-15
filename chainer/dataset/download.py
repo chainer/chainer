@@ -2,6 +2,7 @@ from __future__ import print_function
 import hashlib
 import os
 import shutil
+import sys
 import tempfile
 
 import filelock
@@ -103,7 +104,7 @@ def cached_download(url):
     temp_root = tempfile.mkdtemp(dir=cache_root)
     try:
         temp_path = os.path.join(temp_root, 'dl')
-        print('Downloading from {}...'.format(url))
+        print('Downloading from {}...'.format(url), file=sys.stderr)
         request.urlretrieve(url, temp_path)
         with filelock.FileLock(lock_path):
             shutil.move(temp_path, cache_path)

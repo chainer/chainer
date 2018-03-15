@@ -1,29 +1,38 @@
 import unittest
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
 import numpy
 
 
-@testing.parameterize(*testing.product({
-    'target': [
-        initializers.Normal,
-        initializers.LeCunNormal,
-        initializers.GlorotNormal,
-        initializers.HeNormal,
-    ],
-    'shape': [(2, 3), (2, 3, 4)],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
+@testing.parameterize(*(
+    testing.product_dict(
+        [
+            {'target': initializers.Normal, 'fan_option': None},
+            {'target': initializers.LeCunNormal, 'fan_option': None},
+            {'target': initializers.GlorotNormal, 'fan_option': None},
+            {'target': initializers.HeNormal, 'fan_option': 'fan_in'},
+            {'target': initializers.HeNormal, 'fan_option': 'fan_out'}
+        ],
+        testing.product(
+            {'shape': [(2, 3), (2, 3, 4)],
+             'dtype': [numpy.float16, numpy.float32, numpy.float64]
+             }
+        )
+    )
+))
 class NormalBase(unittest.TestCase):
 
     def setUp(self):
         pass
 
     def check_initializer(self, w):
-        initializer = self.target(scale=0.1)
+        if self.fan_option is None:
+            initializer = self.target(scale=0.1)
+        else:
+            initializer = self.target(scale=0.1, fan_option=self.fan_option)
         initializer(w)
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)

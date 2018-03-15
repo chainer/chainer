@@ -1,11 +1,13 @@
 import six
 
-from chainer import cuda
-from chainer import function
+import chainer
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Tile(function.Function):
+class Tile(function_node.FunctionNode):
+
     """Tiling of an array."""
 
     def __init__(self, reps):
@@ -15,22 +17,22 @@ class Tile(function.Function):
                 isinstance(x, six.integer_types) for x in reps):
             self.reps = reps
         else:
-            raise TypeError('reps must be int or tuple of ints')
+            msg = 'reps must be int or tuple of ints. \n' \
+                  'Actual: {0}'.format(type(reps))
+            raise TypeError(msg)
 
         if not all(x >= 0 for x in self.reps):
-            raise ValueError('all elements in reps must be zero or larger')
+            raise ValueError('All elements in reps must be zero or larger')
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
 
     def forward(self, inputs):
-        self.retain_inputs(())
         self._in_shape = inputs[0].shape
-        self._in_dtype = inputs[0].dtype
         xp = cuda.get_array_module(*inputs)
         return xp.tile(inputs[0], self.reps),
 
-    def backward(self, inputs, grads):
+    def backward(self, indexes, grad_outputs):
         reps = self.reps
         shape = tuple(self._in_shape)
         ndim = len(shape)
@@ -41,21 +43,19 @@ class Tile(function.Function):
         elif ndim < len(reps):
             shape = (1,) * (len(reps) - ndim) + shape
 
-        if grads[0].shape == ():
-            # This case should be treated differently because numpy.num would
-            # return a scalar (even if keepdims=True).
-            return grads[0],
+        gy, = grad_outputs
 
         # Reshape so that base axis and reps axis can be distinguished.
         new_shape = []
-        for i in range(grads[0].ndim):
+        for i in range(gy.ndim):
             new_shape.append(reps[i])
             new_shape.append(shape[i])
         new_shape = tuple(new_shape)
 
         # Sum along reps axis
-        reps_axis = tuple(range(0, 2 * grads[0].ndim, 2))
-        gy = grads[0].reshape(new_shape).sum(axis=reps_axis)
+        reps_axis = tuple(range(0, 2 * gy.ndim, 2))
+        gy = gy.reshape(new_shape)
+        gy = chainer.functions.sum(gy, axis=reps_axis)
 
         if ndim < len(reps):
             return gy.reshape(self._in_shape),
@@ -91,21 +91,21 @@ def tile(x, reps):
         >>> x = np.array([0, 1, 2])
         >>> x.shape
         (3,)
-        >>> y = np.tile(x, 2)
+        >>> y = F.tile(x, 2)
         >>> y.shape
         (6,)
-        >>> y
+        >>> y.data
         array([0, 1, 2, 0, 1, 2])
-        >>> y = np.tile(x, (2, 2))
+        >>> y = F.tile(x, (2, 2))
         >>> y.shape
         (2, 6)
-        >>> y
+        >>> y.data
         array([[0, 1, 2, 0, 1, 2],
                [0, 1, 2, 0, 1, 2]])
-        >>> y = np.tile(x, (2, 1, 2))
+        >>> y = F.tile(x, (2, 1, 2))
         >>> y.shape
         (2, 1, 6)
-        >>> y
+        >>> y.data
         array([[[0, 1, 2, 0, 1, 2]],
         <BLANKLINE>
                [[0, 1, 2, 0, 1, 2]]])
@@ -113,24 +113,24 @@ def tile(x, reps):
         >>> x = np.array([[1, 2], [3, 4]])
         >>> x.shape
         (2, 2)
-        >>> y = np.tile(x, 2)
+        >>> y = F.tile(x, 2)
         >>> y.shape
         (2, 4)
-        >>> y
+        >>> y.data
         array([[1, 2, 1, 2],
                [3, 4, 3, 4]])
-        >>> y = np.tile(x, (2, 2))
+        >>> y = F.tile(x, (2, 2))
         >>> y.shape
         (4, 4)
-        >>> y
+        >>> y.data
         array([[1, 2, 1, 2],
                [3, 4, 3, 4],
                [1, 2, 1, 2],
                [3, 4, 3, 4]])
-        >>> y = np.tile(x, (2, 1, 2))
+        >>> y = F.tile(x, (2, 1, 2))
         >>> y.shape
         (2, 2, 4)
-        >>> y
+        >>> y.data
         array([[[1, 2, 1, 2],
                 [3, 4, 3, 4]],
         <BLANKLINE>
@@ -138,4 +138,4 @@ def tile(x, reps):
                 [3, 4, 3, 4]]])
 
     """
-    return Tile(reps)(x)
+    return Tile(reps).apply((x,))[0]

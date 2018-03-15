@@ -9,7 +9,7 @@ In this simple example script, an input sequence is processed by a stacked LSTM-
 
 This example requires additional libraries.
 
-- [NLTK](http://www.nltk.org/).
+- [NLTK](https://www.nltk.org/).
 - progressbar2
 
 ```
@@ -51,7 +51,7 @@ Then run the preprocess script `wmt_preprocess.py` to make sentence files and vo
 ```
 $ python wmt_preprocess.py giga-fren.release2.fixed.en giga-fren.preprocess.en \
   --vocab-file vocab.en
-$ python wmt_preprocess.py giga-fren.release2.fixed.en giga-fren.preprocess.fr \
+$ python wmt_preprocess.py giga-fren.release2.fixed.fr giga-fren.preprocess.fr \
   --vocab-file vocab.fr
 ```
 

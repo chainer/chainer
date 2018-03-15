@@ -1,8 +1,6 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
-
+from chainer import function_node
 from chainer.utils.conv import col2im_cpu
 from chainer.utils.conv import col2im_gpu
 from chainer.utils.conv import im2col_cpu
@@ -16,14 +14,27 @@ def _pair(x):
     return x, x
 
 
-class Im2Col(function.Function):
+def _col2im(x, *args, **kwargs):
+    if isinstance(x, numpy.ndarray):
+        return col2im_cpu(x, *args, **kwargs)
+    return col2im_gpu(x, *args, **kwargs)
+
+
+def _im2col(x, *args, **kwargs):
+    if isinstance(x, numpy.ndarray):
+        return im2col_cpu(x, *args, **kwargs)
+    return im2col_gpu(x, *args, **kwargs)
+
+
+class Im2Col(function_node.FunctionNode):
+
+    "Im2Col function."""
 
     def __init__(self, ksize, stride, pad, cover_all, dilate):
         self.kh, self.kw = _pair(ksize)
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.dy, self.dx = _pair(dilate)
-
         self.cover_all = cover_all
 
     def check_type_forward(self, in_types):
@@ -38,40 +49,61 @@ class Im2Col(function.Function):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
-        if xp == numpy:
-            y = im2col_cpu(
-                x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all, dy=self.dy, dx=self.dx)
-        else:
-            y = im2col_gpu(
-                x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
-                cover_all=self.cover_all, dy=self.dy, dx=self.dx)
+        y = _im2col(
+            x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
+            cover_all=self.cover_all, dy=self.dy, dx=self.dx)
         n, c, kh, kw, out_h, out_w = y.shape
-        y = y.reshape(n, c * kh * kw, out_h, out_w)
-        return y,
+        return y.reshape(n, c * kh * kw, out_h, out_w),
 
-    def backward(self, inputs, grad_outputs):
-        x, = inputs
-        xp = cuda.get_array_module(x)
-        gy, = grad_outputs
+    def backward(self, indexes, grad_outputs):
+        return Im2ColGrad((self.kh, self.kw), (self.sy, self.sx),
+                          (self.ph, self.pw), self.cover_all,
+                          (self.dy, self.dx), self.inputs[0].shape) \
+            .apply(grad_outputs)
 
+
+class Im2ColGrad(function_node.FunctionNode):
+
+    "Im2Col gradient function."""
+
+    def __init__(self, ksize, stride, pad, cover_all, dilate, in_shape):
+        self.kh, self.kw = _pair(ksize)
+        self.sy, self.sx = _pair(stride)
+        self.ph, self.pw = _pair(pad)
+        self.dy, self.dx = _pair(dilate)
+        self.cover_all = cover_all
+        self.in_shape = in_shape
+
+    def check_type_forward(self, in_types):
+        n_in = in_types.size()
+        type_check.expect(n_in == 1)
+
+        x_type = in_types[0]
+        type_check.expect(
+            x_type.dtype.kind == 'f',
+            x_type.ndim == 4
+        )
+
+    def forward(self, inputs):
+        _, c, h, w = self.in_shape
+        gy, = inputs
         n, _, out_h, out_w = gy.shape
-        _, c, h, w = x.shape
         gy = gy.reshape(n, c, self.kh, self.kw, out_h, out_w)
-        if xp == numpy:
-            gx = col2im_cpu(
-                gy, self.sy, self.sx, self.ph, self.pw, h, w, self.dy, self.dx)
-        else:
-            gx = col2im_gpu(
-                gy, self.sy, self.sx, self.ph, self.pw, h, w, self.dy, self.dx)
+        gx = _col2im(
+            gy, self.sy, self.sx, self.ph, self.pw, h, w, self.dy, self.dx)
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        return Im2Col(
+            (self.kh, self.kw), (self.sy, self.sx),
+            (self.ph, self.pw), self.cover_all,
+            (self.dy, self.dx)).apply(grad_outputs)
 
 
 def im2col(x, ksize, stride=1, pad=0, cover_all=False, dilate=1):
     """Extract patches from an image based on the filter.
 
-    This function rearranges patches of an image and put them in the channel
+    This function rearranges patches of an image and puts them in the channel
     dimension of the output.
 
     Patches are extracted at positions shifted by multiples of ``stride`` from
@@ -128,4 +160,4 @@ def im2col(x, ksize, stride=1, pad=0, cover_all=False, dilate=1):
         :math:`(n, c \\cdot k_H \\cdot k_W, h_O, w_O)`
 
     """
-    return Im2Col(ksize, stride, pad, cover_all, dilate)(x)
+    return Im2Col(ksize, stride, pad, cover_all, dilate).apply((x,))[0]

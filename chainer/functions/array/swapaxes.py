@@ -40,16 +40,16 @@ def swapaxes(x, axis1, axis2):
 
     .. admonition:: Example
 
-        >>> x = np.array([[[0, 1, 2], [3, 4, 5]]], 'f')
+        >>> x = np.array([[[0, 1, 2], [3, 4, 5]]], np.float32)
         >>> x.shape
         (1, 2, 3)
         >>> y = F.swapaxes(x, axis1=0, axis2=1)
         >>> y.shape
         (2, 1, 3)
         >>> y.data
-        array([[[ 0.,  1.,  2.]],
+        array([[[0., 1., 2.]],
         <BLANKLINE>
-               [[ 3.,  4.,  5.]]], dtype=float32)
+               [[3., 4., 5.]]], dtype=float32)
 
     """
     y, = Swapaxes(axis1, axis2).apply((x,))

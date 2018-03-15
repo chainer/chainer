@@ -28,22 +28,18 @@ class Highway(link.Chain):
         nobias (bool): If ``True``, then this function does not use the bias.
         activate: Activation function of plain array. :math:`tanh` is also
             available.
-        init_Wh (2-D array): Initial weight value of plain array.
-            If ``None``, the default initializer is used.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-        init_bh (1-D array): Initial bias value of plain array. If ``None``,
-            then :math:`b_h` is initialized to zero.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-        init_Wt (2-D array): Initial weight value of transform array.
-            If ``None``, the default initializer is used.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-        init_bt (1-D array): Initial bias value of transform array.
-            Default value is -1 vector.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        init_Wh (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2.
+        init_bh (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        init_Wt (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2.
+        init_bt (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
             Negative value is recommended by the author of the paper.
             (e.g. -1, -3, ...).
 

@@ -3,8 +3,8 @@ import weakref
 
 import six
 
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
 # for backward compatibility
 from chainer.function_hook import FunctionHook  # NOQA
 from chainer import function_node
@@ -14,18 +14,27 @@ from chainer import variable
 def no_backprop_mode():
     """Make a context manager which disables back-propagation.
 
-    In this context, Chainer does not make a computational graph.
-    :class:`~chainer.Variable` created in this context does not have
-    reference to the :class:`~chainer.Function` which created the variable.
-    So, you cannot compute gradient with :func:`~chainer.Variable.backward`.
-    Instead memory consumption is reduced.
+    In this context, Chainer does not make a computational graph. It has the
+    benefit of reducing memory consumption. However, a
+    :class:`~chainer.Variable` created in this context does not hold a
+    reference to the :class:`~chainer.FunctionNode` that created itself so no
+    gradients are accumulated by :func:`~chainer.Variable.backward`.
 
-    In this example, ``y`` is created in this context. So you cannot call
-    :func:`~chianer.Variable.backward`.
+    In the following example, ``y`` is created in this context, which means
+    that calling :func:`~chainer.Variable.backward` on ``y`` has no effect on
+    the gradients of ``x``.
 
-    >>> x = chainer.Variable(np.array([1,], 'f'))
+    >>> x = chainer.Variable(np.array([1,], np.float32))
     >>> with chainer.no_backprop_mode():
-    ...   y = x + 1
+    ...     y = x + 1
+    >>> y.backward()
+    >>> x.grad is None
+    True
+
+    .. seealso::
+
+       See :func:`force_backprop_mode` for details on how to override this
+       context.
 
     """
     return configuration.using_config('enable_backprop', False)
@@ -34,23 +43,28 @@ def no_backprop_mode():
 def force_backprop_mode():
     """Make a context manager which enables back-propagation.
 
-    When you want to enable back-propagation in :func:`no_backprop_mode`,
-    call this method. :~chainer.Variable: created in this context always has
-    a computational graph.
-    If you call this method outside of :func:`no_backprop_mode` context, it
-    changes nothing.
+    When you want to enable back-propagation in :func:`no_backprop_mode`, call
+    this method. A :class:`~chainer.Variable` created in this context always
+    has a computational graph unless overridden by deeper contexts. If you call
+    this method outside of :func:`no_backprop_mode` context, it changes
+    nothing.
 
-    In this example, ``y`` has a computational graph and ``y.backward``
-    computes gradients of variables in the graph.
+    In the following example, ``y`` has a computational graph and calling
+    :func:`~chainer.Variable.backward` on ``y`` will compute and accumulate the
+    gradients of the variables in the graph, in this case only ``x``.
 
-    >>> x = chainer.Variable(np.array([1,], 'f'))
+    >>> x = chainer.Variable(np.array([1,], np.float32))
     >>> with chainer.no_backprop_mode():
-    ...   with chainer.force_backprop_mode():
-    ...     y = x + 1
+    ...     with chainer.force_backprop_mode():
+    ...         y = x + 1
+    >>> y.backward()
+    >>> x.grad
+    array([1.], dtype=float32)
 
     .. seealso::
 
-       See :func:`no_backprop_mode` for details of back-prop mode.
+       See :func:`no_backprop_mode` for details on disabled back-propagation
+       mode.
 
     """
     return configuration.using_config('enable_backprop', True)
@@ -60,20 +74,24 @@ class FunctionAdapter(function_node.FunctionNode):
 
     """Adapter class to wrap Function with FunctionNode.
 
-    While :class:`FunctionNode` provides the interface of new-style
-    differentiable functions, the old-style :class:`Function` can still be
-    used for the backward compatibility. This class provides an adapter of
-    there interface; it adds :class:`FunctionNode` interface to any
-    :class:`Function` object by delegation.
+    While :class:`~chainer.FunctionNode` provides the interface
+    of new-style differentiable functions, the old-style
+    :class:`~chainer.Function` can still be used for the backward
+    compatibility.
+    This class provides an adapter of there interface; it adds
+    :class:`~chainer.FunctionNode` interface to any
+    :class:`~chainer.Function` object by delegation.
 
     .. note::
 
-       The ownership of ``FunctionAdapter`` and :class:`Function` is a bit
-       tricky. At the initialization, :class:`FunctionAdapter` is owned by the
-       :class:`Function` object. Once the function is applied to variables,
-       the ownership is reversed; the adapter becomes the owner of the
-       :class:`Function` object and the :class:`Function` object changes the
-       reference to a weak one.
+       The ownership of :class:`FunctionAdapter` and :class:`~chainer.Function`
+       is a bit tricky.
+       At the initialization, :class:`FunctionAdapter` is owned by the
+       :class:`~chainer.Function` object.
+       Once the function is applied to variables, the ownership is reversed;
+       the adapter becomes the owner of the
+       :class:`~chainer.Function` object and the :class:`~chainer.Function`
+       object changes the reference to a weak one.
 
     Args:
         function (Function): The function object to wrap.
@@ -131,7 +149,7 @@ class FunctionAdapter(function_node.FunctionNode):
             if gxs[i] is None:
                 g = None
             else:
-                # Intentionallly not passing requires_grad=False so that
+                # Intentionally not passing requires_grad=False so that
                 # backprop routines can raise an error when a further backprop
                 # is attempted against this gradient variable.
                 g = variable.Variable(gxs[i])
@@ -152,28 +170,33 @@ class Function(object):
     automatically induce the backpropagation procedure.
 
     There is another way to implement such a function: subclassing
-    :class:`FunctionNode`. There are mainly two differences between them.
+    :class:`~chainer.FunctionNode`. There are mainly two
+    differences between them.
 
-    1. The *differentiable backprop* is available for :class:`FunctionNode`,
+    1. The *differentiable backprop* is available for
+       :class:`~chainer.FunctionNode`,
        while it is not for :class:`Function` because the :meth:`backward`
        of the latter directly operates on the arrays instead of
        :class:`Variable` objects so that it cannot record the history of
        the computation.
     2. The information passed to :meth:`backward` is different. In
-       :class:`FunctionNode`, which inputs the function node has to compute
+       :class:`~chainer.FunctionNode`,
+       which inputs the function node has to compute
        the gradients w.r.t. is passed so that it can omit unnecessary
        computations, while :class:`Function` always has to compute gradients
-       w.r.t. all the input nodes. The :class:`FunctionNode` also accepts the
+       w.r.t. all the input nodes.
+       The :class:`~chainer.FunctionNode` also accepts the
        current gradient values of the input nodes so that the accumulation
        work can be merged with the gradient computation if an efficient kernel
        is available.
 
-    This class uses :class:`FunctionAdapter` to convert the interface to that
-    of :class:`FunctionNode` and adds the :class:`FunctionNode` object to the
+    This class uses :class:`~chainer.FunctionAdapter` to convert
+    the interface to that of :class:`~chainer.FunctionNode` and
+    adds the :class:`~chainer.FunctionNode` object to the
     computational graph.
 
-    See :class:`FunctionNode` for the details of building the computational
-    graph in Chainer.
+    See :class:`~chainer.FunctionNode` for the details of
+    building the computational graph in Chainer.
 
     """
 
@@ -183,11 +206,11 @@ class Function(object):
     def __call__(self, *inputs):
         """Applies forward propagation with chaining backward references.
 
-        This method creates a new :class:`FunctionAdapter` object and runs
-        the forward propagation using it.
+        This method creates a new :class:`~chainer.FunctionAdapter`
+        object and runs the forward propagation using it.
 
-        See :class:`FunctionNode` for the detailed behavior of building the
-        computational graph.
+        See :class:`~chainer.FunctionNode` for the detailed
+        behavior of building the computational graph.
 
         Args:
             inputs: Tuple of input :class:`Variable`, :class:`numpy.ndarray` or
@@ -429,7 +452,8 @@ class Function(object):
     def unchain(self):
         """Purges in/out nodes and this function itself from the graph.
 
-        See :meth:`FunctionNode.unchain` for the detail.
+        See :meth:`FunctionNode.unchain() <chainer.FunctionNode.unchain>`
+        for the detail.
 
         """
         self.node.unchain()
@@ -469,14 +493,15 @@ class Function(object):
         If this method is not called, the function keeps all input arrays. If
         you want to release all input arrays, call this method by passing an
         empty sequence. *Note that this behavior is different from that of*
-        :meth:`FunctionNode.retain_inputs`.
+        :meth:`FunctionNode.retain_inputs() \
+        <chainer.FunctionNode.retain_inputs>`.
 
-        Note that **this method must not be called from the outside of
-        forward method.**
+        Note that **this method must not be called from the outside of**
+        :meth:`forward`.
 
         Args:
             indexes (iterable of int): Indexes of input variables that the
-                function does not require for backprop.
+                function will require for backprop.
 
         """
         self.node.retain_inputs(indexes)
@@ -497,12 +522,12 @@ class Function(object):
            whereas it might influence on the performance of later function
            applications to the output variables.
 
-        Note that **this method must not be called from the outside of
-        forward method.**
+        Note that **this method must not be called from the outside of**
+        :meth:`forward`.
 
         Args:
             indexes (iterable of int): Indexes of input variables that the
-                function does not require for backprop.
+                function will require for backprop.
 
             retain_after_backward (bool): This option has no effect. It is
                 left only for the backward compatibility.

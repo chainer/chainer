@@ -3,26 +3,30 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(
-    {'shape': (3,), 'dtype': 'f', 'axis': 0, 'inv': False},
-    {'shape': (3,), 'dtype': 'f', 'axis': -1, 'inv': True},
-    {'shape': (3, 4), 'dtype': 'd', 'axis': 1, 'inv': True},
-    {'shape': (3, 4, 5), 'dtype': 'f', 'axis': 2, 'inv': False},
-)
+@testing.parameterize(*testing.product_dict(
+    [{'shape': (3,), 'dtype': 'f', 'axis': 0, 'inv': False},
+     {'shape': (3,), 'dtype': 'f', 'axis': -1, 'inv': True},
+     {'shape': (3, 4), 'dtype': 'd', 'axis': 1, 'inv': True},
+     {'shape': (3, 4, 5), 'dtype': 'f', 'axis': 2, 'inv': False}],
+    [{'label_dtype': numpy.int8},
+     {'label_dtype': numpy.int16},
+     {'label_dtype': numpy.int32},
+     {'label_dtype': numpy.int64}]
+))
 class TestPermutate(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.g = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.indices = numpy.random.permutation(
-            self.shape[self.axis]).astype(numpy.int32)
+            self.shape[self.axis]).astype(self.label_dtype)
 
     def check_forward(self, x_data, ind_data):
         x = chainer.Variable(x_data)
