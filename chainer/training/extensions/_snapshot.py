@@ -75,6 +75,10 @@ def snapshot(savefun=npz.save_npz,
         filename=filename)
 
 
+def _always_true():
+    return True
+
+
 class Snapshot(extension.Extension):
     """Trainer extension to take snapshots.
 
@@ -114,8 +118,10 @@ class Snapshot(extension.Extension):
         - :class:`chainer.training.extensions.snapshot_writers.SimpleWriter`
         - :class:`chainer.training.extensions.snapshot_writers.ThreadWriter`
         - :class:`chainer.training.extensions.snapshot_writers.ProcessWriter`
-        - :class:`chainer.training.extensions.snapshot_writers.ThreadQueueWriter`
-        - :class:`chainer.training.extensions.snapshot_writers.ProcessQueueWriter`
+        - :class:`chainer.training.extensions.snapshot_writers.\
+ThreadQueueWriter`
+        - :class:`chainer.training.extensions.snapshot_writers.\
+ProcessQueueWriter`
 
     .. admonition:: Example
 
@@ -129,7 +135,8 @@ class Snapshot(extension.Extension):
 
         >>> from chainer.training import extensions
         >>> writer = extensions.snapshot_writers.ProcessWriter()
-        >>> trainer.extend(extensions.Snapshot(writer=writer), trigger=(1, 'epoch'))
+        >>> trainer.extend(extensions.Snapshot(writer=writer), \
+trigger=(1, 'epoch'))
 
         To change the format, such as npz or hdf5, you can pass a saving
         function as ``savefun`` argument of the writer.
@@ -137,7 +144,8 @@ class Snapshot(extension.Extension):
         >>> from chainer.training import extensions
         >>> writer = extensions.snapshot_writers.ProcessWriter(
         >>>     savefun=extensions.snapshots.util.save_npz)
-        >>> trainer.extend(extensions.Snapshot(writer=writer), trigger=(1, 'epoch'))
+        >>> trainer.extend(extensions.Snapshot(writer=writer), \
+trigger=(1, 'epoch'))
 
     .. seealso::
 
@@ -152,7 +160,7 @@ class Snapshot(extension.Extension):
             self, target=None, condition=None, writer=None,
             filename='snapshot_iter_{.updater.iteration}'):
         if condition is None:
-            condition = lambda: True
+            condition = _always_true
         if writer is None:
             writer = snapshot_writers.SimpleWriter()
         self._target = target
