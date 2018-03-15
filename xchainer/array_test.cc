@@ -1490,6 +1490,14 @@ TEST(ArrayReshapeTest, Squeeze) {
         ExpectEqual<T>(e, b);
     }
 
+    // Squeeze all axes.
+    {
+        Array a = testing::MakeArray({1, 1, 1}).WithLinearData<T>();
+        Array b = a.Squeeze({});
+        Array e = testing::MakeArray<T>({}, std::vector<T>{0});  // std::vector to call correct overload.
+        ExpectEqual<T>(e, b);
+    }
+
     // Multiple squeezes.
     {
         Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
