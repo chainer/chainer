@@ -148,11 +148,13 @@ class Snapshot(extension.Extension):
     trigger = 1, 'epoch'
     priority = -100
 
-    def __init__(self,
-                 target=None,
-                 condition=lambda: True,
-                 writer=snapshot_writers.SimpleWriter(),
-                 filename='snapshot_iter_{.updater.iteration}'):
+    def __init__(
+            self, target=None, condition=None, writer=None,
+            filename='snapshot_iter_{.updater.iteration}'):
+        if condition is None:
+            condition = lambda: True
+        if writer is None:
+            writer = snapshot_writers.SimpleWriter()
         self._target = target
         self.filename = filename
         self.condition = condition
