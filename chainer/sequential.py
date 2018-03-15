@@ -134,6 +134,8 @@ class Sequential(link.ChainList):
                 if _link is layer:
                     del self._children[i]
                     break
+            for i, layer in enumerate(self._children):
+                layer.name = str(i)
 
     def __iter__(self):
         return iter(self._layers)
@@ -263,7 +265,7 @@ class Sequential(link.ChainList):
         self._layers.insert(i, layer)
         if isinstance(layer, link.Link):
             self._children.insert(i, layer)
-            for i, layer in enumerate(self.children()):
+            for i, layer in enumerate(self._children):
                 layer.name = str(i)
 
     def remove(self, layer):
