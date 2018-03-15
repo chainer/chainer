@@ -483,7 +483,7 @@ class TestLink(unittest.TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.link.count_params()
-            assert len(w) == 0
+        assert not w
 
 
 class CountParameter(chainer.Parameter):
@@ -818,7 +818,7 @@ class TestChain(unittest.TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.c2.count_params()
-        assert len(w) == 0
+        assert not w
 
 class TestChainList(unittest.TestCase):
 
@@ -1144,7 +1144,7 @@ class TestChainList(unittest.TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.c2.count_params()
-        assert len(w) == 0
+        assert not w
 
 
 @attr.ideep
