@@ -10,25 +10,26 @@ from chainer.serializers import npz
 
 class Writer(object):
 
-    """Base class of snapshot writer.
+    """Base class of snapshot writers.
 
-    :class:`~chainer.training.extensions.Snapshot` invokes this class'es
-    ``__call__`` everytime if this process is in charge to take a snapshot.
-    This class determine how to invoke the actual saving function. The most
-    simple way is just passing the arguments to the saving function.
+    :class:`~chainer.training.extensions.Snapshot` invokes ``__call__`` of this
+    class everytime when taking a snapshot.
+    This class determines how the actual saving function will be invoked.
     """
 
     def __call__(self, filename, outdir, target):
         """Invokes the actual snapshot function.
 
-        This method is invoked every time when this process is in charge to
-        take a snapshot. All arguments are passed from
-        :class:`~chainer.training.extensions.Snapshot` object.
+        This method is invoked by a
+        :class:`~chainer.training.extensions.Snapshot` object every time it
+        takes a snapshot.
 
         Args:
             filename (str): Name of the file into which the serialized target
-                is saved. It is already formated string.
-            outdir (str): Output directory. Passed by `trainer.out`.
+                is saved. It is a concrete file name, i.e. not a pre-formatted
+                template string.
+            outdir (str): Output directory. Corresponds to
+                :py:attr:`Trainer.out <chainer.training.Trainer.out>`.
             target (dict): Serialized object which will be saved.
         """
         raise NotImplementedError
@@ -37,9 +38,9 @@ class Writer(object):
         self.finalize()
 
     def finalize(self):
-        """Finalize the wirter.
+        """Finalizes the wirter.
 
-        Like an extension in :class:`~chainer.training.Trainer`, this method
+        Like extensions in :class:`~chainer.training.Trainer`, this method
         is invoked at the end of the training.
 
         """
@@ -59,7 +60,7 @@ class Writer(object):
 
 
 class SimpleWriter(Writer):
-    """The most simple writer.
+    """The most simple snapshot writer.
 
     This class just passes the arguments to the actual saving function.
 
@@ -80,7 +81,7 @@ class SimpleWriter(Writer):
 
 
 class StandardWriter(Writer):
-    """Base class of snapshot writer which uses thread or process.
+    """Base class of snapshot writers which use thread or process.
 
     This class creates a new thread or a process every time when ``__call__``
     is invoked.
@@ -110,7 +111,7 @@ class StandardWriter(Writer):
         self._started = True
 
     def create_worker(self, filename, outdir, target, **kwds):
-        """Create a worker for the snapshot.
+        """Creates a worker for the snapshot.
 
         This method creates a thread or a process to take a snapshot. The
         created worker must have :meth:`start` and :meth:`join` methods.
@@ -141,7 +142,7 @@ class StandardWriter(Writer):
 
 
 class ThreadWriter(StandardWriter):
-    """Writer that uses a thread.
+    """Snapshot writer that uses a separate thread.
 
     This class creates a new thread that invokes the actual saving function.
 
@@ -155,14 +156,14 @@ class ThreadWriter(StandardWriter):
 
 
 class ProcessWriter(StandardWriter):
-    """Writer that uses a process.
+    """Snapshot writer that uses a separate process.
 
     This class creates a new process that invokes the actual saving function.
 
     .. note::
         Forking a new process from a MPI process might be danger. Consider
-        using ``ThreadWriter`` instead of ``ProcessWriter`` if you are using
-        MPI.
+        using :class:`ThreadWriter` instead of ``ProcessWriter`` if you are
+        using MPI.
 
     """
 
@@ -174,11 +175,11 @@ class ProcessWriter(StandardWriter):
 
 
 class QueueWriter(Writer):
-    """Base class of queue snapshot writer.
+    """Base class of queue snapshot writers.
 
-    This class is a base class of writer that uses a queue. A Queue is created
-    when this class is constructed, and every time when ``__call__`` is
-    invoked, a snapshot task is put into the queue.
+    This class is a base class of snapshot writers that use a queue.
+    A Queue is created when this class is constructed, and every time when
+    ``__call__`` is invoked, a snapshot task is put into the queue.
 
     Args:
         savefun: Callable object which is passed to the :meth:`create_task`
@@ -243,9 +244,10 @@ class QueueWriter(Writer):
 
 
 class ThreadQueueWriter(QueueWriter):
-    """Writer that uses thread queue.
+    """Snapshot writer that uses a thread queue.
 
-    This class create a thread and a queue by `threading` and `queue` module
+    This class creates a thread and a queue by :mod:`threading` and
+    :mod:`queue` modules
     respectively. The thread will be a consumer of the queue, and the main
     thread will be a producer of the queue.
     """
@@ -258,15 +260,15 @@ class ThreadQueueWriter(QueueWriter):
 
 
 class ProcessQueueWriter(QueueWriter):
-    """Writer that uses process queue.
+    """Snapshot writer that uses process queue.
 
-    This class create a process and a queue by `multiprocessing` and `Queue`
-    module respectively. The process will be a consumer of this queue,
-    and the main process will be a producer of this queue.
+    This class creates a process and a queue by :mod:`multiprocessing` module.
+    The process will be a consumer of this queue, and the main process will be
+    a producer of this queue.
 
     .. note::
         Forking a new process from MPI process might be danger. Consider using
-        ``ThreadQueueWriter`` instead of ``ProcessQueueWriter`` if you are
+        :class:`ThreadQueueWriter` instead of ``ProcessQueueWriter`` if you are
         using MPI.
 
     """
