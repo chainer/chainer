@@ -1,4 +1,3 @@
-from __future__ import print_function
 import sys
 
 from chainer.backends import cuda
@@ -50,13 +49,14 @@ class PrintHook(function_hook.FunctionHook):
     name = 'PrintHook'
 
     def __init__(self, sep='', end='\n', file=sys.stdout, flush=True):
+        # TODO(niboshi): deprecate sep
         self.sep = sep
         self.end = end
         self.file = file
         self.flush = flush
 
     def _print(self, msg):
-        print(msg, sep=self.sep, end=self.end, file=self.file)
+        self.file.write(msg + self.end)
 
     def _process(self, function, in_data, out_grad=None):
         self._print('function\t{}'.format(function.label))

@@ -9,7 +9,6 @@ models without using the Trainer class in chainer and instead write a
 training loop that manually computes the loss of minibatches and
 applies an optimizer to update the model.
 """
-from __future__ import print_function
 import argparse
 import copy
 import numpy as np
@@ -65,7 +64,7 @@ def main():
     # Load the Penn Tree Bank long word sequence dataset
     train, val, test = chainer.datasets.get_ptb_words()
     n_vocab = max(train) + 1  # train is just an array of integers
-    print('#vocab =', n_vocab)
+    print('#vocab = {}'.format(n_vocab))
 
     if args.test:
         train = train[:100]
@@ -116,19 +115,20 @@ def main():
         optimizer.update()  # Update the parameters
 
         if iteration % 20 == 0:
-            print('iteration: ', iteration)
-            print('training perplexity: ', np.exp(float(sum_perp) / count))
+            print('iteration: {}'.format(iteration))
+            print('training perplexity: {}'.format(
+                np.exp(float(sum_perp) / count)))
             sum_perp = 0
             count = 0
 
         if train_iter.is_new_epoch:
-            print('epoch: ', train_iter.epoch)
-            print('validation perplexity: ', evaluate(model, val_iter))
+            print('epoch: {}'.format(train_iter.epoch))
+            print('validation perplexity: {}'.format(evaluate(model, val_iter)))
 
     # Evaluate on test dataset
     print('test')
     test_perp = evaluate(model, test_iter)
-    print('test perplexity:', test_perp)
+    print('test perplexity: {}'.format(test_perp))
 
     # Save the model and the optimizer
     print('save the model')
