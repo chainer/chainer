@@ -1,8 +1,5 @@
-import six
-
 import numpy
 
-from chainer import cuda
 from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
@@ -12,14 +9,6 @@ from chainer.utils import type_check
 class LinearFunction(function_node.FunctionNode):
 
     _config_use_ideep = None
-    
-    def __init__(self, n_batch_axes=1):
-        super(LinearFunction, self).__init__()
-        if n_batch_axes < 1:
-            raise ValueError(
-                'n_batch_axes should be less than x.ndim and greater '
-                'than 0 but {} was given.'.format(n_batch_axes))
-        self._n_batch_axes = n_batch_axes
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -29,9 +18,9 @@ class LinearFunction(function_node.FunctionNode):
         type_check.expect(
             x_type.dtype.kind == 'f',
             w_type.dtype.kind == 'f',
-            x_type.ndim > self._n_batch_axes,
+            x_type.ndim == 2,
             w_type.ndim == 2,
-            x_type.shape[self._n_batch_axes] == w_type.shape[1],
+            x_type.shape[1] == w_type.shape[1],
         )
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
@@ -62,9 +51,6 @@ class LinearFunction(function_node.FunctionNode):
                 1 in x.shape):
             x = numpy.ascontiguousarray(x)
 
-        if x.ndim != 2:
-            x = x.reshape(x.shape[:self._n_batch_axes] + (-1,))
-
         y = x.dot(W.T).astype(x.dtype, copy=False)
         if b is not None:
             y += b
@@ -89,18 +75,15 @@ class LinearFunction(function_node.FunctionNode):
         x, W = self.get_retained_inputs()
         gy, = grad_outputs
         ret = []
-        
         with chainer.using_config('use_ideep', self._config_use_ideep):
             if 0 in indexes:
                 gx, = LinearGradData().apply((W, gy))
                 ret.append(chainer.functions.cast(gx, x.dtype))
             if 1 in indexes:
-                gW, = LinearGradWeight(
-                    W.dtype, self._n_batch_axes).apply((x, gy))
+                gW, = LinearGradWeight(W.dtype).apply((x, gy))
                 ret.append(chainer.functions.cast(gW, W.dtype))
             if 2 in indexes:
-                gb = chainer.functions.sum(
-                    gy, axis=tuple(six.moves.range(self._n_batch_axes)))
+                gb = chainer.functions.sum(gy, axis=0)
                 ret.append(gb)
 
         return ret
@@ -156,14 +139,8 @@ class LinearGradWeight(function_node.FunctionNode):
 
     _config_use_ideep = None
 
-    def __init__(self, w_dype, n_batch_axes=1):
-        super(LinearGradWeight, self).__init__()
+    def __init__(self, w_dtype):
         self._w_dtype = w_dtype
-        if n_batch_axes < 1:
-            raise ValueError(
-                'n_batch_axes should be less than x.ndim and greater '
-                'than 0 but {} was given.'.format(n_batch_axes))
-        self._n_batch_axes = n_batch_axes
 
     def forward(self, inputs):
         self._config_use_ideep = chainer.config.use_ideep
@@ -182,13 +159,7 @@ class LinearGradWeight(function_node.FunctionNode):
                 1 in gy.shape):
             gy = numpy.ascontiguousarray(gy)
 
-        if self._n_batch_axes > 1:
-            xp = cuda.get_array_module(*inputs)
-            ax = six.moves.range(self._n_batch_axes)
-            gW = xp.tensordot(
-                gy, x, axes=(ax, ax)).astype(W.dtype, copy=False)
-        else:
-            gW = gy.T.dot(x).astype(self._w_dtype, copy=False)
+        gW = gy.T.dot(x).astype(self._w_dtype, copy=False)
         return gW,
 
     def _forward_ideep(self, inputs):
@@ -255,10 +226,16 @@ def linear(x, W, b=None, n_batch_axes=1):
         (3, 5)
 
     """
+    if n_batch_axes > 1:
+        batch_shape = x.shape[:n_batch_axes]
+        batch_size = numpy.prod(batch_shape)
+        x = x.reshape(batch_size, -1)
+    elif x.ndim > 2:
+        x = x.reshape(x.shape[0], -1)
     if b is None:
         args = x, W
     else:
         args = x, W, b
 
-    y, = LinearFunction(n_batch_axes).apply(args)
+    y, = LinearFunction().apply(args)
     return y

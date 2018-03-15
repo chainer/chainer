@@ -1,9 +1,10 @@
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
-import numpy
 
 
 if cuda.cudnn_enabled:

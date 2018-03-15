@@ -1,5 +1,4 @@
 import numpy
-
 from six import moves
 
 import chainer

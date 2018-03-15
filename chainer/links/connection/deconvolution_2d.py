@@ -127,7 +127,7 @@ class Deconvolution2D(link.Link):
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  nobias=False, outsize=None, initialW=None, initial_bias=None,
-                 group=1, **kwargs):
+                 groups=1, **kwargs):
         super(Deconvolution2D, self).__init__()
 
         argument.check_unexpected_kwargs(
@@ -145,7 +145,7 @@ class Deconvolution2D(link.Link):
         self.pad = _pair(pad)
         self.outsize = (None, None) if outsize is None else outsize
         self.out_channels = out_channels
-        self.group = int(group)
+        self.groups = int(groups)
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
@@ -165,11 +165,13 @@ class Deconvolution2D(link.Link):
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
-        if (self.out_channels % self.group != 0 or
-                in_channels % self.group != 0):
-            raise ValueError('number of input and output channels must be'
-                             'divisible by group count')
-        W_shape = (in_channels, int(self.out_channels / self.group), kh, kw)
+        if self.out_channels % self.groups != 0:
+            raise ValueError('the number of output channels must be'
+                             'divisible by the number of groups')
+        if in_channels % self.groups != 0:
+            raise ValueError('the number of input channels must be'
+                             'divisible by the number of groups')
+        W_shape = (in_channels, int(self.out_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)
 
     def __call__(self, x):
@@ -177,7 +179,7 @@ class Deconvolution2D(link.Link):
             self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(
             x, self.W, self.b, self.stride, self.pad, self.outsize,
-            group=self.group)
+            groups=self.groups)
 
 
 def _pair(x):
