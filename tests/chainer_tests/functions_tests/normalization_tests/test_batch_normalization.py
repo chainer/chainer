@@ -342,6 +342,7 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
                 y.backward()
                 self.assertEqual(func.called, self.expect)
 
+
 @attr.cudnn
 class TestBatchNormalizationCudnnEps(unittest.TestCase):
     def setUp(self):
