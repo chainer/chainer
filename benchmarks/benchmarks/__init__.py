@@ -1,11 +1,8 @@
 import inspect
 
-import chainer
-
-
 # Ensure that CuPy and cuDNN are available.
-assert chainer.cuda.available
-assert chainer.cuda.cudnn_enabled
+import cupy  # NOQA
+import cupy.cudnn  # NOQA
 
 
 class BenchmarkBase(object):
