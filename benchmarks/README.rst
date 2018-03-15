@@ -38,3 +38,16 @@ Usage
 
     # Start the HTTP server to browse HTML.
     asv preview
+
+Alternatively you can use Docker.
+
+.. code-block:: sh
+
+    # Build docker image for benchmark.
+    docker build -t chainer-benchmark docker
+
+    # Create a machine configuration file (`.asv-machine.json`) in this directory (first time only).
+    nvidia-docker run --rm -it -u ${UID}:${GID} -v ${PWD}:/benchmarks -w /benchmarks -e HOME=/benchmarks chainer-benchmark asv machine --machine $(hostname)
+
+    # Run benchmark.
+    nvidia-docker run --rm -it -u ${UID}:${GID} -v ${PWD}:/benchmarks -w /benchmarks -e HOME=/benchmarks chainer-benchmark ./run.sh master master --machine $(hostname)
