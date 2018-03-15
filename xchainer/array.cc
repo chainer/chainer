@@ -6,8 +6,8 @@
 #include <cstring>
 #include <ostream>
 #include <string>
-#include <tuple>
 #include <unordered_map>
+#include <utility>
 
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
@@ -377,23 +377,19 @@ Array Array::ToDevice(Device& dst_device) const {
         Array src_contig = AsConstant(CopyKind::kCopy);
 
         std::shared_ptr<void> dst_data;
-        int64_t offset = 0;
         if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
             // Use src backend for transfer.
-            auto data_tuple = src_device.TransferDataTo(dst_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes());
-            dst_data = std::move(std::get<0>(data_tuple));
-            offset = std::get<1>(data_tuple);
+            dst_data = src_device.TransferDataTo(dst_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes());
         } else if (dst_device.backend().SupportsTransfer(src_device, dst_device)) {
             // Use dst backend for transfer.
-            auto data_tuple = dst_device.TransferDataFrom(src_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes());
-            dst_data = std::move(std::get<0>(data_tuple));
-            offset = std::get<1>(data_tuple);
+            dst_data = dst_device.TransferDataFrom(src_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes());
         } else {
             // Neither backends support transfer.
             throw XchainerError(
                     "Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'.");
         }
-        out.emplace(Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data), offset});
+        out.emplace(
+                Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data), src_contig.offset()});
     }
 
     assert(out.has_value());

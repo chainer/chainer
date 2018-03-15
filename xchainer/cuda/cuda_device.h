@@ -1,7 +1,5 @@
 #pragma once
 
-#include <tuple>
-
 #include "xchainer/array.h"
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/device.h"
@@ -19,11 +17,10 @@ public:
 
     void MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) override;
 
-    std::tuple<std::shared_ptr<void>, size_t> TransferDataFrom(
+    std::shared_ptr<void> TransferDataFrom(
             Device& src_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) override;
 
-    std::tuple<std::shared_ptr<void>, size_t> TransferDataTo(
-            Device& dst_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) override;
+    std::shared_ptr<void> TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) override;
 
     std::shared_ptr<void> FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
