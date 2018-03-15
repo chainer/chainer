@@ -1,3 +1,6 @@
+Snapshot Writers
+================
+
 .. module:: chainer.training.extensions.snapshot_writers
 
 .. autosummary::
