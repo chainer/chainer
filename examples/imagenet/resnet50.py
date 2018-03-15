@@ -9,7 +9,7 @@ import chainer.links as L
 
 class BottleNeckA(chainer.Chain):
 
-    def __init__(self, in_size, ch, out_size, stride=2, group=1):
+    def __init__(self, in_size, ch, out_size, stride=2, groups=1):
         super(BottleNeckA, self).__init__()
         initialW = initializers.HeNormal()
 
@@ -19,7 +19,7 @@ class BottleNeckA(chainer.Chain):
             self.bn1 = L.BatchNormalization(ch)
             self.conv2 = L.Convolution2D(
                 ch, ch, 3, 1, 1, initialW=initialW, nobias=True,
-                group=group)
+                groups=groups)
             self.bn2 = L.BatchNormalization(ch)
             self.conv3 = L.Convolution2D(
                 ch, out_size, 1, 1, 0, initialW=initialW, nobias=True)
@@ -41,7 +41,7 @@ class BottleNeckA(chainer.Chain):
 
 class BottleNeckB(chainer.Chain):
 
-    def __init__(self, in_size, ch, group=1):
+    def __init__(self, in_size, ch, groups=1):
         super(BottleNeckB, self).__init__()
         initialW = initializers.HeNormal()
 
@@ -51,7 +51,7 @@ class BottleNeckB(chainer.Chain):
             self.bn1 = L.BatchNormalization(ch)
             self.conv2 = L.Convolution2D(
                 ch, ch, 3, 1, 1, initialW=initialW, nobias=True,
-                group=group)
+                groups=groups)
             self.bn2 = L.BatchNormalization(ch)
             self.conv3 = L.Convolution2D(
                 ch, in_size, 1, 1, 0, initialW=initialW, nobias=True)
@@ -67,11 +67,11 @@ class BottleNeckB(chainer.Chain):
 
 class Block(chainer.ChainList):
 
-    def __init__(self, layer, in_size, ch, out_size, stride=2, group=1):
+    def __init__(self, layer, in_size, ch, out_size, stride=2, groups=1):
         super(Block, self).__init__()
-        self.add_link(BottleNeckA(in_size, ch, out_size, stride, group))
+        self.add_link(BottleNeckA(in_size, ch, out_size, stride, groups))
         for i in range(layer - 1):
-            self.add_link(BottleNeckB(out_size, ch, group))
+            self.add_link(BottleNeckB(out_size, ch, groups))
 
     def __call__(self, x):
         for f in self.children():
@@ -120,8 +120,8 @@ class ResNeXt50(ResNet50):
             self.conv1 = L.Convolution2D(
                 3, 64, 7, 2, 3, initialW=initializers.HeNormal())
             self.bn1 = L.BatchNormalization(64)
-            self.res2 = Block(3, 64, 128, 256, 1, group=32)
-            self.res3 = Block(4, 256, 256, 512, group=32)
-            self.res4 = Block(6, 512, 512, 1024, group=32)
-            self.res5 = Block(3, 1024, 1024, 2048, group=32)
+            self.res2 = Block(3, 64, 128, 256, 1, groups=32)
+            self.res3 = Block(4, 256, 256, 512, groups=32)
+            self.res4 = Block(6, 512, 512, 1024, groups=32)
+            self.res5 = Block(3, 1024, 1024, 2048, groups=32)
             self.fc = L.Linear(2048, 1000)

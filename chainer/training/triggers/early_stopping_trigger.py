@@ -1,8 +1,8 @@
-from chainer import reporter
-from chainer.training import util
-
 import operator
 import warnings
+
+from chainer import reporter
+from chainer.training import util
 
 
 class EarlyStoppingTrigger(object):
@@ -125,3 +125,6 @@ class EarlyStoppingTrigger(object):
 
     def _init_summary(self):
         self._summary = reporter.DictSummary()
+
+    def get_training_length(self):
+        return self._max_trigger.get_training_length()

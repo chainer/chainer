@@ -90,6 +90,8 @@ class GoogLeNet(link.Chain):
     """
 
     def __init__(self, pretrained_model='auto'):
+        super(GoogLeNet, self).__init__()
+
         if pretrained_model:
             # As a sampling process is time-consuming,
             # we employ a zero initializer for faster computation.
@@ -98,29 +100,30 @@ class GoogLeNet(link.Chain):
             # employ default initializers used in BVLC. For more detail, see
             # https://github.com/chainer/chainer/pull/2424#discussion_r109642209
             kwargs = {'initialW': uniform.LeCunUniform(scale=1.0)}
-        super(GoogLeNet, self).__init__(
-            conv1=Convolution2D(3, 64, 7, stride=2, pad=3, **kwargs),
-            conv2_reduce=Convolution2D(64, 64, 1, **kwargs),
-            conv2=Convolution2D(64, 192, 3, stride=1, pad=1, **kwargs),
-            inc3a=Inception(192, 64, 96, 128, 16, 32, 32),
-            inc3b=Inception(256, 128, 128, 192, 32, 96, 64),
-            inc4a=Inception(480, 192, 96, 208, 16, 48, 64),
-            inc4b=Inception(512, 160, 112, 224, 24, 64, 64),
-            inc4c=Inception(512, 128, 128, 256, 24, 64, 64),
-            inc4d=Inception(512, 112, 144, 288, 32, 64, 64),
-            inc4e=Inception(528, 256, 160, 320, 32, 128, 128),
-            inc5a=Inception(832, 256, 160, 320, 32, 128, 128),
-            inc5b=Inception(832, 384, 192, 384, 48, 128, 128),
-            loss3_fc=Linear(1024, 1000, **kwargs),
 
-            loss1_conv=Convolution2D(512, 128, 1, **kwargs),
-            loss1_fc1=Linear(2048, 1024, **kwargs),
-            loss1_fc2=Linear(1024, 1000, **kwargs),
+        with self.init_scope():
+            self.conv1 = Convolution2D(3, 64, 7, stride=2, pad=3, **kwargs)
+            self.conv2_reduce = Convolution2D(64, 64, 1, **kwargs)
+            self.conv2 = Convolution2D(64, 192, 3, stride=1, pad=1, **kwargs)
+            self.inc3a = Inception(192, 64, 96, 128, 16, 32, 32)
+            self.inc3b = Inception(256, 128, 128, 192, 32, 96, 64)
+            self.inc4a = Inception(480, 192, 96, 208, 16, 48, 64)
+            self.inc4b = Inception(512, 160, 112, 224, 24, 64, 64)
+            self.inc4c = Inception(512, 128, 128, 256, 24, 64, 64)
+            self.inc4d = Inception(512, 112, 144, 288, 32, 64, 64)
+            self.inc4e = Inception(528, 256, 160, 320, 32, 128, 128)
+            self.inc5a = Inception(832, 256, 160, 320, 32, 128, 128)
+            self.inc5b = Inception(832, 384, 192, 384, 48, 128, 128)
+            self.loss3_fc = Linear(1024, 1000, **kwargs)
 
-            loss2_conv=Convolution2D(528, 128, 1, **kwargs),
-            loss2_fc1=Linear(2048, 1024, **kwargs),
-            loss2_fc2=Linear(1024, 1000, **kwargs)
-        )
+            self.loss1_conv = Convolution2D(512, 128, 1, **kwargs)
+            self.loss1_fc1 = Linear(2048, 1024, **kwargs)
+            self.loss1_fc2 = Linear(1024, 1000, **kwargs)
+
+            self.loss2_conv = Convolution2D(528, 128, 1, **kwargs)
+            self.loss2_fc1 = Linear(2048, 1024, **kwargs)
+            self.loss2_fc2 = Linear(1024, 1000, **kwargs)
+
         if pretrained_model == 'auto':
             _retrieve(
                 'bvlc_googlenet.npz',

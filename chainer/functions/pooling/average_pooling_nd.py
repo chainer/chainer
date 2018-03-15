@@ -1,11 +1,12 @@
-import numpy
-
 import functools
 import operator
+
+import numpy
 import six
 
 import chainer
 from chainer.backends import cuda
+from chainer import function_node
 from chainer.functions.pooling import average_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
 from chainer import utils
@@ -33,7 +34,6 @@ class AveragePoolingND(pooling_nd._PoolingND):
             ndim, ksize, stride=stride, pad=pad, cover_all=cover_all)
 
     def forward_cpu(self, x):
-        self.retain_inputs(())
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
 
@@ -49,9 +49,9 @@ class AveragePoolingND(pooling_nd._PoolingND):
         if chainer.should_use_cudnn('>=auto') and 2 <= self.ndim <= 3:
             # With cuDNN v3 or greater, use cuDNN implementation for inputs
             # with spatial dimensions of two or more.
+            self.retain_inputs((0,))
             return super(AveragePoolingND, self).forward_gpu(x)
 
-        self.retain_inputs(())
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
 
@@ -75,7 +75,30 @@ class AveragePoolingND(pooling_nd._PoolingND):
 
         return y,
 
-    def backward_cpu(self, x, gy):
+    def backward(self, indexes, gy):
+        return AveragePoolingNDGrad(self).apply(gy)
+
+    def create_pool_desc(self):
+        return cuda.cudnn.create_pooling_descriptor(
+            self.ksize, self.stride, self.pad,
+            cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
+
+
+class AveragePoolingNDGrad(function_node.FunctionNode):
+
+    def __init__(self, apoolnd):
+        self.ndim = apoolnd.ndim
+        self.ksize = apoolnd.ksize
+        self.stride = apoolnd.stride
+        self.pad = apoolnd.pad
+        self.cover_all = apoolnd.cover_all
+        self._used_cudnn = apoolnd._used_cudnn
+        if not self._used_cudnn:
+            self._in_shape = apoolnd._in_shape
+            self._in_dtype = apoolnd._in_dtype
+        self.apoolnd = apoolnd
+
+    def forward_cpu(self, gy):
         dims = self._in_shape[2:]
         outs = gy[0].shape[2:]
         colon = slice(None, None, None)
@@ -86,9 +109,10 @@ class AveragePoolingND(pooling_nd._PoolingND):
         gx /= functools.reduce(operator.mul, self.ksize)
         return gx,
 
-    def backward_gpu(self, x, gy):
+    def forward_gpu(self, gy):
         if self._used_cudnn:
-            return super(AveragePoolingND, self).backward_gpu(x, gy)
+            x, = self.apoolnd.get_retained_inputs()
+            return self.apoolnd.backward_gpu((x.data,), gy)
 
         n, c = self._in_shape[:2]
         dims = self._in_shape[2:]
@@ -105,10 +129,10 @@ class AveragePoolingND(pooling_nd._PoolingND):
 
         return gx,
 
-    def create_pool_desc(self):
-        return cuda.cudnn.create_pooling_descriptor(
-            self.ksize, self.stride, self.pad,
-            cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
+    def backward(self, indexes, grad_outputs):
+        return AveragePoolingND(
+            self.ndim, self.ksize, self.stride, self.pad,
+            cover_all=False).apply(grad_outputs)
 
 
 def average_pooling_nd(x, ksize, stride=None, pad=0):
@@ -145,4 +169,4 @@ def average_pooling_nd(x, ksize, stride=None, pad=0):
 
     """
     ndim = len(x.shape[2:])
-    return AveragePoolingND(ndim, ksize, stride=stride, pad=pad)(x)
+    return AveragePoolingND(ndim, ksize, stride=stride, pad=pad).apply((x,))[0]

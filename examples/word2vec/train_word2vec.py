@@ -10,7 +10,7 @@ import numpy as np
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.initializers as I
 import chainer.links as L
@@ -76,9 +76,9 @@ class SoftmaxCrossEntropyLoss(chainer.Chain):
 
 
 class WindowIterator(chainer.dataset.Iterator):
-    """Dataet iterator to create a batch of sequences at different positions.
+    """Dataset iterator to create a batch of sequences at different positions.
 
-    This iterator retuns a pair of the current words and the context words.
+    This iterator returns a pair of the current words and the context words.
     """
 
     def __init__(self, dataset, window, batch_size, repeat=True):
@@ -177,7 +177,7 @@ def main():
     args = parser.parse_args()
 
     if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         cuda.check_cuda_available()
 
     print('GPU: {}'.format(args.gpu))
@@ -242,7 +242,7 @@ def main():
     val_iter = WindowIterator(val, args.window, args.batchsize, repeat=False)
 
     # Set up an updater
-    updater = training.StandardUpdater(
+    updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
 
     # Set up a trainer
