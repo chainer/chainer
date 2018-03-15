@@ -855,6 +855,16 @@ class TestUninitializedParameter(unittest.TestCase):
         x.to_cpu()
         self.check_constant_initialization(x, self.a, np)
 
+    @attr.ideep
+    def test_initialize_to_intel64(self):
+        x = chainer.Parameter(initializer=initializers.Constant(self.a))
+        assert x.data is None
+        x.to_intel64()
+        x.initialize(self.a.shape)
+        assert isinstance(x.data, intel64.mdarray)
+        np.testing.assert_array_equal(x.data, self.a)
+        np.testing.assert_array_equal(x.grad, np.float32('nan'))
+
     def test_copy_to_initialize(self):
         # This test intends the use case of link.copy() method.
         x = chainer.Parameter()

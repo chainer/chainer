@@ -11,6 +11,7 @@ from chainer import basic_math
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import backend
 
 
 @testing.parameterize(*testing.product({
@@ -234,6 +235,18 @@ class TestBinaryOp(unittest.TestCase):
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
+@backend.inject_backend_tests(
+    ['test_forward', 'test_backward', 'test_double_backward'],
+    # CPU tests
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    }))
 class TestMultipleAdd(unittest.TestCase):
 
     def setUp(self):
@@ -245,42 +258,60 @@ class TestMultipleAdd(unittest.TestCase):
         self.ggx2 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.ggx3 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
-    def check_forward(self, func, x1_data, x2_data, x3_data):
+    def check_forward(self, func, x1_data, x2_data, x3_data, backend_config):
+        # convert to cupy.ndarray for GPU tests
+        if backend_config.use_cuda:
+            x1_data, x2_data, x3_data = cuda.to_gpu(
+                (x1_data, x2_data, x3_data))
         x1 = chainer.Variable(x1_data)
         x2 = chainer.Variable(x2_data)
         x3 = chainer.Variable(x3_data)
-        y = func(x1, x2, x3)
+        with backend_config:
+            y = func(x1, x2, x3)
         options = {}
         if self.dtype == numpy.float16:
             options = {'atol': 1e-4, 'rtol': 1e-3}
         testing.assert_allclose(
             (self.x1 + self.x2 + self.x3), y.data, **options)
 
-    def forward_cpu(self, func):
-        self.check_forward(func, self.x1, self.x2, self.x3)
+    def forward_cpu(self, func, backend_config):
+        self.check_forward(func, self.x1, self.x2, self.x3, backend_config)
 
-    def test_add_forward_cpu(self):
+    def test_forward(self, backend_config):
         func = chainer.functions.add
-        self.forward_cpu(func)
+        self.forward_cpu(func, backend_config)
 
-    def check_backward(self, func, x1_data, x2_data, x3_data, y_grad):
+    def check_backward(self, func, x1_data, x2_data, x3_data, y_grad,
+                       backend_config):
+        # convert to cupy.ndarray for GPU tests
+        if backend_config.use_cuda:
+            x1_data, x2_data, x3_data, y_grad = cuda.to_gpu(
+                (x1_data, x2_data, x3_data, y_grad))
         options = {}
         if self.dtype == numpy.float16:
             options = {'atol': 5e-3, 'rtol': 5e-2}
-        gradient_check.check_backward(func, (x1_data, x2_data, x3_data),
-                                      y_grad,
-                                      dtype=numpy.float64, **options)
+        with backend_config:
+            gradient_check.check_backward(func, (x1_data, x2_data, x3_data),
+                                          y_grad,
+                                          dtype=numpy.float64, **options)
 
-    def backward_cpu(self, func):
-        self.check_backward(func, self.x1, self.x2, self.x3, self.gy)
+    def backward_cpu(self, func, backend_config):
+        self.check_backward(
+            func, self.x1, self.x2, self.x3, self.gy, backend_config)
 
-    def test_add_backward_cpu(self):
+    def test_backward(self, backend_config):
         func = chainer.functions.add
-        self.backward_cpu(func)
+        self.backward_cpu(func, backend_config)
 
     def check_double_backward(
-            self, func, x1_data, x2_data, x3_data, y_grad,
+            self, func, backend_config, x1_data, x2_data, x3_data, y_grad,
             ggx1_data, ggx2_data, ggx3_data, **args):
+        # convert to cupy.ndarray for GPU tests
+        if backend_config.use_cuda:
+            (x1_data, x2_data, x3_data, y_grad,
+                ggx1_data, ggx2_data, ggx3_data) = cuda.to_gpu(
+                (x1_data, x2_data, x3_data, y_grad,
+                    ggx1_data, ggx2_data, ggx3_data))
         options = {}
         if self.dtype == numpy.float16:
             options = {'atol': 5e-3, 'rtol': 5e-2}
@@ -290,20 +321,22 @@ class TestMultipleAdd(unittest.TestCase):
             y = func(*xs)
             return y * y
 
-        gradient_check.check_double_backward(
-            _func, (x1_data, x2_data, x3_data), y_grad, (ggx1_data,
-                                                         ggx2_data, ggx3_data),
-            dtype=numpy.float64, **options)
+        with backend_config:
+            gradient_check.check_double_backward(
+                _func, (x1_data, x2_data, x3_data), y_grad,
+                (ggx1_data,
+                 ggx2_data, ggx3_data),
+                dtype=numpy.float64, **options)
 
-    def double_backward_cpu(self, func, **options):
+    def double_backward_cpu(self, func, backend_config, **options):
         self.check_double_backward(
-            func, self.x1, self.x2, self.x3, self.gy,
+            func, backend_config, self.x1, self.x2, self.x3, self.gy,
             self.ggx1, self.ggx2, self.ggx3,
             **options)
 
-    def test_double_backward_cpu(self):
+    def test_double_backward(self, backend_config):
         func = chainer.functions.add
-        self.double_backward_cpu(func, atol=5e-2, rtol=5e-2)
+        self.double_backward_cpu(func, backend_config, atol=5e-2, rtol=5e-2)
 
 
 @testing.parameterize(*testing.product({

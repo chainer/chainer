@@ -420,6 +420,7 @@ Assign a Parameter object directly to an attribute within a \
                 d[name] = intel64.ideep.array(
                     value, itype=intel64.ideep.wgt_array)
         self._cpu = True
+        self._device_id = None
         return self
 
     def params(self, include_uninit=True):

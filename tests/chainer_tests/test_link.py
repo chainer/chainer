@@ -1249,6 +1249,7 @@ class TestIntel64(unittest.TestCase):
     def test_cpu_to_intel64(self):
         link = self.link
         link.to_intel64()
+        assert link._device_id is None
 
         # Arrays should be converted to ideep.mdarray
 
@@ -1271,6 +1272,7 @@ class TestIntel64(unittest.TestCase):
         prev_pa = link.pa
         prev_ps = link.ps
         link.to_intel64()
+        assert link._device_id is None
 
         # Everything should be left untouched
 
@@ -1287,7 +1289,9 @@ class TestIntel64(unittest.TestCase):
     def test_gpu_to_intel64(self):
         link = self.link
         link.to_gpu()
+        assert link._device_id == 0
         link.to_intel64()
+        assert link._device_id is None
 
         # Arrays should be converted to ideep.mdarray
 
@@ -1306,7 +1310,9 @@ class TestIntel64(unittest.TestCase):
     def test_intel64_to_gpu(self):
         link = self.link
         link.to_intel64()
+        assert link._device_id is None
         link.to_gpu()
+        assert link._device_id == 0
 
         # Arrays should be converted to cupy.ndarray
 
@@ -1324,7 +1330,9 @@ class TestIntel64(unittest.TestCase):
     def test_intel64_to_cpu(self):
         link = self.link
         link.to_intel64()
+        assert link._device_id is None
         link.to_cpu()
+        assert link._device_id is None
 
         # Arrays should be converted to numpy.ndarray
 
