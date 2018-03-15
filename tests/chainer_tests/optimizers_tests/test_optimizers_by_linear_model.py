@@ -208,6 +208,16 @@ class TestMomentumSGD(OptimizerTestBase, unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
 }))
+class TestMSVAG(OptimizerTestBase, unittest.TestCase):
+
+    def create(self):
+        return optimizers.MVAG(0.1)
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [False, True],
+}))
 class NesterovAG(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
