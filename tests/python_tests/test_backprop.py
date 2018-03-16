@@ -183,7 +183,7 @@ def test_double_backprop():
         y = x * (x + t)
         xchainer.backward(y, enable_double_backprop=True)
         gx = x.get_grad()  # 2x + y
-        x.set_grad(None)
+        x.cleargrad()
         return gx,
 
     check_backprop(xs, expected_gxs, fprop, extra_xs)
@@ -385,14 +385,17 @@ def test_backward_multiple_graphs_reuse():
     expected_gxs = (xchainer.full(shape, 5, dtype), xchainer.XchainerError)
     check_backprop(xs, expected_gxs, fprop, (), graph_id1)
 
-    x1.set_grad(None, graph_id1)
-    x2.set_grad(None, graph_id2)
+    x1.cleargrad(graph_id1)
+    x2.cleargrad(graph_id2)
+
+    assert x1.get_grad(graph_id1) is None
+    assert x2.get_grad(graph_id2) is None
 
     expected_gxs = (xchainer.XchainerError, xchainer.full(shape, 2, dtype))
     check_backprop(xs, expected_gxs, fprop, (), graph_id2)
 
-    x1.set_grad(None, graph_id1)
-    x2.set_grad(None, graph_id2)
+    x1.cleargrad(graph_id1)
+    x2.cleargrad(graph_id2)
 
     x1.require_grad(graph_id2)
     x2.require_grad(graph_id1)

@@ -209,12 +209,7 @@ void InitXchainerArray(pybind11::module& m) {
                  py::arg("graph_id") = kDefaultGraphId)
             .def("set_grad",
                  [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad, const GraphId& graph_id) {
-                     auto array = Array{self};
-                     if (grad) {
-                         array.SetGrad(Array{grad}, graph_id);
-                     } else {
-                         array.ClearGrad(graph_id);
-                     }
+                     Array{self}.SetGrad(Array{grad}, graph_id);
                  },
                  py::arg("grad"),
                  py::arg("graph_id") = kDefaultGraphId)
@@ -235,6 +230,9 @@ void InitXchainerArray(pybind11::module& m) {
                             array.ClearGrad(kDefaultGraphId);
                         }
                     })
+            .def("cleargrad",
+                 [](const ArrayBodyPtr& self, const GraphId& graph_id) { Array{self}.ClearGrad(graph_id); },
+                 py::arg("graph_id") = kDefaultGraphId)
             .def_property_readonly(
                     "device", [](const ArrayBodyPtr& self) -> Device& { return Array{self}.device(); }, py::return_value_policy::reference)
             .def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); })

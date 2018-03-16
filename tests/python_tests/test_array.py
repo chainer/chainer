@@ -555,14 +555,14 @@ def test_array_grad():
     with pytest.raises(xchainer.XchainerError):
         array.set_grad(grad)
     with pytest.raises(xchainer.XchainerError):
-        array.set_grad(None)
+        array.cleargrad()
 
     # Gradient methods
     array.require_grad().set_grad(grad)
     assert array.get_grad() is not None
     assert array.get_grad()._debug_flat_data == grad._debug_flat_data
 
-    array.set_grad(None)  # clear
+    array.cleargrad()  # clear
     assert array.get_grad() is None
 
     # Gradient attributes
@@ -583,13 +583,13 @@ def test_array_grad_with_graph_id():
     with pytest.raises(xchainer.XchainerError):
         array.set_grad(grad, 'graph_1')
     with pytest.raises(xchainer.XchainerError):
-        array.set_grad(None, 'graph_1')
+        array.cleargrad('graph_1')
 
     array.require_grad('graph_1').set_grad(grad, 'graph_1')
     assert array.get_grad('graph_1') is not None
     assert array.get_grad('graph_1')._debug_flat_data == grad._debug_flat_data
 
-    array.set_grad(None, 'graph_1')  # clear
+    array.cleargrad('graph_1')  # clear
     assert array.get_grad('graph_1') is None
 
     # keyword arguments
@@ -598,7 +598,7 @@ def test_array_grad_with_graph_id():
     with pytest.raises(xchainer.XchainerError):
         array.set_grad(grad, graph_id='graph_2')
     with pytest.raises(xchainer.XchainerError):
-        array.set_grad(None, graph_id='graph_2')
+        array.cleargrad(graph_id='graph_2')
 
     array.require_grad(graph_id='graph_2').set_grad(grad, graph_id='graph_2')
     assert array.get_grad('graph_2') is not None
@@ -606,7 +606,7 @@ def test_array_grad_with_graph_id():
     assert array.get_grad('graph_2')._debug_flat_data == grad._debug_flat_data
     assert array.get_grad(graph_id='graph_2')._debug_flat_data == grad._debug_flat_data
 
-    array.set_grad(None, graph_id='graph_2')  # clear
+    array.cleargrad(graph_id='graph_2')  # clear
     assert array.get_grad('graph_2') is None
     assert array.get_grad(graph_id='graph_2') is None
 
@@ -646,7 +646,8 @@ def test_array_cleargrad():
     saved_grad = array.get_grad()
 
     # Clear grad
-    array.set_grad(None)
+    array.cleargrad()
+    assert array.get_grad() is None
 
     assert saved_grad._debug_flat_data == [5, 7, 8], 'Clearing grad must not affect previously retrieved grad'
 
