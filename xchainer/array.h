@@ -103,7 +103,7 @@ public:
     Array Transpose() const;
 
     // Returns a view selected with the indices.
-    Array GetItem(const std::vector<ArrayIndex>& indices) const;
+    Array At(const std::vector<ArrayIndex>& indices) const;
 
     // Returns a reshaped array.
     // TODO(niboshi): Support reshape that require a copy.

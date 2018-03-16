@@ -616,19 +616,19 @@ TEST_P(ArrayTest, NonContiguousFill) {
     }
     {
         Array a = Array::Zeros(Shape{3, 3}, dtype);
-        a.GetItem({1}).Fill(value);
-        ExpectDataEqual(value, a.GetItem({1}));
+        a.At({1}).Fill(value);
+        ExpectDataEqual(value, a.At({1}));
         // check other rows are not affected
-        ExpectDataEqual(0.0f, a.GetItem({0}));
-        ExpectDataEqual(0.0f, a.GetItem({2}));
+        ExpectDataEqual(0.0f, a.At({0}));
+        ExpectDataEqual(0.0f, a.At({2}));
     }
     {
         Array a = Array::Zeros(Shape{3, 3}, dtype);
-        a.GetItem({Slice{}, {1}}).Fill(value);
-        ExpectDataEqual(value, a.GetItem({Slice{}, {1}}));
+        a.At({Slice{}, {1}}).Fill(value);
+        ExpectDataEqual(value, a.At({Slice{}, {1}}));
         // check other columns are not affected
-        ExpectDataEqual(0.0f, a.GetItem({Slice{}, {0}}));
-        ExpectDataEqual(0.0f, a.GetItem({Slice{}, {2}}));
+        ExpectDataEqual(0.0f, a.At({Slice{}, {0}}));
+        ExpectDataEqual(0.0f, a.At({Slice{}, {2}}));
     }
 }
 
@@ -745,7 +745,7 @@ TEST_P(ArrayTest, IAdd) {
     // non-contiguous
     {
         Array a = testing::MakeArray({3, 3}).WithLinearData<int32_t>();
-        Array a_view = a.GetItem({Slice{}, Slice{1, 2}});
+        Array a_view = a.At({Slice{}, Slice{1, 2}});
         Array b = Array::OnesLike(a_view);
         Array e_view = testing::MakeArray<int32_t>({3, 1}, {2, 5, 8});
         Array e = testing::MakeArray<int32_t>({3, 3}, {0, 2, 2, 3, 5, 5, 6, 8, 8});
@@ -781,7 +781,7 @@ TEST_P(ArrayTest, IMul) {
     // non-contiguous
     {
         Array a = testing::MakeArray({3, 3}).WithLinearData<int32_t>();
-        Array a_view = a.GetItem({Slice{}, Slice{1, 2}});
+        Array a_view = a.At({Slice{}, Slice{1, 2}});
         Array b = Array::FullLike(a_view, 2);
         Array e = testing::MakeArray<int32_t>({3, 3}, {0, 2, 2, 3, 8, 5, 6, 14, 8});
         Array e_view = testing::MakeArray<int32_t>({3, 1}, {2, 8, 14});
@@ -816,7 +816,7 @@ TEST_P(ArrayTest, Add) {
 
     // non-contiguous
     {
-        Array a = Array(testing::MakeArray({3, 3}).WithLinearData<int32_t>()).GetItem({Slice{}, Slice{1, 2}});
+        Array a = Array(testing::MakeArray({3, 3}).WithLinearData<int32_t>()).At({Slice{}, Slice{1, 2}});
         Array b = Array::OnesLike(a);
         Array e = testing::MakeArray<int32_t>({3, 1}, {2, 5, 8});
         Array o = a + b;
@@ -849,7 +849,7 @@ TEST_P(ArrayTest, Mul) {
 
     // non-contiguous
     {
-        Array a = Array(testing::MakeArray({3, 3}).WithLinearData<int32_t>()).GetItem({Slice{}, Slice{1, 2}});
+        Array a = Array(testing::MakeArray({3, 3}).WithLinearData<int32_t>()).At({Slice{}, Slice{1, 2}});
         Array b = Array::FullLike(a, 2);
         Array e = testing::MakeArray<int32_t>({3, 1}, {2, 8, 14});
         Array o = a * b;
@@ -1061,22 +1061,22 @@ TEST_P(ArrayTest, TransposeDoubleBackward) {
             {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
 }
 
-TEST_P(ArrayTest, GetItemBackward) {
+TEST_P(ArrayTest, AtBackward) {
     CheckBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
                 std::vector<ArrayIndex> indices{1, Slice{1, 3}};
-                return {xs[0].GetItem(indices)};
+                return {xs[0].At(indices)};
             },
             {(*testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
             {Array::Ones({2}, Dtype::kFloat32)},
             {Array::Full({2, 3}, 1e-3f)});
 }
 
-TEST_P(ArrayTest, GetItemDoubleBackward) {
+TEST_P(ArrayTest, AtDoubleBackward) {
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
                 std::vector<ArrayIndex> indices{0, Slice{1, 3}};
-                auto y = xs[0].GetItem(indices);
+                auto y = xs[0].At(indices);
                 return {y * y};  // to make it nonlinear
             },
             {(*testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
@@ -1397,14 +1397,14 @@ INSTANTIATE_TEST_CASE_P(
 #endif  // XCHAINER_ENABLE_CUDA
                 std::string{"native"}));
 
-TEST(ArrayGetItemTest, GetItem) {
+TEST(ArrayAtTest, At) {
     using T = int32_t;
     testing::ContextSession context_session{};
     Shape input_shape{2, 3, 1};
     Shape output_shape{1, 2, 1};
     std::vector<ArrayIndex> indices{-1, NewAxis{}, Slice{1, 3}, Broadcastable{}};
     Array a = testing::MakeArray(input_shape).WithLinearData<T>();
-    Array b = a.GetItem(indices);
+    Array b = a.At(indices);
 
     EXPECT_EQ(output_shape, b.shape());
     Array e = testing::MakeArray(output_shape).WithData<T>({4, 5});
@@ -1417,33 +1417,33 @@ TEST(ArrayGetItemTest, GetItem) {
 }
 
 // Index out of bounds
-TEST(ArrayGetItemTest, InvalidGetItem1) {
+TEST(ArrayAtTest, InvalidAt1) {
     using T = int32_t;
     testing::ContextSession context_session{};
     Shape input_shape{2, 3};
     std::vector<ArrayIndex> indices{0, 0, 0};
     Array a = testing::MakeArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.GetItem(indices), DimensionError);
+    EXPECT_THROW(a.At(indices), DimensionError);
 }
 
 // Too large dimension
-TEST(ArrayGetItemTest, InvalidGetItem2) {
+TEST(ArrayAtTest, InvalidAt2) {
     using T = int32_t;
     testing::ContextSession context_session{};
     Shape input_shape{2, 3};
     std::vector<ArrayIndex> indices{2};
     Array a = testing::MakeArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.GetItem(indices), DimensionError);
+    EXPECT_THROW(a.At(indices), DimensionError);
 }
 
 // Use of broadcastable on invalid axis
-TEST(ArrayGetItemTest, InvalidGetItem3) {
+TEST(ArrayAtTest, InvalidAt3) {
     using T = int32_t;
     testing::ContextSession context_session{};
     Shape input_shape{2, 3};
     std::vector<ArrayIndex> indices{Broadcastable{}};
     Array a = testing::MakeArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.GetItem(indices), DimensionError);
+    EXPECT_THROW(a.At(indices), DimensionError);
 }
 
 TEST(ArrayReshapeTest, Reshape) {
