@@ -155,7 +155,7 @@ class Sequential(link.ChainList):
                 ret.append(layer)
             return ret
         else:
-            raise ValueError('add (+) operator supports only objects of'
+            raise ValueError('add (+) operator supports only objects of '
                              'Sequential class, but {} is given.'.format(
                                  str(type(other))))
 
@@ -164,7 +164,7 @@ class Sequential(link.ChainList):
             for layer in other:
                 self.append(layer)
         else:
-            raise ValueError('add (+) operator supports only objects of'
+            raise ValueError('add (+) operator supports only objects of '
                              'Sequential class, but {} is given.'.format(
                                  str(type(other))))
         return self

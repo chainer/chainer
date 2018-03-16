@@ -349,19 +349,9 @@ class TestSequential(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.s2 + 0
 
-    def test_radd(self):
-        l0 = links.Linear(3, 2)
-        added = l0 + self.s2
-        self.assertEqual(len(added), 3)
-        self.assertIs(added[0], l0)
-        self.assertIs(added[1], self.s1)
-        self.assertIs(added[2], self.l3)
-        with self.assertRaises(ValueError):
-            0 + self.s2
-
     def test_iadd(self):
         l4 = links.Linear(3, 1)
-        self.s2 += l4
+        self.s2 += sequential.Sequential(l4)
         self.assertIs(self.s2[0], self.s1)
         self.assertIs(self.s2[1], self.l3)
         self.assertIs(self.s2[2], l4)
