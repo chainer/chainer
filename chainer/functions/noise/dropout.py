@@ -1,8 +1,9 @@
 import numpy
 
 import chainer
+from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import configuration
-from chainer import cuda
 from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import type_check
@@ -11,6 +12,8 @@ from chainer.utils import type_check
 class Dropout(function_node.FunctionNode):
 
     """Dropout regularization."""
+
+    mask = None
 
     def __init__(self, dropout_ratio):
         if not 0.0 <= dropout_ratio < 1.0:
@@ -22,7 +25,11 @@ class Dropout(function_node.FunctionNode):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
-        if hasattr(self, 'mask'):
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(x)):
+            return self._forward_ideep(x)
+
+        if self.mask is not None:
             y = x[0] * self.mask
         else:
             scale = x[0].dtype.type(1. / (1 - self.dropout_ratio))
@@ -43,6 +50,13 @@ class Dropout(function_node.FunctionNode):
                 )(x[0], rand, scale, self.dropout_ratio)
         return y,
 
+    def _forward_ideep(self, x):
+        mask, y = intel64.ideep.dropout.Forward(
+            intel64.ideep.array(x[0]),
+            self.dropout_ratio)
+        self.mask = mask
+        return y,
+
     def backward(self, x, gy):
         return DropoutGrad(self.mask).apply(gy)
 
@@ -54,8 +68,17 @@ class DropoutGrad(function_node.FunctionNode):
         self.mask = mask
 
     def forward(self, inputs):
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(inputs)):
+            return self._forward_ideep(inputs)
+
         y = inputs[0] * self.mask
         return y,
+
+    def _forward_ideep(self, inputs):
+        return intel64.ideep.dropout.Backward(
+            intel64.ideep.array(self.mask),
+            intel64.ideep.array(inputs[0])),
 
     def backward(self, indexes, gy):
         return DropoutGrad(self.mask).apply(gy)
@@ -91,7 +114,7 @@ def dropout(x, ratio=.5, **kwargs):
 
     .. admonition:: Example
 
-        >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], 'f')
+        >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], np.float32)
         >>> with chainer.using_config('train', True):
         ...     y = F.dropout(x)
         >>> y.data

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Example code of DQN and DoubleDQN on OpenAI Gym environments.
 
-For DQN, see: http://www.nature.com/articles/nature14236
+For DQN, see: https://www.nature.com/articles/nature14236
 For DoubleDQN, see: https://arxiv.org/abs/1509.06461
 """
 from __future__ import print_function
@@ -134,7 +134,7 @@ def main():
     # Initialize a model and its optimizer
     Q = QFunction(obs_size, n_actions, n_units=args.unit)
     if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         Q.to_gpu(args.gpu)
     target_Q = copy.deepcopy(Q)
     opt = optimizers.Adam(eps=1e-2)

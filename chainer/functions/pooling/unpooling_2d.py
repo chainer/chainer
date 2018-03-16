@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv

@@ -1,11 +1,13 @@
 import contextlib
+import functools
 import operator
 import sys
 import threading
 
 import numpy
 
-from chainer import cuda
+import chainer
+from chainer.backends import cuda
 
 
 _thread_local = threading.local()
@@ -37,6 +39,10 @@ class TypeInfo(object):
         self.shape = shape
         self.dtype = dtype
         self.ndim = len(shape)
+
+    @property
+    def size(self):
+        return functools.reduce(operator.mul, self.shape, 1)
 
 
 class TypeInfoTuple(tuple):
@@ -97,8 +103,7 @@ def _get_type(name, index, array, accept_none):
         # case that gradient is not given
         return Variable(TypeInfo((), None), var)
 
-    assert(isinstance(array, numpy.ndarray) or
-           isinstance(array, cuda.ndarray))
+    assert isinstance(array, chainer.get_array_types())
     return Variable(TypeInfo(array.shape, array.dtype), var)
 
 

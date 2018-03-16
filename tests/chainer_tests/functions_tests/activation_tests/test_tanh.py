@@ -1,10 +1,9 @@
 import unittest
 
-import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer.functions.activation import tanh
 from chainer import gradient_check
@@ -107,7 +106,7 @@ class TestTanhCudnnCall(unittest.TestCase):
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             default_func = cuda.cupy.cudnn.activation_forward
-            with mock.patch('cupy.cudnn.activation_forward') as func:
+            with testing.patch('cupy.cudnn.activation_forward') as func:
                 func.side_effect = default_func
                 self.forward()
                 self.assertEqual(func.called, self.expect)
@@ -117,7 +116,7 @@ class TestTanhCudnnCall(unittest.TestCase):
             y = self.forward()
             y.grad = self.gy
             default_func = cuda.cupy.cudnn.activation_backward
-            with mock.patch('cupy.cudnn.activation_backward') as func:
+            with testing.patch('cupy.cudnn.activation_backward') as func:
                 func.side_effect = default_func
                 y.backward()
                 self.assertEqual(func.called, self.expect)

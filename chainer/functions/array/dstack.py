@@ -1,12 +1,13 @@
 import numpy
 import six
 
-from chainer import cuda
-from chainer import function
+import chainer
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Dstack(function.Function):
+class Dstack(function_node.FunctionNode):
 
     """Concatenate multiple tensors along third axis (depth wise)."""
 
@@ -28,26 +29,23 @@ class Dstack(function.Function):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        self.retain_inputs(())
-        self._in_shapes = [x.shape for x in xs]
         xp = cuda.get_array_module(*xs)
         return xp.dstack(xs),
 
-    def backward(self, xs, gy):
-        if len(self._in_shapes) == 1:
-            if len(self._in_shapes[0]) <= 2:
-                return gy[0].reshape(self._in_shapes[0]),
-            return gy
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        ndim = len(self.inputs[0].shape)
+        if len(self.inputs) == 1:
+            if ndim <= 2:
+                return gy.reshape(self.inputs[0].shape),
+            return gy,
 
-        xp = cuda.get_array_module(*gy)
+        if ndim <= 2:
+            gxs = chainer.functions.split_axis(gy, len(self.inputs), axis=2)
+            return [gx.reshape(self.inputs[0].shape) for gx in gxs]
 
-        if len(self._in_shapes[0]) <= 2:
-            ys = xp.dsplit(gy[0], len(self._in_shapes))
-            return [y.reshape(self._in_shapes[0]) for y in ys]
-        else:
-            sizes = numpy.array(
-                [shape[2] for shape in self._in_shapes[:-1]]).cumsum()
-            return xp.dsplit(gy[0], sizes)
+        sizes = numpy.array([x.shape[2] for x in self.inputs[:-1]]).cumsum()
+        return chainer.functions.split_axis(gy, sizes, axis=2)
 
 
 def dstack(xs):
@@ -137,4 +135,4 @@ def dstack(xs):
 
     """
 
-    return Dstack()(*xs)
+    return Dstack().apply((xs))[0]

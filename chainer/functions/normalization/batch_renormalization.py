@@ -1,8 +1,7 @@
 import numpy
 
+from chainer.backends import cuda
 from chainer import configuration
-from chainer import cuda
-
 from chainer import function
 from chainer.utils import type_check
 
@@ -164,7 +163,7 @@ class BatchRenormalizationFunction(function.Function):
             # This case is unlikely to be used in practice and so does not
             # need to be optimized for performance.
             mean = inputs[3]
-            var = inputs[4]
+            var = inputs[4] + self.eps
             std = xp.sqrt(var, dtype=var.dtype)
             gs = gamma / std
             gbeta = gy.sum(axis=axis)

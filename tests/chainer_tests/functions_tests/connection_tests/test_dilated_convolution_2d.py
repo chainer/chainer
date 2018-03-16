@@ -1,10 +1,9 @@
 import unittest
 
-import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
@@ -163,7 +162,7 @@ class TestDilatedConvolution2DCudnnCall(unittest.TestCase):
             -1, 1, (2, 2, 2, 2)).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.expect = chainer.should_use_cudnn('>=auto')
-            if cuda.cudnn.cudnn.getVersion() < 6000:
+            if cuda.cuda.cudnn.getVersion() < 6000:
                 self.expect = False
 
     def forward(self):
@@ -174,7 +173,7 @@ class TestDilatedConvolution2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cuda.cudnn.convolutionForward') as func:
+            with testing.patch('cupy.cuda.cudnn.convolutionForward') as func:
                 self.forward()
                 self.assertEqual(func.called, self.expect)
 
@@ -183,7 +182,7 @@ class TestDilatedConvolution2DCudnnCall(unittest.TestCase):
             y = self.forward()
             y.grad = self.gy
             name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
-            with mock.patch(name) as func:
+            with testing.patch(name) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
 

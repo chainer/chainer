@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -202,7 +202,7 @@ class InvFunctionRaiseTest(unittest.TestCase):
 
     def test_singular_cpu(self):
         x = chainer.Variable(numpy.zeros((2, 2), dtype=numpy.float32))
-        with self.assertRaises(numpy.linalg.LinAlgError):
+        with self.assertRaises(ValueError):
             functions.inv(x)
 
     @attr.gpu
@@ -233,7 +233,7 @@ class BatchInvFunctionRaiseTest(unittest.TestCase):
 
     def test_singular_cpu(self):
         x = chainer.Variable(numpy.zeros((1, 2, 2), dtype=numpy.float32))
-        with self.assertRaises(numpy.linalg.LinAlgError):
+        with self.assertRaises(ValueError):
             functions.batch_inv(x)
 
     @attr.gpu

@@ -1,3 +1,6 @@
+import functools
+import operator
+
 from chainer.functions.normalization import layer_normalization
 from chainer import link
 from chainer import utils
@@ -78,7 +81,8 @@ class LayerNormalization(link.Link):
 
         """
         if self.gamma.data is None:
-            self._initialize_params(x.size // x.shape[0])
+            in_size = functools.reduce(operator.mul, x.shape[1:], 1)
+            self._initialize_params(in_size)
 
         return layer_normalization.layer_normalization(
             x, self.gamma, self.beta, self.eps)

@@ -74,7 +74,7 @@ def main():
     # See train_mnist.py for the meaning of these lines
 
     model = L.Classifier(ParallelMLP(args.unit, 10, args.gpu0, args.gpu1))
-    chainer.cuda.get_device_from_id(args.gpu0).use()
+    chainer.backends.cuda.get_device_from_id(args.gpu0).use()
 
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
@@ -85,7 +85,8 @@ def main():
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
 
-    updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu0)
+    updater = training.updaters.StandardUpdater(
+        train_iter, optimizer, device=args.gpu0)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu0))

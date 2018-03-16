@@ -61,5 +61,7 @@ class VAE(chainer.Chain):
             self.rec_loss = rec_loss
             self.loss = self.rec_loss + \
                 C * gaussian_kl_divergence(mu, ln_var) / batchsize
+            chainer.report(
+                {'rec_loss': rec_loss, 'loss': self.loss}, observer=self)
             return self.loss
         return lf
