@@ -314,7 +314,7 @@ class Trainer(object):
                 f.write('Traceback (most recent call last):\n')
                 traceback.print_tb(sys.exc_info()[2])
                 f.write('Will finalize trainer extensions and updater before '
-                      'reraising the exception.\n')
+                        'reraising the exception.\n')
             six.reraise(*sys.exc_info())
         finally:
             for _, entry in extensions:
