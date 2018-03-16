@@ -12,9 +12,17 @@ True
 False
 >>> y.set_grad(xc.full_like(a, 0.5))
 >>> xc.backward(y)
->>> a.get_grad()
+
+Access gradients through attribute
+----------------------------------
+
+>>> a.grad
 array([[1., 1., 1.],
        [1., 1., 1.]], shape=(2, 3), dtype=float32, device='native:0')
+
+Access gradients through method
+-------------------------------
+
 >>> y.get_grad()
 array([[0.5, 0.5, 0.5],
        [0.5, 0.5, 0.5]], shape=(2, 3), dtype=float32, device='native:0')
