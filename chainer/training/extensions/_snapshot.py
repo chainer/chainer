@@ -68,9 +68,7 @@ def snapshot(savefun=npz.save_npz,
             output file path and the trainer object.
         filename (str): Name of the file into which the trainer is serialized.
             It can be a format string, where the trainer object is passed to
-            the :meth:`str.format` method. Permission of the target file will
-            be OS default. See :meth:`umask` command to confirm the default
-            permission.
+            the :meth:`str.format` method.
 
     """
     @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
