@@ -370,6 +370,55 @@ Array Array::Reshape(const Shape& shape) const {
     return out;
 }
 
+Array Array::BroadcastTo(const Shape& shape) const {
+    const Shape& in_shape = this->shape();
+    const Strides& in_strides = this->strides();
+
+    if (in_shape.size() > shape.size()) {
+        throw DimensionError("Cannot broadcast to smaller dimensions");
+    }
+
+    std::vector<int64_t> rev_strides;
+    rev_strides.reserve(shape.size());
+    int8_t i_in = in_shape.ndim() - 1;
+    for (int8_t i_out = shape.ndim() - 1; i_out >= 0; --i_out) {
+        int64_t out_dim = shape[i_out];
+        // If this dimension is to be broadcasted, nonbroadcast_stride is unset.
+        // Otherwise, it holds the new stride.
+        nonstd::optional<int64_t> nonbroadcast_stride{};
+        if (i_in >= 0) {
+            int64_t in_dim = in_shape[i_in];
+            int64_t in_stride = in_strides[i_in];
+            --i_in;
+            if (in_dim == 1 && in_stride == 0) {
+                // do nothing; broadcast
+            } else if (in_dim == out_dim) {
+                nonbroadcast_stride = in_stride;
+            } else {
+                throw DimensionError("Invalid broadcast from " + in_shape.ToString() + " to " + shape.ToString());
+            }
+        } else {
+            // do nothing; broadcast
+        }
+
+        if (nonbroadcast_stride.has_value()) {
+            // non-broadcast dimension
+            rev_strides.push_back(*nonbroadcast_stride);
+        } else {
+            // broadcast dimension
+            if (out_dim == 1) {
+                // broadcasted dimension should not be broadcastable
+                rev_strides.push_back(int64_t{1});
+            } else {
+                rev_strides.push_back(int64_t{0});
+            }
+        }
+    }
+    Ensures(rev_strides.size() == shape.size());
+
+    return Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
+}
+
 Array Array::Copy() const {
     // No graph will be disconnected.
     Array out = AsConstant({}, CopyKind::kCopy);

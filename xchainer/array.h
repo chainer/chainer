@@ -110,6 +110,10 @@ public:
     // TODO(niboshi): Support shape with dimension -1.
     Array Reshape(const Shape& shape) const;
 
+    // Broadcasts the array to the specified shape.
+    // Returned array is always a view to this array.
+    Array BroadcastTo(const Shape& shape) const;
+
     // Creates a copy.
     // It will be connected to all the graphs.
     // It will be always C-contiguous.
