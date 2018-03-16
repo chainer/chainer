@@ -408,15 +408,13 @@ Array Array::Squeeze(const std::vector<size_t>& axes) const {
         }
     }
 
-    // bool alias = (in_shape.size() == out_shape.size()) || (out_shape.empty() && !axes.empty());
-    bool alias = in_shape.size() == out_shape.size();
-    Array out = alias ? Array{body_}
-                      : Array{Shape{out_shape.begin(), out_shape.end()},
-                              Strides{out_strides.begin(), out_strides.end()},
-                              dtype(),
-                              device(),
-                              body_->data_,
-                              offset()};
+    Array out = in_shape.size() == out_shape.size() ? Array{body_}
+                                                    : Array{Shape{out_shape.begin(), out_shape.end()},
+                                                            Strides{out_strides.begin(), out_strides.end()},
+                                                            dtype(),
+                                                            device(),
+                                                            body_->data_,
+                                                            offset()};
     internal::SetUpOpNodes(
             "squeeze", {*this}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }});
 
