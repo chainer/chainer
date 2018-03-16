@@ -1477,8 +1477,8 @@ TEST(ArrayBroadcastToTest, BroadcastTo) {
     Shape output_shape{3, 1, 2, 3, 1, 2};
 
     Array aa = testing::MakeArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
-    Array a = aa.GetItem({Slice(), Slice(), Slice(), NewAxis{}});  // Make a broadcastable axis.
-    ASSERT_EQ(Shape({2, 3, 1, 1}), a.shape());                     // Check test precondition
+    Array a = aa.At({Slice(), Slice(), Slice(), NewAxis{}});  // Make a broadcastable axis.
+    ASSERT_EQ(Shape({2, 3, 1, 1}), a.shape());                // Check test precondition
 
     Array b = a.BroadcastTo(output_shape);
     ASSERT_EQ(output_shape, b.shape());
