@@ -1567,8 +1567,19 @@ TEST(ArrayBroadcastToTest, BroadcastTo) {
     ExpectEqual<T>(e, b);
 }
 
+// Can't broadcast to smaller dimensions
+TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NotEnoughDimension) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+    Shape input_shape{2, 3, 4};
+    Shape output_shape{3, 4};
+
+    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
+    EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
+}
+
 // Can't broadcast with incompatible axis
-TEST(ArrayBroadcastToTest, InvalidBroadcastTo1) {
+TEST(ArrayBroadcastToTest, InvalidBroadcastTo_IncompatibleDimension) {
     using T = int32_t;
     testing::ContextSession context_session{};
     Shape input_shape{2, 3, 3};
@@ -1579,7 +1590,7 @@ TEST(ArrayBroadcastToTest, InvalidBroadcastTo1) {
 }
 
 // Can't broadcast from non-broadcastable 1-dim axis
-TEST(ArrayBroadcastToTest, InvalidBroadcastTo2) {
+TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NonBroadcastaleOneDimAxis) {
     using T = int32_t;
     testing::ContextSession context_session{};
     Shape input_shape{2, 1, 3};
@@ -1590,7 +1601,7 @@ TEST(ArrayBroadcastToTest, InvalidBroadcastTo2) {
 }
 
 // Can't broadcast at the end
-TEST(ArrayBroadcastToTest, InvalidBroadcastTo3) {
+TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NotBroadcastableAtEnd) {
     using T = int32_t;
     testing::ContextSession context_session{};
     Shape input_shape{2, 3};
