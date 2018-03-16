@@ -1,7 +1,7 @@
+import os
 import unittest
 
 import mock
-import os
 
 from chainer import testing
 from chainer.training import extensions
@@ -29,6 +29,10 @@ class TestSnapshotSaveFile(unittest.TestCase):
         self.trainer.out = '.'
         self.trainer._done = True
 
+    def tearDown(self):
+        if os.path.exists('myfile.dat'):
+            os.remove('myfile.dat')
+
     def test_save_file(self):
         snapshot = extensions.snapshot_object(self.trainer, 'myfile.dat')
         snapshot(self.trainer)
@@ -41,10 +45,6 @@ class TestSnapshotSaveFile(unittest.TestCase):
 
         left_tmps = [fn for fn in os.listdir('.') if fn.startswith('tmp')]
         self.assertEqual(len(left_tmps), 0)
-
-    def tearDown(self):
-        if os.path.exists('myfile.dat'):
-            os.remove('myfile.dat')
 
 
 testing.run_module(__name__, __file__)

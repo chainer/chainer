@@ -82,13 +82,12 @@ def _snapshot_object(trainer, target, filename, savefun):
     fn = filename.format(trainer)
     prefix = 'tmp' + fn
 
-    tmpdir = tempfile.TemporaryDirectory(dir=trainer.out)
-    tmppath = os.path.join(tmpdir.name, fn)
-    print(tmpdir.name)
+    tmpdir = tempfile.mkdtemp(prefix=prefix, dir=trainer.out)
+    tmppath = os.path.join(tmpdir, fn)
     try:
         savefun(tmppath, target)
         shutil.move(tmppath, os.path.join(trainer.out, fn))
     except Exception as e:
         raise e
     finally:
-        tmpdir.cleanup()
+        shutil.rmtree(tmpdir)
