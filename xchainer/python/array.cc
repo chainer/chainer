@@ -209,7 +209,12 @@ void InitXchainerArray(pybind11::module& m) {
                  py::arg("graph_id") = kDefaultGraphId)
             .def("set_grad",
                  [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad, const GraphId& graph_id) {
-                     Array{self}.SetGrad(Array{grad}, graph_id);
+                     auto array = Array{self};
+                     if (grad) {
+                         array.SetGrad(Array{grad}, graph_id);
+                     } else {
+                         array.ClearGrad(graph_id);
+                     }
                  },
                  py::arg("grad"),
                  py::arg("graph_id") = kDefaultGraphId)
