@@ -123,7 +123,8 @@ def main():
 
         if train_iter.is_new_epoch:
             print('epoch: {}'.format(train_iter.epoch))
-            print('validation perplexity: {}'.format(evaluate(model, val_iter)))
+            print('validation perplexity: {}'.format(
+                evaluate(model, val_iter)))
 
     # Evaluate on test dataset
     print('test')
