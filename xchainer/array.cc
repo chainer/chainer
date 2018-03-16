@@ -378,19 +378,16 @@ Array Array::Squeeze(const std::vector<size_t>& axes) const {
     std::vector<int64_t> out_strides;
 
     bool check_all_axes = axes.empty();
-    size_t ndim = this->ndim();
 
-    for (size_t i = 0; i < ndim; ++i) {
+    for (size_t i = 0; i < in_shape.size(); ++i) {
         bool squeeze_axis = false;
         if (check_all_axes && in_shape[i] == 1) {
             squeeze_axis = true;
         } else if (std::find(axes.begin(), axes.end(), i) != axes.end()) {
             if (in_shape[i] != 1) {
                 std::ostringstream os;
-                os << "Cannot squeeze out axes with size not equal to one. ";
-                os << "Actual shape was " << in_shape.ToString();
-                os << "and axes ";
-                os << "(";
+                os << "Cannot squeeze out non-unit-length axes, where shape was " << in_shape.ToString();
+                os << " and axes were (";
                 for (auto iter = axes.begin(); iter != axes.end(); ++iter) {
                     if (iter != axes.begin()) {
                         os << ", ";
