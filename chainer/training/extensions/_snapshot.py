@@ -83,15 +83,14 @@ def snapshot(savefun=npz.save_npz,
 def _snapshot_object(trainer, target, filename, savefun):
     fn = filename.format(trainer)
     prefix = 'tmp' + fn
-    fd, tmppath = tempfile.mkstemp(prefix=prefix, dir=trainer.out)
-    umask = os.umask(0)
-    os.umask(umask)
-    os.chmod(tmppath, 0o666 & ~umask)
+
+    tmpdir = tempfile.TemporaryDirectory(dir=trainer.out)
+    tmppath = os.path.join(tmpdir.name, fn)
+    print(tmpdir.name)
     try:
         savefun(tmppath, target)
-    except Exception:
-        os.close(fd)
-        os.remove(tmppath)
-        raise
-    os.close(fd)
-    shutil.move(tmppath, os.path.join(trainer.out, fn))
+        shutil.move(tmppath, os.path.join(trainer.out, fn))
+    except Exception as e:
+        raise e
+    finally:
+        tmpdir.cleanup()
