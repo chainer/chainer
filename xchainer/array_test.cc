@@ -1548,19 +1548,24 @@ TEST(ArrayBroadcastToTest, BroadcastTo) {
     using T = int32_t;
     testing::ContextSession context_session{};
     Shape input_shape{2, 3, 1};
-    Shape output_shape{3, 1, 2, 3, 1};
+    Shape output_shape{3, 1, 2, 3, 1, 2};
 
-    Array a = testing::MakeArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array aa = testing::MakeArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array a = aa.GetItem({Slice(), Slice(), Slice(), NewAxis{}});  // Make a broadcastable axis.
+    ASSERT_EQ(Shape({2, 3, 1, 1}), a.shape());  // Check test precondition
+
     Array b = a.BroadcastTo(output_shape);
     ASSERT_EQ(output_shape, b.shape());
     EXPECT_EQ(a.data().get(), b.data().get()) << "BroadcastTo must be done without copying data";
     ASSERT_NE(0, b.strides()[1]) << "Broadcasted dimension must not be broadcastable";
 
-    Array e = testing::MakeArray(output_shape).WithData<T>({1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6});
+    std::vector<int64_t> output_data;
+    for (int i = 0; i < 3; ++i) {
+        output_data.insert(output_data.end(), {1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6});
+    }
+    Array e = testing::MakeArray(output_shape).WithData<T>(output_data.begin(), output_data.end());
     ExpectEqual<T>(e, b);
 }
-
-// TODO(niboshi): Test Array::BroadcastTo with broadcastable axis
 
 // Can't broadcast with incompatible axis
 TEST(ArrayBroadcastToTest, InvalidBroadcastTo1) {
