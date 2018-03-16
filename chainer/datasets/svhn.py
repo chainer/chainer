@@ -12,7 +12,7 @@ from chainer.dataset import download
 from chainer.datasets import tuple_dataset
 
 
-def get_svhn(withlabel=True, scale=1., dtype=numpy.float32,
+def get_svhn(withlabel=True, scale=1., add_extra=False, dtype=numpy.float32,
              label_dtype=numpy.int32):
     """Gets the SVHN dataset.
 
@@ -32,11 +32,13 @@ def get_svhn(withlabel=True, scale=1., dtype=numpy.float32,
             the datasets only contain images.
         scale (float): Pixel value scale. If it is 1 (default), pixels are
             scaled to the interval ``[0, 1]``.
+        add_extra: Use extra training set.
         dtype: Data type of resulting image arrays.
         label_dtype: Data type of the labels.
 
     Returns:
-        A tuple of two datasets. If ``withlabel`` is ``True``, both datasets
+        If ``add_extra`` is ``False``, a tuple of two datasets. Otherwise,
+        a tuple of three datasets. If ``withlabel`` is ``True``, both datasets
         are :class:`~chainer.datasets.TupleDataset` instances. Otherwise, both
         datasets are arrays of images.
 
@@ -50,7 +52,13 @@ def get_svhn(withlabel=True, scale=1., dtype=numpy.float32,
     test_raw = _retrieve_svhn_test()
     test = _preprocess_svhn(test_raw, withlabel, scale, dtype,
                             label_dtype)
-    return train, test
+    if add_extra:
+        extra_raw = _retrieve_svhn_extra()
+        extra = _preprocess_svhn(extra_raw, withlabel, scale, dtype,
+                                 label_dtype)
+        return train, test, extra
+    else:
+        return train, test
 
 
 def _preprocess_svhn(raw, withlabel, scale, image_dtype, label_dtype):
@@ -77,6 +85,11 @@ def _retrieve_svhn_training():
 def _retrieve_svhn_test():
     url = "http://ufldl.stanford.edu/housenumbers/test_32x32.mat"
     return _retrieve_svhn("test.npz", url)
+
+
+def _retrieve_svhn_extra():
+    url = "http://ufldl.stanford.edu/housenumbers/extra_32x32.mat"
+    return _retrieve_svhn("extra.npz", url)
 
 
 def _retrieve_svhn(name, url):
