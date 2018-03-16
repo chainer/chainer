@@ -43,7 +43,8 @@ class TestSnapshotSaveFile(unittest.TestCase):
         snapshot = extensions.snapshot_object(self.trainer, 'myfile.dat')
         snapshot(self.trainer)
 
-        left_tmps = [fn for fn in os.listdir('.') if fn.startswith('tmp')]
+        left_tmps = [fn for fn in os.listdir('.')
+                     if fn.startswith('tmpmyfile.dat')]
         self.assertEqual(len(left_tmps), 0)
 
 
