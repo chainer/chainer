@@ -1547,13 +1547,15 @@ TEST(ArrayReshapeTest, InvalidReshape) {
 TEST(ArrayBroadcastToTest, BroadcastTo) {
     using T = int32_t;
     testing::ContextSession context_session{};
-    Shape input_shape{2, 3};
-    Shape output_shape{3, 2, 3};
+    Shape input_shape{2, 3, 1};
+    Shape output_shape{3, 1, 2, 3, 1};
 
     Array a = testing::MakeArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
     Array b = a.BroadcastTo(output_shape);
     ASSERT_EQ(output_shape, b.shape());
     EXPECT_EQ(a.data().get(), b.data().get()) << "BroadcastTo must be done without copying data";
+    ASSERT_NE(0, b.strides()[1]) << "Broadcasted dimension must not be broadcastable";
+
     Array e = testing::MakeArray(output_shape).WithData<T>({1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6});
     ExpectEqual<T>(e, b);
 }
