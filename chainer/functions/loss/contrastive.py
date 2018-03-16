@@ -74,8 +74,7 @@ class Contrastive(function_node.FunctionNode):
         dist = chainer.functions.repeat(dist[:, None], x_dim, axis=1)
         # avoid division by zero
         dist = chainer.functions.maximum(
-            dist,
-            xp.broadcast_to(xp.array(1e-8, dtype=dist.dtype), dist.shape))
+            dist, xp.full(dist.shape, 1e-8, dtype=dist.dtype))
         # similar pair
         gx0 = alpha * y.astype(alpha.dtype) * diff
         # dissimilar pair
