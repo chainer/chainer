@@ -1,5 +1,5 @@
-Standard wrapper function implementations
-=========================================
+Standard Function Implementations
+=================================
 
 .. module:: chainer.functions
 
