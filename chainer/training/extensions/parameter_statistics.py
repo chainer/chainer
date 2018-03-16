@@ -61,6 +61,12 @@ class ParameterStatistics(extension.Extension):
         'percentile': lambda x: cuda.get_array_module(x).percentile(
             x, (0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87))
     }
+    try:
+        from types import MappingProxyType
+    except ImportError:
+        pass
+    else:
+        default_statistics = MappingProxyType(default_statistics)
 
     def __init__(self, links, statistics=default_statistics,
                  report_params=True, report_grads=True, prefix=None,
