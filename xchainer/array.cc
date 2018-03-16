@@ -374,21 +374,20 @@ Array Array::Squeeze(const std::vector<size_t>& axes) const {
     const Shape& in_shape = shape();
     const Strides& in_strides = strides();
 
+    std::vector<int64_t> out_shape;
+    std::vector<int64_t> out_strides;
+
+    bool check_all_axes = axes.empty();
     size_t ndim = this->ndim();
 
-    // Only axes of unit-length can be squeezed out.
-    std::vector<bool> squeeze_axes;
-    if (axes.empty()) {
-        // All axes are candidates for removal if none are specified.
-        std::transform(in_shape.cbegin(), in_shape.cend(), std::back_inserter(squeeze_axes), [](int64_t dim) { return dim == 1; });
-    } else {
-        squeeze_axes.resize(ndim, false);
-        for (size_t axis : axes) {
-            if (in_shape[axis] == 1) {
-                squeeze_axes[axis] = true;
-            } else {
+    for (size_t i = 0; i < ndim; ++i) {
+        bool squeeze_axis = false;
+        if (check_all_axes && in_shape[i] == 1) {
+            squeeze_axis = true;
+        } else if (std::find(axes.begin(), axes.end(), i) != axes.end()) {
+            if (in_shape[i] != 1) {
                 std::ostringstream os;
-                os << "Cannot squeeze out axes with size not equal to one. ";
+                os << "Cannot squeeze_axis out axes with size not equal to one. ";
                 os << "Actual shape was " << in_shape.ToString();
                 os << "and axes ";
                 os << "(";
@@ -401,40 +400,27 @@ Array Array::Squeeze(const std::vector<size_t>& axes) const {
                 os << (axes.size() == 1 ? ",)." : ").");
                 throw DimensionError(os.str());
             }
+            squeeze_axis = true;
+        }
+        if (!squeeze_axis) {
+            out_shape.push_back(in_shape[i]);
+            out_strides.push_back(in_strides[i]);
         }
     }
 
-    nonstd::optional<Array> out;
-
-    size_t n_unit_dims = std::count(squeeze_axes.begin(), squeeze_axes.end(), true);
-    if (n_unit_dims == 0) {
-        // Return an alias
-        out.emplace(Array{body_});
-    } else {
-        std::vector<int64_t> out_shape;
-        std::vector<int64_t> out_strides;
-        out_shape.reserve(n_unit_dims);
-        out_strides.reserve(n_unit_dims);
-        assert(squeeze_axes.size() <= ndim);
-        for (size_t i = 0; i < ndim; ++i) {
-            if (!squeeze_axes[i]) {
-                out_shape.push_back(in_shape[i]);
-                out_strides.push_back(in_strides[i]);
-            }
-        }
-        out.emplace(Array{Shape{out_shape.begin(), out_shape.end()},
-                          Strides{out_strides.begin(), out_strides.end()},
-                          dtype(),
-                          device(),
-                          body_->data_,
-                          offset()});
-    }
-
-    assert(out.has_value());
-
+    // bool alias = (in_shape.size() == out_shape.size()) || (out_shape.empty() && !axes.empty());
+    bool alias = in_shape.size() == out_shape.size();
+    Array out = alias ? Array{body_}
+                      : Array{Shape{out_shape.begin(), out_shape.end()},
+                              Strides{out_strides.begin(), out_strides.end()},
+                              dtype(),
+                              device(),
+                              body_->data_,
+                              offset()};
     internal::SetUpOpNodes(
-            "squeeze", {*this}, *out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }});
-    return std::move(*out);
+            "squeeze", {*this}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }});
+
+    return out;
 }
 
 Array Array::BroadcastTo(const Shape& shape) const {
