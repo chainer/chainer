@@ -180,7 +180,7 @@ Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) 
     CheckEqual(dtype(), addend.dtype());
 
     Array out = this->AsConstant(CopyKind::kCopy);
-    Array out_view = out.GetItem(indices);
+    Array out_view = out.At(indices);
 
     // TODO(sonots): broadcasting
     CheckEqual(out_view.shape(), addend.shape());
@@ -188,7 +188,7 @@ Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) 
     device().Add(addend, out_view, out_view);
 
     auto this_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
-    auto addend_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.GetItem(indices); };
+    auto addend_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.At(indices); };
     internal::SetUpOpNodes("add_at", {*this, addend}, out, {this_backward_function, addend_backward_function});
 
     return out;
@@ -202,7 +202,7 @@ Array Array::Transpose() const {
     return out;
 }
 
-Array Array::GetItem(const std::vector<ArrayIndex>& indices) const {
+Array Array::At(const std::vector<ArrayIndex>& indices) const {
     std::vector<int64_t> out_shape;
     std::vector<int64_t> out_strides;
     int64_t out_offset = offset();
