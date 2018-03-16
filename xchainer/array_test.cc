@@ -1521,11 +1521,12 @@ TEST(ArrayReshapeTest, Squeeze) {
         ExpectEqual<T>(e, b);
     }
 
-    // A view is returned if no axes can be squeezed out.
+    // Same array is returned if no axes can be squeezed out.
     {
         Array a = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
         Array e = a.Squeeze({});
-        ExpectEqualView<T>(e, a);
+        ExpectEqual<T>(e, a);
+        EXPECT_EQ(e.body(), a.body());
     }
 }
 

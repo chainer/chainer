@@ -409,7 +409,7 @@ Array Array::Squeeze(const std::vector<size_t>& axes) const {
     size_t n_unit_dims = std::count(squeeze_axes.begin(), squeeze_axes.end(), true);
     if (n_unit_dims == 0) {
         // Return an alias
-        out.emplace(AsConstant(CopyKind::kView));
+        out.emplace(Array{body_});
     } else {
         std::vector<int64_t> out_shape;
         std::vector<int64_t> out_strides;
