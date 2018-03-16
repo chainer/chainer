@@ -373,7 +373,7 @@ Array Array::BroadcastTo(const Shape& shape) const {
     int8_t i_in = in_shape.ndim() - 1;
     for (int8_t i_out = shape.ndim() - 1; i_out >= 0; --i_out) {
         int64_t out_dim = shape[i_out];
-        // If this dimension is broadcasted, nonbroadcast_stride is unset.
+        // If this dimension is to be broadcasted, nonbroadcast_stride is unset.
         // Otherwise, it holds the new stride.
         nonstd::optional<int64_t> nonbroadcast_stride{};
         if (i_in >= 0) {
@@ -397,7 +397,7 @@ Array Array::BroadcastTo(const Shape& shape) const {
         } else {
             // broadcast dimension
             if (out_dim == 1) {
-                // broadcasted dimension is not broadcastable
+                // broadcasted dimension should not be broadcastable
                 rev_strides.push_back(int64_t{1});
             } else {
                 rev_strides.push_back(int64_t{0});
