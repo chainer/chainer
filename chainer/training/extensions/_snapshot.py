@@ -87,7 +87,5 @@ def _snapshot_object(trainer, target, filename, savefun):
     try:
         savefun(tmppath, target)
         shutil.move(tmppath, os.path.join(trainer.out, fn))
-    except Exception as e:
-        raise e
     finally:
         shutil.rmtree(tmpdir)
