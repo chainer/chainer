@@ -22,7 +22,7 @@ class PrintHook(function_hook.FunctionHook):
     ``backward`` methods without inserting print functions into
     Chainer's library code.
 
-    Attributes:
+    Args:
         sep: *(deprecated since v4.0.0)* Ignored.
         end: Character to be added at the end of print function.
         file: Output file_like object that that redirect to.
@@ -54,6 +54,7 @@ class PrintHook(function_hook.FunctionHook):
         if sep is not None:
             warnings.warn('sep argument in chainer.function_hooks.PrintHook '
                           'is deprecated.', DeprecationWarning)
+        self.sep = sep  # Keep sep because it was originally documented
         self.end = end
         self.file = file
         self.flush = flush
