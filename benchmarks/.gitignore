@@ -3,3 +3,4 @@ results/
 env/
 chainer/
 cupy/
+.asv-machine.json
