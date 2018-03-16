@@ -62,6 +62,10 @@
     //     "pip+emcee": [""],   // emcee is only available for install with pip.
     // },
     "matrix": {
+        // CuPy dependencies.
+        "numpy": [],
+        "six": [],
+        "fastrlock": [],
         // Optional dependencies required for benchmark.
         "ideep4py": [],
     },
