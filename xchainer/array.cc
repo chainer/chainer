@@ -387,7 +387,7 @@ Array Array::Squeeze(const std::vector<size_t>& axes) const {
         } else if (std::find(axes.begin(), axes.end(), i) != axes.end()) {
             if (in_shape[i] != 1) {
                 std::ostringstream os;
-                os << "Cannot squeeze_axis out axes with size not equal to one. ";
+                os << "Cannot squeeze out axes with size not equal to one. ";
                 os << "Actual shape was " << in_shape.ToString();
                 os << "and axes ";
                 os << "(";
