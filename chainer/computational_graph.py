@@ -288,5 +288,6 @@ def build_computational_graph(
                     nodes.add(input_)
                     nodes.add(cand)
     return ComputationalGraph(
-        list(nodes), list(seen_edges), variable_style,
-        function_style, rankdir, remove_variable, show_name)
+        nodes=list(nodes), edges=list(seen_edges),
+        variable_style=variable_style, function_style=function_style,
+        rankdir=rankdir, remove_variable=remove_variable, show_name=show_name)
