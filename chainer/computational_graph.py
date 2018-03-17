@@ -5,10 +5,13 @@ from chainer import variable
 
 _var_style = {'shape': 'octagon', 'fillcolor': '#E0E0E0', 'style': 'filled'}
 _func_style = {'shape': 'record', 'fillcolor': '#6495ED', 'style': 'filled'}
+# make variable immutable
 try:
     from types import MappingProxyType
 except ImportError:
-    pass
+    import six
+    _var_style = tuple(six.viewitems(_var_style))
+    _func_style = tuple(six.viewitems(_func_style))
 else:
     _var_style = MappingProxyType(_var_style)
     _func_style = MappingProxyType(_func_style)
