@@ -6,6 +6,7 @@ from chainer.backends import cuda
 from chainer import reporter
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
+from chainer.utils import argument
 
 
 class ParameterStatistics(extension.Extension):
@@ -61,22 +62,17 @@ class ParameterStatistics(extension.Extension):
         'percentile': lambda x: cuda.get_array_module(x).percentile(
             x, (0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87))
     }
-    # make variable immutable
-    try:
-        from types import MappingProxyType
-    except ImportError:
-        default_statistics = tuple(six.viewitems(default_statistics))
-    else:
-        default_statistics = MappingProxyType(default_statistics)
 
-    def __init__(self, links, statistics=default_statistics,
-                 report_params=True, report_grads=True, prefix=None,
-                 trigger=(1, 'epoch'), skip_nan_params=False):
+    def __init__(self, links, report_params=True, report_grads=True,
+                 prefix=None, trigger=(1, 'epoch'), skip_nan_params=False,
+                 **kwargs):
 
         if not isinstance(links, (list, tuple)):
             links = links,
         self._links = links
 
+        statistics, = argument.parse_kwargs(
+            kwargs, ('statistics', self.default_statistics))
         if statistics is None:
             statistics = {}
         self._statistics = statistics
