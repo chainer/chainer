@@ -467,6 +467,7 @@ Array Array::BroadcastTo(const Shape& shape) const {
     Ensures(rev_strides.size() == shape.size());
 
     return Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
+}
 
 Array Array::Copy() const {
     // No graph will be disconnected.
