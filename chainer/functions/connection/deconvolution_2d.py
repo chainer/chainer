@@ -13,7 +13,6 @@ from chainer.utils import conv
 from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
-    cudnn = cuda.cudnn
     _cudnn_version = cuda.cuda.cudnn.getVersion()
 
 
@@ -258,7 +257,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         deterministic = configuration.config.cudnn_deterministic
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
-        cudnn.convolution_backward_data(
+        cuda.cudnn.convolution_backward_data(
             W, x, b, y, pad, stride, dilation, self.groups,
             deterministic=deterministic, auto_tune=auto_tune,
             tensor_core=tensor_core)

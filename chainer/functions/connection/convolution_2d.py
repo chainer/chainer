@@ -12,7 +12,6 @@ from chainer.utils import conv
 from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
-    cudnn = cuda.cudnn
     _cudnn_version = cuda.cuda.cudnn.getVersion()
 
 
@@ -223,7 +222,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         dilation = (self.dy, self.dx)
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
-        cudnn.convolution_forward(
+        cuda.cudnn.convolution_forward(
             x, W, b, y, pad, stride, dilation, self.groups,
             auto_tune=auto_tune, tensor_core=tensor_core)
         return y,
@@ -398,7 +397,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         deterministic = configuration.config.cudnn_deterministic
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
-        cudnn.convolution_backward_filter(
+        cuda.cudnn.convolution_backward_filter(
             x, gy, gW, pad, stride, dilation, self.groups,
             deterministic=deterministic, auto_tune=auto_tune,
             tensor_core=tensor_core)

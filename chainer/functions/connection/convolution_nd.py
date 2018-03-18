@@ -10,10 +10,6 @@ from chainer.utils import conv_nd
 from chainer.utils import type_check
 
 
-if cuda.cudnn_enabled:
-    cudnn = cuda.cudnn
-
-
 class ConvolutionND(function_node.FunctionNode):
 
     def __init__(self, ndim, stride=1, pad=0, cover_all=False):
@@ -93,7 +89,7 @@ class ConvolutionND(function_node.FunctionNode):
         groups = 1
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
-        cudnn.convolution_forward(
+        cuda.cudnn.convolution_forward(
             x, W, b, y, pad, stride, dilation, groups,
             auto_tune=auto_tune, tensor_core=tensor_core)
         return y,
@@ -203,7 +199,7 @@ class ConvolutionNDGradW(function_node.FunctionNode):
         deterministic = configuration.config.cudnn_deterministic
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
-        cudnn.convolution_backward_filter(
+        cuda.cudnn.convolution_backward_filter(
             x, gy, gW, pad, stride, dilation, groups,
             deterministic=deterministic, auto_tune=auto_tune,
             tensor_core=tensor_core)
