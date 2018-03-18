@@ -84,9 +84,9 @@ class StatelessLSTM(LSTMBase):
         Let a two-dimensional input array :math:`x`, a cell state array
         :math:`h`, and the output array of the previous step :math:`h` be:
 
-        >>> x = np.zeros((1, 10), dtype='f')
-        >>> c = np.zeros((1, 20), dtype='f')
-        >>> h = np.zeros((1, 20), dtype='f')
+        >>> x = np.zeros((1, 10), dtype=np.float32)
+        >>> c = np.zeros((1, 20), dtype=np.float32)
+        >>> h = np.zeros((1, 20), dtype=np.float32)
 
         1. Give both ``in_size`` and ``out_size`` arguments:
 
@@ -211,7 +211,7 @@ class LSTM(LSTMBase):
 
         Let a two-dimensional input array :math:`x` be:
 
-        >>> x = np.zeros((1, 10), dtype='f')
+        >>> x = np.zeros((1, 10), dtype=np.float32)
 
         1. Give both ``in_size`` and ``out_size`` arguments:
 
