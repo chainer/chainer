@@ -329,7 +329,7 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
             self._run()
 
             # in Convolution2DFunction.backward_gpu()
-            self.assertTrue(f.called)
+            assert f.called == self.should_call_cudnn
 
     def test_cudnn_deterministic(self):
         x1, W1, b1, y1 = self._run()
