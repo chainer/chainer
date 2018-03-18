@@ -37,8 +37,8 @@ class TestRReLU(unittest.TestCase):
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
         xp = cuda.get_array_module(x)
-        chainer.config.train = self.train
-        y = functions.rrelu(x, l=self.l, u=self.u)
+        with chainer.using_config('train', self.train):
+            y = functions.rrelu(x, l=self.l, u=self.u)
         self.assertEqual(y.data.dtype, self.dtype)
         expected = xp.where(x_data >= 0, x_data, x_data * y.creator.r)
         testing.assert_allclose(
@@ -55,13 +55,13 @@ class TestRReLU(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         rrelu = functions.RReLU(self.l, self.u)
-        chainer.config.train = self.train
 
         def f(x):
             return rrelu.apply((x,))[0]
-        gradient_check.check_backward(
-            f, x_data, y_grad, dtype=numpy.float64,
-            **self.check_backward_options)
+        with chainer.using_config('train', self.train):
+            gradient_check.check_backward(
+                f, x_data, y_grad, dtype=numpy.float64,
+                **self.check_backward_options)
 
     @condition.retry(10)
     def test_backward_cpu(self):
