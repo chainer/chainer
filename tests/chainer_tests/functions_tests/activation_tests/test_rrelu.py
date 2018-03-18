@@ -54,8 +54,9 @@ class TestRReLU(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
+        rrelu = functions.RReLU(self.l, self.u)
         def f(x):
-            return functions.rrelu(x, l=self.l, u=self.u)
+            return rrelu.apply((x,))[0]
 
         with chainer.using_config('train', self.train):
             gradient_check.check_backward(
