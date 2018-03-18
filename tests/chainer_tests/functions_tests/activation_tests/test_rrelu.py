@@ -55,6 +55,7 @@ class TestRReLU(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         rrelu = functions.RReLU(self.l, self.u)
+
         def f(x):
             return rrelu.apply((x,))[0]
 
