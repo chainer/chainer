@@ -1,5 +1,5 @@
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 import numpy as np
@@ -15,10 +15,12 @@ class RReLU(function_node.FunctionNode):
     """Randomized Leaky rectifier unit."""
 
     def __init__(self, lower=1. / 8, upper=1. / 3):
-        # lower and upper must be [0, 1) and lower <= upper
-        assert 0 <= lower < 1
-        assert 0 <= upper < 1
-        assert lower < upper
+        if not 0.0 <= lower < 1.0:
+            raise ValueError('lower must be in the range [0, 1)')
+        if not 0.0 <= upper < 1.0:
+            raise ValueError('upper must be in the range [0, 1)')
+        if not lower < upper:
+            raise ValueError('lower must be less than upper')
         self.lower = lower
         self.upper = upper
 
@@ -71,13 +73,11 @@ class _RReLUGrad(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         gy, = inputs
-        gy = gy.copy()
         gy = np.where(self.y >= 0, gy, gy * self.r)
         return gy,
 
     def forward_gpu(self, inputs):
         gy, = inputs
-        gy = gy.copy()
         gy = _kern()(self.y, gy, self.r)
         return gy,
 
@@ -115,7 +115,7 @@ def rrelu(x, l=1. / 8, u=1. / 3):
         array([[-1.,  0.],
                [ 2., -3.],
                [-2.,  1.]], dtype=float32)
-        >>> randomized_leaky_relu(x).data
+        >>> F.rrelu(x).data
         array([[-0.24850948,  0.        ],
                [ 2.        , -0.50844127],
                [-0.598535  ,  1.        ]], dtype=float32)
