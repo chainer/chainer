@@ -43,7 +43,9 @@ def snapshot_object(target, filename, savefun=npz.save_npz):
 
 def snapshot(savefun=npz.save_npz,
              filename='snapshot_iter_{.updater.iteration}', **kwargs):
-    """snapshot(savefun=npz.save_npz, filename='snapshot_iter_{.updater.iteration}', *, target=None, condition=None, writer=None)
+    """snapshot(savefun=npz.save_npz, \
+filename='snapshot_iter_{.updater.iteration}', *, target=None, \
+condition=None, writer=None)
 
     Returns a trainer extension to take snapshots of the trainer.
 
