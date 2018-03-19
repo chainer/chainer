@@ -109,9 +109,7 @@ def inject_backend_tests(method_names):
         {'dtype': numpy.float64},
     ],
 ))
-@unittest.skipIf(testing.with_requires('numpy>=1.10'),
-                 'split_axis function is not supported in numpy version {}'
-                 .format(numpy.__version__))
+@testing.with_requires('numpy>=1.10')
 @inject_backend_tests(['test_forward', 'test_backward'])
 class TestSplitAxis(unittest.TestCase):
 
