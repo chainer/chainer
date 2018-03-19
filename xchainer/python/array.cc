@@ -235,6 +235,9 @@ void InitXchainerArray(pybind11::module& m) {
                             array.ClearGrad(kDefaultGraphId);
                         }
                     })
+            .def("cleargrad",
+                 [](const ArrayBodyPtr& self, const GraphId& graph_id) { Array{self}.ClearGrad(graph_id); },
+                 py::arg("graph_id") = kDefaultGraphId)
             .def_property_readonly(
                     "device", [](const ArrayBodyPtr& self) -> Device& { return Array{self}.device(); }, py::return_value_policy::reference)
             .def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); })
