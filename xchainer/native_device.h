@@ -27,6 +27,8 @@ public:
 
     void Fill(Array& out, Scalar value) override;
 
+    void Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) override;
+
     void Copy(const Array& src, Array& out) override;
 
     void Add(const Array& lhs, const Array& rhs, Array& out) override;

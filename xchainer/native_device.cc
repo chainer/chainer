@@ -53,6 +53,71 @@ void NativeDevice::Fill(Array& out, Scalar value) {
     });
 }
 
+void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) {
+    Expects(axis.size() == src.shape().size() - out.shape().size());
+    CheckDevicesCompatible(src, out);
+
+    VisitDtype(src.dtype(), [&src, &axis, &out](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        const Shape& out_shape = out.shape();
+
+        // Prepare dimension mappings
+        std::vector<int8_t> reduce_dims;    // Reduction dimensions
+        std::vector<int8_t> out_i_dims;     // Mapping from output indices to src indices
+        std::vector<int8_t> reduce_i_dims;  // Mapping from reduction indices to src indices
+        out_i_dims.reserve(src.shape().size() - axis.size());
+        reduce_i_dims.reserve(axis.size());
+        reduce_dims.reserve(axis.size());
+        int8_t i_axis = 0;
+        for (int8_t i = 0; i < src.shape().ndim(); ++i) {
+            if (i == axis[i_axis]) {
+                ++i_axis;
+                reduce_i_dims.push_back(i);
+                reduce_dims.push_back(src.shape()[i]);
+            } else {
+                out_i_dims.push_back(i);
+            }
+        }
+        Ensures(out_i_dims.size() == src.shape().size() - axis.size());
+        Ensures(reduce_i_dims.size() == axis.size());
+        Ensures(reduce_i_dims.size() == reduce_dims.size());
+
+        // Calculate sum
+        IndexableArray<const T> src_iarray{src};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> src_indexer{src.shape()};
+        Indexer<> reduce_indexer{reduce_dims.begin(), reduce_dims.end()};
+        Expects(reduce_indexer.ndim() == static_cast<int8_t>(reduce_dims.size()));
+
+        Indexer<> out_indexer{out_shape};
+        for (int64_t i_out = 0; i_out < out_indexer.total_size(); ++i_out) {
+            out_indexer.Set(i_out);
+            T sum_value = 0;
+            gsl::span<int64_t> src_index = gsl::make_span(src_indexer.index(), src.shape().size());
+
+            // Set output indices in src_index
+            int8_t i_src_index = 0;
+            for (int8_t i_out_dim = 0; i_out_dim < out_indexer.ndim(); ++i_out_dim) {
+                src_index[out_i_dims[i_src_index]] = out_indexer.index()[i_out_dim];
+                ++i_src_index;
+            }
+
+            // Reduce axes into single output value
+            for (int64_t i_reduce = 0; i_reduce < reduce_indexer.total_size(); ++i_reduce) {
+                reduce_indexer.Set(i_reduce);
+                // Set reduction indices in src_index
+                for (int8_t i_reduce_dim = 0; i_reduce_dim < static_cast<int8_t>(reduce_i_dims.size()); ++i_reduce_dim) {
+                    src_index[reduce_i_dims[i_reduce_dim]] = reduce_indexer.index()[i_reduce_dim];
+                }
+
+                sum_value += src_iarray[src_indexer];
+            }
+            out_iarray[out_indexer] = sum_value;
+        }
+    });
+}
+
 void NativeDevice::Copy(const Array& src, Array& out) {
     CheckDevicesCompatible(src, out);
     VisitDtype(src.dtype(), [&](auto pt) {
