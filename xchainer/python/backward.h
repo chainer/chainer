@@ -7,4 +7,3 @@ namespace xchainer {
 void InitXchainerBackward(pybind11::module&);
 
 }  // namespace xchainer
-
