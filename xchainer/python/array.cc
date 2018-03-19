@@ -218,6 +218,23 @@ void InitXchainerArray(pybind11::module& m) {
                  },
                  py::arg("grad"),
                  py::arg("graph_id") = kDefaultGraphId)
+            .def_property(
+                    "grad",
+                    [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {
+                        const nonstd::optional<Array>& grad = Array{self}.GetGrad(kDefaultGraphId);
+                        if (!grad.has_value()) {
+                            return nullptr;
+                        }
+                        return grad->body();
+                    },
+                    [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad) {
+                        auto array = Array{self};
+                        if (grad) {
+                            array.SetGrad(Array{grad}, kDefaultGraphId);
+                        } else {
+                            array.ClearGrad(kDefaultGraphId);
+                        }
+                    })
             .def_property_readonly(
                     "device", [](const ArrayBodyPtr& self) -> Device& { return Array{self}.device(); }, py::return_value_policy::reference)
             .def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); })
@@ -229,15 +246,6 @@ void InitXchainerArray(pybind11::module& m) {
             .def_property_readonly("strides", [](const ArrayBodyPtr& self) { return Array{self}.strides(); })
             .def_property_readonly("total_bytes", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalBytes(); })
             .def_property_readonly("total_size", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalSize(); })
-            .def_property_readonly(
-                    "grad",
-                    [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {
-                        const nonstd::optional<Array>& grad = Array{self}.GetGrad(kDefaultGraphId);
-                        if (!grad.has_value()) {
-                            return nullptr;
-                        }
-                        return grad->body();
-                    })
             .def_property_readonly("T", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); })
             .def_property_readonly(
                     "_debug_data_memory_address",  // These methods starting with `_debug_` are stubs for testing
