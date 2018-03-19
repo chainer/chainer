@@ -565,12 +565,19 @@ def test_array_grad():
     array.cleargrad()  # clear
     assert array.get_grad() is None
 
+    array.set_grad(grad)
+    assert array.get_grad() is not None
+    assert array.get_grad()._debug_flat_data == grad._debug_flat_data
+
+    array.set_grad(None)  # clear
+    assert array.get_grad() is None
+
     # Gradient attributes
     array.grad = grad
     assert array.get_grad() is not None
     assert array.get_grad() is array.grad
 
-    array.grad = None
+    array.grad = None  # clear
     assert array.get_grad() is None
 
 
