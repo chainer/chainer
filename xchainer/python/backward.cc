@@ -1,5 +1,6 @@
 #include "xchainer/python/backward.h"
 
+#include <algorithm>
 #include <vector>
 
 #include "xchainer/array.h"
