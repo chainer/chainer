@@ -64,8 +64,8 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
         const Shape& out_shape = out.shape();
 
         // Prepare dimension mappings
-        std::vector<int8_t> reduce_dims;    // Reduction dimensions
-        std::vector<int8_t> out_i_dims;     // Mapping from output indices to src indices
+        std::vector<int8_t> reduce_dims;  // Reduction dimensions
+        std::vector<int8_t> out_i_dims;   // Mapping from output indices to src indices
         out_i_dims.reserve(src.shape().size() - axis.size());
         reduce_dims.reserve(axis.size());
         int8_t i_axis = 0;
