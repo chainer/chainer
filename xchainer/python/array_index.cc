@@ -49,7 +49,7 @@ std::vector<ArrayIndex> MakeArrayIndices(py::handle handle) {
 }  // namespace python
 
 void InitXchainerArrayIndex(py::module& m) {
-    py::class_<Broadcastable>(m, "Broadcastable");
+    py::class_<Broadcastable>(m, "Broadcastable");  // NOLINT
     m.attr("newaxis") = py::none();
     m.attr("broadcastable") = Broadcastable{};
 }
