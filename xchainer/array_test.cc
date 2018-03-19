@@ -1660,7 +1660,7 @@ TEST(ArraySumTest, Sum1) {
     using T = float;
     testing::ContextSession context_session{};
 
-    Array a = testing::MakeArray({2, 3, 3}).WithLinearData<T>();
+    Array a = testing::MakeArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum();
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::MakeArray(Shape{}).WithData<T>({153.0f});
@@ -1671,7 +1671,7 @@ TEST(ArraySumTest, Sum2) {
     using T = float;
     testing::ContextSession context_session{};
 
-    Array a = testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>();
+    Array a = testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum(std::vector<int8_t>{2, 1, -1});
     EXPECT_EQ(Shape{2}, b.shape());
     Array e = testing::MakeArray(Shape{2}).WithData<T>({630.0f, 1926.0f});
