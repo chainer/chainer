@@ -488,6 +488,16 @@ Actual: {0}'''.format(type(data))
         return variable_str(self)
 
     @property
+    def xp(self):
+        """Array module for this variable.
+
+        Depending on which of CPU/GPU this variable is on, this property
+        returns :mod:`numpy` or :mod:`cupy`.
+
+        """
+        return cuda.get_array_module(self)
+
+    @property
     def name(self):
         return self._node.name
 
