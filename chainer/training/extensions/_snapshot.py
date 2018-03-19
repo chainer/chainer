@@ -41,11 +41,10 @@ def snapshot_object(target, filename, savefun=npz.save_npz):
         filename=filename)
 
 
-def snapshot(savefun=npz.save_npz,
+def snapshot(savefun=None,
              filename='snapshot_iter_{.updater.iteration}', **kwargs):
-    """snapshot(savefun=npz.save_npz, \
-filename='snapshot_iter_{.updater.iteration}', *, target=None, \
-condition=None, writer=None)
+    """snapshot(savefun=None, filename='snapshot_iter_{.updater.iteration}', \
+*, target=None, condition=None, writer=None)
 
     Returns a trainer extension to take snapshots of the trainer.
 
@@ -70,6 +69,7 @@ condition=None, writer=None)
     Args:
         savefun: Function to save the trainer. It takes two arguments: the
             output file path and the trainer object.
+            It is :meth:`chainer.serializers.save_npz` by default.
             If ``writer`` is specified, this argument must be ``None``.
         filename (str): Name of the file into which the trainer is serialized.
             It can be a format string, where the trainer object is passed to
@@ -77,16 +77,18 @@ condition=None, writer=None)
         target: Object to serialize. If it is not specified, it will
             be the trainer object.
         condition: Condition object. It must be a callable object that returns
-            boolean without any arguments. If it returns True the snapshot will
-            be done. If not it will be skipped. The default is a method that
-            always returns True.
+            boolean without any arguments. If it returns ``True``, the snapshot
+            will be done.
+            If not, it will be skipped. The default is a function that always
+            returns ``True``.
         writer: Writer object.
             It must be a callable object.
             See below for the list of built-in writers.
             If ``savefun`` is other than ``None``, this argument must be
-            ``None``. In that case,
-            :class:`~chainer.training.extensions.snapshot_writers.SimpleWriter`.
-            with specified ``savefun`` argument will be used.
+            ``None``. In that case, a
+            :class:`~chainer.training.extensions.snapshot_writers.SimpleWriter`
+            object instantiated with specified ``savefun`` argument will be
+            used.
 
     Returns:
         Snapshot extension object.
@@ -140,6 +142,8 @@ trigger=(1, 'epoch'))
     argument.assert_kwargs_empty(kwargs)
 
     if writer is None:
+        if savefun is None:
+            savefun = npz.save_npz
         writer = snapshot_writers.SimpleWriter(savefun=savefun)
 
     return _Snapshot(
