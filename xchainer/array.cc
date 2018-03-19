@@ -370,7 +370,7 @@ Array Array::Reshape(const Shape& shape) const {
     return out;
 }
 
-Array Array::Squeeze(const nonstd::optional<std::vector<size_t>>& axis) const {
+Array Array::Squeeze(const nonstd::optional<std::vector<int64_t>>& axis) const {
     const Shape& in_shape = shape();
     const Strides& in_strides = strides();
 
@@ -378,28 +378,47 @@ Array Array::Squeeze(const nonstd::optional<std::vector<size_t>>& axis) const {
     std::vector<int64_t> out_strides;
 
     if (axis.has_value()) {
-        for (size_t i = 0; i < in_shape.size(); ++i) {
-            if (std::find(axis->begin(), axis->end(), i) != axis->end()) {
+        std::vector<int64_t> sorted_axis = *axis;
+
+        // Convert negative axes to positive values, sort in ascending order and check for duplicates.
+        for (auto& a : sorted_axis) {
+            if (a < -in_shape.ndim() || in_shape.ndim() <= a) {
+                throw DimensionError(
+                        "Axis " + std::to_string(a) + " is out of bounds for array of dimension " + std::to_string(in_shape.ndim()));
+            }
+            if (a < 0) {
+                a += in_shape.ndim();
+            }
+        }
+        std::sort(sorted_axis.begin(), sorted_axis.end());
+        if (std::unique(sorted_axis.begin(), sorted_axis.end()) != sorted_axis.end()) {
+            throw XchainerError("Duplicate squeeze axes.");
+        }
+
+        int64_t i_axis = 0;
+        for (int64_t i = 0; i < in_shape.ndim(); ++i) {
+            if (i_axis < static_cast<int64_t>(sorted_axis.size()) && sorted_axis[i_axis] == i) {
+                ++i_axis;
                 if (in_shape[i] != 1) {
                     std::ostringstream os;
                     os << "Cannot squeeze out non-unit-length axes, where shape was " << in_shape.ToString();
                     os << " and axes were (";
-                    for (auto iter = axis->begin(); iter != axis->end(); ++iter) {
-                        if (iter != axis->begin()) {
+                    for (auto it = axis->begin(); it != axis->end(); ++it) {
+                        if (it != axis->begin()) {
                             os << ", ";
                         }
-                        os << *iter;
+                        os << *it;
                     }
                     os << (axis->size() == 1 ? ",)." : ").");
                     throw DimensionError(os.str());
                 }
-                continue;
+            } else {
+                out_shape.push_back(in_shape[i]);
+                out_strides.push_back(in_strides[i]);
             }
-            out_shape.push_back(in_shape[i]);
-            out_strides.push_back(in_strides[i]);
         }
     } else {  // All axes are candidates for removal if none are given.
-        for (size_t i = 0; i < in_shape.size(); ++i) {
+        for (int64_t i = 0; i < in_shape.ndim(); ++i) {
             if (in_shape[i] != 1) {
                 out_shape.push_back(in_shape[i]);
                 out_strides.push_back(in_strides[i]);

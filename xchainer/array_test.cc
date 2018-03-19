@@ -1470,70 +1470,105 @@ TEST(ArrayReshapeTest, InvalidReshape) {
     EXPECT_THROW(a.Reshape(output_shape), DimensionError);
 }
 
-TEST(ArrayReshapeTest, Squeeze) {
+TEST(ArraySqueezeTest, SqueezeAllUnitLengthAxes) {
     using T = int32_t;
     testing::ContextSession context_session{};
 
-    // Squeeze all axes of unit-length.
-    {
-        Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-        Array b = a.Squeeze();
-        Array e = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
-        ExpectEqual<T>(e, b);
-    }
+    Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
+    Array b = a.Squeeze();
+    Array e = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
+    ExpectEqual<T>(e, b);
+}
 
-    // Squeeze specified unit-length axes.
-    {
-        Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-        Array b = a.Squeeze(std::vector<size_t>{0, 2, 4});
-        Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
-        ExpectEqual<T>(e, b);
-    }
+TEST(ArraySqueezeTest, SqueezeSpecifiedUnitLenghtAxes) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
 
-    // Squeeze all axes.
-    {
-        Array a = testing::MakeArray({1, 1, 1}).WithLinearData<T>();
-        Array b = a.Squeeze();
-        Array e = testing::MakeArray<T>({}, std::vector<T>(1, 0));
-        ExpectEqual<T>(e, b);
-    }
+    Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
+    Array b = a.Squeeze(std::vector<int64_t>{2, 0, 4});
+    Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
+    ExpectEqual<T>(e, b);
+}
 
-    // Multiple squeezes.
-    {
-        Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-        Array b = a.Squeeze(std::vector<size_t>{0, 2});
-        Array c = b.Squeeze(std::vector<size_t>{3});
-        Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
-        ExpectEqual<T>(e, c);
-    }
+TEST(ArraySqueezeTest, SqueezeAllAxes) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
 
-    // Try to squeeze non-unit-length axis.
-    {
-        Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-        EXPECT_THROW(Array b = a.Squeeze(std::vector<size_t>{1}), DimensionError);
-    }
+    Array a = testing::MakeArray({1, 1, 1}).WithLinearData<T>();
+    Array b = a.Squeeze();
+    Array e = testing::MakeArray<T>({}, std::vector<T>(1, 0));
+    ExpectEqual<T>(e, b);
+}
 
-    // Squeeze non-contiguous array.
-    {
-        Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(4);
-        Array b = a.Squeeze(std::vector<size_t>{0, 2, 4});
-        Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
-        ExpectEqual<T>(e, b);
-    }
+TEST(ArraySqueezeTest, SqueezeMultipleCalls) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
 
-    // Same array is returned if no axes can be squeezed out.
-    {
-        Array a = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
-        Array e = a.Squeeze();
-        ExpectEqual<T>(e, a);
-        EXPECT_EQ(e.body(), a.body());
-    }
+    Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
+    Array b = a.Squeeze(std::vector<int64_t>{0, 2});
+    Array c = b.Squeeze(std::vector<int64_t>{3});
+    Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
+    ExpectEqual<T>(e, c);
+}
+
+TEST(ArraySqueezeTest, SqueezeNonContiguous) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(4);
+    Array b = a.Squeeze(std::vector<int64_t>{0, 2, 4});
+    Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
+    ExpectEqual<T>(e, b);
+}
+
+TEST(ArraySqueezeTest, SqueezeNegativeAxis) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({2, 3, 4, 1}).WithLinearData<T>();
+    Array b = a.Squeeze(std::vector<int64_t>{-1});
+    Array e = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
+    ExpectEqual<T>(e, b);
+}
+
+TEST(ArraySqueezeTest, SqueezeNoSqueezableAxes) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
+    Array e = a.Squeeze();
+    ExpectEqual<T>(e, a);
+    EXPECT_EQ(e.body(), a.body());
+}
+
+TEST(ArraySqueezeTest, InvalidSqueezeNonUnitLengthAxis) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
+    EXPECT_THROW(Array b = a.Squeeze(std::vector<int64_t>{1}), DimensionError);
+}
+
+TEST(ArraySqueezeTest, InvalidSqueezeDuplicateAxes) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
+    EXPECT_THROW(a.Squeeze(std::vector<int64_t>{0, 2, 2}), XchainerError);
+}
+
+TEST(ArraySqueezeTest, InvalidSqueezeOutOfRangeAxes) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
+    EXPECT_THROW(a.Squeeze(std::vector<int64_t>{3}), DimensionError);
 }
 
 TEST_P(ArrayTest, SqueezeBackward) {
     CheckBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {xs[0].Squeeze(std::vector<size_t>{0, 2, 4})};
+                return {xs[0].Squeeze(std::vector<int64_t>{0, 2, 4})};
             },
             {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(4)).RequireGrad()},
             {testing::MakeArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)},
@@ -1543,7 +1578,7 @@ TEST_P(ArrayTest, SqueezeBackward) {
 TEST_P(ArrayTest, SqueezeDoubleBackward) {
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = xs[0].Squeeze(std::vector<size_t>{0, 2, 4});
+                auto y = xs[0].Squeeze(std::vector<int64_t>{0, 2, 4});
                 return {y * y};  // to make it nonlinear
             },
             {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(4)).RequireGrad()},

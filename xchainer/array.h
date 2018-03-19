@@ -114,7 +114,7 @@ public:
     //
     // If no axes are specified, all axes of unit-lengths are removed.
     // If no axes can be removed, an array with aliased data is returned.
-    Array Squeeze(const nonstd::optional<std::vector<size_t>>& axis = nonstd::nullopt) const;
+    Array Squeeze(const nonstd::optional<std::vector<int64_t>>& axis = nonstd::nullopt) const;
 
     // Broadcasts the array to the specified shape.
     // Returned array is always a view to this array.
