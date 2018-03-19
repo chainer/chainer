@@ -1,6 +1,7 @@
 from chainer.serializers import npz
 from chainer.training import extension
 from chainer.training.extensions import snapshot_writers
+from chainer.utils import argument
 
 
 def snapshot_object(target, filename, savefun=npz.save_npz):
@@ -30,16 +31,21 @@ def snapshot_object(target, filename, savefun=npz.save_npz):
     Returns:
         Snapshot extension object.
 
+    .. seealso::
+
+        - :meth:`chainer.training.extensions.snapshot`
     """
-    return Snapshot(
+    return _Snapshot(
         target=target,
         writer=snapshot_writers.SimpleWriter(savefun=savefun),
         filename=filename)
 
 
 def snapshot(savefun=npz.save_npz,
-             filename='snapshot_iter_{.updater.iteration}'):
-    """Returns a trainer extension to take snapshots of the trainer.
+             filename='snapshot_iter_{.updater.iteration}', **kwargs):
+    """snapshot(savefun=npz.save_npz, filename='snapshot_iter_{.updater.iteration}', *, target=None, condition=None, writer=None)
+
+    Returns a trainer extension to take snapshots of the trainer.
 
     This extension serializes the trainer object and saves it to the output
     directory. It is used to support resuming the training loop from the saved
@@ -62,38 +68,10 @@ def snapshot(savefun=npz.save_npz,
     Args:
         savefun: Function to save the trainer. It takes two arguments: the
             output file path and the trainer object.
+            If ``writer`` is specified, this argument must be ``None``.
         filename (str): Name of the file into which the trainer is serialized.
             It can be a format string, where the trainer object is passed to
             the :meth:`str.format` method.
-
-    Returns:
-        Snapshot extension object.
-
-    """
-    return Snapshot(
-        writer=snapshot_writers.SimpleWriter(savefun=savefun),
-        filename=filename)
-
-
-def _always_true():
-    return True
-
-
-class Snapshot(extension.Extension):
-    """Trainer extension to take snapshots.
-
-    This extension serializes the given object and saves it to the output
-    directory.
-
-    This extension is called once per epoch by default. To take a
-    snapshot at a different interval, a trigger object specifying the
-    required interval can be passed along with this extension
-    to the `extend()` method of the trainer.
-
-    The default priority is -100, which is lower than that of most
-    built-in extensions.
-
-    Args:
         target: Object to serialize. If it is not specified, it will
             be the trainer object.
         condition: Condition object. It must be a callable object that returns
@@ -102,16 +80,14 @@ class Snapshot(extension.Extension):
             always returns True.
         writer: Writer object.
             It must be a callable object.
-            By default, it is
-            :class:`~chainer.training.extensions.snapshot_writers.SimpleWriter`.
             See below for the list of built-in writers.
-        filename (str): Name of the file into which the object is serialized.
-            It can be a format string, where the trainer object is passed to
-            the :meth:`str.format` method. For example,
-            ``'snapshot_{.updater.iteration}'`` is converted to
-            ``'snapshot_10000'`` at the 10,000th iteration.
-            Also it can be a callable object, where the trainer is passed as
-            an argument.
+            If ``savefun`` is other than ``None``, this argument must be
+            ``None``. In that case,
+            :class:`~chainer.training.extensions.snapshot_writers.SimpleWriter`.
+            with specified ``savefun`` argument will be used.
+
+    Returns:
+        Snapshot extension object.
 
     This is the list of built-in snapshot writers.
 
@@ -122,6 +98,8 @@ class Snapshot(extension.Extension):
 ThreadQueueWriter`
         - :class:`chainer.training.extensions.snapshot_writers.\
 ProcessQueueWriter`
+
+    .. TODO(niboshi): Fix the following example
 
     .. admonition:: Example
 
@@ -149,9 +127,40 @@ trigger=(1, 'epoch'))
 
     .. seealso::
 
-        - :meth:`chainer.training.extensions.snapshot`
         - :meth:`chainer.training.extensions.snapshot_object`
+    """
+    target = kwargs.pop('target')
+    condition = kwargs.pop('condition')
+    writer = kwargs.pop('writer')
+    if savefun is not None and writer is not None:
+        raise TypeError(
+            'savefun and writer argument cannot be specified together.')
+    argument.assert_kwargs_empty(kwargs)
 
+    if writer is None:
+        writer = snapshot_writers.SimpleWriter(savefun=savefun)
+
+    return _Snapshot(
+        target=target, condition=condition, writer=writer, filename=filename)
+
+
+def _always_true():
+    return True
+
+
+class _Snapshot(extension.Extension):
+    """Trainer extension to take snapshots.
+
+    This extension serializes the given object and saves it to the output
+    directory.
+
+    This extension is called once per epoch by default. To take a
+    snapshot at a different interval, a trigger object specifying the
+    required interval can be passed along with this extension
+    to the `extend()` method of the trainer.
+
+    The default priority is -100, which is lower than that of most
+    built-in extensions.
     """
     trigger = 1, 'epoch'
     priority = -100

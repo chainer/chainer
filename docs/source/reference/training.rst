@@ -60,7 +60,6 @@ Extension
    chainer.training.extensions.observe_lr
    chainer.training.extensions.observe_value
    chainer.training.extensions.snapshot
-   chainer.training.extensions.Snapshot
    chainer.training.extensions.snapshot_object
    chainer.training.extensions.ParameterStatistics
    chainer.training.extensions.PlotReport

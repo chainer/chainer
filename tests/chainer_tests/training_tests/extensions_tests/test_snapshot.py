@@ -12,7 +12,7 @@ class TestSnapshot(unittest.TestCase):
         t = mock.MagicMock()
         c = mock.MagicMock(side_effect=[True, False])
         w = mock.MagicMock()
-        snapshot = extensions.Snapshot(target=t, condition=c, writer=w)
+        snapshot = extensions.snapshot(target=t, condition=c, writer=w)
         trainer = mock.MagicMock()
         snapshot(trainer)
         snapshot(trainer)
