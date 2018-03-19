@@ -370,40 +370,40 @@ Array Array::Reshape(const Shape& shape) const {
     return out;
 }
 
-Array Array::Squeeze(const std::vector<size_t>& axes) const {
+Array Array::Squeeze(const nonstd::optional<std::vector<size_t>>& axis) const {
     const Shape& in_shape = shape();
     const Strides& in_strides = strides();
 
     std::vector<int64_t> out_shape;
     std::vector<int64_t> out_strides;
 
-    if (axes.empty()) {  // All axes are candidates for removal if none are given.
+    if (axis.has_value()) {
         for (size_t i = 0; i < in_shape.size(); ++i) {
-            if (in_shape[i] != 1) {
-                out_shape.push_back(in_shape[i]);
-                out_strides.push_back(in_strides[i]);
-            }
-        }
-    } else {
-        for (size_t i = 0; i < in_shape.size(); ++i) {
-            if (std::find(axes.begin(), axes.end(), i) != axes.end()) {
+            if (std::find(axis->begin(), axis->end(), i) != axis->end()) {
                 if (in_shape[i] != 1) {
                     std::ostringstream os;
                     os << "Cannot squeeze out non-unit-length axes, where shape was " << in_shape.ToString();
                     os << " and axes were (";
-                    for (auto iter = axes.begin(); iter != axes.end(); ++iter) {
-                        if (iter != axes.begin()) {
+                    for (auto iter = axis->begin(); iter != axis->end(); ++iter) {
+                        if (iter != axis->begin()) {
                             os << ", ";
                         }
                         os << *iter;
                     }
-                    os << (axes.size() == 1 ? ",)." : ").");
+                    os << (axis->size() == 1 ? ",)." : ").");
                     throw DimensionError(os.str());
                 }
                 continue;
             }
             out_shape.push_back(in_shape[i]);
             out_strides.push_back(in_strides[i]);
+        }
+    } else {  // All axes are candidates for removal if none are given.
+        for (size_t i = 0; i < in_shape.size(); ++i) {
+            if (in_shape[i] != 1) {
+                out_shape.push_back(in_shape[i]);
+                out_strides.push_back(in_strides[i]);
+            }
         }
     }
 
