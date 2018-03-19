@@ -63,9 +63,6 @@ class ProgressBar(extension.Extension):
         # print the progress bar
         if iteration % self._update_interval == 0:
             epoch = trainer.updater.epoch_detail
-            one_iteration_epoch = epoch / iteration
-            if length % one_iteration_epoch:
-                length += one_iteration_epoch - length % one_iteration_epoch
             recent_timing = self._recent_timing
             now = time.time()
 
@@ -80,6 +77,7 @@ class ProgressBar(extension.Extension):
                 rate = iteration / length
             else:
                 rate = epoch / length
+            rate = min(rate, 1.0)
 
             bar_length = self._bar_length
             marks = '#' * int(rate * bar_length)
@@ -107,6 +105,7 @@ class ProgressBar(extension.Extension):
                 estimated_time = (length - iteration) / speed_t
             else:
                 estimated_time = (length - epoch) / speed_e
+            estimated_time = max(estimated_time, 0.0)
             out.write('{:10.5g} iters/sec. Estimated time to finish: {}.\n'
                       .format(speed_t,
                               datetime.timedelta(seconds=estimated_time)))
