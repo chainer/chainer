@@ -793,3 +793,23 @@ def test_getitem(input_shape, indices, output_shape, output_data):
 
     n = numpy.array(input_data, numpy.int32).reshape(input_shape)
     _check_array_equals_ndarray(y, n[indices])
+
+
+@pytest.mark.parametrize("input_shape,indices,output_shape,output_strides,output_data", [
+    # broadcastable indexing - non-tuple indexing
+    ((1,), xchainer.broadcastable, (1,), (0,), [0]),
+    # broadcastable indexing - tuple indexing
+    ((1,), (xchainer.broadcastable,), (1,), (0,), [0]),
+    ((3, 1), (slice(None), xchainer.broadcastable,), (3, 1), (4, 0), [0, 1, 2]),
+    ((2, 1, 1, 3), (slice(None), xchainer.broadcastable, xchainer.broadcastable,
+                    slice(None)), (2, 1, 1, 3), (12, 0, 0, 4), [0, 1, 2, 3, 4, 5]),
+])
+def test_getitem_broadcastable(input_shape, indices, output_shape, output_strides, output_data):
+    total_size = functools.reduce(operator.mul, input_shape, 1)
+    input_data = list(range(0, total_size))
+    x = xchainer.Array(input_shape, xchainer.int32, input_data)
+    y = x[indices]
+
+    e = xchainer.Array(output_shape, xchainer.int32, output_data)
+    _check_arrays_equal(y, e)
+    assert y.strides == output_strides
