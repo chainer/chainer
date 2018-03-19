@@ -41,7 +41,7 @@ std::vector<int8_t> GetSortedAxes(const std::vector<int8_t>& axis, int8_t ndim) 
     }
     std::sort(sorted_axis.begin(), sorted_axis.end());
     if (std::unique(sorted_axis.begin(), sorted_axis.end()) != sorted_axis.end()) {
-        throw XchainerError("Duplicate squeeze axes.");
+        throw XchainerError("Duplicate axis values.");
     }
 
     // sorted_axis is sorted, unique, and within bounds [0, ndim).
