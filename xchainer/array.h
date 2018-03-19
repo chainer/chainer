@@ -110,6 +110,12 @@ public:
     // TODO(niboshi): Support shape with dimension -1.
     Array Reshape(const Shape& shape) const;
 
+    // Returns a squeezed array with unit-length axes removed.
+    //
+    // If no axes are specified, all axes of unit-lengths are removed.
+    // If no axes can be removed, an array with aliased data is returned.
+    Array Squeeze(const nonstd::optional<std::vector<int64_t>>& axis = nonstd::nullopt) const;
+
     // Broadcasts the array to the specified shape.
     // Returned array is always a view to this array.
     Array BroadcastTo(const Shape& shape) const;
