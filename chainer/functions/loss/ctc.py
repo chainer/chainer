@@ -310,15 +310,15 @@ def connectionist_temporal_classification(
             This value must be non-negative.
         input_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray` or ``None``):
-            Length of valid sequence for each of mini batch ``x`` (optional).
+            Length of sequence for each of mini batch ``x`` (optional).
             Its shape must be ``(B,)``.
-            If the ``input_length`` is skipped, it assumes that
+            If the ``input_length`` is omitted or ``None``, it assumes that
             all of ``x`` is valid input.
         label_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray` or ``None``):
-            Length of valid sequence for each of mini batch ``t`` (optional).
+            Length of sequence for each of mini batch ``t`` (optional).
             Its shape must be ``(B,)``.
-            If the ``label_length`` is skipped, it assumes that
+            If the ``label_length`` is omitted or ``None``, it assumes that
             all of ``t`` is valid input.
         reduce (str): Reduction option. Its value must be either
             ``'mean'`` or ``'no'``. Otherwise,
