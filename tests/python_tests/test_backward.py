@@ -24,10 +24,7 @@ def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=xchainer.DEFAULT_
     assert all([isinstance(a, xchainer.Array) for a in extra_xs])
 
     outputs = fprop(xs, extra_xs)
-    assert len(outputs) == 1, 'This test does not support multi-output functions yet'
-    output = outputs[0]
-
-    xchainer.backward(output, graph_id)
+    xchainer.backward(outputs, graph_id)
 
     for i, expected_gx in enumerate(expected_gxs):
         x = xs[i]
@@ -38,8 +35,9 @@ def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=xchainer.DEFAULT_
             gx = x.get_grad(graph_id)
             assert_arrays_equal(gx, expected_gx)
 
-    grad = output.get_grad(graph_id)
-    assert grad is not None
+    for output in outputs:
+        grad = output.get_grad(graph_id)
+        assert grad is not None
 
 
 def test_backward_identity():
@@ -405,3 +403,24 @@ def test_backward_multiple_graphs_reuse():
 
     assert x1.get_grad(graph_id1) is None
     assert x2.get_grad(graph_id1) is None
+
+
+def test_backward_multiple_outputs():
+    shape = (1,)
+    dtype = xchainer.float32
+
+    xs = (
+        xchainer.full(shape, 3, dtype),
+        xchainer.full(shape, 5, dtype),)
+    expected_gxs = (
+        xchainer.full(shape, 6, dtype),
+        xchainer.full(shape, 4, dtype),)
+
+    for x in xs:
+        x.require_grad()
+
+    def fprop(xs_, extra_xs_):
+        x0, x1 = xs_
+        return (x0 + x1, x0 * x1)
+
+    check_backprop(xs, expected_gxs, fprop, ())
