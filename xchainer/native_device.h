@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/device.h"

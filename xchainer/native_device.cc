@@ -1,6 +1,7 @@
 #include "xchainer/native_device.h"
 
-#include <cstring>  // for std::memcpy
+#include <cstring>
+#include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/dtype.h"
