@@ -403,3 +403,24 @@ def test_backward_multiple_graphs_reuse():
 
     assert x1.get_grad(graph_id1) is None
     assert x2.get_grad(graph_id1) is None
+
+
+def test_backward_multiple_outputs():
+    shape = (1,)
+    dtype = xchainer.float32
+
+    xs = (
+        xchainer.full(shape, 3, dtype),
+        xchainer.full(shape, 5, dtype),)
+    expected_gxs = (
+        xchainer.full(shape, 6, dtype),
+        xchainer.full(shape, 4, dtype),)
+
+    for x in xs:
+        x.require_grad()
+
+    def fprop(xs_, extra_xs_):
+        x0, x1 = xs_
+        return (x0 + x1, x0 * x1)
+
+    check_backprop(xs, expected_gxs, fprop, ())
