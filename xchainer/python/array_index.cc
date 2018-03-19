@@ -20,7 +20,10 @@ ArrayIndex MakeArrayIndex(py::handle handle) {
     if (py::slice::check_(handle)) {
         return ArrayIndex{internal::MakeSlice(py::cast<py::slice>(handle))};
     }
-    throw py::index_error("only integers, slices (`:`), xchainer.newaxis (`None`) are valid indices");
+    if (py::isinstance<Broadcastable>(handle)) {
+        return ArrayIndex{py::cast<Broadcastable>(handle)};
+    }
+    throw py::index_error("only integers, slices (`:`), xchainer.newaxis (`None`), and xchainer.broadcastable are valid indices");
 }
 
 std::vector<ArrayIndex> MakeArrayIndicesFromTuple(py::tuple tup) {
@@ -45,6 +48,10 @@ std::vector<ArrayIndex> MakeArrayIndices(py::handle handle) {
 }  // namespace internal
 }  // namespace python
 
-void InitXchainerArrayIndex(py::module& m) { m.attr("newaxis") = py::none(); }
+void InitXchainerArrayIndex(py::module& m) {
+    py::class_<Broadcastable>(m, "Broadcastable");  // NOLINT
+    m.attr("newaxis") = py::none();
+    m.attr("broadcastable") = Broadcastable{};
+}
 
 }  // namespace xchainer
