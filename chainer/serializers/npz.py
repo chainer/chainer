@@ -95,8 +95,6 @@ def save_npz(file, obj, compression=True):
         s.save(obj)
         target = s.target
 
-    s = DictionarySerializer()
-    s.save(obj)
     if compression:
         numpy.savez_compressed(file, **target)
     else:
