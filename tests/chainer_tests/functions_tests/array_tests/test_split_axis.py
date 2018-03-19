@@ -162,9 +162,6 @@ class TestSplitAxis(unittest.TestCase):
         self.check_backward(self.inputs, backend_config)
 
 
-@unittest.skipIf(numpy.lib.NumpyVersion(numpy.__version__) <= '1.9.3',
-                 'split_axis function is not supported in numpy version {}'
-                 .format(numpy.__version__))
 @inject_backend_tests(['test_backward'])
 class TestSplitAxisNone(unittest.TestCase):
 
