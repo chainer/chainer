@@ -1,5 +1,7 @@
 #include "xchainer/python/backward.h"
 
+#include <vector>
+
 #include "xchainer/array.h"
 #include "xchainer/array_body.h"
 #include "xchainer/backward.h"
@@ -21,7 +23,19 @@ void InitXchainerBackward(pybind11::module& m) {
           py::arg().noconvert(),
           py::arg("graph_id") = kDefaultGraphId,
           py::arg("enable_double_backprop") = false);
+
+    m.def("backward",
+          [](const std::vector<ArrayBodyPtr>& outputs, const GraphId& graph_id, bool enable_double_backprop) {
+              std::vector<Array> arrays;
+              arrays.reserve(outputs.size());
+              std::transform(outputs.begin(), outputs.end(), std::back_inserter(arrays), [](ArrayBodyPtr body) { return Array{body}; });
+
+              auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
+              Backward({arrays.begin(), arrays.end()}, graph_id, double_backprop);
+          },
+          py::arg().noconvert(),
+          py::arg("graph_id") = kDefaultGraphId,
+          py::arg("enable_double_backprop") = false);
 }
 
 }  // namespace xchainer
-
