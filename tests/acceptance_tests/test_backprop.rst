@@ -10,7 +10,7 @@ Acceptance tests for Backprop
 True
 >>> b.is_grad_required()
 False
->>> y.set_grad(xc.full_like(a, 0.5))
+>>> y.grad = xc.full_like(a, 0.5)
 >>> xc.backward(y)
 
 Access gradients through attribute
