@@ -70,7 +70,7 @@ On recommended systems, you can install iDeep wheel (binary distribution) by:
 Enable iDeep Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-iDeep is disabled by default.
+Currently iDeep is disabled by default because it is an experimental feature.
 You need to manually enable iDeep by changing ``chainer.config.use_ideep`` configuration to ``'auto'``.
 See :ref:`configuration` for details.
 
