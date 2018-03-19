@@ -66,23 +66,19 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
         // Prepare dimension mappings
         std::vector<int8_t> reduce_dims;    // Reduction dimensions
         std::vector<int8_t> out_i_dims;     // Mapping from output indices to src indices
-        std::vector<int8_t> reduce_i_dims;  // Mapping from reduction indices to src indices
         out_i_dims.reserve(src.shape().size() - axis.size());
-        reduce_i_dims.reserve(axis.size());
         reduce_dims.reserve(axis.size());
         int8_t i_axis = 0;
         for (int8_t i = 0; i < src.shape().ndim(); ++i) {
             if (i == axis[i_axis]) {
                 ++i_axis;
-                reduce_i_dims.push_back(i);
                 reduce_dims.push_back(src.shape()[i]);
             } else {
                 out_i_dims.push_back(i);
             }
         }
         Ensures(out_i_dims.size() == src.shape().size() - axis.size());
-        Ensures(reduce_i_dims.size() == axis.size());
-        Ensures(reduce_i_dims.size() == reduce_dims.size());
+        Ensures(reduce_dims.size() == axis.size());
 
         // Calculate sum
         IndexableArray<const T> src_iarray{src};
@@ -107,8 +103,8 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
             for (int64_t i_reduce = 0; i_reduce < reduce_indexer.total_size(); ++i_reduce) {
                 reduce_indexer.Set(i_reduce);
                 // Set reduction indices in src_index
-                for (int8_t i_reduce_dim = 0; i_reduce_dim < static_cast<int8_t>(reduce_i_dims.size()); ++i_reduce_dim) {
-                    src_index[reduce_i_dims[i_reduce_dim]] = reduce_indexer.index()[i_reduce_dim];
+                for (int8_t i_reduce_dim = 0; i_reduce_dim < static_cast<int8_t>(axis.size()); ++i_reduce_dim) {
+                    src_index[axis[i_reduce_dim]] = reduce_indexer.index()[i_reduce_dim];
                 }
 
                 sum_value += src_iarray[src_indexer];
