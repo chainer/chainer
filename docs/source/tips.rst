@@ -65,7 +65,7 @@ On recommended systems, you can install iDeep wheel (binary distribution) by:
 
 .. code-block:: console
 
-    $ pip install ideep
+    $ pip install ideep4py
 
 Enable iDeep Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -96,7 +96,7 @@ You can also use :func:`chainer.using_config` to change the configuration.
 Convert Your Model to iDeep
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You need call ``model.to_intel64()`` (in the same way you call ``model.to_gpu()`` to transfer your link to GPU) to convert the link to iDeep.
+You need to call ``model.to_intel64()`` (in the same way you call ``model.to_gpu()`` to transfer your link to GPU) to convert the link to iDeep.
 
 Run Your Model
 ~~~~~~~~~~~~~~
