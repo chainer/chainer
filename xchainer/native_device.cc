@@ -89,9 +89,8 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
         IndexableArray<T> out_iarray{out};
         Indexer<> src_indexer{src.shape()};
         Indexer<> reduce_indexer{reduce_dims.begin(), reduce_dims.end()};
-        Expects(reduce_indexer.ndim() == static_cast<int8_t>(reduce_dims.size()));
-
         Indexer<> out_indexer{out_shape};
+
         for (int64_t i_out = 0; i_out < out_indexer.total_size(); ++i_out) {
             out_indexer.Set(i_out);
             T sum_value = 0;
