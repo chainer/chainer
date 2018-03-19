@@ -37,7 +37,8 @@ class MomentumSGDRule(optimizer.UpdateRule):
             self.state['v'] = xp.zeros_like(param.data)
 
         # For iDeep
-        if intel64.inputs_all_ready((self.state['v'],)):
+        if (isinstance(param.data, intel64.mdarray) and
+                intel64.inputs_all_ready((self.state['v'],))):
             self.state['v'] = intel64.ideep.array(
                 self.state['v'], itype=intel64.ideep.wgt_array)
 

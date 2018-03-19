@@ -8,7 +8,7 @@ import progressbar
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import training
@@ -44,7 +44,7 @@ class Seq2seq(chainer.Chain):
     def __call__(self, xs, ys):
         xs = [x[::-1] for x in xs]
 
-        eos = self.xp.array([EOS], 'i')
+        eos = self.xp.array([EOS], numpy.int32)
         ys_in = [F.concat([eos, y], axis=0) for y in ys]
         ys_out = [F.concat([y, eos], axis=0) for y in ys]
 
@@ -76,7 +76,7 @@ class Seq2seq(chainer.Chain):
             xs = [x[::-1] for x in xs]
             exs = sequence_embed(self.embed_x, xs)
             h, c, _ = self.encoder(None, None, exs)
-            ys = self.xp.full(batch, EOS, 'i')
+            ys = self.xp.full(batch, EOS, numpy.int32)
             result = []
             for i in range(max_length):
                 eys = self.embed_y(ys)
@@ -84,7 +84,7 @@ class Seq2seq(chainer.Chain):
                 h, c, ys = self.decoder(h, c, eys)
                 cys = F.concat(ys, axis=0)
                 wy = self.W(cys)
-                ys = self.xp.argmax(wy.data, axis=1).astype('i')
+                ys = self.xp.argmax(wy.data, axis=1).astype(numpy.int32)
                 result.append(ys)
 
         # Using `xp.concatenate(...)` instead of `xp.stack(result)` here to
@@ -111,7 +111,8 @@ def convert(batch, device):
         else:
             xp = cuda.cupy.get_array_module(*batch)
             concat = xp.concatenate(batch, axis=0)
-            sections = numpy.cumsum([len(x) for x in batch[:-1]], dtype='i')
+            sections = numpy.cumsum([len(x)
+                                     for x in batch[:-1]], dtype=numpy.int32)
             concat_dev = chainer.dataset.to_device(device, concat)
             batch_dev = cuda.cupy.split(concat_dev, sections)
             return batch_dev
@@ -176,7 +177,8 @@ def load_data(vocabulary, path):
     with open(path) as f:
         for line in bar(f, max_value=n_lines):
             words = line.strip().split()
-            array = numpy.array([vocabulary.get(w, UNK) for w in words], 'i')
+            array = numpy.array([vocabulary.get(w, UNK)
+                                 for w in words], numpy.int32)
             data.append(array)
     return data
 
@@ -226,6 +228,7 @@ def main():
                         help='directory to output the result')
     args = parser.parse_args()
 
+    # Load pre-processed dataset
     source_ids = load_vocabulary(args.SOURCE_VOCAB)
     target_ids = load_vocabulary(args.TARGET_VOCAB)
     train_source = load_data(source_ids, args.SOURCE)
@@ -251,15 +254,20 @@ def main():
     target_words = {i: w for w, i in target_ids.items()}
     source_words = {i: w for w, i in source_ids.items()}
 
+    # Setup model
     model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit)
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
+        chainer.backends.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
 
+    # Setup optimizer
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
+    # Setup iterator
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
+
+    # Setup updater and trainer
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
@@ -297,8 +305,8 @@ def main():
             target_sentence = ' '.join([target_words[y] for y in target])
             result_sentence = ' '.join([target_words[y] for y in result])
             print('# source : ' + source_sentence)
-            print('#  result : ' + result_sentence)
-            print('#  expect : ' + target_sentence)
+            print('# result : ' + result_sentence)
+            print('# expect : ' + target_sentence)
 
         trainer.extend(
             translate, trigger=(args.validation_interval, 'iteration'))

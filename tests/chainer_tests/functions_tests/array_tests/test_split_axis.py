@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
 from chainer.testing import backend
@@ -98,6 +98,9 @@ def inject_backend_tests(method_names):
          'slices': [[slice(None, None), slice(None, None), slice(None, None),
                      slice(None, 2)], [slice(None, None), slice(None, None),
                                        slice(None, None), slice(2, None)]]
+         },
+        {'shape': (10, 4, 3, 2), 'axis': 0, 'ys_section': numpy.array([]),
+         'slices': [slice(None, None)]
          },
     ],
     [

@@ -1,5 +1,5 @@
-Standard Function implementations
-=================================
+Functions
+=========
 
 .. module:: chainer.functions
 
@@ -21,6 +21,15 @@ functions, which users should use.
 
    KEEP EACH LIST IN LEXICOGRAPHICAL ORDER.
 
+
+Arithmetic functions
+--------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.functions.add
 
 Activation functions
 --------------------
@@ -44,6 +53,7 @@ Activation functions
    chainer.functions.slstm
    chainer.functions.softmax
    chainer.functions.softplus
+   chainer.functions.swish
    chainer.functions.tanh
    chainer.functions.tree_lstm
 
@@ -72,6 +82,7 @@ Array manipulations
    chainer.functions.pad
    chainer.functions.pad_sequence
    chainer.functions.permutate
+   chainer.functions.repeat
    chainer.functions.reshape
    chainer.functions.resize_images
    chainer.functions.rollaxis
@@ -107,12 +118,14 @@ Neural network connections
    chainer.functions.dilated_convolution_2d
    chainer.functions.embed_id
    chainer.functions.linear
+   chainer.functions.local_convolution_2d
    chainer.functions.n_step_bigru
    chainer.functions.n_step_bilstm
    chainer.functions.n_step_birnn
    chainer.functions.n_step_gru
    chainer.functions.n_step_lstm
    chainer.functions.n_step_rnn
+   chainer.functions.shift
 
 
 Evaluation functions
@@ -189,10 +202,12 @@ Mathematical functions
    chainer.functions.erfc
    chainer.functions.exp
    chainer.functions.expm1
+   chainer.functions.fft
    chainer.functions.fix
    chainer.functions.fmod
    chainer.functions.floor
    chainer.functions.identity
+   chainer.functions.ifft
    chainer.functions.inv
    chainer.functions.linear_interpolate
    chainer.functions.log
@@ -275,3 +290,48 @@ Utility functions
    :nosignatures:
 
    chainer.functions.forget
+
+Function base
+-------------
+
+.. module:: chainer
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Function
+   chainer.FunctionAdapter
+   chainer.FunctionNode
+   chainer.force_backprop_mode
+   chainer.no_backprop_mode
+   chainer.grad
+
+Function hooks
+--------------
+
+Chainer provides a function-hook mechanism that enriches
+the behavior of forward and backward propagation of :class:`~chainer.Function`.
+
+Base class
+----------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.FunctionHook
+
+.. module:: chainer.function_hooks
+
+Concrete function hooks
+-----------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.function_hooks.CUDAProfileHook
+   chainer.function_hooks.CupyMemoryProfileHook
+   chainer.function_hooks.PrintHook
+   chainer.function_hooks.TimerHook

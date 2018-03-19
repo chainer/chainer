@@ -66,7 +66,7 @@ def space2depth(X, r):
 
     .. admonition:: Example
 
-        >>> X = np.arange(24).reshape(1, 1, 4, 6).astype('f')
+        >>> X = np.arange(24).reshape(1, 1, 4, 6).astype(np.float32)
         >>> X.shape
         (1, 1, 4, 6)
         >>> X

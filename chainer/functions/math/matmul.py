@@ -4,7 +4,6 @@ import numpy
 
 from chainer.backends import cuda
 from chainer import function_node
-import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
 
@@ -156,8 +155,8 @@ def matmul(a, b, transa=False, transb=False):
 
     .. admonition:: Example
 
-        >>> a = np.array([[1, 0], [0, 1]], 'f')
-        >>> b = np.array([[4, 1], [2, 2]], 'f')
+        >>> a = np.array([[1, 0], [0, 1]], np.float32)
+        >>> b = np.array([[4, 1], [2, 2]], np.float32)
         >>> F.matmul(a, b).data
         array([[4., 1.],
                [2., 2.]], dtype=float32)
@@ -244,12 +243,10 @@ class BatchMatMulGrad(function_node.FunctionNode):
             if 1 in indexes:
                 ret.append(gb)
         if 2 in indexes:
-            a = chainer.functions.reshape(a, (a.shape[:2] + (-1,)))
-            b = chainer.functions.reshape(b, (b.shape[:2] + (-1,)))
-            ggy = \
-                BatchMatMul(self.transa, self.transb).apply((gga, b))[0] + \
-                BatchMatMul(self.transa, self.transb).apply((a, ggb))[0]
-        return ga, gb, ggy
+            ret.append(
+                BatchMatMul(self.transa, self.transb).apply((gga, b))[0] +
+                BatchMatMul(self.transa, self.transb).apply((a, ggb))[0])
+        return ret
 
 
 def batch_matmul(a, b, transa=False, transb=False):

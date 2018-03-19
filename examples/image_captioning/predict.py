@@ -60,9 +60,9 @@ def main():
     imgs = np.asarray(imgs)
 
     if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()
-        imgs = chainer.cuda.to_gpu(imgs)
+        imgs = chainer.backends.cuda.to_gpu(imgs)
 
     bos = vocab['<bos>']
     eos = vocab['<eos>']
@@ -70,7 +70,7 @@ def main():
             chainer.no_backprop_mode():
         captions = model.predict(
             imgs, bos=bos, eos=eos, max_caption_length=args.max_caption_length)
-    captions = chainer.cuda.to_cpu(captions)
+    captions = chainer.backends.cuda.to_cpu(captions)
 
     # Print the predicted captions
     file_names = [os.path.basename(path) for path in img_paths]

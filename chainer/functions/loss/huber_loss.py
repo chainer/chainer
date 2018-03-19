@@ -109,10 +109,12 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
 
         >>> import numpy as np
         >>> from chainer import functions as F
-        >>> x = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).astype('f')
+        >>> x = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).\
+astype(np.float32)
         >>> x.shape
         (2, 3)
-        >>> t = np.array([[-2.0, 3.0, 0.0], [10.0, 2.0, -0.5]]).astype('f')
+        >>> t = np.array([[-2.0, 3.0, 0.0], [10.0, 2.0, -0.5]]).\
+astype(np.float32)
         >>> t.shape
         (2, 3)
         >>> y = F.huber_loss(x, t, delta=1.0, reduce='no')

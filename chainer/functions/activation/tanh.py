@@ -104,7 +104,7 @@ def tanh(x):
 
     .. admonition:: Example
 
-        >>> x = np.arange(-1, 4, 2).astype('f')
+        >>> x = np.arange(-1, 4, 2).astype(np.float32)
         >>> x
         array([-1.,  1.,  3.], dtype=float32)
         >>> F.tanh(x).data

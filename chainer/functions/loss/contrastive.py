@@ -130,9 +130,11 @@ def contrastive(x0, x1, y, margin=1, reduce='mean'):
 
     .. admonition:: Example
 
-        >>> x0 = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).astype('f')
-        >>> x1 = np.array([[-1.0, 3.0, 1.0], [3.5, 0.5, -2.0]]).astype('f')
-        >>> y = np.array([1, 0]).astype('i')
+        >>> x0 = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).\
+astype(np.float32)
+        >>> x1 = np.array([[-1.0, 3.0, 1.0], [3.5, 0.5, -2.0]]).\
+astype(np.float32)
+        >>> y = np.array([1, 0]).astype(np.int32)
         >>> F.contrastive(x0, x1, y)
         variable(0.3125)
         >>> F.contrastive(x0, x1, y, margin=3.0)  # harder penalty

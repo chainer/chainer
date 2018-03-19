@@ -103,7 +103,7 @@ def elu(x, alpha=1.0):
 
     .. admonition:: Example
 
-        >>> x = np.array([[-1, 0], [2, -3]], 'f')
+        >>> x = np.array([[-1, 0], [2, -3]], np.float32)
         >>> x
         array([[-1.,  0.],
                [ 2., -3.]], dtype=float32)

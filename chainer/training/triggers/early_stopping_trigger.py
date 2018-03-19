@@ -1,8 +1,8 @@
-from chainer import reporter
-from chainer.training import util
-
 import operator
 import warnings
+
+from chainer import reporter
+from chainer.training import util
 
 
 class EarlyStoppingTrigger(object):

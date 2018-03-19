@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 
 import chainer
@@ -22,15 +24,16 @@ class BatchNormalization(function_node.FunctionNode):
         self.running_mean = mean
         self.running_var = var
 
-        # Note: cuDNN v5 requires that eps be greater than 1e-5. Otherwise, an
-        # error will occur.
+        # Note: cuDNN requires that eps be greater than or equals to
+        # CUDNN_BN_MIN_EPSILON. Otherwise, an error will occur.
         # See CUDNN_BN_MIN_EPSILON value in cudnn.h to verify minimum allowable
         # value.
         self.eps = eps
         if chainer.should_use_cudnn('>=auto'):
-            if eps < 1e-5:
-                msg = 'cuDNN does not allow an eps value less than 1e-5.'
-                raise RuntimeError(msg)
+            if eps < libcudnn.CUDNN_BN_MIN_EPSILON:
+                raise RuntimeError(
+                    'cuDNN does not allow an eps value '
+                    'less than {}.'.format(libcudnn.CUDNN_BN_MIN_EPSILON))
         self.decay = decay
 
     def check_type_forward(self, in_types):
@@ -50,6 +53,19 @@ class BatchNormalization(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         x, gamma, beta = inputs
+
+        if x.shape[0] == 1:
+            warnings.warn(
+                'A batch with no more than one sample has been given'
+                ' to F.batch_normalization. F.batch_normalization'
+                ' will always output a zero tensor for such batches.'
+                ' This could be caused by incorrect configuration in'
+                ' your code (such as running evaluation while'
+                ' chainer.config.train=True),'
+                ' but could also happen in the last batch of training'
+                ' if non-repeating iterator is used.',
+                UserWarning)
+
         xp = cuda.get_array_module(x)
         if self.running_mean is None:
             self.running_mean = xp.zeros_like(gamma)

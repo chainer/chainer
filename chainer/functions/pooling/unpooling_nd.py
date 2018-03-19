@@ -2,14 +2,15 @@ import numpy
 import six
 
 from chainer.backends import cuda
-from chainer import function
+from chainer import function_node
+from chainer.functions.pooling import pooling_nd
 from chainer import utils
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
 
 
-class UnpoolingND(function.Function):
+class UnpoolingND(pooling_nd._PoolingND):
     """Unpooling over a set of N-dimensional planes.
 
     .. warning::
@@ -20,16 +21,9 @@ class UnpoolingND(function.Function):
 
     def __init__(self, ndim, ksize, stride=None, pad=0, outsize=None,
                  cover_all=True):
+        super(UnpoolingND, self).__init__(ndim, ksize, stride, pad, cover_all)
+        self.outs = None if outsize is None else outsize
         utils.experimental('chainer.functions.pooling.UnpoolingND')
-        if stride is None:
-            stride = ksize
-
-        self.ndim = ndim
-        self.ksize = conv_nd.as_tuple(ksize, ndim)
-        self.stride = conv_nd.as_tuple(stride, ndim)
-        self.pad = conv_nd.as_tuple(pad, ndim)
-        self.outs = outsize
-        self.cover_all = cover_all
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -77,17 +71,36 @@ class UnpoolingND(function.Function):
 
         return y,
 
-    def backward(self, x, gy):
+    def backward(self, indexes, grad_outputs):
+        return UnpoolingNDGrad(self).apply(grad_outputs)
+
+
+class UnpoolingNDGrad(function_node.FunctionNode):
+
+    def __init__(self, unpoolingnd):
+        self.ndim = unpoolingnd.ndim
+        self.ksize = unpoolingnd.ksize
+        self.stride = unpoolingnd.stride
+        self.pad = unpoolingnd.pad
+        self.outs = unpoolingnd.outs
+        self.cover_all = unpoolingnd.cover_all
+
+    def forward(self, gy):
         xp = cuda.get_array_module(*gy)
         if xp is numpy:
             im2col_nd = conv_nd.im2col_nd_cpu
         else:
             im2col_nd = conv_nd.im2col_nd_gpu
-        gcol = im2col_nd(gy[0], self.ksize, self.stride, self.pad,
-                         cover_all=self.cover_all)
+        gcol = im2col_nd(
+            gy[0], self.ksize, self.stride, self.pad, cover_all=self.cover_all)
         gcol_axis = tuple(six.moves.range(2, 2 + self.ndim))
         gx = gcol.sum(axis=gcol_axis)
         return gx,
+
+    def backward(self, indexes, ggx):
+        return UnpoolingND(
+            self.ndim, self.ksize, self.stride, self.pad, self.outs,
+            self.cover_all).apply(ggx)
 
 
 def unpooling_nd(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
@@ -97,7 +110,7 @@ def unpooling_nd(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
 
         This feature is experimental. The interface can change in the future.
 
-    This function acts similary to :class:`~functions.DeconvolutionND`, but
+    This function acts similarly to :class:`~functions.DeconvolutionND`, but
     it spreads input N-dimensional array's value without any parameter instead
     of computing the inner products.
 
@@ -117,7 +130,7 @@ def unpooling_nd(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
             operation :math:`(out_1, out_2, ..., out_N)`. If ``None``, the size
             is estimated from input size, stride and padding.
         cover_all (bool): If ``True``, the pooling window is assumed to cover
-            all of the ouput array, eventually the output size may be smaller
+            all of the output array, eventually the output size may be smaller
             than that in the case ``cover_all`` is ``False``.
 
     Returns:
@@ -125,4 +138,5 @@ def unpooling_nd(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
 
     """
     ndim = len(x.shape[2:])
-    return UnpoolingND(ndim, ksize, stride, pad, outsize, cover_all)(x)
+    return UnpoolingND(
+        ndim, ksize, stride, pad, outsize, cover_all).apply((x,))[0]

@@ -42,7 +42,7 @@ Suppose the following code:
    F.maximum(v1, v2)
 
 Prior to v4, the above code raises an exception like ``ValueError: object __array__ method not producing an array``, which was difficult to understand.
-In v4, the error message would become ``ValueError: incompatible array types are mixed in the forward input (Maximum)``.
+In v4, the error message would become ``TypeError: incompatible array types are mixed in the forward input (Maximum)``.
 This kind of error usually occurs by mistake (for example, not performing ``to_gpu`` for some variables).
 
 .. attention::
@@ -70,6 +70,13 @@ This change was introduced because CUDA 7.5 does not support NVIDIA Pascal GPUs.
 
 To use these images, you may need to upgrade the NVIDIA driver on your host.
 See `Requirements of nvidia-docker <https://github.com/NVIDIA/nvidia-docker/wiki/CUDA#requirements>`_ for details.
+
+CuPy v4
+-------
+
+Chainer v4 requires CuPy v4 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v4 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v4>`_ for details.
+
 
 Chainer v3
 ==========
@@ -117,6 +124,12 @@ See the discussion in `#2955 <https://github.com/chainer/chainer/pull/2955>`_ fo
    The existing code using ``use_cudnn`` argument of :func:`chainer.functions.spatial_transformer_grid` and :func:`chainer.functions.spatial_transformer_sampler` require modification to work with Chainer v3.
    Please use the configuration context (e.g., ``with chainer.using_config('use_cudnn', 'auto'):``) to enable or disable use of cuDNN.
    See :ref:`configuration` for details.
+
+CuPy v2
+-------
+
+Chainer v3 requires CuPy v2 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v2 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v2>`_ for details.
 
 
 Chainer v2

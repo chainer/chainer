@@ -1,9 +1,8 @@
 import numpy
 
-import chainer.functions
-
 from chainer.backends import cuda
 from chainer import function_node
+import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
 
@@ -109,7 +108,7 @@ def softplus(x, beta=1.0):
 
     .. admonition:: Example
 
-        >>> x = np.arange(-2, 3, 2).astype('f')
+        >>> x = np.arange(-2, 3, 2).astype(np.float32)
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
         >>> F.softplus(x, beta=1.0).data

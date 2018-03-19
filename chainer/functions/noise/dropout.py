@@ -114,7 +114,7 @@ def dropout(x, ratio=.5, **kwargs):
 
     .. admonition:: Example
 
-        >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], 'f')
+        >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], np.float32)
         >>> with chainer.using_config('train', True):
         ...     y = F.dropout(x)
         >>> y.data
