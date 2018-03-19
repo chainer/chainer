@@ -11,6 +11,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"
+#include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
@@ -218,6 +219,14 @@ void InitXchainerArray(pybind11::module& m) {
                  },
                  py::arg("grad"),
                  py::arg("graph_id") = kDefaultGraphId)
+            .def("backward",
+                 [](const ArrayBodyPtr& self, const GraphId& graph_id, bool enable_double_backprop) {
+                     Array array{self};
+                     auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
+                     Backward(array, graph_id, double_backprop);
+                 },
+                 py::arg("graph_id") = kDefaultGraphId,
+                 py::arg("enable_double_backprop") = false)
             .def_property(
                     "grad",
                     [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {

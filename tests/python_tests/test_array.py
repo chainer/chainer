@@ -703,6 +703,19 @@ def test_array_require_grad_multiple_graphs_forward():
     assert not y.is_grad_required('graph_3')
 
 
+def test_array_backward():
+    x1 = xchainer.Array((3, 1), xchainer.int8, [1, 1, 1]).require_grad(graph_id='graph_1')
+    x2 = xchainer.Array((3, 1), xchainer.int8, [1, 1, 1]).require_grad(graph_id='graph_1')
+    y = x1 * x2
+
+    y.backward(graph_id='graph_1', enable_double_backprop=True)
+    gx1 = x1.get_grad(graph_id='graph_1')
+    x1.set_grad(None, graph_id='graph_1')
+
+    gx1.backward(graph_id='graph_1')
+    assert gx1.get_grad(graph_id='graph_1') is not None
+
+
 @pytest.mark.parametrize("input_shape,indices,output_shape,output_data", [
     # empty indexing
     ((), (), (), [0]),
