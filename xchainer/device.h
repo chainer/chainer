@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "xchainer/backend.h"
 #include "xchainer/scalar.h"
