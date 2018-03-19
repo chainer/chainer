@@ -260,9 +260,6 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
                 self.should_call_cudnn = False
             if self.groups > 1 and cuda.cuda.cudnn.getVersion() < 7000:
                 self.should_call_cudnn = False
-            self.can_use_tensor_core = True
-            if self.dilate > 1:
-                self.can_use_tensor_core = False
 
     def forward(self):
         x = chainer.Variable(self.x)
@@ -271,34 +268,23 @@ class TestConvolution2DCudnnCall(unittest.TestCase):
                                 dilate=self.dilate, groups=self.groups)
 
     def test_call_cudnn_forward(self):
-        name = 'cupy.cuda.cudnn.convolutionForward'
-        name2 = 'chainer.functions.connection.convolution_2d' \
-            '.Convolution2DFunction._tensor_core_adjust_algo'
-        with chainer.using_config('use_cudnn', self.use_cudnn), \
-                chainer.using_config('cudnn_deterministic',
-                                     self.cudnn_deterministic), \
-                testing.patch(name) as func, \
-                testing.patch(name2) as tensor_core_adjust_algo:
-            self.forward()
-            self.assertEqual(func.called, self.should_call_cudnn)
-            if not self.can_use_tensor_core:
-                self.assertEqual(tensor_core_adjust_algo.called, False)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with chainer.using_config('cudnn_deterministic',
+                                      self.cudnn_deterministic):
+                with testing.patch('cupy.cudnn.convolution_forward') as func:
+                    self.forward()
+                    self.assertEqual(func.called, self.should_call_cudnn)
 
     def test_call_cudnn_backward(self):
-        name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
-        name2 = 'chainer.functions.connection.convolution_2d' \
-            '.Convolution2DGradW._tensor_core_adjust_algo'
-        with chainer.using_config('use_cudnn', self.use_cudnn), \
-                chainer.using_config('cudnn_deterministic',
-                                     self.cudnn_deterministic):
-            y = self.forward()
-            y.grad = self.gy
-            with testing.patch(name) as func, \
-                    testing.patch(name2) as tensor_core_adjust_algo:
-                y.backward()
-                self.assertEqual(func.called, self.should_call_cudnn)
-                if not self.can_use_tensor_core:
-                    self.assertEqual(tensor_core_adjust_algo.called, False)
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with chainer.using_config('cudnn_deterministic',
+                                      self.cudnn_deterministic):
+                y = self.forward()
+                y.grad = self.gy
+                name = 'cupy.cudnn.convolution_backward_data'
+                with testing.patch(name) as func:
+                    y.backward()
+                    self.assertEqual(func.called, self.should_call_cudnn)
 
 
 @testing.parameterize(*testing.product({
@@ -338,27 +324,12 @@ class TestConvolution2DFunctionCudnnDeterministic(unittest.TestCase):
 
     def test_called(self):
         with testing.patch(
-            'chainer.functions.connection.convolution_2d.libcudnn',
-            autospec=True
-        ) as mlibcudnn_conv, testing.patch(
-            'chainer.functions.connection.deconvolution_2d.libcudnn',
-            autospec=True
-        ) as mlibcudnn_deconv:
-
+                'cupy.cudnn.convolution_backward_filter', autospec=True) as f:
             # cuDNN version >= v3 supports `cudnn_deterministic` option
-            x, W, b, y = self._run()
+            self._run()
 
             # in Convolution2DFunction.backward_gpu()
-            self.assertFalse(
-                mlibcudnn_conv.getConvolutionBackwardFilterAlgorithm.called)
-            self.assertEqual(
-                mlibcudnn_conv.convolutionBackwardFilter_v3.call_count,
-                self.should_call_cudnn)
-            self.assertFalse(
-                mlibcudnn_deconv.getConvolutionBackwardDataAlgorithm.called)
-            self.assertEqual(
-                mlibcudnn_deconv.convolutionBackwardData_v3.call_count,
-                self.should_call_cudnn)
+            assert f.called == self.should_call_cudnn
 
     def test_cudnn_deterministic(self):
         x1, W1, b1, y1 = self._run()
