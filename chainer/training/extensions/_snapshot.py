@@ -43,8 +43,7 @@ def snapshot_object(target, filename, savefun=npz.save_npz):
 
 def snapshot(savefun=None,
              filename='snapshot_iter_{.updater.iteration}', **kwargs):
-    """snapshot(savefun=None, filename='snapshot_iter_{.updater.iteration}', \
-*, target=None, condition=None, writer=None)
+    """snapshot(savefun=None, filename='snapshot_iter_{.updater.iteration}', *, target=None, condition=None, writer=None)
 
     Returns a trainer extension to take snapshots of the trainer.
 
@@ -132,7 +131,7 @@ trigger=(1, 'epoch'))
     .. seealso::
 
         - :meth:`chainer.training.extensions.snapshot_object`
-    """
+    """  # NOQA
     target = kwargs.pop('target')
     condition = kwargs.pop('condition')
     writer = kwargs.pop('writer')
