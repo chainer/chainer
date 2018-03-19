@@ -1,11 +1,14 @@
 #include "xchainer/python/backward.h"
 
 #include <algorithm>
+#include <iterator>
+#include <memory>
 #include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/array_body.h"
 #include "xchainer/backward.h"
+#include "xchainer/graph.h"
 
 #include "xchainer/python/common.h"
 
