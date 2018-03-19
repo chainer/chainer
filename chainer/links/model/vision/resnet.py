@@ -71,6 +71,8 @@ class ResNetLayers(link.Chain):
             ``chainer.initializers.HeNormal(scale=1.0)``.
         n_layers (int): The number of layers of this model. It should be either
             50, 101, or 152.
+        stride_1x1 (bool): Whether to place stride 2 on the 1x1 convolution.
+            Use True only for the original MSRA ResNet.
 
     Attributes:
         ~ResNetLayers.available_layers (list of str): The list of available
@@ -324,6 +326,8 @@ class ResNet50Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
+        stride_1x1 (bool): Whether to place stride 2 on the 1x1 convolution.
+            Use True only for the original MSRA ResNet.
 
     Attributes:
         ~ResNet50Layers.available_layers (list of str): The list of available
@@ -377,6 +381,8 @@ class ResNet101Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
+        stride_1x1 (bool): Whether to place stride 2 on the 1x1 convolution.
+            Use True only for the original MSRA ResNet.
 
     Attributes:
         ~ResNet101Layers.available_layers (list of str): The list of available
@@ -429,6 +435,8 @@ class ResNet152Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
+        stride_1x1 (bool): Whether to place stride 2 on the 1x1 convolution.
+            Use True only for the original MSRA ResNet.
 
     Attributes:
         ~ResNet152Layers.available_layers (list of str): The list of available
@@ -502,6 +510,8 @@ class BuildingBlock(link.Chain):
         stride (int or tuple of ints): Stride of filter application.
         initialW (4-D array): Initial weight value used in
             the convolutional layers.
+        stride_1x1 (bool): Whether to place stride 2 on the 1x1 convolution.
+            Use True only for the original MSRA ResNet.
     """
 
     def __init__(self, n_layer, in_channels, mid_channels,
@@ -539,12 +549,16 @@ class BottleneckA(link.Chain):
         stride (int or tuple of ints): Stride of filter application.
         initialW (4-D array): Initial weight value used in
             the convolutional layers.
+        stride_1x1 (bool): Whether to place stride 2 on the 1x1 convolution.
+            Use True only for the original MSRA ResNet.
     """
 
     def __init__(self, in_channels, mid_channels, out_channels,
                  stride=2, initialW=None, stride_1x1=True):
         super(BottleneckA, self).__init__()
 
+        # In original MSRA ResNet, stride=2 is on 1x1 convolution.
+        # In facebook Torch ResNet, stride=2 is on 3x3 convolution.
         str1x1, str3x3 = (stride, 1) if stride_1x1 else (1, stride)
 
         with self.init_scope():
