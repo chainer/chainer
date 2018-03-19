@@ -79,8 +79,8 @@ See the document of each decorator in detail.
    chainer.testing.condition.retry
 
 
-Mark
-----
+Unit test annotation
+--------------------
 
 Decorators for annotating unit tests.
 
