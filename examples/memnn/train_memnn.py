@@ -68,8 +68,8 @@ def main():
     parser.add_argument('TEST_DATA',
                         help='Path to test data in bAbI dataset '
                         '(e.g. "qa1_single-supporting-fact_test.txt")')
-    parser.add_argument('--model', '-m',
-                        help='Model directory where it stors trained model')
+    parser.add_argument('--model', '-m', default='model',
+                        help='Model directory where it stores trained model')
     parser.add_argument('--batchsize', '-b', type=int, default=100,
                         help='Number of images in each mini batch')
     parser.add_argument('--epoch', '-e', type=int, default=100,
