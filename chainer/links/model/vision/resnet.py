@@ -393,7 +393,8 @@ class ResNet101Layers(ResNetLayers):
     def __init__(self, pretrained_model='auto', stride_1x1=True):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-101-model.caffemodel'
-        super(ResNet101Layers, self).__init__(pretrained_model, 101, stride_1x1)
+        super(ResNet101Layers, self).__init__(
+            pretrained_model, 101, stride_1x1)
 
 
 class ResNet152Layers(ResNetLayers):
@@ -447,7 +448,8 @@ class ResNet152Layers(ResNetLayers):
     def __init__(self, pretrained_model='auto', stride_1x1=True):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-152-model.caffemodel'
-        super(ResNet152Layers, self).__init__(pretrained_model, 152, stride_1x1)
+        super(ResNet152Layers, self).__init__(
+            pretrained_model, 152, stride_1x1)
 
 
 def prepare(image, size=(224, 224)):
@@ -518,8 +520,8 @@ class BuildingBlock(link.Chain):
                  out_channels, stride, initialW=None, stride_1x1=True):
         super(BuildingBlock, self).__init__()
         with self.init_scope():
-            self.a = BottleneckA(in_channels, mid_channels, out_channels, stride,
-                                 initialW, stride_1x1)
+            self.a = BottleneckA(in_channels, mid_channels, out_channels,
+                                 stride, initialW, stride_1x1)
             self._forward = ["a"]
             for i in range(n_layer - 1):
                 name = 'b{}'.format(i + 1)
