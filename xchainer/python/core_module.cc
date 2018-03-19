@@ -17,9 +17,6 @@
 #include "xchainer/python/strides.h"
 
 namespace xchainer {
-
-namespace py = pybind11;
-
 namespace {
 
 void InitXchainerModule(pybind11::module& m) {
@@ -28,6 +25,7 @@ void InitXchainerModule(pybind11::module& m) {
 
     m.attr("DEFAULT_GRAPH_ID") = kDefaultGraphId;
 }
+
 }  // namespace
 }  // namespace xchainer
 
