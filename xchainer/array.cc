@@ -6,6 +6,7 @@
 #include <cstring>
 #include <numeric>
 #include <ostream>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -43,6 +44,10 @@ std::vector<int8_t> GetSortedAxes(const std::vector<int8_t>& axis, int8_t ndim) 
         throw XchainerError("Duplicate squeeze axes.");
     }
 
+    // sorted_axis is sorted, unique, and within bounds [0, ndim).
+    Ensures(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+    Ensures(std::set<int8_t>(sorted_axis.begin(), sorted_axis.end()).size() == sorted_axis.size());
+    Ensures(std::all_of(sorted_axis.begin(), sorted_axis.end(), [ndim](int8_t x) -> bool { return 0 <= x && x < ndim; }));
     return sorted_axis;
 }
 
