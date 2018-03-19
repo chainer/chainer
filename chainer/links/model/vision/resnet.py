@@ -78,7 +78,7 @@ class ResNetLayers(link.Chain):
 
     """
 
-    def __init__(self, pretrained_model, n_layers):
+    def __init__(self, pretrained_model, n_layers, stride_1x1=True):
         super(ResNetLayers, self).__init__()
 
         if pretrained_model:
@@ -88,6 +88,8 @@ class ResNetLayers(link.Chain):
         else:
             # employ default initializers used in the original paper
             kwargs = {'initialW': normal.HeNormal(scale=1.0)}
+
+        kwargs['stride_1x1'] = stride_1x1
 
         if n_layers == 50:
             block = [3, 4, 6, 3]
@@ -329,10 +331,10 @@ class ResNet50Layers(ResNetLayers):
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto', stride_1x1=True):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-50-model.caffemodel'
-        super(ResNet50Layers, self).__init__(pretrained_model, 50)
+        super(ResNet50Layers, self).__init__(pretrained_model, 50, stride_1x1)
 
 
 class ResNet101Layers(ResNetLayers):
@@ -382,10 +384,10 @@ class ResNet101Layers(ResNetLayers):
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto', stride_1x1=True):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-101-model.caffemodel'
-        super(ResNet101Layers, self).__init__(pretrained_model, 101)
+        super(ResNet101Layers, self).__init__(pretrained_model, 101, stride_1x1)
 
 
 class ResNet152Layers(ResNetLayers):
@@ -434,10 +436,10 @@ class ResNet152Layers(ResNetLayers):
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto', stride_1x1=True):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-152-model.caffemodel'
-        super(ResNet152Layers, self).__init__(pretrained_model, 152)
+        super(ResNet152Layers, self).__init__(pretrained_model, 152, stride_1x1)
 
 
 def prepare(image, size=(224, 224)):
@@ -503,11 +505,11 @@ class BuildingBlock(link.Chain):
     """
 
     def __init__(self, n_layer, in_channels, mid_channels,
-                 out_channels, stride, initialW=None):
+                 out_channels, stride, initialW=None, stride_1x1=True):
         super(BuildingBlock, self).__init__()
         with self.init_scope():
-            self.a = BottleneckA(
-                in_channels, mid_channels, out_channels, stride, initialW)
+            self.a = BottleneckA(in_channels, mid_channels, out_channels, stride,
+                                 initialW, stride_1x1)
             self._forward = ["a"]
             for i in range(n_layer - 1):
                 name = 'b{}'.format(i + 1)
@@ -540,15 +542,18 @@ class BottleneckA(link.Chain):
     """
 
     def __init__(self, in_channels, mid_channels, out_channels,
-                 stride=2, initialW=None):
+                 stride=2, initialW=None, stride_1x1=True):
         super(BottleneckA, self).__init__()
+
+        str1x1, str3x3 = (stride, 1) if stride_1x1 else (1, stride)
+
         with self.init_scope():
             self.conv1 = Convolution2D(
-                in_channels, mid_channels, 1, stride, 0, initialW=initialW,
+                in_channels, mid_channels, 1, str1x1, 0, initialW=initialW,
                 nobias=True)
             self.bn1 = BatchNormalization(mid_channels)
             self.conv2 = Convolution2D(
-                mid_channels, mid_channels, 3, 1, 1, initialW=initialW,
+                mid_channels, mid_channels, 3, str3x3, 1, initialW=initialW,
                 nobias=True)
             self.bn2 = BatchNormalization(mid_channels)
             self.conv3 = Convolution2D(
