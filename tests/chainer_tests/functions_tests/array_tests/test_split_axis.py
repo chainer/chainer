@@ -109,7 +109,7 @@ def inject_backend_tests(method_names):
         {'dtype': numpy.float64},
     ],
 ))
-@unittest.skipIf(numpy.lib.NumpyVersion(numpy.__version__) <= '1.9.3',
+@unittest.skipIf(testing.with_requires('numpy>=1.10'),
                  'split_axis function is not supported in numpy version {}'
                  .format(numpy.__version__))
 @inject_backend_tests(['test_forward', 'test_backward'])
