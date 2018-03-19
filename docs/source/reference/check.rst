@@ -61,8 +61,13 @@ Chainer provides some utilities for testing its functions.
    chainer.testing.save_and_load_npz
 
 
-Repeat
-------
+Repeat decorators
+-----------------
+
+These decorators have a decorated test run multiple times
+in a single invocation. Criteria of passing / failing
+of the test changes according to the type of decorators.
+See the document of each decorator in detail.
 
 .. autosummary::
    :toctree: generated/
@@ -76,6 +81,8 @@ Repeat
 Mark
 ----
 
+Decorators for annotating unit tests.
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -83,11 +90,13 @@ Mark
    chainer.testing.attr.gpu
    chainer.testing.attr.multi_gpu
    chainer.testing.with_requires
-   chainer.testig.fix_random
+   chainer.testing.fix_random
 
 
 Parameterized test
 ------------------
+
+Decorators for making a unit test parameterized.
 
 .. autosummary::
    :toctree: generated/
