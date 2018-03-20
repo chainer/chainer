@@ -325,21 +325,20 @@ def test_invalid_reshape(shape1, shape2):
     check(shape2, shape1)
 
 
-@pytest.mark.parametrize('src_shape,dst_shape,broadcasted_axes', [
-    ((), (), ()),
-    ((1,), (2,), (0,)),
-    ((1, 1), (2, 2), (0, 1)),
-    ((1, 1), (1, 2), (1,)),
+@pytest.mark.parametrize('src_shape,dst_shape', [
+    ((), ()),
+    ((1,), (2,)),
+    ((1, 1), (2, 2)),
+    ((1, 1), (1, 2)),
 ])
-def test_broadcast_to(src_shape, dst_shape, broadcasted_axes):
+def test_broadcast_to(src_shape, dst_shape):
     size = functools.reduce(operator.mul, src_shape, 1)
     src_np = numpy.arange(size, dtype=numpy.float32).reshape(src_shape)
     src = xchainer.Array(src_np)
 
     src_ndim = len(src_shape)
-    index = tuple(xchainer.broadcastable if i in broadcasted_axes else slice(None) for i in range(src_ndim))
 
-    dst = xchainer.broadcast_to(src[index], dst_shape)
+    dst = xchainer.broadcast_to(src, dst_shape)
     dst_np = numpy.broadcast_to(src_np, dst_shape)
     _check_array_equals_ndarray(dst, dst_np)
 
