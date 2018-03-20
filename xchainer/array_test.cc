@@ -1403,7 +1403,7 @@ TEST(ArrayAtTest, At) {
     testing::ContextSession context_session{};
     Shape input_shape{2, 3, 1};
     Shape output_shape{1, 2, 1};
-    std::vector<ArrayIndex> indices{-1, NewAxis{}, Slice{1, 3}, Broadcastable{}};
+    std::vector<ArrayIndex> indices{-1, NewAxis{}, Slice{1, 3}};
     Array a = testing::MakeArray(input_shape).WithLinearData<T>();
     Array b = a.At(indices);
 
@@ -1411,10 +1411,10 @@ TEST(ArrayAtTest, At) {
     Array e = testing::MakeArray(output_shape).WithData<T>({4, 5});
     ExpectEqual<T>(e, b);
 
-    // Check if strides are 0 for newaxis and broadcastable axis.
+    // Check if strides are 0 for newaxis axis.
     EXPECT_EQ(0, b.strides()[0]);
     EXPECT_NE(0, b.strides()[1]);
-    EXPECT_EQ(0, b.strides()[2]);
+    EXPECT_NE(0, b.strides()[2]);
 }
 
 // Index out of bounds
