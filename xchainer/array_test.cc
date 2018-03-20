@@ -1437,16 +1437,6 @@ TEST(ArrayAtTest, InvalidAt2) {
     EXPECT_THROW(a.At(indices), DimensionError);
 }
 
-// Use of broadcastable on invalid axis
-TEST(ArrayAtTest, InvalidAt3) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-    Shape input_shape{2, 3};
-    std::vector<ArrayIndex> indices{Broadcastable{}};
-    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.At(indices), DimensionError);
-}
-
 TEST(ArrayReshapeTest, Reshape) {
     using T = int32_t;
     testing::ContextSession context_session{};
