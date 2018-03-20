@@ -61,47 +61,58 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
 
     VisitDtype(src.dtype(), [&src, &axis, &out](auto pt) {
         using T = typename decltype(pt)::type;
-
         const Shape& out_shape = out.shape();
 
+        // In the following logic, output dimensions are first iterated over with `out_indexer`,
+        // and then reduction dimensions with `reduce_indexer` in nested manner.
+        // `src_indexer` is composed from `out_indexer` and `reduce_indexer` to point a single source value.
+
+        // Example:
+        // - src.shape():      (2, 3, 4, 5)
+        // - axis:             (1, 3)
+        // - out.shape():      (2, 4)
+        // - reduce_shape_vec: (3, 5)
+        // - out_axis:         (0, 2)
+
         // Prepare dimension mappings
-        std::vector<int8_t> reduce_dims;  // Reduction dimensions
-        std::vector<int8_t> out_i_dims;   // Mapping from output indices to src indices
-        out_i_dims.reserve(out.shape().size());
-        reduce_dims.reserve(axis.size());
+        std::vector<int64_t> reduce_shape_vec;  // Reduction dimensions
+        std::vector<int8_t> out_axis;           // Mapping from output indices to src indices
+        out_axis.reserve(out.shape().size());
+        reduce_shape_vec.reserve(axis.size());
         int8_t i_axis = 0;
         for (int8_t i = 0; i < src.shape().ndim(); ++i) {
             if (i == axis[i_axis]) {
                 ++i_axis;
-                reduce_dims.push_back(src.shape()[i]);
+                reduce_shape_vec.push_back(src.shape()[i]);
             } else {
-                out_i_dims.push_back(i);
+                out_axis.push_back(i);
             }
         }
-        Ensures(out_i_dims.size() == src.shape().size() - axis.size());
-        Ensures(reduce_dims.size() == axis.size());
+        Ensures(out_axis.size() == src.shape().size() - axis.size());
+        Ensures(reduce_shape_vec.size() == axis.size());
 
         // Calculate sum
         IndexableArray<const T> src_iarray{src};
         IndexableArray<T> out_iarray{out};
         Indexer<> src_indexer{src.shape()};
-        Indexer<> reduce_indexer{Shape{reduce_dims.begin(), reduce_dims.end()}};
+        Indexer<> reduce_indexer{Shape{reduce_shape_vec.begin(), reduce_shape_vec.end()}};
         Indexer<> out_indexer{out_shape};
 
+        // Iterate over output dimensions
         for (int64_t i_out = 0; i_out < out_indexer.total_size(); ++i_out) {
             out_indexer.Set(i_out);
             T sum_value = 0;
             gsl::span<int64_t> src_index = gsl::make_span(src_indexer.index(), src.shape().size());
 
-            // Set output indices in src_index
+            // Set output indices in the corresponding indices (out_axis) in src_index.
             for (int8_t i_out_dim = 0; i_out_dim < out_indexer.ndim(); ++i_out_dim) {
-                src_index[out_i_dims[i_out_dim]] = out_indexer.index()[i_out_dim];
+                src_index[out_axis[i_out_dim]] = out_indexer.index()[i_out_dim];
             }
 
-            // Reduce axes into single output value
+            // Iterate over reduction dimensions, reducing into a single output value.
             for (int64_t i_reduce = 0; i_reduce < reduce_indexer.total_size(); ++i_reduce) {
                 reduce_indexer.Set(i_reduce);
-                // Set reduction indices in src_index
+                // Set reduction indices in the corresponding indices (axis) in src_index.
                 for (int8_t i_reduce_dim = 0; i_reduce_dim < static_cast<int8_t>(axis.size()); ++i_reduce_dim) {
                     src_index[axis[i_reduce_dim]] = reduce_indexer.index()[i_reduce_dim];
                 }
