@@ -6,4 +6,4 @@ RUN apt-get update -y && \
     python-pip && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-RUN pip install cupy==2.4.0 chainer==3.4.0
+RUN pip install cupy==2.5.0 chainer==3.5.0
