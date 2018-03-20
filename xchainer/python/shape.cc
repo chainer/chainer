@@ -4,6 +4,7 @@
 #include <vector>
 
 namespace xchainer {
+namespace internal {
 
 namespace py = pybind11;
 
@@ -15,12 +16,12 @@ Shape ToShape(const py::tuple& tup) {
 }
 
 py::tuple ToTuple(const Shape& shape) {
-    // TODO(beam2d): Consider casting directly to tuple instead of casting to list.
-    py::list ret;
-    for (int64_t dim : shape) {
-        ret.append(dim);
+    py::tuple ret{shape.size()};
+    for (size_t i = 0; i < shape.size(); ++i) {
+        ret[i] = shape[i];
     }
     return ret;
 }
 
+}  // namespace internal
 }  // namespace xchainer

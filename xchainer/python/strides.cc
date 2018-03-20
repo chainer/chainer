@@ -4,6 +4,7 @@
 #include <vector>
 
 namespace xchainer {
+namespace internal {
 
 namespace py = pybind11;
 
@@ -15,12 +16,12 @@ Strides ToStrides(const py::tuple& tup) {
 }
 
 py::tuple ToTuple(const Strides& strides) {
-    // TODO(beam2d): Consider casting directly to tuple instead of casting to list.
-    py::list ret;
-    for (int64_t stride : strides) {
-        ret.append(stride);
+    py::tuple ret{strides.size()};
+    for (size_t i = 0; i < strides.size(); ++i) {
+        ret[i] = strides[i];
     }
     return ret;
 }
 
+}  // namespace internal
 }  // namespace xchainer
