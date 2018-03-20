@@ -153,21 +153,21 @@ global_config.lazy_grad_sum = bool(int(
 
 
 def is_debug():
-    """Get the debug mode.
+    """Returns if the debug mode is enabled or not in the current thread.
 
     Returns:
-        bool: Return ``True`` if Chainer is in debug mode.
+        bool:  ``True`` if the debug mode is enabled.
     """
     return bool(config.debug)
 
 
 def set_debug(debug):
-    """Set the debug mode.
+    """Enables or disables the debug mode in the current thread.
 
     .. note::
 
-        This method changes the global state. When you use this method on
-        multi-threading environment, it may affect other threads.
+        ``chainer.set_debug(value)`` is equivalent to
+        ``chainer.config.debug = value``.
 
     Args:
         debug (bool): New debug mode.

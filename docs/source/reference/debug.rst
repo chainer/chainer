@@ -1,26 +1,25 @@
 .. _debug:
 
-Debug mode
+Debug Mode
 ==========
 
-In debug mode, Chainer checks values of variables on runtime and shows more
-detailed error messages.
+In debug mode, Chainer checks values of variables on runtime and shows more detailed error messages.
 It helps you to debug your programs.
 However, it requires some additional overhead time.
 
-You can enable debug mode with :func:`chainer.using_config`:
+If you want to enable debug mode for the entire code, you can set ``CHAINER_DEBUG`` environment variable to ``1``.
+
+You can also enable or disable debug mode for the specific scope of code with :func:`chainer.using_config` or by changing ``chainer.config.debug`` configuration.
 
 .. testcode::
 
     with chainer.using_config('debug', True):
        ...
 
-See :ref:`configuration` for Chainer's configuration mechanism.
-
-You can also set ``CHAINER_DEBUG`` environment variable to ``1`` to enable this mode.
+See :ref:`configuration` for the details of Chainer's configuration mechanism.
 
 In debug mode, Chainer checks all results of forward and backward computation, and if it finds a NaN value, it raises :class:`RuntimeError`.
-Some functions and links also check validity of input values.
+Some functions and links also check validity of input values more strictly.
 
 You can check if debug mode is enabled with :func:`chainer.is_debug` function.
 
