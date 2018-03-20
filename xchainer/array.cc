@@ -52,6 +52,22 @@ std::vector<int8_t> GetSortedAxes(const std::vector<int8_t>& axis, int8_t ndim) 
     return sorted_axis;
 }
 
+bool BroadcastableTo(const Shape& from_shape, const Shape& to_shape) {
+    if (from_shape.size() > to_shape.size()) {
+        return false;
+    }
+
+    for (int8_t i_to = to_shape.ndim() - 1, i_from = from_shape.ndim() - 1; i_from >= 0; --i_to, --i_from) {
+        int64_t to_dim = to_shape[i_to];
+        int64_t from_dim = from_shape[i_from];
+        if (from_dim != 1 && from_dim != to_dim) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 }  // namespace
 
 namespace internal {
@@ -194,15 +210,45 @@ Array& Array::operator*=(const Array& rhs) {
 }
 
 Array Array::operator+(const Array& rhs) const {
-    Array out = Array::EmptyLike(*this, device());
-    Add(rhs, out);
-    return out;
+    auto func = [](const Array& lhs, const Array& rhs) {
+        Array out = Array::EmptyLike(lhs, lhs.device());
+        lhs.Add(rhs, out);
+        return out;
+    };
+
+    if (shape() == rhs.shape()) {
+        return func(*this, rhs);
+    }
+    if (BroadcastableTo(shape(), rhs.shape())) {
+        Array lhs_view = BroadcastTo(rhs.shape());
+        return func(lhs_view, rhs);
+    }
+    if (BroadcastableTo(rhs.shape(), shape())) {
+        Array rhs_view = rhs.BroadcastTo(shape());
+        return func(*this, rhs_view);
+    }
+    throw XchainerError("operands could not be broadcast together with shapes " + shape().ToString() + " " + rhs.shape().ToString());
 }
 
 Array Array::operator*(const Array& rhs) const {
-    Array out = Array::EmptyLike(*this, device());
-    Mul(rhs, out);
-    return out;
+    auto func = [](const Array& lhs, const Array& rhs) {
+        Array out = Array::EmptyLike(lhs, lhs.device());
+        lhs.Mul(rhs, out);
+        return out;
+    };
+
+    if (shape() == rhs.shape()) {
+        return func(*this, rhs);
+    }
+    if (BroadcastableTo(shape(), rhs.shape())) {
+        Array lhs_view = BroadcastTo(rhs.shape());
+        return func(lhs_view, rhs);
+    }
+    if (BroadcastableTo(rhs.shape(), shape())) {
+        Array rhs_view = rhs.BroadcastTo(shape());
+        return func(*this, rhs_view);
+    }
+    throw XchainerError("operands could not be broadcast together with shapes " + shape().ToString() + " " + rhs.shape().ToString());
 }
 
 Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const {
@@ -631,7 +677,6 @@ std::string Array::ToString() const { return ArrayRepr(*this); }
 void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
-    // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
     auto lhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
@@ -644,7 +689,6 @@ void Array::Add(const Array& rhs, Array& out) const {
 void Array::Mul(const Array& rhs, Array& out) const {
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
-    // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
     auto lhs_backward_function = [other = rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {

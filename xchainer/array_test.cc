@@ -823,6 +823,27 @@ TEST_P(ArrayTest, Add) {
         Array o = a + b;
         ExpectEqual<int32_t>(e, o);
     }
+
+    // broadcast
+    {
+        Array a = testing::MakeArray({3, 3}).WithLinearData<int32_t>();
+        Array b = Array::Ones({3, 1}, Dtype::kInt32);
+        Array e = testing::MakeArray({3, 3}).WithLinearData<int32_t>(1);
+        Array o = a + b;
+        ExpectEqual<int32_t>(e, o);
+    }
+    {
+        Array a = testing::MakeArray({3, 3}).WithLinearData<int32_t>();
+        Array b = Array::Ones({3}, Dtype::kInt32);
+        Array e = testing::MakeArray({3, 3}).WithLinearData<int32_t>(1);
+        Array o = a + b;
+        ExpectEqual<int32_t>(e, o);
+    }
+    {
+        Array a = testing::MakeArray({3, 3}).WithLinearData<int32_t>();
+        Array b = Array::Ones({4}, Dtype::kInt32);
+        EXPECT_THROW(a + b, XchainerError);
+    }
 }
 
 TEST_P(ArrayTest, Mul) {
@@ -855,6 +876,27 @@ TEST_P(ArrayTest, Mul) {
         Array e = testing::MakeArray<int32_t>({3, 1}, {2, 8, 14});
         Array o = a * b;
         ExpectEqual<int32_t>(e, o);
+    }
+
+    // broadcast
+    {
+        Array a = testing::MakeArray({3, 3}).WithLinearData<int32_t>();
+        Array b = Array::Full({3, 1}, 2, Dtype::kInt32);
+        Array e = testing::MakeArray({3, 3}).WithLinearData<int32_t>(0, 2);
+        Array o = a * b;
+        ExpectEqual<int32_t>(e, o);
+    }
+    {
+        Array a = testing::MakeArray({3, 3}).WithLinearData<int32_t>();
+        Array b = Array::Full({3}, 2, Dtype::kInt32);
+        Array e = testing::MakeArray({3, 3}).WithLinearData<int32_t>(0, 2);
+        Array o = a * b;
+        ExpectEqual<int32_t>(e, o);
+    }
+    {
+        Array a = testing::MakeArray({3, 3}).WithLinearData<int32_t>();
+        Array b = Array::Full({4}, 2, Dtype::kInt32);
+        EXPECT_THROW(a * b, XchainerError);
     }
 }
 
