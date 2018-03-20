@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <limits>
 #include <numeric>
@@ -1485,7 +1486,7 @@ TEST(ArraySqueezeTest, SqueezeSpecifiedUnitLenghtAxes) {
     testing::ContextSession context_session{};
 
     Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    Array b = a.Squeeze(std::vector<int64_t>{2, 0, 4});
+    Array b = a.Squeeze(std::vector<int8_t>{2, 0, 4});
     Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
     ExpectEqual<T>(e, b);
 }
@@ -1505,8 +1506,8 @@ TEST(ArraySqueezeTest, SqueezeMultipleCalls) {
     testing::ContextSession context_session{};
 
     Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    Array b = a.Squeeze(std::vector<int64_t>{0, 2});
-    Array c = b.Squeeze(std::vector<int64_t>{3});
+    Array b = a.Squeeze(std::vector<int8_t>{0, 2});
+    Array c = b.Squeeze(std::vector<int8_t>{3});
     Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
     ExpectEqual<T>(e, c);
 }
@@ -1516,7 +1517,7 @@ TEST(ArraySqueezeTest, SqueezeNonContiguous) {
     testing::ContextSession context_session{};
 
     Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(4);
-    Array b = a.Squeeze(std::vector<int64_t>{0, 2, 4});
+    Array b = a.Squeeze(std::vector<int8_t>{0, 2, 4});
     Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
     ExpectEqual<T>(e, b);
 }
@@ -1526,7 +1527,7 @@ TEST(ArraySqueezeTest, SqueezeNegativeAxis) {
     testing::ContextSession context_session{};
 
     Array a = testing::MakeArray({2, 3, 4, 1}).WithLinearData<T>();
-    Array b = a.Squeeze(std::vector<int64_t>{-1});
+    Array b = a.Squeeze(std::vector<int8_t>{-1});
     Array e = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
     ExpectEqual<T>(e, b);
 }
@@ -1546,7 +1547,7 @@ TEST(ArraySqueezeTest, InvalidSqueezeNonUnitLengthAxis) {
     testing::ContextSession context_session{};
 
     Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    EXPECT_THROW(Array b = a.Squeeze(std::vector<int64_t>{1}), DimensionError);
+    EXPECT_THROW(Array b = a.Squeeze(std::vector<int8_t>{1}), DimensionError);
 }
 
 TEST(ArraySqueezeTest, InvalidSqueezeDuplicateAxes) {
@@ -1554,7 +1555,7 @@ TEST(ArraySqueezeTest, InvalidSqueezeDuplicateAxes) {
     testing::ContextSession context_session{};
 
     Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    EXPECT_THROW(a.Squeeze(std::vector<int64_t>{0, 2, 2}), XchainerError);
+    EXPECT_THROW(a.Squeeze(std::vector<int8_t>{0, 2, 2}), XchainerError);
 }
 
 TEST(ArraySqueezeTest, InvalidSqueezeOutOfRangeAxes) {
@@ -1562,13 +1563,13 @@ TEST(ArraySqueezeTest, InvalidSqueezeOutOfRangeAxes) {
     testing::ContextSession context_session{};
 
     Array a = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_THROW(a.Squeeze(std::vector<int64_t>{3}), DimensionError);
+    EXPECT_THROW(a.Squeeze(std::vector<int8_t>{3}), DimensionError);
 }
 
 TEST_P(ArrayTest, SqueezeBackward) {
     CheckBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {xs[0].Squeeze(std::vector<int64_t>{0, 2, 4})};
+                return {xs[0].Squeeze(std::vector<int8_t>{0, 2, 4})};
             },
             {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(4)).RequireGrad()},
             {testing::MakeArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)},
@@ -1578,7 +1579,7 @@ TEST_P(ArrayTest, SqueezeBackward) {
 TEST_P(ArrayTest, SqueezeDoubleBackward) {
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = xs[0].Squeeze(std::vector<int64_t>{0, 2, 4});
+                auto y = xs[0].Squeeze(std::vector<int8_t>{0, 2, 4});
                 return {y * y};  // to make it nonlinear
             },
             {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(4)).RequireGrad()},
@@ -1654,6 +1655,44 @@ TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NotBroadcastableAtEnd) {
 
     Array a = testing::MakeArray(input_shape).WithLinearData<T>();
     EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
+}
+
+TEST(ArraySumTest, Sum) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
+    Array b = a.Sum(std::vector<int8_t>{2, 1, -1});
+    EXPECT_EQ(Shape{2}, b.shape());
+    Array e = testing::MakeArray(Shape{2}).WithData<T>({630.0f, 1926.0f});
+    ExpectEqual<T>(e, b);
+}
+
+TEST(ArraySumTest, SumAllAxes) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
+    Array b = a.Sum();
+    EXPECT_EQ(Shape{}, b.shape());
+    Array e = testing::MakeArray(Shape{}).WithData<T>({153.0f});
+    ExpectEqual<T>(e, b);
+}
+
+TEST(ArraySumTest, InvalidSumDuplicateAxes) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
+    EXPECT_THROW(a.Squeeze(std::vector<int8_t>{1, 1}), XchainerError);
+}
+
+TEST(ArraySumTest, InvalidSumOutOfRangeAxes) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
+    EXPECT_THROW(a.Sum(std::vector<int8_t>{3}), DimensionError);
 }
 
 }  // namespace

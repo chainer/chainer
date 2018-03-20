@@ -114,11 +114,16 @@ public:
     //
     // If no axes are specified, all axes of unit-lengths are removed.
     // If no axes can be removed, an array with aliased data is returned.
-    Array Squeeze(const nonstd::optional<std::vector<int64_t>>& axis = nonstd::nullopt) const;
+    Array Squeeze(const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt) const;
 
     // Broadcasts the array to the specified shape.
     // Returned array is always a view to this array.
     Array BroadcastTo(const Shape& shape) const;
+
+    // Returns a sum of the array.
+    // If `axis` is set, it will be summed over the specified axes.
+    // Otherwise, it will be summed over all the existing axes.
+    Array Sum(const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt) const;
 
     // Creates a copy.
     // It will be connected to all the graphs.

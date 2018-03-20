@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "xchainer/backend.h"
 #include "xchainer/scalar.h"
@@ -52,6 +54,21 @@ public:
     virtual std::shared_ptr<void> FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
 
     virtual void Fill(Array& out, Scalar value) = 0;
+
+    // Calculate the sum of an array.
+    // It will be summed over the specified axes.
+    // `axis` must be normalized so that
+    // - it has only positive values,
+    // - it is sorted, and
+    // - it has no duplicated values.
+    // Otherwise, the behavior is undefined.
+    virtual void Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) {
+        // TODO(niboshi): Implement in derived classes
+        (void)src;   // unused
+        (void)axis;  // unused
+        (void)out;   // unused
+        throw NotImplementedError("");
+    }
 
     // Copies the elements from one array to the other.
     //
