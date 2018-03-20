@@ -143,7 +143,6 @@ private:
 }  // namespace
 
 void Backward(const Array& output, const GraphId& graph_id, DoubleBackpropOption double_backprop) {
-    // TODO(takagi): Operations that have multiple outputs
     std::vector<ConstArrayRef> outputs{output};  // Do not inline it; we need to guarantee that the vector is alive until Run() finishes.
     BackwardImpl{outputs, graph_id, double_backprop}.Run();
 }
