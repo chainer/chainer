@@ -1656,18 +1656,7 @@ TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NotBroadcastableAtEnd) {
     EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
 }
 
-TEST(ArraySumTest, Sum1) {
-    using T = float;
-    testing::ContextSession context_session{};
-
-    Array a = testing::MakeArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
-    Array b = a.Sum();
-    EXPECT_EQ(Shape{}, b.shape());
-    Array e = testing::MakeArray(Shape{}).WithData<T>({153.0f});
-    ExpectEqual<T>(e, b);
-}
-
-TEST(ArraySumTest, Sum2) {
+TEST(ArraySumTest, Sum) {
     using T = float;
     testing::ContextSession context_session{};
 
@@ -1675,6 +1664,17 @@ TEST(ArraySumTest, Sum2) {
     Array b = a.Sum(std::vector<int8_t>{2, 1, -1});
     EXPECT_EQ(Shape{2}, b.shape());
     Array e = testing::MakeArray(Shape{2}).WithData<T>({630.0f, 1926.0f});
+    ExpectEqual<T>(e, b);
+}
+
+TEST(ArraySumTest, SumAllAxes) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
+    Array b = a.Sum();
+    EXPECT_EQ(Shape{}, b.shape());
+    Array e = testing::MakeArray(Shape{}).WithData<T>({153.0f});
     ExpectEqual<T>(e, b);
 }
 
