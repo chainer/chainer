@@ -358,6 +358,7 @@ def test_broadcast_to_auto_prefix():
     ((3,), (2,)),
     ((3,), (3, 2)),
     ((1, 3), (3, 2)),
+    ((1, 3), (2, 3)),  # no broadcastable used
 ])
 def test_invalid_broadcast_to(src_shape, dst_shape):
     src = xchainer.ones(src_shape, xchainer.float32)
