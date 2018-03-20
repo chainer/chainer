@@ -22,9 +22,6 @@ public:
         std::copy(shape.begin(), shape.end(), shape_);
     }
 
-    template <typename InputIt>
-    explicit Indexer(InputIt first, InputIt last) : Indexer{Shape{first, last}} {}
-
     XCHAINER_HOST_DEVICE int8_t ndim() const { return kNdim; }
 
     XCHAINER_HOST_DEVICE int64_t total_size() const { return total_size_; }
@@ -59,9 +56,6 @@ public:
     explicit Indexer(const Shape& shape) : total_size_(shape.GetTotalSize()), ndim_(shape.ndim()) {
         std::copy(shape.begin(), shape.end(), shape_);
     }
-
-    template <typename InputIt>
-    explicit Indexer(InputIt first, InputIt last) : Indexer{Shape{first, last}} {}
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
 
