@@ -503,7 +503,7 @@ Array Array::BroadcastTo(const Shape& shape) const {
     return Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
 }
 
-Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis) const {
+Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const {
     std::vector<int8_t> sorted_axis;
     if (axis.has_value()) {
         sorted_axis = GetSortedAxes(*axis, shape().ndim());
@@ -515,15 +515,23 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis) const {
 
     // Calculate output shape
     std::vector<int64_t> out_shape_vec;
+    out_shape_vec.reserve(shape().ndim());
     int8_t i_axis = 0;
     for (int8_t i = 0; i < shape().ndim(); ++i) {
         if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
             ++i_axis;
+            if (keepdims) {
+                out_shape_vec.push_back(int64_t{1});
+            }
         } else {
             out_shape_vec.push_back(shape()[i]);
         }
     }
-    assert(out_shape_vec.size() == shape().size() - sorted_axis.size());
+    if (keepdims) {
+        assert(out_shape_vec.size() == shape().size());
+    } else {
+        assert(out_shape_vec.size() == shape().size() - sorted_axis.size());
+    }
 
     Array out = Array::Empty({out_shape_vec.begin(), out_shape_vec.end()}, dtype(), device());
     device().Sum(*this, sorted_axis, out);

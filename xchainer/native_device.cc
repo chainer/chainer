@@ -57,7 +57,9 @@ void NativeDevice::Fill(Array& out, Scalar value) {
 }
 
 void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) {
-    assert(axis.size() == src.shape().size() - out.shape().size());
+    // keepdims denotes the corresponding argument in Array::Sum().
+    assert(out.ndim() == src.ndim() - static_cast<int64_t>(axis.size()) ||  // keepdims=false
+           out.ndim() == src.ndim());                                       // keepdims=true
     CheckDevicesCompatible(src, out);
 
     VisitDtype(src.dtype(), [&src, &axis, &out](auto pt) {
@@ -71,12 +73,18 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
         // Prepare dimension mappings
         std::vector<int64_t> reduce_shape_vec;  // Reduction dimensions
         std::vector<int8_t> out_axis;           // Mapping from output indices to src indices
-        // Example:
-        // - src.shape():      (2, 3, 4, 5)
+        // Example (in the case of keepdims=false):
+        // - src.shape():      (2, 3, 4, 5, 6)
         // - axis:             (1, 3)
-        // - out.shape():      (2, 4)
+        // - out.shape():      (2, 4, 6)
         // - reduce_shape_vec: (3, 5)
-        // - out_axis:         (0, 2)
+        // - out_axis:         (0, 2, 4)
+        // Example (in the case of keepdims=true):
+        // - src.shape():      (2, 3, 4, 5, 6)
+        // - axis:             (1, 3)
+        // - out.shape():      (2, 1, 4, 1, 6)
+        // - reduce_shape_vec: (3, 5)
+        // - out_axis:         (0, 2, 4)
 
         out_axis.reserve(out.shape().size());
         reduce_shape_vec.reserve(axis.size());
@@ -106,7 +114,7 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
             gsl::span<int64_t> src_index = gsl::make_span(src_indexer.index(), src.shape().size());
 
             // Set output indices in the corresponding indices (out_axis) in src_index.
-            for (int8_t i_out_dim = 0; i_out_dim < out_indexer.ndim(); ++i_out_dim) {
+            for (size_t i_out_dim = 0; i_out_dim < out_axis.size(); ++i_out_dim) {
                 src_index[out_axis[i_out_dim]] = out_indexer.index()[i_out_dim];
             }
 

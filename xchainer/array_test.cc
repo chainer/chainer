@@ -1679,6 +1679,17 @@ TEST(ArraySumTest, SumAllAxes) {
     ExpectEqual<T>(e, b);
 }
 
+TEST(ArraySumTest, SumKeepDims) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
+    Array b = a.Sum(std::vector<int8_t>{2, 1, -1}, true);
+    EXPECT_EQ(Shape({2, 1, 1, 1}), b.shape());
+    Array e = testing::MakeArray(Shape{2, 1, 1, 1}).WithData<T>({630.0f, 1926.0f});
+    ExpectEqual<T>(e, b);
+}
+
 TEST(ArraySumTest, InvalidSumDuplicateAxes) {
     using T = float;
     testing::ContextSession context_session{};
