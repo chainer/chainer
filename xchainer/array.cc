@@ -489,13 +489,7 @@ Array Array::BroadcastTo(const Shape& shape) const {
             // non-broadcast dimension
             rev_strides.push_back(*nonbroadcast_stride);
         } else {
-            // broadcast dimension
-            if (out_dim == 1) {
-                // broadcasted dimension should not be broadcastable
-                rev_strides.push_back(int64_t{1});
-            } else {
-                rev_strides.push_back(int64_t{0});
-            }
+            rev_strides.push_back(int64_t{0});
         }
     }
     Ensures(rev_strides.size() == shape.size());

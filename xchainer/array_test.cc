@@ -1603,7 +1603,7 @@ TEST(ArrayBroadcastToTest, BroadcastTo) {
     Array b = a.BroadcastTo(output_shape);
     ASSERT_EQ(output_shape, b.shape());
     EXPECT_EQ(a.data().get(), b.data().get()) << "BroadcastTo must be done without copying data";
-    ASSERT_NE(0, b.strides()[1]) << "Broadcasted dimension must not be broadcastable";
+    ASSERT_EQ(0, b.strides()[1]) << "Stride of broadcasted dimension must be 0";
 
     std::vector<int64_t> output_data;
     for (int i = 0; i < 3; ++i) {
