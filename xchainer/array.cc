@@ -46,9 +46,9 @@ std::vector<int8_t> GetSortedAxes(const std::vector<int8_t>& axis, int8_t ndim) 
     }
 
     // sorted_axis is sorted, unique, and within bounds [0, ndim).
-    Ensures(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
-    Ensures(std::set<int8_t>(sorted_axis.begin(), sorted_axis.end()).size() == sorted_axis.size());
-    Ensures(std::all_of(sorted_axis.begin(), sorted_axis.end(), [ndim](int8_t x) -> bool { return 0 <= x && x < ndim; }));
+    assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+    assert(std::set<int8_t>(sorted_axis.begin(), sorted_axis.end()).size() == sorted_axis.size());
+    assert(std::all_of(sorted_axis.begin(), sorted_axis.end(), [ndim](int8_t x) -> bool { return 0 <= x && x < ndim; }));
     return sorted_axis;
 }
 
@@ -523,7 +523,7 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis) const {
             out_shape_vec.push_back(shape()[i]);
         }
     }
-    Ensures(out_shape_vec.size() == shape().size() - sorted_axis.size());
+    assert(out_shape_vec.size() == shape().size() - sorted_axis.size());
 
     Array out = Array::Empty({out_shape_vec.begin(), out_shape_vec.end()}, dtype(), device());
     device().Sum(*this, sorted_axis, out);

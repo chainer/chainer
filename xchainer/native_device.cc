@@ -1,5 +1,6 @@
 #include "xchainer/native_device.h"
 
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -56,7 +57,7 @@ void NativeDevice::Fill(Array& out, Scalar value) {
 }
 
 void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) {
-    Expects(axis.size() == src.shape().size() - out.shape().size());
+    assert(axis.size() == src.shape().size() - out.shape().size());
     CheckDevicesCompatible(src, out);
 
     VisitDtype(src.dtype(), [&src, &axis, &out](auto pt) {
@@ -88,8 +89,8 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
                 out_axis.push_back(i);
             }
         }
-        Ensures(out_axis.size() == src.shape().size() - axis.size());
-        Ensures(reduce_shape_vec.size() == axis.size());
+        assert(out_axis.size() == src.shape().size() - axis.size());
+        assert(reduce_shape_vec.size() == axis.size());
 
         // Calculate sum
         IndexableArray<const T> src_iarray{src};
