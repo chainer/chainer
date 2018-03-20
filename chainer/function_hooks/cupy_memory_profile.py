@@ -40,10 +40,10 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
         pool acquired from GPU device on the function call, and *Occurrence*
         is the number of calls.
     Attributes:
-        call_history: List of measurement results. It consists of the function
-            that calls this hook, the memory bytes the function used from cupy
-            memory pool, and the memory bytes the cupy memory pool acquired
-            from GPU device on the function call.
+        call_history: List of measurement results. It consists of the name of
+            the function that calls this hook, the memory bytes the function
+            used from cupy memory pool, and the memory bytes the cupy memory
+            pool acquired from GPU device on the function call.
     """
 
     name = 'CupyMemoryProfileHook'
@@ -83,7 +83,8 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
         used_bytes = end_used_bytes - start_used_bytes
         acquired_bytes = end_acquired_bytes - start_acquired_bytes
         depth = len(self._running_stack)
-        self.call_history.append((function, used_bytes, acquired_bytes, depth))
+        self.call_history.append(
+            (function._impl_name, used_bytes, acquired_bytes, depth))
         if depth == 0:
             self._total_used_bytes += used_bytes
             self._total_acquired_bytes += acquired_bytes
@@ -112,12 +113,11 @@ class CupyMemoryProfileHook(function_hook.FunctionHook):
         """
         # TODO(sonots): PROBLEM: takes count of nested functions duplicately
         summary = collections.OrderedDict()
-        for func, used_bytes, acquired_bytes, depth in self.call_history:
-            function_name = func._impl_name
-            if function_name not in summary:
-                summary[function_name] = {'used_bytes': 0,
-                                          'acquired_bytes': 0, 'occurrence': 0}
-            record = summary[function_name]
+        for func_name, used_bytes, acquired_bytes, depth in self.call_history:
+            if func_name not in summary:
+                summary[func_name] = {'used_bytes': 0,
+                                      'acquired_bytes': 0, 'occurrence': 0}
+            record = summary[func_name]
             record['used_bytes'] += used_bytes
             record['acquired_bytes'] += acquired_bytes
             record['occurrence'] += 1

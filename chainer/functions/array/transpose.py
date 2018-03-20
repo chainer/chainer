@@ -45,7 +45,7 @@ def transpose(x, axes=None):
 
     .. admonition:: Example
 
-        >>> x = np.array([[[0, 1, 2], [3, 4, 5]]], 'f')
+        >>> x = np.array([[[0, 1, 2], [3, 4, 5]]], np.float32)
         >>> x.shape
         (1, 2, 3)
         >>> y = F.transpose(x)  # reverse the dimensions

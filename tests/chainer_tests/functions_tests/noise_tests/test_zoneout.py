@@ -1,14 +1,14 @@
 import unittest
 
+import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 def _zoneout(h, x, creator):
@@ -28,6 +28,8 @@ class TestZoneout(unittest.TestCase):
         self.h = numpy.random.uniform(-1, 1, (3, 4)).astype(numpy.float32)
         self.x = numpy.random.uniform(-1, 1, (3, 4)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-1, 1, (3, 4)).astype(numpy.float32)
+        self.ggh = numpy.random.uniform(-1, 1, (3, 4)).astype(numpy.float32)
+        self.ggx = numpy.random.uniform(-1, 1, (3, 4)).astype(numpy.float32)
 
     def check_forward(self, h_data, x_data):
         h = chainer.Variable(h_data)
@@ -58,6 +60,26 @@ class TestZoneout(unittest.TestCase):
         testing.assert_allclose(gh, h.grad, atol=1e-3)
         testing.assert_allclose(gx, x.grad, atol=1e-3)
 
+    def check_double_backward(
+            self, h_data, x_data, y_grad, h_grad_grad, x_grad_grad):
+        xp = cuda.get_array_module(h_data)
+        flag_x = xp.random.rand(*x_data.shape)
+
+        def f(h, x):
+            # As forward computation is executed multiple times in
+            # check_double_backward, use a fixed flag.
+            xp_str = 'numpy' if xp is numpy else 'cupy'
+            with mock.patch(
+                    '{}.random.rand'.format(xp_str),
+                    return_value=flag_x) as mock_rand:
+                y = functions.zoneout(h, x, self.ratio)
+                mock_rand.assert_called_once_with(*x.shape)
+            return y * y
+
+        gradient_check.check_double_backward(
+            f, (h_data, x_data), y_grad, (h_grad_grad, x_grad_grad),
+            dtype=numpy.float64, atol=1e-7, rtol=1e-7)
+
     def test_forward_cpu(self):
         self.check_forward(self.h, self.x)
 
@@ -65,16 +87,26 @@ class TestZoneout(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.h), cuda.to_gpu(self.x))
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.h, self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.h),
                             cuda.to_gpu(self.x),
                             cuda.to_gpu(self.gy))
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.h, self.x, self.gy, self.ggh, self.ggx)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.h),
+            cuda.to_gpu(self.x),
+            cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggh),
+            cuda.to_gpu(self.ggx))
 
 
 testing.run_module(__name__, __file__)

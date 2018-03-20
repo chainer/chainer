@@ -43,7 +43,9 @@ class DummyOptimizer(chainer.Optimizer):
 
 class DummySerializer(chainer.Serializer):
 
-    def __init__(self, path=[]):
+    def __init__(self, path=None):
+        if path is None:
+            path = []
         self.path = path
         self.called = []
 
