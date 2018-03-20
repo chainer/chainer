@@ -49,7 +49,10 @@ class BatchNormalization(function_node.FunctionNode):
                     'less than {}.'.format(libcudnn.CUDNN_BN_MIN_EPSILON))
         self.decay = decay
         if isinstance(axis, collections.Sequence):
-            pass
+            for i in range(1, len(axis)):
+                if axis[i - 1] >= axis[i]:
+                    msg = 'numbers in axis must be sorted in ascending order'
+                    raise RuntimeError(msg)
         elif isinstance(axis, int):
             axis = axis,
         elif axis is not None:
@@ -103,9 +106,6 @@ class BatchNormalization(function_node.FunctionNode):
 
         self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
         self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
-        for i, j in enumerate(self.key_axis):
-            if gamma.shape[i] != x.shape[j]:
-                raise RuntimeError('shape mismatch')
 
         # TODO(niboshi): Refactor calculation of expander and axis into a
         # function and call it just before they are used.
@@ -413,7 +413,10 @@ class FixedBatchNormalization(function_node.FunctionNode):
     def __init__(self, eps=2e-5, axis=None):
         self.eps = eps
         if isinstance(axis, collections.Sequence):
-            pass
+            for i in range(1, len(axis)):
+                if axis[i - 1] >= axis[i]:
+                    msg = 'numbers in axis must be sorted in ascending order'
+                    raise RuntimeError(msg)
         elif isinstance(axis, int):
             axis = axis,
         elif axis is not None:
@@ -456,9 +459,6 @@ class FixedBatchNormalization(function_node.FunctionNode):
 
         self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
         self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
-        for i, j in enumerate(self.key_axis):
-            if gamma.shape[i] != x.shape[j]:
-                raise RuntimeError('shape mismatch')
 
         # expander inserts singleton dimensions to gamma and beta so that they
         # can be broadcasted with x.
@@ -634,9 +634,6 @@ class _BNMode(object):
 
     def get_cudnn_mode(self):
         assert self.cudnn_dim_ok
-        # if self.is_for_conv2d:
-        #     return libcudnn.CUDNN_BATCHNORM_SPATIAL
-        # return libcudnn.CUDNN_BATCHNORM_PER_ACTIVATION
         return libcudnn.CUDNN_BATCHNORM_SPATIAL
 
     def can_use_ideep(self):
@@ -771,9 +768,9 @@ def batch_normalization(x, gamma, beta, **kwargs):
         decay (float): Decay rate of moving average. It is used during
             training.
         axis (int or tuple of int): Axis over which normalization is
-            performed. When axis is None, it is determined from input
-            dimensions. If x.ndim is 4, axis becomes (0, 2, 3) and
-            normalization is performed over 0th, 2nd and 3rd axis of input.
+            performed. When axis is ``None``, it is determined from input
+            dimensions. For example, if ``x.ndim`` is 4, axis becomes (0, 2, 3)
+            and normalization is performed over 0th, 2nd and 3rd axis of input.
             If it is 2, axis becomes (0) and normalization is performed
             over 0th axis of input. When a tuple of int is given to this
             option, numbers in the tuple must be being sorted in ascending
@@ -813,9 +810,9 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
         var (Variable): Square of scaling parameter of input.
         eps (float): Epsilon value for numerical stability.
         axis (int or tuple of int): Axis over which normalization is
-            performed. When axis is None, it is determined from input
-            dimensions. If x.ndim is 4, axis becomes (0, 2, 3) and
-            normalization is performed over 0th, 2nd and 3rd axis of input.
+            performed. When axis is ``None``, it is determined from input
+            dimensions. For example, if ``x.ndim is 4``, axis becomes (0, 2, 3)
+            and normalization is performed over 0th, 2nd and 3rd axis of input.
             If it is 2, axis becomes (0) and normalization is performed
             over 0th axis of input. When a tuple of int is given to this
             option, numbers in the tuple must be being sorted in ascending
