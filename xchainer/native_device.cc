@@ -67,6 +67,9 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
         // and then reduction dimensions with `reduce_indexer` in nested manner.
         // `src_indexer` is composed from `out_indexer` and `reduce_indexer` to point a single source value.
 
+        // Prepare dimension mappings
+        std::vector<int64_t> reduce_shape_vec;  // Reduction dimensions
+        std::vector<int8_t> out_axis;           // Mapping from output indices to src indices
         // Example:
         // - src.shape():      (2, 3, 4, 5)
         // - axis:             (1, 3)
@@ -74,9 +77,6 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
         // - reduce_shape_vec: (3, 5)
         // - out_axis:         (0, 2)
 
-        // Prepare dimension mappings
-        std::vector<int64_t> reduce_shape_vec;  // Reduction dimensions
-        std::vector<int8_t> out_axis;           // Mapping from output indices to src indices
         out_axis.reserve(out.shape().size());
         reduce_shape_vec.reserve(axis.size());
         int8_t i_axis = 0;
