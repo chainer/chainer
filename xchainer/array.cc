@@ -524,7 +524,7 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
             ++i_axis;
             if (keepdims) {
                 out_shape_vec.push_back(int64_t{1});
-                out_strides_vec.push_back(int64_t{0});  // broadcastable axis
+                out_strides_vec.push_back(int64_t{0});
             }
         } else {
             out_shape_vec.push_back(shape()[i]);
