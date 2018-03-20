@@ -85,4 +85,19 @@ private:
     int8_t ndim_;
 };
 
+template <int8_t kNdim = kDynamicNdim>
+std::ostream& operator<<(std::ostream& os, const Indexer<kNdim>& indexer) {
+    const int64_t* index = indexer.index();
+    Shape shape{indexer.shape(), indexer.shape() + indexer.ndim()};
+    os << "Indexer(shape=" << shape << " index=(";
+    for (int8_t i = 0; i < indexer.ndim(); ++i) {
+        if (i != 0) {
+            os << ", ";
+        }
+        os << index[i];
+    }
+    os << ")";
+    return os;
+}
+
 }  // namespace xchainer
