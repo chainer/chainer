@@ -16,7 +16,6 @@ Reference
    functions
    links
    optimizers
-   optimizer_hooks
    serializers
    initializers
    datasets
