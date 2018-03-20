@@ -349,6 +349,11 @@ void InitXchainerArray(pybind11::module& m) {
                  },
                  py::arg("other"),
                  py::arg("device") = nullptr);
+
+    m.def("broadcast_to",
+          [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.BroadcastTo(internal::ToShape(shape)).move_body(); },
+          py::arg("array"),
+          py::arg("shape"));
 }
 
 }  // namespace xchainer

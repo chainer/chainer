@@ -2,9 +2,12 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <numeric>
 #include <ostream>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -22,6 +25,35 @@
 #include "xchainer/scalar.h"
 
 namespace xchainer {
+
+namespace {
+
+// Convert negative axes to positive values, sort in ascending order and check for duplicates.
+std::vector<int8_t> GetSortedAxes(const std::vector<int8_t>& axis, int8_t ndim) {
+    std::vector<int8_t> sorted_axis = axis;
+
+    for (auto& a : sorted_axis) {
+        if (a < -ndim || ndim <= a) {
+            throw DimensionError("Axis " + std::to_string(a) + " is out of bounds for array of dimension " + std::to_string(ndim));
+        }
+        if (a < 0) {
+            a += ndim;
+        }
+    }
+    std::sort(sorted_axis.begin(), sorted_axis.end());
+    if (std::unique(sorted_axis.begin(), sorted_axis.end()) != sorted_axis.end()) {
+        throw XchainerError("Duplicate axis values.");
+    }
+
+    // sorted_axis is sorted, unique, and within bounds [0, ndim).
+    assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+    assert(std::set<int8_t>(sorted_axis.begin(), sorted_axis.end()).size() == sorted_axis.size());
+    assert(std::all_of(sorted_axis.begin(), sorted_axis.end(), [ndim](int8_t x) -> bool { return 0 <= x && x < ndim; }));
+    return sorted_axis;
+}
+
+}  // namespace
+
 namespace internal {
 
 void SetUpOpNodes(
@@ -97,9 +129,7 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size) {
     Expects(shape.ndim() == strides.ndim());
-    if (shape.ndim() == 0) {
-        return 0;
-    }
+
     // Calculate the distance between the first and the last element, plus single element size.
     size_t total_bytes = element_size;
     for (int8_t i = 0; i < shape.ndim(); ++i) {
@@ -370,7 +400,7 @@ Array Array::Reshape(const Shape& shape) const {
     return out;
 }
 
-Array Array::Squeeze(const nonstd::optional<std::vector<int64_t>>& axis) const {
+Array Array::Squeeze(const nonstd::optional<std::vector<int8_t>>& axis) const {
     const Shape& in_shape = shape();
     const Strides& in_strides = strides();
 
@@ -378,22 +408,7 @@ Array Array::Squeeze(const nonstd::optional<std::vector<int64_t>>& axis) const {
     std::vector<int64_t> out_strides;
 
     if (axis.has_value()) {
-        std::vector<int64_t> sorted_axis = *axis;
-
-        // Convert negative axes to positive values, sort in ascending order and check for duplicates.
-        for (auto& a : sorted_axis) {
-            if (a < -in_shape.ndim() || in_shape.ndim() <= a) {
-                throw DimensionError(
-                        "Axis " + std::to_string(a) + " is out of bounds for array of dimension " + std::to_string(in_shape.ndim()));
-            }
-            if (a < 0) {
-                a += in_shape.ndim();
-            }
-        }
-        std::sort(sorted_axis.begin(), sorted_axis.end());
-        if (std::unique(sorted_axis.begin(), sorted_axis.end()) != sorted_axis.end()) {
-            throw XchainerError("Duplicate squeeze axes.");
-        }
+        std::vector<int8_t> sorted_axis = GetSortedAxes(*axis, in_shape.ndim());
 
         int64_t i_axis = 0;
         for (int64_t i = 0; i < in_shape.ndim(); ++i) {
@@ -486,6 +501,34 @@ Array Array::BroadcastTo(const Shape& shape) const {
     Ensures(rev_strides.size() == shape.size());
 
     return Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
+}
+
+Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis) const {
+    std::vector<int8_t> sorted_axis;
+    if (axis.has_value()) {
+        sorted_axis = GetSortedAxes(*axis, shape().ndim());
+    } else {
+        // Fill with all axes
+        sorted_axis.resize(shape().size());
+        std::iota(sorted_axis.begin(), sorted_axis.end(), int8_t{0});
+    }
+
+    // Calculate output shape
+    std::vector<int64_t> out_shape_vec;
+    int8_t i_axis = 0;
+    for (int8_t i = 0; i < shape().ndim(); ++i) {
+        if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
+            ++i_axis;
+        } else {
+            out_shape_vec.push_back(shape()[i]);
+        }
+    }
+    assert(out_shape_vec.size() == shape().size() - sorted_axis.size());
+
+    Array out = Array::Empty({out_shape_vec.begin(), out_shape_vec.end()}, dtype(), device());
+    device().Sum(*this, sorted_axis, out);
+    // TODO(niboshi): Implement backward
+    return out;
 }
 
 Array Array::Copy() const {

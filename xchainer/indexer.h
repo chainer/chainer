@@ -17,7 +17,7 @@ namespace xchainer {
 template <int8_t kNdim = kDynamicNdim>
 class Indexer {
 public:
-    explicit Indexer(const Shape& shape) : total_size_(shape.GetTotalSize()) {
+    explicit Indexer(const Shape& shape) : total_size_{shape.GetTotalSize()} {
         Expects(shape.size() == kNdim);
         std::copy(shape.begin(), shape.end(), shape_);
     }
@@ -29,6 +29,8 @@ public:
     XCHAINER_HOST_DEVICE const int64_t* shape() const { return shape_; }
 
     XCHAINER_HOST_DEVICE const int64_t* index() const { return index_; }
+
+    XCHAINER_HOST_DEVICE int64_t* index() { return index_; }
 
     XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
 
@@ -62,6 +64,8 @@ public:
     XCHAINER_HOST_DEVICE const int64_t* shape() const { return shape_; }
 
     XCHAINER_HOST_DEVICE const int64_t* index() const { return index_; }
+
+    XCHAINER_HOST_DEVICE int64_t* index() { return index_; }
 
     XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
 
