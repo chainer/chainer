@@ -1411,7 +1411,7 @@ TEST(ArrayAtTest, At) {
     Array e = testing::MakeArray(output_shape).WithData<T>({4, 5});
     ExpectEqual<T>(e, b);
 
-    // Check if strides are 0 for newaxis axis.
+    // Check if strides are 0 for newaxis.
     EXPECT_EQ(0, b.strides()[0]);
     EXPECT_NE(0, b.strides()[1]);
     EXPECT_NE(0, b.strides()[2]);
