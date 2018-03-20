@@ -1684,7 +1684,7 @@ TEST(ArraySumTest, InvalidSumDuplicateAxes) {
     testing::ContextSession context_session{};
 
     Array a = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_THROW(a.Squeeze(std::vector<int8_t>{1, 1}), XchainerError);
+    EXPECT_THROW(a.Sum(std::vector<int8_t>{1, 1}), XchainerError);
 }
 
 TEST(ArraySumTest, InvalidSumOutOfRangeAxes) {
