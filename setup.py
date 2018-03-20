@@ -28,7 +28,7 @@ requirements = {
         'six>=1.9.0',
     ],
     'cuda': [
-        'cupy<2.5',
+        'cupy<2.6',
     ],
     'stylecheck': [
         'hacking',
