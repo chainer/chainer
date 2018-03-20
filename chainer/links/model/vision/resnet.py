@@ -71,7 +71,8 @@ class ResNetLayers(link.Chain):
             ``chainer.initializers.HeNormal(scale=1.0)``.
         n_layers (int): The number of layers of this model. It should be either
             50, 101, or 152.
-        stride_1x1 (bool): Whether to place stride 2 on the 1x1 convolution.
+        downsample_1x1 (bool): Perform downsampling by placing stride 2
+            on the 1x1 convolutional layers or the 3x3 convolutional layers.
             Use True only for the original MSRA ResNet.
 
     Attributes:
@@ -80,7 +81,7 @@ class ResNetLayers(link.Chain):
 
     """
 
-    def __init__(self, pretrained_model, n_layers, stride_1x1=True):
+    def __init__(self, pretrained_model, n_layers, downsample_1x1=True):
         super(ResNetLayers, self).__init__()
 
         if pretrained_model:
@@ -91,7 +92,7 @@ class ResNetLayers(link.Chain):
             # employ default initializers used in the original paper
             kwargs = {'initialW': normal.HeNormal(scale=1.0)}
 
-        kwargs['stride_1x1'] = stride_1x1
+        kwargs['downsample_1x1'] = downsample_1x1
 
         if n_layers == 50:
             block = [3, 4, 6, 3]
@@ -326,7 +327,8 @@ class ResNet50Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
-        stride_1x1 (bool): Whether to place stride 2 on the 1x1 convolution.
+        downsample_1x1 (bool): Perform downsampling by placing stride 2
+            on the 1x1 convolutional layers or the 3x3 convolutional layers.
             Use True only for the original MSRA ResNet.
 
     Attributes:
@@ -335,10 +337,11 @@ class ResNet50Layers(ResNetLayers):
 
     """
 
-    def __init__(self, pretrained_model='auto', stride_1x1=True):
+    def __init__(self, pretrained_model='auto', downsample_1x1=True):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-50-model.caffemodel'
-        super(ResNet50Layers, self).__init__(pretrained_model, 50, stride_1x1)
+        super(ResNet50Layers, self).__init__(
+            pretrained_model, 50, downsample_1x1)
 
 
 class ResNet101Layers(ResNetLayers):
@@ -381,7 +384,8 @@ class ResNet101Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
-        stride_1x1 (bool): Whether to place stride 2 on the 1x1 convolution.
+        downsample_1x1 (bool): Perform downsampling by placing stride 2
+            on the 1x1 convolutional layers or the 3x3 convolutional layers.
             Use True only for the original MSRA ResNet.
 
     Attributes:
@@ -390,11 +394,11 @@ class ResNet101Layers(ResNetLayers):
 
     """
 
-    def __init__(self, pretrained_model='auto', stride_1x1=True):
+    def __init__(self, pretrained_model='auto', downsample_1x1=True):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-101-model.caffemodel'
         super(ResNet101Layers, self).__init__(
-            pretrained_model, 101, stride_1x1)
+            pretrained_model, 101, downsample_1x1)
 
 
 class ResNet152Layers(ResNetLayers):
@@ -436,7 +440,8 @@ class ResNet152Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
-        stride_1x1 (bool): Whether to place stride 2 on the 1x1 convolution.
+        downsample_1x1 (bool): Perform downsampling by placing stride 2
+            on the 1x1 convolutional layers or the 3x3 convolutional layers.
             Use True only for the original MSRA ResNet.
 
     Attributes:
@@ -445,11 +450,11 @@ class ResNet152Layers(ResNetLayers):
 
     """
 
-    def __init__(self, pretrained_model='auto', stride_1x1=True):
+    def __init__(self, pretrained_model='auto', downsample_1x1=True):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-152-model.caffemodel'
         super(ResNet152Layers, self).__init__(
-            pretrained_model, 152, stride_1x1)
+            pretrained_model, 152, downsample_1x1)
 
 
 def prepare(image, size=(224, 224)):
@@ -512,16 +517,17 @@ class BuildingBlock(link.Chain):
         stride (int or tuple of ints): Stride of filter application.
         initialW (4-D array): Initial weight value used in
             the convolutional layers.
-        stride_1x1 (bool): Whether to place stride 2 on the 1x1 convolution.
+        downsample_1x1 (bool): Perform downsampling by placing stride 2
+            on the 1x1 convolutional layers or the 3x3 convolutional layers.
             Use True only for the original MSRA ResNet.
     """
 
     def __init__(self, n_layer, in_channels, mid_channels,
-                 out_channels, stride, initialW=None, stride_1x1=True):
+                 out_channels, stride, initialW=None, downsample_1x1=True):
         super(BuildingBlock, self).__init__()
         with self.init_scope():
             self.a = BottleneckA(in_channels, mid_channels, out_channels,
-                                 stride, initialW, stride_1x1)
+                                 stride, initialW, downsample_1x1)
             self._forward = ["a"]
             for i in range(n_layer - 1):
                 name = 'b{}'.format(i + 1)
@@ -551,34 +557,35 @@ class BottleneckA(link.Chain):
         stride (int or tuple of ints): Stride of filter application.
         initialW (4-D array): Initial weight value used in
             the convolutional layers.
-        stride_1x1 (bool): Whether to place stride 2 on the 1x1 convolution.
+        downsample_1x1 (bool): Perform downsampling by placing stride 2
+            on the 1x1 convolutional layers or the 3x3 convolutional layers.
             Use True only for the original MSRA ResNet.
     """
 
     def __init__(self, in_channels, mid_channels, out_channels,
-                 stride=2, initialW=None, stride_1x1=True):
+                 stride=2, initialW=None, downsample_1x1=True):
         super(BottleneckA, self).__init__()
 
         # In original MSRA ResNet, stride=2 is on 1x1 convolution.
         # In facebook Torch ResNet, stride=2 is on 3x3 convolution.
-        str1x1, str3x3 = (stride, 1) if stride_1x1 else (1, stride)
+        stride_1x1, stride_3x3 = (stride, 1) if downsample_1x1 else (1, stride)
 
         with self.init_scope():
             self.conv1 = Convolution2D(
-                in_channels, mid_channels, 1, str1x1, 0, initialW=initialW,
-                nobias=True)
+                in_channels, mid_channels, 1, stride_1x1, 0,
+                initialW=initialW, nobias=True)
             self.bn1 = BatchNormalization(mid_channels)
             self.conv2 = Convolution2D(
-                mid_channels, mid_channels, 3, str3x3, 1, initialW=initialW,
-                nobias=True)
+                mid_channels, mid_channels, 3, stride_3x3, 1,
+                initialW=initialW, nobias=True)
             self.bn2 = BatchNormalization(mid_channels)
             self.conv3 = Convolution2D(
-                mid_channels, out_channels, 1, 1, 0, initialW=initialW,
-                nobias=True)
+                mid_channels, out_channels, 1, 1, 0,
+                initialW=initialW, nobias=True)
             self.bn3 = BatchNormalization(out_channels)
             self.conv4 = Convolution2D(
-                in_channels, out_channels, 1, stride, 0, initialW=initialW,
-                nobias=True)
+                in_channels, out_channels, 1, stride, 0,
+                initialW=initialW, nobias=True)
             self.bn4 = BatchNormalization(out_channels)
 
     def __call__(self, x):
@@ -604,16 +611,16 @@ class BottleneckB(link.Chain):
         super(BottleneckB, self).__init__()
         with self.init_scope():
             self.conv1 = Convolution2D(
-                in_channels, mid_channels, 1, 1, 0, initialW=initialW,
-                nobias=True)
+                in_channels, mid_channels, 1, 1, 0,
+                initialW=initialW, nobias=True)
             self.bn1 = BatchNormalization(mid_channels)
             self.conv2 = Convolution2D(
-                mid_channels, mid_channels, 3, 1, 1, initialW=initialW,
-                nobias=True)
+                mid_channels, mid_channels, 3, 1, 1,
+                initialW=initialW, nobias=True)
             self.bn2 = BatchNormalization(mid_channels)
             self.conv3 = Convolution2D(
-                mid_channels, in_channels, 1, 1, 0, initialW=initialW,
-                nobias=True)
+                mid_channels, in_channels, 1, 1, 0,
+                initialW=initialW, nobias=True)
             self.bn3 = BatchNormalization(in_channels)
 
     def __call__(self, x):
