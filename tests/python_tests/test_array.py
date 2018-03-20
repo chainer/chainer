@@ -325,6 +325,47 @@ def test_invalid_reshape(shape1, shape2):
     check(shape2, shape1)
 
 
+@pytest.mark.parametrize('src_shape,dst_shape,broadcasted_axes', [
+    ((), (), ()),
+    ((1,), (2,), (0,)),
+    ((1, 1), (2, 2), (0, 1)),
+    ((1, 1), (1, 2), (1,)),
+])
+def test_broadcast_to(src_shape, dst_shape, broadcasted_axes):
+    size = functools.reduce(operator.mul, src_shape, 1)
+    src_np = numpy.arange(size, dtype=numpy.float32).reshape(src_shape)
+    src = xchainer.Array(src_np)
+
+    src_ndim = len(src_shape)
+    index = tuple(xchainer.broadcastable if i in broadcasted_axes else slice(None) for i in range(src_ndim))
+
+    dst = xchainer.broadcast_to(src[index], dst_shape)
+    dst_np = numpy.broadcast_to(src_np, dst_shape)
+    _check_array_equals_ndarray(dst, dst_np)
+
+
+def test_broadcast_to_auto_prefix():
+    src_np = numpy.arange(2, dtype=numpy.float32)
+    src = xchainer.Array(src_np)
+
+    dst_np = numpy.broadcast_to(src_np, (3, 2))
+    dst = xchainer.broadcast_to(src, (3, 2))
+
+    _check_array_equals_ndarray(dst, dst_np)
+
+
+@pytest.mark.parametrize(('src_shape,dst_shape'), [
+    ((3,), (2,)),
+    ((3,), (3, 2)),
+    ((1, 3), (3, 2)),
+    ((1, 3), (2, 3)),  # no broadcastable used
+])
+def test_invalid_broadcast_to(src_shape, dst_shape):
+    src = xchainer.ones(src_shape, xchainer.float32)
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.broadcast_to(src, dst_shape)
+
+
 def test_copy(array_init_inputs):
     shape_tup, dtype = array_init_inputs
 

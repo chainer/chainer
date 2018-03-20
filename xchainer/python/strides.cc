@@ -36,6 +36,7 @@ void InitXchainerStrides(pybind11::module& m) {
                          return false;
                      }
                  })
+            .def("__getitem__", [](const Strides& self, int64_t index) { return self[index]; })
             .def("__repr__", static_cast<std::string (Strides::*)() const>(&Strides::ToString))
             .def_property_readonly("ndim", &Strides::ndim);
 
