@@ -23,6 +23,8 @@
 
 #include "xchainer/python/array_index.h"
 #include "xchainer/python/common.h"
+#include "xchainer/python/shape.h"
+#include "xchainer/python/strides.h"
 
 namespace xchainer {
 
@@ -84,7 +86,8 @@ Device& GetDevice(const nonstd::optional<std::string>& device_id) {
     return device_id.has_value() ? GetDefaultContext().GetDevice(device_id.value()) : GetDefaultDevice();
 }
 
-ArrayBodyPtr MakeArray(const Shape& shape, Dtype dtype, py::list list, const nonstd::optional<std::string>& device_id) {
+ArrayBodyPtr MakeArray(py::tuple shape_tup, Dtype dtype, py::list list, const nonstd::optional<std::string>& device_id) {
+    Shape shape = ToShape(shape_tup);
     auto total_size = shape.GetTotalSize();
     auto bytes = GetElementSize(dtype) * total_size;
     if (static_cast<size_t>(total_size) != list.size()) {
@@ -136,7 +139,7 @@ py::buffer_info MakeNumpyArrayFromArray(internal::ArrayBody& self) {
 
 void InitXchainerArray(pybind11::module& m) {
     py::class_<internal::ArrayBody, ArrayBodyPtr>{m, "Array", py::buffer_protocol()}
-            .def(py::init(py::overload_cast<const Shape&, Dtype, py::list, const nonstd::optional<std::string>&>(&MakeArray)),
+            .def(py::init(py::overload_cast<py::tuple, Dtype, py::list, const nonstd::optional<std::string>&>(&MakeArray)),
                  py::arg("shape"),
                  py::arg("dtype"),
                  py::arg("data"),
@@ -171,7 +174,7 @@ void InitXchainerArray(pybind11::module& m) {
                      return Array{self}.ToDevice(device).move_body();
                  })
             .def("transpose", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); })
-            .def("reshape", [](const ArrayBodyPtr& self, const Shape& shape) { return Array{self}.Reshape(shape).move_body(); })
+            .def("reshape", [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.Reshape(ToShape(shape)).move_body(); })
             .def("reshape",
                  [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {
                      return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
@@ -254,8 +257,8 @@ void InitXchainerArray(pybind11::module& m) {
             .def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.IsContiguous(); })
             .def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return Array{self}.ndim(); })
             .def_property_readonly("offset", [](const ArrayBodyPtr& self) { return Array{self}.offset(); })
-            .def_property_readonly("shape", [](const ArrayBodyPtr& self) { return Array{self}.shape(); })
-            .def_property_readonly("strides", [](const ArrayBodyPtr& self) { return Array{self}.strides(); })
+            .def_property_readonly("shape", [](const ArrayBodyPtr& self) { return ToTuple(Array{self}.shape()); })
+            .def_property_readonly("strides", [](const ArrayBodyPtr& self) { return ToTuple(Array{self}.strides()); })
             .def_property_readonly("total_bytes", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalBytes(); })
             .def_property_readonly("total_size", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalSize(); })
             .def_property_readonly("T", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); })
@@ -285,37 +288,37 @@ void InitXchainerArray(pybind11::module& m) {
             });
 
     m.def("empty",
-          [](const Shape& shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-              return Array::Empty(shape, dtype, GetDevice(device_id)).move_body();
+          [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+              return Array::Empty(ToShape(shape), dtype, GetDevice(device_id)).move_body();
           },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr)
             .def("full",
-                 [](const Shape& shape, Scalar value, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-                     return Array::Full(shape, value, dtype, GetDevice(device_id)).move_body();
+                 [](py::tuple shape, Scalar value, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+                     return Array::Full(ToShape(shape), value, dtype, GetDevice(device_id)).move_body();
                  },
                  py::arg("shape"),
                  py::arg("value"),
                  py::arg("dtype"),
                  py::arg("device") = nullptr)
             .def("full",
-                 [](const Shape& shape, Scalar value, const nonstd::optional<std::string>& device_id) {
-                     return Array::Full(shape, value, GetDevice(device_id)).move_body();
+                 [](py::tuple shape, Scalar value, const nonstd::optional<std::string>& device_id) {
+                     return Array::Full(ToShape(shape), value, GetDevice(device_id)).move_body();
                  },
                  py::arg("shape"),
                  py::arg("value"),
                  py::arg("device") = nullptr)
             .def("zeros",
-                 [](const Shape& shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-                     return Array::Zeros(shape, dtype, GetDevice(device_id)).move_body();
+                 [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+                     return Array::Zeros(ToShape(shape), dtype, GetDevice(device_id)).move_body();
                  },
                  py::arg("shape"),
                  py::arg("dtype"),
                  py::arg("device") = nullptr)
             .def("ones",
-                 [](const Shape& shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-                     return Array::Ones(shape, dtype, GetDevice(device_id)).move_body();
+                 [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+                     return Array::Ones(ToShape(shape), dtype, GetDevice(device_id)).move_body();
                  },
                  py::arg("shape"),
                  py::arg("dtype"),

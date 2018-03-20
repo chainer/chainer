@@ -2,8 +2,11 @@
 
 #include <pybind11/pybind11.h>
 
+#include "xchainer/shape.h"
+
 namespace xchainer {
 
-void InitXchainerShape(pybind11::module&);
+Shape ToShape(const pybind11::tuple& tup);
+pybind11::tuple ToTuple(const Shape& shape);
 
 }  // namespace xchainer
