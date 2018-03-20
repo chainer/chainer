@@ -479,6 +479,7 @@ Array Array::BroadcastTo(const Shape& shape) const {
             // non-broadcast dimension
             rev_strides.push_back(*nonbroadcast_stride);
         } else {
+            // broadcast dimension
             rev_strides.push_back(int64_t{0});
         }
     }
