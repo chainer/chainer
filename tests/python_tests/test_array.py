@@ -336,8 +336,6 @@ def test_broadcast_to(src_shape, dst_shape):
     src_np = numpy.arange(size, dtype=numpy.float32).reshape(src_shape)
     src = xchainer.Array(src_np)
 
-    src_ndim = len(src_shape)
-
     dst = xchainer.broadcast_to(src, dst_shape)
     dst_np = numpy.broadcast_to(src_np, dst_shape)
     _check_array_equals_ndarray(dst, dst_np)
