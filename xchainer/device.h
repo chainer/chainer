@@ -57,10 +57,11 @@ public:
 
     // Calculate the sum of an array.
     // It will be summed over the specified axes.
-    // axis must be normalized so that
+    // `axis` must be normalized so that
     // - it has only positive values,
     // - it is sorted, and
     // - it has no duplicated values.
+    // Otherwise, the behavior is undefined.
     virtual void Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) {
         // TODO(niboshi): Implement in derived classes
         (void)src;   // unused
