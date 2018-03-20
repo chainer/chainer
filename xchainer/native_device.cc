@@ -93,10 +93,8 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
             gsl::span<int64_t> src_index = gsl::make_span(src_indexer.index(), src.shape().size());
 
             // Set output indices in src_index
-            int8_t i_src_index = 0;
             for (int8_t i_out_dim = 0; i_out_dim < out_indexer.ndim(); ++i_out_dim) {
-                src_index[out_i_dims[i_src_index]] = out_indexer.index()[i_out_dim];
-                ++i_src_index;
+                src_index[out_i_dims[i_out_dim]] = out_indexer.index()[i_out_dim];
             }
 
             // Reduce axes into single output value
