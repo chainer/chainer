@@ -27,7 +27,7 @@ def _create_dummy_ndarray(shape_tup, numpy_dtype):
 
 def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list, device_id=None):
     assert isinstance(array.dtype, xchainer.Dtype)
-    assert isinstance(array.shape, xchainer.Shape)
+    assert isinstance(array.shape, tuple)
     assert array.dtype == expected_dtype
     assert array.shape == expected_shape
     assert array.element_bytes == expected_dtype.itemsize
@@ -108,17 +108,15 @@ def array_init_inputs(shape_data, dtype):
     return shape_tup, dtype
 
 
-def _check_init(shape_tup, dtype, device=None, with_device=True):
-    shape = xchainer.Shape(shape_tup)
-
-    data_list = _create_dummy_data(shape_tup, dtype)
+def _check_init(shape, dtype, device=None, with_device=True):
+    data_list = _create_dummy_data(shape, dtype)
 
     if with_device:
         array = xchainer.Array(shape, dtype, data_list, device)
     else:
         array = xchainer.Array(shape, dtype, data_list)
 
-    _check_array(array, dtype, shape, _size(shape_tup), data_list, device)
+    _check_array(array, dtype, shape, _size(shape), data_list, device)
 
 
 def test_init_without_device(array_init_inputs):
@@ -133,19 +131,17 @@ def test_init_with_none_device(array_init_inputs):
     _check_init(*array_init_inputs, device=None)
 
 
-def _check_numpy_init(shape_tup, dtype, device=None):
-    shape = xchainer.Shape(shape_tup)
-
+def _check_numpy_init(shape, dtype, device=None):
     numpy_dtype = getattr(numpy, dtype.name)
 
-    ndarray = _create_dummy_ndarray(shape_tup, numpy_dtype)
+    ndarray = _create_dummy_ndarray(shape, numpy_dtype)
 
     if device is None:
         array = xchainer.Array(ndarray)
     else:
         array = xchainer.Array(ndarray, device)
 
-    _check_array(array, dtype, shape, _size(shape_tup), ndarray.ravel().tolist(), device)
+    _check_array(array, dtype, shape, _size(shape), ndarray.ravel().tolist(), device)
     _check_array_equals_ndarray(array, ndarray)
 
     # test possibly freed memory
@@ -159,7 +155,7 @@ def _check_numpy_init(shape_tup, dtype, device=None):
 
     # recovered data should be a copy
     data_recovered_to_modify = numpy.array(array)
-    data_recovered_to_modify *= _create_dummy_ndarray(shape_tup, numpy_dtype)
+    data_recovered_to_modify *= _create_dummy_ndarray(shape, numpy_dtype)
     _check_array_equals_ndarray(array, data_recovered)
 
 
@@ -189,15 +185,14 @@ def test_to_device():
 
 
 def test_view(array_init_inputs):
-    shape_tup, dtype_name = array_init_inputs
-    shape = xchainer.Shape(shape_tup)
+    shape, dtype_name = array_init_inputs
     dtype = xchainer.Dtype(dtype_name)
-    data_list = _create_dummy_data(shape_tup, dtype, pattern=1)
+    data_list = _create_dummy_data(shape, dtype, pattern=1)
 
     array = xchainer.Array(shape, dtype, data_list)
     view = array.view()
 
-    _check_array(view, dtype, shape, _size(shape_tup), data_list)
+    _check_array(view, dtype, shape, _size(shape), data_list)
 
     # inplace modification
     if len(data_list) > 0:
@@ -217,14 +212,13 @@ def test_view_must_not_share_properties():
 
 
 def test_transpose(array_init_inputs):
-    shape_tup, dtype = array_init_inputs
-    shape = xchainer.Shape(shape_tup)
-    data_list = _create_dummy_data(shape_tup, dtype)
+    shape, dtype = array_init_inputs
+    data_list = _create_dummy_data(shape, dtype)
 
     array = xchainer.Array(shape, dtype, data_list)
 
     def _check_transpose(array_transpose):
-        assert xchainer.Shape(shape_tup[::-1]) == array_transpose.shape
+        assert shape[::-1] == array_transpose.shape
         assert array.dtype == array_transpose.dtype
         assert array.element_bytes == array_transpose.element_bytes
         assert array.total_size == array_transpose.total_size
@@ -268,8 +262,6 @@ def test_reshape(a_shape, b_shape):
         assert b_xc.strides == b_np.strides, 'Strides after reshape must match NumPy behavior'
         _check_arrays_equal(xchainer.Array(b_np), b_xc)
 
-    # by shape
-    check(a_xc.reshape(xchainer.Shape(b_shape)))
     # by tuple
     check(a_xc.reshape(b_shape))
     # by list
@@ -367,11 +359,9 @@ def test_invalid_broadcast_to(src_shape, dst_shape):
 
 
 def test_copy(array_init_inputs):
-    shape_tup, dtype = array_init_inputs
+    shape, dtype = array_init_inputs
 
-    shape = xchainer.Shape(shape_tup)
-
-    data_list = _create_dummy_data(shape_tup, dtype)
+    data_list = _create_dummy_data(shape, dtype)
 
     array = xchainer.Array(shape, dtype, data_list)
     array_copy = array.copy()
@@ -380,9 +370,8 @@ def test_copy(array_init_inputs):
 
 
 def test_as_constant_copy(array_init_inputs):
-    shape_tup, dtype = array_init_inputs
-    shape = xchainer.Shape(shape_tup)
-    data_list = _create_dummy_data(shape_tup, dtype)
+    shape, dtype = array_init_inputs
+    data_list = _create_dummy_data(shape, dtype)
 
     # Stop gradients on all graphs
     a = xchainer.Array(shape, dtype, data_list)
@@ -420,9 +409,8 @@ def test_as_constant_copy(array_init_inputs):
 
 
 def test_as_constant_view(array_init_inputs):
-    shape_tup, dtype = array_init_inputs
-    shape = xchainer.Shape(shape_tup)
-    data_list = _create_dummy_data(shape_tup, dtype)
+    shape, dtype = array_init_inputs
+    data_list = _create_dummy_data(shape, dtype)
 
     # Stop gradients on all graphs
     a = xchainer.Array(shape, dtype, data_list)
@@ -432,7 +420,7 @@ def test_as_constant_view(array_init_inputs):
     assert a.is_grad_required('graph_2')
     b = a.as_constant(copy=False)
 
-    _check_array(b, dtype, shape, _size(shape_tup), data_list)
+    _check_array(b, dtype, shape, _size(shape), data_list)
     assert not b.is_grad_required('graph_1')
     assert not b.is_grad_required('graph_2')
 
@@ -449,7 +437,7 @@ def test_as_constant_view(array_init_inputs):
     assert a.is_grad_required('graph_3')
     b = a.as_constant(['graph_1', 'graph_2'], copy=False)
 
-    _check_array(b, dtype, shape, _size(shape_tup), data_list)
+    _check_array(b, dtype, shape, _size(shape), data_list)
     assert not b.is_grad_required('graph_1')
     assert not b.is_grad_required('graph_2')
     assert b.is_grad_required('graph_3')
@@ -460,12 +448,10 @@ def test_as_constant_view(array_init_inputs):
 
 
 def test_add_iadd(array_init_inputs):
-    shape_tup, dtype = array_init_inputs
+    shape, dtype = array_init_inputs
 
-    shape = xchainer.Shape(shape_tup)
-
-    lhs_data_list = _create_dummy_data(shape_tup, dtype, pattern=1)
-    rhs_data_list = _create_dummy_data(shape_tup, dtype, pattern=2)
+    lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
+    rhs_data_list = _create_dummy_data(shape, dtype, pattern=2)
 
     lhs = xchainer.Array(shape, dtype, lhs_data_list)
     rhs = xchainer.Array(shape, dtype, rhs_data_list)
@@ -487,12 +473,10 @@ def test_add_iadd(array_init_inputs):
 
 
 def test_mul_imul(array_init_inputs):
-    shape_tup, dtype = array_init_inputs
+    shape, dtype = array_init_inputs
 
-    shape = xchainer.Shape(shape_tup)
-
-    lhs_data_list = _create_dummy_data(shape_tup, dtype, pattern=1)
-    rhs_data_list = _create_dummy_data(shape_tup, dtype, pattern=2)
+    lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
+    rhs_data_list = _create_dummy_data(shape, dtype, pattern=2)
 
     lhs = xchainer.Array(shape, dtype, lhs_data_list)
     rhs = xchainer.Array(shape, dtype, rhs_data_list)

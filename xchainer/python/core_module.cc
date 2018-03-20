@@ -13,8 +13,6 @@
 #include "xchainer/python/dtype.h"
 #include "xchainer/python/error.h"
 #include "xchainer/python/scalar.h"
-#include "xchainer/python/shape.h"
-#include "xchainer/python/strides.h"
 
 namespace xchainer {
 namespace {
@@ -37,8 +35,6 @@ PYBIND11_MODULE(_core, m) {  // NOLINT
     xchainer::InitXchainerDtype(m);
     xchainer::InitXchainerError(m);
     xchainer::InitXchainerScalar(m);
-    xchainer::InitXchainerShape(m);
-    xchainer::InitXchainerStrides(m);
     xchainer::InitXchainerArrayIndex(m);
     xchainer::InitXchainerArray(m);
     xchainer::InitXchainerBackward(m);
