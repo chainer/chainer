@@ -200,13 +200,39 @@ Array::Array(const Array& other)
               other.shape(), other.strides(), other.dtype(), other.device(), other.body_->data_, other.offset(), other.body_->nodes_)) {}
 
 Array& Array::operator+=(const Array& rhs) {
-    Add(rhs, *this);
-    return *this;
+    auto func = [](Array& lhs, const Array& rhs) -> Array& {
+        lhs.Add(rhs, lhs);
+        return lhs;
+    };
+
+    if (shape() == rhs.shape()) {
+        return func(*this, rhs);
+    }
+    if (BroadcastableTo(rhs.shape(), shape())) {
+        Array rhs_view = rhs.BroadcastTo(shape());
+        return func(*this, rhs_view);
+    }
+    throw XchainerError(
+            "non-broadcastable output operand with shape " + shape().ToString() + " doesn't match the broadcast shape " +
+            rhs.shape().ToString());
 }
 
 Array& Array::operator*=(const Array& rhs) {
-    Mul(rhs, *this);
-    return *this;
+    auto func = [](Array& lhs, const Array& rhs) -> Array& {
+        lhs.Mul(rhs, lhs);
+        return lhs;
+    };
+
+    if (shape() == rhs.shape()) {
+        return func(*this, rhs);
+    }
+    if (BroadcastableTo(rhs.shape(), shape())) {
+        Array rhs_view = rhs.BroadcastTo(shape());
+        return func(*this, rhs_view);
+    }
+    throw XchainerError(
+            "non-broadcastable output operand with shape " + shape().ToString() + " doesn't match the broadcast shape " +
+            rhs.shape().ToString());
 }
 
 Array Array::operator+(const Array& rhs) const {
