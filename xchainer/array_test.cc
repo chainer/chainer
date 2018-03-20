@@ -1686,9 +1686,6 @@ TEST(ArraySumTest, SumKeepDims) {
     Array a = testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum(std::vector<int8_t>{2, 1, -1}, true);
     EXPECT_EQ(Shape({2, 1, 1, 1}), b.shape());
-    EXPECT_EQ(0, b.strides()[1]);  // kept dimensions must be broadcastable
-    EXPECT_EQ(0, b.strides()[2]);
-    EXPECT_EQ(0, b.strides()[3]);
     Array e = testing::MakeArray(Shape{2, 1, 1, 1}).WithData<T>({630.0f, 1926.0f});
     ExpectEqual<T>(e, b);
 }
