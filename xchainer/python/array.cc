@@ -86,7 +86,7 @@ Device& GetDevice(const nonstd::optional<std::string>& device_id) {
     return device_id.has_value() ? GetDefaultContext().GetDevice(device_id.value()) : GetDefaultDevice();
 }
 
-ArrayBodyPtr MakeArray(py::tuple shape_tup, Dtype dtype, py::list list, const nonstd::optional<std::string>& device_id) {
+ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
     Shape shape = internal::ToShape(shape_tup);
     auto total_size = shape.GetTotalSize();
     auto bytes = GetElementSize(dtype) * total_size;
@@ -139,7 +139,7 @@ py::buffer_info MakeNumpyArrayFromArray(internal::ArrayBody& self) {
 
 void InitXchainerArray(pybind11::module& m) {
     py::class_<internal::ArrayBody, ArrayBodyPtr>{m, "Array", py::buffer_protocol()}
-            .def(py::init(py::overload_cast<py::tuple, Dtype, py::list, const nonstd::optional<std::string>&>(&MakeArray)),
+            .def(py::init(py::overload_cast<const py::tuple&, Dtype, const py::list&, const nonstd::optional<std::string>&>(&MakeArray)),
                  py::arg("shape"),
                  py::arg("dtype"),
                  py::arg("data"),
