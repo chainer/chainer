@@ -120,8 +120,7 @@ class BatchNormalization(function_node.FunctionNode):
             beta = beta[expander]
             self.mean = x.mean(axis=self.axis)
             var = x.var(axis=self.axis)
-            var += self.eps
-            self.inv_std = var ** (-0.5)
+            self.inv_std = (var + self.eps) ** (-0.5)
             y = _apply_bn_fwd(xp, x, self.mean[expander],
                               self.inv_std[expander], gamma, beta)
             # Update running statistics
