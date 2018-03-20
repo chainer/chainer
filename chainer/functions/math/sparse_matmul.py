@@ -1,20 +1,19 @@
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
-import numpy
-import warnings
 
 try:
     from scipy import sparse
+    _scipy_available = True
 except ImportError:
-    warnings.warn("SciPy seems not available on your system. A CPU"
-                  " implementation of sparse_matmul uses SciPy, so that you"
-                  " cannot use sparse_matmul on CPU.")
+    _scipy_available = False
 
 
-class sparse_coo_matrix(object):
+class SparseCooMatrix(object):
 
     def __init__(self, data, row, col, shape, use_variable=False):
         self.data = data
@@ -55,7 +54,7 @@ def sparse_dense2coo(x, ldnz=None, use_variable=False):
         row[:nnz] = xp.array(_row).astype(xp.int32)
         col[:nnz] = xp.array(_col).astype(xp.int32)
         shape = x.shape
-        return sparse_coo_matrix(data, row, col, shape, use_variable)
+        return SparseCooMatrix(data, row, col, shape, use_variable)
     elif x.ndim == 3:
         # first axis is batch axis
         nb = x.shape[0]
@@ -72,7 +71,7 @@ def sparse_dense2coo(x, ldnz=None, use_variable=False):
             row[i] = coo.row
             col[i] = coo.col
         shape = x.shape[1:]
-        return sparse_coo_matrix(data, row, col, shape, use_variable)
+        return SparseCooMatrix(data, row, col, shape, use_variable)
     else:
         raise ValueError('ndim of x must be 2 or 3.')
 
@@ -111,6 +110,12 @@ def _sparse_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype):
     # A_shape: (_m, _k)
     # B.shape: ((nb,) _k, _n)
     # A_data/row/col.shape: ((nb,) ldnz)
+    if not _scipy_available:
+        msg = "SciPy seems not available on your system. A CPU" \
+              " implementation of sparse_matmul uses SciPy, so that you" \
+              " cannot use sparse_matmul on CPU."
+        raise RuntimeError(msg)
+
     _m, _k = A_shape
     _n = B.shape[-1]
     if B.ndim == 2:
@@ -181,7 +186,28 @@ def _cupy_sparse_matmul():
         int i_B = i_n + _n * (i_k + _k * i_b);
         int i_C = i_n + _n * (i_m + _m * i_b);
         A val_A = A_data[i_A];
-        atomicAdd(&_C[i_C], (C)(_B[i_B] * val_A));
+        C val = _B[i_B] * val_A;
+        if (sizeof(C) < 8) {
+            atomicAdd(&_C[i_C], val);
+        }
+        else {
+#if __CUDA_ARCH__ >= 600
+            atomicAdd(&_C[i_C], val);
+#else
+            // atomicCAS() is used instead of atomicAdd() when a GPU is Maxwell
+            // or older one and dtype is double. This is becuase atomicAdd()
+            // with double is not available on Maxwell and older GPUs.
+            unsigned long long int* address_as_ull =
+                (unsigned long long int*)(&_C[i_C]);
+            unsigned long long int old = *address_as_ull;
+            unsigned long long int assumed;
+            do {
+                assumed = old;
+                old = atomicCAS(address_as_ull, assumed,
+                    __double_as_longlong(val + __longlong_as_double(assumed)));
+            } while (assumed != old);
+#endif
+        }
         ''',
         'sparse_matmul')
 
@@ -459,22 +485,22 @@ def sparse_matmul(a, b, transa=False, transb=False):
         2. C (dense) = A (dense) * B (sparse)
 
     Args:
-        a (Variable or sparse_coo_matrix): The left operand of mat-mul.
-        b (Variable or sparse_coo_matrix): The right operand of mat-mul.
+        a (Variable or SparseCooMatrix): The left operand of mat-mul.
+        b (Variable or SparseCooMatrix): The right operand of mat-mul.
         transa (bool): If ``True``, each matrix in ``a`` will be transposed.
         transb (bool): If ``True``, each matrix in ``b`` will be transposed.
 
     Returns:
         _chainer.Variable: Result of batched mat-mul.
     """
-    if (isinstance(a, sparse_coo_matrix) and
+    if (isinstance(a, SparseCooMatrix) and
             isinstance(b, (chainer.Variable, numpy.ndarray, cuda.ndarray))):
         return SparseMatMul(a.row, a.col, a.shape,
                             transa=transa,
                             transb=transb,
                             transc=False).apply((a.data, b))[0]
     elif (isinstance(a, (chainer.Variable, numpy.ndarray, cuda.ndarray)) and
-          isinstance(b, sparse_coo_matrix)):
+          isinstance(b, SparseCooMatrix)):
         return SparseMatMul(b.row, b.col, b.shape,
                             transa=not transb,
                             transb=not transa,
