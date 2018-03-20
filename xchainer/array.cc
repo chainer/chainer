@@ -474,7 +474,7 @@ Array Array::BroadcastTo(const Shape& shape) const {
             int64_t in_dim = in_shape[i_in];
             int64_t in_stride = in_strides[i_in];
             --i_in;
-            if (in_dim == 1 && in_stride == 0) {
+            if (in_dim == 1) {
                 // do nothing; broadcast
             } else if (in_dim == out_dim) {
                 nonbroadcast_stride = in_stride;

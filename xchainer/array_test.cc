@@ -1635,17 +1635,6 @@ TEST(ArrayBroadcastToTest, InvalidBroadcastTo_IncompatibleDimension) {
     EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
 }
 
-// Can't broadcast from non-broadcastable 1-dim axis
-TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NonBroadcastaleOneDimAxis) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-    Shape input_shape{2, 1, 3};
-    Shape output_shape{2, 4, 3};
-
-    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
-}
-
 // Can't broadcast at the end
 TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NotBroadcastableAtEnd) {
     using T = int32_t;
