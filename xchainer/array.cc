@@ -526,7 +526,6 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
     }
     device().Sum(*this, sorted_axis, out);
 
-    /*
     auto backward_function = [ out_axis, in_shape = shape() ](const Array& gout, const std::vector<GraphId>&) {
         assert(out_axis.size() == gout.shape().size());
         assert(std::is_sorted(gout.shape().begin(), gout.shape().end()));
@@ -538,7 +537,6 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
         return gout.Reshape({out_shape_broadcastable.begin(), out_shape_broadcastable.end()}).BroadcastTo(in_shape);
     };
     internal::SetUpOpNodes("sum", {*this}, out, {backward_function});
-    */
 
     return out;
 }

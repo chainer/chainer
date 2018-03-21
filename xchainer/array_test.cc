@@ -1687,7 +1687,6 @@ TEST(ArraySumTest, InvalidSumOutOfRangeAxes) {
     EXPECT_THROW(a.Sum(std::vector<int8_t>{3}), DimensionError);
 }
 
-/*
 TEST_P(ArrayTest, SumBackward) {
     CheckBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
@@ -1697,7 +1696,6 @@ TEST_P(ArrayTest, SumBackward) {
             {testing::MakeArray({2, 4}).WithLinearData<double>(-0.1, 0.1)},
             {Array::Full({2, 3, 4, 3}, 1e-1)});
 }
-*/
 
 /*
 TEST_P(ArrayTest, SumDoubleBackward) {
