@@ -515,31 +515,27 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
 
     // Calculate output shape
     std::vector<int64_t> out_shape_vec;
-    std::vector<int64_t> out_strides_vec;
     out_shape_vec.reserve(shape().ndim());
-    out_strides_vec.reserve(shape().ndim());
     int8_t i_axis = 0;
     for (int8_t i = 0; i < shape().ndim(); ++i) {
         if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
             ++i_axis;
             if (keepdims) {
                 out_shape_vec.push_back(int64_t{1});
-                out_strides_vec.push_back(int64_t{0});
             }
         } else {
             out_shape_vec.push_back(shape()[i]);
-            out_strides_vec.push_back(strides()[i]);
         }
     }
-    if (keepdims) {
-        assert(out_shape_vec.size() == shape().size());
-    } else {
-        assert(out_shape_vec.size() == shape().size() - sorted_axis.size());
-    }
-    assert(out_strides_vec.size() == out_shape_vec.size());
 
     Array out = Array::Empty({out_shape_vec.begin(), out_shape_vec.end()}, dtype(), device());
     if (keepdims) {
+        // Set reduced strides of the output array to 0
+        assert(out.IsContiguous());
+        std::vector<int64_t> out_strides_vec(out.strides().begin(), out.strides().end());
+        for (int8_t i_axis : sorted_axis) {
+            out_strides_vec[i_axis] = 0;
+        }
         out.body_->strides_ = Strides{out_strides_vec.begin(), out_strides_vec.end()};
     }
     device().Sum(*this, sorted_axis, out);

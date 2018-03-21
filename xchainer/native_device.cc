@@ -66,39 +66,62 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
         using T = typename decltype(pt)::type;
         const Shape& out_shape = out.shape();
 
+        // True if some axes are reduced but kept in output as 1-dim axes.
+        // Corresponding to keepdim argument in Array::Sum().
+        bool has_kept_dims = out.ndim() + static_cast<int64_t>(axis.size()) != src.ndim();
+
         // In the following logic, output dimensions are first iterated over with `out_indexer`,
         // and then reduction dimensions with `reduce_indexer` in nested manner.
         // `src_indexer` is composed from `out_indexer` and `reduce_indexer` to point a single source value.
 
-        // Prepare dimension mappings
+        // Prepare axis mappings
         std::vector<int64_t> reduce_shape_vec;  // Reduction dimensions
-        std::vector<int8_t> out_axis;           // Mapping from output indices to src indices
-        // Example (in the case of keepdims=false):
-        // - src.shape():      (2, 3, 4, 5, 6)
-        // - axis:             (1, 3)
-        // - out.shape():      (2, 4, 6)
-        // - reduce_shape_vec: (3, 5)
-        // - out_axis:         (0, 2, 4)
-        // Example (in the case of keepdims=true):
-        // - src.shape():      (2, 3, 4, 5, 6)
-        // - axis:             (1, 3)
-        // - out.shape():      (2, 1, 4, 1, 6)
-        // - reduce_shape_vec: (3, 5)
-        // - out_axis:         (0, 2, 4)
+        std::vector<int8_t> src_axis_map;       // Mapping from effective output indices to src indices
+        std::vector<int8_t> out_axis_map;       // Mapping from effective output indices to actual output indices
+        // (Here "effective output indices" means source indices minus reduction indices.)
 
-        out_axis.reserve(out.shape().size());
+        // Example (in the case of has_kept_dims=false):
+        // - src.shape():      (12, 13, 14, 15, 16)
+        // - axis:             (1, 3)
+        // - out.shape():      (12, 14, 16)
+        // - reduce_shape_vec: (13, 15)
+        // - src_axis_map:     (0, 2, 4)
+        // - out_axis_map:     (0, 1, 2)
+        // Example (in the case of has_kept_dims=true):
+        // - src.shape():      (12, 13, 14, 15, 16)
+        // - axis:             (1, 3)
+        // - out.shape():      (12, 1, 14, 1, 16)
+        // - reduce_shape_vec: (13, 15)
+        // - src_axis_map:     (0, 2, 4)
+        // - out_axis_map:     (0, 2, 4)
+
         reduce_shape_vec.reserve(axis.size());
-        int8_t i_axis = 0;
-        for (int8_t i = 0; i < src.shape().ndim(); ++i) {
-            if (i == axis[i_axis]) {
-                ++i_axis;
-                reduce_shape_vec.push_back(src.shape()[i]);
-            } else {
-                out_axis.push_back(i);
+        src_axis_map.reserve(out.shape().size());
+        out_axis_map.reserve(out.shape().size());
+        {
+            size_t i_axis = 0;
+            size_t i_out_axis = 0;
+            for (int8_t i = 0; i < src.shape().ndim(); ++i) {
+                if (i_axis < axis.size() && i == axis[i_axis]) {
+                    // i is to be reduced
+                    reduce_shape_vec.push_back(src.shape()[i]);
+                    ++i_axis;
+                    if (has_kept_dims) {
+                        ++i_out_axis;
+                    }
+                } else {
+                    // i is not to be reduced
+                    src_axis_map.push_back(i);
+                    out_axis_map.push_back(static_cast<int8_t>(i_out_axis));
+                    ++i_out_axis;
+                }
             }
+            assert(i_out_axis == out.shape().size());
+            assert(i_axis == axis.size());
         }
-        assert(out_axis.size() == src.shape().size() - axis.size());
         assert(reduce_shape_vec.size() == axis.size());
+        assert(src_axis_map.size() == src.shape().size() - axis.size());
+        assert(out_axis_map.size() == src.shape().size() - axis.size());
 
         // Calculate sum
         IndexableArray<const T> src_iarray{src};
@@ -114,8 +137,8 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
             gsl::span<int64_t> src_index = gsl::make_span(src_indexer.index(), src.shape().size());
 
             // Set output indices in the corresponding indices (out_axis) in src_index.
-            for (size_t i_out_dim = 0; i_out_dim < out_axis.size(); ++i_out_dim) {
-                src_index[out_axis[i_out_dim]] = out_indexer.index()[i_out_dim];
+            for (size_t i_out_dim = 0; i_out_dim < src_axis_map.size(); ++i_out_dim) {
+                src_index[src_axis_map[i_out_dim]] = out_indexer.index()[out_axis_map[i_out_dim]];
             }
 
             // Iterate over reduction dimensions, reducing into a single output value.

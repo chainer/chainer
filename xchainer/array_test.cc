@@ -1683,13 +1683,12 @@ TEST(ArraySumTest, SumKeepDims) {
     using T = float;
     testing::ContextSession context_session{};
 
-    Array a = testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
-    Array b = a.Sum(std::vector<int8_t>{2, 1, -1}, true);
-    EXPECT_EQ(Shape({2, 1, 1, 1}), b.shape());
+    Array a = testing::MakeArray({2, 3, 2, 4}).WithLinearData<T>().WithPadding(1);
+    Array b = a.Sum(std::vector<int8_t>{-1, 1}, true);
+    EXPECT_EQ(Shape({2, 1, 2, 1}), b.shape());
     EXPECT_EQ(0, b.strides()[1]);
-    EXPECT_EQ(0, b.strides()[2]);
     EXPECT_EQ(0, b.strides()[3]);
-    Array e = testing::MakeArray(Shape{2, 1, 1, 1}).WithData<T>({630.0f, 1926.0f});
+    Array e = testing::MakeArray(Shape{2, 1, 2, 1}).WithData<T>({114.0f, 162.0f, 402.0f, 450.0f});
     ExpectEqual<T>(e, b);
 }
 
