@@ -1033,7 +1033,7 @@ TEST_P(ArrayTest, Transpose) {
 TEST_P(ArrayTest, TransposeNoncontiguous) {
     Array a = testing::MakeArray({2, 3})          //
                       .WithLinearData<int32_t>()  //
-                      .WithPadding(sizeof(int32_t));
+                      .WithPadding(1);
     Array b = a.Transpose();
 
     EXPECT_EQ(Shape({3, 2}), b.shape());
@@ -1104,7 +1104,7 @@ TEST_P(ArrayTest, Copy) {
     }
     {
         Array a = testing::MakeArray<float>({3, 1}, {1.0f, 2.0f, 3.0f})  //
-                          .WithPadding(sizeof(float));
+                          .WithPadding(1);
         Array o = a.Copy();
         ExpectEqualCopy<float>(a, o);
     }
@@ -1156,7 +1156,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
     // Non-contiguous
     {
         Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false})  //
-                          .WithPadding(sizeof(bool) * 4);
+                          .WithPadding(4);
         Array b = a.AsConstant(CopyKind::kCopy);
         EXPECT_EQ(&b.device(), &a.device());
         ExpectEqualCopy<bool>(a, b);
@@ -1204,7 +1204,7 @@ TEST_P(ArrayTest, AsConstantView) {
     // Non-contiguous
     {
         Array a = testing::MakeArray<bool>({4, 1}, {true, true, false, false})  //
-                          .WithPadding(sizeof(bool) * 4);
+                          .WithPadding(4);
         Array b = a.AsConstant(CopyKind::kView);
         EXPECT_EQ(&b.device(), &a.device());
         ExpectEqualView<bool>(a, b);
@@ -1506,7 +1506,7 @@ TEST(ArraySqueezeTest, SqueezeNonContiguous) {
     using T = int32_t;
     testing::ContextSession context_session{};
 
-    Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(sizeof(T));
+    Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(1);
     Array b = a.Squeeze(std::vector<int8_t>{0, 2, 4});
     Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
     ExpectEqual<T>(e, b);
@@ -1561,7 +1561,7 @@ TEST_P(ArrayTest, SqueezeBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> {
                 return {xs[0].Squeeze(std::vector<int8_t>{0, 2, 4})};
             },
-            {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(sizeof(float))).RequireGrad()},
+            {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
             {testing::MakeArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)},
             {Array::Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f)});
 }
@@ -1572,7 +1572,7 @@ TEST_P(ArrayTest, SqueezeDoubleBackward) {
                 auto y = xs[0].Squeeze(std::vector<int8_t>{0, 2, 4});
                 return {y * y};  // to make it nonlinear
             },
-            {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(sizeof(float))).RequireGrad()},
+            {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
             {(*testing::MakeArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)).RequireGrad()},
             {testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>()},
             {Array::Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f), Array::Full({2, 3, 1, 4}, 1e-2f)},
@@ -1640,7 +1640,7 @@ TEST(ArraySumTest, Sum) {
     using T = float;
     testing::ContextSession context_session{};
 
-    Array a = testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(sizeof(T));
+    Array a = testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum(std::vector<int8_t>{2, 1, -1});
     EXPECT_EQ(Shape{2}, b.shape());
     Array e = testing::MakeArray(Shape{2}).WithData<T>({630.0f, 1926.0f});
@@ -1651,7 +1651,7 @@ TEST(ArraySumTest, SumAllAxes) {
     using T = float;
     testing::ContextSession context_session{};
 
-    Array a = testing::MakeArray({2, 3, 3}).WithLinearData<T>().WithPadding(sizeof(T));
+    Array a = testing::MakeArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum();
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::MakeArray(Shape{}).WithData<T>({153.0f});
@@ -1662,7 +1662,7 @@ TEST(ArraySumTest, SumKeepDims) {
     using T = float;
     testing::ContextSession context_session{};
 
-    Array a = testing::MakeArray({2, 3, 2, 4}).WithLinearData<T>().WithPadding(sizeof(T));
+    Array a = testing::MakeArray({2, 3, 2, 4}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum(std::vector<int8_t>{-1, 1}, true);
     EXPECT_EQ(Shape({2, 1, 2, 1}), b.shape());
     EXPECT_EQ(0, b.strides()[1]);

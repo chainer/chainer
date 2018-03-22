@@ -137,7 +137,7 @@ private:
         rev_strides.reserve(shape_.size());
         int64_t st = sizeof(T);
         for (int8_t i = shape_.ndim() - 1; i >= 0; --i) {
-            st += padding[i];
+            st += sizeof(T) * padding[i];  // paddings are multiples of the item-size.
             rev_strides.push_back(st);
             st *= shape_[i];
         }
@@ -148,7 +148,7 @@ private:
 
     std::reference_wrapper<Device> device_;
 
-    // Padding bytes to each dimension.
+    // Padding items (multiplied by sizeof(T) during construction) to each dimension.
     // TODO(niboshi): Support negative strides
     std::vector<int64_t> padding_;
 
