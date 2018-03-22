@@ -7,9 +7,10 @@
 namespace xchainer {
 namespace python {
 namespace internal {
-namespace {
 
 namespace py = pybind11;
+
+namespace {
 
 ArrayIndex MakeArrayIndex(py::handle handle) {
     if (handle.is_none()) {
