@@ -840,8 +840,12 @@ def test_getitem(input_shape, indices, output_shape, output_data):
 @pytest.mark.parametrize("input_shape,axis,keepdims,output_shape,output_data", [
     ((), None, False, (), [0]),
     ((), None, True, (), [0]),
+    ((), (), False, (), [0]),
+    ((), (), True, (), [0]),
     ((2,), None, False, (), [1]),
     ((2,), None, True, (1,), [1]),
+    ((2,), (), False, (2,), [0, 1]),
+    ((2,), (), True, (2,), [0, 1]),
     ((2,), 0, False, (), [1]),
     ((2,), 0, True, (1,), [1]),
     ((2,), (0,), False, (), [1]),
@@ -850,6 +854,8 @@ def test_getitem(input_shape, indices, output_shape, output_data):
     ((2,), (-1,), True, (1,), [1]),
     ((2, 3), None, False, (), [15]),
     ((2, 3), None, True, (1, 1), [15]),
+    ((2, 3), (), False, (2, 3), [0, 1, 2, 3, 4, 5]),
+    ((2, 3), (), True, (2, 3), [0, 1, 2, 3, 4, 5]),
     ((2, 3), 0, False, (3,), [3, 5, 7]),
     ((2, 3), 0, True, (1, 3), [3, 5, 7]),
     ((2, 3), (0,), False, (3,), [3, 5, 7]),
@@ -864,6 +870,22 @@ def test_getitem(input_shape, indices, output_shape, output_data):
     ((2, 3), (0, 1), True, (1, 1), [15]),
     ((2, 3), (-2, -1), False, (), [15]),
     ((2, 3), (-2, -1), True, (1, 1), [15]),
+
+    # Sum over axes that are in the middle or apart
+    ((2, 3, 4), (1,), False, (2, 4), [12, 15, 18, 21, 48, 51, 54, 57]),
+    ((2, 3, 4), (1,), True, (2, 1, 4), [12, 15, 18, 21, 48, 51, 54, 57]),
+    ((2, 3, 4), (0, 2), False, (3,), [60, 92, 124]),
+    ((2, 3, 4), (0, 2), True, (1, 3, 1), [60, 92, 124]),
+
+    # Sum over axes that are apart and/or unsorted
+    ((2, 3), (1, 0), False, (), [15]),
+    ((2, 3), (1, 0), True, (1, 1), [15]),
+    ((2, 3, 4), (2, 0), False, (3,), [60, 92, 124]),
+    ((2, 3, 4), (2, 0), True, (1, 3, 1), [60, 92, 124]),
+    ((2, 3, 4), (2, 0, 1), False, (), [276]),
+    ((2, 3, 4), (2, 0, 1), True, (1, 1, 1), [276]),
+    ((2, 3, 4), (-2, 2, 0), False, (), [276]),
+    ((2, 3, 4), (-2, 2, 0), True, (1, 1, 1), [276]),
 ])
 def test_sum(input_shape, axis, keepdims, output_shape, output_data):
     total_size = functools.reduce(operator.mul, input_shape, 1)
@@ -900,6 +922,8 @@ def test_sum(input_shape, axis, keepdims, output_shape, output_data):
     ((2, 3,), (-1, -1), True, xchainer.XchainerError),
     ((2, 3,), (0, 1, 1), False, xchainer.XchainerError),
     ((2, 3,), (0, 1, 1), True, xchainer.XchainerError),
+    ((2, 3,), (0, -2), False, xchainer.XchainerError),
+    ((2, 3,), (0, -2), True, xchainer.XchainerError),
 ])
 def test_invalid_sum(input_shape, axis, keepdims, error):
     total_size = functools.reduce(operator.mul, input_shape, 1)
