@@ -12,7 +12,6 @@
 #include <unordered_map>
 #include <utility>
 
-#include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array_body.h"
@@ -128,7 +127,7 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 }
 
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size) {
-    Expects(shape.ndim() == strides.ndim());
+    assert(shape.ndim() == strides.ndim());
 
     // Calculate the distance between the first and the last element, plus single element size.
     size_t total_bytes = element_size;
@@ -329,7 +328,7 @@ Array Array::Reshape(const Shape& shape) const {
             for (int8_t i = 1; i < in_shape.ndim(); ++i) {
                 int64_t dim = in_shape[i];
                 int64_t st = in_strides[i];
-                Expects(dim > 0);
+                assert(dim > 0);
                 if (dim * st == reduced_strides.back()) {
                     // If the pair is compatible with the previous stride, reduce the pair to it.
                     reduced_shape.back() *= dim;
@@ -341,8 +340,8 @@ Array Array::Reshape(const Shape& shape) const {
                 }
             }
         }
-        Ensures(reduced_shape.size() == reduced_strides.size());
-        Ensures(!reduced_shape.empty());
+        assert(reduced_shape.size() == reduced_strides.size());
+        assert(!reduced_shape.empty());
 
         // Construct the strides for no-copy reshape.
         // If it's not possible, can_reshape_without_copy will be false.
@@ -376,7 +375,7 @@ Array Array::Reshape(const Shape& shape) const {
             // TODO(niboshi): Implement it
             throw NotImplementedError("Reshape that requires a copy is not implemented yet.");
         }
-        Ensures(strides_vec.size() == shape.size());
+        assert(strides_vec.size() == shape.size());
 
         strides = Strides{strides_vec.begin(), strides_vec.end()};
     }
@@ -385,8 +384,8 @@ Array Array::Reshape(const Shape& shape) const {
     internal::SetUpOpNodes(
             "reshape", {*this}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }}, {});
 
-    Ensures(out.shape() == shape);
-    Ensures(out.strides().size() == shape.size());
+    assert(out.shape() == shape);
+    assert(out.strides().size() == shape.size());
     return out;
 }
 
@@ -483,7 +482,7 @@ Array Array::BroadcastTo(const Shape& shape) const {
             rev_strides.push_back(int64_t{0});
         }
     }
-    Ensures(rev_strides.size() == shape.size());
+    assert(rev_strides.size() == shape.size());
 
     return Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
 }
@@ -531,7 +530,7 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
 Array Array::Copy() const {
     // No graph will be disconnected.
     Array out = AsConstant({}, CopyKind::kCopy);
-    Ensures(out.IsContiguous());
+    assert(out.IsContiguous());
     return out;
 }
 
@@ -581,7 +580,7 @@ Array Array::AsConstant(CopyKind kind) const {
             Array out = Array::EmptyLike(*this, device());
             device().Copy(*this, out);
 
-            Ensures(out.IsContiguous());
+            assert(out.IsContiguous());
             return std::move(out);
         }
         case CopyKind::kView:
@@ -598,7 +597,7 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
             internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }}, graph_ids);
             device().Copy(*this, out);
 
-            Ensures(out.IsContiguous());
+            assert(out.IsContiguous());
             return std::move(out);
         }
         case CopyKind::kView: {

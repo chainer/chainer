@@ -5,8 +5,6 @@
 #include <cstdint>
 #include <type_traits>
 
-#include <gsl/gsl>
-
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
@@ -33,7 +31,7 @@ public:
     using ElementType = T;
 
     IndexableArray(T* data, const Strides& strides) : data_(data) {
-        Expects(strides.ndim() == kNdim);
+        assert(strides.ndim() == kNdim);
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
@@ -41,7 +39,7 @@ public:
         : IndexableArray{reinterpret_cast<T*>(
                                  reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(array.raw_data()) + array.offset()),
                          array.strides()} {
-        Expects(TypeToDtype<T> == array.dtype());
+        assert(TypeToDtype<T> == array.dtype());
     }
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return kNdim; }
@@ -79,7 +77,7 @@ public:
         : IndexableArray{reinterpret_cast<T*>(
                                  reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(array.raw_data()) + array.offset()),
                          array.strides()} {
-        Expects(TypeToDtype<T> == array.dtype());
+        assert(TypeToDtype<T> == array.dtype());
     }
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
