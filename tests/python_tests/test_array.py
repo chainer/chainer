@@ -835,3 +835,76 @@ def test_getitem(input_shape, indices, output_shape, output_data):
 
     n = numpy.array(input_data, numpy.int32).reshape(input_shape)
     _check_array_equals_ndarray(y, n[indices])
+
+
+@pytest.mark.parametrize("input_shape,axis,keepdims,output_shape,output_data", [
+    ((), None, False, (), [0]),
+    ((), None, True, (), [0]),
+    ((2,), None, False, (), [1]),
+    ((2,), None, True, (1,), [1]),
+    ((2,), 0, False, (), [1]),
+    ((2,), 0, True, (1,), [1]),
+    ((2,), (0,), False, (), [1]),
+    ((2,), (0,), True, (1,), [1]),
+    ((2,), (-1,), False, (), [1]),
+    ((2,), (-1,), True, (1,), [1]),
+    ((2, 3), None, False, (), [15]),
+    ((2, 3), None, True, (1, 1), [15]),
+    ((2, 3), 0, False, (3,), [3, 5, 7]),
+    ((2, 3), 0, True, (1, 3), [3, 5, 7]),
+    ((2, 3), (0,), False, (3,), [3, 5, 7]),
+    ((2, 3), (0,), True, (1, 3), [3, 5, 7]),
+    ((2, 3), (1,), False, (2,), [3, 12]),
+    ((2, 3), (1,), True, (2, 1), [3, 12]),
+    ((2, 3), (-1,), False, (2,), [3, 12]),
+    ((2, 3), (-1,), True, (2, 1), [3, 12]),
+    ((2, 3), (-2,), False, (3,), [3, 5, 7]),
+    ((2, 3), (-2,), True, (1, 3), [3, 5, 7]),
+    ((2, 3), (0, 1), False, (), [15]),
+    ((2, 3), (0, 1), True, (1, 1), [15]),
+    ((2, 3), (-2, -1), False, (), [15]),
+    ((2, 3), (-2, -1), True, (1, 1), [15]),
+])
+def test_sum(input_shape, axis, keepdims, output_shape, output_data):
+    total_size = functools.reduce(operator.mul, input_shape, 1)
+    input_data = list(range(0, total_size))
+    x = xchainer.Array(input_shape, xchainer.int32, input_data)
+    y = x.sum(axis=axis, keepdims=keepdims)
+    e = xchainer.Array(output_shape, xchainer.int32, output_data)
+    _check_arrays_equal(y, e)
+
+    n = numpy.array(input_data, numpy.int32).reshape(input_shape).sum(axis=axis, keepdims=keepdims).astype(numpy.int32)
+    _check_array_equals_ndarray(y, n)
+
+
+@pytest.mark.parametrize("input_shape,axis,keepdims,error", [
+    ((), 0, False, xchainer.DimensionError),
+    ((), 0, True, xchainer.DimensionError),
+    ((), 1, False, xchainer.DimensionError),
+    ((), 1, True, xchainer.DimensionError),
+    ((), (1,), False, xchainer.DimensionError),
+    ((), (1,), True, xchainer.DimensionError),
+    ((2,), 2, False, xchainer.DimensionError),
+    ((2,), 2, True, xchainer.DimensionError),
+    ((2,), (2,), False, xchainer.DimensionError),
+    ((2,), (2,), True, xchainer.DimensionError),
+    ((2,), (-2,), False, xchainer.DimensionError),
+    ((2,), (-2,), True, xchainer.DimensionError),
+    ((2, 3,), (-3,), False, xchainer.DimensionError),
+    ((2, 3,), (-3,), True, xchainer.DimensionError),
+    ((2, 3,), (-3, -4), False, xchainer.DimensionError),
+    ((2, 3,), (-3, -4), True, xchainer.DimensionError),
+    ((2, 3,), (0, 0), False, xchainer.XchainerError),
+    ((2, 3,), (0, 0), True, xchainer.XchainerError),
+    ((2, 3,), (-1, -1), False, xchainer.XchainerError),
+    ((2, 3,), (-1, -1), True, xchainer.XchainerError),
+    ((2, 3,), (0, 1, 1), False, xchainer.XchainerError),
+    ((2, 3,), (0, 1, 1), True, xchainer.XchainerError),
+])
+def test_invalid_sum(input_shape, axis, keepdims, error):
+    total_size = functools.reduce(operator.mul, input_shape, 1)
+    input_data = list(range(0, total_size))
+    x = xchainer.Array(input_shape, xchainer.int32, input_data)
+
+    with pytest.raises(error):
+        x.sum(axis=axis, keepdims=keepdims)
