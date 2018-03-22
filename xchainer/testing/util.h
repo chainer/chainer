@@ -6,6 +6,8 @@
 
 // Skip a test if required number of devices are unavailable.
 //
+// If `backend` is a string, the global default context must be set in advance.
+//
 // EXAMPLE:
 //
 //     TEST(ArrayTest, FooTest) {
