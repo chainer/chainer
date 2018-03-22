@@ -259,16 +259,6 @@ Array Array::At(const std::vector<ArrayIndex>& indices) const {
                 ++i_in;
                 break;
             }
-            case ArrayIndexTag::kBroadcastable: {
-                int64_t dim = shape()[i_in];
-                if (dim != 1) {
-                    throw DimensionError("Can't mark axis with non-1 dimension as broadcastable");
-                }
-                out_shape.push_back(1);
-                out_strides.push_back(0);
-                ++i_in;
-                break;
-            }
             case ArrayIndexTag::kNewAxis:
                 out_shape.push_back(1);
                 out_strides.push_back(0);
@@ -474,7 +464,7 @@ Array Array::BroadcastTo(const Shape& shape) const {
             int64_t in_dim = in_shape[i_in];
             int64_t in_stride = in_strides[i_in];
             --i_in;
-            if (in_dim == 1 && in_stride == 0) {
+            if (in_dim == 1) {
                 // do nothing; broadcast
             } else if (in_dim == out_dim) {
                 nonbroadcast_stride = in_stride;
@@ -490,12 +480,7 @@ Array Array::BroadcastTo(const Shape& shape) const {
             rev_strides.push_back(*nonbroadcast_stride);
         } else {
             // broadcast dimension
-            if (out_dim == 1) {
-                // broadcasted dimension should not be broadcastable
-                rev_strides.push_back(int64_t{1});
-            } else {
-                rev_strides.push_back(int64_t{0});
-            }
+            rev_strides.push_back(int64_t{0});
         }
     }
     Ensures(rev_strides.size() == shape.size());

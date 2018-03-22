@@ -317,21 +317,18 @@ def test_invalid_reshape(shape1, shape2):
     check(shape2, shape1)
 
 
-@pytest.mark.parametrize('src_shape,dst_shape,broadcasted_axes', [
-    ((), (), ()),
-    ((1,), (2,), (0,)),
-    ((1, 1), (2, 2), (0, 1)),
-    ((1, 1), (1, 2), (1,)),
+@pytest.mark.parametrize('src_shape,dst_shape', [
+    ((), ()),
+    ((1,), (2,)),
+    ((1, 1), (2, 2)),
+    ((1, 1), (1, 2)),
 ])
-def test_broadcast_to(src_shape, dst_shape, broadcasted_axes):
+def test_broadcast_to(src_shape, dst_shape):
     size = functools.reduce(operator.mul, src_shape, 1)
     src_np = numpy.arange(size, dtype=numpy.float32).reshape(src_shape)
     src = xchainer.Array(src_np)
 
-    src_ndim = len(src_shape)
-    index = tuple(xchainer.broadcastable if i in broadcasted_axes else slice(None) for i in range(src_ndim))
-
-    dst = xchainer.broadcast_to(src[index], dst_shape)
+    dst = xchainer.broadcast_to(src, dst_shape)
     dst_np = numpy.broadcast_to(src_np, dst_shape)
     _check_array_equals_ndarray(dst, dst_np)
 
@@ -350,7 +347,6 @@ def test_broadcast_to_auto_prefix():
     ((3,), (2,)),
     ((3,), (3, 2)),
     ((1, 3), (3, 2)),
-    ((1, 3), (2, 3)),  # no broadcastable used
 ])
 def test_invalid_broadcast_to(src_shape, dst_shape):
     src = xchainer.ones(src_shape, xchainer.float32)
@@ -839,23 +835,3 @@ def test_getitem(input_shape, indices, output_shape, output_data):
 
     n = numpy.array(input_data, numpy.int32).reshape(input_shape)
     _check_array_equals_ndarray(y, n[indices])
-
-
-@pytest.mark.parametrize("input_shape,indices,output_shape,output_strides,output_data", [
-    # broadcastable indexing - non-tuple indexing
-    ((1,), xchainer.broadcastable, (1,), (0,), [0]),
-    # broadcastable indexing - tuple indexing
-    ((1,), (xchainer.broadcastable,), (1,), (0,), [0]),
-    ((3, 1), (slice(None), xchainer.broadcastable,), (3, 1), (4, 0), [0, 1, 2]),
-    ((2, 1, 1, 3), (slice(None), xchainer.broadcastable, xchainer.broadcastable,
-                    slice(None)), (2, 1, 1, 3), (12, 0, 0, 4), [0, 1, 2, 3, 4, 5]),
-])
-def test_getitem_broadcastable(input_shape, indices, output_shape, output_strides, output_data):
-    total_size = functools.reduce(operator.mul, input_shape, 1)
-    input_data = list(range(0, total_size))
-    x = xchainer.Array(input_shape, xchainer.int32, input_data)
-    y = x[indices]
-
-    e = xchainer.Array(output_shape, xchainer.int32, output_data)
-    _check_arrays_equal(y, e)
-    assert y.strides == output_strides

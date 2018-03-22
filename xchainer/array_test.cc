@@ -1065,25 +1065,25 @@ TEST_P(ArrayTest, TransposeDoubleBackward) {
 TEST_P(ArrayTest, AtBackward) {
     CheckBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                std::vector<ArrayIndex> indices{1, Broadcastable{}, NewAxis{}, Slice{1, 3}};
+                std::vector<ArrayIndex> indices{1, NewAxis{}, Slice{1, 3}};
                 return {xs[0].At(indices)};
             },
-            {(*testing::MakeArray({2, 1, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
-            {Array::Ones({1, 1, 2}, Dtype::kFloat32)},
-            {Array::Full({2, 1, 3}, 1e-3f)});
+            {(*testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
+            {Array::Ones({1, 2}, Dtype::kFloat32)},
+            {Array::Full({2, 3}, 1e-3f)});
 }
 
 TEST_P(ArrayTest, AtDoubleBackward) {
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                std::vector<ArrayIndex> indices{0, Broadcastable{}, NewAxis{}, Slice{1, 3}};
+                std::vector<ArrayIndex> indices{0, NewAxis{}, Slice{1, 3}};
                 auto y = xs[0].At(indices);
                 return {y * y};  // to make it nonlinear
             },
-            {(*testing::MakeArray({2, 1, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
-            {Array::Ones({1, 1, 2}, Dtype::kFloat32).RequireGrad()},
-            {Array::Ones({2, 1, 3}, Dtype::kFloat32)},
-            {Array::Full({2, 1, 3}, 1e-3f), Array::Full({1, 1, 2}, 1e-3f)});
+            {(*testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
+            {Array::Ones({1, 2}, Dtype::kFloat32).RequireGrad()},
+            {Array::Ones({2, 3}, Dtype::kFloat32)},
+            {Array::Full({2, 3}, 1e-3f), Array::Full({1, 2}, 1e-3f)});
 }
 
 TEST_P(ArrayTest, Copy) {
@@ -1403,7 +1403,7 @@ TEST(ArrayAtTest, At) {
     testing::ContextSession context_session{};
     Shape input_shape{2, 3, 1};
     Shape output_shape{1, 2, 1};
-    std::vector<ArrayIndex> indices{-1, NewAxis{}, Slice{1, 3}, Broadcastable{}};
+    std::vector<ArrayIndex> indices{-1, NewAxis{}, Slice{1, 3}};
     Array a = testing::MakeArray(input_shape).WithLinearData<T>();
     Array b = a.At(indices);
 
@@ -1411,10 +1411,10 @@ TEST(ArrayAtTest, At) {
     Array e = testing::MakeArray(output_shape).WithData<T>({4, 5});
     ExpectEqual<T>(e, b);
 
-    // Check if strides are 0 for newaxis and broadcastable axis.
+    // Check if strides are 0 for newaxis.
     EXPECT_EQ(0, b.strides()[0]);
     EXPECT_NE(0, b.strides()[1]);
-    EXPECT_EQ(0, b.strides()[2]);
+    EXPECT_NE(0, b.strides()[2]);
 }
 
 // Index out of bounds
@@ -1433,16 +1433,6 @@ TEST(ArrayAtTest, InvalidAt2) {
     testing::ContextSession context_session{};
     Shape input_shape{2, 3};
     std::vector<ArrayIndex> indices{2};
-    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.At(indices), DimensionError);
-}
-
-// Use of broadcastable on invalid axis
-TEST(ArrayAtTest, InvalidAt3) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-    Shape input_shape{2, 3};
-    std::vector<ArrayIndex> indices{Broadcastable{}};
     Array a = testing::MakeArray(input_shape).WithLinearData<T>();
     EXPECT_THROW(a.At(indices), DimensionError);
 }
@@ -1603,7 +1593,7 @@ TEST(ArrayBroadcastToTest, BroadcastTo) {
     Array b = a.BroadcastTo(output_shape);
     ASSERT_EQ(output_shape, b.shape());
     EXPECT_EQ(a.data().get(), b.data().get()) << "BroadcastTo must be done without copying data";
-    ASSERT_NE(0, b.strides()[1]) << "Broadcasted dimension must not be broadcastable";
+    ASSERT_EQ(0, b.strides()[1]) << "Stride of broadcasted dimension must be 0";
 
     std::vector<int64_t> output_data;
     for (int i = 0; i < 3; ++i) {
@@ -1629,17 +1619,6 @@ TEST(ArrayBroadcastToTest, InvalidBroadcastTo_IncompatibleDimension) {
     using T = int32_t;
     testing::ContextSession context_session{};
     Shape input_shape{2, 3, 3};
-    Shape output_shape{2, 4, 3};
-
-    Array a = testing::MakeArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
-}
-
-// Can't broadcast from non-broadcastable 1-dim axis
-TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NonBroadcastaleOneDimAxis) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-    Shape input_shape{2, 1, 3};
     Shape output_shape{2, 4, 3};
 
     Array a = testing::MakeArray(input_shape).WithLinearData<T>();
