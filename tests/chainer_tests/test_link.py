@@ -820,6 +820,7 @@ class TestChain(unittest.TestCase):
             self.c2.count_params()
         assert not w
 
+
 class TestChainList(unittest.TestCase):
 
     def setUp(self):
