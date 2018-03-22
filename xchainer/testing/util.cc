@@ -1,6 +1,7 @@
 #include "xchainer/testing/util.h"
 
 #include <atomic>
+#include <cassert>
 #include <cstdlib>
 #include <string>
 
