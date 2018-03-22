@@ -1,5 +1,9 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
+#include <vector>
+
 #include "xchainer/array.h"
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/device.h"
@@ -25,6 +29,8 @@ public:
     std::shared_ptr<void> FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
     void Fill(Array& out, Scalar value) override;
+
+    void Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) override;
 
     void Copy(const Array& src, Array& out) override;
 

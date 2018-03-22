@@ -1636,9 +1636,21 @@ TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NotBroadcastableAtEnd) {
     EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
 }
 
-TEST(ArraySumTest, Sum) {
+class ArraySumTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
+protected:
+    void SetUp() override {
+        const std::string& backend_name = ::testing::get<0>(GetParam());
+        device_session_.emplace(DeviceId{backend_name, 0});
+    }
+
+    void TearDown() override { device_session_.reset(); }
+
+private:
+    nonstd::optional<testing::DeviceSession> device_session_;
+};
+
+TEST_P(ArraySumTest, Sum) {
     using T = float;
-    testing::ContextSession context_session{};
 
     Array a = testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum(std::vector<int8_t>{2, 1, -1});
@@ -1647,9 +1659,8 @@ TEST(ArraySumTest, Sum) {
     ExpectEqual<T>(e, b);
 }
 
-TEST(ArraySumTest, SumAllAxes) {
+TEST_P(ArraySumTest, SumAllAxes) {
     using T = float;
-    testing::ContextSession context_session{};
 
     Array a = testing::MakeArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum();
@@ -1658,9 +1669,48 @@ TEST(ArraySumTest, SumAllAxes) {
     ExpectEqual<T>(e, b);
 }
 
-TEST(ArraySumTest, SumKeepDims) {
+TEST_P(ArraySumTest, SumZero) {
     using T = float;
-    testing::ContextSession context_session{};
+
+    Array a = testing::MakeArray({0}).WithData<T>({});
+    Array b = a.Sum();
+    EXPECT_EQ(Shape{}, b.shape());
+    Array e = testing::MakeArray(Shape{}).WithData<T>({0.0f});
+    ExpectEqual<T>(e, b);
+}
+
+TEST_P(ArraySumTest, SumOne) {
+    using T = float;
+
+    Array a = testing::MakeArray({}).WithData<T>({42.0f}).WithPadding(1);
+    Array b = a.Sum();
+    EXPECT_EQ(Shape{}, b.shape());
+    Array e = testing::MakeArray(Shape{}).WithData<T>({42.0f});
+    ExpectEqual<T>(e, b);
+}
+
+TEST_P(ArraySumTest, SumTwo) {
+    using T = float;
+
+    Array a = testing::MakeArray({2}).WithData<T>({42.0f, 37.0f}).WithPadding(1);
+    Array b = a.Sum();
+    EXPECT_EQ(Shape{}, b.shape());
+    Array e = testing::MakeArray(Shape{}).WithData<T>({79.0f});
+    ExpectEqual<T>(e, b);
+}
+
+TEST_P(ArraySumTest, SumLarge) {
+    using T = int64_t;
+
+    Array a = testing::MakeArray({0x100000}).WithLinearData<T>().WithPadding(1);
+    Array b = a.Sum(std::vector<int8_t>{0});
+    EXPECT_EQ(Shape{}, b.shape());
+    Array e = testing::MakeArray(Shape{}).WithData<T>({0x7ffff80000});
+    ExpectEqual<T>(e, b);
+}
+
+TEST_P(ArraySumTest, SumKeepDims) {
+    using T = float;
 
     Array a = testing::MakeArray({2, 3, 2, 4}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum(std::vector<int8_t>{-1, 1}, true);
@@ -1671,23 +1721,21 @@ TEST(ArraySumTest, SumKeepDims) {
     ExpectEqual<T>(e, b);
 }
 
-TEST(ArraySumTest, InvalidSumDuplicateAxes) {
+TEST_P(ArraySumTest, InvalidSumDuplicateAxes) {
     using T = float;
-    testing::ContextSession context_session{};
 
     Array a = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
     EXPECT_THROW(a.Sum(std::vector<int8_t>{1, 1}), XchainerError);
 }
 
-TEST(ArraySumTest, InvalidSumOutOfRangeAxes) {
+TEST_P(ArraySumTest, InvalidSumOutOfRangeAxes) {
     using T = float;
-    testing::ContextSession context_session{};
 
     Array a = testing::MakeArray({2, 3, 4}).WithLinearData<T>();
     EXPECT_THROW(a.Sum(std::vector<int8_t>{3}), DimensionError);
 }
 
-TEST(ArraySumTest, SumBackward) {
+TEST_P(ArraySumTest, SumBackward) {
     using T = double;
     testing::ContextSession context_session{};
 
@@ -1699,6 +1747,15 @@ TEST(ArraySumTest, SumBackward) {
             {testing::MakeArray({2, 4}).WithLinearData<T>(-0.1, 0.1)},
             {Array::Full({2, 3, 4, 3}, 1e-1)});
 }
+
+INSTANTIATE_TEST_CASE_P(
+        ForEachBackend,
+        ArraySumTest,
+        ::testing::Values(
+#ifdef XCHAINER_ENABLE_CUDA
+                std::string{"cuda"},
+#endif  // XCHAINER_ENABLE_CUDA
+                std::string{"native"}));
 
 // TODO(hvy): Test double backward for Sum when BroadcastTo supports backward.
 // TEST(ArraySumTest, SumDoubleBackward) {

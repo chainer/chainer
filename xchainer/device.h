@@ -62,13 +62,7 @@ public:
     // - it is sorted, and
     // - it has no duplicated values.
     // Otherwise, the behavior is undefined.
-    virtual void Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) {
-        // TODO(niboshi): Implement in derived classes
-        (void)src;   // unused
-        (void)axis;  // unused
-        (void)out;   // unused
-        throw NotImplementedError("");
-    }
+    virtual void Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) = 0;
 
     // Copies the elements from one array to the other.
     //
