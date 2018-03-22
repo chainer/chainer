@@ -4,12 +4,12 @@
 
 #include "xchainer/python/slice.h"
 
-namespace py = pybind11;
-
 namespace xchainer {
 namespace python {
 namespace internal {
 namespace {
+
+namespace py = pybind11;
 
 ArrayIndex MakeArrayIndex(py::handle handle) {
     if (handle.is_none()) {
