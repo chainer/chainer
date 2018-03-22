@@ -131,7 +131,7 @@ class Sequential(link.ChainList):
         layer = self._layers.pop(i)
         if isinstance(layer, link.Link):
             for i, _link in enumerate(self._children):
-                if _link is layer:
+                if _link.name == layer.name:
                     del self._children[i]
                     break
             for j, layer in enumerate(self._children[i:]):
