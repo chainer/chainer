@@ -1688,30 +1688,28 @@ TEST(ArraySumTest, InvalidSumOutOfRangeAxes) {
 }
 
 TEST_P(ArrayTest, SumBackward) {
+    using T = double;
     CheckBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
                 return {xs[0].Sum(std::vector<int8_t>{1, 3})};
             },
-            {(*testing::MakeArray({2, 3, 4, 3}).WithLinearData<double>().WithPadding(8)).RequireGrad()},
-            {testing::MakeArray({2, 4}).WithLinearData<double>(-0.1, 0.1)},
+            {(*testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(sizeof(T))).RequireGrad()},
+            {testing::MakeArray({2, 4}).WithLinearData<T>(-0.1, 0.1)},
             {Array::Full({2, 3, 4, 3}, 1e-1)});
 }
 
-/*
 TEST_P(ArrayTest, SumDoubleBackward) {
+    using T = double;
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = xs[0].Squeeze(std::vector<int8_t>{0, 2, 4});
+                auto y = xs[0].Sum(std::vector<int8_t>{1, 3});
                 return {y * y};  // to make it nonlinear
             },
-            {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(4)).RequireGrad()},
-            {(*testing::MakeArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)).RequireGrad()},
-            {testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>()},
-            {Array::Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f), Array::Full({2, 3, 1, 4}, 1e-2f)},
-            1e-4f,
-            1e-3f);
+            {(*testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(sizeof(T))).RequireGrad()},
+            {(*testing::MakeArray({2, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
+            {testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>()},
+            {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 4}, 1e-1)});
 }
-*/
 
 }  // namespace
 }  // namespace xchainer
