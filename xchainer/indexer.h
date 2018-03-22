@@ -1,9 +1,8 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
-
-#include <gsl/gsl>
 
 #include "xchainer/constant.h"
 #include "xchainer/macro.h"
@@ -18,7 +17,7 @@ template <int8_t kNdim = kDynamicNdim>
 class Indexer {
 public:
     explicit Indexer(const Shape& shape) : total_size_{shape.GetTotalSize()} {
-        Expects(shape.size() == kNdim);
+        assert(shape.size() == kNdim);
         std::copy(shape.begin(), shape.end(), shape_);
     }
 
