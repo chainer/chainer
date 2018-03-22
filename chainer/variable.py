@@ -422,8 +422,10 @@ class Variable(object):
     :class:`~chainer.variable.VariableNode` object of
     a computational graph. If the variable is constructed by the user, the node
     is *root* and does not hold any parent. If the variable is constructed by a
-    :class:`~chainer.FunctionNode` object, the node holds a reference to its
-    parent called :attr:`creator_node`.
+    :class:`~chainer.FunctionNode` object (i.e., by calling functions under
+    ``chainer.functions`` or user-defined functions), or by using operators
+    (see the list below), the node holds a reference to its parent called
+    :attr:`creator_node`.
     This reference is used in backpropagation to backtrack the graph.
 
     Users can disable (resp. enable) this chaining behavior by calling
@@ -431,6 +433,23 @@ class Variable(object):
     :func:`~chainer.force_backprop_mode`).
     In the former context, a variable never creates a computational graph,
     whereas in the latter context, it is forced to create.
+
+    .. note::
+
+        The following operators are defined for variable(s).
+
+        * Indexing: ``a[slices]`` (:meth:`__getitem__`)
+        * Addition: ``a + b`` (:meth:`__add__`, :meth:`__radd__`)
+        * Subtraction: ``a - b`` (:meth:`__sub__`, :meth:`__rsub__`)
+        * Multiplication: ``a * b`` (:meth:`__mul__`, :meth:`__rmul__`)
+        * Division: ``a / b`` (:meth:`__div__`, :meth:`__rdiv__`, \
+                               :meth:`__truediv__`, :meth:`__rtruediv__`)
+        * Floor Division: ``a // b`` (:meth:`__floordiv__`, \
+                                      :meth:`__rfloordiv__`)
+        * Exponentiation: ``a ** b`` (:meth:`__pow__`, :meth:`__rpow__`)
+        * Matirx Multiplication: ``a @ b`` (:meth:`__matmul__`, \
+                                            :meth:`__rmatmul__`)
+        * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
 
     .. warning::
 
@@ -1210,27 +1229,35 @@ Actual: {0}'''.format(type(data))
         self._node.data = self._data[0]
 
     def __lt__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __le__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __eq__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __ne__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __gt__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __ge__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __nonzero__(self):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __bool__(self):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     __array_priority__ = 200
