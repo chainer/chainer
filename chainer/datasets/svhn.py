@@ -12,8 +12,8 @@ from chainer.dataset import download
 from chainer.datasets import tuple_dataset
 
 
-def get_svhn(withlabel=True, scale=1., add_extra=False, dtype=numpy.float32,
-             label_dtype=numpy.int32):
+def get_svhn(withlabel=True, scale=1., dtype=numpy.float32,
+             label_dtype=numpy.int32, add_extra=False):
     """Gets the SVHN dataset.
 
     `The Street View House Numbers (SVHN) dataset <http://ufldl.stanford.edu/housenumbers/>`_
@@ -32,15 +32,15 @@ def get_svhn(withlabel=True, scale=1., add_extra=False, dtype=numpy.float32,
             the datasets only contain images.
         scale (float): Pixel value scale. If it is 1 (default), pixels are
             scaled to the interval ``[0, 1]``.
-        add_extra: Use extra training set.
         dtype: Data type of resulting image arrays.
         label_dtype: Data type of the labels.
+        add_extra: Use extra training set.
 
     Returns:
-        If ``add_extra`` is ``False``, a tuple of two datasets. Otherwise,
-        a tuple of three datasets. If ``withlabel`` is ``True``, both datasets
-        are :class:`~chainer.datasets.TupleDataset` instances. Otherwise, both
-        datasets are arrays of images.
+        If ``add_extra`` is ``False``, a tuple of two datasets (train and test). Otherwise,
+        a tuple of three datasets (train, test, and extra).
+        If ``withlabel`` is ``True``, all datasets are :class:`~chainer.datasets.
+        TupleDataset` instances. Otherwise, both datasets are arrays of images.
 
     """  # NOQA
     if not _scipy_available:
