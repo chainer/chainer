@@ -7,6 +7,8 @@
 #include "xchainer/python/common.h"
 
 namespace xchainer {
+namespace python {
+namespace internal {
 
 namespace py = pybind11;  // standard convention
 
@@ -21,4 +23,7 @@ void InitXchainerDtype(pybind11::module& m) {
     dtype_type.def_property_readonly("itemsize", &GetElementSize);
     dtype_type.def_property_readonly("name", &GetDtypeName);
 }
+
+}  // namespace internal
+}  // namespace python
 }  // namespace xchainer

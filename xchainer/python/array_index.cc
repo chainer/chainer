@@ -8,6 +8,7 @@ namespace py = pybind11;
 
 namespace xchainer {
 namespace python {
+namespace internal {
 namespace {
 
 ArrayIndex MakeArrayIndex(py::handle handle) {
@@ -33,8 +34,6 @@ std::vector<ArrayIndex> MakeArrayIndicesFromTuple(py::tuple tup) {
 
 }  // namespace
 
-namespace internal {
-
 std::vector<ArrayIndex> MakeArrayIndices(py::handle handle) {
     if (py::tuple::check_(handle)) {
         return MakeArrayIndicesFromTuple(py::cast<py::tuple>(handle));
@@ -42,9 +41,8 @@ std::vector<ArrayIndex> MakeArrayIndices(py::handle handle) {
     return {MakeArrayIndex(handle)};
 }
 
-}  // namespace internal
-}  // namespace python
-
 void InitXchainerArrayIndex(py::module& m) { m.attr("newaxis") = py::none(); }
 
+}  // namespace internal
+}  // namespace python
 }  // namespace xchainer
