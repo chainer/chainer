@@ -109,13 +109,14 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
 
 ArrayBodyPtr MakeArray(py::array array, const nonstd::optional<std::string>& device_id) {
     Dtype dtype = NumpyDtypeToDtype(array.dtype());
+    const py::buffer_info& info = array.request();
+    Shape shape{info.shape};
+    Strides strides{info.strides};
 
     // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
     void* underlying_data = array.mutable_data();
     std::shared_ptr<void> data{std::make_shared<py::array>(std::move(array)), underlying_data};
-
-    py::buffer_info info = array.request();
-    return internal::ArrayFromBuffer(Shape{info.shape}, dtype, data, Strides{info.strides}, GetDevice(device_id)).move_body();
+    return xchainer::internal::ArrayFromBuffer(shape, dtype, data, strides, GetDevice(device_id)).move_body();
 }
 
 py::buffer_info MakeNumpyArrayFromArray(ArrayBody& self) {
