@@ -131,7 +131,7 @@ class Sequential(link.ChainList):
         layer = self._layers.pop(i)
         if isinstance(layer, link.Link):
             for i, _link in enumerate(self._children):
-                if _link is layer:
+                if _link.name == layer.name:
                     del self._children[i]
                     break
             for j, layer in enumerate(self._children[i:]):
@@ -264,7 +264,17 @@ class Sequential(link.ChainList):
 
         self._layers.insert(i, layer)
         if isinstance(layer, link.Link):
-            self._children.insert(i, layer)
+            if i == 0:
+                self._children.insert(0, layer)
+            else:
+                if i < 0:
+                    i = len(self._layers) + i
+                last_link_pos = 0
+                for j in range(i - 1, -1, -1):
+                    # The last link before the given position
+                    if isinstance(self._layers[j], link.Link):
+                        last_link_pos = j
+                self._children.insert(last_link_pos + 1, layer)
             for i, layer in enumerate(self._children):
                 layer.name = str(i)
 
