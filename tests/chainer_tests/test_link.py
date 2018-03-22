@@ -4,7 +4,6 @@ import warnings
 
 import mock
 import numpy
-import six
 
 import chainer
 from chainer.backends import cuda
