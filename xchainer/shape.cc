@@ -5,6 +5,7 @@
 #include <functional>
 #include <numeric>
 #include <string>
+#include <vector>
 
 #include "xchainer/strides.h"
 
