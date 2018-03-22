@@ -52,22 +52,6 @@ std::vector<int8_t> GetSortedAxes(const std::vector<int8_t>& axis, int8_t ndim) 
     return sorted_axis;
 }
 
-bool BroadcastableTo(const Shape& from_shape, const Shape& to_shape) {
-    if (from_shape.size() > to_shape.size()) {
-        return false;
-    }
-
-    for (int8_t i_to = to_shape.ndim() - 1, i_from = from_shape.ndim() - 1; i_from >= 0; --i_to, --i_from) {
-        int64_t to_dim = to_shape[i_to];
-        int64_t from_dim = from_shape[i_from];
-        if (from_dim != 1 && from_dim != to_dim) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 }  // namespace
 
 namespace internal {
@@ -208,13 +192,8 @@ Array& Array::operator+=(const Array& rhs) {
     if (shape() == rhs.shape()) {
         return func(*this, rhs);
     }
-    if (BroadcastableTo(rhs.shape(), shape())) {
-        Array rhs_view = rhs.BroadcastTo(shape());
-        return func(*this, rhs_view);
-    }
-    throw XchainerError(
-            "non-broadcastable output operand with shape " + shape().ToString() + " doesn't match the broadcast shape " +
-            rhs.shape().ToString());
+    Array rhs_broadcasted = rhs.BroadcastTo(shape());
+    return func(*this, rhs_broadcasted);
 }
 
 Array& Array::operator*=(const Array& rhs) {
@@ -226,13 +205,8 @@ Array& Array::operator*=(const Array& rhs) {
     if (shape() == rhs.shape()) {
         return func(*this, rhs);
     }
-    if (BroadcastableTo(rhs.shape(), shape())) {
-        Array rhs_view = rhs.BroadcastTo(shape());
-        return func(*this, rhs_view);
-    }
-    throw XchainerError(
-            "non-broadcastable output operand with shape " + shape().ToString() + " doesn't match the broadcast shape " +
-            rhs.shape().ToString());
+    Array rhs_broadcasted = rhs.BroadcastTo(shape());
+    return func(*this, rhs_broadcasted);
 }
 
 Array Array::operator+(const Array& rhs) const {
@@ -245,15 +219,10 @@ Array Array::operator+(const Array& rhs) const {
     if (shape() == rhs.shape()) {
         return func(*this, rhs);
     }
-    if (BroadcastableTo(shape(), rhs.shape())) {
-        Array lhs_view = BroadcastTo(rhs.shape());
-        return func(lhs_view, rhs);
-    }
-    if (BroadcastableTo(rhs.shape(), shape())) {
-        Array rhs_view = rhs.BroadcastTo(shape());
-        return func(*this, rhs_view);
-    }
-    throw XchainerError("operands could not be broadcast together with shapes " + shape().ToString() + " " + rhs.shape().ToString());
+    Shape result_shape = internal::BroadcastShapes(shape(), rhs.shape());
+    Array lhs_broadcasted = BroadcastTo(result_shape);
+    Array rhs_broadcasted = rhs.BroadcastTo(result_shape);
+    return func(lhs_broadcasted, rhs_broadcasted);
 }
 
 Array Array::operator*(const Array& rhs) const {
@@ -266,15 +235,10 @@ Array Array::operator*(const Array& rhs) const {
     if (shape() == rhs.shape()) {
         return func(*this, rhs);
     }
-    if (BroadcastableTo(shape(), rhs.shape())) {
-        Array lhs_view = BroadcastTo(rhs.shape());
-        return func(lhs_view, rhs);
-    }
-    if (BroadcastableTo(rhs.shape(), shape())) {
-        Array rhs_view = rhs.BroadcastTo(shape());
-        return func(*this, rhs_view);
-    }
-    throw XchainerError("operands could not be broadcast together with shapes " + shape().ToString() + " " + rhs.shape().ToString());
+    Shape result_shape = internal::BroadcastShapes(shape(), rhs.shape());
+    Array lhs_broadcasted = BroadcastTo(result_shape);
+    Array rhs_broadcasted = rhs.BroadcastTo(result_shape);
+    return func(lhs_broadcasted, rhs_broadcasted);
 }
 
 Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const {

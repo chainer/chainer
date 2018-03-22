@@ -1,5 +1,7 @@
 #include "xchainer/shape.h"
 
+#include <algorithm>
+#include <cassert>
 #include <functional>
 #include <numeric>
 #include <string>
@@ -27,6 +29,34 @@ bool IsContiguous(const Shape& shape, const Strides& strides, int64_t element_by
         element_bytes *= *shape_it;
     }
     return true;
+}
+
+Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
+    if (shape0.size() < shape1.size()) {
+        return BroadcastShapes(shape1, shape0);
+    }
+    assert(shape0.size() >= shape1.size());
+
+    std::vector<int64_t> new_dims;
+    new_dims.reserve(shape0.size());
+
+    // If shape0 is longer than shape1, they are aligned at the ending position and shape0_mid is aligned to shape1.begin().
+    auto shape0_mid = shape0.begin() + (shape0.size() - shape1.size());
+    std::copy(shape0.begin(), shape0_mid, std::back_inserter(new_dims));
+    std::transform(shape0_mid, shape0.end(), shape1.begin(), std::back_inserter(new_dims), [&shape0, &shape1](int64_t dim0, int64_t dim1) {
+        if (dim0 == dim1) {
+            return dim0;
+        }
+        if (dim0 == 1) {
+            return dim1;
+        }
+        if (dim1 == 1) {
+            return dim0;
+        }
+        throw DimensionError("operands could not be broadcast together with shapes " + shape0.ToString() + ' ' + shape1.ToString());
+    });
+
+    return Shape{new_dims.begin(), new_dims.end()};
 }
 
 }  // namespace internal

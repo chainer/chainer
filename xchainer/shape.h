@@ -92,6 +92,8 @@ namespace internal {
 
 bool IsContiguous(const Shape& shape, const Strides& strides, int64_t element_bytes);
 
+Shape BroadcastShapes(const Shape& shape0, const Shape& shape1);
+
 }  // namespace internal
 
 inline bool operator==(const Shape& lhs, const Shape& rhs) { return lhs.span() == rhs.span(); }
