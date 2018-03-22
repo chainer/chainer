@@ -301,7 +301,7 @@ def connectionist_temporal_classification(
             at time ``i``.
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
-            Expected label sequence.
+            A matrix including expected label sequences.
             Its shape is ``(B, M)``, where ``B`` is the batch size and ``M`` is
             the maximum length of the label sequences.
             All elements in ``t`` must be less than ``V``, the number of
