@@ -15,6 +15,8 @@
 #include "xchainer/python/scalar.h"
 
 namespace xchainer {
+namespace python {
+namespace internal {
 namespace {
 
 void InitXchainerModule(pybind11::module& m) {
@@ -22,21 +24,24 @@ void InitXchainerModule(pybind11::module& m) {
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
 
     m.attr("DEFAULT_GRAPH_ID") = kDefaultGraphId;
+
+    InitXchainerContext(m);
+    InitXchainerBackend(m);
+    InitXchainerDevice(m);
+    InitXchainerDtype(m);
+    InitXchainerError(m);
+    InitXchainerScalar(m);
+    InitXchainerArrayIndex(m);
+    InitXchainerArray(m);
+    InitXchainerBackward(m);
+    InitXchainerCheckBackward(m);
 }
 
 }  // namespace
+}  // namespace internal
+}  // namespace python
 }  // namespace xchainer
 
 PYBIND11_MODULE(_core, m) {  // NOLINT
-    xchainer::InitXchainerModule(m);
-    xchainer::InitXchainerContext(m);
-    xchainer::InitXchainerBackend(m);
-    xchainer::InitXchainerDevice(m);
-    xchainer::InitXchainerDtype(m);
-    xchainer::InitXchainerError(m);
-    xchainer::InitXchainerScalar(m);
-    xchainer::InitXchainerArrayIndex(m);
-    xchainer::InitXchainerArray(m);
-    xchainer::InitXchainerBackward(m);
-    xchainer::InitXchainerCheckBackward(m);
+    xchainer::python::internal::InitXchainerModule(m);
 }

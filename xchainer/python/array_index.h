@@ -14,9 +14,8 @@ namespace internal {
 
 std::vector<ArrayIndex> MakeArrayIndices(py::handle handle);
 
-}  // namespace internal
-}  // namespace python
-
 void InitXchainerArrayIndex(py::module&);
 
+}  // namespace internal
+}  // namespace python
 }  // namespace xchainer

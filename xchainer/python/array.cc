@@ -27,6 +27,8 @@
 #include "xchainer/python/strides.h"
 
 namespace xchainer {
+namespace python {
+namespace internal {
 
 namespace py = pybind11;
 
@@ -37,8 +39,9 @@ namespace {
 // shared_ptr) satisfies "standard layout" conditions. We can test if ArrayBodyPtr satisfies these conditions by
 // std::is_standard_layout (see http://en.cppreference.com/w/cpp/types/is_standard_layout#Notes).
 
-using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
-using ConstArrayBodyPtr = std::shared_ptr<const internal::ArrayBody>;
+using ArrayBody = xchainer::internal::ArrayBody;
+using ArrayBodyPtr = std::shared_ptr<ArrayBody>;
+using ConstArrayBodyPtr = std::shared_ptr<const ArrayBody>;
 
 Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
     switch (npdtype.kind()) {
@@ -87,7 +90,7 @@ Device& GetDevice(const nonstd::optional<std::string>& device_id) {
 }
 
 ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
-    Shape shape = internal::ToShape(shape_tup);
+    Shape shape = ToShape(shape_tup);
     auto total_size = shape.GetTotalSize();
     auto bytes = GetElementSize(dtype) * total_size;
     if (static_cast<size_t>(total_size) != list.size()) {
@@ -120,11 +123,11 @@ ArrayBodyPtr MakeArray(py::array array, const nonstd::optional<std::string>& dev
     return Array::FromBuffer(shape, dtype, data, GetDevice(device_id)).move_body();
 }
 
-py::buffer_info MakeNumpyArrayFromArray(internal::ArrayBody& self) {
+py::buffer_info MakeNumpyArrayFromArray(ArrayBody& self) {
     // Used as a temporary accessor
-    Array array{std::move(ArrayBodyPtr(&self, [](internal::ArrayBody* ptr) {
+    Array array{ArrayBodyPtr(&self, [](ArrayBody* ptr) {
         (void)ptr;  // unused
-    }))};
+    })};
 
     return py::buffer_info(
             array.data().get(),
@@ -138,7 +141,7 @@ py::buffer_info MakeNumpyArrayFromArray(internal::ArrayBody& self) {
 }  // namespace
 
 void InitXchainerArray(pybind11::module& m) {
-    py::class_<internal::ArrayBody, ArrayBodyPtr>{m, "Array", py::buffer_protocol()}
+    py::class_<ArrayBody, ArrayBodyPtr>{m, "Array", py::buffer_protocol()}
             .def(py::init(py::overload_cast<const py::tuple&, Dtype, const py::list&, const nonstd::optional<std::string>&>(&MakeArray)),
                  py::arg("shape"),
                  py::arg("dtype"),
@@ -151,7 +154,7 @@ void InitXchainerArray(pybind11::module& m) {
             .def("view",
                  [](const ArrayBodyPtr& self) {
                      // Duplicate the array body
-                     return std::make_shared<internal::ArrayBody>(*self);
+                     return std::make_shared<ArrayBody>(*self);
                  })
             .def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).move_body(); })
             .def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).move_body(); })
@@ -174,8 +177,7 @@ void InitXchainerArray(pybind11::module& m) {
                      return Array{self}.ToDevice(device).move_body();
                  })
             .def("transpose", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); })
-            .def("reshape",
-                 [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.Reshape(internal::ToShape(shape)).move_body(); })
+            .def("reshape", [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.Reshape(ToShape(shape)).move_body(); })
             .def("reshape",
                  [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {
                      return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
@@ -258,8 +260,8 @@ void InitXchainerArray(pybind11::module& m) {
             .def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.IsContiguous(); })
             .def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return Array{self}.ndim(); })
             .def_property_readonly("offset", [](const ArrayBodyPtr& self) { return Array{self}.offset(); })
-            .def_property_readonly("shape", [](const ArrayBodyPtr& self) { return internal::ToTuple(Array{self}.shape()); })
-            .def_property_readonly("strides", [](const ArrayBodyPtr& self) { return internal::ToTuple(Array{self}.strides()); })
+            .def_property_readonly("shape", [](const ArrayBodyPtr& self) { return ToTuple(Array{self}.shape()); })
+            .def_property_readonly("strides", [](const ArrayBodyPtr& self) { return ToTuple(Array{self}.strides()); })
             .def_property_readonly("total_bytes", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalBytes(); })
             .def_property_readonly("total_size", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalSize(); })
             .def_property_readonly("T", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); })
@@ -290,14 +292,14 @@ void InitXchainerArray(pybind11::module& m) {
 
     m.def("empty",
           [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-              return Array::Empty(internal::ToShape(shape), dtype, GetDevice(device_id)).move_body();
+              return Array::Empty(ToShape(shape), dtype, GetDevice(device_id)).move_body();
           },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr)
             .def("full",
                  [](py::tuple shape, Scalar value, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-                     return Array::Full(internal::ToShape(shape), value, dtype, GetDevice(device_id)).move_body();
+                     return Array::Full(ToShape(shape), value, dtype, GetDevice(device_id)).move_body();
                  },
                  py::arg("shape"),
                  py::arg("value"),
@@ -305,21 +307,21 @@ void InitXchainerArray(pybind11::module& m) {
                  py::arg("device") = nullptr)
             .def("full",
                  [](py::tuple shape, Scalar value, const nonstd::optional<std::string>& device_id) {
-                     return Array::Full(internal::ToShape(shape), value, GetDevice(device_id)).move_body();
+                     return Array::Full(ToShape(shape), value, GetDevice(device_id)).move_body();
                  },
                  py::arg("shape"),
                  py::arg("value"),
                  py::arg("device") = nullptr)
             .def("zeros",
                  [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-                     return Array::Zeros(internal::ToShape(shape), dtype, GetDevice(device_id)).move_body();
+                     return Array::Zeros(ToShape(shape), dtype, GetDevice(device_id)).move_body();
                  },
                  py::arg("shape"),
                  py::arg("dtype"),
                  py::arg("device") = nullptr)
             .def("ones",
                  [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-                     return Array::Ones(internal::ToShape(shape), dtype, GetDevice(device_id)).move_body();
+                     return Array::Ones(ToShape(shape), dtype, GetDevice(device_id)).move_body();
                  },
                  py::arg("shape"),
                  py::arg("dtype"),
@@ -351,9 +353,11 @@ void InitXchainerArray(pybind11::module& m) {
                  py::arg("device") = nullptr);
 
     m.def("broadcast_to",
-          [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.BroadcastTo(internal::ToShape(shape)).move_body(); },
+          [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.BroadcastTo(ToShape(shape)).move_body(); },
           py::arg("array"),
           py::arg("shape"));
 }
 
+}  // namespace internal
+}  // namespace python
 }  // namespace xchainer

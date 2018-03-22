@@ -11,6 +11,8 @@
 #include "xchainer/python/common.h"
 
 namespace xchainer {
+namespace python {
+namespace internal {
 
 namespace py = pybind11;  // standard convention
 
@@ -62,4 +64,6 @@ void InitXchainerContext(pybind11::module& m) {
     m.def("context_scope", [](Context& device) { return PyContextScope(device); });
 }
 
+}  // namespace internal
+}  // namespace python
 }  // namespace xchainer
