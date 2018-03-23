@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <sstream>
+#include <ostream>
 #include <vector>
 
 #include <gsl/gsl>

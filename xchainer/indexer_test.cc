@@ -1,5 +1,8 @@
 #include "xchainer/indexer.h"
 
+#include <sstream>
+#include <string>
+
 #include <gtest/gtest.h>
 
 namespace xchainer {
