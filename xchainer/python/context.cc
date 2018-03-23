@@ -32,17 +32,27 @@ private:
 };
 
 void InitXchainerContext(pybind11::module& m) {
-    py::class_<Context>(m, "Context")
-            .def(py::init())
-            .def("get_backend", &Context::GetBackend, py::return_value_policy::reference)
-            .def("get_device",
-                 [](Context& self, const std::string& device_name) -> Device& { return self.GetDevice(device_name); },
-                 py::return_value_policy::reference)
-            .def("get_device",
-                 [](Context& self, const std::string& backend_name, int index) -> Device& {
-                     return self.GetDevice({backend_name, index});
-                 },
-                 py::return_value_policy::reference);
+    // Register Context
+    {
+        py::class_<Context> cls{m, "Context"};
+        cls.def(py::init());
+        cls.def("get_backend", &Context::GetBackend, py::return_value_policy::reference);
+        cls.def("get_device",
+                [](Context& self, const std::string& device_name) -> Device& { return self.GetDevice(device_name); },
+                py::return_value_policy::reference);
+        cls.def("get_device",
+                [](Context& self, const std::string& backend_name, int index) -> Device& {
+                    return self.GetDevice({backend_name, index});
+                },
+                py::return_value_policy::reference);
+    }
+
+    // Register ContextScope
+    {
+        py::class_<PyContextScope> cls(m, "ContextScope");
+        cls.def("__enter__", &PyContextScope::Enter);
+        cls.def("__exit__", &PyContextScope::Exit);
+    }
 
     m.def("get_backend", &GetBackend, py::return_value_policy::reference);
     m.def("get_device",
@@ -53,14 +63,11 @@ void InitXchainerContext(pybind11::module& m) {
               return GetDevice({backend_name, index});
           },
           py::return_value_policy::reference);
-
     m.def("get_default_context", &GetDefaultContext, py::return_value_policy::reference);
     m.def("set_default_context", &SetDefaultContext);
-
     m.def("get_global_default_context", &GetGlobalDefaultContext, py::return_value_policy::reference);
     m.def("set_global_default_context", &SetGlobalDefaultContext);
 
-    py::class_<PyContextScope>(m, "ContextScope").def("__enter__", &PyContextScope::Enter).def("__exit__", &PyContextScope::Exit);
     m.def("context_scope", [](Context& device) { return PyContextScope(device); });
 }
 
