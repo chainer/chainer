@@ -456,8 +456,7 @@ def test_as_constant_view(array_init_inputs):
     assert a.is_grad_required('graph_3')
 
 
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_add_iadd(device, array_init_inputs):
+def test_add_iadd(array_init_inputs):
     shape, dtype = array_init_inputs
 
     lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
@@ -482,8 +481,7 @@ def test_add_iadd(device, array_init_inputs):
     assert rhs._debug_flat_data == rhs_data_list
 
 
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_imul(device, array_init_inputs):
+def test_mul_imul(array_init_inputs):
     shape, dtype = array_init_inputs
 
     lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
