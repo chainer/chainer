@@ -536,8 +536,10 @@ Array Array::BroadcastTo(const Shape& shape) const {
             return gout;
         }
         int8_t lead = gout.ndim() - in_shape.ndim();
-        std::vector<int8_t> lead_axis{lead};
-        std::iota(lead_axis.begin(), lead_axis.end(), 0);
+        std::vector<int8_t> lead_axis;  // NOTE: lead_axis{0} allocates 1 eleme, do not use
+        for (int8_t i = 0; i < lead; ++i) {
+            lead_axis.emplace_back(i);
+        }
 
         std::vector<int8_t> axis;
         std::copy(lead_axis.begin(), lead_axis.end(), std::back_inserter(axis));
@@ -600,8 +602,7 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
     device().Sum(*this, sorted_axis, out);
 
     auto backward_function = [ sorted_axis, in_shape = shape(), keepdims ](const Array& gout, const std::vector<GraphId>&) {
-        assert(sorted_axis.size() == gout.shape().size());
-        assert(std::is_sorted(gout.shape().begin(), gout.shape().end()));
+        assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
         int8_t ndim = in_shape.ndim();
 
         if (!(ndim == 0 || sorted_axis.empty() || keepdims)) {
