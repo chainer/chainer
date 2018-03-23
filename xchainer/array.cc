@@ -23,8 +23,6 @@
 #include "xchainer/op_node.h"
 #include "xchainer/scalar.h"
 
-#include <iostream>
-
 namespace xchainer {
 
 namespace {
@@ -339,7 +337,6 @@ Array Array::Reshape(const Shape& shape) const {
 
     // Check for invalid shape.
     int64_t total_size = in_shape.GetTotalSize();
-    std::cout << "Reshape " << "inshape " << in_shape << " shape " << shape << std::endl;
     if (total_size != shape.GetTotalSize()) {
         throw DimensionError("Cannot reshape array of size " + std::to_string(total_size) + " into shape " + shape.ToString());
     }
@@ -535,7 +532,6 @@ Array Array::BroadcastTo(const Shape& shape) const {
     Array out = Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
 
     auto backward_function = [in_shape](const Array& gout, const std::vector<GraphId>&) {
-        std::cout << gout.shape() << " " << in_shape << std::endl;
         if (gout.shape() == in_shape) {
             return gout;
         }
