@@ -535,12 +535,12 @@ Array Array::BroadcastTo(const Shape& shape) const {
         if (gout.shape() == in_shape) {
             return gout;
         }
+
         int8_t lead = gout.ndim() - in_shape.ndim();
-        std::vector<int8_t> lead_axis;  // NOTE: lead_axis{0} allocates 1 eleme, do not use
+        std::vector<int8_t> lead_axis;  // NOTE: lead_axis{0} allocates 1 elem, do not use
         for (int8_t i = 0; i < lead; ++i) {
             lead_axis.emplace_back(i);
         }
-
         std::vector<int8_t> axis;
         std::copy(lead_axis.begin(), lead_axis.end(), std::back_inserter(axis));
         for (int8_t dim = 0; dim < in_shape.ndim(); ++dim) {
@@ -612,9 +612,8 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
                 out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
             }
             return gout.Reshape({out_shape_broadcastable.begin(), out_shape_broadcastable.end()}).BroadcastTo(in_shape);
-        } else {
-            return gout.BroadcastTo(in_shape);
         }
+        return gout.BroadcastTo(in_shape);
     };
     internal::SetUpOpNodes("sum", {*this}, out, {backward_function});
 
