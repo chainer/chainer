@@ -8,11 +8,11 @@ Reference
    :maxdepth: 2
 
    variable
-   training
    functions
    links
    optimizers
    initializers
+   training
    datasets
    iterators
    serializers
