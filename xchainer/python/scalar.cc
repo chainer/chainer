@@ -8,6 +8,8 @@
 #include "xchainer/python/common.h"
 
 namespace xchainer {
+namespace python {
+namespace internal {
 
 namespace py = pybind11;  // standard convention
 
@@ -49,4 +51,7 @@ void InitXchainerScalar(pybind11::module& m) {
     py::implicitly_convertible<py::int_, Scalar>();
     py::implicitly_convertible<py::float_, Scalar>();
 }
+
+}  // namespace internal
+}  // namespace python
 }  // namespace xchainer

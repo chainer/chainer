@@ -4,6 +4,7 @@
 #include <vector>
 
 namespace xchainer {
+namespace python {
 namespace internal {
 
 namespace py = pybind11;
@@ -24,4 +25,5 @@ py::tuple ToTuple(const Shape& shape) {
 }
 
 }  // namespace internal
+}  // namespace python
 }  // namespace xchainer

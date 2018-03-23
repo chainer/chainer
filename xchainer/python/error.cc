@@ -5,6 +5,8 @@
 #include "xchainer/python/common.h"
 
 namespace xchainer {
+namespace python {
+namespace internal {
 
 namespace py = pybind11;  // standard convention
 
@@ -18,4 +20,6 @@ void InitXchainerError(pybind11::module& m) {
     py::register_exception<GradientCheckError>(m, "GradientCheckError");
 }
 
+}  // namespace internal
+}  // namespace python
 }  // namespace xchainer

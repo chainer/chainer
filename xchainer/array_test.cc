@@ -1227,7 +1227,7 @@ TEST_P(ArrayTest, Copy) {
     }
     {
         Array a = testing::MakeArray<float>({3, 1}, {1.0f, 2.0f, 3.0f})  //
-                          .WithPadding(4);
+                          .WithPadding(1);
         Array o = a.Copy();
         ExpectEqualCopy<float>(a, o);
     }
@@ -1629,7 +1629,7 @@ TEST(ArraySqueezeTest, SqueezeNonContiguous) {
     using T = int32_t;
     testing::ContextSession context_session{};
 
-    Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(4);
+    Array a = testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(1);
     Array b = a.Squeeze(std::vector<int8_t>{0, 2, 4});
     Array e = testing::MakeArray({2, 3, 1, 4}).WithLinearData<T>();
     ExpectEqual<T>(e, b);
@@ -1684,7 +1684,7 @@ TEST_P(ArrayTest, SqueezeBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> {
                 return {xs[0].Squeeze(std::vector<int8_t>{0, 2, 4})};
             },
-            {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(4)).RequireGrad()},
+            {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
             {testing::MakeArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)},
             {Array::Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f)});
 }
@@ -1695,7 +1695,7 @@ TEST_P(ArrayTest, SqueezeDoubleBackward) {
                 auto y = xs[0].Squeeze(std::vector<int8_t>{0, 2, 4});
                 return {y * y};  // to make it nonlinear
             },
-            {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(4)).RequireGrad()},
+            {(*testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
             {(*testing::MakeArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)).RequireGrad()},
             {testing::MakeArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>()},
             {Array::Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f), Array::Full({2, 3, 1, 4}, 1e-2f)},

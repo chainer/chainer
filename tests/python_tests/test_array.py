@@ -25,7 +25,8 @@ def _create_dummy_ndarray(shape_tup, numpy_dtype):
     return numpy.arange(_size(shape_tup)).reshape(shape_tup).astype(numpy_dtype)
 
 
-def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list, device_id=None):
+def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list, expected_is_contiguous=True,
+                 device_id=None):
     assert isinstance(array.dtype, xchainer.Dtype)
     assert isinstance(array.shape, tuple)
     assert array.dtype == expected_dtype
@@ -34,7 +35,7 @@ def _check_array(array, expected_dtype, expected_shape, expected_total_size, exp
     assert array.total_size == expected_total_size
     assert array.total_bytes == expected_dtype.itemsize * expected_total_size
     assert array._debug_flat_data == expected_data_list
-    assert array.is_contiguous
+    assert array.is_contiguous == expected_is_contiguous
     assert array.offset == 0
     if device_id is None:
         device = xchainer.get_default_device()
@@ -72,15 +73,18 @@ def _check_array_equals_ndarray(array, ndarray):
     assert array.is_contiguous == ndarray.flags['C_CONTIGUOUS']
 
 
-def _check_ndarray_equal_ndarray(ndarray1, ndarray2):
+def _check_ndarray_equal_ndarray(ndarray1, ndarray2, skip_strides=False, skip_flags=False):
+    assert ndarray1.dtype == ndarray2.dtype
     assert ndarray1.shape == ndarray2.shape
     assert ndarray1.size == ndarray2.size
     assert ndarray1.ndim == ndarray2.ndim
     assert ndarray1.itemsize == ndarray2.itemsize
-    assert ndarray1.strides == ndarray2.strides
     assert numpy.array_equal(ndarray1, ndarray2)
-    assert ndarray1.dtype == ndarray2.dtype
-    assert ndarray1.flags == ndarray2.flags
+
+    if not skip_strides:
+        assert ndarray1.strides == ndarray2.strides
+    if not skip_flags:
+        assert ndarray1.flags == ndarray2.flags
 
 
 def _size(tup):
@@ -116,7 +120,7 @@ def _check_init(shape, dtype, device=None, with_device=True):
     else:
         array = xchainer.Array(shape, dtype, data_list)
 
-    _check_array(array, dtype, shape, _size(shape), data_list, device)
+    _check_array(array, dtype, shape, _size(shape), data_list, device_id=device)
 
 
 def test_init_without_device(array_init_inputs):
@@ -131,17 +135,16 @@ def test_init_with_none_device(array_init_inputs):
     _check_init(*array_init_inputs, device=None)
 
 
-def _check_numpy_init(shape, dtype, device=None):
-    numpy_dtype = getattr(numpy, dtype.name)
-
-    ndarray = _create_dummy_ndarray(shape, numpy_dtype)
-
+def _check_numpy_init(ndarray, shape, dtype, device=None):
     if device is None:
         array = xchainer.Array(ndarray)
     else:
         array = xchainer.Array(ndarray, device)
 
-    _check_array(array, dtype, shape, _size(shape), ndarray.ravel().tolist(), device)
+    ndarray_is_contigous = ndarray.flags['C_CONTIGUOUS']
+    _check_array(
+        array, dtype, shape, _size(shape), ndarray.ravel().tolist(),
+        expected_is_contiguous=ndarray_is_contigous, device_id=device)
     _check_array_equals_ndarray(array, ndarray)
 
     # test possibly freed memory
@@ -151,20 +154,30 @@ def _check_numpy_init(shape, dtype, device=None):
 
     # recovered data should be equal
     data_recovered = numpy.array(array)
-    _check_ndarray_equal_ndarray(data_copy, data_recovered)
+    _check_ndarray_equal_ndarray(data_copy, data_recovered, skip_strides=True, skip_flags=True)
 
     # recovered data should be a copy
     data_recovered_to_modify = numpy.array(array)
-    data_recovered_to_modify *= _create_dummy_ndarray(shape, numpy_dtype)
+    data_recovered_to_modify *= _create_dummy_ndarray(shape, data_copy.dtype)
     _check_array_equals_ndarray(array, data_recovered)
 
 
 def test_numpy_init(array_init_inputs):
-    _check_numpy_init(*array_init_inputs)
+    shape, dtype = array_init_inputs
+    ndarray = _create_dummy_ndarray(shape, getattr(numpy, dtype.name))
+    _check_numpy_init(ndarray, shape, dtype)
+
+
+def test_numpy_non_contiguous_init(array_init_inputs):
+    shape, dtype = array_init_inputs
+    ndarray = _create_dummy_ndarray(shape, getattr(numpy, dtype.name))
+    _check_numpy_init(ndarray.T, shape[::-1], dtype)
 
 
 def test_numpy_init_device(array_init_inputs):
-    _check_numpy_init(*array_init_inputs, 'native:1')
+    shape, dtype = array_init_inputs
+    ndarray = _create_dummy_ndarray(shape, getattr(numpy, dtype.name))
+    _check_numpy_init(ndarray, shape, dtype, 'native:1')
 
 
 def test_to_device():
@@ -835,3 +848,100 @@ def test_getitem(input_shape, indices, output_shape, output_data):
 
     n = numpy.array(input_data, numpy.int32).reshape(input_shape)
     _check_array_equals_ndarray(y, n[indices])
+
+
+@pytest.mark.parametrize("input_shape,axis,keepdims,output_shape,output_data", [
+    ((), None, False, (), [0]),
+    ((), None, True, (), [0]),
+    ((), (), False, (), [0]),
+    ((), (), True, (), [0]),
+    ((2,), None, False, (), [1]),
+    ((2,), None, True, (1,), [1]),
+    ((2,), (), False, (2,), [0, 1]),
+    ((2,), (), True, (2,), [0, 1]),
+    ((2,), 0, False, (), [1]),
+    ((2,), 0, True, (1,), [1]),
+    ((2,), (0,), False, (), [1]),
+    ((2,), (0,), True, (1,), [1]),
+    ((2,), (-1,), False, (), [1]),
+    ((2,), (-1,), True, (1,), [1]),
+    ((2, 3), None, False, (), [15]),
+    ((2, 3), None, True, (1, 1), [15]),
+    ((2, 3), (), False, (2, 3), [0, 1, 2, 3, 4, 5]),
+    ((2, 3), (), True, (2, 3), [0, 1, 2, 3, 4, 5]),
+    ((2, 3), 0, False, (3,), [3, 5, 7]),
+    ((2, 3), 0, True, (1, 3), [3, 5, 7]),
+    ((2, 3), (0,), False, (3,), [3, 5, 7]),
+    ((2, 3), (0,), True, (1, 3), [3, 5, 7]),
+    ((2, 3), (1,), False, (2,), [3, 12]),
+    ((2, 3), (1,), True, (2, 1), [3, 12]),
+    ((2, 3), (-1,), False, (2,), [3, 12]),
+    ((2, 3), (-1,), True, (2, 1), [3, 12]),
+    ((2, 3), (-2,), False, (3,), [3, 5, 7]),
+    ((2, 3), (-2,), True, (1, 3), [3, 5, 7]),
+    ((2, 3), (0, 1), False, (), [15]),
+    ((2, 3), (0, 1), True, (1, 1), [15]),
+    ((2, 3), (-2, -1), False, (), [15]),
+    ((2, 3), (-2, -1), True, (1, 1), [15]),
+
+    # Sum over axes that are in the middle or apart
+    ((2, 3, 4), (1,), False, (2, 4), [12, 15, 18, 21, 48, 51, 54, 57]),
+    ((2, 3, 4), (1,), True, (2, 1, 4), [12, 15, 18, 21, 48, 51, 54, 57]),
+    ((2, 3, 4), (0, 2), False, (3,), [60, 92, 124]),
+    ((2, 3, 4), (0, 2), True, (1, 3, 1), [60, 92, 124]),
+
+    # Sum over axes that are apart and/or unsorted
+    ((2, 3), (1, 0), False, (), [15]),
+    ((2, 3), (1, 0), True, (1, 1), [15]),
+    ((2, 3, 4), (2, 0), False, (3,), [60, 92, 124]),
+    ((2, 3, 4), (2, 0), True, (1, 3, 1), [60, 92, 124]),
+    ((2, 3, 4), (2, 0, 1), False, (), [276]),
+    ((2, 3, 4), (2, 0, 1), True, (1, 1, 1), [276]),
+    ((2, 3, 4), (-2, 2, 0), False, (), [276]),
+    ((2, 3, 4), (-2, 2, 0), True, (1, 1, 1), [276]),
+])
+def test_sum(input_shape, axis, keepdims, output_shape, output_data):
+    total_size = functools.reduce(operator.mul, input_shape, 1)
+    input_data = list(range(0, total_size))
+    x = xchainer.Array(input_shape, xchainer.int32, input_data)
+    y = x.sum(axis=axis, keepdims=keepdims)
+    e = xchainer.Array(output_shape, xchainer.int32, output_data)
+    _check_arrays_equal(y, e)
+
+    n = numpy.array(input_data, numpy.int32).reshape(input_shape).sum(axis=axis, keepdims=keepdims).astype(numpy.int32)
+    _check_array_equals_ndarray(y, n)
+
+
+@pytest.mark.parametrize("input_shape,axis,keepdims,error", [
+    ((), 0, False, xchainer.DimensionError),
+    ((), 0, True, xchainer.DimensionError),
+    ((), 1, False, xchainer.DimensionError),
+    ((), 1, True, xchainer.DimensionError),
+    ((), (1,), False, xchainer.DimensionError),
+    ((), (1,), True, xchainer.DimensionError),
+    ((2,), 2, False, xchainer.DimensionError),
+    ((2,), 2, True, xchainer.DimensionError),
+    ((2,), (2,), False, xchainer.DimensionError),
+    ((2,), (2,), True, xchainer.DimensionError),
+    ((2,), (-2,), False, xchainer.DimensionError),
+    ((2,), (-2,), True, xchainer.DimensionError),
+    ((2, 3,), (-3,), False, xchainer.DimensionError),
+    ((2, 3,), (-3,), True, xchainer.DimensionError),
+    ((2, 3,), (-3, -4), False, xchainer.DimensionError),
+    ((2, 3,), (-3, -4), True, xchainer.DimensionError),
+    ((2, 3,), (0, 0), False, xchainer.XchainerError),
+    ((2, 3,), (0, 0), True, xchainer.XchainerError),
+    ((2, 3,), (-1, -1), False, xchainer.XchainerError),
+    ((2, 3,), (-1, -1), True, xchainer.XchainerError),
+    ((2, 3,), (0, 1, 1), False, xchainer.XchainerError),
+    ((2, 3,), (0, 1, 1), True, xchainer.XchainerError),
+    ((2, 3,), (0, -2), False, xchainer.XchainerError),
+    ((2, 3,), (0, -2), True, xchainer.XchainerError),
+])
+def test_invalid_sum(input_shape, axis, keepdims, error):
+    total_size = functools.reduce(operator.mul, input_shape, 1)
+    input_data = list(range(0, total_size))
+    x = xchainer.Array(input_shape, xchainer.int32, input_data)
+
+    with pytest.raises(error):
+        x.sum(axis=axis, keepdims=keepdims)

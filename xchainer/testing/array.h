@@ -9,8 +9,6 @@
 #include <utility>
 #include <vector>
 
-#include <gsl/gsl>
-
 #include "xchainer/array.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -30,10 +28,10 @@ public:
 
     template <typename T, typename InputIter>
     ArrayBuilder& WithData(InputIter first, InputIter last) {
-        Expects(create_array_ == nullptr);
+        assert(create_array_ == nullptr);
         std::vector<T> data(first, last);
 
-        Ensures(data.size() == static_cast<size_t>(shape_.GetTotalSize()));
+        assert(data.size() == static_cast<size_t>(shape_.GetTotalSize()));
 
         // Define create_array_ here to type-erase T of `data`.
         // Note: ArrayBuilder must be specified as an argument instead of capturing `this` pointer, because the ArrayBuilder instance could
@@ -41,7 +39,7 @@ public:
         create_array_ = [data](const ArrayBuilder& builder) -> Array {
             Dtype dtype = TypeToDtype<T>;
             const Shape& shape = builder.shape_;
-            Expects(static_cast<size_t>(shape.GetTotalSize()) == data.size());
+            assert(static_cast<size_t>(shape.GetTotalSize()) == data.size());
             Strides strides = builder.GetStrides<T>();
             int64_t total_size = shape.GetTotalSize();
             size_t total_bytes = internal::GetRequiredBytes(shape, strides, sizeof(T));
@@ -77,13 +75,13 @@ public:
 
     template <typename T, size_t N>
     ArrayBuilder& WithData(const std::array<T, N>& data) {
-        Expects(static_cast<size_t>(shape_.GetTotalSize()) == N);
+        assert(static_cast<size_t>(shape_.GetTotalSize()) == N);
         return WithData<T>(data.begin(), data.end());
     }
 
     template <typename T>
     ArrayBuilder& WithData(std::initializer_list<T> data) {
-        Expects(static_cast<size_t>(shape_.GetTotalSize()) == data.size());
+        assert(static_cast<size_t>(shape_.GetTotalSize()) == data.size());
         return WithData<T>(data.begin(), data.end());
     }
 
@@ -101,14 +99,14 @@ public:
     }
 
     ArrayBuilder& WithPadding(std::vector<int64_t> padding) {
-        Expects(padding_.empty());
-        Expects(padding.size() == shape_.size());
+        assert(padding_.empty());
+        assert(padding.size() == shape_.size());
         padding_ = std::move(padding);
         return *this;
     }
 
     ArrayBuilder& WithPadding(int64_t padding) {
-        Expects(padding_.empty());
+        assert(padding_.empty());
         std::fill_n(std::back_inserter(padding_), shape_.size(), padding);
         return *this;
     }
@@ -119,7 +117,7 @@ public:
     }
 
     Array array() const {
-        Expects(create_array_ != nullptr);
+        assert(create_array_ != nullptr);
         return create_array_(*this);
     }
 
@@ -132,12 +130,12 @@ private:
         }
 
         // Create strides with extra space specified by `padding`.
-        Expects(padding.size() == shape_.size());
+        assert(padding.size() == shape_.size());
         std::vector<int64_t> rev_strides;
         rev_strides.reserve(shape_.size());
         int64_t st = sizeof(T);
         for (int8_t i = shape_.ndim() - 1; i >= 0; --i) {
-            st += padding[i];
+            st += sizeof(T) * padding[i];  // paddings are multiples of the item-size.
             rev_strides.push_back(st);
             st *= shape_[i];
         }
@@ -148,7 +146,7 @@ private:
 
     std::reference_wrapper<Device> device_;
 
-    // Padding bytes to each dimension.
+    // Padding items (multiplied by sizeof(T) during construction) to each dimension.
     // TODO(niboshi): Support negative strides
     std::vector<int64_t> padding_;
 
