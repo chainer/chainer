@@ -23,6 +23,8 @@
 #include "xchainer/op_node.h"
 #include "xchainer/scalar.h"
 
+#include <iostream>
+
 namespace xchainer {
 
 namespace {
@@ -529,8 +531,36 @@ Array Array::BroadcastTo(const Shape& shape) const {
         }
     }
     assert(rev_strides.size() == shape.size());
+    Array out = Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
 
-    return Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
+    auto backward_function = [in_shape](const Array& gout, const std::vector<GraphId>&) {
+        std::cout << gout.shape() << " " << in_shape << std::endl;
+        if (gout.shape() == in_shape) {
+            return gout;
+        }
+        int8_t lead = gout.ndim() - in_shape.ndim();
+        std::vector<int8_t> lead_axis{lead};
+        std::iota(lead_axis.begin(), lead_axis.end(), 0);
+
+        std::vector<int8_t> axis;
+        std::copy(lead_axis.begin(), lead_axis.end(), std::back_inserter(axis));
+        for (int8_t dim = 0; dim < in_shape.ndim(); ++dim) {
+            if (in_shape[dim] == 1) {
+                axis.emplace_back(dim + lead);
+            }
+        }
+        auto it = std::unique(axis.begin(), axis.end());
+        axis.erase(it, axis.end());
+
+        Array gin = gout.Sum(axis, true);
+        if (lead > 0) {
+            return gin.Squeeze(lead_axis);
+        }
+        return gin;
+    };
+    internal::SetUpOpNodes("broadcast_to", {*this}, out, {backward_function});
+
+    return out;
 }
 
 Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const {
