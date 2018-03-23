@@ -183,6 +183,18 @@ void InitXchainerArray(pybind11::module& m) {
                      auto shape = py::cast<std::vector<int64_t>>(args);
                      return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
                  })
+            .def("sum",
+                 [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) {
+                     return Array{self}.Sum(std::vector<int8_t>{axis}, keepdims).move_body();
+                 },
+                 py::arg("axis"),
+                 py::arg("keepdims") = false)
+            .def("sum",
+                 [](const ArrayBodyPtr& self, nonstd::optional<std::vector<int8_t>> axis, bool keepdims) {
+                     return Array{self}.Sum(axis, keepdims).move_body();
+                 },
+                 py::arg("axis") = nullptr,
+                 py::arg("keepdims") = false)
             .def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); })
             .def("as_constant",
                  [](const ArrayBodyPtr& self, bool copy) {
