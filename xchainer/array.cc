@@ -500,6 +500,7 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
     // Calculate output shape
     std::vector<int64_t> out_shape_vec;
     out_shape_vec.reserve(shape().ndim());
+    std::vector<int8_t> out_axis;
     int8_t i_axis = 0;
     for (int8_t i = 0; i < shape().ndim(); ++i) {
         if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
@@ -509,6 +510,7 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
             }
         } else {
             out_shape_vec.push_back(shape()[i]);
+            out_axis.push_back(i);
         }
     }
 
@@ -523,7 +525,19 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
         out.body_->strides_ = Strides{out_strides_vec.begin(), out_strides_vec.end()};
     }
     device().Sum(*this, sorted_axis, out);
-    // TODO(niboshi): Implement backward
+
+    auto backward_function = [ out_axis, in_shape = shape() ](const Array& gout, const std::vector<GraphId>&) {
+        assert(out_axis.size() == gout.shape().size());
+        assert(std::is_sorted(gout.shape().begin(), gout.shape().end()));
+
+        std::vector<int64_t> out_shape_broadcastable(in_shape.size(), 1);
+        for (size_t i = 0; i < gout.shape().size(); ++i) {
+            out_shape_broadcastable[out_axis[i]] = gout.shape()[i];
+        }
+        return gout.Reshape({out_shape_broadcastable.begin(), out_shape_broadcastable.end()}).BroadcastTo(in_shape);
+    };
+    internal::SetUpOpNodes("sum", {*this}, out, {backward_function});
+
     return out;
 }
 
