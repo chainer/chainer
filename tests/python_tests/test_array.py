@@ -945,3 +945,28 @@ def test_invalid_sum(input_shape, axis, keepdims, error):
 
     with pytest.raises(error):
         x.sum(axis=axis, keepdims=keepdims)
+
+
+def test_sum_backward():
+    x = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
+    gy = xchainer.ones((2,), x.dtype)
+    eps = xchainer.full_like(x, 1e-2)
+    xchainer.check_backward(lambda a: (a[0].sum(axis=1),), [x], [gy], [eps])
+
+
+def test_sum_double_backward():
+    # TODO(hvy): Test double backward for Sum when BroadcastTo supports backward.
+    """
+    x = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
+    gy = xchainer.ones((2,), x.dtype).require_grad()
+    ggx = xchainer.ones_like(x)
+    eps_x = xchainer.full_like(x, 1e-2)
+    eps_gy = xchainer.full_like(gy, 1e-2)
+
+    def forward(a):
+        b = a[0].sum(axis=1)
+        return b * b,  # to make it nonlinear
+
+    xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
+    """
+    pass
