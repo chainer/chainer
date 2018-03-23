@@ -339,6 +339,7 @@ Array Array::Reshape(const Shape& shape) const {
 
     // Check for invalid shape.
     int64_t total_size = in_shape.GetTotalSize();
+    std::cout << "Reshape " << "inshape " << in_shape << " shape " << shape << std::endl;
     if (total_size != shape.GetTotalSize()) {
         throw DimensionError("Cannot reshape array of size " + std::to_string(total_size) + " into shape " + shape.ToString());
     }
@@ -602,15 +603,21 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
     }
     device().Sum(*this, sorted_axis, out);
 
-    auto backward_function = [ out_axis, in_shape = shape() ](const Array& gout, const std::vector<GraphId>&) {
-        assert(out_axis.size() == gout.shape().size());
+    auto backward_function = [ sorted_axis, in_shape = shape(), keepdims ](const Array& gout, const std::vector<GraphId>&) {
+        assert(sorted_axis.size() == gout.shape().size());
         assert(std::is_sorted(gout.shape().begin(), gout.shape().end()));
+        int8_t ndim = in_shape.ndim();
 
-        std::vector<int64_t> out_shape_broadcastable(in_shape.size(), 1);
-        for (size_t i = 0; i < gout.shape().size(); ++i) {
-            out_shape_broadcastable[out_axis[i]] = gout.shape()[i];
+        if (!(ndim == 0 || sorted_axis.empty() || keepdims)) {
+            std::vector<int64_t> out_shape_broadcastable;
+            std::copy(gout.shape().begin(), gout.shape().end(), std::back_inserter(out_shape_broadcastable));
+            for (auto axis : sorted_axis) {
+                out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
+            }
+            return gout.Reshape({out_shape_broadcastable.begin(), out_shape_broadcastable.end()}).BroadcastTo(in_shape);
+        } else {
+            return gout.BroadcastTo(in_shape);
         }
-        return gout.Reshape({out_shape_broadcastable.begin(), out_shape_broadcastable.end()}).BroadcastTo(in_shape);
     };
     internal::SetUpOpNodes("sum", {*this}, out, {backward_function});
 
