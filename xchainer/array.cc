@@ -543,9 +543,9 @@ Array Array::BroadcastTo(const Shape& shape) const {
         }
 
         std::vector<int8_t> axis{lead_axis};
-        for (int8_t dim = 0; dim < in_shape.ndim(); ++dim) {
-            if (in_shape[dim] == 1) {
-                axis.emplace_back(dim + lead);
+        for (int8_t i = 0; i < in_shape.ndim(); ++i) {
+            if (in_shape[i] == 1) {
+                axis.emplace_back(i + lead);
             }
         }
         auto it = std::unique(axis.begin(), axis.end());
