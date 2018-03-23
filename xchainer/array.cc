@@ -541,8 +541,8 @@ Array Array::BroadcastTo(const Shape& shape) const {
         for (int8_t i = 0; i < lead; ++i) {
             lead_axis.emplace_back(i);
         }
-        std::vector<int8_t> axis;
-        std::copy(lead_axis.begin(), lead_axis.end(), std::back_inserter(axis));
+
+        std::vector<int8_t> axis{lead_axis};
         for (int8_t dim = 0; dim < in_shape.ndim(); ++dim) {
             if (in_shape[dim] == 1) {
                 axis.emplace_back(dim + lead);
