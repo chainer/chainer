@@ -1,5 +1,6 @@
 import copy
 import unittest
+import warnings
 
 import mock
 import numpy
@@ -468,6 +469,21 @@ class TestLink(unittest.TestCase):
         self.link.enable_update()
         self.assertTrue(self.link.update_enabled)
 
+    def test_count_params(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.link.count_params()
+        assert len(w) == 2
+        assert w[0].category is UserWarning
+        assert self.link.count_params() == 8
+
+        self.link.u.initialize((2, 3))
+        self.link.v.initialize((2, 3))
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.link.count_params()
+        assert not w
+
 
 class CountParameter(chainer.Parameter):
 
@@ -789,6 +805,20 @@ class TestChain(unittest.TestCase):
         mocks['l1'].assert_called_with('x', self.l1.x.data)
         mocks['l2'].assert_called_with('x', self.l2.x.data)
 
+    def test_count_params(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.c2.count_params()
+        assert len(w) == 1
+        assert w[0].category is UserWarning
+        assert self.c1.count_params() == 8
+
+        self.c2.l3.x.initialize((3,))
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.c2.count_params()
+        assert not w
+
 
 class TestChainList(unittest.TestCase):
 
@@ -1101,6 +1131,20 @@ class TestChainList(unittest.TestCase):
 
         mocks['0'].assert_called_with('y', l1.y.data)
         mocks['1'].assert_called_with('x', l2.x.data)
+
+    def test_count_params(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.c2.count_params()
+        assert len(w) == 1
+        assert w[0].category is UserWarning
+        assert self.c1.count_params() == 8
+
+        self.c2[0][0].y.initialize((2, 3))
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.c2.count_params()
+        assert not w
 
 
 @attr.ideep
