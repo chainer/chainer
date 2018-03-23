@@ -530,7 +530,7 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
         assert(out_axis.size() == gout.shape().size());
         assert(std::is_sorted(gout.shape().begin(), gout.shape().end()));
 
-        std::vector<int8_t> out_shape_broadcastable(in_shape.size(), 1);
+        std::vector<int64_t> out_shape_broadcastable(in_shape.size(), 1);
         for (size_t i = 0; i < gout.shape().size(); ++i) {
             out_shape_broadcastable[out_axis[i]] = gout.shape()[i];
         }
