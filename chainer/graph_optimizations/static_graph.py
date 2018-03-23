@@ -3,6 +3,9 @@ import contextlib
 import chainer
 import chainer.function_node
 
+
+from scipy import stats # fixme: remove after debug
+
 # todo: add test that use the same random seed with two models: a static chain
 # and a (non-static) chain. Enable `chainer.config.cudnn_deterministic` and
 # run both models and check that the outputs are identical.
@@ -39,55 +42,42 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
     Args:
         schedule_manager (): fixme
-        in_vars (tuple of Variable): The tuple of input variables that is supplied to
+        in_vars (tuple of Variable): The flattened tuple of input variables that is supplied to
             `__call__()` method of the chain that this schedule corresponds to.
 
-        is_forward (bool): The type of static schedule (i.e., forward or backward).
     """
 
-    def __init__(self, schedule_manager, in_vars, is_forward=True,
-                 verbosity_level=0):
+    # fixme: in_vars not used any more
+    def __init__(self, schedule_manager, in_vars, verbosity_level=0):
         # todo: maybe need weak reference here for schedule_manager?
         self._schedule_manager = schedule_manager
-        assert isinstance(in_vars, tuple)
+        #assert isinstance(in_vars, tuple)
         self._static_schedule_forward = []
         self._backward_schedule_func = None
-        self._chain_in_vars = in_vars
-        self._in_arrays = tuple([x.data.copy() for x in in_vars])
+        #self._chain_in_vars = in_vars # fixme: remove, because not used
+        #self._in_arrays = tuple([x.data.copy() for x in in_vars]) # fixme: remove, because not used
         self.verbosity_level = verbosity_level
 
         # Maps the id of an array (from the data attribute of an a variable
         # that is an input of the sub-graph corresponding to this static schedule)
         # to the corresponding static array index.
-        self._input_var_array_to_static_array_index = dict()
-        if is_forward:
-            # In the case that this is a forward schedule, in_vars contains
-            # the values that will be used during the forward pass. We will
-            # copy these values into the corresponding static arrays
+        #self._input_var_array_to_static_array_index = dict()
 
-            # For each input variable, save the id of its data array as the key
-            # in a dictionary that maps to the corresponding static array.
-            for n, var in enumerate(in_vars):
-                var.data = self._in_arrays[n]
-                self._input_var_array_to_static_array_index[id(var.data)] = n
-        else:
-            # This is a backward schedule, so just zero all of the static arrays
-            # for now.
-            for x in self._in_arrays:
-                x.fill(0)
+        # For each input variable, save the id of its data array as the key
+        # in a dictionary that maps to the corresponding static array.
+        #for n, var in enumerate(in_vars):
+        #    var.data = self._in_arrays[n]
+        #    self._input_var_array_to_static_array_index[id(var.data)] = n
+
         self._backward_out_arrays = None
         self._backward_grad_outputs = None
         self._chain_return_vars = None
-        self._is_forward = is_forward
         self._out_arrays = None
         self._out_var_to_tuple_index = None
+        self._in_arrays = None # fixme: redundant, since the same arrays are in _local_in_vars
+        self._local_in_vars = None
 
-    def is_forward_schedule(self):
-        """Return True if this is a forward schedule.
-
-        """
-        return self._is_forward
-
+    # fixme: remove
     def copy_input_var_dynamic_to_static(self, x):
         """Copy an input to FunctionNode.forward() to a static array.
 
@@ -102,99 +92,15 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
 
         """
-        if id(x.data) in self._input_var_array_to_static_array_index:
-            index = self._input_var_array_to_static_array_index[id(x.data)]
-            if not self.is_forward_schedule():
-                # We only need to copy if this is a backward schedule because
-                # for a forward schedule, the copy was already performed in
-                # the initializer.
-                self._in_arrays[index][:] = x.data
-            x.data = self._in_arrays[index]
-
-    def create_backward_schedule_func(self, out_vars):
-        """Create the backward schedule function.
-
-        Creates a new `StaticScheduleFunction` instance that will be used for
-        the backward static schedule.
-
-        During the backward pass, the ``grad`` atributes of different variables
-        having the same shapes as ``out_vars`` will be the inputs to the functions
-        of the backward static schedule.
-
-        Note that it is not safe
-        to assume that the references to the backing arrays of the ``grad``
-        arrays will remain the same over subsequent iterations. Therefore, all
-        functions in the backward static schedule that read from these inputs
-        should be sure to copy the ``grad`` arrays into statically-allocated arrays
-        in the backward static schedule before executing the schedule.
-
-        To ensure that these copy operations take place when reading from each
-        input variable, this implementation follows the backward references from
-        each variable in ``out_vars`` to its creator function and adds an attribute
-        to the function that will then be checked by the `@static_backward` decorator during the
-        backward pass, which will perform the needed copy operation and insert it into the static
-        schedule.
-
-        Agrs:
-            out_vars(tuple of Variable): The tuple of output variables that is
-            returned from the static chain of this forward schedule. Note
-            that the tuple of input (gradient) variables to the created backward schedule
-            will have the same shapes as ``out_vars``.
-
-        Returns:
-            StaticScheduleFunction: The backward schedule function node.
-        """
-        assert isinstance(out_vars, tuple)
-        if self._backward_schedule_func is None:
-            self._backward_schedule_func = StaticScheduleFunction(self._schedule_manager, out_vars, is_forward=False)
-        else:
-            raise RuntimeError("Cannot create. A backward schedule already exists.")
-        # Now follow the backward references for each variable in out_vars to find out which
-        # function created it and also find the corresponding index of the variable in the
-        # output tuple of that function. This information will then be used during the first
-        # backward pass. Specifically, each gradients variable that corresponds to an input
-        # argument of static_chain.backward() will need to have its `data` attribute first
-        # replaced by a corresponding static array before it is used by the backward-pass
-        # functions. To accomplish this, we will mark each creator function of a variable in
-        # `out_vars` with an attribute that contains the needed information.
-        self._creator_funcs_to_backward_static_arrays = dict()
-        for chain_arg_index in range(len(out_vars)):
-            var = out_vars[chain_arg_index]
-            creator_func = var.creator
-            if creator_func is not None:
-                # map each positional index of the variable in the function's output tuple
-                # to its corresponding static array.
-
-                # Now find the positional index of var in the creator function's output tuple.
-                var_id = id(var.node)
-                for func_arg_index in range(len(creator_func.outputs)):
-                    creator_output_id = id(creator_func.outputs[func_arg_index]())
-                    if var_id == creator_output_id:
-                        # Found the variable.
-                        # During the backward pass, we will need to copy the
-                        # `data` array from the func_arg_index position in the
-                        # tuple of input gradients variables to the
-                        # chain_arg_index'th static input array of the
-                        # backward schedule.
-                        # (func_arg_index, chain_arg_index)
-                        backward_static_arrays_info = getattr(creator_func, '_backward_static_arrays_info', None)
-                        if backward_static_arrays_info is None:
-                            backward_static_arrays_info = list()
-                            creator_func._backward_static_arrays_info = backward_static_arrays_info
-                        backward_static_arrays_info.append((func_arg_index, chain_arg_index))
-
-        return self._backward_schedule_func
-
-    def get_backward_schedule_func(self):
-        """Get the backward schedule function.
-
-        Returns:
-            static_graph.StaticScheduleFunction:
-        """
-        if self._backward_schedule_func is not None:
-            return self._backward_schedule_func
-        else:
-            raise RuntimeError("Cannot return. A backward schedule does not exist.")
+        #if id(x.data) in self._input_var_array_to_static_array_index:
+        #    index = self._input_var_array_to_static_array_index[id(x.data)]
+        #    if not self.is_forward_schedule():
+        #        # We only need to copy if this is a backward schedule because
+        #        # for a forward schedule, the copy was already performed in
+        #        # the initializer.
+        #        self._in_arrays[index][:] = x.data
+        #    x.data = self._in_arrays[index]
+        pass
 
     def is_empty(self):
         """Return True if this schedule is empty.
@@ -202,33 +108,26 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         """
         return len(self._static_schedule_forward) == 0
 
-    def create_out_arrays(self, out_vars):
+
+    def create_out_arrays(self, out_vars, use_grad=False):
         """Create the static output arrays for the forward schedule.
 
-        Create a tuple of statically-allocated arrays that will be used to
+        Create a list of statically-allocated arrays that will be used to
         temporarily hold the outputs before they are returned in dynamically-
         allocated arrays.
 
         This method must be called before the forward schedule can be executed.
 
         Args:
-            out_vars (tuple of Varible): The output variables that
+            out_vars (tuple of Varible): The flattened output variables that
             are returned by the `__call__()` method of the chain that this schedule
             corresponds to.
         """
-        if self.is_forward_schedule():
-            # Since this is a forward schedule, the forward pass has already completed
-            # and we can therefore use the `data` attributes from `out_vars` as
-            # the static output arrays.
-            self._out_arrays = [y.data for y in out_vars]
+        self._out_vars = out_vars # fixme: not used? remove it?
+        if use_grad:
+            self._out_arrays = [y.grad for y in out_vars]
         else:
-            # Note that this method is called at the end of the forward pass of
-            # the static schedule graph, but before the backward pass.
-            # Thus, the output arrays are not yet avaiilable since
-            # they will be allocated during the backward pass. So far now,
-            # the best we can do is just set some None placeholders which
-            # will be replaced by actual arrays in the backward pass.
-            self._out_arrays = [None,] * len(out_vars)
+            self._out_arrays = [y.data for y in out_vars]
 
     def append_function(self, func):
         """Append a function to the (forward) static schedule.
@@ -238,16 +137,12 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             should not take any arguments and should not return any results.
 
         """
-        if not self._is_forward:
-            self._schedule_manager.end_forward()
 
         if self.verbosity_level >= 2:
             print('Adding function to static schedule: ', func)
         self._static_schedule_forward.append(func)
 
     def forward(self, inputs):
-        if not self._is_forward:
-            self._schedule_manager.end_forward()
 
         # Note: This method will be invoked every iteration starting from the second
         # iteration. That is because the corresponding define-by-run code runs instead
@@ -257,9 +152,12 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         for n in range(len(inputs)):
             # Debug:
             if inputs[n] is not None:
-                assert self._in_arrays[n].shape == inputs[n].shape
-                assert self._in_arrays[n][0].dtype == inputs[n][0].dtype
-                self._in_arrays[n][:] = inputs[n]
+                in_array = self._in_arrays[n]
+                assert in_array.shape == inputs[n].shape
+                assert in_array[0].dtype == inputs[n][0].dtype
+                in_array[:] = inputs[n]
+                #print('static function node forward: self._in_arrays[n]: ', stats.describe(in_array, axis=None))
+                #print('and id of array: ', id(in_array))
 
         # The following line should be the new performance bottleneck after the first iteration
         # has completed. Note that we have several options for the implementation:
@@ -274,12 +172,49 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         # computation graph (such as when the static chain correspond to a single
         # time slice in an RNN).
 
+        #print('static function node forward: self._out_arrays', stats.describe(self._out_arrays, axis=None))
+
         return tuple([None if y is None else y.copy() for y in self._out_arrays])
 
     def backward(self, target_input_indexes, grad_outputs):
-        # Note: This method will be invoked every iteration starting from the second
-        # iteration.
-        return self.get_backward_schedule_func().apply(grad_outputs)
+        # The first time this method is called, the define-by-run code is
+        # executed in order to create a static schedule.
+        self._schedule_manager.end_forward()
+        #
+        #debug_grad = grad_outputs[0].data
+        #print('static function node backward: grad_outputs', stats.describe(debug_grad, axis=None))
+        #print('with id = ', id(debug_grad))
+
+        #if True:
+        if self._backward_schedule_func is None:
+            print('Creating new backward schedule...')
+            # Create backward schedule and run define-by-run backward code.
+            self._backward_schedule_func = StaticScheduleFunction(self._schedule_manager, grad_outputs)
+
+            # Make local copies of the variables in grad_outputs.
+            new_grad_outputs = []
+            for var in grad_outputs:
+                # Replace each input variable with a new variable having
+                # the same data.
+                new_grad_outputs.append(chainer.Variable(var.data.copy()))
+
+            backward_in_arrays = [var.data for var in new_grad_outputs]
+            self._backward_schedule_func._in_arrays = backward_in_arrays
+            self._backward_schedule_func._local_in_vars = new_grad_outputs
+
+            with chainer.using_config('schedule_func', self._backward_schedule_func):
+                for ind, var in enumerate(new_grad_outputs):
+                    dbr_out_var = self._out_vars[ind]
+                    dbr_out_var.grad = backward_in_arrays[ind]
+                    dbr_out_var.backward()
+                    # Note: the output gradients (corresponding to the input variables
+                    # to this static chain) are written into: self._local_in_vars[n].grad
+
+
+            self._backward_schedule_func.create_out_arrays(self._local_in_vars, use_grad=True)
+            print('Static backward schedule created!')
+
+        return self._backward_schedule_func.apply(grad_outputs)
 
 
 class ScheduleManager(object):
@@ -412,6 +347,7 @@ class ScheduleManager(object):
             #self._test_count = 0
 
 
+# fixme: it seems kwargs are not used. Consider to remove and not support kwargs.
 def static_graph(*args, **kwargs):
     """Decorator to mark a Chain's ``__call__()`` as a static sub-graph.
 
@@ -527,6 +463,19 @@ def static_graph(*args, **kwargs):
         to C/C++ and/or an intermediate level graph representations is also
         possible and may be considered in the future.
 
+    Restrictions on input arguments and return values of a static chain:
+        Recall that unlike a function, there is no restrictions on the
+        arguments to a chain. However, there currently are some restrictions
+        when a static chain is used. Specifically, the arguments to a static
+        chain must consist of a variable, list or tuple. In the case of a list
+        or tuple, the elements are required to be an instance of variable,
+        list, or tuple. There can be an arbitrary number of nested lists/
+        tuples. No other object types are allowed.
+        In addition to this, it is not allowed to use keyword arguments.
+        The return value of a static chain must also consist of either a
+        variable, list, or tuple in which each element of the list or
+        tuple is also a variable, list, or tuple.
+
     This decorator can be supplied with the following optional keyword
     arguments:
 
@@ -571,24 +520,29 @@ def static_graph(*args, **kwargs):
             verbosity_level = kwargs['verbosity_level']
 
     def wrap(func):
-        def wrapped_func(*inner_args, **kwargs):
+        def wrapped_func(*inner_args, **inner_kwargs):
             chain = inner_args[0]
-            in_vars = inner_args[1:]
+            # The arguments to `__call__()` of the static chain.
+            # These could consist of any combination of nested lists and/or
+            # tuples of variables or arrays.
+            chain_args = inner_args[1:]
+            if chainer.config.train is False and force_test_define_by_run:
+                return func(*inner_args, **inner_kwargs)
 
-            in_vars, __, __ = _flatten_args(in_vars)
+            chain_args_flat, in_unflatten_inds, __ = _flatten_args(chain_args)
 
             # Since it is allowed for in_vars to be either variables or arrays,
             # we force to variables.
-            new_in_vars = []
-            for x in in_vars:
+            flat_vars = []
+            for x in chain_args_flat:
                 if not isinstance(x, chainer.Variable):
-                    new_in_vars.append(chainer.Variable(x))
+                    flat_vars.append(chainer.Variable(x))
                 else:
-                    new_in_vars.append(x)
-            in_vars = tuple(new_in_vars)
+                    flat_vars.append(x)
 
-            if chainer.config.train is False and force_test_define_by_run:
-                return func(*inner_args, **kwargs)
+            flat_vars = tuple(flat_vars)
+
+
 
             if not hasattr(chain, 'schedule_manager'):
                 chain.schedule_manager = ScheduleManager(
@@ -597,7 +551,10 @@ def static_graph(*args, **kwargs):
 
             schedule_manager = chain.schedule_manager
 
-            chain.static_schedule = schedule_manager.get_schedule(in_vars)
+            chain.static_schedule = schedule_manager.get_schedule(flat_vars)
+            #out_vars = chain.static_schedule.apply(in_vars)
+
+            #out_vars = _unflatten_args(out_vars, chain._out_vars_unflatten_inds)
 
             if not chain.static_schedule.is_empty():
                 # Call the optimized static schedule code.
@@ -605,12 +562,13 @@ def static_graph(*args, **kwargs):
                 # Note: out_vars are dynamically allocated because FunctionNode.apply()
                 # will dynamically allocate variables on each call, which is the desired
                 # behavior.
-                out_vars = chain.static_schedule.apply(in_vars)
+                out_vars_flat = chain.static_schedule.apply(flat_vars)
 
-                out_vars = _unflatten_args(out_vars, chain._out_vars_unflatten_inds)
+                out_vars = _unflatten_args(out_vars_flat, chain._out_vars_unflatten_inds)
 
             else:
                 # This is the first iteration. Calling the define-by-run code.
+                print('Creating new forward schedule...')
                 assert isinstance(chain, chainer.Chain)
                 if verbosity_level >= 2:
                     print('This is the first iteration. Calling the define-by-run code.: ', func)
@@ -621,26 +579,59 @@ def static_graph(*args, **kwargs):
 
                 new_args = []
                 new_args.append(chain)
-                for var in new_in_vars:
-                    new_args.append(var)
+                new_flat_vars = []
+                for var in flat_vars:
+                    # Replace each input variable with a new variable having
+                    # the same data.
+                    new_flat_vars.append(chainer.Variable(var.data.copy()))
+
+                unflat_in_args = _unflatten_args_as_list(new_flat_vars, in_unflatten_inds)
+
+                for item in unflat_in_args:
+                    new_args.append(item)
 
                 inner_args = tuple(new_args)
 
                 with chainer.using_config('schedule_func', chain.static_schedule):
-                    out_vars = func(*inner_args, **kwargs)
+
+                    out_vars = func(*inner_args, **inner_kwargs)
+
+                    #out_vars.grad = out_vars.data
+                    #out_vars.backward() #fixme
+                    #print('good')
+
+                # fixme: maybe make a method of static schedule function to do this?
+                chain.static_schedule._in_arrays = [var.data for var in new_flat_vars] # fixme: clean up
+
+                # note: we have to save these variables because we will need to read the .grad members
+                # from them after the backward pass.
+                chain.static_schedule._local_in_vars = new_flat_vars # fixme: clean up
+                out_vars_flat_dbr, chain._out_vars_unflatten_inds, __ = _flatten_args(out_vars)
+
+                chain.static_schedule.create_out_arrays(out_vars_flat_dbr)
+
+                # Now that the static schedule is available, call it using the
+                # flattened input variables. This will cause the
+                # static schedule function node to be included in the
+                # computational graph.
+                out_vars_flat = chain.static_schedule.apply(flat_vars)
+
+                out_vars = _unflatten_args(out_vars_flat, chain._out_vars_unflatten_inds)
+
 
                 if verbosity_level >= 2:
                     print('Creating a new backward schedule function.')
 
                 # Force out_vars to be a tuple of variables.
-                tuple_out_vars, chain._out_vars_unflatten_inds, __ = _flatten_args(out_vars)
+                #tuple_out_vars, chain._out_vars_unflatten_inds, __ = _flatten_args(out_vars)
 
-                tuple_out_vars = tuple(x if isinstance(x, chainer.Variable) else
-                                       chainer.Variable(x) for x in
-                                       tuple_out_vars)
-                chain.static_schedule.create_out_arrays(tuple_out_vars)
-                backward_sched = chain.static_schedule.create_backward_schedule_func(tuple_out_vars)
-                backward_sched.create_out_arrays(in_vars)
+                #tuple_out_vars = tuple(x if isinstance(x, chainer.Variable) else
+                #                       chainer.Variable(x) for x in
+                #                       tuple_out_vars)
+                #chain.static_schedule.create_out_arrays(out_vars_flat)
+
+                #backward_sched = chain.static_schedule.create_backward_schedule_func(out_vars_flat)
+                #backward_sched.create_out_arrays(in_vars)
 
             return out_vars
 
@@ -651,14 +642,58 @@ def static_graph(*args, **kwargs):
     else:
         return wrap
 
+# fixme: remove unused function
+def _copy_vars_no_creators(var_tuple):
+    """Return a tuple containing new variables using existing data arrays.
+
+    Return a tuple of variables having the same shape, type, and data arrays
+    as `var_tuple`. These new variables are initialized using the data array
+    of the variables in `var_tuple`. Therefore, the new variables will not
+    have a `creator`.
+
+    Args:
+        var_tuple (tuple of Variable): Input tuple of variables.
+
+    Returns:
+        a tuple of variables having the same data as those of the input
+        tuple.
+    """
+    out_vars = []
+    for var in var_tuple:
+        out_vars.append(chainer.Variable(var.data))
+    return tuple(out_vars)
+
 
 def _flatten_args(xs):
+    """Flatten the input into a tuple of variables.
+
+    In the typical case, `xs` is a tuple or list of objects where each
+    object is either a variable, list, or tuple. In the case where it is
+    a list of tuple, the objects in the list or tuple could also be either
+    a variable, list or tuple. Although the non-list and non-tuple items
+    are typically an instance of variable, any object other than list or
+    tuple is allowed.
+
+    This function simply flattens the hierarchical lists/tuples so that all
+    objects that are deeply contained in `xs` that are non-list and non-tuple
+    will be returned in a single tuple.
+
+    Args:
+        xs:
+
+    Returns:
+        The flattened tuple, allong with the indecies and count so that the
+        items can be unflattened later (i.e., by calling `_unflatten_args()`.
+
+    fixme: does not work if xs is a variable only.
+    """
     inds = []
     ys = []
     i = 0
     if not isinstance(xs, (list, tuple)):
         inds.append(('s', ))
-        return [xs], inds, 0
+        #return [xs], inds, 0
+        return (xs,), inds, 0
     for x in xs:
         if isinstance(x, (list, tuple)):
             x, sub_inds, total = _flatten_args(x, )
@@ -686,3 +721,38 @@ def _unflatten_args(xs, inds):
             y = xs[i]
         ys.append(y)
     return tuple(ys)
+
+def _unflatten_args_as_list(xs, inds):
+    ys = []
+    for ind in inds:
+        code = ind[0]
+        if code == 's':
+            return xs[0]
+        elif code == 'i':
+            i_start, i_end, sub_inds = ind[1:]
+            y = _unflatten_args(xs[i_start:i_end], sub_inds)
+        else:
+            i = ind[1]
+            y = xs[i]
+        ys.append(y)
+    return ys
+
+
+#todo: move code below into Chainer tests after initial debug.
+
+
+def test1():
+    print('testing var copy')
+    import numpy as np
+    N = 3
+    xs = []
+    for n in range(N):
+        data = np.random.rand(2,3)
+        xs.append(chainer.Variable(data))
+    xs = tuple(xs)
+    print('xs: ', xs)
+    copied_vars = _copy_vars_no_creators(xs)
+    print('copied: ', copied_vars)
+
+if __name__ == '__main__':
+    test1()

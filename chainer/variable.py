@@ -964,7 +964,7 @@ Actual: {0}'''.format(type(data))
             # Check if func was called as part of a static chain in the
             # forward pass.
             if is_static_func(func):
-                check_func_backward_outputs(func, out_grad)
+                #check_func_backward_outputs(func, out_grad)
                 # Force retain_grad mode for any functions in a static chain.
                 retain_grad = True
                 #if not retain_grad:
@@ -1016,18 +1016,9 @@ Actual: {0}'''.format(type(data))
                     gx = None
                 in_grad.append(gx)
 
-            # Check if func was called as part of a static chain in the
-            # forward pass.
-            if is_static_func(func):
-                forward_schedule = get_static_schedule(func)
-                backward_schedule = forward_schedule.get_backward_schedule_func()
-                with chainer.using_config('schedule_func', backward_schedule):
-                    gxs = func.backward_accumulate(
-                        target_input_indexes, out_grad, in_grad)
-                check_func_backward_inputs(func, gxs)
-            else:
-                gxs = func.backward_accumulate(
-                    target_input_indexes, out_grad, in_grad)
+
+            gxs = func.backward_accumulate(
+                target_input_indexes, out_grad, in_grad)
 
             assert len(gxs) == len(in_grad)
             for hook in hooks:

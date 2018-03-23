@@ -2,6 +2,9 @@ import contextlib
 
 import chainer
 
+from scipy import stats # fixme: remove after debug
+import numpy as np # fixme: remove after debug
+
 # These function are intended to by called from chainer.FunctionNode and
 # chainer.Variable. They should not be directly called from user code.
 
@@ -46,7 +49,7 @@ def is_trace_mode():
     """
     return chainer.config.schedule_func is not None
 
-
+# fixme: remove
 def mark_static_vars(input_vars):
     """Mark variables as static if inside a static chain.
 
@@ -150,11 +153,23 @@ def static_schedule_func(*dec_args, **dec_kwargs):
         if 'delay_call' in dec_kwargs:
             delay_call = dec_kwargs['delay_call']
 
+    def debug_print_stats(args):
+        for arg in args:
+            if isinstance(arg, np.ndarray):
+                print('no-arg-func stats: ', stats.describe(arg, axis=None))
+                print('id of array: ', id(arg))
+            elif isinstance(arg, (list, tuple)):
+                debug_print_stats(arg)
+            else:
+                print('no-arg-func name: ', str(arg))
+
+
     def wrap(func):
         def wrapped_func(*args, **kwargs):
             # Save arguments, function, and results pointers/references to the schedule list:
             def no_arg_func():
-                # print('In no_arg_func: Calling: ', func)
+                #print('In no_arg_func: Calling: ', func)
+                #debug_print_stats(args)
                 ret = func(*args, **kwargs)
                 if ret is not None:
                     raise RuntimeError("This function is not supposed to return anything: ", func)
@@ -211,17 +226,6 @@ def static_forward_optimizations(func, in_vars, in_data, outputs):
 
     schedule_function = chainer.config.schedule_func
     if schedule_function is not None:
-        for func_arg_index, var in enumerate(in_vars):
-            if id(var.data) in schedule_function._input_var_array_to_static_array_index:
-                chain_arg_index = schedule_function._input_var_array_to_static_array_index[id(var.data)]
-                # Add this index information to the func_node so that it can be used in
-                # backward() to copy corresponding gradient outputs into static arrays.
-                forward_static_arrays_info = getattr(func, '_forward_static_arrays_info', None)
-                if forward_static_arrays_info is None:
-                    forward_static_arrays_info = list()
-                    func._forward_static_arrays_info = forward_static_arrays_info
-                forward_static_arrays_info.append((func_arg_index, chain_arg_index))
-
         if not func._supports_static_optimizations:
             if schedule_function.verbosity_level >= 2:
                 print("Adding automatic static graph support to function: ",
