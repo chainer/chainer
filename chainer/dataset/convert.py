@@ -96,7 +96,7 @@ def concat_examples(batch, device=None, padding=None):
        >>> w = [{'feature': np.array([1, 2]), 'label': 0},
        ...      {'feature': np.array([3, 4]), 'label': 1},
        ...      {'feature': np.array([5, 6]), 'label': 2}]
-       >>> dataset.concat_examples(w)
+       >>> dataset.concat_examples(w)  # doctest: +SKIP
        {'feature': array([[1, 2],
               [3, 4],
               [5, 6]]), 'label': array([0, 1, 2])}
