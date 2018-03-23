@@ -326,23 +326,32 @@ def connectionist_temporal_classification(
 
     Args:
         x (list or tuple of :class:`~chainer.Variable`):
-            RNN output at each time. Each element of ``x``, ``x[i]``
-            is a :class:`~chainer.Variable` representing output of RNN at time
-            ``i``.
+            A list of unnormalized probabilities for labels.
+            Each element of ``x``, ``x[i]`` is a :class:`~chainer.Variable`
+            object, which has shape ``(B, V)``, where ``B``
+            is the batch size and ``V`` is the number of labels.
+            The softmax of ``x[i]`` represents the probabilities of the labels
+            at time ``i``.
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
-            Expected label sequence.
+            A matrix including expected label sequences.
+            Its shape is ``(B, M)``, where ``B`` is the batch size and ``M`` is
+            the maximum length of the label sequences.
+            All elements in ``t`` must be less than ``V``, the number of
+            labels.
         blank_symbol (int): Index of blank_symbol.
             This value must be non-negative.
         input_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            Length of valid sequence for each of mini
-            batch ``x`` (optional). If input_length is skipped, It regards that
+        :class:`cupy.ndarray` or ``None``):
+            Length of sequence for each of mini batch ``x`` (optional).
+            Its shape must be ``(B,)``.
+            If the ``input_length`` is omitted or ``None``, it assumes that
             all of ``x`` is valid input.
         label_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            Length of valid sequence for each of mini
-            batch ``t`` (optional). If label_length is skipped, It regards that
+        :class:`cupy.ndarray` or ``None``):
+            Length of sequence for each of mini batch ``t`` (optional).
+            Its shape must be ``(B,)``.
+            If the ``label_length`` is omitted or ``None``, it assumes that
             all of ``t`` is valid input.
         reduce (str): Reduction option. Its value must be either
             ``'mean'`` or ``'no'``. Otherwise,
