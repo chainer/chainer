@@ -1636,10 +1636,10 @@ TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NotBroadcastableAtEnd) {
     EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
 }
 
-class ArraySumTest : public ::testing::TestWithParam<::testing::tuple<std::string>> {
+class ArraySumTest : public ::testing::TestWithParam<std::string> {
 protected:
     void SetUp() override {
-        const std::string& backend_name = ::testing::get<0>(GetParam());
+        const std::string& backend_name = GetParam();
         device_session_.emplace(DeviceId{backend_name, 0});
     }
 
