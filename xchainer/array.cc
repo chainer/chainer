@@ -220,9 +220,13 @@ Array Array::operator+(const Array& rhs) const {
         return func(*this, rhs);
     }
     Shape result_shape = internal::BroadcastShapes(shape(), rhs.shape());
-    Array lhs_broadcasted = BroadcastTo(result_shape);
-    Array rhs_broadcasted = rhs.BroadcastTo(result_shape);
-    return func(lhs_broadcasted, rhs_broadcasted);
+    if (shape() == result_shape) {
+        return func(*this, rhs.BroadcastTo(result_shape));
+    }
+    if (rhs.shape() == result_shape) {
+        return func(BroadcastTo(result_shape), rhs);
+    }
+    return func(BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
 }
 
 Array Array::operator*(const Array& rhs) const {
@@ -236,9 +240,13 @@ Array Array::operator*(const Array& rhs) const {
         return func(*this, rhs);
     }
     Shape result_shape = internal::BroadcastShapes(shape(), rhs.shape());
-    Array lhs_broadcasted = BroadcastTo(result_shape);
-    Array rhs_broadcasted = rhs.BroadcastTo(result_shape);
-    return func(lhs_broadcasted, rhs_broadcasted);
+    if (shape() == result_shape) {
+        return func(*this, rhs.BroadcastTo(result_shape));
+    }
+    if (rhs.shape() == result_shape) {
+        return func(BroadcastTo(result_shape), rhs);
+    }
+    return func(BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
 }
 
 Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const {
