@@ -1,5 +1,6 @@
 #include "xchainer/shape.h"
 
+#include <tuple>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -196,6 +197,34 @@ TEST(ShapeTest, IsContiguous) {
         Strides strides{48, 16, 4};
         EXPECT_FALSE(internal::IsContiguous(shape, strides, GetElementSize(Dtype::kFloat32)));
     }
+}
+
+class BroadcastShapesCorrectTest : public ::testing::TestWithParam<std::tuple<Shape, Shape, Shape>> {
+public:
+    const Shape& shape0() const { return std::get<0>(GetParam()); }
+    const Shape& shape1() const { return std::get<1>(GetParam()); }
+    const Shape& expected() const { return std::get<2>(GetParam()); }
+};
+
+TEST_P(BroadcastShapesCorrectTest, Check) {
+    Shape result = internal::BroadcastShapes(shape0(), shape1());
+    EXPECT_EQ(expected(), result);
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Cases,
+        BroadcastShapesCorrectTest,
+        ::testing::Values(
+                std::make_tuple(Shape{2, 3, 4}, Shape{2, 3, 4}, Shape{2, 3, 4}),
+                std::make_tuple(Shape{1, 3, 1}, Shape{2, 3, 4}, Shape{2, 3, 4}),
+                std::make_tuple(Shape{2, 3, 4}, Shape{1, 3, 1}, Shape{2, 3, 4}),
+                std::make_tuple(Shape{1, 3, 4}, Shape{2, 3, 1}, Shape{2, 3, 4}),
+                std::make_tuple(Shape{3, 4}, Shape{2, 3, 1}, Shape{2, 3, 4})));
+
+TEST(BroadcastShapesInvalidTest, Check) {
+    EXPECT_THROW(internal::BroadcastShapes({2, 3}, {3, 2}), DimensionError);
+    EXPECT_THROW(internal::BroadcastShapes({2, 3}, {2, 3, 1}), DimensionError);
+    EXPECT_THROW(internal::BroadcastShapes({3, 2, 1, 3}, {3, 2, 3}), DimensionError);
 }
 
 }  // namespace

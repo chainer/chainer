@@ -183,25 +183,69 @@ Array::Array(const Array& other)
               other.shape(), other.strides(), other.dtype(), other.device(), other.body_->data_, other.offset(), other.body_->nodes_)) {}
 
 Array& Array::operator+=(const Array& rhs) {
-    Add(rhs, *this);
-    return *this;
+    auto func = [](Array& lhs, const Array& rhs) -> Array& {
+        lhs.Add(rhs, lhs);
+        return lhs;
+    };
+
+    if (shape() == rhs.shape()) {
+        return func(*this, rhs);
+    }
+    Array rhs_broadcasted = rhs.BroadcastTo(shape());
+    return func(*this, rhs_broadcasted);
 }
 
 Array& Array::operator*=(const Array& rhs) {
-    Mul(rhs, *this);
-    return *this;
+    auto func = [](Array& lhs, const Array& rhs) -> Array& {
+        lhs.Mul(rhs, lhs);
+        return lhs;
+    };
+
+    if (shape() == rhs.shape()) {
+        return func(*this, rhs);
+    }
+    Array rhs_broadcasted = rhs.BroadcastTo(shape());
+    return func(*this, rhs_broadcasted);
 }
 
 Array Array::operator+(const Array& rhs) const {
-    Array out = Array::EmptyLike(*this, device());
-    Add(rhs, out);
-    return out;
+    auto func = [](const Array& lhs, const Array& rhs) {
+        Array out = Array::EmptyLike(lhs, lhs.device());
+        lhs.Add(rhs, out);
+        return out;
+    };
+
+    if (shape() == rhs.shape()) {
+        return func(*this, rhs);
+    }
+    Shape result_shape = internal::BroadcastShapes(shape(), rhs.shape());
+    if (shape() == result_shape) {
+        return func(*this, rhs.BroadcastTo(result_shape));
+    }
+    if (rhs.shape() == result_shape) {
+        return func(BroadcastTo(result_shape), rhs);
+    }
+    return func(BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
 }
 
 Array Array::operator*(const Array& rhs) const {
-    Array out = Array::EmptyLike(*this, device());
-    Mul(rhs, out);
-    return out;
+    auto func = [](const Array& lhs, const Array& rhs) {
+        Array out = Array::EmptyLike(lhs, lhs.device());
+        lhs.Mul(rhs, out);
+        return out;
+    };
+
+    if (shape() == rhs.shape()) {
+        return func(*this, rhs);
+    }
+    Shape result_shape = internal::BroadcastShapes(shape(), rhs.shape());
+    if (shape() == result_shape) {
+        return func(*this, rhs.BroadcastTo(result_shape));
+    }
+    if (rhs.shape() == result_shape) {
+        return func(BroadcastTo(result_shape), rhs);
+    }
+    return func(BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
 }
 
 Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const {
@@ -644,7 +688,6 @@ std::string Array::ToString() const { return ArrayRepr(*this); }
 void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
-    // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
     auto lhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
@@ -657,7 +700,6 @@ void Array::Add(const Array& rhs, Array& out) const {
 void Array::Mul(const Array& rhs, Array& out) const {
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
-    // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
     auto lhs_backward_function = [other = rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
