@@ -52,6 +52,9 @@ Chainer can be installed without them, in which case the corresponding features 
 
   * `h5py <http://www.h5py.org/>`__ 2.5+
 
+* iDeep (performance acceleration for Intel CPU) support (experimental)
+
+  * `ideep <https://github.com/intel/ideep>`__ 1.0.3+
 
 Install Chainer
 ---------------
