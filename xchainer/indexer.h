@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <sstream>
+#include <vector>
 
 #include <gsl/gsl>
 
@@ -85,19 +87,12 @@ private:
     int8_t ndim_;
 };
 
-template <int8_t kNdim = kDynamicNdim>
+template <int8_t kNdim>
 std::ostream& operator<<(std::ostream& os, const Indexer<kNdim>& indexer) {
-    const int64_t* index = indexer.index();
+    std::vector<int64_t> index_vec(indexer.index(), indexer.index() + indexer.ndim());
     Shape shape{indexer.shape(), indexer.shape() + indexer.ndim()};
-    os << "Indexer(shape=" << shape << " index=(";
-    for (int8_t i = 0; i < indexer.ndim(); ++i) {
-        if (i != 0) {
-            os << ", ";
-        }
-        os << index[i];
-    }
-    os << ")";
-    return os;
+    Shape index{indexer.index(), indexer.index() + indexer.ndim()};
+    return os << "Indexer(shape=" << shape << " index=" << index << ")";
 }
 
 }  // namespace xchainer
