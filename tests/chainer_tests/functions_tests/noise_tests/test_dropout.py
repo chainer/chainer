@@ -72,8 +72,8 @@ class TestDropout(unittest.TestCase):
             else:
                 self.assertTrue(cuda.cupy.all(inputs[0] != y.data))
         else:
-            # In the calculation of expected results, the mask used in test forward
-            # computation is reused.
+            # In the calculation of expected results,
+            # the mask used in test forward computation is reused.
             mask = y.creator.mask
             y_expected, = self.forward_cpu(inputs, self.ratio, mask)
 

@@ -1,7 +1,4 @@
-import binascii
 import itertools
-import os
-import time
 
 import numpy
 import six
