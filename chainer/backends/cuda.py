@@ -668,7 +668,7 @@ _dropout_states_count = itertools.count()
 
 @memoize(for_each_device=True)
 def get_cudnn_dropout_states_core(thread_id):
-    dropout_id = next(_dropout_states_count)
+    states_id = next(_dropout_states_count)
     seed = os.getenv('CHAINER_SEED')
     if seed is None:
         try:
@@ -679,6 +679,6 @@ def get_cudnn_dropout_states_core(thread_id):
     else:
         seed = numpy.uint64(seed)
 
-    seed = seed + numpy.uint64(dropout_id)
+    seed = seed + numpy.uint64(states_id)
     handle = cudnn.get_handle()
     return cudnn.DropoutStates(handle, seed)

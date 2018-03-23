@@ -55,7 +55,6 @@ class Dropout(function_node.FunctionNode):
                 return cuda.get_cudnn_dropout_states().backward(
                     handle, x[0], self.dropout_ratio, self.states),
 
-            handle = cudnn.get_handle()
             self.states, y = cuda.get_cudnn_dropout_states().forward(
                 handle, x[0], self.dropout_ratio)
             return y,
