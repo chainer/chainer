@@ -46,3 +46,62 @@ Here is an instruction to install NumPy with OpenBLAS using `Homebrew <https://b
 If you want to install NumPy with pip, use `site.cfg <https://github.com/numpy/numpy/blob/master/site.cfg.example>`_ file.
 
 For details of this problem, see `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
+
+
+How do I accelerate my model using iDeep on Intel CPU?
+------------------------------------------------------
+
+Follow these steps to utilize iDeep in your model.
+
+Install iDeep
+~~~~~~~~~~~~~
+
+The following environments are recommended by `iDeep <https://github.com/intel/ideep>`_.
+
+* Ubuntu 14.04 / 16.04 LTS (64-bit) and CentOS 7 (64-bit)
+* Python 2.7.5+, 3.5.2+, and 3.6.0+
+
+On recommended systems, you can install iDeep wheel (binary distribution) by:
+
+.. code-block:: console
+
+    $ pip install ideep4py
+
+Enable iDeep Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Currently iDeep is disabled by default because it is an experimental feature.
+You need to manually enable iDeep by changing ``chainer.config.use_ideep`` configuration to ``'auto'``.
+See :ref:`configuration` for details.
+
+The easiest way to change the configuration is to set environment variable as follows:
+
+.. code-block:: console
+
+    export CHAINER_USE_IDEEP="auto"
+
+You can also use :func:`chainer.using_config` to change the configuration.
+
+.. testcode::
+
+    x = np.ones((3, 3), dtype='f')
+    with chainer.using_config('use_ideep', 'auto'):
+        y = chainer.functions.relu(x)
+    print(type(y.data))
+
+.. testoutput::
+
+    <class 'ideep4py.mdarray'>
+
+Convert Your Model to iDeep
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You need to call ``model.to_intel64()`` (in the same way you call ``model.to_gpu()`` to transfer your link to GPU) to convert the link to iDeep.
+
+Run Your Model
+~~~~~~~~~~~~~~
+
+Now your model is accelerated by iDeep!
+
+Please note that not all functions and optimizers support iDeep acceleration.
+Also note that iDeep will not be used depending on the shape and data type of the input data.
