@@ -53,45 +53,6 @@ def _make_tensor_descriptor_array(xs):
     return PointerArray([d.value for d in descs], descs)
 
 
-class DropoutRandomStates(object):
-
-    def __init__(self, seed):
-        self._states = None
-
-        if seed is None:
-            try:
-                seed_str = binascii.hexlify(os.urandom(8))
-                seed = numpy.uint64(int(seed_str, 16))
-            except NotImplementedError:
-                seed = numpy.uint64(time.clock() * 1000000)
-        else:
-            seed = numpy.uint64(seed)
-
-        self._seed = seed
-
-    def create_dropout_states(self, dropout):
-        handle = cudnn.get_handle()
-        if self._states is None:
-            self._states = cudnn.DropoutStates(handle, self._seed)
-        # TODO(unno): Make a method to set dropout instead of calling API
-        cudnn.set_dropout_descriptor(self._states._desc, handle, dropout)
-
-        return self._states
-
-
-_random_states = {}
-
-
-def get_random_state():
-    global _random_states
-    dev = cuda.Device()
-    rs = _random_states.get(dev.id, None)
-    if rs is None:
-        rs = DropoutRandomStates(os.getenv('CHAINER_SEED'))
-        _random_states[dev.id] = rs
-    return rs
-
-
 if cuda.cudnn_enabled and _cudnn_version >= 5000:
     # Define RNN parameters using dict.
     _rnn_dirs = {
@@ -839,7 +800,9 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
     xp = cuda.get_array_module(hx)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
-        states = get_random_state().create_dropout_states(dropout_ratio)
+        handle = cudnn.get_handle()
+        states = cuda.get_cudnn_dropout_states()
+        cudnn.set_dropout_descriptor(states._desc, handle, dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
 
