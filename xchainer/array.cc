@@ -373,7 +373,10 @@ Array Array::Reshape(const Shape& shape) const {
                 int64_t dim = in_shape[i];
                 int64_t st = in_strides[i];
                 assert(dim > 0);
-                if (dim * st == reduced_strides.back()) {
+                if (dim == 1 && st == 0) {
+                    // If the axis has unit-length with no strides, reduce the dimension.
+                    reduced_shape.back() *= dim;
+                } else if (dim * st == reduced_strides.back()) {
                     // If the pair is compatible with the previous stride, reduce the pair to it.
                     reduced_shape.back() *= dim;
                     reduced_strides.back() = st;
