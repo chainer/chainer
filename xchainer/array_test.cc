@@ -1687,8 +1687,10 @@ TEST(ArraySumTest, InvalidSumOutOfRangeAxes) {
     EXPECT_THROW(a.Sum(std::vector<int8_t>{3}), DimensionError);
 }
 
-TEST_P(ArrayTest, SumBackward) {
+TEST(ArraySumTest, SumBackward) {
     using T = double;
+    testing::ContextSession context_session{};
+
     CheckBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
                 return {xs[0].Sum(std::vector<int8_t>{1, 3})};
@@ -1699,8 +1701,10 @@ TEST_P(ArrayTest, SumBackward) {
 }
 
 // TODO(hvy): Test double backward for Sum when BroadcastTo supports backward.
-// TEST_P(ArrayTest, SumDoubleBackward) {
+// TEST(ArraySumTest, SumDoubleBackward) {
 //     using T = double;
+//     testing::ContextSession context_session{};
+//
 //     CheckDoubleBackwardComputation(
 //             [](const std::vector<Array>& xs) -> std::vector<Array> {
 //                 auto y = xs[0].Sum(std::vector<int8_t>{1, 3});
