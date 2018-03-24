@@ -337,7 +337,7 @@ class TestFunctionNodeInconsistentBackends(unittest.TestCase):
         x1 = chainer.Variable(x1)
         x2 = chainer.Variable(self.x2)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             f.apply((x1, x2))
 
     @attr.gpu
@@ -353,7 +353,7 @@ class TestFunctionNodeInconsistentBackends(unittest.TestCase):
         x1 = chainer.Variable(self.x1)
         x2 = chainer.Variable(self.x2)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             f.apply((x1, x2))
 
 

@@ -115,7 +115,7 @@ def n_step_lstm(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy``, ``cy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is the same as
@@ -282,7 +282,7 @@ def n_step_bilstm(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy``, ``cy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is the same as
@@ -393,7 +393,7 @@ def n_step_lstm_base(
             LSTM.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy``, ``cy`` and ``ys``.
 
             - ``hy`` is an updated hidden states whose shape is the same as
