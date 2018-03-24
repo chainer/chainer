@@ -73,7 +73,7 @@ class ResNetLayers(link.Chain):
             50, 101, or 152.
         downsample_1x1 (bool): Perform downsampling by placing stride 2
             on the 1x1 convolutional layers or the 3x3 convolutional layers.
-            Use True only for the original MSRA ResNet.
+            Use ``True`` only for the original MSRA ResNet.
 
     Attributes:
         ~ResNetLayers.available_layers (list of str): The list of available
@@ -329,7 +329,7 @@ class ResNet50Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
         downsample_1x1 (bool): Perform downsampling by placing stride 2
             on the 1x1 convolutional layers or the 3x3 convolutional layers.
-            Use True only for the original MSRA ResNet.
+            Use ``True`` only for the original MSRA ResNet.
 
     Attributes:
         ~ResNet50Layers.available_layers (list of str): The list of available
@@ -386,7 +386,7 @@ class ResNet101Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
         downsample_1x1 (bool): Perform downsampling by placing stride 2
             on the 1x1 convolutional layers or the 3x3 convolutional layers.
-            Use True only for the original MSRA ResNet.
+            Use ``True`` only for the original MSRA ResNet.
 
     Attributes:
         ~ResNet101Layers.available_layers (list of str): The list of available
@@ -442,7 +442,7 @@ class ResNet152Layers(ResNetLayers):
             ``chainer.initializers.HeNormal(scale=1.0)``.
         downsample_1x1 (bool): Perform downsampling by placing stride 2
             on the 1x1 convolutional layers or the 3x3 convolutional layers.
-            Use True only for the original MSRA ResNet.
+            Use ``True`` only for the original MSRA ResNet.
 
     Attributes:
         ~ResNet152Layers.available_layers (list of str): The list of available
@@ -519,7 +519,7 @@ class BuildingBlock(link.Chain):
             the convolutional layers.
         downsample_1x1 (bool): Perform downsampling by placing stride 2
             on the 1x1 convolutional layers or the 3x3 convolutional layers.
-            Use True only for the original MSRA ResNet.
+            Use ``True`` only for the original MSRA ResNet.
     """
 
     def __init__(self, n_layer, in_channels, mid_channels,
@@ -559,7 +559,7 @@ class BottleneckA(link.Chain):
             the convolutional layers.
         downsample_1x1 (bool): Perform downsampling by placing stride 2
             on the 1x1 convolutional layers or the 3x3 convolutional layers.
-            Use True only for the original MSRA ResNet.
+            Use ``True`` only for the original MSRA ResNet.
     """
 
     def __init__(self, in_channels, mid_channels, out_channels,
