@@ -13,10 +13,10 @@ from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
 
-from chainer.graph_optimizations.static_graph_utilities import check_func_backward_outputs
+#from chainer.graph_optimizations.static_graph_utilities import check_func_backward_outputs
 from chainer.graph_optimizations.static_graph_utilities import is_static_func
-from chainer.graph_optimizations.static_graph_utilities import check_func_backward_inputs
-from chainer.graph_optimizations.static_graph_utilities import get_static_schedule
+#from chainer.graph_optimizations.static_graph_utilities import check_func_backward_inputs
+#from chainer.graph_optimizations.static_graph_utilities import get_static_schedule
 
 
 def _check_grad_type(func, x, gx):
@@ -446,10 +446,6 @@ class Variable(object):
         grad (numpy.ndarray or cupy.ndarray): Initial gradient array.
         requires_grad (bool): Boolean indicating whether ``grad`` will be set
             in backward calculation.
-            
-    Attributes:
-        is_static: If this parmameter is used inside a static chain, it will
-            be set to ``True``. Otherwise, it will be ``False``.
 
     """  # NOQA
 
@@ -966,12 +962,10 @@ Actual: {0}'''.format(type(data))
             if is_static_func(func):
                 #check_func_backward_outputs(func, out_grad)
                 # Force retain_grad mode for any functions in a static chain.
-                retain_grad = True
-                #if not retain_grad:
-                #    raise RuntimeError("variable.backward() using a static chain should set retain_grad=True.")
+                assert retain_grad is True # fixme: remove check after debug.
 
-            out_grad_data = tuple(
-                [None if g is None else g.data for g in out_grad])
+            #out_grad_data = tuple(
+            #    [None if g is None else g.data for g in out_grad])
             hooks = chainer.get_function_hooks()
             if func._n_local_function_hooks != 0:
                 hooks = collections.OrderedDict(hooks)

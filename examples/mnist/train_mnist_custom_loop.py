@@ -11,6 +11,7 @@ from __future__ import print_function
 import argparse
 
 import chainer
+from chainer import configuration
 from chainer.dataset import convert
 import chainer.links as L
 from chainer import serializers
@@ -80,13 +81,15 @@ def main():
             # evaluation
             sum_accuracy = 0
             sum_loss = 0
-            for batch in test_iter:
-                x_array, t_array = convert.concat_examples(batch, args.gpu)
-                x = chainer.Variable(x_array)
-                t = chainer.Variable(t_array)
-                loss = model(x, t)
-                sum_loss += float(loss.data) * len(t.data)
-                sum_accuracy += float(model.accuracy.data) * len(t.data)
+            # It is good practice to turn off train mode during evaluation.
+            with configuration.using_config('train', False):
+                for batch in test_iter:
+                    x_array, t_array = convert.concat_examples(batch, args.gpu)
+                    x = chainer.Variable(x_array)
+                    t = chainer.Variable(t_array)
+                    loss = model(x, t)
+                    sum_loss += float(loss.data) * len(t.data)
+                    sum_accuracy += float(model.accuracy.data) * len(t.data)
 
             test_iter.reset()
             print('test mean  loss: {}, accuracy: {}'.format(
