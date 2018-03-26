@@ -1,10 +1,12 @@
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 
 #include "xchainer/array.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
