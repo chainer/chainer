@@ -125,9 +125,9 @@ ProcessQueueWriter`
 
         - :meth:`chainer.training.extensions.snapshot_object`
     """  # NOQA
-    target = kwargs.pop('target')
-    condition = kwargs.pop('condition')
-    writer = kwargs.pop('writer')
+    target = kwargs.pop('target', None)
+    condition = kwargs.pop('condition', None)
+    writer = kwargs.pop('writer', None)
     if savefun is not None and writer is not None:
         raise TypeError(
             'savefun and writer argument cannot be specified together.')
