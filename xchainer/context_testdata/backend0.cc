@@ -2,11 +2,11 @@
 #include <string>
 
 #include "xchainer/context.h"
-#include "xchainer/native_backend.h"
+#include "xchainer/native/native_backend.h"
 
 namespace {
 
-class Backend0 : public xchainer::NativeBackend {
+class Backend0 : public xchainer::native::NativeBackend {
 public:
     using NativeBackend::NativeBackend;
 

@@ -16,8 +16,8 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
-#include "xchainer/native_backend.h"
-#include "xchainer/native_device.h"
+#include "xchainer/native/native_backend.h"
+#include "xchainer/native/native_device.h"
 #include "xchainer/testing/context_session.h"
 
 namespace xchainer {
@@ -38,8 +38,8 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
     // Fallback to default device which is CPU
     {
         Context& ctx = GetDefaultContext();
-        NativeBackend native_backend{ctx};
-        NativeDevice cpu_device{native_backend, 0};
+        native::NativeBackend native_backend{ctx};
+        native::NativeDevice cpu_device{native_backend, 0};
         auto scope = std::make_unique<DeviceScope>(cpu_device);
         Array array = create_array_func();
         EXPECT_EQ(&cpu_device, &array.device());
@@ -60,8 +60,8 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
 // Check that Arrays are created on the specified device, if specified, without taking into account the default device
 void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_array_func) {
     Context& ctx = GetDefaultContext();
-    NativeBackend native_backend{ctx};
-    NativeDevice cpu_device{native_backend, 0};
+    native::NativeBackend native_backend{ctx};
+    native::NativeDevice cpu_device{native_backend, 0};
 
     // Explicitly create on CPU
     {
@@ -151,8 +151,8 @@ TEST_F(ArrayDeviceTest, EmptyLike) {
         return Array::EmptyLike(array_orig);
     });
     CheckDeviceExplicit([&](Device& device) {
-        NativeBackend native_backend{device.context()};
-        NativeDevice cpu_device{native_backend, 0};
+        native::NativeBackend native_backend{device.context()};
+        native::NativeDevice cpu_device{native_backend, 0};
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::EmptyLike(array_orig, device);
     });
@@ -168,8 +168,8 @@ TEST_F(ArrayDeviceTest, FullLike) {
         return Array::FullLike(array_orig, scalar);
     });
     CheckDeviceExplicit([&](Device& device) {
-        NativeBackend native_backend{device.context()};
-        NativeDevice cpu_device{native_backend, 0};
+        native::NativeBackend native_backend{device.context()};
+        native::NativeDevice cpu_device{native_backend, 0};
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::FullLike(array_orig, scalar, device);
     });
@@ -184,8 +184,8 @@ TEST_F(ArrayDeviceTest, ZerosLike) {
         return Array::ZerosLike(array_orig);
     });
     CheckDeviceExplicit([&](Device& device) {
-        NativeBackend native_backend{device.context()};
-        NativeDevice cpu_device{native_backend, 0};
+        native::NativeBackend native_backend{device.context()};
+        native::NativeDevice cpu_device{native_backend, 0};
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::ZerosLike(array_orig, device);
     });
@@ -200,8 +200,8 @@ TEST_F(ArrayDeviceTest, OnesLike) {
         return Array::OnesLike(array_orig);
     });
     CheckDeviceExplicit([&](Device& device) {
-        NativeBackend native_backend{device.context()};
-        NativeDevice cpu_device{native_backend, 0};
+        native::NativeBackend native_backend{device.context()};
+        native::NativeDevice cpu_device{native_backend, 0};
         Array array_orig = Array::Empty(shape, dtype, cpu_device);
         return Array::OnesLike(array_orig, device);
     });
@@ -212,9 +212,9 @@ TEST_F(ArrayDeviceTest, CheckDevicesCompatibleBasicArithmetics) {
     Dtype dtype = Dtype::kFloat32;
 
     Context& ctx = GetDefaultContext();
-    NativeBackend native_backend{ctx};
-    NativeDevice cpu_device_0{native_backend, 0};
-    NativeDevice cpu_device_1{native_backend, 1};
+    native::NativeBackend native_backend{ctx};
+    native::NativeDevice cpu_device_0{native_backend, 0};
+    native::NativeDevice cpu_device_1{native_backend, 1};
 
     Array a_device_0 = Array::Empty(shape, dtype, cpu_device_0);
     Array b_device_0 = Array::Empty(shape, dtype, cpu_device_0);

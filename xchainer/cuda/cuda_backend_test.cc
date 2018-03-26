@@ -11,7 +11,7 @@
 #include "xchainer/device.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
-#include "xchainer/native_backend.h"
+#include "xchainer/native/native_backend.h"
 #include "xchainer/testing/util.h"
 
 namespace xchainer {
@@ -99,8 +99,8 @@ TEST(CudaBackendIncompatibleTransferTest, SupportsTransferDifferentContexts) {
 TEST(CudaBackendIncompatibleTransferTest, SupportsTransferNativeBackends) {
     Context ctx;
     CudaBackend cuda_backend{ctx};
-    NativeBackend native_backend0{ctx};
-    NativeBackend native_backend1{ctx};
+    native::NativeBackend native_backend0{ctx};
+    native::NativeBackend native_backend1{ctx};
     Device& device0 = native_backend0.GetDevice(0);
     Device& device1 = native_backend1.GetDevice(0);
     EXPECT_FALSE(cuda_backend.SupportsTransfer(device0, device1));

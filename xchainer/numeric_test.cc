@@ -10,7 +10,6 @@
 #include "xchainer/array.h"
 #include "xchainer/context.h"
 #include "xchainer/error.h"
-#include "xchainer/native_backend.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/testing/array.h"

@@ -21,7 +21,7 @@
 #include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
-#include "xchainer/native_backend.h"
+#include "xchainer/native/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/shape.h"
 #include "xchainer/testing/device_session.h"
@@ -367,7 +367,7 @@ INSTANTIATE_TEST_CASE_P(
                 std::string{"native"}));
 
 TEST(BackpropEnableDoubleBackpropTest, Enabled) {
-    testing::DeviceSession device_session({NativeBackend::kDefaultName, 0});
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
     Array x2 = Array::Full({2}, 2.f);
@@ -395,7 +395,7 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
 }
 
 TEST(BackpropEnableDoubleBackpropTest, Disabled) {
-    testing::DeviceSession device_session({NativeBackend::kDefaultName, 0});
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     Array x1 = Array::Full({2}, 1.f).RequireGrad();
     Array x2 = Array::Full({2}, 2.f);

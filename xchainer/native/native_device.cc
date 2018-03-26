@@ -1,4 +1,4 @@
-#include "xchainer/native_device.h"
+#include "xchainer/native/native_device.h"
 
 #include <algorithm>
 #include <cassert>
@@ -14,6 +14,7 @@
 #include "xchainer/scalar.h"
 
 namespace xchainer {
+namespace native {
 namespace internal {
 
 template <typename T>
@@ -253,4 +254,5 @@ void NativeDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
 
 void NativeDevice::Synchronize() {}
 
+}  // namespace native
 }  // namespace xchainer

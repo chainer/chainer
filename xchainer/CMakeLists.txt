@@ -54,6 +54,7 @@ target_link_libraries(xchainer
     ${CMAKE_DL_LIBS}
     PRIVATE
     -Wl,--whole-archive)
+target_link_libraries(xchainer PRIVATE xchainer_native)
 if(${CUDA_FOUND})
     target_link_libraries(xchainer PRIVATE xchainer_cuda)
 endif()

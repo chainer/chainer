@@ -1,4 +1,4 @@
-#include "xchainer/native_backend.h"
+#include "xchainer/native/native_backend.h"
 
 #include <cstring>
 #include <tuple>
@@ -10,6 +10,7 @@
 #include "xchainer/device.h"
 
 namespace xchainer {
+namespace native {
 namespace {
 
 template <typename T>
@@ -203,4 +204,5 @@ TEST_P(NativeBackendTransferTest, ArrayToDevice) {
 }
 
 }  // namespace
+}  // namespace native
 }  // namespace xchainer
