@@ -1,7 +1,7 @@
 .. module:: chainer.training
 
 
-.. snapshot_writers is referred to from within chainer.training.Snapshot docstring.
+.. snapshot_writers is referred to from within chainer.training.snapshot docstring.
 .. toctree::
    :hidden:
 
