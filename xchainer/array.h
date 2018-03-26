@@ -25,6 +25,7 @@
 
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
+#include "xchainer/routines/manipulation.h"
 
 namespace xchainer {
 
@@ -56,32 +57,20 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 // The main data structure of multi-dimensional array.
 class Array {
 public:
-    static Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice()) {
-        return routines::FromBuffer(shape, dtype, data, device);
-    }
-    static Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice()) {
-        return routines::Empty(shape, dtype, device);
-    }
-    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device = GetDefaultDevice()) {
-        return routines::Full(shape, scalar, dtype, device);
-    }
-    static Array Full(const Shape& shape, Scalar scalar, Device& device = GetDefaultDevice()) {
-        return routines::Full(shape, scalar, device);
-    }
-    static Array Zeros(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice()) {
-        return routines::Zeros(shape, dtype, device);
-    }
-    static Array Ones(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice()) { return routines::Ones(shape, dtype, device); }
+    static Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
+    static Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
+    static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device = GetDefaultDevice());
+    static Array Full(const Shape& shape, Scalar scalar, Device& device = GetDefaultDevice());
+    static Array Zeros(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
+    static Array Ones(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
 
     // Creates an array which has the same shape and dtype as the other array.
     // The new array is allocated in the default device. The device of the other array
     // is ignored.
-    static Array EmptyLike(const Array& array, Device& device = GetDefaultDevice()) { return routines::EmptyLike(array, device); }
-    static Array FullLike(const Array& array, Scalar scalar, Device& device = GetDefaultDevice()) {
-        return routines::FullLike(array, scalar, device);
-    }
-    static Array ZerosLike(const Array& array, Device& device = GetDefaultDevice()) { return routines::ZerosLike(array, device); }
-    static Array OnesLike(const Array& array, Device& device = GetDefaultDevice()) { return routines::OnesLike(array, device); }
+    static Array EmptyLike(const Array& array, Device& device = GetDefaultDevice());
+    static Array FullLike(const Array& array, Scalar scalar, Device& device = GetDefaultDevice());
+    static Array ZerosLike(const Array& array, Device& device = GetDefaultDevice());
+    static Array OnesLike(const Array& array, Device& device = GetDefaultDevice());
 
     explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
 
@@ -206,6 +195,10 @@ private:
             const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device);
     friend Array routines::Empty(const Shape& shape, Dtype dtype, Device& device);
     friend Array routines::At(const Array& a, const std::vector<ArrayIndex>& indices);
+    friend Array routines::Transpose(const Array& a);
+    friend Array routines::Reshape(const Array& a, const Shape& shape);
+    friend Array routines::Squeeze(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis);
+    friend Array routines::BroadcastTo(const Array& array, const Shape& shape);
 
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 

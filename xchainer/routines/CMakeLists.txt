@@ -3,6 +3,7 @@ add_library(xchainer_routines STATIC
     indexing.cc
     manipulation.cc
     math.cc
+    util.cc
 )
 
 install(FILES
@@ -10,6 +11,7 @@ install(FILES
     indexing.h
     manipulation.h
     math.h
+    util.h
     DESTINATION include/xchainer/routines
     )
 

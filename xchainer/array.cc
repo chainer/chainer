@@ -7,7 +7,6 @@
 #include <cstring>
 #include <numeric>
 #include <ostream>
-#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -23,36 +22,9 @@
 #include "xchainer/op_node.h"
 #include "xchainer/scalar.h"
 
+#include "xchainer/routines/util.h"
+
 namespace xchainer {
-
-namespace {
-
-// Convert negative axes to positive values, sort in ascending order and check for duplicates.
-std::vector<int8_t> GetSortedAxes(const std::vector<int8_t>& axis, int8_t ndim) {
-    std::vector<int8_t> sorted_axis = axis;
-
-    for (auto& a : sorted_axis) {
-        if (a < -ndim || ndim <= a) {
-            throw DimensionError("Axis " + std::to_string(a) + " is out of bounds for array of dimension " + std::to_string(ndim));
-        }
-        if (a < 0) {
-            a += ndim;
-        }
-    }
-    std::sort(sorted_axis.begin(), sorted_axis.end());
-    if (std::unique(sorted_axis.begin(), sorted_axis.end()) != sorted_axis.end()) {
-        throw XchainerError("Duplicate axis values.");
-    }
-
-    // sorted_axis is sorted, unique, and within bounds [0, ndim).
-    assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
-    assert(std::set<int8_t>(sorted_axis.begin(), sorted_axis.end()).size() == sorted_axis.size());
-    assert(std::all_of(sorted_axis.begin(), sorted_axis.end(), [ndim](int8_t x) -> bool { return 0 <= x && x < ndim; }));
-    return sorted_axis;
-}
-
-}  // namespace
-
 namespace internal {
 
 void SetUpOpNodes(
@@ -128,6 +100,28 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 }  // namespace internal
 
+Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
+    return routines::FromBuffer(shape, dtype, data, device);
+}
+
+Array Empty(const Shape& shape, Dtype dtype, Device& device) { return routines::Empty(shape, dtype, device); }
+
+Array Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device) { return routines::Full(shape, scalar, dtype, device); }
+
+Array Full(const Shape& shape, Scalar scalar, Device& device) { return routines::Full(shape, scalar, device); }
+
+Array Zeros(const Shape& shape, Dtype dtype, Device& device) { return routines::Zeros(shape, dtype, device); }
+
+Array Ones(const Shape& shape, Dtype dtype, Device& device) { return routines::Ones(shape, dtype, device); }
+
+Array EmptyLike(const Array& array, Device& device) { return routines::EmptyLike(array, device); }
+
+Array FullLike(const Array& array, Scalar scalar, Device& device) { return routines::FullLike(array, scalar, device); }
+
+Array ZerosLike(const Array& array, Device& device) { return routines::ZerosLike(array, device); }
+
+Array OnesLike(const Array& array, Device& device) { return routines::OnesLike(array, device); }
+
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
 
@@ -201,253 +195,20 @@ Array Array::operator*(const Array& rhs) const {
     return func(BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
 }
 
-Array Array::Transpose() const {
-    Shape out_shape{shape().rbegin(), shape().rend()};
-    Strides out_strides{strides().rbegin(), strides().rend()};
-    Array out{out_shape, out_strides, dtype(), device(), body_->data_, offset()};
-    internal::SetUpOpNodes("transpose", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout.Transpose(); }});
-    return out;
-}
-
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return routines::At(*this, indices); }
 
-Array Array::Reshape(const Shape& shape) const {
-    const Shape& in_shape = this->shape();
-    const Strides& in_strides = strides();
+Array Array::Transpose() const { return routines::Transpose(*this); }
 
-    // If the shape is unchanged, just return a view.
-    if (in_shape == shape) {
-        return *this;
-    }
+Array Array::Reshape(const Shape& shape) const { return routines::Reshape(*this, shape); }
 
-    // Check for invalid shape.
-    int64_t total_size = in_shape.GetTotalSize();
-    if (total_size != shape.GetTotalSize()) {
-        throw DimensionError("Cannot reshape array of size " + std::to_string(total_size) + " into shape " + shape.ToString());
-    }
+Array Array::Squeeze(const nonstd::optional<std::vector<int8_t>>& axis) const { return routines::Squeeze(*this, axis); }
 
-    int64_t element_size = GetElementSize(dtype());
-    Strides strides;
-    if (total_size == 0) {
-        // Calculate the strides for 0-sized array.
-        std::vector<int64_t> rev_strides_vec;
-        rev_strides_vec.push_back(element_size);
-        for (int8_t i = shape.ndim() - 1; i >= 1; --i) {
-            rev_strides_vec.push_back(rev_strides_vec.back() * std::max(int64_t{1}, shape[i]));
-        }
-        strides = Strides{rev_strides_vec.rbegin(), rev_strides_vec.rend()};
-    } else {
-        // Calculate the strides for non-0-sized array.
-
-        // reduced_shape and reduced_strides are the shortest shape and strides which can be convertible from input shape and strides
-        // without copy.
-        std::vector<int64_t> reduced_shape;
-        std::vector<int64_t> reduced_strides;
-        if (in_shape.ndim() == 0) {
-            // Input shape is (). Treat as if it were (1).
-            reduced_shape.push_back(int64_t{1});
-            reduced_strides.push_back(element_size);
-        } else {
-            // Add the first pair
-            reduced_shape.reserve(in_shape.ndim());
-            reduced_strides.reserve(in_shape.ndim());
-            reduced_shape.push_back(in_shape[0]);
-            reduced_strides.push_back(in_strides[0]);
-            // Reduce the remaining
-            for (int8_t i = 1; i < in_shape.ndim(); ++i) {
-                int64_t dim = in_shape[i];
-                int64_t st = in_strides[i];
-                assert(dim > 0);
-                if (dim == 1 && st == 0) {
-                    // If the axis has unit-length with no stride, skip this dimension.
-                } else if (dim * st == reduced_strides.back()) {
-                    // If the pair is compatible with the previous stride, reduce the pair to it.
-                    reduced_shape.back() *= dim;
-                    reduced_strides.back() = st;
-                } else {
-                    // Otherwise, add a new shape and stride.
-                    reduced_shape.push_back(dim);
-                    reduced_strides.push_back(st);
-                }
-            }
-        }
-        assert(reduced_shape.size() == reduced_strides.size());
-        assert(!reduced_shape.empty());
-
-        // Construct the strides for no-copy reshape.
-        // If it's not possible, can_reshape_without_copy will be false.
-        bool can_reshape_without_copy = true;
-        std::vector<int64_t> strides_vec;
-        if (shape.ndim() > 0) {
-            int64_t last_stride = reduced_shape[0] * reduced_strides[0];
-            size_t i_dim = 0;
-            strides_vec.reserve(shape.ndim());
-            for (int64_t dim : shape) {
-                if (dim == 0) {
-                    strides_vec.push_back(last_stride);
-                    continue;
-                }
-                if (i_dim >= reduced_shape.size() || reduced_shape[i_dim] % dim != 0) {
-                    strides_vec.clear();
-                    can_reshape_without_copy = false;
-                    break;
-                }
-                reduced_shape[i_dim] /= dim;
-                last_stride = reduced_shape[i_dim] * reduced_strides[i_dim];
-                strides_vec.push_back(last_stride);
-                if (reduced_strides[i_dim] == 1) {
-                    ++i_dim;
-                }
-            }
-        }
-
-        if (!can_reshape_without_copy) {
-            // Reshape without copy is not possible.
-            // TODO(niboshi): Implement it
-            throw NotImplementedError("Reshape that requires a copy is not implemented yet.");
-        }
-        assert(strides_vec.size() == shape.size());
-
-        strides = Strides{strides_vec.begin(), strides_vec.end()};
-    }
-
-    Array out{shape, strides, dtype(), device(), body_->data_, offset()};
-    internal::SetUpOpNodes(
-            "reshape", {*this}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }}, {});
-
-    assert(out.shape() == shape);
-    assert(out.strides().size() == shape.size());
-    return out;
-}
-
-Array Array::Squeeze(const nonstd::optional<std::vector<int8_t>>& axis) const {
-    const Shape& in_shape = shape();
-    const Strides& in_strides = strides();
-
-    std::vector<int64_t> out_shape;
-    std::vector<int64_t> out_strides;
-
-    if (axis.has_value()) {
-        std::vector<int8_t> sorted_axis = GetSortedAxes(*axis, in_shape.ndim());
-
-        int64_t i_axis = 0;
-        for (int64_t i = 0; i < in_shape.ndim(); ++i) {
-            if (i_axis < static_cast<int64_t>(sorted_axis.size()) && sorted_axis[i_axis] == i) {
-                ++i_axis;
-                if (in_shape[i] != 1) {
-                    std::ostringstream os;
-                    os << "Cannot squeeze out non-unit-length axes, where shape was " << in_shape.ToString();
-                    os << " and axes were (";
-                    for (auto it = axis->begin(); it != axis->end(); ++it) {
-                        if (it != axis->begin()) {
-                            os << ", ";
-                        }
-                        os << *it;
-                    }
-                    os << (axis->size() == 1 ? ",)." : ").");
-                    throw DimensionError(os.str());
-                }
-            } else {
-                out_shape.push_back(in_shape[i]);
-                out_strides.push_back(in_strides[i]);
-            }
-        }
-    } else {  // All axes are candidates for removal if none are given.
-        for (int64_t i = 0; i < in_shape.ndim(); ++i) {
-            if (in_shape[i] != 1) {
-                out_shape.push_back(in_shape[i]);
-                out_strides.push_back(in_strides[i]);
-            }
-        }
-    }
-
-    Array out = in_shape.size() == out_shape.size() ? Array{body_}
-                                                    : Array{Shape{out_shape.begin(), out_shape.end()},
-                                                            Strides{out_strides.begin(), out_strides.end()},
-                                                            dtype(),
-                                                            device(),
-                                                            body_->data_,
-                                                            offset()};
-    internal::SetUpOpNodes(
-            "squeeze", {*this}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }});
-
-    return out;
-}
-
-Array Array::BroadcastTo(const Shape& shape) const {
-    const Shape& in_shape = this->shape();
-    const Strides& in_strides = this->strides();
-
-    if (in_shape.size() > shape.size()) {
-        throw DimensionError("Cannot broadcast to smaller dimensions");
-    }
-
-    std::vector<int64_t> rev_strides;
-    rev_strides.reserve(shape.size());
-    int8_t i_in = in_shape.ndim() - 1;
-    for (int8_t i_out = shape.ndim() - 1; i_out >= 0; --i_out) {
-        int64_t out_dim = shape[i_out];
-        // If this dimension is to be broadcasted, nonbroadcast_stride is unset.
-        // Otherwise, it holds the new stride.
-        nonstd::optional<int64_t> nonbroadcast_stride{};
-        if (i_in >= 0) {
-            int64_t in_dim = in_shape[i_in];
-            int64_t in_stride = in_strides[i_in];
-            --i_in;
-            if (in_dim == 1) {
-                // do nothing; broadcast
-            } else if (in_dim == out_dim) {
-                nonbroadcast_stride = in_stride;
-            } else {
-                throw DimensionError("Invalid broadcast from " + in_shape.ToString() + " to " + shape.ToString());
-            }
-        } else {
-            // do nothing; broadcast
-        }
-
-        if (nonbroadcast_stride.has_value()) {
-            // non-broadcast dimension
-            rev_strides.push_back(*nonbroadcast_stride);
-        } else {
-            // broadcast dimension
-            rev_strides.push_back(int64_t{0});
-        }
-    }
-    assert(rev_strides.size() == shape.size());
-    Array out = Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
-
-    auto backward_function = [in_shape](const Array& gout, const std::vector<GraphId>&) {
-        if (gout.shape() == in_shape) {
-            return gout;
-        }
-
-        int8_t lead = gout.ndim() - in_shape.ndim();
-        std::vector<int8_t> lead_axis(lead);
-        std::iota(lead_axis.begin(), lead_axis.end(), int8_t{0});
-
-        std::vector<int8_t> axis{lead_axis};
-        for (int8_t i = 0; i < in_shape.ndim(); ++i) {
-            if (in_shape[i] == 1) {
-                axis.emplace_back(i + lead);
-            }
-        }
-        axis.erase(std::unique(axis.begin(), axis.end()), axis.end());  // Array::Sum does not accept axis with duplicate elements
-
-        Array gin = gout.Sum(axis, true);
-        if (lead > 0) {
-            return gin.Squeeze(lead_axis);
-        }
-        return gin;
-    };
-    internal::SetUpOpNodes("broadcast_to", {*this}, out, {backward_function});
-
-    return out;
-}
+Array Array::BroadcastTo(const Shape& shape) const { return routines::BroadcastTo(*this, shape); }
 
 Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const {
     std::vector<int8_t> sorted_axis;
     if (axis.has_value()) {
-        sorted_axis = GetSortedAxes(*axis, shape().ndim());
+        sorted_axis = routines::internal::GetSortedAxes(*axis, shape().ndim());
     } else {
         // Fill with all axes
         sorted_axis.resize(shape().size());
