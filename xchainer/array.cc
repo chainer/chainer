@@ -183,25 +183,69 @@ Array::Array(const Array& other)
               other.shape(), other.strides(), other.dtype(), other.device(), other.body_->data_, other.offset(), other.body_->nodes_)) {}
 
 Array& Array::operator+=(const Array& rhs) {
-    Add(rhs, *this);
-    return *this;
+    auto func = [](Array& lhs, const Array& rhs) -> Array& {
+        lhs.Add(rhs, lhs);
+        return lhs;
+    };
+
+    if (shape() == rhs.shape()) {
+        return func(*this, rhs);
+    }
+    Array rhs_broadcasted = rhs.BroadcastTo(shape());
+    return func(*this, rhs_broadcasted);
 }
 
 Array& Array::operator*=(const Array& rhs) {
-    Mul(rhs, *this);
-    return *this;
+    auto func = [](Array& lhs, const Array& rhs) -> Array& {
+        lhs.Mul(rhs, lhs);
+        return lhs;
+    };
+
+    if (shape() == rhs.shape()) {
+        return func(*this, rhs);
+    }
+    Array rhs_broadcasted = rhs.BroadcastTo(shape());
+    return func(*this, rhs_broadcasted);
 }
 
 Array Array::operator+(const Array& rhs) const {
-    Array out = Array::EmptyLike(*this, device());
-    Add(rhs, out);
-    return out;
+    auto func = [](const Array& lhs, const Array& rhs) {
+        Array out = Array::EmptyLike(lhs, lhs.device());
+        lhs.Add(rhs, out);
+        return out;
+    };
+
+    if (shape() == rhs.shape()) {
+        return func(*this, rhs);
+    }
+    Shape result_shape = internal::BroadcastShapes(shape(), rhs.shape());
+    if (shape() == result_shape) {
+        return func(*this, rhs.BroadcastTo(result_shape));
+    }
+    if (rhs.shape() == result_shape) {
+        return func(BroadcastTo(result_shape), rhs);
+    }
+    return func(BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
 }
 
 Array Array::operator*(const Array& rhs) const {
-    Array out = Array::EmptyLike(*this, device());
-    Mul(rhs, out);
-    return out;
+    auto func = [](const Array& lhs, const Array& rhs) {
+        Array out = Array::EmptyLike(lhs, lhs.device());
+        lhs.Mul(rhs, out);
+        return out;
+    };
+
+    if (shape() == rhs.shape()) {
+        return func(*this, rhs);
+    }
+    Shape result_shape = internal::BroadcastShapes(shape(), rhs.shape());
+    if (shape() == result_shape) {
+        return func(*this, rhs.BroadcastTo(result_shape));
+    }
+    if (rhs.shape() == result_shape) {
+        return func(BroadcastTo(result_shape), rhs);
+    }
+    return func(BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
 }
 
 Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const {
@@ -329,7 +373,9 @@ Array Array::Reshape(const Shape& shape) const {
                 int64_t dim = in_shape[i];
                 int64_t st = in_strides[i];
                 assert(dim > 0);
-                if (dim * st == reduced_strides.back()) {
+                if (dim == 1 && st == 0) {
+                    // If the axis has unit-length with no stride, skip this dimension.
+                } else if (dim * st == reduced_strides.back()) {
                     // If the pair is compatible with the previous stride, reduce the pair to it.
                     reduced_shape.back() *= dim;
                     reduced_strides.back() = st;
@@ -483,8 +529,34 @@ Array Array::BroadcastTo(const Shape& shape) const {
         }
     }
     assert(rev_strides.size() == shape.size());
+    Array out = Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
 
-    return Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
+    auto backward_function = [in_shape](const Array& gout, const std::vector<GraphId>&) {
+        if (gout.shape() == in_shape) {
+            return gout;
+        }
+
+        int8_t lead = gout.ndim() - in_shape.ndim();
+        std::vector<int8_t> lead_axis(lead);
+        std::iota(lead_axis.begin(), lead_axis.end(), int8_t{0});
+
+        std::vector<int8_t> axis{lead_axis};
+        for (int8_t i = 0; i < in_shape.ndim(); ++i) {
+            if (in_shape[i] == 1) {
+                axis.emplace_back(i + lead);
+            }
+        }
+        axis.erase(std::unique(axis.begin(), axis.end()), axis.end());  // Array::Sum does not accept axis with duplicate elements
+
+        Array gin = gout.Sum(axis, true);
+        if (lead > 0) {
+            return gin.Squeeze(lead_axis);
+        }
+        return gin;
+    };
+    internal::SetUpOpNodes("broadcast_to", {*this}, out, {backward_function});
+
+    return out;
 }
 
 Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const {
@@ -500,6 +572,7 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
     // Calculate output shape
     std::vector<int64_t> out_shape_vec;
     out_shape_vec.reserve(shape().ndim());
+    std::vector<int8_t> out_axis;
     int8_t i_axis = 0;
     for (int8_t i = 0; i < shape().ndim(); ++i) {
         if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
@@ -509,6 +582,7 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
             }
         } else {
             out_shape_vec.push_back(shape()[i]);
+            out_axis.push_back(i);
         }
     }
 
@@ -523,7 +597,21 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
         out.body_->strides_ = Strides{out_strides_vec.begin(), out_strides_vec.end()};
     }
     device().Sum(*this, sorted_axis, out);
-    // TODO(niboshi): Implement backward
+
+    auto backward_function = [ sorted_axis, in_shape = shape(), keepdims ](const Array& gout, const std::vector<GraphId>&) {
+        assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+
+        if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
+            std::vector<int64_t> out_shape_broadcastable{gout.shape().begin(), gout.shape().end()};
+            for (auto axis : sorted_axis) {
+                out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
+            }
+            return gout.Reshape({out_shape_broadcastable.begin(), out_shape_broadcastable.end()}).BroadcastTo(in_shape);
+        }
+        return gout.BroadcastTo(in_shape);
+    };
+    internal::SetUpOpNodes("sum", {*this}, out, {backward_function});
+
     return out;
 }
 
@@ -630,7 +718,6 @@ std::string Array::ToString() const { return ArrayRepr(*this); }
 void Array::Add(const Array& rhs, Array& out) const {
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
-    // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
     auto lhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
@@ -643,7 +730,6 @@ void Array::Add(const Array& rhs, Array& out) const {
 void Array::Mul(const Array& rhs, Array& out) const {
     // TODO(sonots): dtype conversion
     CheckEqual(dtype(), rhs.dtype());
-    // TODO(sonots): broadcasting
     CheckEqual(shape(), rhs.shape());
 
     auto lhs_backward_function = [other = rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {

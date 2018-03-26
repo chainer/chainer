@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <ostream>
+#include <vector>
 
 #include "xchainer/constant.h"
 #include "xchainer/macro.h"
@@ -83,5 +85,13 @@ private:
     int64_t total_size_;
     int8_t ndim_;
 };
+
+template <int8_t kNdim>
+std::ostream& operator<<(std::ostream& os, const Indexer<kNdim>& indexer) {
+    std::vector<int64_t> index_vec(indexer.index(), indexer.index() + indexer.ndim());
+    Shape shape{indexer.shape(), indexer.shape() + indexer.ndim()};
+    Shape index{indexer.index(), indexer.index() + indexer.ndim()};
+    return os << "Indexer(shape=" << shape << " index=" << index << ")";
+}
 
 }  // namespace xchainer
