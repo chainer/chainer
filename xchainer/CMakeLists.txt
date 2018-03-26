@@ -1,3 +1,4 @@
+add_subdirectory(routines)
 add_subdirectory(testing)
 if(${CUDA_FOUND})
     add_subdirectory(cuda)
@@ -57,6 +58,7 @@ target_link_libraries(xchainer
     ${CMAKE_DL_LIBS}
     PRIVATE
     -Wl,--whole-archive)
+target_link_libraries(xchainer PRIVATE xchainer_routines)
 if(${CUDA_FOUND})
     target_link_libraries(xchainer PRIVATE xchainer_cuda)
 endif()
