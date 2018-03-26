@@ -1,3 +1,7 @@
+import numpy as np
+import cupy as cp
+import chainer.functions as F
+
 
 class DiscriminativeLoss:
     """ Discriminative loss function
