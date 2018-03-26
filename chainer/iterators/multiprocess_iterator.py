@@ -52,6 +52,9 @@ class MultiprocessIterator(iterator.Iterator):
     """
 
     _interruption_testing = False  # for testing
+    _finalized = False
+    _comm = None
+    _thread = None
 
     def __init__(self, dataset, batch_size, repeat=True, shuffle=True,
                  n_processes=None, n_prefetch=1, shared_mem=None):
@@ -63,8 +66,6 @@ class MultiprocessIterator(iterator.Iterator):
         self.n_processes = n_processes or multiprocessing.cpu_count()
         self.n_prefetch = max(n_prefetch, 1)
         self.shared_mem = shared_mem
-
-        self._finalized = False
 
         self._comm = _Communicator(self.n_prefetch)
         self.reset()
@@ -99,27 +100,19 @@ class MultiprocessIterator(iterator.Iterator):
     next = __next__
 
     def __del__(self):
-        # When `self.__del__()` is called, `self.__init__()` may not be
-        # finished. So some attributes may be undefined.
-        if not hasattr(self, '_finalized'):
-            # We don't know how to finalize this uninitialized object
-            return
-        if not hasattr(self, '_comm'):
-            self._comm = None
-        if not hasattr(self, '_thread'):
-            self._thread = None
-
         if self._finalized:
             return
-        self._finalized = True
-        if self._comm is None:
-            return
-        self._comm.terminate()
 
-        if self._thread is None:
-            return
-        while self._thread.is_alive():
-            self._thread.join(_response_time)
+        if self._comm is not None:
+            self._comm.terminate()
+            self._comm = None
+
+        if self._thread is not None:
+            while self._thread.is_alive():
+                self._thread.join(_response_time)
+            self._thread = None
+
+        self._finalized = True
 
     finalize = __del__
 

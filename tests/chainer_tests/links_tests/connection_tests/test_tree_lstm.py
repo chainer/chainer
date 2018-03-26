@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
@@ -33,19 +33,27 @@ def _child_sum_tree_lstm(func, *inputs):
         W_ha, W_hi, W_ho = xp.split(W_h_aio, 3, 1)
         W_hf = W_h_f
 
-        sum_h = sum(hs)
-        a = x.dot(W_xa) + sum_h.dot(W_ha) + b_a
-        i = x.dot(W_xi) + sum_h.dot(W_hi) + b_i
-        o = x.dot(W_xo) + sum_h.dot(W_ho) + b_o
-        f_list = [x.dot(W_xf) + h.dot(W_hf) + b_f for h in hs]
-
+        if len(hs) >= 1:
+            sum_h = sum(hs)
+            a = x.dot(W_xa) + sum_h.dot(W_ha) + b_a
+            i = x.dot(W_xi) + sum_h.dot(W_hi) + b_i
+            o = x.dot(W_xo) + sum_h.dot(W_ho) + b_o
+            f_list = [x.dot(W_xf) + h.dot(W_hf) + b_f for h in hs]
+        else:
+            a = x.dot(W_xa) + b_a
+            i = x.dot(W_xi) + b_i
+            o = x.dot(W_xo) + b_o
         a = xp.tanh(a)
         i = _sigmoid(i)
         o = _sigmoid(o)
-        f_list = [_sigmoid(f) for f in f_list]
 
-        c_next = a * i + sum(f * c for f, c in zip(f_list, cs))
-        y = o * xp.tanh(c_next)
+        if len(hs) >= 1:
+            f_list = [_sigmoid(f) for f in f_list]
+            c_next = sum([f * c for f, c in zip(f_list, cs)], a * i)
+            y = o * xp.tanh(c_next)
+        else:
+            c_next = a * i
+            y = o * xp.tanh(c_next)
     return c_next, y
 
 
@@ -97,7 +105,7 @@ def _nary_tree_lstm(func, *inputs):
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float32],
-    'n_ary': [2, 3],
+    'n_ary': [0, 1, 2, 3],
     'in_size': [6, 9],
     'out_size': [9],
     'model_type': ['ChildSumTreeLSTM', 'NaryTreeLSTM'],
@@ -109,6 +117,9 @@ class TestTreeLSTM(unittest.TestCase):
             self.link = links.ChildSumTreeLSTM(
                 self.in_size, self.out_size)
         elif self.model_type == 'NaryTreeLSTM':
+            if self.n_ary == 0:
+                # n_ary=0 test should be skipped for NaryTreeLSTM
+                self.n_ary = 1
             self.link = links.NaryTreeLSTM(
                 self.in_size, self.out_size, n_ary=self.n_ary)
         else:
@@ -180,29 +191,34 @@ class TestTreeLSTM(unittest.TestCase):
     def check_forward_valid_none(self, *inputs_data):
         inputs_variable = [chainer.Variable(v)
                            if v is not None else v for v in inputs_data]
-        base = [v for v in inputs_data if v is not None][0]
-        xp = cuda.get_array_module(base)
+        xp = self.link.xp
         inputs_data = [xp.zeros(self.h_prevs[0].shape, dtype=self.dtype)
                        if v is None else v for v in inputs_data[:-1]] + \
             [xp.zeros(self.x.shape, dtype=self.dtype)
              if inputs_data[-1] is None else inputs_data[-1]]
 
-        c, h = self.link(*inputs_variable)
-        self.assertEqual(c.data.dtype, self.dtype)
-        self.assertEqual(h.data.dtype, self.dtype)
-
-        # Compute expected out
-        if self.model_type == 'ChildSumTreeLSTM':
-            c_expect, h_expect = _child_sum_tree_lstm(self.link, *inputs_data)
-        elif self.model_type == 'NaryTreeLSTM':
-            c_expect, h_expect = _nary_tree_lstm(self.link, *inputs_data)
+        if self.n_ary == 0:
+            # in this case for link(x) without cs and hs,
+            # it does not include any None.
+            pass
         else:
-            NotImplementedError()
+            c, h = self.link(*inputs_variable)
+            self.assertEqual(c.data.dtype, self.dtype)
+            self.assertEqual(h.data.dtype, self.dtype)
 
-        testing.assert_allclose(
-            c_expect, c.data, **self.check_forward_options)
-        testing.assert_allclose(
-            h_expect, h.data, **self.check_forward_options)
+            # Compute expected out
+            if self.model_type == 'ChildSumTreeLSTM':
+                c_expect, h_expect = _child_sum_tree_lstm(
+                    self.link, *inputs_data)
+            elif self.model_type == 'NaryTreeLSTM':
+                c_expect, h_expect = _nary_tree_lstm(self.link, *inputs_data)
+            else:
+                NotImplementedError()
+
+            testing.assert_allclose(
+                c_expect, c.data, **self.check_forward_options)
+            testing.assert_allclose(
+                h_expect, h.data, **self.check_forward_options)
 
     def test_forward_none_ch_cpu(self):
         inputs = [None] * len(self.c_prevs) + \

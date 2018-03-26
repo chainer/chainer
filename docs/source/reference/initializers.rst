@@ -12,7 +12,7 @@ to initialize their weights and biases.
 A weight initializer can be any of the following objects.
 
 * :class:`chainer.Initializer` class instance.
-* Python or NumPy scalar.
+* Python or NumPy scalar or :class:`numpy.ndarray`.
 * A callable that takes an array (:class:`numpy.ndarray` or :class:`cupy.ndarray`)
   and feeds the initial data into it.
 * ``None``, in which case *the default initializer* is used.

@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
@@ -82,12 +82,22 @@ def make_data(shape, dtype):
     return x, gy, ggx
 
 
-@testing.unary_math_function_unittest(F.arcsin, make_data=make_data)
+@testing.unary_math_function_unittest(
+    F.arcsin,
+    make_data=make_data,
+    forward_options={'atol': 1e-3, 'rtol': 1e-3},
+    double_backward_options={'eps': 1e-3},
+)
 class TestArcsin(unittest.TestCase):
     pass
 
 
-@testing.unary_math_function_unittest(F.arccos, make_data=make_data)
+@testing.unary_math_function_unittest(
+    F.arccos,
+    make_data=make_data,
+    forward_options={'atol': 1e-3, 'rtol': 1e-3},
+    double_backward_options={'eps': 1e-3},
+)
 class TestArccos(unittest.TestCase):
     pass
 

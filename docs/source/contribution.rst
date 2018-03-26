@@ -35,7 +35,7 @@ Before contributing to Chainer, it is strongly recommended to understand the dev
 Versioning
 ~~~~~~~~~~
 
-The versioning of Chainer follows `PEP 440 <https://www.python.org/dev/peps/pep-0440/>`_ and a part of `Semantic versioning <http://semver.org/>`_.
+The versioning of Chainer follows `PEP 440 <https://www.python.org/dev/peps/pep-0440/>`_ and a part of `Semantic versioning <https://semver.org/>`_.
 The version number consists of three or four parts: ``X.Y.Zw`` where ``X`` denotes the **major version**, ``Y`` denotes the **minor version**, ``Z`` denotes the **revision number**, and the optional ``w`` denotes the prelease suffix.
 While the major, minor, and revision numbers follow the rule of semantic versioning, the pre-release suffix follows PEP 440 so that the version string is much friendly with Python eco-system.
 
@@ -210,17 +210,17 @@ Coding Guidelines
    Coding guidelines are updated at v3.0.
    Those who have contributed to older versions should read the guidelines again.
 
-We use `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ and a part of `OpenStack Style Guidelines <http://docs.openstack.org/developer/hacking/>`_ related to general coding style as our basic style guidelines.
+We use `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ and a part of `OpenStack Style Guidelines <https://docs.openstack.org/developer/hacking/>`_ related to general coding style as our basic style guidelines.
 
 To check your code, use ``autopep8`` and ``flake8`` command installed by ``hacking`` package::
 
   $ pip install autopep8 hacking
-  $ autopep8 --global-config .pep8 path/to/your/code.py
+  $ autopep8 path/to/your/code.py
   $ flake8 path/to/your/code.py
 
 The ``autopep8`` supports automatically correct Python code to conform to the PEP 8 style guide::
 
-  $ autopep8 --in-place --global-config .pep8 path/to/your/code.py
+  $ autopep8 --in-place path/to/your/code.py
 
 The ``flake8`` command lets you know the part of your code not obeying our style guidelines.
 Before sending a pull request, be sure to check that your code passes the ``flake8`` checking.
@@ -308,7 +308,7 @@ You can also run all unit tests under a specified directory::
 It requires CUDA and cuDNN by default.
 In order to run unit tests that do not require CUDA and cuDNN, use ``CHAINER_TEST_GPU_LIMIT=0`` environment variable and ``-m='not cudnn'`` option::
 
-  $ export CHAINER_TESITNG_GPU_LIMIT=0
+  $ export CHAINER_TEST_GPU_LIMIT=0
   $ python -m pytest path/to/your/test.py -m='not cudnn'
 
 Some GPU tests involve multiple GPUs.
@@ -328,7 +328,7 @@ If you modify the code related to existing unit tests, you must run appropriate 
 Test File and Directory Naming Conventions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Tests are put into the ``tests/chainer_tests`` directory.
+Tests are put into the :tree:`tests/chainer_tests` directory.
 In order to enable test runner to find test scripts correctly, we are using special naming convention for the test subdirectories and the test scripts.
 
 * The name of each subdirectory of ``tests`` must end with the ``_tests`` suffix.
@@ -340,7 +340,7 @@ For example, if you want to write a test for a module ``chainer.x.y.z``, the tes
 How to Write Tests
 ~~~~~~~~~~~~~~~~~~
 
-There are many examples of unit tests under the ``tests`` directory, so reading some of them is a good and recommended way to learn how to write tests for Chainer.
+There are many examples of unit tests under the :tree:`tests` directory, so reading some of them is a good and recommended way to learn how to write tests for Chainer.
 They simply use the ``unittest`` package of the standard library, while some tests are using utilities from :mod:`chainer.testing`.
 
 Even if your patch includes GPU-related code, your tests should not fail without GPU capability.

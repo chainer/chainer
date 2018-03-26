@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -80,11 +80,11 @@ class TanhGrad(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         y, gy = self.get_retained_inputs()
-        g = grad_outputs[0]
+        ggx = grad_outputs[0]
 
-        y_mul_g = y * g
-        grad_y = -2 * gy * y_mul_g
-        ggy = g - y * y_mul_g
+        y_mul_ggx = y * ggx
+        grad_y = -2 * gy * y_mul_ggx
+        ggy = ggx - y * y_mul_ggx
         return grad_y, ggy
 
 
@@ -104,11 +104,11 @@ def tanh(x):
 
     .. admonition:: Example
 
-        >>> x = np.arange(-1, 4, 2).astype('f')
+        >>> x = np.arange(-1, 4, 2).astype(np.float32)
         >>> x
         array([-1.,  1.,  3.], dtype=float32)
         >>> F.tanh(x).data
-        array([-0.76159418,  0.76159418,  0.99505478], dtype=float32)
+        array([-0.7615942,  0.7615942,  0.9950548], dtype=float32)
 
     """
     return Tanh().apply((x,))[0]

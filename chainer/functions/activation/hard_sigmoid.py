@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -97,7 +97,7 @@ def hard_sigmoid(x):
         >>> x
         array([-2.6, -1. ,  0. ,  1. ,  2.6])
         >>> F.hard_sigmoid(x).data
-        array([ 0. ,  0.3,  0.5,  0.7,  1. ])
+        array([0. , 0.3, 0.5, 0.7, 1. ])
 
     """
     return HardSigmoid().apply((x,))[0]
