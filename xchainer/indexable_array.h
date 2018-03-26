@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
@@ -58,6 +60,23 @@ public:
 
     XCHAINER_HOST_DEVICE T& operator[](const Indexer<kNdim>& indexer) const { return operator[](indexer.index()); }
 
+    // Permutes the axes.
+    //
+    // Given axes may be fewer than that held by the array.
+    // In that case, the axes in the array will be reduced.
+    //
+    // It is the caller's responsibility to ensure validity of permutation.
+    // If the permutation is invalid, the behavior is undefined.
+    IndexableArray<T, kDynamicNdim>& Permute(const std::vector<int8_t>& axes) {
+        assert(axes.size() <= static_cast<size_t>(kNdim));
+        int64_t c[kNdim]{};
+        std::copy(std::begin(strides_), std::end(strides_), c);
+        for (size_t i = 0; i < axes.size(); ++i) {
+            strides_[i] = c[axes[i]];
+        }
+        return *this;
+    }
+
 private:
     T* data_;
     int64_t strides_[kNdim];
@@ -95,6 +114,24 @@ public:
     }
 
     XCHAINER_HOST_DEVICE T& operator[](const Indexer<kDynamicNdim>& indexer) const { return operator[](indexer.index()); }
+
+    // Permutes the axes.
+    //
+    // Given axes may be fewer than that held by the array.
+    // In that case, the axes in the array will be reduced.
+    //
+    // It is the caller's responsibility to ensure validity of permutation.
+    // If the permutation is invalid, the behavior is undefined.
+    IndexableArray<T, kDynamicNdim>& Permute(const std::vector<int8_t>& axes) {
+        assert(axes.size() <= static_cast<size_t>(ndim_));
+        int64_t c[kMaxNdim]{};
+        std::copy(std::begin(strides_), std::end(strides_), c);
+        for (size_t i = 0; i < axes.size(); ++i) {
+            strides_[i] = c[axes[i]];
+        }
+        ndim_ = static_cast<int8_t>(axes.size());
+        return *this;
+    }
 
 private:
     T* data_;

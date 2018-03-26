@@ -923,7 +923,8 @@ def test_getitem(input_shape, indices, output_shape, output_data):
     ((2, 3, 4), (-2, 2, 0), False, (), [276]),
     ((2, 3, 4), (-2, 2, 0), True, (1, 1, 1), [276]),
 ])
-def test_sum(input_shape, axis, keepdims, output_shape, output_data):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_sum(device, input_shape, axis, keepdims, output_shape, output_data):
     total_size = functools.reduce(operator.mul, input_shape, 1)
     input_data = list(range(0, total_size))
     x = xchainer.Array(input_shape, xchainer.int32, input_data)
@@ -970,14 +971,16 @@ def test_invalid_sum(input_shape, axis, keepdims, error):
         x.sum(axis=axis, keepdims=keepdims)
 
 
-def test_sum_backward():
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_sum_backward(device):
     x = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
     gy = xchainer.ones((2,), x.dtype)
     eps = xchainer.full_like(x, 1e-2)
     xchainer.check_backward(lambda a: (a[0].sum(axis=1),), [x], [gy], [eps])
 
 
-def test_sum_double_backward():
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_sum_double_backward(device):
     x = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
     gy = xchainer.ones((2,), x.dtype).require_grad()
     ggx = xchainer.ones_like(x)

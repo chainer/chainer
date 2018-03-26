@@ -1,7 +1,10 @@
 #include "xchainer/cuda/cuda_device.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <vector>
 
 #include <cuda_runtime.h>
 
@@ -19,11 +22,127 @@ namespace cuda {
 
 namespace {
 
+static constexpr int kMaxReductionBlockSize = 512;
+
+int64_t RoundUpToPowerOf2(int64_t x) {
+    --x;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x |= x >> 32;
+    return x + 1;
+}
+}  // namespace
+
+namespace {
+
 template <typename T>
 __global__ void FillKernel(IndexableArray<T> out_iarray, T value, Indexer<> indexer) {
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < indexer.total_size(); i += blockDim.x * gridDim.x) {
         indexer.Set(i);
         out_iarray[indexer] = value;
+    }
+}
+
+template <typename T>
+__global__ void SumKernel(
+        IndexableArray<const T> src_iarray,
+        IndexableArray<T> out_iarray,
+        Indexer<> src_indexer,
+        Indexer<> reduce_indexer,
+        Indexer<> out_indexer,
+        int reduce_block_size) {
+    extern __shared__ __align__(8) uint8_t work_bytes[];
+    T* work = reinterpret_cast<T*>(work_bytes);
+    int tid = threadIdx.x;
+    int reduce_blocks_per_grid = (blockDim.x + reduce_block_size - 1) / reduce_block_size * gridDim.x;
+
+    for (int64_t i_out = blockIdx.x; i_out < out_indexer.total_size(); i_out += gridDim.x * reduce_blocks_per_grid) {
+        out_indexer.Set(i_out);
+
+        T sum_value = 0;
+
+        // Set output indices in the corresponding indices (out_axis) in src_index.
+        for (int8_t i_out_dim = 0; i_out_dim < out_indexer.ndim(); ++i_out_dim) {
+            src_indexer.index()[i_out_dim] = out_indexer.index()[i_out_dim];
+        }
+
+        // Linearly compute the partial sum into at most kMaxReductionBlockSize values.
+        for (int64_t i_reduce = tid; i_reduce < reduce_indexer.total_size(); i_reduce += reduce_block_size) {
+            reduce_indexer.Set(i_reduce);
+
+            // Set reduction indices in the corresponding indices (axis) in src_index.
+            for (int8_t i_reduce_dim = 0; i_reduce_dim < reduce_indexer.ndim(); ++i_reduce_dim) {
+                src_indexer.index()[out_indexer.ndim() + i_reduce_dim] = reduce_indexer.index()[i_reduce_dim];
+            }
+
+            sum_value += src_iarray[src_indexer];
+        }
+
+        if (reduce_block_size >= 2) {
+            // Synchronize partial sums
+            work[tid] = sum_value;
+            __syncthreads();
+
+            // Reduction
+            if (reduce_block_size > 2) {
+                if (reduce_block_size > 4) {
+                    if (reduce_block_size > 8) {
+                        if (reduce_block_size > 16) {
+                            if (reduce_block_size > 32) {
+                                if (reduce_block_size > 64) {
+                                    if (reduce_block_size > 128) {
+                                        if (reduce_block_size > 256) {
+                                            static_assert(kMaxReductionBlockSize == 512, "");
+
+                                            if (tid < 256) {
+                                                work[tid] += work[tid + 256];
+                                            }
+                                            __syncthreads();
+                                        }
+                                        if (tid < 128) {
+                                            work[tid] += work[tid + 128];
+                                        }
+                                        __syncthreads();
+                                    }
+                                    if (tid < 64) {
+                                        work[tid] += work[tid + 64];
+                                    }
+                                    __syncthreads();
+                                }
+                                if (tid < 32) {
+                                    work[tid] += work[tid + 32];
+                                }
+                                __syncthreads();
+                            }
+                            if (tid < 16) {
+                                work[tid] += work[tid + 16];
+                            }
+                            __syncthreads();
+                        }
+                        if (tid < 8) {
+                            work[tid] += work[tid + 8];
+                        }
+                        __syncthreads();
+                    }
+                    if (tid < 4) {
+                        work[tid] += work[tid + 4];
+                    }
+                    __syncthreads();
+                }
+                if (tid < 2) {
+                    work[tid] += work[tid + 2];
+                }
+                __syncthreads();
+            }
+            sum_value = work[0] + work[1];
+        }
+        // Store the output value
+        if (tid == 0) {
+            out_iarray[out_indexer] = sum_value;
+        }
     }
 }
 
@@ -126,6 +245,32 @@ void CudaDevice::Fill(Array& out, Scalar value) {
         int64_t block_size = std::min<int64_t>(indexer.total_size(), kMaxBlockSize);
 
         FillKernel<<<grid_size, block_size>>>(out_iarray, static_cast<T>(value), indexer);
+    });
+}
+
+void CudaDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) {
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SumKernel<T>).block_size;
+
+        // Prepare indexable arrays and indexers
+        auto tup = internal::PrepareIndexableArraysForReduction<T>(src, axis, out);
+        IndexableArray<const T>& src_iarray = std::get<0>(tup);
+        IndexableArray<T>& out_iarray = std::get<1>(tup);
+        Indexer<>& src_indexer = std::get<2>(tup);
+        Indexer<>& out_indexer = std::get<3>(tup);
+        Indexer<>& reduce_indexer = std::get<4>(tup);
+
+        // Launch kernel
+        int reduce_block_size =
+                static_cast<int>(std::min(static_cast<int64_t>(kMaxReductionBlockSize), RoundUpToPowerOf2(reduce_indexer.total_size())));
+        int block_size = std::min(kMaxBlockSize, reduce_block_size);
+        int64_t total_reduce_blocks = out_indexer.total_size();
+        int64_t grid_size = total_reduce_blocks;
+        size_t shared_mem_size = sizeof(T) * reduce_block_size;
+
+        SumKernel<<<grid_size, block_size, shared_mem_size>>>(
+                src_iarray, out_iarray, src_indexer, reduce_indexer, out_indexer, reduce_block_size);
     });
 }
 
