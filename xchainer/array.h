@@ -17,6 +17,7 @@
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/enum.h"
 #include "xchainer/graph.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/scalar.h"
@@ -89,11 +90,6 @@ public:
     Array& operator*=(const Array& rhs);
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
-
-    // Returns an array where elements at indices are added by the addends.
-    //
-    // The original values of this array are not altered.
-    Array AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const;
 
     // Returns a view selected with the indices.
     Array At(const std::vector<ArrayIndex>& indices) const;

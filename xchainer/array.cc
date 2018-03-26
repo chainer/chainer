@@ -248,25 +248,6 @@ Array Array::operator*(const Array& rhs) const {
     return func(BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
 }
 
-Array Array::AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const {
-    // TODO(sonots): dtype conversion
-    CheckEqual(dtype(), addend.dtype());
-
-    Array out = this->AsConstant(CopyKind::kCopy);
-    Array out_view = out.At(indices);
-
-    // TODO(sonots): broadcasting
-    CheckEqual(out_view.shape(), addend.shape());
-
-    device().Add(addend, out_view, out_view);
-
-    auto this_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
-    auto addend_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.At(indices); };
-    internal::SetUpOpNodes("add_at", {*this, addend}, out, {this_backward_function, addend_backward_function});
-
-    return out;
-}
-
 Array Array::Transpose() const {
     Shape out_shape{shape().rbegin(), shape().rend()};
     Strides out_strides{strides().rbegin(), strides().rend()};

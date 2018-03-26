@@ -12,11 +12,6 @@
 
 namespace xchainer {
 
-enum class CopyKind {
-    kCopy = 1,
-    kView,
-};
-
 class Array;
 
 namespace routines {
@@ -42,20 +37,5 @@ Array OnesLike(const Array& array, Device& device = GetDefaultDevice());
 // It will be always C-contiguous.
 Array Copy(const Array& array);
 
-// Transfers the array to another device. It will be connected to all the graphs.
-//
-// If the destination is the same device, an array with aliased data is returned.
-// Otherwise, a C-contiguous Array will be created on the target device.
-// TODO(niboshi): Currently control over whether to make an alias is not supported.
-Array ToDevice(const Array& array, Device& dst_device);
-
-// Creates a copy or a view. It will be disconnected from all the graphs.
-// If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-Array AsConstant(const Array& array, CopyKind kind = CopyKind::kView);
-
-// Creates a copy or a view. It will be disconnected from the specified graphs.
-// If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-Array AsConstant(const Array& array, const std::vector<GraphId>& graph_ids, CopyKind kind = CopyKind::kView);
-
 }  // namespace routines
-}  // namespace xchaienr
+}  // namespace xchainer
