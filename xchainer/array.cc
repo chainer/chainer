@@ -606,8 +606,7 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
         assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
         if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
-            std::vector<int64_t> out_shape_broadcastable;
-            std::copy(gout.shape().begin(), gout.shape().end(), std::back_inserter(out_shape_broadcastable));
+            std::vector<int64_t> out_shape_broadcastable{gout.shape().begin(), gout.shape().end()};
             for (auto axis : sorted_axis) {
                 out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
             }
