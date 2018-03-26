@@ -92,6 +92,19 @@ def snapshot(savefun=None,
     Returns:
         Snapshot extension object.
 
+    .. testcode::
+       :hide:
+
+       from chainer import training
+       class Model(chainer.Link):
+           def __call__(self, x):
+               return x
+       train_iter = chainer.iterators.SerialIterator([], 1)
+       optimizer = optimizers.SGD().setup(Model())
+       updater = training.updaters.StandardUpdater(
+           train_iter, optimizer, device=0)
+       trainer = training.Trainer(updater)
+
     .. admonition:: Using asynchronous writers
 
         By specifying ``writer`` argument, writing operations can be made
@@ -107,7 +120,7 @@ trigger=(1, 'epoch'))
 
         >>> from chainer.training import extensions
         >>> writer = extensions.snapshot_writers.ProcessWriter(
-        >>>     savefun=extensions.snapshots.util.save_npz)
+        ...     savefun=extensions.snapshots.util.save_npz)
         >>> trainer.extend(extensions.snapshot(writer=writer), \
 trigger=(1, 'epoch'))
 
