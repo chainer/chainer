@@ -1885,21 +1885,20 @@ TEST(ArraySumTest, SumDoubleBackward_Keepdims) {
             {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 1, 4, 1}, 1e-1)});
 }
 
-// TODO(sonots): Need to implmenet `Reshape` requiring `Copy` to doubly backward keepdims = false
-// TEST(ArraySumTest, SumDoubleBackward_NoKeepdims) {
-//    using T = double;
-//    testing::ContextSession context_session{};
-//
-//    CheckDoubleBackwardComputation(
-//            [](const std::vector<Array>& xs) -> std::vector<Array> {
-//                auto y = xs[0].Sum(std::vector<int8_t>{1, 3}, false);
-//                return {y * y};  // to make it nonlinear
-//            },
-//            {(*testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(sizeof(T))).RequireGrad()},
-//            {(*testing::MakeArray({2, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
-//            {testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>()},
-//            {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 4}, 1e-1)});
-//}
+TEST(ArraySumTest, SumDoubleBackward_NoKeepdims) {
+    using T = double;
+    testing::ContextSession context_session{};
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = xs[0].Sum(std::vector<int8_t>{1, 3}, false);
+                return {y * y};  // to make it nonlinear
+            },
+            {(*testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(sizeof(T))).RequireGrad()},
+            {(*testing::MakeArray({2, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
+            {testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>()},
+            {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 4}, 1e-1)});
+}
 
 }  // namespace
 }  // namespace xchainer
