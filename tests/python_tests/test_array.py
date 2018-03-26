@@ -367,6 +367,27 @@ def test_invalid_broadcast_to(src_shape, dst_shape):
         xchainer.broadcast_to(src, dst_shape)
 
 
+def test_broadcast_to_backward():
+    x = xchainer.Array(numpy.arange(9, dtype=numpy.float32).reshape(1, 3, 1, 3)).require_grad()
+    gy = xchainer.ones((2, 3, 4, 3), x.dtype)
+    eps = xchainer.full_like(x, 1e-2)
+    xchainer.check_backward(lambda a: (xchainer.broadcast_to(a[0], (2, 3, 4, 3)), ), [x], [gy], [eps], atol=1e-4)
+
+
+def test_broadcast_to_double_backward():
+    x = xchainer.Array(numpy.arange(9, dtype=numpy.float32).reshape(1, 3, 1, 3)).require_grad()
+    gy = xchainer.ones((2, 3, 4, 3), x.dtype).require_grad()
+    ggx = xchainer.ones_like(x)
+    eps_x = xchainer.full_like(x, 1e-2)
+    eps_gy = xchainer.full_like(gy, 1e-2)
+
+    def forward(a):
+        b = xchainer.broadcast_to(a[0], (2, 3, 4, 3))
+        return b * b,  # to make it nonlinear
+
+    xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-3)
+
+
 def test_copy(array_init_inputs):
     shape, dtype = array_init_inputs
 
