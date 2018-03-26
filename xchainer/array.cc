@@ -529,8 +529,34 @@ Array Array::BroadcastTo(const Shape& shape) const {
         }
     }
     assert(rev_strides.size() == shape.size());
+    Array out = Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
 
-    return Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, dtype(), device(), body_->data_, offset()};
+    auto backward_function = [in_shape](const Array& gout, const std::vector<GraphId>&) {
+        if (gout.shape() == in_shape) {
+            return gout;
+        }
+
+        int8_t lead = gout.ndim() - in_shape.ndim();
+        std::vector<int8_t> lead_axis(lead);
+        std::iota(lead_axis.begin(), lead_axis.end(), int8_t{0});
+
+        std::vector<int8_t> axis{lead_axis};
+        for (int8_t i = 0; i < in_shape.ndim(); ++i) {
+            if (in_shape[i] == 1) {
+                axis.emplace_back(i + lead);
+            }
+        }
+        axis.erase(std::unique(axis.begin(), axis.end()), axis.end());  // Array::Sum does not accept axis with duplicate elements
+
+        Array gin = gout.Sum(axis, true);
+        if (lead > 0) {
+            return gin.Squeeze(lead_axis);
+        }
+        return gin;
+    };
+    internal::SetUpOpNodes("broadcast_to", {*this}, out, {backward_function});
+
+    return out;
 }
 
 Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const {
@@ -572,15 +598,17 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
     }
     device().Sum(*this, sorted_axis, out);
 
-    auto backward_function = [ out_axis, in_shape = shape() ](const Array& gout, const std::vector<GraphId>&) {
-        assert(out_axis.size() == gout.shape().size());
-        assert(std::is_sorted(gout.shape().begin(), gout.shape().end()));
+    auto backward_function = [ sorted_axis, in_shape = shape(), keepdims ](const Array& gout, const std::vector<GraphId>&) {
+        assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
-        std::vector<int64_t> out_shape_broadcastable(in_shape.size(), 1);
-        for (size_t i = 0; i < gout.shape().size(); ++i) {
-            out_shape_broadcastable[out_axis[i]] = gout.shape()[i];
+        if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
+            std::vector<int64_t> out_shape_broadcastable{gout.shape().begin(), gout.shape().end()};
+            for (auto axis : sorted_axis) {
+                out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
+            }
+            return gout.Reshape({out_shape_broadcastable.begin(), out_shape_broadcastable.end()}).BroadcastTo(in_shape);
         }
-        return gout.Reshape({out_shape_broadcastable.begin(), out_shape_broadcastable.end()}).BroadcastTo(in_shape);
+        return gout.BroadcastTo(in_shape);
     };
     internal::SetUpOpNodes("sum", {*this}, out, {backward_function});
 
