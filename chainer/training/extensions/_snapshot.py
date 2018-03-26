@@ -92,6 +92,25 @@ def snapshot(savefun=None,
     Returns:
         Snapshot extension object.
 
+    .. admonition:: Using asynchronous writers
+
+        By specifying ``writer`` argument, writing operations can be made
+        asynchronous, hiding I/O overhead of snapshots.
+
+        >>> from chainer.training import extensions
+        >>> writer = extensions.snapshot_writers.ProcessWriter()
+        >>> trainer.extend(extensions.snapshot(writer=writer), \
+trigger=(1, 'epoch'))
+
+        To change the format, such as npz or hdf5, you can pass a saving
+        function as ``savefun`` argument of the writer.
+
+        >>> from chainer.training import extensions
+        >>> writer = extensions.snapshot_writers.ProcessWriter(
+        >>>     savefun=extensions.snapshots.util.save_npz)
+        >>> trainer.extend(extensions.snapshot(writer=writer), \
+trigger=(1, 'epoch'))
+
     This is the list of built-in snapshot writers.
 
         - :class:`chainer.training.extensions.snapshot_writers.SimpleWriter`
@@ -101,32 +120,6 @@ def snapshot(savefun=None,
 ThreadQueueWriter`
         - :class:`chainer.training.extensions.snapshot_writers.\
 ProcessQueueWriter`
-
-    .. TODO(niboshi): Fix the following example
-
-    .. admonition:: Example
-
-        The simplest use of ``Snapshot`` extension is just like
-        :meth:`chainer.training.extensions.snapshot`.
-
-        >>> from chainer.training import extensions
-        >>> trainer.extend(extensions.Snapshot(), trigger=(1, 'epoch'))
-
-        If you want to use another writer, you can explicitly specify it.
-
-        >>> from chainer.training import extensions
-        >>> writer = extensions.snapshot_writers.ProcessWriter()
-        >>> trainer.extend(extensions.Snapshot(writer=writer), \
-trigger=(1, 'epoch'))
-
-        To change the format, such as npz or hdf5, you can pass a saving
-        function as ``savefun`` argument of the writer.
-
-        >>> from chainer.training import extensions
-        >>> writer = extensions.snapshot_writers.ProcessWriter(
-        >>>     savefun=extensions.snapshots.util.save_npz)
-        >>> trainer.extend(extensions.Snapshot(writer=writer), \
-trigger=(1, 'epoch'))
 
     .. seealso::
 

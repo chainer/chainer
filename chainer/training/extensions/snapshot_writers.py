@@ -15,6 +15,10 @@ class Writer(object):
     :class:`~chainer.training.extensions.Snapshot` invokes ``__call__`` of this
     class everytime when taking a snapshot.
     This class determines how the actual saving function will be invoked.
+
+    .. seealso::
+
+        - :meth:`chainer.training.extensions.snapshot`
     """
 
     def __call__(self, filename, outdir, target):
@@ -68,6 +72,9 @@ class SimpleWriter(Writer):
             arguments.
         kwds: Keyword arguments for the ``savefun``.
 
+    .. seealso::
+
+        - :meth:`chainer.training.extensions.snapshot`
     """
 
     def __init__(self, savefun=npz.save_npz, **kwds):
@@ -90,6 +97,9 @@ class StandardWriter(Writer):
             arguments.
         kwds: Keyword arguments for the ``savefun``.
 
+    .. seealso::
+
+        - :meth:`chainer.training.extensions.snapshot`
     """
 
     _started = False
@@ -141,6 +151,9 @@ class ThreadWriter(StandardWriter):
 
     This class creates a new thread that invokes the actual saving function.
 
+    .. seealso::
+
+        - :meth:`chainer.training.extensions.snapshot`
     """
 
     def create_worker(self, filename, outdir, target, **kwds):
@@ -160,6 +173,9 @@ class ProcessWriter(StandardWriter):
         using :class:`ThreadWriter` instead of ``ProcessWriter`` if you are
         using MPI.
 
+    .. seealso::
+
+        - :meth:`chainer.training.extensions.snapshot`
     """
 
     def create_worker(self, filename, outdir, target, **kwds):
@@ -184,6 +200,9 @@ class QueueWriter(Writer):
         task: Callable object. Its ``__call__`` must have a same interface to
             ``Writer.__call__``. This object is directly put into the queue.
 
+    .. seealso::
+
+        - :meth:`chainer.training.extensions.snapshot`
     """
 
     _started = False
@@ -241,6 +260,10 @@ class ThreadQueueWriter(QueueWriter):
     :mod:`queue` modules
     respectively. The thread will be a consumer of the queue, and the main
     thread will be a producer of the queue.
+
+    .. seealso::
+
+        - :meth:`chainer.training.extensions.snapshot`
     """
 
     def create_queue(self):
@@ -262,6 +285,9 @@ class ProcessQueueWriter(QueueWriter):
         :class:`ThreadQueueWriter` instead of ``ProcessQueueWriter`` if you are
         using MPI.
 
+    .. seealso::
+
+        - :meth:`chainer.training.extensions.snapshot`
     """
 
     def create_queue(self):
