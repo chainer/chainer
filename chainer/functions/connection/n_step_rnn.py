@@ -612,7 +612,7 @@ def n_step_rnn(
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
-            Note that this functions supports variable length sequences.
+            Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
             order by length, and transpose the sorted sequence.
             :func:`~chainer.functions.transpose_sequence` transpose a list
@@ -623,7 +623,7 @@ def n_step_rnn(
             Please select ``tanh`` or ``relu``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -722,7 +722,7 @@ def n_step_birnn(
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
-            Note that this functions supports variable length sequences.
+            Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
             order by length, and transpose the sorted sequence.
             :func:`~chainer.functions.transpose_sequence` transpose a list
@@ -733,7 +733,7 @@ def n_step_birnn(
             Please select ``tanh`` or ``relu``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -791,7 +791,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
-            Note that this functions supports variable length sequences.
+            Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
             order by length, and transpose the sorted sequence.
             :func:`~chainer.functions.transpose_sequence` transpose a list
@@ -804,7 +804,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             Bi-directional RNN.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
             ``hy`` and ``ys``.
 
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.

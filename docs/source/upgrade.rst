@@ -42,7 +42,7 @@ Suppose the following code:
    F.maximum(v1, v2)
 
 Prior to v4, the above code raises an exception like ``ValueError: object __array__ method not producing an array``, which was difficult to understand.
-In v4, the error message would become ``ValueError: incompatible array types are mixed in the forward input (Maximum)``.
+In v4, the error message would become ``TypeError: incompatible array types are mixed in the forward input (Maximum)``.
 This kind of error usually occurs by mistake (for example, not performing ``to_gpu`` for some variables).
 
 .. attention::

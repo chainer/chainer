@@ -48,15 +48,13 @@ class Writer(object):
 
     def save(self, filename, outdir, target, savefun, **kwds):
         prefix = 'tmp' + filename
-        fd, tmppath = tempfile.mkstemp(prefix=prefix, dir=outdir)
+        tmpdir = tempfile.mkdtemp(prefix=prefix, dir=outdir)
+        tmppath = os.path.join(tmpdir, filename)
         try:
-            savefun(tmppath, target, **kwds)
-        except Exception:
-            os.close(fd)
-            os.remove(tmppath)
-            raise
-        os.close(fd)
-        shutil.move(tmppath, os.path.join(outdir, filename))
+            savefun(tmppath, target)
+            shutil.move(tmppath, os.path.join(outdir, filename))
+        finally:
+            shutil.rmtree(tmpdir)
 
 
 class SimpleWriter(Writer):

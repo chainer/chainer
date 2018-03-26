@@ -181,8 +181,10 @@ class TestRawArray(unittest.TestCase):
                          dataset, len(devices))]
             optimizer = chainer.optimizers.SGD(lr=1.0)
             optimizer.setup(model)
-            updater = mpu.MultiprocessParallelUpdater(
-                iters, optimizer, devices=devices)
+
+            with testing.assert_warns(UserWarning):
+                updater = mpu.MultiprocessParallelUpdater(
+                    iters, optimizer, devices=devices)
             updater.update()
 
             self.assertEqual(model.call_called, 1)

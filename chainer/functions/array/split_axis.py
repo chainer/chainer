@@ -74,7 +74,7 @@ class SplitAxis(function_node.FunctionNode):
             indices = self.indices
             if len(indices) > 0:
                 max_index = type_check.make_variable(indices[-1], 'max_index')
-                type_check.expect(in_types[0].shape[self.axis] > max_index)
+                type_check.expect(in_types[0].shape[self.axis] >= max_index)
         else:
             assert self.sections is not None
             sections = type_check.make_variable(self.sections, 'sections')

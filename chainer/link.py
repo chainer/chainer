@@ -579,6 +579,32 @@ Assign a Parameter object directly to an attribute within a \
         for name in self._persistent:
             d[name] = serializer(name, d[name])
 
+    def count_params(self):
+        """Counts the total number of parameters.
+
+        This method counts the total number of scalar values included in all
+        the :class:`~chainer.Parameter`\\ s held by this link and its
+        descendants.
+
+        If the link containts uninitialized parameters, this method raises a
+        warning.
+
+        Returns:
+            The total size of parameters (int)
+
+        """
+
+        size = 0
+        for name, param in self.namedparams():
+            if param.array is None:
+                warnings.warn(
+                    'Parameter \'{}\' has not been initialized, so the '
+                    'resulting count will not include the number of parameters'
+                    ' in it.'.format(name))
+                continue
+            size += param.size
+        return size
+
 
 class Chain(Link):
 

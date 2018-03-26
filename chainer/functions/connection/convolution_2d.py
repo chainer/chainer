@@ -12,50 +12,13 @@ from chainer.utils import conv
 from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
-    cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
-    _cudnn_version = libcudnn.getVersion()
-    _fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
-    _bwd_filter_pref = \
-        libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
-    _algorithm_fwd = {}
-    _algorithm_bwd_filter = {}
+    _cudnn_version = cuda.cuda.cudnn.getVersion()
 
 
 def _pair(x):
     if hasattr(x, '__getitem__'):
         return x
     return x, x
-
-
-def _get_algorithm_fwd(
-        x, W, y, conv_param, handle, x_desc, filter_desc, conv_desc, y_desc,
-        workspace):
-    key = (x.shape, W.shape, y.shape, conv_param)
-    if key in _algorithm_fwd:
-        return _algorithm_fwd[key]
-    ret = libcudnn.findConvolutionForwardAlgorithmEx(
-        handle, x_desc.value, x.data.ptr, filter_desc.value, W.data.ptr,
-        conv_desc.value, y_desc.value, y.data.ptr, 1, workspace.data.ptr,
-        workspace.size)
-    algo = ret[0]['algo']
-    _algorithm_fwd[key] = algo
-    return algo
-
-
-def _get_algorithm_bwd_filter(
-        x, dy, dW, conv_param, handle, x_desc, dy_desc, conv_desc, filter_desc,
-        workspace):
-    key = (x.shape, dW.shape, dy.shape, conv_param)
-    if key in _algorithm_bwd_filter:
-        return _algorithm_bwd_filter[key]
-    ret = libcudnn.findConvolutionBackwardFilterAlgorithmEx(
-        handle, x_desc.value, x.data.ptr, dy_desc.value, dy.data.ptr,
-        conv_desc.value, filter_desc.value, dW.data.ptr, 1,
-        workspace.data.ptr, workspace.size)
-    algo = ret[0]['algo']
-    _algorithm_bwd_filter[key] = algo
-    return algo
 
 
 class Convolution2DFunction(function_node.FunctionNode):
@@ -254,67 +217,15 @@ class Convolution2DFunction(function_node.FunctionNode):
         return y,
 
     def _forward_cudnn(self, x, W, b, y):
-        x = cuda.cupy.ascontiguousarray(x)
-        W = cuda.cupy.ascontiguousarray(W)
-        if b is not None:
-            b = cuda.cupy.ascontiguousarray(b)
-
-        use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
-
-        # cuDNN 7 supports dilation only in *_FWD_ALGO_IMPLICIT_GEMM, but
-        # it supports Tensor Cores only in *_FWD_ALGO_IMPLICIT_PRECOMP_GEMM.
-        if use_tensor_core and (self.dx > 1 or self.dy > 1):
-            use_tensor_core = False
-
-        handle = cudnn.get_handle()
-        x_desc = cudnn.create_tensor_descriptor(x)
-        y_desc = cudnn.create_tensor_descriptor(y)
-
-        filter_desc = cudnn.create_filter_descriptor(W)
-        conv_param = ((self.ph, self.pw), (self.sy, self.sx), x.dtype)
+        pad = (self.ph, self.pw)
+        stride = (self.sy, self.sx)
         dilation = (self.dy, self.dx)
-        conv_desc = cudnn.create_convolution_descriptor(
-            *conv_param, dilation=dilation,
-            use_tensor_core=use_tensor_core,
-            groups=self.groups)
-        if b is not None:
-            bias_desc = cudnn.create_tensor_descriptor(
-                b[None, :, None, None])
-        workspace_size = cuda.get_max_workspace_size()
-        workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-        if configuration.config.autotune and _cudnn_version >= 5000:
-            algo = _get_algorithm_fwd(
-                x, W, y, conv_param + (dilation,), handle, x_desc,
-                filter_desc, conv_desc, y_desc, workspace)
-        else:
-            algo = libcudnn.getConvolutionForwardAlgorithm(
-                handle, x_desc.value, filter_desc.value,
-                conv_desc.value, y_desc.value, _fwd_pref, workspace_size)
-
-        if use_tensor_core:
-            algo = self._tensor_core_adjust_algo()
-
-        oz_dtype = 'd' if x.dtype == 'd' else 'f'
-        one = numpy.array(1, dtype=oz_dtype).ctypes
-        zero = numpy.array(0, dtype=oz_dtype).ctypes
-        libcudnn.convolutionForward(
-            handle, one.data, x_desc.value, x.data.ptr,
-            filter_desc.value, W.data.ptr, conv_desc.value,
-            algo, workspace.data.ptr, workspace_size, zero.data,
-            y_desc.value, y.data.ptr)
-
-        # TODO(beam2d): Support unshared bias
-        if b is not None:
-            cudnn.add_tensor(
-                handle, one.data, bias_desc.value, b.data.ptr,
-                one.data, y_desc.value, y.data.ptr)
-
+        auto_tune = configuration.config.autotune
+        tensor_core = configuration.config.use_cudnn_tensor_core
+        cuda.cudnn.convolution_forward(
+            x, W, b, y, pad, stride, dilation, self.groups,
+            auto_tune=auto_tune, tensor_core=tensor_core)
         return y,
-
-    def _tensor_core_adjust_algo(self):
-        # Only CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
-        # supports Tensor-Core in cuDNN7.
-        return libcudnn.CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
@@ -480,60 +391,18 @@ class Convolution2DGradW(function_node.FunctionNode):
         iCg = int(iC / self.groups)
         gW = cuda.cupy.empty((out_c, iCg, self.kh, self.kw),
                              dtype=self.W_dtype)
-        x = cuda.cupy.ascontiguousarray(x)
-        gy = cuda.cupy.ascontiguousarray(gy)
-
-        use_tensor_core = chainer.should_use_cudnn_tensor_core(x.dtype)
-
-        # cuDNN 7 supports dilation only in *_BWD_FILTER_ALGO_0, but
-        # it supports Tensor Cores only in *_BWD_FILTER_ALGO_1.
-        if use_tensor_core and (self.dx > 1 or self.dy > 1):
-            use_tensor_core = False
-
-        handle = cudnn.get_handle()
-        x_desc = cudnn.create_tensor_descriptor(x)
-        gy_desc = cudnn.create_tensor_descriptor(gy)
-
-        filter_desc = cudnn.create_filter_descriptor(gW)
-        conv_param = (self.ph, self.pw), (self.sy, self.sx), x.dtype
+        pad = (self.ph, self.pw)
+        stride = (self.sy, self.sx)
         dilation = (self.dy, self.dx)
-        conv_desc = cudnn.create_convolution_descriptor(
-            *conv_param, dilation=dilation,
-            use_tensor_core=use_tensor_core,
-            groups=self.groups)
-
-        oz_dtype = 'd' if x.dtype == 'd' else 'f'
-        one = numpy.array(1, dtype=oz_dtype).ctypes
-        zero = numpy.array(0, dtype=oz_dtype).ctypes
-
-        workspace_size = cuda.get_max_workspace_size()
-        workspace = cuda.cupy.empty((workspace_size,), dtype='b')
-
-        if configuration.config.cudnn_deterministic:
-            algo = libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
-        elif configuration.config.autotune and _cudnn_version >= 5000:
-            algo = _get_algorithm_bwd_filter(
-                x, gy, gW, conv_param + (dilation,), handle, x_desc, gy_desc,
-                conv_desc, filter_desc, workspace)
-        else:
-            algo = libcudnn.getConvolutionBackwardFilterAlgorithm(
-                handle, x_desc.value, gy_desc.value, conv_desc.value,
-                filter_desc.value, _bwd_filter_pref, workspace_size)
-
-        if use_tensor_core:
-            algo = self._tensor_core_adjust_algo()
-
-        libcudnn.convolutionBackwardFilter_v3(
-            handle, one.data, x_desc.value, x.data.ptr, gy_desc.value,
-            gy.data.ptr, conv_desc.value, algo, workspace.data.ptr,
-            workspace_size, zero.data, filter_desc.value, gW.data.ptr)
+        deterministic = configuration.config.cudnn_deterministic
+        auto_tune = configuration.config.autotune
+        tensor_core = configuration.config.use_cudnn_tensor_core
+        cuda.cudnn.convolution_backward_filter(
+            x, gy, gW, pad, stride, dilation, self.groups,
+            deterministic=deterministic, auto_tune=auto_tune,
+            tensor_core=tensor_core)
 
         return gW,
-
-    def _tensor_core_adjust_algo(self):
-        # Only CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1 supports
-        # Tensor-Core in cuDNN7.
-        return libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_ALGO_1
 
     def backward(self, indexes, grad_outputs):
         x, gy = self.get_retained_inputs()

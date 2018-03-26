@@ -1,4 +1,4 @@
-FROM nvidia/cuda:8.0-cudnn6-devel
+FROM ubuntu:16.04
 
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
@@ -8,4 +8,4 @@ RUN apt-get update -y && \
     python-setuptools && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-RUN pip install cupy-cuda80==4.0.0rc1 chainer==4.0.0rc1
+RUN pip install ideep4py chainer==4.0.0rc1
