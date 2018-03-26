@@ -1918,7 +1918,6 @@ TEST_P(ArraySumTest, SumBackward) {
             {Array::Full({2, 3, 4, 3}, 1e-1)});
 }
 
-
 TEST_P(ArraySumTest, SumDoubleBackward_Keepdims) {
     using T = double;
     testing::ContextSession context_session{};
