@@ -980,7 +980,7 @@ def test_sum_backward(device):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sum_double_backward():
+def test_sum_double_backward(device):
     x = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
     gy = xchainer.ones((2,), x.dtype).require_grad()
     ggx = xchainer.ones_like(x)
