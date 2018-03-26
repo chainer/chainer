@@ -11,9 +11,7 @@ class Array;
 namespace routines {
 
 // Returns a view selected with the indices.
-Array At(const Array& array, const std::vector<ArrayIndex>& indices);
+Array At(const Array& a, const std::vector<ArrayIndex>& indices);
 
 }  // namespace routines
-}  // namespace xchaienr
-
-
+}  // namespace xchainer

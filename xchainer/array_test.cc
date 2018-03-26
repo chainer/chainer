@@ -1036,17 +1036,6 @@ TEST_P(ArrayTest, ChainedInplaceMath) {
     }
 }
 
-TEST_P(ArrayTest, AddAt) {
-    {
-        Array a = testing::MakeArray<float>({2, 3}, {1.f, 2.f, 3.f, 4.f, 5.f, 6.f});
-        Array b = testing::MakeArray<float>({2}, {3.f, 1.f});
-        std::vector<ArrayIndex> indices{1, Slice(0, 2)};
-        Array o = a.AddAt(indices, b);
-        Array e = testing::MakeArray<float>({2, 3}, {1.f, 2.f, 3.f, 7.f, 6.f, 6.f});
-        ExpectEqual<float>(e, o);
-    }
-}
-
 TEST_P(ArrayTest, ComputationalGraph) {
     // c = a + b
     // o = a * c
@@ -1372,32 +1361,6 @@ TEST_P(ArrayTest, MulBackward) {
 
     EXPECT_FALSE(ga.IsGradRequired());
     EXPECT_FALSE(gb.IsGradRequired());
-}
-
-TEST_P(ArrayTest, AddAtBackward) {
-    CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                std::vector<ArrayIndex> indices{1, Slice{1, 3}};
-                return {xs[0].AddAt(indices, xs[1])};
-            },
-            {(*testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad(),
-             (*testing::MakeArray({2}, {-1.f, 2.f})).RequireGrad()},
-            {Array::Ones({2, 3}, Dtype::kFloat32)},
-            {Array::Full({2, 3}, 1e-3f), Array::Full({2}, 1e-3f)});
-}
-
-TEST_P(ArrayTest, AddAtDoubleBackward) {
-    CheckDoubleBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                std::vector<ArrayIndex> indices{1, Slice{0, 2}};
-                auto y = xs[0].AddAt(indices, xs[1]);
-                return {y * y};  // to make it nonlinear
-            },
-            {(*testing::MakeArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad(),
-             (*testing::MakeArray({2}, {-1.f, 2.f})).RequireGrad()},
-            {Array::Ones({2, 3}, Dtype::kFloat32).RequireGrad()},
-            {Array::Ones({2, 3}, Dtype::kFloat32), Array::Ones({2}, Dtype::kFloat32)},
-            {Array::Full({2, 3}, 1e-2f), Array::Full({2}, 1e-2f), Array::Full({2, 3}, 1e-2f)});
 }
 
 TEST_P(ArrayTest, MulBackwardCapture) {

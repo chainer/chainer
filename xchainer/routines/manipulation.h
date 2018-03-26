@@ -31,4 +31,4 @@ Array Squeeze(const Array& array, const nonstd::optional<std::vector<int8_t>>& a
 Array BroadcastTo(const Array& array, const Shape& shape);
 
 }  // namespace routines
-}  // namespace xchaienr
+}  // namespace xchainer

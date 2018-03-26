@@ -13,5 +13,4 @@ Array Add(const Array& lhs, const Array& rhs);
 Array Mul(const Array& lhs, const Array& rhs);
 
 }  // namespace routines
-}  // namespace xchaienr
-
+}  // namespace xchainer

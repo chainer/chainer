@@ -19,10 +19,12 @@
 #include "xchainer/dtype.h"
 #include "xchainer/enum.h"
 #include "xchainer/graph.h"
-#include "xchainer/routines/creation.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
+
+#include "xchainer/routines/creation.h"
+#include "xchainer/routines/indexing.h"
 
 namespace xchainer {
 
@@ -183,7 +185,7 @@ public:
 
     const std::shared_ptr<void>& data() { return body_->data_; }
 
-    std::shared_ptr<const void> data() const { return body_->data_; }
+    std::shared_ptr<void> data() const { return body_->data_; }
 
     void* raw_data() { return body_->data_.get(); }
 
@@ -198,6 +200,7 @@ public:
 private:
     friend Array internal::ArrayFromBuffer(
             const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device);
+    friend Array routines::At(const Array& a, const std::vector<ArrayIndex>& indices);
 
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 

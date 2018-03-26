@@ -256,56 +256,7 @@ Array Array::Transpose() const {
     return out;
 }
 
-Array Array::At(const std::vector<ArrayIndex>& indices) const {
-    std::vector<int64_t> out_shape;
-    std::vector<int64_t> out_strides;
-    int64_t out_offset = offset();
-    int64_t i_in = 0;
-    for (const ArrayIndex& index : indices) {
-        switch (index.tag()) {
-            case ArrayIndexTag::kSingleElement: {
-                int64_t dim = shape()[i_in];
-                if (index.index() < -dim || dim <= index.index()) {
-                    throw DimensionError(
-                            "Index " + std::to_string(index.index()) + " is out of bounds for axis " + std::to_string(i_in) +
-                            " with size " + std::to_string(dim));
-                }
-                out_offset += strides()[i_in] * ((index.index() + dim) % dim);
-                ++i_in;
-                break;
-            }
-            case ArrayIndexTag::kSlice: {
-                const Slice& slice = index.slice();
-                int64_t slice_length = slice.GetLength(shape()[i_in]);
-                out_offset += strides()[i_in] * slice.GetStart(shape()[i_in]);
-                out_shape.push_back(slice_length);
-                out_strides.push_back(strides()[i_in] * slice.step());
-                ++i_in;
-                break;
-            }
-            case ArrayIndexTag::kNewAxis:
-                out_shape.push_back(1);
-                out_strides.push_back(0);
-                break;
-            default:
-                assert(false);
-        }
-    }
-    for (int64_t i = i_in; i < ndim(); ++i) {
-        out_shape.push_back(shape()[i]);
-        out_strides.push_back(strides()[i]);
-    }
-
-    Array out{{out_shape.begin(), out_shape.end()}, {out_strides.begin(), out_strides.end()}, dtype(), device(), body_->data_, out_offset};
-
-    auto backward_function = [ indices, other = *this ](const Array& gout, const std::vector<GraphId>&) {
-        Array gin = Array::ZerosLike(other, other.device());
-        return gin.AddAt(indices, gout);
-    };
-    internal::SetUpOpNodes("get_item", {*this}, out, {backward_function});
-
-    return out;
-}
+Array Array::At(const std::vector<ArrayIndex>& indices) const { return routines::At(*this, indices); }
 
 Array Array::Reshape(const Shape& shape) const {
     const Shape& in_shape = this->shape();
