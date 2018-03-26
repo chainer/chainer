@@ -35,5 +35,31 @@ Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& d
     return internal::ArrayFromBuffer(shape, dtype, data, {shape, dtype}, device);
 }
 
+Array Empty(const Shape& shape, Dtype dtype, Device& device) {
+    auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
+    std::shared_ptr<void> data = device.Allocate(bytesize);
+    return {shape, Strides{shape, dtype}, dtype, device, data};
+}
+
+Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device) {
+    Array array = Empty(shape, dtype, device);
+    array.Fill(fill_value);
+    return array;
+}
+
+Array Full(const Shape& shape, Scalar fill_value, Device& device) { return Full(shape, fill_value, fill_value.dtype(), device); }
+
+Array Zeros(const Shape& shape, Dtype dtype, Device& device) { return Full(shape, 0, dtype, device); }
+
+Array Ones(const Shape& shape, Dtype dtype, Device& device) { return Full(shape, 1, dtype, device); }
+
+Array EmptyLike(const Array& a, Device& device) { return Empty(a.shape(), a.dtype(), device); }
+
+Array FullLike(const Array& a, Scalar fill_value, Device& device) { return Full(a.shape(), fill_value, a.dtype(), device); }
+
+Array ZerosLike(const Array& a, Device& device) { return Zeros(a.shape(), a.dtype(), device); }
+
+Array OnesLike(const Array& a, Device& device) { return Ones(a.shape(), a.dtype(), device); }
+
 }  // namespace routines
 }  // namespace xchainer

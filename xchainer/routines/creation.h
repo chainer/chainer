@@ -30,18 +30,18 @@ Array ArrayFromBuffer(
 Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
 
 Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
-Array Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device = GetDefaultDevice());
-Array Full(const Shape& shape, Scalar scalar, Device& device = GetDefaultDevice());
+Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device = GetDefaultDevice());
+Array Full(const Shape& shape, Scalar fill_value, Device& device = GetDefaultDevice());
 Array Zeros(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
 Array Ones(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
 
 // Creates an array which has the same shape and dtype as the other array.
 // The new array is allocated in the default device. The device of the other array
 // is ignored.
-Array EmptyLike(const Array& array, Device& device = GetDefaultDevice());
-Array FullLike(const Array& array, Scalar scalar, Device& device = GetDefaultDevice());
-Array ZerosLike(const Array& array, Device& device = GetDefaultDevice());
-Array OnesLike(const Array& array, Device& device = GetDefaultDevice());
+Array EmptyLike(const Array& a, Device& device = GetDefaultDevice());
+Array FullLike(const Array& a, Scalar fill_value, Device& device = GetDefaultDevice());
+Array ZerosLike(const Array& a, Device& device = GetDefaultDevice());
+Array OnesLike(const Array& a, Device& device = GetDefaultDevice());
 
 // Creates a copy.
 // It will be connected to all the graphs.
