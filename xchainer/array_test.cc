@@ -1778,6 +1778,34 @@ TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NotBroadcastableAtEnd) {
     EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
 }
 
+TEST(ArrayBroadcastToTest, BroadcastToBackward) {
+    using T = double;
+    testing::ContextSession context_session{};
+
+    CheckBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                return {xs[0].BroadcastTo({2, 3, 4, 3})};
+            },
+            {(*testing::MakeArray({1, 3, 1, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
+            {testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>(-0.1, 0.1)},
+            {Array::Full({1, 3, 1, 3}, 1e-1)});
+}
+
+TEST(ArrayBroadcastToTest, BroadcastToDoubleBackward) {
+    using T = double;
+    testing::ContextSession context_session{};
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = xs[0].BroadcastTo({2, 3, 4, 3});
+                return {y * y};  // to make it nonlinear
+            },
+            {(*testing::MakeArray({1, 3, 1, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
+            {(*testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
+            {testing::MakeArray({1, 3, 1, 3}).WithLinearData<T>()},
+            {Array::Full({1, 3, 1, 3}, 1e-1), Array::Full({2, 3, 4, 3}, 1e-1)});
+}
+
 TEST(ArraySumTest, Sum) {
     using T = float;
     testing::ContextSession context_session{};
@@ -1837,26 +1865,40 @@ TEST(ArraySumTest, SumBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> {
                 return {xs[0].Sum(std::vector<int8_t>{1, 3})};
             },
-            {(*testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(sizeof(T))).RequireGrad()},
+            {(*testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {testing::MakeArray({2, 4}).WithLinearData<T>(-0.1, 0.1)},
             {Array::Full({2, 3, 4, 3}, 1e-1)});
 }
 
-// TODO(hvy): Test double backward for Sum when BroadcastTo supports backward.
-// TEST(ArraySumTest, SumDoubleBackward) {
-//     using T = double;
-//     testing::ContextSession context_session{};
-//
-//     CheckDoubleBackwardComputation(
-//             [](const std::vector<Array>& xs) -> std::vector<Array> {
-//                 auto y = xs[0].Sum(std::vector<int8_t>{1, 3});
-//                 return {y * y};  // to make it nonlinear
-//             },
-//             {(*testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(sizeof(T))).RequireGrad()},
-//             {(*testing::MakeArray({2, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
-//             {testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>()},
-//             {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 4}, 1e-1)});
-// }
+TEST(ArraySumTest, SumDoubleBackward_Keepdims) {
+    using T = double;
+    testing::ContextSession context_session{};
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = xs[0].Sum(std::vector<int8_t>{1, 3}, true);
+                return {y * y};  // to make it nonlinear
+            },
+            {(*testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
+            {(*testing::MakeArray({2, 1, 4, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
+            {testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>()},
+            {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 1, 4, 1}, 1e-1)});
+}
+
+TEST(ArraySumTest, SumDoubleBackward_NoKeepdims) {
+    using T = double;
+    testing::ContextSession context_session{};
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = xs[0].Sum(std::vector<int8_t>{1, 3}, false);
+                return {y * y};  // to make it nonlinear
+            },
+            {(*testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
+            {(*testing::MakeArray({2, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
+            {testing::MakeArray({2, 3, 4, 3}).WithLinearData<T>()},
+            {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 4}, 1e-1)});
+}
 
 }  // namespace
 }  // namespace xchainer
