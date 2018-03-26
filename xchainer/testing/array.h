@@ -15,6 +15,8 @@
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
+#include "xchainer/routines/creation.h"
+
 namespace xchainer {
 namespace testing {
 
@@ -42,7 +44,7 @@ public:
             assert(static_cast<size_t>(shape.GetTotalSize()) == data.size());
             Strides strides = builder.GetStrides<T>();
             int64_t total_size = shape.GetTotalSize();
-            size_t total_bytes = internal::GetRequiredBytes(shape, strides, sizeof(T));
+            size_t total_bytes = routines::internal::GetRequiredBytes(shape, strides, sizeof(T));
             auto ptr = std::make_unique<uint8_t[]>(total_bytes);
             std::fill(ptr.get(), ptr.get() + total_bytes, uint8_t{0xff});
 
@@ -68,7 +70,7 @@ public:
                     }
                 }
             }
-            return internal::ArrayFromBuffer(shape, dtype, std::move(ptr), std::move(strides), builder.device_);
+            return routines::internal::ArrayFromBuffer(shape, dtype, std::move(ptr), std::move(strides), builder.device_);
         };
         return *this;
     }

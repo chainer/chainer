@@ -31,7 +31,7 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 
     auto this_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
     auto addend_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.At(indices); };
-    internal::SetUpOpNodes("add_at", {a, b}, out, {this_backward_function, addend_backward_function});
+    xchainer::internal::SetUpOpNodes("add_at", {a, b}, out, {this_backward_function, addend_backward_function});
 
     return out;
 }
@@ -84,7 +84,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
         Array gin = Array::ZerosLike(other, other.device());
         return AddAt(gin, indices, gout);
     };
-    internal::SetUpOpNodes("get_item", {a}, out, {backward_function});
+    xchainer::internal::SetUpOpNodes("get_item", {a}, out, {backward_function});
 
     return out;
 }

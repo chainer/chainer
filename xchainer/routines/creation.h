@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <vector>
 
@@ -15,6 +16,16 @@ namespace xchainer {
 class Array;
 
 namespace routines {
+namespace internal {
+
+// Returns the minimum number of bytes required to pack the data with specified strides and shape.
+size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size);
+
+// Creates an array with given data packed with specified strides
+Array ArrayFromBuffer(
+        const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device = GetDefaultDevice());
+
+}  // namespace internal
 
 Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
 

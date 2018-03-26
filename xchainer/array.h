@@ -51,13 +51,6 @@ std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId&
 
 const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
-// Returns the minimum number of bytes required to pack the data with specified strides and shape.
-size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size);
-
-// Creates an array with given data packed with specified strides
-Array ArrayFromBuffer(
-        const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device = GetDefaultDevice());
-
 }  // namespace internal
 
 // The main data structure of multi-dimensional array.
@@ -198,7 +191,7 @@ public:
     std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; }
 
 private:
-    friend Array internal::ArrayFromBuffer(
+    friend Array routines::internal::ArrayFromBuffer(
             const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device);
     friend Array routines::At(const Array& a, const std::vector<ArrayIndex>& indices);
 
