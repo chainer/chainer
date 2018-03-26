@@ -282,6 +282,7 @@ void InitXchainerArray(pybind11::module& m) {
             .def_property_readonly("_debug_flat_data", [](const ArrayBodyPtr& self) {
                 py::list list;
                 Array array{self};
+                array.device().Synchronize();
 
                 // Copy data into the list
                 VisitDtype(array.dtype(), [&array, &list](auto pt) {
