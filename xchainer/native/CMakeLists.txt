@@ -1,3 +1,9 @@
+install(FILES
+    native_device.h
+    native_backend.h
+    DESTINATION include/xchainer/native
+    )
+
 add_library(xchainer_native STATIC
     native_device.cc
     native_backend.cc)
