@@ -100,27 +100,27 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 }  // namespace internal
 
-Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
+Array Array::FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
     return routines::FromBuffer(shape, dtype, data, device);
 }
 
-Array Empty(const Shape& shape, Dtype dtype, Device& device) { return routines::Empty(shape, dtype, device); }
+Array Array::Empty(const Shape& shape, Dtype dtype, Device& device) { return routines::Empty(shape, dtype, device); }
 
-Array Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device) { return routines::Full(shape, scalar, dtype, device); }
+Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device) { return routines::Full(shape, scalar, dtype, device); }
 
-Array Full(const Shape& shape, Scalar scalar, Device& device) { return routines::Full(shape, scalar, device); }
+Array Array::Full(const Shape& shape, Scalar scalar, Device& device) { return routines::Full(shape, scalar, device); }
 
-Array Zeros(const Shape& shape, Dtype dtype, Device& device) { return routines::Zeros(shape, dtype, device); }
+Array Array::Zeros(const Shape& shape, Dtype dtype, Device& device) { return routines::Zeros(shape, dtype, device); }
 
-Array Ones(const Shape& shape, Dtype dtype, Device& device) { return routines::Ones(shape, dtype, device); }
+Array Array::Ones(const Shape& shape, Dtype dtype, Device& device) { return routines::Ones(shape, dtype, device); }
 
-Array EmptyLike(const Array& array, Device& device) { return routines::EmptyLike(array, device); }
+Array Array::EmptyLike(const Array& array, Device& device) { return routines::EmptyLike(array, device); }
 
-Array FullLike(const Array& array, Scalar scalar, Device& device) { return routines::FullLike(array, scalar, device); }
+Array Array::FullLike(const Array& array, Scalar scalar, Device& device) { return routines::FullLike(array, scalar, device); }
 
-Array ZerosLike(const Array& array, Device& device) { return routines::ZerosLike(array, device); }
+Array Array::ZerosLike(const Array& array, Device& device) { return routines::ZerosLike(array, device); }
 
-Array OnesLike(const Array& array, Device& device) { return routines::OnesLike(array, device); }
+Array Array::OnesLike(const Array& array, Device& device) { return routines::OnesLike(array, device); }
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
