@@ -143,7 +143,7 @@ ProcessQueueWriter`
     writer = kwargs.pop('writer', None)
     if savefun is not None and writer is not None:
         raise TypeError(
-            'savefun and writer argument cannot be specified together.')
+            'savefun and writer arguments cannot be specified together.')
     argument.assert_kwargs_empty(kwargs)
 
     if writer is None:

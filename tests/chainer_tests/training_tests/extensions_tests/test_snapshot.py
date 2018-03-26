@@ -2,6 +2,7 @@ import os
 import unittest
 
 import mock
+import pytest
 
 from chainer import testing
 from chainer.training import extensions
@@ -20,6 +21,14 @@ class TestSnapshot(unittest.TestCase):
 
         assert c.call_count == 2
         assert w.call_count == 1
+
+    def test_savefun_and_writer_exclusive(self):
+        # savefun and writer arguments cannot be specified together.
+        def savefun(*args, **kwargs):
+            assert False
+        writer = extensions.snapshot_writers.SimpleWriter()
+        with pytest.raises(TypeError):
+            extensions.snapshot(savefun=savefun, writer=writer)
 
 
 class TestSnapshotSaveFile(unittest.TestCase):
