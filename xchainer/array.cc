@@ -537,10 +537,8 @@ Array Array::BroadcastTo(const Shape& shape) const {
         }
 
         int8_t lead = gout.ndim() - in_shape.ndim();
-        std::vector<int8_t> lead_axis;  // NOTE: lead_axis{0} allocates 1 elem, do not use
-        for (int8_t i = 0; i < lead; ++i) {
-            lead_axis.emplace_back(i);
-        }
+        std::vector<int8_t> lead_axis(lead);
+        std::iota(lead_axis.begin(), lead_axis.end(), int8_t{0});
 
         std::vector<int8_t> axis{lead_axis};
         for (int8_t i = 0; i < in_shape.ndim(); ++i) {
