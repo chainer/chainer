@@ -604,9 +604,8 @@ Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
 
     auto backward_function = [ sorted_axis, in_shape = shape(), keepdims ](const Array& gout, const std::vector<GraphId>&) {
         assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
-        int8_t ndim = in_shape.ndim();
 
-        if (!(ndim == 0 || sorted_axis.empty() || keepdims)) {
+        if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
             std::vector<int64_t> out_shape_broadcastable;
             std::copy(gout.shape().begin(), gout.shape().end(), std::back_inserter(out_shape_broadcastable));
             for (auto axis : sorted_axis) {
