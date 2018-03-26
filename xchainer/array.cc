@@ -548,6 +548,7 @@ Array Array::BroadcastTo(const Shape& shape) const {
                 axis.emplace_back(i + lead);
             }
         }
+        // Sum requires a unique vector
         auto it = std::unique(axis.begin(), axis.end());
         axis.erase(it, axis.end());
 
