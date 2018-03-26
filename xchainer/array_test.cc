@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
@@ -1567,6 +1568,24 @@ TEST(ArrayReshapeTest, Reshape) {
     Shape output_shape{3, 4, 2};
 
     Array a = testing::MakeArray(input_shape).WithLinearData<T>();
+    Array b = a.Reshape(output_shape);
+    ASSERT_EQ(output_shape, b.shape());
+    EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
+    Array e = testing::MakeArray(output_shape).WithLinearData<T>();
+    ExpectEqual<T>(e, b);
+}
+
+// If an input array has a unit-length axis with 0-stride, that axis should not give rise to any copies.
+TEST(ArrayReshapeTest, ReshapeNoCopyZeroStrideAxis) {
+    using T = int32_t;
+    testing::ContextSession context_session{};
+    Shape input_shape_before_newaxis{2, 3, 4};
+    Shape output_shape{3, 4, 2};
+
+    // The shape of the input array is (2, 1, 3, 4) with strides (48, 0, 16, 4).
+    Array a = (*testing::MakeArray(input_shape_before_newaxis).WithLinearData<T>()).At({Slice{}, NewAxis{}, Slice{}, Slice{}});
+    assert(std::find(a.strides().begin(), a.strides().end(), 0) != a.strides().end());
+
     Array b = a.Reshape(output_shape);
     ASSERT_EQ(output_shape, b.shape());
     EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
