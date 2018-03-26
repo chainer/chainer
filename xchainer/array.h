@@ -18,6 +18,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
+#include "xchainer/routines/creation.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
@@ -55,11 +56,6 @@ Array ArrayFromBuffer(
         const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device = GetDefaultDevice());
 
 }  // namespace internal
-
-enum class CopyKind {
-    kCopy = 1,
-    kView,
-};
 
 // The main data structure of multi-dimensional array.
 class Array {
@@ -99,11 +95,11 @@ public:
     // The original values of this array are not altered.
     Array AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const;
 
-    // Returns a transposed view of the array.
-    Array Transpose() const;
-
     // Returns a view selected with the indices.
     Array At(const std::vector<ArrayIndex>& indices) const;
+
+    // Returns a transposed view of the array.
+    Array Transpose() const;
 
     // Returns a reshaped array.
     // TODO(niboshi): Support reshape that require a copy.
