@@ -6,11 +6,11 @@
 
 #include "xchainer/array_index.h"
 
-namespace py = pybind11;
-
 namespace xchainer {
 namespace python {
 namespace internal {
+
+namespace py = pybind11;
 
 std::vector<ArrayIndex> MakeArrayIndices(py::handle handle);
 

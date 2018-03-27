@@ -32,17 +32,17 @@ private:
 };
 
 void InitXchainerContext(pybind11::module& m) {
-    py::class_<Context>(m, "Context")
-            .def(py::init())
-            .def("get_backend", &Context::GetBackend, py::return_value_policy::reference)
-            .def("get_device",
-                 [](Context& self, const std::string& device_name) -> Device& { return self.GetDevice(device_name); },
-                 py::return_value_policy::reference)
-            .def("get_device",
-                 [](Context& self, const std::string& backend_name, int index) -> Device& {
-                     return self.GetDevice({backend_name, index});
-                 },
-                 py::return_value_policy::reference);
+    py::class_<Context> c{m, "Context"};
+    c.def(py::init());
+    c.def("get_backend", &Context::GetBackend, py::return_value_policy::reference);
+    c.def("get_device",
+          [](Context& self, const std::string& device_name) -> Device& { return self.GetDevice(device_name); },
+          py::return_value_policy::reference);
+    c.def("get_device",
+          [](Context& self, const std::string& backend_name, int index) -> Device& {
+              return self.GetDevice({backend_name, index});
+          },
+          py::return_value_policy::reference);
 
     m.def("get_backend", &GetBackend, py::return_value_policy::reference);
     m.def("get_device",
@@ -59,8 +59,13 @@ void InitXchainerContext(pybind11::module& m) {
 
     m.def("get_global_default_context", &GetGlobalDefaultContext, py::return_value_policy::reference);
     m.def("set_global_default_context", &SetGlobalDefaultContext);
+}
 
-    py::class_<PyContextScope>(m, "ContextScope").def("__enter__", &PyContextScope::Enter).def("__exit__", &PyContextScope::Exit);
+void InitXchainerContextScope(pybind11::module& m) {
+    py::class_<PyContextScope> c(m, "ContextScope");
+    c.def("__enter__", &PyContextScope::Enter);
+    c.def("__exit__", &PyContextScope::Exit);
+
     m.def("context_scope", [](Context& device) { return PyContextScope(device); });
 }
 
