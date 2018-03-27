@@ -38,6 +38,8 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 
 }  // namespace
 
+namespace internal {
+
 Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
     std::vector<int64_t> out_shape;
     std::vector<int64_t> out_strides;
@@ -89,5 +91,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
     return out;
 }
+
+}  // namespace internal
 }  // namespace routines
 }  // namespace xchainer

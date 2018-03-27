@@ -132,19 +132,19 @@ Array Array::OnesLike(const Array& array, Device& device) { return routines::One
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
 
-Array& Array::operator+=(const Array& rhs) { return routines::IAdd(*this, rhs); }
+Array& Array::operator+=(const Array& rhs) { return routines::internal::IAdd(*this, rhs); }
 
-const Array& Array::operator+=(const Array& rhs) const { return routines::IAdd(*this, rhs); }
+const Array& Array::operator+=(const Array& rhs) const { return routines::internal::IAdd(*this, rhs); }
 
 Array Array::operator+(const Array& rhs) const { return routines::Add(*this, rhs); }
 
-Array& Array::operator*=(const Array& rhs) { return routines::IMultiply(*this, rhs); }
+Array& Array::operator*=(const Array& rhs) { return routines::internal::IMultiply(*this, rhs); }
 
-const Array& Array::operator*=(const Array& rhs) const { return routines::IMultiply(*this, rhs); }
+const Array& Array::operator*=(const Array& rhs) const { return routines::internal::IMultiply(*this, rhs); }
 
 Array Array::operator*(const Array& rhs) const { return routines::Multiply(*this, rhs); }
 
-Array Array::At(const std::vector<ArrayIndex>& indices) const { return routines::At(*this, indices); }
+Array Array::At(const std::vector<ArrayIndex>& indices) const { return routines::internal::At(*this, indices); }
 
 Array Array::Transpose() const { return routines::Transpose(*this); }
 

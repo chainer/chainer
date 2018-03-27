@@ -38,9 +38,13 @@ ArrayType& AddAssignImpl(ArrayType& self, const Array& rhs) {
 
 }  // namespace
 
+namespace internal {
+
 Array& IAdd(Array& x1, const Array& x2) { return AddAssignImpl(x1, x2); }
 
 const Array& IAdd(const Array& x1, const Array& x2) { return AddAssignImpl(x1, x2); }
+
+}  // namespace internal
 
 Array Add(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
@@ -96,9 +100,13 @@ ArrayType& MultiplyAssignImpl(ArrayType& self, const Array& rhs) {
 
 }  // namespace
 
+namespace internal {
+
 Array& IMultiply(Array& x1, const Array& x2) { return MultiplyAssignImpl(x1, x2); }
 
 const Array& IMultiply(const Array& x1, const Array& x2) { return MultiplyAssignImpl(x1, x2); }
+
+}  // namespace internal
 
 Array Multiply(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
