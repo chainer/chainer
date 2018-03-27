@@ -324,6 +324,11 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
+TEST_P(ArrayTest, DefaultCtor) {
+    Array a;
+    EXPECT_EQ(nullptr, a.body().get());
+}
+
 TEST_P(ArrayTest, CopyCtor) {
     Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
     Array b = a;  // NOLINT
@@ -369,6 +374,44 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
     EXPECT_EQ(a.data(), b.data());
     EXPECT_THROW(internal::GetArrayNode(a), XchainerError);
     EXPECT_THROW(internal::GetArrayNode(b), XchainerError);
+}
+
+TEST_P(ArrayTest, CopyAssignment) {
+    {
+        Array a = testing::BuildArray<bool>({4, 1}, {true, true, true, true});
+        Array b;
+        b = a;
+
+        EXPECT_EQ(a.body().get(), b.body().get());
+    }
+    {
+        Array a = testing::BuildArray<bool>({4, 1}, {true, true, true, true});
+        Array b = testing::BuildArray<float>({1}, {1.0f});
+        b = a;
+
+        EXPECT_EQ(a.body().get(), b.body().get());
+    }
+}
+
+TEST_P(ArrayTest, MoveAssignment) {
+    {
+        Array a = testing::BuildArray<bool>({4, 1}, {true, true, true, true});
+        Array b;
+        std::shared_ptr<internal::ArrayBody> body = a.body();
+        b = std::move(a);
+
+        EXPECT_EQ(body.get(), b.body().get());
+        EXPECT_EQ(nullptr, a.body().get());
+    }
+    {
+        Array a = testing::BuildArray<bool>({4, 1}, {true, true, true, true});
+        Array b = testing::BuildArray<float>({1}, {1.0f});
+        std::shared_ptr<internal::ArrayBody> body = a.body();
+        b = std::move(a);
+
+        EXPECT_EQ(body.get(), b.body().get());
+        EXPECT_EQ(nullptr, a.body().get());
+    }
 }
 
 TEST_P(ArrayTest, SetRequiresGrad) {
