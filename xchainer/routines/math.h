@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include <nonstd/optional.hpp>
+
 #include "xchainer/array.h"
 
 namespace xchainer {

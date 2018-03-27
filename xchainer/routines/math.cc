@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include <nonstd/optional.hpp>
+
 #include "xchainer/array.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/util.h"
