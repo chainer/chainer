@@ -326,7 +326,7 @@ private:
 
 TEST_P(ArrayTest, CopyCtor) {
     Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-    Array b = a;
+    Array b = a;  // NOLINT
 
     // A copy-constructed instance must share the same body.
     EXPECT_EQ(a.body().get(), b.body().get());
