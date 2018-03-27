@@ -1,5 +1,8 @@
 #include "xchainer/routines/math.h"
 
+#include <vector>
+
+#include "xchainer/array.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/util.h"
 
