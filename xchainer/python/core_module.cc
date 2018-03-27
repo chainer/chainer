@@ -25,8 +25,10 @@ void InitXchainerModule(pybind11::module& m) {
     m.attr("DEFAULT_GRAPH_ID") = kDefaultGraphId;
 
     InitXchainerContext(m);
+    InitXchainerContextScope(m);
     InitXchainerBackend(m);
     InitXchainerDevice(m);
+    InitXchainerDeviceScope(m);
     InitXchainerDtype(m);
     InitXchainerError(m);
     InitXchainerScalar(m);

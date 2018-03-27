@@ -8,6 +8,8 @@ namespace internal {
 
 void InitXchainerDevice(pybind11::module&);
 
+void InitXchainerDeviceScope(pybind11::module&);
+
 }  // namespace internal
 }  // namespace python
 }  // namespace xchainer

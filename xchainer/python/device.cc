@@ -32,19 +32,23 @@ private:
 };
 
 void InitXchainerDevice(pybind11::module& m) {
-    py::class_<Device>(m, "Device")
-            .def("__repr__", &Device::name)
-            .def("synchronize", &Device::Synchronize)
-            .def_property_readonly("name", &Device::name)
-            .def_property_readonly("backend", &Device::backend, py::return_value_policy::reference)
-            .def_property_readonly("context", &Device::context, py::return_value_policy::reference)
-            .def_property_readonly("index", &Device::index);
+    py::class_<Device> c{m, "Device"};
+    c.def("__repr__", &Device::name);
+    c.def("synchronize", &Device::Synchronize);
+    c.def_property_readonly("name", &Device::name);
+    c.def_property_readonly("backend", &Device::backend, py::return_value_policy::reference);
+    c.def_property_readonly("context", &Device::context, py::return_value_policy::reference);
+    c.def_property_readonly("index", &Device::index);
 
     m.def("get_default_device", []() -> Device& { return GetDefaultDevice(); }, py::return_value_policy::reference);
     m.def("set_default_device", [](Device& device) { SetDefaultDevice(&device); });
     m.def("set_default_device", [](const std::string& device_name) { SetDefaultDevice(&GetDefaultContext().GetDevice(device_name)); });
+}
 
-    py::class_<PyDeviceScope>(m, "DeviceScope").def("__enter__", &PyDeviceScope::Enter).def("__exit__", &PyDeviceScope::Exit);
+void InitXchainerDeviceScope(pybind11::module& m) {
+    py::class_<PyDeviceScope> c{m, "DeviceScope"};
+    c.def("__enter__", &PyDeviceScope::Enter);
+    c.def("__exit__", &PyDeviceScope::Exit);
 
     m.def("device_scope", [](Device& device) { return PyDeviceScope(device); });
     m.def("device_scope", [](const std::string& device_name) { return PyDeviceScope(GetDefaultContext().GetDevice(device_name)); });
