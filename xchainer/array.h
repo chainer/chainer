@@ -17,10 +17,15 @@
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/enum.h"
 #include "xchainer/graph.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
+
+#include "xchainer/routines/creation.h"
+#include "xchainer/routines/indexing.h"
+#include "xchainer/routines/manipulation.h"
 
 namespace xchainer {
 
@@ -47,25 +52,12 @@ std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId&
 
 const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
-// Returns the minimum number of bytes required to pack the data with specified strides and shape.
-size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size);
-
-// Creates an array with given data packed with specified strides
-Array ArrayFromBuffer(
-        const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device = GetDefaultDevice());
-
 }  // namespace internal
-
-enum class CopyKind {
-    kCopy = 1,
-    kView,
-};
 
 // The main data structure of multi-dimensional array.
 class Array {
 public:
     static Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
-
     static Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
     static Array Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device = GetDefaultDevice());
     static Array Full(const Shape& shape, Scalar scalar, Device& device = GetDefaultDevice());
@@ -94,16 +86,11 @@ public:
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
 
-    // Returns an array where elements at indices are added by the addends.
-    //
-    // The original values of this array are not altered.
-    Array AddAt(const std::vector<ArrayIndex>& indices, const Array& addend) const;
+    // Returns a view selected with the indices.
+    Array At(const std::vector<ArrayIndex>& indices) const;
 
     // Returns a transposed view of the array.
     Array Transpose() const;
-
-    // Returns a view selected with the indices.
-    Array At(const std::vector<ArrayIndex>& indices) const;
 
     // Returns a reshaped array.
     // TODO(niboshi): Support reshape that require a copy.
@@ -191,7 +178,7 @@ public:
 
     const std::shared_ptr<void>& data() { return body_->data_; }
 
-    std::shared_ptr<const void> data() const { return body_->data_; }
+    std::shared_ptr<void> data() const { return body_->data_; }
 
     void* raw_data() { return body_->data_.get(); }
 
@@ -204,8 +191,14 @@ public:
     std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; }
 
 private:
-    friend Array internal::ArrayFromBuffer(
+    friend Array routines::internal::ArrayFromBuffer(
             const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device);
+    friend Array routines::Empty(const Shape& shape, Dtype dtype, Device& device);
+    friend Array routines::At(const Array& a, const std::vector<ArrayIndex>& indices);
+    friend Array routines::Transpose(const Array& a);
+    friend Array routines::Reshape(const Array& a, const Shape& shape);
+    friend Array routines::Squeeze(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis);
+    friend Array routines::BroadcastTo(const Array& array, const Shape& shape);
 
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
