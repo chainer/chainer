@@ -36,7 +36,7 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 void SetUpOpNodes(
         const std::string& name,
         const std::vector<ConstArrayRef>& inputs,
-        Array& out,
+        const Array& out,
         const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
         const std::vector<GraphId>& graph_ids_to_stop_gradients) {
     if (inputs.size() != backward_functions.size()) {
@@ -85,7 +85,7 @@ bool HasArrayNode(const Array& array, const GraphId& graph_id) {
            }) != array.nodes().end();
 }
 
-const std::shared_ptr<ArrayNode>& CreateArrayNode(Array& array, const GraphId& graph_id) {
+const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const GraphId& graph_id) {
     if (HasArrayNode(array, graph_id)) {
         throw XchainerError("Duplicate graph registration: '" + graph_id + "'.");
     }
@@ -135,36 +135,44 @@ Array::Array(const Array& other)
     : body_(std::make_shared<internal::ArrayBody>(
               other.shape(), other.strides(), other.dtype(), other.device(), other.body_->data_, other.offset(), other.body_->nodes_)) {}
 
-Array& Array::operator+=(const Array& rhs) {
-    auto func = [](Array& lhs, const Array& rhs) -> Array& {
-        lhs.Add(rhs, lhs);
+namespace {
+
+void AddImpl(const Array& lhs, const Array& rhs, const Array& out) {
+    // TODO(sonots): dtype conversion
+    CheckEqual(lhs.dtype(), rhs.dtype());
+    CheckEqual(lhs.shape(), rhs.shape());
+
+    auto lhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
+    auto rhs_backward_function = lhs_backward_function;
+    internal::SetUpOpNodes("add", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+
+    lhs.device().Add(lhs, rhs, out);
+}
+
+template <typename ArrayType>
+ArrayType& AddAssignImpl(ArrayType& self, const Array& rhs) {
+    auto func = [](ArrayType& lhs, const Array& rhs) -> ArrayType& {
+        AddImpl(lhs, rhs, lhs);
         return lhs;
     };
 
-    if (shape() == rhs.shape()) {
-        return func(*this, rhs);
+    if (self.shape() == rhs.shape()) {
+        return func(self, rhs);
     }
-    Array rhs_broadcasted = rhs.BroadcastTo(shape());
-    return func(*this, rhs_broadcasted);
+    Array rhs_broadcasted = rhs.BroadcastTo(self.shape());
+    return func(self, rhs_broadcasted);
 }
 
-Array& Array::operator*=(const Array& rhs) {
-    auto func = [](Array& lhs, const Array& rhs) -> Array& {
-        lhs.Mul(rhs, lhs);
-        return lhs;
-    };
+}  // namespace
 
-    if (shape() == rhs.shape()) {
-        return func(*this, rhs);
-    }
-    Array rhs_broadcasted = rhs.BroadcastTo(shape());
-    return func(*this, rhs_broadcasted);
-}
+Array& Array::operator+=(const Array& rhs) { return AddAssignImpl(*this, rhs); }
+
+const Array& Array::operator+=(const Array& rhs) const { return AddAssignImpl(*this, rhs); }
 
 Array Array::operator+(const Array& rhs) const {
     auto func = [](const Array& lhs, const Array& rhs) {
         Array out = Array::EmptyLike(lhs, lhs.device());
-        lhs.Add(rhs, out);
+        AddImpl(lhs, rhs, out);
         return out;
     };
 
@@ -181,10 +189,48 @@ Array Array::operator+(const Array& rhs) const {
     return func(BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
 }
 
+namespace {
+
+void MulImpl(const Array& lhs, const Array& rhs, const Array& out) {
+    // TODO(sonots): dtype conversion
+    CheckEqual(lhs.dtype(), rhs.dtype());
+    CheckEqual(lhs.shape(), rhs.shape());
+
+    auto lhs_backward_function = [other = rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+        return gout * other.AsConstant(graph_ids_to_stop_gradient);
+    };
+    auto rhs_backward_function = [other = lhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+        return gout * other.AsConstant(graph_ids_to_stop_gradient);
+    };
+    internal::SetUpOpNodes("mul", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+
+    lhs.device().Mul(lhs, rhs, out);
+}
+
+template <typename ArrayType>
+ArrayType& MulAssignImpl(ArrayType& self, const Array& rhs) {
+    auto func = [](ArrayType& lhs, const Array& rhs) -> ArrayType& {
+        MulImpl(lhs, rhs, lhs);
+        return lhs;
+    };
+
+    if (self.shape() == rhs.shape()) {
+        return func(self, rhs);
+    }
+    Array rhs_broadcasted = rhs.BroadcastTo(self.shape());
+    return func(self, rhs_broadcasted);
+}
+
+}  // namespace
+
+Array& Array::operator*=(const Array& rhs) { return MulAssignImpl(*this, rhs); }
+
+const Array& Array::operator*=(const Array& rhs) const { return MulAssignImpl(*this, rhs); }
+
 Array Array::operator*(const Array& rhs) const {
     auto func = [](const Array& lhs, const Array& rhs) {
         Array out = Array::EmptyLike(lhs, lhs.device());
-        lhs.Mul(rhs, out);
+        MulImpl(lhs, rhs, out);
         return out;
     };
 
@@ -357,43 +403,17 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
     }
 }
 
-void Array::Fill(Scalar value) { device().Fill(*this, value); }
+void Array::Fill(Scalar value) const { device().Fill(*this, value); }
 
 const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return internal::GetArrayNode(*this, graph_id)->grad(); }
 
-void Array::SetGrad(Array grad, const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->set_grad(std::move(grad)); }
+void Array::SetGrad(Array grad, const GraphId& graph_id) const {
+    internal::GetMutableArrayNode(*this, graph_id)->set_grad(std::move(grad));
+}
 
-void Array::ClearGrad(const GraphId& graph_id) { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
+void Array::ClearGrad(const GraphId& graph_id) const { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
-
-void Array::Add(const Array& rhs, Array& out) const {
-    // TODO(sonots): dtype conversion
-    CheckEqual(dtype(), rhs.dtype());
-    CheckEqual(shape(), rhs.shape());
-
-    auto lhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
-    auto rhs_backward_function = lhs_backward_function;
-    internal::SetUpOpNodes("add", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
-
-    device().Add(*this, rhs, out);
-}
-
-void Array::Mul(const Array& rhs, Array& out) const {
-    // TODO(sonots): dtype conversion
-    CheckEqual(dtype(), rhs.dtype());
-    CheckEqual(shape(), rhs.shape());
-
-    auto lhs_backward_function = [other = rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
-        return gout * other.AsConstant(graph_ids_to_stop_gradient);
-    };
-    auto rhs_backward_function = [other = *this](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
-        return gout * other.AsConstant(graph_ids_to_stop_gradient);
-    };
-    internal::SetUpOpNodes("mul", {*this, rhs}, out, {lhs_backward_function, rhs_backward_function});
-
-    device().Mul(*this, rhs, out);
-}
 
 namespace {
 

@@ -38,13 +38,13 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 void SetUpOpNodes(
         const std::string& name,
         const std::vector<ConstArrayRef>& inputs,
-        Array& out,
+        const Array& out,
         const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
         const std::vector<GraphId>& graph_ids_to_stop_gradients = {});
 
 bool HasArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
-const std::shared_ptr<ArrayNode>& CreateArrayNode(Array& array, const GraphId& graph_id = kDefaultGraphId);
+const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
 std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
@@ -80,7 +80,9 @@ public:
     Array& operator=(Array&& other) = delete;
 
     Array& operator+=(const Array& rhs);
+    const Array& operator+=(const Array& rhs) const;
     Array& operator*=(const Array& rhs);
+    const Array& operator*=(const Array& rhs) const;
     Array operator+(const Array& rhs) const;
     Array operator*(const Array& rhs) const;
 
@@ -131,16 +133,22 @@ public:
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
     Array AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind = CopyKind::kView) const;
 
-    void Fill(Scalar value);
+    void Fill(Scalar value) const;
 
     const nonstd::optional<Array>& GetGrad(const GraphId& graph_id = kDefaultGraphId) const;
 
-    void SetGrad(Array grad, const GraphId& graph_id = kDefaultGraphId);
+    void SetGrad(Array grad, const GraphId& graph_id = kDefaultGraphId) const;
 
     // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
-    void ClearGrad(const GraphId& graph_id = kDefaultGraphId);
+    void ClearGrad(const GraphId& graph_id = kDefaultGraphId) const;
 
     bool IsGradRequired(const GraphId& graph_id = kDefaultGraphId) const { return internal::HasArrayNode(*this, graph_id); }
+
+    // Creates a new ArrayNode to store the gradient
+    const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const {
+        internal::CreateArrayNode(*this, graph_id);
+        return *this;
+    }
 
     // Creates a new ArrayNode to store the gradient
     Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) {
@@ -156,9 +164,7 @@ public:
 
     std::string ToString() const;
 
-    const std::shared_ptr<internal::ArrayBody>& body() { return body_; }
-
-    std::shared_ptr<const internal::ArrayBody> body() const { return body_; }
+    const std::shared_ptr<internal::ArrayBody>& body() const { return body_; }
 
     std::shared_ptr<internal::ArrayBody>&& move_body() { return std::move(body_); }
 
@@ -174,27 +180,19 @@ public:
 
     int64_t element_bytes() const { return GetElementSize(dtype()); }
 
-    const std::shared_ptr<void>& data() { return body_->data_; }
+    const std::shared_ptr<void>& data() const { return body_->data_; }
 
-    std::shared_ptr<void> data() const { return body_->data_; }
-
-    void* raw_data() { return body_->data_.get(); }
-
-    const void* raw_data() const { return body_->data_.get(); }
+    void* raw_data() const { return body_->data_.get(); }
 
     int64_t offset() const { return body_->offset_; }
 
-    const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return body_->nodes_; }
-
-    std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; }
+    std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return body_->nodes_; }
 
 private:
-    friend Array internal::MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+    friend Array internal::MakeArray(
+            const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
 
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
-
-    void Add(const Array& rhs, Array& out) const;
-    void Mul(const Array& rhs, Array& out) const;
 
     std::shared_ptr<internal::ArrayBody> body_;
 };

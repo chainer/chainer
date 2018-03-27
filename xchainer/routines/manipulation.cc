@@ -180,13 +180,14 @@ Array Squeeze(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis)
     }
 
     // TODO(hvy): Do not remove const and return the same body properly.
-    Array out = in_shape.size() == out_shape.size() ? Array{std::const_pointer_cast<xchainer::internal::ArrayBody>(a.body())}
-                                                    : xchainer::internal::MakeArray(Shape{out_shape.begin(), out_shape.end()},
-                                                            Strides{out_strides.begin(), out_strides.end()},
-                                                            a.dtype(),
-                                                            a.device(),
-                                                            a.data(),
-                                                            a.offset());
+    Array out = in_shape.size() == out_shape.size() ? Array{a.body()}
+                                                    : xchainer::internal::MakeArray(
+                                                              Shape{out_shape.begin(), out_shape.end()},
+                                                              Strides{out_strides.begin(), out_strides.end()},
+                                                              a.dtype(),
+                                                              a.device(),
+                                                              a.data(),
+                                                              a.offset());
     xchainer::internal::SetUpOpNodes(
             "squeeze", {a}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }});
 
@@ -233,7 +234,8 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
         }
     }
     assert(rev_strides.size() == shape.size());
-    Array out = xchainer::internal::MakeArray(shape, {rev_strides.rbegin(), rev_strides.rend()}, array.dtype(), array.device(), array.data(), array.offset());
+    Array out = xchainer::internal::MakeArray(
+            shape, {rev_strides.rbegin(), rev_strides.rend()}, array.dtype(), array.device(), array.data(), array.offset());
 
     auto backward_function = [in_shape](const Array& gout, const std::vector<GraphId>&) {
         if (gout.shape() == in_shape) {

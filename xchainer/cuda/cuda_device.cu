@@ -234,7 +234,7 @@ std::shared_ptr<void> CudaDevice::FromBuffer(const std::shared_ptr<void>& src_pt
     return dst_ptr;
 }
 
-void CudaDevice::Fill(Array& out, Scalar value) {
+void CudaDevice::Fill(const Array& out, Scalar value) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&FillKernel<T>).block_size;
@@ -248,7 +248,7 @@ void CudaDevice::Fill(Array& out, Scalar value) {
     });
 }
 
-void CudaDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) {
+void CudaDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SumKernel<T>).block_size;
@@ -274,7 +274,7 @@ void CudaDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array& o
     });
 }
 
-void CudaDevice::Copy(const Array& src, Array& out) {
+void CudaDevice::Copy(const Array& src, const Array& out) {
     CheckDevicesCompatible(src, out);
     cudaSetDevice(index());
     VisitDtype(out.dtype(), [&](auto pt) {
@@ -294,7 +294,7 @@ void CudaDevice::Copy(const Array& src, Array& out) {
 }
 
 // TODO(sonots): support stream
-void CudaDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
+void CudaDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     cudaSetDevice(index());
     VisitDtype(lhs.dtype(), [&](auto pt) {
@@ -315,7 +315,7 @@ void CudaDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
 }
 
 // TODO(sonots): support stream
-void CudaDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
+void CudaDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     cudaSetDevice(index());
     VisitDtype(lhs.dtype(), [&](auto pt) {
