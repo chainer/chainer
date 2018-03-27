@@ -137,8 +137,7 @@ py::buffer_info MakeNumpyArrayFromArray(ArrayBody& self) {
 }  // namespace
 
 void InitXchainerArray(pybind11::module& m) {
-    py::class_<ArrayBody, ArrayBodyPtr>{m, "Array", py::buffer_protocol()}
-            .def_buffer(&MakeNumpyArrayFromArray)
+    py::class_<ArrayBody, ArrayBodyPtr>(m, "Array", py::buffer_protocol())
             .def(py::init(py::overload_cast<const py::tuple&, Dtype, const py::list&, const nonstd::optional<std::string>&>(&MakeArray)),
                  py::arg("shape"),
                  py::arg("dtype"),
@@ -147,6 +146,7 @@ void InitXchainerArray(pybind11::module& m) {
             .def(py::init(py::overload_cast<py::array, const nonstd::optional<std::string>&>(&MakeArray)),
                  py::arg("data"),
                  py::arg("device") = nullptr)
+            .def_buffer(&MakeNumpyArrayFromArray)
             .def("view",
                  [](const ArrayBodyPtr& self) {
                      // Duplicate the array body
