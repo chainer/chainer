@@ -35,7 +35,7 @@ Array Reshape(const Array& a, const Shape& shape) {
 
     // If the shape is unchanged, just return a view.
     if (in_shape == shape) {
-        return a;
+        return a.MakeView();
     }
 
     // Check for invalid shape.
@@ -179,8 +179,7 @@ Array Squeeze(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis)
         }
     }
 
-    // TODO(hvy): Do not remove const and return the same body properly.
-    Array out = in_shape.size() == out_shape.size() ? Array{a.body()}
+    Array out = in_shape.size() == out_shape.size() ? a
                                                     : xchainer::internal::MakeArray(
                                                               Shape{out_shape.begin(), out_shape.end()},
                                                               Strides{out_strides.begin(), out_strides.end()},

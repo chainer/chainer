@@ -78,7 +78,8 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
         out_strides.push_back(a.strides()[i]);
     }
 
-    Array out = xchainer::internal::MakeArray({out_shape.begin(), out_shape.end()}, {out_strides.begin(), out_strides.end()}, a.dtype(), a.device(), a.data(), out_offset);
+    Array out = xchainer::internal::MakeArray(
+            {out_shape.begin(), out_shape.end()}, {out_strides.begin(), out_strides.end()}, a.dtype(), a.device(), a.data(), out_offset);
 
     auto backward_function = [ indices, other = a ](const Array& gout, const std::vector<GraphId>&) {
         Array gin = Array::ZerosLike(other, other.device());

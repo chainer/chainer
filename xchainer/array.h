@@ -72,8 +72,10 @@ public:
 
     explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
 
-    // Deep copy ctor and copy assignment
-    Array(const Array& other);
+    // Copy constructor that copies the pointer to the body instead of the body itself.
+    //
+    // Use MakeView if you want to clone the body.
+    Array(const Array& other) = default;
     Array(Array&& other) = default;
 
     Array& operator=(const Array&) = delete;
@@ -117,6 +119,10 @@ public:
     // It will be connected to all the graphs.
     // It will be always C-contiguous.
     Array Copy() const;
+
+    // Creates a view.
+    // It does not make a new node for any graphs.
+    Array MakeView() const;
 
     // Transfers the array to another device. It will be connected to all the graphs.
     //

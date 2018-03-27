@@ -131,10 +131,6 @@ Array Array::OnesLike(const Array& array, Device& device) { return routines::One
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
 
-Array::Array(const Array& other)
-    : body_(std::make_shared<internal::ArrayBody>(
-              other.shape(), other.strides(), other.dtype(), other.device(), other.body_->data_, other.offset(), other.body_->nodes_)) {}
-
 namespace {
 
 void AddImpl(const Array& lhs, const Array& rhs, const Array& out) {
@@ -318,6 +314,10 @@ Array Array::Copy() const {
     Array out = AsConstant({}, CopyKind::kCopy);
     assert(out.IsContiguous());
     return out;
+}
+
+Array Array::MakeView() const {
+    return Array{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), body_->data_, offset(), body_->nodes_)};
 }
 
 Array Array::ToDevice(Device& dst_device) const {

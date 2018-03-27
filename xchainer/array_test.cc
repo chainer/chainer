@@ -328,22 +328,8 @@ TEST_P(ArrayTest, CopyCtor) {
     Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
     Array b = a;
 
-    // A copy-constructed instance must be a view
-    {
-        ExpectEqualView<bool>(a, b);
-        EXPECT_THROW(internal::GetArrayNode(a), XchainerError);
-        EXPECT_THROW(internal::GetArrayNode(b), XchainerError);
-    }
-
-    // A view must not share requires_grad with the original array.
-    {
-        // Precondition of the test
-        ASSERT_FALSE(a.IsGradRequired());
-        ASSERT_FALSE(b.IsGradRequired());
-
-        a.RequireGrad();
-        EXPECT_NE(a.IsGradRequired(), b.IsGradRequired());
-    }
+    // A copy-constructed instance must share the same body.
+    EXPECT_EQ(a.body().get(), b.body().get());
 }
 
 TEST_P(ArrayTest, ArrayMoveCtor) {
@@ -352,7 +338,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
     // A view must not be affected by move
     {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array b = a;  // view
+        Array b = a.MakeView();
         Array c = std::move(a);
         ExpectEqual<float>(b, c);
     }
@@ -360,7 +346,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
     // A copy must not be affected by move
     {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array b = a.Copy();  // copy
+        Array b = a.Copy();
         Array c = std::move(a);
         ExpectEqualCopy<float>(b, c);
     }
@@ -1131,7 +1117,7 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
 }
 
 TEST_P(ArrayTest, Transpose) {
-    Array a = testing::BuildArray({2, 3})          //
+    Array a = testing::BuildArray({2, 3})         //
                       .WithLinearData<int32_t>()  //
                       .WithPadding(0);
     Array b = a.Transpose();
@@ -1144,7 +1130,7 @@ TEST_P(ArrayTest, Transpose) {
 }
 
 TEST_P(ArrayTest, TransposeNoncontiguous) {
-    Array a = testing::BuildArray({2, 3})          //
+    Array a = testing::BuildArray({2, 3})         //
                       .WithLinearData<int32_t>()  //
                       .WithPadding(1);
     Array b = a.Transpose();
