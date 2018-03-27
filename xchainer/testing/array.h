@@ -156,20 +156,20 @@ private:
     std::function<Array(const ArrayBuilder&)> create_array_;
 };
 
-inline ArrayBuilder MakeArray(const Shape& shape) { return ArrayBuilder{shape}; }
+inline ArrayBuilder BuildArray(const Shape& shape) { return ArrayBuilder{shape}; }
 
 template <typename T, size_t N>
-ArrayBuilder MakeArray(const Shape& shape, const std::array<T, N>& data) {
+ArrayBuilder BuildArray(const Shape& shape, const std::array<T, N>& data) {
     return ArrayBuilder{shape}.WithData<T>(data.begin(), data.end());
 }
 
 template <typename T>
-ArrayBuilder MakeArray(const Shape& shape, std::initializer_list<T> data) {
+ArrayBuilder BuildArray(const Shape& shape, std::initializer_list<T> data) {
     return ArrayBuilder{shape}.WithData<T>(data.begin(), data.end());
 }
 
 template <typename T>
-Array MakeArray(const Shape& shape, const std::vector<T>& data) {
+Array BuildArray(const Shape& shape, const std::vector<T>& data) {
     assert(static_cast<size_t>(shape.GetTotalSize()) == data.size());
     auto a = std::make_unique<T[]>(data.size());
     std::copy(data.begin(), data.end(), a.get());
