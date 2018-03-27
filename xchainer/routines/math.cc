@@ -35,33 +35,33 @@ ArrayType& AddAssignImpl(ArrayType& self, const Array& rhs) {
 
 }  // namespace
 
-Array& IAdd(Array& lhs, const Array& rhs) { return AddAssignImpl(lhs, rhs); }
+Array& IAdd(Array& x1, const Array& x2) { return AddAssignImpl(x1, x2); }
 
-const Array& IAdd(const Array& lhs, const Array& rhs) { return AddAssignImpl(lhs, rhs); }
+const Array& IAdd(const Array& x1, const Array& x2) { return AddAssignImpl(x1, x2); }
 
-Array Add(const Array& lhs, const Array& rhs) {
-    auto func = [](const Array& lhs, const Array& rhs) {
-        Array out = Array::EmptyLike(lhs, lhs.device());
-        AddImpl(lhs, rhs, out);
+Array Add(const Array& x1, const Array& x2) {
+    auto func = [](const Array& x1, const Array& x2) {
+        Array out = Array::EmptyLike(x1, x1.device());
+        AddImpl(x1, x2, out);
         return out;
     };
 
-    if (lhs.shape() == rhs.shape()) {
-        return func(lhs, rhs);
+    if (x1.shape() == x2.shape()) {
+        return func(x1, x2);
     }
-    Shape result_shape = xchainer::internal::BroadcastShapes(lhs.shape(), rhs.shape());
-    if (lhs.shape() == result_shape) {
-        return func(lhs, rhs.BroadcastTo(result_shape));
+    Shape result_shape = xchainer::internal::BroadcastShapes(x1.shape(), x2.shape());
+    if (x1.shape() == result_shape) {
+        return func(x1, x2.BroadcastTo(result_shape));
     }
-    if (rhs.shape() == result_shape) {
-        return func(lhs.BroadcastTo(result_shape), rhs);
+    if (x2.shape() == result_shape) {
+        return func(x1.BroadcastTo(result_shape), x2);
     }
-    return func(lhs.BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
+    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
 }
 
 namespace {
 
-void MulImpl(const Array& lhs, const Array& rhs, const Array& out) {
+void MultiplyImpl(const Array& lhs, const Array& rhs, const Array& out) {
     // TODO(sonots): dtype conversion
     CheckEqual(lhs.dtype(), rhs.dtype());
     CheckEqual(lhs.shape(), rhs.shape());
@@ -78,9 +78,9 @@ void MulImpl(const Array& lhs, const Array& rhs, const Array& out) {
 }
 
 template <typename ArrayType>
-ArrayType& MulAssignImpl(ArrayType& self, const Array& rhs) {
+ArrayType& MultiplyAssignImpl(ArrayType& self, const Array& rhs) {
     auto func = [](ArrayType& lhs, const Array& rhs) -> ArrayType& {
-        MulImpl(lhs, rhs, lhs);
+        MultiplyImpl(lhs, rhs, lhs);
         return lhs;
     };
 
@@ -93,28 +93,28 @@ ArrayType& MulAssignImpl(ArrayType& self, const Array& rhs) {
 
 }  // namespace
 
-Array& IMul(Array& lhs, const Array& rhs) { return MulAssignImpl(lhs, rhs); }
+Array& IMultiply(Array& x1, const Array& x2) { return MultiplyAssignImpl(x1, x2); }
 
-const Array& IMul(const Array& lhs, const Array& rhs) { return MulAssignImpl(lhs, rhs); }
+const Array& IMultiply(const Array& x1, const Array& x2) { return MultiplyAssignImpl(x1, x2); }
 
-Array Mul(const Array& lhs, const Array& rhs) {
-    auto func = [](const Array& lhs, const Array& rhs) {
-        Array out = Array::EmptyLike(lhs, lhs.device());
-        MulImpl(lhs, rhs, out);
+Array Multiply(const Array& x1, const Array& x2) {
+    auto func = [](const Array& x1, const Array& x2) {
+        Array out = Array::EmptyLike(x1, x1.device());
+        MultiplyImpl(x1, x2, out);
         return out;
     };
 
-    if (lhs.shape() == rhs.shape()) {
-        return func(lhs, rhs);
+    if (x1.shape() == x2.shape()) {
+        return func(x1, x2);
     }
-    Shape result_shape = xchainer::internal::BroadcastShapes(lhs.shape(), rhs.shape());
-    if (lhs.shape() == result_shape) {
-        return func(lhs, rhs.BroadcastTo(result_shape));
+    Shape result_shape = xchainer::internal::BroadcastShapes(x1.shape(), x2.shape());
+    if (x1.shape() == result_shape) {
+        return func(x1, x2.BroadcastTo(result_shape));
     }
-    if (rhs.shape() == result_shape) {
-        return func(lhs.BroadcastTo(result_shape), rhs);
+    if (x2.shape() == result_shape) {
+        return func(x1.BroadcastTo(result_shape), x2);
     }
-    return func(lhs.BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
+    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
 }
 
 Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {

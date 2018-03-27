@@ -138,11 +138,11 @@ const Array& Array::operator+=(const Array& rhs) const { return routines::IAdd(*
 
 Array Array::operator+(const Array& rhs) const { return routines::Add(*this, rhs); }
 
-Array& Array::operator*=(const Array& rhs) { return routines::IMul(*this, rhs); }
+Array& Array::operator*=(const Array& rhs) { return routines::IMultiply(*this, rhs); }
 
-const Array& Array::operator*=(const Array& rhs) const { return routines::IMul(*this, rhs); }
+const Array& Array::operator*=(const Array& rhs) const { return routines::IMultiply(*this, rhs); }
 
-Array Array::operator*(const Array& rhs) const { return routines::Mul(*this, rhs); }
+Array Array::operator*(const Array& rhs) const { return routines::Multiply(*this, rhs); }
 
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return routines::At(*this, indices); }
 
