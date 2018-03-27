@@ -227,10 +227,10 @@ Use apply() method instead.\
 
         # Check for input array types
         if not chainer.is_arrays_compatible(in_data):
-            raise ValueError(
+            raise TypeError(
                 'incompatible array types are mixed in the forward input '
                 '({}).\n'
-                '{}'.format(
+                'Actual: {}'.format(
                     self.label,
                     ', '.join(str(type(x)) for x in in_data)))
 
@@ -264,10 +264,10 @@ Use apply() method instead.\
                 'Actual: {}'.format(self.label, type(outputs)))
 
         if not chainer.is_arrays_compatible(outputs):
-            raise ValueError(
+            raise TypeError(
                 'incompatible array types are mixed in the forward output '
                 '({}).\n'
-                '{}'.format(
+                'Actual: {}'.format(
                     self.label,
                     ', '.join(str(type(x)) for x in outputs)))
 

@@ -1,4 +1,5 @@
 import sys
+import warnings
 
 from chainer.backends import cuda
 from chainer import function_hook
@@ -20,8 +21,8 @@ class PrintHook(function_hook.FunctionHook):
     ``backward`` methods without inserting print functions into
     Chainer's library code.
 
-    Attributes:
-        sep: Separator of print function.
+    Args:
+        sep: *(deprecated since v4.0.0)* Ignored.
         end: Character to be added at the end of print function.
         file: Output file_like object that that redirect to.
         flush: If ``True``, this hook forcibly flushes the text stream
@@ -48,9 +49,11 @@ class PrintHook(function_hook.FunctionHook):
 
     name = 'PrintHook'
 
-    def __init__(self, sep='', end='\n', file=sys.stdout, flush=True):
-        # TODO(niboshi): deprecate sep
-        self.sep = sep
+    def __init__(self, sep=None, end='\n', file=sys.stdout, flush=True):
+        if sep is not None:
+            warnings.warn('sep argument in chainer.function_hooks.PrintHook '
+                          'is deprecated.', DeprecationWarning)
+        self.sep = sep  # Keep sep because it was originally documented
         self.end = end
         self.file = file
         self.flush = flush

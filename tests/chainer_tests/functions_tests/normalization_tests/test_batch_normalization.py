@@ -343,4 +343,24 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
                 self.assertEqual(func.called, self.expect)
 
 
+@attr.cudnn
+class TestBatchNormalizationCudnnEps(unittest.TestCase):
+    def setUp(self):
+        ndim = 0
+        param_shape = (3,)
+        dtype = numpy.float32
+        gamma = cuda.cupy.random.uniform(.5, 1, param_shape).astype(dtype)
+        beta = cuda.cupy.random.uniform(-1, 1, param_shape).astype(dtype)
+        shape = (7,) + param_shape + (2,) * ndim
+        x = cuda.cupy.random.uniform(-1, 1, shape).astype(dtype)
+        self.args = [x, gamma, beta]
+
+    def test_valid(self):
+        functions.batch_normalization(*self.args, eps=1e-5)
+
+    def test_invalid(self):
+        with self.assertRaises(RuntimeError):
+            functions.batch_normalization(*self.args, eps=2e-6)
+
+
 testing.run_module(__name__, __file__)

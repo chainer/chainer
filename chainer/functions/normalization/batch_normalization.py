@@ -24,15 +24,16 @@ class BatchNormalization(function_node.FunctionNode):
         self.running_mean = mean
         self.running_var = var
 
-        # Note: cuDNN v5 requires that eps be greater than 1e-5. Otherwise, an
-        # error will occur.
+        # Note: cuDNN requires that eps be greater than or equals to
+        # CUDNN_BN_MIN_EPSILON. Otherwise, an error will occur.
         # See CUDNN_BN_MIN_EPSILON value in cudnn.h to verify minimum allowable
         # value.
         self.eps = eps
         if chainer.should_use_cudnn('>=auto'):
-            if eps < 1e-5:
-                msg = 'cuDNN does not allow an eps value less than 1e-5.'
-                raise RuntimeError(msg)
+            if eps < libcudnn.CUDNN_BN_MIN_EPSILON:
+                raise RuntimeError(
+                    'cuDNN does not allow an eps value '
+                    'less than {}.'.format(libcudnn.CUDNN_BN_MIN_EPSILON))
         self.decay = decay
 
     def check_type_forward(self, in_types):
@@ -194,8 +195,7 @@ class BatchNormalization(function_node.FunctionNode):
             beta = beta[expander]
             self.mean = x.mean(axis=self.axis)
             var = x.var(axis=self.axis)
-            var += self.eps
-            self.inv_std = var ** (-0.5)
+            self.inv_std = (var + self.eps) ** (-0.5)
             y = _apply_bn_fwd(xp, x, self.mean[expander],
                               self.inv_std[expander], gamma, beta)
             # Update running statistics

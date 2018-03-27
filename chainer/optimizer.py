@@ -223,7 +223,7 @@ class UpdateRule(object):
         """Updates the parameter.
 
         Implementation of UpdateRule should override this method or both of
-        :meth:`_update_core_cpu` and :meth:`_update_core_gpu`.
+        :meth:`update_core_cpu` and :meth:`update_core_gpu`.
 
         Args:
             param (~chainer.Variable): Variable to be updated.
