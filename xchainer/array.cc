@@ -169,11 +169,11 @@ Array Array::MakeView() const {
 
 Array Array::ToDevice(Device& dst_device) const {
     Device& src_device = body_->device_;
-    nonstd::optional<Array> out;
+    Array out;
 
     if (&src_device == &dst_device) {
         // Return an alias.
-        out.emplace(AsConstant(CopyKind::kView));
+        out = AsConstant(CopyKind::kView);
     } else {
         // Make a contiguous copy, then transfer it to the destination device.
         Array src_contig = AsConstant(CopyKind::kCopy);
@@ -190,21 +190,20 @@ Array Array::ToDevice(Device& dst_device) const {
             throw XchainerError(
                     "Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'.");
         }
-        out.emplace(
-                Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data), src_contig.offset()});
+        out = Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data), src_contig.offset()};
     }
 
-    assert(out.has_value());
+    assert(out.body() != nullptr);
 
     // Connect the graph.
     // Backward operation is implemented as backward-transfer.
     internal::SetUpOpNodes(
             "transfer",
             {*this},
-            *out,
+            out,
             {[&src_device](const Array& gout, const std::vector<GraphId>&) -> Array { return gout.ToDevice(src_device); }},
             {});
-    return std::move(*out);
+    return out;
 }
 
 Array Array::AsConstant(CopyKind kind) const {
