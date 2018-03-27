@@ -1,3 +1,5 @@
+#include "xchainer/routines/creation.h"
+
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
