@@ -98,7 +98,7 @@ class LogReport(extension.Extension):
                 log_name = self._log_name.format(**stats_cpu)
                 with utils.tempdir(prefix=log_name, dir=trainer.out) as tempd:
                     path = os.path.join(tempd, 'log.json')
-                    with os.open(path, 'w') as f:
+                    with open(path, 'w') as f:
                         json.dump(self._log, f, indent=4)
 
                     new_path = os.path.join(trainer.out, log_name)
