@@ -14,7 +14,7 @@ namespace internal {
 namespace py = pybind11;  // standard convention
 
 void InitXchainerScalar(pybind11::module& m) {
-    py::class_<Scalar>{m, "Scalar"}
+    py::class_<Scalar>(m, "Scalar")
             .def(py::init<bool>())
             .def(py::init<int64_t>())
             .def(py::init<double>())

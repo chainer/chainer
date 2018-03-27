@@ -32,7 +32,7 @@ private:
 };
 
 void InitXchainerDevice(pybind11::module& m) {
-    py::class_<Device>{m, "Device"}
+    py::class_<Device>(m, "Device")
             .def("__repr__", &Device::name)
             .def("synchronize", &Device::Synchronize)
             .def_property_readonly("name", &Device::name)
@@ -44,7 +44,7 @@ void InitXchainerDevice(pybind11::module& m) {
     m.def("set_default_device", [](Device& device) { SetDefaultDevice(&device); });
     m.def("set_default_device", [](const std::string& device_name) { SetDefaultDevice(&GetDefaultContext().GetDevice(device_name)); });
 
-    py::class_<PyDeviceScope>{m, "DeviceScope"}.def("__enter__", &PyDeviceScope::Enter).def("__exit__", &PyDeviceScope::Exit);
+    py::class_<PyDeviceScope>(m, "DeviceScope").def("__enter__", &PyDeviceScope::Enter).def("__exit__", &PyDeviceScope::Exit);
 
     m.def("device_scope", [](Device& device) { return PyDeviceScope(device); });
     m.def("device_scope", [](const std::string& device_name) { return PyDeviceScope(GetDefaultContext().GetDevice(device_name)); });

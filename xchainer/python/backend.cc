@@ -12,7 +12,7 @@ namespace internal {
 namespace py = pybind11;  // standard convention
 
 void InitXchainerBackend(pybind11::module& m) {
-    py::class_<Backend>{m, "Backend"}
+    py::class_<Backend>(m, "Backend")
             .def("get_device", &Backend::GetDevice, py::return_value_policy::reference)
             .def("get_device_count", &Backend::GetDeviceCount)
             .def_property_readonly("name", &Backend::GetName)

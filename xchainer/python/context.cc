@@ -32,7 +32,7 @@ private:
 };
 
 void InitXchainerContext(pybind11::module& m) {
-    py::class_<Context>{m, "Context"}
+    py::class_<Context>(m, "Context")
             .def(py::init())
             .def("get_backend", &Context::GetBackend, py::return_value_policy::reference)
             .def("get_device",
@@ -60,7 +60,7 @@ void InitXchainerContext(pybind11::module& m) {
     m.def("get_global_default_context", &GetGlobalDefaultContext, py::return_value_policy::reference);
     m.def("set_global_default_context", &SetGlobalDefaultContext);
 
-    py::class_<PyContextScope>{m, "ContextScope"}.def("__enter__", &PyContextScope::Enter).def("__exit__", &PyContextScope::Exit);
+    py::class_<PyContextScope>(m, "ContextScope").def("__enter__", &PyContextScope::Enter).def("__exit__", &PyContextScope::Exit);
 
     m.def("context_scope", [](Context& device) { return PyContextScope(device); });
 }
