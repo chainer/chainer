@@ -401,7 +401,6 @@ TEST_P(ArrayTest, MoveAssignment) {
         b = std::move(a);
 
         EXPECT_EQ(body.get(), b.body().get());
-        EXPECT_EQ(nullptr, a.body().get());
     }
     {
         Array a = testing::BuildArray<bool>({4, 1}, {true, true, true, true});
@@ -410,7 +409,6 @@ TEST_P(ArrayTest, MoveAssignment) {
         b = std::move(a);
 
         EXPECT_EQ(body.get(), b.body().get());
-        EXPECT_EQ(nullptr, a.body().get());
     }
 }
 
