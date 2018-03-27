@@ -23,6 +23,9 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t eleme
 Array ArrayFromBuffer(
         const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device = GetDefaultDevice());
 
+// Creates an empty array with specified strides.
+Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device = GetDefaultDevice());
+
 }  // namespace internal
 
 Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());

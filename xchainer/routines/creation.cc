@@ -33,6 +33,12 @@ Array ArrayFromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<voi
     return xchainer::internal::MakeArray(shape, strides, dtype, device, device_data);
 }
 
+Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device) {
+    auto bytesize = GetRequiredBytes(shape, strides, GetElementSize(dtype));
+    std::shared_ptr<void> data = device.Allocate(bytesize);
+    return xchainer::internal::MakeArray(shape, strides, dtype, device, data);
+}
+
 }  // namespace internal
 
 Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {

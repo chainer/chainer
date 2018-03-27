@@ -1,5 +1,8 @@
 #include "xchainer/routines/math.h"
 
+#include "xchainer/routines/creation.h"
+#include "xchainer/routines/util.h"
+
 namespace xchainer {
 namespace routines {
 namespace {
@@ -69,7 +72,7 @@ void MulImpl(const Array& lhs, const Array& rhs, const Array& out) {
     auto rhs_backward_function = [other = lhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
         return gout * other.AsConstant(graph_ids_to_stop_gradient);
     };
-    internal::SetUpOpNodes("mul", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+    xchainer::internal::SetUpOpNodes("mul", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     lhs.device().Mul(lhs, rhs, out);
 }
@@ -112,6 +115,65 @@ Array Mul(const Array& lhs, const Array& rhs) {
         return func(lhs.BroadcastTo(result_shape), rhs);
     }
     return func(lhs.BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
+}
+
+Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+    std::vector<int8_t> sorted_axis;
+    if (axis.has_value()) {
+        sorted_axis = internal::GetSortedAxes(*axis, a.ndim());
+    } else {
+        // Fill with all axes
+        sorted_axis.resize(a.ndim());
+        std::iota(sorted_axis.begin(), sorted_axis.end(), int8_t{0});
+    }
+
+    // Calculate output shape
+    std::vector<int64_t> out_shape_vec;
+    out_shape_vec.reserve(a.ndim());
+    std::vector<int8_t> out_axis;
+    int8_t i_axis = 0;
+    for (int8_t i = 0; i < a.ndim(); ++i) {
+        if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
+            ++i_axis;
+            if (keepdims) {
+                out_shape_vec.push_back(int64_t{1});
+            }
+        } else {
+            out_shape_vec.push_back(a.shape()[i]);
+            out_axis.push_back(i);
+        }
+    }
+
+    Array out;
+    if (keepdims) {
+        // Set reduced strides of the output array to 0
+        Shape out_shape{out_shape_vec.begin(), out_shape_vec.end()};
+        Strides contiguous_strides{out_shape, a.dtype()};
+        std::vector<int64_t> out_strides_vec(contiguous_strides.begin(), contiguous_strides.end());
+        for (int8_t i_axis : sorted_axis) {
+            out_strides_vec[i_axis] = 0;
+        }
+        out = internal::Empty(out_shape, a.dtype(), Strides{out_strides_vec.begin(), out_strides_vec.end()}, a.device());
+    } else {
+        out = Empty({out_shape_vec.begin(), out_shape_vec.end()}, a.dtype(), a.device());
+    }
+    a.device().Sum(a, sorted_axis, out);
+
+    auto backward_function = [ sorted_axis, in_shape = a.shape(), keepdims ](const Array& gout, const std::vector<GraphId>&) {
+        assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+
+        if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
+            std::vector<int64_t> out_shape_broadcastable{gout.shape().begin(), gout.shape().end()};
+            for (auto axis : sorted_axis) {
+                out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
+            }
+            return gout.Reshape({out_shape_broadcastable.begin(), out_shape_broadcastable.end()}).BroadcastTo(in_shape);
+        }
+        return gout.BroadcastTo(in_shape);
+    };
+    xchainer::internal::SetUpOpNodes("sum", {a}, out, {backward_function});
+
+    return out;
 }
 
 }  // namespace routines

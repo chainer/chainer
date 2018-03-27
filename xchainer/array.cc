@@ -154,61 +154,7 @@ Array Array::Squeeze(const nonstd::optional<std::vector<int8_t>>& axis) const { 
 
 Array Array::BroadcastTo(const Shape& shape) const { return routines::BroadcastTo(*this, shape); }
 
-Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const {
-    std::vector<int8_t> sorted_axis;
-    if (axis.has_value()) {
-        sorted_axis = routines::internal::GetSortedAxes(*axis, shape().ndim());
-    } else {
-        // Fill with all axes
-        sorted_axis.resize(shape().size());
-        std::iota(sorted_axis.begin(), sorted_axis.end(), int8_t{0});
-    }
-
-    // Calculate output shape
-    std::vector<int64_t> out_shape_vec;
-    out_shape_vec.reserve(shape().ndim());
-    std::vector<int8_t> out_axis;
-    int8_t i_axis = 0;
-    for (int8_t i = 0; i < shape().ndim(); ++i) {
-        if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
-            ++i_axis;
-            if (keepdims) {
-                out_shape_vec.push_back(int64_t{1});
-            }
-        } else {
-            out_shape_vec.push_back(shape()[i]);
-            out_axis.push_back(i);
-        }
-    }
-
-    Array out = Array::Empty({out_shape_vec.begin(), out_shape_vec.end()}, dtype(), device());
-    if (keepdims) {
-        // Set reduced strides of the output array to 0
-        assert(out.IsContiguous());
-        std::vector<int64_t> out_strides_vec(out.strides().begin(), out.strides().end());
-        for (int8_t i_axis : sorted_axis) {
-            out_strides_vec[i_axis] = 0;
-        }
-        out.body_->strides_ = Strides{out_strides_vec.begin(), out_strides_vec.end()};
-    }
-    device().Sum(*this, sorted_axis, out);
-
-    auto backward_function = [ sorted_axis, in_shape = shape(), keepdims ](const Array& gout, const std::vector<GraphId>&) {
-        assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
-
-        if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
-            std::vector<int64_t> out_shape_broadcastable{gout.shape().begin(), gout.shape().end()};
-            for (auto axis : sorted_axis) {
-                out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
-            }
-            return gout.Reshape({out_shape_broadcastable.begin(), out_shape_broadcastable.end()}).BroadcastTo(in_shape);
-        }
-        return gout.BroadcastTo(in_shape);
-    };
-    internal::SetUpOpNodes("sum", {*this}, out, {backward_function});
-
-    return out;
-}
+Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return routines::Sum(*this, axis, keepdims); }
 
 Array Array::Copy() const {
     // No graph will be disconnected.

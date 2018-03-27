@@ -70,6 +70,8 @@ public:
     static Array ZerosLike(const Array& array, Device& device = GetDefaultDevice());
     static Array OnesLike(const Array& array, Device& device = GetDefaultDevice());
 
+    Array() = default;
+
     explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
 
     // Copy constructor that copies the pointer to the body instead of the body itself.
@@ -78,8 +80,9 @@ public:
     Array(const Array& other) = default;
     Array(Array&& other) = default;
 
-    Array& operator=(const Array&) = delete;
-    Array& operator=(Array&& other) = delete;
+    // Assign operators just replace the body. They do not copy data between arrays.
+    Array& operator=(const Array&) = default;
+    Array& operator=(Array&& other) = default;
 
     Array& operator+=(const Array& rhs);
     const Array& operator+=(const Array& rhs) const;
