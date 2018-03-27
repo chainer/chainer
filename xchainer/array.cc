@@ -23,6 +23,7 @@
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
 #include "xchainer/routines/manipulation.h"
+#include "xchainer/routines/math.h"
 #include "xchainer/routines/util.h"
 #include "xchainer/scalar.h"
 
@@ -131,117 +132,17 @@ Array Array::OnesLike(const Array& array, Device& device) { return routines::One
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
 
-namespace {
+Array& Array::operator+=(const Array& rhs) { return routines::IAdd(*this, rhs); }
 
-void AddImpl(const Array& lhs, const Array& rhs, const Array& out) {
-    // TODO(sonots): dtype conversion
-    CheckEqual(lhs.dtype(), rhs.dtype());
-    CheckEqual(lhs.shape(), rhs.shape());
+const Array& Array::operator+=(const Array& rhs) const { return routines::IAdd(*this, rhs); }
 
-    auto lhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
-    auto rhs_backward_function = lhs_backward_function;
-    internal::SetUpOpNodes("add", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+Array Array::operator+(const Array& rhs) const { return routines::Add(*this, rhs); }
 
-    lhs.device().Add(lhs, rhs, out);
-}
+Array& Array::operator*=(const Array& rhs) { return routines::IMul(*this, rhs); }
 
-template <typename ArrayType>
-ArrayType& AddAssignImpl(ArrayType& self, const Array& rhs) {
-    auto func = [](ArrayType& lhs, const Array& rhs) -> ArrayType& {
-        AddImpl(lhs, rhs, lhs);
-        return lhs;
-    };
+const Array& Array::operator*=(const Array& rhs) const { return routines::IMul(*this, rhs); }
 
-    if (self.shape() == rhs.shape()) {
-        return func(self, rhs);
-    }
-    Array rhs_broadcasted = rhs.BroadcastTo(self.shape());
-    return func(self, rhs_broadcasted);
-}
-
-}  // namespace
-
-Array& Array::operator+=(const Array& rhs) { return AddAssignImpl(*this, rhs); }
-
-const Array& Array::operator+=(const Array& rhs) const { return AddAssignImpl(*this, rhs); }
-
-Array Array::operator+(const Array& rhs) const {
-    auto func = [](const Array& lhs, const Array& rhs) {
-        Array out = Array::EmptyLike(lhs, lhs.device());
-        AddImpl(lhs, rhs, out);
-        return out;
-    };
-
-    if (shape() == rhs.shape()) {
-        return func(*this, rhs);
-    }
-    Shape result_shape = internal::BroadcastShapes(shape(), rhs.shape());
-    if (shape() == result_shape) {
-        return func(*this, rhs.BroadcastTo(result_shape));
-    }
-    if (rhs.shape() == result_shape) {
-        return func(BroadcastTo(result_shape), rhs);
-    }
-    return func(BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
-}
-
-namespace {
-
-void MulImpl(const Array& lhs, const Array& rhs, const Array& out) {
-    // TODO(sonots): dtype conversion
-    CheckEqual(lhs.dtype(), rhs.dtype());
-    CheckEqual(lhs.shape(), rhs.shape());
-
-    auto lhs_backward_function = [other = rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
-        return gout * other.AsConstant(graph_ids_to_stop_gradient);
-    };
-    auto rhs_backward_function = [other = lhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
-        return gout * other.AsConstant(graph_ids_to_stop_gradient);
-    };
-    internal::SetUpOpNodes("mul", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
-
-    lhs.device().Mul(lhs, rhs, out);
-}
-
-template <typename ArrayType>
-ArrayType& MulAssignImpl(ArrayType& self, const Array& rhs) {
-    auto func = [](ArrayType& lhs, const Array& rhs) -> ArrayType& {
-        MulImpl(lhs, rhs, lhs);
-        return lhs;
-    };
-
-    if (self.shape() == rhs.shape()) {
-        return func(self, rhs);
-    }
-    Array rhs_broadcasted = rhs.BroadcastTo(self.shape());
-    return func(self, rhs_broadcasted);
-}
-
-}  // namespace
-
-Array& Array::operator*=(const Array& rhs) { return MulAssignImpl(*this, rhs); }
-
-const Array& Array::operator*=(const Array& rhs) const { return MulAssignImpl(*this, rhs); }
-
-Array Array::operator*(const Array& rhs) const {
-    auto func = [](const Array& lhs, const Array& rhs) {
-        Array out = Array::EmptyLike(lhs, lhs.device());
-        MulImpl(lhs, rhs, out);
-        return out;
-    };
-
-    if (shape() == rhs.shape()) {
-        return func(*this, rhs);
-    }
-    Shape result_shape = internal::BroadcastShapes(shape(), rhs.shape());
-    if (shape() == result_shape) {
-        return func(*this, rhs.BroadcastTo(result_shape));
-    }
-    if (rhs.shape() == result_shape) {
-        return func(BroadcastTo(result_shape), rhs);
-    }
-    return func(BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
-}
+Array Array::operator*(const Array& rhs) const { return routines::Mul(*this, rhs); }
 
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return routines::At(*this, indices); }
 
