@@ -119,8 +119,9 @@ trigger=(1, 'epoch'))
         function as ``savefun`` argument of the writer.
 
         >>> from chainer.training import extensions
+        >>> from chainer import serializers
         >>> writer = extensions.snapshot_writers.ProcessWriter(
-        ...     savefun=extensions.snapshots.util.save_npz)
+        ...     savefun=serializers.save_npz)
         >>> trainer.extend(extensions.snapshot(writer=writer), \
 trigger=(1, 'epoch'))
 
