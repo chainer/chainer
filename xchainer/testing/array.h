@@ -70,7 +70,7 @@ public:
                     }
                 }
             }
-            return routines::internal::ArrayFromBuffer(shape, dtype, std::move(ptr), std::move(strides), builder.device_);
+            return routines::internal::FromBuffer(shape, dtype, std::move(ptr), std::move(strides), builder.device_);
         };
         return *this;
     }

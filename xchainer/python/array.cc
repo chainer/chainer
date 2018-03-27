@@ -117,7 +117,7 @@ ArrayBodyPtr MakeArray(py::array array, const nonstd::optional<std::string>& dev
     // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
     void* underlying_data = array.mutable_data();
     std::shared_ptr<void> data{std::make_shared<py::array>(std::move(array)), underlying_data};
-    return xchainer::routines::internal::ArrayFromBuffer(shape, dtype, data, strides, GetDevice(device_id)).move_body();
+    return xchainer::routines::internal::FromBuffer(shape, dtype, data, strides, GetDevice(device_id)).move_body();
 }
 
 py::buffer_info MakeNumpyArrayFromArray(ArrayBody& self) {
