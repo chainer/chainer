@@ -1209,6 +1209,12 @@ TEST_P(ArrayTest, Copy) {
     }
 }
 
+TEST_P(ArrayTest, MakeView) {
+    Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
+    Array o = a.MakeView();
+    ExpectEqualView<bool>(a, o);
+}
+
 TEST_P(ArrayTest, AsConstantCopy) {
     // Stop gradients on all graphs
     {
