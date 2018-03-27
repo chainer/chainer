@@ -10,6 +10,7 @@ ImageDataLayer).
 """
 import argparse
 import os
+import sys
 
 import numpy as np
 from PIL import Image
@@ -122,7 +123,8 @@ for path, label in dataset:
         del x, y, loss, accuracy
 
         count += args.batchsize
-        print('{} / {}'.format(count, len(dataset)), end='\r')
+        sys.stdout.write('{} / {}\r'.format(count, len(dataset)))
+        sys.stdout.flush()
 
         i = 0
 
