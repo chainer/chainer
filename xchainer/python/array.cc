@@ -19,6 +19,7 @@
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/routines/creation.h"
 #include "xchainer/slice.h"
 
 #include "xchainer/python/array_index.h"

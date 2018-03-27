@@ -23,10 +23,6 @@
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
-#include "xchainer/routines/creation.h"
-#include "xchainer/routines/indexing.h"
-#include "xchainer/routines/manipulation.h"
-
 namespace xchainer {
 
 class Array;
@@ -36,6 +32,8 @@ using ArrayRef = std::reference_wrapper<Array>;
 using ConstArrayRef = std::reference_wrapper<const Array>;
 
 namespace internal {
+
+Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
 void SetUpOpNodes(
         const std::string& name,
@@ -191,14 +189,7 @@ public:
     std::vector<std::shared_ptr<ArrayNode>>& nodes() { return body_->nodes_; }
 
 private:
-    friend Array routines::internal::ArrayFromBuffer(
-            const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device);
-    friend Array routines::Empty(const Shape& shape, Dtype dtype, Device& device);
-    friend Array routines::At(const Array& a, const std::vector<ArrayIndex>& indices);
-    friend Array routines::Transpose(const Array& a);
-    friend Array routines::Reshape(const Array& a, const Shape& shape);
-    friend Array routines::Squeeze(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis);
-    friend Array routines::BroadcastTo(const Array& array, const Shape& shape);
+    friend Array internal::MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
 
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 

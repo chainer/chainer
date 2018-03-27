@@ -30,7 +30,7 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t eleme
 Array ArrayFromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device) {
     auto bytesize = GetRequiredBytes(shape, strides, GetElementSize(dtype));
     std::shared_ptr<void> device_data = device.FromBuffer(data, bytesize);
-    return {shape, strides, dtype, device, device_data};
+    return xchainer::internal::MakeArray(shape, strides, dtype, device, device_data);
 }
 
 }  // namespace internal
@@ -42,7 +42,7 @@ Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& d
 Array Empty(const Shape& shape, Dtype dtype, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
     std::shared_ptr<void> data = device.Allocate(bytesize);
-    return {shape, Strides{shape, dtype}, dtype, device, data};
+    return xchainer::internal::MakeArray(shape, Strides{shape, dtype}, dtype, device, data);
 }
 
 Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device) {

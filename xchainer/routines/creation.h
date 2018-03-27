@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 
+#include "xchainer/array.h"
 #include "xchainer/array_index.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -12,9 +13,6 @@
 #include "xchainer/shape.h"
 
 namespace xchainer {
-
-class Array;
-
 namespace routines {
 namespace internal {
 

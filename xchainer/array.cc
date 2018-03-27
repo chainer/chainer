@@ -20,12 +20,18 @@
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/op_node.h"
-#include "xchainer/scalar.h"
-
+#include "xchainer/routines/creation.h"
+#include "xchainer/routines/indexing.h"
+#include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/util.h"
+#include "xchainer/scalar.h"
 
 namespace xchainer {
 namespace internal {
+
+Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset) {
+    return Array{shape, strides, dtype, device, std::move(data), offset};
+}
 
 void SetUpOpNodes(
         const std::string& name,

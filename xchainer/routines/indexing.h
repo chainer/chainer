@@ -2,12 +2,10 @@
 
 #include <vector>
 
+#include "xchainer/array.h"
 #include "xchainer/array_index.h"
 
 namespace xchainer {
-
-class Array;
-
 namespace routines {
 
 // Returns a view selected with the indices.

@@ -1,9 +1,8 @@
 #pragma once
 
+#include "xchainer/array.h"
+
 namespace xchainer {
-
-class Array;
-
 namespace routines {
 
 Array& IAdd(Array& lhs, const Array& rhs);
