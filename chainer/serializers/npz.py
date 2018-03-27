@@ -3,6 +3,7 @@ import six
 
 from chainer.backends import cuda
 from chainer import serializer
+from chainer.utils import argument
 
 
 class DictionarySerializer(serializer.Serializer):
@@ -154,8 +155,10 @@ class NpzDeserializer(serializer.Deserializer):
         return value
 
 
-def load_npz(file, obj, path='', strict=True):
-    """Loads an object from the file in NPZ format.
+def load_npz(file, obj, path='', strict=True, **kwargs):
+    """load_npz(file, obj, path='', strict=True, allow_pickle=False)
+
+    Loads an object from the file in NPZ format.
 
     This is a short-cut function to load from an `.npz` file that contains only
     one object.
@@ -169,11 +172,16 @@ def load_npz(file, obj, path='', strict=True):
         strict (bool): If ``True``, the deserializer raises an error when an
             expected value is not found in the given NPZ file. Otherwise,
             it ignores the value and skip deserialization.
+        allow_pickle (bool): If ``True``, the deserializer allows loading
+            pickled object arrays. The default is ``False`` for security
+            reasons (see :func:`numpy.load` for details).
 
     .. seealso::
         :func:`chainer.serializers.save_npz`
 
     """
-    with numpy.load(file) as f:
+    allow_pickle, = argument.parse_kwargs(kwargs, ('allow_pickle', False))
+
+    with numpy.load(file, allow_pickle=allow_pickle) as f:
         d = NpzDeserializer(f, path=path, strict=strict)
         d.load(obj)

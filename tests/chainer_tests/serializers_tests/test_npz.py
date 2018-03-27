@@ -445,6 +445,30 @@ class TestLoadNpz(unittest.TestCase):
             target.parent_linear.W.data)
 
 
+class TestPickle(unittest.TestCase):
+    def test_pickle(self):
+        obj = ['data', object()]
+
+        file = six.BytesIO()
+        l = link.Chain()
+        l.add_persistent('obj', obj)
+        npz.save_npz(file, l)
+
+        # Should success if `allow_pickle=True`.
+        file.seek(0)
+        l.obj[0] = 'overwritten'
+        npz.load_npz(file, l, allow_pickle=True)
+        assert l.obj[0] == 'data'
+
+        # Should raise an error if `allow_pickle=False` (default).
+        file.seek(0)
+        self.assertRaises(
+            ValueError, npz.load_npz, file, l)
+        file.seek(0)
+        self.assertRaises(
+            ValueError, npz.load_npz, file, l, allow_pickle=False)
+
+
 @testing.parameterize(*testing.product({
     'compress': [False, True],
     'file_type': ['filename', 'bytesio'],
