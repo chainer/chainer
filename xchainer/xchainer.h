@@ -8,6 +8,8 @@
 #include "xchainer/routines/math.h"
 
 namespace xchainer {
+// TODO(sonots): Create python binding and do tests
+
 // creation
 using routines::Copy;
 using routines::Empty;
