@@ -209,9 +209,9 @@ TEST_P(MathTest, MultiplyScalarBackward) {
     Array eps = Array::Full(shape, 1e-1);
 
     // array * scalar
-    CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0] * s}; }, {a}, {go}, {eps});
+    CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Multiply(xs[0], s)}; }, {a}, {go}, {eps});
     // scalar * array
-    CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {s * xs[0]}; }, {a}, {go}, {eps});
+    CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Multiply(s, xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, MultiplyScalarDoubleBackward) {
@@ -226,7 +226,7 @@ TEST_P(MathTest, MultiplyScalarDoubleBackward) {
     // array * scalar
     CheckDoubleBackwardComputation(
             [s](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = xs[0] * s;
+                auto y = Multiply(xs[0], s);
                 return {y * y};  // to make it nonlinear
             },
             {a},
@@ -236,7 +236,7 @@ TEST_P(MathTest, MultiplyScalarDoubleBackward) {
     // scalar * array
     CheckDoubleBackwardComputation(
             [s](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = s * xs[0];
+                auto y = Multiply(s, xs[0]);
                 return {y * y};  // to make it nonlinear
             },
             {a},
