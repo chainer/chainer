@@ -121,7 +121,7 @@ jobs:
       - run:
           name: ClangFormat
           command: |
-            find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 -P4 -I{} bash -c 'diff -u {} <(clang-format {})'
+            ../scripts/run-clang-format.sh --jobs 4
 
       # cpplint
       - run:
@@ -129,7 +129,7 @@ jobs:
           command: |
             source activate testenv
 
-            find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 -P4 cpplint
+            ../scripts/run-cpplint.sh --jobs 4
 
       # cmake
       - run:
@@ -149,7 +149,7 @@ jobs:
             source activate testenv
 
             pushd build
-            bash ../scripts/run-clang-tidy.sh normal
+            ../scripts/run-clang-tidy.sh normal
             popd
 
       # clang-tidy (test source files)
