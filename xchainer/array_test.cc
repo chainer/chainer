@@ -470,6 +470,23 @@ TEST_P(ArrayTest, OnesLike) {
     EXPECT_EQ(&GetDefaultDevice(), &x.device());
 }
 
+TEST_P(ArrayTest, Equality) {
+    // TODO(niboshi): Remove this when CUDA implementation is added.
+    if (GetDefaultDevice().backend().GetName() == "cuda") {
+        return;
+    }
+
+    using T = float;
+    Shape shape{2};
+    Array a = testing::BuildArray(shape).WithData<T>({1.0f, 2.0f});
+    Array b = testing::BuildArray(shape).WithData<T>({-1.0f, 2.0f});
+    Array e = testing::BuildArray(shape).WithData<bool>({false, true});
+    Array c = a == b;
+
+    ASSERT_EQ(c.dtype(), Dtype::kBool);
+    testing::ExpectEqual<bool>(e, c);
+}
+
 TEST_P(ArrayTest, IAdd) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});

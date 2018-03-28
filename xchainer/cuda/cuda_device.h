@@ -35,6 +35,8 @@ public:
 
     void Copy(const Array& src, const Array& out) override;
 
+    void Equal(const Array& lhs, const Array& rhs, const Array& out) override;
+
     void Add(const Array& lhs, const Array& rhs, const Array& out) override;
     void Mul(const Array& lhs, const Array& rhs, const Array& out) override;
 
