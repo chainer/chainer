@@ -14,7 +14,6 @@
 #include "xchainer/error.h"
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
-#include "xchainer/testing/context_session.h"
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
@@ -390,8 +389,6 @@ TEST_P(MathTest, Maximum) {
 }
 
 TEST_P(MathTest, MaximumEmpty) {
-    testing::ContextSession context_session;
-
     Array a = testing::BuildArray<float>({0}, {});
     Array e = testing::BuildArray<float>({0}, {});
     Array b = Maximum(a, Scalar{0.f});
