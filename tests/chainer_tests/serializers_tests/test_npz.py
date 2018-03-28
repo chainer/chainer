@@ -462,11 +462,12 @@ class TestPickle(unittest.TestCase):
 
         # Should raise an error if `allow_pickle=False` (default).
         file.seek(0)
-        self.assertRaises(
-            ValueError, npz.load_npz, file, l)
+        with self.assertRaises(ValueError):
+            npz.load_npz(file, l)
+
         file.seek(0)
-        self.assertRaises(
-            ValueError, npz.load_npz, file, l, allow_pickle=False)
+        with self.assertRaises(ValueError):
+            npz.load_npz(file, l, allow_pickle=False)
 
 
 @testing.parameterize(*testing.product({
