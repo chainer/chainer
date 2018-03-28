@@ -21,6 +21,7 @@
 #include "xchainer/indexer.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
+#include "xchainer/routines/math.h"
 #include "xchainer/slice.h"
 
 #include "xchainer/python/array_index.h"
@@ -378,6 +379,20 @@ void InitXchainerArray(pybind11::module& m) {
           },
           py::arg("a"),
           py::arg("newshape"));
+
+    // math module functions
+    m.def("sum",
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return Sum(Array{a}, std::vector<int8_t>{axis}, keepdims).move_body(); },
+          py::arg("a"),
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    m.def("sum",
+          [](const ArrayBodyPtr& a, nonstd::optional<std::vector<int8_t>> axis, bool keepdims) {
+              return Sum(Array{a}, axis, keepdims).move_body();
+          },
+          py::arg("a"),
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
 
     m.def("broadcast_to",
           [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.BroadcastTo(ToShape(shape)).move_body(); },

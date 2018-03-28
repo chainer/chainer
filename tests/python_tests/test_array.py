@@ -937,11 +937,19 @@ def test_sum(device, input_shape, axis, keepdims, output_shape, output_data):
     total_size = functools.reduce(operator.mul, input_shape, 1)
     input_data = list(range(0, total_size))
     x = xchainer.Array(input_shape, xchainer.int32, input_data)
-    y = x.sum(axis=axis, keepdims=keepdims)
     e = xchainer.Array(output_shape, xchainer.int32, output_data)
-    _check_arrays_equal(y, e)
-
     n = numpy.array(input_data, numpy.int32).reshape(input_shape).sum(axis=axis, keepdims=keepdims).astype(numpy.int32)
+
+    y = x.sum(axis=axis, keepdims=keepdims)
+    _check_arrays_equal(y, e)
+    _check_array_equals_ndarray(y, n)
+
+    y = xchainer.sum(x, axis, keepdims)
+    _check_arrays_equal(y, e)
+    _check_array_equals_ndarray(y, n)
+
+    y = xchainer.sum(a=x, axis=axis, keepdims=keepdims)
+    _check_arrays_equal(y, e)
     _check_array_equals_ndarray(y, n)
 
 
