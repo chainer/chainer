@@ -156,12 +156,7 @@ Array Array::BroadcastTo(const Shape& shape) const { return xchainer::BroadcastT
 
 Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
 
-Array Array::Copy() const {
-    // No graph will be disconnected.
-    Array out = AsConstant({}, CopyKind::kCopy);
-    assert(out.IsContiguous());
-    return out;
-}
+Array Array::Copy() const { return xchainer::Copy(*this); }
 
 Array Array::MakeView() const {
     return Array{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), body_->data_, offset(), body_->nodes_)};

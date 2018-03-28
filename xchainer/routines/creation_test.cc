@@ -15,6 +15,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
+#include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
 
@@ -372,6 +373,31 @@ TEST_P(CreationTest, OnesLike) {
     CheckOnesLike<uint8_t>();
     CheckOnesLike<float>();
     CheckOnesLike<double>();
+}
+
+TEST_P(CreationTest, Copy) {
+    {
+        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
+        Array o = Copy(a);
+        testing::ExpectEqualCopy<bool>(a, o);
+    }
+    {
+        Array a = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
+        Array o = Copy(a);
+        testing::ExpectEqualCopy<int8_t>(a, o);
+    }
+    {
+        Array a = testing::BuildArray<float>({3, 1}, {1.0f, 2.0f, 3.0f});
+        Array o = Copy(a);
+        testing::ExpectEqualCopy<float>(a, o);
+    }
+
+    // with padding
+    {
+        Array a = testing::BuildArray<float>({3, 1}, {1.0f, 2.0f, 3.0f}).WithPadding(1);
+        Array o = Copy(a);
+        testing::ExpectEqualCopy<float>(a, o);
+    }
 }
 
 INSTANTIATE_TEST_CASE_P(

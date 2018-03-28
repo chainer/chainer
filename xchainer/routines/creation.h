@@ -46,6 +46,6 @@ Array OnesLike(const Array& a, Device& device = GetDefaultDevice());
 // Creates a copy.
 // It will be connected to all the graphs.
 // It will be always C-contiguous.
-Array Copy(const Array& array);
+Array Copy(const Array& a);
 
 }  // namespace xchainer

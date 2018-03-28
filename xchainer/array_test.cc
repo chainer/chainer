@@ -610,27 +610,10 @@ TEST_P(ArrayTest, Transpose) {
 }
 
 TEST_P(ArrayTest, Copy) {
-    {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        Array o = a.Copy();
-        testing::ExpectEqualCopy<bool>(a, o);
-    }
-    {
-        Array a = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array o = a.Copy();
-        testing::ExpectEqualCopy<int8_t>(a, o);
-    }
-    {
-        Array a = testing::BuildArray<float>({3, 1}, {1.0f, 2.0f, 3.0f});
-        Array o = a.Copy();
-        testing::ExpectEqualCopy<float>(a, o);
-    }
-    {
-        Array a = testing::BuildArray<float>({3, 1}, {1.0f, 2.0f, 3.0f})  //
-                          .WithPadding(1);
-        Array o = a.Copy();
-        testing::ExpectEqualCopy<float>(a, o);
-    }
+    using T = int32_t;
+    Array a = testing::BuildArray<T>({3, 1}, {1, 2, 3});
+    Array o = a.Copy();
+    testing::ExpectEqualCopy<T>(a, o);
 }
 
 TEST_P(ArrayTest, MakeView) {
