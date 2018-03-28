@@ -21,7 +21,6 @@
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
-namespace routines {
 namespace {
 
 class ManipulationTest : public ::testing::TestWithParam<std::string> {
@@ -318,5 +317,4 @@ INSTANTIATE_TEST_CASE_P(
                 std::string{"native"}));
 
 }  // namespace
-}  // namespace routines
 }  // namespace xchainer
