@@ -227,7 +227,7 @@ TEST_P(MathTest, MultiplyScalarDoubleBackward) {
     CheckDoubleBackwardComputation(
             [s](const std::vector<Array>& xs) -> std::vector<Array> {
                 auto y = xs[0] * s;
-                return {y * y};  // to make t nonlinear
+                return {y * y};  // to make it nonlinear
             },
             {a},
             {go},
