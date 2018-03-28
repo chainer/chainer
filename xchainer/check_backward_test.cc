@@ -16,7 +16,7 @@
 #include "xchainer/context.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
-#include "xchainer/native_backend.h"
+#include "xchainer/native/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/shape.h"
 #include "xchainer/testing/array.h"
@@ -53,7 +53,7 @@ Arrays ForwardWithIncorrectBackward(const Arrays& inputs) {
 class CheckBackwardTest : public ::testing::TestWithParam<bool> {
 protected:
     void SetUp() override {
-        device_session_.emplace(DeviceId{NativeBackend::kDefaultName, 0});
+        device_session_.emplace(DeviceId{native::NativeBackend::kDefaultName, 0});
         requires_grad_ = GetParam();
     }
 
@@ -97,7 +97,7 @@ private:
 
 class CheckDoubleBackwardTest : public ::testing::Test {
 protected:
-    void SetUp() override { device_session_.emplace(DeviceId{NativeBackend::kDefaultName, 0}); }
+    void SetUp() override { device_session_.emplace(DeviceId{native::NativeBackend::kDefaultName, 0}); }
 
     void TearDown() override { device_session_.reset(); }
 

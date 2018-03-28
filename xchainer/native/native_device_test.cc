@@ -1,11 +1,12 @@
-#include "xchainer/native_device.h"
+#include "xchainer/native/native_device.h"
 
 #include <gtest/gtest.h>
 
 #include "xchainer/context.h"
-#include "xchainer/native_backend.h"
+#include "xchainer/native/native_backend.h"
 
 namespace xchainer {
+namespace native {
 namespace {
 
 template <typename T>
@@ -66,4 +67,5 @@ TEST(NativeDeviceTest, Synchronize) {
 }
 
 }  // namespace
+}  // namespace native
 }  // namespace xchainer

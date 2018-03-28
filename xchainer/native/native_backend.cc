@@ -1,11 +1,12 @@
-#include "xchainer/native_backend.h"
+#include "xchainer/native/native_backend.h"
 
 #include <stdexcept>
 #include <string>
 
-#include "xchainer/native_device.h"
+#include "xchainer/native/native_device.h"
 
 namespace xchainer {
+namespace native {
 
 std::string NativeBackend::GetName() const { return kDefaultName; }
 
@@ -26,4 +27,5 @@ bool NativeBackend::SupportsTransfer(Device& src_device, Device& dst_device) {
     return &src_device.backend() == this && &dst_device.backend() == this;
 }
 
+}  // namespace native
 }  // namespace xchainer

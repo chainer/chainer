@@ -24,7 +24,6 @@
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
-#include "xchainer/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/slice.h"
 #include "xchainer/testing/array.h"

@@ -7,6 +7,7 @@
 #include "xchainer/device.h"
 
 namespace xchainer {
+namespace native {
 
 class NativeBackend : public Backend {
 public:
@@ -24,4 +25,5 @@ private:
     std::unique_ptr<Device> CreateDevice(int index) override;
 };
 
+}  // namespace native
 }  // namespace xchainer

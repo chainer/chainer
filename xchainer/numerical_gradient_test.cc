@@ -12,7 +12,6 @@
 #include "xchainer/array_repr.h"
 #include "xchainer/context.h"
 #include "xchainer/device_id.h"
-#include "xchainer/native_backend.h"
 #include "xchainer/shape.h"
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/device_session.h"

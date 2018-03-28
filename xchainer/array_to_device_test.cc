@@ -14,8 +14,8 @@
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
-#include "xchainer/native_backend.h"
-#include "xchainer/native_device.h"
+#include "xchainer/native/native_backend.h"
+#include "xchainer/native/native_device.h"
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/context_session.h"
 #include "xchainer/testing/util.h"
@@ -52,9 +52,9 @@ private:
 TestConfig g_config;
 
 // Test backend class
-class TestBackend : public NativeBackend {
+class TestBackend : public native::NativeBackend {
 public:
-    TestBackend(Context& context, int num) : NativeBackend(context), num_(num) {}
+    TestBackend(Context& context, int num) : native::NativeBackend(context), num_(num) {}
 
     int num() const { return num_; }
 
@@ -70,7 +70,7 @@ public:
 
     std::unique_ptr<Device> CreateDevice(int index) override {
         assert(index == 0);
-        return std::make_unique<NativeDevice>(*this, index);
+        return std::make_unique<native::NativeDevice>(*this, index);
     }
 
 private:
@@ -218,7 +218,7 @@ TEST(ArrayToDeviceIncompatibleTest, ToDeviceIncompatible) {
 
 TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     testing::ContextSession context_session;
-    NativeBackend backend{context_session.context()};
+    native::NativeBackend backend{context_session.context()};
 
     XCHAINER_REQUIRE_DEVICE(backend, 3);
 

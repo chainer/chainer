@@ -11,7 +11,7 @@
 #include "xchainer/cuda/cuda_backend.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/error.h"
-#include "xchainer/native_backend.h"
+#include "xchainer/native/native_backend.h"
 
 namespace xchainer {
 namespace {
@@ -54,8 +54,8 @@ Backend& Context::GetBackend(const std::string& backend_name) {
     // Ctor of each backend may call member functions of Context.
     // Lock is released here to avoid any deadlocks.
     std::unique_ptr<Backend> backend;
-    if (backend_name == NativeBackend::kDefaultName) {
-        backend = std::make_unique<NativeBackend>(*this);
+    if (backend_name == native::NativeBackend::kDefaultName) {
+        backend = std::make_unique<native::NativeBackend>(*this);
 #ifdef XCHAINER_ENABLE_CUDA
     } else if (backend_name == cuda::CudaBackend::kDefaultName) {
         backend = std::make_unique<cuda::CudaBackend>(*this);

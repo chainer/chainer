@@ -13,8 +13,8 @@
 #include "xchainer/cuda/cuda_device.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/error.h"
-#include "xchainer/native_backend.h"
-#include "xchainer/native_device.h"
+#include "xchainer/native/native_backend.h"
+#include "xchainer/native/native_device.h"
 #include "xchainer/testing/context_session.h"
 
 namespace xchainer {
@@ -32,14 +32,14 @@ private:
 
 TEST_F(DeviceTest, Ctor) {
     Context& ctx = GetDefaultContext();
-    NativeBackend native_backend{ctx};
+    native::NativeBackend native_backend{ctx};
     {
-        NativeDevice device{native_backend, 0};
+        native::NativeDevice device{native_backend, 0};
         EXPECT_EQ(&native_backend, &device.backend());
         EXPECT_EQ(0, device.index());
     }
     {
-        NativeDevice device{native_backend, 1};
+        native::NativeDevice device{native_backend, 1};
         EXPECT_EQ(&native_backend, &device.backend());
         EXPECT_EQ(1, device.index());
     }
@@ -49,8 +49,8 @@ TEST_F(DeviceTest, SetDefaultDevice) {
     Context& ctx = GetDefaultContext();
     EXPECT_EQ(&ctx.GetDevice({"native", 0}), &GetDefaultDevice());
 
-    NativeBackend native_backend{ctx};
-    NativeDevice native_device{native_backend, 0};
+    native::NativeBackend native_backend{ctx};
+    native::NativeDevice native_device{native_backend, 0};
     SetDefaultDevice(&native_device);
     ASSERT_EQ(&native_device, &GetDefaultDevice());
 
@@ -61,20 +61,20 @@ TEST_F(DeviceTest, SetDefaultDevice) {
     ASSERT_EQ(&cuda_device, &GetDefaultDevice());
 #endif  // XCHAINER_ENABLE_CUDA
 
-    NativeBackend native_backend2{ctx};
-    NativeDevice native_device2{native_backend2, 2};
+    native::NativeBackend native_backend2{ctx};
+    native::NativeDevice native_device2{native_backend2, 2};
     SetDefaultDevice(&native_device2);
     ASSERT_EQ(&native_device2, &GetDefaultDevice());
 }
 
 TEST_F(DeviceTest, ThreadLocal) {
     Context& ctx = GetDefaultContext();
-    NativeBackend backend1{ctx};
-    NativeDevice device1{backend1, 1};
+    native::NativeBackend backend1{ctx};
+    native::NativeDevice device1{backend1, 1};
     SetDefaultDevice(&device1);
 
-    NativeBackend backend2{ctx};
-    NativeDevice device2{backend2, 2};
+    native::NativeBackend backend2{ctx};
+    native::NativeDevice device2{backend2, 2};
     auto future = std::async(std::launch::async, [&ctx, &device2] {
         SetDefaultContext(&ctx);
         SetDefaultDevice(&device2);
@@ -90,8 +90,8 @@ TEST_F(DeviceTest, ThreadLocalDefault) {
 
     Device& device = ctx.GetDevice({"native", 0});
 
-    NativeBackend backend1{ctx};
-    NativeDevice device1{backend1, 1};
+    native::NativeBackend backend1{ctx};
+    native::NativeDevice device1{backend1, 1};
     SetDefaultDevice(&device1);
     auto future = std::async(std::launch::async, [] { return &GetDefaultDevice(); });
 
@@ -102,16 +102,16 @@ TEST_F(DeviceTest, DeviceScopeCtor) {
     Context& ctx = GetDefaultContext();
     {
         // DeviceScope should work even if default device is not set
-        NativeBackend backend{ctx};
-        NativeDevice device{backend, 0};
+        native::NativeBackend backend{ctx};
+        native::NativeDevice device{backend, 0};
         DeviceScope scope(device);
     }
-    NativeBackend backend1{ctx};
-    NativeDevice device1{backend1, 1};
+    native::NativeBackend backend1{ctx};
+    native::NativeDevice device1{backend1, 1};
     SetDefaultDevice(&device1);
     {
-        NativeBackend backend2{ctx};
-        NativeDevice device2{backend2, 2};
+        native::NativeBackend backend2{ctx};
+        native::NativeDevice device2{backend2, 2};
         DeviceScope scope(device2);
         EXPECT_EQ(&device2, &GetDefaultDevice());
     }
@@ -119,13 +119,13 @@ TEST_F(DeviceTest, DeviceScopeCtor) {
     {
         DeviceScope scope;
         EXPECT_EQ(&device1, &GetDefaultDevice());
-        NativeBackend backend2{ctx};
-        NativeDevice device2{backend2, 2};
+        native::NativeBackend backend2{ctx};
+        native::NativeDevice device2{backend2, 2};
         SetDefaultDevice(&device2);
     }
     ASSERT_EQ(&device1, &GetDefaultDevice());
-    NativeBackend backend2{ctx};
-    NativeDevice device2{backend2, 2};
+    native::NativeBackend backend2{ctx};
+    native::NativeDevice device2{backend2, 2};
     {
         DeviceScope scope(device2);
         scope.Exit();

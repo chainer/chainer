@@ -9,9 +9,10 @@
 #include "xchainer/device.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
-#include "xchainer/native_backend.h"
+#include "xchainer/native/native_backend.h"
 
 namespace xchainer {
+namespace native {
 namespace internal {
 
 // Prepares indexable arrays and indexers for array reduction.
@@ -61,4 +62,5 @@ public:
     void Synchronize() override;
 };
 
+}  // namespace native
 }  // namespace xchainer

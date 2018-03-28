@@ -11,8 +11,8 @@
 
 #include "xchainer/context.h"
 #include "xchainer/device.h"
-#include "xchainer/native_backend.h"
-#include "xchainer/native_device.h"
+#include "xchainer/native/native_backend.h"
+#include "xchainer/native/native_device.h"
 
 namespace xchainer {
 namespace {
@@ -43,8 +43,8 @@ void CheckArrayRepr(
 
 TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
     Context ctx;
-    NativeBackend backend{ctx};
-    NativeDevice device{backend, 0};
+    native::NativeBackend backend{ctx};
+    native::NativeDevice device{backend, 0};
 
     // bool
     CheckArrayRepr<bool>("array([False], shape=(1,), dtype=bool, device='native:0')", {false}, Shape({1}), device);

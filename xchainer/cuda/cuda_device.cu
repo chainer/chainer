@@ -14,7 +14,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
-#include "xchainer/native_device.h"
+#include "xchainer/native/native_device.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
@@ -197,7 +197,8 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
         // Copy between CUDA devices
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
-        assert(nullptr != dynamic_cast<NativeDevice*>(&src_device) && "CudaDevice only supports copy between cuda or native devices.");
+        assert(nullptr != dynamic_cast<native::NativeDevice*>(&src_device) &&
+               "CudaDevice only supports copy between cuda or native devices.");
         // Copy from native device
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyHostToDevice));
     }
@@ -209,7 +210,8 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
         // Copy between CUDA devices
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
-        assert(nullptr != dynamic_cast<NativeDevice*>(&dst_device) && "CudaDevice only supports copy between cuda or native devices.");
+        assert(nullptr != dynamic_cast<native::NativeDevice*>(&dst_device) &&
+               "CudaDevice only supports copy between cuda or native devices.");
         // Copy to native device
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToHost));
     }
@@ -254,7 +256,7 @@ void CudaDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const Ar
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SumKernel<T>).block_size;
 
         // Prepare indexable arrays and indexers
-        auto tup = internal::PrepareIndexableArraysForReduction<T>(src, axis, out);
+        auto tup = native::internal::PrepareIndexableArraysForReduction<T>(src, axis, out);
         IndexableArray<const T>& src_iarray = std::get<0>(tup);
         IndexableArray<T>& out_iarray = std::get<1>(tup);
         Indexer<>& src_indexer = std::get<2>(tup);
