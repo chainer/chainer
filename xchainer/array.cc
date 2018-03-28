@@ -113,9 +113,11 @@ Array Array::FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<v
 
 Array Array::Empty(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Empty(shape, dtype, device); }
 
-Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device) { return xchainer::Full(shape, scalar, dtype, device); }
+Array Array::Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device) {
+    return xchainer::Full(shape, fill_value, dtype, device);
+}
 
-Array Array::Full(const Shape& shape, Scalar scalar, Device& device) { return xchainer::Full(shape, scalar, device); }
+Array Array::Full(const Shape& shape, Scalar fill_value, Device& device) { return xchainer::Full(shape, fill_value, device); }
 
 Array Array::Zeros(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Zeros(shape, dtype, device); }
 
@@ -123,7 +125,7 @@ Array Array::Ones(const Shape& shape, Dtype dtype, Device& device) { return xcha
 
 Array Array::EmptyLike(const Array& a, Device& device) { return xchainer::EmptyLike(a, device); }
 
-Array Array::FullLike(const Array& a, Scalar scalar, Device& device) { return xchainer::FullLike(a, scalar, device); }
+Array Array::FullLike(const Array& a, Scalar fill_value, Device& device) { return xchainer::FullLike(a, fill_value, device); }
 
 Array Array::ZerosLike(const Array& a, Device& device) { return xchainer::ZerosLike(a, device); }
 
