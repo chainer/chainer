@@ -390,13 +390,12 @@ def test_broadcast_to_double_backward():
 
 def test_copy(array_init_inputs):
     shape, dtype = array_init_inputs
-
     data_list = _create_dummy_data(shape, dtype)
-
     array = xchainer.Array(shape, dtype, data_list)
-    array_copy = array.copy()
 
-    _check_arrays_equal_copy(array, array_copy)
+    _check_arrays_equal_copy(array, array.copy())
+    _check_arrays_equal_copy(array, xchainer.copy(array))
+    _check_arrays_equal_copy(array, xchainer.copy(a=array))
 
 
 def test_as_constant_copy(array_init_inputs):

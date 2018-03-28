@@ -354,6 +354,7 @@ void InitXchainerArray(pybind11::module& m) {
           },
           py::arg("a"),
           py::arg("device") = nullptr);
+    m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
 
     m.def("broadcast_to",
           [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.BroadcastTo(ToShape(shape)).move_body(); },
