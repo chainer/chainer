@@ -111,15 +111,6 @@ const Array& IMultiply(const Array& x1, const Array& x2) { return MulAssignImpl(
 
 }  // namespace internal
 
-Array Multiply(const Array& x1, Scalar x2) {
-    Array out = Array::EmptyLike(x1, x1.device());
-    x1.device().Mul(x1, x2, out);
-
-    // TODO(hvy): Make this routine differentiable.
-
-    return out;
-}
-
 Array Multiply(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
         Array out = Array::EmptyLike(x1, x1.device());
@@ -139,6 +130,17 @@ Array Multiply(const Array& x1, const Array& x2) {
     }
     return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
 }
+
+Array Multiply(const Array& x1, Scalar x2) {
+    Array out = Array::EmptyLike(x1, x1.device());
+    x1.device().Mul(x1, x2, out);
+
+    // TODO(hvy): Make this routine differentiable.
+
+    return out;
+}
+
+Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
 
 Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
     std::vector<int8_t> sorted_axis;
@@ -207,5 +209,7 @@ Array Maximum(const Array& x1, Scalar x2) {
 
     return out;
 }
+
+Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 
 }  // namespace xchainer
