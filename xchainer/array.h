@@ -65,10 +65,10 @@ public:
     // Creates an array which has the same shape and dtype as the other array.
     // The new array is allocated in the default device. The device of the other array
     // is ignored.
-    static Array EmptyLike(const Array& array, Device& device = GetDefaultDevice());
-    static Array FullLike(const Array& array, Scalar scalar, Device& device = GetDefaultDevice());
-    static Array ZerosLike(const Array& array, Device& device = GetDefaultDevice());
-    static Array OnesLike(const Array& array, Device& device = GetDefaultDevice());
+    static Array EmptyLike(const Array& a, Device& device = GetDefaultDevice());
+    static Array FullLike(const Array& a, Scalar scalar, Device& device = GetDefaultDevice());
+    static Array ZerosLike(const Array& a, Device& device = GetDefaultDevice());
+    static Array OnesLike(const Array& a, Device& device = GetDefaultDevice());
 
     Array() = default;
 

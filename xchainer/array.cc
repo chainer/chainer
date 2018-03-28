@@ -121,13 +121,13 @@ Array Array::Zeros(const Shape& shape, Dtype dtype, Device& device) { return xch
 
 Array Array::Ones(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Ones(shape, dtype, device); }
 
-Array Array::EmptyLike(const Array& array, Device& device) { return xchainer::EmptyLike(array, device); }
+Array Array::EmptyLike(const Array& a, Device& device) { return xchainer::EmptyLike(a, device); }
 
-Array Array::FullLike(const Array& array, Scalar scalar, Device& device) { return xchainer::FullLike(array, scalar, device); }
+Array Array::FullLike(const Array& a, Scalar scalar, Device& device) { return xchainer::FullLike(a, scalar, device); }
 
-Array Array::ZerosLike(const Array& array, Device& device) { return xchainer::ZerosLike(array, device); }
+Array Array::ZerosLike(const Array& a, Device& device) { return xchainer::ZerosLike(a, device); }
 
-Array Array::OnesLike(const Array& array, Device& device) { return xchainer::OnesLike(array, device); }
+Array Array::OnesLike(const Array& a, Device& device) { return xchainer::OnesLike(a, device); }
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
