@@ -252,7 +252,7 @@ void NativeDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
-void NativeDevice::Mul(const Array& lhs, const Scalar& rhs, const Array& out) {
+void NativeDevice::Mul(const Array& lhs, Scalar rhs, const Array& out) {
     CheckDevicesCompatible(lhs, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
@@ -283,7 +283,7 @@ void NativeDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
-void NativeDevice::Maximum(const Array& lhs, const Scalar& rhs, const Array& out) {
+void NativeDevice::Maximum(const Array& lhs, Scalar rhs, const Array& out) {
     CheckDevicesCompatible(lhs, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;

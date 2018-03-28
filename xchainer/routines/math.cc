@@ -111,7 +111,7 @@ const Array& IMultiply(const Array& x1, const Array& x2) { return MulAssignImpl(
 
 }  // namespace internal
 
-Array Multiply(const Array& x1, const Scalar& x2) {
+Array Multiply(const Array& x1, Scalar x2) {
     Array out = Array::EmptyLike(x1, x1.device());
     x1.device().Mul(x1, x2, out);
 
@@ -199,7 +199,7 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
     return out;
 }
 
-Array Maximum(const Array& x1, const Scalar& x2) {
+Array Maximum(const Array& x1, Scalar x2) {
     Array out = Array::EmptyLike(x1, x1.device());
     x1.device().Maximum(x1, x2, out);
 

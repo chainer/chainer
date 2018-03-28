@@ -335,7 +335,7 @@ void CudaDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
-void CudaDevice::Mul(const Array& lhs, const Scalar& rhs, const Array& out) {
+void CudaDevice::Mul(const Array& lhs, Scalar rhs, const Array& out) {
     (void)lhs;  // unused
     (void)rhs;  // unused
     (void)out;  // unused
@@ -363,7 +363,7 @@ void CudaDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
-void CudaDevice::Maximum(const Array& lhs, const Scalar& rhs, const Array& out) {
+void CudaDevice::Maximum(const Array& lhs, Scalar rhs, const Array& out) {
     CheckDevicesCompatible(lhs, out);
     cudaSetDevice(index());
     VisitDtype(lhs.dtype(), [&](auto pt) {

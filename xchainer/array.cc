@@ -145,7 +145,7 @@ Array& Array::operator*=(const Array& rhs) { return internal::IMultiply(*this, r
 
 const Array& Array::operator*=(const Array& rhs) const { return internal::IMultiply(*this, rhs); }
 
-Array Array::operator*(const Scalar& rhs) const { return Multiply(*this, rhs); }
+Array Array::operator*(Scalar rhs) const { return Multiply(*this, rhs); }
 
 Array Array::operator*(const Array& rhs) const { return Multiply(*this, rhs); }
 
