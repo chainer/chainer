@@ -60,6 +60,7 @@ public:
     void Equal(const Array& lhs, const Array& rhs, const Array& out) override;
 
     void Add(const Array& lhs, const Array& rhs, const Array& out) override;
+    void Mul(const Array& lhs, const Scalar& rhs, const Array& out) override;
     void Mul(const Array& lhs, const Array& rhs, const Array& out) override;
 
     void Maximum(const Array& lhs, const Scalar& rhs, const Array& out) override;

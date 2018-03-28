@@ -325,6 +325,13 @@ void CudaDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
+void CudaDevice::Mul(const Array& lhs, const Scalar& rhs, const Array& out) {
+    (void)lhs;  // unused
+    (void)rhs;  // unused
+    (void)out;  // unused
+    throw NotImplementedError("CudaDevice::Mul with scalar RHS operand is not yet implemented.");
+}
+
 // TODO(sonots): support stream
 void CudaDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);

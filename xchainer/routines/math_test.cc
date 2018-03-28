@@ -12,6 +12,7 @@
 #include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/scalar.h"
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/context_session.h"
@@ -182,6 +183,16 @@ TEST_P(MathTest, Add) {
         Array b = Array::Ones({4}, Dtype::kInt32);
         EXPECT_THROW(Add(a, b), XchainerError);
     }
+}
+
+// TODO(hvy): Also test CUDA using MathTest.
+TEST(MathNativeTest, MulScalar) {
+    testing::ContextSession context_session;
+
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
+    Array o = Multiply(a, Scalar{2.f});
+    testing::ExpectEqual<float>(e, o);
 }
 
 TEST_P(MathTest, Mul) {

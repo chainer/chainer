@@ -72,6 +72,7 @@ public:
     virtual void Equal(const Array& lhs, const Array& rhs, const Array& out) = 0;
 
     virtual void Add(const Array& lhs, const Array& rhs, const Array& out) = 0;
+    virtual void Mul(const Array& lhs, const Scalar& rhs, const Array& out) = 0;
     virtual void Mul(const Array& lhs, const Array& rhs, const Array& out) = 0;
 
     virtual void Maximum(const Array& lhs, const Scalar& rhs, const Array& out) = 0;
