@@ -10,6 +10,7 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_backend.h"
+#include "xchainer/scalar.h"
 
 namespace xchainer {
 namespace native {
@@ -57,6 +58,7 @@ public:
     void Copy(const Array& src, const Array& out) override;
 
     void Add(const Array& lhs, const Array& rhs, const Array& out) override;
+    void Mul(const Array& lhs, const Scalar& rhs, const Array& out) override;
     void Mul(const Array& lhs, const Array& rhs, const Array& out) override;
 
     void Synchronize() override;

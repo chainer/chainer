@@ -104,6 +104,15 @@ const Array& IMultiply(const Array& x1, const Array& x2) { return MulAssignImpl(
 
 }  // namespace internal
 
+Array Multiply(const Array& x1, const Scalar& x2) {
+    Array out = Array::EmptyLike(x1, x1.device());
+    x1.device().Mul(x1, x2, out);
+
+    // TODO(hvy): Make this routine differentiable.
+
+    return out;
+}
+
 Array Multiply(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
         Array out = Array::EmptyLike(x1, x1.device());

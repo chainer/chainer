@@ -236,6 +236,21 @@ void NativeDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
+void NativeDevice::Mul(const Array& lhs, const Scalar& rhs, const Array& out) {
+    CheckDevicesCompatible(lhs, out);
+    VisitDtype(lhs.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{lhs.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            out_iarray[indexer] = lhs_iarray[indexer] * static_cast<T>(rhs);
+        }
+    });
+}
+
 void NativeDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {

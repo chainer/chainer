@@ -494,6 +494,16 @@ TEST_P(ArrayTest, Add) {
     testing::ExpectEqual<float>(e, o);
 }
 
+// TODO(hvy): Also test CUDA using ArrayTest.
+TEST(ArrayNativeTest, MulScalar) {
+    testing::ContextSession context_session;
+
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
+    Array o = a * Scalar{2.f};
+    testing::ExpectEqual<float>(e, o);
+}
+
 TEST_P(ArrayTest, Mul) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});

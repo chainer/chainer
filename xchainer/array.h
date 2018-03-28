@@ -89,6 +89,7 @@ public:
     Array& operator*=(const Array& rhs);
     const Array& operator*=(const Array& rhs) const;
     Array operator+(const Array& rhs) const;
+    Array operator*(const Scalar& rhs) const;
     Array operator*(const Array& rhs) const;
 
     // Returns a view selected with the indices.
