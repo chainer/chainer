@@ -71,13 +71,13 @@ protected:
             double atol,
             double rtol,
             const GraphId& graph_id) {
-        Arrays inputs{testing::MakeArray(shape, input_data)};
+        Arrays inputs{testing::BuildArray(shape, input_data)};
         if (requires_grad_) {
             inputs[0].RequireGrad(graph_id);
         }
 
-        Arrays grad_outputs{testing::MakeArray(shape, grad_output_data)};
-        Arrays eps{testing::MakeArray(shape, eps_data)};
+        Arrays grad_outputs{testing::BuildArray(shape, grad_output_data)};
+        Arrays eps{testing::BuildArray(shape, eps_data)};
 
         bool is_none_of_grad_required =
                 std::none_of(inputs.begin(), inputs.end(), [graph_id](const Array& input) { return input.IsGradRequired(graph_id); });
@@ -114,10 +114,10 @@ protected:
             double atol,
             double rtol,
             const GraphId& graph_id) {
-        Arrays inputs{testing::MakeArray(shape, input_data)};
-        Arrays grad_outputs{testing::MakeArray(shape, grad_output_data)};
-        Arrays grad_grad_inputs{testing::MakeArray(shape, grad_grad_input_data)};
-        Arrays eps{testing::MakeArray(shape, eps_input_data), testing::MakeArray(shape, eps_grad_output_data)};
+        Arrays inputs{testing::BuildArray(shape, input_data)};
+        Arrays grad_outputs{testing::BuildArray(shape, grad_output_data)};
+        Arrays grad_grad_inputs{testing::BuildArray(shape, grad_grad_input_data)};
+        Arrays eps{testing::BuildArray(shape, eps_input_data), testing::BuildArray(shape, eps_grad_output_data)};
 
         for (auto& input : inputs) {
             input.RequireGrad(graph_id);

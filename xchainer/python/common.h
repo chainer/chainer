@@ -12,7 +12,9 @@
 // http://pybind11.readthedocs.io/en/stable/advanced/cast/stl.html
 namespace pybind11 {
 namespace detail {
+
 template <typename T>
 struct type_caster<nonstd::optional<T>> : optional_caster<nonstd::optional<T>> {};
+
 }  // namespace detail
 }  // namespace pybind11

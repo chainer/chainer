@@ -28,8 +28,8 @@ void ExpectArraysEqual(const Array& expected, const Array& actual) {
     VisitDtype(expected.dtype(), [&expected, &actual](auto pt) {
         using T = typename decltype(pt)::type;
         int64_t total_size = expected.GetTotalSize();
-        const T* data1 = static_cast<const T*>(expected.data().get());
-        const T* data2 = static_cast<const T*>(actual.data().get());
+        auto data1 = static_cast<const T*>(expected.data().get());
+        auto data2 = static_cast<const T*>(actual.data().get());
         for (int64_t i = 0; i < total_size; ++i) {
             EXPECT_EQ(data1[i], data2[i]);
         }

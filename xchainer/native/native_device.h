@@ -29,7 +29,7 @@ namespace internal {
 // In both source and output indexable arrays, 1-dim axes are eliminated.
 template <typename T>
 std::tuple<IndexableArray<const T>, IndexableArray<T>, Indexer<>, Indexer<>, Indexer<>> PrepareIndexableArraysForReduction(
-        const Array& src, const std::vector<int8_t>& axis, Array& out);
+        const Array& src, const std::vector<int8_t>& axis, const Array& out);
 
 }  // namespace internal
 
@@ -50,14 +50,14 @@ public:
 
     std::shared_ptr<void> FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
-    void Fill(Array& out, Scalar value) override;
+    void Fill(const Array& out, Scalar value) override;
 
-    void Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) override;
+    void Sum(const Array& src, const std::vector<int8_t>& axis, const Array& out) override;
 
-    void Copy(const Array& src, Array& out) override;
+    void Copy(const Array& src, const Array& out) override;
 
-    void Add(const Array& lhs, const Array& rhs, Array& out) override;
-    void Mul(const Array& lhs, const Array& rhs, Array& out) override;
+    void Add(const Array& lhs, const Array& rhs, const Array& out) override;
+    void Mul(const Array& lhs, const Array& rhs, const Array& out) override;
 
     void Synchronize() override;
 };

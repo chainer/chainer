@@ -19,7 +19,7 @@ namespace internal {
 
 template <typename T>
 std::tuple<IndexableArray<const T>, IndexableArray<T>, Indexer<>, Indexer<>, Indexer<>> PrepareIndexableArraysForReduction(
-        const Array& src, const std::vector<int8_t>& axis, Array& out) {
+        const Array& src, const std::vector<int8_t>& axis, const Array& out) {
     // True if some axes are reduced but kept in output as 1-dim axes.
     // Corresponding to keepdim argument in Array::Sum().
     bool has_kept_dims = out.ndim() + static_cast<int64_t>(axis.size()) != src.ndim();
@@ -148,7 +148,7 @@ std::shared_ptr<void> NativeDevice::FromBuffer(const std::shared_ptr<void>& src_
     return src_ptr;
 }
 
-void NativeDevice::Fill(Array& out, Scalar value) {
+void NativeDevice::Fill(const Array& out, Scalar value) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         T c_value{value};
@@ -162,7 +162,7 @@ void NativeDevice::Fill(Array& out, Scalar value) {
     });
 }
 
-void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) {
+void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const Array& out) {
     // keepdims denotes the corresponding argument in Array::Sum().
     assert(out.ndim() == src.ndim() - static_cast<int64_t>(axis.size()) ||  // keepdims=false
            out.ndim() == src.ndim());                                       // keepdims=true
@@ -205,7 +205,7 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, Array&
     });
 }
 
-void NativeDevice::Copy(const Array& src, Array& out) {
+void NativeDevice::Copy(const Array& src, const Array& out) {
     CheckDevicesCompatible(src, out);
     VisitDtype(src.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
@@ -220,7 +220,7 @@ void NativeDevice::Copy(const Array& src, Array& out) {
     });
 }
 
-void NativeDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
+void NativeDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
@@ -236,7 +236,7 @@ void NativeDevice::Add(const Array& lhs, const Array& rhs, Array& out) {
     });
 }
 
-void NativeDevice::Mul(const Array& lhs, const Array& rhs, Array& out) {
+void NativeDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;

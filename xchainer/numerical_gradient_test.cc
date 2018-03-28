@@ -77,15 +77,15 @@ TEST_P(NumericalGradientTest, NumericalGradientAdd) {
     Data grad_output_data{1.f, -2.f, 3.f, 0.f, 3.2f, -1.f};
 
     Arrays inputs = {
-            testing::MakeArray(shape, data1),
-            testing::MakeArray(shape, data2),
+            testing::BuildArray(shape, data1),
+            testing::BuildArray(shape, data2),
     };
     Arrays eps = {
-            testing::MakeArray(shape, eps1),
-            testing::MakeArray(shape, eps2),
+            testing::BuildArray(shape, eps1),
+            testing::BuildArray(shape, eps2),
     };
     Arrays grad_outputs = {
-            testing::MakeArray(shape, grad_output_data),
+            testing::BuildArray(shape, grad_output_data),
     };
 
     // Forward function
@@ -108,15 +108,15 @@ TEST_P(NumericalGradientTest, NumericalGradientMul) {
     Data grad_output_data{1.f, -2.f, 3.f, 0.f, 2.2f, 1.f};
 
     Arrays inputs = {
-            testing::MakeArray(shape, data1),
-            testing::MakeArray(shape, data2),
+            testing::BuildArray(shape, data1),
+            testing::BuildArray(shape, data2),
     };
     Arrays eps = {
-            testing::MakeArray(shape, eps1),
-            testing::MakeArray(shape, eps2),
+            testing::BuildArray(shape, eps1),
+            testing::BuildArray(shape, eps2),
     };
     Arrays grad_outputs = {
-            testing::MakeArray(shape, grad_output_data),
+            testing::BuildArray(shape, grad_output_data),
     };
 
     // Forward function

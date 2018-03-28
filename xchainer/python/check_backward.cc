@@ -16,6 +16,7 @@ namespace python {
 namespace internal {
 
 namespace py = pybind11;
+
 using ArrayBodyPtr = std::shared_ptr<xchainer::internal::ArrayBody>;
 
 namespace {

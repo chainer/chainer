@@ -17,6 +17,7 @@ namespace python {
 namespace internal {
 
 namespace py = pybind11;
+
 using ArrayBodyPtr = std::shared_ptr<xchainer::internal::ArrayBody>;
 
 void InitXchainerBackward(pybind11::module& m) {

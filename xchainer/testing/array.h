@@ -15,6 +15,8 @@
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
+#include "xchainer/routines/creation.h"
+
 namespace xchainer {
 namespace testing {
 
@@ -42,7 +44,7 @@ public:
             assert(static_cast<size_t>(shape.GetTotalSize()) == data.size());
             Strides strides = builder.GetStrides<T>();
             int64_t total_size = shape.GetTotalSize();
-            size_t total_bytes = internal::GetRequiredBytes(shape, strides, sizeof(T));
+            size_t total_bytes = routines::internal::GetRequiredBytes(shape, strides, sizeof(T));
             auto ptr = std::make_unique<uint8_t[]>(total_bytes);
             std::fill(ptr.get(), ptr.get() + total_bytes, uint8_t{0xff});
 
@@ -68,7 +70,7 @@ public:
                     }
                 }
             }
-            return internal::ArrayFromBuffer(shape, dtype, std::move(ptr), std::move(strides), builder.device_);
+            return routines::internal::FromBuffer(shape, dtype, std::move(ptr), std::move(strides), builder.device_);
         };
         return *this;
     }
@@ -154,20 +156,20 @@ private:
     std::function<Array(const ArrayBuilder&)> create_array_;
 };
 
-inline ArrayBuilder MakeArray(const Shape& shape) { return ArrayBuilder{shape}; }
+inline ArrayBuilder BuildArray(const Shape& shape) { return ArrayBuilder{shape}; }
 
 template <typename T, size_t N>
-ArrayBuilder MakeArray(const Shape& shape, const std::array<T, N>& data) {
+ArrayBuilder BuildArray(const Shape& shape, const std::array<T, N>& data) {
     return ArrayBuilder{shape}.WithData<T>(data.begin(), data.end());
 }
 
 template <typename T>
-ArrayBuilder MakeArray(const Shape& shape, std::initializer_list<T> data) {
+ArrayBuilder BuildArray(const Shape& shape, std::initializer_list<T> data) {
     return ArrayBuilder{shape}.WithData<T>(data.begin(), data.end());
 }
 
 template <typename T>
-Array MakeArray(const Shape& shape, const std::vector<T>& data) {
+Array BuildArray(const Shape& shape, const std::vector<T>& data) {
     assert(static_cast<size_t>(shape.GetTotalSize()) == data.size());
     auto a = std::make_unique<T[]>(data.size());
     std::copy(data.begin(), data.end(), a.get());
