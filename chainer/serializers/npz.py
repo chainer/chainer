@@ -156,7 +156,7 @@ class NpzDeserializer(serializer.Deserializer):
 
 
 def load_npz(file, obj, path='', strict=True, **kwargs):
-    """load_npz(file, obj, path='', strict=True, allow_pickle=False)
+    """load_npz(file, obj, path='', strict=True, *, allow_pickle=False)
 
     Loads an object from the file in NPZ format.
 
