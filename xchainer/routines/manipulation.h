@@ -16,7 +16,7 @@ Array Transpose(const Array& a);
 // Returns a reshaped array.
 // TODO(niboshi): Support reshape that require a copy.
 // TODO(niboshi): Support shape with dimension -1.
-Array Reshape(const Array& a, const Shape& shape);
+Array Reshape(const Array& a, const Shape& newshape);
 
 // Returns a squeezed array with unit-length axes removed.
 //

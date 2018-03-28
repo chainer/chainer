@@ -148,7 +148,7 @@ Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal:
 
 Array Array::Transpose() const { return xchainer::Transpose(*this); }
 
-Array Array::Reshape(const Shape& shape) const { return xchainer::Reshape(*this, shape); }
+Array Array::Reshape(const Shape& newshape) const { return xchainer::Reshape(*this, newshape); }
 
 Array Array::Squeeze(const nonstd::optional<std::vector<int8_t>>& axis) const { return xchainer::Squeeze(*this, axis); }
 

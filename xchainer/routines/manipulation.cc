@@ -27,19 +27,19 @@ Array Transpose(const Array& a) {
     return out;
 }
 
-Array Reshape(const Array& a, const Shape& shape) {
+Array Reshape(const Array& a, const Shape& newshape) {
     const Shape& in_shape = a.shape();
     const Strides& in_strides = a.strides();
 
     // If the shape is unchanged, just return a view.
-    if (in_shape == shape) {
+    if (in_shape == newshape) {
         return a.MakeView();
     }
 
     // Check for invalid shape.
     int64_t total_size = in_shape.GetTotalSize();
-    if (total_size != shape.GetTotalSize()) {
-        throw DimensionError("Cannot reshape array of size " + std::to_string(total_size) + " into shape " + shape.ToString());
+    if (total_size != newshape.GetTotalSize()) {
+        throw DimensionError("Cannot reshape array of size " + std::to_string(total_size) + " into shape " + newshape.ToString());
     }
 
     int64_t element_size = GetElementSize(a.dtype());
@@ -48,8 +48,8 @@ Array Reshape(const Array& a, const Shape& shape) {
         // Calculate the strides for 0-sized array.
         std::vector<int64_t> rev_strides_vec;
         rev_strides_vec.push_back(element_size);
-        for (int8_t i = shape.ndim() - 1; i >= 1; --i) {
-            rev_strides_vec.push_back(rev_strides_vec.back() * std::max(int64_t{1}, shape[i]));
+        for (int8_t i = newshape.ndim() - 1; i >= 1; --i) {
+            rev_strides_vec.push_back(rev_strides_vec.back() * std::max(int64_t{1}, newshape[i]));
         }
         strides = Strides{rev_strides_vec.rbegin(), rev_strides_vec.rend()};
     } else {
@@ -94,11 +94,11 @@ Array Reshape(const Array& a, const Shape& shape) {
         // If it's not possible, can_reshape_without_copy will be false.
         bool can_reshape_without_copy = true;
         std::vector<int64_t> strides_vec;
-        if (shape.ndim() > 0) {
+        if (newshape.ndim() > 0) {
             int64_t last_stride = reduced_shape[0] * reduced_strides[0];
             size_t i_dim = 0;
-            strides_vec.reserve(shape.ndim());
-            for (int64_t dim : shape) {
+            strides_vec.reserve(newshape.ndim());
+            for (int64_t dim : newshape) {
                 if (dim == 0) {
                     strides_vec.push_back(last_stride);
                     continue;
@@ -122,17 +122,17 @@ Array Reshape(const Array& a, const Shape& shape) {
             // TODO(niboshi): Implement it
             throw NotImplementedError("Reshape that requires a copy is not implemented yet.");
         }
-        assert(strides_vec.size() == shape.size());
+        assert(strides_vec.size() == newshape.size());
 
         strides = Strides{strides_vec.begin(), strides_vec.end()};
     }
 
-    Array out = internal::MakeArray(shape, strides, a.dtype(), a.device(), a.data(), a.offset());
+    Array out = internal::MakeArray(newshape, strides, a.dtype(), a.device(), a.data(), a.offset());
     internal::SetUpOpNodes(
             "reshape", {a}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }}, {});
 
-    assert(out.shape() == shape);
-    assert(out.strides().size() == shape.size());
+    assert(out.shape() == newshape);
+    assert(out.strides().size() == newshape.size());
     return out;
 }
 

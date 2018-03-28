@@ -100,7 +100,7 @@ public:
     // Returns a reshaped array.
     // TODO(niboshi): Support reshape that require a copy.
     // TODO(niboshi): Support shape with dimension -1.
-    Array Reshape(const Shape& shape) const;
+    Array Reshape(const Shape& newshape) const;
 
     // Returns a squeezed array with unit-length axes removed.
     //
