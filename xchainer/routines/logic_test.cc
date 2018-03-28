@@ -50,8 +50,8 @@ TEST_P(LogicTest, Equal) {
     std::vector<Param> data = {{1.0f, 1.0f, true},
                                {1.0f, -1.0f, false},
                                {2.0f, 3.0f, false},
-                               {1.0f, std::nan(""), false},
-                               {std::nan(""), std::nan(""), false},
+                               {1.0f, std::nanf(""), false},
+                               {std::nanf(""), std::nanf(""), false},
                                {std::numeric_limits<T>::infinity(), std::numeric_limits<T>::infinity(), true},
                                {0.0f, -0.0f, true}};
     std::vector<T> a_data;
