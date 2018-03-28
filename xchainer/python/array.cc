@@ -379,6 +379,15 @@ void InitXchainerArray(pybind11::module& m) {
           },
           py::arg("a"),
           py::arg("newshape"));
+    m.def("broadcast_to",
+          [](const ArrayBodyPtr& array, py::tuple shape) { return Array{array}.BroadcastTo(ToShape(shape)).move_body(); },
+          py::arg("array"),
+          py::arg("shape"));
+
+    m.def("broadcast_to",
+          [](const ArrayBodyPtr& array, py::tuple shape) { return Array{array}.BroadcastTo(ToShape(shape)).move_body(); },
+          py::arg("array"),
+          py::arg("shape"));
 
     // math module functions
     m.def("sum",
@@ -393,16 +402,6 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("a"),
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
-
-    m.def("broadcast_to",
-          [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.BroadcastTo(ToShape(shape)).move_body(); },
-          py::arg("array"),
-          py::arg("shape"));
-
-    m.def("broadcast_to",
-          [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.BroadcastTo(ToShape(shape)).move_body(); },
-          py::arg("array"),
-          py::arg("shape"));
 }
 
 }  // namespace internal
