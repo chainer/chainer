@@ -12,6 +12,7 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_device.h"
@@ -335,6 +336,13 @@ void CudaDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
 
         MulKernel<<<grid_size, block_size>>>(lhs_iarray, rhs_iarray, out_iarray, indexer);
     });
+}
+
+void CudaDevice::Maximum(const Array& lhs, const Scalar& rhs, const Array& out) {
+    (void)lhs;  // unused
+    (void)rhs;  // unused
+    (void)out;  // unused
+    throw NotImplementedError("CudaDevice::Maximum is not yet implemented.");
 }
 
 void CudaDevice::Synchronize() {

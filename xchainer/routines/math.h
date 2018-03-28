@@ -6,6 +6,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/scalar.h"
 
 namespace xchainer {
 
@@ -28,5 +29,7 @@ const Array& IMultiply(const Array& x1, const Array& x2);
 Array Multiply(const Array& x1, const Array& x2);
 
 Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false);
+
+Array Maximum(const Array& x1, const Scalar& x2);
 
 }  // namespace xchainer

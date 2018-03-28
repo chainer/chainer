@@ -7,6 +7,7 @@
 #include "xchainer/array.h"
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/device.h"
+#include "xchainer/scalar.h"
 
 namespace xchainer {
 namespace cuda {
@@ -36,6 +37,8 @@ public:
 
     void Add(const Array& lhs, const Array& rhs, const Array& out) override;
     void Mul(const Array& lhs, const Array& rhs, const Array& out) override;
+
+    void Maximum(const Array& lhs, const Scalar& rhs, const Array& out) override;
 
     void Synchronize() override;
 };
