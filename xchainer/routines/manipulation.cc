@@ -27,14 +27,10 @@ Scalar AsScalar(const Array& a) {
         throw DimensionError("Cannot convert " + std::to_string(a.GetTotalSize()) + "-dimensional array to scalar");
     }
 
-    // Make a contiguous copy
-    Array contiguous_copy = a.AsConstant(CopyKind::kCopy);
-    assert(contiguous_copy.IsContiguous());
-
     // Copy to the native device
     Backend& native_backend = GetDefaultContext().GetBackend(native::NativeBackend::kDefaultName);
     Device& native_device = native_backend.GetDevice(0);
-    Array native_copy = contiguous_copy.ToDevice(native_device);
+    Array native_copy = a.ToDevice(native_device);
 
     // Retrieve the value
     native_device.Synchronize();
