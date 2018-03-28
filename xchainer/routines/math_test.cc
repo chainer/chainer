@@ -184,21 +184,68 @@ TEST_P(MathTest, Add) {
     }
 }
 
-TEST_P(MathTest, MulScalar) {
+TEST_P(MathTest, MultiplyScalar) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
 
+    // array * scalar
     {
         Array o = Multiply(a, Scalar{2.f});
         testing::ExpectEqual<float>(e, o);
     }
+    // scalar * array
     {
         Array o = Multiply(Scalar{2.f}, a);
         testing::ExpectEqual<float>(e, o);
     }
 }
 
-TEST_P(MathTest, Mul) {
+TEST_P(MathTest, MultiplyScalarBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar s{T{2.0}};
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Array::Full(shape, 1e-1);
+
+    // array * scalar
+    CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0] * s}; }, {a}, {go}, {eps});
+    // scalar * array
+    CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {s * xs[0]}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, MultiplyScalarDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar s{T{2.0}};
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Array::Full(shape, 1e-1);
+
+    // array * scalar
+    CheckDoubleBackwardComputation(
+            [s](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = xs[0] * s;
+                return {y * y};  // to make t nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+    // scalar * array
+    CheckDoubleBackwardComputation(
+            [s](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = s * xs[0];
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+}
+
+TEST_P(MathTest, Multiply) {
     {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
         Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
