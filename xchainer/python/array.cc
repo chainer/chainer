@@ -20,6 +20,7 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/manipulation.h"
 #include "xchainer/slice.h"
 
 #include "xchainer/python/array_index.h"
@@ -366,6 +367,21 @@ void InitXchainerArray(pybind11::module& m) {
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
 
     // manipulation module functions
+    m.def("reshape",
+          [](const ArrayBodyPtr& a, py::tuple newshape) { return Reshape(Array{a}, ToShape(newshape)).move_body(); },
+          py::arg("a"),
+          py::arg("newshape"));
+    m.def("reshape",
+          [](const ArrayBodyPtr& a, const std::vector<int64_t>& newshape) {
+              return Reshape(Array{a}, {newshape.begin(), newshape.end()}).move_body();
+          },
+          py::arg("a"),
+          py::arg("newshape"));
+
+    m.def("broadcast_to",
+          [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.BroadcastTo(ToShape(shape)).move_body(); },
+          py::arg("array"),
+          py::arg("shape"));
 
     m.def("broadcast_to",
           [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.BroadcastTo(ToShape(shape)).move_body(); },
