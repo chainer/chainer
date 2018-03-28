@@ -1,6 +1,6 @@
 add_subdirectory(routines)
-add_subdirectory(testing)
 add_subdirectory(native)
+add_subdirectory(testing)
 if(${CUDA_FOUND})
     add_subdirectory(cuda)
 endif()
