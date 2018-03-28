@@ -166,6 +166,15 @@ __global__ void AddKernel(
 }
 
 template <typename T>
+__global__ void MulScalarKernel(IndexableArray<const T> lhs_iarray, T rhs_value, IndexableArray<T> out_iarray, Indexer<> indexer) {
+    const int64_t total_size = indexer.total_size();
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
+        indexer.Set(i);
+        out_iarray[indexer] = lhs_iarray[indexer] * rhs_value;
+    }
+}
+
+template <typename T>
 __global__ void MulKernel(
         IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray, Indexer<> indexer) {
     const int64_t total_size = indexer.total_size();
@@ -326,10 +335,22 @@ void CudaDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
 }
 
 void CudaDevice::Mul(const Array& lhs, const Scalar& rhs, const Array& out) {
-    (void)lhs;  // unused
-    (void)rhs;  // unused
-    (void)out;  // unused
-    throw NotImplementedError("CudaDevice::Mul with scalar RHS operand is not yet implemented.");
+    CheckDevicesCompatible(lhs, out);
+    cudaSetDevice(index());
+    VisitDtype(lhs.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MulScalarKernel<T>).block_size;
+
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{lhs.shape()};
+
+        int64_t total_size = indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        MulScalarKernel<<<grid_size, block_size>>>(lhs_iarray, static_cast<T>(rhs), out_iarray, indexer);
+    });
 }
 
 // TODO(sonots): support stream

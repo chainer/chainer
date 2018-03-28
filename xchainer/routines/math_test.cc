@@ -185,10 +185,7 @@ TEST_P(MathTest, Add) {
     }
 }
 
-// TODO(hvy): Also test CUDA using MathTest.
-TEST(MathNativeTest, MulScalar) {
-    testing::ContextSession context_session;
-
+TEST_P(MathTest, MulScalar) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
     Array o = Multiply(a, Scalar{2.f});
