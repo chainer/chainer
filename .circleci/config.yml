@@ -121,7 +121,7 @@ jobs:
       - run:
           name: ClangFormat
           command: |
-            ../scripts/run-clang-format.sh --jobs 4
+            scripts/run-clang-format.sh --jobs 4
 
       # cpplint
       - run:
@@ -129,7 +129,7 @@ jobs:
           command: |
             source activate testenv
 
-            ../scripts/run-cpplint.sh --jobs 4
+            scripts/run-cpplint.sh --jobs 4
 
       # cmake
       - run:
