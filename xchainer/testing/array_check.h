@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cmath>
 #include <cstdint>
 #include <memory>
@@ -82,7 +84,7 @@ void ExpectEqualCopy(const Array& expected, const Array& actual) {
     ExpectDataEqual<T>(expected, actual);
 }
 
-void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
+inline void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
     EXPECT_EQ(a.dtype(), b.dtype());
     EXPECT_EQ(a.shape(), b.shape());
     EXPECT_EQ(a.IsContiguous(), b.IsContiguous());

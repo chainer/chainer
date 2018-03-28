@@ -22,7 +22,7 @@ namespace xchainer {
 namespace routines {
 namespace {
 
-class ArrayCreationTest : public ::testing::TestWithParam<std::string> {
+class CreationTest : public ::testing::TestWithParam<std::string> {
 protected:
     void SetUp() override {
         const std::string& backend_name = GetParam();
@@ -209,7 +209,7 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(ArrayCreationTest, ArrayFromBuffer) {
+TEST_P(CreationTest, ArrayFromBuffer) {
     Shape shape{3, 2};
     CheckFromBuffer<bool>(shape, {true, false, false, true, false, true});
     CheckFromBuffer<int8_t>(shape, {0, 1, 2, 3, 4, 5});
@@ -221,7 +221,7 @@ TEST_P(ArrayCreationTest, ArrayFromBuffer) {
     CheckFromBuffer<double>(shape, {0, 1, 2, 3, 4, 5});
 }
 
-TEST_P(ArrayCreationTest, Empty) {
+TEST_P(CreationTest, Empty) {
     CheckEmpty<bool>();
     CheckEmpty<int8_t>();
     CheckEmpty<int16_t>();
@@ -232,7 +232,7 @@ TEST_P(ArrayCreationTest, Empty) {
     CheckEmpty<double>();
 }
 
-TEST_P(ArrayCreationTest, EmptyWithVariousShapes) {
+TEST_P(CreationTest, EmptyWithVariousShapes) {
     {
         Array x = Empty(Shape{}, Dtype::kFloat32);
         EXPECT_EQ(0, x.ndim());
@@ -277,7 +277,7 @@ TEST_P(ArrayCreationTest, EmptyWithVariousShapes) {
     }
 }
 
-TEST_P(ArrayCreationTest, EmptyLike) {
+TEST_P(CreationTest, EmptyLike) {
     CheckEmptyLike<bool>();
     CheckEmptyLike<int8_t>();
     CheckEmptyLike<int16_t>();
@@ -288,7 +288,7 @@ TEST_P(ArrayCreationTest, EmptyLike) {
     CheckEmptyLike<double>();
 }
 
-TEST_P(ArrayCreationTest, FullWithGivenDtype) {
+TEST_P(CreationTest, FullWithGivenDtype) {
     CheckFullWithGivenDtype(true);
     CheckFullWithGivenDtype(int8_t{2});
     CheckFullWithGivenDtype(int16_t{2});
@@ -304,7 +304,7 @@ TEST_P(ArrayCreationTest, FullWithGivenDtype) {
     CheckFullWithGivenDtype(false, Scalar(int32_t{0}));
 }
 
-TEST_P(ArrayCreationTest, FullWithScalarDtype) {
+TEST_P(CreationTest, FullWithScalarDtype) {
     CheckFullWithScalarDtype(true);
     CheckFullWithScalarDtype(int8_t{2});
     CheckFullWithScalarDtype(int16_t{2});
@@ -315,7 +315,7 @@ TEST_P(ArrayCreationTest, FullWithScalarDtype) {
     CheckFullWithScalarDtype(double{2.0});
 }
 
-TEST_P(ArrayCreationTest, FullLike) {
+TEST_P(CreationTest, FullLike) {
     CheckFullLike(true);
     CheckFullLike(int8_t{2});
     CheckFullLike(int16_t{2});
@@ -331,7 +331,7 @@ TEST_P(ArrayCreationTest, FullLike) {
     CheckFullLike(false, Scalar(int32_t{0}));
 }
 
-TEST_P(ArrayCreationTest, Zeros) {
+TEST_P(CreationTest, Zeros) {
     CheckZeros<bool>();
     CheckZeros<int8_t>();
     CheckZeros<int16_t>();
@@ -342,7 +342,7 @@ TEST_P(ArrayCreationTest, Zeros) {
     CheckZeros<double>();
 }
 
-TEST_P(ArrayCreationTest, ZerosLike) {
+TEST_P(CreationTest, ZerosLike) {
     CheckZerosLike<bool>();
     CheckZerosLike<int8_t>();
     CheckZerosLike<int16_t>();
@@ -353,7 +353,7 @@ TEST_P(ArrayCreationTest, ZerosLike) {
     CheckZerosLike<double>();
 }
 
-TEST_P(ArrayCreationTest, Ones) {
+TEST_P(CreationTest, Ones) {
     CheckOnes<bool>();
     CheckOnes<int8_t>();
     CheckOnes<int16_t>();
@@ -364,7 +364,7 @@ TEST_P(ArrayCreationTest, Ones) {
     CheckOnes<double>();
 }
 
-TEST_P(ArrayCreationTest, OnesLike) {
+TEST_P(CreationTest, OnesLike) {
     CheckOnesLike<bool>();
     CheckOnesLike<int8_t>();
     CheckOnesLike<int16_t>();
@@ -377,7 +377,7 @@ TEST_P(ArrayCreationTest, OnesLike) {
 
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
-        ArrayCreationTest,
+        CreationTest,
         ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
                 std::string{"cuda"},

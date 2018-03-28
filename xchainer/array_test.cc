@@ -213,6 +213,66 @@ TEST_P(ArrayTest, Grad) {
     }
 }
 
+TEST_P(ArrayTest, ArrayFromBuffer) {
+    using T = int32_t;
+    Shape shape{3, 2};
+
+    std::vector<T> raw_data{0, 1, 2, 3, 4, 5};
+    std::shared_ptr<T> data{&raw_data[0], [](const T*) {}};
+
+    Dtype dtype = TypeToDtype<T>;
+    Array x = Array::FromBuffer(shape, dtype, data);
+
+    // Basic attributes
+    EXPECT_EQ(shape, x.shape());
+    EXPECT_EQ(dtype, x.dtype());
+    EXPECT_EQ(2, x.ndim());
+    EXPECT_EQ(3 * 2, x.GetTotalSize());
+    EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
+    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetTotalBytes());
+    EXPECT_TRUE(x.IsContiguous());
+    EXPECT_EQ(0, x.offset());
+
+    // Array::data
+    testing::ExpectDataEqual<T>(data.get(), x);
+
+    Device& device = GetDefaultDevice();
+    EXPECT_EQ(&device, &x.device());
+    if (device.backend().GetName() == "native") {
+        EXPECT_EQ(data.get(), x.data().get());
+    } else if (device.backend().GetName() == "cuda") {
+        EXPECT_NE(data.get(), x.data().get());
+    } else {
+        FAIL() << "invalid device_id";
+    }
+}
+
+TEST_P(ArrayTest, Empty) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Array x = Array::Empty(Shape{3, 2}, dtype);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_EQ(x.shape(), Shape({3, 2}));
+    EXPECT_EQ(x.dtype(), dtype);
+    EXPECT_TRUE(x.IsContiguous());
+    EXPECT_EQ(0, x.offset());
+    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+}
+
+TEST_P(ArrayTest, EmptyLike) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+    Array x = Array::EmptyLike(x_orig);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_NE(x.data(), x_orig.data());
+    EXPECT_EQ(x.shape(), x_orig.shape());
+    EXPECT_EQ(x.dtype(), x_orig.dtype());
+    EXPECT_TRUE(x.IsContiguous());
+    EXPECT_EQ(0, x.offset());
+    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+}
+
 TEST_P(ArrayTest, ContiguousFill) {
     CheckContiguousFill(true);
     CheckContiguousFill(false);
@@ -310,6 +370,105 @@ TEST_P(ArrayTest, NonContiguousFill) {
         testing::ExpectDataEqual(0.0f, a.At({Slice{}, {0}}));
         testing::ExpectDataEqual(0.0f, a.At({Slice{}, {2}}));
     }
+}
+
+TEST_P(ArrayTest, FullWithGivenDtype) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Scalar scalar{int64_t{3}};
+    Array x = Array::Full(Shape{3, 2}, scalar, dtype);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_EQ(x.shape(), Shape({3, 2}));
+    EXPECT_EQ(x.dtype(), dtype);
+    EXPECT_TRUE(x.IsContiguous());
+    EXPECT_EQ(0, x.offset());
+    testing::ExpectDataEqual(T{3}, x);
+    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+}
+
+TEST_P(ArrayTest, FullWithScalarDtype) {
+    using T = int32_t;
+    Scalar scalar{T{3}};
+    Array x = Array::Full(Shape{3, 2}, scalar);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_EQ(x.shape(), Shape({3, 2}));
+    EXPECT_EQ(x.dtype(), scalar.dtype());
+    EXPECT_TRUE(x.IsContiguous());
+    EXPECT_EQ(0, x.offset());
+    testing::ExpectDataEqual(T{3}, x);
+    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+}
+
+TEST_P(ArrayTest, FullLike) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Scalar scalar{int64_t{3}};
+    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+    Array x = Array::FullLike(x_orig, scalar);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_NE(x.data(), x_orig.data());
+    EXPECT_EQ(x.shape(), x_orig.shape());
+    EXPECT_EQ(x.dtype(), x_orig.dtype());
+    EXPECT_TRUE(x.IsContiguous());
+    EXPECT_EQ(0, x.offset());
+    testing::ExpectDataEqual(T{3}, x);
+    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+}
+
+TEST_P(ArrayTest, Zeros) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Array x = Array::Zeros(Shape{3, 2}, dtype);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_EQ(x.shape(), Shape({3, 2}));
+    EXPECT_EQ(x.dtype(), dtype);
+    EXPECT_TRUE(x.IsContiguous());
+    EXPECT_EQ(0, x.offset());
+    testing::ExpectDataEqual(T{0}, x);
+    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+}
+
+TEST_P(ArrayTest, ZerosLike) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+    Array x = Array::ZerosLike(x_orig);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_NE(x.data(), x_orig.data());
+    EXPECT_EQ(x.shape(), x_orig.shape());
+    EXPECT_EQ(x.dtype(), x_orig.dtype());
+    EXPECT_TRUE(x.IsContiguous());
+    EXPECT_EQ(0, x.offset());
+    testing::ExpectDataEqual(T{0}, x);
+    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+}
+
+TEST_P(ArrayTest, Ones) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Array x = Array::Ones(Shape{3, 2}, dtype);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_EQ(x.shape(), Shape({3, 2}));
+    EXPECT_EQ(x.dtype(), dtype);
+    EXPECT_TRUE(x.IsContiguous());
+    EXPECT_EQ(0, x.offset());
+    testing::ExpectDataEqual(T{1}, x);
+    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+}
+
+TEST_P(ArrayTest, OnesLike) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
+    Array x = Array::OnesLike(x_orig);
+    EXPECT_NE(x.data(), nullptr);
+    EXPECT_NE(x.data(), x_orig.data());
+    EXPECT_EQ(x.shape(), x_orig.shape());
+    EXPECT_EQ(x.dtype(), x_orig.dtype());
+    EXPECT_TRUE(x.IsContiguous());
+    EXPECT_EQ(0, x.offset());
+    testing::ExpectDataEqual(T{1}, x);
+    EXPECT_EQ(&GetDefaultDevice(), &x.device());
 }
 
 TEST_P(ArrayTest, IAdd) {
@@ -766,30 +925,6 @@ TEST_P(ArrayTest, TransposeDoubleBackward) {
             {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
 }
 
-TEST_P(ArrayTest, AtBackward) {
-    CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                std::vector<ArrayIndex> indices{1, NewAxis{}, Slice{1, 3}};
-                return {xs[0].At(indices)};
-            },
-            {(*testing::BuildArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
-            {Array::Ones({1, 2}, Dtype::kFloat32)},
-            {Array::Full({2, 3}, 1e-3f)});
-}
-
-TEST_P(ArrayTest, AtDoubleBackward) {
-    CheckDoubleBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                std::vector<ArrayIndex> indices{0, NewAxis{}, Slice{1, 3}};
-                auto y = xs[0].At(indices);
-                return {y * y};  // to make it nonlinear
-            },
-            {(*testing::BuildArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
-            {Array::Ones({1, 2}, Dtype::kFloat32).RequireGrad()},
-            {Array::Ones({2, 3}, Dtype::kFloat32)},
-            {Array::Full({2, 3}, 1e-3f), Array::Full({1, 2}, 1e-3f)});
-}
-
 TEST_P(ArrayTest, Copy) {
     {
         Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
@@ -1099,26 +1234,6 @@ TEST(ArrayAtTest, At) {
     EXPECT_EQ(0, b.strides()[0]);
     EXPECT_NE(0, b.strides()[1]);
     EXPECT_NE(0, b.strides()[2]);
-}
-
-// Index out of bounds
-TEST(ArrayAtTest, InvalidAt1) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-    Shape input_shape{2, 3};
-    std::vector<ArrayIndex> indices{0, 0, 0};
-    Array a = testing::BuildArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.At(indices), DimensionError);
-}
-
-// Too large dimension
-TEST(ArrayAtTest, InvalidAt2) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-    Shape input_shape{2, 3};
-    std::vector<ArrayIndex> indices{2};
-    Array a = testing::BuildArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.At(indices), DimensionError);
 }
 
 TEST(ArrayReshapeTest, Reshape) {
