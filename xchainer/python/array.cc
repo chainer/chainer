@@ -152,14 +152,7 @@ void InitXchainerArray(pybind11::module& m) {
         // Duplicate the array body
         return std::make_shared<ArrayBody>(*self);
     });
-    c.def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).move_body(); });
-    c.def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).move_body(); });
-    c.def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).move_body(); });
-    c.def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); });
     c.def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); });
-    c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle handle) {
-        return Array{self}.At(python::internal::MakeArrayIndices(handle)).move_body();
-    });
     c.def("to_device", [](const ArrayBodyPtr& self, Device& device) { return Array{self}.ToDevice(device).move_body(); });
     c.def("to_device", [](const ArrayBodyPtr& self, const std::string& device_name) {
         Device& device = GetDefaultContext().GetDevice({device_name});
@@ -169,6 +162,25 @@ void InitXchainerArray(pybind11::module& m) {
         Device& device = GetDefaultContext().GetDevice({backend_name, index});
         return Array{self}.ToDevice(device).move_body();
     });
+    c.def("as_constant",
+          [](const ArrayBodyPtr& self, bool copy) { return Array{self}.AsConstant(copy ? CopyKind::kCopy : CopyKind::kView).move_body(); },
+          py::arg("copy") = false);
+    c.def("as_constant",
+          [](const ArrayBodyPtr& self, const std::vector<GraphId>& graph_ids, bool copy) {
+              return Array{self}.AsConstant(graph_ids, copy ? CopyKind::kCopy : CopyKind::kView).move_body();
+          },
+          py::arg().noconvert(),
+          py::arg("copy") = false);
+
+    // creation instance methods
+    c.def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); });
+
+    // indexing instance methods
+    c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle handle) {
+        return Array{self}.At(python::internal::MakeArrayIndices(handle)).move_body();
+    });
+
+    // manipulation instance methods
     c.def("transpose", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); });
     c.def("reshape", [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.Reshape(ToShape(shape)).move_body(); });
     c.def("reshape", [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {
@@ -178,6 +190,12 @@ void InitXchainerArray(pybind11::module& m) {
         auto shape = py::cast<std::vector<int64_t>>(args);
         return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
     });
+
+    // math instance methods
+    c.def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).move_body(); });
+    c.def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).move_body(); });
+    c.def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).move_body(); });
+    c.def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); });
     c.def("sum",
           [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) {
               return Array{self}.Sum(std::vector<int8_t>{axis}, keepdims).move_body();
@@ -190,16 +208,7 @@ void InitXchainerArray(pybind11::module& m) {
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
-    c.def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); });
-    c.def("as_constant",
-          [](const ArrayBodyPtr& self, bool copy) { return Array{self}.AsConstant(copy ? CopyKind::kCopy : CopyKind::kView).move_body(); },
-          py::arg("copy") = false);
-    c.def("as_constant",
-          [](const ArrayBodyPtr& self, const std::vector<GraphId>& graph_ids, bool copy) {
-              return Array{self}.AsConstant(graph_ids, copy ? CopyKind::kCopy : CopyKind::kView).move_body();
-          },
-          py::arg().noconvert(),
-          py::arg("copy") = false);
+
     c.def("require_grad",
           [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{self}.RequireGrad(graph_id).move_body(); },
           py::arg("graph_id") = kDefaultGraphId);
@@ -292,7 +301,7 @@ void InitXchainerArray(pybind11::module& m) {
         return list;
     });
 
-    // creation
+    // creation module functions
     m.def("empty",
           [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
               return Array::Empty(ToShape(shape), dtype, GetDevice(device_id)).move_body();
@@ -355,6 +364,8 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("a"),
           py::arg("device") = nullptr);
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
+
+    // manipulation module functions
 
     m.def("broadcast_to",
           [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.BroadcastTo(ToShape(shape)).move_body(); },
