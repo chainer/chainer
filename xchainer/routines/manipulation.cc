@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <vector>
