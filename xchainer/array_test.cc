@@ -472,318 +472,35 @@ TEST_P(ArrayTest, OnesLike) {
 }
 
 TEST_P(ArrayTest, IAdd) {
-    {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
-        Array e = testing::BuildArray<bool>({4, 1}, {true, true, true, false});
-        a += b;
-        testing::ExpectEqual<bool>(e, a);
-    }
-    {
-        Array a = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array b = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<int8_t>({3, 1}, {2, 4, 6});
-        a += b;
-        testing::ExpectEqual<int8_t>(e, a);
-    }
-    {
-        Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
-        a += b;
-        testing::ExpectEqual<float>(e, a);
-    }
-
-    // non-contiguous
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array a_view = a.At({Slice{}, Slice{1, 2}});
-        Array b = Array::OnesLike(a_view);
-        Array e_view = testing::BuildArray<int32_t>({3, 1}, {2, 5, 8});
-        Array e = testing::BuildArray<int32_t>({3, 3}, {0, 2, 2, 3, 5, 5, 6, 8, 8});
-        a_view += b;
-        testing::ExpectEqual<int32_t>(e_view, a_view);
-        testing::ExpectEqual<int32_t>(e, a);
-    }
-
-    // broadcast
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3, 1}, Dtype::kInt32);
-        Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(1);
-        a += b;
-        testing::ExpectEqual<int32_t>(e, a);
-    }
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3}, Dtype::kInt32);
-        Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(1);
-        a += b;
-        testing::ExpectEqual<int32_t>(e, a);
-    }
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({4}, Dtype::kInt32);
-        EXPECT_THROW(a += b, XchainerError);
-    }
-    {
-        Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3, 3}, Dtype::kInt32);
-        EXPECT_THROW(a += b, XchainerError);
-    }
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
+    a += b;
+    testing::ExpectEqual<float>(e, a);
 }
 
 TEST_P(ArrayTest, IMul) {
-    {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
-        Array e = testing::BuildArray<bool>({4, 1}, {true, false, false, false});
-        a *= b;
-        testing::ExpectEqual<bool>(e, a);
-    }
-    {
-        Array a = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array b = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<int8_t>({3, 1}, {1, 4, 9});
-        a *= b;
-        testing::ExpectEqual<int8_t>(e, a);
-    }
-    {
-        Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<float>({3, 1}, {1, 4, 9});
-        a *= b;
-        testing::ExpectEqual<float>(e, a);
-    }
-
-    // non-contiguous
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array a_view = a.At({Slice{}, Slice{1, 2}});
-        Array b = Array::FullLike(a_view, 2);
-        Array e = testing::BuildArray<int32_t>({3, 3}, {0, 2, 2, 3, 8, 5, 6, 14, 8});
-        Array e_view = testing::BuildArray<int32_t>({3, 1}, {2, 8, 14});
-        a_view *= b;
-        testing::ExpectEqual<int32_t>(e_view, a_view);
-        testing::ExpectEqual<int32_t>(e, a);
-    }
-
-    // broadcast
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Full({3, 1}, 2, Dtype::kInt32);
-        Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(0, 2);
-        a *= b;
-        testing::ExpectEqual<int32_t>(e, a);
-    }
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Full({3}, 2, Dtype::kInt32);
-        Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(0, 2);
-        a *= b;
-        testing::ExpectEqual<int32_t>(e, a);
-    }
-    {
-        Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
-        Array b = Array::Full({3, 3}, 2, Dtype::kInt32);
-        Array e = testing::BuildArray<int32_t>({3, 3}, {0, 2, 4, 0, 2, 4, 0, 2, 4});
-        EXPECT_THROW(a *= b, XchainerError);
-    }
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Full({4}, 2, Dtype::kInt32);
-        EXPECT_THROW(a *= b, XchainerError);
-    }
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray<float>({3, 1}, {1, 4, 9});
+    a *= b;
+    testing::ExpectEqual<float>(e, a);
 }
 
 TEST_P(ArrayTest, Add) {
-    {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
-        Array e = testing::BuildArray<bool>({4, 1}, {true, true, true, false});
-        Array o = a + b;
-        testing::ExpectEqual<bool>(e, o);
-    }
-    {
-        Array a = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array b = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<int8_t>({3, 1}, {2, 4, 6});
-        Array o = a + b;
-        testing::ExpectEqual<int8_t>(e, o);
-    }
-    {
-        Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
-        Array o = a + b;
-        testing::ExpectEqual<float>(e, o);
-    }
-
-    // non-contiguous
-    {
-        Array a = Array(testing::BuildArray({3, 3}).WithLinearData<int32_t>()).At({Slice{}, Slice{1, 2}});
-        Array b = Array::OnesLike(a);
-        Array e = testing::BuildArray<int32_t>({3, 1}, {2, 5, 8});
-        Array o = a + b;
-        testing::ExpectEqual<int32_t>(e, o);
-    }
-
-    // broadcast
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3, 1}, Dtype::kInt32);
-        Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(1);
-        Array o = a + b;
-        testing::ExpectEqual<int32_t>(e, o);
-    }
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3}, Dtype::kInt32);
-        Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(1);
-        Array o = a + b;
-        testing::ExpectEqual<int32_t>(e, o);
-    }
-    {
-        Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3, 3}, Dtype::kInt32);
-        Array e = testing::BuildArray<int32_t>({3, 3}, {1, 2, 3, 1, 2, 3, 1, 2, 3});
-        Array o = a + b;
-        testing::ExpectEqual<int32_t>(e, o);
-    }
-    {
-        Array a = testing::BuildArray({3, 1}).WithLinearData<int32_t>();
-        Array b = testing::BuildArray({1, 2}).WithLinearData<int32_t>(1);
-        Array e = testing::BuildArray<int32_t>({3, 2}, {1, 2, 2, 3, 3, 4});
-        Array o = a + b;
-        testing::ExpectEqual<int32_t>(e, o);
-    }
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({4}, Dtype::kInt32);
-        EXPECT_THROW(a + b, XchainerError);
-    }
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
+    Array o = a + b;
+    testing::ExpectEqual<float>(e, o);
 }
 
 TEST_P(ArrayTest, Mul) {
-    {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
-        Array e = testing::BuildArray<bool>({4, 1}, {true, false, false, false});
-        Array o = a * b;
-        testing::ExpectEqual<bool>(e, o);
-    }
-    {
-        Array a = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array b = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<int8_t>({3, 1}, {1, 4, 9});
-        Array o = a * b;
-        testing::ExpectEqual<int8_t>(e, o);
-    }
-    {
-        Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<float>({3, 1}, {1, 4, 9});
-        Array o = a * b;
-        testing::ExpectEqual<float>(e, o);
-    }
-
-    // non-contiguous
-    {
-        Array a = Array(testing::BuildArray({3, 3}).WithLinearData<int32_t>()).At({Slice{}, Slice{1, 2}});
-        Array b = Array::FullLike(a, 2);
-        Array e = testing::BuildArray<int32_t>({3, 1}, {2, 8, 14});
-        Array o = a * b;
-        testing::ExpectEqual<int32_t>(e, o);
-    }
-
-    // broadcast
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Full({3, 1}, 2, Dtype::kInt32);
-        Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(0, 2);
-        Array o = a * b;
-        testing::ExpectEqual<int32_t>(e, o);
-    }
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Full({3}, 2, Dtype::kInt32);
-        Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(0, 2);
-        Array o = a * b;
-        testing::ExpectEqual<int32_t>(e, o);
-    }
-    {
-        Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
-        Array b = Array::Full({3, 3}, 2, Dtype::kInt32);
-        Array e = testing::BuildArray<int32_t>({3, 3}, {0, 2, 4, 0, 2, 4, 0, 2, 4});
-        Array o = a * b;
-        testing::ExpectEqual<int32_t>(e, o);
-    }
-    {
-        Array a = testing::BuildArray({3, 1}).WithLinearData<int32_t>(1);
-        Array b = testing::BuildArray({1, 2}).WithLinearData<int32_t>(1);
-        Array e = testing::BuildArray<int32_t>({3, 2}, {1, 2, 2, 4, 3, 6});
-        Array o = a * b;
-        testing::ExpectEqual<int32_t>(e, o);
-    }
-    {
-        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Full({4}, 2, Dtype::kInt32);
-        EXPECT_THROW(a * b, XchainerError);
-    }
-}
-
-TEST_P(ArrayTest, ChainedMath) {
-    {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
-        Array e = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        Array c = a * b;
-        Array o = a + c;
-        testing::ExpectEqual<bool>(e, o);
-    }
-    {
-        Array a = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array b = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<int8_t>({3, 1}, {2, 6, 12});
-        Array c = a * b;
-        Array o = a + c;
-        testing::ExpectEqual<int8_t>(e, o);
-    }
-    {
-        Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<float>({3, 1}, {2, 6, 12});
-        Array c = a * b;
-        Array o = a + c;
-        testing::ExpectEqual<float>(e, o);
-    }
-}
-
-TEST_P(ArrayTest, ChainedInplaceMath) {
-    {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
-        Array e = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        b *= a;
-        a += b;
-        testing::ExpectEqual<bool>(e, a);
-    }
-    {
-        Array a = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array b = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<int8_t>({3, 1}, {2, 6, 12});
-        b *= a;
-        a += b;
-        testing::ExpectEqual<int8_t>(e, a);
-    }
-    {
-        Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<float>({3, 1}, {2, 6, 12});
-        b *= a;
-        a += b;
-        testing::ExpectEqual<float>(e, a);
-    }
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray<float>({3, 1}, {1, 4, 9});
+    Array o = a * b;
+    testing::ExpectEqual<float>(e, o);
 }
 
 TEST_P(ArrayTest, ComputationalGraph) {
@@ -891,38 +608,6 @@ TEST_P(ArrayTest, Transpose) {
 
     Array e = testing::BuildArray({3, 2}).WithData<int32_t>({0, 3, 1, 4, 2, 5});
     testing::ExpectEqual<int32_t>(e, b);
-}
-
-TEST_P(ArrayTest, TransposeNoncontiguous) {
-    Array a = testing::BuildArray({2, 3})         //
-                      .WithLinearData<int32_t>()  //
-                      .WithPadding(1);
-    Array b = a.Transpose();
-
-    EXPECT_EQ(Shape({3, 2}), b.shape());
-
-    Array e = testing::BuildArray({3, 2}).WithData<int32_t>({0, 3, 1, 4, 2, 5});
-    testing::ExpectEqual<int32_t>(e, b);
-}
-
-TEST_P(ArrayTest, TransposeBackward) {
-    CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0].Transpose()}; },
-            {Array::Zeros({2, 3}, Dtype::kFloat32).RequireGrad()},
-            {testing::BuildArray({3, 2}, {1.f, 2.f, 3.f, 4.f, 5.f, 6.f})},
-            {Array::Full({2, 3}, 1e-5f)});
-}
-
-TEST_P(ArrayTest, TransposeDoubleBackward) {
-    CheckDoubleBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto t = xs[0].Transpose();
-                return {t * t};  // to make it nonlinear
-            },
-            {(*testing::BuildArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
-            {Array::Ones({3, 2}, Dtype::kFloat32).RequireGrad()},
-            {Array::Ones({2, 3}, Dtype::kFloat32)},
-            {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
 }
 
 TEST_P(ArrayTest, Copy) {
@@ -1250,44 +935,6 @@ TEST(ArrayReshapeTest, Reshape) {
     testing::ExpectEqual<T>(e, b);
 }
 
-// If an input array has a unit-length axis with 0-stride, that axis should not give rise to any copies.
-TEST(ArrayReshapeTest, ReshapeNoCopyZeroStrideAxis) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-    Shape input_shape_before_newaxis{2, 3, 4};
-    Shape output_shape{3, 4, 2};
-
-    // The shape of the input array is (2, 1, 3, 4) with strides (48, 0, 16, 4).
-    Array a = (*testing::BuildArray(input_shape_before_newaxis).WithLinearData<T>()).At({Slice{}, NewAxis{}, Slice{}, Slice{}});
-    assert(std::find(a.strides().begin(), a.strides().end(), 0) != a.strides().end());
-
-    Array b = a.Reshape(output_shape);
-    ASSERT_EQ(output_shape, b.shape());
-    EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
-    Array e = testing::BuildArray(output_shape).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, b);
-}
-
-TEST(ArrayReshapeTest, InvalidReshape) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-    Shape input_shape{2, 3, 4};
-    Shape output_shape{2, 4, 4};
-
-    Array a = testing::BuildArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.Reshape(output_shape), DimensionError);
-}
-
-TEST(ArraySqueezeTest, SqueezeAllUnitLengthAxes) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-
-    Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    Array b = a.Squeeze();
-    Array e = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, b);
-}
-
 TEST(ArraySqueezeTest, SqueezeSpecifiedUnitLenghtAxes) {
     using T = int32_t;
     testing::ContextSession context_session{};
@@ -1306,95 +953,6 @@ TEST(ArraySqueezeTest, SqueezeAllAxes) {
     Array b = a.Squeeze();
     Array e = testing::BuildArray<T>({}, std::vector<T>(1, 0));
     testing::ExpectEqual<T>(e, b);
-}
-
-TEST(ArraySqueezeTest, SqueezeMultipleCalls) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-
-    Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    Array b = a.Squeeze(std::vector<int8_t>{0, 2});
-    Array c = b.Squeeze(std::vector<int8_t>{3});
-    Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, c);
-}
-
-TEST(ArraySqueezeTest, SqueezeNonContiguous) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-
-    Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(1);
-    Array b = a.Squeeze(std::vector<int8_t>{0, 2, 4});
-    Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, b);
-}
-
-TEST(ArraySqueezeTest, SqueezeNegativeAxis) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-
-    Array a = testing::BuildArray({2, 3, 4, 1}).WithLinearData<T>();
-    Array b = a.Squeeze(std::vector<int8_t>{-1});
-    Array e = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, b);
-}
-
-TEST(ArraySqueezeTest, SqueezeNoSqueezableAxes) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-
-    Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    Array e = a.Squeeze();
-    testing::ExpectEqual<T>(e, a);
-    EXPECT_EQ(e.body(), a.body());
-}
-
-TEST(ArraySqueezeTest, InvalidSqueezeNonUnitLengthAxis) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-
-    Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    EXPECT_THROW(Array b = a.Squeeze(std::vector<int8_t>{1}), DimensionError);
-}
-
-TEST(ArraySqueezeTest, InvalidSqueezeDuplicateAxes) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-
-    Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    EXPECT_THROW(a.Squeeze(std::vector<int8_t>{0, 2, 2}), XchainerError);
-}
-
-TEST(ArraySqueezeTest, InvalidSqueezeOutOfRangeAxes) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-
-    Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_THROW(a.Squeeze(std::vector<int8_t>{3}), DimensionError);
-}
-
-TEST_P(ArrayTest, SqueezeBackward) {
-    CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {xs[0].Squeeze(std::vector<int8_t>{0, 2, 4})};
-            },
-            {(*testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
-            {testing::BuildArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)},
-            {Array::Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f)});
-}
-
-TEST_P(ArrayTest, SqueezeDoubleBackward) {
-    CheckDoubleBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = xs[0].Squeeze(std::vector<int8_t>{0, 2, 4});
-                return {y * y};  // to make it nonlinear
-            },
-            {(*testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
-            {(*testing::BuildArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)).RequireGrad()},
-            {testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>()},
-            {Array::Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f), Array::Full({2, 3, 1, 4}, 1e-2f)},
-            1e-4f,
-            1e-3f);
 }
 
 TEST(ArrayBroadcastToTest, BroadcastTo) {
@@ -1420,82 +978,9 @@ TEST(ArrayBroadcastToTest, BroadcastTo) {
     testing::ExpectEqual<T>(e, b);
 }
 
-// Can't broadcast to smaller dimensions
-TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NotEnoughDimension) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-    Shape input_shape{2, 3, 4};
-    Shape output_shape{3, 4};
-
-    Array a = testing::BuildArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
-}
-
-// Can't broadcast with incompatible axis
-TEST(ArrayBroadcastToTest, InvalidBroadcastTo_IncompatibleDimension) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-    Shape input_shape{2, 3, 3};
-    Shape output_shape{2, 4, 3};
-
-    Array a = testing::BuildArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
-}
-
-// Can't broadcast at the end
-TEST(ArrayBroadcastToTest, InvalidBroadcastTo_NotBroadcastableAtEnd) {
-    using T = int32_t;
-    testing::ContextSession context_session{};
-    Shape input_shape{2, 3};
-    Shape output_shape{2, 3, 4};
-
-    Array a = testing::BuildArray(input_shape).WithLinearData<T>();
-    EXPECT_THROW(a.BroadcastTo(output_shape), DimensionError);
-}
-
-TEST(ArrayBroadcastToTest, BroadcastToBackward) {
-    using T = double;
-    testing::ContextSession context_session{};
-
-    CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {xs[0].BroadcastTo({2, 3, 4, 3})};
-            },
-            {(*testing::BuildArray({1, 3, 1, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
-            {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>(-0.1, 0.1)},
-            {Array::Full({1, 3, 1, 3}, 1e-1)});
-}
-
-TEST(ArrayBroadcastToTest, BroadcastToDoubleBackward) {
-    using T = double;
-    testing::ContextSession context_session{};
-
-    CheckDoubleBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = xs[0].BroadcastTo({2, 3, 4, 3});
-                return {y * y};  // to make it nonlinear
-            },
-            {(*testing::BuildArray({1, 3, 1, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
-            {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
-            {testing::BuildArray({1, 3, 1, 3}).WithLinearData<T>()},
-            {Array::Full({1, 3, 1, 3}, 1e-1), Array::Full({2, 3, 4, 3}, 1e-1)});
-}
-
-class ArraySumTest : public ::testing::TestWithParam<std::string> {
-protected:
-    void SetUp() override {
-        const std::string& backend_name = GetParam();
-        device_session_.emplace(DeviceId{backend_name, 0});
-    }
-
-    void TearDown() override { device_session_.reset(); }
-
-private:
-    nonstd::optional<testing::DeviceSession> device_session_;
-};
-
-TEST_P(ArraySumTest, Sum) {
+TEST(ArraySumTest, Sum) {
     using T = float;
+    testing::ContextSession context_session{};
 
     Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum(std::vector<int8_t>{2, 1, -1});
@@ -1504,8 +989,9 @@ TEST_P(ArraySumTest, Sum) {
     testing::ExpectEqual<T>(e, b);
 }
 
-TEST_P(ArraySumTest, SumAllAxes) {
+TEST(ArraySumTest, SumAllAxes) {
     using T = float;
+    testing::ContextSession context_session{};
 
     Array a = testing::BuildArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum();
@@ -1514,48 +1000,9 @@ TEST_P(ArraySumTest, SumAllAxes) {
     testing::ExpectEqual<T>(e, b);
 }
 
-TEST_P(ArraySumTest, SumZero) {
+TEST(ArraySumTest, SumKeepDims) {
     using T = float;
-
-    Array a = testing::BuildArray({0}).WithData<T>({});
-    Array b = a.Sum();
-    EXPECT_EQ(Shape{}, b.shape());
-    Array e = testing::BuildArray(Shape{}).WithData<T>({0.0f});
-    testing::ExpectEqual<T>(e, b);
-}
-
-TEST_P(ArraySumTest, SumOne) {
-    using T = float;
-
-    Array a = testing::BuildArray({}).WithData<T>({42.0f}).WithPadding(1);
-    Array b = a.Sum();
-    EXPECT_EQ(Shape{}, b.shape());
-    Array e = testing::BuildArray(Shape{}).WithData<T>({42.0f});
-    testing::ExpectEqual<T>(e, b);
-}
-
-TEST_P(ArraySumTest, SumTwo) {
-    using T = float;
-
-    Array a = testing::BuildArray({2}).WithData<T>({42.0f, 37.0f}).WithPadding(1);
-    Array b = a.Sum();
-    EXPECT_EQ(Shape{}, b.shape());
-    Array e = testing::BuildArray(Shape{}).WithData<T>({79.0f});
-    testing::ExpectEqual<T>(e, b);
-}
-
-TEST_P(ArraySumTest, SumLarge) {
-    using T = int64_t;
-
-    Array a = testing::BuildArray({0x100000}).WithLinearData<T>().WithPadding(1);
-    Array b = a.Sum(std::vector<int8_t>{0});
-    EXPECT_EQ(Shape{}, b.shape());
-    Array e = testing::BuildArray(Shape{}).WithData<T>({0x7ffff80000});
-    testing::ExpectEqual<T>(e, b);
-}
-
-TEST_P(ArraySumTest, SumKeepDims) {
-    using T = float;
+    testing::ContextSession context_session{};
 
     Array a = testing::BuildArray({2, 3, 2, 4}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum(std::vector<int8_t>{-1, 1}, true);
@@ -1565,72 +1012,6 @@ TEST_P(ArraySumTest, SumKeepDims) {
     Array e = testing::BuildArray(Shape{2, 1, 2, 1}).WithData<T>({114.0f, 162.0f, 402.0f, 450.0f});
     testing::ExpectEqual<T>(e, b);
 }
-
-TEST_P(ArraySumTest, InvalidSumDuplicateAxes) {
-    using T = float;
-
-    Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_THROW(a.Sum(std::vector<int8_t>{1, 1}), XchainerError);
-}
-
-TEST_P(ArraySumTest, InvalidSumOutOfRangeAxes) {
-    using T = float;
-
-    Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_THROW(a.Sum(std::vector<int8_t>{3}), DimensionError);
-}
-
-TEST_P(ArraySumTest, SumBackward) {
-    using T = double;
-    testing::ContextSession context_session{};
-
-    CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {xs[0].Sum(std::vector<int8_t>{1, 3})};
-            },
-            {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
-            {testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)},
-            {Array::Full({2, 3, 4, 3}, 1e-1)});
-}
-
-TEST_P(ArraySumTest, SumDoubleBackward_Keepdims) {
-    using T = double;
-    testing::ContextSession context_session{};
-
-    CheckDoubleBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = xs[0].Sum(std::vector<int8_t>{1, 3}, true);
-                return {y * y};  // to make it nonlinear
-            },
-            {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
-            {(*testing::BuildArray({2, 1, 4, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
-            {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
-            {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 1, 4, 1}, 1e-1)});
-}
-
-TEST_P(ArraySumTest, SumDoubleBackward_NoKeepdims) {
-    using T = double;
-    testing::ContextSession context_session{};
-
-    CheckDoubleBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = xs[0].Sum(std::vector<int8_t>{1, 3}, false);
-                return {y * y};  // to make it nonlinear
-            },
-            {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
-            {(*testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
-            {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
-            {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 4}, 1e-1)});
-}
-
-INSTANTIATE_TEST_CASE_P(
-        ForEachBackend,
-        ArraySumTest,
-        ::testing::Values(
-#ifdef XCHAINER_ENABLE_CUDA
-                std::string{"cuda"},
-#endif  // XCHAINER_ENABLE_CUDA
-                std::string{"native"}));
 
 }  // namespace
 }  // namespace xchainer
