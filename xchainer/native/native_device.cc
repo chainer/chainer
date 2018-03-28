@@ -283,17 +283,20 @@ void NativeDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
-void NativeDevice::Maximum(const Array& lhs, Scalar rhs, const Array& out) {
-    CheckDevicesCompatible(lhs, out);
+void NativeDevice::LessWhere(Scalar lhs, const Array& rhs, const Array& pos, Scalar neg, const Array& out) {
+    CheckDevicesCompatible(rhs, pos, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<const T> pos_iarray{pos};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer<> indexer{rhs.shape()};
+        T lhs_value{lhs};
+        T neg_value{neg};
 
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
-            out_iarray[indexer] = std::max(lhs_iarray[indexer], static_cast<T>(rhs));
+            out_iarray[indexer] = lhs_value < rhs_iarray[indexer] ? pos_iarray[indexer] : neg_value;
         }
     });
 }

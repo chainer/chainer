@@ -396,7 +396,7 @@ TEST_P(MathTest, SumDoubleBackward_NoKeepdims) {
             {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 4}, 1e-1)});
 }
 
-TEST_P(MathTest, Maximum) {
+TEST_P(MathTest, MaximumScalar) {
     Array a = testing::BuildArray<float>({3, 1}, {-1.f, 2.f, -.2f});
     Array e = testing::BuildArray<float>({3, 1}, {0.f, 2.f, 0.f});
 
@@ -410,11 +410,56 @@ TEST_P(MathTest, Maximum) {
     }
 }
 
-TEST_P(MathTest, MaximumEmpty) {
+TEST_P(MathTest, MaximumScalarEmpty) {
     Array a = testing::BuildArray<float>({0}, {});
     Array e = testing::BuildArray<float>({0}, {});
     Array b = Maximum(a, Scalar{0.f});
     testing::ExpectEqual<float>(e, b);
+}
+
+TEST_P(MathTest, MaximumScalarBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar s{T{0.2}};
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Array::Full(shape, 1e-1);
+
+    // Maximum(array, scalar)
+    CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Maximum(xs[0], s)}; }, {a}, {go}, {eps});
+    // Maximum(scalar, array)
+    CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Maximum(s, xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, MaximumScalarDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar s{T{0.2}};
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Array::Full(shape, 1e-1);
+
+    // Maximum(array, scalar)
+    CheckDoubleBackwardComputation(
+            [s](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Maximum(xs[0], s);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+    // Maximum(scalar, array)
+    CheckDoubleBackwardComputation(
+            [s](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Maximum(s, xs[0]);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
 }
 
 INSTANTIATE_TEST_CASE_P(

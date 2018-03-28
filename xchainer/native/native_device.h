@@ -63,7 +63,7 @@ public:
     void Mul(const Array& lhs, Scalar rhs, const Array& out) override;
     void Mul(const Array& lhs, const Array& rhs, const Array& out) override;
 
-    void Maximum(const Array& lhs, Scalar rhs, const Array& out) override;
+    void LessWhere(Scalar lhs, const Array& rhs, const Array& pos, Scalar neg, const Array& out) override;
 
     void Synchronize() override;
 };
