@@ -170,7 +170,9 @@ Scalar Array::AsScalar() const {
     native_device.Synchronize();
     return VisitDtype(dtype(), [&native_copy](auto pt) -> Scalar {
         using T = typename decltype(pt)::type;
-        T value = *reinterpret_cast<const T*>(native_copy.data().get());
+        const void* ptr = native_copy.data().get();
+        auto typed_ptr = reinterpret_cast<const T*>(ptr);  // NOLINT: reinterpret_cast
+        T value = *typed_ptr;
         return Scalar{value};
     });
 }
