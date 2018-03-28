@@ -2,7 +2,7 @@
 set -eu
 
 # Usage:
-#    run-clang-tidy [normal|test]
+#    run-clang-tidy.sh [normal|test]
 #
 # Options:
 #    normal   : If specified, run clang-tidy on *.cc files except test files (warnings are treated as errors)
