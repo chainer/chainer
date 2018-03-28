@@ -53,7 +53,7 @@ public:
     // src_ptr must reside in the main RAM.
     virtual std::shared_ptr<void> FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
 
-    virtual void Fill(Array& out, Scalar value) = 0;
+    virtual void Fill(const Array& out, Scalar value) = 0;
 
     // Calculate the sum of an array.
     // It will be summed over the specified axes.
@@ -62,15 +62,15 @@ public:
     // - it is sorted, and
     // - it has no duplicated values.
     // Otherwise, the behavior is undefined.
-    virtual void Sum(const Array& src, const std::vector<int8_t>& axis, Array& out) = 0;
+    virtual void Sum(const Array& src, const std::vector<int8_t>& axis, const Array& out) = 0;
 
     // Copies the elements from one array to the other.
     //
     // The arrays must match in shape and dtype and need to reside on this device.
-    virtual void Copy(const Array& src, Array& out) = 0;
+    virtual void Copy(const Array& src, const Array& out) = 0;
 
-    virtual void Add(const Array& lhs, const Array& rhs, Array& out) = 0;
-    virtual void Mul(const Array& lhs, const Array& rhs, Array& out) = 0;
+    virtual void Add(const Array& lhs, const Array& rhs, const Array& out) = 0;
+    virtual void Mul(const Array& lhs, const Array& rhs, const Array& out) = 0;
 
     virtual void Synchronize() = 0;
 

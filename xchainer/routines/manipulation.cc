@@ -23,7 +23,7 @@ namespace routines {
 Array Transpose(const Array& a) {
     Shape out_shape{a.shape().rbegin(), a.shape().rend()};
     Strides out_strides{a.strides().rbegin(), a.strides().rend()};
-    Array out{out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset()};
+    Array out = xchainer::internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
     xchainer::internal::SetUpOpNodes(
             "transpose", {a}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout.Transpose(); }});
     return out;
@@ -35,7 +35,7 @@ Array Reshape(const Array& a, const Shape& shape) {
 
     // If the shape is unchanged, just return a view.
     if (in_shape == shape) {
-        return a;
+        return a.MakeView();
     }
 
     // Check for invalid shape.
@@ -129,7 +129,7 @@ Array Reshape(const Array& a, const Shape& shape) {
         strides = Strides{strides_vec.begin(), strides_vec.end()};
     }
 
-    Array out{shape, strides, a.dtype(), a.device(), a.data(), a.offset()};
+    Array out = xchainer::internal::MakeArray(shape, strides, a.dtype(), a.device(), a.data(), a.offset());
     xchainer::internal::SetUpOpNodes(
             "reshape", {a}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }}, {});
 
@@ -179,14 +179,14 @@ Array Squeeze(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis)
         }
     }
 
-    // TODO(hvy): Do not remove const and return the same body properly.
-    Array out = in_shape.size() == out_shape.size() ? Array{std::const_pointer_cast<xchainer::internal::ArrayBody>(a.body())}
-                                                    : Array{Shape{out_shape.begin(), out_shape.end()},
-                                                            Strides{out_strides.begin(), out_strides.end()},
-                                                            a.dtype(),
-                                                            a.device(),
-                                                            a.data(),
-                                                            a.offset()};
+    Array out = in_shape.size() == out_shape.size() ? a
+                                                    : xchainer::internal::MakeArray(
+                                                              Shape{out_shape.begin(), out_shape.end()},
+                                                              Strides{out_strides.begin(), out_strides.end()},
+                                                              a.dtype(),
+                                                              a.device(),
+                                                              a.data(),
+                                                              a.offset());
     xchainer::internal::SetUpOpNodes(
             "squeeze", {a}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }});
 
@@ -233,7 +233,8 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
         }
     }
     assert(rev_strides.size() == shape.size());
-    Array out = Array{shape, {rev_strides.rbegin(), rev_strides.rend()}, array.dtype(), array.device(), array.data(), array.offset()};
+    Array out = xchainer::internal::MakeArray(
+            shape, {rev_strides.rbegin(), rev_strides.rend()}, array.dtype(), array.device(), array.data(), array.offset());
 
     auto backward_function = [in_shape](const Array& gout, const std::vector<GraphId>&) {
         if (gout.shape() == in_shape) {

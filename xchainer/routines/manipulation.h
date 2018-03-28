@@ -5,12 +5,10 @@
 
 #include <nonstd/optional.hpp>
 
+#include "xchainer/array.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
-
-class Array;
-
 namespace routines {
 
 // Returns a transposed view of the array.

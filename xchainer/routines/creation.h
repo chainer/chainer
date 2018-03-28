@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 
+#include "xchainer/array.h"
 #include "xchainer/array_index.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -12,9 +13,6 @@
 #include "xchainer/shape.h"
 
 namespace xchainer {
-
-class Array;
-
 namespace routines {
 namespace internal {
 
@@ -22,8 +20,11 @@ namespace internal {
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size);
 
 // Creates an array with given data packed with specified strides
-Array ArrayFromBuffer(
+Array FromBuffer(
         const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device = GetDefaultDevice());
+
+// Creates an empty array with specified strides.
+Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device = GetDefaultDevice());
 
 }  // namespace internal
 

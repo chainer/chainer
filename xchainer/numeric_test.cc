@@ -27,22 +27,22 @@ protected:
 public:
     template <typename T>
     void CheckAllClose(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<T> bdata, double rtol, double atol) {
-        Array a = testing::MakeArray<T>(shape, adata);
-        Array b = testing::MakeArray<T>(shape, bdata);
+        Array a = testing::BuildArray<T>(shape, adata);
+        Array b = testing::BuildArray<T>(shape, bdata);
         EXPECT_TRUE(AllClose(a, b, rtol, atol));
     }
 
     template <typename T>
     void CheckNotAllClose(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<T> bdata, double rtol, double atol) {
-        Array a = testing::MakeArray<T>(shape, adata);
-        Array b = testing::MakeArray<T>(shape, bdata);
+        Array a = testing::BuildArray<T>(shape, adata);
+        Array b = testing::BuildArray<T>(shape, bdata);
         EXPECT_FALSE(AllClose(a, b, rtol, atol));
     }
 
     template <typename T, typename U>
     void CheckAllCloseThrow(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<U> bdata, double rtol, double atol) {
-        Array a = testing::MakeArray<T>(shape, adata);
-        Array b = testing::MakeArray<U>(shape, bdata);
+        Array a = testing::BuildArray<T>(shape, adata);
+        Array b = testing::BuildArray<U>(shape, bdata);
         EXPECT_THROW(AllClose(a, b, rtol, atol), DtypeError);
     }
 
