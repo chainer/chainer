@@ -108,53 +108,53 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 }  // namespace internal
 
 Array Array::FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
-    return routines::FromBuffer(shape, dtype, data, device);
+    return xchainer::FromBuffer(shape, dtype, data, device);
 }
 
-Array Array::Empty(const Shape& shape, Dtype dtype, Device& device) { return routines::Empty(shape, dtype, device); }
+Array Array::Empty(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Empty(shape, dtype, device); }
 
-Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device) { return routines::Full(shape, scalar, dtype, device); }
+Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device) { return xchainer::Full(shape, scalar, dtype, device); }
 
-Array Array::Full(const Shape& shape, Scalar scalar, Device& device) { return routines::Full(shape, scalar, device); }
+Array Array::Full(const Shape& shape, Scalar scalar, Device& device) { return xchainer::Full(shape, scalar, device); }
 
-Array Array::Zeros(const Shape& shape, Dtype dtype, Device& device) { return routines::Zeros(shape, dtype, device); }
+Array Array::Zeros(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Zeros(shape, dtype, device); }
 
-Array Array::Ones(const Shape& shape, Dtype dtype, Device& device) { return routines::Ones(shape, dtype, device); }
+Array Array::Ones(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Ones(shape, dtype, device); }
 
-Array Array::EmptyLike(const Array& array, Device& device) { return routines::EmptyLike(array, device); }
+Array Array::EmptyLike(const Array& array, Device& device) { return xchainer::EmptyLike(array, device); }
 
-Array Array::FullLike(const Array& array, Scalar scalar, Device& device) { return routines::FullLike(array, scalar, device); }
+Array Array::FullLike(const Array& array, Scalar scalar, Device& device) { return xchainer::FullLike(array, scalar, device); }
 
-Array Array::ZerosLike(const Array& array, Device& device) { return routines::ZerosLike(array, device); }
+Array Array::ZerosLike(const Array& array, Device& device) { return xchainer::ZerosLike(array, device); }
 
-Array Array::OnesLike(const Array& array, Device& device) { return routines::OnesLike(array, device); }
+Array Array::OnesLike(const Array& array, Device& device) { return xchainer::OnesLike(array, device); }
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
 
-Array& Array::operator+=(const Array& rhs) { return routines::internal::IAdd(*this, rhs); }
+Array& Array::operator+=(const Array& rhs) { return internal::IAdd(*this, rhs); }
 
-const Array& Array::operator+=(const Array& rhs) const { return routines::internal::IAdd(*this, rhs); }
+const Array& Array::operator+=(const Array& rhs) const { return internal::IAdd(*this, rhs); }
 
-Array Array::operator+(const Array& rhs) const { return routines::Add(*this, rhs); }
+Array Array::operator+(const Array& rhs) const { return xchainer::Add(*this, rhs); }
 
-Array& Array::operator*=(const Array& rhs) { return routines::internal::IMultiply(*this, rhs); }
+Array& Array::operator*=(const Array& rhs) { return internal::IMultiply(*this, rhs); }
 
-const Array& Array::operator*=(const Array& rhs) const { return routines::internal::IMultiply(*this, rhs); }
+const Array& Array::operator*=(const Array& rhs) const { return internal::IMultiply(*this, rhs); }
 
-Array Array::operator*(const Array& rhs) const { return routines::Multiply(*this, rhs); }
+Array Array::operator*(const Array& rhs) const { return Multiply(*this, rhs); }
 
-Array Array::At(const std::vector<ArrayIndex>& indices) const { return routines::internal::At(*this, indices); }
+Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal::At(*this, indices); }
 
-Array Array::Transpose() const { return routines::Transpose(*this); }
+Array Array::Transpose() const { return xchainer::Transpose(*this); }
 
-Array Array::Reshape(const Shape& shape) const { return routines::Reshape(*this, shape); }
+Array Array::Reshape(const Shape& shape) const { return xchainer::Reshape(*this, shape); }
 
-Array Array::Squeeze(const nonstd::optional<std::vector<int8_t>>& axis) const { return routines::Squeeze(*this, axis); }
+Array Array::Squeeze(const nonstd::optional<std::vector<int8_t>>& axis) const { return xchainer::Squeeze(*this, axis); }
 
-Array Array::BroadcastTo(const Shape& shape) const { return routines::BroadcastTo(*this, shape); }
+Array Array::BroadcastTo(const Shape& shape) const { return xchainer::BroadcastTo(*this, shape); }
 
-Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return routines::Sum(*this, axis, keepdims); }
+Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
 
 Array Array::Copy() const {
     // No graph will be disconnected.

@@ -8,7 +8,6 @@
 #include "xchainer/array.h"
 
 namespace xchainer {
-namespace routines {
 
 namespace internal {
 
@@ -30,5 +29,4 @@ Array Multiply(const Array& x1, const Array& x2);
 
 Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false);
 
-}  // namespace routines
 }  // namespace xchainer

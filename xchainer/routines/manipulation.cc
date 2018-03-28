@@ -18,14 +18,12 @@
 #include "xchainer/routines/util.h"
 
 namespace xchainer {
-namespace routines {
 
 Array Transpose(const Array& a) {
     Shape out_shape{a.shape().rbegin(), a.shape().rend()};
     Strides out_strides{a.strides().rbegin(), a.strides().rend()};
-    Array out = xchainer::internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
-    xchainer::internal::SetUpOpNodes(
-            "transpose", {a}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout.Transpose(); }});
+    Array out = internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
+    internal::SetUpOpNodes("transpose", {a}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout.Transpose(); }});
     return out;
 }
 
@@ -129,8 +127,8 @@ Array Reshape(const Array& a, const Shape& shape) {
         strides = Strides{strides_vec.begin(), strides_vec.end()};
     }
 
-    Array out = xchainer::internal::MakeArray(shape, strides, a.dtype(), a.device(), a.data(), a.offset());
-    xchainer::internal::SetUpOpNodes(
+    Array out = internal::MakeArray(shape, strides, a.dtype(), a.device(), a.data(), a.offset());
+    internal::SetUpOpNodes(
             "reshape", {a}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }}, {});
 
     assert(out.shape() == shape);
@@ -180,14 +178,14 @@ Array Squeeze(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis)
     }
 
     Array out = in_shape.size() == out_shape.size() ? a
-                                                    : xchainer::internal::MakeArray(
+                                                    : internal::MakeArray(
                                                               Shape{out_shape.begin(), out_shape.end()},
                                                               Strides{out_strides.begin(), out_strides.end()},
                                                               a.dtype(),
                                                               a.device(),
                                                               a.data(),
                                                               a.offset());
-    xchainer::internal::SetUpOpNodes(
+    internal::SetUpOpNodes(
             "squeeze", {a}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }});
 
     return out;
@@ -233,7 +231,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
         }
     }
     assert(rev_strides.size() == shape.size());
-    Array out = xchainer::internal::MakeArray(
+    Array out = internal::MakeArray(
             shape, {rev_strides.rbegin(), rev_strides.rend()}, array.dtype(), array.device(), array.data(), array.offset());
 
     auto backward_function = [in_shape](const Array& gout, const std::vector<GraphId>&) {
@@ -259,10 +257,9 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
         }
         return gin;
     };
-    xchainer::internal::SetUpOpNodes("broadcast_to", {array}, out, {backward_function});
+    internal::SetUpOpNodes("broadcast_to", {array}, out, {backward_function});
 
     return out;
 }
 
-}  // namespace routines
 }  // namespace xchainer

@@ -1,16 +1,9 @@
 #include "xchainer/routines/math.h"
 
-#include <cstdint>
-#include <vector>
-
-#include <nonstd/optional.hpp>
-
-#include "xchainer/array.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/util.h"
 
 namespace xchainer {
-namespace routines {
 namespace {
 
 void AddImpl(const Array& lhs, const Array& rhs, const Array& out) {
@@ -20,7 +13,7 @@ void AddImpl(const Array& lhs, const Array& rhs, const Array& out) {
 
     auto lhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
     auto rhs_backward_function = lhs_backward_function;
-    xchainer::internal::SetUpOpNodes("add", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+    internal::SetUpOpNodes("add", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     lhs.device().Add(lhs, rhs, out);
 }
@@ -43,35 +36,35 @@ ArrayType& AddAssignImpl(ArrayType& self, const Array& rhs) {
 
 namespace internal {
 
-Array& IAdd(Array& x1, const Array& x2) { return AddAssignImpl(x1, x2); }
+Array& IAdd(Array& lhs, const Array& rhs) { return AddAssignImpl(lhs, rhs); }
 
-const Array& IAdd(const Array& x1, const Array& x2) { return AddAssignImpl(x1, x2); }
+const Array& IAdd(const Array& lhs, const Array& rhs) { return AddAssignImpl(lhs, rhs); }
 
 }  // namespace internal
 
-Array Add(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) {
-        Array out = Array::EmptyLike(x1, x1.device());
-        AddImpl(x1, x2, out);
+Array Add(const Array& lhs, const Array& rhs) {
+    auto func = [](const Array& lhs, const Array& rhs) {
+        Array out = Array::EmptyLike(lhs, lhs.device());
+        AddImpl(lhs, rhs, out);
         return out;
     };
 
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
+    if (lhs.shape() == rhs.shape()) {
+        return func(lhs, rhs);
     }
-    Shape result_shape = xchainer::internal::BroadcastShapes(x1.shape(), x2.shape());
-    if (x1.shape() == result_shape) {
-        return func(x1, x2.BroadcastTo(result_shape));
+    Shape result_shape = internal::BroadcastShapes(lhs.shape(), rhs.shape());
+    if (lhs.shape() == result_shape) {
+        return func(lhs, rhs.BroadcastTo(result_shape));
     }
-    if (x2.shape() == result_shape) {
-        return func(x1.BroadcastTo(result_shape), x2);
+    if (rhs.shape() == result_shape) {
+        return func(lhs.BroadcastTo(result_shape), rhs);
     }
-    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
+    return func(lhs.BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
 }
 
 namespace {
 
-void MultiplyImpl(const Array& lhs, const Array& rhs, const Array& out) {
+void MulImpl(const Array& lhs, const Array& rhs, const Array& out) {
     // TODO(sonots): dtype conversion
     CheckEqual(lhs.dtype(), rhs.dtype());
     CheckEqual(lhs.shape(), rhs.shape());
@@ -82,15 +75,15 @@ void MultiplyImpl(const Array& lhs, const Array& rhs, const Array& out) {
     auto rhs_backward_function = [other = lhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
         return gout * other.AsConstant(graph_ids_to_stop_gradient);
     };
-    xchainer::internal::SetUpOpNodes("mul", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+    internal::SetUpOpNodes("mul", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     lhs.device().Mul(lhs, rhs, out);
 }
 
 template <typename ArrayType>
-ArrayType& MultiplyAssignImpl(ArrayType& self, const Array& rhs) {
+ArrayType& MulAssignImpl(ArrayType& self, const Array& rhs) {
     auto func = [](ArrayType& lhs, const Array& rhs) -> ArrayType& {
-        MultiplyImpl(lhs, rhs, lhs);
+        MulImpl(lhs, rhs, lhs);
         return lhs;
     };
 
@@ -105,30 +98,30 @@ ArrayType& MultiplyAssignImpl(ArrayType& self, const Array& rhs) {
 
 namespace internal {
 
-Array& IMultiply(Array& x1, const Array& x2) { return MultiplyAssignImpl(x1, x2); }
+Array& IMultiply(Array& lhs, const Array& rhs) { return MulAssignImpl(lhs, rhs); }
 
-const Array& IMultiply(const Array& x1, const Array& x2) { return MultiplyAssignImpl(x1, x2); }
+const Array& IMultiply(const Array& lhs, const Array& rhs) { return MulAssignImpl(lhs, rhs); }
 
 }  // namespace internal
 
-Array Multiply(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) {
-        Array out = Array::EmptyLike(x1, x1.device());
-        MultiplyImpl(x1, x2, out);
+Array Multiply(const Array& lhs, const Array& rhs) {
+    auto func = [](const Array& lhs, const Array& rhs) {
+        Array out = Array::EmptyLike(lhs, lhs.device());
+        MulImpl(lhs, rhs, out);
         return out;
     };
 
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
+    if (lhs.shape() == rhs.shape()) {
+        return func(lhs, rhs);
     }
-    Shape result_shape = xchainer::internal::BroadcastShapes(x1.shape(), x2.shape());
-    if (x1.shape() == result_shape) {
-        return func(x1, x2.BroadcastTo(result_shape));
+    Shape result_shape = internal::BroadcastShapes(lhs.shape(), rhs.shape());
+    if (lhs.shape() == result_shape) {
+        return func(lhs, rhs.BroadcastTo(result_shape));
     }
-    if (x2.shape() == result_shape) {
-        return func(x1.BroadcastTo(result_shape), x2);
+    if (rhs.shape() == result_shape) {
+        return func(lhs.BroadcastTo(result_shape), rhs);
     }
-    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
+    return func(lhs.BroadcastTo(result_shape), rhs.BroadcastTo(result_shape));
 }
 
 Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
@@ -185,10 +178,9 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
         }
         return gout.BroadcastTo(in_shape);
     };
-    xchainer::internal::SetUpOpNodes("sum", {a}, out, {backward_function});
+    internal::SetUpOpNodes("sum", {a}, out, {backward_function});
 
     return out;
 }
 
-}  // namespace routines
 }  // namespace xchainer

@@ -11,7 +11,7 @@
 #include "xchainer/slice.h"
 
 namespace xchainer {
-namespace routines {
+namespace internal {
 namespace {
 
 // Returns an array where elements at indices are added by the addends `b`.
@@ -37,8 +37,6 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 }
 
 }  // namespace
-
-namespace internal {
 
 Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
     std::vector<int64_t> out_shape;
@@ -93,5 +91,4 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 }
 
 }  // namespace internal
-}  // namespace routines
 }  // namespace xchainer
