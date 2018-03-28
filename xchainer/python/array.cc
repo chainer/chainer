@@ -292,6 +292,7 @@ void InitXchainerArray(pybind11::module& m) {
         return list;
     });
 
+    // creation
     m.def("empty",
           [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
               return Array::Empty(ToShape(shape), dtype, GetDevice(device_id)).move_body();
@@ -300,19 +301,19 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("full",
-          [](py::tuple shape, Scalar value, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-              return Array::Full(ToShape(shape), value, dtype, GetDevice(device_id)).move_body();
+          [](py::tuple shape, Scalar fill_value, Dtype dtype, const nonstd::optional<std::string>& device_id) {
+              return Array::Full(ToShape(shape), fill_value, dtype, GetDevice(device_id)).move_body();
           },
           py::arg("shape"),
-          py::arg("value"),
+          py::arg("fill_value"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("full",
-          [](py::tuple shape, Scalar value, const nonstd::optional<std::string>& device_id) {
-              return Array::Full(ToShape(shape), value, GetDevice(device_id)).move_body();
+          [](py::tuple shape, Scalar fill_value, const nonstd::optional<std::string>& device_id) {
+              return Array::Full(ToShape(shape), fill_value, GetDevice(device_id)).move_body();
           },
           py::arg("shape"),
-          py::arg("value"),
+          py::arg("fill_value"),
           py::arg("device") = nullptr);
     m.def("zeros",
           [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
@@ -329,29 +330,29 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("empty_like",
-          [](const ArrayBodyPtr& other, const nonstd::optional<std::string>& device_id) {
-              return Array::EmptyLike(Array{other}, GetDevice(device_id)).move_body();
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::string>& device_id) {
+              return Array::EmptyLike(Array{a}, GetDevice(device_id)).move_body();
           },
-          py::arg("other"),
+          py::arg("a"),
           py::arg("device") = nullptr);
     m.def("full_like",
-          [](const ArrayBodyPtr& other, Scalar value, const nonstd::optional<std::string>& device_id) {
-              return Array::FullLike(Array{other}, value, GetDevice(device_id)).move_body();
+          [](const ArrayBodyPtr& a, Scalar value, const nonstd::optional<std::string>& device_id) {
+              return Array::FullLike(Array{a}, value, GetDevice(device_id)).move_body();
           },
-          py::arg("other"),
-          py::arg("value"),
+          py::arg("a"),
+          py::arg("fill_value"),
           py::arg("device") = nullptr);
     m.def("zeros_like",
-          [](const ArrayBodyPtr& other, const nonstd::optional<std::string>& device_id) {
-              return Array::ZerosLike(Array{other}, GetDevice(device_id)).move_body();
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::string>& device_id) {
+              return Array::ZerosLike(Array{a}, GetDevice(device_id)).move_body();
           },
-          py::arg("other"),
+          py::arg("a"),
           py::arg("device") = nullptr);
     m.def("ones_like",
-          [](const ArrayBodyPtr& other, const nonstd::optional<std::string>& device_id) {
-              return Array::OnesLike(Array{other}, GetDevice(device_id)).move_body();
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::string>& device_id) {
+              return Array::OnesLike(Array{a}, GetDevice(device_id)).move_body();
           },
-          py::arg("other"),
+          py::arg("a"),
           py::arg("device") = nullptr);
 
     m.def("broadcast_to",
