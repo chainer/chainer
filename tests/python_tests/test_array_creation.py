@@ -52,6 +52,7 @@ def test_empty(shape, dtype):
     _check(xchainer.empty(shape, dtype))
     _check(xchainer.empty(shape=shape, dtype=dtype))
 
+
 def test_empty_device(shape, dtype):
     def _check(a):
         check_basic_creation(a, shape, dtype, 'native:1')
@@ -170,6 +171,7 @@ def test_ones_like(shape, dtype):
     _check(xchainer.ones_like(t))
     _check(xchainer.ones_like(a=t))
 
+
 def test_ones_like_device(shape, dtype):
     t = create_dummy_array(shape, dtype)
 
@@ -183,6 +185,7 @@ def test_ones_like_device(shape, dtype):
 
     _check(xchainer.ones_like(t, 'native:1'))
     _check(xchainer.ones_like(a=t, device='native:1'))
+
 
 def check_full(shape, value, dtype, device=None):
     def _check(a):

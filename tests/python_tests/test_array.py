@@ -278,19 +278,19 @@ def test_reshape(a_shape, b_shape):
         _check_arrays_equal(xchainer.Array(b_np), b_xc)
 
     # instance methods
-    check(a_xc.reshape(b_shape)) # by tuple
-    check(a_xc.reshape(list(b_shape))) # by list
-    check(a_xc.reshape(*b_shape)) # by variable length args
+    check(a_xc.reshape(b_shape))  # by tuple
+    check(a_xc.reshape(list(b_shape)))  # by list
+    check(a_xc.reshape(*b_shape))  # by variable length args
 
     # module functions
-    check(xchainer.reshape(a_xc, b_shape)) # by tuple
-    check(xchainer.reshape(a_xc, list(b_shape))) # by list
+    check(xchainer.reshape(a_xc, b_shape))  # by tuple
+    check(xchainer.reshape(a_xc, list(b_shape)))  # by list
     with pytest.raises(TypeError):
         xchainer.reshape(a_xc, *b_shape)
 
     # module functions with keyword arguments
-    check(xchainer.reshape(a=a_xc, newshape=b_shape)) # by tuple
-    check(xchainer.reshape(a=a_xc, newshape=list(b_shape))) # by list
+    check(xchainer.reshape(a=a_xc, newshape=b_shape))  # by tuple
+    check(xchainer.reshape(a=a_xc, newshape=list(b_shape)))  # by list
 
 # TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
 # TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
