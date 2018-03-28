@@ -57,7 +57,7 @@ $ sudo apt-get install clang-format
 To format and make changes to C++ codes in place, run the following at the repository root:
 
 ```shell-session
-$ run-clang-format.sh --in-place
+$ scripts/run-clang-format.sh --in-place
 ```
 
 ### C++ Lint (cpplint)
