@@ -17,11 +17,8 @@
 #include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/backend.h"
-#include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/native/native_device.h"
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
@@ -151,31 +148,6 @@ const Array& Array::operator*=(const Array& rhs) const { return internal::IMulti
 Array Array::operator*(Scalar rhs) const { return Multiply(*this, rhs); }
 
 Array Array::operator*(const Array& rhs) const { return Multiply(*this, rhs); }
-
-Scalar Array::AsScalar() const {
-    if (GetTotalSize() != 1) {
-        throw DimensionError("Cannot convert " + std::to_string(GetTotalSize()) + "-dimensional array to scalar");
-    }
-
-    // Make a contiguous copy
-    Array contiguous_copy = AsConstant(CopyKind::kCopy);
-    assert(contiguous_copy.IsContiguous());
-
-    // Copy to the native device
-    Backend& native_backend = GetDefaultContext().GetBackend(native::NativeBackend::kDefaultName);
-    Device& native_device = native_backend.GetDevice(0);
-    Array native_copy = contiguous_copy.ToDevice(native_device);
-
-    // Retrieve the value
-    native_device.Synchronize();
-    return VisitDtype(dtype(), [&native_copy](auto pt) -> Scalar {
-        using T = typename decltype(pt)::type;
-        const void* ptr = native_copy.data().get();
-        auto typed_ptr = reinterpret_cast<const T*>(ptr);  // NOLINT: reinterpret_cast
-        T value = *typed_ptr;
-        return Scalar{value};
-    });
-}
 
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal::At(*this, indices); }
 

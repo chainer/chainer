@@ -10,14 +10,42 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/context.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
+#include "xchainer/native/native_backend.h"
+#include "xchainer/native/native_device.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
 #include "xchainer/routines/util.h"
 
 namespace xchainer {
+
+Scalar AsScalar(const Array& a) {
+    if (a.GetTotalSize() != 1) {
+        throw DimensionError("Cannot convert " + std::to_string(a.GetTotalSize()) + "-dimensional array to scalar");
+    }
+
+    // Make a contiguous copy
+    Array contiguous_copy = a.AsConstant(CopyKind::kCopy);
+    assert(contiguous_copy.IsContiguous());
+
+    // Copy to the native device
+    Backend& native_backend = GetDefaultContext().GetBackend(native::NativeBackend::kDefaultName);
+    Device& native_device = native_backend.GetDevice(0);
+    Array native_copy = contiguous_copy.ToDevice(native_device);
+
+    // Retrieve the value
+    native_device.Synchronize();
+    return VisitDtype(a.dtype(), [&native_copy](auto pt) -> Scalar {
+        using T = typename decltype(pt)::type;
+        const void* ptr = native_copy.data().get();
+        auto typed_ptr = reinterpret_cast<const T*>(ptr);  // NOLINT: reinterpret_cast
+        T value = *typed_ptr;
+        return Scalar{value};
+    });
+}
 
 Array Transpose(const Array& a) {
     Shape out_shape{a.shape().rbegin(), a.shape().rend()};

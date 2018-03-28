@@ -94,11 +94,6 @@ public:
     Array operator*(Scalar rhs) const;
     Array operator*(const Array& rhs) const;
 
-    // Retrieves a scalar from a single-element array.
-    //
-    // If the array is not single-element, DimensionError is thrown.
-    Scalar AsScalar() const;
-
     // Returns a view selected with the indices.
     Array At(const std::vector<ArrayIndex>& indices) const;
 
