@@ -1,9 +1,11 @@
 #include "xchainer/routines/logic.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <limits>
 #include <string>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
@@ -11,7 +13,6 @@
 #include "xchainer/array.h"
 #include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
-#include "xchainer/error.h"
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
