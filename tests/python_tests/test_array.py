@@ -500,10 +500,14 @@ def test_add_iadd(device, array_init_inputs):
     if dtype == xchainer.Dtype.bool:
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 2] => [False, True]
 
-    out = lhs + rhs
-    assert out._debug_flat_data == expected_data_list
-    assert lhs._debug_flat_data == lhs_data_list
-    assert rhs._debug_flat_data == rhs_data_list
+    def _check_add(lhs, rhs, out):
+        assert out._debug_flat_data == expected_data_list
+        assert lhs._debug_flat_data == lhs_data_list
+        assert rhs._debug_flat_data == rhs_data_list
+
+    _check_add(lhs, rhs, lhs + rhs)
+    _check_add(lhs, rhs, xchainer.add(lhs, rhs))
+    _check_add(lhs, rhs, xchainer.add(x1=lhs, x2=rhs))
 
     lhs_prev = lhs
     lhs += rhs
@@ -526,10 +530,14 @@ def test_mul_imul(device, array_init_inputs):
     if dtype == xchainer.Dtype.bool:
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 1] => [False, True]
 
-    out = lhs * rhs
-    assert out._debug_flat_data == expected_data_list
-    assert lhs._debug_flat_data == lhs_data_list
-    assert rhs._debug_flat_data == rhs_data_list
+    def _check_mul(lhs, rhs, out):
+        assert out._debug_flat_data == expected_data_list
+        assert lhs._debug_flat_data == lhs_data_list
+        assert rhs._debug_flat_data == rhs_data_list
+
+    _check_mul(lhs, rhs, lhs * rhs)
+    _check_mul(lhs, rhs, xchainer.multiply(lhs, rhs))
+    _check_mul(lhs, rhs, xchainer.multiply(x1=lhs, x2=rhs))
 
     lhs_prev = lhs
     lhs *= rhs

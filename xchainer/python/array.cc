@@ -390,6 +390,14 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("shape"));
 
     // math module functions
+    m.def("add",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} + Array{x2}).move_body(); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("multiply",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} * Array{x2}).move_body(); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("sum",
           [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return Sum(Array{a}, std::vector<int8_t>{axis}, keepdims).move_body(); },
           py::arg("a"),
