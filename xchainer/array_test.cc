@@ -767,6 +767,26 @@ TEST_P(ArrayTest, AsConstantView) {
     }
 }
 
+TEST_P(ArrayTest, AsScalar) {
+    using T = float;
+    T value = 2.0f;
+    Array a = testing::BuildArray<T>({1, 1, 1}, {value}).WithPadding(1);
+    Scalar s = a.AsScalar();
+
+    ASSERT_EQ(s.dtype(), TypeToDtype<T>);
+    EXPECT_EQ(static_cast<T>(s), value);
+}
+
+TEST_P(ArrayTest, AsScalarInvalidZeroElement) {
+    Array a = testing::BuildArray<float>({0}, {});
+    EXPECT_THROW(a.AsScalar(), DimensionError);
+}
+
+TEST_P(ArrayTest, AsScalarInvalidMoreThanOneElements) {
+    Array a = testing::BuildArray<float>({2}, {1.0f, 2.0f});
+    EXPECT_THROW(a.AsScalar(), DimensionError);
+}
+
 TEST_P(ArrayTest, AddBackward) {
     Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
     Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
