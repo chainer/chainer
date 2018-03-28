@@ -56,16 +56,8 @@ $ sudo apt-get install clang-format
 
 To format and make changes to C++ codes in place, run the following at the repository root:
 
-zsh)
-
 ```shell-session
-$ clang-format -i xchainer/**/*.{cc,h,cu}
-```
-
-bash)
-
-```shell-session
-$ find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 clang-format -i
+$ run-clang-format.sh --in-place
 ```
 
 ### C++ Lint (cpplint)
@@ -78,16 +70,8 @@ $ pip install cpplint
 
 Run the following at the repository root:
 
-zsh)
-
 ```shell-session
-$ cpplint xchainer/**/*.{cc,h,cu}
-```
-
-bash)
-
-```shell-session
-$ find xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' \) -type f -print0 | xargs -0 cpplint
+$ scripts/run-cpplint.sh
 ```
 
 ### C++ Lint (clang-tidy)
