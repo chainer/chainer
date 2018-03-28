@@ -9,7 +9,6 @@ set -eu
 
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 root_dir="$(realpath "$script_dir"/..)"
-source_dir="$root_dir"/xchainer
 
 
 parallel_jobs=1
