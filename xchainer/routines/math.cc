@@ -187,6 +187,9 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
 Array Maximum(const Array& x1, const Scalar& x2) {
     Array out = Array::EmptyLike(x1, x1.device());
     x1.device().Maximum(x1, x2, out);
+
+    // TODO(hvy): Make this routine differentiable.
+
     return out;
 }
 
