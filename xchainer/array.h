@@ -84,6 +84,8 @@ public:
     Array& operator=(const Array&) = default;
     Array& operator=(Array&& other) = default;
 
+    Array operator==(const Array& rhs);
+
     Array& operator+=(const Array& rhs);
     const Array& operator+=(const Array& rhs) const;
     Array& operator*=(const Array& rhs);

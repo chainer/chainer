@@ -295,6 +295,14 @@ void CudaDevice::Copy(const Array& src, const Array& out) {
     });
 }
 
+void CudaDevice::Equal(const Array& lhs, const Array& rhs, const Array& out) {
+    // TODO(niboshi): Implement this
+    (void)lhs;  // unused
+    (void)rhs;  // unused
+    (void)out;  // unused
+    throw NotImplementedError("");
+}
+
 // TODO(sonots): support stream
 void CudaDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);

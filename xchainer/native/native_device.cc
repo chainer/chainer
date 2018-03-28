@@ -220,6 +220,22 @@ void NativeDevice::Copy(const Array& src, const Array& out) {
     });
 }
 
+void NativeDevice::Equal(const Array& lhs, const Array& rhs, const Array& out) {
+    CheckDevicesCompatible(lhs, rhs, out);
+    VisitDtype(lhs.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<bool> out_iarray{out};
+        Indexer<> indexer{lhs.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            out_iarray[indexer] = lhs_iarray[indexer] == rhs_iarray[indexer];
+        }
+    });
+}
+
 void NativeDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {

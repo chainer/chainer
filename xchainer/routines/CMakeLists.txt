@@ -1,6 +1,7 @@
 add_library(xchainer_routines STATIC
     creation.cc
     indexing.cc
+    logic.cc
     manipulation.cc
     math.cc
     util.cc
@@ -9,6 +10,7 @@ add_library(xchainer_routines STATIC
 install(FILES
     creation.h
     indexing.h
+    logic.h
     manipulation.h
     math.h
     util.h
@@ -19,6 +21,7 @@ if(${ENABLE_TEST})
   add_executable(xchainer_routines_test
       creation_test.cc
       indexing_test.cc
+      logic_test.cc
       manipulation_test.cc
       math_test.cc
   )

@@ -22,6 +22,7 @@
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
+#include "xchainer/routines/logic.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/math.h"
 #include "xchainer/routines/util.h"
@@ -131,6 +132,8 @@ Array Array::OnesLike(const Array& array, Device& device) { return xchainer::One
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
+
+Array Array::operator==(const Array& rhs) { return Equal(*this, rhs); }
 
 Array& Array::operator+=(const Array& rhs) { return internal::IAdd(*this, rhs); }
 
