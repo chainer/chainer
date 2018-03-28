@@ -187,8 +187,15 @@ TEST_P(MathTest, Add) {
 TEST_P(MathTest, MulScalar) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
-    Array o = Multiply(a, Scalar{2.f});
-    testing::ExpectEqual<float>(e, o);
+
+    {
+        Array o = Multiply(a, Scalar{2.f});
+        testing::ExpectEqual<float>(e, o);
+    }
+    {
+        Array o = Multiply(Scalar{2.f}, a);
+        testing::ExpectEqual<float>(e, o);
+    }
 }
 
 TEST_P(MathTest, Mul) {
@@ -392,8 +399,15 @@ TEST_P(MathTest, SumDoubleBackward_NoKeepdims) {
 TEST_P(MathTest, Maximum) {
     Array a = testing::BuildArray<float>({3, 1}, {-1.f, 2.f, -.2f});
     Array e = testing::BuildArray<float>({3, 1}, {0.f, 2.f, 0.f});
-    Array b = Maximum(a, Scalar{0.f});
-    testing::ExpectEqual<float>(e, b);
+
+    {
+        Array b = Maximum(a, Scalar{0.f});
+        testing::ExpectEqual<float>(e, b);
+    }
+    {
+        Array b = Maximum(Scalar{0.f}, a);
+        testing::ExpectEqual<float>(e, b);
+    }
 }
 
 TEST_P(MathTest, MaximumEmpty) {

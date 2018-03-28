@@ -91,8 +91,8 @@ public:
     Array& operator*=(const Array& rhs);
     const Array& operator*=(const Array& rhs) const;
     Array operator+(const Array& rhs) const;
-    Array operator*(Scalar rhs) const;
     Array operator*(const Array& rhs) const;
+    Array operator*(Scalar rhs) const;
 
     // Returns a view selected with the indices.
     Array At(const std::vector<ArrayIndex>& indices) const;
@@ -208,6 +208,8 @@ private:
 
     std::shared_ptr<internal::ArrayBody> body_;
 };
+
+inline Array operator*(Scalar lhs, const Array& rhs) { return rhs * lhs; }
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent = 0);
 
