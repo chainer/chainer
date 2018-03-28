@@ -15,7 +15,6 @@
 #include "xchainer/scalar.h"
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
-#include "xchainer/testing/context_session.h"
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
@@ -390,20 +389,14 @@ TEST_P(MathTest, SumDoubleBackward_NoKeepdims) {
             {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 4}, 1e-1)});
 }
 
-// TODO(hvy): Also test CUDA using MathTest.
-TEST(MathTestNative, Maximum) {
-    testing::ContextSession context_session;
-
+TEST_P(MathTest, Maximum) {
     Array a = testing::BuildArray<float>({3, 1}, {-1.f, 2.f, -.2f});
     Array e = testing::BuildArray<float>({3, 1}, {0.f, 2.f, 0.f});
     Array b = Maximum(a, Scalar{0.f});
     testing::ExpectEqual<float>(e, b);
 }
 
-// TODO(hvy): Also test CUDA using MathTest.
-TEST(MathTestNative, MaximumEmpty) {
-    testing::ContextSession context_session;
-
+TEST_P(MathTest, MaximumEmpty) {
     Array a = testing::BuildArray<float>({0}, {});
     Array e = testing::BuildArray<float>({0}, {});
     Array b = Maximum(a, Scalar{0.f});

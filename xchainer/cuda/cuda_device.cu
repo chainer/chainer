@@ -184,6 +184,16 @@ __global__ void MulKernel(
     }
 }
 
+template <typename T>
+__global__ void MaximumScalarKernel(IndexableArray<const T> lhs_iarray, T rhs_value, IndexableArray<T> out_iarray, Indexer<> indexer) {
+    const int64_t total_size = indexer.total_size();
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
+        indexer.Set(i);
+        T lhs_value = lhs_iarray[indexer];
+        out_iarray[indexer] = lhs_value > rhs_value ? lhs_value : rhs_value;
+    }
+}
+
 }  // namespace
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
@@ -334,7 +344,7 @@ void CudaDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
-void CudaDevice::Mul(const Array& lhs, const Scalar& rhs, const Array& out) {
+void CudaDevice::Mul(const Array& lhs, Scalar rhs, const Array& out) {
     CheckDevicesCompatible(lhs, out);
     cudaSetDevice(index());
     VisitDtype(lhs.dtype(), [&](auto pt) {
@@ -374,11 +384,23 @@ void CudaDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
-void CudaDevice::Maximum(const Array& lhs, const Scalar& rhs, const Array& out) {
-    (void)lhs;  // unused
-    (void)rhs;  // unused
-    (void)out;  // unused
-    throw NotImplementedError("CudaDevice::Maximum is not yet implemented.");
+void CudaDevice::Maximum(const Array& lhs, Scalar rhs, const Array& out) {
+    CheckDevicesCompatible(lhs, out);
+    cudaSetDevice(index());
+    VisitDtype(lhs.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MaximumScalarKernel<T>).block_size;
+
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<T> out_iarray{out};
+        Indexer<> indexer{lhs.shape()};
+
+        int64_t total_size = indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        MaximumScalarKernel<<<grid_size, block_size>>>(lhs_iarray, static_cast<T>(rhs), out_iarray, indexer);
+    });
 }
 
 void CudaDevice::Synchronize() {
