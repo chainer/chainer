@@ -240,6 +240,8 @@ def test_transpose(array_init_inputs):
 
     _check_transpose(array.transpose())
     _check_transpose(array.T)
+    _check_transpose(xchainer.transpose(array))
+    _check_transpose(xchainer.transpose(a=array))
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [

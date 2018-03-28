@@ -367,6 +367,7 @@ void InitXchainerArray(pybind11::module& m) {
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
 
     // manipulation module functions
+    m.def("transpose", [](const ArrayBodyPtr& a) { return Transpose(Array{a}).move_body(); }, py::arg("a"));
     m.def("reshape",
           [](const ArrayBodyPtr& a, py::tuple newshape) { return Reshape(Array{a}, ToShape(newshape)).move_body(); },
           py::arg("a"),
