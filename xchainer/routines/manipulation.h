@@ -9,7 +9,6 @@
 #include "xchainer/shape.h"
 
 namespace xchainer {
-namespace routines {
 
 // Returns a transposed view of the array.
 Array Transpose(const Array& a);
@@ -29,5 +28,4 @@ Array Squeeze(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis 
 // Returned array is always a view to this array.
 Array BroadcastTo(const Array& array, const Shape& shape);
 
-}  // namespace routines
 }  // namespace xchainer

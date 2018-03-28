@@ -13,7 +13,6 @@
 #include "xchainer/shape.h"
 
 namespace xchainer {
-namespace routines {
 namespace internal {
 
 // Returns the minimum number of bytes required to pack the data with specified strides and shape.
@@ -49,5 +48,4 @@ Array OnesLike(const Array& a, Device& device = GetDefaultDevice());
 // It will be always C-contiguous.
 Array Copy(const Array& array);
 
-}  // namespace routines
 }  // namespace xchainer

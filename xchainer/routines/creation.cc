@@ -13,7 +13,6 @@
 #include "xchainer/strides.h"
 
 namespace xchainer {
-namespace routines {
 namespace internal {
 
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size) {
@@ -30,13 +29,13 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t eleme
 Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device) {
     auto bytesize = GetRequiredBytes(shape, strides, GetElementSize(dtype));
     std::shared_ptr<void> device_data = device.FromBuffer(data, bytesize);
-    return xchainer::internal::MakeArray(shape, strides, dtype, device, device_data);
+    return MakeArray(shape, strides, dtype, device, device_data);
 }
 
 Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device) {
     auto bytesize = GetRequiredBytes(shape, strides, GetElementSize(dtype));
     std::shared_ptr<void> data = device.Allocate(bytesize);
-    return xchainer::internal::MakeArray(shape, strides, dtype, device, data);
+    return MakeArray(shape, strides, dtype, device, data);
 }
 
 }  // namespace internal
@@ -48,7 +47,7 @@ Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& d
 Array Empty(const Shape& shape, Dtype dtype, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
     std::shared_ptr<void> data = device.Allocate(bytesize);
-    return xchainer::internal::MakeArray(shape, Strides{shape, dtype}, dtype, device, data);
+    return internal::MakeArray(shape, Strides{shape, dtype}, dtype, device, data);
 }
 
 Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device) {
@@ -71,5 +70,4 @@ Array ZerosLike(const Array& a, Device& device) { return Zeros(a.shape(), a.dtyp
 
 Array OnesLike(const Array& a, Device& device) { return Ones(a.shape(), a.dtype(), device); }
 
-}  // namespace routines
 }  // namespace xchainer
