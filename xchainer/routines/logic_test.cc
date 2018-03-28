@@ -34,11 +34,6 @@ private:
 };
 
 TEST_P(LogicTest, Equal) {
-    // TODO(niboshi): Remove this when CUDA implementation is added.
-    if (GetDefaultDevice().backend().GetName() == "cuda") {
-        return;
-    }
-
     using T = float;
 
     struct Param {

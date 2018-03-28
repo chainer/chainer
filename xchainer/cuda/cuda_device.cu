@@ -156,6 +156,16 @@ __global__ void CopyKernel(IndexableArray<const T> src_iarray, IndexableArray<T>
 }
 
 template <typename T>
+__global__ void EqualKernel(
+        IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<bool> out_iarray, Indexer<> indexer) {
+    const int64_t total_size = indexer.total_size();
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
+        indexer.Set(i);
+        out_iarray[indexer] = lhs_iarray[indexer] == rhs_iarray[indexer];
+    }
+}
+
+template <typename T>
 __global__ void AddKernel(
         IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray, Indexer<> indexer) {
     const int64_t total_size = indexer.total_size();
@@ -307,11 +317,23 @@ void CudaDevice::Copy(const Array& src, const Array& out) {
 }
 
 void CudaDevice::Equal(const Array& lhs, const Array& rhs, const Array& out) {
-    // TODO(niboshi): Implement this
-    (void)lhs;  // unused
-    (void)rhs;  // unused
-    (void)out;  // unused
-    throw NotImplementedError("");
+    CheckDevicesCompatible(lhs, rhs, out);
+    cudaSetDevice(index());
+    VisitDtype(lhs.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&EqualKernel<T>).block_size;
+
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<bool> out_iarray{out};
+        Indexer<> indexer{lhs.shape()};
+
+        int64_t total_size = indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        EqualKernel<<<grid_size, block_size>>>(lhs_iarray, rhs_iarray, out_iarray, indexer);
+    });
 }
 
 // TODO(sonots): support stream
