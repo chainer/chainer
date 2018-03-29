@@ -31,8 +31,8 @@ TEST_P(LinalgTest, Dot) {
     if (GetParam() == "cuda") {
         return;  // TODO(beam2d): Implement CUDA
     }
-    Array a = testing::BuildArray({2, 3}).WithLinearData(1.f);
-    Array b = testing::BuildArray<float>({3, 2}, {1.f, 2.f, -1.f, -3.f, 2.f, 4.f});
+    Array a = testing::BuildArray({2, 3}).WithLinearData(1.f).WithPadding(1);
+    Array b = testing::BuildArray<float>({3, 2}, {1.f, 2.f, -1.f, -3.f, 2.f, 4.f}).WithPadding(2);
     Array c = Dot(a, b);
     Array e = testing::BuildArray<float>({2, 2}, {5.f, 8.f, 11.f, 17.f});
     testing::ExpectEqual<float>(e, c);

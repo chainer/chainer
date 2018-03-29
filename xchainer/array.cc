@@ -22,6 +22,7 @@
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
+#include "xchainer/routines/linalg.h"
 #include "xchainer/routines/logic.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/math.h"
@@ -162,6 +163,8 @@ Array Array::Squeeze(const nonstd::optional<std::vector<int8_t>>& axis) const { 
 Array Array::BroadcastTo(const Shape& shape) const { return xchainer::BroadcastTo(*this, shape); }
 
 Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
+
+Array Array::Dot(const Array& b) const { return xchainer::Dot(*this, b); }
 
 Array Array::Copy() const { return xchainer::Copy(*this); }
 
