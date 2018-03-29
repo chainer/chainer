@@ -11,14 +11,37 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/context.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
+#include "xchainer/native/native_backend.h"
+#include "xchainer/native/native_device.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
 #include "xchainer/routines/util.h"
 
 namespace xchainer {
+
+Scalar AsScalar(const Array& a) {
+    if (a.GetTotalSize() != 1) {
+        throw DimensionError("Cannot convert " + std::to_string(a.GetTotalSize()) + "-dimensional array to scalar");
+    }
+
+    // Copy to the native device
+    Backend& native_backend = GetDefaultContext().GetBackend(native::NativeBackend::kDefaultName);
+    Device& native_device = native_backend.GetDevice(0);
+    Array native_copy = a.ToDevice(native_device);
+
+    // Retrieve the value
+    native_device.Synchronize();
+    return VisitDtype(a.dtype(), [&native_copy](auto pt) -> Scalar {
+        using T = typename decltype(pt)::type;
+        const uint8_t* ptr = static_cast<const uint8_t*>(native_copy.data().get()) + native_copy.offset();
+        auto typed_ptr = reinterpret_cast<const T*>(ptr);  // NOLINT: reinterpret_cast
+        return Scalar{*typed_ptr};
+    });
+}
 
 Array Transpose(const Array& a) {
     Shape out_shape{a.shape().rbegin(), a.shape().rend()};
