@@ -498,6 +498,7 @@ def test_as_constant_view(array_init_inputs):
     ([numpy.inf, 1.], [numpy.inf, 1.]),
     ([-numpy.inf, 1.], [-numpy.inf, 1.]),
     ([numpy.inf, 1.], [-numpy.inf, 1.]),
+    ([numpy.inf, 1.], [-numpy.inf, numpy.nan]),
     ([[0, 1], [2, 3]], [[0, 1], [2, 3]]),
     ([[0, 1], [2, 3]], [[0, 1], [2, -2]]),
     ([[0, 1], [2, 3]], [[1, 2], [3, 4]]),
