@@ -1,0 +1,77 @@
+Acceptance tests for elementwise operations + dot product
+=========================================================
+
+>>> import xchainer as xc
+>>> import numpy as np
+
+Array equality
+--------------
+
+>>> a = xc.Array((3, 2), xc.float32, [1, 2, 3, 4, 5, 6])
+>>> b = xc.Array((3, 2), xc.float32, [1, 3, 5, 4, 4, 1])
+
+>>> a == b
+array([[ True, False],
+       [False,  True],
+       [False, False]], shape=(3, 2), dtype=bool, device='native:0')
+>>> xc.equal(a, b)
+array([[ True, False],
+       [False,  True],
+       [False, False]], shape=(3, 2), dtype=bool, device='native:0')
+
+Maximum with scalar
+-------------------
+
+>>> a = xc.Array(np.arange(-3, 4, dtype=np.float32))
+>>> a
+array([-3., -2., -1.,  0.,  1.,  2.,  3.], shape=(7,), dtype=float32, device='native:0')
+
+>>> xc.maximum(a, -1.0)
+array([-1., -1., -1.,  0.,  1.,  2.,  3.], shape=(7,), dtype=float32, device='native:0')
+>>> xc.maximum(2.0, a)
+array([2., 2., 2., 2., 2., 2., 3.], shape=(7,), dtype=float32, device='native:0')
+
+
+Multiply with scalar
+-------------------
+
+>>> a = xc.Array(np.arange(-3, 4, dtype=np.float32))
+>>> a
+array([-3., -2., -1.,  0.,  1.,  2.,  3.], shape=(7,), dtype=float32, device='native:0')
+
+>>> a * 2.0
+array([-6., -4., -2.,  0.,  2.,  4.,  6.], shape=(7,), dtype=float32, device='native:0')
+>>> -3.0 * a
+array([ 9.,  6.,  3., -0., -3., -6., -9.], shape=(7,), dtype=float32, device='native:0')
+>>> xc.multiply(a, 2.0)
+array([-6., -4., -2.,  0.,  2.,  4.,  6.], shape=(7,), dtype=float32, device='native:0')
+>>> xc.multiply(-3.0, a)
+array([ 9.,  6.,  3., -0., -3., -6., -9.], shape=(7,), dtype=float32, device='native:0')
+
+Conversion to Python scalar
+---------------------------
+
+>>> a = xc.Array((1,), xc.float32, [3.25])
+>>> float(a)
+3.25
+>>> int(a)
+3
+>>> bool(a)
+True
+>>> xc.asscalar(a)
+3.25
+
+Backward
+--------
+>>> x = xc.Array(np.arange(-3, 3, dtype=np.float32).reshape((2, 3))).require_grad()
+>>> x
+array([[-3., -2., -1.],
+       [ 0.,  1.,  2.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
+>>> y = xc.maximum(x, 0) * 2
+>>> y
+array([[0., 0., 0.],
+       [0., 2., 4.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
+>>> y.backward()
+>>> x.grad
+array([[0., 0., 0.],
+       [2., 2., 2.]], shape=(2, 3), dtype=float32, device='native:0')
