@@ -550,7 +550,7 @@ def test_mul_scalar(scalar, device, array_init_inputs):
     # Therefore, we explicitly cast the scalar to the dtype of the ndarray
     # before the multiplication for NumPy.
     scalar_np = numpy.dtype(dtype.name).type(scalar)
-    expected = numpy.array(data_list, dtype=dtype.char).reshape(shape)
+    expected = numpy.array(data_list, dtype=dtype.name).reshape(shape)
     expected *= scalar_np
 
     x = xchainer.Array(shape, dtype, data_list)
