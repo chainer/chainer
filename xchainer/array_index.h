@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "xchainer/error.h"
 #include "xchainer/slice.h"
 
 namespace xchainer {
