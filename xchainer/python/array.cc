@@ -159,16 +159,10 @@ void InitXchainerArray(pybind11::module& m) {
           },
           py::arg().noconvert(),
           py::arg("copy") = false);
-
-    // creation instance methods
     c.def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); });
-
-    // indexing instance methods
     c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle handle) {
         return Array{self}.At(python::internal::MakeArrayIndices(handle)).move_body();
     });
-
-    // manipulation instance methods
     c.def("transpose", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); });
     c.def("reshape", [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.Reshape(ToShape(shape)).move_body(); });
     c.def("reshape", [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {
@@ -178,8 +172,6 @@ void InitXchainerArray(pybind11::module& m) {
         auto shape = py::cast<std::vector<int64_t>>(args);
         return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
     });
-
-    // math instance methods
     c.def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).move_body(); });
     c.def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).move_body(); });
     c.def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).move_body(); });
