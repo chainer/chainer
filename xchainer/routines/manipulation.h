@@ -10,6 +10,11 @@
 
 namespace xchainer {
 
+// Retrieves a scalar from a single-element array.
+//
+// If the array is not single-element, DimensionError is thrown.
+Scalar AsScalar(const Array& a);
+
 // Returns a transposed view of the array.
 Array Transpose(const Array& a);
 

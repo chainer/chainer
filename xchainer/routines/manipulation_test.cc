@@ -36,6 +36,26 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
+TEST_P(ManipulationTest, AsScalar) {
+    using T = float;
+    T value = 2.0f;
+    Array a = testing::BuildArray<T>({1, 1, 1}, {value}).WithPadding(1);
+    Scalar s = AsScalar(a);
+
+    ASSERT_EQ(s.dtype(), TypeToDtype<T>);
+    EXPECT_EQ(static_cast<T>(s), value);
+}
+
+TEST_P(ManipulationTest, AsScalarInvalidZeroElement) {
+    Array a = testing::BuildArray<float>({0}, {});
+    EXPECT_THROW(AsScalar(a), DimensionError);
+}
+
+TEST_P(ManipulationTest, AsScalarInvalidMoreThanOneElements) {
+    Array a = testing::BuildArray<float>({2}, {1.0f, 2.0f});
+    EXPECT_THROW(AsScalar(a), DimensionError);
+}
+
 TEST_P(ManipulationTest, Transpose) {
     Array a = testing::BuildArray({2, 3})         //
                       .WithLinearData<int32_t>()  //
