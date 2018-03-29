@@ -1,5 +1,6 @@
 #include "xchainer/python/routines.h"
 
+#include <cassert>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -9,6 +10,7 @@
 #include "xchainer/array.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
+#include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
@@ -94,7 +96,23 @@ void InitXchainerRoutines(pybind11::module& m) {
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
 
     // manipulation routines
-    m.def("asscalar", [](const ArrayBodyPtr& a) -> Scalar { return AsScalar(Array{a}); }, py::arg("a"));
+    m.def("asscalar",
+          [](const ArrayBodyPtr& a) -> py::object {
+              Scalar s = AsScalar(Array{a});
+              switch (GetKind(s.dtype())) {
+                  case DtypeKind::kBool:
+                      return py::bool_{bool{s}};
+                  case DtypeKind::kInt:
+                      // fallthrough
+                  case DtypeKind::kUInt:
+                      return py::int_{int64_t{s}};
+                  case DtypeKind::kFloat:
+                      return py::float_{double{s}};
+                  default:
+                      assert(false);  // never reach
+              }
+          },
+          py::arg("a"));
     m.def("transpose", [](const ArrayBodyPtr& a) { return Transpose(Array{a}).move_body(); }, py::arg("a"));
     m.def("reshape",
           [](const ArrayBodyPtr& a, py::tuple newshape) { return Reshape(Array{a}, ToShape(newshape)).move_body(); },

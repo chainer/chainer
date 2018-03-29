@@ -266,12 +266,11 @@ def test_asscalar(device, value, shape, dtype):
         assert bool(a_np) == bool(a_xc)
 
     # xchainer.asscalar
-    assert type(xchainer.asscalar(a_xc)) is xchainer.Scalar
+    assert type(xchainer.asscalar(a_xc)) is type(numpy.asscalar(a_np))  # NOQA: E721
     if math.isnan(numpy.asscalar(a_np)):
-        assert math.isnan(xchainer.asscalar(a_xc).tolist())
+        assert math.isnan(xchainer.asscalar(a_xc))
     else:
-        assert xchainer.asscalar(a_xc) == xchainer.Scalar(value, dtype)
-        assert xchainer.asscalar(a_xc).tolist() == numpy.asscalar(a_np)
+        assert xchainer.asscalar(a_xc) == numpy.asscalar(a_np)
 
 
 @pytest.mark.parametrize('shape', [
