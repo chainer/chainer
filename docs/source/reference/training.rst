@@ -50,6 +50,7 @@ Extension
    chainer.training.extensions.LinearShift
    chainer.training.extensions.LogReport
    chainer.training.extensions.MicroAverage
+   chainer.training.extensions.NaNKiller
    chainer.training.extensions.observe_lr
    chainer.training.extensions.observe_value
    chainer.training.extensions.snapshot
