@@ -228,52 +228,50 @@ def test_view_must_not_share_properties():
 @pytest.mark.parametrize('value', [
     0, 1, -1, 0.1, 0.9, -0.1, -0.9, 1.1, -1.1, 1.9, -1.9, True, False, float('inf'), -float('inf'), float('nan'), -0.0
 ])
+@pytest.mark.parametrize('shape', [
+    (), (1,), (1, 1, 1)
+])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_asscalar(device, value, dtype):
+def test_asscalar(device, value, shape, dtype):
     np_dtype = numpy.dtype(dtype.char)
     try:
         np_value = np_dtype.type(value)
     except (ValueError, OverflowError):
         return
 
-    def check(shape):
-        a_np = numpy.asarray([np_value], dtype=np_dtype).reshape(shape)
-        a_xc = xchainer.Array(a_np)
+    a_np = numpy.asarray([np_value], dtype=np_dtype).reshape(shape)
+    a_xc = xchainer.Array(a_np)
 
-        def should_cast_succeed(typ):
-            try:
-                typ(np_value)
-                return True
-            except (ValueError, OverflowError):
-                return False
+    def should_cast_succeed(typ):
+        try:
+            typ(np_value)
+            return True
+        except (ValueError, OverflowError):
+            return False
 
-        # Cast to float
-        if should_cast_succeed(float):
-            assert type(float(a_xc)) is float
-            if math.isnan(float(a_np)):
-                assert math.isnan(float(a_xc))
-            else:
-                assert float(a_np) == float(a_xc)
-        # Cast to int
-        if should_cast_succeed(int):
-            assert type(int(a_xc)) is int
-            assert int(a_np) == int(a_xc)
-        # Cast to bool
-        if should_cast_succeed(bool):
-            assert type(bool(a_xc)) is bool
-            assert bool(a_np) == bool(a_xc)
-
-        # xchainer.asscalar
-        assert type(xchainer.asscalar(a_xc)) is xchainer.Scalar
-        if math.isnan(numpy.asscalar(a_np)):
-            assert math.isnan(xchainer.asscalar(a_xc).tolist())
+    # Cast to float
+    if should_cast_succeed(float):
+        assert type(float(a_xc)) is float
+        if math.isnan(float(a_np)):
+            assert math.isnan(float(a_xc))
         else:
-            assert xchainer.asscalar(a_xc) == xchainer.Scalar(value, dtype)
-            assert xchainer.asscalar(a_xc).tolist() == numpy.asscalar(a_np)
+            assert float(a_np) == float(a_xc)
+    # Cast to int
+    if should_cast_succeed(int):
+        assert type(int(a_xc)) is int
+        assert int(a_np) == int(a_xc)
+    # Cast to bool
+    if should_cast_succeed(bool):
+        assert type(bool(a_xc)) is bool
+        assert bool(a_np) == bool(a_xc)
 
-    check(())
-    check((1,))
-    check((1,1,1))
+    # xchainer.asscalar
+    assert type(xchainer.asscalar(a_xc)) is xchainer.Scalar
+    if math.isnan(numpy.asscalar(a_np)):
+        assert math.isnan(xchainer.asscalar(a_xc).tolist())
+    else:
+        assert xchainer.asscalar(a_xc) == xchainer.Scalar(value, dtype)
+        assert xchainer.asscalar(a_xc).tolist() == numpy.asscalar(a_np)
 
 
 @pytest.mark.parametrize('shape', [
