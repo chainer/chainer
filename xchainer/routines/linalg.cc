@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "xchainer/array.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/shape.h"
