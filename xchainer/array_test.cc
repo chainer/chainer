@@ -1,4 +1,5 @@
 #include "xchainer/array.h"
+
 #include <algorithm>
 #include <array>
 #include <cassert>

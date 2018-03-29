@@ -10,7 +10,6 @@
 #include "xchainer/shape.h"
 
 namespace xchainer {
-namespace {}  // namespace
 
 Array Dot(const Array& a, const Array& b) {
     if (a.ndim() == 0 || b.ndim() == 0) {

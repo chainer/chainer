@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
+#include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/testing/array.h"

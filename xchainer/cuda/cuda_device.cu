@@ -434,9 +434,9 @@ void CudaDevice::IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Arra
 }
 
 void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
-    (void)lhs;
-    (void)rhs;
-    (void)out;
+    (void)lhs;  // unused
+    (void)rhs;  // unused
+    (void)out;  // unused
     throw NotImplementedError("CudaDevice::Dot is not yet implemented.");
 }
 
