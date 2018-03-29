@@ -1,6 +1,7 @@
 #include "xchainer/routines/math.h"
 
 #include <cstdint>
+#include <numeric>
 #include <vector>
 
 #include <nonstd/optional.hpp>
