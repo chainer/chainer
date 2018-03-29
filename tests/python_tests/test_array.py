@@ -1,4 +1,5 @@
 import functools
+import math
 import operator
 
 import numpy
@@ -229,19 +230,46 @@ def test_view_must_not_share_properties():
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_asscalar(device, value, dtype):
+    np_dtype = numpy.dtype(dtype.char)
+    try:
+        np_value = np_dtype.type(value)
+    except (ValueError, OverflowError):
+        return
+
     def check(shape):
-        a_np = numpy.asarray([value], dtype=dtype).reshape(shape)
+        a_np = numpy.asarray([np_value], dtype=np_dtype).reshape(shape)
         a_xc = xchainer.Array(a_np)
 
-        assert type(float(a_xc)) is float
-        assert type(int(a_xc)) is int
-        assert type(bool(a_xc)) is bool
-        assert type(xchainer.asscalar(a_xc)) is xchainer.Scalar
+        def should_cast_succeed(typ):
+            try:
+                typ(np_value)
+                return True
+            except (ValueError, OverflowError):
+                return False
 
-        assert float(a_np) == float(a_xc)
-        assert int(a_np) == int(a_xc)
-        assert bool(a_np) == bool(a_xc)
-        assert numpy.asscalar(a_np) == xchainer.asscalar(a_xc)
+        # Cast to float
+        if should_cast_succeed(float):
+            assert type(float(a_xc)) is float
+            if math.isnan(float(a_np)):
+                assert math.isnan(float(a_xc))
+            else:
+                assert float(a_np) == float(a_xc)
+        # Cast to int
+        if should_cast_succeed(int):
+            assert type(int(a_xc)) is int
+            assert int(a_np) == int(a_xc)
+        # Cast to bool
+        if should_cast_succeed(bool):
+            assert type(bool(a_xc)) is bool
+            assert bool(a_np) == bool(a_xc)
+
+        # xchainer.asscalar
+        assert type(xchainer.asscalar(a_xc)) is xchainer.Scalar
+        if math.isnan(numpy.asscalar(a_np)):
+            assert math.isnan(xchainer.asscalar(a_xc).tolist())
+        else:
+            assert xchainer.asscalar(a_xc) == xchainer.Scalar(value, dtype)
+            assert xchainer.asscalar(a_xc).tolist() == numpy.asscalar(a_np)
 
     check(())
     check((1,))
