@@ -233,7 +233,7 @@ def test_view_must_not_share_properties():
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_asscalar(device, value, shape, dtype):
-    np_dtype = numpy.dtype(dtype.char)
+    np_dtype = numpy.dtype(dtype.name)
     try:
         np_value = np_dtype.type(value)
     except (ValueError, OverflowError):
