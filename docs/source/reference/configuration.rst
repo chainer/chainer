@@ -79,6 +79,11 @@ Note that the default values are set in the global config.
    The default value is given by ``CHAINER_USE_IDEEP`` environment variable (set to ``'always'``, ``'auto'`` or ``'never'``) if available, otherwise uses ``'never'``.
 
    Note that in spite of the configuration, optimizers will use iDeep if and only if the link is converted manually to iDeep (e.g., ``model.to_intel64()``).
+``chainer.config.lazy_grad_sum``
+   Flag to control the behavior of gradient accumulation.
+   If it is ``True``, gradients are accumulated in batch for performance.
+   Otherwise gradients are accumulated one by one.
+   The default value is given by ``CHAINER_LAZY_GRAD_SUM`` environment variable (set to 0 or 1) if available, otherwise uses ``False``.
 ``chainer.config.use_cudnn_tensor_core``
    Flag to configure whether or not to enable Tensor Core operatons in cuDNN.
 
@@ -91,6 +96,7 @@ Note that the default values are set in the global config.
    Autotune for convolutional networks flag.
    If it is ``True``, Chainer uses the cuDNN autotune feature to find the fastest calculation process for :class:`chainer.links.Convolution2D`, :class:`ConvolutionND`, :class:`Deconvolution2D`, or :class:`DeconvolutionND` links.
    The default value is ``False``.
+
 
 Users can also define their own configurations.
 There are two ways:
@@ -184,6 +190,10 @@ Here are the environment variables Chainer uses.
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_USE_IDEEP``                     | Used as the default value for ``chainer.config.use_ideep`` configuration.                             |
 |                                           | The value must be any of ``'always'``, ``'auto'`` or ``'never'``.                                     |
+|                                           | See :ref:`configuration` for details.                                                                 |
++-------------------------------------------+-------------------------------------------------------------------------------------------------------+
+| ``CHAINER_LAZY_GRAD_SUM``                 | Used as the default value for ``chainer.config.lazy_grad_sum`` configuration.                         |
+|                                           | Set ``1`` to enable batch accumulation of gradients.
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_TYPE_CHECK``                    | Used as the default value for ``chainer.config.type_check`` configuration.                            |
