@@ -88,6 +88,10 @@ class TestVariable(unittest.TestCase):
     def test_attributes_gpu(self):
         self.check_attributes(True)
 
+    def test_uninitialized(self):
+        a = chainer.Variable(None)
+        assert a.xp is np
+
     def check_grad(self, x, xp):
         g = xp.array(x)
         v = chainer.Variable(x)
@@ -366,8 +370,10 @@ class TestVariable(unittest.TestCase):
     @attr.gpu
     def test_to_cpu(self):
         a = chainer.Variable(cuda.cupy.zeros(3, dtype=np.float32))
+        assert a.xp is cuda.cupy
         a.grad = cuda.cupy.ones_like(a.data)
         a.to_cpu()
+        assert a.xp is np
         np.testing.assert_array_equal(a.data, np.zeros(3, dtype=np.float32))
         np.testing.assert_array_equal(a.grad, np.ones(3, dtype=np.float32))
 
@@ -390,8 +396,10 @@ class TestVariable(unittest.TestCase):
     def test_to_gpu(self):
         cp = cuda.cupy
         a = chainer.Variable(np.zeros(3, dtype=np.float32))
+        assert a.xp is np
         a.grad = np.ones(3, dtype=np.float32)
         a.to_gpu()
+        assert a.xp is cuda.cupy
         cp.testing.assert_array_equal(a.data, cp.zeros(3, dtype=np.float32))
         cp.testing.assert_array_equal(a.grad, cp.ones(3, dtype=np.float32))
 
@@ -1707,8 +1715,10 @@ class TestIntel64(unittest.TestCase):
 
     def test_cpu_to_intel64(self):
         x = chainer.Variable(self.x_data)
+        assert x.xp is np
         prev_x_data = x.data
         x.to_intel64()
+        assert x.xp is np
 
         # Converted to mdarray only if dtype == float32.
         # Otherwise, data should be left untouched.
