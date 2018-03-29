@@ -28,7 +28,7 @@ namespace internal {
 namespace py = pybind11;
 
 void InitXchainerRoutines(pybind11::module& m) {
-    // creation module functions
+    // creation routines
     m.def("empty",
           [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
               return Array::Empty(ToShape(shape), dtype, GetDevice(device_id)).move_body();
@@ -92,7 +92,7 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
 
-    // manipulation module functions
+    // manipulation routines
     m.def("transpose", [](const ArrayBodyPtr& a) { return Transpose(Array{a}).move_body(); }, py::arg("a"));
     m.def("reshape",
           [](const ArrayBodyPtr& a, py::tuple newshape) { return Reshape(Array{a}, ToShape(newshape)).move_body(); },
@@ -114,7 +114,7 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("array"),
           py::arg("shape"));
 
-    // math module functions
+    // math routines
     m.def("add",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} + Array{x2}).move_body(); },
           py::arg("x1"),
