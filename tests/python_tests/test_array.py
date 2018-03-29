@@ -501,6 +501,8 @@ def test_eq(device, a_object, b_object, dtype):
 
     _check_array_equals_ndarray(a_xc == b_xc, a_np == b_np)
     _check_array_equals_ndarray(b_xc == a_xc, b_np == a_np)
+    _check_array_equals_ndarray(xchainer.equal(a_xc, b_xc), numpy.equal(a_np, b_np))
+    _check_array_equals_ndarray(xchainer.equal(b_xc, a_xc), numpy.equal(b_np, a_np))
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [
@@ -514,18 +516,21 @@ def test_invalid_eq(a_shape, b_shape):
         dtype = numpy.float32
         return numpy.arange(size, dtype=dtype).reshape(shape)
 
-    def check(a_shape, b_shape):
-        a_np = create_ndarray(a_shape)
-        b_np = create_ndarray(b_shape)
-
-        a_xc = xchainer.Array(a_np)
-        b_xc = xchainer.Array(b_np)
-
+    def check(a_xc, b_xc):
         with pytest.raises(xchainer.DimensionError):
             a_xc == b_xc
 
-    check(a_shape, b_shape)
-    check(b_shape, a_shape)
+        with pytest.raises(xchainer.DimensionError):
+            xchainer.equal(a_xc, b_xc)
+
+    a_np = create_ndarray(a_shape)
+    b_np = create_ndarray(b_shape)
+
+    a_xc = xchainer.Array(a_np)
+    b_xc = xchainer.Array(b_np)
+
+    check(a_xc, b_xc)
+    check(b_xc, a_xc)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
