@@ -480,6 +480,77 @@ def test_as_constant_view(array_init_inputs):
     assert a.is_grad_required('graph_3')
 
 
+@pytest.mark.parametrize('a_object,b_object', [
+    ([], []),
+    ([0], [0]),
+    ([0], [-0]),
+    ([0], [1]),
+    ([0.2], [0.2]),
+    ([0.2], [-0.3]),
+    ([True], [True]),
+    ([True], [False]),
+    ([0, 1, 2], [0, 1, 2]),
+    ([1, 1, 2], [0, 1, 2]),
+    ([0, 1, 2], [1, 2, 3]),
+    ([0., numpy.nan], [0., 1.]),
+    ([0., numpy.nan], [0., numpy.nan]),
+    ([0., numpy.inf], [0., 1.]),
+    ([0., -numpy.inf], [0., 1.]),
+    ([numpy.inf, 1.], [numpy.inf, 1.]),
+    ([-numpy.inf, 1.], [-numpy.inf, 1.]),
+    ([numpy.inf, 1.], [-numpy.inf, 1.]),
+    ([numpy.inf, 1.], [-numpy.inf, numpy.nan]),
+    ([[0, 1], [2, 3]], [[0, 1], [2, 3]]),
+    ([[0, 1], [2, 3]], [[0, 1], [2, -2]]),
+    ([[0, 1], [2, 3]], [[1, 2], [3, 4]]),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_eq(device, a_object, b_object, dtype):
+    try:
+        a_np = numpy.array(a_object, dtype=dtype.char)
+        b_np = numpy.array(b_object, dtype=dtype.char)
+    except (ValueError, OverflowError):
+        # Skip if creating an ndarray while casting the data to the parameterized dtype fails.
+        # E.g. [numpy.inf] to numpy.int32.
+        return
+
+    a_xc = xchainer.Array(a_np)
+    b_xc = xchainer.Array(b_np)
+
+    _check_array_equals_ndarray(a_xc == b_xc, a_np == b_np)
+    _check_array_equals_ndarray(b_xc == a_xc, b_np == a_np)
+    _check_array_equals_ndarray(xchainer.equal(a_xc, b_xc), numpy.equal(a_np, b_np))
+    _check_array_equals_ndarray(xchainer.equal(b_xc, a_xc), numpy.equal(b_np, a_np))
+
+
+@pytest.mark.parametrize('a_shape,b_shape', [
+    ((), (1,)),
+    ((1,), (2, 3)),
+    ((1, 2, 3), (1, 2, 3, 4)),
+])
+def test_invalid_eq(a_shape, b_shape):
+    def create_ndarray(shape):
+        size = functools.reduce(operator.mul, shape, 1)
+        dtype = numpy.float32
+        return numpy.arange(size, dtype=dtype).reshape(shape)
+
+    def check(a_xc, b_xc):
+        with pytest.raises(xchainer.DimensionError):
+            a_xc == b_xc
+
+        with pytest.raises(xchainer.DimensionError):
+            xchainer.equal(a_xc, b_xc)
+
+    a_np = create_ndarray(a_shape)
+    b_np = create_ndarray(b_shape)
+
+    a_xc = xchainer.Array(a_np)
+    b_xc = xchainer.Array(b_np)
+
+    check(a_xc, b_xc)
+    check(b_xc, a_xc)
+
+
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_add_iadd(device, array_init_inputs):
     shape, dtype = array_init_inputs
