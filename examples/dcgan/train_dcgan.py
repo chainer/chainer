@@ -59,6 +59,7 @@ def main():
         optimizer.add_hook(
             chainer.optimizer_hooks.WeightDecay(0.0001), 'hook_dec')
         return optimizer
+
     opt_gen = make_optimizer(gen)
     opt_dis = make_optimizer(dis)
 

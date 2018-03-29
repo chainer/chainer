@@ -292,7 +292,7 @@ Let's retrieve the Penn Tree Bank (PTB) dataset by using Chainer's dataset utili
 .. literalinclude:: ../../../examples/dcgan/train_dcgan.py
    :language: python
    :start-after: Setup an iterator
-   :end-before: Setup a trainer
+   :end-before: Setup a updater
    :caption: train_dcgan.py
    :dedent: 4
 
@@ -335,17 +335,36 @@ Let's retrieve the Penn Tree Bank (PTB) dataset by using Chainer's dataset utili
 .. literalinclude:: ../../../examples/dcgan/train_dcgan.py
    :language: python
    :start-after: Setup a trainer
-   :end-before: snapshot_interval
+   :end-before: args.resume
    :caption: train_dcgan.py
    :dedent: 4
 
-4.5 Start training
+.. literalinclude:: ../../../examples/dcgan/train_dcgan.py
+   :language: python
+   :start-after: Run the training
+   :end-before: __main__
+   :caption: train_dcgan.py
+   :dedent: 4
+
+4.7 Start training
 -------------------
 
 .. code-block:: console
 
     $ pwd
-    /root2chainer/chainer/examples/word2vec
+    /root2chainer/chainer/examples/dcgan
+    $ python train_dcgan.py --gpu 0 
+    GPU: 0
+    # Minibatch-size: 50
+    # n_hidden: 100
+    # epoch: 1000
+    
+    epoch       iteration   gen/loss    dis/loss  ................]  0.01%
+    0           100         1.2292      1.76914     
+         total [..................................................]  0.02%
+    this epoch [#########.........................................] 19.00%
+           190 iter, 0 epoch / 1000 epochs
+        10.121 iters/sec. Estimated time to finish: 1 day, 3:26:26.372445.
 
 5. Reference
 =============
