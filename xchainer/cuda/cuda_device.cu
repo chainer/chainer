@@ -195,12 +195,17 @@ __global__ void MulKernel(
 }
 
 template <typename T>
-__global__ void MaximumScalarKernel(IndexableArray<const T> lhs_iarray, T rhs_value, IndexableArray<T> out_iarray, Indexer<> indexer) {
+__global__ void IfLessElseKernel(
+        IndexableArray<const T> lhs_iarray,
+        T rhs_value,
+        T pos_value,
+        IndexableArray<const T> neg_iarray,
+        IndexableArray<T> out_iarray,
+        Indexer<> indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
-        T lhs_value = lhs_iarray[indexer];
-        out_iarray[indexer] = lhs_value > rhs_value ? lhs_value : rhs_value;
+        out_iarray[indexer] = lhs_iarray[indexer] < rhs_value ? pos_value : neg_iarray[indexer];
     }
 }
 
@@ -406,22 +411,25 @@ void CudaDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
-void CudaDevice::Maximum(const Array& lhs, Scalar rhs, const Array& out) {
-    CheckDevicesCompatible(lhs, out);
+void CudaDevice::IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg, const Array& out) {
+    CheckDevicesCompatible(lhs, neg, out);
     cudaSetDevice(index());
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MaximumScalarKernel<T>).block_size;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&IfLessElseKernel<T>).block_size;
 
         IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> neg_iarray{neg};
         IndexableArray<T> out_iarray{out};
         Indexer<> indexer{lhs.shape()};
+        T rhs_value{rhs};
+        T pos_value{pos};
 
         int64_t total_size = indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-        MaximumScalarKernel<<<grid_size, block_size>>>(lhs_iarray, static_cast<T>(rhs), out_iarray, indexer);
+        IfLessElseKernel<<<grid_size, block_size>>>(lhs_iarray, rhs_value, pos_value, neg_iarray, out_iarray, indexer);
     });
 }
 

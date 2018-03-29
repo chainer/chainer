@@ -202,13 +202,26 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
     return out;
 }
 
-Array Maximum(const Array& x1, Scalar x2) {
-    Array out = Array::EmptyLike(x1, x1.device());
-    x1.device().Maximum(x1, x2, out);
+namespace {
 
-    // TODO(hvy): Make this routine differentiable.
+// Calculates: lhs < rhs ? pos : neg
+// Can only differentiate with respect to neg.
+Array IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg) {
+    Array out = Array::EmptyLike(lhs, lhs.device());
+    lhs.device().IfLessElse(lhs, rhs, pos, neg, out);
+
+    auto backward_function = [lhs, rhs](const Array& gout, const std::vector<GraphId>&) {
+        return IfLessElse(lhs, rhs, Scalar{0, gout.dtype()}, gout);
+    };
+    internal::SetUpOpNodes("if-less-else", {neg}, out, {backward_function});
 
     return out;
+}
+
+}  // namespace
+
+Array Maximum(const Array& x1, Scalar x2) {
+    return IfLessElse(x1, x2, x2, x1);  // x1 < x2 ? x2 : x1
 }
 
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
