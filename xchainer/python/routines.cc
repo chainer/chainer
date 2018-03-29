@@ -135,6 +135,8 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("a"),
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
+    m.def("maximum", [](const ArrayBodyPtr& a, Scalar b) { return Maximum(Array{a}, b).move_body(); }, py::arg("a"), py::arg("b"));
+    m.def("maximum", [](Scalar a, const ArrayBodyPtr& b) { return Maximum(a, Array{b}).move_body(); }, py::arg("a"), py::arg("b"));
 }
 
 }  // namespace internal

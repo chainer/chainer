@@ -1005,3 +1005,22 @@ def test_sum_double_backward(device):
         return b * b,  # to make it nonlinear
 
     xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
+
+
+@pytest.mark.parametrize("shape,value", [
+    ((), -1),
+    ((), 1),
+    ((1,), -1),
+    ((1,), 1),
+    ((2,), 1),
+    ((2, 3), 3),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_maximum_with_scalar(device, shape, value, signed_dtype):
+    total_size = functools.reduce(operator.mul, shape, 1)
+    x = xchainer.Array(shape, signed_dtype, list(range(total_size)))
+    y = xchainer.maximum(x, value)
+
+    x_np = numpy.array(x.to_device('native'))
+    y_np = numpy.maximum(x_np, x_np.dtype.type(value))
+    _check_array_equals_ndarray(y, y_np)
