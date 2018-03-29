@@ -75,9 +75,9 @@ class TestNonparameterizedLinear(unittest.TestCase):
         else:
             self.check_forward_options = {}
             self.check_backward_options = {
-                'atol': 1e-3, 'rtol': 1e-3}
+                'atol': 1e-2, 'rtol': 1e-2}
             self.check_double_backward_options = {
-                'atol': 1e-3, 'rtol': 1e-3}
+                'atol': 1e-2, 'rtol': 1e-2}
 
     def forward_cpu(self, inputs):
         x, W, b = inputs
