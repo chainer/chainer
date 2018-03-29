@@ -484,17 +484,28 @@ def test_as_constant_view(array_init_inputs):
     ([], []),
     ([0], [0]),
     ([0], [1]),
+    ([0], [-0]),
+    ([0.2], [-0.3]),
+    ([True], [True]),
+    ([True], [False]),
     ([0, 1, 2], [0, 1, 2]),
     ([1, 1, 2], [0, 1, 2]),
     ([0, 1, 2], [1, 2, 3]),
+    ([0., numpy.nan], [0., 1.]),
+    ([0., numpy.nan], [0., numpy.nan]),
+    ([0., numpy.inf], [0., 1.]),
+    ([0., -numpy.inf], [0., 1.]),
+    ([numpy.inf, 1.], [numpy.inf, 1.]),
+    ([-numpy.inf, 1.], [-numpy.inf, 1.]),
+    ([numpy.inf, 1.], [-numpy.inf, 1.]),
     ([[0, 1], [2, 3]], [[0, 1], [2, 3]]),
-    ([[0, 1], [2, 3]], [[0, 1], [2, 4]]),
+    ([[0, 1], [2, 3]], [[0, 1], [2, -2]]),
     ([[0, 1], [2, 3]], [[1, 2], [3, 4]]),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_eq(device, a_object, b_object, dtype):
-    a_np = numpy.array(a_object, dtype=dtype.char)
-    b_np = numpy.array(b_object, dtype=dtype.char)
+def test_eq(device, a_object, b_object):
+    a_np = numpy.array(a_object)
+    b_np = numpy.array(b_object)
 
     a_xc = xchainer.Array(a_np)
     b_xc = xchainer.Array(b_np)
