@@ -11,6 +11,7 @@
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/logic.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/math.h"
 
