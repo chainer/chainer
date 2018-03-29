@@ -24,6 +24,7 @@
 
 #include "xchainer/python/array_index.h"
 #include "xchainer/python/common.h"
+#include "xchainer/python/device.h"
 #include "xchainer/python/shape.h"
 #include "xchainer/python/strides.h"
 
@@ -34,15 +35,6 @@ namespace internal {
 namespace py = pybind11;
 
 namespace {
-
-// TODO(beam2d): The current binding has an overhead on wrapping ArrayBodyPtr by Array, which copies shared_ptr. One
-// simple way to avoid this overhead is to use reinterpret_cast<Array&>(ptr). This cast is valid if ArrayBodyPtr (i.e.,
-// shared_ptr) satisfies "standard layout" conditions. We can test if ArrayBodyPtr satisfies these conditions by
-// std::is_standard_layout (see http://en.cppreference.com/w/cpp/types/is_standard_layout#Notes).
-
-using ArrayBody = xchainer::internal::ArrayBody;
-using ArrayBodyPtr = std::shared_ptr<ArrayBody>;
-using ConstArrayBodyPtr = std::shared_ptr<const ArrayBody>;
 
 Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
     switch (npdtype.kind()) {
@@ -84,10 +76,6 @@ Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
             break;
     }
     throw DtypeError("unsupported NumPy dtype");
-}
-
-Device& GetDevice(const nonstd::optional<std::string>& device_id) {
-    return device_id.has_value() ? GetDefaultContext().GetDevice(device_id.value()) : GetDefaultDevice();
 }
 
 ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
@@ -152,14 +140,7 @@ void InitXchainerArray(pybind11::module& m) {
         // Duplicate the array body
         return std::make_shared<ArrayBody>(*self);
     });
-    c.def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).move_body(); });
-    c.def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).move_body(); });
-    c.def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).move_body(); });
-    c.def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); });
     c.def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); });
-    c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle handle) {
-        return Array{self}.At(python::internal::MakeArrayIndices(handle)).move_body();
-    });
     c.def("to_device", [](const ArrayBodyPtr& self, Device& device) { return Array{self}.ToDevice(device).move_body(); });
     c.def("to_device", [](const ArrayBodyPtr& self, const std::string& device_name) {
         Device& device = GetDefaultContext().GetDevice({device_name});
@@ -168,6 +149,19 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("to_device", [](const ArrayBodyPtr& self, const std::string& backend_name, int index) {
         Device& device = GetDefaultContext().GetDevice({backend_name, index});
         return Array{self}.ToDevice(device).move_body();
+    });
+    c.def("as_constant",
+          [](const ArrayBodyPtr& self, bool copy) { return Array{self}.AsConstant(copy ? CopyKind::kCopy : CopyKind::kView).move_body(); },
+          py::arg("copy") = false);
+    c.def("as_constant",
+          [](const ArrayBodyPtr& self, const std::vector<GraphId>& graph_ids, bool copy) {
+              return Array{self}.AsConstant(graph_ids, copy ? CopyKind::kCopy : CopyKind::kView).move_body();
+          },
+          py::arg().noconvert(),
+          py::arg("copy") = false);
+    c.def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); });
+    c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle handle) {
+        return Array{self}.At(python::internal::MakeArrayIndices(handle)).move_body();
     });
     c.def("transpose", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); });
     c.def("reshape", [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.Reshape(ToShape(shape)).move_body(); });
@@ -178,6 +172,10 @@ void InitXchainerArray(pybind11::module& m) {
         auto shape = py::cast<std::vector<int64_t>>(args);
         return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
     });
+    c.def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).move_body(); });
+    c.def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).move_body(); });
+    c.def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).move_body(); });
+    c.def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); });
     c.def("sum",
           [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) {
               return Array{self}.Sum(std::vector<int8_t>{axis}, keepdims).move_body();
@@ -190,16 +188,7 @@ void InitXchainerArray(pybind11::module& m) {
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
-    c.def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); });
-    c.def("as_constant",
-          [](const ArrayBodyPtr& self, bool copy) { return Array{self}.AsConstant(copy ? CopyKind::kCopy : CopyKind::kView).move_body(); },
-          py::arg("copy") = false);
-    c.def("as_constant",
-          [](const ArrayBodyPtr& self, const std::vector<GraphId>& graph_ids, bool copy) {
-              return Array{self}.AsConstant(graph_ids, copy ? CopyKind::kCopy : CopyKind::kView).move_body();
-          },
-          py::arg().noconvert(),
-          py::arg("copy") = false);
+
     c.def("require_grad",
           [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{self}.RequireGrad(graph_id).move_body(); },
           py::arg("graph_id") = kDefaultGraphId);
@@ -291,73 +280,6 @@ void InitXchainerArray(pybind11::module& m) {
 
         return list;
     });
-
-    m.def("empty",
-          [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-              return Array::Empty(ToShape(shape), dtype, GetDevice(device_id)).move_body();
-          },
-          py::arg("shape"),
-          py::arg("dtype"),
-          py::arg("device") = nullptr);
-    m.def("full",
-          [](py::tuple shape, Scalar value, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-              return Array::Full(ToShape(shape), value, dtype, GetDevice(device_id)).move_body();
-          },
-          py::arg("shape"),
-          py::arg("value"),
-          py::arg("dtype"),
-          py::arg("device") = nullptr);
-    m.def("full",
-          [](py::tuple shape, Scalar value, const nonstd::optional<std::string>& device_id) {
-              return Array::Full(ToShape(shape), value, GetDevice(device_id)).move_body();
-          },
-          py::arg("shape"),
-          py::arg("value"),
-          py::arg("device") = nullptr);
-    m.def("zeros",
-          [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-              return Array::Zeros(ToShape(shape), dtype, GetDevice(device_id)).move_body();
-          },
-          py::arg("shape"),
-          py::arg("dtype"),
-          py::arg("device") = nullptr);
-    m.def("ones",
-          [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-              return Array::Ones(ToShape(shape), dtype, GetDevice(device_id)).move_body();
-          },
-          py::arg("shape"),
-          py::arg("dtype"),
-          py::arg("device") = nullptr);
-    m.def("empty_like",
-          [](const ArrayBodyPtr& other, const nonstd::optional<std::string>& device_id) {
-              return Array::EmptyLike(Array{other}, GetDevice(device_id)).move_body();
-          },
-          py::arg("other"),
-          py::arg("device") = nullptr);
-    m.def("full_like",
-          [](const ArrayBodyPtr& other, Scalar value, const nonstd::optional<std::string>& device_id) {
-              return Array::FullLike(Array{other}, value, GetDevice(device_id)).move_body();
-          },
-          py::arg("other"),
-          py::arg("value"),
-          py::arg("device") = nullptr);
-    m.def("zeros_like",
-          [](const ArrayBodyPtr& other, const nonstd::optional<std::string>& device_id) {
-              return Array::ZerosLike(Array{other}, GetDevice(device_id)).move_body();
-          },
-          py::arg("other"),
-          py::arg("device") = nullptr);
-    m.def("ones_like",
-          [](const ArrayBodyPtr& other, const nonstd::optional<std::string>& device_id) {
-              return Array::OnesLike(Array{other}, GetDevice(device_id)).move_body();
-          },
-          py::arg("other"),
-          py::arg("device") = nullptr);
-
-    m.def("broadcast_to",
-          [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.BroadcastTo(ToShape(shape)).move_body(); },
-          py::arg("array"),
-          py::arg("shape"));
 }
 
 }  // namespace internal

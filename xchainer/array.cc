@@ -114,21 +114,23 @@ Array Array::FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<v
 
 Array Array::Empty(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Empty(shape, dtype, device); }
 
-Array Array::Full(const Shape& shape, Scalar scalar, Dtype dtype, Device& device) { return xchainer::Full(shape, scalar, dtype, device); }
+Array Array::Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device) {
+    return xchainer::Full(shape, fill_value, dtype, device);
+}
 
-Array Array::Full(const Shape& shape, Scalar scalar, Device& device) { return xchainer::Full(shape, scalar, device); }
+Array Array::Full(const Shape& shape, Scalar fill_value, Device& device) { return xchainer::Full(shape, fill_value, device); }
 
 Array Array::Zeros(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Zeros(shape, dtype, device); }
 
 Array Array::Ones(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Ones(shape, dtype, device); }
 
-Array Array::EmptyLike(const Array& array, Device& device) { return xchainer::EmptyLike(array, device); }
+Array Array::EmptyLike(const Array& a, Device& device) { return xchainer::EmptyLike(a, device); }
 
-Array Array::FullLike(const Array& array, Scalar scalar, Device& device) { return xchainer::FullLike(array, scalar, device); }
+Array Array::FullLike(const Array& a, Scalar fill_value, Device& device) { return xchainer::FullLike(a, fill_value, device); }
 
-Array Array::ZerosLike(const Array& array, Device& device) { return xchainer::ZerosLike(array, device); }
+Array Array::ZerosLike(const Array& a, Device& device) { return xchainer::ZerosLike(a, device); }
 
-Array Array::OnesLike(const Array& array, Device& device) { return xchainer::OnesLike(array, device); }
+Array Array::OnesLike(const Array& a, Device& device) { return xchainer::OnesLike(a, device); }
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
@@ -153,7 +155,7 @@ Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal:
 
 Array Array::Transpose() const { return xchainer::Transpose(*this); }
 
-Array Array::Reshape(const Shape& shape) const { return xchainer::Reshape(*this, shape); }
+Array Array::Reshape(const Shape& newshape) const { return xchainer::Reshape(*this, newshape); }
 
 Array Array::Squeeze(const nonstd::optional<std::vector<int8_t>>& axis) const { return xchainer::Squeeze(*this, axis); }
 
@@ -161,12 +163,7 @@ Array Array::BroadcastTo(const Shape& shape) const { return xchainer::BroadcastT
 
 Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
 
-Array Array::Copy() const {
-    // No graph will be disconnected.
-    Array out = AsConstant({}, CopyKind::kCopy);
-    assert(out.IsContiguous());
-    return out;
-}
+Array Array::Copy() const { return xchainer::Copy(*this); }
 
 Array Array::MakeView() const {
     return Array{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), body_->data_, offset(), body_->nodes_)};

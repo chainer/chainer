@@ -240,6 +240,7 @@ def test_transpose(array_init_inputs):
 
     _check_transpose(array.transpose())
     _check_transpose(array.T)
+    _check_transpose(xchainer.transpose(array))
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [
@@ -275,12 +276,16 @@ def test_reshape(a_shape, b_shape):
         assert b_xc.strides == b_np.strides, 'Strides after reshape must match NumPy behavior'
         _check_arrays_equal(xchainer.Array(b_np), b_xc)
 
-    # by tuple
-    check(a_xc.reshape(b_shape))
-    # by list
-    check(a_xc.reshape(list(b_shape)))
-    # by variable length args
-    check(a_xc.reshape(*b_shape))
+    # instance methods
+    check(a_xc.reshape(b_shape))  # by tuple
+    check(a_xc.reshape(list(b_shape)))  # by list
+    check(a_xc.reshape(*b_shape))  # by variable length args
+
+    # module functions
+    check(xchainer.reshape(a_xc, b_shape))  # by tuple
+    check(xchainer.reshape(a_xc, list(b_shape)))  # by list
+    with pytest.raises(TypeError):
+        xchainer.reshape(a_xc, *b_shape)
 
 # TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
 # TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
@@ -390,13 +395,11 @@ def test_broadcast_to_double_backward():
 
 def test_copy(array_init_inputs):
     shape, dtype = array_init_inputs
-
     data_list = _create_dummy_data(shape, dtype)
-
     array = xchainer.Array(shape, dtype, data_list)
-    array_copy = array.copy()
 
-    _check_arrays_equal_copy(array, array_copy)
+    _check_arrays_equal_copy(array, array.copy())
+    _check_arrays_equal_copy(array, xchainer.copy(array))
 
 
 def test_as_constant_copy(array_init_inputs):
@@ -491,10 +494,13 @@ def test_add_iadd(device, array_init_inputs):
     if dtype == xchainer.Dtype.bool:
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 2] => [False, True]
 
-    out = lhs + rhs
-    assert out._debug_flat_data == expected_data_list
-    assert lhs._debug_flat_data == lhs_data_list
-    assert rhs._debug_flat_data == rhs_data_list
+    def _check_add(lhs, rhs, out):
+        assert out._debug_flat_data == expected_data_list
+        assert lhs._debug_flat_data == lhs_data_list
+        assert rhs._debug_flat_data == rhs_data_list
+
+    _check_add(lhs, rhs, lhs + rhs)
+    _check_add(lhs, rhs, xchainer.add(lhs, rhs))
 
     lhs_prev = lhs
     lhs += rhs
@@ -517,10 +523,13 @@ def test_mul_imul(device, array_init_inputs):
     if dtype == xchainer.Dtype.bool:
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 1] => [False, True]
 
-    out = lhs * rhs
-    assert out._debug_flat_data == expected_data_list
-    assert lhs._debug_flat_data == lhs_data_list
-    assert rhs._debug_flat_data == rhs_data_list
+    def _check_mul(lhs, rhs, out):
+        assert out._debug_flat_data == expected_data_list
+        assert lhs._debug_flat_data == lhs_data_list
+        assert rhs._debug_flat_data == rhs_data_list
+
+    _check_mul(lhs, rhs, lhs * rhs)
+    _check_mul(lhs, rhs, xchainer.multiply(lhs, rhs))
 
     lhs_prev = lhs
     lhs *= rhs
@@ -928,11 +937,15 @@ def test_sum(device, input_shape, axis, keepdims, output_shape, output_data):
     total_size = functools.reduce(operator.mul, input_shape, 1)
     input_data = list(range(0, total_size))
     x = xchainer.Array(input_shape, xchainer.int32, input_data)
-    y = x.sum(axis=axis, keepdims=keepdims)
     e = xchainer.Array(output_shape, xchainer.int32, output_data)
-    _check_arrays_equal(y, e)
-
     n = numpy.array(input_data, numpy.int32).reshape(input_shape).sum(axis=axis, keepdims=keepdims).astype(numpy.int32)
+
+    y = x.sum(axis=axis, keepdims=keepdims)
+    _check_arrays_equal(y, e)
+    _check_array_equals_ndarray(y, n)
+
+    y = xchainer.sum(x, axis, keepdims)
+    _check_arrays_equal(y, e)
     _check_array_equals_ndarray(y, n)
 
 
