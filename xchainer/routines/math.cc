@@ -204,7 +204,7 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
 namespace {
 
 // Calculates: lhs < rhs ? pos : neg
-// Can only differentiate with regard to neg.
+// Can only differentiate with respect to neg.
 Array IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg) {
     Array out = Array::EmptyLike(lhs, lhs.device());
     lhs.device().IfLessElse(lhs, rhs, pos, neg, out);
