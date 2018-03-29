@@ -2,6 +2,14 @@ from chainer.training import extension
 
 
 class NaNKiller(extension.Extension):
+    """Trainer extension to raise RuntimeError if parameters contain NaN.
+
+    Although parameters including NaN are unnecessary for many developers,
+    :class:`~chainer.training.Trainer` will continue to compute even if
+    the parameters in a given optimizer diverge. This extension is aimed to
+    reduce unnecessary computations by throwing ``RuntimeError``
+    if the parameters contain NaN.
+    """
 
     def __call__(self, trainer):
         optimizers = trainer.updater.get_all_optimizers()
