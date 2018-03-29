@@ -1024,5 +1024,16 @@ TEST(ArraySumTest, SumKeepDims) {
     testing::ExpectEqual<T>(e, b);
 }
 
+TEST(ArrayDotTest, Dot) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::BuildArray({2, 3}).WithLinearData(1.f).WithPadding(1);
+    Array b = testing::BuildArray<T>({3, 2}, {1.f, 2.f, -1.f, -3.f, 2.f, 4.f}).WithPadding(2);
+    Array c = a.Dot(b);
+    Array e = testing::BuildArray<T>({2, 2}, {5.f, 8.f, 11.f, 17.f});
+    testing::ExpectEqual<float>(e, c);
+}
+
 }  // namespace
 }  // namespace xchainer

@@ -80,6 +80,12 @@ public:
     // Formally, it calculates: out = lhs < rhs ? pos : neg
     virtual void IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg, const Array& out) = 0;
 
+    // Matrix multiplication. All the operands are matrices (i.e., two-dimensional arrays).
+    // Let the shapes of `lhs` and `rhs` be `(M, K)` and `(L, N)`, respectively.
+    // Then, it must hold that `K == L` and the shape of `out` must be `(M, N)`.
+    // Otherwise, the behavior is undefined.
+    virtual void Dot(const Array& lhs, const Array& rhs, const Array& out) = 0;
+
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat

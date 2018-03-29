@@ -121,6 +121,9 @@ public:
     // Note: When implementing xchainer::Sum(), be careful of the semantics of the default value of `keepdims`. See NumPy documentation.
     Array Sum(const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false) const;
 
+    // Returns a dot product of the array with another one.
+    Array Dot(const Array& b) const;
+
     // Creates a copy.
     // It will be connected to all the graphs.
     // It will be always C-contiguous.

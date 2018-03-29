@@ -301,6 +301,42 @@ void NativeDevice::IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Ar
     });
 }
 
+void NativeDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
+    CheckDevicesCompatible(lhs, rhs, out);
+    VisitDtype(lhs.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<T> out_iarray{out};
+
+        // These asserts have to check iarray instead of the original array, otherwise clang-tidy fails bound-checking.
+        assert(lhs_iarray.ndim() == 2);
+        assert(rhs_iarray.ndim() == 2);
+        assert(out_iarray.ndim() == 2);
+
+        int64_t m = lhs.shape()[0];
+        int64_t k = lhs.shape()[1];
+        int64_t n = rhs.shape()[1];
+        assert(rhs.shape()[0] == k);
+        assert(out.shape()[0] == m);
+        assert(out.shape()[1] == n);
+
+        // TODO(beam2d): Use BLAS.
+        for (int64_t i = 0; i < m; ++i) {
+            for (int64_t j = 0; j < n; ++j) {
+                int64_t out_i[] = {i, j};
+                T& out_value = out_iarray[out_i];
+                out_value = 0;
+                for (int64_t l = 0; l < k; ++l) {
+                    int64_t lhs_i[] = {i, l};
+                    int64_t rhs_i[] = {l, j};
+                    out_value += lhs_iarray[lhs_i] * rhs_iarray[rhs_i];
+                }
+            }
+        }
+    });
+}
+
 void NativeDevice::Synchronize() {}
 
 }  // namespace native

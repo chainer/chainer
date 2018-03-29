@@ -65,6 +65,8 @@ public:
 
     void IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg, const Array& out) override;
 
+    void Dot(const Array& lhs, const Array& rhs, const Array& out) override;
+
     void Synchronize() override;
 };
 
