@@ -6,6 +6,7 @@ import numpy
 
 import chainer
 from chainer import links
+from chainer import testing
 from chainer.testing import attr
 from chainer import training
 
@@ -78,3 +79,6 @@ class TestNaNKiller(unittest.TestCase):
         self.model.l.W.array[:] = numpy.nan
         with self.assertRaises(RuntimeError):
             self.trainer.run(show_loop_exception_msg=False)
+
+
+testing.run_module(__name__, __file__)
