@@ -503,6 +503,31 @@ def test_eq(device, a_object, b_object, dtype):
     _check_array_equals_ndarray(b_xc == a_xc, b_np == a_np)
 
 
+@pytest.mark.parametrize('a_shape,b_shape', [
+    ((), (1,)),
+    ((1,), (2, 3)),
+    ((1, 2, 3), (1, 2, 3, 4)),
+])
+def test_invalid_eq(a_shape, b_shape):
+    def create_ndarray(shape):
+        size = functools.reduce(operator.mul, shape, 1)
+        dtype = numpy.float32
+        return numpy.arange(size, dtype=dtype).reshape(shape)
+
+    def check(a_shape, b_shape):
+        a_np = create_ndarray(a_shape)
+        b_np = create_ndarray(b_shape)
+
+        a_xc = xchainer.Array(a_np)
+        b_xc = xchainer.Array(b_np)
+
+        with pytest.raises(xchainer.DimensionError):
+            a_xc == b_xc
+
+    check(a_shape, b_shape)
+    check(b_shape, a_shape)
+
+
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_add_iadd(device, array_init_inputs):
     shape, dtype = array_init_inputs
