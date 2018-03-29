@@ -136,7 +136,8 @@ Array Multiply(const Array& x1, Scalar x2) {
     Array out = Array::EmptyLike(x1, x1.device());
     x1.device().Mul(x1, x2, out);
 
-    // TODO(hvy): Make this routine differentiable.
+    auto backward_function = [x2](const Array& gout, const std::vector<GraphId>&) { return gout * x2; };
+    internal::SetUpOpNodes("mul_scalar", {x1}, out, {backward_function});
 
     return out;
 }
