@@ -299,7 +299,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
 
 def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, **kwargs):
-    """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, *, groups=1)
+    """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, *, dilate=1, groups=1)
 
     Two dimensional deconvolution function.
 
@@ -371,8 +371,12 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
             It should be pair of height and width :math:`(h_O, w_O)`.
             Default value is ``None`` and the outsize is estimated by
             input size, stride and pad.
-        groups (int): The number of groups to use grouped deconvolution. The
-            default is one, where grouped deconvolution is not used.
+        dilate (:class:`int` or pair of :class:`int` s):
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (:class:`int`):
+            The number of groups to use grouped deconvolution.
+            The default is one, where grouped deconvolution is not used.
 
     Returns:
         ~chainer.Variable:
@@ -405,7 +409,7 @@ astype(np.float32)
         True
 
 
-    """
+    """  # NOQA
     argument.check_unexpected_kwargs(
         kwargs, deterministic="deterministic argument is not "
         "supported anymore. "
