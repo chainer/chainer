@@ -36,10 +36,9 @@ Scalar AsScalar(const Array& a) {
     native_device.Synchronize();
     return VisitDtype(a.dtype(), [&native_copy](auto pt) -> Scalar {
         using T = typename decltype(pt)::type;
-        const void* ptr = static_cast<const uint8_t*>(native_copy.data().get()) + native_copy.offset();
-        auto typed_ptr = reinterpret_cast<const T*>(ptr);  // NOLINT: reinterpret_cast
-        T value = *typed_ptr;
-        return Scalar{value};
+        auto ptr = static_cast<const T*>(
+                static_cast<const void*>(static_cast<const uint8_t*>(native_copy.data().get()) + native_copy.offset()));
+        return Scalar{*ptr};
     });
 }
 
