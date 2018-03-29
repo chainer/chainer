@@ -609,6 +609,106 @@ def test_mul_imul(device, array_init_inputs):
     assert rhs._debug_flat_data == rhs_data_list
 
 
+@pytest.mark.parametrize('scalar', [0, -1, 1, 2])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_mul_scalar(scalar, device, array_init_inputs):
+    shape, dtype = array_init_inputs
+
+    data_list = _create_dummy_data(shape, dtype)
+
+    # Implicit casting in NumPy's multiply depends on the 'casting' argument,
+    # which is not yet supported (xChainer always casts).
+    # Therefore, we explicitly cast the scalar to the dtype of the ndarray
+    # before the multiplication for NumPy.
+    scalar_np = numpy.dtype(dtype.name).type(scalar)
+    expected = numpy.array(data_list, dtype=dtype.name).reshape(shape)
+    expected *= scalar_np
+
+    x = xchainer.Array(shape, dtype, data_list)
+    scalar_xc = xchainer.Scalar(scalar, dtype)
+    _check_array_equals_ndarray(x * scalar, expected)
+    _check_array_equals_ndarray(x * scalar_xc, expected)
+    _check_array_equals_ndarray(scalar * x, expected)
+    _check_array_equals_ndarray(scalar_xc * x, expected)
+    _check_array_equals_ndarray(xchainer.multiply(x, scalar), expected)
+    _check_array_equals_ndarray(xchainer.multiply(x, scalar_xc), expected)
+    _check_array_equals_ndarray(xchainer.multiply(scalar, x), expected)
+    _check_array_equals_ndarray(xchainer.multiply(scalar_xc, x), expected)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_mul_backward(device):
+    x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
+    x2 = xchainer.Array(numpy.arange(3, dtype=numpy.float32).reshape(3)).require_grad()
+    gout = xchainer.ones_like(x1)
+    eps_x1 = xchainer.full_like(x1, 1e-2)
+    eps_x2 = xchainer.full_like(x2, 1e-2)
+    xchainer.check_backward(lambda xs: (xs[0] * xs[1],), [x1, x2], [gout], [eps_x1, eps_x2])
+    xchainer.check_backward(lambda xs: (xchainer.multiply(xs[0], xs[1]),), [x1, x2], [gout], [eps_x1, eps_x2])
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_mul_scalar_backward(device):
+    x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
+    gout = xchainer.ones_like(x1)
+    eps_x1 = xchainer.full_like(x1, 1e-2)
+    xchainer.check_backward(lambda xs: (xs[0] * 3.2,), [x1], [gout], [eps_x1])
+    xchainer.check_backward(lambda xs: (1.1 * xs[0],), [x1], [gout], [eps_x1])
+    xchainer.check_backward(lambda xs: (xchainer.multiply(xs[0], 3.2),), [x1], [gout], [eps_x1])
+    xchainer.check_backward(lambda xs: (xchainer.multiply(-1.8, xs[0]),), [x1], [gout], [eps_x1])
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_mul_double_backward(device):
+    x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
+    x2 = xchainer.Array(numpy.arange(3, dtype=numpy.float32).reshape(3)).require_grad()
+    gout = xchainer.ones_like(x1).require_grad()
+    ggx1 = xchainer.ones_like(x1)
+    ggx2 = xchainer.ones_like(x2)
+    eps_x1 = xchainer.full_like(x1, 1e-2)
+    eps_x2 = xchainer.full_like(x2, 1e-2)
+    eps_gout = xchainer.full_like(gout, 1e-2)
+
+    def check(func):
+        xchainer.check_double_backward(func, [x1, x2], [gout], [ggx1, ggx2], [eps_x1, eps_x2, eps_gout], atol=1e-4)
+
+    check(lambda xs: (xs[0] * xs[1],))
+    check(lambda xs: (xchainer.multiply(xs[0], xs[1]),))
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_mul_scalar_double_backward(device):
+    x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
+    gout = xchainer.ones_like(x1).require_grad()
+    ggx1 = xchainer.ones_like(x1)
+    eps_x1 = xchainer.full_like(x1, 1e-2)
+    eps_gout = xchainer.full_like(gout, 1e-2)
+
+    def check(func):
+        xchainer.check_double_backward(func, [x1], [gout], [ggx1], [eps_x1, eps_gout], atol=1e-4)
+
+    def forward_operator_scalar_lhs(xs):
+        out = 1.2 * xs[0]
+        return out * out,  # to make it nonlinear
+
+    def forward_operator_scalar_rhs(xs):
+        out = xs[0] * 1.2
+        return out * out,  # to make it nonlinear
+
+    def forward_function_scalar_lhs(xs):
+        out = xchainer.multiply(-0.3, xs[0])
+        return out * out,  # to make it nonlinear
+
+    def forward_function_scalar_rhs(xs):
+        out = xchainer.multiply(xs[0], -0.3)
+        return out * out,  # to make it nonlinear
+
+    check(forward_operator_scalar_lhs)
+    check(forward_operator_scalar_rhs)
+    check(forward_function_scalar_lhs)
+    check(forward_function_scalar_rhs)
+
+
 def test_array_init_invalid_length():
     with pytest.raises(xchainer.DimensionError):
         xchainer.Array((), xchainer.Dtype.int8, [])
