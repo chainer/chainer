@@ -1176,3 +1176,52 @@ def test_sum_double_backward(device):
         return b * b,  # to make it nonlinear
 
     xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
+
+
+@pytest.mark.parametrize("shape,value", [
+    ((), -1),
+    ((), 1),
+    ((1,), -1),
+    ((1,), 1),
+    ((2,), 1),
+    ((2, 3), 3),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_maximum_with_scalar(device, shape, value, signed_dtype):
+    total_size = functools.reduce(operator.mul, shape, 1)
+    x_np = numpy.arange(total_size, dtype=signed_dtype.name).reshape(shape)
+    y_np = numpy.maximum(x_np, x_np.dtype.type(value))
+
+    x = xchainer.Array(x_np)
+    _check_array_equals_ndarray(xchainer.maximum(x, value), y_np)
+    _check_array_equals_ndarray(xchainer.maximum(value, x), y_np)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_maximum_with_scalar_backward(device, float_dtype):
+    x = xchainer.Array(numpy.arange(6, dtype=float_dtype.name).reshape(2, 3)).require_grad()
+    gy = xchainer.ones(x.shape, x.dtype)
+    eps = xchainer.full_like(x, 1e-2)
+    xchainer.check_backward(lambda a: (xchainer.maximum(a[0], 2.5),), [x], [gy], [eps])
+    xchainer.check_backward(lambda a: (xchainer.maximum(2.5, a[0]),), [x], [gy], [eps])
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_maximum_with_scalar_double_backward(device, float_dtype):
+    x = xchainer.Array(numpy.arange(6, dtype=float_dtype.name).reshape(2, 3)).require_grad()
+    gy = xchainer.ones(x.shape, x.dtype).require_grad()
+    ggx = xchainer.ones_like(x)
+    eps_x = xchainer.full_like(x, 1e-2)
+    eps_gy = xchainer.full_like(gy, 1e-2)
+
+    def forward(a):
+        b = xchainer.maximum(a[0], 2.5)
+        return b * b,  # to make it nonlinear
+
+    xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
+
+    def forward2(a):
+        b = xchainer.maximum(2.5, a[0])
+        return b * b,  # ditto
+
+    xchainer.check_double_backward(forward2, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
