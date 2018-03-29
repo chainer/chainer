@@ -582,7 +582,9 @@ def test_mul_scalar_backward(device):
     gout = xchainer.ones_like(x1)
     eps_x1 = xchainer.full_like(x1, 1e-2)
     xchainer.check_backward(lambda xs: (xs[0] * 3.2,), [x1], [gout], [eps_x1])
+    xchainer.check_backward(lambda xs: (1.1 * xs[0],), [x1], [gout], [eps_x1])
     xchainer.check_backward(lambda xs: (xchainer.multiply(xs[0], 3.2),), [x1], [gout], [eps_x1])
+    xchainer.check_backward(lambda xs: (xchainer.multiply(-1.8, xs[0]),), [x1], [gout], [eps_x1])
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -614,16 +616,26 @@ def test_mul_scalar_double_backward(device):
     def check(func):
         xchainer.check_double_backward(func, [x1], [gout], [ggx1], [eps_x1, eps_gout], atol=1e-4)
 
-    def forward_operator(xs):
+    def forward_operator_scalar_lhs(xs):
+        out = 1.2 * xs[0]
+        return out * out,  # to make it nonlinear
+
+    def forward_operator_scalar_rhs(xs):
         out = xs[0] * 1.2
         return out * out,  # to make it nonlinear
 
-    def forward_function(xs):
+    def forward_function_scalar_lhs(xs):
         out = xchainer.multiply(-0.3, xs[0])
         return out * out,  # to make it nonlinear
 
-    check(forward_operator)
-    check(forward_function)
+    def forward_function_scalar_rhs(xs):
+        out = xchainer.multiply(xs[0], -0.3)
+        return out * out,  # to make it nonlinear
+
+    check(forward_operator_scalar_lhs)
+    check(forward_operator_scalar_rhs)
+    check(forward_function_scalar_lhs)
+    check(forward_function_scalar_rhs)
 
 
 def test_array_init_invalid_length():
