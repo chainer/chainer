@@ -891,7 +891,27 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         gys = tuple([gy if not isinstance(gy, tuple) else
                      chainer.functions.add(*gy)
                      for gy in gys])
+
+        # Call pre-backward hooks
+        hooks = chainer.get_function_hooks()
+        if func._n_local_function_hooks != 0:
+            hooks = collections.OrderedDict(hooks)
+            hooks.update(func.local_function_hooks)
+        hooks = hooks.values()  # avoid six for performance
+
+        in_data = tuple([x.data for x in func.inputs])
+        out_grad_data = tuple(
+            [None if g is None else g.data for g in gys])
+        cuda.get_device_from_array(*in_data).use()
+
+        for hook in hooks:
+            hook.backward_preprocess(func, in_data, out_grad_data)
+
         new_gxs = func.backward_accumulate(input_indexes, gys, gxs)
+
+        # Call post-backward hooks
+        for hook in hooks:
+            hook.backward_postprocess(func, in_data, out_grad_data)
 
         # Delete output gradients that are not required to return
         for y_ref in func.outputs:
