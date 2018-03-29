@@ -1,5 +1,9 @@
 #include "xchainer/python/routines.h"
 
+#include <cstdint>
+#include <string>
+#include <vector>
+
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
