@@ -303,22 +303,23 @@ void NativeDevice::IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Ar
 
 void NativeDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
-    assert(lhs.ndim() == 2);
-    assert(rhs.ndim() == 2);
-    assert(out.ndim() == 2);
-
-    int64_t m = lhs.shape()[0];
-    int64_t k = lhs.shape()[1];
-    int64_t n = rhs.shape()[1];
-    assert(rhs.shape()[0] == k);
-    assert(out.shape()[0] == m);
-    assert(out.shape()[1] == n);
-
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<T> out_iarray{out};
+
+        // These asserts have to check iarray instead of the original array, otherwise clang-tidy fails bound-checking.
+        assert(lhs_iarray.ndim() == 2);
+        assert(rhs_iarray.ndim() == 2);
+        assert(out_iarray.ndim() == 2);
+
+        int64_t m = lhs.shape()[0];
+        int64_t k = lhs.shape()[1];
+        int64_t n = rhs.shape()[1];
+        assert(rhs.shape()[0] == k);
+        assert(out.shape()[0] == m);
+        assert(out.shape()[1] == n);
 
         // TODO(beam2d): Use BLAS.
         for (int64_t i = 0; i < m; ++i) {
