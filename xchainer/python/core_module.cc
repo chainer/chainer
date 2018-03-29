@@ -11,6 +11,7 @@
 #include "xchainer/python/device.h"
 #include "xchainer/python/dtype.h"
 #include "xchainer/python/error.h"
+#include "xchainer/python/routines.h"
 #include "xchainer/python/scalar.h"
 
 namespace xchainer {
@@ -36,6 +37,7 @@ void InitXchainerModule(pybind11::module& m) {
     InitXchainerArray(m);
     InitXchainerBackward(m);
     InitXchainerCheckBackward(m);
+    InitXchainerRoutines(m);
 }
 
 }  // namespace

@@ -9,6 +9,7 @@ add_library(_core.so MODULE
     device.cc
     dtype.cc
     error.cc
+    routines.cc
     scalar.cc
     shape.cc
     slice.cc
