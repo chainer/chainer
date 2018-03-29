@@ -266,7 +266,7 @@ def test_asscalar(device, value, shape, dtype):
         assert bool(a_np) == bool(a_xc)
 
     # xchainer.asscalar
-    assert type(xchainer.asscalar(a_xc)) is type(numpy.asscalar(a_np))  # NOQA: E721
+    assert isinstance(xchainer.asscalar(a_xc), type(numpy.asscalar(a_np)))
     if math.isnan(numpy.asscalar(a_np)):
         assert math.isnan(xchainer.asscalar(a_xc))
     else:
