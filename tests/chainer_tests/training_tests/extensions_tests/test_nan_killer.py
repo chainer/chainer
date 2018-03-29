@@ -33,7 +33,7 @@ class Dataset(chainer.dataset.DatasetMixin):
         return numpy.array([self.values[i]], numpy.float32), numpy.int32(i % 2)
 
 
-class TestNanKiller(unittest.TestCase):
+class TestNaNKiller(unittest.TestCase):
 
     def setUp(self):
         self.n_data = 4
