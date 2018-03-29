@@ -52,7 +52,16 @@ Array Dot(const Array& a, const Array& b) {
     Array out_matrix = out.Reshape({m, n});
     x.device().Dot(x_matrix, y_matrix, out_matrix);
 
-    // TODO(beam2d): Implement backward.
+    auto a_backward_fn = [other = b](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+        return Dot(gout, other.AsConstant(graph_ids_to_stop_gradient).Transpose());
+    };
+    auto b_backward_fn = [ other = a, m, n, k ](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+        Array a_matrix = other.AsConstant(graph_ids_to_stop_gradient).Reshape({m, k});
+        Array gout_matrix = gout.Reshape({m, n});
+        return Dot(a_matrix.Transpose(), gout_matrix);
+    };
+    internal::SetUpOpNodes("dot", {a, b}, out, {a_backward_fn, b_backward_fn});
+
     return out;
 }
 
