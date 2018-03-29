@@ -283,20 +283,20 @@ void NativeDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
-void NativeDevice::LessWhere(Scalar lhs, const Array& rhs, const Array& pos, Scalar neg, const Array& out) {
-    CheckDevicesCompatible(rhs, pos, out);
+void NativeDevice::IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg, const Array& out) {
+    CheckDevicesCompatible(lhs, neg, out);
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> rhs_iarray{rhs};
-        IndexableArray<const T> pos_iarray{pos};
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> neg_iarray{neg};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{rhs.shape()};
-        T lhs_value{lhs};
-        T neg_value{neg};
+        Indexer<> indexer{lhs.shape()};
+        T rhs_value{rhs};
+        T pos_value{pos};
 
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
-            out_iarray[indexer] = lhs_value < rhs_iarray[indexer] ? pos_iarray[indexer] : neg_value;
+            out_iarray[indexer] = lhs_iarray[indexer] < rhs_value ? pos_value : neg_iarray[indexer];
         }
     });
 }

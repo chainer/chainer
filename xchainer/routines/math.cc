@@ -204,15 +204,15 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
 namespace {
 
 // Calculates: lhs < rhs ? pos : neg
-// Can only differentiate with regard to pos.
-Array LessWhere(Scalar lhs, const Array& rhs, const Array& pos, Scalar neg) {
-    Array out = Array::EmptyLike(rhs, rhs.device());
-    rhs.device().LessWhere(lhs, rhs, pos, neg, out);
+// Can only differentiate with regard to neg.
+Array IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg) {
+    Array out = Array::EmptyLike(lhs, lhs.device());
+    lhs.device().IfLessElse(lhs, rhs, pos, neg, out);
 
     auto backward_function = [lhs, rhs](const Array& gout, const std::vector<GraphId>&) {
-        return LessWhere(lhs, rhs, gout, Scalar{0, gout.dtype()});
+        return IfLessElse(lhs, rhs, Scalar{0, gout.dtype()}, gout);
     };
-    internal::SetUpOpNodes("less_where", {pos}, out, {backward_function});
+    internal::SetUpOpNodes("if-less-else", {neg}, out, {backward_function});
 
     return out;
 }
@@ -220,7 +220,7 @@ Array LessWhere(Scalar lhs, const Array& rhs, const Array& pos, Scalar neg) {
 }  // namespace
 
 Array Maximum(const Array& x1, Scalar x2) {
-    return LessWhere(x2, x1, x1, x2);  // x2 < x1 ? x1 : x2
+    return IfLessElse(x1, x2, x2, x1);  // x1 < x2 ? x2 : x1
 }
 
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }

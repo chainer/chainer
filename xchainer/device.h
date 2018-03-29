@@ -78,7 +78,7 @@ public:
     // Compares lhs and rhs and assign either pos or neg according to the result.
     //
     // Formally, it calculates: out = lhs < rhs ? pos : neg
-    virtual void LessWhere(Scalar lhs, const Array& rhs, const Array& pos, Scalar neg, const Array& out) = 0;
+    virtual void IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg, const Array& out) = 0;
 
     virtual void Synchronize() = 0;
 

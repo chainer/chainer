@@ -185,17 +185,17 @@ __global__ void MulKernel(
 }
 
 template <typename T>
-__global__ void LessWhereKernel(
-        T lhs_value,
-        IndexableArray<const T> rhs_iarray,
-        IndexableArray<const T> pos_iarray,
-        T neg_value,
+__global__ void IfLessElseKernel(
+        IndexableArray<const T> lhs_iarray,
+        T rhs_value,
+        T pos_value,
+        IndexableArray<const T> neg_iarray,
         IndexableArray<T> out_iarray,
         Indexer<> indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
-        out_iarray[indexer] = lhs_value < rhs_iarray[indexer] ? pos_iarray[indexer] : neg_value;
+        out_iarray[indexer] = lhs_iarray[indexer] < rhs_value ? pos_value : neg_iarray[indexer];
     }
 }
 
@@ -389,25 +389,25 @@ void CudaDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
-void CudaDevice::LessWhere(Scalar lhs, const Array& rhs, const Array& pos, Scalar neg, const Array& out) {
-    CheckDevicesCompatible(rhs, pos, out);
+void CudaDevice::IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg, const Array& out) {
+    CheckDevicesCompatible(lhs, neg, out);
     cudaSetDevice(index());
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&LessWhereKernel<T>).block_size;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&IfLessElseKernel<T>).block_size;
 
-        IndexableArray<const T> rhs_iarray{rhs};
-        IndexableArray<const T> pos_iarray{pos};
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> neg_iarray{neg};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{rhs.shape()};
-        T lhs_value{lhs};
-        T neg_value{neg};
+        Indexer<> indexer{lhs.shape()};
+        T rhs_value{rhs};
+        T pos_value{pos};
 
         int64_t total_size = indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-        LessWhereKernel<<<grid_size, block_size>>>(lhs_value, rhs_iarray, pos_iarray, neg_value, out_iarray, indexer);
+        IfLessElseKernel<<<grid_size, block_size>>>(lhs_iarray, rhs_value, pos_value, neg_iarray, out_iarray, indexer);
     });
 }
 
