@@ -241,7 +241,6 @@ def test_transpose(array_init_inputs):
     _check_transpose(array.transpose())
     _check_transpose(array.T)
     _check_transpose(xchainer.transpose(array))
-    _check_transpose(xchainer.transpose(a=array))
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [
@@ -287,10 +286,6 @@ def test_reshape(a_shape, b_shape):
     check(xchainer.reshape(a_xc, list(b_shape)))  # by list
     with pytest.raises(TypeError):
         xchainer.reshape(a_xc, *b_shape)
-
-    # module functions with keyword arguments
-    check(xchainer.reshape(a=a_xc, newshape=b_shape))  # by tuple
-    check(xchainer.reshape(a=a_xc, newshape=list(b_shape)))  # by list
 
 # TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
 # TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
@@ -351,9 +346,9 @@ def test_broadcast_to(src_shape, dst_shape):
     src_np = numpy.arange(size, dtype=numpy.float32).reshape(src_shape)
     src = xchainer.Array(src_np)
 
-    dst_np = numpy.broadcast_to(array=src_np, shape=dst_shape)
-    _check_array_equals_ndarray(xchainer.broadcast_to(src, dst_shape), dst_np)
-    _check_array_equals_ndarray(xchainer.broadcast_to(array=src, shape=dst_shape), dst_np)
+    dst = xchainer.broadcast_to(src, dst_shape)
+    dst_np = numpy.broadcast_to(src_np, dst_shape)
+    _check_array_equals_ndarray(dst, dst_np)
 
 
 def test_broadcast_to_auto_prefix():
@@ -405,7 +400,6 @@ def test_copy(array_init_inputs):
 
     _check_arrays_equal_copy(array, array.copy())
     _check_arrays_equal_copy(array, xchainer.copy(array))
-    _check_arrays_equal_copy(array, xchainer.copy(a=array))
 
 
 def test_as_constant_copy(array_init_inputs):
@@ -507,7 +501,6 @@ def test_add_iadd(device, array_init_inputs):
 
     _check_add(lhs, rhs, lhs + rhs)
     _check_add(lhs, rhs, xchainer.add(lhs, rhs))
-    _check_add(lhs, rhs, xchainer.add(x1=lhs, x2=rhs))
 
     lhs_prev = lhs
     lhs += rhs
@@ -537,7 +530,6 @@ def test_mul_imul(device, array_init_inputs):
 
     _check_mul(lhs, rhs, lhs * rhs)
     _check_mul(lhs, rhs, xchainer.multiply(lhs, rhs))
-    _check_mul(lhs, rhs, xchainer.multiply(x1=lhs, x2=rhs))
 
     lhs_prev = lhs
     lhs *= rhs
@@ -953,10 +945,6 @@ def test_sum(device, input_shape, axis, keepdims, output_shape, output_data):
     _check_array_equals_ndarray(y, n)
 
     y = xchainer.sum(x, axis, keepdims)
-    _check_arrays_equal(y, e)
-    _check_array_equals_ndarray(y, n)
-
-    y = xchainer.sum(a=x, axis=axis, keepdims=keepdims)
     _check_arrays_equal(y, e)
     _check_array_equals_ndarray(y, n)
 
