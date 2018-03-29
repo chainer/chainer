@@ -27,10 +27,6 @@ namespace internal {
 
 namespace py = pybind11;
 
-namespace {
-using xchainer::python::internal::ArrayBodyPtr;
-}
-
 void InitXchainerRoutines(pybind11::module& m) {
     // creation module functions
     m.def("empty",
