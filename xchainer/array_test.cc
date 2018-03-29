@@ -471,11 +471,6 @@ TEST_P(ArrayTest, OnesLike) {
 }
 
 TEST_P(ArrayTest, Equality) {
-    // TODO(niboshi): Remove this when CUDA implementation is added.
-    if (GetDefaultDevice().backend().GetName() == "cuda") {
-        return;
-    }
-
     using T = float;
     Shape shape{2};
     Array a = testing::BuildArray(shape).WithData<T>({1.0f, 2.0f});
