@@ -73,15 +73,18 @@ def main():
         train = chainer.datasets\
             .ImageDataset(paths=image_files, root=args.dataset)
 
+    # Setup an iterator
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
 
-    # Set up a trainer
+    # Setup a updater
     updater = DCGANUpdater(
         models=(gen, dis),
         iterator=train_iter,
         optimizer={
             'gen': opt_gen, 'dis': opt_dis},
         device=args.gpu)
+
+    # Setup a trainer
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     snapshot_interval = (args.snapshot_interval, 'iteration')
