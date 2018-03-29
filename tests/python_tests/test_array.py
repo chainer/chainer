@@ -480,6 +480,29 @@ def test_as_constant_view(array_init_inputs):
     assert a.is_grad_required('graph_3')
 
 
+@pytest.mark.parametrize('a_object,b_object', [
+    ([], []),
+    ([0], [0]),
+    ([0], [1]),
+    ([0, 1, 2], [0, 1, 2]),
+    ([1, 1, 2], [0, 1, 2]),
+    ([0, 1, 2], [1, 2, 3]),
+    ([[0, 1], [2, 3]], [[0, 1], [2, 3]]),
+    ([[0, 1], [2, 3]], [[0, 1], [2, 4]]),
+    ([[0, 1], [2, 3]], [[1, 2], [3, 4]]),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_eq(device, a_object, b_object, dtype):
+    a_np = numpy.array(a_object, dtype=dtype.char)
+    b_np = numpy.array(b_object, dtype=dtype.char)
+
+    a_xc = xchainer.Array(a_np)
+    b_xc = xchainer.Array(b_np)
+
+    _check_array_equals_ndarray(a_xc == b_xc, a_np == b_np)
+    _check_array_equals_ndarray(b_xc == a_xc, b_np == a_np)
+
+
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_add_iadd(device, array_init_inputs):
     shape, dtype = array_init_inputs

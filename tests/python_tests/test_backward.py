@@ -28,7 +28,7 @@ def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=xchainer.DEFAULT_
 
     for i, expected_gx in enumerate(expected_gxs):
         x = xs[i]
-        if expected_gx == xchainer.XchainerError:
+        if expected_gx is xchainer.XchainerError:
             with pytest.raises(xchainer.XchainerError):
                 x.get_grad(graph_id)
         else:
