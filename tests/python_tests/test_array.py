@@ -1022,9 +1022,8 @@ def test_maximum_with_scalar(device, shape, value, signed_dtype):
     y_np = numpy.maximum(x_np, x_np.dtype.type(value))
 
     x = xchainer.Array(x_np)
-    y = xchainer.maximum(x, value)
-
-    _check_array_equals_ndarray(y, y_np)
+    _check_array_equals_ndarray(xchainer.maximum(x, value), y_np)
+    _check_array_equals_ndarray(xchainer.maximum(value, x), y_np)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -1033,6 +1032,7 @@ def test_maximum_with_scalar_backward(device, float_dtype):
     gy = xchainer.ones(x.shape, x.dtype)
     eps = xchainer.full_like(x, 1e-2)
     xchainer.check_backward(lambda a: (xchainer.maximum(a[0], 2.5),), [x], [gy], [eps])
+    xchainer.check_backward(lambda a: (xchainer.maximum(2.5, a[0]),), [x], [gy], [eps])
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -1048,3 +1048,9 @@ def test_maximum_with_scalar_double_backward(device, float_dtype):
         return b * b,  # to make it nonlinear
 
     xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
+
+    def forward2(a):
+        b = xchainer.maximum(2.5, a[0])
+        return b * b,  # ditto
+
+    xchainer.check_double_backward(forward2, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
