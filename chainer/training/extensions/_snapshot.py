@@ -1,9 +1,9 @@
 import os
 import shutil
-import tempfile
 
 from chainer.serializers import npz
 from chainer.training import extension
+from chainer import utils
 
 
 def snapshot_object(target, filename, savefun=npz.save_npz):
@@ -82,10 +82,7 @@ def _snapshot_object(trainer, target, filename, savefun):
     fn = filename.format(trainer)
     prefix = 'tmp' + fn
 
-    tmpdir = tempfile.mkdtemp(prefix=prefix, dir=trainer.out)
-    tmppath = os.path.join(tmpdir, fn)
-    try:
+    with utils.tempdir(prefix=prefix, dir=trainer.out) as tmpdir:
+        tmppath = os.path.join(tmpdir, fn)
         savefun(tmppath, target)
         shutil.move(tmppath, os.path.join(trainer.out, fn))
-    finally:
-        shutil.rmtree(tmpdir)
