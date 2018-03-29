@@ -483,8 +483,9 @@ def test_as_constant_view(array_init_inputs):
 @pytest.mark.parametrize('a_object,b_object', [
     ([], []),
     ([0], [0]),
-    ([0], [1]),
     ([0], [-0]),
+    ([0], [1]),
+    ([0.2], [0.2]),
     ([0.2], [-0.3]),
     ([True], [True]),
     ([True], [False]),
@@ -504,9 +505,14 @@ def test_as_constant_view(array_init_inputs):
     ([[0, 1], [2, 3]], [[1, 2], [3, 4]]),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_eq(device, a_object, b_object):
-    a_np = numpy.array(a_object)
-    b_np = numpy.array(b_object)
+def test_eq(device, a_object, b_object, dtype):
+    try:
+        a_np = numpy.array(a_object, dtype=dtype.char)
+        b_np = numpy.array(b_object, dtype=dtype.char)
+    except (ValueError, OverflowError):
+        # Skip if creating an ndarray while casting the data to the parameterized dtype fails.
+        # E.g. [numpy.inf] to numpy.int32.
+        return
 
     a_xc = xchainer.Array(a_np)
     b_xc = xchainer.Array(b_np)
