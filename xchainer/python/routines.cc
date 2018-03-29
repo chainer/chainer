@@ -13,6 +13,7 @@
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/math.h"
+#include "xchainer/scalar.h"
 
 #include "xchainer/python/array.h"
 #include "xchainer/python/array_index.h"
@@ -93,6 +94,7 @@ void InitXchainerRoutines(pybind11::module& m) {
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
 
     // manipulation routines
+    m.def("asscalar", [](const ArrayBodyPtr& a) -> Scalar { return AsScalar(Array{a}); }, py::arg("a"));
     m.def("transpose", [](const ArrayBodyPtr& a) { return Transpose(Array{a}).move_body(); }, py::arg("a"));
     m.def("reshape",
           [](const ArrayBodyPtr& a, py::tuple newshape) { return Reshape(Array{a}, ToShape(newshape)).move_body(); },

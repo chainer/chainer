@@ -20,6 +20,7 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/manipulation.h"
 #include "xchainer/slice.h"
 
 #include "xchainer/python/array_index.h"
@@ -136,6 +137,9 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("data"),
           py::arg("device") = nullptr);
     c.def_buffer(&MakeNumpyArrayFromArray);
+    c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
+    c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
+    c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });
     c.def("view", [](const ArrayBodyPtr& self) {
         // Duplicate the array body
         return std::make_shared<ArrayBody>(*self);

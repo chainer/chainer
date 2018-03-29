@@ -224,6 +224,54 @@ def test_view_must_not_share_properties():
     assert not view.is_grad_required(), 'A view must not share is_grad_required with the original array.'
 
 
+@pytest.mark.parametrize('value', [
+    0, 1, -1, 0.1, 0.9, -0.1, -0.9, 1.1, -1.1, 1.9, -1.9, True, False, float('inf'), -float('inf'), float('nan'), -0.0
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_asscalar(device, value, dtype):
+    def check(shape):
+        a_np = numpy.asarray([value], dtype=dtype).reshape(shape)
+        a_xc = xchainer.Array(a_np)
+
+        assert type(float(a_xc)) is float
+        assert type(int(a_xc)) is int
+        assert type(bool(a_xc)) is bool
+        assert type(xchainer.asscalar(a_xc)) is xchainer.Scalar
+
+        assert float(a_np) == float(a_xc)
+        assert int(a_np) == int(a_xc)
+        assert bool(a_np) == bool(a_xc)
+        assert numpy.asscalar(a_np) == xchainer.asscalar(a_xc)
+
+    check(())
+    check((1,))
+    check((1,1,1))
+
+
+@pytest.mark.parametrize('shape', [
+    (0,), (1, 0), (2,), (1, 2), (2, 3),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_invalid_asscalar(device, shape):
+    dtype = xchainer.float32
+
+    a = xchainer.ones(shape, dtype)
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.asscalar(a)
+
+    a = xchainer.ones(shape, dtype)
+    with pytest.raises(xchainer.DimensionError):
+        float(a)
+
+    a = xchainer.ones(shape, dtype)
+    with pytest.raises(xchainer.DimensionError):
+        int(a)
+
+    a = xchainer.ones(shape, dtype)
+    with pytest.raises(xchainer.DimensionError):
+        bool(a)
+
+
 def test_transpose(array_init_inputs):
     shape, dtype = array_init_inputs
     data_list = _create_dummy_data(shape, dtype)
