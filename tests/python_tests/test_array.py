@@ -588,7 +588,7 @@ def test_eq(device, a_object, b_object, dtype):
     try:
         a_np = numpy.array(a_object, dtype=dtype.char)
         b_np = numpy.array(b_object, dtype=dtype.char)
-    except (TypeError, ValueError, OverflowError):
+    except (ValueError, OverflowError):
         # Skip if creating an ndarray while casting the data to the parameterized dtype fails.
         # E.g. [numpy.inf] to numpy.int32.
         return
