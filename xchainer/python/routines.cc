@@ -13,6 +13,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/linalg.h"
 #include "xchainer/routines/logic.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/math.h"
@@ -95,6 +96,12 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("a"),
           py::arg("device") = nullptr);
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
+
+    // linalg routines
+    m.def("dot",
+          [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return Dot(Array{a}, Array{b}).move_body(); },
+          py::arg("a"),
+          py::arg("b"));
 
     // logic routines
     m.def("equal",
