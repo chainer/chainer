@@ -21,7 +21,6 @@ namespace testing {
 namespace {
 
 Array ToNativeDevice(const Array& array) {
-    array.device().Synchronize();
     Context& context = array.device().backend().context();
     Backend& native_backend = context.GetBackend(native::NativeBackend::kDefaultName);
     Device& native_device = native_backend.GetDevice(0);
