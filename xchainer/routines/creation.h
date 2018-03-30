@@ -27,8 +27,6 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
 
 }  // namespace internal
 
-Array FromContiguousData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
-
 Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
 Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device = GetDefaultDevice());
 Array Full(const Shape& shape, Scalar fill_value, Device& device = GetDefaultDevice());
