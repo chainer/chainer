@@ -13,6 +13,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/linalg.h"
 #include "xchainer/routines/logic.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/math.h"
@@ -96,6 +97,12 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
 
+    // linalg routines
+    m.def("dot",
+          [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return Dot(Array{a}, Array{b}).move_body(); },
+          py::arg("a"),
+          py::arg("b"));
+
     // logic routines
     m.def("equal",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return Equal(Array{x1}, Array{x2}).move_body(); },
@@ -131,11 +138,18 @@ void InitXchainerRoutines(pybind11::module& m) {
           },
           py::arg("a"),
           py::arg("newshape"));
+    m.def("squeeze",
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis) { return Squeeze(Array{a}, axis).move_body(); },
+          py::arg("a"),
+          py::arg("axis") = nullptr);
+    m.def("squeeze",
+          [](const ArrayBodyPtr& a, int8_t axis) { return Squeeze(Array{a}, std::vector<int8_t>{axis}).move_body(); },
+          py::arg("a"),
+          py::arg("axis"));
     m.def("broadcast_to",
           [](const ArrayBodyPtr& array, py::tuple shape) { return Array{array}.BroadcastTo(ToShape(shape)).move_body(); },
           py::arg("array"),
           py::arg("shape"));
-
     m.def("broadcast_to",
           [](const ArrayBodyPtr& array, py::tuple shape) { return Array{array}.BroadcastTo(ToShape(shape)).move_body(); },
           py::arg("array"),
