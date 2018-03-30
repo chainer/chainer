@@ -66,6 +66,16 @@ TEST_P(LogicTest, Equal) {
     testing::ExpectEqual<bool>(e, c);
 }
 
+TEST_P(LogicTest, EqualBroadcast) {
+    using T = int32_t;
+
+    Array a = testing::BuildArray({2, 3}).WithLinearData<T>();
+    Array b = testing::BuildArray({2, 1}).WithLinearData<T>();
+    Array e = testing::BuildArray({2, 3}).WithData<bool>({true, false, false, false, false, false});
+    Array o = Equal(a, b);
+    testing::ExpectEqual<bool>(e, o);
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         LogicTest,
