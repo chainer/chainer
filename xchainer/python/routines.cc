@@ -131,11 +131,18 @@ void InitXchainerRoutines(pybind11::module& m) {
           },
           py::arg("a"),
           py::arg("newshape"));
+    m.def("squeeze",
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis) { return Squeeze(Array{a}, axis).move_body(); },
+          py::arg("a"),
+          py::arg("axis") = nullptr);
+    m.def("squeeze",
+          [](const ArrayBodyPtr& a, int8_t axis) { return Squeeze(Array{a}, std::vector<int8_t>{axis}).move_body(); },
+          py::arg("a"),
+          py::arg("axis"));
     m.def("broadcast_to",
           [](const ArrayBodyPtr& array, py::tuple shape) { return Array{array}.BroadcastTo(ToShape(shape)).move_body(); },
           py::arg("array"),
           py::arg("shape"));
-
     m.def("broadcast_to",
           [](const ArrayBodyPtr& array, py::tuple shape) { return Array{array}.BroadcastTo(ToShape(shape)).move_body(); },
           py::arg("array"),
