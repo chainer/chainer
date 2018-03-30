@@ -471,10 +471,10 @@ TEST_P(ArrayTest, OnesLike) {
 }
 
 TEST_P(ArrayTest, Equality) {
-    using T = float;
-    Array a = testing::BuildArray({2, 3}).WithLinearData<T>();
-    Array b = testing::BuildArray({2, 1}).WithLinearData<T>();
-    Array e = testing::BuildArray({2, 3}).WithData<bool>({true, false, false, false, false, false});
+    using T = int32_t;
+    Array a = testing::BuildArray({2, 3}).WithData<T>({1, 2, 3, 4, 3, 2});
+    Array b = testing::BuildArray({2, 1}).WithData<T>({1, 2});
+    Array e = testing::BuildArray({2, 3}).WithData<bool>({true, false, false, false, false, true});
     Array c = a == b;
 
     ASSERT_EQ(c.dtype(), Dtype::kBool);
