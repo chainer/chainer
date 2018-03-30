@@ -83,6 +83,7 @@ public:
     // Matrix multiplication. All the operands are matrices (i.e., two-dimensional arrays).
     // Let the shapes of `lhs` and `rhs` be `(M, K)` and `(L, N)`, respectively.
     // Then, it must hold that `K == L` and the shape of `out` must be `(M, N)`.
+    // `out` must be C-contiguous, too.
     // Otherwise, the behavior is undefined.
     virtual void Dot(const Array& lhs, const Array& rhs, const Array& out) = 0;
 

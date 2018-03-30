@@ -32,9 +32,6 @@ private:
 };
 
 TEST_P(LinalgTest, Dot) {
-    if (GetParam() == "cuda") {
-        return;  // TODO(beam2d): Implement CUDA
-    }
     Array a = testing::BuildArray({2, 3}).WithLinearData(1.f).WithPadding(1);
     Array b = testing::BuildArray<float>({3, 2}, {1.f, 2.f, -1.f, -3.f, 2.f, 4.f}).WithPadding(2);
     Array c = Dot(a, b);
@@ -51,9 +48,6 @@ TEST_P(LinalgTest, DotZeroDim) {
 }
 
 TEST_P(LinalgTest, DotVecVec) {
-    if (GetParam() == "cuda") {
-        return;  // TODO(beam2d): Implement CUDA
-    }
     Array a = testing::BuildArray({3}).WithLinearData(1.f);
     Array b = testing::BuildArray({3}).WithLinearData(1.f, 2.f);
     Array c = Dot(a, b);
@@ -62,9 +56,6 @@ TEST_P(LinalgTest, DotVecVec) {
 }
 
 TEST_P(LinalgTest, DotMatVec) {
-    if (GetParam() == "cuda") {
-        return;  // TODO(beam2d): Implement CUDA
-    }
     Array a = testing::BuildArray({2, 3}).WithLinearData(1.f);
     Array b = testing::BuildArray({3}).WithLinearData(1.f, 2.f);
     Array c = Dot(a, b);
