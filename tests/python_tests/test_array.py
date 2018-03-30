@@ -1321,15 +1321,12 @@ def test_dot(device, a_shape, b_shape, dtype):
         b_np = b_np.astype(dtype.name)
     a_xc = xchainer.Array(a_np)
     b_xc = xchainer.Array(b_np)
-    c_xc = xchainer.dot(a_xc, b_xc)
 
     # module functions
-    c_np = numpy.dot(a_np, b_np)
-    _check_array_equals_ndarray(c_xc, c_np)
+    _check_array_equals_ndarray(xchainer.dot(a_xc, b_xc), numpy.dot(a_np, b_np))
 
     # array methods
-    c_np = a_np.dot(b_np)
-    _check_array_equals_ndarray(c_xc, c_np)
+    _check_array_equals_ndarray(a_xc.dot(b_xc), a_np.dot(b_np))
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [
