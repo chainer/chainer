@@ -1,7 +1,6 @@
 import heapq
 
 from chainer import function_node
-from chainer.utils import argument
 from chainer import variable
 
 _var_style = {'shape': 'octagon', 'fillcolor': '#E0E0E0', 'style': 'filled'}
@@ -53,6 +52,7 @@ class DotNode(object):
 
 
 class ComputationalGraph(object):
+
     """Class that represents computational graph.
 
     .. note::
@@ -85,13 +85,13 @@ class ComputationalGraph(object):
 
     """
 
-    def __init__(self, nodes, edges, rankdir='TB', remove_variable=False,
-                 show_name=True, **kwargs):
+    def __init__(self, nodes, edges, variable_style=_var_style,
+                 function_style=_func_style, rankdir='TB',
+                 remove_variable=False, show_name=True):
         self.nodes = nodes
         self.edges = edges
-        self.variable_style, self.function_style = argument.parse_kwargs(
-            kwargs, ('variable_style', _var_style),
-            ('function_style', _func_style))
+        self.variable_style = variable_style
+        self.function_style = function_style
         if rankdir not in ('TB', 'BT', 'LR', 'RL'):
             raise ValueError('rankdir must be in TB, BT, LR or RL.')
         self.rankdir = rankdir
@@ -191,8 +191,9 @@ def _skip_variable(nodes, edges):
 
 
 def build_computational_graph(
-        outputs, remove_split=True, rankdir='TB', remove_variable=False,
-        show_name=True, **kwargs):
+        outputs, remove_split=True, variable_style=_var_style,
+        function_style=_func_style, rankdir='TB', remove_variable=False,
+        show_name=True):
     """Builds a graph of functions and variables backward-reachable from outputs.
 
     Args:
@@ -252,10 +253,6 @@ def build_computational_graph(
     if not remove_split:
         raise ValueError('remove_split=False is not supported anymore')
 
-    variable_style, function_style = argument.parse_kwargs(
-        kwargs, ('variable_style', _var_style),
-        ('function_style', _func_style))
-
     cands = []
     seen_edges = set()
     nodes = set()
@@ -288,6 +285,5 @@ def build_computational_graph(
                     nodes.add(input_)
                     nodes.add(cand)
     return ComputationalGraph(
-        nodes=list(nodes), edges=list(seen_edges),
-        variable_style=variable_style, function_style=function_style,
-        rankdir=rankdir, remove_variable=remove_variable, show_name=show_name)
+        list(nodes), list(seen_edges), variable_style,
+        function_style, rankdir, remove_variable, show_name)
