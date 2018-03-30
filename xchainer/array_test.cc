@@ -526,7 +526,7 @@ TEST(ArrayNativeTest, MulScalar) {
         testing::ExpectEqual<float>(e, o);
     }
     {
-        Array o = Scalar(2.f) * a;
+        Array o = Scalar{2.f} * a;
         testing::ExpectEqual<float>(e, o);
     }
 }
