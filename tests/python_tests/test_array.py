@@ -577,6 +577,7 @@ def test_as_constant_view(array_init_inputs):
     ([[0, 1], [2, 3]], [[0, 1], [2, -2]]),
     ([[0, 1], [2, 3]], [[1, 2], [3, 4]]),
     # broadcast
+    (None, [0]),
     ([], [0]),
     ([0], [[0, 1, 2], [3, 4, 5]]),
     ([[0], [1]], [0, 1, 2]),
@@ -586,7 +587,7 @@ def test_eq(device, a_object, b_object, dtype):
     try:
         a_np = numpy.array(a_object, dtype=dtype.char)
         b_np = numpy.array(b_object, dtype=dtype.char)
-    except (ValueError, OverflowError):
+    except (TypeError, ValueError, OverflowError):
         # Skip if creating an ndarray while casting the data to the parameterized dtype fails.
         # E.g. [numpy.inf] to numpy.int32.
         return
