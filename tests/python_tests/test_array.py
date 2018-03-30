@@ -408,6 +408,62 @@ def test_invalid_reshape(shape1, shape2):
     check(shape2, shape1)
 
 
+@pytest.mark.parametrize('shape,axis', [
+    ((), None),
+    ((0,), None),
+    ((1,), None),
+    ((1, 1), None),
+    ((1, 0, 1), None),
+    ((3,), None),
+    ((3, 1), None),
+    ((1, 3), None),
+    ((2, 0, 3), None),
+    ((2, 4, 3), None),
+    ((2, 1, 3), 1),
+    ((2, 1, 3), -2),
+    ((1, 2, 1, 3, 1, 1, 4), None),
+    ((1, 2, 1, 3, 1, 1, 4), (2, 0, 4)),
+    ((1, 2, 1, 3, 1, 1, 4), (-2, 0, 4)),
+])
+def test_squeeze(shape, axis):
+    size = functools.reduce(operator.mul, shape, 1)
+    dtype = numpy.float32
+    a_np = numpy.arange(size, dtype=dtype).reshape(shape)
+    a_xc = xchainer.Array(a_np)
+
+    _check_array_equals_ndarray(a_xc.squeeze(axis), a_np.squeeze(axis))
+    _check_array_equals_ndarray(xchainer.squeeze(a_xc, axis), numpy.squeeze(a_np, axis))
+
+
+@pytest.mark.parametrize('shape,axis', [
+    ((2, 1, 3), 0),
+    ((2, 1, 3), -1),
+    ((2, 1, 3), (1, 2)),
+    ((2, 1, 3), (1, -1)),
+])
+def test_invalid_squeeze(shape, axis):
+    src = xchainer.ones(shape, xchainer.float32)
+
+    with pytest.raises(xchainer.DimensionError):
+        src.squeeze(axis)
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.squeeze(src, axis)
+
+
+@pytest.mark.parametrize('shape,axis', [
+    ((2, 1, 3), (1, 1)),
+])
+def test_invalid_duplicate_axis_squeeze(shape, axis):
+    src = xchainer.ones(shape, xchainer.float32)
+
+    with pytest.raises(xchainer.XchainerError):
+        src.squeeze(axis)
+
+    with pytest.raises(xchainer.XchainerError):
+        xchainer.squeeze(src, axis)
+
+
 @pytest.mark.parametrize('src_shape,dst_shape', [
     ((), ()),
     ((1,), (2,)),
