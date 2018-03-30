@@ -113,8 +113,8 @@ class BatchNormalization(function_node.FunctionNode):
         # expander inserts singleton dimensions to gamma and beta so that they
         # can be broadcasted with x.
         expander = [None for _ in range(x.ndim)]
-        for i, j in enumerate(self.key_axis):
-            expander[j] = slice(gamma.shape[i])
+        for i in self.key_axis:
+            expander[i] = slice(None)
         self.expander = expander
 
         self.mode = _BNMode(x, gamma, self.key_axis)
@@ -312,7 +312,6 @@ class BatchNormalizationGrad(function.Function):
 
         elif self.use_cudnn:
             # TODO(niboshi): Refactor cuDNN part into a separate method
-            cudnn_mode = self.mode.get_cudnn_mode()
             x = cuda.cupy.ascontiguousarray(x)
             gamma = cuda.cupy.ascontiguousarray(gamma)
             gy = cuda.cupy.ascontiguousarray(gy)
