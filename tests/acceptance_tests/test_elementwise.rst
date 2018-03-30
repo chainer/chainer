@@ -1,5 +1,5 @@
-Acceptance tests for elementwise operations + dot product
-=========================================================
+Acceptance tests for elementwise operations
+===========================================
 
 >>> import xchainer as xc
 >>> import numpy as np
