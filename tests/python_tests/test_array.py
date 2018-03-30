@@ -620,6 +620,12 @@ def test_as_constant_view(array_init_inputs):
     ([[0, 1], [2, 3]], [[0, 1], [2, 3]]),
     ([[0, 1], [2, 3]], [[0, 1], [2, -2]]),
     ([[0, 1], [2, 3]], [[1, 2], [3, 4]]),
+    # broadcast
+    (0, [0]),
+    (1, [0]),
+    ([], [0]),
+    ([0], [[0, 1, 2], [3, 4, 5]]),
+    ([[0], [1]], [0, 1, 2]),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_eq(device, a_object, b_object, dtype):
@@ -641,8 +647,8 @@ def test_eq(device, a_object, b_object, dtype):
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [
-    ((), (1,)),
-    ((1,), (2, 3)),
+    ((2,), (3,)),
+    ((2,), (2, 3)),
     ((1, 2, 3), (1, 2, 3, 4)),
 ])
 def test_invalid_eq(a_shape, b_shape):
