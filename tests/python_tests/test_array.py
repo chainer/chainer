@@ -1302,6 +1302,7 @@ def test_maximum_with_scalar_double_backward(device, float_dtype):
 
 @pytest.mark.parametrize('a_shape,b_shape', [
     ((), ()),
+    ((), (2, 3)),
     ((2, 0), (0, 3)),
     ((0, 0), (0, 0)),
     ((2, 3), (3, 4)),
@@ -1321,5 +1322,41 @@ def test_dot(device, a_shape, b_shape, dtype):
     a_xc = xchainer.Array(a_np)
     b_xc = xchainer.Array(b_np)
     c_xc = xchainer.dot(a_xc, b_xc)
+
+    # module functions
     c_np = numpy.dot(a_np, b_np)
     _check_array_equals_ndarray(c_xc, c_np)
+
+    # array methods
+    c_np = a_np.dot(b_np)
+    _check_array_equals_ndarray(c_xc, c_np)
+
+
+@pytest.mark.parametrize('a_shape,b_shape', [
+    ((3, 2), (1, 3)),
+])
+# TODO(niboshi): Add 'cuda:0'
+@pytest.mark.parametrize_device(['native:0'])
+def test_invalid_dot(device, a_shape, b_shape, dtype):
+    a_np = numpy.arange(numpy.prod(a_shape)).reshape(a_shape)
+    b_np = numpy.arange(numpy.prod(b_shape)).reshape(b_shape)
+    if dtype == xchainer.bool:
+        a_np = numpy.asarray(a_np % 2 == 0)
+        b_np = numpy.asarray(b_np % 2 == 0)
+    else:
+        a_np = a_np.astype(dtype.name)
+        b_np = b_np.astype(dtype.name)
+    a_xc = xchainer.Array(a_np)
+    b_xc = xchainer.Array(b_np)
+
+    # module functions
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.dot(a_xc, b_xc)
+    with pytest.raises(ValueError):
+        numpy.dot(a_np, b_np)
+
+    # array methods
+    with pytest.raises(xchainer.DimensionError):
+        a_xc.dot(b_xc)
+    with pytest.raises(ValueError):
+        a_np.dot(b_np)
