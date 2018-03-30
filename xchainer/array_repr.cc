@@ -12,9 +12,12 @@
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
+#include "xchainer/context.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/native/native_backend.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -153,27 +156,18 @@ using Formatter = std::conditional_t<
         std::conditional_t<std::is_floating_point<T>::value, FloatFormatter, IntFormatter>>;
 
 struct ArrayReprImpl {
-    template <typename T, typename Visitor>
-    void VisitElements(const Array& array, Visitor&& visitor) const {
-        auto shape = array.shape();
-        Indexer<kDynamicNdim> indexer{shape};
-        IndexableArray<const T> iarray{array};
-
-        array.device().Synchronize();
-
-        int64_t total_size = array.GetTotalSize();
-        for (int64_t i = 0; i < total_size; ++i) {
-            indexer.Set(i);
-            visitor(iarray, indexer);
-        }
-    }
-
     template <typename T>
     void operator()(const Array& array, std::ostream& os) const {
         Formatter<T> formatter;
 
+        Context& context = array.device().backend().context();
+        Backend& native_backend = context.GetBackend(native::NativeBackend::kDefaultName);
+        Device& native_device = native_backend.GetDevice(0);
+        Array native_array = array.ToDevice(native_device);
+        native_device.Synchronize();
+
         // Let formatter scan all elements to print.
-        VisitElements<T>(array, [&formatter](const IndexableArray<const T> iarray, const Indexer<kDynamicNdim>& indexer) {
+        VisitElements<T>(native_array, [&formatter](const IndexableArray<const T> iarray, const Indexer<kDynamicNdim>& indexer) {
             formatter.Scan(iarray[indexer]);
         });
 
@@ -181,7 +175,7 @@ struct ArrayReprImpl {
         const int8_t ndim = array.ndim();
         int cur_line_size = 0;
         VisitElements<T>(
-                array,
+                native_array,
                 [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T>& iarray, const Indexer<kDynamicNdim>& indexer) {
                     int8_t trailing_zeros = 0;
                     if (ndim > 0) {
@@ -241,6 +235,22 @@ struct ArrayReprImpl {
             os << ']';
         }
         os << ')';
+    }
+
+private:
+    template <typename T, typename Visitor>
+    void VisitElements(const Array& array, Visitor&& visitor) const {
+        // array should be already synchronized
+
+        auto shape = array.shape();
+        Indexer<kDynamicNdim> indexer{shape};
+        IndexableArray<const T> iarray{array};
+
+        int64_t total_size = array.GetTotalSize();
+        for (int64_t i = 0; i < total_size; ++i) {
+            indexer.Set(i);
+            visitor(iarray, indexer);
+        }
     }
 };
 

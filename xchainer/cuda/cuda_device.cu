@@ -240,7 +240,7 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
 }
 
 void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) {
-    assert(IsPointerCudaMemory(src));
+    assert(src == nullptr || IsPointerCudaMemory(src));
     if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
         // Copy between CUDA devices
         CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
