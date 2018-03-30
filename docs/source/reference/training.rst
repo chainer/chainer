@@ -21,8 +21,8 @@ Trainer
 
    chainer.training.Trainer
 
-Updater
--------
+Updaters
+--------
 
 .. autosummary::
    :toctree: generated/
@@ -35,8 +35,17 @@ Updater
 
 .. _extensions:
 
-Extension
----------
+Extensions
+----------
+
+An extension is a callable object that can perform arbitrary actions during the training loop.
+Extensions can be registered to :class:`Trainer` by using :func:`Trainer.extend` method, and they are invoked when the :ref:`Trigger <triggers>` condition is satisfied.
+
+In addition to the built-in extensions listed below, you can define your own extension using :class:`Extension` or :meth:`make_extension` decorator.
+See :doc:`../guides/extensions` for details.
+
+Common
+~~~~~~
 
 .. autosummary::
    :toctree: generated/
@@ -44,25 +53,75 @@ Extension
 
    chainer.training.Extension
    chainer.training.make_extension
-   chainer.training.extensions.dump_graph
+
+Evaluation and Metrics Collection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These extensions provide features to collect additional metrics.
+The typical use case is to use :class:`~chainer.training.extensions.Evaluator` to perform evaluation with a validation dataset to compute validation loss/accuracy.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
    chainer.training.extensions.Evaluator
-   chainer.training.extensions.ExponentialShift
-   chainer.training.extensions.LinearShift
-   chainer.training.extensions.LogReport
    chainer.training.extensions.MicroAverage
-   chainer.training.extensions.NaNKiller
+
+   chainer.training.extensions.ParameterStatistics
+
    chainer.training.extensions.observe_lr
    chainer.training.extensions.observe_value
-   chainer.training.extensions.snapshot
-   chainer.training.extensions.snapshot_object
-   chainer.training.extensions.ParameterStatistics
-   chainer.training.extensions.PlotReport
+
+Optimizer Behavior Control
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These extensions provide features to adjust optimizer behavior.
+The typical use case is to change the learning rate of the optimizer over time.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.training.extensions.ExponentialShift
+   chainer.training.extensions.LinearShift
+
+Reporting
+~~~~~~~~~
+
+These extensions provide features to perform reporting of metrics and various statistics to console or files.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
    chainer.training.extensions.PrintReport
    chainer.training.extensions.ProgressBar
+
+   chainer.training.extensions.LogReport
+
+   chainer.training.extensions.PlotReport
    chainer.training.extensions.VariableStatisticsPlot
 
-Trigger
--------
+   chainer.training.extensions.dump_graph
+
+Snapshot
+~~~~~~~~
+
+These extensions provide features to take snapshots of models.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.training.extensions.snapshot
+   chainer.training.extensions.snapshot_object
+
+
+.. _triggers:
+
+Triggers
+--------
+
 A trigger is a callable object to decide when to process some specific event within the training loop. It takes a Trainer object as the argument, and returns True if some event should be fired.
 
 It is mainly used to determine when to call an extension. It is also used to determine when to quit the training loop.
