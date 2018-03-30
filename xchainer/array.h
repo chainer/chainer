@@ -55,7 +55,8 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 // The main data structure of multi-dimensional array.
 class Array {
 public:
-    static Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
+    static Array FromContiguousData(
+            const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
     static Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
     static Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device = GetDefaultDevice());
     static Array Full(const Shape& shape, Scalar fill_value, Device& device = GetDefaultDevice());

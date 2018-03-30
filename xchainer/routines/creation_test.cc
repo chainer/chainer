@@ -33,7 +33,7 @@ protected:
 
 public:
     template <typename T>
-    void CheckFromBuffer(const Shape& shape, std::initializer_list<T> raw_data) {
+    void CheckFromContiguousData(const Shape& shape, std::initializer_list<T> raw_data) {
         // Check test data
         ASSERT_EQ(shape.GetTotalSize(), static_cast<int64_t>(raw_data.size()));
 
@@ -41,7 +41,7 @@ public:
         std::copy(raw_data.begin(), raw_data.end(), data.get());
 
         Dtype dtype = TypeToDtype<T>;
-        Array x = FromBuffer(shape, dtype, data);
+        Array x = FromContiguousData(shape, dtype, data);
 
         // Basic attributes
         EXPECT_EQ(shape, x.shape());
@@ -209,16 +209,16 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(CreationTest, ArrayFromBuffer) {
+TEST_P(CreationTest, ArrayFromContiguousData) {
     Shape shape{3, 2};
-    CheckFromBuffer<bool>(shape, {true, false, false, true, false, true});
-    CheckFromBuffer<int8_t>(shape, {0, 1, 2, 3, 4, 5});
-    CheckFromBuffer<int16_t>(shape, {0, 1, 2, 3, 4, 5});
-    CheckFromBuffer<int32_t>(shape, {0, 1, 2, 3, 4, 5});
-    CheckFromBuffer<int64_t>(shape, {0, 1, 2, 3, 4, 5});
-    CheckFromBuffer<uint8_t>(shape, {0, 1, 2, 3, 4, 5});
-    CheckFromBuffer<float>(shape, {0, 1, 2, 3, 4, 5});
-    CheckFromBuffer<double>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromContiguousData<bool>(shape, {true, false, false, true, false, true});
+    CheckFromContiguousData<int8_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromContiguousData<int16_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromContiguousData<int32_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromContiguousData<int64_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromContiguousData<uint8_t>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromContiguousData<float>(shape, {0, 1, 2, 3, 4, 5});
+    CheckFromContiguousData<double>(shape, {0, 1, 2, 3, 4, 5});
 }
 
 TEST_P(CreationTest, Empty) {

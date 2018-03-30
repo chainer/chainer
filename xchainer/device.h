@@ -51,7 +51,7 @@ public:
     //
     // It may allocate a new memory or return an alias.
     // src_ptr must reside in the main RAM.
-    virtual std::shared_ptr<void> FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
+    virtual std::shared_ptr<void> FromContiguousData(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
 
     virtual void Fill(const Array& out, Scalar value) = 0;
 

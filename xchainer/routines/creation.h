@@ -19,7 +19,7 @@ namespace internal {
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size);
 
 // Creates an array with given data packed with specified strides
-Array FromBuffer(
+Array FromData(
         const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device = GetDefaultDevice());
 
 // Creates an empty array with specified strides.
@@ -27,7 +27,7 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
 
 }  // namespace internal
 
-Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
+Array FromContiguousData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
 
 Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
 Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device = GetDefaultDevice());

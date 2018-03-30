@@ -143,7 +143,7 @@ std::shared_ptr<void> NativeDevice::TransferDataTo(
     return dst_device.TransferDataFrom(*this, src_ptr, offset, bytesize);
 }
 
-std::shared_ptr<void> NativeDevice::FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
+std::shared_ptr<void> NativeDevice::FromContiguousData(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
     (void)bytesize;  // unused
     return src_ptr;
 }

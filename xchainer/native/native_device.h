@@ -49,7 +49,7 @@ public:
 
     std::shared_ptr<void> TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) override;
 
-    std::shared_ptr<void> FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
+    std::shared_ptr<void> FromContiguousData(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
     void Fill(const Array& out, Scalar value) override;
 
