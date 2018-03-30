@@ -7,17 +7,15 @@ Acceptance tests for elementwise operations
 Array equality
 --------------
 
->>> a = xc.Array((3, 2), xc.float32, [1, 2, 3, 4, 5, 6])
->>> b = xc.Array((3, 2), xc.float32, [1, 3, 5, 4, 4, 1])
+>>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6])
+>>> b = xc.Array((3,), xc.float32, [4, 2, 5])
 
 >>> a == b
-array([[ True, False],
-       [False,  True],
-       [False, False]], shape=(3, 2), dtype=bool, device='native:0')
+array([[False,  True, False],
+       [ True, False, False]], shape=(2, 3), dtype=bool, device='native:0')
 >>> xc.equal(a, b)
-array([[ True, False],
-       [False,  True],
-       [False, False]], shape=(3, 2), dtype=bool, device='native:0')
+array([[False,  True, False],
+       [ True, False, False]], shape=(2, 3), dtype=bool, device='native:0')
 
 Maximum with scalar
 -------------------
