@@ -101,13 +101,13 @@ void InitXchainerRoutines(pybind11::module& m) {
               Scalar s = AsScalar(Array{a});
               switch (GetKind(s.dtype())) {
                   case DtypeKind::kBool:
-                      return py::bool_{bool{s}};
+                      return py::bool_{static_cast<bool>(s)};
                   case DtypeKind::kInt:
                       // fallthrough
                   case DtypeKind::kUInt:
-                      return py::int_{int64_t{s}};
+                      return py::int_{static_cast<int64_t>(s)};
                   case DtypeKind::kFloat:
-                      return py::float_{double{s}};
+                      return py::float_{static_cast<double>(s)};
                   default:
                       assert(false);  // never reach
               }
