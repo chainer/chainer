@@ -65,6 +65,14 @@ class BatchNormalization(link.Link):
         decay (float): Decay rate of moving average. It is used on training.
         ~BatchNormalization.eps (float): Epsilon value for numerical stability.
             This value is added to the batch variances.
+        axis (int or tuple of int): Axis over which normalization is
+            performed. When axis is ``None``, it is determined from input
+            dimensions. For example, if ``x.ndim`` is 4, axis becomes (0, 2, 3)
+            and normalization is performed over 0th, 2nd and 3rd axis of input.
+            If it is 2, axis becomes (0) and normalization is performed
+            over 0th axis of input. When a tuple of int is given to this
+            option, numbers in the tuple must be being sorted in ascending
+            order. For example, (0, 2) is OK, but (2, 0) is not.
 
     """
 
