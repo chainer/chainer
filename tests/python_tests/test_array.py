@@ -1298,3 +1298,28 @@ def test_maximum_with_scalar_double_backward(device, float_dtype):
         return b * b,  # ditto
 
     xchainer.check_double_backward(forward2, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
+
+
+@pytest.mark.parametrize('a_shape,b_shape', [
+    ((), ()),
+    ((2, 0), (0, 3)),
+    ((0, 0), (0, 0)),
+    ((2, 3), (3, 4)),
+    # TODO(niboshi): Add test cases for more than 2 ndim
+])
+# TODO(niboshi): Add 'cuda:0'
+@pytest.mark.parametrize_device(['native:0'])
+def test_dot(device, a_shape, b_shape, dtype):
+    a_np = numpy.arange(numpy.prod(a_shape)).reshape(a_shape)
+    b_np = numpy.arange(numpy.prod(b_shape)).reshape(b_shape)
+    if dtype == xchainer.bool:
+        a_np = numpy.asarray(a_np % 2 == 0)
+        b_np = numpy.asarray(b_np % 2 == 0)
+    else:
+        a_np = a_np.astype(dtype.name)
+        b_np = b_np.astype(dtype.name)
+    a_xc = xchainer.Array(a_np)
+    b_xc = xchainer.Array(b_np)
+    c_xc = xchainer.dot(a_xc, b_xc)
+    c_np = numpy.dot(a_np, b_np)
+    _check_array_equals_ndarray(c_xc, c_np)
