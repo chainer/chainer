@@ -102,6 +102,22 @@ TEST_P(LinalgTest, DotBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Dot(xs[0], xs[1])}; }, {a, b}, {go}, {a_eps, b_eps});
 }
 
+TEST_P(LinalgTest, DotMatVecBackward) {
+    if (GetParam() == "cuda") {
+        return;  // TODO(beam2d): Implement CUDA
+    }
+
+    Array a = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
+    Array b = (*testing::BuildArray<float>({3}, {1.f, 2.f, -1.f})).RequireGrad();
+
+    Array go = testing::BuildArray<float>({2}, {-0.1f, 0.1f}).WithPadding(1);
+    Array a_eps = Array::Full(a.shape(), 1e-1f);
+    Array b_eps = Array::Full(b.shape(), 1e-1f);
+
+    CheckBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Dot(xs[0], xs[1])}; }, {a, b}, {go}, {a_eps, b_eps});
+}
+
 TEST_P(LinalgTest, DotDoubleBackward) {
     if (GetParam() == "cuda") {
         return;  // TODO(beam2d): Implement CUDA

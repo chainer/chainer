@@ -20,22 +20,19 @@ Array Dot(const Array& a, const Array& b) {
     // TODO(beam2d): dtype conversion
     CheckEqual(a.dtype(), b.dtype());
 
-    Array x = a.AsConstant();
-    Array y = b.AsConstant();
-
-    // TODO(beam2d): Support it. Need to transpose y so that the inner-product axis is moved to the top.
-    if (y.ndim() > 2) {
+    // TODO(beam2d): Support it. Need to transpose b so that the inner-product axis is moved to the top.
+    if (b.ndim() > 2) {
         throw NotImplementedError("dot does not support rhs operand with ndim > 2");
     }
 
     std::vector<int64_t> out_shape_v;
-    out_shape_v.reserve(x.ndim() + y.ndim() - 2);
-    std::copy(x.shape().begin(), x.shape().end() - 1, std::back_inserter(out_shape_v));
-    std::copy(y.shape().begin() + 1, y.shape().end(), std::back_inserter(out_shape_v));
+    out_shape_v.reserve(a.ndim() + b.ndim() - 2);
+    std::copy(a.shape().begin(), a.shape().end() - 1, std::back_inserter(out_shape_v));
+    std::copy(b.shape().begin() + 1, b.shape().end(), std::back_inserter(out_shape_v));
     Shape out_shape{out_shape_v.begin(), out_shape_v.end()};
 
-    int64_t k = x.shape()[x.ndim() - 1];
-    if (y.shape()[0] != k) {
+    int64_t k = a.shape()[a.ndim() - 1];
+    if (b.shape()[0] != k) {
         throw DimensionError("Axis dimension mismatch");
     }
     if (k == 0) {
@@ -43,26 +40,24 @@ Array Dot(const Array& a, const Array& b) {
     }
 
     // Make each operand a matrix
-    int64_t m = x.GetTotalSize() / k;
-    int64_t n = y.GetTotalSize() / k;
-    Array x_matrix = x.Reshape({m, k});
-    Array y_matrix = y.Reshape({k, n});
+    int64_t m = a.GetTotalSize() / k;
+    int64_t n = b.GetTotalSize() / k;
+    Array a_matrix = a.Reshape({m, k});
+    Array b_matrix = b.Reshape({k, n});
 
-    Array out = Array::Empty(out_shape, a.dtype(), a.device());
-    Array out_matrix = out.Reshape({m, n});
-    x.device().Dot(x_matrix, y_matrix, out_matrix);
+    // Matrix-matrix product
+    Array out_matrix = Array::Empty({m, n}, a.dtype(), a.device());
+    a.device().Dot(a_matrix, b_matrix, out_matrix);
 
-    auto a_backward_fn = [other = b](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
-        return Dot(gout, other.AsConstant(graph_ids_to_stop_gradient).Transpose());
+    auto a_matrix_backward = [b_matrix](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+        return Dot(gout, b_matrix.AsConstant(graph_ids_to_stop_gradient).Transpose());
     };
-    auto b_backward_fn = [ other = a, m, n, k ](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
-        Array a_matrix = other.AsConstant(graph_ids_to_stop_gradient).Reshape({m, k});
-        Array gout_matrix = gout.Reshape({m, n});
-        return Dot(a_matrix.Transpose(), gout_matrix);
+    auto b_matrix_backward = [a_matrix](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+        return Dot(a_matrix.AsConstant(graph_ids_to_stop_gradient).Transpose(), gout);
     };
-    internal::SetUpOpNodes("dot", {a, b}, out, {a_backward_fn, b_backward_fn});
+    internal::SetUpOpNodes("dot", {a_matrix, b_matrix}, out_matrix, {a_matrix_backward, b_matrix_backward});
 
-    return out;
+    return out_matrix.Reshape(out_shape);
 }
 
 }  // namespace xchainer
