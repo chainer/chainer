@@ -147,7 +147,7 @@ So, you can access the reported values by ``'main/accuracy'``,
 
 See what we explained is correct:
 
-.. doctest::
+.. code-block:: console
 
     >>> train, test = datasets.get_mnist()
     >>> train_iter = iterators.SerialIterator(train, batch_size=100, shuffle=True)
@@ -160,6 +160,6 @@ See what we explained is correct:
     >>> trainer.extend(extensions.LogReport())
     >>> trainer.extend(extensions.PrintReport(
     ...     ['epoch', 'main/accuracy', 'main/loss', 'main/predictor/sum_y', 'validation/main/accuracy']))
-    >>> trainer.run()  # doctest: +SKIP
+    >>> trainer.run()
     epoch       main/accuracy  main/loss   main/predictor/sum_y  validation/main/accuracy
     1           0.662317       1.38345     47.9927               0.8498    
