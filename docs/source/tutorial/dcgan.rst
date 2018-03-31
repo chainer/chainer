@@ -8,7 +8,7 @@ DCGAN: Generate the images from Deep Convolutinal GAN
 
 In this tutorial, we generate images from **generative adversarial network (GAN)**.
 It is a kind of generative model with deep neural network, and often applied to
-the image generation. The GAN technich is also applied to 
+the image generation. The GAN technique is also applied to 
 `PaintsChainer <https://paintschainer.preferred.tech/index_en.html>`_,
 a famous automatic coloring service.
 
@@ -24,11 +24,11 @@ In the tutorial, you will learn about the following things:
 1. Basic Idea of Generative Model
 ==================================
 
-1.1 What is Model?
---------------------
+1.1 What is the Model?
+-----------------------
 
 In the field of science and engineering, we describe a system using mathematical
-concepts and language. The description is called as **mathematical model**,
+concepts and language. The description is called as a **mathematical model**,
 and the process of developing a mathematical model is **mathematical modeling**.
 Especially, in the context of machine learning, we explain a target model by a
 map :math:`f` from an input :math:`x` to an output :math:`y`.
@@ -37,23 +37,23 @@ map :math:`f` from an input :math:`x` to an output :math:`y`.
     f: x \mapsto y
     
 Therefore, the purpose of model training is obtaining the map :math:`f` from training data.
-In the case of unsupervised learning, we use datasets of inputs
+In the case of unsupervised learning, we use the datasets of inputs
 :math:`\{s^{(n)}\}=\{d_1, d_2, \cdots, d_N\}` as the training data,
 and create model :math:`f`.
-In supervised learning, we use datasets of inputs and thier outputs
+In supervised learning, we use the datasets of inputs and their outputs
 :math:`\{s^{(n)}\}=\{(d_1, c_1), \cdots, (d_N, c_N)\}`. As a simple example,
-let's consider about a supervised learing problem such as classifying images as
+let's consider about a supervised learning problem such as classifying images as
 dogs or cats. Then, the training datasets consist of input images
 :math:`d_1, d_2, \cdots, d_N` and their labels
 :math:`c_1={\rm cat}, c_2={\rm dog}, \cdots, c_N={\rm cat}`.
 
-1.2 What is Generative Model?
--------------------------------
+1.2 What is the Generative Model?
+----------------------------------
 
-When we consider about the generarive model, it models the probability distribution
+When we consider about the generative model, it models the probability distribution
 :math:`p: s \mapsto p(s)` which generates the training data :math:`s`. The most simple
 generative model models the probability distribution :math:`p` with the map :math:`f`.
-We assign each :math:`x` and :math:`y` of :math:`f: x \mapsto y` as following.
+We assign each :math:`x` and :math:`y` of :math:`f: x \mapsto y` as follows.
 
 * :math:`x` : the training data :math:`s`
 * :math:`y` : the likelihood of generating the training data :math:`s`
@@ -67,7 +67,7 @@ the process for calculating the likelihood.
 In the fitst place, we often just want to sample :math:`s \sim p(s)`
 according to the distribution in practice. The likelihood :math:`p(s)` is used
 only for model training. In the case, we sometimes do not model the probability distribution
-:math:`p(s)` directly but other targets to facilitate sampling. 
+:math:`p(s)` directly, but other targets to facilitate sampling. 
 
 The first case is to model the probability distributions :math:`p(z)` and :math:`p(s|z)`
 by introducing the latent variable :math:`z`. The VAE, which is described later,
@@ -79,12 +79,12 @@ the latent variable :math:`z` based on random numbers.
 
 These generative models can be used for the following purposes:
 
-* Assistance for creative activities (e.g. line drawing coloring)
+* Assistance for creative activities (e.g. coloring of line drawing)
 * Providing interfaces to people (e.g. generating natural sentences)
 * Reduction of data creation cost (e.g. use as a simulator)
 
 .. note::
-    When we talk about generative model, we sometimes explain it aginst discrimination
+    When we talk about generative model, we sometimes explain it against discrimination
     model in classification problem [1]. However, when we talk about generating
     model in GAN, it is natural to define it as a model of probability distribution
     that generates training data.
@@ -92,7 +92,7 @@ These generative models can be used for the following purposes:
 2. The Difference among GAN and Other Generative Models
 ========================================================
 
-As explained in GAN tutorial in NIPS 2016 [2], the generative models can be classified into the categories
+As explained in the GAN tutorial in NIPS 2016 [2], the generative models can be classified into the categories
 as shown in the following figure:
 
 .. figure:: ../../image/dcgan/class-generative-model.png
@@ -117,7 +117,7 @@ generated based on the dimensions previously generated, FVBNs can be said to be 
 PixcelRNN and PixcelCNN, which are categorized as FVBNs, model one-dimensional distribution functions
 with Recurrent Neural Networks(RNN) and Convolutional Neural Networks(CNN), respectively.
 The advantage of FVBNs is that the model can learn with explicitly computable likelihood.
-The disadvantage is that sampling cost can be expensive because each dimension can only be generated sequentially.
+The disadvantage is that the sampling cost can be expensive because each dimension can only be generated sequentially.
 
 2.2 Variational Auto-Encoder (VAE)
 -----------------------------------
@@ -150,8 +150,8 @@ is difficult, and approximate values are used for training model.
 3. Generarive Adversarial Networks (GAN)
 =========================================
 
-3.1 What is GAN?
------------------
+3.1 What is the GAN?
+---------------------
 
 Unlike FVBNs and VAE, GAN does not explicitly models the probability distribution :math:`p({\bf s})`
 that generates the training data. Instead, we model a generator :math:`G: {\bf z} \mapsto {\bf s}`.
@@ -159,17 +159,17 @@ The generator :math:`G` samples :math:`{\bf s} \sim p({\bf s})` from the latent 
 Apart from the generator :math:`G`, we create a discriminator :math:`D({\bf x})`
 which identified the samples from the generator :math:`G` and the true samples from training data.
 While training the discriminator :math:`D`, the generator :math:`G` is also trained so that
-th generated samples can not be identified by the discriminator.
+th generated samples cannot be identified by the discriminator.
 The advantages of GAN are low sampling cost and state-of-the-art in image generation.
-The disadvantage is that we can not calculate the probability distribution
+The disadvantage is that we cannot calculate the probability distribution
 :math:`p_{\mathrm {model}}({\bf s})` because we do not model any probability distribution,
-and we can not infer the latent variable :math:`\bf z` from a sample.
+and we cannot infer the latent variable :math:`\bf z` from a sample.
 
-3.2 How GAN works?
--------------------
+3.2 How the GAN works?
+-----------------------
 
 As explained above, GAN uses the two models, the generator and the discriminator. In other words,
-we setup two neural networks for GAN.
+we set up two neural networks for GAN.
 
 When training the networks, we should match the distribution of the samples
 :math:`{\bf s} \sim p({\bf s})` generated from the true distribution with the distribution of the samples
@@ -181,7 +181,7 @@ The generator :math:`G` learns the target distribution on the idea of
 **Nash equilibrium** [3] of game theory.
 In detail, while training the discriminator :math:`D`,
 the generator :math:`G` is also trained so that the discriminator :math:`D`
-can not identify the generated samples.
+cannot identify the generated samples.
 
 As an intuitive example, the relationship between counterfeiters of
 banknotes and police is frequently used. The counterfeiters try to make counterfeit notes
@@ -204,13 +204,13 @@ Then, when we match the distributions of
 the samples :math:`{\bf s} \sim p({\bf s})` generated from true distribution
 and the samples :math:`{\bf s} \sim p_{\mathrm{model}}({\bf s})`
 generated from the generator :math:`G`,
-it means that we should minimize the dissimilality between
+it means that we should minimize the dissimilarity between
 the two distributions.
 It is common to use **Jensen-Shannon Divergence** :math:`D_{\mathrm{JS}}`
-to measure the dissimilality between the distributions[4].
+to measure the dissimilarity between the distributions[4].
 
 The :math:`D_{\mathrm{JS}}` of :math:`p_{\mathrm{model}}({\bf s})` and
-:math:`p({\bf s})` can be written as following by using :math:`D({\bf s})`:
+:math:`p({\bf s})` can be written as follows by using :math:`D({\bf s})`:
 
 .. math::
      2 D_{\mathrm{JS}} &=& D_{\mathrm{KL}}(p(x)||\bar{p}(x)) + D_{\mathrm{KL}}(p_{\mathrm{model}}(x)||\bar{p}(x)) \\
@@ -248,7 +248,7 @@ In addition, although GAN is known for its difficulty in learning, this paper in
 for successful learning:
 
 1. Convert max-pooling layers to convolution layers
-2. Convert fully connected layers to global average plling layers in the discriminator
+2. Convert fully connected layers to global average pooling layers in the discriminator
 3. Use batch normalization layers in the generator and the discriminator
 4. Use leaky ReLU activation functions in the discriminator
 
@@ -271,7 +271,7 @@ First, let's define a network for the generator.
 
 When we make a network in Chainer, we should follow some rules:
 
-1. Define a network class which inherit :class:`~chainer.Chain`.
+1. Define a network class which inherits :class:`~chainer.Chain`.
 2. Make :class:`chainer.links` 's instances in the ``init_scope():`` 
    of constructor ``__init__``.
 3. Concatenate :class:`chainer.links` 's instances with :class:`chainer.functions`
@@ -281,7 +281,7 @@ If you are not familiar with constructing a new network, you can read
 :ref:`this tutorial<creating_models>`.
 
 As we can see from the constructor ``__init__``, the ``Generator``
-use the deconvolution layer :class:`~chainer.links.Deconvolution2D`
+uses the deconvolution layer :class:`~chainer.links.Deconvolution2D`
 and the batch normalization :class:`~chainer.links.BatchNormalization`.
 In ``_call__``, each layer is concatenated by :class:`~chainer.functions.relu`
 except the last layer.
@@ -307,11 +307,11 @@ In addtion, let's define a network for the discriminator.
    :pyobject: Discriminator
    :caption: train_dcgan.py
 
-The ``Discriminator`` network is alomost same with the transposed network
-of ``Generator``. However, there are minor different points:
+The ``Discriminator`` network is almost same with the transposed network
+of the ``Generator``. However, there are minor different points:
 
 1. Use :class:`~chainer.functions.leaky_relu` as activation functions
-2. More deeper than ``Generator``
+2. Deeper than ``Generator``
 3. Add some noise when concatenating layers
 
 .. literalinclude:: ../../../examples/dcgan/net.py
@@ -396,7 +396,7 @@ the interval ``[0, scale]``.
 4.7 Start training
 -------------------
 
-We can run the exemple as following.
+We can run the exemple as follows.
 
 .. code-block:: console
 
@@ -416,7 +416,7 @@ We can run the exemple as following.
         10.121 iters/sec. Estimated time to finish: 1 day, 3:26:26.372445.
 
 The results will be saved in the director ``/root2chainer/chainer/examples/dcgan/result/``.
-The image is generated by the generator trained with 1000 epochs, and the gif image
+The image is generated by the generator trained with 1000 epochs, and the GIF image
 on the top of this page shows generated images at the each 10 epoch.
 
 .. image:: ../../image/dcgan/generated-image-epoch1000.png
