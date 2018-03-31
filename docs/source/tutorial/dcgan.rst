@@ -245,10 +245,10 @@ As shown below, it is a model using CNN(Convolutional Neural Network) as its nam
 In addition, although GAN is known for its difficulty in learning, this paper introduces various techniques
 for successful learning:
 
-1. Convert max-pooling layers to convolution layers 
-2. Convert fully connected layers to global average plling layers
-3. Use batch normalization layers
-4. Use leaky ReLu activation functions
+1. Convert max-pooling layers to convolution layers
+2. Convert fully connected layers to global average plling layers in the discriminator
+3. Use batch normalization layers in the generator and the discriminator
+4. Use leaky ReLU activation functions in the discriminator
 
 4. Implementation of DCGAN in Chainer
 ==========================================
@@ -260,12 +260,40 @@ so we will explain how to implement DCGAN based on this:
 4.1 Define the generator model
 -------------------------------
 
-Next, let's define a network for the generator.
+First, let's define a network for the generator.
 
 .. literalinclude:: ../../../examples/dcgan/net.py
    :language: python
    :pyobject: Generator
    :caption: train_dcgan.py
+
+When we make a network in Chainer, we should follow some rules:
+
+1. Define a network class which inherit :class:`~chainer.Chain`.
+2. Make :class:`chainer.links` 's instances in the ``init_scope():`` 
+   of constructor ``__init__``.
+3. Concatenate :class:`chainer.links` 's instances with :class:`chainer.functions`
+   to make whole network.
+
+If you are not familiar with constructing a new network, you can read
+:ref:`this tutorial<creating_models>`.
+
+As we can see from the constructor ``__init__``, the ``Generator``
+use the deconvolution layer :class:`~chainer.links.Deconvolution2D`
+and the batch normalization :class:`~chainer.links.BatchNormalization`.
+In ``_call__``, each layer is concatenated by :class:`~chainer.functions.relu`
+except the last layer.
+
+Because the first argument of ``L.Deconvolution`` is the channel size of input and
+the second is the channel size of output, we can find that each layer halve the
+channel size. When we construct ``Generator`` with ``ch=1024``, the network
+is same with the image above.
+
+.. note::
+    Be careful when you concatenate a fully connected layer's output and
+    a convolutinal layer's input. As we can see the 1st line of ``__call__``,
+    the output and input have to be concatenated with reshaping by 
+    :class:`~chainer.functions.reshape`.
 
 4.2 Define the discriminator model
 -----------------------------------
@@ -277,11 +305,28 @@ In addtion, let's define a network for the discriminator.
    :pyobject: Discriminator
    :caption: train_dcgan.py
 
+The ``Discriminator`` network is alomost same with the transposed network
+of ``Generator``. However, there are minor different points:
+
+1. Use :class:`~chainer.functions.leaky_relu` as activation functions
+2. More deeper than ``Generator``
+3. Add some noise when concatenating layers
+
+.. literalinclude:: ../../../examples/dcgan/net.py
+   :language: python
+   :pyobject: add_noise
+   :caption: train_dcgan.py
+
 4.3 Prepare dataset and iterator
 ---------------------------------
 
-Let's retrieve the Penn Tree Bank (PTB) dataset by using Chainer's dataset utility
-``get_ptb_words()`` method.
+Let's retrieve the CIFAR-10 dataset by using Chainer's dataset utility function
+:class:`~chainer.datasets.get_cifar10`. CIFAR-10 is a set of small natural images.
+Each example is an RGB color image of size 32x32. In the original images,
+each component of pixels is represented by one-byte unsigned integer.
+This function scales the components to floating point values in
+the interval ``[0, scale]``.
+
 
 .. literalinclude:: ../../../examples/dcgan/train_dcgan.py
    :language: python
