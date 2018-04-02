@@ -491,7 +491,6 @@ void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
     assert(lhs.ndim() == 2);
     assert(rhs.ndim() == 2);
     assert(out.ndim() == 2);
-    assert(out.IsContiguous());
 
     int64_t m = lhs.shape()[0];
     int64_t k = lhs.shape()[1];
@@ -509,6 +508,9 @@ void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
         return;
     }
 
+    bool is_out_contiguous = out.IsContiguous();
+    Array out_contiguous = is_out_contiguous ? out : Array::EmptyLike(out, *this);
+
     auto gemm_impl = [&](auto pt) {
         using T = typename decltype(pt)::type;
 
@@ -525,7 +527,7 @@ void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
         const T zero = 0;
         const T* a_ptr = GetOffsetData<const T>(a);
         const T* b_ptr = GetOffsetData<const T>(b);
-        T* out_ptr = GetOffsetData<T>(out);
+        T* out_ptr = GetOffsetData<T>(out_contiguous);
         Gemm<T>{}(handle, b_layout.trans, a_layout.trans, n, m, k, &one, b_ptr, b_layout.ld, a_ptr, a_layout.ld, &zero, out_ptr, n);
     };
 
@@ -535,6 +537,10 @@ void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
         gemm_impl(PrimitiveType<double>{});
     } else {
         throw NotImplementedError("dot is not implemented for non-float types in CUDA");
+    }
+
+    if (!is_out_contiguous) {
+        Copy(out_contiguous, out);
     }
 }
 
