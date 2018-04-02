@@ -15,6 +15,7 @@ from chainer.utils import type_check
 from chainer import variable
 from chainer.graph_optimizations.static_graph_utilities import static_forward_optimizations
 from chainer.graph_optimizations.static_graph_utilities import mark_static_vars
+from chainer.graph_optimizations.static_graph_utilities import is_static_func
 
 class FunctionNode(object):
 
@@ -264,7 +265,7 @@ Use apply() method instead.\
             self._output_indexes_to_retain = None
             outputs = self.forward(in_data)
             #static_forward_optimizations_old(self, input_vars)
-            static_forward_optimizations(self, input_vars, in_data, outputs)
+            static_forward_optimizations(self, in_data, outputs)
 
         # Check for output array types
         if not isinstance(outputs, tuple):
@@ -858,13 +859,16 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
             continue
 
         # Do backward
-        new_gxs = func.backward_accumulate(input_indexes, gys, gxs)
+        #new_gxs = func.backward_accumulate(input_indexes, gys, gxs) # fixme: bug: should be tuple, not list!
+        new_gxs = func.backward_accumulate(tuple(input_indexes), tuple(gys), tuple(gxs))
 
         # Delete output gradients that are not required to return
         for y_ref in func.outputs:
             y = y_ref()
             if y is not None and y in grads and y not in input_nodes:
-                del grads[y]
+                if not is_static_func(func):
+                    # todo (vogel): make sure this is necessary.
+                    del grads[y]
 
         # Update grads
         selected_inputs = set()

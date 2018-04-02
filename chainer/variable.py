@@ -12,11 +12,7 @@ from chainer.backends import cuda
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
-
-#from chainer.graph_optimizations.static_graph_utilities import check_func_backward_outputs
 from chainer.graph_optimizations.static_graph_utilities import is_static_func
-#from chainer.graph_optimizations.static_graph_utilities import check_func_backward_inputs
-#from chainer.graph_optimizations.static_graph_utilities import get_static_schedule
 
 
 def _check_grad_type(func, x, gx):

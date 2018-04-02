@@ -70,9 +70,19 @@ def mark_static_vars(input_vars):
     """
     if is_trace_mode():
         for var in input_vars:
-            # todo: consider only marking a variable if it is a parameter.
             var.is_static = True
 
+# todo: make a more general version of this function that finds the id of each array.
+# It should also be modified to support cupy arrays.
+def _debug_print_stats(args):
+    for arg in args:
+        if isinstance(arg, np.ndarray):
+            print('no-arg-func stats: ', stats.describe(arg, axis=None))
+            print('id of array: ', id(arg))
+        elif isinstance(arg, (list, tuple)):
+            debug_print_stats(arg)
+        else:
+            print('no-arg-func name: ', str(arg))
 
 def static_schedule_func(*dec_args, **dec_kwargs):
     """Decorator to mark a function for inclusion in the forward schedule.
@@ -87,6 +97,18 @@ def static_schedule_func(*dec_args, **dec_kwargs):
     will be ignored. Instead of returning its results, any result arrays must
     be supplied as input arguments and must have already have been initialized
     to the appropriate dimensions and data types.
+
+    todo: Consider allowing the wrapped function to return a list/tuple of
+    arrays. If the function returns something other than None, the implementation
+    will then check where these arrays are used later in the static schedule
+    and update the needed references accordingly. This would be less efficient
+    than writing the results in-place, but might also be more memory efficient
+    and would allow us to more efficiently wrap existing function that
+    do not have built-in support for static graph optimizations. That is,
+    the default way to automatically wrap/add support to existing functions
+    would be to to let the wrapped static schedule function return a tuple
+    of arrays as output and this implementation will update the used
+    references later in the schedule.
 
     Usage:
 
@@ -149,36 +171,29 @@ def static_schedule_func(*dec_args, **dec_kwargs):
         if 'delay_call' in dec_kwargs:
             delay_call = dec_kwargs['delay_call']
 
-    def debug_print_stats(args):
-        for arg in args:
-            if isinstance(arg, np.ndarray):
-                print('no-arg-func stats: ', stats.describe(arg, axis=None))
-                print('id of array: ', id(arg))
-            elif isinstance(arg, (list, tuple)):
-                debug_print_stats(arg)
-            else:
-                print('no-arg-func name: ', str(arg))
-
-
     def wrap(func):
         def wrapped_func(*args, **kwargs):
+            schedule_function = chainer.config.schedule_func
             # Save arguments, function, and results pointers/references to the schedule list:
             def no_arg_func():
                 #print('In no_arg_func: Calling: ', func)
-                #debug_print_stats(args)
+                #_debug_print_stats(args)
                 ret = func(*args, **kwargs)
                 if ret is not None:
+                    # todo: We can allow it to return tuple of arrays in the future.
                     raise RuntimeError("This function is not supposed to return anything: ", func)
-                # print("Arguments were: %s, %s" % (args, kwargs))
 
             # no_arg_func() requires no arguments to call since the arguments of the decorated function
             # are captured by the closure.
             if not delay_call:
                 no_arg_func()
 
-            schedule_function = chainer.config.schedule_func
+
             # If trace mode is on, add to schedule.
             if schedule_function is not None:
+
+
+
                 schedule_function.append_function(no_arg_func)
                 # Add the schedule function as an attribute of the FunctionNode instance
                 # that contains the wrapped function as a method
@@ -198,15 +213,10 @@ def static_schedule_func(*dec_args, **dec_kwargs):
         return wrap
 
 
-def static_forward_optimizations(func, in_vars, in_data, outputs):
+def static_forward_optimizations(func, in_data, outputs):
     """Perform checks needed for creation of a static schedule.
 
-    For each variable ``x`` in ``in_vars``, check if ``x`` is an
-    input variable to a static chain. If so, then save the
-    information to the function so that it can be used during the
-    backward pass schedule creation.
-
-    Also check if `func` supports static graph optimizations. If not, try
+    Check if `func` supports static graph optimizations. If not, try
     to automatically wrap it to be compatible.
 
     This function should be called from the ``FunctionNode`` apply() method
@@ -214,7 +224,6 @@ def static_forward_optimizations(func, in_vars, in_data, outputs):
 
     Args:
         func (instance of FunctionNode):
-        in_vars (tuple of variable): input variables to func.apply()
         in_data (tuple of ndarray): input arrays to func
         outputs (tuple of ndarray): outputs of func.
 
@@ -226,17 +235,24 @@ def static_forward_optimizations(func, in_vars, in_data, outputs):
             if schedule_function.verbosity_level >= 2:
                 print("Adding automatic static graph support to function: ",
                     func)
-            # func does not support static optimizations, so let's try to wrap it
-            # automatically.
+            # func does not already support static optimizations, so wrap it.
             @static_schedule_func(delay_call=True)
             def generic_static_forward(func, in_data, out_data):
                 """
-                    fixme
+                    todo
                 in_arrs: tuple of input arrays
                 out_arrs: tuple of output arrays
                 func: compatible with out_arrs = func(in_arrs)
                 """
                 temp_out_data = func.forward(in_data)
+                # todo: Note that instead of copying the data from
+                # temp_out_data into the static arrays in out_data,
+                # we could simply return temp_out_data and then
+                # track where it is used again later (by tracking)
+                # its reference id(temp_out_data). This would
+                # recue copy overhead and save memory but
+                # would also introduce additional Python code
+                # overhead in the static schedule.
                 for ind, static_ar in enumerate(out_data):
                     static_ar[...] = temp_out_data[ind]
 
