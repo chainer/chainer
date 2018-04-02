@@ -1,9 +1,10 @@
+import contextlib
+import shutil
+import tempfile
+
 import numpy
 
-from chainer.utils import walker_alias  # NOQA
-
-
-# import class and function
+# import classes and functions
 from chainer.utils.conv import get_conv_outsize  # NOQA
 from chainer.utils.conv import get_deconv_outsize  # NOQA
 from chainer.utils.experimental import experimental  # NOQA
@@ -34,3 +35,15 @@ def force_type(dtype, value):
         return value.astype(dtype, copy=False)
     else:
         return value
+
+
+@contextlib.contextmanager
+def tempdir(**kwargs):
+    # A context manager that defines a lifetime of a temporary directory.
+    ignore_errors = kwargs.pop('ignore_errors', False)
+
+    temp_dir = tempfile.mkdtemp(**kwargs)
+    try:
+        yield temp_dir
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=ignore_errors)

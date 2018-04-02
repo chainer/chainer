@@ -4,7 +4,6 @@
 For DQN, see: https://www.nature.com/articles/nature14236
 For DoubleDQN, see: https://arxiv.org/abs/1509.06461
 """
-from __future__ import print_function
 from __future__ import division
 import argparse
 import collections
