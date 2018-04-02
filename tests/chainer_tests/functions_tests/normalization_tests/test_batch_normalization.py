@@ -25,36 +25,29 @@ def _batch_normalization(args):
     return y_expect
 
 
-@testing.parameterize(*(testing.product({
-    'param_shape': [(3,), (3, 4), (3, 2, 3)],
-    'ndim': [0, 1, 2],
-    'eps': [2e-5, 5e-1],
-    'dtype': [numpy.float32],
-    'c_contiguous': [True, False],
-    'axis': [None],
-}) + testing.product({
+@testing.parameterize(*(testing.product_dict(
+    testing.product({
+        'param_shape': [(3,), (3, 4), (3, 2, 3)],
+        'ndim': [0, 1, 2],
+        'axis': [None],
+    }) + [
+        {'shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
+        {'shape': (5, 4), 'axis': 0},
+        {'shape': (5, 4, 3), 'axis': (0, 1)},
+    ],
+    testing.product({
+        'dtype': [numpy.float32],
+        'eps': [2e-5, 5e-1],
+        'c_contiguous': [True, False],
+    }),
+) + testing.product({
     'param_shape': [(3,)],
     'ndim': [1],
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'c_contiguous': [True, False],
     'axis': [None],
-}) + testing.product_dict(
-    [
-        {'shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
-        {'shape': (5, 4), 'axis': 0},
-        {'shape': (5, 4, 3), 'axis': (0, 1)},
-    ],
-    [
-        {'dtype': numpy.float32},
-    ],
-    [
-        {'eps': 2e-5}, {'eps': 5e-1},
-    ],
-    [
-        {'c_contiguous': True}, {'c_contiguous': False},
-    ],
-)))
+})))
 @backend.inject_backend_tests(
     ['test_forward', 'test_backward', 'test_double_backward'],
     # CPU tests
