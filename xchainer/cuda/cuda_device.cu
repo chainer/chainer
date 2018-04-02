@@ -14,6 +14,7 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/enum.h"
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
@@ -472,7 +473,7 @@ struct GemmInputLayout {
         // Force C contiguous
         ld = a.shape()[1];
         trans = CUBLAS_OP_N;  // transposed
-        return a.IsContiguous() ? a : a.Copy();
+        return a.IsContiguous() ? a : a.AsConstant(CopyKind::kCopy);
     }
 };
 
@@ -501,7 +502,10 @@ void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
 
     if (m == 1 && n == 1) {
         // TODO(beam2d): Write a custom reduction kernel.
-        Sum(lhs.Reshape({k}) * rhs.Reshape({k}), {0}, out.Reshape({}));
+        Array l = lhs.AsConstant();
+        Array r = rhs.AsConstant();
+        Array o = out.AsConstant();
+        Sum(l.Reshape({k}) * r.Reshape({k}), {0}, o.Reshape({}));
         return;
     }
 
