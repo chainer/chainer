@@ -2,10 +2,10 @@ import multiprocessing
 import os
 import shutil
 from six.moves import queue
-import tempfile
 import threading
 
 from chainer.serializers import npz
+from chainer import utils
 
 
 class Writer(object):
@@ -52,13 +52,10 @@ class Writer(object):
 
     def save(self, filename, outdir, target, savefun, **kwds):
         prefix = 'tmp' + filename
-        tmpdir = tempfile.mkdtemp(prefix=prefix, dir=outdir)
-        tmppath = os.path.join(tmpdir, filename)
-        try:
+        with utils.tempdir(prefix=prefix, dir=outdir) as tmpdir:
+            tmppath = os.path.join(tmpdir, filename)
             savefun(tmppath, target)
             shutil.move(tmppath, os.path.join(outdir, filename))
-        finally:
-            shutil.rmtree(tmpdir)
 
 
 class SimpleWriter(Writer):

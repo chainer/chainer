@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-
-from __future__ import print_function
-
 import chainer
 import chainer.functions as F
 from chainer import Variable
