@@ -81,11 +81,11 @@ class TestBatchNormalization(unittest.TestCase):
         else:
             if isinstance(self.axis, int):
                 aggr_axes = self.axis,
-            param_shape = [
+            param_shape = tuple(
                 s
                 for i, s in enumerate(self.shape)
                 if i not in aggr_axes
-            ]
+            )
             shape = self.shape
 
         gamma = numpy.random.uniform(.5, 1, param_shape).astype(dtype)
@@ -102,10 +102,10 @@ class TestBatchNormalization(unittest.TestCase):
 
             self.expander = (None, Ellipsis) + (None,) * ndim
         else:
-            self.expander = [
-                (None if i in aggr_axes else slice(None))
+            self.expander = tuple(
+                None if i in aggr_axes else slice(None)
                 for i in range(x.ndim)
-            ]
+            )
 
         mean = x.mean(axis=aggr_axes)
         var = x.var(axis=aggr_axes)
