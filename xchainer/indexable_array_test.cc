@@ -13,7 +13,7 @@ namespace {
 
 TEST(IndexableArrayTest, Rank0) {
     int value = 3;
-    IndexableArray<int, 0> indexable_array(&value, {});
+    IndexableArray<int, 0> indexable_array(&value, {}, sizeof(int));
     EXPECT_EQ(0, indexable_array.ndim());
     EXPECT_EQ(&value, indexable_array.data());
     EXPECT_EQ(value, indexable_array[nullptr]);
@@ -24,7 +24,7 @@ TEST(IndexableArrayTest, Rank0) {
 TEST(IndexableArrayTest, Rank1) {
     std::array<int, 3> values = {2, 3, 4};
     const Strides strides = {sizeof(values[0])};
-    IndexableArray<int, 1> indexable_array(&values[0], strides);
+    IndexableArray<int, 1> indexable_array(&values[0], strides, sizeof(int) * values.size());
     EXPECT_EQ(1, indexable_array.ndim());
     EXPECT_EQ(&values[0], indexable_array.data());
 
@@ -38,7 +38,7 @@ TEST(IndexableArrayTest, Rank3) {
     std::iota(values.begin(), values.end(), 0);
     const int64_t elemsize = sizeof(values[0]);
     const Strides strides = {3 * 4 * elemsize, 4 * elemsize, elemsize};
-    IndexableArray<int, 3> indexable_array(&values[0], strides);
+    IndexableArray<int, 3> indexable_array(&values[0], strides, elemsize * values.size());
     EXPECT_EQ(3, indexable_array.ndim());
     EXPECT_EQ(&values[0], indexable_array.data());
 
@@ -55,7 +55,7 @@ TEST(IndexableArrayTest, Rank3) {
 
 TEST(DynamicIndexableArrayTest, Rank0) {
     int value = 3;
-    IndexableArray<int> indexable_array(&value, {});
+    IndexableArray<int> indexable_array(&value, {}, sizeof(int));
     EXPECT_EQ(0, indexable_array.ndim());
     EXPECT_EQ(&value, indexable_array.data());
     EXPECT_EQ(value, indexable_array[nullptr]);
@@ -66,7 +66,7 @@ TEST(DynamicIndexableArrayTest, Rank0) {
 TEST(DynamicIndexableArrayTest, Rank1) {
     std::array<int, 3> values = {2, 3, 4};
     const Strides strides = {sizeof(values[0])};
-    IndexableArray<int> indexable_array(&values[0], strides);
+    IndexableArray<int> indexable_array(&values[0], strides, sizeof(int) * values.size());
     EXPECT_EQ(1, indexable_array.ndim());
     EXPECT_EQ(&values[0], indexable_array.data());
 
@@ -80,7 +80,7 @@ TEST(DynamicIndexableArrayTest, Rank3) {
     std::iota(values.begin(), values.end(), 0);
     const int64_t elemsize = sizeof(values[0]);
     const Strides strides = {3 * 4 * elemsize, 4 * elemsize, elemsize};
-    IndexableArray<int> indexable_array(&values[0], strides);
+    IndexableArray<int> indexable_array(&values[0], strides, elemsize * values.size());
     EXPECT_EQ(3, indexable_array.ndim());
     EXPECT_EQ(&values[0], indexable_array.data());
 

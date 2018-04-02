@@ -32,13 +32,14 @@ class IndexableArray {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides) : data_(data) {
+    IndexableArray(T* data, const Strides& strides, int64_t total_bytes, int64_t offset = 0)
+        : data_(data), total_bytes_(total_bytes), offset_(offset) {
         assert(strides.ndim() == kNdim);
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
     explicit IndexableArray(const Array& array)
-        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<char*>(array.raw_data()) + array.offset()), array.strides()} {
+        : IndexableArray{reinterpret_cast<T*>(array.raw_data()), array.strides(), array.GetAllocatedBytes(), array.offset()} {
         assert(TypeToDtype<T> == array.dtype());
     }
 
@@ -49,10 +50,12 @@ public:
     XCHAINER_HOST_DEVICE T* data() const { return data_; }
 
     XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
-        auto char_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(data_);
+        auto char_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(data_) + offset_;
         for (int8_t dim = 0; dim < kNdim; ++dim) {
             char_ptr += strides_[dim] * index[dim];
         }
+        assert(reinterpret_cast<const char*>(data_) <= char_ptr);
+        assert(char_ptr < reinterpret_cast<const char*>(data_) + total_bytes_);
         return *reinterpret_cast<T*>(char_ptr);
     }
 
@@ -77,6 +80,8 @@ public:
 
 private:
     T* data_;
+    int64_t total_bytes_;
+    int64_t offset_;
     int64_t strides_[kNdim];
 };
 
@@ -86,12 +91,13 @@ class IndexableArray<T, kDynamicNdim> {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides) : data_(data), ndim_(strides.ndim()) {
+    IndexableArray(T* data, const Strides& strides, int64_t total_bytes, int64_t offset = 0)
+        : data_(data), total_bytes_(total_bytes), offset_(offset), ndim_(strides.ndim()) {
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
     explicit IndexableArray(const Array& array)
-        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<char*>(array.raw_data()) + array.offset()), array.strides()} {
+        : IndexableArray{reinterpret_cast<T*>(array.raw_data()), array.strides(), array.GetAllocatedBytes(), array.offset()} {
         assert(TypeToDtype<T> == array.dtype());
     }
 
@@ -102,10 +108,12 @@ public:
     XCHAINER_HOST_DEVICE T* data() const { return data_; }
 
     XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
-        auto char_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(data_);
+        auto char_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(data_) + offset_;
         for (int8_t dim = 0; dim < ndim_; ++dim) {
             char_ptr += strides_[dim] * index[dim];
         }
+        assert(reinterpret_cast<const char*>(data_) <= char_ptr);
+        assert(char_ptr < reinterpret_cast<const char*>(data_) + total_bytes_);
         return *reinterpret_cast<T*>(char_ptr);
     }
 
@@ -131,6 +139,8 @@ public:
 
 private:
     T* data_;
+    int64_t total_bytes_;
+    int64_t offset_;
     int64_t strides_[kMaxNdim];
     int8_t ndim_;
 };

@@ -264,6 +264,8 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) const {
 
 void Array::ClearGrad(const GraphId& graph_id) const { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
 
+int64_t Array::GetAllocatedBytes() const { return internal::GetRequiredBytes(shape(), strides(), element_bytes()) + offset(); }
+
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
 namespace {
