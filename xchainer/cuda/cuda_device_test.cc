@@ -45,7 +45,7 @@ TEST(CudaDeviceTest, Allocate) {
         std::shared_ptr<void> ptr = device.Allocate(bytesize);
 
         cudaPointerAttributes attr = {};
-        CheckError(cudaPointerGetAttributes(&attr, ptr.get()));
+        CheckCudaError(cudaPointerGetAttributes(&attr, ptr.get()));
         EXPECT_TRUE(attr.isManaged);
         EXPECT_EQ(device.index(), attr.device);
     }
@@ -72,7 +72,7 @@ TEST(CudaDeviceTest, FromBuffer) {
     EXPECT_NE(src.get(), dst.get());
 
     cudaPointerAttributes attr = {};
-    CheckError(cudaPointerGetAttributes(&attr, dst.get()));
+    CheckCudaError(cudaPointerGetAttributes(&attr, dst.get()));
     EXPECT_TRUE(attr.isManaged);
     EXPECT_EQ(device.index(), attr.device);
 }

@@ -217,7 +217,7 @@ std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
     if (bytesize == 0) {
         return nullptr;
     }
-    CheckError(cudaSetDevice(index()));
+    CheckCudaError(cudaSetDevice(index()));
     void* raw_ptr = nullptr;
     // Be careful to be exception-safe, i.e.,
     // do not throw any exceptions before creating shared_ptr when memory allocation is succeeded
@@ -232,12 +232,12 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
     assert(IsPointerCudaMemory(dst));
     if (&src_device == this || nullptr != dynamic_cast<CudaDevice*>(&src_device)) {
         // Copy between CUDA devices
-        CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
+        CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
         assert(nullptr != dynamic_cast<native::NativeDevice*>(&src_device) &&
                "CudaDevice only supports copy between cuda or native devices.");
         // Copy from native device
-        CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyHostToDevice));
+        CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyHostToDevice));
     }
 }
 
@@ -245,12 +245,12 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
     assert(IsPointerCudaMemory(src));
     if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
         // Copy between CUDA devices
-        CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
+        CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
         assert(nullptr != dynamic_cast<native::NativeDevice*>(&dst_device) &&
                "CudaDevice only supports copy between cuda or native devices.");
         // Copy to native device
-        CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToHost));
+        CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToHost));
     }
 }
 
@@ -269,7 +269,7 @@ std::shared_ptr<void> CudaDevice::TransferDataTo(Device& dst_device, const std::
 
 std::shared_ptr<void> CudaDevice::FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
     std::shared_ptr<void> dst_ptr = Allocate(bytesize);
-    CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
+    CheckCudaError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
     return dst_ptr;
 }
 
@@ -445,7 +445,7 @@ template <>
 struct Gemm<float> {
     template <typename... Args>
     void operator()(Args&&... args) const {
-        CheckError(cublasSgemm(std::forward<Args>(args)...));
+        CheckCublasError(cublasSgemm(std::forward<Args>(args)...));
     }
 };
 
@@ -453,7 +453,7 @@ template <>
 struct Gemm<double> {
     template <typename... Args>
     void operator()(Args&&... args) const {
-        CheckError(cublasDgemm(std::forward<Args>(args)...));
+        CheckCublasError(cublasDgemm(std::forward<Args>(args)...));
     }
 };
 
@@ -535,8 +535,8 @@ void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
 }
 
 void CudaDevice::Synchronize() {
-    CheckError(cudaSetDevice(index()));
-    CheckError(cudaDeviceSynchronize());
+    CheckCudaError(cudaSetDevice(index()));
+    CheckCudaError(cudaDeviceSynchronize());
 }
 
 }  // namespace cuda

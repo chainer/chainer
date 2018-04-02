@@ -37,7 +37,7 @@ std::string BuildErrorMessage(cublasStatus_t error) {
 
 CublasError::CublasError(cublasStatus_t status) : XchainerError(BuildErrorMessage(status)), status_(status) {}
 
-void CheckError(cublasStatus_t status) {
+void CheckCublasError(cublasStatus_t status) {
     if (status != CUBLAS_STATUS_SUCCESS) {
         throw CublasError(status);
     }

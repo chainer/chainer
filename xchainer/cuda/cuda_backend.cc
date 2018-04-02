@@ -16,7 +16,7 @@
 namespace xchainer {
 namespace cuda {
 
-CudaBackend::CudaBackend(Context& context) : Backend(context) { CheckError(cublasCreate(&cublas_handle_)); }
+CudaBackend::CudaBackend(Context& context) : Backend(context) { CheckCublasError(cublasCreate(&cublas_handle_)); }
 
 CudaBackend::~CudaBackend() { cublasDestroy(cublas_handle_); }
 
@@ -24,7 +24,7 @@ std::string CudaBackend::GetName() const { return kDefaultName; }
 
 int CudaBackend::GetDeviceCount() const {
     int count = 0;
-    CheckError(cudaGetDeviceCount(&count));
+    CheckCudaError(cudaGetDeviceCount(&count));
     return count;
 }
 

@@ -50,7 +50,7 @@ void ExpectArraysEqual(const Array& expected, const Array& actual) {
 TEST(CudaBackendTest, GetDeviceCount) {
     Context ctx;
     int count = 0;
-    CheckError(cudaGetDeviceCount(&count));
+    CheckCudaError(cudaGetDeviceCount(&count));
     EXPECT_EQ(count, CudaBackend(ctx).GetDeviceCount());
 }
 
@@ -197,7 +197,7 @@ TEST_P(CudaBackendTransferTest, TransferDataFrom) {
 
     // Destination is ALWAYS CUDA device
     cudaPointerAttributes attr = {};
-    CheckError(cudaPointerGetAttributes(&attr, trans_data.get()));
+    CheckCudaError(cudaPointerGetAttributes(&attr, trans_data.get()));
     EXPECT_TRUE(attr.isManaged);
     EXPECT_EQ(device0.index(), attr.device);
 }
@@ -219,7 +219,7 @@ TEST_P(CudaBackendTransferTest, TransferDataTo) {
     if (nullptr != dynamic_cast<CudaBackend*>(&device1.backend())) {
         // Destination is CUDA device
         cudaPointerAttributes attr = {};
-        CheckError(cudaPointerGetAttributes(&attr, trans_data.get()));
+        CheckCudaError(cudaPointerGetAttributes(&attr, trans_data.get()));
         EXPECT_TRUE(attr.isManaged);
         EXPECT_EQ(device1.index(), attr.device);
     } else {

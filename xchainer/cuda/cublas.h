@@ -16,7 +16,7 @@ private:
     cublasStatus_t status_;
 };
 
-void CheckError(cublasStatus_t status);
+void CheckCublasError(cublasStatus_t status);
 
 }  // namespace cuda
 }  // namespace xchainer
