@@ -3,7 +3,7 @@ import xchainer
 import pytest
 
 
-def assert_arrays_equal(array1, array2):
+def _assert_arrays_equal(array1, array2):
     if array1 is None:
         assert array1 == array2
     else:
@@ -12,7 +12,7 @@ def assert_arrays_equal(array1, array2):
         assert array1._debug_flat_data == array2._debug_flat_data
 
 
-def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=xchainer.DEFAULT_GRAPH_ID):
+def _check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=xchainer.DEFAULT_GRAPH_ID):
     # Checks for test validity
     assert isinstance(xs, tuple)
     assert isinstance(expected_gxs, tuple)
@@ -33,7 +33,7 @@ def check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=xchainer.DEFAULT_
                 x.get_grad(graph_id)
         else:
             gx = x.get_grad(graph_id)
-            assert_arrays_equal(gx, expected_gx)
+            _assert_arrays_equal(gx, expected_gx)
 
     for output in outputs:
         grad = output.get_grad(graph_id)
@@ -55,7 +55,7 @@ def test_backward_identity():
         y = x.copy()
         return y,
 
-    check_backprop(xs, expected_gxs, fprop, ())
+    _check_backprop(xs, expected_gxs, fprop, ())
 
 
 def test_backward_add():
@@ -77,7 +77,7 @@ def test_backward_add():
         y = x0 + x1
         return y,
 
-    check_backprop(xs, expected_gxs, fprop, ())
+    _check_backprop(xs, expected_gxs, fprop, ())
 
 
 def test_backward_mul():
@@ -99,7 +99,7 @@ def test_backward_mul():
         y = x0 * x1
         return y,
 
-    check_backprop(xs, expected_gxs, fprop, ())
+    _check_backprop(xs, expected_gxs, fprop, ())
 
 
 def test_backward_add_mull():
@@ -123,7 +123,7 @@ def test_backward_add_mull():
         y = x0 * (x1 + x2)
         return y,
 
-    check_backprop(xs, expected_gxs, fprop, ())
+    _check_backprop(xs, expected_gxs, fprop, ())
 
 
 def test_backward_add_mul_extra_inputs():
@@ -147,7 +147,7 @@ def test_backward_add_mul_extra_inputs():
         y = x1 * (x0 + t0)
         return y,
 
-    check_backprop(xs, expected_gxs, fprop, extra_xs)
+    _check_backprop(xs, expected_gxs, fprop, extra_xs)
 
 
 def test_backward_sole_array_node():
@@ -161,7 +161,7 @@ def test_backward_sole_array_node():
 
     xchainer.backward(x)
 
-    assert_arrays_equal(x.get_grad(), expected_gx)
+    _assert_arrays_equal(x.get_grad(), expected_gx)
 
 
 def test_double_backprop():
@@ -184,7 +184,7 @@ def test_double_backprop():
         x.cleargrad()
         return gx,
 
-    check_backprop(xs, expected_gxs, fprop, extra_xs)
+    _check_backprop(xs, expected_gxs, fprop, extra_xs)
 
 
 def test_multiple_graphs_double_backprop():
@@ -209,7 +209,7 @@ def test_multiple_graphs_double_backprop():
 
     e = xchainer.full((1,), 2, xchainer.float32)
 
-    assert_arrays_equal(y.get_grad(graph_y), e)  # x
+    _assert_arrays_equal(y.get_grad(graph_y), e)  # x
 
 
 def test_backward_input_to_multiple_ops():
@@ -229,7 +229,7 @@ def test_backward_input_to_multiple_ops():
         y = x * (x + t)
         return y,
 
-    check_backprop(xs, expected_gxs, fprop, extra_xs)
+    _check_backprop(xs, expected_gxs, fprop, extra_xs)
 
 
 def test_backward_identical_inputs():
@@ -247,7 +247,7 @@ def test_backward_identical_inputs():
         y = x + x
         return y,
 
-    check_backprop(xs, expected_gxs, fprop, ())
+    _check_backprop(xs, expected_gxs, fprop, ())
 
 
 def test_backward_identical_intermediate_nodes():
@@ -266,7 +266,7 @@ def test_backward_identical_intermediate_nodes():
         z = y + y
         return z,
 
-    check_backprop(xs, expected_gxs, fprop, ())
+    _check_backprop(xs, expected_gxs, fprop, ())
 
 
 def test_backward_given_input_grad():
@@ -285,7 +285,7 @@ def test_backward_given_input_grad():
         y = x.copy()
         return y,
 
-    check_backprop(xs, expected_gxs, fprop, ())
+    _check_backprop(xs, expected_gxs, fprop, ())
 
 
 def test_backward_given_output_grad():
@@ -306,7 +306,7 @@ def test_backward_given_output_grad():
         y.set_grad(xchainer.full(shape, 2, dtype))
         return y,
 
-    check_backprop(xs, expected_gxs, fprop, extra_xs)
+    _check_backprop(xs, expected_gxs, fprop, extra_xs)
 
 
 def test_backward_keyword_arguments():
@@ -339,7 +339,7 @@ def test_backward_multiple_graphs_basic():
         y = x1 * x2
         return y,
 
-    check_backprop(xs, expected_gxs, fprop, (), graph_id1)
+    _check_backprop(xs, expected_gxs, fprop, (), graph_id1)
 
 
 def test_backward_multiple_graphs_non_existing():
@@ -381,7 +381,7 @@ def test_backward_multiple_graphs_reuse():
         return y,
 
     expected_gxs = (xchainer.full(shape, 5, dtype), xchainer.XchainerError)
-    check_backprop(xs, expected_gxs, fprop, (), graph_id1)
+    _check_backprop(xs, expected_gxs, fprop, (), graph_id1)
 
     x1.cleargrad(graph_id1)
     x2.cleargrad(graph_id2)
@@ -390,7 +390,7 @@ def test_backward_multiple_graphs_reuse():
     assert x2.get_grad(graph_id2) is None
 
     expected_gxs = (xchainer.XchainerError, xchainer.full(shape, 2, dtype))
-    check_backprop(xs, expected_gxs, fprop, (), graph_id2)
+    _check_backprop(xs, expected_gxs, fprop, (), graph_id2)
 
     x1.cleargrad(graph_id1)
     x2.cleargrad(graph_id2)
@@ -399,7 +399,7 @@ def test_backward_multiple_graphs_reuse():
     x2.require_grad(graph_id1)
 
     expected_gxs = (xchainer.full(shape, 5, dtype), xchainer.full(shape, 2, dtype))
-    check_backprop(xs, expected_gxs, fprop, (), graph_id2)
+    _check_backprop(xs, expected_gxs, fprop, (), graph_id2)
 
     assert x1.get_grad(graph_id1) is None
     assert x2.get_grad(graph_id1) is None
@@ -423,4 +423,4 @@ def test_backward_multiple_outputs():
         x0, x1 = xs_
         return (x0 + x1, x0 * x1)
 
-    check_backprop(xs, expected_gxs, fprop, ())
+    _check_backprop(xs, expected_gxs, fprop, ())
