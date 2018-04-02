@@ -29,3 +29,4 @@ Chainer can export a model from :class:`~chainer.Link`.
    :nosignatures:
 
    chainer.exporters.caffe.export
+
