@@ -41,7 +41,7 @@ Extensions
 An extension is a callable object that can perform arbitrary actions during the training loop.
 Extensions can be registered to :class:`Trainer` by using :func:`Trainer.extend` method, and they are invoked when the :ref:`Trigger <triggers>` condition is satisfied.
 
-In addition to the built-in extensions listed below, you can define your own extension using :class:`Extension` or :meth:`make_extension` decorator.
+In addition to the built-in extensions listed below, you can define your own extension by implementing :class:`Extension` or using the :meth:`make_extension` decorator.
 See :doc:`../guides/extensions` for details.
 
 Common
@@ -88,7 +88,7 @@ The typical use case is to change the learning rate of the optimizer over time.
 Reporting
 ~~~~~~~~~
 
-These extensions provide features to perform reporting of metrics and various statistics to console or files.
+These extensions provide features to perform reporting of metrics and various statistics to the console or files.
 
 .. autosummary::
    :toctree: generated/
