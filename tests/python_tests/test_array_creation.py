@@ -31,17 +31,17 @@ def create_dummy_array(shape, dtype):
     return xchainer.Array(shape, dtype, data_list)
 
 
-def check_basic_creation(a, shape, dtype, device_id=None):
+def check_basic_creation(a, shape, dtype, device=None):
     assert a.shape == shape
     assert a.dtype == dtype
     assert a.is_contiguous
     assert a.offset == 0
     assert a.total_size == functools.reduce(operator.mul, shape, 1)
     assert not a.is_grad_required()
-    if device_id is None:
+    if device is None:
         device = xchainer.get_default_device()
-    else:
-        device = xchainer.get_default_context().get_device(device_id)
+    elif isinstance(device, str):
+        device = xchainer.get_default_context().get_device(device)
     assert a.device is device
 
 
@@ -51,8 +51,11 @@ def test_empty(shape, dtype):
 
 
 def test_empty_device(shape, dtype):
-    a = xchainer.empty(shape, dtype, 'native:1')
-    check_basic_creation(a, shape, dtype, 'native:1')
+    def check(a):
+        check_basic_creation(a, shape, dtype, 'native:1')
+
+    check(xchainer.empty(shape, dtype, 'native:1'))
+    check(xchainer.empty(shape, dtype, xchainer.get_device('native:1')))
 
 
 def test_empty_like(shape, dtype):
@@ -65,10 +68,14 @@ def test_empty_like(shape, dtype):
 
 def test_empty_like_device(shape, dtype):
     t = create_dummy_array(shape, dtype)
-    a = xchainer.empty_like(t, 'native:1')
-    check_basic_creation(a, shape, dtype, 'native:1')
 
-    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+    def check(a):
+        check_basic_creation(a, shape, dtype, 'native:1')
+
+        assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+
+    check(xchainer.empty_like(t, 'native:1'))
+    check(xchainer.empty_like(t, xchainer.get_device('native:1')))
 
 
 def test_zeros(shape, dtype):
@@ -80,11 +87,14 @@ def test_zeros(shape, dtype):
 
 
 def test_zeros_device(shape, dtype):
-    a = xchainer.zeros(shape, dtype, 'native:1')
-    check_basic_creation(a, shape, dtype, 'native:1')
+    def check(a):
+        check_basic_creation(a, shape, dtype, 'native:1')
 
-    value = False if dtype == xchainer.bool else 0
-    assert all([el == value for el in a._debug_flat_data])
+        value = False if dtype == xchainer.bool else 0
+        assert all([el == value for el in a._debug_flat_data])
+
+    check(xchainer.zeros(shape, dtype, 'native:1'))
+    check(xchainer.zeros(shape, dtype, xchainer.get_device('native:1')))
 
 
 def test_zeros_like(shape, dtype):
@@ -100,13 +110,17 @@ def test_zeros_like(shape, dtype):
 
 def test_zeros_like_device(shape, dtype):
     t = create_dummy_array(shape, dtype)
-    a = xchainer.zeros_like(t, 'native:1')
-    check_basic_creation(a, shape, dtype, 'native:1')
 
-    value = False if dtype == xchainer.bool else 0
-    assert all([el == value for el in a._debug_flat_data])
+    def check(a):
+        check_basic_creation(a, shape, dtype, 'native:1')
 
-    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+        value = False if dtype == xchainer.bool else 0
+        assert all([el == value for el in a._debug_flat_data])
+
+        assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+
+    check(xchainer.zeros_like(t, 'native:1'))
+    check(xchainer.zeros_like(t, xchainer.get_device('native:1')))
 
 
 def test_ones(shape, dtype):
@@ -118,11 +132,14 @@ def test_ones(shape, dtype):
 
 
 def test_ones_device(shape, dtype):
-    a = xchainer.ones(shape, dtype, 'native:1')
-    check_basic_creation(a, shape, dtype, 'native:1')
+    def check(a):
+        check_basic_creation(a, shape, dtype, 'native:1')
 
-    value = True if dtype == xchainer.bool else 1
-    assert all([el == value for el in a._debug_flat_data])
+        value = True if dtype == xchainer.bool else 1
+        assert all([el == value for el in a._debug_flat_data])
+
+    check(xchainer.ones(shape, dtype, 'native:1'))
+    check(xchainer.ones(shape, dtype, xchainer.get_device('native:1')))
 
 
 def test_ones_like(shape, dtype):
@@ -138,13 +155,17 @@ def test_ones_like(shape, dtype):
 
 def test_ones_like_device(shape, dtype):
     t = create_dummy_array(shape, dtype)
-    a = xchainer.ones_like(t, 'native:1')
-    check_basic_creation(a, shape, dtype, 'native:1')
 
-    value = True if dtype == xchainer.bool else 1
-    assert all([el == value for el in a._debug_flat_data])
+    def check(a):
+        check_basic_creation(a, shape, dtype, 'native:1')
 
-    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+        value = True if dtype == xchainer.bool else 1
+        assert all([el == value for el in a._debug_flat_data])
+
+        assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+
+    check(xchainer.ones_like(t, 'native:1'))
+    check(xchainer.ones_like(t, xchainer.get_device('native:1')))
 
 
 def check_full(shape, value, dtype, device=None):
@@ -216,6 +237,16 @@ def check_full_like(shape, value, dtype, device=None):
         assert a._debug_flat_data == [value] * a.total_size
 
     assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+
+
+def test_full_like_device(shape, dtype):
+    value = 1 if dtype == xchainer.bool else True
+    check_full(shape, value, dtype, 'native:1')
+    check_full(shape, value, dtype, xchainer.get_device('native:1'))
+    check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
+    check_full_with_scalar(shape, xchainer.Scalar(value, dtype), xchainer.get_device('native:1'))
+    check_full_like(shape, value, dtype, 'native:1')
+    check_full_like(shape, value, dtype, xchainer.get_device('native:1'))
 
 
 def test_full_full_like_0(shape, dtype):
