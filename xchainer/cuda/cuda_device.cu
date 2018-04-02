@@ -513,7 +513,7 @@ void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
         using T = typename decltype(pt)::type;
 
         // Note that cuBLAS uses Fortran order.
-        // To compute out = lhs * rhs, we use cuBLAS to compute out^T = rhs^T * lhs^T.
+        // To compute out = lhs x rhs, we use cuBLAS to compute out^T = rhs^T x lhs^T (here x is the matrix product).
 
         GemmInputLayout a_layout;
         GemmInputLayout b_layout;
