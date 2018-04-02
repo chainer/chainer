@@ -1,4 +1,5 @@
 import pytest
+import numpy
 
 import xchainer
 
@@ -70,6 +71,11 @@ def device(request):
     request.addfinalizer(finalize)
     device_scope.__enter__()
     return device
+
+
+@pytest.fixture(params=[xchainer, numpy])
+def xp(request):
+    return request.param
 
 
 @pytest.fixture(params=_dtypes)

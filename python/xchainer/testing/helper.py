@@ -28,9 +28,9 @@ _unsigned_dtypes = [
 ]
 
 
-def _call_func(self, impl, args, kw):
+def _call_func(impl, args, kw):
     try:
-        result = impl(self, *args, **kw)
+        result = impl(*args, **kw)
         assert result is not None
         error = None
         tb = None
@@ -42,15 +42,15 @@ def _call_func(self, impl, args, kw):
     return result, error, tb
 
 
-def _check_xchainer_numpy_error(self, xchainer_error, xchainer_tb, numpy_error,
+def _check_xchainer_numpy_error(xchainer_error, xchainer_tb, numpy_error,
                                 numpy_tb, accept_error=()):
     # TODO(sonots): Should make error class name of xChainer similar with NumPy, and check names?
     if xchainer_error is None and numpy_error is None:
-        self.fail('Both xchainer and numpy are expected to raise errors, but not')
+        pytest.fail('Both xchainer and numpy are expected to raise errors, but not')
     elif xchainer_error is None:
-        self.fail('Only numpy raises error\n\n' + numpy_tb)
+        pytest.fail('Only numpy raises error\n\n' + numpy_tb)
     elif numpy_error is None:
-        self.fail('Only xchainer raises error\n\n' + xchainer_tb)
+        pytest.fail('Only xchainer raises error\n\n' + xchainer_tb)
     elif not (isinstance(xchainer_error, accept_error) and
               isinstance(numpy_error, accept_error)):
         msg = '''Both xchainer and numpy raise exceptions
@@ -60,14 +60,14 @@ xchainer
 numpy
 %s
 ''' % (xchainer_tb, numpy_tb)
-        self.fail(msg)
+        pytest.fail(msg)
 
 
-def _make_positive_indices(self, impl, args, kw):
+def _make_positive_indices(impl, args, kw):
     ks = [k for k, v in kw.items() if v in _unsigned_dtypes]
     for k in ks:
         kw[k] = numpy.intp
-    mask = numpy.array(impl(self, *args, **kw)) >= 0
+    mask = numpy.array(impl(*args, **kw)) >= 0
     return numpy.nonzero(mask)
 
 
@@ -80,15 +80,18 @@ def _contains_signed_and_unsigned(kw):
 def _make_decorator(check_func, name, type_check, accept_error):
     def decorator(impl):
         @functools.wraps(impl)
-        def test_func(self, *args, **kw):
+        def test_func(*args, **kw):
             kw[name] = xchainer
-            xchainer_result, xchainer_error, xchainer_tb = _call_func(self, impl, args, kw)
+            xchainer_result, xchainer_error, xchainer_tb = _call_func(impl, args, kw)
 
-            kw[name] = numpy
-            numpy_result, numpy_error, numpy_tb = _call_func(self, impl, args, kw)
+            numpy_kw = kw.copy()
+            numpy_kw[name] = numpy
+            if 'dtype' in kw:
+                numpy_kw['dtype'] = numpy.dtype(kw['dtype'].name)
+            numpy_result, numpy_error, numpy_tb = _call_func(impl, args, numpy_kw)
 
             if xchainer_error or numpy_error:
-                _check_xchainer_numpy_error(self, xchainer_error, xchainer_tb,
+                _check_xchainer_numpy_error(xchainer_error, xchainer_tb,
                                             numpy_error, numpy_tb,
                                             accept_error=accept_error)
                 return
@@ -103,7 +106,7 @@ def _make_decorator(check_func, name, type_check, accept_error):
             skip = False
             if _contains_signed_and_unsigned(kw) and \
                     xchainer_result.dtype in _unsigned_dtypes:
-                inds = _make_positive_indices(self, impl, args, kw)
+                inds = _make_positive_indices(impl, args, kw)
                 if xchainer_result.shape == ():
                     skip = inds[0].size == 0
                 else:
@@ -113,13 +116,13 @@ def _make_decorator(check_func, name, type_check, accept_error):
             if not skip:
                 check_func(xchainer_result, numpy_result)
             if type_check:
-                assert xchainer_result.dtype == numpy_result.dtype
+                assert numpy.dtype(xchainer_result.dtype.name) == numpy_result.dtype
         return test_func
     return decorator
 
 
 def numpy_xchainer_array_equal(err_msg='', verbose=True, name='xp',
-                               type_check=True, accept_error=False):
+                               type_check=True, accept_error=()):
     """Decorator that checks NumPy results and xChainer ones are equal.
 
     Args:
