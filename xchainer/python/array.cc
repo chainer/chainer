@@ -109,7 +109,7 @@ ArrayBodyPtr MakeArray(py::array array, const nonstd::optional<std::string>& dev
     return xchainer::internal::FromBuffer(shape, dtype, data, strides, GetDevice(device_id)).move_body();
 }
 
-py::buffer_info MakeNumpyArrayFromArray(ArrayBody& self) {
+py::buffer_info MakeBufferFromArray(ArrayBody& self) {
     // Used as a temporary accessor
     Array array{ArrayBodyPtr(&self, [](ArrayBody* ptr) {
         (void)ptr;  // unused
@@ -136,7 +136,7 @@ void InitXchainerArray(pybind11::module& m) {
     c.def(py::init(py::overload_cast<py::array, const nonstd::optional<std::string>&>(&MakeArray)),
           py::arg("data"),
           py::arg("device") = nullptr);
-    c.def_buffer(&MakeNumpyArrayFromArray);
+    c.def_buffer(&MakeBufferFromArray);
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
     c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });
