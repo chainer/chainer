@@ -4,8 +4,8 @@ import numpy as np
 import chainer.functions as F
 
 
-class DiscriminativeLoss:
-    """ Discriminative loss function
+class DiscriminativeMarginBasedClusteringLoss:
+    """ Discriminative margin based clustering loss function
 
     This is the implementation of following paper: 
     https://arxiv.org/pdf/1802.05591.pdf
