@@ -50,7 +50,7 @@ public:
     // Creates a data buffer filled with the specified data on this device.
     //
     // It may allocate a new memory or return an alias.
-    // src_ptr must reside in the host RAM.
+    // src_ptr must reside in the host memory.
     virtual std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
 
     virtual void Fill(const Array& out, Scalar value) = 0;
