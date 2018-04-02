@@ -55,7 +55,7 @@ TEST(CudaDeviceTest, Allocate) {
     }
 }
 
-TEST(CudaDeviceTest, FromContiguousData) {
+TEST(CudaDeviceTest, FromHostMemory) {
     size_t size = 3;
     size_t bytesize = size * sizeof(float);
     float raw_data[] = {0, 1, 2};
@@ -67,7 +67,7 @@ TEST(CudaDeviceTest, FromContiguousData) {
     CudaBackend backend{ctx};
     CudaDevice device{backend, 0};
 
-    std::shared_ptr<void> dst = device.FromContiguousData(src, bytesize);
+    std::shared_ptr<void> dst = device.FromHostMemory(src, bytesize);
     ExpectDataEqual<float>(src, dst, size);
     EXPECT_NE(src.get(), dst.get());
 

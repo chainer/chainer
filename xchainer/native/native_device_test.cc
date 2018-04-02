@@ -43,7 +43,7 @@ TEST(NativeDeviceTest, Allocate) {
     EXPECT_NE(nullptr, ptr);
 }
 
-TEST(NativeDeviceTest, FromContiguousData) {
+TEST(NativeDeviceTest, FromHostMemory) {
     size_t size = 3;
     size_t bytesize = size * sizeof(float);
     float raw_data[] = {0, 1, 2};
@@ -55,7 +55,7 @@ TEST(NativeDeviceTest, FromContiguousData) {
     NativeBackend backend{ctx};
     NativeDevice device{backend, 0};
 
-    std::shared_ptr<void> dst = device.FromContiguousData(src, bytesize);
+    std::shared_ptr<void> dst = device.FromHostMemory(src, bytesize);
     EXPECT_EQ(src.get(), dst.get());
 }
 

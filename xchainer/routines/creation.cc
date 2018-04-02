@@ -28,7 +28,7 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t eleme
 
 Array FromData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device) {
     auto bytesize = GetRequiredBytes(shape, strides, GetElementSize(dtype));
-    std::shared_ptr<void> device_data = device.FromContiguousData(data, bytesize);
+    std::shared_ptr<void> device_data = device.FromHostMemory(data, bytesize);
     return MakeArray(shape, strides, dtype, device, device_data);
 }
 

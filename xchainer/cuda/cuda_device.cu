@@ -265,7 +265,7 @@ std::shared_ptr<void> CudaDevice::TransferDataTo(Device& dst_device, const std::
     return dst_ptr;
 }
 
-std::shared_ptr<void> CudaDevice::FromContiguousData(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
+std::shared_ptr<void> CudaDevice::FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
     std::shared_ptr<void> dst_ptr = Allocate(bytesize);
     CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
     return dst_ptr;
