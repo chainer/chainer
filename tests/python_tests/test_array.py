@@ -8,6 +8,21 @@ import pytest
 import xchainer
 
 
+_shapes = [
+    (),
+    (0,),
+    (1,),
+    (2, 3),
+    (1, 1, 1),
+    (2, 0, 3),
+]
+
+
+@pytest.fixture(params=_shapes)
+def shape(request):
+    return request.param
+
+
 def _create_dummy_data(shape_tup, dtype, pattern=1):
     size = _size(shape_tup)
     if pattern == 1:
@@ -92,27 +107,6 @@ def _size(tup):
     return functools.reduce(operator.mul, tup, 1)
 
 
-_shapes_data = [
-    {'tuple': ()},
-    {'tuple': (0,)},
-    {'tuple': (1,)},
-    {'tuple': (2, 3)},
-    {'tuple': (1, 1, 1)},
-    {'tuple': (2, 0, 3)},
-]
-
-
-@pytest.fixture(params=_shapes_data)
-def shape_data(request):
-    return request.param
-
-
-@pytest.fixture
-def array_init_inputs(shape_data, dtype):
-    shape_tup = shape_data['tuple']
-    return shape_tup, dtype
-
-
 def _check_init(shape, dtype, device=None, with_device=True):
     data_list = _create_dummy_data(shape, dtype)
 
@@ -124,16 +118,16 @@ def _check_init(shape, dtype, device=None, with_device=True):
     _check_array(array, dtype, shape, _size(shape), data_list, device_id=device)
 
 
-def test_init_without_device(array_init_inputs):
-    _check_init(*array_init_inputs, with_device=False)
+def test_init_without_device(shape, dtype):
+    _check_init(shape, dtype, with_device=False)
 
 
-def test_init_with_device(array_init_inputs):
-    _check_init(*array_init_inputs, device='native:1')
+def test_init_with_device(shape, dtype):
+    _check_init(shape, dtype, device='native:1')
 
 
-def test_init_with_none_device(array_init_inputs):
-    _check_init(*array_init_inputs, device=None)
+def test_init_with_none_device(shape, dtype):
+    _check_init(shape, dtype, device=None)
 
 
 def _check_numpy_init(ndarray, shape, dtype, device=None):
@@ -163,20 +157,17 @@ def _check_numpy_init(ndarray, shape, dtype, device=None):
     _check_array_equals_ndarray(array, data_recovered)
 
 
-def test_numpy_init(array_init_inputs):
-    shape, dtype = array_init_inputs
+def test_numpy_init(shape, dtype):
     ndarray = _create_dummy_ndarray(shape, getattr(numpy, dtype.name))
     _check_numpy_init(ndarray, shape, dtype)
 
 
-def test_numpy_non_contiguous_init(array_init_inputs):
-    shape, dtype = array_init_inputs
+def test_numpy_non_contiguous_init(shape, dtype):
     ndarray = _create_dummy_ndarray(shape, getattr(numpy, dtype.name))
     _check_numpy_init(ndarray.T, shape[::-1], dtype)
 
 
-def test_numpy_init_device(array_init_inputs):
-    shape, dtype = array_init_inputs
+def test_numpy_init_device(shape, dtype):
     ndarray = _create_dummy_ndarray(shape, getattr(numpy, dtype.name))
     _check_numpy_init(ndarray, shape, dtype, 'native:1')
 
@@ -198,9 +189,7 @@ def test_to_device():
     _check_arrays_equal(a, b2)
 
 
-def test_view(array_init_inputs):
-    shape, dtype_name = array_init_inputs
-    dtype = xchainer.Dtype(dtype_name)
+def test_view(shape, dtype):
     data_list = _create_dummy_data(shape, dtype, pattern=1)
 
     array = xchainer.Array(shape, dtype, data_list)
@@ -297,8 +286,7 @@ def test_invalid_asscalar(device, shape):
         bool(a)
 
 
-def test_transpose(array_init_inputs):
-    shape, dtype = array_init_inputs
+def test_transpose(shape, dtype):
     data_list = _create_dummy_data(shape, dtype)
 
     array = xchainer.Array(shape, dtype, data_list)
@@ -510,8 +498,7 @@ def test_broadcast_to_double_backward():
     xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-3)
 
 
-def test_copy(array_init_inputs):
-    shape, dtype = array_init_inputs
+def test_copy(shape, dtype):
     data_list = _create_dummy_data(shape, dtype)
     array = xchainer.Array(shape, dtype, data_list)
 
@@ -519,8 +506,7 @@ def test_copy(array_init_inputs):
     _check_arrays_equal_copy(array, xchainer.copy(array))
 
 
-def test_as_constant_copy(array_init_inputs):
-    shape, dtype = array_init_inputs
+def test_as_constant_copy(shape, dtype):
     data_list = _create_dummy_data(shape, dtype)
 
     # Stop gradients on all graphs
@@ -558,8 +544,7 @@ def test_as_constant_copy(array_init_inputs):
     assert a.is_grad_required('graph_3')
 
 
-def test_as_constant_view(array_init_inputs):
-    shape, dtype = array_init_inputs
+def test_as_constant_view(shape, dtype):
     data_list = _create_dummy_data(shape, dtype)
 
     # Stop gradients on all graphs
@@ -675,9 +660,7 @@ def test_invalid_eq(a_shape, b_shape):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_add_iadd(device, array_init_inputs):
-    shape, dtype = array_init_inputs
-
+def test_add_iadd(device, shape, dtype):
     lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
     rhs_data_list = _create_dummy_data(shape, dtype, pattern=2)
 
@@ -704,9 +687,7 @@ def test_add_iadd(device, array_init_inputs):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_imul(device, array_init_inputs):
-    shape, dtype = array_init_inputs
-
+def test_mul_imul(device, shape, dtype):
     lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
     rhs_data_list = _create_dummy_data(shape, dtype, pattern=2)
 
@@ -734,9 +715,7 @@ def test_mul_imul(device, array_init_inputs):
 
 @pytest.mark.parametrize('scalar', [0, -1, 1, 2])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_scalar(scalar, device, array_init_inputs):
-    shape, dtype = array_init_inputs
-
+def test_mul_scalar(scalar, device, shape, dtype):
     data_list = _create_dummy_data(shape, dtype)
 
     # Implicit casting in NumPy's multiply depends on the 'casting' argument,
