@@ -175,6 +175,8 @@ public:
 
     int64_t GetTotalBytes() const { return GetTotalSize() * element_bytes(); }
 
+    // Returns the effective contiguous memory address space occupied by this array.
+    // The last element in the span refers to the past-the-last array element.
     gsl::span<const uint8_t> GetDataRange() const;
 
     bool IsContiguous() const { return internal::IsContiguous(shape(), strides(), element_bytes()); }
