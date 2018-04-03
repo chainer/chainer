@@ -46,10 +46,18 @@ def _check_basic_creation(a, shape, dtype, device=None):
     assert a.device is device
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-def test_array_from_python_list(shape, dtype, device):
+def test_array_from_python_list(shape, dtype):
     # TODO(sonots): Determine dtype (bool or int64, or float64) seeing values of list.
     # TODO(sonots): Support nested list
+    a = xchainer.array([0, 1, 2])
+    _check_basic_creation(a, (3,), xchainer.float64)
+
+    a = xchainer.array([0, 1, 2], xchainer.float32)
+    _check_basic_creation(a, (3,), xchainer.float32)
+
+
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_array_from_python_list_with_device(shape, dtype, device):
     a = xchainer.array([0, 1, 2], device=device)
     _check_basic_creation(a, (3,), xchainer.float64, device)
 
@@ -57,14 +65,26 @@ def test_array_from_python_list(shape, dtype, device):
     _check_basic_creation(a, (3,), xchainer.float32, device)
 
 
+def test_array_from_numpy_ndarray(shape, dtype):
+    a = xchainer.array(numpy.zeros(shape, numpy.dtype(dtype.name)))
+    _check_basic_creation(a, shape, dtype)
+
+
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-def test_array_from_numpy_ndarray(shape, dtype, device):
+def test_array_from_numpy_ndarray_with_device(shape, dtype, device):
     a = xchainer.array(numpy.zeros(shape, numpy.dtype(dtype.name)), device)
     _check_basic_creation(a, shape, dtype, device)
 
 
+def test_array_from_xchainer_array(shape, dtype):
+    t = xchainer.zeros(shape, dtype)
+    a = xchainer.array(t)
+    _check_basic_creation(a, shape, dtype)
+    assert t is not a
+
+
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-def test_array_from_xchainer_array(shape, dtype, device):
+def test_array_from_xchainer_array_with_device(shape, dtype, device):
     t = xchainer.zeros(shape, dtype, 'native:0')
     a = xchainer.array(t, device)
     _check_basic_creation(a, shape, dtype, device)
