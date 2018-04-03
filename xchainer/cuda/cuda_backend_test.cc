@@ -239,7 +239,7 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceFrom) {
     auto nop = [](void* p) {
         (void)p;  // unused
     };
-    Array a = Array::FromContiguousHostMemory({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device1);
+    Array a = Array::FromContiguousData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device1);
 
     // Transfer
     Array b = a.ToDevice(device0);
@@ -266,7 +266,7 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceTo) {
     auto nop = [](void* p) {
         (void)p;  // unused
     };
-    Array a = Array::FromContiguousHostMemory({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device0);
+    Array a = Array::FromContiguousData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device0);
 
     // Transfer
     Array b = a.ToDevice(device1);

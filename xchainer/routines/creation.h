@@ -19,7 +19,7 @@ namespace internal {
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size);
 
 // Creates an array with given data packed with specified strides
-Array FromHostMemory(
+Array FromData(
         const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device = GetDefaultDevice());
 
 // Creates an empty array with specified strides.
