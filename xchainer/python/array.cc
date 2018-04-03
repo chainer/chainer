@@ -205,6 +205,12 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     c.def("dot", [](const ArrayBodyPtr& self, const ArrayBodyPtr& b) { return Array{self}.Dot(Array{b}).move_body(); }, py::arg("b"));
+    c.def("fill",
+          [](const ArrayBodyPtr& self, Scalar value) {
+              Array{self}.Fill(value);
+              return;
+          },
+          py::arg("value"));
 
     c.def("require_grad",
           [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{self}.RequireGrad(graph_id).move_body(); },
