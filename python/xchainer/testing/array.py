@@ -15,5 +15,4 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
     .. seealso:: :func:`numpy.testing.assert_array_equal`
     """
     numpy.testing.assert_array_equal(
-        numpy.array(x), numpy.array(y), err_msg=err_msg,
-        verbose=verbose)
+        x, y, err_msg=err_msg, verbose=verbose)
