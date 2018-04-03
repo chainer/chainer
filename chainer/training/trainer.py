@@ -315,6 +315,10 @@ class Trainer(object):
                 traceback.print_tb(sys.exc_info()[2])
                 f.write('Will finalize trainer extensions and updater before '
                         'reraising the exception.\n')
+            for _, entry in extensions:
+                handler = getattr(entry.extension, 'on_error', None)
+                if handler:
+                    handler(e, sys.exc_info())
             six.reraise(*sys.exc_info())
         finally:
             for _, entry in extensions:
