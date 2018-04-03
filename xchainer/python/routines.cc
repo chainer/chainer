@@ -42,7 +42,7 @@ ArrayBodyPtr MakeArray(const py::list& list, const nonstd::optional<Dtype>& dtyp
     return internal::MakeArray(shape_tup, dtype.value_or(Dtype::kFloat64), list, device);
 }
 
-}  //
+}  // namespace
 void InitXchainerRoutines(pybind11::module& m) {
     // creation routines
     m.def("array",
@@ -53,24 +53,15 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("array",
-          [](const py::list& list, const nonstd::optional<Dtype>& dtype, Device& device) {
-              return MakeArray(list, dtype, device);
-          },
+          [](const py::list& list, const nonstd::optional<Dtype>& dtype, Device& device) { return MakeArray(list, dtype, device); },
           py::arg("object"),
           py::arg("dtype") = nullptr,
           py::arg("device"));
     m.def("array",
-          [](const py::array& array, const nonstd::optional<std::string>& device_id) {
-              return MakeArray(array, GetDevice(device_id));
-          },
+          [](const py::array& array, const nonstd::optional<std::string>& device_id) { return MakeArray(array, GetDevice(device_id)); },
           py::arg("object"),
           py::arg("device") = nullptr);
-    m.def("array",
-          [](const py::array& array, Device& device) {
-              return MakeArray(array, device);
-          },
-          py::arg("object"),
-          py::arg("device"));
+    m.def("array", [](const py::array& array, Device& device) { return MakeArray(array, device); }, py::arg("object"), py::arg("device"));
     m.def("array",
           [](const ArrayBodyPtr& array, const nonstd::optional<std::string>& device_id) {
               if (device_id) {
@@ -81,9 +72,7 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("object"),
           py::arg("device") = nullptr);
     m.def("array",
-          [](const ArrayBodyPtr& array, Device& device) {
-              return Array{array}.ToDevice(device).move_body();
-          },
+          [](const ArrayBodyPtr& array, Device& device) { return Array{array}.ToDevice(device).move_body(); },
           py::arg("object"),
           py::arg("device"));
 

@@ -79,21 +79,6 @@ Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
     throw DtypeError("unsupported NumPy dtype");
 }
 
-py::buffer_info MakeBufferFromArray(ArrayBody& self) {
-    // Used as a temporary accessor
-    Array array{ArrayBodyPtr(&self, [](ArrayBody* ptr) {
-        (void)ptr;  // unused
-    })};
-
-    return py::buffer_info(
-            array.data().get(),
-            array.element_bytes(),
-            std::string(1, GetCharCode(array.dtype())),
-            array.ndim(),
-            array.shape(),
-            array.strides());
-}
-
 }  // namespace
 
 ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& list, Device& device) {
@@ -126,6 +111,25 @@ ArrayBodyPtr MakeArray(py::array array, Device& device) {
     return xchainer::internal::FromBuffer(shape, dtype, data, strides, device).move_body();
 }
 
+namespace {
+
+py::buffer_info MakeBufferFromArray(ArrayBody& self) {
+    // Used as a temporary accessor
+    Array array{ArrayBodyPtr(&self, [](ArrayBody* ptr) {
+        (void)ptr;  // unused
+    })};
+
+    return py::buffer_info(
+            array.data().get(),
+            array.element_bytes(),
+            std::string(1, GetCharCode(array.dtype())),
+            array.ndim(),
+            array.shape(),
+            array.strides());
+}
+
+}  // namespace
+
 void InitXchainerArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "Array", py::buffer_protocol()};
     c.def(py::init([](const py::tuple& shape, Dtype dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
@@ -147,11 +151,7 @@ void InitXchainerArray(pybind11::module& m) {
           }),
           py::arg("data"),
           py::arg("device") = nullptr);
-    c.def(py::init([](const py::array& array, Device& device) {
-              return MakeArray(array, device);
-          }),
-          py::arg("data"),
-          py::arg("device"));
+    c.def(py::init([](const py::array& array, Device& device) { return MakeArray(array, device); }), py::arg("data"), py::arg("device"));
     c.def_buffer(&MakeBufferFromArray);
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
