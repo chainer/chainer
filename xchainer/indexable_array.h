@@ -33,7 +33,7 @@ class IndexableArray {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides) : data_(data) {
+    IndexableArray(T* data, const Strides& strides) : data_{data} {
         assert(strides.ndim() == kNdim);
         std::copy(strides.begin(), strides.end(), strides_);
     }
@@ -104,7 +104,7 @@ class IndexableArray<T, kDynamicNdim> {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides) : data_(data), ndim_(strides.ndim()) {
+    IndexableArray(T* data, const Strides& strides) : data_{data}, ndim_{strides.ndim()} {
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
