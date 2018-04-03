@@ -273,12 +273,7 @@ void InitXchainerArray(pybind11::module& m) {
             });
     c.def_property_readonly("_debug_flat_data", [](const ArrayBodyPtr& self) {
         py::list list;
-        const Array orig_array{self};
-        Context& context = orig_array.device().backend().context();
-        Backend& native_backend = context.GetBackend(native::NativeBackend::kDefaultName);
-        Device& native_device = native_backend.GetDevice(0);
-        Array array = Array{self}.ToDevice(native_device);
-        native_device.Synchronize();
+        Array array = Array{self}.ToNativeDevice();
 
         // Copy data into the list
         VisitDtype(array.dtype(), [&array, &list](auto pt) {
