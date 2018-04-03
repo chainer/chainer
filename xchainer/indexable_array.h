@@ -42,8 +42,8 @@ public:
         : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<char*>(array.raw_data()) + array.offset()), array.strides()} {
         assert(TypeToDtype<T> == array.dtype());
 #ifndef NDEBUG
-        first_ = data_;
-        last_ = data_;
+        first_ = reinterpret_cast<char*>(array.raw_data()) + array.offset();
+        last_ = first_;
         const Shape& shape = array.shape();
         for (int8_t i = 0; i < kNdim; ++i) {
             auto& first_or_last = strides_[i] < 0 ? first_ : last_;
@@ -63,10 +63,8 @@ public:
         for (int8_t dim = 0; dim < kNdim; ++dim) {
             char_ptr += strides_[dim] * index[dim];
         }
-#ifndef NDEBUG
         assert(first_ == nullptr || reinterpret_cast<const char*>(first_) <= char_ptr);
         assert(last_ == nullptr || char_ptr <= reinterpret_cast<const char*>(last_));
-#endif
         return *reinterpret_cast<T*>(char_ptr);
     }
 
@@ -92,8 +90,8 @@ public:
 private:
     T* data_;
 #ifndef NDEBUG
-    T* first_ = nullptr;
-    T* last_ = nullptr;
+    char* first_ = nullptr;
+    char* last_ = nullptr;
 #endif
     int64_t strides_[kNdim];
 };
@@ -113,8 +111,8 @@ public:
         assert(TypeToDtype<T> == array.dtype());
 
 #ifndef NDEBUG
-        first_ = data_;
-        last_ = data_;
+        first_ = reinterpret_cast<char*>(array.raw_data()) + array.offset();
+        last_ = first_;
         const Shape& shape = array.shape();
         for (int8_t i = 0; i < ndim_; ++i) {
             auto& first_or_last = strides_[i] < 0 ? first_ : last_;
@@ -134,10 +132,8 @@ public:
         for (int8_t dim = 0; dim < ndim_; ++dim) {
             char_ptr += strides_[dim] * index[dim];
         }
-#ifndef NDEBUG
         assert(first_ == nullptr || reinterpret_cast<const char*>(first_) <= char_ptr);
         assert(last_ == nullptr || char_ptr <= reinterpret_cast<const char*>(last_));
-#endif
         return *reinterpret_cast<T*>(char_ptr);
     }
 
@@ -164,8 +160,8 @@ public:
 private:
     T* data_;
 #ifndef NDEBUG
-    T* first_ = nullptr;
-    T* last_ = nullptr;
+    char* first_ = nullptr;
+    char* last_ = nullptr;
 #endif
     int64_t strides_[kMaxNdim];
     int8_t ndim_;
