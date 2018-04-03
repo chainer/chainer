@@ -23,22 +23,22 @@ def shape(request):
     return request.param
 
 
-def _create_dummy_data(shape_tup, dtype, pattern=1):
-    size = _size(shape_tup)
+def _create_dummy_data(shape, dtype, pattern=1):
+    total_size = _total_size(shape)
     if pattern == 1:
         if dtype == xchainer.Dtype.bool:
-            return [i % 2 == 1 for i in range(size)]
+            return [i % 2 == 1 for i in range(total_size)]
         else:
-            return [i for i in range(size)]
+            return [i for i in range(total_size)]
     else:
         if dtype == xchainer.Dtype.bool:
-            return [i % 3 == 0 for i in range(size)]
+            return [i % 3 == 0 for i in range(total_size)]
         else:
-            return [1 + i for i in range(size)]
+            return [1 + i for i in range(total_size)]
 
 
-def _create_dummy_ndarray(shape_tup, numpy_dtype):
-    return numpy.arange(_size(shape_tup)).reshape(shape_tup).astype(numpy_dtype)
+def _create_dummy_ndarray(shape, numpy_dtype):
+    return numpy.arange(_total_size(shape)).reshape(shape).astype(numpy_dtype)
 
 
 def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list, expected_is_contiguous=True,
@@ -103,8 +103,8 @@ def _check_ndarray_equal_ndarray(ndarray1, ndarray2, skip_strides=False, skip_fl
         assert ndarray1.flags == ndarray2.flags
 
 
-def _size(tup):
-    return functools.reduce(operator.mul, tup, 1)
+def _total_size(shape):
+    return functools.reduce(operator.mul, shape, 1)
 
 
 def _check_init(shape, dtype, device=None, with_device=True):
@@ -115,7 +115,7 @@ def _check_init(shape, dtype, device=None, with_device=True):
     else:
         array = xchainer.Array(shape, dtype, data_list)
 
-    _check_array(array, dtype, shape, _size(shape), data_list, device_id=device)
+    _check_array(array, dtype, shape, _total_size(shape), data_list, device_id=device)
 
 
 def test_init_without_device(shape, dtype):
@@ -138,7 +138,7 @@ def _check_numpy_init(ndarray, shape, dtype, device=None):
 
     ndarray_is_contigous = ndarray.flags['C_CONTIGUOUS']
     _check_array(
-        array, dtype, shape, _size(shape), ndarray.ravel().tolist(),
+        array, dtype, shape, _total_size(shape), ndarray.ravel().tolist(),
         expected_is_contiguous=ndarray_is_contigous, device_id=device)
     _check_array_equals_ndarray(array, ndarray)
 
@@ -195,7 +195,7 @@ def test_view(shape, dtype):
     array = xchainer.Array(shape, dtype, data_list)
     view = array.view()
 
-    _check_array(view, dtype, shape, _size(shape), data_list)
+    _check_array(view, dtype, shape, _total_size(shape), data_list)
 
     # inplace modification
     if len(data_list) > 0:
@@ -555,7 +555,7 @@ def test_as_constant_view(shape, dtype):
     assert a.is_grad_required('graph_2')
     b = a.as_constant(copy=False)
 
-    _check_array(b, dtype, shape, _size(shape), data_list)
+    _check_array(b, dtype, shape, _total_size(shape), data_list)
     assert not b.is_grad_required('graph_1')
     assert not b.is_grad_required('graph_2')
 
@@ -572,7 +572,7 @@ def test_as_constant_view(shape, dtype):
     assert a.is_grad_required('graph_3')
     b = a.as_constant(['graph_1', 'graph_2'], copy=False)
 
-    _check_array(b, dtype, shape, _size(shape), data_list)
+    _check_array(b, dtype, shape, _total_size(shape), data_list)
     assert not b.is_grad_required('graph_1')
     assert not b.is_grad_required('graph_2')
     assert b.is_grad_required('graph_3')
