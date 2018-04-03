@@ -147,6 +147,12 @@ const Array& Array::operator+=(const Array& rhs) const { return internal::IAdd(*
 
 Array Array::operator+(const Array& rhs) const { return xchainer::Add(*this, rhs); }
 
+Array& Array::operator-=(const Array& rhs) { return internal::ISubtract(*this, rhs); }
+
+const Array& Array::operator-=(const Array& rhs) const { return internal::ISubtract(*this, rhs); }
+
+Array Array::operator-(const Array& rhs) const { return xchainer::Subtract(*this, rhs); }
+
 Array& Array::operator*=(const Array& rhs) { return internal::IMultiply(*this, rhs); }
 
 const Array& Array::operator*=(const Array& rhs) const { return internal::IMultiply(*this, rhs); }

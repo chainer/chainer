@@ -15,9 +15,14 @@ namespace internal {
 Array& IAdd(Array& x1, const Array& x2);
 const Array& IAdd(const Array& x1, const Array& x2);
 
+Array& ISubtract(Array& x1, const Array& x2);
+const Array& ISubtract(const Array& x1, const Array& x2);
+
 }  // namespace internal
 
 Array Add(const Array& x1, const Array& x2);
+
+Array Subtract(const Array& x1, const Array& x2);
 
 namespace internal {
 
