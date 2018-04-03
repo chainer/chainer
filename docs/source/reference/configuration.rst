@@ -193,7 +193,7 @@ Here are the environment variables Chainer uses.
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_LAZY_GRAD_SUM``                 | Used as the default value for ``chainer.config.lazy_grad_sum`` configuration.                         |
-|                                           | Set ``1`` to enable batch accumulation of gradients.
+|                                           | Set ``1`` to enable batch accumulation of gradients.                                                  |
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_TYPE_CHECK``                    | Used as the default value for ``chainer.config.type_check`` configuration.                            |
