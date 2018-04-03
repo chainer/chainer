@@ -19,8 +19,11 @@ Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis) {
     if (axis.has_value()) {
         sorted_axis = internal::GetSortedAxes({*axis}, a.ndim());
         out_shape_vec.reserve(a.ndim() - 1);
+        int8_t i_axis = 0;
         for (int8_t i = 0; i < a.ndim(); ++i) {
-            if (i != *axis) {
+            if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
+                ++i_axis;
+            } else {
                 out_shape_vec.push_back(a.shape()[i]);
             }
         }
@@ -28,7 +31,6 @@ Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis) {
         // Fill with all axes
         sorted_axis.resize(a.ndim());
         std::iota(sorted_axis.begin(), sorted_axis.end(), int8_t{0});
-        out_shape_vec.push_back(1);
     }
 
     Array out = Empty({out_shape_vec.begin(), out_shape_vec.end()}, Dtype::kInt64, a.device());

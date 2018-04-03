@@ -36,9 +36,30 @@ TEST_P(SortingTest, ArgMax) {
         return;
     }
     {
-        Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+        Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
         Array b = ArgMax(a, 0);
-        Array e = testing::BuildArray<int64_t>({1}, {2});
+        Array e = testing::BuildArray<int64_t>({3}, {0, 0, 1});
+        testing::ExpectEqual<int64_t>(e, b);
+    }
+    {
+        Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
+        Array b = ArgMax(a, -1);
+        Array e = testing::BuildArray<int64_t>({2}, {1, 2});
+        testing::ExpectEqual<int64_t>(e, b);
+    }
+    {
+        Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
+        Array b = ArgMax(a);
+        Array e = testing::BuildArray<int64_t>({}, {1});
+        testing::ExpectEqual<int64_t>(e, b);
+    }
+
+    // non-contiguous
+    {
+        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
+        Array a_view = a.At({Slice{}, Slice{0, 2}});
+        Array b = ArgMax(a_view, 0);
+        Array e = testing::BuildArray<int64_t>({2}, {2, 2});
         testing::ExpectEqual<int64_t>(e, b);
     }
 }
