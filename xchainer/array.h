@@ -140,6 +140,12 @@ public:
     // TODO(niboshi): Currently control over whether to make an alias is not supported.
     Array ToDevice(Device& dst_device) const;
 
+    // Transfer the array to the native device. It will be connected to all the graphs.
+    //
+    // This is a wrapper function which calls Array::ToDevice with the native:0 device.
+    // See also: Array::ToDevice();
+    Array ToNative() const;
+
     // Creates a copy or a view. It will be disconnected from all the graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
     Array AsConstant(CopyKind kind = CopyKind::kView) const;
@@ -174,6 +180,10 @@ public:
     int64_t GetTotalSize() const { return shape().GetTotalSize(); }
 
     int64_t GetTotalBytes() const { return GetTotalSize() * element_bytes(); }
+
+    // Returns the effective contiguous memory address space occupied by this array.
+    // The last element in the span refers to the past-the-end array element.
+    gsl::span<const uint8_t> GetDataRange() const;
 
     bool IsContiguous() const { return internal::IsContiguous(shape(), strides(), element_bytes()); }
 

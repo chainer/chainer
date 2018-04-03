@@ -18,14 +18,14 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol) {
         throw DtypeError("cannot compare Arrays of different Dtypes");
     }
 
-    a.device().Synchronize();
-    b.device().Synchronize();
+    Array a_native = a.ToNative();
+    Array b_native = b.ToNative();
 
     return VisitDtype(a.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> a_iarray{a};
-        IndexableArray<const T> b_iarray{b};
-        Indexer<> indexer{a.shape()};
+        IndexableArray<const T> a_iarray{a_native};
+        IndexableArray<const T> b_iarray{b_native};
+        Indexer<> indexer{a_native.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);

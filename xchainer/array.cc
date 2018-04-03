@@ -11,14 +11,17 @@
 #include <unordered_map>
 #include <utility>
 
+#include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array_body.h"
 #include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/backend.h"
+#include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
+#include "xchainer/native/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
@@ -211,6 +214,13 @@ Array Array::ToDevice(Device& dst_device) const {
     return out;
 }
 
+Array Array::ToNative() const {
+    Context& context = device().backend().context();
+    Backend& native_backend = context.GetBackend(native::NativeBackend::kDefaultName);
+    Device& native_device = native_backend.GetDevice(0);
+    return ToDevice(native_device);
+}
+
 Array Array::AsConstant(CopyKind kind) const {
     switch (kind) {
         case CopyKind::kCopy: {
@@ -263,6 +273,20 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) const {
 }
 
 void Array::ClearGrad(const GraphId& graph_id) const { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
+
+gsl::span<const uint8_t> Array::GetDataRange() const {
+    auto first = reinterpret_cast<uint8_t*>(raw_data()) + offset();  // NOLINT: reinterpret_cast
+    auto last = first;
+
+    const Shape& shape = this->shape();
+    const Strides& strides = this->strides();
+
+    for (int8_t i = 0; i < ndim(); ++i) {
+        auto& first_or_last = strides[i] < 0 ? first : last;
+        first_or_last += shape[i] * strides[i];
+    }
+    return {first, last + element_bytes()};
+}
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 

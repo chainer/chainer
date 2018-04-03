@@ -36,6 +36,8 @@ public:
     XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
 
     XCHAINER_HOST_DEVICE void Set(int64_t index) {
+        assert(0 <= index);
+        assert(index < total_size_);
         raw_index_ = index;
         for (int8_t i = kNdim; --i >= 0;) {
             index_[i] = index % shape_[i];
@@ -71,6 +73,8 @@ public:
     XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
 
     XCHAINER_HOST_DEVICE void Set(int64_t i) {
+        assert(0 <= i);
+        assert(i < total_size_);
         raw_index_ = i;
         for (int8_t j = ndim_; --j >= 0;) {
             index_[j] = i % shape_[j];
