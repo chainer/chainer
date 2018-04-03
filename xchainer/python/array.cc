@@ -79,36 +79,6 @@ Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
     throw DtypeError("unsupported NumPy dtype");
 }
 
-ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
-    Shape shape = ToShape(shape_tup);
-    auto total_size = shape.GetTotalSize();
-    auto bytes = GetElementSize(dtype) * total_size;
-    if (static_cast<size_t>(total_size) != list.size()) {
-        throw DimensionError("Invalid data length");
-    }
-
-    // Allocate a buffer and copy data
-    std::shared_ptr<void> ptr = std::make_unique<uint8_t[]>(bytes);
-    VisitDtype(dtype, [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
-    });
-
-    return Array::FromBuffer(shape, dtype, ptr, GetDevice(device_id)).move_body();
-}
-
-ArrayBodyPtr MakeArray(py::array array, const nonstd::optional<std::string>& device_id) {
-    Dtype dtype = NumpyDtypeToDtype(array.dtype());
-    const py::buffer_info& info = array.request();
-    Shape shape{info.shape};
-    Strides strides{info.strides};
-
-    // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
-    void* underlying_data = array.mutable_data();
-    std::shared_ptr<void> data{std::make_shared<py::array>(std::move(array)), underlying_data};
-    return xchainer::internal::FromBuffer(shape, dtype, data, strides, GetDevice(device_id)).move_body();
-}
-
 py::buffer_info MakeBufferFromArray(ArrayBody& self) {
     // Used as a temporary accessor
     Array array{ArrayBodyPtr(&self, [](ArrayBody* ptr) {
@@ -126,14 +96,48 @@ py::buffer_info MakeBufferFromArray(ArrayBody& self) {
 
 }  // namespace
 
+ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& list, Device& device) {
+    Shape shape = ToShape(shape_tup);
+    auto total_size = shape.GetTotalSize();
+    auto bytes = GetElementSize(dtype) * total_size;
+    if (static_cast<size_t>(total_size) != list.size()) {
+        throw DimensionError("Invalid data length");
+    }
+
+    // Allocate a buffer and copy data
+    std::shared_ptr<void> ptr = std::make_unique<uint8_t[]>(bytes);
+    VisitDtype(dtype, [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
+    });
+
+    return Array::FromBuffer(shape, dtype, ptr, device).move_body();
+}
+
+ArrayBodyPtr MakeArray(py::array array, Device& device) {
+    Dtype dtype = NumpyDtypeToDtype(array.dtype());
+    const py::buffer_info& info = array.request();
+    Shape shape{info.shape};
+    Strides strides{info.strides};
+
+    // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
+    void* underlying_data = array.mutable_data();
+    std::shared_ptr<void> data{std::make_shared<py::array>(std::move(array)), underlying_data};
+    return xchainer::internal::FromBuffer(shape, dtype, data, strides, device).move_body();
+}
+
 void InitXchainerArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "Array", py::buffer_protocol()};
-    c.def(py::init(py::overload_cast<const py::tuple&, Dtype, const py::list&, const nonstd::optional<std::string>&>(&MakeArray)),
+    c.def(py::init([](const py::tuple& shape, Dtype dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
+              return MakeArray(shape, dtype, list, GetDevice(device_id));
+          }),
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("data"),
           py::arg("device") = nullptr);
-    c.def(py::init(py::overload_cast<py::array, const nonstd::optional<std::string>&>(&MakeArray)),
+    c.def(py::init([](const py::array& array, const nonstd::optional<std::string>& device_id) {
+              return MakeArray(array, GetDevice(device_id));
+          }),
           py::arg("data"),
           py::arg("device") = nullptr);
     c.def_buffer(&MakeBufferFromArray);

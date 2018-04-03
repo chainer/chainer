@@ -34,6 +34,33 @@ namespace py = pybind11;
 
 void InitXchainerRoutines(pybind11::module& m) {
     // creation routines
+    m.def("array",
+          [](const py::list& list, const nonstd::optional<Dtype>& dtype, const nonstd::optional<std::string>& device_id) {
+              // TODO(sonots): Determine dtype (bool or int64, or float64) seeing values of list.
+              // TODO(sonots): Support nested list
+              py::tuple shape_tup{1};
+              shape_tup[0] = list.size();
+              return MakeArray(shape_tup, dtype.value_or(Dtype::kFloat64), list, GetDevice(device_id));
+          },
+          py::arg("object"),
+          py::arg("dtype") = nullptr,
+          py::arg("device") = nullptr);
+    m.def("array",
+          [](const py::array& array, const nonstd::optional<std::string>& device_id) {
+              return MakeArray(array, GetDevice(device_id));
+          },
+          py::arg("object"),
+          py::arg("device") = nullptr);
+    m.def("array",
+          [](const ArrayBodyPtr& array, const nonstd::optional<std::string>& device_id) {
+              if (device_id) {
+                  return Array{array}.ToDevice(GetDevice(device_id)).move_body();
+              }
+              return array;
+          },
+          py::arg("object"),
+          py::arg("device") = nullptr);
+
     m.def("empty",
           [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
               return Array::Empty(ToShape(shape), dtype, GetDevice(device_id)).move_body();
