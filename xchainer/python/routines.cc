@@ -67,7 +67,7 @@ void InitXchainerRoutines(pybind11::module& m) {
               if (device_id) {
                   return Array{array}.ToDevice(GetDevice(device_id)).move_body();
               }
-              return array;
+              return Array{array}.MakeView().move_body();
           },
           py::arg("object"),
           py::arg("device") = nullptr);
@@ -75,7 +75,6 @@ void InitXchainerRoutines(pybind11::module& m) {
           [](const ArrayBodyPtr& array, Device& device) { return Array{array}.ToDevice(device).move_body(); },
           py::arg("object"),
           py::arg("device"));
-
     m.def("empty",
           [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
               return Array::Empty(ToShape(shape), dtype, GetDevice(device_id)).move_body();
