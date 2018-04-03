@@ -12,6 +12,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/indexer.h"
 #include "xchainer/macro.h"
+#include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
 namespace xchainer {
@@ -32,15 +33,23 @@ class IndexableArray {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides, int64_t total_bytes, int64_t offset = 0)
-        : data_(data), total_bytes_(total_bytes), offset_(offset) {
+    IndexableArray(T* data, const Strides& strides) : data_(data) {
         assert(strides.ndim() == kNdim);
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
     explicit IndexableArray(const Array& array)
-        : IndexableArray{reinterpret_cast<T*>(array.raw_data()), array.strides(), array.GetAllocatedBytes(), array.offset()} {
+        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<char*>(array.raw_data()) + array.offset()), array.strides()} {
         assert(TypeToDtype<T> == array.dtype());
+#ifndef NDEBUG
+        first_ = data_;
+        last_ = data_;
+        const Shape& shape = array.shape();
+        for (int8_t i = 0; i < kNdim; ++i) {
+            auto& first_or_last = strides_[i] < 0 ? first_ : last_;
+            first_or_last += shape[i] * strides_[i];
+        }
+#endif
     }
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return kNdim; }
@@ -50,12 +59,14 @@ public:
     XCHAINER_HOST_DEVICE T* data() const { return data_; }
 
     XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
-        auto char_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(data_) + offset_;
+        auto char_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(data_);
         for (int8_t dim = 0; dim < kNdim; ++dim) {
             char_ptr += strides_[dim] * index[dim];
         }
-        assert(reinterpret_cast<const char*>(data_) <= char_ptr);
-        assert(char_ptr < reinterpret_cast<const char*>(data_) + total_bytes_);
+#ifndef NDEBUG
+        assert(first_ == nullptr || reinterpret_cast<const char*>(first_) <= char_ptr);
+        assert(last_ == nullptr || char_ptr <= reinterpret_cast<const char*>(last_));
+#endif
         return *reinterpret_cast<T*>(char_ptr);
     }
 
@@ -80,8 +91,10 @@ public:
 
 private:
     T* data_;
-    int64_t total_bytes_;
-    int64_t offset_;
+#ifndef NDEBUG
+    T* first_ = nullptr;
+    T* last_ = nullptr;
+#endif
     int64_t strides_[kNdim];
 };
 
@@ -91,14 +104,23 @@ class IndexableArray<T, kDynamicNdim> {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides, int64_t total_bytes, int64_t offset = 0)
-        : data_(data), total_bytes_(total_bytes), offset_(offset), ndim_(strides.ndim()) {
+    IndexableArray(T* data, const Strides& strides) : data_(data), ndim_(strides.ndim()) {
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
     explicit IndexableArray(const Array& array)
-        : IndexableArray{reinterpret_cast<T*>(array.raw_data()), array.strides(), array.GetAllocatedBytes(), array.offset()} {
+        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<char*>(array.raw_data()) + array.offset()), array.strides()} {
         assert(TypeToDtype<T> == array.dtype());
+
+#ifndef NDEBUG
+        first_ = data_;
+        last_ = data_;
+        const Shape& shape = array.shape();
+        for (int8_t i = 0; i < ndim_; ++i) {
+            auto& first_or_last = strides_[i] < 0 ? first_ : last_;
+            first_or_last += shape[i] * strides_[i];
+        }
+#endif
     }
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
@@ -108,12 +130,14 @@ public:
     XCHAINER_HOST_DEVICE T* data() const { return data_; }
 
     XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
-        auto char_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(data_) + offset_;
+        auto char_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(data_);
         for (int8_t dim = 0; dim < ndim_; ++dim) {
             char_ptr += strides_[dim] * index[dim];
         }
-        assert(reinterpret_cast<const char*>(data_) <= char_ptr);
-        assert(char_ptr < reinterpret_cast<const char*>(data_) + total_bytes_);
+#ifndef NDEBUG
+        assert(first_ == nullptr || reinterpret_cast<const char*>(first_) <= char_ptr);
+        assert(last_ == nullptr || char_ptr <= reinterpret_cast<const char*>(last_));
+#endif
         return *reinterpret_cast<T*>(char_ptr);
     }
 
@@ -139,8 +163,10 @@ public:
 
 private:
     T* data_;
-    int64_t total_bytes_;
-    int64_t offset_;
+#ifndef NDEBUG
+    T* first_ = nullptr;
+    T* last_ = nullptr;
+#endif
     int64_t strides_[kMaxNdim];
     int8_t ndim_;
 };
