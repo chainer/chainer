@@ -1388,21 +1388,23 @@ def test_invalid_dot(device, a_shape, b_shape, dtype):
         a_np.dot(b_np)
 
 
-@pytest.mark.parametrize('value', [-1, 0, 1, 2])
+@pytest.mark.parametrize('value', [-1, 0, 1, 2, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_fill(device, shape, dtype, value):
     a_np = numpy.empty(shape, numpy.dtype(dtype.name))
     a_xc = xchainer.empty(shape, dtype)
     a_np.fill(value)
     a_xc.fill(value)
-    _check_array_equals_ndarray(a_xc, a_np)
+    a_xc.device.synchronize()
+    numpy.testing.assert_array_equal(a_xc, a_np)
 
 
-@pytest.mark.parametrize('value', [-1, 0, 1, 2])
+@pytest.mark.parametrize('value', [-1, 0, 1, 2, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_fill_with_scalar(device, shape, dtype, value):
     a_np = numpy.empty(shape, numpy.dtype(dtype.name))
     a_xc = xchainer.empty(shape, dtype)
     a_np.fill(value)
     a_xc.fill(xchainer.Scalar(value, dtype))
-    _check_array_equals_ndarray(a_xc, a_np)
+    a_xc.device.synchronize()
+    numpy.testing.assert_array_equal(a_xc, a_np)
