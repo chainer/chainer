@@ -175,8 +175,6 @@ public:
 
     int64_t GetTotalBytes() const { return GetTotalSize() * element_bytes(); }
 
-    int64_t GetAllocatedBytes() const;
-
     bool IsContiguous() const { return internal::IsContiguous(shape(), strides(), element_bytes()); }
 
     std::string ToString() const;
