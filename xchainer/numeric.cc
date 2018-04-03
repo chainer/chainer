@@ -3,14 +3,10 @@
 #include <cmath>
 
 #include "xchainer/array.h"
-#include "xchainer/backend.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
-#include "xchainer/native/native_backend.h"
 
 namespace xchainer {
 
@@ -22,12 +18,8 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol) {
         throw DtypeError("cannot compare Arrays of different Dtypes");
     }
 
-    Context& context = a.device().backend().context();
-    Backend& native_backend = context.GetBackend(native::NativeBackend::kDefaultName);
-    Device& native_device = native_backend.GetDevice(0);
-    const Array& a_native = a.ToDevice(native_device);
-    const Array& b_native = b.ToDevice(native_device);
-    native_device.Synchronize();
+    Array a_native = a.ToNativeDevice();
+    Array b_native = b.ToNativeDevice();
 
     return VisitDtype(a.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;

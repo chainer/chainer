@@ -18,25 +18,11 @@
 namespace xchainer {
 namespace testing {
 
-namespace array_check_detail {
-
-inline Array ToNativeDevice(const Array& array) {
-    Context& context = array.device().backend().context();
-    Backend& native_backend = context.GetBackend(native::NativeBackend::kDefaultName);
-    Device& native_device = native_backend.GetDevice(0);
-    Array native_array = array.ToDevice(native_device);
-
-    native_device.Synchronize();
-    return native_array;
-}
-
-}  // namespace array_check_detail
-
 template <typename T>
 void ExpectDataEqual(const Array& expected, const Array& actual) {
     actual.device().Synchronize();
-    Array native_expected = array_check_detail::ToNativeDevice(expected);
-    Array native_actual = array_check_detail::ToNativeDevice(actual);
+    Array native_expected = expected.ToNativeDevice();
+    Array native_actual = actual.ToNativeDevice();
     IndexableArray<const T> expected_iarray{native_expected};
     IndexableArray<const T> actual_iarray{native_actual};
     Indexer<> indexer{actual.shape()};
@@ -55,7 +41,7 @@ void ExpectDataEqual(const Array& expected, const Array& actual) {
 template <typename T>
 void ExpectDataEqual(const T* expected_data, const Array& actual) {
     actual.device().Synchronize();
-    Array native_actual = array_check_detail::ToNativeDevice(actual);
+    Array native_actual = actual.ToNativeDevice();
     IndexableArray<const T> actual_iarray{native_actual};
     Indexer<> indexer{actual.shape()};
     for (int64_t i = 0; i < indexer.total_size(); ++i) {
@@ -68,7 +54,7 @@ void ExpectDataEqual(const T* expected_data, const Array& actual) {
 template <typename T>
 void ExpectDataEqual(T expected, const Array& actual) {
     actual.device().Synchronize();
-    Array native_actual = array_check_detail::ToNativeDevice(actual);
+    Array native_actual = actual.ToNativeDevice();
     IndexableArray<const T> actual_iarray{native_actual};
     Indexer<> indexer{actual.shape()};
     for (int64_t i = 0; i < indexer.total_size(); ++i) {

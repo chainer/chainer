@@ -11,13 +11,10 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
-#include "xchainer/backend.h"
-#include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
-#include "xchainer/native/native_backend.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -158,13 +155,8 @@ using Formatter = std::conditional_t<
 struct ArrayReprImpl {
     template <typename T>
     void operator()(const Array& array, std::ostream& os) const {
+        Array native_array = array.ToNativeDevice();
         Formatter<T> formatter;
-
-        Context& context = array.device().backend().context();
-        Backend& native_backend = context.GetBackend(native::NativeBackend::kDefaultName);
-        Device& native_device = native_backend.GetDevice(0);
-        Array native_array = array.ToDevice(native_device);
-        native_device.Synchronize();
 
         // Let formatter scan all elements to print.
         VisitElements<T>(native_array, [&formatter](const IndexableArray<const T> iarray, const Indexer<kDynamicNdim>& indexer) {

@@ -11,12 +11,9 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
-#include "xchainer/backend.h"
-#include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
-#include "xchainer/native/native_backend.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
@@ -30,13 +27,9 @@ Scalar AsScalar(const Array& a) {
     }
 
     // Copy to the native device
-    Context& context = a.device().backend().context();
-    Backend& native_backend = context.GetBackend(native::NativeBackend::kDefaultName);
-    Device& native_device = native_backend.GetDevice(0);
-    Array native_copy = a.ToDevice(native_device);
+    Array native_copy = a.ToNativeDevice();
 
     // Retrieve the value
-    native_device.Synchronize();
     return VisitDtype(a.dtype(), [&native_copy](auto pt) -> Scalar {
         using T = typename decltype(pt)::type;
         const uint8_t* ptr = static_cast<const uint8_t*>(native_copy.data().get()) + native_copy.offset();
