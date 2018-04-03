@@ -76,10 +76,11 @@ def test_array_from_numpy_ndarray_with_device(shape, dtype, device):
     _check_basic_creation(a, shape, dtype, device)
 
 
-def test_array_from_xchainer_array(shape, dtype):
-    t = xchainer.zeros(shape, dtype)
+@pytest.mark.parametrize_device(['native:0'])
+def test_array_from_xchainer_array(shape, dtype, device):
+    t = xchainer.zeros(shape, dtype, 'native:1')
     a = xchainer.array(t)
-    _check_basic_creation(a, shape, dtype)
+    _check_basic_creation(a, shape, dtype, t.device)
     assert t is not a
 
 
