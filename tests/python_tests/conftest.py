@@ -39,14 +39,6 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('device', device_names, indirect=True)
 
 
-# TODO(sonots): xchainer python main program should create default backend rather than creating at here
-@pytest.fixture(scope='session', autouse=True)
-def scope_session():
-    device = xchainer.get_global_default_context().get_device('native', 0)
-    with xchainer.device_scope(device):
-        yield
-
-
 def _get_required_cuda_devices_from_device_name(device_name):
     # Returns the number of required CUDA devices to run a test, given a device name.
     # If the device is non-CUDA device, 0 is returned.

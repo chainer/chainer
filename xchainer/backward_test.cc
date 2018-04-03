@@ -62,7 +62,7 @@ public:
 #ifdef XCHAINER_ENABLE_CUDA
         std::string backend_name = GetParam();
         if (backend_name == "cuda") {
-            cuda::CheckError(cudaDeviceSynchronize());
+            cuda::CheckCudaError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
         auto total_size = expected.shape().GetTotalSize();

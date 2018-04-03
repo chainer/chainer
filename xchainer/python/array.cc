@@ -110,7 +110,7 @@ ArrayBodyPtr MakeArray(py::array array, const nonstd::optional<std::string>& dev
     return xchainer::internal::FromBuffer(shape, dtype, data, strides, GetDevice(device_id)).move_body();
 }
 
-py::buffer_info MakeNumpyArrayFromArray(ArrayBody& self) {
+py::buffer_info MakeBufferFromArray(ArrayBody& self) {
     // Used as a temporary accessor
     Array array{ArrayBodyPtr(&self, [](ArrayBody* ptr) {
         (void)ptr;  // unused
@@ -139,7 +139,7 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("device") = nullptr);
     // TODO(niboshi): We cannot support buffer protocol for general device. Remove the binding and provide alternative interface
     // to convert to NumPy array.
-    c.def_buffer(&MakeNumpyArrayFromArray);
+    c.def_buffer(&MakeBufferFromArray);
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
     c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });
@@ -179,6 +179,12 @@ void InitXchainerArray(pybind11::module& m) {
         auto shape = py::cast<std::vector<int64_t>>(args);
         return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
     });
+    c.def("squeeze",
+          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis) { return Array{self}.Squeeze(axis).move_body(); },
+          py::arg("axis") = nullptr);
+    c.def("squeeze",
+          [](const ArrayBodyPtr& self, int8_t axis) { return Array{self}.Squeeze(std::vector<int8_t>{axis}).move_body(); },
+          py::arg("axis"));
     c.def("__eq__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} == Array{rhs}).move_body(); });
     c.def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).move_body(); });
     c.def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).move_body(); });
@@ -198,6 +204,7 @@ void InitXchainerArray(pybind11::module& m) {
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
+    c.def("dot", [](const ArrayBodyPtr& self, const ArrayBodyPtr& b) { return Array{self}.Dot(Array{b}).move_body(); }, py::arg("b"));
 
     c.def("require_grad",
           [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{self}.RequireGrad(graph_id).move_body(); },
