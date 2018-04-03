@@ -172,7 +172,7 @@ Array Array::Squeeze(const nonstd::optional<std::vector<int8_t>>& axis) const { 
 
 Array Array::BroadcastTo(const Shape& shape) const { return xchainer::BroadcastTo(*this, shape); }
 
-Array Array::ArgMax(const nonstd::optional<std::vector<int8_t>>& axis) const { return xchainer::ArgMax(*this, axis); }
+Array Array::ArgMax(const nonstd::optional<int8_t>& axis) const { return xchainer::ArgMax(*this, axis); }
 
 Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
 

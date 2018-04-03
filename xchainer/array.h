@@ -120,7 +120,7 @@ public:
     Array BroadcastTo(const Shape& shape) const;
 
     // Returns the indices of the maximum values along the given axis.
-    Array ArgMax(const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt) const;
+    Array ArgMax(const nonstd::optional<int8_t>& axis = nonstd::nullopt) const;
 
     // Returns a sum of the array.
     // If `axis` is set, it will be summed over the specified axes.

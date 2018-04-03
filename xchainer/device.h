@@ -55,6 +55,8 @@ public:
 
     virtual void Fill(const Array& out, Scalar value) = 0;
 
+    virtual void ArgMax(const Array& src, const std::vector<int8_t>& axis, const Array& out) = 0;
+
     // Calculate the sum of an array.
     // It will be summed over the specified axes.
     // `axis` must be normalized so that

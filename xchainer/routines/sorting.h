@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
 
 #include <nonstd/optional.hpp>
 
@@ -9,6 +8,6 @@
 
 namespace xchainer {
 
-Array ArgMax(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt);
+Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis = nonstd::nullopt);
 
 }  // namespace xchainer

@@ -28,8 +28,8 @@ namespace internal {
 // Axes of the source indexable array are reordered so that output axes come first and reduction axes follow.
 //
 // In both source and output indexable arrays, 1-dim axes are eliminated.
-template <typename T>
-std::tuple<IndexableArray<const T>, IndexableArray<T>, Indexer, Indexer, Indexer> PrepareIndexableArraysForReduction(
+template <typename SrcType, typename OutType>
+std::tuple<IndexableArray<const SrcType>, IndexableArray<OutType>, Indexer, Indexer, Indexer> PrepareIndexableArraysForReduction(
         const Array& src, const std::vector<int8_t>& axis, const Array& out);
 
 }  // namespace internal
@@ -52,6 +52,8 @@ public:
     std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
     void Fill(const Array& out, Scalar value) override;
+
+    void ArgMax(const Array& src, const std::vector<int8_t>& axis, const Array& out) override;
 
     void Sum(const Array& src, const std::vector<int8_t>& axis, const Array& out) override;
 

@@ -37,9 +37,9 @@ TEST_P(SortingTest, ArgMax) {
     }
     {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-        Array e = testing::BuildArray<float>({1}, {2});
-        ArgMax(a, std::vector<int8_t>{0});
-        testing::ExpectEqual<float>(e, a);
+        Array b = ArgMax(a, 0);
+        Array e = testing::BuildArray<int64_t>({1}, {2});
+        testing::ExpectEqual<int64_t>(e, b);
     }
 }
 
