@@ -265,15 +265,15 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) const {
 
 void Array::ClearGrad(const GraphId& graph_id) const { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
 
-gsl::span<const gsl::byte> Array::GetDataRange() const {
-    const gsl::byte* first = reinterpret_cast<gsl::byte*>(raw_data()) + offset();
-    const gsl::byte* last = first;
+gsl::span<const uint8_t> Array::GetDataRange() const {
+    auto first = reinterpret_cast<uint8_t*>(raw_data()) + offset();  // NOLINT: reinterpret_cast
+    auto last = first;
 
     const Shape& shape = this->shape();
     const Strides& strides = this->strides();
 
     for (int8_t i = 0; i < ndim(); ++i) {
-        const gsl::byte*& first_or_last = strides[i] < 0 ? first : last;
+        auto& first_or_last = strides[i] < 0 ? first : last;
         first_or_last += shape[i] * strides[i];
     }
     return {first, last};

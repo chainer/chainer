@@ -175,7 +175,7 @@ public:
 
     int64_t GetTotalBytes() const { return GetTotalSize() * element_bytes(); }
 
-    gsl::span<const gsl::byte> GetDataRange() const;
+    gsl::span<const uint8_t> GetDataRange() const;
 
     bool IsContiguous() const { return internal::IsContiguous(shape(), strides(), element_bytes()); }
 
