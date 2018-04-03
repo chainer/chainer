@@ -30,7 +30,7 @@ This change does not break the existing code; you can safely continue to use upd
 Namespace Changes for Optimizer Hooks
 -------------------------------------
 
-:doc:`reference/optimizer_hooks` are moved from ``chainer.optimizer.*`` to ``chainer.optimizer_hooks.*``.
+:doc:`Optimizer hook functions <reference/optimizers>` are moved from ``chainer.optimizer.*`` to ``chainer.optimizer_hooks.*``.
 For example, ``chainer.optimizer.WeightDecay`` is now located :class:`chainer.optimizer_hooks.WeightDecay`.
 
 If the existing code is using hooks directly under ``chainer.optimizer``, ``DeprecationWarning`` will be shown.
