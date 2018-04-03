@@ -100,15 +100,15 @@ void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_arra
 #endif  // XCHAINER_ENABLE_CUDA
 }
 
-TEST_F(ArrayDeviceTest, FromContiguousData) {
+TEST_F(ArrayDeviceTest, FromContiguousHostData) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
     float raw_data[] = {0.f, 1.f, 2.f, 3.f, 4.f, 5.f};
     std::shared_ptr<void> data(raw_data, [](const float* ptr) {
         (void)ptr;  // unused
     });
-    CheckDeviceFallback([&]() { return Array::FromContiguousData(shape, dtype, data); });
-    CheckDeviceExplicit([&](Device& device) { return Array::FromContiguousData(shape, dtype, data, device); });
+    CheckDeviceFallback([&]() { return Array::FromContiguousHostData(shape, dtype, data); });
+    CheckDeviceExplicit([&](Device& device) { return Array::FromContiguousHostData(shape, dtype, data, device); });
 }
 
 TEST_F(ArrayDeviceTest, Empty) {

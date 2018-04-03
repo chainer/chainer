@@ -212,7 +212,7 @@ TEST_P(ArrayTest, Grad) {
     }
 }
 
-TEST_P(ArrayTest, ArrayFromContiguousData) {
+TEST_P(ArrayTest, ArrayFromContiguousHostData) {
     using T = int32_t;
     Shape shape{3, 2};
 
@@ -220,7 +220,7 @@ TEST_P(ArrayTest, ArrayFromContiguousData) {
     std::shared_ptr<T> data{&raw_data[0], [](const T*) {}};
 
     Dtype dtype = TypeToDtype<T>;
-    Array x = Array::FromContiguousData(shape, dtype, data);
+    Array x = Array::FromContiguousHostData(shape, dtype, data);
 
     // Basic attributes
     EXPECT_EQ(shape, x.shape());
