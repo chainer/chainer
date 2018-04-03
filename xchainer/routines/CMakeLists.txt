@@ -5,6 +5,7 @@ add_library(xchainer_routines STATIC
     logic.cc
     manipulation.cc
     math.cc
+    sorting.cc
     util.cc
 )
 
@@ -15,6 +16,7 @@ install(FILES
     logic.h
     manipulation.h
     math.h
+    sorting.h
     util.h
     DESTINATION include/xchainer/routines
     )
@@ -27,6 +29,7 @@ if(${ENABLE_TEST})
       logic_test.cc
       manipulation_test.cc
       math_test.cc
+      sorting_test.cc
   )
   target_link_libraries(xchainer_routines_test
       xchainer

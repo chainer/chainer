@@ -119,6 +119,9 @@ public:
     // Returned array is always a view to this array.
     Array BroadcastTo(const Shape& shape) const;
 
+    // Returns the indices of the maximum values along the given axis.
+    Array ArgMax(const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt) const;
+
     // Returns a sum of the array.
     // If `axis` is set, it will be summed over the specified axes.
     // Otherwise, it will be summed over all the existing axes.
