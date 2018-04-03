@@ -304,16 +304,6 @@ def test_full_full_like_inf(shape, float_dtype):
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-def test_array(shape, dtype, device):
-    # from numpy array
-    a = xchainer.array(numpy.zeros(shape, numpy.dtype(dtype.name)), device)
-    _check_basic_creation(a, shape, dtype, device)
-
-    # from xchainer array
-    a = xchainer.array(xchainer.zeros(shape, dtype, 'native:0'), device)
-    _check_basic_creation(a, shape, dtype, device)
-
-@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_array_from_python_list(shape, dtype, device):
     # TODO(sonots): Determine dtype (bool or int64, or float64) seeing values of list.
     # TODO(sonots): Support nested list
@@ -322,3 +312,15 @@ def test_array_from_python_list(shape, dtype, device):
 
     a = xchainer.array([0, 1, 2], xchainer.float32, device)
     _check_basic_creation(a, (3,), xchainer.float32, device)
+
+
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_array_from_numpy_ndarray(shape, dtype, device):
+    a = xchainer.array(numpy.zeros(shape, numpy.dtype(dtype.name)), device)
+    _check_basic_creation(a, shape, dtype, device)
+
+
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_array_from_xchainer_array(shape, dtype, device):
+    a = xchainer.array(xchainer.zeros(shape, dtype, 'native:0'), device)
+    _check_basic_creation(a, shape, dtype, device)

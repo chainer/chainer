@@ -135,11 +135,23 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("data"),
           py::arg("device") = nullptr);
+    c.def(py::init([](const py::tuple& shape, Dtype dtype, const py::list& list, Device& device) {
+              return MakeArray(shape, dtype, list, device);
+          }),
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("data"),
+          py::arg("device"));
     c.def(py::init([](const py::array& array, const nonstd::optional<std::string>& device_id) {
               return MakeArray(array, GetDevice(device_id));
           }),
           py::arg("data"),
           py::arg("device") = nullptr);
+    c.def(py::init([](const py::array& array, Device& device) {
+              return MakeArray(array, device);
+          }),
+          py::arg("data"),
+          py::arg("device"));
     c.def_buffer(&MakeBufferFromArray);
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
