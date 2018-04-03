@@ -752,11 +752,11 @@ TEST_P(ArrayTest, AsConstantView) {
     }
 }
 
-TEST_P(ArrayTest, ToNativeDevice) {
+TEST_P(ArrayTest, ToNative) {
     using T = float;
     Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad();
 
-    Array b = a.ToNativeDevice();
+    Array b = a.ToNative();
     EXPECT_EQ("native:0", b.device().name());
     EXPECT_EQ(&a.device().backend().context(), &b.device().backend().context());
     EXPECT_NE(a.body().get(), b.body().get());

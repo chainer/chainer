@@ -27,7 +27,7 @@ Scalar AsScalar(const Array& a) {
     }
 
     // Copy to the native device
-    Array native_copy = a.ToNativeDevice();
+    Array native_copy = a.ToNative();
 
     // Retrieve the value
     return VisitDtype(a.dtype(), [&native_copy](auto pt) -> Scalar {

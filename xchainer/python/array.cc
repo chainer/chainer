@@ -280,7 +280,7 @@ void InitXchainerArray(pybind11::module& m) {
             });
     c.def_property_readonly("_debug_flat_data", [](const ArrayBodyPtr& self) {
         py::list list;
-        Array array = Array{self}.ToNativeDevice();
+        Array array = Array{self}.ToNative();
 
         // Copy data into the list
         VisitDtype(array.dtype(), [&array, &list](auto pt) {

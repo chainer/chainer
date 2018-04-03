@@ -155,7 +155,7 @@ using Formatter = std::conditional_t<
 struct ArrayReprImpl {
     template <typename T>
     void operator()(const Array& array, std::ostream& os) const {
-        Array native_array = array.ToNativeDevice();
+        Array native_array = array.ToNative();
         Formatter<T> formatter;
 
         // Let formatter scan all elements to print.

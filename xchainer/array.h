@@ -144,7 +144,7 @@ public:
     //
     // This is a wrapper function which calls Array::ToDevice with the native:0 device.
     // See also: Array::ToDevice();
-    Array ToNativeDevice() const;
+    Array ToNative() const;
 
     // Creates a copy or a view. It will be disconnected from all the graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.

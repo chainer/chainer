@@ -20,8 +20,8 @@ namespace testing {
 
 template <typename T>
 void ExpectDataEqual(const Array& expected, const Array& actual) {
-    Array native_expected = expected.ToNativeDevice();
-    Array native_actual = actual.ToNativeDevice();
+    Array native_expected = expected.ToNative();
+    Array native_actual = actual.ToNative();
     IndexableArray<const T> expected_iarray{native_expected};
     IndexableArray<const T> actual_iarray{native_actual};
     Indexer<> indexer{actual.shape()};
@@ -39,7 +39,7 @@ void ExpectDataEqual(const Array& expected, const Array& actual) {
 
 template <typename T>
 void ExpectDataEqual(const T* expected_data, const Array& actual) {
-    Array native_actual = actual.ToNativeDevice();
+    Array native_actual = actual.ToNative();
     IndexableArray<const T> actual_iarray{native_actual};
     Indexer<> indexer{actual.shape()};
     for (int64_t i = 0; i < indexer.total_size(); ++i) {
@@ -51,7 +51,7 @@ void ExpectDataEqual(const T* expected_data, const Array& actual) {
 
 template <typename T>
 void ExpectDataEqual(T expected, const Array& actual) {
-    Array native_actual = actual.ToNativeDevice();
+    Array native_actual = actual.ToNative();
     IndexableArray<const T> actual_iarray{native_actual};
     Indexer<> indexer{actual.shape()};
     for (int64_t i = 0; i < indexer.total_size(); ++i) {

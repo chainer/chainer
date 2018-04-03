@@ -18,8 +18,8 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol) {
         throw DtypeError("cannot compare Arrays of different Dtypes");
     }
 
-    Array a_native = a.ToNativeDevice();
-    Array b_native = b.ToNativeDevice();
+    Array a_native = a.ToNative();
+    Array b_native = b.ToNative();
 
     return VisitDtype(a.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
