@@ -63,6 +63,8 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("array", [](const py::array& array, Device& device) { return MakeArray(array, device); }, py::arg("object"), py::arg("device"));
     m.def("array",
+          // Returns a view of an array if device argument is not specified.
+          // Returns a new array transferred to the given device if device argument is specified. Note that the graph is connected.
           [](const ArrayBodyPtr& array, const nonstd::optional<std::string>& device_id) {
               if (device_id) {
                   return Array{array}.ToDevice(GetDevice(device_id)).move_body();
