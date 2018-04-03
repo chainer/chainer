@@ -1,12 +1,11 @@
 import numpy.testing
 
-import xchainer
-
 # NumPy-like assertion functions that accept both NumPy and xChainer arrays
 
 
 def assert_array_equal(x, y, err_msg='', verbose=True):
     """Raises an AssertionError if two array_like objects are not equal.
+
     Args:
          x(numpy.ndarray or xchainer.Array): The actual object to check.
          y(numpy.ndarray or xchainer.Array): The desired, expected object.

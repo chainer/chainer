@@ -1,8 +1,8 @@
 import functools
 import traceback
 
-import pytest
 import numpy
+import pytest
 
 import xchainer
 from xchainer.testing import array
