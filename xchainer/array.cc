@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array_body.h"
@@ -263,6 +264,20 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) const {
 }
 
 void Array::ClearGrad(const GraphId& graph_id) const { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
+
+gsl::span<const gsl::byte> Array::GetDataRange() const {
+    const gsl::byte* first = reinterpret_cast<gsl::byte*>(raw_data()) + offset();
+    const gsl::byte* last = first;
+
+    const Shape& shape = this->shape();
+    const Strides& strides = this->strides();
+
+    for (int8_t i = 0; i < ndim(); ++i) {
+        const gsl::byte*& first_or_last = strides[i] < 0 ? first : last;
+        first_or_last += shape[i] * strides[i];
+    }
+    return {first, last};
+}
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 

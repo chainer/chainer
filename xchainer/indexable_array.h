@@ -7,6 +7,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <gsl/gsl>
+
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
@@ -39,16 +41,12 @@ public:
     }
 
     explicit IndexableArray(const Array& array)
-        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<char*>(array.raw_data()) + array.offset()), array.strides()} {
+        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<gsl::byte*>(array.raw_data()) + array.offset()), array.strides()} {
         assert(TypeToDtype<T> == array.dtype());
 #ifndef NDEBUG
-        first_ = reinterpret_cast<char*>(array.raw_data()) + array.offset();
-        last_ = first_;
-        const Shape& shape = array.shape();
-        for (int8_t i = 0; i < kNdim; ++i) {
-            auto& first_or_last = strides_[i] < 0 ? first_ : last_;
-            first_or_last += shape[i] * strides_[i];
-        }
+        gsl::span<const gsl::byte> data_range = array.GetDataRange();
+        first_ = data_range.data();
+        last_ = first_ + data_range.size_bytes();
 #endif
     }
 
@@ -59,13 +57,13 @@ public:
     XCHAINER_HOST_DEVICE T* data() const { return data_; }
 
     XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
-        auto char_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(data_);
+        auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<gsl::byte, T>*>(data_);
         for (int8_t dim = 0; dim < kNdim; ++dim) {
-            char_ptr += strides_[dim] * index[dim];
+            data_ptr += strides_[dim] * index[dim];
         }
-        assert(first_ == nullptr || reinterpret_cast<const char*>(first_) <= char_ptr);
-        assert(last_ == nullptr || char_ptr <= reinterpret_cast<const char*>(last_));
-        return *reinterpret_cast<T*>(char_ptr);
+        assert(first_ == nullptr || first_ <= data_ptr);
+        assert(last_ == nullptr || data_ptr <= last_);
+        return *reinterpret_cast<T*>(data_ptr);
     }
 
     XCHAINER_HOST_DEVICE T& operator[](const Indexer<kNdim>& indexer) const { return operator[](indexer.index()); }
@@ -90,8 +88,8 @@ public:
 private:
     T* data_;
 #ifndef NDEBUG
-    char* first_ = nullptr;
-    char* last_ = nullptr;
+    const gsl::byte* first_ = nullptr;
+    const gsl::byte* last_ = nullptr;
 #endif
     int64_t strides_[kNdim];
 };
@@ -107,17 +105,13 @@ public:
     }
 
     explicit IndexableArray(const Array& array)
-        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<char*>(array.raw_data()) + array.offset()), array.strides()} {
+        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<gsl::byte*>(array.raw_data()) + array.offset()), array.strides()} {
         assert(TypeToDtype<T> == array.dtype());
 
 #ifndef NDEBUG
-        first_ = reinterpret_cast<char*>(array.raw_data()) + array.offset();
-        last_ = first_;
-        const Shape& shape = array.shape();
-        for (int8_t i = 0; i < ndim_; ++i) {
-            auto& first_or_last = strides_[i] < 0 ? first_ : last_;
-            first_or_last += shape[i] * strides_[i];
-        }
+        gsl::span<const gsl::byte> data_range = array.GetDataRange();
+        first_ = data_range.data();
+        last_ = first_ + data_range.size_bytes();
 #endif
     }
 
@@ -128,13 +122,13 @@ public:
     XCHAINER_HOST_DEVICE T* data() const { return data_; }
 
     XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
-        auto char_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<char, T>*>(data_);
+        auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<gsl::byte, T>*>(data_);
         for (int8_t dim = 0; dim < ndim_; ++dim) {
-            char_ptr += strides_[dim] * index[dim];
+            data_ptr += strides_[dim] * index[dim];
         }
-        assert(first_ == nullptr || reinterpret_cast<const char*>(first_) <= char_ptr);
-        assert(last_ == nullptr || char_ptr <= reinterpret_cast<const char*>(last_));
-        return *reinterpret_cast<T*>(char_ptr);
+        assert(first_ == nullptr || first_ <= data_ptr);
+        assert(last_ == nullptr || data_ptr <= last_);
+        return *reinterpret_cast<T*>(data_ptr);
     }
 
     XCHAINER_HOST_DEVICE T& operator[](const Indexer<kDynamicNdim>& indexer) const { return operator[](indexer.index()); }
@@ -160,8 +154,8 @@ public:
 private:
     T* data_;
 #ifndef NDEBUG
-    char* first_ = nullptr;
-    char* last_ = nullptr;
+    const gsl::byte* first_ = nullptr;
+    const gsl::byte* last_ = nullptr;
 #endif
     int64_t strides_[kMaxNdim];
     int8_t ndim_;
