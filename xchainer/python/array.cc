@@ -137,6 +137,8 @@ void InitXchainerArray(pybind11::module& m) {
     c.def(py::init(py::overload_cast<py::array, const nonstd::optional<std::string>&>(&MakeArray)),
           py::arg("data"),
           py::arg("device") = nullptr);
+    // TODO(niboshi): We cannot support buffer protocol for general device. Remove the binding and provide alternative interface
+    // to convert to NumPy array.
     c.def_buffer(&MakeNumpyArrayFromArray);
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
