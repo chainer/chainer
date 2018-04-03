@@ -1,10 +1,14 @@
 #include "xchainer/cuda/cuda_backend.h"
 
+#include <cublas_v2.h>
 #include <cuda_runtime.h>
 
 #include <stdexcept>
 #include <string>
 
+#include "xchainer/backend.h"
+#include "xchainer/context.h"
+#include "xchainer/cuda/cublas.h"
 #include "xchainer/cuda/cuda_device.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/native/native_backend.h"
@@ -12,11 +16,15 @@
 namespace xchainer {
 namespace cuda {
 
+CudaBackend::CudaBackend(Context& context) : Backend(context) { CheckCublasError(cublasCreate(&cublas_handle_)); }
+
+CudaBackend::~CudaBackend() { cublasDestroy(cublas_handle_); }
+
 std::string CudaBackend::GetName() const { return kDefaultName; }
 
 int CudaBackend::GetDeviceCount() const {
     int count = 0;
-    CheckError(cudaGetDeviceCount(&count));
+    CheckCudaError(cudaGetDeviceCount(&count));
     return count;
 }
 

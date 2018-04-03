@@ -16,7 +16,7 @@ private:
     cudaError_t error_;
 };
 
-void CheckError(cudaError_t error);
+void CheckCudaError(cudaError_t error);
 
 void Throw(cudaError_t error);
 
@@ -33,7 +33,7 @@ struct GridBlockSize {
 template <typename T>
 GridBlockSize CudaOccupancyMaxPotentialBlockSize(const T& func, size_t dynamic_smem_size = 0, int block_size_limit = 0) {
     GridBlockSize ret = {};
-    CheckError(cudaOccupancyMaxPotentialBlockSize(&ret.grid_size, &ret.block_size, func, dynamic_smem_size, block_size_limit));
+    CheckCudaError(cudaOccupancyMaxPotentialBlockSize(&ret.grid_size, &ret.block_size, func, dynamic_smem_size, block_size_limit));
     return ret;
 }
 

@@ -18,7 +18,7 @@ std::string BuildErrorMessage(cudaError_t error) {
 
 RuntimeError::RuntimeError(cudaError_t error) : XchainerError(BuildErrorMessage(error)), error_(error) {}
 
-void CheckError(cudaError_t error) {
+void CheckCudaError(cudaError_t error) {
     if (error != cudaSuccess) {
         Throw(error);
     }
@@ -38,7 +38,7 @@ bool IsPointerCudaMemory(const void* ptr) {
         case cudaErrorInvalidValue:
             return false;
         default:
-            CheckError(status);
+            CheckCudaError(status);
             break;
     }
     assert(false);  // should never be reached

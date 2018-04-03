@@ -1,6 +1,7 @@
 #include "xchainer/cuda/cuda_device.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -9,9 +10,11 @@
 #include <cuda_runtime.h>
 
 #include "xchainer/array.h"
+#include "xchainer/cuda/cublas.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/enum.h"
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
@@ -215,7 +218,7 @@ std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
     if (bytesize == 0) {
         return nullptr;
     }
-    CheckError(cudaSetDevice(index()));
+    CheckCudaError(cudaSetDevice(index()));
     void* raw_ptr = nullptr;
     // Be careful to be exception-safe, i.e.,
     // do not throw any exceptions before creating shared_ptr when memory allocation is succeeded
@@ -230,12 +233,12 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
     assert(IsPointerCudaMemory(dst));
     if (&src_device == this || nullptr != dynamic_cast<CudaDevice*>(&src_device)) {
         // Copy between CUDA devices
-        CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
+        CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
         assert(nullptr != dynamic_cast<native::NativeDevice*>(&src_device) &&
                "CudaDevice only supports copy between cuda or native devices.");
         // Copy from native device
-        CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyHostToDevice));
+        CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyHostToDevice));
     }
 }
 
@@ -243,12 +246,12 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
     assert(IsPointerCudaMemory(src));
     if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
         // Copy between CUDA devices
-        CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
+        CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
         assert(nullptr != dynamic_cast<native::NativeDevice*>(&dst_device) &&
                "CudaDevice only supports copy between cuda or native devices.");
         // Copy to native device
-        CheckError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToHost));
+        CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToHost));
     }
 }
 
@@ -267,7 +270,7 @@ std::shared_ptr<void> CudaDevice::TransferDataTo(Device& dst_device, const std::
 
 std::shared_ptr<void> CudaDevice::FromBuffer(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
     std::shared_ptr<void> dst_ptr = Allocate(bytesize);
-    CheckError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
+    CheckCudaError(cudaMemcpy(dst_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
     return dst_ptr;
 }
 
@@ -433,16 +436,117 @@ void CudaDevice::IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Arra
     });
 }
 
+namespace {
+
+// Dispatch gemm routines based on the element type T
+template <typename T>
+struct Gemm;
+
+template <>
+struct Gemm<float> {
+    template <typename... Args>
+    void operator()(Args&&... args) const {
+        CheckCublasError(cublasSgemm(std::forward<Args>(args)...));
+    }
+};
+
+template <>
+struct Gemm<double> {
+    template <typename... Args>
+    void operator()(Args&&... args) const {
+        CheckCublasError(cublasDgemm(std::forward<Args>(args)...));
+    }
+};
+
+struct GemmInputLayout {
+    int64_t ld = 0;
+    cublasOperation_t trans = CUBLAS_OP_T;
+
+    // Makes the array C or Fotran contiguous and configure leading dimension and transposition accordingly.
+    Array Configure(const Array& a) {
+        assert(a.ndim() == 2);
+        if (a.strides()[0] == a.element_bytes() && a.strides()[0] * a.shape()[0] == a.strides()[1]) {
+            // Fortran contiguous
+            ld = a.shape()[0];
+            return a;
+        }
+        // Force C contiguous
+        ld = a.shape()[1];
+        trans = CUBLAS_OP_N;  // transposed
+        return a.IsContiguous() ? a : a.AsConstant(CopyKind::kCopy);
+    }
+};
+
+template <typename T>
+T* GetOffsetData(const Array& a) {
+    uint8_t* offset_ptr = static_cast<uint8_t*>(a.raw_data()) + a.offset();
+    return reinterpret_cast<T*>(offset_ptr);  // NOLINT: reinterpret_cast
+}
+
+}  // namespace
+
 void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
-    (void)lhs;  // unused
-    (void)rhs;  // unused
-    (void)out;  // unused
-    throw NotImplementedError("CudaDevice::Dot is not yet implemented.");
+    CheckDevicesCompatible(lhs, rhs, out);
+
+    assert(lhs.ndim() == 2);
+    assert(rhs.ndim() == 2);
+    assert(out.ndim() == 2);
+
+    int64_t m = lhs.shape()[0];
+    int64_t k = lhs.shape()[1];
+    int64_t n = rhs.shape()[1];
+    assert(rhs.shape()[0] == k);
+    assert(out.shape()[0] == m);
+    assert(out.shape()[1] == n);
+
+    if (m == 1 && n == 1) {
+        // TODO(beam2d): Write a custom reduction kernel.
+        Array l = lhs.AsConstant();
+        Array r = rhs.AsConstant();
+        Array o = out.AsConstant();
+        Sum(l.Reshape({k}) * r.Reshape({k}), {0}, o.Reshape({}));
+        return;
+    }
+
+    bool is_out_contiguous = out.IsContiguous();
+    Array out_contiguous = is_out_contiguous ? out : Array::EmptyLike(out, *this);
+
+    auto gemm_impl = [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        // Note that cuBLAS uses Fortran order.
+        // To compute out = lhs x rhs, we use cuBLAS to compute out^T = rhs^T x lhs^T (here x is the matrix product).
+
+        GemmInputLayout a_layout;
+        GemmInputLayout b_layout;
+        Array a = a_layout.Configure(lhs);
+        Array b = b_layout.Configure(rhs);
+
+        cublasHandle_t handle = static_cast<CudaBackend&>(backend()).cublas_handle();
+        const T one = 1;
+        const T zero = 0;
+        const T* a_ptr = GetOffsetData<const T>(a);
+        const T* b_ptr = GetOffsetData<const T>(b);
+        T* out_ptr = GetOffsetData<T>(out_contiguous);
+        Gemm<T>{}(handle, b_layout.trans, a_layout.trans, n, m, k, &one, b_ptr, b_layout.ld, a_ptr, a_layout.ld, &zero, out_ptr, n);
+    };
+
+    if (lhs.dtype() == Dtype::kFloat32) {
+        gemm_impl(PrimitiveType<float>{});
+    } else if (lhs.dtype() == Dtype::kFloat64) {
+        gemm_impl(PrimitiveType<double>{});
+    } else {
+        throw NotImplementedError("dot is not implemented for non-float types in CUDA");
+    }
+
+    if (!is_out_contiguous) {
+        Copy(out_contiguous, out);
+    }
 }
 
 void CudaDevice::Synchronize() {
-    CheckError(cudaSetDevice(index()));
-    CheckError(cudaDeviceSynchronize());
+    CheckCudaError(cudaSetDevice(index()));
+    CheckCudaError(cudaDeviceSynchronize());
 }
 
 }  // namespace cuda
