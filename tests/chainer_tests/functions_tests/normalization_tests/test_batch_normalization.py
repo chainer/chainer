@@ -70,7 +70,6 @@ class TestBatchNormalization(unittest.TestCase):
             param_shape = self.param_shape
             ndim = self.ndim
             shape = (5,) + param_shape + (2,) * ndim
-
         else:
             if isinstance(self.axis, int):
                 aggr_axes = self.axis,
