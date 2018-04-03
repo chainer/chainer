@@ -44,7 +44,7 @@ def _call_func(impl, args, kw):
 
 def _check_xchainer_numpy_error(xchainer_error, xchainer_tb, numpy_error,
                                 numpy_tb, accept_error=()):
-    # TODO(sonots): Should make error class name of xChainer similar with NumPy, and check names?
+    # TODO(sonots): Change error class names of xChainer to be similar with NumPy, and check names.
     if xchainer_error is None and numpy_error is None:
         pytest.fail('Both xchainer and numpy are expected to raise errors, but not')
     elif xchainer_error is None:
@@ -86,6 +86,8 @@ def _make_decorator(check_func, name, type_check, accept_error):
 
             numpy_kw = kw.copy()
             numpy_kw[name] = numpy
+            # TODO(sonots): Change xChainer to accept e.g. string name to dtype arguments in every function
+            # so that we can directly use string names in each test case for both  xChainer and NumPy.
             if 'dtype' in kw:
                 numpy_kw['dtype'] = numpy.dtype(kw['dtype'].name)
             numpy_result, numpy_error, numpy_tb = _call_func(impl, args, numpy_kw)
