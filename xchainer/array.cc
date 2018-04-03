@@ -17,8 +17,10 @@
 #include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/backend.h"
+#include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
+#include "xchainer/native/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
@@ -209,6 +211,13 @@ Array Array::ToDevice(Device& dst_device) const {
             {[&src_device](const Array& gout, const std::vector<GraphId>&) -> Array { return gout.ToDevice(src_device); }},
             {});
     return out;
+}
+
+Array Array::ToNative() const {
+    Context& context = device().backend().context();
+    Backend& native_backend = context.GetBackend(native::NativeBackend::kDefaultName);
+    Device& native_device = native_backend.GetDevice(0);
+    return ToDevice(native_device);
 }
 
 Array Array::AsConstant(CopyKind kind) const {

@@ -18,6 +18,7 @@
 
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
+#include "xchainer/backward.h"
 #include "xchainer/check_backward.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
@@ -749,6 +750,37 @@ TEST_P(ArrayTest, AsConstantView) {
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualView<bool>(a, b);
     }
+}
+
+TEST_P(ArrayTest, ToNative) {
+    using T = float;
+    Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad();
+
+    Array b = a.ToNative();
+    EXPECT_EQ("native:0", b.device().name());
+    EXPECT_EQ(&a.device().backend().context(), &b.device().backend().context());
+    EXPECT_NE(a.body().get(), b.body().get());
+
+    EXPECT_EQ(a.dtype(), b.dtype());
+    EXPECT_EQ(a.shape(), b.shape());
+    testing::ExpectDataEqual<T>(a, b);
+
+    if (a.device().name() == "native:0") {
+        // Between the same device
+        EXPECT_EQ(&a.device(), &b.device());
+        EXPECT_EQ(a.data().get(), b.data().get());
+        EXPECT_EQ(a.strides(), b.strides());
+    } else {
+        // Between different devices
+        EXPECT_NE(&a.data(), &b.data());
+        EXPECT_TRUE(b.IsContiguous());
+    }
+
+    // Graph
+    ASSERT_TRUE(!a.GetGrad().has_value());
+    Backward(b);
+    ASSERT_TRUE(a.GetGrad().has_value());
+    EXPECT_EQ(&a.device(), &a.GetGrad()->device());
 }
 
 TEST_P(ArrayTest, AddBackward) {
