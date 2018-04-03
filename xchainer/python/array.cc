@@ -95,7 +95,7 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
 
-    return Array::FromBuffer(shape, dtype, ptr, GetDevice(device_id)).move_body();
+    return Array::FromContiguousHostData(shape, dtype, ptr, GetDevice(device_id)).move_body();
 }
 
 ArrayBodyPtr MakeArray(py::array array, const nonstd::optional<std::string>& device_id) {
@@ -107,7 +107,7 @@ ArrayBodyPtr MakeArray(py::array array, const nonstd::optional<std::string>& dev
     // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
     void* underlying_data = array.mutable_data();
     std::shared_ptr<void> data{std::make_shared<py::array>(std::move(array)), underlying_data};
-    return xchainer::internal::FromBuffer(shape, dtype, data, strides, GetDevice(device_id)).move_body();
+    return xchainer::internal::FromHostData(shape, dtype, data, strides, GetDevice(device_id)).move_body();
 }
 
 py::buffer_info MakeBufferFromArray(ArrayBody& self) {

@@ -125,7 +125,7 @@ TEST_P(NativeBackendTransferTest, MemoryCopyFrom) {
     Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
-    std::shared_ptr<void> src = device1.FromBuffer(src_orig, bytesize);
+    std::shared_ptr<void> src = device1.FromHostMemory(src_orig, bytesize);
     std::shared_ptr<void> dst = device0.Allocate(bytesize);
     device0.MemoryCopyFrom(dst.get(), src.get(), bytesize, device1);
     ExpectDataEqual<float>(src, dst, size);
@@ -143,7 +143,7 @@ TEST_P(NativeBackendTransferTest, MemoryCopyTo) {
     Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
-    std::shared_ptr<void> src = device0.FromBuffer(src_orig, bytesize);
+    std::shared_ptr<void> src = device0.FromHostMemory(src_orig, bytesize);
     std::shared_ptr<void> dst = device1.Allocate(bytesize);
     device0.MemoryCopyTo(dst.get(), src.get(), bytesize, device1);
     ExpectDataEqual<float>(src, dst, size);
@@ -187,7 +187,7 @@ TEST_P(NativeBackendTransferTest, ArrayToDevice) {
     auto nop = [](void* p) {
         (void)p;  // unused
     };
-    Array a = Array::FromBuffer({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device0);
+    Array a = Array::FromContiguousHostData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device0);
 
     // Transfer
     Array b = a.ToDevice(device1);

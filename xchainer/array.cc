@@ -112,8 +112,8 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 }  // namespace internal
 
-Array Array::FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
-    return xchainer::FromBuffer(shape, dtype, data, device);
+Array Array::FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
+    return internal::FromHostData(shape, dtype, data, {shape, dtype}, device);
 }
 
 Array Array::Empty(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Empty(shape, dtype, device); }
