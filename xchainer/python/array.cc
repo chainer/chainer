@@ -97,7 +97,7 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
 
-    return Array::FromBuffer(shape, dtype, ptr, device).move_body();
+    return Array::FromContiguousHostData(shape, dtype, ptr, device).move_body();
 }
 
 ArrayBodyPtr MakeArray(py::array array, Device& device) {
@@ -109,7 +109,7 @@ ArrayBodyPtr MakeArray(py::array array, Device& device) {
     // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
     void* underlying_data = array.mutable_data();
     std::shared_ptr<void> data{std::make_shared<py::array>(std::move(array)), underlying_data};
-    return xchainer::internal::FromBuffer(shape, dtype, data, strides, device).move_body();
+    return xchainer::internal::FromHostData(shape, dtype, data, strides, device).move_body();
 }
 
 namespace {
@@ -221,6 +221,12 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     c.def("dot", [](const ArrayBodyPtr& self, const ArrayBodyPtr& b) { return Array{self}.Dot(Array{b}).move_body(); }, py::arg("b"));
+    c.def("fill",
+          [](const ArrayBodyPtr& self, Scalar value) {
+              Array{self}.Fill(value);
+              return;
+          },
+          py::arg("value"));
 
     c.def("require_grad",
           [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{self}.RequireGrad(graph_id).move_body(); },

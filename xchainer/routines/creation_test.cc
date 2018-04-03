@@ -33,42 +33,6 @@ protected:
 
 public:
     template <typename T>
-    void CheckFromBuffer(const Shape& shape, std::initializer_list<T> raw_data) {
-        // Check test data
-        ASSERT_EQ(shape.GetTotalSize(), static_cast<int64_t>(raw_data.size()));
-
-        std::shared_ptr<T> data = std::make_unique<T[]>(shape.GetTotalSize());
-        std::copy(raw_data.begin(), raw_data.end(), data.get());
-
-        Dtype dtype = TypeToDtype<T>;
-        Array x = FromBuffer(shape, dtype, data);
-
-        // Basic attributes
-        EXPECT_EQ(shape, x.shape());
-        EXPECT_EQ(dtype, x.dtype());
-        EXPECT_EQ(2, x.ndim());
-        EXPECT_EQ(3 * 2, x.GetTotalSize());
-        EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
-        EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetTotalBytes());
-        EXPECT_TRUE(x.IsContiguous());
-        EXPECT_EQ(0, x.offset());
-
-        // Data
-        testing::ExpectDataEqual<T>(data.get(), x);
-
-        // Device
-        Device& device = GetDefaultDevice();
-        EXPECT_EQ(&device, &x.device());
-        if (device.backend().GetName() == "native") {
-            EXPECT_EQ(data.get(), x.data().get());
-        } else if (device.backend().GetName() == "cuda") {
-            EXPECT_NE(data.get(), x.data().get());
-        } else {
-            FAIL() << "invalid device_id";
-        }
-    }
-
-    template <typename T>
     void CheckEmpty() {
         Dtype dtype = TypeToDtype<T>;
         Array x = Empty(Shape{3, 2}, dtype);
@@ -208,18 +172,6 @@ public:
 private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
-
-TEST_P(CreationTest, ArrayFromBuffer) {
-    Shape shape{3, 2};
-    CheckFromBuffer<bool>(shape, {true, false, false, true, false, true});
-    CheckFromBuffer<int8_t>(shape, {0, 1, 2, 3, 4, 5});
-    CheckFromBuffer<int16_t>(shape, {0, 1, 2, 3, 4, 5});
-    CheckFromBuffer<int32_t>(shape, {0, 1, 2, 3, 4, 5});
-    CheckFromBuffer<int64_t>(shape, {0, 1, 2, 3, 4, 5});
-    CheckFromBuffer<uint8_t>(shape, {0, 1, 2, 3, 4, 5});
-    CheckFromBuffer<float>(shape, {0, 1, 2, 3, 4, 5});
-    CheckFromBuffer<double>(shape, {0, 1, 2, 3, 4, 5});
-}
 
 TEST_P(CreationTest, Empty) {
     CheckEmpty<bool>();

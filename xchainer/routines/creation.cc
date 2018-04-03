@@ -26,9 +26,9 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t eleme
     return total_bytes;
 }
 
-Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device) {
+Array FromHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device) {
     auto bytesize = GetRequiredBytes(shape, strides, GetElementSize(dtype));
-    std::shared_ptr<void> device_data = device.FromBuffer(data, bytesize);
+    std::shared_ptr<void> device_data = device.FromHostMemory(data, bytesize);
     return MakeArray(shape, strides, dtype, device, device_data);
 }
 
@@ -39,10 +39,6 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
 }
 
 }  // namespace internal
-
-Array FromBuffer(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
-    return internal::FromBuffer(shape, dtype, data, {shape, dtype}, device);
-}
 
 Array Empty(const Shape& shape, Dtype dtype, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
