@@ -429,7 +429,8 @@ def export(model, args, directory=None,
        ...        h = self.b2(h)
        ...        return self.l3(h)
        ...
-       >>> caffe.export(Model(), [self.x], None, True, 'test')
+       >>> x = chainer.Variable(np.zeros((1, 10, 10, 10), np.float32))
+       >>> caffe.export(Model(), [x], None, True, 'test')
 
     """
 
