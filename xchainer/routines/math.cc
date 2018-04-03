@@ -157,7 +157,6 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
     // Calculate output shape
     std::vector<int64_t> out_shape_vec;
     out_shape_vec.reserve(a.ndim());
-    std::vector<int8_t> out_axis;
     int8_t i_axis = 0;
     for (int8_t i = 0; i < a.ndim(); ++i) {
         if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
@@ -167,7 +166,6 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
             }
         } else {
             out_shape_vec.push_back(a.shape()[i]);
-            out_axis.push_back(i);
         }
     }
 
