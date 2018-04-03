@@ -62,7 +62,7 @@ public:
             data_ptr += strides_[dim] * index[dim];
         }
         assert(first_ == nullptr || first_ <= data_ptr);
-        assert(last_ == nullptr || data_ptr <= last_);
+        assert(last_ == nullptr || data_ptr <= last_ - sizeof(T));  // catch for less than sizeof(T) bytes overflow
         return *reinterpret_cast<T*>(data_ptr);
     }
 
@@ -127,7 +127,7 @@ public:
             data_ptr += strides_[dim] * index[dim];
         }
         assert(first_ == nullptr || first_ <= data_ptr);
-        assert(last_ == nullptr || data_ptr <= last_);
+        assert(last_ == nullptr || data_ptr <= last_ - sizeof(T));  // catch less than sizeof(T) bytes overflow
         return *reinterpret_cast<T*>(data_ptr);
     }
 

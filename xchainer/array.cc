@@ -276,7 +276,7 @@ gsl::span<const uint8_t> Array::GetDataRange() const {
         auto& first_or_last = strides[i] < 0 ? first : last;
         first_or_last += shape[i] * strides[i];
     }
-    return {first, last};
+    return {first, last + element_bytes()};
 }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
