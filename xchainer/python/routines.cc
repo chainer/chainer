@@ -32,8 +32,51 @@ namespace internal {
 
 namespace py = pybind11;
 
+namespace {
+
+ArrayBodyPtr MakeArray(const py::list& list, const nonstd::optional<Dtype>& dtype, Device& device) {
+    // TODO(sonots): Determine dtype (bool or int64, or float64) seeing values of list.
+    // TODO(sonots): Support nested list
+    py::tuple shape_tup{1};
+    shape_tup[0] = list.size();
+    return internal::MakeArray(shape_tup, dtype.value_or(Dtype::kFloat64), list, device);
+}
+
+}  // namespace
 void InitXchainerRoutines(pybind11::module& m) {
     // creation routines
+    m.def("array",
+          [](const py::list& list, const nonstd::optional<Dtype>& dtype, const nonstd::optional<std::string>& device_id) {
+              return MakeArray(list, dtype, GetDevice(device_id));
+          },
+          py::arg("object"),
+          py::arg("dtype") = nullptr,
+          py::arg("device") = nullptr);
+    m.def("array",
+          [](const py::list& list, const nonstd::optional<Dtype>& dtype, Device& device) { return MakeArray(list, dtype, device); },
+          py::arg("object"),
+          py::arg("dtype") = nullptr,
+          py::arg("device"));
+    m.def("array",
+          [](const py::array& array, const nonstd::optional<std::string>& device_id) { return MakeArray(array, GetDevice(device_id)); },
+          py::arg("object"),
+          py::arg("device") = nullptr);
+    m.def("array", [](const py::array& array, Device& device) { return MakeArray(array, device); }, py::arg("object"), py::arg("device"));
+    // Returns a view of an array if device argument is not specified.
+    // Returns a new array transferred to the given device if device argument is specified. Note that the graph is connected.
+    m.def("array",
+          [](const ArrayBodyPtr& array, const nonstd::optional<std::string>& device_id) {
+              if (device_id) {
+                  return Array{array}.ToDevice(GetDevice(device_id)).move_body();
+              }
+              return Array{array}.MakeView().move_body();
+          },
+          py::arg("object"),
+          py::arg("device") = nullptr);
+    m.def("array",
+          [](const ArrayBodyPtr& array, Device& device) { return Array{array}.ToDevice(device).move_body(); },
+          py::arg("object"),
+          py::arg("device"));
     m.def("empty",
           [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
               return Array::Empty(ToShape(shape), dtype, GetDevice(device_id)).move_body();
