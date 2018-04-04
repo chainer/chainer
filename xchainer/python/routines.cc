@@ -53,9 +53,21 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("array",
+          [](const py::list& list, const std::string& dtype, const nonstd::optional<std::string>& device_id) {
+              return MakeArray(list, GetDtype(dtype), GetDevice(device_id));
+          },
+          py::arg("object"),
+          py::arg("dtype"),
+          py::arg("device") = nullptr);
+    m.def("array",
           [](const py::list& list, const nonstd::optional<Dtype>& dtype, Device& device) { return MakeArray(list, dtype, device); },
           py::arg("object"),
           py::arg("dtype") = nullptr,
+          py::arg("device"));
+    m.def("array",
+          [](const py::list& list, const std::string& dtype, Device& device) { return MakeArray(list, GetDtype(dtype), device); },
+          py::arg("object"),
+          py::arg("dtype"),
           py::arg("device"));
     m.def("array",
           [](const py::array& array, const nonstd::optional<std::string>& device_id) { return MakeArray(array, GetDevice(device_id)); },
@@ -85,7 +97,21 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("empty",
+          [](py::tuple shape, const std::string& dtype, const nonstd::optional<std::string>& device_id) {
+              return Array::Empty(ToShape(shape), GetDtype(dtype), GetDevice(device_id)).move_body();
+          },
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device") = nullptr);
+    m.def("empty",
           [](py::tuple shape, Dtype dtype, Device& device) { return Array::Empty(ToShape(shape), dtype, device).move_body(); },
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device"));
+    m.def("empty",
+          [](py::tuple shape, const std::string& dtype, Device& device) {
+              return Array::Empty(ToShape(shape), GetDtype(dtype), device).move_body();
+          },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device"));
@@ -98,8 +124,24 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("full",
+          [](py::tuple shape, Scalar fill_value, const std::string& dtype, const nonstd::optional<std::string>& device_id) {
+              return Array::Full(ToShape(shape), fill_value, GetDtype(dtype), GetDevice(device_id)).move_body();
+          },
+          py::arg("shape"),
+          py::arg("fill_value"),
+          py::arg("dtype"),
+          py::arg("device") = nullptr);
+    m.def("full",
           [](py::tuple shape, Scalar fill_value, Dtype dtype, Device& device) {
               return Array::Full(ToShape(shape), fill_value, dtype, device).move_body();
+          },
+          py::arg("shape"),
+          py::arg("fill_value"),
+          py::arg("dtype"),
+          py::arg("device"));
+    m.def("full",
+          [](py::tuple shape, Scalar fill_value, const std::string& dtype, Device& device) {
+              return Array::Full(ToShape(shape), fill_value, GetDtype(dtype), device).move_body();
           },
           py::arg("shape"),
           py::arg("fill_value"),
@@ -125,7 +167,21 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("zeros",
+          [](py::tuple shape, const std::string& dtype, const nonstd::optional<std::string>& device_id) {
+              return Array::Zeros(ToShape(shape), GetDtype(dtype), GetDevice(device_id)).move_body();
+          },
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device") = nullptr);
+    m.def("zeros",
           [](py::tuple shape, Dtype dtype, Device& device) { return Array::Zeros(ToShape(shape), dtype, device).move_body(); },
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device"));
+    m.def("zeros",
+          [](py::tuple shape, const std::string& dtype, Device& device) {
+              return Array::Zeros(ToShape(shape), GetDtype(dtype), device).move_body();
+          },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device"));
@@ -137,7 +193,21 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("ones",
+          [](py::tuple shape, const std::string& dtype, const nonstd::optional<std::string>& device_id) {
+              return Array::Ones(ToShape(shape), GetDtype(dtype), GetDevice(device_id)).move_body();
+          },
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device") = nullptr);
+    m.def("ones",
           [](py::tuple shape, Dtype dtype, Device& device) { return Array::Ones(ToShape(shape), dtype, device).move_body(); },
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device"));
+    m.def("ones",
+          [](py::tuple shape, const std::string& dtype, Device& device) {
+              return Array::Ones(ToShape(shape), GetDtype(dtype), device).move_body();
+          },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device"));

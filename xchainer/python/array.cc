@@ -140,8 +140,25 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("data"),
           py::arg("device") = nullptr);
+    c.def(py::init([](const py::tuple& shape,
+                      const std::string& dtype,
+                      const py::list& list,
+                      const nonstd::optional<std::string>& device_id) {
+              return MakeArray(shape, GetDtype(dtype), list, GetDevice(device_id));
+          }),
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("data"),
+          py::arg("device") = nullptr);
     c.def(py::init([](const py::tuple& shape, Dtype dtype, const py::list& list, Device& device) {
               return MakeArray(shape, dtype, list, device);
+          }),
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("data"),
+          py::arg("device"));
+    c.def(py::init([](const py::tuple& shape, const std::string& dtype, const py::list& list, Device& device) {
+              return MakeArray(shape, GetDtype(dtype), list, device);
           }),
           py::arg("shape"),
           py::arg("dtype"),

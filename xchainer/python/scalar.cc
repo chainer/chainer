@@ -1,5 +1,7 @@
 #include "xchainer/python/scalar.h"
 
+#include <string>
+
 #include <pybind11/operators.h>
 
 #include "xchainer/dtype.h"
@@ -21,6 +23,9 @@ void InitXchainerScalar(pybind11::module& m) {
     c.def(py::init<bool, Dtype>());
     c.def(py::init<int64_t, Dtype>());
     c.def(py::init<double, Dtype>());
+    c.def(py::init([](bool v, const std::string& dtype) { return Scalar(v, GetDtype(dtype)); }));
+    c.def(py::init([](int64_t v, const std::string& dtype) { return Scalar(v, GetDtype(dtype)); }));
+    c.def(py::init([](double v, const std::string& dtype) { return Scalar(v, GetDtype(dtype)); }));
     c.def(py::self == py::self);  // NOLINT
     c.def("__eq__", [](Scalar scalar, bool value) { return scalar == Scalar{value}; });
     c.def("__eq__", [](Scalar scalar, int64_t value) { return scalar == Scalar{value}; });
