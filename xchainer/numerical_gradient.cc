@@ -4,19 +4,13 @@
 #include <functional>
 #include <vector>
 
-#ifdef XCHAINER_ENABLE_CUDA
-#include <cuda_runtime.h>
-#endif  // XCHAINER_ENABLE_CUDA
-
 #include "xchainer/array.h"
 #include "xchainer/array_repr.h"
+#include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
-#ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/cuda/cuda_runtime.h"
-#endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/device.h"
+#include "xchainer/routines/manipulation.h"
 
 namespace xchainer {
 namespace numerical_gradient_internal {
@@ -51,30 +45,10 @@ Array operator/(const Array& lhs, const Array& rhs) {
     return out;
 }
 
-// TODO(niboshi): Replace this with xchainer::Sum()
-Scalar Sum(const Array& array) {
-    array.device().Synchronize();
-
-    return VisitDtype(array.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        IndexableArray<const T> iarray{array};
-        Indexer indexer{array.shape()};
-
-        T s = 0;
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            s += iarray[indexer];
-        }
-        return Scalar{s};
-    });
-}
-
 Scalar Norm(const Array& x) {
-    Scalar s = Sum(x * x);
+    Scalar s = AsScalar((x * x).Sum());
     return Scalar(std::sqrt(static_cast<double>(s)), x.dtype());
 }
-
-Scalar VectorDot(const Array& x, const Array& y) { return Sum(x * y); }
 
 void Set(Array& out, int64_t flat_index, Scalar value) {
     out.device().Synchronize();
@@ -152,7 +126,8 @@ Arrays CalculateNumericalGradient(
                 Array dy = ys1.at(j) - ys0.at(j);
                 Array denom = Array::FullLike(dy, eps_scalar) * Array::FullLike(dy, Scalar(2, dtype));
 
-                Scalar g = VectorDot((ys1.at(j) - ys0.at(j)) / denom, grad_outputs.at(j));
+                Array slope = (ys1.at(j) - ys0.at(j)) / denom;
+                Scalar g = AsScalar((slope * grad_outputs.at(j)).Sum());
                 Scalar g_ij = Get(grad_i, in_flat_index) + g;
                 Set(grad_i, in_flat_index, g_ij);
             }
