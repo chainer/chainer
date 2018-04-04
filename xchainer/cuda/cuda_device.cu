@@ -20,7 +20,7 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_device.h"
-#include "xchainer/reduction_arg.h"
+#include "xchainer/reduction_kernel_arg.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {

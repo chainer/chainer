@@ -4,7 +4,7 @@
 #include <type_traits>
 
 #include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/reduction_arg.h"
+#include "xchainer/reduction_kernel_arg.h"
 
 namespace xchainer {
 namespace cuda {

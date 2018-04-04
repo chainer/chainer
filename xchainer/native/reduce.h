@@ -3,7 +3,7 @@
 #include <cstdint>
 
 #include "xchainer/array.h"
-#include "xchainer/reduction_arg.h"
+#include "xchainer/reduction_kernel_arg.h"
 
 namespace xchainer {
 namespace native {
