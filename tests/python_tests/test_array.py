@@ -42,7 +42,7 @@ def _create_dummy_ndarray(shape, numpy_dtype):
 
 
 def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list, expected_is_contiguous=True,
-                 device_id=None):
+                 device=None):
     assert isinstance(array.dtype, xchainer.dtype)
     assert isinstance(array.shape, tuple)
     assert array.dtype == expected_dtype
@@ -53,10 +53,10 @@ def _check_array(array, expected_dtype, expected_shape, expected_total_size, exp
     assert array._debug_flat_data == expected_data_list
     assert array.is_contiguous == expected_is_contiguous
     assert array.offset == 0
-    if device_id is None:
+    if device is None:
         device = xchainer.get_default_device()
-    else:
-        device = xchainer.get_default_context().get_device(device_id)
+    elif isinstance(device, str):
+        device = xchainer.get_device(device)
     assert array.device is device
 
 
@@ -115,7 +115,7 @@ def _check_init(shape, dtype, device=None, with_device=True):
     else:
         array = xchainer.Array(shape, dtype, data_list)
 
-    _check_array(array, dtype, shape, _total_size(shape), data_list, device_id=device)
+    _check_array(array, dtype, shape, _total_size(shape), data_list, device=device)
 
 
 def test_init_without_device(shape, dtype):
@@ -124,6 +124,7 @@ def test_init_without_device(shape, dtype):
 
 def test_init_with_device(shape, dtype):
     _check_init(shape, dtype, device='native:1')
+    _check_init(shape, dtype, device=xchainer.get_device('native:1'))
 
 
 def test_init_with_none_device(shape, dtype):
@@ -139,7 +140,7 @@ def _check_numpy_init(ndarray, shape, dtype, device=None):
     ndarray_is_contigous = ndarray.flags['C_CONTIGUOUS']
     _check_array(
         array, dtype, shape, _total_size(shape), ndarray.ravel().tolist(),
-        expected_is_contiguous=ndarray_is_contigous, device_id=device)
+        expected_is_contiguous=ndarray_is_contigous, device=device)
     _check_array_equals_ndarray(array, ndarray)
 
     # test possibly freed memory
@@ -169,7 +170,7 @@ def test_numpy_non_contiguous_init(shape, dtype):
 
 def test_numpy_init_device(shape, dtype):
     ndarray = _create_dummy_ndarray(shape, getattr(numpy, dtype.name))
-    _check_numpy_init(ndarray, shape, dtype, 'native:1')
+    _check_numpy_init(ndarray, shape, dtype, xchainer.get_device('native:1'))
 
 
 def test_to_device():

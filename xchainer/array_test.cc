@@ -490,6 +490,14 @@ TEST_P(ArrayTest, IAdd) {
     testing::ExpectEqual<float>(e, a);
 }
 
+TEST_P(ArrayTest, ISubtract) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array b = testing::BuildArray<float>({3, 1}, {4, 0, -2});
+    Array e = testing::BuildArray<float>({3, 1}, {-3, 2, 5});
+    a -= b;
+    testing::ExpectEqual<float>(e, a);
+}
+
 TEST_P(ArrayTest, IMul) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
@@ -503,6 +511,14 @@ TEST_P(ArrayTest, Add) {
     Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
     Array o = a + b;
+    testing::ExpectEqual<float>(e, o);
+}
+
+TEST_P(ArrayTest, Subtract) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array b = testing::BuildArray<float>({3, 1}, {4, 0, -2});
+    Array e = testing::BuildArray<float>({3, 1}, {-3, 2, 5});
+    Array o = a - b;
     testing::ExpectEqual<float>(e, o);
 }
 

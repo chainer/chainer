@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
 #include "xchainer/array.h"
@@ -18,6 +19,9 @@ namespace internal {
 using ArrayBody = xchainer::internal::ArrayBody;
 using ArrayBodyPtr = std::shared_ptr<ArrayBody>;
 using ConstArrayBodyPtr = std::shared_ptr<const ArrayBody>;
+
+ArrayBodyPtr MakeArray(const pybind11::tuple& shape_tup, Dtype dtype, const pybind11::list& list, Device& device);
+ArrayBodyPtr MakeArray(pybind11::array array, Device& device);
 
 void InitXchainerArray(pybind11::module&);
 
