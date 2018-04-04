@@ -235,7 +235,7 @@ def _check_full_with_scalar(shape, scalar, device=None):
     if device is None:
         a = xchainer.full(shape, scalar)
     else:
-        a = xchainer.full(shape, scalar, device)
+        a = xchainer.full(shape, scalar, device=device)
 
     _check_basic_creation(a, shape, scalar.dtype, device)
 
