@@ -312,8 +312,8 @@ void CudaDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const Ar
         Indexer& reduce_indexer = std::get<4>(tup);
 
         // Launch kernel
-        int reduce_block_size =
-                static_cast<int>(std::min(static_cast<int64_t>(kMaxReductionBlockSize), RoundUpToPowerOf2(reduce_indexer.total_size())));
+        int reduce_block_size = static_cast<int>(std::min(
+                static_cast<int64_t>(kMaxReductionBlockSize), RoundUpToPowerOf2(std::max(int64_t{1}, reduce_indexer.total_size()))));
         int block_size = std::min(kMaxBlockSize, reduce_block_size);
         int64_t total_reduce_blocks = out_indexer.total_size();
         int64_t grid_size = total_reduce_blocks;

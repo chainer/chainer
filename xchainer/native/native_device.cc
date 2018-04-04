@@ -54,7 +54,10 @@ std::tuple<IndexableArray<const T>, IndexableArray<T>, Indexer, Indexer, Indexer
         for (int8_t i = 0; i < src.shape().ndim(); ++i) {
             if (i_axis < axis.size() && i == axis[i_axis]) {
                 // i is to be reduced
-                reduce_shape.push_back(src.shape()[i]);
+                int64_t src_dim = src.shape()[i];
+                if (src_dim != 1) {
+                    reduce_shape.push_back(src_dim);
+                }
                 ++i_axis;
                 if (has_kept_dims) {
                     ++i_out_axis;
@@ -72,8 +75,9 @@ std::tuple<IndexableArray<const T>, IndexableArray<T>, Indexer, Indexer, Indexer
         assert(i_out_axis == out.shape().size());
         assert(i_axis == axis.size());
     }
-    assert(reduce_shape.size() == axis.size());
-    assert(out_axis_map.size() <= src.shape().size() - axis.size());  // Inequality because 1-dim axes are eliminated.
+    // Inequality because 1-dim axes are eliminated.
+    assert(reduce_shape.size() <= axis.size());
+    assert(out_axis_map.size() <= src.shape().size() - axis.size());
     assert(out_axis_map.size() == new_out_shape.size());
 
     // Calculate source axis permutation
@@ -91,7 +95,11 @@ std::tuple<IndexableArray<const T>, IndexableArray<T>, Indexer, Indexer, Indexer
             }
         }
     }
-    std::copy(axis.begin(), axis.end(), std::back_inserter(axis_permutes));
+    for (int8_t i : axis) {
+        if (src.shape()[i] != 1) {
+            axis_permutes.push_back(i);
+        }
+    }
     assert(axis_permutes.size() <= src.shape().size());  // Inequality because 1-dim axes are eliminated.
 
     // Calculate new source shape

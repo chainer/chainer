@@ -18,6 +18,10 @@ namespace internal {
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size) {
     assert(shape.ndim() == strides.ndim());
 
+    if (shape.GetTotalSize() == 0) {
+        return 0;
+    }
+
     // Calculate the distance between the first and the last element, plus single element size.
     size_t total_bytes = element_size;
     for (int8_t i = 0; i < shape.ndim(); ++i) {
