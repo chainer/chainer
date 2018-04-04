@@ -3,7 +3,7 @@ Acceptance tests for Backprop
 
 >>> import xchainer as xc
 
->>> a = xc.Array((2, 3), xc.Dtype.float32, [0, 1, 2, 3, 4, 5]).require_grad()
+>>> a = xc.Array((2, 3), xc.float32, [0, 1, 2, 3, 4, 5]).require_grad()
 >>> b = xc.full_like(a, 2)
 >>> y = (a * b) + b
 >>> y.is_grad_required()

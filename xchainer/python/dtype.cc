@@ -13,7 +13,7 @@ namespace internal {
 namespace py = pybind11;  // standard convention
 
 void InitXchainerDtype(pybind11::module& m) {
-    py::enum_<Dtype> e{m, "Dtype"};
+    py::enum_<Dtype> e{m, "dtype"};
     for (Dtype dtype : GetAllDtypes()) {
         e.value(GetDtypeName(dtype), dtype);
     }
