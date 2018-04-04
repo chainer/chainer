@@ -1227,6 +1227,10 @@ def test_getitem(input_shape, indices, output_shape, output_data):
     ((2, 3), (0, 1), True, (1, 1), [15]),
     ((2, 3), (-2, -1), False, (), [15]),
     ((2, 3), (-2, -1), True, (1, 1), [15]),
+    ((1, 3), None, False, (), [3]),  # sum over 1-dim axis
+    ((1, 3), None, True, (1, 1), [3]),
+    ((0, 3), None, False, (), [0]),  # sum over 0-dim axis
+    ((0, 3), None, True, (1, 1), [0]),
 
     # Sum over axes that are in the middle or apart
     ((2, 3, 4), (1,), False, (2, 4), [12, 15, 18, 21, 48, 51, 54, 57]),
