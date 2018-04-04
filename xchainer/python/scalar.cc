@@ -21,6 +21,13 @@ void InitXchainerScalar(pybind11::module& m) {
     c.def(py::init<bool, Dtype>());
     c.def(py::init<int64_t, Dtype>());
     c.def(py::init<double, Dtype>());
+    // With implicit conversion between std::string and Dtype, we've encountered an issue that
+    //     xc.Scalar(9223372036854775807, 'int64')
+    // calls `bool` ctor rather than `int64_t` ctor wrongly.
+    // We define following 3 explicit ctors to avoid the unexpected behavior.
+    c.def(py::init([](bool v, const std::string& dtype) { return Scalar(v, GetDtype(dtype)); }));
+    c.def(py::init([](int64_t v, const std::string& dtype) { return Scalar(v, GetDtype(dtype)); }));
+    c.def(py::init([](double v, const std::string& dtype) { return Scalar(v, GetDtype(dtype)); }));
     c.def(py::self == py::self);  // NOLINT
     c.def("__eq__", [](Scalar scalar, bool value) { return scalar == Scalar{value}; });
     c.def("__eq__", [](Scalar scalar, int64_t value) { return scalar == Scalar{value}; });
