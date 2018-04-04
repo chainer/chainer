@@ -18,7 +18,7 @@ namespace native {
 namespace internal {
 
 template <typename T>
-std::tuple<IndexableArray<const T>, IndexableArray<T>, Indexer<>, Indexer<>, Indexer<>> PrepareIndexableArraysForReduction(
+std::tuple<IndexableArray<const T>, IndexableArray<T>, Indexer, Indexer, Indexer> PrepareIndexableArraysForReduction(
         const Array& src, const std::vector<int8_t>& axis, const Array& out) {
     // True if some axes are reduced but kept in output as 1-dim axes.
     // Corresponding to keepdim argument in Array::Sum().
@@ -107,11 +107,11 @@ std::tuple<IndexableArray<const T>, IndexableArray<T>, Indexer<>, Indexer<>, Ind
 
     // Check postconditions and return
     auto tup = std::make_tuple(
-            IndexableArray<const T>{src}.Permute(axis_permutes),           // src indexable array
-            IndexableArray<T>{out}.Permute(out_axis_map),                  // out indexable array
-            Indexer<>{Shape{new_src_shape.begin(), new_src_shape.end()}},  // src indexer
-            Indexer<>{Shape{new_out_shape.begin(), new_out_shape.end()}},  // out indexer
-            Indexer<>{Shape{reduce_shape.begin(), reduce_shape.end()}});   // reduce indexer
+            IndexableArray<const T>{src}.Permute(axis_permutes),         // src indexable array
+            IndexableArray<T>{out}.Permute(out_axis_map),                // out indexable array
+            Indexer{Shape{new_src_shape.begin(), new_src_shape.end()}},  // src indexer
+            Indexer{Shape{new_out_shape.begin(), new_out_shape.end()}},  // out indexer
+            Indexer{Shape{reduce_shape.begin(), reduce_shape.end()}});   // reduce indexer
     assert(std::get<0>(tup).ndim() == std::get<2>(tup).ndim());
     assert(std::get<1>(tup).ndim() == std::get<3>(tup).ndim());
     assert(std::get<0>(tup).ndim() == std::get<3>(tup).ndim() + std::get<4>(tup).ndim());
@@ -154,7 +154,7 @@ void NativeDevice::Fill(const Array& out, Scalar value) {
         T c_value{value};
 
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{out.shape()};
+        Indexer indexer{out.shape()};
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
             out_iarray[indexer] = c_value;
@@ -175,9 +175,9 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const 
         auto tup = internal::PrepareIndexableArraysForReduction<T>(src, axis, out);
         IndexableArray<const T>& src_iarray = std::get<0>(tup);
         IndexableArray<T>& out_iarray = std::get<1>(tup);
-        Indexer<>& src_indexer = std::get<2>(tup);
-        Indexer<>& out_indexer = std::get<3>(tup);
-        Indexer<>& reduce_indexer = std::get<4>(tup);
+        Indexer& src_indexer = std::get<2>(tup);
+        Indexer& out_indexer = std::get<3>(tup);
+        Indexer& reduce_indexer = std::get<4>(tup);
 
         // Iterate over output dimensions
         for (int64_t i_out = 0; i_out < out_indexer.total_size(); ++i_out) {
@@ -211,7 +211,7 @@ void NativeDevice::Copy(const Array& src, const Array& out) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> src_iarray{src};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{src.shape()};
+        Indexer indexer{src.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
@@ -227,7 +227,7 @@ void NativeDevice::Equal(const Array& lhs, const Array& rhs, const Array& out) {
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<bool> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
@@ -243,7 +243,7 @@ void NativeDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
@@ -274,7 +274,7 @@ void NativeDevice::Mul(const Array& lhs, Scalar rhs, const Array& out) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
@@ -290,7 +290,7 @@ void NativeDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
@@ -306,7 +306,7 @@ void NativeDevice::IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Ar
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> neg_iarray{neg};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
         T rhs_value{rhs};
         T pos_value{pos};
 

@@ -131,7 +131,7 @@ void ExpectArraysEqual(const Array& expected, const Array& actual) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> expected_iarray{expected};
         IndexableArray<const T> actual_iarray{actual};
-        Indexer<> indexer{expected.shape()};
+        Indexer indexer{expected.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
