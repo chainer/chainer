@@ -259,7 +259,7 @@ void NativeDevice::Subtract(const Array& lhs, const Array& rhs, const Array& out
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);

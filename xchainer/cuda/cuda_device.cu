@@ -394,7 +394,7 @@ void CudaDevice::Subtract(const Array& lhs, const Array& rhs, const Array& out) 
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
 
         int64_t total_size = indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
