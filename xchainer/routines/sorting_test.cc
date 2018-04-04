@@ -65,19 +65,11 @@ TEST_P(SortingTest, ArgMaxAllAxes) {
 }
 
 TEST_P(SortingTest, ArgMaxInvalidAxis) {
-    // TODO(hvy): Run CUDA tests when CudaDevice::ArgMax is implemented.
-    if (GetDefaultDevice().backend().GetName() == "cuda") {
-        return;
-    }
     Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
     EXPECT_THROW(ArgMax(a, 3), DimensionError);
 }
 
 TEST_P(SortingTest, ArgMaxEmpty) {
-    // TODO(hvy): Run CUDA tests when CudaDevice::ArgMax is implemented.
-    if (GetDefaultDevice().backend().GetName() == "cuda") {
-        return;
-    }
     Array a = Array::Zeros({0}, Dtype::kFloat32);
     EXPECT_THROW(ArgMax(a), DimensionError);
 }
