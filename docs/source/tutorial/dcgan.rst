@@ -1,4 +1,4 @@
-DCGAN: Generate the images from Deep Convolutinal GAN
+DCGAN: Generate the images with Deep Convolutinal GAN
 ******************************************************
 
 .. currentmodule:: chainer
@@ -6,7 +6,7 @@ DCGAN: Generate the images from Deep Convolutinal GAN
 0. Introduction
 ================
 
-In this tutorial, we generate images from **generative adversarial network (GAN)**.
+In this tutorial, we generate images with **generative adversarial network (GAN)**.
 It is a kind of generative model with deep neural network, and often applied to
 the image generation. The GAN technique is also applied to 
 `PaintsChainer <https://paintschainer.preferred.tech/index_en.html>`_,
@@ -14,15 +14,15 @@ a famous automatic coloring service.
 
 .. image:: ../../image/dcgan/generated-images.gif
 
-In the tutorial, you will learn about the following things:
+In the tutorial, you will learn the following things:
 
-1. Basic Idea of Generative Model
-2. The Difference among GAN and Other Generative Models
-3. Details of GAN
+1. The basic idea of generative model
+2. The difference among GAN and other generative models
+3. Generative Adversarial Networks (GAN)
 4. Implementation of DCGAN in Chainer
 
-1. Basic Idea of Generative Model
-==================================
+1. The basic idea of generative model
+======================================
 
 1.1 What is the Model?
 -----------------------
@@ -37,20 +37,20 @@ map :math:`f` from an input :math:`x` to an output :math:`y`.
     f: x \mapsto y
     
 Therefore, the purpose of model training is obtaining the map :math:`f` from training data.
-In the case of unsupervised learning, we use the datasets of inputs
+In the case of unsupervised learning, we use the dataset of inputs
 :math:`\{s^{(n)}\}=\{d_1, d_2, \cdots, d_N\}` as the training data,
-and create model :math:`f`.
-In supervised learning, we use the datasets of inputs and their outputs
+and create the model :math:`f`.
+In supervised learning, we use the dataset of inputs and their outputs
 :math:`\{s^{(n)}\}=\{(d_1, c_1), \cdots, (d_N, c_N)\}`. As a simple example,
-let's consider about a supervised learning problem such as classifying images as
-dogs or cats. Then, the training datasets consist of input images
+let's consider a supervised learning problem such as classifying images into
+dogs or cats. Then, the training dataset consist of input images
 :math:`d_1, d_2, \cdots, d_N` and their labels
 :math:`c_1={\rm cat}, c_2={\rm dog}, \cdots, c_N={\rm cat}`.
 
 1.2 What is the Generative Model?
 ----------------------------------
 
-When we consider about the generative model, it models the probability distribution
+When we think about the generative model, it models the probability distribution
 :math:`p: s \mapsto p(s)` which generates the training data :math:`s`. The most simple
 generative model models the probability distribution :math:`p` with the map :math:`f`.
 We assign each :math:`x` and :math:`y` of :math:`f: x \mapsto y` as follows.
@@ -58,17 +58,18 @@ We assign each :math:`x` and :math:`y` of :math:`f: x \mapsto y` as follows.
 * :math:`x` : the training data :math:`s`
 * :math:`y` : the likelihood of generating the training data :math:`s`
 
-In the case, because we models the probability distribution :math:`p` explicitly,
+In the case, because we model the probability distribution :math:`p` explicitly,
 we can calculate the likelihood :math:`p(s)`. So, we can maximize the likelihood.
 There is an advantage that the training process is simple. However, there is a
 disadvantage that we have to make a mechanism for sampling because we have only
-the process for calculating the likelihood.
+the way of calculating the likelihood.
 
-In the fitst place, we often just want to sample :math:`s \sim p(s)`
+In the first place, we often just want to sample :math:`s \sim p(s)`
 according to the distribution in practice. The likelihood :math:`p(s)` is used
 only for model training. In the case, we sometimes do not model the probability distribution
 :math:`p(s)` directly, but other targets to facilitate sampling. 
 
+There are two approaches to model the probability distribution :math:`p(s)`.
 The first case is to model the probability distributions :math:`p(z)` and :math:`p(s|z)`
 by introducing the latent variable :math:`z`. The VAE, which is described later,
 belongs to this category.
@@ -79,17 +80,17 @@ the latent variable :math:`z` based on random numbers.
 
 These generative models can be used for the following purposes:
 
-* Assistance for creative activities (e.g. coloring of line drawing)
+* Assistance for creative activities (e.g. coloring of line drawings)
 * Providing interfaces to people (e.g. generating natural sentences)
 * Reduction of data creation cost (e.g. use as a simulator)
 
 .. note::
     When we talk about generative model, we sometimes explain it against discrimination
-    model in classification problem [1]. However, when we talk about generating
+    model in classification problem [1]. However, when we talk about generative
     model in GAN, it is natural to define it as a model of probability distribution
     that generates training data.
 
-2. The Difference among GAN and Other Generative Models
+2. The difference among GAN and other generative models
 ========================================================
 
 As explained in the GAN tutorial in NIPS 2016 [2], the generative models can be classified into the categories
@@ -98,7 +99,7 @@ as shown in the following figure:
 .. figure:: ../../image/dcgan/class-generative-model.png
    :scale: 100%
 
-   sited from [1]
+   cited from [1]
 
 Besides GAN, other famous generative models are Fully visible belief networks (FVBNs) and Variational autoencoder
 (VAE).
@@ -231,7 +232,7 @@ discriminator :math:`D({\bf s})` and the generator :math:`G({\bf x})` [5].
 .. figure:: ../../image/dcgan/update-gan.png
    :scale: 100%
 
-   sited from [5]
+   cited from [5]
 
 3.3 What is DCGAN?
 -------------------
@@ -242,7 +243,7 @@ As shown below, it is a model using CNN(Convolutional Neural Network) as its nam
 .. figure:: ../../image/dcgan/dcgan.png
    :scale: 100%
 
-   sited from [6]
+   cited from [6]
 
 In addition, although GAN is known for its difficulty in learning, this paper introduces various techniques
 for successful learning:
@@ -253,7 +254,7 @@ for successful learning:
 4. Use leaky ReLU activation functions in the discriminator
 
 4. Implementation of DCGAN in Chainer
-==========================================
+=======================================
 
 There is an example of DCGAN in the official repository of Chainer,
 so we will explain how to implement DCGAN based on this:
