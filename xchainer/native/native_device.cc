@@ -100,7 +100,7 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const 
         using T = typename decltype(pt)::type;
         struct SumImpl {
             T Identity() { return T{0}; }
-            T MapIn(T in, int64_t) { return in; }
+            T MapIn(T in, int64_t /*index*/) { return in; }
             void Reduce(T next, T& accum) { accum += next; }
             T MapOut(T accum) { return accum; }
         };
