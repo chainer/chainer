@@ -203,8 +203,10 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("axis"));
     c.def("__eq__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} == Array{rhs}).move_body(); });
     c.def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).move_body(); });
+    c.def("__isub__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} -= Array{rhs}).move_body(); });
     c.def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).move_body(); });
     c.def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).move_body(); });
+    c.def("__sub__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} - Array{rhs}).move_body(); });
     c.def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); });
     c.def("__mul__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} * rhs).move_body(); });
     c.def("__rmul__", [](const ArrayBodyPtr& self, Scalar lhs) { return (lhs * Array{self}).move_body(); });

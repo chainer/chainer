@@ -672,16 +672,52 @@ def test_add_iadd(device, shape, dtype):
     if dtype == xchainer.bool:
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 2] => [False, True]
 
-    def _check_add(lhs, rhs, out):
+    def check(out):
+        assert out.dtype == dtype
+        assert out.shape == shape
         assert out._debug_flat_data == expected_data_list
-        assert lhs._debug_flat_data == lhs_data_list
+        assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
         assert rhs._debug_flat_data == rhs_data_list
 
-    _check_add(lhs, rhs, lhs + rhs)
-    _check_add(lhs, rhs, xchainer.add(lhs, rhs))
+    check(lhs + rhs)
+    check(xchainer.add(lhs, rhs))
 
     lhs_prev = lhs
     lhs += rhs
+    assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
+    assert lhs._debug_flat_data == expected_data_list
+    assert rhs._debug_flat_data == rhs_data_list
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_sub_isub(device, shape, dtype):
+    if dtype == xchainer.bool:
+        # TODO(niboshi): Compare directly with NumPy
+        return  # not supported
+    lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
+    rhs_data_list = _create_dummy_data(shape, dtype, pattern=2)
+
+    lhs = xchainer.Array(shape, dtype, lhs_data_list)
+    rhs = xchainer.Array(shape, dtype, rhs_data_list)
+
+    if dtype == xchainer.uint8:
+        # TODO(niboshi): Compare directly with NumPy
+        expected_data_list = [(0x100 + x - y) & 0xff for x, y in zip(lhs_data_list, rhs_data_list)]
+    else:
+        expected_data_list = [x - y for x, y in zip(lhs_data_list, rhs_data_list)]
+
+    def check(out):
+        assert out.dtype == dtype
+        assert out.shape == shape
+        assert out._debug_flat_data == expected_data_list
+        assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
+        assert rhs._debug_flat_data == rhs_data_list
+
+    check(lhs - rhs)
+    check(xchainer.subtract(lhs, rhs))
+
+    lhs_prev = lhs
+    lhs -= rhs
     assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
     assert lhs._debug_flat_data == expected_data_list
     assert rhs._debug_flat_data == rhs_data_list
@@ -699,13 +735,15 @@ def test_mul_imul(device, shape, dtype):
     if dtype == xchainer.bool:
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 1] => [False, True]
 
-    def _check_mul(lhs, rhs, out):
+    def check(out):
+        assert out.dtype == dtype
+        assert out.shape == shape
         assert out._debug_flat_data == expected_data_list
-        assert lhs._debug_flat_data == lhs_data_list
+        assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
         assert rhs._debug_flat_data == rhs_data_list
 
-    _check_mul(lhs, rhs, lhs * rhs)
-    _check_mul(lhs, rhs, xchainer.multiply(lhs, rhs))
+    check(lhs * rhs)
+    check(xchainer.multiply(lhs, rhs))
 
     lhs_prev = lhs
     lhs *= rhs
