@@ -109,19 +109,11 @@ std::tuple<IndexableArray<const SrcType>, IndexableArray<OutType>, Indexer, Inde
 
     // Check postconditions and return
     auto tup = std::make_tuple(
-<<<<<<< HEAD
-            IndexableArray<const T>{src}.Permute(axis_permutes),         // src indexable array
-            IndexableArray<T>{out}.Permute(out_axis_map),                // out indexable array
+            IndexableArray<const SrcType>{src}.Permute(axis_permutes),   // src indexable array
+            IndexableArray<OutType>{out}.Permute(out_axis_map),          // out indexable array
             Indexer{Shape{new_src_shape.begin(), new_src_shape.end()}},  // src indexer
             Indexer{Shape{new_out_shape.begin(), new_out_shape.end()}},  // out indexer
             Indexer{Shape{reduce_shape.begin(), reduce_shape.end()}});   // reduce indexer
-=======
-            IndexableArray<const SrcType>{src}.Permute(axis_permutes),     // src indexable array
-            IndexableArray<OutType>{out}.Permute(out_axis_map),            // out indexable array
-            Indexer<>{Shape{new_src_shape.begin(), new_src_shape.end()}},  // src indexer
-            Indexer<>{Shape{new_out_shape.begin(), new_out_shape.end()}},  // out indexer
-            Indexer<>{Shape{reduce_shape.begin(), reduce_shape.end()}});   // reduce indexer
->>>>>>> a2734f3... Implement native ArgMax
     assert(std::get<0>(tup).ndim() == std::get<2>(tup).ndim());
     assert(std::get<1>(tup).ndim() == std::get<3>(tup).ndim());
     assert(std::get<0>(tup).ndim() == std::get<3>(tup).ndim() + std::get<4>(tup).ndim());
@@ -184,9 +176,9 @@ void NativeDevice::ArgMax(const Array& src, const std::vector<int8_t>& axis, con
         auto tup = internal::PrepareIndexableArraysForReduction<T, int64_t>(src, axis, out);
         IndexableArray<const T>& src_iarray = std::get<0>(tup);
         IndexableArray<int64_t>& out_iarray = std::get<1>(tup);
-        Indexer<>& src_indexer = std::get<2>(tup);
-        Indexer<>& out_indexer = std::get<3>(tup);
-        Indexer<>& reduce_indexer = std::get<4>(tup);
+        Indexer& src_indexer = std::get<2>(tup);
+        Indexer& out_indexer = std::get<3>(tup);
+        Indexer& reduce_indexer = std::get<4>(tup);
 
         // Iterate over output dimensions
         for (int64_t i_out = 0; i_out < out_indexer.total_size(); ++i_out) {
