@@ -204,7 +204,7 @@ struct SumImpl {
 void CudaDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Reduce(MakeReductionArg<T, T>(src, axis, out), SumImpl<T>{});
+        Reduce(MakeReductionKernelArg<T, T>(src, axis, out), SumImpl<T>{});
     });
 }
 

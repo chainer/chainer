@@ -24,7 +24,7 @@ int64_t RoundUpToPowerOf2(int64_t x) {
 }
 
 template <typename In, typename Out, typename ReductionImpl>
-__global__ void ReductionKernel(ReductionArg<In, Out> arg, int reduce_block_size, ReductionImpl impl) {
+__global__ void ReductionKernel(ReductionKernelArg<In, Out> arg, int reduce_block_size, ReductionImpl impl) {
     using T = decltype(impl.Identity());
 
     extern __shared__ __align__(8) uint8_t work_bytes[];
@@ -146,9 +146,9 @@ __global__ void ReductionKernel(ReductionArg<In, Out> arg, int reduce_block_size
 //             __device__ float MapOut(float accum) { return accum; }
 //         };
 //
-//     Then, it can be passed to Reduce like: Reduce(MakeReductionArg(input, axis, output), SumImpl{});
+//     Then, it can be passed to Reduce like: Reduce(MakeReductionKernelArg(input, axis, output), SumImpl{});
 template <typename In, typename Out, typename ReductionImpl>
-void Reduce(ReductionArg<In, Out> arg, ReductionImpl&& impl) {
+void Reduce(ReductionKernelArg<In, Out> arg, ReductionImpl&& impl) {
     static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&reduce_detail::ReductionKernel<In, Out, ReductionImpl>).block_size;
 
     int reduce_block_size = static_cast<int>(std::min(

@@ -33,9 +33,9 @@ namespace internal {
 //             float MapOut(float accum) { return accum; }
 //         };
 //
-//     Then, it can be passed to Reduce like: Reduce(MakeReductionArg(input, axis, output), SumImpl{});
+//     Then, it can be passed to Reduce like: Reduce(MakeReductionKernelArg(input, axis, output), SumImpl{});
 template <typename In, typename Out, typename ReductionImpl>
-void Reduce(ReductionArg<In, Out> arg, ReductionImpl&& impl) {
+void Reduce(ReductionKernelArg<In, Out> arg, ReductionImpl&& impl) {
     // Iterate over output dimensions
     for (int64_t i_out = 0; i_out < arg.out_indexer.total_size(); ++i_out) {
         arg.out_indexer.Set(i_out);
