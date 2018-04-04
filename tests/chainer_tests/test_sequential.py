@@ -446,6 +446,7 @@ class TestSequential(unittest.TestCase):
         numpy.testing.assert_array_equal(s2[1].b.data, self.s2[1].b.data)
         for l1, l2 in zip(s2, self.s2):
             self.assertIsNot(l1, l2)
+        os.close(fd)
         os.remove(path)
 
     def test_pickle_with_lambda(self):
