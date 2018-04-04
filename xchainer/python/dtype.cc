@@ -13,7 +13,7 @@ namespace internal {
 namespace py = pybind11;  // standard convention
 
 void InitXchainerDtype(pybind11::module& m) {
-    py::enum_<Dtype> e{m, "Dtype"};
+    py::enum_<Dtype> e{m, "dtype"};
     for (Dtype dtype : GetAllDtypes()) {
         e.value(GetDtypeName(dtype), dtype);
     }
@@ -22,8 +22,6 @@ void InitXchainerDtype(pybind11::module& m) {
     e.def_property_readonly("char", [](Dtype dtype) { return std::string(1, GetCharCode(dtype)); });
     e.def_property_readonly("itemsize", &GetElementSize);
     e.def_property_readonly("name", &GetDtypeName);
-
-    m.def("dtype", &GetDtype); // for numpy compatibility
 }
 
 }  // namespace internal

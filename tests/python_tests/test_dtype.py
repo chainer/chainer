@@ -26,7 +26,5 @@ def test_dtypes(dtype, name, char, itemsize):
     assert dtype.name == name
     assert dtype.char == char
     assert dtype.itemsize == itemsize
-    assert xchainer.Dtype(name) == dtype
-    assert xchainer.Dtype(char) == dtype
     assert xchainer.dtype(name) == dtype
     assert xchainer.dtype(char) == dtype
