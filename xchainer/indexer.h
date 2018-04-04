@@ -12,7 +12,6 @@
 
 namespace xchainer {
 
-// Dynamic-length indexer.
 class Indexer {
 public:
     explicit Indexer(const Shape& shape) : total_size_(shape.GetTotalSize()), ndim_(shape.ndim()) {

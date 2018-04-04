@@ -26,7 +26,6 @@ using WithConstnessOf = std::conditional_t<std::is_const<From>::value, std::add_
 
 }  // namespace indexable_array_detail
 
-// IndexableArray with dynamic ndim.
 template <typename T>
 class IndexableArray {
 public:
