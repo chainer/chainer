@@ -248,6 +248,10 @@ void InitXchainerRoutines(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} + Array{x2}).move_body(); },
           py::arg("x1"),
           py::arg("x2"));
+    m.def("subtract",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} - Array{x2}).move_body(); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("multiply",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} * Array{x2}).move_body(); },
           py::arg("x1"),
