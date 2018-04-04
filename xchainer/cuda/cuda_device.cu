@@ -299,9 +299,9 @@ void CudaDevice::Fill(const Array& out, Scalar value) {
 }
 
 void CudaDevice::ArgMax(const Array& src, const std::vector<int8_t>& axis, const Array& out) {
-    (void)src;
-    (void)axis;
-    (void)out;
+    (void)src;   // unused
+    (void)axis;  // unused
+    (void)out;   // unused
     throw NotImplementedError("CudaDevice::ArgMax is not yet implemented.");
 }
 
