@@ -33,6 +33,7 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
+// TODO(niboshi): separate independent tests
 TEST_P(MathTest, IAdd) {
     {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
@@ -81,6 +82,55 @@ TEST_P(MathTest, IAdd) {
     }
 }
 
+TEST_P(MathTest, ISubtract) {
+    {
+        Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+        Array b = testing::BuildArray<float>({3, 1}, {4, 0, -2});
+        Array e = testing::BuildArray<float>({3, 1}, {-3, 2, 5});
+        internal::ISubtract(a, b);
+        testing::ExpectEqual<float>(e, a);
+    }
+
+    // non-contiguous
+    {
+        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
+        Array a_view = a.At({Slice{}, Slice{1, 2}});
+        Array b = Array::OnesLike(a_view);
+        Array e_view = testing::BuildArray<int32_t>({3, 1}, {0, 3, 6});
+        Array e = testing::BuildArray<int32_t>({3, 3}, {0, 0, 2, 3, 3, 5, 6, 6, 8});
+        internal::ISubtract(a_view, b);
+        testing::ExpectEqual<int32_t>(e_view, a_view);
+        testing::ExpectEqual<int32_t>(e, a);
+    }
+
+    // broadcast
+    {
+        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
+        Array b = Array::Ones({3, 1}, Dtype::kInt32);
+        Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(-1);
+        internal::ISubtract(a, b);
+        testing::ExpectEqual<int32_t>(e, a);
+    }
+    {
+        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
+        Array b = Array::Ones({3}, Dtype::kInt32);
+        Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(-1);
+        internal::ISubtract(a, b);
+        testing::ExpectEqual<int32_t>(e, a);
+    }
+    {
+        Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
+        Array b = Array::Ones({4}, Dtype::kInt32);
+        EXPECT_THROW(internal::ISubtract(a, b), XchainerError);
+    }
+    {
+        Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
+        Array b = Array::Ones({3, 3}, Dtype::kInt32);
+        EXPECT_THROW(internal::ISubtract(a, b), XchainerError);
+    }
+}
+
+// TODO(niboshi): separate independent tests
 TEST_P(MathTest, IMul) {
     {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
@@ -130,6 +180,7 @@ TEST_P(MathTest, IMul) {
     }
 }
 
+// TODO(niboshi): separate independent tests
 TEST_P(MathTest, Add) {
     {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
@@ -182,6 +233,60 @@ TEST_P(MathTest, Add) {
         Array b = Array::Ones({4}, Dtype::kInt32);
         EXPECT_THROW(Add(a, b), XchainerError);
     }
+}
+
+TEST_P(MathTest, Subtract) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array b = testing::BuildArray<float>({3, 1}, {4, 0, -2});
+    Array e = testing::BuildArray<float>({3, 1}, {-3, 2, 5});
+    Array o = Subtract(a, b);
+    testing::ExpectEqual<float>(e, o);
+}
+
+TEST_P(MathTest, SubtractNonContiguous) {
+    Array a = Array(testing::BuildArray({3, 3}).WithLinearData<int32_t>()).At({Slice{}, Slice{1, 2}});
+    Array b = Array::OnesLike(a);
+    Array e = testing::BuildArray<int32_t>({3, 1}, {0, 3, 6});
+    Array o = Subtract(a, b);
+    testing::ExpectEqual<int32_t>(e, o);
+}
+
+TEST_P(MathTest, SubtractBroadcast1) {
+    Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
+    Array b = Array::Ones({3, 1}, Dtype::kInt32);
+    Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(-1);
+    Array o = Subtract(a, b);
+    testing::ExpectEqual<int32_t>(e, o);
+}
+
+TEST_P(MathTest, SubtractBroadcast2) {
+    Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
+    Array b = Array::Ones({3}, Dtype::kInt32);
+    Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(-1);
+    Array o = Subtract(a, b);
+    testing::ExpectEqual<int32_t>(e, o);
+}
+
+TEST_P(MathTest, SubtractBroadcast3) {
+    Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
+    Array b = Array::Ones({3, 3}, Dtype::kInt32);
+    Array e = testing::BuildArray<int32_t>({3, 3}, {-1, 0, 1, -1, 0, 1, -1, 0, 1});
+    Array o = Subtract(a, b);
+    testing::ExpectEqual<int32_t>(e, o);
+}
+
+TEST_P(MathTest, SubtractBroadcast4) {
+    Array a = testing::BuildArray({3, 1}).WithLinearData<int32_t>();
+    Array b = testing::BuildArray({1, 2}).WithLinearData<int32_t>(1);
+    Array e = testing::BuildArray<int32_t>({3, 2}, {-1, -2, 0, -1, 1, 0});
+    Array o = Subtract(a, b);
+    testing::ExpectEqual<int32_t>(e, o);
+}
+
+TEST_P(MathTest, SubtractBroadcast5) {
+    Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
+    Array b = Array::Ones({4}, Dtype::kInt32);
+    EXPECT_THROW(Subtract(a, b), XchainerError);
 }
 
 TEST_P(MathTest, MultiplyScalar) {
@@ -245,6 +350,7 @@ TEST_P(MathTest, MultiplyScalarDoubleBackward) {
             {eps, eps});
 }
 
+// TODO(niboshi): separate independent tests
 TEST_P(MathTest, Multiply) {
     {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
