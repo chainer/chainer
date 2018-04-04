@@ -8,12 +8,17 @@
 
 #include "xchainer/array.h"
 #include "xchainer/dtype.h"
+#include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/util.h"
 
 namespace xchainer {
 
 Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis) {
+    if (a.GetTotalSize() == 0) {
+        throw DimensionError("Cannot compute ArgMax for an empty array.");
+    }
+
     std::vector<int8_t> sorted_axis;
     std::vector<int64_t> out_shape_vec;
     if (axis.has_value()) {

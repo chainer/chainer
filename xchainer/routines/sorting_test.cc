@@ -10,6 +10,7 @@
 #include "xchainer/array.h"
 #include "xchainer/device.h"
 #include "xchainer/device_id.h"
+#include "xchainer/error.h"
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
@@ -61,6 +62,24 @@ TEST_P(SortingTest, ArgMaxAllAxes) {
     Array b = ArgMax(a);
     Array e = testing::BuildArray<int64_t>({}, {1});
     testing::ExpectEqual<int64_t>(e, b);
+}
+
+TEST_P(SortingTest, ArgMaxInvalidAxis) {
+    // TODO(hvy): Run CUDA tests when CudaDevice::ArgMax is implemented.
+    if (GetDefaultDevice().backend().GetName() == "cuda") {
+        return;
+    }
+    Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
+    EXPECT_THROW(ArgMax(a, 3), DimensionError);
+}
+
+TEST_P(SortingTest, ArgMaxEmpty) {
+    // TODO(hvy): Run CUDA tests when CudaDevice::ArgMax is implemented.
+    if (GetDefaultDevice().backend().GetName() == "cuda") {
+        return;
+    }
+    Array a = Array::Zeros({0}, Dtype::kFloat32);
+    EXPECT_THROW(ArgMax(a), DimensionError);
 }
 
 INSTANTIATE_TEST_CASE_P(
