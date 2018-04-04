@@ -14,25 +14,6 @@
 
 namespace xchainer {
 namespace native {
-namespace internal {
-
-// Prepares indexable arrays and indexers for array reduction.
-//
-// It returns a tuple containing the following items in this order.
-// - Source indexable array
-// - Output indexable array
-// - Source array indexer
-// - Output array indexer
-// - Reduction indexer
-//
-// Axes of the source indexable array are reordered so that output axes come first and reduction axes follow.
-//
-// In both source and output indexable arrays, 1-dim axes are eliminated.
-template <typename SrcType, typename OutType>
-std::tuple<IndexableArray<const SrcType>, IndexableArray<OutType>, Indexer, Indexer, Indexer> PrepareIndexableArraysForReduction(
-        const Array& src, const std::vector<int8_t>& axis, const Array& out);
-
-}  // namespace internal
 
 class NativeDevice : public Device {
 public:
