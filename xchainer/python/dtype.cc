@@ -23,6 +23,16 @@ void InitXchainerDtype(pybind11::module& m) {
     e.def_property_readonly("char", [](Dtype dtype) { return std::string(1, GetCharCode(dtype)); });
     e.def_property_readonly("itemsize", &GetElementSize);
     e.def_property_readonly("name", &GetDtypeName);
+    e.def("__eq__", [](Dtype self, py::handle other) {
+        (void)self;   // unused
+        (void)other;  // unused
+        return false;
+    });
+    e.def("__ne__", [](Dtype self, py::handle other) {
+        (void)self;   // unused
+        (void)other;  // unused
+        return true;
+    });
 }
 
 }  // namespace internal
