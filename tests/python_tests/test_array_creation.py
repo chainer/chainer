@@ -33,6 +33,7 @@ def _create_dummy_array(shape, dtype):
 
 
 def _check_basic_creation(a, shape, dtype, device=None):
+    dtype = xchainer.dtype(dtype)
     assert a.shape == shape
     assert a.dtype == dtype
     assert a.is_contiguous
@@ -46,23 +47,25 @@ def _check_basic_creation(a, shape, dtype, device=None):
     assert a.device is device
 
 
-def test_array_from_python_list(shape, dtype):
+def test_array_from_python_list(shape):
     # TODO(sonots): Determine dtype (bool or int64, or float64) seeing values of list.
     # TODO(sonots): Support nested list
     a = xchainer.array([0, 1, 2])
     _check_basic_creation(a, (3,), xchainer.float64)
 
-    a = xchainer.array([0, 1, 2], xchainer.float32)
-    _check_basic_creation(a, (3,), xchainer.float32)
+    dtype = xchainer.float32
+    _check_basic_creation(xchainer.array([0, 1, 2], dtype), (3,), dtype)
+    _check_basic_creation(xchainer.array([0, 1, 2], dtype.name), (3,), dtype)
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-def test_array_from_python_list_with_device(shape, dtype, device):
+def test_array_from_python_list_with_device(shape, device):
     a = xchainer.array([0, 1, 2], device=device)
     _check_basic_creation(a, (3,), xchainer.float64, device)
 
-    a = xchainer.array([0, 1, 2], xchainer.float32, device)
-    _check_basic_creation(a, (3,), xchainer.float32, device)
+    dtype = xchainer.float32
+    _check_basic_creation(xchainer.array([0, 1, 2], dtype, device), (3,), dtype, device)
+    _check_basic_creation(xchainer.array([0, 1, 2], dtype.name, device), (3,), dtype, device)
 
 
 def test_array_from_numpy_ndarray(shape, dtype):
@@ -93,8 +96,11 @@ def test_array_from_xchainer_array_with_device(shape, dtype, device):
 
 
 def test_empty(shape, dtype):
-    a = xchainer.empty(shape, dtype)
-    _check_basic_creation(a, shape, dtype)
+    def check(a):
+        _check_basic_creation(a, shape, dtype)
+
+    check(xchainer.empty(shape, dtype))
+    check(xchainer.empty(shape, dtype.name))
 
 
 def test_empty_device(shape, dtype):
@@ -103,6 +109,8 @@ def test_empty_device(shape, dtype):
 
     check(xchainer.empty(shape, dtype, 'native:1'))
     check(xchainer.empty(shape, dtype, xchainer.get_device('native:1')))
+    check(xchainer.empty(shape, dtype.name, 'native:1'))
+    check(xchainer.empty(shape, dtype.name, xchainer.get_device('native:1')))
 
 
 def test_empty_like(shape, dtype):
@@ -126,11 +134,14 @@ def test_empty_like_device(shape, dtype):
 
 
 def test_zeros(shape, dtype):
-    a = xchainer.zeros(shape, dtype)
-    _check_basic_creation(a, shape, dtype)
+    def check(a):
+        _check_basic_creation(a, shape, dtype)
 
-    value = False if dtype == xchainer.bool else 0
-    assert all([el == value for el in a._debug_flat_data])
+        value = False if dtype == xchainer.bool else 0
+        assert all([el == value for el in a._debug_flat_data])
+
+    check(xchainer.zeros(shape, dtype))
+    check(xchainer.zeros(shape, dtype.name))
 
 
 def test_zeros_device(shape, dtype):
@@ -142,6 +153,8 @@ def test_zeros_device(shape, dtype):
 
     check(xchainer.zeros(shape, dtype, 'native:1'))
     check(xchainer.zeros(shape, dtype, xchainer.get_device('native:1')))
+    check(xchainer.zeros(shape, dtype.name, 'native:1'))
+    check(xchainer.zeros(shape, dtype.name, xchainer.get_device('native:1')))
 
 
 def test_zeros_like(shape, dtype):
@@ -171,11 +184,14 @@ def test_zeros_like_device(shape, dtype):
 
 
 def test_ones(shape, dtype):
-    a = xchainer.ones(shape, dtype)
-    _check_basic_creation(a, shape, dtype)
+    def check(a):
+        _check_basic_creation(a, shape, dtype)
 
-    value = True if dtype == xchainer.bool else 1
-    assert all([el == value for el in a._debug_flat_data])
+        value = True if dtype == xchainer.bool else 1
+        assert all([el == value for el in a._debug_flat_data])
+
+    check(xchainer.ones(shape, dtype))
+    check(xchainer.ones(shape, dtype.name))
 
 
 def test_ones_device(shape, dtype):
@@ -187,6 +203,8 @@ def test_ones_device(shape, dtype):
 
     check(xchainer.ones(shape, dtype, 'native:1'))
     check(xchainer.ones(shape, dtype, xchainer.get_device('native:1')))
+    check(xchainer.ones(shape, dtype.name, 'native:1'))
+    check(xchainer.ones(shape, dtype.name, xchainer.get_device('native:1')))
 
 
 def test_ones_like(shape, dtype):
@@ -290,6 +308,8 @@ def test_full_like_device(shape, dtype):
     value = 1 if dtype == xchainer.bool else True
     _check_full(shape, value, dtype, 'native:1')
     _check_full(shape, value, dtype, xchainer.get_device('native:1'))
+    _check_full(shape, value, dtype.name, 'native:1')
+    _check_full(shape, value, dtype.name, xchainer.get_device('native:1'))
     _check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
     _check_full_with_scalar(shape, xchainer.Scalar(value, dtype), xchainer.get_device('native:1'))
     _check_full_like(shape, value, dtype, 'native:1')

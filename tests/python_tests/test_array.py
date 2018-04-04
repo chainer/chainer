@@ -26,12 +26,12 @@ def shape(request):
 def _create_dummy_data(shape, dtype, pattern=1):
     total_size = _total_size(shape)
     if pattern == 1:
-        if dtype == xchainer.bool:
+        if xchainer.dtype(dtype) == xchainer.bool:
             return [i % 2 == 1 for i in range(total_size)]
         else:
             return [i for i in range(total_size)]
     else:
-        if dtype == xchainer.bool:
+        if xchainer.dtype(dtype) == xchainer.bool:
             return [i % 3 == 0 for i in range(total_size)]
         else:
             return [1 + i for i in range(total_size)]
@@ -43,6 +43,7 @@ def _create_dummy_ndarray(shape, numpy_dtype):
 
 def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list, expected_is_contiguous=True,
                  device=None):
+    expected_dtype = xchainer.dtype(expected_dtype)
     assert isinstance(array.dtype, xchainer.dtype)
     assert isinstance(array.shape, tuple)
     assert array.dtype == expected_dtype
@@ -120,15 +121,13 @@ def _check_init(shape, dtype, device=None, with_device=True):
 
 def test_init_without_device(shape, dtype):
     _check_init(shape, dtype, with_device=False)
+    _check_init(shape, dtype.name, with_device=False)
 
 
-def test_init_with_device(shape, dtype):
-    _check_init(shape, dtype, device='native:1')
-    _check_init(shape, dtype, device=xchainer.get_device('native:1'))
-
-
-def test_init_with_none_device(shape, dtype):
-    _check_init(shape, dtype, device=None)
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_init_with_device(shape, dtype, device):
+    _check_init(shape, dtype, device=device)
+    _check_init(shape, dtype.name, device=device)
 
 
 def _check_numpy_init(ndarray, shape, dtype, device=None):
