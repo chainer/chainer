@@ -68,11 +68,11 @@ TEST_P(SortingTest, ArgMaxNonContiguous) {
     if (GetDefaultDevice().backend().GetName() == "cuda") {
         return;
     }
-    Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-    Array a_view = a.At({Slice{}, Slice{0, 2}});
-    Array b = ArgMax(a_view, 0);
-    Array e = testing::BuildArray<int64_t>({2}, {2, 2});
-    testing::ExpectEqual<int64_t>(e, b);
+    Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
+    Array b = a.At({Slice{}, Slice{1, 3}});
+    Array c = ArgMax(b, 0);
+    Array e = testing::BuildArray<int64_t>({2}, {0, 1});
+    testing::ExpectEqual<int64_t>(e, c);
 }
 
 INSTANTIATE_TEST_CASE_P(
