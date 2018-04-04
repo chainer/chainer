@@ -193,7 +193,7 @@ void NativeDevice::ArgMax(const Array& src, const std::vector<int8_t>& axis, con
             out_indexer.Set(i_out);
             gsl::span<int64_t> src_index = gsl::make_span(src_indexer.index(), src.shape().size());
 
-            T max = 0;
+            T max{};
             int64_t argmax = -1;
 
             // Set output indices in the corresponding indices (out_axis) in src_index.
