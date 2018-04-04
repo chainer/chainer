@@ -1,5 +1,7 @@
 #include "xchainer/python/scalar.h"
 
+#include <string>
+
 #include <pybind11/operators.h>
 
 #include "xchainer/dtype.h"
