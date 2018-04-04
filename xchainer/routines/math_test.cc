@@ -1,6 +1,8 @@
 #include "xchainer/routines/math.h"
 
+#include <cmath>
 #include <cstdint>
+#include <limits>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -620,8 +622,8 @@ TEST_P(MathTest, Log) {
     if (GetParam() == "cuda") {
         return;
     }
-    Array a = testing::BuildArray<float>({3}, {1.0f, 3.0f, 8.0f}).WithPadding(1);
-    Array e = testing::BuildArray<float>({3}, {0.0f, std::log(3.0f), std::log(8.0f)});
+    Array a = testing::BuildArray<float>({5}, {0.0f, 1.0f, 3.0f, std::exp(-4.0f), std::exp(4.0f)}).WithPadding(1);
+    Array e = testing::BuildArray<float>({5}, {-std::numeric_limits<float>::infinity(), 0.0f, std::log(3.0f), -4.0f, 4.0f});
     Array b = Log(a);
     testing::ExpectAllClose(e, b, 1e-3, 0);
 }
