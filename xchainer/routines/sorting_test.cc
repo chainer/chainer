@@ -35,7 +35,7 @@ TEST_P(SortingTest, ArgMax) {
     if (GetDefaultDevice().backend().GetName() == "cuda") {
         return;
     }
-    Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
+    Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4}).WithPadding(1);
     Array b = ArgMax(a, 0);
     Array e = testing::BuildArray<int64_t>({3}, {0, 0, 1});
     testing::ExpectEqual<int64_t>(e, b);
@@ -61,18 +61,6 @@ TEST_P(SortingTest, ArgMaxAllAxes) {
     Array b = ArgMax(a);
     Array e = testing::BuildArray<int64_t>({}, {1});
     testing::ExpectEqual<int64_t>(e, b);
-}
-
-TEST_P(SortingTest, ArgMaxNonContiguous) {
-    // TODO(hvy): Run CUDA tests when CudaDevice::ArgMax is implemented.
-    if (GetDefaultDevice().backend().GetName() == "cuda") {
-        return;
-    }
-    Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
-    Array b = a.At({Slice{}, Slice{1, 3}});
-    Array c = ArgMax(b, 0);
-    Array e = testing::BuildArray<int64_t>({2}, {0, 1});
-    testing::ExpectEqual<int64_t>(e, c);
 }
 
 INSTANTIATE_TEST_CASE_P(
