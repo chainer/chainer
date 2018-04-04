@@ -112,21 +112,6 @@ def test_init_casted(value, cast_dtype, expected_value):
     assert isinstance(scalar.tolist(), type(expected_value))
 
 
-@pytest.mark.parametrize('value', [0, 0.0, 1, 1.0, -1, 0x100, 0x10000, 0x100000000, 0x7fffffffffffffff])
-@pytest.mark.parametrize('dtype_name', [
-    'bool',
-    'int8',
-    'int16',
-    'int32',
-    'int64',
-    'uint8',
-    'float32',
-    'float64'
-])
-def test_init_with_dtype_name(value, dtype_name):
-    assert xchainer.Scalar(value, dtype_name) == xchainer.Scalar(value, xchainer.dtype(dtype_name))
-
-
 @pytest.mark.parametrize('value1,value2', [
     # TODO(niboshi): Support commented-out cases
     (0, 0),
