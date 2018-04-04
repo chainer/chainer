@@ -31,6 +31,13 @@ def test_dtypes(dtype, name, char, itemsize):
     assert xchainer.dtype(dtype) == dtype
 
 
+@pytest.mark.parametrize("dtype,name,char,itemsize", _dtypes_data)
+def test_implicitly_convertible(dtype, name, char, itemsize):
+    assert dtype == dtype
+    assert dtype == name
+    assert dtype == char
+
+
 def test_eq():
     assert xchainer.int8 == xchainer.int8
     assert xchainer.dtype('int8') == xchainer.int8
