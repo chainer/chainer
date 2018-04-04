@@ -31,6 +31,8 @@ public:
 
     void Fill(const Array& out, Scalar value) override;
 
+    void ArgMax(const Array& src, const std::vector<int8_t>& axis, const Array& out) override;
+
     void Sum(const Array& src, const std::vector<int8_t>& axis, const Array& out) override;
 
     void Copy(const Array& src, const Array& out) override;

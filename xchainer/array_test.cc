@@ -1036,6 +1036,26 @@ TEST(ArrayBroadcastToTest, BroadcastTo) {
     testing::ExpectEqual<T>(e, b);
 }
 
+TEST(ArrayArgMaxTest, ArgMax) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::BuildArray({2, 3}).WithData<T>({1, 4, 3, 0, 1, 4});
+    Array b = a.ArgMax(0);
+    Array e = testing::BuildArray({3}).WithData<int64_t>({0, 0, 1});
+    testing::ExpectEqual<int64_t>(e, b);
+}
+
+TEST(ArrayArgMaxTest, ArgMaxAllAxes) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::BuildArray({2, 3}).WithData<T>({1, 4, 3, 0, 1, 4});
+    Array b = a.ArgMax();
+    Array e = testing::BuildArray({}).WithData<int64_t>({1});
+    testing::ExpectEqual<int64_t>(e, b);
+}
+
 TEST(ArraySumTest, Sum) {
     using T = float;
     testing::ContextSession context_session{};

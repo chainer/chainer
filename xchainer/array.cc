@@ -29,6 +29,7 @@
 #include "xchainer/routines/logic.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/math.h"
+#include "xchainer/routines/sorting.h"
 #include "xchainer/routines/util.h"
 #include "xchainer/scalar.h"
 
@@ -170,6 +171,8 @@ Array Array::Reshape(const Shape& newshape) const { return xchainer::Reshape(*th
 Array Array::Squeeze(const nonstd::optional<std::vector<int8_t>>& axis) const { return xchainer::Squeeze(*this, axis); }
 
 Array Array::BroadcastTo(const Shape& shape) const { return xchainer::BroadcastTo(*this, shape); }
+
+Array Array::ArgMax(const nonstd::optional<int8_t>& axis) const { return xchainer::ArgMax(*this, axis); }
 
 Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
 

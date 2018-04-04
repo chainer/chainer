@@ -298,13 +298,20 @@ void CudaDevice::Fill(const Array& out, Scalar value) {
     });
 }
 
+void CudaDevice::ArgMax(const Array& src, const std::vector<int8_t>& axis, const Array& out) {
+    (void)src;   // unused
+    (void)axis;  // unused
+    (void)out;   // unused
+    throw NotImplementedError("CudaDevice::ArgMax is not yet implemented.");
+}
+
 void CudaDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SumKernel<T>).block_size;
 
         // Prepare indexable arrays and indexers
-        auto tup = native::internal::PrepareIndexableArraysForReduction<T>(src, axis, out);
+        auto tup = native::internal::PrepareIndexableArraysForReduction<T, T>(src, axis, out);
         IndexableArray<const T>& src_iarray = std::get<0>(tup);
         IndexableArray<T>& out_iarray = std::get<1>(tup);
         Indexer& src_indexer = std::get<2>(tup);
