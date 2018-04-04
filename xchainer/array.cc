@@ -162,6 +162,12 @@ Array Array::operator*(Scalar rhs) const { return Multiply(*this, rhs); }
 
 Array Array::operator*(const Array& rhs) const { return Multiply(*this, rhs); }
 
+Array& Array::operator/=(const Array& rhs) { return internal::IDivide(*this, rhs); }
+
+const Array& Array::operator/=(const Array& rhs) const { return internal::IDivide(*this, rhs); }
+
+Array Array::operator/(const Array& rhs) const { return xchainer::Divide(*this, rhs); }
+
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal::At(*this, indices); }
 
 Array Array::Transpose() const { return xchainer::Transpose(*this); }

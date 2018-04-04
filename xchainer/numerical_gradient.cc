@@ -19,32 +19,6 @@ namespace numerical_gradient_internal {
 // (e.g. with unified memory). In order for numerical gradient calculation to work corretly on general devices, They should be replaced with
 // full-featured operations.
 
-Array& Divide(const Array& lhs, const Array& rhs, Array& out) {
-    lhs.device().Synchronize();
-    rhs.device().Synchronize();
-    out.device().Synchronize();
-
-    VisitDtype(lhs.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        IndexableArray<const T> lhs_iarray{lhs};
-        IndexableArray<const T> rhs_iarray{rhs};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = lhs_iarray[indexer] / rhs_iarray[indexer];
-        }
-    });
-    return out;
-}
-
-Array operator/(const Array& lhs, const Array& rhs) {
-    Array out = Array::EmptyLike(lhs);
-    Divide(lhs, rhs, out);
-    return out;
-}
-
 Scalar Norm(const Array& x) {
     Scalar s = AsScalar((x * x).Sum());
     return Scalar(std::sqrt(static_cast<double>(s)), x.dtype());

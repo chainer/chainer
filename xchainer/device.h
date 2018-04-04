@@ -77,6 +77,7 @@ public:
     virtual void Subtract(const Array& lhs, const Array& rhs, const Array& out) = 0;
     virtual void Mul(const Array& lhs, Scalar rhs, const Array& out) = 0;
     virtual void Mul(const Array& lhs, const Array& rhs, const Array& out) = 0;
+    virtual void Divide(const Array& lhs, const Array& rhs, const Array& out) = 0;
 
     // Compares lhs and rhs and assign either pos or neg according to the result.
     //
