@@ -615,6 +615,25 @@ TEST_P(MathTest, MaximumScalarDoubleBackward) {
             {eps, eps});
 }
 
+TEST_P(MathTest, Log) {
+    // TODO(niboshi): Implement for CUDA and remove this guard
+    if (GetParam() == "cuda") {
+        return;
+    }
+    Array a = testing::BuildArray<float>({3}, {1.0f, 3.0f, 8.0f}).WithPadding(1);
+    Array e = testing::BuildArray<float>({3}, {0.0f, std::log(3.0f), std::log(8.0f)});
+    Array b = Log(a);
+    testing::ExpectAllClose(e, b, 1e-3, 0);
+}
+
+TEST_P(MathTest, LogBackward) {
+    // TODO(niboshi): Implement
+}
+
+TEST_P(MathTest, LogDoubleBackward) {
+    // TODO(niboshi): Implement
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         MathTest,

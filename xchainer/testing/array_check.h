@@ -13,6 +13,7 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_backend.h"
+#include "xchainer/numeric.h"
 
 // TODO(hvy): Make it independent from gtest.
 namespace xchainer {
@@ -106,6 +107,12 @@ void ExpectEqualView(const Array& expected, const Array& actual) {
 
     // Views should have different array bodies.
     EXPECT_NE(expected.body(), actual.body());
+}
+
+inline void ExpectAllClose(const Array& expected, const Array& actual, double rtol, double atol) {
+    EXPECT_EQ(expected.shape(), actual.shape());
+    EXPECT_EQ(expected.dtype(), actual.dtype());
+    EXPECT_TRUE(AllClose(expected, actual, rtol, atol));
 }
 
 }  // namespace testing
