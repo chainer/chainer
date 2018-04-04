@@ -26,12 +26,12 @@ def shape(request):
 def _create_dummy_data(shape, dtype, pattern=1):
     total_size = _total_size(shape)
     if pattern == 1:
-        if dtype == xchainer.Dtype.bool:
+        if dtype == xchainer.bool:
             return [i % 2 == 1 for i in range(total_size)]
         else:
             return [i for i in range(total_size)]
     else:
-        if dtype == xchainer.Dtype.bool:
+        if dtype == xchainer.bool:
             return [i % 3 == 0 for i in range(total_size)]
         else:
             return [1 + i for i in range(total_size)]
@@ -43,7 +43,7 @@ def _create_dummy_ndarray(shape, numpy_dtype):
 
 def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list, expected_is_contiguous=True,
                  device_id=None):
-    assert isinstance(array.dtype, xchainer.Dtype)
+    assert isinstance(array.dtype, xchainer.dtype)
     assert isinstance(array.shape, tuple)
     assert array.dtype == expected_dtype
     assert array.shape == expected_shape
@@ -668,7 +668,7 @@ def test_add_iadd(device, shape, dtype):
     rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
     expected_data_list = [x + y for x, y in zip(lhs_data_list, rhs_data_list)]
-    if dtype == xchainer.Dtype.bool:
+    if dtype == xchainer.bool:
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 2] => [False, True]
 
     def _check_add(lhs, rhs, out):
@@ -695,7 +695,7 @@ def test_mul_imul(device, shape, dtype):
     rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
     expected_data_list = [x * y for x, y in zip(lhs_data_list, rhs_data_list)]
-    if dtype == xchainer.Dtype.bool:
+    if dtype == xchainer.bool:
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 1] => [False, True]
 
     def _check_mul(lhs, rhs, out):
@@ -813,45 +813,45 @@ def test_mul_scalar_double_backward(device):
 
 def test_array_init_invalid_length():
     with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((), xchainer.Dtype.int8, [])
+        xchainer.Array((), xchainer.int8, [])
 
     with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((), xchainer.Dtype.int8, [1, 1])
+        xchainer.Array((), xchainer.int8, [1, 1])
 
     with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((1,), xchainer.Dtype.int8, [])
+        xchainer.Array((1,), xchainer.int8, [])
 
     with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((1,), xchainer.Dtype.int8, [1, 1])
+        xchainer.Array((1,), xchainer.int8, [1, 1])
 
     with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((0,), xchainer.Dtype.int8, [1])
+        xchainer.Array((0,), xchainer.int8, [1])
 
     with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((3, 2), xchainer.Dtype.int8, [1, 1, 1, 1, 1])
+        xchainer.Array((3, 2), xchainer.int8, [1, 1, 1, 1, 1])
 
     with pytest.raises(xchainer.DimensionError):
-        xchainer.Array((3, 2), xchainer.Dtype.int8, [1, 1, 1, 1, 1, 1, 1])
+        xchainer.Array((3, 2), xchainer.int8, [1, 1, 1, 1, 1, 1, 1])
 
 
 def test_array_repr():
-    array = xchainer.Array((0,), xchainer.Dtype.bool, [])
+    array = xchainer.Array((0,), xchainer.bool, [])
     assert "array([], shape=(0,), dtype=bool, device='native:0')" == str(array)
 
-    array = xchainer.Array((1,), xchainer.Dtype.bool, [False])
+    array = xchainer.Array((1,), xchainer.bool, [False])
     assert "array([False], shape=(1,), dtype=bool, device='native:0')" == str(array)
 
-    array = xchainer.Array((2, 3), xchainer.Dtype.int8, [0, 1, 2, 3, 4, 5])
+    array = xchainer.Array((2, 3), xchainer.int8, [0, 1, 2, 3, 4, 5])
     assert ("array([[0, 1, 2],\n"
             "       [3, 4, 5]], shape=(2, 3), dtype=int8, device='native:0')") == str(array)
 
-    array = xchainer.Array((2, 3), xchainer.Dtype.float32, [0, 1, 2, 3.25, 4, 5])
+    array = xchainer.Array((2, 3), xchainer.float32, [0, 1, 2, 3.25, 4, 5])
     assert ("array([[0.  , 1.  , 2.  ],\n"
             "       [3.25, 4.  , 5.  ]], shape=(2, 3), dtype=float32, device='native:0')") == str(array)
 
 
 def test_array_require_grad():
-    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+    array = xchainer.Array((3, 1), xchainer.int8, [1, 1, 1])
 
     assert not array.is_grad_required()
     array.require_grad()
@@ -862,7 +862,7 @@ def test_array_require_grad():
 
 
 def test_array_require_grad_with_graph_id():
-    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+    array = xchainer.Array((3, 1), xchainer.int8, [1, 1, 1])
 
     assert not array.is_grad_required('graph_1')
     array.require_grad('graph_1')
@@ -886,8 +886,8 @@ def test_array_require_grad_with_graph_id():
 
 
 def test_array_grad():
-    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
-    grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
+    array = xchainer.Array((3, 1), xchainer.int8, [1, 1, 1])
+    grad = xchainer.Array((3, 1), xchainer.float32, [0.5, 0.5, 0.5])
 
     with pytest.raises(xchainer.XchainerError):
         array.get_grad()
@@ -921,8 +921,8 @@ def test_array_grad():
 
 
 def test_array_grad_with_graph_id():
-    array = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
-    grad = xchainer.Array((3, 1), xchainer.Dtype.float32, [0.5, 0.5, 0.5])
+    array = xchainer.Array((3, 1), xchainer.int8, [1, 1, 1])
+    grad = xchainer.Array((3, 1), xchainer.float32, [0.5, 0.5, 0.5])
 
     with pytest.raises(xchainer.XchainerError):
         array.get_grad('graph_1')
@@ -1017,8 +1017,8 @@ def test_array_grad_identity():
 
 
 def test_array_require_grad_multiple_graphs_forward():
-    x1 = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
-    x2 = xchainer.Array((3, 1), xchainer.Dtype.int8, [1, 1, 1])
+    x1 = xchainer.Array((3, 1), xchainer.int8, [1, 1, 1])
+    x2 = xchainer.Array((3, 1), xchainer.int8, [1, 1, 1])
 
     graph_id1 = 'graph_1'
     graph_id2 = 'graph_2'
