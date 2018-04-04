@@ -14,8 +14,7 @@ class Convolution2D(link.Link):
     This link wraps the :func:`~chainer.functions.convolution_2d` function and
     holds the filter weight and bias vector as parameters.
 
-    The output of this functio
-    n can be non-deterministic when it uses cuDNN.
+    The output of this function can be non-deterministic when it uses cuDNN.
     If ``chainer.configuration.config.deterministic`` is ``True`` and
     cuDNN version is >= v3, it forces cuDNN to use a deterministic algorithm.
 
