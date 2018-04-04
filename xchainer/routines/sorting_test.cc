@@ -52,7 +52,7 @@ TEST_P(SortingTest, ArgMaxNegativeAxis) {
     testing::ExpectEqual<int64_t>(e, b);
 }
 
-TEST_P(SortingTest, ArgMaxNoAxis) {
+TEST_P(SortingTest, ArgMaxAllAxes) {
     // TODO(hvy): Run CUDA tests when CudaDevice::ArgMax is implemented.
     if (GetDefaultDevice().backend().GetName() == "cuda") {
         return;
