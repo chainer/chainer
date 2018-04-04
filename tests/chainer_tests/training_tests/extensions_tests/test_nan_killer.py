@@ -1,5 +1,6 @@
 import os
 import tempfile
+import shutil
 import unittest
 
 import numpy
@@ -48,10 +49,13 @@ class TestNaNKiller(unittest.TestCase):
         self.dataset = Dataset([i for i in range(self.n_data)])
         self.iterator = chainer.iterators.SerialIterator(
             self.dataset, 1, shuffle=False)
+        self.temp_dir = tempfile.mkdtemp()
 
-    def prepare(self, device=None):
-        tempdir = tempfile.mkdtemp()
-        outdir = os.path.join(tempdir, 'testresult')
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
+
+    def prepare(self, dirname='test', device=None):
+        outdir = os.path.join(self.temp_dir, dirname)
         self.updater = training.updaters.StandardUpdater(
             self.iterator, self.optimizer, device=device)
         self.trainer = training.Trainer(
@@ -59,23 +63,23 @@ class TestNaNKiller(unittest.TestCase):
         self.trainer.extend(training.extensions.NaNKiller())
 
     def test_trainer(self):
-        self.prepare()
+        self.prepare(dirname='test_trainer')
         self.trainer.run()
 
     def test_nan_killer(self):
-        self.prepare()
+        self.prepare(dirname='test_nan_killer')
         self.model.l.W.array[1, 0] = numpy.nan
         with self.assertRaises(RuntimeError):
             self.trainer.run(show_loop_exception_msg=False)
 
     @attr.gpu
     def test_trainer_gpu(self):
-        self.prepare(device=0)
+        self.prepare(dirname='test_trainer_gpu', device=0)
         self.trainer.run()
 
     @attr.gpu
     def test_nan_killer_gpu(self):
-        self.prepare(device=0)
+        self.prepare(dirname='test_nan_killer_gpu', device=0)
         self.model.l.W.array[:] = numpy.nan
         with self.assertRaises(RuntimeError):
             self.trainer.run(show_loop_exception_msg=False)
