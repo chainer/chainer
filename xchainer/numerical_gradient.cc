@@ -35,7 +35,7 @@ Array& Divide(const Array& lhs, const Array& rhs, Array& out) {
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{out.shape()};
+        Indexer indexer{out.shape()};
 
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
@@ -58,7 +58,7 @@ Scalar Sum(const Array& array) {
     return VisitDtype(array.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> iarray{array};
-        Indexer<> indexer{array.shape()};
+        Indexer indexer{array.shape()};
 
         T s = 0;
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
@@ -82,7 +82,7 @@ void Set(Array& out, int64_t flat_index, Scalar value) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<T> iarray{out};
-        Indexer<> indexer{out.shape()};
+        Indexer indexer{out.shape()};
         indexer.Set(flat_index);
         iarray[indexer] = static_cast<T>(value);
     });
@@ -94,7 +94,7 @@ Scalar Get(const Array& out, int64_t flat_index) {
     return VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> iarray{out};
-        Indexer<> indexer{out.shape()};
+        Indexer indexer{out.shape()};
         indexer.Set(flat_index);
         return Scalar{iarray[indexer]};
     });

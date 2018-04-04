@@ -43,7 +43,7 @@ int64_t RoundUpToPowerOf2(int64_t x) {
 namespace {
 
 template <typename T>
-__global__ void FillKernel(IndexableArray<T> out_iarray, T value, Indexer<> indexer) {
+__global__ void FillKernel(IndexableArray<T> out_iarray, T value, Indexer indexer) {
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < indexer.total_size(); i += blockDim.x * gridDim.x) {
         indexer.Set(i);
         out_iarray[indexer] = value;
@@ -54,9 +54,9 @@ template <typename T>
 __global__ void SumKernel(
         IndexableArray<const T> src_iarray,
         IndexableArray<T> out_iarray,
-        Indexer<> src_indexer,
-        Indexer<> reduce_indexer,
-        Indexer<> out_indexer,
+        Indexer src_indexer,
+        Indexer reduce_indexer,
+        Indexer out_indexer,
         int reduce_block_size) {
     extern __shared__ __align__(8) uint8_t work_bytes[];
     T* work = reinterpret_cast<T*>(work_bytes);
@@ -151,7 +151,7 @@ __global__ void SumKernel(
 }
 
 template <typename T>
-__global__ void CopyKernel(IndexableArray<const T> src_iarray, IndexableArray<T> out_iarray, Indexer<> indexer) {
+__global__ void CopyKernel(IndexableArray<const T> src_iarray, IndexableArray<T> out_iarray, Indexer indexer) {
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < indexer.total_size(); i += blockDim.x * gridDim.x) {
         indexer.Set(i);
         out_iarray[indexer] = src_iarray[indexer];
@@ -160,7 +160,7 @@ __global__ void CopyKernel(IndexableArray<const T> src_iarray, IndexableArray<T>
 
 template <typename T>
 __global__ void EqualKernel(
-        IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<bool> out_iarray, Indexer<> indexer) {
+        IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<bool> out_iarray, Indexer indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
@@ -170,7 +170,7 @@ __global__ void EqualKernel(
 
 template <typename T>
 __global__ void AddKernel(
-        IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray, Indexer<> indexer) {
+        IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray, Indexer indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
@@ -180,7 +180,7 @@ __global__ void AddKernel(
 
 template <typename T>
 __global__ void SubtractKernel(
-        IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray, Indexer<> indexer) {
+        IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray, Indexer indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
@@ -189,7 +189,7 @@ __global__ void SubtractKernel(
 }
 
 template <typename T>
-__global__ void MulScalarKernel(IndexableArray<const T> lhs_iarray, T rhs_value, IndexableArray<T> out_iarray, Indexer<> indexer) {
+__global__ void MulScalarKernel(IndexableArray<const T> lhs_iarray, T rhs_value, IndexableArray<T> out_iarray, Indexer indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
@@ -199,7 +199,7 @@ __global__ void MulScalarKernel(IndexableArray<const T> lhs_iarray, T rhs_value,
 
 template <typename T>
 __global__ void MulKernel(
-        IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray, Indexer<> indexer) {
+        IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray, Indexer indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
@@ -214,7 +214,7 @@ __global__ void IfLessElseKernel(
         T pos_value,
         IndexableArray<const T> neg_iarray,
         IndexableArray<T> out_iarray,
-        Indexer<> indexer) {
+        Indexer indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
@@ -290,7 +290,7 @@ void CudaDevice::Fill(const Array& out, Scalar value) {
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&FillKernel<T>).block_size;
 
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{out.shape()};
+        Indexer indexer{out.shape()};
         int64_t grid_size = (indexer.total_size() + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(indexer.total_size(), kMaxBlockSize);
 
@@ -307,9 +307,9 @@ void CudaDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const Ar
         auto tup = native::internal::PrepareIndexableArraysForReduction<T>(src, axis, out);
         IndexableArray<const T>& src_iarray = std::get<0>(tup);
         IndexableArray<T>& out_iarray = std::get<1>(tup);
-        Indexer<>& src_indexer = std::get<2>(tup);
-        Indexer<>& out_indexer = std::get<3>(tup);
-        Indexer<>& reduce_indexer = std::get<4>(tup);
+        Indexer& src_indexer = std::get<2>(tup);
+        Indexer& out_indexer = std::get<3>(tup);
+        Indexer& reduce_indexer = std::get<4>(tup);
 
         // Launch kernel
         int reduce_block_size =
@@ -333,7 +333,7 @@ void CudaDevice::Copy(const Array& src, const Array& out) {
 
         IndexableArray<const T> src_iarray{src};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{out.shape()};
+        Indexer indexer{out.shape()};
 
         int64_t total_size = indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
@@ -353,7 +353,7 @@ void CudaDevice::Equal(const Array& lhs, const Array& rhs, const Array& out) {
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<bool> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
 
         int64_t total_size = indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
@@ -374,7 +374,7 @@ void CudaDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
 
         int64_t total_size = indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
@@ -394,7 +394,7 @@ void CudaDevice::Subtract(const Array& lhs, const Array& rhs, const Array& out) 
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
 
         int64_t total_size = indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
@@ -413,7 +413,7 @@ void CudaDevice::Mul(const Array& lhs, Scalar rhs, const Array& out) {
 
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
 
         int64_t total_size = indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
@@ -434,7 +434,7 @@ void CudaDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
 
         int64_t total_size = indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
@@ -454,7 +454,7 @@ void CudaDevice::IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Arra
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> neg_iarray{neg};
         IndexableArray<T> out_iarray{out};
-        Indexer<> indexer{lhs.shape()};
+        Indexer indexer{lhs.shape()};
         T rhs_value{rhs};
         T pos_value{pos};
 

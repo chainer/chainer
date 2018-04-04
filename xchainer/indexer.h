@@ -12,8 +12,6 @@
 
 namespace xchainer {
 
-// Dynamic-length indexer.
-template <int8_t kNdim = kDynamicNdim>
 class Indexer {
 public:
     explicit Indexer(const Shape& shape) : total_size_(shape.GetTotalSize()), ndim_(shape.ndim()) {
@@ -50,8 +48,7 @@ private:
     int8_t ndim_;
 };
 
-template <int8_t kNdim>
-std::ostream& operator<<(std::ostream& os, const Indexer<kNdim>& indexer) {
+inline std::ostream& operator<<(std::ostream& os, const Indexer& indexer) {
     std::vector<int64_t> index_vec(indexer.index(), indexer.index() + indexer.ndim());
     Shape shape{indexer.shape(), indexer.shape() + indexer.ndim()};
     Shape index{indexer.index(), indexer.index() + indexer.ndim()};

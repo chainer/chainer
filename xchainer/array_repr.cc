@@ -159,7 +159,7 @@ struct ArrayReprImpl {
         Formatter<T> formatter;
 
         // Let formatter scan all elements to print.
-        VisitElements<T>(native_array, [&formatter](const IndexableArray<const T> iarray, const Indexer<kDynamicNdim>& indexer) {
+        VisitElements<T>(native_array, [&formatter](const IndexableArray<const T> iarray, const Indexer& indexer) {
             formatter.Scan(iarray[indexer]);
         });
 
@@ -167,8 +167,7 @@ struct ArrayReprImpl {
         const int8_t ndim = array.ndim();
         int cur_line_size = 0;
         VisitElements<T>(
-                native_array,
-                [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T>& iarray, const Indexer<kDynamicNdim>& indexer) {
+                native_array, [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T>& iarray, const Indexer& indexer) {
                     int8_t trailing_zeros = 0;
                     if (ndim > 0) {
                         const int64_t* index = indexer.index();
@@ -235,7 +234,7 @@ private:
         // array should be already synchronized
 
         auto shape = array.shape();
-        Indexer<kDynamicNdim> indexer{shape};
+        Indexer indexer{shape};
         IndexableArray<const T> iarray{array};
 
         int64_t total_size = array.GetTotalSize();
