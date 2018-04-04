@@ -29,7 +29,7 @@ namespace internal {
 //         struct SumImpl {
 //             float Identity() { return 0; }
 //             float MapIn(float in) { return in; }
-//             float Reduce(float next, float& accum) { accum += next; }
+//             void Reduce(float next, float& accum) { accum += next; }
 //             float MapOut(float accum) { return accum; }
 //         };
 //

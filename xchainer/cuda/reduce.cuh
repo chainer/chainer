@@ -142,7 +142,7 @@ __global__ void ReductionKernel(ReductionArg<In, Out> arg, int reduce_block_size
 //         struct SumImpl {
 //             __device__ float Identity() { return 0; }
 //             __device__ float MapIn(float in) { return in; }
-//             __device__ float Reduce(float next, float& accum) { accum += next; }
+//             __device__ void Reduce(float next, float& accum) { accum += next; }
 //             __device__ float MapOut(float accum) { return accum; }
 //         };
 //
