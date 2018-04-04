@@ -1,4 +1,5 @@
 import os
+import platform
 import tempfile
 import unittest
 
@@ -456,10 +457,17 @@ class TestSequential(unittest.TestCase):
                 six.moves.cPickle.dump(self.s2, fp)
 
     def test_repr(self):
-        self.assertEqual(
-            str(self.s1),
-            '0\tLinear\tW(None)\tb(3,)\t\n'
-            '1\tLinear\tW(2, 3)\tb(2,)\t\n')
+        bits, pl = platform.architecture()
+        if bits == '64bit' and 'Windows' in pl:
+            self.assertEqual(
+                str(self.s1),
+                '0\tLinear\tW(None)\tb(3L,)\t\n'
+                '1\tLinear\tW(2L, 3L)\tb(2L,)\t\n')
+        else:
+            self.assertEqual(
+                str(self.s1),
+                '0\tLinear\tW(None)\tb(3,)\t\n'
+                '1\tLinear\tW(2, 3)\tb(2,)\t\n')
 
     def test_repeat_with_init(self):
         # s2 ((l1 -> l2) -> l3) -> s2 ((l1 -> l2) -> l3)
