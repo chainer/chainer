@@ -513,12 +513,15 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
         pad (:class:`int` or pair of :class:`int` s):
             Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        cover_all (bool): If ``True``, all spatial locations are convoluted
-            into some output pixels.
-        dilate (int or pair of ints): Dilation factor of filter applications.
+        cover_all (:class:`bool`):
+            If ``True``, all spatial locations are convoluted into some output
+            pixels.
+        dilate (:class:`int` or pair of :class:`int` s):
+            Dilation factor of filter applications.
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
-        groups (int): The number of groups to use grouped convolution. The
-            default is one, where grouped convolution is not used.
+        groups (:class:`int`):
+            The number of groups to use grouped convolution.
+            The default is one, where grouped convolution is not used.
 
     Returns:
         ~chainer.Variable:
