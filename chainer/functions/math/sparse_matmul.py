@@ -13,69 +13,6 @@ except ImportError:
     _scipy_available = False
 
 
-class SparseCooMatrix(object):
-
-    def __init__(self, data, row, col, shape, use_variable=False):
-        self.data = data
-        if use_variable:
-            self.data = chainer.Variable(self.data)
-        self.row = row
-        self.col = col
-        self.shape = shape  # (row, col)
-
-    def to_dense(self):
-        xp = cuda.get_array_module(self.data)
-        if self.data.ndim == 1:
-            x = xp.zeros(self.shape, dtype=self.data.dtype)
-            x[self.row, self.col] = self.data
-            return x
-        if self.data.ndim == 2:
-            nb = self.data.shape[0]
-            x = xp.zeros((nb, self.shape[0], self.shape[1]),
-                         dtype=self.data.dtype)
-            for i in range(nb):
-                nnz = len(xp.where(self.data[i] != 0)[0])
-                x[i, self.row[i, :nnz],
-                  self.col[i, :nnz]] = self.data[i, :nnz]
-            return x
-
-
-def sparse_dense2coo(x, ldnz=None, use_variable=False):
-    xp = cuda.get_array_module(x)
-    if x.ndim == 2:
-        _row, _col = xp.where(x != 0)
-        nnz = len(_row)
-        if ldnz is None or ldnz < nnz:
-            ldnz = nnz
-        data = xp.zeros((ldnz), dtype=x.dtype)
-        row = xp.full((ldnz), -1, dtype=xp.int32)
-        col = xp.full((ldnz), -1, dtype=xp.int32)
-        data[:nnz] = x[_row, _col]
-        row[:nnz] = xp.array(_row).astype(xp.int32)
-        col[:nnz] = xp.array(_col).astype(xp.int32)
-        shape = x.shape
-        return SparseCooMatrix(data, row, col, shape, use_variable)
-    elif x.ndim == 3:
-        # first axis is batch axis
-        nb = x.shape[0]
-        if ldnz is None:
-            ldnz = 0
-        for i in range(nb):
-            ldnz = max(ldnz, len(xp.where(x[i] != 0)[0]))
-        data = xp.empty((nb, ldnz), dtype=x.dtype)
-        row = xp.empty((nb, ldnz), dtype=xp.int32)
-        col = xp.empty((nb, ldnz), dtype=xp.int32)
-        for i in range(nb):
-            coo = sparse_dense2coo(x[i], ldnz)
-            data[i] = coo.data
-            row[i] = coo.row
-            col[i] = coo.col
-        shape = x.shape[1:]
-        return SparseCooMatrix(data, row, col, shape, use_variable)
-    else:
-        raise ValueError('ndim of x must be 2 or 3.')
-
-
 def _sparse_matmul(sp_data, sp_row, sp_col, sp_shape, dn,
                    transa, transb, transc, dtype=None):
     if dtype is None:
@@ -85,7 +22,7 @@ def _sparse_matmul(sp_data, sp_row, sp_col, sp_shape, dn,
     if transa:
         A_row = sp_col
         A_col = sp_row
-        A_shape = [sp_shape[1], sp_shape[0]]
+        A_shape = (sp_shape[1], sp_shape[0])
     else:
         A_row = sp_row
         A_col = sp_col
@@ -111,9 +48,9 @@ def _sparse_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype):
     # B.shape: ((nb,) _k, _n)
     # A_data/row/col.shape: ((nb,) ldnz)
     if not _scipy_available:
-        msg = "SciPy seems not available on your system. A CPU" \
-              " implementation of sparse_matmul uses SciPy, so that you" \
-              " cannot use sparse_matmul on CPU."
+        msg = "SciPy seems to be unavailable on your system. A CPU" \
+              " implementation of sparse_matmul uses SciPy, so you" \
+              " cannot use sparse_matmul on the CPU."
         raise RuntimeError(msg)
 
     _m, _k = A_shape
@@ -493,14 +430,14 @@ def sparse_matmul(a, b, transa=False, transb=False):
     Returns:
         _chainer.Variable: Result of batched mat-mul.
     """
-    if (isinstance(a, SparseCooMatrix) and
+    if (isinstance(a, utils.SparseCooMatrix) and
             isinstance(b, (chainer.Variable, numpy.ndarray, cuda.ndarray))):
         return SparseMatMul(a.row, a.col, a.shape,
                             transa=transa,
                             transb=transb,
                             transc=False).apply((a.data, b))[0]
     elif (isinstance(a, (chainer.Variable, numpy.ndarray, cuda.ndarray)) and
-          isinstance(b, SparseCooMatrix)):
+          isinstance(b, utils.SparseCooMatrix)):
         return SparseMatMul(b.row, b.col, b.shape,
                             transa=not transb,
                             transb=not transa,
