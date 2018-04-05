@@ -1,6 +1,7 @@
 import functools
 import math
 import operator
+import warnings
 
 import numpy
 import pytest
@@ -85,7 +86,7 @@ def _check_array_equals_ndarray(array, ndarray):
     assert array.ndim == ndarray.ndim
     assert array.element_bytes == ndarray.itemsize
     assert array.total_bytes == ndarray.itemsize * ndarray.size
-    assert array._debug_flat_data == ndarray.ravel().tolist()
+    numpy.testing.assert_array_equal(array._debug_flat_data, ndarray.ravel().tolist())
     assert array.is_contiguous == ndarray.flags['C_CONTIGUOUS']
 
 
@@ -1451,3 +1452,21 @@ def test_fill_with_scalar(device, shape, dtype, value):
     a_xc.fill(xchainer.Scalar(value, dtype))
     a_xc.device.synchronize()
     numpy.testing.assert_array_equal(a_xc, a_np)
+
+
+# TODO(niboshi): Add 'cuda:0'
+@pytest.mark.parametrize_device(['native:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
+    numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+@pytest.mark.parametrize('numpy_dtype', [numpy.float32, numpy.float64])
+def test_log(device, input, numpy_dtype):
+    a_np = input.astype(numpy_dtype)
+    a_xc = xchainer.array(a_np)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', RuntimeWarning)
+        b_np = numpy.log(a_np)
+    b_xc = xchainer.log(a_xc)
+
+    _check_array_equals_ndarray(b_xc, b_np)
