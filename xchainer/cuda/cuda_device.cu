@@ -496,7 +496,7 @@ void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
     }
 }
 
-void CudaDevice::Exp(const Array& src, const Array& out) {
+void CudaDevice::Exp(const Array& x, const Array& out) {
     (void)src;  // unused
     (void)out;  // unused
     throw NotImplementedError("CudaDevice::Exp is not yet implemented.");
