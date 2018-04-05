@@ -7,9 +7,11 @@ from chainer.training import extension
 
 class InverseShift(extension.Extension):
 
-    """Trainer extension to shift an optimizer attribute according to the
-    fomula: new_attr = init_attr * (1 + gamma * iter) ^ (- power),
-    which is compatible to ``inv`` learning rate policy in Caffe.
+    """Trainer extension to shift an optimizer attribute.
+
+    The new value is computed according to the fomula below:
+    new_attr = init_attr * (1 + gamma * iter) ^ (- power), which is compatible
+    to the ``inv`` learning rate policy in Caffe.
 
     The typical use is to decrease the learning rate during the training.
 
