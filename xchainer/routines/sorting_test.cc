@@ -32,36 +32,24 @@ private:
 };
 
 TEST_P(SortingTest, ArgMax) {
-    // TODO(hvy): Run CUDA tests when CudaDevice::ArgMax is implemented.
-    if (GetDefaultDevice().backend().GetName() == "cuda") {
-        return;
-    }
     Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4}).WithPadding(1);
     Array b = ArgMax(a, 0);
     Array e = testing::BuildArray<int64_t>({3}, {0, 0, 1});
-    testing::ExpectEqual<int64_t>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(SortingTest, ArgMaxNegativeAxis) {
-    // TODO(hvy): Run CUDA tests when CudaDevice::ArgMax is implemented.
-    if (GetDefaultDevice().backend().GetName() == "cuda") {
-        return;
-    }
     Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
     Array b = ArgMax(a, -1);
     Array e = testing::BuildArray<int64_t>({2}, {1, 2});
-    testing::ExpectEqual<int64_t>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(SortingTest, ArgMaxAllAxes) {
-    // TODO(hvy): Run CUDA tests when CudaDevice::ArgMax is implemented.
-    if (GetDefaultDevice().backend().GetName() == "cuda") {
-        return;
-    }
     Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
     Array b = ArgMax(a);
     Array e = testing::BuildArray<int64_t>({}, {1});
-    testing::ExpectEqual<int64_t>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(SortingTest, ArgMaxInvalidAxis) {

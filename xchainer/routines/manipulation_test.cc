@@ -66,7 +66,7 @@ TEST_P(ManipulationTest, Transpose) {
     EXPECT_EQ(Strides({4, 12}), b.strides());
 
     Array e = testing::BuildArray({3, 2}).WithData<int32_t>({0, 3, 1, 4, 2, 5});
-    testing::ExpectEqual<int32_t>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(ManipulationTest, TransposeNoncontiguous) {
@@ -78,7 +78,7 @@ TEST_P(ManipulationTest, TransposeNoncontiguous) {
     EXPECT_EQ(Shape({3, 2}), b.shape());
 
     Array e = testing::BuildArray({3, 2}).WithData<int32_t>({0, 3, 1, 4, 2, 5});
-    testing::ExpectEqual<int32_t>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(ManipulationTest, TransposeBackward) {
@@ -111,7 +111,7 @@ TEST_P(ManipulationTest, Reshape) {
     ASSERT_EQ(output_shape, b.shape());
     EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 // If an input array has a unit-length axis with 0-stride, that axis should not give rise to any copies.
@@ -128,7 +128,7 @@ TEST_P(ManipulationTest, ReshapeNoCopyZeroStrideAxis) {
     ASSERT_EQ(output_shape, b.shape());
     EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(ManipulationTest, InvalidReshape) {
@@ -146,7 +146,7 @@ TEST_P(ManipulationTest, SqueezeAllUnitLengthAxes) {
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
     Array b = Squeeze(a);
     Array e = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(ManipulationTest, SqueezeSpecifiedUnitLenghtAxes) {
@@ -155,7 +155,7 @@ TEST_P(ManipulationTest, SqueezeSpecifiedUnitLenghtAxes) {
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
     Array b = Squeeze(a, std::vector<int8_t>{2, 0, 4});
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(ManipulationTest, SqueezeAllAxes) {
@@ -164,7 +164,7 @@ TEST_P(ManipulationTest, SqueezeAllAxes) {
     Array a = testing::BuildArray({1, 1, 1}).WithLinearData<T>();
     Array b = Squeeze(a);
     Array e = testing::BuildArray<T>({}, std::vector<T>(1, 0));
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(ManipulationTest, SqueezeMultipleCalls) {
@@ -174,7 +174,7 @@ TEST_P(ManipulationTest, SqueezeMultipleCalls) {
     Array b = Squeeze(a, std::vector<int8_t>{0, 2});
     Array c = Squeeze(b, std::vector<int8_t>{3});
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, c);
+    testing::ExpectEqual(e, c);
 }
 
 TEST_P(ManipulationTest, SqueezeNonContiguous) {
@@ -183,7 +183,7 @@ TEST_P(ManipulationTest, SqueezeNonContiguous) {
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(1);
     Array b = Squeeze(a, std::vector<int8_t>{0, 2, 4});
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(ManipulationTest, SqueezeNegativeAxis) {
@@ -192,7 +192,7 @@ TEST_P(ManipulationTest, SqueezeNegativeAxis) {
     Array a = testing::BuildArray({2, 3, 4, 1}).WithLinearData<T>();
     Array b = Squeeze(a, std::vector<int8_t>{-1});
     Array e = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(ManipulationTest, SqueezeNoSqueezableAxes) {
@@ -200,7 +200,7 @@ TEST_P(ManipulationTest, SqueezeNoSqueezableAxes) {
 
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
     Array e = Squeeze(a);
-    testing::ExpectEqual<T>(e, a);
+    testing::ExpectEqual(e, a);
     EXPECT_EQ(e.body(), a.body());
 }
 
@@ -268,7 +268,7 @@ TEST_P(ManipulationTest, BroadcastTo) {
         output_data.insert(output_data.end(), {1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6});
     }
     Array e = testing::BuildArray(output_shape).WithData<T>(output_data.begin(), output_data.end());
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 // Can't broadcast to smaller dimensions

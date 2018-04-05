@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <tuple>
@@ -71,19 +72,19 @@ void NativeDevice::ArgMax(const Array& src, const std::vector<int8_t>& axis, con
     VisitDtype(src.dtype(), [&src, &axis, &out](auto pt) {
         using T = typename decltype(pt)::type;
         struct ArgMaxImpl {
-            struct Accum {
+            struct MaxAndArgMax {
                 T max;
                 int64_t argmax;
             };
 
-            Accum Identity() { return {T{}, -1}; }
-            Accum MapIn(T in, int64_t index) { return {in, index}; }
-            void Reduce(Accum next, Accum& accum) {
+            MaxAndArgMax Identity() { return {T{}, -1}; }
+            MaxAndArgMax MapIn(T in, int64_t index) { return {in, index}; }
+            void Reduce(MaxAndArgMax next, MaxAndArgMax& accum) {
                 if (accum.argmax < 0 || accum.max < next.max) {
                     accum = next;
                 }
             }
-            int64_t MapOut(Accum accum) { return accum.argmax; }
+            int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
         };
         Reduce(MakeReductionKernelArg<T, int64_t>(src, axis, out), ArgMaxImpl{});
     });
@@ -251,6 +252,21 @@ void NativeDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
                     out_value += lhs_iarray[lhs_i] * rhs_iarray[rhs_i];
                 }
             }
+        }
+    });
+}
+
+void NativeDevice::Exp(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> x_iarray{x};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{out.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            out_iarray[indexer] = std::exp(x_iarray[indexer]);
         }
     });
 }
