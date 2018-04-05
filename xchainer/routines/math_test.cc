@@ -625,6 +625,28 @@ TEST_P(MathTest, Exp) {
     testing::ExpectAllClose(e, b, 1e-3, 0);
 }
 
+TEST_P(MathTest, ExpBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Array::Full(shape, 1e-3);
+
+    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {Exp(xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, ExpDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Array::Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Exp(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
+}
+
 TEST_P(MathTest, Log) {
     // TODO(niboshi): Add negative -> nan check
     Array a = testing::BuildArray<float>({5}, {0.0f, 1.0f, 3.0f, std::exp(-4.0f), std::exp(4.0f)}).WithPadding(1);
