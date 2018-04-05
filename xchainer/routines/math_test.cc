@@ -618,10 +618,6 @@ TEST_P(MathTest, MaximumScalarDoubleBackward) {
 }
 
 TEST_P(MathTest, Exp) {
-    // TODO(hvy): Implement for CUDA and remove this guard
-    if (GetParam() == "cuda") {
-        return;
-    }
     Array a = testing::BuildArray<float>(
             {5}, {0.f, 1.f, std::log(3.f), std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()});
     Array e = testing::BuildArray<float>({5}, {1.f, std::exp(1.f), 3.f, std::numeric_limits<float>::infinity(), 0});
