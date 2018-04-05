@@ -8,6 +8,7 @@ import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer import utils
 from chainer.utils import type_check
 
 _scipy_available = True
@@ -83,7 +84,7 @@ class TestSparseMatMul(unittest.TestCase):
     # SPDN: sparse A * dense B
     #
     def check_SPDN_forward(self, a_data, b_data, atol=1e-4, rtol=1e-5):
-        sp_a = F.sparse_dense2coo(a_data, use_variable=True)
+        sp_a = utils.sparse_dense2coo(a_data, use_variable=True)
         b = chainer.Variable(b_data)
         c = F.sparse_matmul(sp_a, b, transa=self.transa, transb=self.transb)
         testing.assert_allclose(self.forward_answer, c.data, atol, rtol)
@@ -106,7 +107,7 @@ class TestSparseMatMul(unittest.TestCase):
             self.check_SPDN_forward(a, b)
 
     def check_SPDN_backward(self, a_data, b_data, c_grad, atol, rtol):
-        sp_a = F.sparse_dense2coo(a_data)
+        sp_a = utils.sparse_dense2coo(a_data)
         func = F.math.sparse_matmul.SparseMatMul(
             sp_a.row, sp_a.col, sp_a.shape,
             transa=self.transa, transb=self.transb, transc=False)
@@ -132,8 +133,8 @@ class TestSparseMatMul(unittest.TestCase):
     def check_SPDN_double_backward(
             self, a_data, b_data, c_grad, a_grad_grad, b_grad_grad,
             atol, rtol):
-        sp_a = F.sparse_dense2coo(a_data)
-        sp_gga = F.sparse_dense2coo(a_grad_grad)
+        sp_a = utils.sparse_dense2coo(a_data)
+        sp_gga = utils.sparse_dense2coo(a_grad_grad)
         func = F.math.sparse_matmul.SparseMatMul(
             sp_a.row, sp_a.col, sp_a.shape,
             transa=self.transa, transb=self.transb, transc=False)
@@ -163,7 +164,7 @@ class TestSparseMatMul(unittest.TestCase):
     #
     def check_DNSP_forward(self, a_data, b_data, atol=1e-4, rtol=1e-5):
         a = chainer.Variable(a_data)
-        sp_b = F.sparse_dense2coo(b_data, use_variable=True)
+        sp_b = utils.sparse_dense2coo(b_data, use_variable=True)
         c = F.sparse_matmul(a, sp_b, transa=self.transa, transb=self.transb)
         testing.assert_allclose(self.forward_answer, c.data, atol, rtol)
 
@@ -185,7 +186,7 @@ class TestSparseMatMul(unittest.TestCase):
             self.check_DNSP_forward(a, b)
 
     def check_DNSP_backward(self, a_data, b_data, c_grad, atol, rtol):
-        sp_b = F.sparse_dense2coo(b_data)
+        sp_b = utils.sparse_dense2coo(b_data)
         func = F.math.sparse_matmul.SparseMatMul(
             sp_b.row, sp_b.col, sp_b.shape,
             transa=not self.transb, transb=not self.transa, transc=True)
@@ -211,8 +212,8 @@ class TestSparseMatMul(unittest.TestCase):
     def check_DNSP_double_backward(
             self, a_data, b_data, c_grad, a_grad_grad, b_grad_grad,
             atol, rtol):
-        sp_b = F.sparse_dense2coo(b_data)
-        sp_ggb = F.sparse_dense2coo(b_grad_grad)
+        sp_b = utils.sparse_dense2coo(b_data)
+        sp_ggb = utils.sparse_dense2coo(b_grad_grad)
         func = F.math.sparse_matmul.SparseMatMul(
             sp_b.row, sp_b.col, sp_b.shape,
             transa=not self.transb, transb=not self.transa, transc=True)
@@ -251,8 +252,8 @@ class TestSparseMatMulInvalid(unittest.TestCase):
     def test_invalid_ndim(self):
         a = _setup_tensor(.5, 1, (2, 3, 3), numpy.float32, .75)
         b = _setup_tensor(.5, 1, (3, 3), numpy.float32, .75)
-        sp_a = F.sparse_dense2coo(a)
-        sp_b = F.sparse_dense2coo(b)
+        sp_a = utils.sparse_dense2coo(a)
+        sp_b = utils.sparse_dense2coo(b)
         with self.assertRaises(type_check.InvalidType):
             F.sparse_matmul(sp_a, b, self.transa, self.transb)
         with self.assertRaises(type_check.InvalidType):
@@ -261,8 +262,8 @@ class TestSparseMatMulInvalid(unittest.TestCase):
     def test_invalid_nbatch(self):
         a = _setup_tensor(.5, 1, (2, 3, 3), numpy.float32, .75)
         b = _setup_tensor(.5, 1, (3, 3, 3), numpy.float32, .75)
-        sp_a = F.sparse_dense2coo(a)
-        sp_b = F.sparse_dense2coo(b)
+        sp_a = utils.sparse_dense2coo(a)
+        sp_b = utils.sparse_dense2coo(b)
         with self.assertRaises(type_check.InvalidType):
             F.sparse_matmul(sp_a, b, self.transa, self.transb)
         with self.assertRaises(type_check.InvalidType):
@@ -271,8 +272,8 @@ class TestSparseMatMulInvalid(unittest.TestCase):
     def test_invalid_shape(self):
         a = _setup_tensor(.5, 1, (1, 2, 3), numpy.float32, .75)
         b = _setup_tensor(.5, 1, (1, 4, 5), numpy.float32, .75)
-        sp_a = F.sparse_dense2coo(a)
-        sp_b = F.sparse_dense2coo(b)
+        sp_a = utils.sparse_dense2coo(a)
+        sp_b = utils.sparse_dense2coo(b)
         with self.assertRaises(type_check.InvalidType):
             F.sparse_matmul(sp_a, b, self.transa, self.transb)
         with self.assertRaises(type_check.InvalidType):
@@ -281,8 +282,8 @@ class TestSparseMatMulInvalid(unittest.TestCase):
     def test_invalid_inputs(self):
         a = _setup_tensor(.5, 1, (1, 3, 3), numpy.float32, .75)
         b = _setup_tensor(.5, 1, (1, 3, 3), numpy.float32, .75)
-        sp_a = F.sparse_dense2coo(a)
-        sp_b = F.sparse_dense2coo(b)
+        sp_a = utils.sparse_dense2coo(a)
+        sp_b = utils.sparse_dense2coo(b)
         with self.assertRaises(ValueError):
             F.sparse_matmul(sp_a, sp_b, self.transa, self.transb)
         with self.assertRaises(ValueError):
