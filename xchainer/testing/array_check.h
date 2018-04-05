@@ -109,10 +109,10 @@ void ExpectEqualView(const Array& expected, const Array& actual) {
     EXPECT_NE(expected.body(), actual.body());
 }
 
-inline void ExpectAllClose(const Array& expected, const Array& actual, double rtol, double atol) {
+inline void ExpectAllClose(const Array& expected, const Array& actual, double rtol, double atol, bool equal_nan = false) {
     EXPECT_EQ(expected.shape(), actual.shape());
     EXPECT_EQ(expected.dtype(), actual.dtype());
-    EXPECT_TRUE(AllClose(expected, actual, rtol, atol));
+    EXPECT_TRUE(AllClose(expected, actual, rtol, atol, equal_nan));
 }
 
 }  // namespace testing
