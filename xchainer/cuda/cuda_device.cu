@@ -458,6 +458,11 @@ void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
     }
 }
 
+void CudaDevice::Log(const Array& /*x*/, const Array& /*out*/) {
+    // TODO(niboshi): Implement
+    throw NotImplementedError("");
+}
+
 void CudaDevice::Synchronize() {
     CheckCudaError(cudaSetDevice(index()));
     CheckCudaError(cudaDeviceSynchronize());

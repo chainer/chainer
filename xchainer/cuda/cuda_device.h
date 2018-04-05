@@ -48,6 +48,8 @@ public:
 
     void Dot(const Array& lhs, const Array& rhs, const Array& out) override;
 
+    void Log(const Array& x, const Array& out) override;
+
     void Synchronize() override;
 };
 

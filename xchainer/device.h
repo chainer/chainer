@@ -89,6 +89,8 @@ public:
     // Otherwise, the behavior is undefined.
     virtual void Dot(const Array& lhs, const Array& rhs, const Array& out) = 0;
 
+    virtual void Log(const Array& x, const Array& out) = 0;
+
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat
