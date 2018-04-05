@@ -1456,7 +1456,8 @@ def test_fill_with_scalar(device, shape, dtype, value):
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
-    numpy.asarray(0), numpy.asarray(-4), numpy.asarray(4), numpy.asarray(-float('inf')), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
+    numpy.asarray(0), numpy.asarray(-4), numpy.asarray(4),
+    numpy.asarray(-float('inf')), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
     numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
 # TODO(niboshi): Dtype promotion is not supported yet.
