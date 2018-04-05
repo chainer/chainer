@@ -189,18 +189,18 @@ namespace {
 
 template <typename T>
 struct ArgMaxImpl {
-    struct Accum {
+    struct MaxAndArgMax {
         T max;
         int64_t argmax;
     };
-    __device__ Accum Identity() { return {T{}, -1}; }
-    __device__ Accum MapIn(T in, int64_t index) { return {in, index}; }
-    __device__ void Reduce(Accum next, Accum& accum) {
+    __device__ MaxAndArgMax Identity() { return {T{}, -1}; }
+    __device__ MaxAndArgMax MapIn(T in, int64_t index) { return {in, index}; }
+    __device__ void Reduce(MaxAndArgMax next, MaxAndArgMax& accum) {
         if (accum.argmax < 0 || accum.max < next.max) {
             accum = next;
         }
     }
-    __device__ int64_t MapOut(Accum accum) { return accum.argmax; }
+    __device__ int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
 };
 
 }  // namespace
