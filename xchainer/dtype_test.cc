@@ -51,5 +51,18 @@ TEST(DtypeTest, IsValidDtype) {
     EXPECT_FALSE(IsValidDtype(static_cast<Dtype>(static_cast<int>(Dtype::kFloat64) + 1)));
 }
 
+TEST(DtypeTest, FloatingPointDtypeMapping) {
+    for (Dtype dtype : GetAllDtypes()) {
+        switch (dtype) {
+            case Dtype::kFloat32:
+            case Dtype::kFloat64:
+                EXPECT_EQ(dtype, VisitFloatingPointDtype(dtype, [](auto pt) { return decltype(pt)::kDtype; }));
+                break;
+            default:
+                EXPECT_THROW(VisitFloatingPointDtype(dtype, [](auto pt) { return decltype(pt)::kDtype; }), DtypeError);
+        }
+    }
+}
+
 }  // namespace
 }  // namespace xchainer

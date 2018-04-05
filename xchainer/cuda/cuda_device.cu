@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -105,6 +106,15 @@ __global__ void IfLessElseKernel(
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
         out_iarray[indexer] = lhs_iarray[indexer] < rhs_value ? pos_value : neg_iarray[indexer];
+    }
+}
+
+template <typename T>
+__global__ void LogKernel(IndexableArray<const T> x_iarray, IndexableArray<T> out_iarray, Indexer indexer) {
+    const int64_t total_size = indexer.total_size();
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
+        indexer.Set(i);
+        out_iarray[indexer] = std::log(x_iarray[indexer]);
     }
 }
 
@@ -458,9 +468,23 @@ void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
     }
 }
 
-void CudaDevice::Log(const Array& /*x*/, const Array& /*out*/) {
-    // TODO(niboshi): Implement
-    throw NotImplementedError("");
+void CudaDevice::Log(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&LogKernel<T>).block_size;
+
+        IndexableArray<const T> x_iarray{x};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{out.shape()};
+
+        int64_t total_size = indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        LogKernel<<<grid_size, block_size>>>(x_iarray, out_iarray, indexer);
+    });
 }
 
 void CudaDevice::Synchronize() {
