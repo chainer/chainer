@@ -1460,6 +1460,7 @@ def test_fill_with_scalar(device, shape, dtype, value):
     numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
     numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
+# TODO(niboshi): Dtype promotion is not supported yet.
 @pytest.mark.parametrize('numpy_dtype', [numpy.float32, numpy.float64])
 def test_log(device, input, numpy_dtype):
     a_np = input.astype(numpy_dtype)
