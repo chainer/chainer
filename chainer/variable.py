@@ -776,16 +776,16 @@ Actual: {0}'''.format(type(data))
         intel64.check_ideep_available()
         data = self.data
         if data is not None:
-            if isinstance(data, numpy.ndarray):
-                # numpy.ndarray to ideep
-                self._data = [
-                    intel64.ideep.array(
-                        data, itype=intel64.ideep.wgt_array)]
-            elif isinstance(data, cuda.ndarray):
-                # cupy.ndarray to ideep
-                self._data = [
-                    intel64.ideep.array(
-                        data.get(), itype=intel64.ideep.wgt_array)]
+            if isinstance(data, cuda.ndarray):
+                # cupy.ndarray to numpy.ndarray
+                data = data.get()
+            if (isinstance(data, numpy.ndarray) and
+                    intel64.inputs_all_ready((data,))):
+                # numpy.ndarray to ideep.mdarray
+                data = intel64.ideep.array(
+                    data, itype=intel64.ideep.wgt_array)
+            self._data = [data]
+
         if self._grad_var is not None:
             self._grad_var.to_intel64()
             # ensure that the node tracks the device migration
