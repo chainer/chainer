@@ -35,6 +35,54 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
+TEST_P(MathTest, Negative) {
+    // TODO(niboshi): Implement for CUDA and remove this guard
+    if (GetParam() == "cuda") {
+        return;
+    }
+    Array a = testing::BuildArray({3}).WithData<float>({-1, 0, 2});
+    Array e = testing::BuildArray({3}).WithData<float>({1, 0, -2});
+    Array b = Negative(a);
+    testing::ExpectEqual(e, b);
+}
+
+TEST_P(MathTest, NegativeBackward) {
+    // TODO(niboshi): Implement for CUDA and remove this guard
+    if (GetParam() == "cuda") {
+        return;
+    }
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Array::Full(shape, 1e-3);
+
+    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {Negative(xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, NegativeDoubleBackward) {
+    // TODO(niboshi): Implement for CUDA and remove this guard
+    if (GetParam() == "cuda") {
+        return;
+    }
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Array::Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Negative(xs[0]);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+}
+
 // TODO(niboshi): separate independent tests
 TEST_P(MathTest, IAdd) {
     {

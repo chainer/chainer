@@ -273,6 +273,11 @@ void CudaDevice::Copy(const Array& src, const Array& out) {
     });
 }
 
+void CudaDevice::Negative(const Array& /*x*/, const Array& /*out*/) {
+    // TODO(niboshi): Implement
+    throw NotImplementedError("");
+}
+
 void CudaDevice::Equal(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     CheckCudaError(cudaSetDevice(index()));
