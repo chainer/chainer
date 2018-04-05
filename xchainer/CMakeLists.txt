@@ -25,6 +25,7 @@ install(FILES
     indexable_array.h
     indexer.h
     macro.h
+    reduction_kernel_arg.h
     scalar.h
     shape.h
     slice.h

@@ -1,6 +1,7 @@
 install(FILES
     native_device.h
     native_backend.h
+    reduce.h
     DESTINATION include/xchainer/native
     )
 
