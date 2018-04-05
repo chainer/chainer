@@ -124,6 +124,20 @@ auto VisitDtype(Dtype dtype, F&& f, Args&&... args) {
     }
 }
 
+// Invokes a function by passing PrimitiveType<T> corresponding to given floating-point dtype value.
+// See VisitDtype for more detail.
+template <typename F, typename... Args>
+auto VisitFloatingPointDtype(Dtype dtype, F&& f, Args&&... args) {
+    switch (dtype) {
+        case Dtype::kFloat32:
+            return std::forward<F>(f)(PrimitiveType<float>{}, std::forward<Args>(args)...);
+        case Dtype::kFloat64:
+            return std::forward<F>(f)(PrimitiveType<double>{}, std::forward<Args>(args)...);
+        default:
+            throw DtypeError("invalid dtype");
+    }
+}
+
 // Gets the single character identifier compatible to NumPy's char code
 inline char GetCharCode(Dtype dtype) {
     return VisitDtype(dtype, [](auto pt) { return decltype(pt)::kCharCode; });
