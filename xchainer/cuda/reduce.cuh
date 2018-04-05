@@ -110,8 +110,8 @@ __global__ void ReductionKernel(ReductionKernelArg<In, Out> arg, int reduce_bloc
                 }
                 __syncthreads();
             }
-            accum = work[1];
-            impl.Reduce(work[0], accum);
+            accum = work[0];
+            impl.Reduce(work[1], accum);
         }
         // Store the output value
         if (tid == 0) {

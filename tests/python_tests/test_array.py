@@ -1469,8 +1469,7 @@ def test_fill_with_scalar(device, shape, dtype, value):
     (numpy.ones((2, 3)), 1),
     (numpy.ones((2, 3)), -2),
 ])
-# TODO(niboshi): Add 'cuda:0'
-@pytest.mark.parametrize_device(['native:0'])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_argmax(device, input, axis, dtype):
     try:
         a_np = input.astype(dtype.name)
@@ -1481,7 +1480,7 @@ def test_argmax(device, input, axis, dtype):
     b_np = numpy.argmax(a_np, axis)
     b_xc = xchainer.argmax(a_xc, axis)
 
-    numpy.testing.assert_array_equal(b_xc, b_np)
+    _check_array_equals_ndarray(b_xc, b_np)
 
 
 @pytest.mark.parametrize('input,axis', [
@@ -1491,8 +1490,7 @@ def test_argmax(device, input, axis, dtype):
     (numpy.ones((2, 3)), 2),
     (numpy.ones((2, 3)), -3),
 ])
-# TODO(niboshi): Add 'cuda:0'
-@pytest.mark.parametrize_device(['native:0'])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_invalid_argmax(device, input, axis, dtype):
     try:
         a_np = input.astype(dtype.name)
