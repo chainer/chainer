@@ -649,7 +649,7 @@ TEST_P(MathTest, ExpDoubleBackward) {
 
 TEST_P(MathTest, Log) {
     Array a = testing::BuildArray<float>({6}, {0.0f, 1.0f, 3.0f, -1.f, std::exp(-4.0f), std::exp(4.0f)}).WithPadding(1);
-    Array e = testing::BuildArray<float>({6}, {-std::numeric_limits<float>::infinity(), 0.0f, std::log(3.0f), std::nan(""), -4.0f, 4.0f});
+    Array e = testing::BuildArray<float>({6}, {-std::numeric_limits<float>::infinity(), 0.0f, std::log(3.0f), std::nanf(""), -4.0f, 4.0f});
     Array b = Log(a);
     testing::ExpectAllClose(e, b, 1e-3, 0, true);
 }
