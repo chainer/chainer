@@ -25,7 +25,7 @@ class Convolution2DFunction(function_node.FunctionNode):
 
     _use_ideep = False
 
-    def __init__(self, stride=1, pad=0, cover_all=False, groups=1, **kwargs):
+    def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
         argument.check_unexpected_kwargs(
             kwargs,
             deterministic="deterministic argument is not supported anymore. "
@@ -36,7 +36,8 @@ class Convolution2DFunction(function_node.FunctionNode):
             "the gradient w.r.t. x is automatically decided during "
             "backpropagation."
         )
-        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
+        dilate, groups = argument.parse_kwargs(kwargs,
+                                               ('dilate', 1), ('groups', 1))
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
@@ -426,9 +427,8 @@ class Convolution2DGradW(function_node.FunctionNode):
         return ret
 
 
-def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, groups=1,
-                   **kwargs):
-    """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, *, dilate=1)
+def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
+    """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, *, dilate=1, groups=1)
 
     Two-dimensional convolution function.
 
@@ -517,6 +517,8 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, groups=1,
             into some output pixels.
         dilate (int or pair of ints): Dilation factor of filter applications.
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (int): The number of groups to use grouped convolution. The
+            default is one, where grouped convolution is not used.
 
     Returns:
         ~chainer.Variable:
@@ -554,13 +556,14 @@ cover_all=True)
         >>> y.shape == (n, c_o, h_o, w_o + 1)
         True
 
-    """
+    """  # NOQA
     argument.check_unexpected_kwargs(
         kwargs, deterministic="deterministic argument is not "
         "supported anymore. "
         "Use chainer.using_config('cudnn_deterministic', value) "
         "context where value is either `True` or `False`.")
-    dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
+    dilate, groups = argument.parse_kwargs(kwargs,
+                                           ('dilate', 1), ('groups', 1))
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
                                   groups=groups)
