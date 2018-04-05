@@ -1451,3 +1451,29 @@ def test_fill_with_scalar(device, shape, dtype, value):
     a_xc.fill(xchainer.Scalar(value, dtype))
     a_xc.device.synchronize()
     numpy.testing.assert_array_equal(a_xc, a_np)
+
+
+@pytest.mark.parametrize('input,axis', [
+    (numpy.asarray(0), None),
+    (numpy.asarray(-1), None),
+    (numpy.asarray(float('inf')), None),
+    (numpy.asarray(float('nan')), None),
+    (numpy.asarray(-float('inf')), None),
+    (numpy.asarray([4, 1, 4, 1]), None),
+    (numpy.asarray([4, 1, 4, 1]), 0),
+    (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]), 1),
+    (numpy.asarray([-0.0, +0.0, +0.0, -0.0]), None),
+    (numpy.asarray([[True, True, False, False], [True, False, True, False]]), 1),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_argmax(device, input, axis, dtype):
+    try:
+        a_np = input.astype(dtype.name)
+    except (ValueError, OverflowError):
+        return  # invalid combination of data and dtype
+
+    a_xc = xchainer.array(a_np)
+    b_np = numpy.argmax(a_np)
+    b_xc = numpy.argmax(a_xc)
+
+    numpy.testing.assert_array_equal(b_xc, b_np)
