@@ -27,6 +27,15 @@ See the discussion in `#2982 <https://github.com/chainer/chainer/pull/2982>`_ fo
 
 This change does not break the existing code; you can safely continue to use updater classes directly under ``chainer.training`` but it is now encouraged to use ``chainer.training.updaters`` instead.
 
+Namespace Changes for Optimizer Hooks
+-------------------------------------
+
+:doc:`Optimizer hook functions <reference/optimizers>` are moved from ``chainer.optimizer.*`` to ``chainer.optimizer_hooks.*``.
+For example, ``chainer.optimizer.WeightDecay`` is now located :class:`chainer.optimizer_hooks.WeightDecay`.
+
+If the existing code is using hooks directly under ``chainer.optimizer``, ``DeprecationWarning`` will be shown.
+You are now encouraged to use ``chainer.optimizer_hooks`` instead.
+
 Prohibition of Mixed Use of Arrays on Different Devices in Function Arguments
 -----------------------------------------------------------------------------
 
