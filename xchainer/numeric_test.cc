@@ -150,18 +150,18 @@ TEST_P(NumericTest, AllCloseMixed) {
 
 // Allowing NaN values and considering arrays close if corresponding elements are both or neither NaN.
 TEST_P(NumericTest, AllCloseEqualNan) {
-    float eps = 1e-5f;
-    CheckAllClose<float>({3}, {1.f, std::nan(""), 3.f}, {1.f, std::nan(""), 3.f}, 0., 0. + eps, true);
-    CheckAllClose<float>({3}, {1.f, 2.f, 3.f}, {1.f, 2.f, 3.f}, 0., 0. + eps, true);
-    CheckNotAllClose<float>({3}, {1.f, std::nan(""), 3.f}, {1.f, 2.f, std::nan("")}, 0., 0. + eps, true);
-    CheckNotAllClose<float>({3}, {1.f, 2.f, 3.f}, {1.f, std::nan(""), 3.f}, 0., 0. + eps, true);
+    double eps = 1e-5;
+    CheckAllClose<double>({3}, {1., std::nan(""), 3.}, {1., std::nan(""), 3.}, 0., 0. + eps, true);
+    CheckAllClose<double>({3}, {1., 2., 3.}, {1., 2., 3.}, 0., 0. + eps, true);
+    CheckNotAllClose<double>({3}, {1., std::nan(""), 3.}, {1., 2., std::nan("")}, 0., 0. + eps, true);
+    CheckNotAllClose<double>({3}, {1., 2., 3.}, {1., std::nan(""), 3.}, 0., 0. + eps, true);
 }
 
 // Disallowing NaN values and do not consider arrays equals if any NaN is found.
 TEST_P(NumericTest, AllCloseNotEqualNan) {
-    float eps = 1e-5f;
-    CheckNotAllClose<float>({3}, {1.f, std::nan(""), 3.f}, {1.f, 2.f, 3.f}, 0., 0. + eps, false);
-    CheckNotAllClose<float>({3}, {1.f, std::nan(""), 2.f}, {1.f, std::nan(""), 2.f}, 0., 0. + eps, false);
+    double eps = 1e-5;
+    CheckNotAllClose<double>({3}, {1., std::nan(""), 3.}, {1., 2., 3.}, 0., 0. + eps, false);
+    CheckNotAllClose<double>({3}, {1., std::nan(""), 2.}, {1., std::nan(""), 2.}, 0., 0. + eps, false);
 }
 
 INSTANTIATE_TEST_CASE_P(
