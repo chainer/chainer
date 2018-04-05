@@ -1477,3 +1477,23 @@ def test_argmax(device, input, axis, dtype):
     b_xc = numpy.argmax(a_xc)
 
     numpy.testing.assert_array_equal(b_xc, b_np)
+
+
+@pytest.mark.parametrize('input,axis', [
+    (numpy.ones((0,)), None),
+    (numpy.ones((2, 0, 3)), 2),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_invalid_argmax(device, input, axis, dtype):
+    try:
+        a_np = input.astype(dtype.name)
+    except (ValueError, OverflowError):
+        return  # invalid combination of data and dtype
+
+    a_xc = xchainer.array(a_np)
+
+    with pytest.raises(ValueError):
+        numpy.argmax(a_np)
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.argmax(a_xc)
