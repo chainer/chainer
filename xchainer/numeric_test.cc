@@ -148,7 +148,6 @@ TEST_P(NumericTest, AllCloseMixed) {
     CheckAllCloseThrow<double, int32_t>({3}, {1., 2., 3.}, {1, 2, 3}, 2., 1.);
 }
 
-// Allowing NaN values and considering arrays close if corresponding elements are both or neither NaN.
 TEST_P(NumericTest, AllCloseEqualNan) {
     double eps = 1e-5;
     CheckAllClose<double>({3}, {1., std::nan(""), 3.}, {1., std::nan(""), 3.}, 0., 0. + eps, true);
@@ -157,7 +156,6 @@ TEST_P(NumericTest, AllCloseEqualNan) {
     CheckNotAllClose<double>({3}, {1., 2., 3.}, {1., std::nan(""), 3.}, 0., 0. + eps, true);
 }
 
-// Disallowing NaN values and do not consider arrays equals if any NaN is found.
 TEST_P(NumericTest, AllCloseNotEqualNan) {
     double eps = 1e-5;
     CheckNotAllClose<double>({3}, {1., std::nan(""), 3.}, {1., 2., 3.}, 0., 0. + eps, false);
