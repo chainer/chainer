@@ -181,6 +181,7 @@ std::shared_ptr<void> CudaDevice::FromHostMemory(const std::shared_ptr<void>& sr
 }
 
 void CudaDevice::Fill(const Array& out, Scalar value) {
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&FillKernel<T>).block_size;
@@ -194,14 +195,37 @@ void CudaDevice::Fill(const Array& out, Scalar value) {
     });
 }
 
+namespace {
+
+template <typename T>
+struct ArgMaxImpl {
+    struct MaxAndArgMax {
+        T max;
+        int64_t argmax;
+    };
+    __device__ MaxAndArgMax Identity() { return {T{}, -1}; }
+    __device__ MaxAndArgMax MapIn(T in, int64_t index) { return {in, index}; }
+    __device__ void Reduce(MaxAndArgMax next, MaxAndArgMax& accum) {
+        if (accum.argmax < 0 || accum.max < next.max) {
+            accum = next;
+        }
+    }
+    __device__ int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
+};
+
+}  // namespace
+
 void CudaDevice::ArgMax(const Array& src, const std::vector<int8_t>& axis, const Array& out) {
-    (void)src;   // unused
-    (void)axis;  // unused
-    (void)out;   // unused
-    throw NotImplementedError("CudaDevice::ArgMax is not yet implemented.");
+    CheckDevicesCompatible(src, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(src.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Reduce(MakeReductionKernelArg<T, int64_t>(src, axis, out), ArgMaxImpl<T>{});
+    });
 }
 
 namespace {
+
 template <typename T>
 struct SumImpl {
     __device__ T Identity() { return T{0}; }
@@ -209,9 +233,12 @@ struct SumImpl {
     __device__ void Reduce(T next, T& accum) { accum += next; }
     __device__ T MapOut(T accum) { return accum; }
 };
+
 }  // namespace
 
 void CudaDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const Array& out) {
+    CheckDevicesCompatible(src, out);
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Reduce(MakeReductionKernelArg<T, T>(src, axis, out), SumImpl<T>{});
@@ -220,7 +247,7 @@ void CudaDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const Ar
 
 void CudaDevice::Copy(const Array& src, const Array& out) {
     CheckDevicesCompatible(src, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&CopyKernel<T>).block_size;
@@ -239,7 +266,7 @@ void CudaDevice::Copy(const Array& src, const Array& out) {
 
 void CudaDevice::Equal(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&EqualKernel<T>).block_size;
@@ -260,7 +287,7 @@ void CudaDevice::Equal(const Array& lhs, const Array& rhs, const Array& out) {
 // TODO(sonots): support stream
 void CudaDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
@@ -280,7 +307,7 @@ void CudaDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
 
 void CudaDevice::Subtract(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
@@ -300,7 +327,7 @@ void CudaDevice::Subtract(const Array& lhs, const Array& rhs, const Array& out) 
 
 void CudaDevice::Mul(const Array& lhs, Scalar rhs, const Array& out) {
     CheckDevicesCompatible(lhs, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MulScalarKernel<T>).block_size;
@@ -320,7 +347,7 @@ void CudaDevice::Mul(const Array& lhs, Scalar rhs, const Array& out) {
 // TODO(sonots): support stream
 void CudaDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MulKernel<T>).block_size;
@@ -340,7 +367,7 @@ void CudaDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
 
 void CudaDevice::IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(lhs, neg, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&IfLessElseKernel<T>).block_size;
@@ -411,6 +438,7 @@ T* GetOffsetData(const Array& a) {
 
 void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
+    CheckCudaError(cudaSetDevice(index()));
 
     assert(lhs.ndim() == 2);
     assert(rhs.ndim() == 2);
