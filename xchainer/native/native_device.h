@@ -42,8 +42,6 @@ public:
 
     void Equal(const Array& lhs, const Array& rhs, const Array& out) override;
 
-    void Exp(const Array& src, const Array& out) override;
-
     void Add(const Array& lhs, const Array& rhs, const Array& out) override;
     void Subtract(const Array& lhs, const Array& rhs, const Array& out) override;
     void Mul(const Array& lhs, Scalar rhs, const Array& out) override;
@@ -53,6 +51,7 @@ public:
 
     void Dot(const Array& lhs, const Array& rhs, const Array& out) override;
 
+    void Exp(const Array& src, const Array& out) override;
     void Log(const Array& x, const Array& out) override;
 
     void Synchronize() override;

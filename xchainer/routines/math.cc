@@ -12,14 +12,6 @@
 #include "xchainer/scalar.h"
 
 namespace xchainer {
-
-Array Exp(const Array& x) {
-    Array out = Array::EmptyLike(x, x.device());
-    x.device().Exp(x, out);
-    // TODO(hvy): Implement backward
-    return out;
-}
-
 namespace {
 
 void AddImpl(const Array& lhs, const Array& rhs, const Array& out) {
@@ -293,6 +285,13 @@ Array Maximum(const Array& x1, Scalar x2) {
 }
 
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
+
+Array Exp(const Array& x) {
+    Array out = Array::EmptyLike(x, x.device());
+    x.device().Exp(x, out);
+    // TODO(hvy): Implement backward
+    return out;
+}
 
 Array Log(const Array& x) {
     Array out = Array::EmptyLike(x, x.device());

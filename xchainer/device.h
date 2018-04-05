@@ -73,8 +73,6 @@ public:
 
     virtual void Equal(const Array& lhs, const Array& rhs, const Array& out) = 0;
 
-    virtual void Exp(const Array& src, const Array& out) = 0;
-
     virtual void Add(const Array& lhs, const Array& rhs, const Array& out) = 0;
     virtual void Subtract(const Array& lhs, const Array& rhs, const Array& out) = 0;
     virtual void Mul(const Array& lhs, Scalar rhs, const Array& out) = 0;
@@ -91,6 +89,7 @@ public:
     // Otherwise, the behavior is undefined.
     virtual void Dot(const Array& lhs, const Array& rhs, const Array& out) = 0;
 
+    virtual void Exp(const Array& src, const Array& out) = 0;
     virtual void Log(const Array& x, const Array& out) = 0;
 
     virtual void Synchronize() = 0;
