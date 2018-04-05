@@ -1,5 +1,6 @@
 import os
 import platform
+import sys
 import tempfile
 import unittest
 
@@ -458,7 +459,7 @@ class TestSequential(unittest.TestCase):
 
     def test_repr(self):
         bits, pl = platform.architecture()
-        if bits == '64bit' and 'Windows' in pl:
+        if bits == '64bit' and 'Windows' in pl and sys.version[0] < 3:
             self.assertEqual(
                 str(self.s1),
                 '0\tLinear\tW(None)\tb(3L,)\t\n'
