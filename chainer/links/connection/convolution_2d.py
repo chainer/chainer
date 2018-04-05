@@ -7,7 +7,7 @@ from chainer import variable
 
 class Convolution2D(link.Link):
 
-    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None, *, groups=1)
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
 
     Two-dimensional convolutional layer.
 
@@ -48,6 +48,9 @@ class Convolution2D(link.Link):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        dilate (int or pair of ints):
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
         groups (int): The number of groups to use grouped convolution. The
             default is one, where grouped convolution is not used.
 
