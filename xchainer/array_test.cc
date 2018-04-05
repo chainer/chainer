@@ -782,7 +782,7 @@ TEST_P(ArrayTest, ToNative) {
 
     EXPECT_EQ(a.dtype(), b.dtype());
     EXPECT_EQ(a.shape(), b.shape());
-    testing::ExpectDataEqual<T>(a, b);
+    testing::ExpectEqual(a.ToNative(), b.ToNative());
 
     if (a.device().name() == "native:0") {
         // Between the same device
