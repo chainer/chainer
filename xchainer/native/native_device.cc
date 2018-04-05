@@ -64,8 +64,7 @@ void NativeDevice::Fill(const Array& out, Scalar value) {
 }
 
 void NativeDevice::ArgMax(const Array& src, const std::vector<int8_t>& axis, const Array& out) {
-    assert(src.GetTotalSize() > 0);
-    assert(out.GetTotalSize() > 0);
+    assert(std::all_of(axis.begin(), axis.end(), [&src](int8_t i) { return src.shape()[i] > 0; }));
     assert(out.ndim() == src.ndim() - static_cast<int64_t>(axis.size()));
     CheckDevicesCompatible(src, out);
 
