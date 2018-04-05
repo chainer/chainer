@@ -86,7 +86,7 @@ void NativeDevice::ArgMax(const Array& src, const std::vector<int8_t>& axis, con
             }
             int64_t MapOut(Accum accum) { return accum.argmax; }
         };
-        internal::Reduce(MakeReductionKernelArg<T, int64_t>(src, axis, out), ArgMaxImpl{});
+        Reduce(MakeReductionKernelArg<T, int64_t>(src, axis, out), ArgMaxImpl{});
     });
 }
 
@@ -104,7 +104,7 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const 
             void Reduce(T next, T& accum) { accum += next; }
             T MapOut(T accum) { return accum; }
         };
-        internal::Reduce(MakeReductionKernelArg<T, T>(src, axis, out), SumImpl{});
+        Reduce(MakeReductionKernelArg<T, T>(src, axis, out), SumImpl{});
     });
 }
 

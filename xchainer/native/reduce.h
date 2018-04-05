@@ -7,7 +7,6 @@
 
 namespace xchainer {
 namespace native {
-namespace internal {
 
 // Computes the reduction of the input and stores into the output array.
 //
@@ -61,6 +60,5 @@ void Reduce(ReductionKernelArg<In, Out> arg, ReductionImpl&& impl) {
     }
 }
 
-}  // namespace internal
 }  // namespace native
 }  // namespace xchainer
