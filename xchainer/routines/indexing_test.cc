@@ -43,7 +43,7 @@ TEST_P(IndexingTest, At) {
 
     EXPECT_EQ(output_shape, b.shape());
     Array e = testing::BuildArray(output_shape).WithData<T>({4, 5});
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 
     // Check if strides are 0 for newaxis.
     EXPECT_EQ(0, b.strides()[0]);

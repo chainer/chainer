@@ -19,6 +19,40 @@
 namespace xchainer {
 namespace testing {
 
+inline void ExpectAllClose(const Array& expected, const Array& actual, double rtol, double atol, bool equal_nan = false) {
+    EXPECT_EQ(expected.shape(), actual.shape());
+    EXPECT_EQ(expected.dtype(), actual.dtype());
+    EXPECT_EQ(&expected.device(), &actual.device());
+    EXPECT_TRUE(AllClose(expected, actual, rtol, atol, equal_nan));
+}
+
+inline void ExpectEqual(const Array& expected, const Array& actual) { ExpectAllClose(expected, actual, 0., 0., true); }
+
+inline void ExpectEqualCopy(const Array& expected, const Array& actual) {
+    EXPECT_TRUE(actual.IsContiguous());
+    EXPECT_EQ(0, actual.offset());
+
+    // Deep copy, therefore assert different addresses to data
+    EXPECT_NE(expected.data().get(), actual.data().get());
+
+    ExpectEqual(expected, actual);
+}
+
+inline void ExpectEqualView(const Array& expected, const Array& actual) {
+    EXPECT_EQ(expected.dtype(), actual.dtype());
+    EXPECT_EQ(expected.shape(), actual.shape());
+    EXPECT_EQ(expected.IsContiguous(), actual.IsContiguous());
+    EXPECT_EQ(expected.offset(), actual.offset());
+
+    // Shallow copy, therefore assert the same address to data
+    EXPECT_EQ(expected.data().get(), actual.data().get());
+
+    // Views should have different array bodies.
+    EXPECT_NE(expected.body(), actual.body());
+
+    ExpectEqual(expected, actual);
+}
+
 template <typename T>
 void ExpectDataEqual(const Array& expected, const Array& actual) {
     Array native_expected = expected.ToNative();
@@ -64,55 +98,6 @@ void ExpectDataEqual(T expected, const Array& actual) {
             EXPECT_EQ(expected, actual_value) << "where i is " << i;
         }
     }
-}
-
-template <typename T>
-void ExpectEqual(const Array& expected, const Array& actual) {
-    EXPECT_EQ(expected.dtype(), actual.dtype());
-    EXPECT_EQ(expected.shape(), actual.shape());
-    EXPECT_EQ(&expected.device(), &actual.device());
-    ExpectDataEqual<T>(expected, actual);
-}
-
-template <typename T>
-void ExpectEqualCopy(const Array& expected, const Array& actual) {
-    EXPECT_EQ(expected.dtype(), actual.dtype());
-    EXPECT_EQ(expected.shape(), actual.shape());
-    EXPECT_EQ(&expected.device(), &actual.device());
-
-    // Deep copy, therefore assert different addresses to data
-    EXPECT_NE(expected.data().get(), actual.data().get());
-
-    EXPECT_TRUE(actual.IsContiguous());
-    EXPECT_EQ(0, actual.offset());
-
-    ExpectDataEqual<T>(expected, actual);
-}
-
-inline void ExpectArraysEqualAttributes(const Array& a, const Array& b) {
-    EXPECT_EQ(a.dtype(), b.dtype());
-    EXPECT_EQ(a.shape(), b.shape());
-    EXPECT_EQ(a.IsContiguous(), b.IsContiguous());
-    EXPECT_EQ(a.offset(), b.offset());
-}
-
-template <typename T>
-void ExpectEqualView(const Array& expected, const Array& actual) {
-    ExpectEqual<T>(expected, actual);
-    ExpectArraysEqualAttributes(expected, actual);
-
-    // Shallow copy, therefore assert the same address to data
-    EXPECT_EQ(expected.data().get(), actual.data().get());
-    EXPECT_EQ(&expected.device(), &actual.device());
-
-    // Views should have different array bodies.
-    EXPECT_NE(expected.body(), actual.body());
-}
-
-inline void ExpectAllClose(const Array& expected, const Array& actual, double rtol, double atol, bool equal_nan = false) {
-    EXPECT_EQ(expected.shape(), actual.shape());
-    EXPECT_EQ(expected.dtype(), actual.dtype());
-    EXPECT_TRUE(AllClose(expected, actual, rtol, atol, equal_nan));
 }
 
 }  // namespace testing

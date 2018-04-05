@@ -87,7 +87,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
         Array b = a.MakeView();
         Array c = std::move(a);
-        testing::ExpectEqual<float>(b, c);
+        testing::ExpectEqual(b, c);
     }
 
     // A copy must not be affected by move
@@ -95,7 +95,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
         Array b = a.Copy();
         Array c = std::move(a);
-        testing::ExpectEqualCopy<float>(b, c);
+        testing::ExpectEqualCopy(b, c);
     }
 
     // Array body must be transferred by move
@@ -112,7 +112,10 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
     auto body = a.body();
     Array b{body};
     EXPECT_EQ(body, b.body());
-    testing::ExpectArraysEqualAttributes(a, b);
+    EXPECT_EQ(a.dtype(), b.dtype());
+    EXPECT_EQ(a.shape(), b.shape());
+    EXPECT_EQ(a.IsContiguous(), b.IsContiguous());
+    EXPECT_EQ(a.offset(), b.offset());
     EXPECT_EQ(a.data(), b.data());
     EXPECT_THROW(internal::GetArrayNode(a), XchainerError);
     EXPECT_THROW(internal::GetArrayNode(b), XchainerError);
@@ -190,7 +193,7 @@ TEST_P(ArrayTest, Grad) {
     {
         x.SetGrad(g, graph_id);
 
-        testing::ExpectEqual<T>(g, *x.GetGrad(graph_id));
+        testing::ExpectEqual(g, *x.GetGrad(graph_id));
     }
 
     // Get grad multiple times
@@ -209,7 +212,7 @@ TEST_P(ArrayTest, Grad) {
         EXPECT_FALSE(x.GetGrad(graph_id)) << "grad must be cleared after calling ClearGrad()";
 
         // ClearGrad() must not affect previously retrieved view to grad
-        testing::ExpectEqual<T>(grad_view, g);
+        testing::ExpectEqual(grad_view, g);
     }
 }
 
@@ -479,7 +482,7 @@ TEST_P(ArrayTest, Equality) {
     Array c = a == b;
 
     ASSERT_EQ(c.dtype(), Dtype::kBool);
-    testing::ExpectEqual<bool>(e, c);
+    testing::ExpectEqual(e, c);
 }
 
 TEST_P(ArrayTest, IAdd) {
@@ -487,7 +490,7 @@ TEST_P(ArrayTest, IAdd) {
     Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
     a += b;
-    testing::ExpectEqual<float>(e, a);
+    testing::ExpectEqual(e, a);
 }
 
 TEST_P(ArrayTest, ISubtract) {
@@ -495,7 +498,7 @@ TEST_P(ArrayTest, ISubtract) {
     Array b = testing::BuildArray<float>({3, 1}, {4, 0, -2});
     Array e = testing::BuildArray<float>({3, 1}, {-3, 2, 5});
     a -= b;
-    testing::ExpectEqual<float>(e, a);
+    testing::ExpectEqual(e, a);
 }
 
 TEST_P(ArrayTest, IMul) {
@@ -503,7 +506,7 @@ TEST_P(ArrayTest, IMul) {
     Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array e = testing::BuildArray<float>({3, 1}, {1, 4, 9});
     a *= b;
-    testing::ExpectEqual<float>(e, a);
+    testing::ExpectEqual(e, a);
 }
 
 TEST_P(ArrayTest, Add) {
@@ -511,7 +514,7 @@ TEST_P(ArrayTest, Add) {
     Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
     Array o = a + b;
-    testing::ExpectEqual<float>(e, o);
+    testing::ExpectEqual(e, o);
 }
 
 TEST_P(ArrayTest, Subtract) {
@@ -519,7 +522,7 @@ TEST_P(ArrayTest, Subtract) {
     Array b = testing::BuildArray<float>({3, 1}, {4, 0, -2});
     Array e = testing::BuildArray<float>({3, 1}, {-3, 2, 5});
     Array o = a - b;
-    testing::ExpectEqual<float>(e, o);
+    testing::ExpectEqual(e, o);
 }
 
 TEST_P(ArrayTest, Mul) {
@@ -527,7 +530,7 @@ TEST_P(ArrayTest, Mul) {
     Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array e = testing::BuildArray<float>({3, 1}, {1, 4, 9});
     Array o = a * b;
-    testing::ExpectEqual<float>(e, o);
+    testing::ExpectEqual(e, o);
 }
 
 // TODO(hvy): Also test CUDA using ArrayTest.
@@ -539,11 +542,11 @@ TEST(ArrayNativeTest, MulScalar) {
 
     {
         Array o = a * Scalar{2.f};
-        testing::ExpectEqual<float>(e, o);
+        testing::ExpectEqual(e, o);
     }
     {
         Array o = Scalar{2.f} * a;
-        testing::ExpectEqual<float>(e, o);
+        testing::ExpectEqual(e, o);
     }
 }
 
@@ -651,20 +654,20 @@ TEST_P(ArrayTest, Transpose) {
     EXPECT_EQ(Strides({4, 12}), b.strides());
 
     Array e = testing::BuildArray({3, 2}).WithData<int32_t>({0, 3, 1, 4, 2, 5});
-    testing::ExpectEqual<int32_t>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(ArrayTest, Copy) {
     using T = int32_t;
     Array a = testing::BuildArray<T>({3, 1}, {1, 2, 3});
     Array o = a.Copy();
-    testing::ExpectEqualCopy<T>(a, o);
+    testing::ExpectEqualCopy(a, o);
 }
 
 TEST_P(ArrayTest, MakeView) {
     Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
     Array o = a.MakeView();
-    testing::ExpectEqualView<bool>(a, o);
+    testing::ExpectEqualView(a, o);
 }
 
 TEST_P(ArrayTest, AsConstantCopy) {
@@ -679,7 +682,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
 
         EXPECT_EQ(&b.device(), &a.device());
 
-        testing::ExpectEqualCopy<bool>(a, b);
+        testing::ExpectEqualCopy(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
         EXPECT_FALSE(b.IsGradRequired("graph_2"));
 
@@ -700,7 +703,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
 
         EXPECT_EQ(&b.device(), &a.device());
 
-        testing::ExpectEqualCopy<bool>(a, b);
+        testing::ExpectEqualCopy(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
         EXPECT_FALSE(b.IsGradRequired("graph_2"));
         EXPECT_TRUE(b.IsGradRequired("graph_3"));
@@ -716,7 +719,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
                           .WithPadding(4);
         Array b = a.AsConstant(CopyKind::kCopy);
         EXPECT_EQ(&b.device(), &a.device());
-        testing::ExpectEqualCopy<bool>(a, b);
+        testing::ExpectEqualCopy(a, b);
     }
 }
 
@@ -730,7 +733,7 @@ TEST_P(ArrayTest, AsConstantView) {
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
         Array b = a.AsConstant();
 
-        testing::ExpectEqualView<bool>(a, b);
+        testing::ExpectEqualView(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
         EXPECT_FALSE(b.IsGradRequired("graph_2"));
 
@@ -749,7 +752,7 @@ TEST_P(ArrayTest, AsConstantView) {
         ASSERT_TRUE(a.IsGradRequired("graph_3"));
         Array b = a.AsConstant({"graph_1", "graph_2"});
 
-        testing::ExpectEqualView<bool>(a, b);
+        testing::ExpectEqualView(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
         EXPECT_FALSE(b.IsGradRequired("graph_2"));
         EXPECT_TRUE(b.IsGradRequired("graph_3"));
@@ -764,7 +767,7 @@ TEST_P(ArrayTest, AsConstantView) {
                           .WithPadding(4);
         Array b = a.AsConstant(CopyKind::kView);
         EXPECT_EQ(&b.device(), &a.device());
-        testing::ExpectEqualView<bool>(a, b);
+        testing::ExpectEqualView(a, b);
     }
 }
 
@@ -813,8 +816,8 @@ TEST_P(ArrayTest, AddBackward) {
     Array ga = op_node->backward_functions()[0](go, {kDefaultGraphId});
     Array gb = op_node->backward_functions()[1](go, {kDefaultGraphId});
 
-    testing::ExpectEqual<bool>(ga, go);
-    testing::ExpectEqual<bool>(gb, go);
+    testing::ExpectEqual(ga, go);
+    testing::ExpectEqual(gb, go);
 }
 
 TEST_P(ArrayTest, MulBackward) {
@@ -831,8 +834,8 @@ TEST_P(ArrayTest, MulBackward) {
     Array ga = op_node->backward_functions()[0](go, {kDefaultGraphId});
     Array gb = op_node->backward_functions()[1](go, {kDefaultGraphId});
 
-    testing::ExpectEqual<bool>(ga, go * b);
-    testing::ExpectEqual<bool>(gb, go * a);
+    testing::ExpectEqual(ga, go * b);
+    testing::ExpectEqual(gb, go * a);
 
     EXPECT_FALSE(ga.IsGradRequired());
     EXPECT_FALSE(gb.IsGradRequired());
@@ -853,12 +856,12 @@ TEST_P(ArrayTest, MulBackwardCapture) {
 
     Array gx1 = lhs_func(gy, {kDefaultGraphId});
     Array e1 = testing::BuildArray<float>({1}, {3.0f});
-    testing::ExpectEqual<float>(e1, gx1);
+    testing::ExpectEqual(e1, gx1);
     EXPECT_FALSE(gx1.IsGradRequired());
 
     Array gx2 = rhs_func(gy, {kDefaultGraphId});
     Array e2 = testing::BuildArray<float>({1}, {2.0f});
-    testing::ExpectEqual<float>(e2, gx2);
+    testing::ExpectEqual(e2, gx2);
     EXPECT_FALSE(gx2.IsGradRequired());
 }
 
@@ -971,7 +974,7 @@ TEST(ArrayAtTest, At) {
 
     EXPECT_EQ(output_shape, b.shape());
     Array e = testing::BuildArray(output_shape).WithData<T>({4, 5});
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 
     // Check if strides are 0 for newaxis.
     EXPECT_EQ(0, b.strides()[0]);
@@ -990,7 +993,7 @@ TEST(ArrayReshapeTest, Reshape) {
     ASSERT_EQ(output_shape, b.shape());
     EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST(ArraySqueezeTest, SqueezeSpecifiedUnitLenghtAxes) {
@@ -1000,7 +1003,7 @@ TEST(ArraySqueezeTest, SqueezeSpecifiedUnitLenghtAxes) {
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
     Array b = a.Squeeze(std::vector<int8_t>{2, 0, 4});
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST(ArraySqueezeTest, SqueezeAllAxes) {
@@ -1010,7 +1013,7 @@ TEST(ArraySqueezeTest, SqueezeAllAxes) {
     Array a = testing::BuildArray({1, 1, 1}).WithLinearData<T>();
     Array b = a.Squeeze();
     Array e = testing::BuildArray<T>({}, std::vector<T>(1, 0));
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST(ArrayBroadcastToTest, BroadcastTo) {
@@ -1033,7 +1036,7 @@ TEST(ArrayBroadcastToTest, BroadcastTo) {
         output_data.insert(output_data.end(), {1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6});
     }
     Array e = testing::BuildArray(output_shape).WithData<T>(output_data.begin(), output_data.end());
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST(ArrayArgMaxTest, ArgMax) {
@@ -1043,7 +1046,7 @@ TEST(ArrayArgMaxTest, ArgMax) {
     Array a = testing::BuildArray({2, 3}).WithData<T>({1, 4, 3, 0, 1, 4});
     Array b = a.ArgMax(0);
     Array e = testing::BuildArray({3}).WithData<int64_t>({0, 0, 1});
-    testing::ExpectEqual<int64_t>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST(ArrayArgMaxTest, ArgMaxAllAxes) {
@@ -1053,7 +1056,7 @@ TEST(ArrayArgMaxTest, ArgMaxAllAxes) {
     Array a = testing::BuildArray({2, 3}).WithData<T>({1, 4, 3, 0, 1, 4});
     Array b = a.ArgMax();
     Array e = testing::BuildArray({}).WithData<int64_t>({1});
-    testing::ExpectEqual<int64_t>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST(ArraySumTest, Sum) {
@@ -1064,7 +1067,7 @@ TEST(ArraySumTest, Sum) {
     Array b = a.Sum(std::vector<int8_t>{2, 1, -1});
     EXPECT_EQ(Shape{2}, b.shape());
     Array e = testing::BuildArray(Shape{2}).WithData<T>({630.0f, 1926.0f});
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST(ArraySumTest, SumAllAxes) {
@@ -1075,7 +1078,7 @@ TEST(ArraySumTest, SumAllAxes) {
     Array b = a.Sum();
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray(Shape{}).WithData<T>({153.0f});
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST(ArraySumTest, SumKeepDims) {
@@ -1088,7 +1091,7 @@ TEST(ArraySumTest, SumKeepDims) {
     EXPECT_EQ(0, b.strides()[1]);
     EXPECT_EQ(0, b.strides()[3]);
     Array e = testing::BuildArray(Shape{2, 1, 2, 1}).WithData<T>({114.0f, 162.0f, 402.0f, 450.0f});
-    testing::ExpectEqual<T>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST(ArrayDotTest, Dot) {
@@ -1099,7 +1102,7 @@ TEST(ArrayDotTest, Dot) {
     Array b = testing::BuildArray<T>({3, 2}, {1.f, 2.f, -1.f, -3.f, 2.f, 4.f}).WithPadding(2);
     Array c = a.Dot(b);
     Array e = testing::BuildArray<T>({2, 2}, {5.f, 8.f, 11.f, 17.f});
-    testing::ExpectEqual<float>(e, c);
+    testing::ExpectEqual(e, c);
 }
 
 }  // namespace
