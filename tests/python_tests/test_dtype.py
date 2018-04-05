@@ -49,3 +49,7 @@ def test_ne():
     assert xchainer.int8 != 32
     assert 'int32' != xchainer.int32
     assert xchainer.int8 != 'int32'
+
+
+def test_implicity_convertible():
+    xchainer.zeros(shape=(2, 3), dtype='int32')
