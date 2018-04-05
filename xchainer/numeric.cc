@@ -31,12 +31,9 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol, bool equ
             indexer.Set(i);
             T ai = a_iarray[indexer];
             T bi = b_iarray[indexer];
-            if (std::isnan(ai) || std::isnan(bi)) {
-                // If either is NaN, consider them close only if equal_nan is true and they are both NaN.
-                if (!equal_nan || (std::isnan(ai) != std::isnan(bi))) {
-                    return false;
-                }
-            } else if (std::abs(ai - bi) > atol + rtol * std::abs(bi)) {
+            if (equal_nan && std::isnan(ai) && std::isnan(bi)) {
+                // nop
+            } else if (std::isnan(ai) || std::isnan(bi) || std::abs(ai - bi) > atol + rtol * std::abs(bi)) {
                 return false;
             }
         }
