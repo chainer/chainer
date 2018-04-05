@@ -35,17 +35,6 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(MathTest, Exp) {
-    // TODO(hvy): Implement for CUDA and remove this guard
-    if (GetParam() == "cuda") {
-        return;
-    }
-    // Array a = testing::BuildArray<float>({5}, {0.0f, 1.0f, 3.0f, std::exp(-4.0f), std::exp(4.0f)}).WithPadding(1);
-    // Array e = testing::BuildArray<float>({5}, {-std::numeric_limits<float>::infinity(), 0.0f, std::log(3.0f), -4.0f, 4.0f});
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array b = Exp(a);
-}
-
 // TODO(niboshi): separate independent tests
 TEST_P(MathTest, IAdd) {
     {
@@ -626,6 +615,18 @@ TEST_P(MathTest, MaximumScalarDoubleBackward) {
             {go},
             {ggi},
             {eps, eps});
+}
+
+TEST_P(MathTest, Exp) {
+    // TODO(hvy): Implement for CUDA and remove this guard
+    if (GetParam() == "cuda") {
+        return;
+    }
+    Array a = testing::BuildArray<float>(
+            {5}, {0.f, 1.f, std::log(3.f), std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()});
+    Array e = testing::BuildArray<float>({5}, {1.f, std::exp(1.f), 3.f, std::numeric_limits<float>::infinity(), 0});
+    Array b = Exp(a);
+    testing::ExpectAllClose(e, b, 1e-3, 0);
 }
 
 TEST_P(MathTest, Log) {
