@@ -504,10 +504,7 @@ TEST_P(MathTest, DivideDoubleBackward) {
     Array eps = Array::Full(shape, 1e-3);
 
     CheckDoubleBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = Divide(xs[0], xs[1]);
-                return {y * y};  // to make it nonlinear
-            },
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], xs[1])}; },
             {a, b},
             {go},
             {ggi, ggi},
