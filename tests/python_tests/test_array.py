@@ -795,15 +795,10 @@ def test_truediv_itruediv(device, shape, dtype):
     else:
         expected_data_list = [x / y for x, y in zip(lhs_data_list, rhs_data_list)]
 
-    def assert_allclose(lst1, lst2):
-        eps = 1e-3
-        assert len(lst1) == len(lst2)
-        assert all(abs(a1 - a2) < eps for a1, a2 in zip(lst1, lst2))
-
     def check(out):
         assert out.dtype == dtype
         assert out.shape == shape
-        assert_allclose(out._debug_flat_data, expected_data_list)
+        numpy.testing.assert_allclose(out._debug_flat_data, expected_data_list, rtol=1e-3)
         assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
         assert rhs._debug_flat_data == rhs_data_list
 
@@ -813,7 +808,7 @@ def test_truediv_itruediv(device, shape, dtype):
     lhs_prev = lhs
     lhs /= rhs
     assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
-    assert_allclose(lhs._debug_flat_data, expected_data_list)
+    numpy.testing.assert_allclose(lhs._debug_flat_data, expected_data_list, rtol=1e-3)
     assert rhs._debug_flat_data == rhs_data_list
 
 
