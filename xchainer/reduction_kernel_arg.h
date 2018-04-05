@@ -130,10 +130,10 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const std::v
     assert(std::find(new_out_shape.begin(), new_out_shape.end(), 1) == new_out_shape.end());
 
     return ReductionKernelArg<In, Out>{IndexableArray<const In>{in}.Permute(axis_permutes),
-                                 IndexableArray<Out>{out}.Permute(out_axis_map),
-                                 Indexer{Shape{new_in_shape.begin(), new_in_shape.end()}},
-                                 Indexer{Shape{new_out_shape.begin(), new_out_shape.end()}},
-                                 Indexer{Shape{reduce_shape.begin(), reduce_shape.end()}}};
+                                       IndexableArray<Out>{out}.Permute(out_axis_map),
+                                       Indexer{Shape{new_in_shape.begin(), new_in_shape.end()}},
+                                       Indexer{Shape{new_out_shape.begin(), new_out_shape.end()}},
+                                       Indexer{Shape{reduce_shape.begin(), reduce_shape.end()}}};
 }
 
 }  // namespace xchainer
