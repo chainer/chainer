@@ -7,12 +7,8 @@
 #include <gtest/gtest.h>
 
 #include "xchainer/array.h"
-#include "xchainer/backend.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
-#include "xchainer/native/native_backend.h"
 #include "xchainer/numeric.h"
 
 // TODO(hvy): Make it independent from gtest.
