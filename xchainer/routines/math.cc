@@ -12,6 +12,14 @@
 #include "xchainer/scalar.h"
 
 namespace xchainer {
+
+Array Exp(const Array& x) {
+    Array out = Array::EmptyLike(x, x.device());
+    x.device().Exp(x, out);
+    // TODO(hvy): Implement backward
+    return out;
+}
+
 namespace {
 
 void AddImpl(const Array& lhs, const Array& rhs, const Array& out) {

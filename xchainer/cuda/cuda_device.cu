@@ -284,6 +284,12 @@ void CudaDevice::Equal(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
+void CudaDevice::Exp(const Array& src, const Array& out) {
+    (void)src;  // unused
+    (void)out;  // unused
+    throw NotImplementedError("CudaDevice::Exp is not yet implemented.");
+}
+
 // TODO(sonots): support stream
 void CudaDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);

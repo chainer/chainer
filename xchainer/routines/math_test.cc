@@ -35,6 +35,17 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
+TEST_P(MathTest, Exp) {
+    // TODO(hvy): Implement for CUDA and remove this guard
+    if (GetParam() == "cuda") {
+        return;
+    }
+    // Array a = testing::BuildArray<float>({5}, {0.0f, 1.0f, 3.0f, std::exp(-4.0f), std::exp(4.0f)}).WithPadding(1);
+    // Array e = testing::BuildArray<float>({5}, {-std::numeric_limits<float>::infinity(), 0.0f, std::log(3.0f), -4.0f, 4.0f});
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array b = Exp(a);
+}
+
 // TODO(niboshi): separate independent tests
 TEST_P(MathTest, IAdd) {
     {

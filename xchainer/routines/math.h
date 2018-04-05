@@ -10,6 +10,8 @@
 
 namespace xchainer {
 
+Array Exp(const Array& x);
+
 namespace internal {
 
 Array& IAdd(Array& x1, const Array& x2);
