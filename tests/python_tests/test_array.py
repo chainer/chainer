@@ -1486,6 +1486,7 @@ def test_argmax(device, input, axis, dtype):
 @pytest.mark.parametrize('input,axis', [
     (numpy.ones((0,)), None),
     (numpy.ones((2, 0, 3)), 1),
+    (numpy.ones((2, 0, 3)), None),
     (numpy.ones((2, 3)), 2),
     (numpy.ones((2, 3)), -3),
 ])
