@@ -474,6 +474,17 @@ TEST_P(ArrayTest, OnesLike) {
     EXPECT_EQ(&GetDefaultDevice(), &x.device());
 }
 
+TEST_P(ArrayTest, Negative) {
+    // TODO(niboshi): Implement for CUDA and remove this guard
+    if (GetParam() == "cuda") {
+        return;
+    }
+    Array a = testing::BuildArray({3}).WithData<float>({-1, 0, 2});
+    Array e = testing::BuildArray({3}).WithData<float>({1, 0, -2});
+    Array b = -a;
+    testing::ExpectEqual(e, b);
+}
+
 TEST_P(ArrayTest, Equality) {
     using T = int32_t;
     Array a = testing::BuildArray({2, 3}).WithData<T>({1, 2, 3, 4, 3, 2});

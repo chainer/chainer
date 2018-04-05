@@ -71,6 +71,8 @@ public:
     // The arrays must match in shape and dtype and need to reside on this device.
     virtual void Copy(const Array& src, const Array& out) = 0;
 
+    virtual void Negative(const Array& x, const Array& out) = 0;
+
     virtual void Equal(const Array& lhs, const Array& rhs, const Array& out) = 0;
 
     virtual void Add(const Array& lhs, const Array& rhs, const Array& out) = 0;
