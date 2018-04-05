@@ -1,5 +1,6 @@
 #include "xchainer/numeric.h"
 
+#include <cmath>
 #include <memory>
 #include <string>
 #include <vector>
@@ -25,24 +26,42 @@ protected:
 
 public:
     template <typename T>
-    void CheckAllClose(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<T> bdata, double rtol, double atol) {
+    void CheckAllClose(
+            const Shape& shape,
+            std::initializer_list<T> adata,
+            std::initializer_list<T> bdata,
+            double rtol,
+            double atol,
+            bool equal_nan = false) {
         Array a = testing::BuildArray<T>(shape, adata);
         Array b = testing::BuildArray<T>(shape, bdata);
-        EXPECT_TRUE(AllClose(a, b, rtol, atol));
+        EXPECT_TRUE(AllClose(a, b, rtol, atol, equal_nan));
     }
 
     template <typename T>
-    void CheckNotAllClose(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<T> bdata, double rtol, double atol) {
+    void CheckNotAllClose(
+            const Shape& shape,
+            std::initializer_list<T> adata,
+            std::initializer_list<T> bdata,
+            double rtol,
+            double atol,
+            bool equal_nan = false) {
         Array a = testing::BuildArray<T>(shape, adata);
         Array b = testing::BuildArray<T>(shape, bdata);
-        EXPECT_FALSE(AllClose(a, b, rtol, atol));
+        EXPECT_FALSE(AllClose(a, b, rtol, atol, equal_nan));
     }
 
     template <typename T, typename U>
-    void CheckAllCloseThrow(const Shape& shape, std::initializer_list<T> adata, std::initializer_list<U> bdata, double rtol, double atol) {
+    void CheckAllCloseThrow(
+            const Shape& shape,
+            std::initializer_list<T> adata,
+            std::initializer_list<U> bdata,
+            double rtol,
+            double atol,
+            bool equal_nan = false) {
         Array a = testing::BuildArray<T>(shape, adata);
         Array b = testing::BuildArray<U>(shape, bdata);
-        EXPECT_THROW(AllClose(a, b, rtol, atol), DtypeError);
+        EXPECT_THROW(AllClose(a, b, rtol, atol, equal_nan), DtypeError);
     }
 
 private:
@@ -127,6 +146,22 @@ TEST_P(NumericTest, AllCloseMixed) {
     CheckAllCloseThrow<int64_t, int8_t>({3}, {1, 2, 3}, {1, 2, 3}, 2., 1.);
     CheckAllCloseThrow<int32_t, float>({3}, {1, 2, 3}, {1.f, 2.f, 3.f}, 2., 1.);
     CheckAllCloseThrow<double, int32_t>({3}, {1., 2., 3.}, {1, 2, 3}, 2., 1.);
+}
+
+// Allowing NaN values and considering arrays close if corresponding elements are both or neither NaN.
+TEST_P(NumericTest, AllCloseEqualNan) {
+    float eps = 1e-5f;
+    CheckAllClose<float>({3}, {1.f, std::nan(""), 3.f}, {1.f, std::nan(""), 3.f}, 0., 0. + eps, true);
+    CheckAllClose<float>({3}, {1.f, 2.f, 3.f}, {1.f, 2.f, 3.f}, 0., 0. + eps, true);
+    CheckNotAllClose<float>({3}, {1.f, std::nan(""), 3.f}, {1.f, 2.f, std::nan("")}, 0., 0. + eps, true);
+    CheckNotAllClose<float>({3}, {1.f, 2.f, 3.f}, {1.f, std::nan(""), 3.f}, 0., 0. + eps, true);
+}
+
+// Disallowing NaN values and do not consider arrays equals if any NaN is found.
+TEST_P(NumericTest, AllCloseNotEqualNan) {
+    float eps = 1e-5f;
+    CheckNotAllClose<float>({3}, {1.f, std::nan(""), 3.f}, {1.f, 2.f, 3.f}, 0., 0. + eps, false);
+    CheckNotAllClose<float>({3}, {1.f, std::nan(""), 2.f}, {1.f, std::nan(""), 2.f}, 0., 0. + eps, false);
 }
 
 INSTANTIATE_TEST_CASE_P(

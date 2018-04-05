@@ -10,7 +10,7 @@
 
 namespace xchainer {
 
-bool AllClose(const Array& a, const Array& b, double rtol, double atol) {
+bool AllClose(const Array& a, const Array& b, double rtol, double atol, bool equal_nan) {
     if (a.shape() != b.shape()) {
         throw DimensionError("cannot compare Arrays of different shapes");
     }
@@ -29,7 +29,14 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol) {
 
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
-            if (std::abs(a_iarray[indexer] - b_iarray[indexer]) > atol + rtol * std::abs(b_iarray[indexer])) {
+            const T& ai = a_iarray[indexer];
+            const T& bi = b_iarray[indexer];
+            if (std::isnan(ai) || std::isnan(bi)) {
+                // If either is NaN, consider them close only if equal_nan is true and they are both NaN.
+                if (!equal_nan || (std::isnan(ai) != std::isnan(bi))) {
+                    return false;
+                }
+            } else if (std::abs(ai - bi) > atol + rtol * std::abs(bi)) {
                 return false;
             }
         }
