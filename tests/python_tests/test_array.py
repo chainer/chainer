@@ -1457,7 +1457,7 @@ def test_fill_with_scalar(device, shape, dtype, value):
 # TODO(niboshi): Add 'cuda:0'
 @pytest.mark.parametrize_device(['native:0'])
 @pytest.mark.parametrize('input', [
-    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
     numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
 @pytest.mark.parametrize('numpy_dtype', [numpy.float32, numpy.float64])
