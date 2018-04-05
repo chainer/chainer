@@ -617,6 +617,18 @@ TEST_P(MathTest, MaximumScalarDoubleBackward) {
             {eps, eps});
 }
 
+TEST_P(MathTest, Exp) {
+    // TODO(hvy): Implement for CUDA and remove this guard
+    if (GetParam() == "cuda") {
+        return;
+    }
+    Array a = testing::BuildArray<float>(
+            {5}, {0.f, 1.f, std::log(3.f), std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()});
+    Array e = testing::BuildArray<float>({5}, {1.f, std::exp(1.f), 3.f, std::numeric_limits<float>::infinity(), 0});
+    Array b = Exp(a);
+    testing::ExpectAllClose(e, b, 1e-3, 0);
+}
+
 TEST_P(MathTest, Log) {
     // TODO(niboshi): Add negative -> nan check
     Array a = testing::BuildArray<float>({5}, {0.0f, 1.0f, 3.0f, std::exp(-4.0f), std::exp(4.0f)}).WithPadding(1);
