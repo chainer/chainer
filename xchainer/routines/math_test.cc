@@ -36,21 +36,18 @@ private:
 };
 
 TEST_P(MathTest, Negative) {
-    // TODO(niboshi): Implement for CUDA and remove this guard
-    if (GetParam() == "cuda") {
-        return;
-    }
     Array a = testing::BuildArray({3}).WithData<float>({-1, 0, 2});
     Array e = testing::BuildArray({3}).WithData<float>({1, 0, -2});
     Array b = Negative(a);
     testing::ExpectEqual(e, b);
 }
 
+TEST_P(MathTest, InvalidNegative) {
+    Array a = testing::BuildArray({3}).WithData<bool>({true, false, false});
+    EXPECT_THROW(Negative(a), DtypeError);
+}
+
 TEST_P(MathTest, NegativeBackward) {
-    // TODO(niboshi): Implement for CUDA and remove this guard
-    if (GetParam() == "cuda") {
-        return;
-    }
     using T = double;
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
@@ -61,10 +58,6 @@ TEST_P(MathTest, NegativeBackward) {
 }
 
 TEST_P(MathTest, NegativeDoubleBackward) {
-    // TODO(niboshi): Implement for CUDA and remove this guard
-    if (GetParam() == "cuda") {
-        return;
-    }
     using T = double;
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();

@@ -475,10 +475,6 @@ TEST_P(ArrayTest, OnesLike) {
 }
 
 TEST_P(ArrayTest, Negative) {
-    // TODO(niboshi): Implement for CUDA and remove this guard
-    if (GetParam() == "cuda") {
-        return;
-    }
     Array a = testing::BuildArray({3}).WithData<float>({-1, 0, 2});
     Array e = testing::BuildArray({3}).WithData<float>({1, 0, -2});
     Array b = -a;
