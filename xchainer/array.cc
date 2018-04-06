@@ -140,7 +140,9 @@ Array Array::OnesLike(const Array& a, Device& device) { return xchainer::OnesLik
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
 
-Array Array::operator==(const Array& rhs) { return Equal(*this, rhs); }
+Array Array::operator-() const { return Negative(*this); }
+
+Array Array::operator==(const Array& rhs) const { return Equal(*this, rhs); }
 
 Array& Array::operator+=(const Array& rhs) { return internal::IAdd(*this, rhs); }
 

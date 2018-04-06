@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <tuple>
@@ -139,6 +140,21 @@ void NativeDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
     });
 }
 
+void NativeDevice::Negative(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> x_iarray{x};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{out.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            out_iarray[indexer] = -x_iarray[indexer];
+        }
+    });
+}
+
 void NativeDevice::Add(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
     VisitDtype(out.dtype(), [&](auto pt) {
@@ -252,6 +268,21 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
                     out_value += a_iarray[a_i] * b_iarray[b_i];
                 }
             }
+        }
+    });
+}
+
+void NativeDevice::Exp(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> x_iarray{x};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{out.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            out_iarray[indexer] = std::exp(x_iarray[indexer]);
         }
     });
 }

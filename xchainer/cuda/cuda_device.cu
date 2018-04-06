@@ -110,6 +110,15 @@ __global__ void IfLessElseKernel(
 }
 
 template <typename T>
+__global__ void ExpKernel(IndexableArray<const T> x_iarray, IndexableArray<T> out_iarray, Indexer indexer) {
+    const int64_t total_size = indexer.total_size();
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
+        indexer.Set(i);
+        out_iarray[indexer] = std::exp(x_iarray[indexer]);
+    }
+}
+
+template <typename T>
 __global__ void LogKernel(IndexableArray<const T> x_iarray, IndexableArray<T> out_iarray, Indexer indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
@@ -282,6 +291,11 @@ void CudaDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
 
         EqualKernel<<<grid_size, block_size>>>(x1_iarray, x2_iarray, out_iarray, indexer);
     });
+}
+
+void CudaDevice::Negative(const Array& /*x*/, const Array& /*out*/) {
+    // TODO(niboshi): Implement
+    throw NotImplementedError("");
 }
 
 // TODO(sonots): support stream
@@ -494,6 +508,25 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
     if (!is_out_contiguous) {
         Copy(out_contiguous, out);
     }
+}
+
+void CudaDevice::Exp(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&ExpKernel<T>).block_size;
+
+        IndexableArray<const T> x_iarray{x};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{out.shape()};
+
+        int64_t total_size = indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        ExpKernel<<<grid_size, block_size>>>(x_iarray, out_iarray, indexer);
+    });
 }
 
 void CudaDevice::Log(const Array& x, const Array& out) {
