@@ -181,7 +181,7 @@ TEST_P(MathTest, ISubtract) {
 }
 
 // TODO(niboshi): separate independent tests
-TEST_P(MathTest, IMul) {
+TEST_P(MathTest, IMultiply) {
     {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
         Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
@@ -696,11 +696,10 @@ TEST_P(MathTest, ExpDoubleBackward) {
 }
 
 TEST_P(MathTest, Log) {
-    // TODO(niboshi): Add negative -> nan check
-    Array a = testing::BuildArray<float>({5}, {0.0f, 1.0f, 3.0f, std::exp(-4.0f), std::exp(4.0f)}).WithPadding(1);
-    Array e = testing::BuildArray<float>({5}, {-std::numeric_limits<float>::infinity(), 0.0f, std::log(3.0f), -4.0f, 4.0f});
+    Array a = testing::BuildArray<float>({6}, {0.0f, 1.0f, 3.0f, -1.f, std::exp(-4.0f), std::exp(4.0f)}).WithPadding(1);
+    Array e = testing::BuildArray<float>({6}, {-std::numeric_limits<float>::infinity(), 0.0f, std::log(3.0f), std::nanf(""), -4.0f, 4.0f});
     Array b = Log(a);
-    testing::ExpectAllClose(e, b, 1e-3, 0);
+    testing::ExpectAllClose(e, b, 1e-3, 0, true);
 }
 
 TEST_P(MathTest, LogBackward) {
