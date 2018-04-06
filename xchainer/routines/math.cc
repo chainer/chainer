@@ -19,7 +19,7 @@ Array Negative(const Array& x) {
     if (x.dtype() == Dtype::kBool) {
         throw DtypeError("Cannot negative a boolean array.");
     }
-    return Multiply(x, -1);
+    return Multiply(x, Scalar{-1, x.dtype()});
 }
 
 namespace {
