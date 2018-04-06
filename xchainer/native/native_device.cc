@@ -187,21 +187,6 @@ void NativeDevice::Subtract(const Array& x1, const Array& x2, const Array& out) 
     });
 }
 
-void NativeDevice::Multiply(const Array& x1, Scalar x2, const Array& out) {
-    CheckDevicesCompatible(x1, out);
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        IndexableArray<const T> x1_iarray{x1};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = x1_iarray[indexer] * static_cast<T>(x2);
-        }
-    });
-}
-
 void NativeDevice::Multiply(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
     VisitDtype(out.dtype(), [&](auto pt) {
@@ -218,7 +203,22 @@ void NativeDevice::Multiply(const Array& x1, const Array& x2, const Array& out) 
     });
 }
 
-void NativeDevice::IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
+void NativeDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
+    CheckDevicesCompatible(x1, out);
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> x1_iarray{x1};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{out.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            out_iarray[indexer] = x1_iarray[indexer] * static_cast<T>(x2);
+        }
+    });
+}
+
+void NativeDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;

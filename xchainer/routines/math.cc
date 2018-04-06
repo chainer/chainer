@@ -203,7 +203,7 @@ Array Multiply(const Array& x1, const Array& x2) {
 
 Array Multiply(const Array& x1, Scalar x2) {
     Array out = Array::EmptyLike(x1, x1.device());
-    x1.device().Multiply(x1, x2, out);
+    x1.device().MultiplyAS(x1, x2, out);
 
     auto backward_function = [x2](const Array& gout, const std::vector<GraphId>&) { return gout * x2; };
     internal::SetUpOpNodes("mul_scalar", {x1}, out, {backward_function});
@@ -276,7 +276,7 @@ namespace {
 // Can only differentiate with respect to neg.
 Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     Array out = Array::EmptyLike(x1, x1.device());
-    x1.device().IfLessElse(x1, x2, pos, neg, out);
+    x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
 
     auto backward_function = [x1, x2](const Array& gout, const std::vector<GraphId>&) {
         return IfLessElse(x1, x2, Scalar{0, gout.dtype()}, gout);

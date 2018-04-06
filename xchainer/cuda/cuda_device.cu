@@ -76,7 +76,7 @@ __global__ void SubtractKernel(
 }
 
 template <typename T>
-__global__ void MultiplyScalarKernel(IndexableArray<const T> x1_iarray, T x2_value, IndexableArray<T> out_iarray, Indexer indexer) {
+__global__ void MultiplyASKernel(IndexableArray<const T> x1_iarray, T x2_value, IndexableArray<T> out_iarray, Indexer indexer) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
@@ -95,7 +95,7 @@ __global__ void MultiplyKernel(
 }
 
 template <typename T>
-__global__ void IfLessElseKernel(
+__global__ void IfLessElseASSAKernel(
         IndexableArray<const T> x1_iarray,
         T x2_value,
         T pos_value,
@@ -339,25 +339,6 @@ void CudaDevice::Subtract(const Array& x1, const Array& x2, const Array& out) {
     });
 }
 
-void CudaDevice::Multiply(const Array& x1, Scalar x2, const Array& out) {
-    CheckDevicesCompatible(x1, out);
-    CheckCudaError(cudaSetDevice(index()));
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MultiplyScalarKernel<T>).block_size;
-
-        IndexableArray<const T> x1_iarray{x1};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        int64_t total_size = indexer.total_size();
-        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
-
-        MultiplyScalarKernel<<<grid_size, block_size>>>(x1_iarray, static_cast<T>(x2), out_iarray, indexer);
-    });
-}
-
 // TODO(sonots): support stream
 void CudaDevice::Multiply(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
@@ -379,12 +360,31 @@ void CudaDevice::Multiply(const Array& x1, const Array& x2, const Array& out) {
     });
 }
 
-void CudaDevice::IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
+void CudaDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
+    CheckDevicesCompatible(x1, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MultiplyASKernel<T>).block_size;
+
+        IndexableArray<const T> x1_iarray{x1};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{out.shape()};
+
+        int64_t total_size = indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        MultiplyASKernel<<<grid_size, block_size>>>(x1_iarray, static_cast<T>(x2), out_iarray, indexer);
+    });
+}
+
+void CudaDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&IfLessElseKernel<T>).block_size;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&IfLessElseASSAKernel<T>).block_size;
 
         IndexableArray<const T> x1_iarray{x1};
         IndexableArray<const T> neg_iarray{neg};
@@ -397,7 +397,7 @@ void CudaDevice::IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array&
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-        IfLessElseKernel<<<grid_size, block_size>>>(x1_iarray, x2_value, pos_value, neg_iarray, out_iarray, indexer);
+        IfLessElseASSAKernel<<<grid_size, block_size>>>(x1_iarray, x2_value, pos_value, neg_iarray, out_iarray, indexer);
     });
 }
 

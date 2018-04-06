@@ -77,13 +77,13 @@ public:
 
     virtual void Add(const Array& x1, const Array& x2, const Array& out) = 0;
     virtual void Subtract(const Array& x1, const Array& x2, const Array& out) = 0;
-    virtual void Multiply(const Array& x1, Scalar x2, const Array& out) = 0;
     virtual void Multiply(const Array& x1, const Array& x2, const Array& out) = 0;
+    virtual void MultiplyAS(const Array& x1, Scalar x2, const Array& out) = 0;
 
     // Compares x1 and x2s and assign either pos or neg according to the result.
     //
     // Formally, it calculates: out = x1 < x2 ? pos : neg
-    virtual void IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
+    virtual void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
 
     // Matrix multiplication. All the operands are matrices (i.e., two-dimensional arrays).
     // Let the shapes of `a` and `b` be `(M, K)` and `(L, N)`, respectively.
