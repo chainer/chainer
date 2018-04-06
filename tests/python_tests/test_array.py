@@ -85,7 +85,7 @@ def _check_array_equals_ndarray(array, ndarray):
     assert array.ndim == ndarray.ndim
     assert array.element_bytes == ndarray.itemsize
     assert array.total_bytes == ndarray.itemsize * ndarray.size
-    numpy.testing.assert_equal(array._debug_flat_data, ndarray.ravel().tolist())
+    numpy.testing.assert_array_equal(array._debug_flat_data, ndarray.ravel().tolist())
     assert array.is_contiguous == ndarray.flags['C_CONTIGUOUS']
 
 
