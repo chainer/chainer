@@ -35,5 +35,16 @@ std::vector<int8_t> GetSortedAxes(const std::vector<int8_t>& axis, int8_t ndim) 
     return sorted_axis;
 }
 
+std::vector<int8_t> GetSortedAxesOrAll(const nonstd::optional<std::vector<int8_t>>& axis, int8_t ndim) {
+    if (axis.has_value()) {
+        return GetSortedAxes(*axis, ndim);
+    }
+    // Fill with all axes
+    std::vector<int8_t> sorted_axis;
+    sorted_axis.resize(ndim);
+    std::iota(sorted_axis.begin(), sorted_axis.end(), int8_t{0});
+    return sorted_axis;
+}
+
 }  // namespace internal
 }  // namespace xchainer
