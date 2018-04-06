@@ -66,6 +66,10 @@ public:
     // Otherwise, the behavior is undefined.
     virtual void Sum(const Array& a, const std::vector<int8_t>& axis, const Array& out) = 0;
 
+    // Calculates the maximum along specified axes.
+    // See Sum() for the explanation of arguments.
+    virtual void AMax(const Array& src, const std::vector<int8_t>& axis, const Array& out) = 0;
+
     // Copies the elements from one array to the other.
     //
     // The arrays must match in shape and dtype and need to reside on this device.

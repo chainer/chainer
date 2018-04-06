@@ -5,7 +5,9 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
 #include <gsl/gsl>
@@ -15,6 +17,7 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/reduce.h"
+#include "xchainer/numeric_limits.h"
 #include "xchainer/reduction_kernel_arg.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
@@ -107,9 +110,29 @@ void NativeDevice::Sum(const Array& a, const std::vector<int8_t>& axis, const Ar
     });
 }
 
+void NativeDevice::AMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) {
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    CheckDevicesCompatible(a, out);
+
+    VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+        using T = typename decltype(pt)::type;
+        struct AMaxImpl {
+            T Identity() { return NumericLimits<T>::LowestOrInf(); }
+            T MapIn(T in, int64_t /*index*/) { return in; }
+            void Reduce(T next, T& accum) {
+                if (accum < next) {
+                    accum = next;
+                }
+            }
+            T MapOut(T accum) { return accum; }
+        };
+        Reduce(MakeReductionKernelArg<T, T>(a, axis, out), AMaxImpl{});
+    });
+}
+
 void NativeDevice::Copy(const Array& a, const Array& out) {
     CheckDevicesCompatible(a, out);
-    VisitDtype(out.dtype(), [&](auto pt) {
+    VisitDtype(a.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> a_iarray{a};
         IndexableArray<T> out_iarray{out};
