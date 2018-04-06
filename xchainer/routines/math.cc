@@ -7,6 +7,8 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/dtype.h"
+#include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/util.h"
 #include "xchainer/scalar.h"
@@ -14,13 +16,10 @@
 namespace xchainer {
 
 Array Negative(const Array& x) {
-    Array out = Array::EmptyLike(x, x.device());
-    x.device().Negative(x, out);
-
-    auto backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return -gout; };
-    internal::SetUpOpNodes("negative", {x}, out, {backward_function});
-
-    return out;
+    if (x.dtype() == Dtype::kBool) {
+        throw DtypeError("Cannot negative a boolean array.");
+    }
+    return Multiply(x, Scalar{-1, x.dtype()});
 }
 
 namespace {
