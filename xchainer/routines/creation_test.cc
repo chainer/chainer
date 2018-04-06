@@ -331,24 +331,24 @@ TEST_P(CreationTest, Copy) {
     {
         Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
         Array o = Copy(a);
-        testing::ExpectEqualCopy<bool>(a, o);
+        testing::ExpectEqualCopy(a, o);
     }
     {
         Array a = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
         Array o = Copy(a);
-        testing::ExpectEqualCopy<int8_t>(a, o);
+        testing::ExpectEqualCopy(a, o);
     }
     {
         Array a = testing::BuildArray<float>({3, 1}, {1.0f, 2.0f, 3.0f});
         Array o = Copy(a);
-        testing::ExpectEqualCopy<float>(a, o);
+        testing::ExpectEqualCopy(a, o);
     }
 
     // with padding
     {
         Array a = testing::BuildArray<float>({3, 1}, {1.0f, 2.0f, 3.0f}).WithPadding(1);
         Array o = Copy(a);
-        testing::ExpectEqualCopy<float>(a, o);
+        testing::ExpectEqualCopy(a, o);
     }
 }
 

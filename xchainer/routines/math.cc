@@ -12,6 +12,17 @@
 #include "xchainer/scalar.h"
 
 namespace xchainer {
+
+Array Negative(const Array& x) {
+    Array out = Array::EmptyLike(x, x.device());
+    x.device().Negative(x, out);
+
+    auto backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return -gout; };
+    internal::SetUpOpNodes("negative", {x}, out, {backward_function});
+
+    return out;
+}
+
 namespace {
 
 void AddImpl(const Array& lhs, const Array& rhs, const Array& out) {
@@ -78,10 +89,7 @@ void SubtractImpl(const Array& lhs, const Array& rhs, const Array& out) {
     CheckEqual(lhs.shape(), rhs.shape());
 
     auto lhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
-    auto rhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array {
-        // TODO(niboshi): Use unary negate
-        return -1 * gout;
-    };
+    auto rhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return -gout; };
     internal::SetUpOpNodes("subtract", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
 
     lhs.device().Subtract(lhs, rhs, out);
@@ -285,6 +293,16 @@ Array Maximum(const Array& x1, Scalar x2) {
 }
 
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
+
+Array Exp(const Array& x) {
+    Array out = Array::EmptyLike(x, x.device());
+    x.device().Exp(x, out);
+
+    auto backward_function = [x](const Array& gout, const std::vector<GraphId>&) { return Exp(x) * gout; };
+    internal::SetUpOpNodes("exp", {x}, out, {backward_function});
+
+    return out;
+}
 
 Array Log(const Array& x) {
     Array out = Array::EmptyLike(x, x.device());

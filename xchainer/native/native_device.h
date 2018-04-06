@@ -40,6 +40,8 @@ public:
 
     void Copy(const Array& src, const Array& out) override;
 
+    void Negative(const Array& x, const Array& out) override;
+
     void Equal(const Array& lhs, const Array& rhs, const Array& out) override;
 
     void Add(const Array& lhs, const Array& rhs, const Array& out) override;
@@ -51,6 +53,7 @@ public:
 
     void Dot(const Array& lhs, const Array& rhs, const Array& out) override;
 
+    void Exp(const Array& x, const Array& out) override;
     void Log(const Array& x, const Array& out) override;
 
     void Synchronize() override;
