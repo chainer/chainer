@@ -213,6 +213,68 @@ Array Multiply(const Array& x1, Scalar x2) {
 
 Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
 
+namespace {
+
+void DivideImpl(const Array& lhs, const Array& rhs, const Array& out) {
+    // TODO(niboshi): The behavior should be true division for integral dtypes. Currently it's rounding towards zero.
+    // TODO(niboshi): dtype conversion
+    CheckEqual(lhs.dtype(), rhs.dtype());
+    CheckEqual(lhs.shape(), rhs.shape());
+
+    auto lhs_backward_function = [rhs](const Array& gout, const std::vector<GraphId>&) -> Array { return gout / rhs; };
+    auto rhs_backward_function = [lhs, rhs](const Array& gout, const std::vector<GraphId>&) -> Array {
+        // TODO(niboshi): Use unary negate
+        return -1 * gout * lhs / (rhs * rhs);
+    };
+    internal::SetUpOpNodes("divide", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+
+    lhs.device().Divide(lhs, rhs, out);
+}
+
+template <typename ArrayType>
+ArrayType& DivideAssignImpl(ArrayType& self, const Array& rhs) {
+    auto func = [](ArrayType& lhs, const Array& rhs) -> ArrayType& {
+        DivideImpl(lhs, rhs, lhs);
+        return lhs;
+    };
+
+    if (self.shape() == rhs.shape()) {
+        return func(self, rhs);
+    }
+    Array rhs_broadcasted = rhs.BroadcastTo(self.shape());
+    return func(self, rhs_broadcasted);
+}
+
+}  // namespace
+
+namespace internal {
+
+Array& IDivide(Array& x1, const Array& x2) { return DivideAssignImpl(x1, x2); }
+
+const Array& IDivide(const Array& x1, const Array& x2) { return DivideAssignImpl(x1, x2); }
+
+}  // namespace internal
+
+Array Divide(const Array& x1, const Array& x2) {
+    auto func = [](const Array& x1, const Array& x2) {
+        Array out = Array::EmptyLike(x1, x1.device());
+        DivideImpl(x1, x2, out);
+        return out;
+    };
+
+    if (x1.shape() == x2.shape()) {
+        return func(x1, x2);
+    }
+    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
+    if (x1.shape() == result_shape) {
+        return func(x1, x2.BroadcastTo(result_shape));
+    }
+    if (x2.shape() == result_shape) {
+        return func(x1.BroadcastTo(result_shape), x2);
+    }
+    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
+}
+
 Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
     std::vector<int8_t> sorted_axis;
     if (axis.has_value()) {
