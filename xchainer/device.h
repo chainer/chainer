@@ -55,7 +55,7 @@ public:
 
     virtual void Fill(const Array& out, Scalar value) = 0;
 
-    virtual void ArgMax(const Array& src, const std::vector<int8_t>& axis, const Array& out) = 0;
+    virtual void ArgMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) = 0;
 
     // Calculate the sum of an array.
     // It will be summed over the specified axes.
@@ -64,32 +64,32 @@ public:
     // - it is sorted, and
     // - it has no duplicated values.
     // Otherwise, the behavior is undefined.
-    virtual void Sum(const Array& src, const std::vector<int8_t>& axis, const Array& out) = 0;
+    virtual void Sum(const Array& a, const std::vector<int8_t>& axis, const Array& out) = 0;
 
     // Copies the elements from one array to the other.
     //
     // The arrays must match in shape and dtype and need to reside on this device.
-    virtual void Copy(const Array& src, const Array& out) = 0;
+    virtual void Copy(const Array& a, const Array& out) = 0;
+
+    virtual void Equal(const Array& x1, const Array& x2, const Array& out) = 0;
 
     virtual void Negative(const Array& x, const Array& out) = 0;
 
-    virtual void Equal(const Array& lhs, const Array& rhs, const Array& out) = 0;
+    virtual void Add(const Array& x1, const Array& x2, const Array& out) = 0;
+    virtual void Subtract(const Array& x1, const Array& x2, const Array& out) = 0;
+    virtual void Multiply(const Array& x1, const Array& x2, const Array& out) = 0;
+    virtual void MultiplyAS(const Array& x1, Scalar x2, const Array& out) = 0;
 
-    virtual void Add(const Array& lhs, const Array& rhs, const Array& out) = 0;
-    virtual void Subtract(const Array& lhs, const Array& rhs, const Array& out) = 0;
-    virtual void Mul(const Array& lhs, Scalar rhs, const Array& out) = 0;
-    virtual void Mul(const Array& lhs, const Array& rhs, const Array& out) = 0;
-
-    // Compares lhs and rhs and assign either pos or neg according to the result.
+    // Compares x1 and x2 and assign either pos or neg according to the result.
     //
-    // Formally, it calculates: out = lhs < rhs ? pos : neg
-    virtual void IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg, const Array& out) = 0;
+    // Formally, it calculates: out = x1 < x2 ? pos : neg
+    virtual void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
 
     // Matrix multiplication. All the operands are matrices (i.e., two-dimensional arrays).
-    // Let the shapes of `lhs` and `rhs` be `(M, K)` and `(L, N)`, respectively.
+    // Let the shapes of `a` and `b` be `(M, K)` and `(L, N)`, respectively.
     // Then, it must hold that `K == L` and the shape of `out` must be `(M, N)`.
     // Otherwise, the behavior is undefined.
-    virtual void Dot(const Array& lhs, const Array& rhs, const Array& out) = 0;
+    virtual void Dot(const Array& a, const Array& b, const Array& out) = 0;
 
     virtual void Exp(const Array& x, const Array& out) = 0;
     virtual void Log(const Array& x, const Array& out) = 0;

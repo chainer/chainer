@@ -181,7 +181,7 @@ TEST_P(MathTest, ISubtract) {
 }
 
 // TODO(niboshi): separate independent tests
-TEST_P(MathTest, IMul) {
+TEST_P(MathTest, IMultiply) {
     {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
         Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
