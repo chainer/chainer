@@ -18,9 +18,9 @@ void InitXchainerScalar(pybind11::module& m) {
     c.def(py::init<bool>());
     c.def(py::init<int64_t>());
     c.def(py::init<double>());
-    c.def(py::init<bool, Dtype>());
-    c.def(py::init<int64_t, Dtype>());
-    c.def(py::init<double, Dtype>());
+    c.def(py::init<bool, Dtype>(), py::arg().noconvert(), py::arg());
+    c.def(py::init<int64_t, Dtype>(), py::arg().noconvert(), py::arg());
+    c.def(py::init<double, Dtype>(), py::arg().noconvert(), py::arg());
     c.def(py::self == py::self);  // NOLINT
     c.def("__eq__", [](Scalar scalar, bool value) { return scalar == Scalar{value}; });
     c.def("__eq__", [](Scalar scalar, int64_t value) { return scalar == Scalar{value}; });
