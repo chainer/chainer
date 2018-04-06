@@ -142,6 +142,36 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device"));
+    m.def("arange",
+          [](Scalar stop, const nonstd::optional<Dtype>& dtype, const nonstd::optional<std::string>& device_id) {
+              Scalar start{0, stop.dtype()};
+              Scalar step{1, stop.dtype()};
+              return dtype.has_value() ? Array::Arange(start, stop, step, *dtype, GetDevice(device_id)).move_body()
+                                       : Array::Arange(start, stop, step, GetDevice(device_id)).move_body();
+          },
+          py::arg("stop"),
+          py::arg("dtype") = nullptr,
+          py::arg("device") = nullptr);
+    m.def("arange",
+          [](Scalar start, Scalar stop, const nonstd::optional<Dtype>& dtype, const nonstd::optional<std::string>& device_id) {
+              Scalar step{1, stop.dtype()};
+              return dtype.has_value() ? Array::Arange(start, stop, step, *dtype, GetDevice(device_id)).move_body()
+                                       : Array::Arange(start, stop, step, GetDevice(device_id)).move_body();
+          },
+          py::arg("start"),
+          py::arg("stop"),
+          py::arg("dtype") = nullptr,
+          py::arg("device") = nullptr);
+    m.def("arange",
+          [](Scalar start, Scalar stop, Scalar step, const nonstd::optional<Dtype>& dtype, const nonstd::optional<std::string>& device_id) {
+              return dtype.has_value() ? Array::Arange(start, stop, step, *dtype, GetDevice(device_id)).move_body()
+                                       : Array::Arange(start, stop, step, GetDevice(device_id)).move_body();
+          },
+          py::arg("start"),
+          py::arg("stop"),
+          py::arg("step"),
+          py::arg("dtype") = nullptr,
+          py::arg("device") = nullptr);
     m.def("empty_like",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::string>& device_id) {
               return Array::EmptyLike(Array{a}, GetDevice(device_id)).move_body();

@@ -129,6 +129,12 @@ Array Array::Zeros(const Shape& shape, Dtype dtype, Device& device) { return xch
 
 Array Array::Ones(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Ones(shape, dtype, device); }
 
+Array Array::Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device) {
+    return xchainer::Arange(start, stop, step, dtype, device);
+}
+
+Array Array::Arange(Scalar start, Scalar stop, Scalar step, Device& device) { return xchainer::Arange(start, stop, step, device); }
+
 Array Array::EmptyLike(const Array& a, Device& device) { return xchainer::EmptyLike(a, device); }
 
 Array Array::FullLike(const Array& a, Scalar fill_value, Device& device) { return xchainer::FullLike(a, fill_value, device); }

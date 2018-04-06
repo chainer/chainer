@@ -1,9 +1,12 @@
 #include "xchainer/routines/creation.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <type_traits>
+#include <utility>
 
 #include "xchainer/array.h"
 #include "xchainer/device.h"
@@ -61,6 +64,35 @@ Array Full(const Shape& shape, Scalar fill_value, Device& device) { return Full(
 Array Zeros(const Shape& shape, Dtype dtype, Device& device) { return Full(shape, 0, dtype, device); }
 
 Array Ones(const Shape& shape, Dtype dtype, Device& device) { return Full(shape, 1, dtype, device); }
+
+Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device) {
+    // TODO(hvy): Simplify comparison if Scalar::operator== supports dtype conversion.
+    if (step == Scalar{0, step.dtype()}) {
+        throw XchainerError("Cannot create an arange array with 0 step size.");
+    }
+
+    // Compute the size of the output.
+    auto t_start = static_cast<double>(start);
+    auto t_stop = static_cast<double>(stop);
+    auto t_step = static_cast<double>(step);
+    if (t_step < 0) {
+        std::swap(t_start, t_stop);
+        t_step *= -1;
+    }
+    auto size = std::max(int64_t{0}, static_cast<int64_t>(std::ceil((t_stop - t_start) / t_step)));
+    if (size > 2 && dtype == Dtype::kBool) {
+        throw DtypeError("Cannot create an arange array of booleans with size larger than 2.");
+    }
+
+    Array out = Empty({size}, dtype, device);
+    device.Arange(start, step, out);
+    return out;
+}
+
+Array Arange(Scalar start, Scalar stop, Scalar step, Device& device) {
+    // TODO(hvy): Do proper dtype promotion and do not use the step dtype.
+    return Arange(start, stop, step, step.dtype(), device);
+}
 
 Array EmptyLike(const Array& a, Device& device) { return Empty(a.shape(), a.dtype(), device); }
 

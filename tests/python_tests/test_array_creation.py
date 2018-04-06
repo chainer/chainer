@@ -6,6 +6,7 @@ import pytest
 import xchainer
 from xchainer import testing
 
+
 _shapes = [
     (),
     (0,),
@@ -211,3 +212,43 @@ def test_full_like_with_device(device):
     t = xchainer.empty((2,), 'f')
     a = xchainer.full_like(t, 1, device)
     _check_device(a, device)
+
+
+@pytest.mark.parametrize("stop", [-2, 0, 3, 3.2, False, True])
+@pytest.mark.parametrize_device(['native:0'])
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DtypeError, ValueError))
+def test_arange_stop(xp, stop, dtype, device):
+    return xp.arange(stop, dtype=dtype.name)
+
+
+@pytest.mark.parametrize("start,stop", [
+    (0, 0),
+    (0, 3),
+    (-3, 2),
+    (2, 0),
+    (-2.2, 3.4),
+    (True, True),
+    (False, False),
+    (True, False),
+    (False, True),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@testing.numpy_xchainer_array_equal(accept_error=(xchainer.DtypeError, ValueError))
+def test_arange_start_stop(xp, start, stop, dtype, device):
+    return xp.arange(start, stop, dtype=dtype.name)
+
+
+@pytest.mark.parametrize("start,stop,step", [
+    (0, 3, 1),
+    (0, 0, 0),
+    (0, 0, 2),
+    (0, 1, 2),
+    (3., 2., 1.2),
+    (2., -1., 1.),
+    (2., -1., -0.),
+    (False, True, False),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@testing.numpy_xchainer_array_equal(accept_error=(xchainer.DtypeError, ValueError, xchainer.XchainerError, ZeroDivisionError))
+def test_arange_start_stop_step(xp, device, start, stop, step, dtype):
+    return xp.arange(start, stop, step, dtype=dtype.name)

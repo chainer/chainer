@@ -62,6 +62,8 @@ public:
     static Array Full(const Shape& shape, Scalar fill_value, Device& device = GetDefaultDevice());
     static Array Zeros(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
     static Array Ones(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
+    static Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device = GetDefaultDevice());
+    static Array Arange(Scalar start, Scalar stop, Scalar step, Device& device = GetDefaultDevice());
 
     // Creates an array which has the same shape and dtype as the other array.
     // The new array is allocated in the default device. The device of the other array

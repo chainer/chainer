@@ -46,6 +46,14 @@ __global__ void CopyKernel(IndexableArray<const T> a_iarray, IndexableArray<T> o
 }
 
 template <typename T>
+__global__ void ArangeKernel(T start, T step, IndexableArray<T> out_iarray, Indexer indexer) {
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < indexer.total_size(); i += blockDim.x * gridDim.x) {
+        indexer.Set(i);
+        out_iarray[indexer] = start + step * i;
+    }
+}
+
+template <typename T>
 __global__ void EqualKernel(
         IndexableArray<const T> x1_iarray, IndexableArray<const T> x2_iarray, IndexableArray<bool> out_iarray, Indexer indexer) {
     const int64_t total_size = indexer.total_size();
@@ -211,6 +219,22 @@ void CudaDevice::Fill(const Array& out, Scalar value) {
         int64_t block_size = std::min<int64_t>(indexer.total_size(), kMaxBlockSize);
 
         FillKernel<<<grid_size, block_size>>>(out_iarray, static_cast<T>(value), indexer);
+    });
+}
+
+void CudaDevice::Arange(Scalar start, Scalar step, const Array& out) {
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&ArangeKernel<T>).block_size;
+
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{out.shape()};
+        int64_t grid_size = (indexer.total_size() + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(indexer.total_size(), kMaxBlockSize);
+
+        // TODO(hvy): Support dtype promotion.
+        ArangeKernel<<<grid_size, block_size>>>(static_cast<T>(start), static_cast<T>(step), out_iarray, indexer);
     });
 }
 

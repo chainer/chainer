@@ -31,6 +31,8 @@ public:
 
     void Fill(const Array& out, Scalar value) override;
 
+    void Arange(Scalar start, Scalar step, const Array& out) override;
+
     void ArgMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) override;
 
     void Sum(const Array& a, const std::vector<int8_t>& axis, const Array& out) override;
