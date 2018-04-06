@@ -1454,8 +1454,7 @@ def test_fill_with_scalar(device, shape, dtype, value):
     numpy.testing.assert_array_equal(a_xc, a_np)
 
 
-# TODO(niboshi): Add 'cuda:0'
-@pytest.mark.parametrize_device(['native:0'])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
     numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
     numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
