@@ -416,9 +416,11 @@ Assign a Parameter object directly to an attribute within a \
             value = d[name]
             if isinstance(value, cuda.ndarray):
                 value = value.get()  # to numpy.ndarray
-            if isinstance(value, numpy.ndarray):
-                d[name] = intel64.ideep.array(
+            if (isinstance(value, numpy.ndarray) and
+                    intel64.inputs_all_ready((value,))):
+                value = intel64.ideep.array(
                     value, itype=intel64.ideep.wgt_array)
+            d[name] = value
         self._cpu = True
         return self
 
