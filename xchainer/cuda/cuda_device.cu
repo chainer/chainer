@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -12,6 +13,7 @@
 #include "xchainer/array.h"
 #include "xchainer/cuda/cublas.h"
 #include "xchainer/cuda/cuda_runtime.h"
+#include "xchainer/cuda/reduce.cuh"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/enum.h"
@@ -19,26 +21,11 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_device.h"
+#include "xchainer/reduction_kernel_arg.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
 namespace cuda {
-
-namespace {
-
-static constexpr int kMaxReductionBlockSize = 512;
-
-int64_t RoundUpToPowerOf2(int64_t x) {
-    --x;
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-    x |= x >> 32;
-    return x + 1;
-}
-}  // namespace
 
 namespace {
 
@@ -47,106 +34,6 @@ __global__ void FillKernel(IndexableArray<T> out_iarray, T value, Indexer indexe
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < indexer.total_size(); i += blockDim.x * gridDim.x) {
         indexer.Set(i);
         out_iarray[indexer] = value;
-    }
-}
-
-template <typename T>
-__global__ void SumKernel(
-        IndexableArray<const T> src_iarray,
-        IndexableArray<T> out_iarray,
-        Indexer src_indexer,
-        Indexer reduce_indexer,
-        Indexer out_indexer,
-        int reduce_block_size) {
-    extern __shared__ __align__(8) uint8_t work_bytes[];
-    T* work = reinterpret_cast<T*>(work_bytes);
-    int tid = threadIdx.x;
-    int reduce_blocks_per_grid = (blockDim.x + reduce_block_size - 1) / reduce_block_size * gridDim.x;
-
-    for (int64_t i_out = blockIdx.x; i_out < out_indexer.total_size(); i_out += gridDim.x * reduce_blocks_per_grid) {
-        out_indexer.Set(i_out);
-
-        T sum_value = 0;
-
-        // Set output indices in the corresponding indices (out_axis) in src_index.
-        for (int8_t i_out_dim = 0; i_out_dim < out_indexer.ndim(); ++i_out_dim) {
-            src_indexer.index()[i_out_dim] = out_indexer.index()[i_out_dim];
-        }
-
-        // Linearly compute the partial sum into at most kMaxReductionBlockSize values.
-        for (int64_t i_reduce = tid; i_reduce < reduce_indexer.total_size(); i_reduce += reduce_block_size) {
-            reduce_indexer.Set(i_reduce);
-
-            // Set reduction indices in the corresponding indices (axis) in src_index.
-            for (int8_t i_reduce_dim = 0; i_reduce_dim < reduce_indexer.ndim(); ++i_reduce_dim) {
-                src_indexer.index()[out_indexer.ndim() + i_reduce_dim] = reduce_indexer.index()[i_reduce_dim];
-            }
-
-            sum_value += src_iarray[src_indexer];
-        }
-
-        if (reduce_block_size >= 2) {
-            // Synchronize partial sums
-            work[tid] = sum_value;
-            __syncthreads();
-
-            // Reduction
-            if (reduce_block_size > 2) {
-                if (reduce_block_size > 4) {
-                    if (reduce_block_size > 8) {
-                        if (reduce_block_size > 16) {
-                            if (reduce_block_size > 32) {
-                                if (reduce_block_size > 64) {
-                                    if (reduce_block_size > 128) {
-                                        if (reduce_block_size > 256) {
-                                            static_assert(kMaxReductionBlockSize == 512, "");
-
-                                            if (tid < 256) {
-                                                work[tid] += work[tid + 256];
-                                            }
-                                            __syncthreads();
-                                        }
-                                        if (tid < 128) {
-                                            work[tid] += work[tid + 128];
-                                        }
-                                        __syncthreads();
-                                    }
-                                    if (tid < 64) {
-                                        work[tid] += work[tid + 64];
-                                    }
-                                    __syncthreads();
-                                }
-                                if (tid < 32) {
-                                    work[tid] += work[tid + 32];
-                                }
-                                __syncthreads();
-                            }
-                            if (tid < 16) {
-                                work[tid] += work[tid + 16];
-                            }
-                            __syncthreads();
-                        }
-                        if (tid < 8) {
-                            work[tid] += work[tid + 8];
-                        }
-                        __syncthreads();
-                    }
-                    if (tid < 4) {
-                        work[tid] += work[tid + 4];
-                    }
-                    __syncthreads();
-                }
-                if (tid < 2) {
-                    work[tid] += work[tid + 2];
-                }
-                __syncthreads();
-            }
-            sum_value = work[0] + work[1];
-        }
-        // Store the output value
-        if (tid == 0) {
-            out_iarray[out_indexer] = sum_value;
-        }
     }
 }
 
@@ -232,6 +119,24 @@ __global__ void IfLessElseKernel(
     }
 }
 
+template <typename T>
+__global__ void ExpKernel(IndexableArray<const T> x_iarray, IndexableArray<T> out_iarray, Indexer indexer) {
+    const int64_t total_size = indexer.total_size();
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
+        indexer.Set(i);
+        out_iarray[indexer] = std::exp(x_iarray[indexer]);
+    }
+}
+
+template <typename T>
+__global__ void LogKernel(IndexableArray<const T> x_iarray, IndexableArray<T> out_iarray, Indexer indexer) {
+    const int64_t total_size = indexer.total_size();
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
+        indexer.Set(i);
+        out_iarray[indexer] = std::log(x_iarray[indexer]);
+    }
+}
+
 }  // namespace
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
@@ -295,6 +200,7 @@ std::shared_ptr<void> CudaDevice::FromHostMemory(const std::shared_ptr<void>& sr
 }
 
 void CudaDevice::Fill(const Array& out, Scalar value) {
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&FillKernel<T>).block_size;
@@ -308,42 +214,59 @@ void CudaDevice::Fill(const Array& out, Scalar value) {
     });
 }
 
+namespace {
+
+template <typename T>
+struct ArgMaxImpl {
+    struct MaxAndArgMax {
+        T max;
+        int64_t argmax;
+    };
+    __device__ MaxAndArgMax Identity() { return {T{}, -1}; }
+    __device__ MaxAndArgMax MapIn(T in, int64_t index) { return {in, index}; }
+    __device__ void Reduce(MaxAndArgMax next, MaxAndArgMax& accum) {
+        if (accum.argmax < 0 || accum.max < next.max) {
+            accum = next;
+        }
+    }
+    __device__ int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
+};
+
+}  // namespace
+
 void CudaDevice::ArgMax(const Array& src, const std::vector<int8_t>& axis, const Array& out) {
-    (void)src;   // unused
-    (void)axis;  // unused
-    (void)out;   // unused
-    throw NotImplementedError("CudaDevice::ArgMax is not yet implemented.");
+    CheckDevicesCompatible(src, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(src.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Reduce(MakeReductionKernelArg<T, int64_t>(src, axis, out), ArgMaxImpl<T>{});
+    });
 }
 
+namespace {
+
+template <typename T>
+struct SumImpl {
+    __device__ T Identity() { return T{0}; }
+    __device__ T MapIn(T in, int64_t /*index*/) { return in; }
+    __device__ void Reduce(T next, T& accum) { accum += next; }
+    __device__ T MapOut(T accum) { return accum; }
+};
+
+}  // namespace
+
 void CudaDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const Array& out) {
+    CheckDevicesCompatible(src, out);
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SumKernel<T>).block_size;
-
-        // Prepare indexable arrays and indexers
-        auto tup = native::internal::PrepareIndexableArraysForReduction<T, T>(src, axis, out);
-        IndexableArray<const T>& src_iarray = std::get<0>(tup);
-        IndexableArray<T>& out_iarray = std::get<1>(tup);
-        Indexer& src_indexer = std::get<2>(tup);
-        Indexer& out_indexer = std::get<3>(tup);
-        Indexer& reduce_indexer = std::get<4>(tup);
-
-        // Launch kernel
-        int reduce_block_size = static_cast<int>(std::min(
-                static_cast<int64_t>(kMaxReductionBlockSize), RoundUpToPowerOf2(std::max(int64_t{1}, reduce_indexer.total_size()))));
-        int block_size = std::min(kMaxBlockSize, reduce_block_size);
-        int64_t total_reduce_blocks = out_indexer.total_size();
-        int64_t grid_size = total_reduce_blocks;
-        size_t shared_mem_size = sizeof(T) * reduce_block_size;
-
-        SumKernel<<<grid_size, block_size, shared_mem_size>>>(
-                src_iarray, out_iarray, src_indexer, reduce_indexer, out_indexer, reduce_block_size);
+        Reduce(MakeReductionKernelArg<T, T>(src, axis, out), SumImpl<T>{});
     });
 }
 
 void CudaDevice::Copy(const Array& src, const Array& out) {
     CheckDevicesCompatible(src, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&CopyKernel<T>).block_size;
@@ -360,9 +283,14 @@ void CudaDevice::Copy(const Array& src, const Array& out) {
     });
 }
 
+void CudaDevice::Negative(const Array& /*x*/, const Array& /*out*/) {
+    // TODO(niboshi): Implement
+    throw NotImplementedError("");
+}
+
 void CudaDevice::Equal(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&EqualKernel<T>).block_size;
@@ -383,7 +311,7 @@ void CudaDevice::Equal(const Array& lhs, const Array& rhs, const Array& out) {
 // TODO(sonots): support stream
 void CudaDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
@@ -403,7 +331,7 @@ void CudaDevice::Add(const Array& lhs, const Array& rhs, const Array& out) {
 
 void CudaDevice::Subtract(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
@@ -423,7 +351,7 @@ void CudaDevice::Subtract(const Array& lhs, const Array& rhs, const Array& out) 
 
 void CudaDevice::Mul(const Array& lhs, Scalar rhs, const Array& out) {
     CheckDevicesCompatible(lhs, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MulScalarKernel<T>).block_size;
@@ -443,7 +371,7 @@ void CudaDevice::Mul(const Array& lhs, Scalar rhs, const Array& out) {
 // TODO(sonots): support stream
 void CudaDevice::Mul(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MulKernel<T>).block_size;
@@ -483,7 +411,7 @@ void CudaDevice::Divide(const Array& lhs, const Array& rhs, const Array& out) {
 
 void CudaDevice::IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(lhs, neg, out);
-    cudaSetDevice(index());
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&IfLessElseKernel<T>).block_size;
@@ -554,6 +482,7 @@ T* GetOffsetData(const Array& a) {
 
 void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
+    CheckCudaError(cudaSetDevice(index()));
 
     assert(lhs.ndim() == 2);
     assert(rhs.ndim() == 2);
@@ -609,6 +538,44 @@ void CudaDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
     if (!is_out_contiguous) {
         Copy(out_contiguous, out);
     }
+}
+
+void CudaDevice::Exp(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&ExpKernel<T>).block_size;
+
+        IndexableArray<const T> x_iarray{x};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{out.shape()};
+
+        int64_t total_size = indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        ExpKernel<<<grid_size, block_size>>>(x_iarray, out_iarray, indexer);
+    });
+}
+
+void CudaDevice::Log(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&LogKernel<T>).block_size;
+
+        IndexableArray<const T> x_iarray{x};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{out.shape()};
+
+        int64_t total_size = indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        LogKernel<<<grid_size, block_size>>>(x_iarray, out_iarray, indexer);
+    });
 }
 
 void CudaDevice::Synchronize() {

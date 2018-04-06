@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <tuple>
@@ -13,122 +14,12 @@
 #include "xchainer/dtype.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/native/reduce.h"
+#include "xchainer/reduction_kernel_arg.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
 namespace native {
-namespace internal {
-
-template <typename SrcType, typename OutType>
-std::tuple<IndexableArray<const SrcType>, IndexableArray<OutType>, Indexer, Indexer, Indexer> PrepareIndexableArraysForReduction(
-        const Array& src, const std::vector<int8_t>& axis, const Array& out) {
-    // True if some axes are reduced but kept in output as 1-dim axes.
-    // Corresponding to keepdim argument in Array::Sum().
-    bool has_kept_dims = out.ndim() + static_cast<int64_t>(axis.size()) != src.ndim();
-
-    // Prepare axis mappings
-    std::vector<int64_t> reduce_shape;  // Reduction dimensions
-    std::vector<int8_t> out_axis_map;   // Mapping from effective output indices to actual output indices
-    std::vector<int64_t> new_out_shape;
-    // (Here "effective output indices" means source indices minus reduction indices.)
-
-    // Example (in the case of has_kept_dims=false):
-    // - src.shape():      (12, 13, 14, 15, 16)
-    // - axis:             (1, 3)
-    // - out.shape():      (12, 14, 16)
-    // - reduce_shape:     (13, 15)
-    // - out_axis_map:     (0, 1, 2)
-    // - new_out_shape:    (12, 14, 16)
-    // Example (in the case of has_kept_dims=true):
-    // - src.shape():      (12, 13, 14, 15, 16)
-    // - axis:             (1, 3)
-    // - out.shape():      (12, 1, 14, 1, 16)
-    // - reduce_shape:     (13, 15)
-    // - out_axis_map:     (0, 2, 4)
-    // - new_out_shape:    (12, 14, 16)
-
-    reduce_shape.reserve(axis.size());
-    out_axis_map.reserve(out.shape().size());
-    new_out_shape.reserve(out.shape().size());
-    {
-        size_t i_axis = 0;
-        size_t i_out_axis = 0;
-        for (int8_t i = 0; i < src.shape().ndim(); ++i) {
-            if (i_axis < axis.size() && i == axis[i_axis]) {
-                // i is to be reduced
-                int64_t src_dim = src.shape()[i];
-                if (src_dim != 1) {
-                    reduce_shape.push_back(src_dim);
-                }
-                ++i_axis;
-                if (has_kept_dims) {
-                    ++i_out_axis;
-                }
-            } else {
-                // i is not to be reduced
-                int64_t out_dim = out.shape()[i_out_axis];
-                if (out_dim != 1) {
-                    out_axis_map.push_back(static_cast<int8_t>(i_out_axis));
-                    new_out_shape.push_back(out_dim);
-                }
-                ++i_out_axis;
-            }
-        }
-        assert(i_out_axis == out.shape().size());
-        assert(i_axis == axis.size());
-    }
-    // Inequality because 1-dim axes are eliminated.
-    assert(reduce_shape.size() <= axis.size());
-    assert(out_axis_map.size() <= src.shape().size() - axis.size());
-    assert(out_axis_map.size() == new_out_shape.size());
-
-    // Calculate source axis permutation
-    std::vector<int8_t> axis_permutes;
-    axis_permutes.reserve(src.shape().size());
-    {
-        size_t i_reduce = 0;
-        for (int8_t i = 0; i < src.ndim(); ++i) {
-            if (i_reduce < axis.size() && i == axis[i_reduce]) {
-                ++i_reduce;
-            } else {
-                if (src.shape()[i] != 1) {
-                    axis_permutes.push_back(i);
-                }
-            }
-        }
-    }
-    for (int8_t i : axis) {
-        if (src.shape()[i] != 1) {
-            axis_permutes.push_back(i);
-        }
-    }
-    assert(axis_permutes.size() <= src.shape().size());  // Inequality because 1-dim axes are eliminated.
-
-    // Calculate new source shape
-    std::vector<int64_t> new_src_shape;
-    new_src_shape.reserve(axis_permutes.size());
-    for (int8_t i : axis_permutes) {
-        new_src_shape.push_back(src.shape()[i]);
-    }
-
-    // 1-dim axes must be eliminated
-    assert(std::find(new_src_shape.begin(), new_src_shape.end(), 1) == new_src_shape.end());
-    assert(std::find(new_out_shape.begin(), new_out_shape.end(), 1) == new_out_shape.end());
-
-    // Check postconditions and return
-    auto tup = std::make_tuple(
-            IndexableArray<const SrcType>{src}.Permute(axis_permutes),   // src indexable array
-            IndexableArray<OutType>{out}.Permute(out_axis_map),          // out indexable array
-            Indexer{Shape{new_src_shape.begin(), new_src_shape.end()}},  // src indexer
-            Indexer{Shape{new_out_shape.begin(), new_out_shape.end()}},  // out indexer
-            Indexer{Shape{reduce_shape.begin(), reduce_shape.end()}});   // reduce indexer
-    assert(std::get<0>(tup).ndim() == std::get<2>(tup).ndim());
-    assert(std::get<1>(tup).ndim() == std::get<3>(tup).ndim());
-    assert(std::get<0>(tup).ndim() == std::get<3>(tup).ndim() + std::get<4>(tup).ndim());
-    return tup;
-}
-
-}  // namespace internal
 
 std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) { return std::make_unique<uint8_t[]>(bytesize); }
 
@@ -181,44 +72,22 @@ void NativeDevice::ArgMax(const Array& src, const std::vector<int8_t>& axis, con
 
     VisitDtype(src.dtype(), [&src, &axis, &out](auto pt) {
         using T = typename decltype(pt)::type;
+        struct ArgMaxImpl {
+            struct MaxAndArgMax {
+                T max;
+                int64_t argmax;
+            };
 
-        // Prepare indexable arrays and indexers
-        auto tup = internal::PrepareIndexableArraysForReduction<T, int64_t>(src, axis, out);
-        IndexableArray<const T>& src_iarray = std::get<0>(tup);
-        IndexableArray<int64_t>& out_iarray = std::get<1>(tup);
-        Indexer& src_indexer = std::get<2>(tup);
-        Indexer& out_indexer = std::get<3>(tup);
-        Indexer& reduce_indexer = std::get<4>(tup);
-
-        // Iterate over output dimensions
-        for (int64_t i_out = 0; i_out < out_indexer.total_size(); ++i_out) {
-            out_indexer.Set(i_out);
-            gsl::span<int64_t> src_index = gsl::make_span(src_indexer.index(), src.shape().size());
-
-            T max{};
-            int64_t argmax = -1;
-
-            // Set output indices in the corresponding indices (out_axis) in src_index.
-            for (int8_t i_out_dim = 0; i_out_dim < out_indexer.ndim(); ++i_out_dim) {
-                src_index[i_out_dim] = out_indexer.index()[i_out_dim];
-            }
-
-            // Iterate over reduction dimensions, reducing into a single output value.
-            for (int64_t i_reduce = 0; i_reduce < reduce_indexer.total_size(); ++i_reduce) {
-                reduce_indexer.Set(i_reduce);
-                // Set reduction indices in the corresponding indices (axis) in src_index.
-                for (int8_t i_reduce_dim = 0; i_reduce_dim < reduce_indexer.ndim(); ++i_reduce_dim) {
-                    src_index[out_indexer.ndim() + i_reduce_dim] = reduce_indexer.index()[i_reduce_dim];
-                }
-
-                if (argmax < 0 || max < src_iarray[src_indexer]) {  // Do no update if equal, similar to NumPy
-                    argmax = i_reduce;
-                    max = src_iarray[src_indexer];
+            MaxAndArgMax Identity() { return {T{}, -1}; }
+            MaxAndArgMax MapIn(T in, int64_t index) { return {in, index}; }
+            void Reduce(MaxAndArgMax next, MaxAndArgMax& accum) {
+                if (accum.argmax < 0 || accum.max < next.max) {
+                    accum = next;
                 }
             }
-            assert(argmax >= 0);
-            out_iarray[out_indexer] = argmax;
-        }
+            int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
+        };
+        Reduce(MakeReductionKernelArg<T, int64_t>(src, axis, out), ArgMaxImpl{});
     });
 }
 
@@ -230,38 +99,13 @@ void NativeDevice::Sum(const Array& src, const std::vector<int8_t>& axis, const 
 
     VisitDtype(src.dtype(), [&src, &axis, &out](auto pt) {
         using T = typename decltype(pt)::type;
-
-        // Prepare indexable arrays and indexers
-        auto tup = internal::PrepareIndexableArraysForReduction<T, T>(src, axis, out);
-        IndexableArray<const T>& src_iarray = std::get<0>(tup);
-        IndexableArray<T>& out_iarray = std::get<1>(tup);
-        Indexer& src_indexer = std::get<2>(tup);
-        Indexer& out_indexer = std::get<3>(tup);
-        Indexer& reduce_indexer = std::get<4>(tup);
-
-        // Iterate over output dimensions
-        for (int64_t i_out = 0; i_out < out_indexer.total_size(); ++i_out) {
-            out_indexer.Set(i_out);
-            T sum_value = 0;
-            gsl::span<int64_t> src_index = gsl::make_span(src_indexer.index(), src.shape().size());
-
-            // Set output indices in the corresponding indices (out_axis) in src_index.
-            for (int8_t i_out_dim = 0; i_out_dim < out_indexer.ndim(); ++i_out_dim) {
-                src_index[i_out_dim] = out_indexer.index()[i_out_dim];
-            }
-
-            // Iterate over reduction dimensions, reducing into a single output value.
-            for (int64_t i_reduce = 0; i_reduce < reduce_indexer.total_size(); ++i_reduce) {
-                reduce_indexer.Set(i_reduce);
-                // Set reduction indices in the corresponding indices (axis) in src_index.
-                for (int8_t i_reduce_dim = 0; i_reduce_dim < reduce_indexer.ndim(); ++i_reduce_dim) {
-                    src_index[out_indexer.ndim() + i_reduce_dim] = reduce_indexer.index()[i_reduce_dim];
-                }
-
-                sum_value += src_iarray[src_indexer];
-            }
-            out_iarray[out_indexer] = sum_value;
-        }
+        struct SumImpl {
+            T Identity() { return T{0}; }
+            T MapIn(T in, int64_t /*index*/) { return in; }
+            void Reduce(T next, T& accum) { accum += next; }
+            T MapOut(T accum) { return accum; }
+        };
+        Reduce(MakeReductionKernelArg<T, T>(src, axis, out), SumImpl{});
     });
 }
 
@@ -276,6 +120,21 @@ void NativeDevice::Copy(const Array& src, const Array& out) {
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
             out_iarray[indexer] = src_iarray[indexer];
+        }
+    });
+}
+
+void NativeDevice::Negative(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> x_iarray{x};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{out.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            out_iarray[indexer] = -x_iarray[indexer];
         }
     });
 }
@@ -425,6 +284,36 @@ void NativeDevice::Dot(const Array& lhs, const Array& rhs, const Array& out) {
                     out_value += lhs_iarray[lhs_i] * rhs_iarray[rhs_i];
                 }
             }
+        }
+    });
+}
+
+void NativeDevice::Exp(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> x_iarray{x};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{out.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            out_iarray[indexer] = std::exp(x_iarray[indexer]);
+        }
+    });
+}
+
+void NativeDevice::Log(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    VisitDtype(x.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        IndexableArray<const T> x_iarray{x};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{x.shape()};
+
+        for (int64_t i = 0; i < indexer.total_size(); ++i) {
+            indexer.Set(i);
+            out_iarray[indexer] = std::log(x_iarray[indexer]);
         }
     });
 }

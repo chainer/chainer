@@ -10,6 +10,8 @@
 
 namespace xchainer {
 
+Array Negative(const Array& x);
+
 namespace internal {
 
 Array& IAdd(Array& x1, const Array& x2);
@@ -52,5 +54,8 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis = no
 
 Array Maximum(const Array& x1, Scalar x2);
 Array Maximum(Scalar x1, const Array& x2);
+
+Array Exp(const Array& x);
+Array Log(const Array& x);
 
 }  // namespace xchainer

@@ -71,6 +71,8 @@ public:
     // The arrays must match in shape and dtype and need to reside on this device.
     virtual void Copy(const Array& src, const Array& out) = 0;
 
+    virtual void Negative(const Array& x, const Array& out) = 0;
+
     virtual void Equal(const Array& lhs, const Array& rhs, const Array& out) = 0;
 
     virtual void Add(const Array& lhs, const Array& rhs, const Array& out) = 0;
@@ -89,6 +91,9 @@ public:
     // Then, it must hold that `K == L` and the shape of `out` must be `(M, N)`.
     // Otherwise, the behavior is undefined.
     virtual void Dot(const Array& lhs, const Array& rhs, const Array& out) = 0;
+
+    virtual void Exp(const Array& x, const Array& out) = 0;
+    virtual void Log(const Array& x, const Array& out) = 0;
 
     virtual void Synchronize() = 0;
 

@@ -29,3 +29,19 @@ def test_dtypes(dtype, name, char, itemsize):
     assert xchainer.dtype(name) == dtype
     assert xchainer.dtype(char) == dtype
     assert xchainer.dtype(dtype) == dtype
+
+
+def test_eq():
+    assert xchainer.int8 == xchainer.int8
+    assert xchainer.dtype('int8') == xchainer.int8
+    assert xchainer.dtype(xchainer.int8) == xchainer.int8
+    assert not 8 == xchainer.int8
+    assert not xchainer.int8 == 8
+
+
+def test_ne():
+    assert xchainer.int32 != xchainer.int8
+    assert xchainer.dtype('int32') != xchainer.int8
+    assert xchainer.dtype(xchainer.int32) != xchainer.int8
+    assert 32 != xchainer.int32
+    assert xchainer.int8 != 32
