@@ -12,31 +12,42 @@
 #include "xchainer/scalar.h"
 
 namespace xchainer {
+
+Array Negative(const Array& x) {
+    Array out = Array::EmptyLike(x, x.device());
+    x.device().Negative(x, out);
+
+    auto backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return -gout; };
+    internal::SetUpOpNodes("negative", {x}, out, {backward_function});
+
+    return out;
+}
+
 namespace {
 
-void AddImpl(const Array& lhs, const Array& rhs, const Array& out) {
+void AddImpl(const Array& x1, const Array& x2, const Array& out) {
     // TODO(sonots): dtype conversion
-    CheckEqual(lhs.dtype(), rhs.dtype());
-    CheckEqual(lhs.shape(), rhs.shape());
+    CheckEqual(x1.dtype(), x2.dtype());
+    CheckEqual(x1.shape(), x2.shape());
 
-    auto lhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
-    auto rhs_backward_function = lhs_backward_function;
-    internal::SetUpOpNodes("add", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
+    auto rhs_backward_function = x1_backward_function;
+    internal::SetUpOpNodes("add", {x1, x2}, out, {x1_backward_function, rhs_backward_function});
 
-    lhs.device().Add(lhs, rhs, out);
+    x1.device().Add(x1, x2, out);
 }
 
 template <typename ArrayType>
-ArrayType& AddAssignImpl(ArrayType& self, const Array& rhs) {
-    auto func = [](ArrayType& lhs, const Array& rhs) -> ArrayType& {
-        AddImpl(lhs, rhs, lhs);
-        return lhs;
+ArrayType& AddAssignImpl(ArrayType& self, const Array& x2) {
+    auto func = [](ArrayType& x1, const Array& x2) -> ArrayType& {
+        AddImpl(x1, x2, x1);
+        return x1;
     };
 
-    if (self.shape() == rhs.shape()) {
-        return func(self, rhs);
+    if (self.shape() == x2.shape()) {
+        return func(self, x2);
     }
-    Array rhs_broadcasted = rhs.BroadcastTo(self.shape());
+    Array rhs_broadcasted = x2.BroadcastTo(self.shape());
     return func(self, rhs_broadcasted);
 }
 
@@ -72,32 +83,29 @@ Array Add(const Array& x1, const Array& x2) {
 
 namespace {
 
-void SubtractImpl(const Array& lhs, const Array& rhs, const Array& out) {
+void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     // TODO(niboshi): dtype conversion
-    CheckEqual(lhs.dtype(), rhs.dtype());
-    CheckEqual(lhs.shape(), rhs.shape());
+    CheckEqual(x1.dtype(), x2.dtype());
+    CheckEqual(x1.shape(), x2.shape());
 
-    auto lhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
-    auto rhs_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array {
-        // TODO(niboshi): Use unary negate
-        return -1 * gout;
-    };
-    internal::SetUpOpNodes("subtract", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
+    auto x2_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return -gout; };
+    internal::SetUpOpNodes("subtract", {x1, x2}, out, {x1_backward_function, x2_backward_function});
 
-    lhs.device().Subtract(lhs, rhs, out);
+    x1.device().Subtract(x1, x2, out);
 }
 
 template <typename ArrayType>
-ArrayType& SubtractAssignImpl(ArrayType& self, const Array& rhs) {
-    auto func = [](ArrayType& lhs, const Array& rhs) -> ArrayType& {
-        SubtractImpl(lhs, rhs, lhs);
-        return lhs;
+ArrayType& SubtractAssignImpl(ArrayType& self, const Array& x2) {
+    auto func = [](ArrayType& x1, const Array& x2) -> ArrayType& {
+        SubtractImpl(x1, x2, x1);
+        return x1;
     };
 
-    if (self.shape() == rhs.shape()) {
-        return func(self, rhs);
+    if (self.shape() == x2.shape()) {
+        return func(self, x2);
     }
-    Array rhs_broadcasted = rhs.BroadcastTo(self.shape());
+    Array rhs_broadcasted = x2.BroadcastTo(self.shape());
     return func(self, rhs_broadcasted);
 }
 
@@ -133,33 +141,33 @@ Array Subtract(const Array& x1, const Array& x2) {
 
 namespace {
 
-void MulImpl(const Array& lhs, const Array& rhs, const Array& out) {
+void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     // TODO(sonots): dtype conversion
-    CheckEqual(lhs.dtype(), rhs.dtype());
-    CheckEqual(lhs.shape(), rhs.shape());
+    CheckEqual(x1.dtype(), x2.dtype());
+    CheckEqual(x1.shape(), x2.shape());
 
-    auto lhs_backward_function = [other = rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+    auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
         return gout * other.AsConstant(graph_ids_to_stop_gradient);
     };
-    auto rhs_backward_function = [other = lhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+    auto rhs_backward_function = [other = x1](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
         return gout * other.AsConstant(graph_ids_to_stop_gradient);
     };
-    internal::SetUpOpNodes("mul", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+    internal::SetUpOpNodes("mul", {x1, x2}, out, {x1_backward_function, rhs_backward_function});
 
-    lhs.device().Mul(lhs, rhs, out);
+    x1.device().Multiply(x1, x2, out);
 }
 
 template <typename ArrayType>
-ArrayType& MulAssignImpl(ArrayType& self, const Array& rhs) {
-    auto func = [](ArrayType& lhs, const Array& rhs) -> ArrayType& {
-        MulImpl(lhs, rhs, lhs);
-        return lhs;
+ArrayType& MultiplyAssignImpl(ArrayType& self, const Array& x2) {
+    auto func = [](ArrayType& x1, const Array& x2) -> ArrayType& {
+        MultiplyImpl(x1, x2, x1);
+        return x1;
     };
 
-    if (self.shape() == rhs.shape()) {
-        return func(self, rhs);
+    if (self.shape() == x2.shape()) {
+        return func(self, x2);
     }
-    Array rhs_broadcasted = rhs.BroadcastTo(self.shape());
+    Array rhs_broadcasted = x2.BroadcastTo(self.shape());
     return func(self, rhs_broadcasted);
 }
 
@@ -167,16 +175,16 @@ ArrayType& MulAssignImpl(ArrayType& self, const Array& rhs) {
 
 namespace internal {
 
-Array& IMultiply(Array& x1, const Array& x2) { return MulAssignImpl(x1, x2); }
+Array& IMultiply(Array& x1, const Array& x2) { return MultiplyAssignImpl(x1, x2); }
 
-const Array& IMultiply(const Array& x1, const Array& x2) { return MulAssignImpl(x1, x2); }
+const Array& IMultiply(const Array& x1, const Array& x2) { return MultiplyAssignImpl(x1, x2); }
 
 }  // namespace internal
 
 Array Multiply(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
         Array out = Array::EmptyLike(x1, x1.device());
-        MulImpl(x1, x2, out);
+        MultiplyImpl(x1, x2, out);
         return out;
     };
 
@@ -195,7 +203,7 @@ Array Multiply(const Array& x1, const Array& x2) {
 
 Array Multiply(const Array& x1, Scalar x2) {
     Array out = Array::EmptyLike(x1, x1.device());
-    x1.device().Mul(x1, x2, out);
+    x1.device().MultiplyAS(x1, x2, out);
 
     auto backward_function = [x2](const Array& gout, const std::vector<GraphId>&) { return gout * x2; };
     internal::SetUpOpNodes("mul_scalar", {x1}, out, {backward_function});
@@ -264,14 +272,14 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
 
 namespace {
 
-// Calculates: lhs < rhs ? pos : neg
+// Calculates: x1 < x2 ? pos : neg
 // Can only differentiate with respect to neg.
-Array IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg) {
-    Array out = Array::EmptyLike(lhs, lhs.device());
-    lhs.device().IfLessElse(lhs, rhs, pos, neg, out);
+Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
+    Array out = Array::EmptyLike(x1, x1.device());
+    x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
 
-    auto backward_function = [lhs, rhs](const Array& gout, const std::vector<GraphId>&) {
-        return IfLessElse(lhs, rhs, Scalar{0, gout.dtype()}, gout);
+    auto backward_function = [x1, x2](const Array& gout, const std::vector<GraphId>&) {
+        return IfLessElse(x1, x2, Scalar{0, gout.dtype()}, gout);
     };
     internal::SetUpOpNodes("if-less-else", {neg}, out, {backward_function});
 
@@ -289,7 +297,10 @@ Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 Array Exp(const Array& x) {
     Array out = Array::EmptyLike(x, x.device());
     x.device().Exp(x, out);
-    // TODO(hvy): Implement backward
+
+    auto backward_function = [x](const Array& gout, const std::vector<GraphId>&) { return Exp(x) * gout; };
+    internal::SetUpOpNodes("exp", {x}, out, {backward_function});
+
     return out;
 }
 

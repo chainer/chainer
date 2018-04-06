@@ -9,6 +9,9 @@
 #include "xchainer/scalar.h"
 
 namespace xchainer {
+
+Array Negative(const Array& x);
+
 namespace internal {
 
 Array& IAdd(Array& x1, const Array& x2);

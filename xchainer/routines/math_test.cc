@@ -35,6 +35,54 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
+TEST_P(MathTest, Negative) {
+    // TODO(niboshi): Implement for CUDA and remove this guard
+    if (GetParam() == "cuda") {
+        return;
+    }
+    Array a = testing::BuildArray({3}).WithData<float>({-1, 0, 2});
+    Array e = testing::BuildArray({3}).WithData<float>({1, 0, -2});
+    Array b = Negative(a);
+    testing::ExpectEqual(e, b);
+}
+
+TEST_P(MathTest, NegativeBackward) {
+    // TODO(niboshi): Implement for CUDA and remove this guard
+    if (GetParam() == "cuda") {
+        return;
+    }
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Array::Full(shape, 1e-3);
+
+    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {Negative(xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, NegativeDoubleBackward) {
+    // TODO(niboshi): Implement for CUDA and remove this guard
+    if (GetParam() == "cuda") {
+        return;
+    }
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Array::Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Negative(xs[0]);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+}
+
 // TODO(niboshi): separate independent tests
 TEST_P(MathTest, IAdd) {
     {
@@ -133,7 +181,7 @@ TEST_P(MathTest, ISubtract) {
 }
 
 // TODO(niboshi): separate independent tests
-TEST_P(MathTest, IMul) {
+TEST_P(MathTest, IMultiply) {
     {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
         Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
@@ -625,12 +673,33 @@ TEST_P(MathTest, Exp) {
     testing::ExpectAllClose(e, b, 1e-3, 0);
 }
 
+TEST_P(MathTest, ExpBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Array::Full(shape, 1e-3);
+
+    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {Exp(xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, ExpDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Array::Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Exp(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
+}
+
 TEST_P(MathTest, Log) {
-    // TODO(niboshi): Add negative -> nan check
-    Array a = testing::BuildArray<float>({5}, {0.0f, 1.0f, 3.0f, std::exp(-4.0f), std::exp(4.0f)}).WithPadding(1);
-    Array e = testing::BuildArray<float>({5}, {-std::numeric_limits<float>::infinity(), 0.0f, std::log(3.0f), -4.0f, 4.0f});
+    Array a = testing::BuildArray<float>({6}, {0.0f, 1.0f, 3.0f, -1.f, std::exp(-4.0f), std::exp(4.0f)}).WithPadding(1);
+    Array e = testing::BuildArray<float>({6}, {-std::numeric_limits<float>::infinity(), 0.0f, std::log(3.0f), std::nanf(""), -4.0f, 4.0f});
     Array b = Log(a);
-    testing::ExpectAllClose(e, b, 1e-3, 0);
+    testing::ExpectAllClose(e, b, 1e-3, 0, true);
 }
 
 TEST_P(MathTest, LogBackward) {
