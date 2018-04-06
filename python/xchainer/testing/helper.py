@@ -87,9 +87,8 @@ def _make_decorator(check_func, name, device_arg, device_check, type_check, acce
 
             numpy_kw = kw.copy()
             numpy_kw[name] = numpy
-            # TODO(sonots): Change xChainer to accept e.g. string name to dtype arguments in every function
-            # so that we can directly use string names in each test case for both  xChainer and NumPy.
-            if 'dtype' in kw:
+            # TODO(sonots): Use string dtype in each test case so that we do not need this conversion.
+            if 'dtype' in kw and isinstance(kw['dtype'], xchainer.dtype):
                 numpy_kw['dtype'] = numpy.dtype(kw['dtype'].name)
 
             with warnings.catch_warnings():
