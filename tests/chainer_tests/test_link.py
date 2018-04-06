@@ -1,11 +1,13 @@
 import copy
 import unittest
+import warnings
 
 import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
@@ -138,8 +140,8 @@ class TestLink(unittest.TestCase):
         self.assertNotIn('p', self.link._params)
         self.assertNotIn('p', self.link._persistent)
 
-    def test_copy_with_share_mode(self):
-        link = self.link.copy(mode='share')
+    def test_copy(self):
+        link = self.link.copy()
         self.assertIsInstance(link._params, set)
         self.assertIsInstance(link._persistent, set)
         self.assertTrue(hasattr(link, 'x'))
@@ -147,47 +149,53 @@ class TestLink(unittest.TestCase):
         self.assertTrue(hasattr(link, 'u'))
         self.assertTrue(hasattr(link, 'p'))
         self.assertIsNot(link.x, self.link.x)
-        self.assertIs(link.x.array, self.link.x.array)
+        self.assertIs(link.x.data, self.link.x.data)
         self.assertIsNot(link.y, self.link.y)
-        self.assertIs(link.y.array, self.link.y.array)
-        self.assertIsNone(link.u.array)
+        self.assertIs(link.y.data, self.link.y.data)
+        self.assertIsNone(link.u.data)
         self.assertIs(link.p, self.link.p)
         self.assertIs(link.name, None)
 
-    def test_copy_with_copy_mode(self):
-        link = self.link.copy(mode='copy')
-        self.assertIsInstance(link._params, set)
-        self.assertIsInstance(link._persistent, set)
-        self.assertTrue(hasattr(link, 'x'))
-        self.assertTrue(hasattr(link, 'y'))
-        self.assertTrue(hasattr(link, 'u'))
-        self.assertTrue(hasattr(link, 'p'))
-        self.assertIsNot(link.x, self.link.x)
-        self.assertIsNot(link.x.array, self.link.x.array)
-        self.assertIsNot(link.y, self.link.y)
-        self.assertIsNot(link.y.array, self.link.y.array)
-        self.assertIsNone(link.u.array)
-        self.assertIsNot(link.p, self.link.p)
-        self.assertIsNot(link.name, None)
+    @attr.gpu
+    def test_copy_and_to_gpu_init(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        self.assertIs(l0.x.data, l1.x.data)
+        l1.to_gpu()
+        self.assertIsNot(l0.x.data, l1.x.data)
+        self.assertIsInstance(l0.x.data, numpy.ndarray)
+        self.assertIsInstance(l1.x.data, cupy.ndarray)
 
-    def test_copy_with_init_mode(self):
-        self.link.u.initializer = initializers.Normal(
-            dtype=self.link.u.initializer.dtype)
-        self.link.u.initialize((2, 3))
-        link = self.link.copy(mode='init')
-        self.assertFalse(numpy.array_equal(self.link.u.array, link.u.array))
-        self.assertIsInstance(link._params, set)
-        self.assertIsInstance(link._persistent, set)
-        self.assertTrue(hasattr(link, 'x'))
-        self.assertTrue(hasattr(link, 'y'))
-        self.assertTrue(hasattr(link, 'u'))
-        self.assertTrue(hasattr(link, 'p'))
-        self.assertIsNot(link.x, self.link.x)
-        self.assertIsNot(link.x.array, self.link.x.array)
-        self.assertIsNot(link.y, self.link.y)
-        self.assertIsNot(link.y.array, self.link.y.array)
-        self.assertIsNot(link.p, self.link.p)
-        self.assertIsNot(link.name, None)
+    @attr.gpu
+    def test_copy_and_to_gpu_uninit(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        self.assertIsNone(l0.u.data)
+        self.assertIsNone(l1.u.data)
+        l1.to_gpu()
+        l1.u.initialize((2, 3))
+        self.assertIsNone(l0.u.data)
+        self.assertIsInstance(l1.u.data, cupy.ndarray)
+
+    @attr.multi_gpu(2)
+    def test_copy_and_to_gpu_uninit_multi_gpu(self):
+        cupy = cuda.cupy
+        l0 = self.link
+        l1 = l0.copy()
+        l2 = l0.copy()
+        self.assertIsNone(l0.u.data)
+        self.assertIsNone(l1.u.data)
+        self.assertIsNone(l2.u.data)
+        l1.to_gpu()
+        l1.u.initialize((2, 3))
+        l2.to_gpu()
+        l2.u.initialize((2, 3))
+        self.assertIsNone(l0.u.data)
+        self.assertIsInstance(l1.u.data, cupy.ndarray)
+        self.assertIsInstance(l2.u.data, cupy.ndarray)
+        self.assertNotEqual(l1.u.data.data, l2.u.data.data)
 
     def _check_deepcopy(self, link):
         self.assertIsInstance(link._params, set)
@@ -461,77 +469,20 @@ class TestLink(unittest.TestCase):
         self.link.enable_update()
         self.assertTrue(self.link.update_enabled)
 
+    def test_count_params(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.link.count_params()
+        assert len(w) == 2
+        assert w[0].category is UserWarning
+        assert self.link.count_params() == 8
 
-class TestLinkRepeat(unittest.TestCase):
-
-    def setUp(self):
-
-        class Layer(chainer.Link):
-            def __init__(self):
-                super(Layer, self).__init__()
-                with self.init_scope():
-                    self.x = chainer.Parameter(
-                        chainer.initializers.Normal(), shape=(2, 3))
-
-            def __call__(self):
-                pass
-
-        self.link = Layer()
-
-    def test_no_repeat(self):
-        ret = self.link.repeat(0)
-        self.assertEqual(len(ret), 0)
-
-    def test_repeat_with_init(self):
-        ret = self.link.repeat(2, mode='init')
-        self.assertEqual(len(ret), 2)
-        # Both should be different objects from the original link
-        self.assertIsNot(ret[0], self.link)
-        self.assertIsNot(ret[1], self.link)
-        # Object IDs of elements should be different
-        self.assertIsNot(ret[0], ret[1])
-        self.assertIsNot(ret[0].x, ret[1].x)
-        # But shape and type of paratmeres shuld be same
-        self.assertEqual(ret[0].x.shape, self.link.x.shape)
-        self.assertEqual(ret[0].x.dtype, self.link.x.dtype)
-        self.assertEqual(ret[0].x.shape, ret[1].x.shape)
-        self.assertEqual(ret[0].x.dtype, ret[1].x.dtype)
-        # Parameters are re-initialized, so the values should be different
-        self.assertFalse(numpy.all(ret[0].x.array == ret[1].x.array))
-
-    def test_repeat_with_copy(self):
-        ret = self.link.repeat(2, mode='copy')
-        self.assertEqual(len(ret), 2)
-        # Both should be different objects from the original link
-        self.assertIsNot(ret[0], self.link)
-        self.assertIsNot(ret[1], self.link)
-        # Object IDs of elements should be different
-        self.assertIsNot(ret[0], ret[1])
-        self.assertIsNot(ret[0].x, ret[1].x)
-        # But shape, type, and value of paratmeres shuld be same
-        self.assertEqual(ret[0].x.shape, self.link.x.shape)
-        self.assertEqual(ret[0].x.dtype, self.link.x.dtype)
-        self.assertEqual(ret[0].x.shape, ret[1].x.shape)
-        self.assertEqual(ret[0].x.dtype, ret[1].x.dtype)
-        numpy.testing.assert_array_equal(ret[0].x.array, ret[1].x.array)
-
-    def test_repeat_with_share(self):
-        ret = self.link.repeat(2, mode='share')
-        self.assertEqual(len(ret), 2)
-        # Both should be different objects from the original link
-        self.assertIsNot(ret[0], self.link)
-        self.assertIsNot(ret[1], self.link)
-        # Object IDs of elements should be different
-        self.assertIsNot(ret[0], ret[1])
-        self.assertIsNot(ret[0].x, ret[1].x)
-        # But the array objects should be the same
-        self.assertIs(ret[0].x.array, ret[1].x.array)
-        # But shape, type, and value of paratmeres shuld be same
-        self.assertEqual(ret[0].x.shape, self.link.x.shape)
-        self.assertEqual(ret[0].x.dtype, self.link.x.dtype)
-        self.assertEqual(ret[0].x.shape, ret[1].x.shape)
-        self.assertEqual(ret[0].x.dtype, ret[1].x.dtype)
-        numpy.testing.assert_array_equal(ret[0].x.array, ret[1].x.array)
+        self.link.u.initialize((2, 3))
+        self.link.v.initialize((2, 3))
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.link.count_params()
+        assert not w
 
 
 class CountParameter(chainer.Parameter):
@@ -854,6 +805,20 @@ class TestChain(unittest.TestCase):
         mocks['l1'].assert_called_with('x', self.l1.x.data)
         mocks['l2'].assert_called_with('x', self.l2.x.data)
 
+    def test_count_params(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.c2.count_params()
+        assert len(w) == 1
+        assert w[0].category is UserWarning
+        assert self.c1.count_params() == 8
+
+        self.c2.l3.x.initialize((3,))
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.c2.count_params()
+        assert not w
+
 
 class TestChainList(unittest.TestCase):
 
@@ -1166,6 +1131,158 @@ class TestChainList(unittest.TestCase):
 
         mocks['0'].assert_called_with('y', l1.y.data)
         mocks['1'].assert_called_with('x', l2.x.data)
+
+    def test_count_params(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.c2.count_params()
+        assert len(w) == 1
+        assert w[0].category is UserWarning
+        assert self.c1.count_params() == 8
+
+        self.c2[0][0].y.initialize((2, 3))
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            self.c2.count_params()
+        assert not w
+
+
+@attr.ideep
+class TestIntel64(unittest.TestCase):
+
+    def setUp(self):
+        self.link = chainer.Link()
+        shape = (2, 2)
+        dtype = numpy.float32
+        y_array = numpy.random.rand(*shape).astype(dtype)
+        pa_array = numpy.random.rand(*shape).astype(dtype)
+        ps_scalar = 2.4
+
+        with self.link.init_scope():
+            # Initialized parameter
+            self.link.y = chainer.Parameter(y_array)
+            # Uninitialized parameter
+            self.link.v = chainer.Parameter()
+            # Persistent ndarray
+            self.link.add_persistent('pa', pa_array)
+            # Persistent scalar
+            self.link.add_persistent('ps', ps_scalar)
+        self.y_array = y_array
+        self.pa_array = pa_array
+        self.ps_scalar = ps_scalar
+
+    def _assert_variable_array_equal(self, var, expected_array):
+        assert var.shape == expected_array.shape
+        assert var.dtype == expected_array.dtype
+        self._assert_arrays_equal(var.data, expected_array)
+
+    def _assert_arrays_equal(self, array, expected_array):
+        if isinstance(array, cuda.ndarray):
+            array = array.get()
+        assert array.shape == expected_array.shape
+        assert array.dtype == expected_array.dtype
+        assert (array == expected_array).all()
+
+    def test_cpu_to_intel64(self):
+        link = self.link
+        link.to_intel64()
+        assert link._device_id is None
+
+        # Arrays should be converted to ideep.mdarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, intel64.ideep.mdarray)
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, intel64.ideep.mdarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    def test_intel64_to_intel64(self):
+        link = self.link
+        link.to_intel64()
+        prev_y = link.y
+        prev_v = link.v
+        prev_pa = link.pa
+        prev_ps = link.ps
+        link.to_intel64()
+        assert link._device_id is None
+
+        # Everything should be left untouched
+
+        # Initialized parameter
+        assert link.y is prev_y
+        # Uninitialized parameter
+        assert link.v is prev_v
+        # Persistent ndarray
+        assert link.pa is prev_pa
+        # Persistent scalar
+        assert link.ps is prev_ps
+
+    @attr.gpu
+    def test_gpu_to_intel64(self):
+        link = self.link
+        link.to_gpu()
+        assert link._device_id == 0
+        link.to_intel64()
+        assert link._device_id is None
+
+        # Arrays should be converted to ideep.mdarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, intel64.ideep.mdarray)
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, intel64.ideep.mdarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    @attr.gpu
+    def test_intel64_to_gpu(self):
+        link = self.link
+        link.to_intel64()
+        assert link._device_id is None
+        link.to_gpu()
+        assert link._device_id == 0
+
+        # Arrays should be converted to cupy.ndarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, cuda.cupy.ndarray)
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, cuda.ndarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    def test_intel64_to_cpu(self):
+        link = self.link
+        link.to_intel64()
+        assert link._device_id is None
+        link.to_cpu()
+        assert link._device_id is None
+
+        # Arrays should be converted to numpy.ndarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, numpy.ndarray)
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, numpy.ndarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
 
 
 testing.run_module(__name__, __file__)
