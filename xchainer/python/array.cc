@@ -211,6 +211,7 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); });
     c.def("__mul__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} * rhs).move_body(); });
     c.def("__rmul__", [](const ArrayBodyPtr& self, Scalar lhs) { return (lhs * Array{self}).move_body(); });
+    c.def("__neg__", [](const ArrayBodyPtr& self) { return (-Array{self}).move_body(); });
     c.def("__truediv__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} / Array{rhs}).move_body(); });
     c.def("sum",
           [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) {

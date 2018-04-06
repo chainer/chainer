@@ -244,6 +244,7 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("shape"));
 
     // math routines
+    m.def("negative", [](const ArrayBodyPtr& x) { return Negative(Array{x}).move_body(); }, py::arg("x"));
     m.def("add",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} + Array{x2}).move_body(); },
           py::arg("x1"),
