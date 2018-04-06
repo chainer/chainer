@@ -664,25 +664,22 @@ def test_invalid_eq(a_shape, b_shape):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DtypeError, TypeError))
 def test_neg(xp, device, shape, dtype):
-    # TODO(hvy): Use xp.arange
-    def create_ndarray():
-        size = functools.reduce(operator.mul, shape, 1)
-        return numpy.arange(size).reshape(shape).astype(dtype.name)
-
-    return -xp.array(create_ndarray())
+    size = functools.reduce(operator.mul, shape, 1)
+    obj = numpy.arange(size).reshape(shape).astype(dtype.name)
+    x = xp.array(obj)
+    return -x
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DtypeError, TypeError))
 def test_negative(xp, device, shape, dtype):
-    # TODO(hvy): Use xp.arange
-    def create_ndarray():
-        size = functools.reduce(operator.mul, shape, 1)
-        return numpy.arange(size).reshape(shape).astype(dtype.name)
-
-    return xp.negative(xp.array(create_ndarray()))
+    size = functools.reduce(operator.mul, shape, 1)
+    obj = numpy.arange(size).reshape(shape).astype(dtype.name)
+    x = xp.array(obj)
+    return xp.negative(x)
 
 
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_add_iadd(device, shape, dtype):
     lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
     rhs_data_list = _create_dummy_data(shape, dtype, pattern=2)
