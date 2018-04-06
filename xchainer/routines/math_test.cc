@@ -700,9 +700,9 @@ TEST_P(MathTest, SumDoubleBackward_NoKeepdims) {
 
 TEST_P(MathTest, AMax) {
     Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<float>().WithPadding(1);
-    Array b = AMax(a, std::vector<int8_t>{2, 1, -1});
-    EXPECT_EQ(Shape{2}, b.shape());
-    Array e = testing::BuildArray<float>({2}, {47.f, 59.f, 71.f});
+    Array b = AMax(a, std::vector<int8_t>{2, 0, -1});
+    EXPECT_EQ(Shape{3}, b.shape());
+    Array e = testing::BuildArray<float>({3}, {47.f, 59.f, 71.f});
     testing::ExpectEqual<float>(e, b);
 }
 

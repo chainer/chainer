@@ -184,6 +184,8 @@ Array Array::ArgMax(const nonstd::optional<int8_t>& axis) const { return xchaine
 
 Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
 
+Array Array::Max(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return xchainer::AMax(*this, axis, keepdims); }
+
 Array Array::Dot(const Array& b) const { return xchainer::Dot(*this, b); }
 
 Array Array::Copy() const { return xchainer::Copy(*this); }

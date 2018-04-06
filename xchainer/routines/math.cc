@@ -332,6 +332,13 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
 Array AMax(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
     std::vector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
     Array out = AllocateReductionOutput(a, sorted_axis, keepdims);
+
+    for (int8_t i : sorted_axis) {
+        if (a.shape()[i] == 0) {
+            throw DimensionError("zero-size array to reduction operation maximum which has no identity");
+        }
+    }
+
     a.device().AMax(a, sorted_axis, out);
 
     // TODO(beam2d): implement backprop
