@@ -1107,7 +1107,7 @@ TEST(ArrayMaxTest, Max) {
     Array b = a.Max(std::vector<int8_t>{2, 0, -1});
     EXPECT_EQ(Shape{3}, b.shape());
     Array e = testing::BuildArray<float>({3}, {47.f, 59.f, 71.f});
-    testing::ExpectEqual<float>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST(ArrayMaxTest, MaxAllAxes) {
@@ -1116,7 +1116,7 @@ TEST(ArrayMaxTest, MaxAllAxes) {
     Array b = a.Max();
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray<float>({}, {17.f});
-    testing::ExpectEqual<float>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST(ArrayMaxTest, MaxKeepDims) {
@@ -1127,7 +1127,7 @@ TEST(ArrayMaxTest, MaxKeepDims) {
     EXPECT_EQ(0, b.strides()[1]);
     EXPECT_EQ(0, b.strides()[3]);
     Array e = testing::BuildArray<float>({2, 1, 2, 1}, {19.f, 23.f, 43.f, 47.f});
-    testing::ExpectEqual<float>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST(ArrayDotTest, Dot) {

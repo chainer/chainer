@@ -703,7 +703,7 @@ TEST_P(MathTest, AMax) {
     Array b = AMax(a, std::vector<int8_t>{2, 0, -1});
     EXPECT_EQ(Shape{3}, b.shape());
     Array e = testing::BuildArray<float>({3}, {47.f, 59.f, 71.f});
-    testing::ExpectEqual<float>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(MathTest, AMaxAllExes) {
@@ -711,7 +711,7 @@ TEST_P(MathTest, AMaxAllExes) {
     Array b = AMax(a);
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray<float>({}, {17.f});
-    testing::ExpectEqual<float>(e, b);
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(MathTest, AMaxZeroSized) {
