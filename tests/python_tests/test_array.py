@@ -6,6 +6,7 @@ import numpy
 import pytest
 
 import xchainer
+import xchainer.testing
 
 
 _shapes = [
@@ -1461,10 +1462,7 @@ def test_fill_with_scalar(device, shape, dtype, value):
 ])
 # TODO(niboshi): Dtype promotion is not supported yet.
 @pytest.mark.parametrize('numpy_dtype', [numpy.float32, numpy.float64])
-def test_exp(device, input, numpy_dtype):
-    a_np = input.astype(numpy_dtype)
-    a_xc = xchainer.array(a_np)
-    b_np = numpy.exp(a_np)
-    b_xc = xchainer.exp(a_xc)
-
-    _check_array_equals_ndarray(b_xc, b_np)
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_exp(xp, device, input, numpy_dtype):
+    a = xp.array(input.astype(numpy_dtype))
+    return xp.exp(a)
