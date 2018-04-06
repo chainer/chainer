@@ -182,7 +182,7 @@ TEST_P(MathTest, ISubtract) {
 }
 
 // TODO(niboshi): separate independent tests
-TEST_P(MathTest, IMul) {
+TEST_P(MathTest, IMultiply) {
     {
         Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
         Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
@@ -236,7 +236,7 @@ TEST_P(MathTest, IDivide) {
     Array b = testing::BuildArray<float>({3, 1}, {2, -2, 1}).WithPadding(2);
     Array e = testing::BuildArray<float>({3, 1}, {-1.5f, 1.5f, 0});
     internal::IDivide(a, b);
-    testing::ExpectEqual<float>(e, a);
+    testing::ExpectEqual(e, a);
 }
 
 TEST_P(MathTest, IDivideBroadcast1) {
@@ -244,7 +244,7 @@ TEST_P(MathTest, IDivideBroadcast1) {
     Array b = Array::Full({3, 1}, 2.0f, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 3}).WithLinearData<float>(0, 0.5f);
     internal::IDivide(a, b);
-    testing::ExpectEqual<float>(e, a);
+    testing::ExpectEqual(e, a);
 }
 
 TEST_P(MathTest, IDivideBroacast2) {
@@ -252,7 +252,7 @@ TEST_P(MathTest, IDivideBroacast2) {
     Array b = Array::Full({3}, 2.0f, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 3}).WithLinearData<float>(0, 0.5f);
     internal::IDivide(a, b);
-    testing::ExpectEqual<float>(e, a);
+    testing::ExpectEqual(e, a);
 }
 
 TEST_P(MathTest, IDivideInvalidBroadcast1) {
@@ -491,7 +491,7 @@ TEST_P(MathTest, Divide) {
     Array b = testing::BuildArray<float>({3, 1}, {2, -2, 1}).WithPadding(2);
     Array e = testing::BuildArray<float>({3, 1}, {-1.5f, 1.5f, 0});
     Array o = Divide(a, b);
-    testing::ExpectEqual<float>(e, o);
+    testing::ExpectEqual(e, o);
 }
 
 TEST_P(MathTest, DivideBroadcast1) {
@@ -499,7 +499,7 @@ TEST_P(MathTest, DivideBroadcast1) {
     Array b = Array::Full({3, 1}, 2.0f, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 3}).WithLinearData<float>(0, 0.5f);
     Array o = Divide(a, b);
-    testing::ExpectEqual<float>(e, o);
+    testing::ExpectEqual(e, o);
 }
 
 TEST_P(MathTest, DivideBroadcast2) {
@@ -507,7 +507,7 @@ TEST_P(MathTest, DivideBroadcast2) {
     Array b = Array::Full({3}, 2.0f, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 3}).WithLinearData<float>(0, 0.5f);
     Array o = Divide(a, b);
-    testing::ExpectEqual<float>(e, o);
+    testing::ExpectEqual(e, o);
 }
 
 TEST_P(MathTest, DivideBroadcast3) {
@@ -515,7 +515,7 @@ TEST_P(MathTest, DivideBroadcast3) {
     Array b = Array::Full({3, 3}, 2.0f, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 3}).WithData<float>({0.0f, 0.5f, 1.0f, 0.0f, 0.5f, 1.0f, 0.0f, 0.5f, 1.0f});
     Array o = Divide(a, b);
-    testing::ExpectEqual<float>(e, o);
+    testing::ExpectEqual(e, o);
 }
 
 TEST_P(MathTest, DivideBroadcast4) {
@@ -523,7 +523,7 @@ TEST_P(MathTest, DivideBroadcast4) {
     Array b = Array::Full({1, 2}, 2.0f, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 2}).WithData<float>({0.0f, 0.0f, 0.5f, 0.5f, 1.0f, 1.0f});
     Array o = Divide(a, b);
-    testing::ExpectEqual<float>(e, o);
+    testing::ExpectEqual(e, o);
 }
 
 TEST_P(MathTest, DivideInvalidBroadcast) {
@@ -802,11 +802,10 @@ TEST_P(MathTest, ExpDoubleBackward) {
 }
 
 TEST_P(MathTest, Log) {
-    // TODO(niboshi): Add negative -> nan check
-    Array a = testing::BuildArray<float>({5}, {0.0f, 1.0f, 3.0f, std::exp(-4.0f), std::exp(4.0f)}).WithPadding(1);
-    Array e = testing::BuildArray<float>({5}, {-std::numeric_limits<float>::infinity(), 0.0f, std::log(3.0f), -4.0f, 4.0f});
+    Array a = testing::BuildArray<float>({6}, {0.0f, 1.0f, 3.0f, -1.f, std::exp(-4.0f), std::exp(4.0f)}).WithPadding(1);
+    Array e = testing::BuildArray<float>({6}, {-std::numeric_limits<float>::infinity(), 0.0f, std::log(3.0f), std::nanf(""), -4.0f, 4.0f});
     Array b = Log(a);
-    testing::ExpectAllClose(e, b, 1e-3, 0);
+    testing::ExpectAllClose(e, b, 1e-3, 0, true);
 }
 
 TEST_P(MathTest, LogBackward) {

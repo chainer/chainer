@@ -512,7 +512,7 @@ TEST_P(ArrayTest, ISubtract) {
     testing::ExpectEqual(e, a);
 }
 
-TEST_P(ArrayTest, IMul) {
+TEST_P(ArrayTest, IMultiply) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array e = testing::BuildArray<float>({3, 1}, {1, 4, 9});
@@ -536,7 +536,7 @@ TEST_P(ArrayTest, Subtract) {
     testing::ExpectEqual(e, o);
 }
 
-TEST_P(ArrayTest, Mul) {
+TEST_P(ArrayTest, Multiply) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array e = testing::BuildArray<float>({3, 1}, {1, 4, 9});
@@ -545,7 +545,7 @@ TEST_P(ArrayTest, Mul) {
 }
 
 // TODO(hvy): Also test CUDA using ArrayTest.
-TEST(ArrayNativeTest, MulScalar) {
+TEST(ArrayNativeTest, MultiplyScalar) {
     testing::ContextSession context_session;
 
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
@@ -831,7 +831,7 @@ TEST_P(ArrayTest, AddBackward) {
     testing::ExpectEqual(gb, go);
 }
 
-TEST_P(ArrayTest, MulBackward) {
+TEST_P(ArrayTest, MultiplyBackward) {
     Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
     Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
 
@@ -852,7 +852,7 @@ TEST_P(ArrayTest, MulBackward) {
     EXPECT_FALSE(gb.IsGradRequired());
 }
 
-TEST_P(ArrayTest, MulBackwardCapture) {
+TEST_P(ArrayTest, MultiplyBackwardCapture) {
     Array y = [this]() {
         Array x1 = testing::BuildArray<float>({1}, {2.0f});
         Array x2 = testing::BuildArray<float>({1}, {3.0f});
@@ -876,7 +876,7 @@ TEST_P(ArrayTest, MulBackwardCapture) {
     EXPECT_FALSE(gx2.IsGradRequired());
 }
 
-TEST_P(ArrayTest, MulBackwardMultipleGraphs) {
+TEST_P(ArrayTest, MultiplyBackwardMultipleGraphs) {
     GraphId graph_id1 = "graph_1";
     GraphId graph_id2 = "graph_2";
 
