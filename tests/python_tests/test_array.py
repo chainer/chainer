@@ -1,7 +1,6 @@
 import functools
 import math
 import operator
-import warnings
 
 import numpy
 import pytest
@@ -1465,9 +1464,7 @@ def test_fill_with_scalar(device, shape, dtype, value):
 def test_exp(device, input, numpy_dtype):
     a_np = input.astype(numpy_dtype)
     a_xc = xchainer.array(a_np)
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', RuntimeWarning)
-        b_np = numpy.exp(a_np)
+    b_np = numpy.exp(a_np)
     b_xc = xchainer.exp(a_xc)
 
     _check_array_equals_ndarray(b_xc, b_np)
