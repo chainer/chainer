@@ -17,6 +17,7 @@
 #include "xchainer/native/reduce.h"
 #include "xchainer/reduction_kernel_arg.h"
 #include "xchainer/scalar.h"
+#include "xchainer/shape.h"
 
 namespace xchainer {
 namespace native {
@@ -66,7 +67,7 @@ void NativeDevice::Fill(const Array& out, Scalar value) {
 
 void NativeDevice::ArgMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) {
     assert(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
-    assert(out.ndim() == a.ndim() - static_cast<int64_t>(axis.size()));
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
     CheckDevicesCompatible(a, out);
 
     VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
@@ -91,9 +92,7 @@ void NativeDevice::ArgMax(const Array& a, const std::vector<int8_t>& axis, const
 }
 
 void NativeDevice::Sum(const Array& a, const std::vector<int8_t>& axis, const Array& out) {
-    // keepdims denotes the corresponding argument in Array::Sum().
-    assert(out.ndim() == a.ndim() - static_cast<int64_t>(axis.size()) ||  // keepdims=false
-           out.ndim() == a.ndim());                                       // keepdims=true
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
 
     VisitDtype(out.dtype(), [&a, &axis, &out](auto pt) {

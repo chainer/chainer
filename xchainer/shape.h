@@ -94,6 +94,8 @@ bool IsContiguous(const Shape& shape, const Strides& strides, int64_t element_by
 
 Shape BroadcastShapes(const Shape& shape0, const Shape& shape1);
 
+bool IsValidReductionShape(const Shape& in_shape, const std::vector<int8_t>& axis, const Shape& out_shape, bool allow_keepdims);
+
 }  // namespace internal
 
 inline bool operator==(const Shape& lhs, const Shape& rhs) { return lhs.span() == rhs.span(); }
