@@ -1152,7 +1152,7 @@ class TestIntel64(unittest.TestCase):
 
     def setUp(self):
         self.link = chainer.Link()
-        shape = (2,)
+        shape = (2, 2)
         dtype = numpy.float32
         y_array = numpy.random.rand(*shape).astype(dtype)
         pa_array = numpy.random.rand(*shape).astype(dtype)
