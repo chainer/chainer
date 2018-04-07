@@ -31,6 +31,7 @@ from chainer.functions.activation.softmax import softmax  # NOQA
 from chainer.functions.activation.softmax import Softmax  # NOQA
 from chainer.functions.activation.softplus import softplus  # NOQA
 from chainer.functions.activation.softplus import Softplus  # NOQA
+from chainer.functions.activation.swish import swish  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
 from chainer.functions.activation.tanh import Tanh  # NOQA
 from chainer.functions.activation.tree_lstm import tree_lstm  # NOQA
@@ -68,6 +69,7 @@ from chainer.functions.array.pad_sequence import pad_sequence  # NOQA
 from chainer.functions.array.pad_sequence import PadSequence  # NOQA
 from chainer.functions.array.permutate import permutate  # NOQA
 from chainer.functions.array.permutate import Permutate  # NOQA
+from chainer.functions.array.repeat import repeat  # NOQA
 from chainer.functions.array.reshape import reshape  # NOQA
 from chainer.functions.array.reshape import Reshape  # NOQA
 from chainer.functions.array.resize_images import resize_images  # NOQA
@@ -110,6 +112,7 @@ from chainer.functions.connection.depthwise_convolution_2d import depthwise_conv
 from chainer.functions.connection.dilated_convolution_2d import dilated_convolution_2d  # NOQA
 from chainer.functions.connection.embed_id import embed_id  # NOQA
 from chainer.functions.connection.linear import linear  # NOQA
+from chainer.functions.connection.local_convolution_2d import local_convolution_2d  # NOQA
 from chainer.functions.connection.n_step_gru import n_step_bigru  # NOQA
 from chainer.functions.connection.n_step_gru import n_step_gru  # NOQA
 from chainer.functions.connection.n_step_gru import NStepBiGRU  # NOQA
@@ -173,6 +176,7 @@ from chainer.functions.loss.vae import gaussian_nll  # NOQA
 
 from chainer.functions.math.average import average  # NOQA
 from chainer.functions.math.basic_math import absolute  # NOQA
+from chainer.functions.math.basic_math import add  # NOQA
 from chainer.functions.math.batch_l2_norm_squared import batch_l2_norm_squared  # NOQA
 from chainer.functions.math.batch_l2_norm_squared import BatchL2NormSquared  # NOQA
 from chainer.functions.math.bias import bias  # NOQA
@@ -184,6 +188,8 @@ from chainer.functions.math.cumsum import Cumsum  # NOQA
 from chainer.functions.math.det import batch_det  # NOQA
 from chainer.functions.math.det import BatchDet  # NOQA
 from chainer.functions.math.det import det  # NOQA
+from chainer.functions.math.erf import erf  # NOQA
+from chainer.functions.math.erfc import erfc  # NOQA
 from chainer.functions.math.exponential import exp  # NOQA
 from chainer.functions.math.exponential import Exp  # NOQA
 from chainer.functions.math.exponential import log  # NOQA
@@ -194,6 +200,8 @@ from chainer.functions.math.exponential import log2  # NOQA
 from chainer.functions.math.exponential import Log2  # NOQA
 from chainer.functions.math.exponential_m1 import expm1  # NOQA
 from chainer.functions.math.exponential_m1 import Expm1  # NOQA
+from chainer.functions.math.fft import fft  # NOQA
+from chainer.functions.math.fft import ifft  # NOQA
 from chainer.functions.math.fix import fix  # NOQA
 from chainer.functions.math.floor import floor  # NOQA
 from chainer.functions.math.fmod import fmod  # NOQA
@@ -242,6 +250,7 @@ from chainer.functions.math.squared_difference import squared_difference  # NOQA
 from chainer.functions.math.squared_difference import SquaredDifference  # NOQA
 from chainer.functions.math.sum import sum  # NOQA
 from chainer.functions.math.sum import Sum  # NOQA
+from chainer.functions.math.tensordot import tensordot  # NOQA
 from chainer.functions.math.trigonometric import arccos  # NOQA
 from chainer.functions.math.trigonometric import Arccos  # NOQA
 from chainer.functions.math.trigonometric import arcsin  # NOQA
@@ -302,4 +311,4 @@ from chainer.functions.util.forget import forget  # NOQA
 from chainer.functions.util.forget import Forget  # NOQA
 
 # Aliases
-mean = average
+from chainer.functions.math.average import average as mean  # NOQA

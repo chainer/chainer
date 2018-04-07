@@ -7,7 +7,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import link
 from chainer import links
 from chainer import optimizers
@@ -150,6 +150,20 @@ class TestNpzDeserializer(unittest.TestCase):
     def test_deserialize_gpu_strip_slashes(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(cuda.to_gpu(y), '/y')
+
+    def test_deserialize_different_dtype_cpu(self):
+        y = numpy.empty((2, 3), dtype=numpy.float16)
+        ret = self.deserializer('y', y)
+        numpy.testing.assert_array_equal(y, self.data.astype(numpy.float16))
+        self.assertIs(ret, y)
+
+    @attr.gpu
+    def test_deserialize_different_dtype_gpu(self):
+        y = cuda.cupy.empty((2, 3), dtype=numpy.float16)
+        ret = self.deserializer('y', y)
+        numpy.testing.assert_array_equal(
+            y.get(), self.data.astype(numpy.float16))
+        self.assertIs(ret, y)
 
     def test_deserialize_scalar(self):
         z = 5
@@ -512,10 +526,13 @@ class TestGroupHierachy(unittest.TestCase):
         self.assertSetEqual(set(npzfile.keys()), {prefix + x for x in keys})
 
     def _check_optimizer_group(self, npzfile, state, prefix=''):
-        keys = ('child/linear/W/msg',
+        keys = ('child/linear/W/t',
+                'child/linear/W/msg',
                 'child/linear/W/msdx',
+                'child/linear/b/t',
                 'child/linear/b/msg',
                 'child/linear/b/msdx',
+                'child/Wc/t',
                 'child/Wc/msg',
                 'child/Wc/msdx') + state
         self.assertEqual(set(npzfile.keys()),
@@ -536,7 +553,7 @@ class TestGroupHierachy(unittest.TestCase):
 
         with numpy.load(self.file) as npzfile:
             self._check_optimizer_group(
-                npzfile, ('Wp/msg', 'Wp/msdx', 'epoch', 't'), 'test/')
+                npzfile, ('Wp/t', 'Wp/msg', 'Wp/msdx', 'epoch', 't'), 'test/')
 
     def test_save_chain2(self):
         self._save_npz(self.file, self.parent, self.compress)
@@ -547,7 +564,7 @@ class TestGroupHierachy(unittest.TestCase):
         self._save_npz(self.file, self.optimizer, self.compress)
         with numpy.load(self.file) as npzfile:
             self._check_optimizer_group(
-                npzfile, ('Wp/msg', 'Wp/msdx', 'epoch', 't'))
+                npzfile, ('Wp/t', 'Wp/msg', 'Wp/msdx', 'epoch', 't'))
 
     def test_load_optimizer_with_strict(self):
         for param in self.parent.params():

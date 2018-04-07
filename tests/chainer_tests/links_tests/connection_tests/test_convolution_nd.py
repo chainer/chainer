@@ -4,7 +4,7 @@ import numpy
 import six.moves.cPickle as pickle
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import initializers
 from chainer.links.connection import convolution_nd

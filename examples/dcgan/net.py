@@ -1,11 +1,8 @@
 #!/usr/bin/env python
-
-from __future__ import print_function
-
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 

@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-
-from __future__ import print_function
-
 import argparse
 import datetime
 import json
@@ -82,7 +79,7 @@ def main():
     model = nets.TextClassifier(encoder, n_class)
     if args.gpu >= 0:
         # Make a specified GPU current
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
 
     # Setup an optimizer
@@ -91,7 +88,7 @@ def main():
     optimizer.add_hook(chainer.optimizer.WeightDecay(1e-4))
 
     # Set up a trainer
-    updater = training.StandardUpdater(
+    updater = training.updaters.StandardUpdater(
         train_iter, optimizer,
         converter=convert_seq, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)

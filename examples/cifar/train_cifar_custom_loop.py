@@ -6,7 +6,6 @@ models without using the Trainer class in chainer and instead write a
 training loop that manually computes the loss of minibatches and
 applies an optimizer to update the model.
 """
-from __future__ import print_function
 import argparse
 
 import chainer
@@ -70,7 +69,7 @@ def main():
     model = L.Classifier(models.VGG.VGG(class_labels))
     if args.gpu >= 0:
         # Make a specified GPU current
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
 
     optimizer = chainer.optimizers.MomentumSGD(args.learnrate)
@@ -89,7 +88,7 @@ def main():
         # Reduce learning rate by 0.5 every 25 epochs.
         if train_iter.epoch % 25 == 0 and train_iter.is_new_epoch:
             optimizer.lr *= 0.5
-            print('Reducing learning rate to: ', optimizer.lr)
+            print('Reducing learning rate to: {}'.format(optimizer.lr))
 
         x_array, t_array = convert.concat_examples(batch, args.gpu)
         x = chainer.Variable(x_array)
@@ -99,7 +98,7 @@ def main():
         sum_accuracy += float(model.accuracy.data) * len(t.data)
 
         if train_iter.is_new_epoch:
-            print('epoch: ', train_iter.epoch)
+            print('epoch: {}'.format(train_iter.epoch))
             print('train mean loss: {}, accuracy: {}'.format(
                 sum_loss / train_count, sum_accuracy / train_count))
             # evaluation

@@ -1,4 +1,3 @@
-from __future__ import print_function
 import collections
 import os
 
@@ -108,7 +107,7 @@ class VGG16Layers(link.Chain):
         if pretrained_model == 'auto':
             _retrieve(
                 'VGG_ILSVRC_16_layers.npz',
-                'http://www.robots.ox.ac.uk/%7Evgg/software/very_deep/'
+                'https://www.robots.ox.ac.uk/%7Evgg/software/very_deep/'
                 'caffe/VGG_ILSVRC_16_layers.caffemodel',
                 self)
         elif pretrained_model:

@@ -2,8 +2,10 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
+from chainer.functions.math import floor as _floor
 from chainer.functions.math import matmul as _matmul
 from chainer import utils
 from chainer.utils import type_check
@@ -169,16 +171,50 @@ class AddConstant(function_node.FunctionNode):
         return gy[0],
 
 
-def add(self, rhs):  # lhs + rhs
+class MultiAdd(function_node.FunctionNode):
+
+    def check_type_forward(self, in_types):
+        for in_type in in_types:
+            type_check.expect(
+                in_types[0].dtype == in_type.dtype,
+                in_types[0].shape == in_type.shape
+            )
+
+    def forward(self, xs):
+        self.len = len(xs)
+        if len(xs) == 1:
+            return xs
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(xs)):
+            y = intel64.ideep.multi_add(xs)
+        else:
+            # The output should be a new array. Add the first 2 arrays
+            # and get the result y. Then add the rest arrays to y.
+            y = xs[0] + xs[1]
+            for x in xs[2:]:
+                y += x
+
+        return utils.force_array(y),
+
+    def backward(self, indexes, gy):
+        gys = (gy[0],) * self.len
+        return gys
+
+
+def add(*xs):  # lhs + rhs or add more than 2 variables
     """Element-wise addition.
 
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if isinstance(rhs, variable.Variable):
-        return Add().apply((self, rhs))[0]
-    _check_constant_type(rhs)
-    return AddConstant(rhs).apply((self,))[0]
+    if len(xs) == 2:
+        lhs, rhs = xs
+        if isinstance(rhs, variable.Variable):
+            return Add().apply((lhs, rhs))[0]
+        _check_constant_type(rhs)
+        return AddConstant(rhs).apply((lhs,))[0]
+    else:
+        return MultiAdd().apply(xs)[0]
 
 
 class Sub(function_node.FunctionNode):
@@ -347,18 +383,19 @@ class DivGrad(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x0, x1, gy = self.get_retained_inputs()
+        ggx0, ggx1 = grad_outputs
+
         ret = []
         x1_square = x1 * x1
         if 0 in indexes:
-            ggx0 = - grad_outputs[1] * gy / x1_square
-            ret.append(ggx0)
+            gx0 = -ggx1 * gy / x1_square
+            ret.append(gx0)
         if 1 in indexes:
-            ggx1 = \
-                - grad_outputs[0] * gy / x1_square + \
-                grad_outputs[1] * 2 * gy * x0 / (x1_square * x1)
-            ret.append(ggx1)
+            gx1 = -ggx0 * gy / x1_square + \
+                ggx1 * 2 * gy * x0 / (x1_square * x1)
+            ret.append(gx1)
         if 2 in indexes:
-            ggy = grad_outputs[0] / x1 - grad_outputs[1] * x0 / x1_square
+            ggy = ggx0 / x1 - ggx1 * x0 / x1_square
             ret.append(ggy)
         return ret
 
@@ -443,6 +480,26 @@ def rdiv(self, rhs):  # rhs / lhs
         return Div().apply((rhs, self))[0]
     _check_constant_type(rhs)
     return DivFromConstant(rhs).apply((self,))[0]
+
+
+def floordiv(self, rhs):  # lhs // rhs
+    """Element-wise floor division.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
+
+    return _floor.floor(div(self, rhs))
+
+
+def rfloordiv(self, rhs):  # rhs // lhs
+    """Element-wise floor division.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
+
+    return _floor.floor(rdiv(self, rhs))
 
 
 class PowVarVar(function_node.FunctionNode):
@@ -846,6 +903,8 @@ def install_variable_arithmetics():
     variable.Variable.__truediv__ = div
     variable.Variable.__rdiv__ = rdiv
     variable.Variable.__rtruediv__ = rdiv
+    variable.Variable.__floordiv__ = floordiv
+    variable.Variable.__rfloordiv__ = rfloordiv
     variable.Variable.__pow__ = pow
     variable.Variable.__rpow__ = rpow
     variable.Variable.__matmul__ = matmul
