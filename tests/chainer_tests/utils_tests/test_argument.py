@@ -16,9 +16,8 @@ class TestArgument(unittest.TestCase):
         self.assertEqual(test(), (1, 2))
         self.assertEqual(test(bar=1, foo=2), (2, 1))
 
-        with six.assertRaisesRegex(
-                TypeError, "test\(\) got unexpected keyword argument\(s\) "
-                           "'ham', 'spam'"):
+        msg = "test\(\) got unexpected keyword argument\(s\) 'ham', 'spam'"
+        with six.assertRaisesRegex(self, TypeError, msg):
             test(spam=1, ham=2)
 
 
