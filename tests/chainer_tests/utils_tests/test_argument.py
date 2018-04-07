@@ -1,5 +1,7 @@
 import unittest
 
+import six
+
 from chainer import testing
 from chainer.utils.argument import parse_kwargs
 
@@ -14,7 +16,7 @@ class TestArgument(unittest.TestCase):
         self.assertEqual(test(), (1, 2))
         self.assertEqual(test(bar=1, foo=2), (2, 1))
 
-        with self.assertRaisesRegex(
+        with six.assertRaisesRegex(
                 TypeError, "test\(\) got unexpected keyword argument\(s\) "
                            "'ham', 'spam'"):
             test(spam=1, ham=2)
