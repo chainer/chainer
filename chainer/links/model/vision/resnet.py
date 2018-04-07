@@ -70,6 +70,12 @@ class ResNetLayers(link.Chain):
             ``chainer.initializers.HeNormal(scale=1.0)``.
         n_layers (int): The number of layers of this model. It should be either
             50, 101, or 152.
+        downsample_fb (bool): If this argument is specified as ``False``,
+            it performs downsampling by placing stride 2
+            on the 1x1 convolutional layers (the original MSRA ResNet).
+            If this argument is specified as ``True``, it performs downsampling
+            by placing stride 2 on the 3x3 convolutional layers
+            (Facebook ResNet).
 
     Attributes:
         ~ResNetLayers.available_layers (list of str): The list of available
@@ -77,7 +83,7 @@ class ResNetLayers(link.Chain):
 
     """
 
-    def __init__(self, pretrained_model, n_layers):
+    def __init__(self, pretrained_model, n_layers, downsample_fb=False):
         super(ResNetLayers, self).__init__()
 
         if pretrained_model:
@@ -87,6 +93,8 @@ class ResNetLayers(link.Chain):
         else:
             # employ default initializers used in the original paper
             kwargs = {'initialW': normal.HeNormal(scale=1.0)}
+
+        kwargs['downsample_fb'] = downsample_fb
 
         if n_layers == 50:
             block = [3, 4, 6, 3]
@@ -327,6 +335,12 @@ class ResNet50Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
+        downsample_fb (bool): If this argument is specified as ``False``,
+            it performs downsampling by placing stride 2
+            on the 1x1 convolutional layers (the original MSRA ResNet).
+            If this argument is specified as ``True``, it performs downsampling
+            by placing stride 2 on the 3x3 convolutional layers
+            (Facebook ResNet).
 
     Attributes:
         ~ResNet50Layers.available_layers (list of str): The list of available
@@ -334,10 +348,11 @@ class ResNet50Layers(ResNetLayers):
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto', downsample_fb=False):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-50-model.caffemodel'
-        super(ResNet50Layers, self).__init__(pretrained_model, 50)
+        super(ResNet50Layers, self).__init__(
+            pretrained_model, 50, downsample_fb)
 
 
 class ResNet101Layers(ResNetLayers):
@@ -380,6 +395,12 @@ class ResNet101Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
+        downsample_fb (bool): If this argument is specified as ``False``,
+            it performs downsampling by placing stride 2
+            on the 1x1 convolutional layers (the original MSRA ResNet).
+            If this argument is specified as ``True``, it performs downsampling
+            by placing stride 2 on the 3x3 convolutional layers
+            (Facebook ResNet).
 
     Attributes:
         ~ResNet101Layers.available_layers (list of str): The list of available
@@ -387,10 +408,11 @@ class ResNet101Layers(ResNetLayers):
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto', downsample_fb=False):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-101-model.caffemodel'
-        super(ResNet101Layers, self).__init__(pretrained_model, 101)
+        super(ResNet101Layers, self).__init__(
+            pretrained_model, 101, downsample_fb)
 
 
 class ResNet152Layers(ResNetLayers):
@@ -432,6 +454,12 @@ class ResNet152Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
+        downsample_fb (bool): If this argument is specified as ``False``,
+            it performs downsampling by placing stride 2
+            on the 1x1 convolutional layers (the original MSRA ResNet).
+            If this argument is specified as ``True``, it performs downsampling
+            by placing stride 2 on the 3x3 convolutional layers
+            (Facebook ResNet).
 
     Attributes:
         ~ResNet152Layers.available_layers (list of str): The list of available
@@ -439,10 +467,11 @@ class ResNet152Layers(ResNetLayers):
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto', downsample_fb=False):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-152-model.caffemodel'
-        super(ResNet152Layers, self).__init__(pretrained_model, 152)
+        super(ResNet152Layers, self).__init__(
+            pretrained_model, 152, downsample_fb)
 
 
 def prepare(image, size=(224, 224)):
@@ -505,14 +534,21 @@ class BuildingBlock(link.Chain):
         stride (int or tuple of ints): Stride of filter application.
         initialW (4-D array): Initial weight value used in
             the convolutional layers.
+        downsample_fb (bool): If this argument is specified as ``False``,
+            it performs downsampling by placing stride 2
+            on the 1x1 convolutional layers (the original MSRA ResNet).
+            If this argument is specified as ``True``, it performs downsampling
+            by placing stride 2 on the 3x3 convolutional layers
+            (Facebook ResNet).
     """
 
     def __init__(self, n_layer, in_channels, mid_channels,
-                 out_channels, stride, initialW=None):
+                 out_channels, stride, initialW=None, downsample_fb=False):
         super(BuildingBlock, self).__init__()
         with self.init_scope():
             self.a = BottleneckA(
-                in_channels, mid_channels, out_channels, stride, initialW)
+                in_channels, mid_channels, out_channels, stride,
+                initialW, downsample_fb)
             self._forward = ["a"]
             for i in range(n_layer - 1):
                 name = 'b{}'.format(i + 1)
@@ -542,19 +578,29 @@ class BottleneckA(link.Chain):
         stride (int or tuple of ints): Stride of filter application.
         initialW (4-D array): Initial weight value used in
             the convolutional layers.
+        downsample_fb (bool): If this argument is specified as ``False``,
+            it performs downsampling by placing stride 2
+            on the 1x1 convolutional layers (the original MSRA ResNet).
+            If this argument is specified as ``True``, it performs downsampling
+            by placing stride 2 on the 3x3 convolutional layers
+            (Facebook ResNet).
     """
 
     def __init__(self, in_channels, mid_channels, out_channels,
-                 stride=2, initialW=None):
+                 stride=2, initialW=None, downsample_fb=False):
         super(BottleneckA, self).__init__()
+        # In the original MSRA ResNet, stride=2 is on 1x1 convolution.
+        # In Facebook ResNet, stride=2 is on 3x3 convolution.
+
+        stride_1x1, stride_3x3 = (stride, 1) if downsample_fb else (1, stride)
         with self.init_scope():
             self.conv1 = Convolution2D(
-                in_channels, mid_channels, 1, stride, 0, initialW=initialW,
+                in_channels, mid_channels, 1, stride_1x1, 0, initialW=initialW,
                 nobias=True)
             self.bn1 = BatchNormalization(mid_channels)
             self.conv2 = Convolution2D(
-                mid_channels, mid_channels, 3, 1, 1, initialW=initialW,
-                nobias=True)
+                mid_channels, mid_channels, 3, stride_3x3, 1,
+                initialW=initialW, nobias=True)
             self.bn2 = BatchNormalization(mid_channels)
             self.conv3 = Convolution2D(
                 mid_channels, out_channels, 1, 1, 0, initialW=initialW,
