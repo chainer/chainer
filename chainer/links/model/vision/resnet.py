@@ -591,8 +591,8 @@ class BottleneckA(link.Chain):
         super(BottleneckA, self).__init__()
         # In the original MSRA ResNet, stride=2 is on 1x1 convolution.
         # In Facebook ResNet, stride=2 is on 3x3 convolution.
-
         stride_1x1, stride_3x3 = (stride, 1) if downsample_fb else (1, stride)
+
         with self.init_scope():
             self.conv1 = Convolution2D(
                 in_channels, mid_channels, 1, stride_1x1, 0, initialW=initialW,
