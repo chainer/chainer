@@ -13,24 +13,23 @@ class GradientLARS(object):
 
     This hook function scales all gradient arrays to fit to the weight norm.
 
-    In <https://arxiv.org/abs/1708.03888>
-        \\Delta w_{t+1} = m * \\Delta w_t
-                        + \\gamma * \\lambda * (\\nabla L_t(w) + \\beta w_t)
+    In <https://arxiv.org/abs/1708.03888>,
+        v_{t+1} = m * v_t + \\gamma * \\lambda * (\\nabla L(w_t) + \\beta w_t)
+        w_{t+1} = w_{t} - v_{t+1}
         where
            \\gamma : learning_rate
            m       : momentum
            \\beta  : weight_decay
            \\eta   : lars_coeeficient
            \\lamda : local_lr
-                     = \\eta * \\frac{\|w\|}{\|\\nabla L(w)\| + \\beta * \|w\|}
-    In GradientLARS
-        lr : lr in chainer.optimizers.SGD or chainer.optimizers.MomentumSGD
-        clip_rate : \\frac{\|w\|}{\|\\nabla L(w)\| + \\beta * \|w\|}
-    Then
-        \\gamma * \\lamda in arXiv = lr * clip_rate in GradientLARS and
-        \\gamma * \\eta in arXiv = lr in GradientLARS
-    So
-        You do not set lars_coeeficient(\\eta) in GradientLARS.
+                     = \\eta * \\frac{\|w_t\|}{\|\\nabla L(w_t)\|
+                       + \\beta * \|w_t\|}.
+    As lr in chainer.optimizers.SGD or chainer.optimizers.MomentumSGD
+    corresponds to \\gamma * \\eta, we define clip_rate as
+    \\frac{\|w_t\|}{\|\\nabla L(w_t)\| + \\beta * \|w_t\|}
+    and reformulate the aforementioned formula as:
+    v_{t+1} = m * v_t + lr * clip_rate * (\\nabla L(w_t) + \\beta w_t)
+    and implement in this way. So you do not set lars_coeeficient.
 
     Args:
         threashold (float): If weight norm is more than threshold,
