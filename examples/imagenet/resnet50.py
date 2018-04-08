@@ -10,10 +10,10 @@ import chainer.links as L
 class BottleNeckA(chainer.Chain):
 
     def __init__(self, in_size, ch, out_size, stride=2, groups=1,
-                 downsample_fb=False):
+                 downsample_1x1=False):
         super(BottleNeckA, self).__init__()
         initialW = initializers.HeNormal()
-        stride_1x1, stride_3x3 = (stride, 1) if downsample_fb else (1, stride)
+        stride_1x1, stride_3x3 = (stride, 1) if downsample_1x1 else (1, stride)
 
         with self.init_scope():
             self.conv1 = L.Convolution2D(
@@ -70,10 +70,10 @@ class BottleNeckB(chainer.Chain):
 class Block(chainer.ChainList):
 
     def __init__(self, layer, in_size, ch, out_size, stride=2, groups=1,
-                 downsample_fb=False):
+                 downsample_1x1=False):
         super(Block, self).__init__()
         self.add_link(BottleNeckA(in_size, ch, out_size, stride, groups,
-                                  downsample_fb))
+                                  downsample_1x1))
         for i in range(layer - 1):
             self.add_link(BottleNeckB(out_size, ch, groups))
 
@@ -87,16 +87,20 @@ class ResNet50(chainer.Chain):
 
     insize = 224
 
-    def __init__(self):
+    def __init__(self, downsample_1x1=False):
         super(ResNet50, self).__init__()
         with self.init_scope():
             self.conv1 = L.Convolution2D(
                 3, 64, 7, 2, 3, initialW=initializers.HeNormal())
             self.bn1 = L.BatchNormalization(64)
-            self.res2 = Block(3, 64, 64, 256, 1)
-            self.res3 = Block(4, 256, 128, 512)
-            self.res4 = Block(6, 512, 256, 1024)
-            self.res5 = Block(3, 1024, 512, 2048)
+            self.res2 = Block(3, 64, 64, 256, 1,
+                              downsample_1x1=downsample_1x1)
+            self.res3 = Block(4, 256, 128, 512,
+                              downsample_1x1=downsample_1x1)
+            self.res4 = Block(6, 512, 256, 1024,
+                              downsample_1x1=downsample_1x1)
+            self.res5 = Block(3, 1024, 512, 2048,
+                              downsample_1x1=downsample_1x1)
             self.fc = L.Linear(2048, 1000)
 
     def __call__(self, x, t):
@@ -118,18 +122,18 @@ class ResNeXt50(ResNet50):
 
     insize = 224
 
-    def __init__(self):
+    def __init__(self, downsample_1x1=True):
         super(ResNeXt50, self).__init__()
         with self.init_scope():
             self.conv1 = L.Convolution2D(
                 3, 64, 7, 2, 3, initialW=initializers.HeNormal())
             self.bn1 = L.BatchNormalization(64)
             self.res2 = Block(3, 64, 128, 256, 1, groups=32,
-                              downsample_fb=True)
+                              downsample_1x1=downsample_1x1)
             self.res3 = Block(4, 256, 256, 512, groups=32,
-                              downsample_fb=True)
+                              downsample_1x1=downsample_1x1)
             self.res4 = Block(6, 512, 512, 1024, groups=32,
-                              downsample_fb=True)
+                              downsample_1x1=downsample_1x1)
             self.res5 = Block(3, 1024, 1024, 2048, groups=32,
-                              downsample_fb=True)
+                              downsample_1x1=downsample_1x1)
             self.fc = L.Linear(2048, 1000)
