@@ -31,11 +31,7 @@ class Space2Depth(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
-        bsize, c, a, b = gy.shape
-        c //= self.r ** 2
-        gy = chainer.functions.reshape(gy, (bsize, self.r, self.r, c, a, b))
-        gy = chainer.functions.transpose(gy, (0, 3, 4, 1, 5, 2))
-        gy = chainer.functions.reshape(gy, (bsize, c, a * self.r, b * self.r))
+        gy = chainer.functions.depth2space(gy, self.r)
         return gy,
 
 
