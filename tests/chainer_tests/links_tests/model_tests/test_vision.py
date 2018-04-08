@@ -13,7 +13,6 @@ from chainer.variable import Variable
 
 @testing.parameterize(*testing.product({
     'n_layers': [50, 101, 152],
-    'downsampling_fb': [True, False],
 }))
 @unittest.skipUnless(resnet.available, 'Pillow is required')
 @attr.slow
@@ -21,14 +20,11 @@ class TestResNetLayers(unittest.TestCase):
 
     def setUp(self):
         if self.n_layers == 50:
-            self.link = resnet.ResNet50Layers(
-                pretrained_model=None, downsampling_fb=self.downsampling_fb)
+            self.link = resnet.ResNet50Layers(pretrained_model=None)
         elif self.n_layers == 101:
-            self.link = resnet.ResNet101Layers(
-                pretrained_model=None, downsampling_fb=self.downsampling_fb)
+            self.link = resnet.ResNet101Layers(pretrained_model=None)
         elif self.n_layers == 152:
-            self.link = resnet.ResNet152Layers(
-                pretrained_model=None, downsampling_fb=self.downsampling_fb)
+            self.link = resnet.ResNet152Layers(pretrained_model=None)
 
     def test_available_layers(self):
         result = self.link.available_layers
