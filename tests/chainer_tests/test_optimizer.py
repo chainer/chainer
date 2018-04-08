@@ -457,10 +457,5 @@ class TestDeprecatedOptimizerHooksEmitsWarning(unittest.TestCase):
         self.assertEqual(len(self.warnings), 1)
         self.assertIs(self.warnings[-1].category, DeprecationWarning)
 
-    def test_gradient_lars(self):
-        chainer.optimizer.GradientLARS(1e-2, 0.2, 1e-9)
-        self.assertEqual(len(self.warnings), 1)
-        self.assertIs(self.warnings[-1].category, DeprecationWarning)
-
 
 testing.run_module(__name__, __file__)

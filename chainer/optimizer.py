@@ -772,11 +772,3 @@ class GradientHardClipping(optimizer_hooks.GradientHardClipping):
         warnings.warn(make_deprecation_message('GradientHardClipping'),
                       DeprecationWarning)
         return super(GradientHardClipping, self).__init__(*args, **kwargs)
-
-
-class GradientLARS(optimizer_hooks.GradientLARS):
-
-    def __init__(self, *args, **kwargs):
-        warnings.warn(make_deprecation_message('GradientLARS'),
-                      DeprecationWarning)
-        return super(GradientLARS, self).__init__(*args, **kwargs)
