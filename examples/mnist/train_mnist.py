@@ -5,7 +5,6 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 from chainer import training
-from chainer.graph_optimizations.static_graph import static_graph
 from chainer.training import extensions
 
 
@@ -20,7 +19,6 @@ class MLP(chainer.Chain):
             self.l2 = L.Linear(None, n_units)  # n_units -> n_units
             self.l3 = L.Linear(None, n_out)  # n_units -> n_out
 
-    @static_graph
     def __call__(self, x):
         h1 = F.relu(self.l1(x))
         h2 = F.relu(self.l2(h1))

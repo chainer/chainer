@@ -14,7 +14,6 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 from chainer import training
-from chainer.graph_optimizations.static_graph import static_graph
 from chainer.training import extensions
 
 
