@@ -51,22 +51,23 @@ class ConvolutionND(link.Link):
 
     """
 
-    def __init__(self, ndim, in_channels, out_channels, ksize=None, stride=1,
-                 pad=0, nobias=False, initialW=None, initial_bias=None,
-                 cover_all=False):
+    def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, initialW=None, initial_bias=None, cover_all=False):
         super(ConvolutionND, self).__init__()
-        if ksize is None:
-            out_channels, ksize, in_channels = in_channels, out_channels, None
 
         ksize = conv_nd.as_tuple(ksize, ndim)
+        self.ndim = ndim
+        self.out_channels = out_channels
+        self.ksize = ksize
         self.stride = stride
         self.pad = pad
         self.cover_all = cover_all
 
         with self.init_scope():
-            W_shape = (out_channels, in_channels) + ksize
-            self.W = variable.Parameter(
-                initializers._get_initializer(initialW), W_shape)
+            W_initializer = initializers._get_initializer(initialW)
+            self.W = variable.Parameter(W_initializer)
+            if in_channels is not None:
+                self._initialize_params(in_channels)
 
             if nobias:
                 self.b = None
@@ -75,6 +76,14 @@ class ConvolutionND(link.Link):
                     initial_bias = 0
                 initial_bias = initializers._get_initializer(initial_bias)
                 self.b = variable.Parameter(initial_bias, out_channels)
+
+    def _initialize_params(self, in_channels):
+        if hasattr(self.ksize, '__getitem__'):
+            ksize = self.ksize
+        else:
+            ksize = (self.ksize) * self.ndim
+        W_shape = (self.out_channels, in_channels) + ksize
+        self.W.initialize(W_shape)
 
     def __call__(self, x):
         """Applies N-dimensional convolution layer.
@@ -88,3 +97,4 @@ class ConvolutionND(link.Link):
         """
         return convolution_nd.convolution_nd(
             x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all)
+
