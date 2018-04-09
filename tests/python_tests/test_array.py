@@ -284,22 +284,25 @@ def test_invalid_asscalar(device, shape):
         bool(a)
 
 
-def test_transpose(shape, dtype):
-    data_list = _create_dummy_data(shape, dtype)
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_transpose(xp, shape, dtype):
+    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    array = xp.array(ndarray)
+    return array.transpose()
 
-    array = xchainer.Array(shape, dtype, data_list)
 
-    def _check_transpose(array_transpose):
-        assert shape[::-1] == array_transpose.shape
-        assert array.dtype == array_transpose.dtype
-        assert array.element_bytes == array_transpose.element_bytes
-        assert array.total_size == array_transpose.total_size
-        assert array.total_bytes == array_transpose.total_bytes
-        _check_arrays_equal(array, array_transpose.transpose())
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_T(xp, shape, dtype):
+    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    array = xp.array(ndarray)
+    return array.T
 
-    _check_transpose(array.transpose())
-    _check_transpose(array.T)
-    _check_transpose(xchainer.transpose(array))
+
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_module_transpose(xp, shape, dtype):
+    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    array = xp.array(ndarray)
+    return xp.transpose(array)
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [
