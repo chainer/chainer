@@ -124,27 +124,7 @@ def _cupy_sparse_matmul():
         int i_C = i_n + _n * (i_m + _m * i_b);
         A val_A = A_data[i_A];
         C val = _B[i_B] * val_A;
-        if (sizeof(C) < 8) {
-            atomicAdd(&_C[i_C], val);
-        }
-        else {
-#if __CUDA_ARCH__ >= 600
-            atomicAdd(&_C[i_C], val);
-#else
-            // atomicCAS() is used instead of atomicAdd() when a GPU is Maxwell
-            // or older one and dtype is double. This is becuase atomicAdd()
-            // with double is not available on Maxwell and older GPUs.
-            unsigned long long int* address_as_ull =
-                (unsigned long long int*)(&_C[i_C]);
-            unsigned long long int old = *address_as_ull;
-            unsigned long long int assumed;
-            do {
-                assumed = old;
-                old = atomicCAS(address_as_ull, assumed,
-                    __double_as_longlong(val + __longlong_as_double(assumed)));
-            } while (assumed != old);
-#endif
-        }
+        atomicAdd(&_C[i_C], val);
         ''',
         'sparse_matmul')
 
