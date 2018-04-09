@@ -38,6 +38,16 @@
    .. automethod:: {{ item }}
 {% endif %}
 {%- endfor %}
+
+   ..
+      Special (arithmetic) methods
+
+{% for item in ('__neg__', '__abs__', '__add__', '__radd__', '__sub__', '__rsub__', '__mul__', '__rmul__', '__div__', '__truediv__', '__rdiv__', '__rtruediv__', '__floordiv__', '__rfloordiv__', '__pow__', '__rpow__', '__matmul__', '__rmatmul__') %}
+{% if item in all_methods %}
+   .. automethod:: {{ item }}
+{% endif %}
+{%- endfor %}
+
 {% endblock %}
 
    ..

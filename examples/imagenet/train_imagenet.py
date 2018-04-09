@@ -8,7 +8,6 @@ second column is zero-origin label (this format is same as that used by Caffe's
 ImageDataLayer).
 
 """
-from __future__ import print_function
 import argparse
 import random
 
@@ -111,7 +110,7 @@ def main():
     # Initialize the model to train
     model = archs[args.arch]()
     if args.initmodel:
-        print('Load model from', args.initmodel)
+        print('Load model from {}'.format(args.initmodel))
         chainer.serializers.load_npz(args.initmodel, model)
     if args.gpu >= 0:
         chainer.backends.cuda.get_device_from_id(

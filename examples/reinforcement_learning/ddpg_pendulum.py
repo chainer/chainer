@@ -3,7 +3,6 @@
 
 For DDPG, see: https://arxiv.org/abs/1509.02971
 """
-from __future__ import print_function
 from __future__ import division
 import argparse
 import collections

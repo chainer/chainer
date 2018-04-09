@@ -200,7 +200,7 @@ class TestOptimizerHook(unittest.TestCase):
             np.arange(3, -3, -1, dtype=np.float32).reshape(2, 3))
 
     def test_add_hook(self):
-        h1 = mock.MagicMock()
+        h1 = mock.MagicMock(timing='pre')
         h1.call_for_each_param = False
         self.optimizer.setup(self.target)
         self.optimizer.add_hook(h1, 'h1')
@@ -208,7 +208,7 @@ class TestOptimizerHook(unittest.TestCase):
         h1.assert_called_with(self.optimizer)
 
     def test_add_hook_call_for_each_param(self):
-        h1 = mock.MagicMock()
+        h1 = mock.MagicMock(timing='pre')
         h1.call_for_each_param = True
         self.optimizer.setup(self.target)
         self.optimizer.add_hook(h1, 'h1')
@@ -216,7 +216,7 @@ class TestOptimizerHook(unittest.TestCase):
         h1.assert_called_with(self.target.param.update_rule, self.target.param)
 
     def test_remove_hook(self):
-        h1 = mock.MagicMock()
+        h1 = mock.MagicMock(timing='pre')
         self.optimizer.setup(self.target)
         self.optimizer.add_hook(h1, 'h1')
         self.optimizer.remove_hook('h1')
@@ -225,9 +225,9 @@ class TestOptimizerHook(unittest.TestCase):
 
     def test_duplicated_hook(self):
         self.optimizer.setup(self.target)
-        self.optimizer.add_hook(lambda s: None, 'h1')
+        self.optimizer.add_hook(lambda s: None, 'h1', timing='pre')
         with self.assertRaises(KeyError):
-            self.optimizer.add_hook(lambda s: None, 'h1')
+            self.optimizer.add_hook(lambda s: None, 'h1', timing='pre')
 
     def test_invalid_hook(self):
         with self.assertRaises(TypeError):
@@ -382,6 +382,7 @@ class DummyOptimizer(chainer.GradientMethod):
 class DummyHook(object):
 
     name = 'Dummy'
+    timing = 'pre'
 
     def __init__(self, test):
         self.test = test
@@ -395,6 +396,7 @@ class DummyHook(object):
 class CleargradHook(object):
 
     name = 'Cleargrad'
+    timing = 'pre'
 
     def __init__(self, _):
         pass

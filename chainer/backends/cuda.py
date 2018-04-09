@@ -523,9 +523,6 @@ def get_array_module(*args):
         return numpy
 
 
-_max_workspace_size = 8 * 1024 * 1024
-
-
 def get_max_workspace_size():
     """Gets the workspace size for cuDNN.
 
@@ -535,7 +532,10 @@ def get_max_workspace_size():
         int: The workspace size for cuDNN.
 
     """
-    return _max_workspace_size
+    # To avoid error on no cuDNN environment
+    if cudnn_enabled:
+        return cudnn.get_max_workspace_size()
+    return 0
 
 
 def set_max_workspace_size(size):
@@ -547,8 +547,9 @@ def set_max_workspace_size(size):
         size: The workspace size for cuDNN.
 
     """
-    global _max_workspace_size
-    _max_workspace_size = size
+    # To avoid error on no cuDNN environment
+    if cudnn_enabled:
+        cudnn.set_max_workspace_size(size)
 
 
 def fuse(*args, **kwargs):
