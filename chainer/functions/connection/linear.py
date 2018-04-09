@@ -223,6 +223,8 @@ def linear(x, W, b=None, n_batch_axes=1):
         (3, 5)
 
     """
+    if n_batch_axes <= 0:
+        raise ValueError('n_batch_axes should be greater than 0.')
     if n_batch_axes > 1:
         batch_shape = x.shape[:n_batch_axes]
         batch_size = numpy.prod(batch_shape)
