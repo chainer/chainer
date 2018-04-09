@@ -85,15 +85,10 @@ def _make_decorator(check_func, name, device_arg, device_check, type_check, acce
             kw[name] = xchainer
             xchainer_result, xchainer_error, xchainer_tb = _call_func(impl, args, kw)
 
-            numpy_kw = kw.copy()
-            numpy_kw[name] = numpy
-            # TODO(sonots): Use string dtype in each test case so that we do not need this conversion.
-            if 'dtype' in kw and isinstance(kw['dtype'], xchainer.dtype):
-                numpy_kw['dtype'] = numpy.dtype(kw['dtype'].name)
-
+            kw[name] = numpy
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore', RuntimeWarning)
-                numpy_result, numpy_error, numpy_tb = _call_func(impl, args, numpy_kw)
+                numpy_result, numpy_error, numpy_tb = _call_func(impl, args, kw)
 
             if xchainer_error or numpy_error:
                 _check_xchainer_numpy_error(xchainer_error, xchainer_tb,
