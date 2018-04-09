@@ -1503,6 +1503,19 @@ def test_exp(xp, device, input, numpy_dtype):
     return xp.exp(a)
 
 
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
+    numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+# TODO(niboshi): Dtype promotion is not supported yet.
+@pytest.mark.parametrize('numpy_dtype', [numpy.float32, numpy.float64])
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_log(xp, device, input, numpy_dtype):
+    a = xp.array(input.astype(numpy_dtype))
+    return xp.log(a)
+
+
 # TODO(niboshi): Unify `test_argmax` and `test_argmax_member` by returning a tuple of arrays: `return xp.argmax(a, axis), a.argmax(axis)`
 # after implementing multple return support in `numpy_xchainer_array_equal`.
 @pytest.mark.parametrize('input,axis', [
