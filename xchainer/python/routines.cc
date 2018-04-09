@@ -146,8 +146,8 @@ void InitXchainerRoutines(pybind11::module& m) {
           [](Scalar stop, const nonstd::optional<Dtype>& dtype, const nonstd::optional<std::string>& device_id) {
               Scalar start{0, stop.dtype()};
               Scalar step{1, stop.dtype()};
-              return dtype.has_value() ? Array::Arange(start, stop, step, *dtype, GetDevice(device_id)).move_body()
-                                       : Array::Arange(start, stop, step, GetDevice(device_id)).move_body();
+              return dtype.has_value() ? Arange(start, stop, step, *dtype, GetDevice(device_id)).move_body()
+                                       : Arange(start, stop, step, GetDevice(device_id)).move_body();
           },
           py::arg("stop"),
           py::arg("dtype") = nullptr,
@@ -155,8 +155,8 @@ void InitXchainerRoutines(pybind11::module& m) {
     m.def("arange",
           [](Scalar start, Scalar stop, const nonstd::optional<Dtype>& dtype, const nonstd::optional<std::string>& device_id) {
               Scalar step{1, stop.dtype()};
-              return dtype.has_value() ? Array::Arange(start, stop, step, *dtype, GetDevice(device_id)).move_body()
-                                       : Array::Arange(start, stop, step, GetDevice(device_id)).move_body();
+              return dtype.has_value() ? Arange(start, stop, step, *dtype, GetDevice(device_id)).move_body()
+                                       : Arange(start, stop, step, GetDevice(device_id)).move_body();
           },
           py::arg("start"),
           py::arg("stop"),
@@ -164,8 +164,8 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("arange",
           [](Scalar start, Scalar stop, Scalar step, const nonstd::optional<Dtype>& dtype, const nonstd::optional<std::string>& device_id) {
-              return dtype.has_value() ? Array::Arange(start, stop, step, *dtype, GetDevice(device_id)).move_body()
-                                       : Array::Arange(start, stop, step, GetDevice(device_id)).move_body();
+              return dtype.has_value() ? Arange(start, stop, step, *dtype, GetDevice(device_id)).move_body()
+                                       : Arange(start, stop, step, GetDevice(device_id)).move_body();
           },
           py::arg("start"),
           py::arg("stop"),

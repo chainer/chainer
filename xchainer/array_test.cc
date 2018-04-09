@@ -474,18 +474,6 @@ TEST_P(ArrayTest, OnesLike) {
     EXPECT_EQ(&GetDefaultDevice(), &x.device());
 }
 
-TEST_P(ArrayTest, Arange) {
-    Array a = Array::Arange(0, 3, 1, Dtype::kInt32);
-    Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
-    testing::ExpectEqual(e, a);
-}
-
-TEST_P(ArrayTest, ArangeNoDtype) {
-    Array a = Array::Arange(Scalar{1, Dtype::kUInt8}, Scalar{4, Dtype::kUInt8}, Scalar{1, Dtype::kUInt8});
-    Array e = testing::BuildArray({3}).WithData<uint8_t>({1, 2, 3});
-    testing::ExpectEqual(e, a);
-}
-
 TEST_P(ArrayTest, Negative) {
     Array a = testing::BuildArray({3}).WithData<float>({-1, 0, 2});
     Array e = testing::BuildArray({3}).WithData<float>({1, 0, -2});
