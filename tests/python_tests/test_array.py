@@ -376,7 +376,7 @@ def test_invalid_reshape(shape1, shape2):
     check(shape2, shape1)
 
 
-@pytest.mark.parametrize('shape,axis', [
+_squeeze_params = [
     ((), None),
     ((0,), None),
     ((1,), None),
@@ -392,32 +392,46 @@ def test_invalid_reshape(shape1, shape2):
     ((1, 2, 1, 3, 1, 1, 4), None),
     ((1, 2, 1, 3, 1, 1, 4), (2, 0, 4)),
     ((1, 2, 1, 3, 1, 1, 4), (-2, 0, 4)),
-])
-def test_squeeze(shape, axis):
-    size = functools.reduce(operator.mul, shape, 1)
-    dtype = numpy.float32
-    a_np = numpy.arange(size, dtype=dtype).reshape(shape)
-    a_xc = xchainer.Array(a_np)
-
-    _check_array_equals_ndarray(a_xc.squeeze(axis), a_np.squeeze(axis))
-    _check_array_equals_ndarray(xchainer.squeeze(a_xc, axis), numpy.squeeze(a_np, axis))
+]
 
 
-@pytest.mark.parametrize('shape,axis', [
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('shape,axis', _squeeze_params)
+def test_squeeze(xp, shape, axis):
+    ndarray = _create_dummy_ndarray(shape, numpy.float32)
+    a = xp.array(ndarray)
+    return a.squeeze(axis)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('shape,axis', _squeeze_params)
+def test_module_squeeze(xp, shape, axis):
+    ndarray = _create_dummy_ndarray(shape, numpy.float32)
+    a = xp.array(ndarray)
+    return xp.squeeze(a, axis)
+
+
+_squeeze_invalid_params = [
     ((2, 1, 3), 0),
     ((2, 1, 3), -1),
     ((2, 1, 3), (1, 2)),
     ((2, 1, 3), (1, -1)),
     ((2, 1, 3), (1, 1)),
-])
-def test_invalid_squeeze(shape, axis):
-    src = xchainer.ones(shape, xchainer.float32)
+]
 
-    with pytest.raises(xchainer.DimensionError):
-        src.squeeze(axis)
 
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.squeeze(src, axis)
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize('shape,axis', _squeeze_invalid_params)
+def test_invalid_squeeze(xp, shape, axis):
+    a = xp.ones(shape, xp.float32)
+    return a.squeeze(axis)
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize('shape,axis', _squeeze_invalid_params)
+def test_invalid_module_squeeze(xp, shape, axis):
+    a = xp.ones(shape, xp.float32)
+    return xp.squeeze(a, axis)
 
 
 @pytest.mark.parametrize('src_shape,dst_shape', [
