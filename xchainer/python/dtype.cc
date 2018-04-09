@@ -33,6 +33,8 @@ void InitXchainerDtype(pybind11::module& m) {
         (void)other;  // unused
         return true;
     });
+
+    py::implicitly_convertible<std::string, Dtype>();
 }
 
 }  // namespace internal

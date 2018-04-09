@@ -34,22 +34,23 @@ public:
 
     void Fill(const Array& out, Scalar value) override;
 
-    void ArgMax(const Array& src, const std::vector<int8_t>& axis, const Array& out) override;
+    void ArgMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) override;
 
-    void Sum(const Array& src, const std::vector<int8_t>& axis, const Array& out) override;
+    void Sum(const Array& a, const std::vector<int8_t>& axis, const Array& out) override;
 
-    void Copy(const Array& src, const Array& out) override;
+    void Copy(const Array& a, const Array& out) override;
 
-    void Equal(const Array& lhs, const Array& rhs, const Array& out) override;
+    void Equal(const Array& x1, const Array& x2, const Array& out) override;
 
-    void Add(const Array& lhs, const Array& rhs, const Array& out) override;
-    void Subtract(const Array& lhs, const Array& rhs, const Array& out) override;
-    void Mul(const Array& lhs, Scalar rhs, const Array& out) override;
-    void Mul(const Array& lhs, const Array& rhs, const Array& out) override;
+    void Add(const Array& x1, const Array& x2, const Array& out) override;
+    void Subtract(const Array& x1, const Array& x2, const Array& out) override;
+    void Multiply(const Array& x1, const Array& x2, const Array& out) override;
+    void MultiplyAS(const Array& x1, Scalar x2, const Array& out) override;
+    void Divide(const Array& lhs, const Array& rhs, const Array& out) override;
 
-    void IfLessElse(const Array& lhs, Scalar rhs, Scalar pos, const Array& neg, const Array& out) override;
+    void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
 
-    void Dot(const Array& lhs, const Array& rhs, const Array& out) override;
+    void Dot(const Array& a, const Array& b, const Array& out) override;
 
     void Exp(const Array& x, const Array& out) override;
     void Log(const Array& x, const Array& out) override;

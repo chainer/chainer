@@ -1,5 +1,7 @@
 import numpy.testing
 
+import xchainer
+
 # NumPy-like assertion functions that accept both NumPy and xChainer arrays
 
 
@@ -14,5 +16,11 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
              are appended to the error message.
     .. seealso:: :func:`numpy.testing.assert_array_equal`
     """
+    # TODO(sonots): Remove following explicit `to_device` transfer if conversion from
+    # xchainer.Array to numpy.ndarray via buffer protocol supports the device transfer.
+    if isinstance(x, xchainer.Array):
+        x = x.to_device('native:0')
+    if isinstance(y, xchainer.Array):
+        y = y.to_device('native:0')
     numpy.testing.assert_array_equal(
         x, y, err_msg=err_msg, verbose=verbose)
