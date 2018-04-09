@@ -10,6 +10,10 @@ class Sequential(link.ChainList):
 
     """Sequential model which has a single-stream forward pass.
 
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
     This class enables to construct a network which has sequential structure
     easily. While :class:`~Chain` and :class:`~ChainList` can only take
     :class:`~Link` object as input to their constructor, this
