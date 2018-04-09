@@ -335,7 +335,7 @@ Array AMax(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bo
 
     for (int8_t i : sorted_axis) {
         if (a.shape()[i] == 0) {
-            throw DimensionError("zero-size array to reduction operation maximum which has no identity");
+            throw DimensionError("cannot compute the maximum along zero-sized axis");
         }
     }
 
