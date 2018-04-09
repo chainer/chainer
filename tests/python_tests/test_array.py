@@ -1582,12 +1582,8 @@ def test_argmax_member(xp, device, input, axis, dtype):
     (numpy.ones((2, 3)), -3),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_invalid_argmax(device, input, axis, dtype):
-    try:
-        a_np = input.astype(dtype.name)
-    except (ValueError, OverflowError):
-        return  # invalid combination of data and dtype
-
+def test_invalid_argmax(device, input, axis):
+    a_np = input
     a_xc = xchainer.array(a_np)
 
     with pytest.raises(ValueError):
