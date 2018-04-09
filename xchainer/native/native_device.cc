@@ -132,7 +132,7 @@ void NativeDevice::AMax(const Array& a, const std::vector<int8_t>& axis, const A
 
 void NativeDevice::Copy(const Array& a, const Array& out) {
     CheckDevicesCompatible(a, out);
-    VisitDtype(a.dtype(), [&](auto pt) {
+    VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> a_iarray{a};
         IndexableArray<T> out_iarray{out};
