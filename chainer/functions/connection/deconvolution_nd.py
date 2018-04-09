@@ -16,15 +16,15 @@ class DeconvolutionND(function_node.FunctionNode):
     cover_all = None
 
     def __init__(self, ndim, stride=1, pad=0, outsize=None,
-                 groups=1, dilate=1):
+                 dilate=1, groups=1):
         self.ndim = ndim
         self.stride = conv_nd.as_tuple(stride, ndim)
         self.pad = conv_nd.as_tuple(pad, ndim)
         if outsize is not None:
             assert len(outsize) == ndim
         self.outs = outsize
-        self.groups = groups
         self.dilate = conv_nd.as_tuple(dilate, ndim)
+        self.groups = groups
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -171,7 +171,7 @@ class DeconvolutionND(function_node.FunctionNode):
 
 
 def deconvolution_nd(x, W, b=None, stride=1, pad=0, outsize=None,
-                     groups=1, dilate=1):
+                     dilate=1, groups=1):
     """N-dimensional deconvolution function.
 
     This is an implementation of N-dimensional deconvolution which generalizes
@@ -245,14 +245,12 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
             tuple of ints :math:`(l_1, l_2, ..., l_N)`. Default value is
             ``None`` and the outsize is estimated by input size, stride and
             pad.
-        groups (:class:`int`): the positive integer that determines
-            the connection between inputs and outputs. When ``groups`` is
-            larger than one, this function splits the input into
-            ``groups`` variables axis along the channel axis, performs
-            convolution operation separately, and concatenates them.
         dilate (:class:`int` or :class:`tuple` of :class:`int` s):
-            Dilation factor of each dimension.
-            ``dilate=d`` is equivalent to ``(d, d, ..., d)``.
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (:class:`int`):
+            The number of groups to use grouped convolution.
+            The default is one, where grouped convolution is not used.
 
     Returns:
         ~chainer.Variable:

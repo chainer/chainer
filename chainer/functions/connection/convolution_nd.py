@@ -13,13 +13,13 @@ from chainer.utils import type_check
 class ConvolutionND(function_node.FunctionNode):
 
     def __init__(self, ndim, stride=1, pad=0, cover_all=False,
-                 groups=1, dilate=1):
+                 dilate=1, groups=1):
         self.ndim = ndim
         self.stride = conv_nd.as_tuple(stride, ndim)
         self.pad = conv_nd.as_tuple(pad, ndim)
         self.cover_all = cover_all
-        self.groups = groups
         self.dilate = conv_nd.as_tuple(dilate, ndim)
+        self.groups = groups
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -248,7 +248,7 @@ class ConvolutionNDGradW(function_node.FunctionNode):
 
 
 def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
-                   groups=1, dilate=1):
+                   dilate=1, groups=1):
     """N-dimensional convolution function.
 
     This is an implementation of N-dimensional convolution which is generalized
@@ -317,14 +317,12 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels. It may make the output size larger.
             `cover_all` needs to be ``False`` if you want to use cuDNN.
-        groups (:class:`int`): the positive integer that determines
-            the connection between inputs and outputs. When ``groups`` is
-            larger than one, this function splits the input into
-            ``groups`` variables axis along the channel axis, performs
-            convolution operation separately, and concatenates them.
         dilate (:class:`int` or :class:`tuple` of :class:`int` s):
-            Dilation factor of each dimension.
-            ``dilate=d`` is equivalent to ``(d, d, ..., d)``.
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (:class:`int`):
+            The number of groups to use grouped convolution.
+            The default is one, where grouped convolution is not used.
 
     Returns:
         ~chainer.Variable:
