@@ -15,13 +15,16 @@ class DeconvolutionND(function_node.FunctionNode):
 
     cover_all = None
 
-    def __init__(self, ndim, stride=1, pad=0, outsize=None):
+    def __init__(self, ndim, stride=1, pad=0, outsize=None,
+                 groups=1, dilate=1):
         self.ndim = ndim
         self.stride = conv_nd.as_tuple(stride, ndim)
         self.pad = conv_nd.as_tuple(pad, ndim)
         if outsize is not None:
             assert len(outsize) == ndim
         self.outs = outsize
+        self.groups = groups
+        self.dilate = conv_nd.as_tuple(dilate, ndim)
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -37,12 +40,12 @@ class DeconvolutionND(function_node.FunctionNode):
         )
 
         if self.outs is not None:
-            for i, (out, s, p) in enumerate(zip(
-                    self.outs, self.stride, self.pad)):
+            for i, (out, s, p, di) in enumerate(zip(
+                    self.outs, self.stride, self.pad, self.dilate)):
                 lower_bound = conv.get_conv_outsize(
-                    out, w_type.shape[i + 2], s, p)
+                    out, w_type.shape[i + 2], s, p, d=di)
                 upper_bound = conv.get_conv_outsize(
-                    out, w_type.shape[i + 2], s, p, cover_all=True)
+                    out, w_type.shape[i + 2], s, p, cover_all=True, d=di)
                 type_check.expect(
                     lower_bound <= x_type.shape[i + 2],
                     x_type.shape[i + 2] <= upper_bound)
@@ -66,6 +69,12 @@ class DeconvolutionND(function_node.FunctionNode):
         ndim = self.ndim
         stride = self.stride
         pad = self.pad
+        dilate = self.dilate
+        # TODO(msaito): Support grouped convolution for _forward_xp
+        if 1 < self.groups:
+            raise NotImplementedError(
+                'The current chainer does not support'
+                ' grouped convolution without cudnn')
 
         # gcol: C_O, k_1, ..., k_N, n, d_1, ..., d_N
         gcol = xp.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
@@ -74,9 +83,9 @@ class DeconvolutionND(function_node.FunctionNode):
 
         # y: n, C_O, d_1, d_2, ..., d_N
         if xp is numpy:
-            y = conv_nd.col2im_nd_cpu(gcol, stride, pad, self.outs)
+            y = conv_nd.col2im_nd_cpu(gcol, stride, pad, dilate, self.outs)
         else:
-            y = conv_nd.col2im_nd_gpu(gcol, stride, pad, self.outs)
+            y = conv_nd.col2im_nd_gpu(gcol, stride, pad, dilate, self.outs)
         if b is not None:
             b_shape = (1, -1) + (1,) * ndim
             y += b.reshape(b_shape)
@@ -93,14 +102,14 @@ class DeconvolutionND(function_node.FunctionNode):
 
         pad = self.pad
         stride = self.stride
-        dilation = (1,) * self.ndim
-        groups = 1
+        dilate = self.dilate
+        groups = self.groups
         deterministic = configuration.config.cudnn_deterministic
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
 
         cuda.cudnn.convolution_backward_data(
-            W, x, b, y, pad, stride, dilation, groups,
+            W, x, b, y, pad, stride, dilate, groups,
             deterministic=deterministic, auto_tune=auto_tune,
             tensor_core=tensor_core)
 
@@ -115,8 +124,9 @@ class DeconvolutionND(function_node.FunctionNode):
             dims = x.shape[2:]
             ksize = W.shape[2:]
             self.outs = tuple(
-                conv.get_deconv_outsize(d, k, s, p)
-                for d, k, s, p in zip(dims, ksize, self.stride, self.pad))
+                conv.get_deconv_outsize(d, k, s, p, d=di)
+                for d, k, s, p, di
+                in zip(dims, ksize, self.stride, self.pad, self.dilate))
             assert all(out > 0 for out in self.outs), \
                 'Output sizes should be positive.'
         self._set_cover_all(x, W)
@@ -124,10 +134,10 @@ class DeconvolutionND(function_node.FunctionNode):
         xp = cuda.get_array_module(*inputs)
         if xp is numpy:
             return self._forward_xp(x, W, b, numpy)
-        elif self._use_cudnn(x, W):
-            return self._forward_cudnn(x, W, b)
-        else:
+        elif not self._use_cudnn(x, W):
             return self._forward_xp(x, W, b, cuda.cupy)
+        else:
+            return self._forward_cudnn(x, W, b)
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
@@ -137,7 +147,8 @@ class DeconvolutionND(function_node.FunctionNode):
         if 0 in indexes:
             gx = chainer.functions.convolution_nd(
                 gy, W, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
             ret.append(gx)
         if 1 in indexes:
             gW, = convolution_nd.ConvolutionNDGradW(self).apply((gy, x))
@@ -153,12 +164,14 @@ class DeconvolutionND(function_node.FunctionNode):
         x_shape = x.shape[2:]
         k_shape = W.shape[2:]
         self.cover_all = any(
-            ix != conv.get_conv_outsize(oy, k, s, p)
-            for (ix, oy, k, s, p)
-            in zip(x_shape, self.outs, k_shape, self.stride, self.pad))
+            ix != conv.get_conv_outsize(oy, k, s, p, d=di)
+            for (ix, oy, k, s, p, di)
+            in zip(x_shape, self.outs, k_shape, self.stride, self.pad,
+                   self.dilate))
 
 
-def deconvolution_nd(x, W, b=None, stride=1, pad=0, outsize=None):
+def deconvolution_nd(x, W, b=None, stride=1, pad=0, outsize=None,
+                     groups=1, dilate=1):
     """N-dimensional deconvolution function.
 
     This is an implementation of N-dimensional deconvolution which generalizes
@@ -232,6 +245,14 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
             tuple of ints :math:`(l_1, l_2, ..., l_N)`. Default value is
             ``None`` and the outsize is estimated by input size, stride and
             pad.
+        groups (:class:`int`): the positive integer that determines
+            the connection between inputs and outputs. When ``groups`` is
+            larger than one, this function splits the input into
+            ``groups`` variables axis along the channel axis, performs
+            convolution operation separately, and concatenates them.
+        dilate (:class:`int` or :class:`tuple` of :class:`int` s):
+            Dilation factor of each dimension.
+            ``dilate=d`` is equivalent to ``(d, d, ..., d)``.
 
     Returns:
         ~chainer.Variable:
@@ -305,7 +326,8 @@ pad=(p1, p2, p3), outsize=(l1, l2, l3))
 
     """
     ndim = len(x.shape[2:])
-    func = DeconvolutionND(ndim, stride, pad, outsize)
+    func = DeconvolutionND(
+        ndim, stride, pad, outsize, dilate=dilate, groups=groups)
     args = (x, W) if b is None else (x, W, b)
     y, = func.apply(args)
     return y
