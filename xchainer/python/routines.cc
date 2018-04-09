@@ -17,6 +17,7 @@
 #include "xchainer/routines/logic.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/math.h"
+#include "xchainer/routines/sorting.h"
 #include "xchainer/scalar.h"
 
 #include "xchainer/python/array.h"
@@ -269,7 +270,7 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("axis"),
           py::arg("keepdims") = false);
     m.def("sum",
-          [](const ArrayBodyPtr& a, nonstd::optional<std::vector<int8_t>> axis, bool keepdims) {
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return Sum(Array{a}, axis, keepdims).move_body();
           },
           py::arg("a"),
@@ -279,6 +280,12 @@ void InitXchainerRoutines(pybind11::module& m) {
     m.def("maximum", [](const ArrayBodyPtr& x1, Scalar x2) { return Maximum(Array{x1}, x2).move_body(); }, py::arg("x1"), py::arg("x2"));
     m.def("maximum", [](Scalar x1, const ArrayBodyPtr& x2) { return Maximum(x1, Array{x2}).move_body(); }, py::arg("x1"), py::arg("x2"));
     m.def("exp", [](const ArrayBodyPtr& x) { return Exp(Array{x}).move_body(); }, py::arg("x"));
+
+    // sorting routines
+    m.def("argmax",
+          [](const ArrayBodyPtr& a, const nonstd::optional<int8_t>& axis) { return ArgMax(Array{a}, axis).move_body(); },
+          py::arg("a"),
+          py::arg("axis") = nullptr);
 }
 
 }  // namespace internal
