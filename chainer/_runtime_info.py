@@ -42,3 +42,4 @@ def print_runtime_info(out=None):
     if out is None:
         out = sys.stdout
     out.write(str(get_runtime_info()))
+    out.flush()
