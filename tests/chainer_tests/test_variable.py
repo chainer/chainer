@@ -1788,11 +1788,17 @@ class TestIntel64Unsupported(unittest.TestCase):
     def setUp(self):
         self.x_data = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
-    def test_to_intel64(self):
+    def test_cpu_to_intel64(self):
         x = chainer.Variable(self.x_data)
         x.to_intel64()
         assert isinstance(x.data, np.ndarray)
 
+    @attr.gpu
+    def test_gpu_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        x.to_gpu()
+        x.to_intel64()
+        assert isinstance(x.data, np.ndarray)
 
 @testing.parameterize(*testing.product({
     'shape': [(3,), (3, 2), (3, 2, 2), (3, 2, 2, 3)],

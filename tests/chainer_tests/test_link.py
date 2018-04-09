@@ -1284,11 +1284,19 @@ class TestIntel64(unittest.TestCase):
         # Persistent scalar
         assert link.ps == self.ps_scalar
 
-    @attr.ideep
-    def test_intel64_unsupported(self):
+    def test_cpu_to_intel64_unsupported(self):
         # Test for persistents that cannot be transferred to iDeep.
         with self.link.init_scope():
             self.link.no_ideep = numpy.ones((2, 2, 2), numpy.float32)
+            self.link.register_persistent('no_ideep')
+        self.link.to_intel64()
+        assert isinstance(self.link.no_ideep, numpy.ndarray)
+
+    @attr.gpu
+    def test_gpu_to_intel64_unsupported(self):
+        # Test for persistents that cannot be transferred to iDeep.
+        with self.link.init_scope():
+            self.link.no_ideep = cuda.cupy.ones((2, 2, 2), numpy.float32)
             self.link.register_persistent('no_ideep')
         self.link.to_intel64()
         assert isinstance(self.link.no_ideep, numpy.ndarray)
