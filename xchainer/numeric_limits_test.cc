@@ -1,5 +1,6 @@
 #include "xchainer/numeric_limits.h"
 
+#include <cstdint>
 #include <limits>
 
 namespace xchainer {
