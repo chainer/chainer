@@ -7,6 +7,7 @@
 #include <iterator>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include <gsl/gsl>
 
