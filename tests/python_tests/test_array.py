@@ -6,6 +6,7 @@ import numpy
 import pytest
 
 import xchainer
+import xchainer.testing
 
 
 _shapes = [
@@ -1505,17 +1506,15 @@ def test_fill_with_scalar(device, shape, dtype, value):
     (numpy.ones((2, 3)), -2),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_argmax(device, input, axis, dtype):
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_argmax(xp, device, input, axis, dtype):
     try:
         a_np = input.astype(dtype.name)
     except (ValueError, OverflowError):
-        return  # invalid combination of data and dtype
+        return xp.zeros(())  # invalid combination of data and dtype
 
-    a_xc = xchainer.array(a_np)
-    b_np = numpy.argmax(a_np, axis)
-    b_xc = xchainer.argmax(a_xc, axis)
-
-    _check_array_equals_ndarray(b_xc, b_np)
+    a = xp.array(a_np)
+    return xp.argmax(a, axis)
 
 
 @pytest.mark.parametrize('input,axis', [
