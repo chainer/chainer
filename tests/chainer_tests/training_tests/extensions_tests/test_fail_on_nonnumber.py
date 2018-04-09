@@ -100,4 +100,5 @@ class TestFailOnNonNumber(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.trainer.run(show_loop_exception_msg=False)
 
+
 testing.run_module(__name__, __file__)
