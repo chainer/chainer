@@ -1489,6 +1489,8 @@ def test_fill_with_scalar(device, shape, dtype, value):
     numpy.testing.assert_array_equal(a_xc, a_np)
 
 
+# TODO(niboshi): Unify `test_argmax` and `test_argmax_member` by returning a tuple of arrays: `return xp.argmax(a, axis), a.argmax(axis)`
+# after implementing multple return support in `numpy_xchainer_array_equal`.
 @pytest.mark.parametrize('input,axis', [
     (numpy.asarray(0), None),
     (numpy.asarray(-1), None),
@@ -1518,6 +1520,34 @@ def test_argmax(xp, device, input, axis, dtype):
 
 
 @pytest.mark.parametrize('input,axis', [
+    (numpy.asarray(0), None),
+    (numpy.asarray(-1), None),
+    (numpy.asarray(float('inf')), None),
+    (numpy.asarray(float('nan')), None),
+    (numpy.asarray(-float('inf')), None),
+    (numpy.asarray([4, 1, 4, 1]), None),
+    (numpy.asarray([4, 1, 4, 1]), 0),
+    (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]), 0),
+    (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]).T, 1),
+    (numpy.asarray([-0.0, +0.0, +0.0, -0.0]), None),
+    (numpy.asarray([[True, True, False, False], [True, False, True, False]]), 0),
+    (numpy.ones((2, 0, 3)), 2),
+    (numpy.ones((2, 3)), 1),
+    (numpy.ones((2, 3)), -2),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_argmax_member(xp, device, input, axis, dtype):
+    try:
+        a_np = input.astype(dtype.name)
+    except (ValueError, OverflowError):
+        return xp.zeros(())  # invalid combination of data and dtype
+
+    a = xp.array(a_np)
+    return a.argmax(axis)
+
+
+@pytest.mark.parametrize('input,axis', [
     (numpy.ones((0,)), None),
     (numpy.ones((2, 0, 3)), 1),
     (numpy.ones((2, 0, 3)), None),
@@ -1538,3 +1568,9 @@ def test_invalid_argmax(device, input, axis, dtype):
 
     with pytest.raises(xchainer.DimensionError):
         xchainer.argmax(a_xc, axis)
+
+    with pytest.raises(ValueError):
+        a_np.argmax(axis)
+
+    with pytest.raises(xchainer.DimensionError):
+        a_xc.argmax(axis)
