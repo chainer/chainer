@@ -1311,63 +1311,68 @@ def test_maximum_with_scalar(device, shape, value, signed_dtype):
     _check_array_equals_ndarray(xchainer.maximum(value, x), y_np)
 
 
-@pytest.mark.parametrize('a_shape,b_shape', [
+def _create_dummy_array_for_dot(xp, shape, dtype):
+    x = numpy.arange(numpy.prod(shape)).reshape(shape)
+    if dtype.name == 'bool':
+        x = numpy.asarray(x % 2 == 0)
+    else:
+        x = x.astype(dtype.name)
+    return xp.array(x)
+
+
+_dot_params = [
     ((), ()),
     ((), (2, 3)),
     ((2, 0), (0, 3)),
     ((0, 0), (0, 0)),
     ((2, 3), (3, 4)),
     # TODO(niboshi): Add test cases for more than 2 ndim
-])
+]
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('a_shape,b_shape', _dot_params)
 # TODO(niboshi): Add 'cuda:0'
 @pytest.mark.parametrize_device(['native:0'])
-def test_dot(device, a_shape, b_shape, dtype):
-    a_np = numpy.arange(numpy.prod(a_shape)).reshape(a_shape)
-    b_np = numpy.arange(numpy.prod(b_shape)).reshape(b_shape)
-    if dtype == xchainer.bool:
-        a_np = numpy.asarray(a_np % 2 == 0)
-        b_np = numpy.asarray(b_np % 2 == 0)
-    else:
-        a_np = a_np.astype(dtype.name)
-        b_np = b_np.astype(dtype.name)
-    a_xc = xchainer.Array(a_np)
-    b_xc = xchainer.Array(b_np)
-
-    # module functions
-    _check_array_equals_ndarray(xchainer.dot(a_xc, b_xc), numpy.dot(a_np, b_np))
-
-    # array methods
-    _check_array_equals_ndarray(a_xc.dot(b_xc), a_np.dot(b_np))
+def test_dot(xp, device, a_shape, b_shape, dtype):
+    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
+    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
+    return a.dot(b)
 
 
-@pytest.mark.parametrize('a_shape,b_shape', [
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('a_shape,b_shape', _dot_params)
+# TODO(niboshi): Add 'cuda:0'
+@pytest.mark.parametrize_device(['native:0'])
+def test_module_dot(xp, device, a_shape, b_shape, dtype):
+    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
+    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
+    return xp.dot(a, b)
+
+
+_invalid_dot_params = [
     ((3, 2), (1, 3)),
-])
+]
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize('a_shape,b_shape', _invalid_dot_params)
 # TODO(niboshi): Add 'cuda:0'
 @pytest.mark.parametrize_device(['native:0'])
-def test_invalid_dot(device, a_shape, b_shape, dtype):
-    a_np = numpy.arange(numpy.prod(a_shape)).reshape(a_shape)
-    b_np = numpy.arange(numpy.prod(b_shape)).reshape(b_shape)
-    if dtype == xchainer.bool:
-        a_np = numpy.asarray(a_np % 2 == 0)
-        b_np = numpy.asarray(b_np % 2 == 0)
-    else:
-        a_np = a_np.astype(dtype.name)
-        b_np = b_np.astype(dtype.name)
-    a_xc = xchainer.Array(a_np)
-    b_xc = xchainer.Array(b_np)
+def test_invalid_dot(xp, device, a_shape, b_shape, dtype):
+    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
+    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
+    return a.dot(b)
 
-    # module functions
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.dot(a_xc, b_xc)
-    with pytest.raises(ValueError):
-        numpy.dot(a_np, b_np)
 
-    # array methods
-    with pytest.raises(xchainer.DimensionError):
-        a_xc.dot(b_xc)
-    with pytest.raises(ValueError):
-        a_np.dot(b_np)
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize('a_shape,b_shape', _invalid_dot_params)
+# TODO(niboshi): Add 'cuda:0'
+@pytest.mark.parametrize_device(['native:0'])
+def test_invalid_module_dot(xp, device, a_shape, b_shape, dtype):
+    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
+    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
+    return xp.dot(a, b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
