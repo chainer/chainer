@@ -1421,7 +1421,7 @@ def as_variable(obj):
     transparently from a raw array or a variable.
 
     Note that this function should only be used for type consistency (i.e., to
-    enforce the return value of an API having type :class:`~chainer.Varialbe`).
+    enforce the return value of an API having type :class:`~chainer.Variable`).
     The :class:`~chainer.Variable.requires_grad` flag is kept as is; if ``obj``
     is a raw array, the newly created variable has ``requires_grad = False``.
     In order to make a variable w.r.t. which you want to compute the gradient,
