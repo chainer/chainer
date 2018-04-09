@@ -1,5 +1,6 @@
 import functools
 import traceback
+import warnings
 
 import numpy
 import pytest
@@ -90,7 +91,10 @@ def _make_decorator(check_func, name, type_check, accept_error):
             # so that we can directly use string names in each test case for both  xChainer and NumPy.
             if 'dtype' in kw:
                 numpy_kw['dtype'] = numpy.dtype(kw['dtype'].name)
-            numpy_result, numpy_error, numpy_tb = _call_func(impl, args, numpy_kw)
+
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', RuntimeWarning)
+                numpy_result, numpy_error, numpy_tb = _call_func(impl, args, numpy_kw)
 
             if xchainer_error or numpy_error:
                 _check_xchainer_numpy_error(xchainer_error, xchainer_tb,
