@@ -434,41 +434,35 @@ def test_invalid_module_squeeze(xp, shape, axis):
     return xp.squeeze(a, axis)
 
 
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('src_shape,dst_shape', [
     ((), ()),
     ((1,), (2,)),
     ((1, 1), (2, 2)),
     ((1, 1), (1, 2)),
 ])
-def test_broadcast_to(src_shape, dst_shape):
-    size = functools.reduce(operator.mul, src_shape, 1)
-    src_np = numpy.arange(size, dtype=numpy.float32).reshape(src_shape)
-    src = xchainer.Array(src_np)
-
-    dst = xchainer.broadcast_to(src, dst_shape)
-    dst_np = numpy.broadcast_to(src_np, dst_shape)
-    _check_array_equals_ndarray(dst, dst_np)
+def test_broadcast_to(xp, src_shape, dst_shape):
+    ndarray = _create_dummy_ndarray(src_shape, numpy.float32)
+    a = xp.array(ndarray)
+    return xp.broadcast_to(a, dst_shape)
 
 
-def test_broadcast_to_auto_prefix():
-    src_np = numpy.arange(2, dtype=numpy.float32)
-    src = xchainer.Array(src_np)
-
-    dst_np = numpy.broadcast_to(src_np, (3, 2))
-    dst = xchainer.broadcast_to(src, (3, 2))
-
-    _check_array_equals_ndarray(dst, dst_np)
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, TypeError))
+def test_broadcast_to_auto_prefix(xp):
+    ndarray = numpy.arange(2, dtype=numpy.float32)
+    a = xp.array(ndarray)
+    return xp.broadcast_to(a, (3, 2))
 
 
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, TypeError))
 @pytest.mark.parametrize(('src_shape,dst_shape'), [
     ((3,), (2,)),
     ((3,), (3, 2)),
     ((1, 3), (3, 2)),
 ])
-def test_invalid_broadcast_to(src_shape, dst_shape):
-    src = xchainer.ones(src_shape, xchainer.float32)
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.broadcast_to(src, dst_shape)
+def test_invalid_broadcast_to(xp, src_shape, dst_shape):
+    a = xp.ones(src_shape, xchainer.float32)
+    return xp.broadcast_to(a, dst_shape)
 
 
 def test_copy(shape, dtype):
