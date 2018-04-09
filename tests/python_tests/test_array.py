@@ -1,12 +1,12 @@
 import functools
 import math
 import operator
-import warnings
 
 import numpy
 import pytest
 
 import xchainer
+import xchainer.testing
 
 
 _shapes = [
@@ -1496,12 +1496,7 @@ def test_fill_with_scalar(device, shape, dtype, value):
 ])
 # TODO(niboshi): Dtype promotion is not supported yet.
 @pytest.mark.parametrize('numpy_dtype', [numpy.float32, numpy.float64])
-def test_log(device, input, numpy_dtype):
-    a_np = input.astype(numpy_dtype)
-    a_xc = xchainer.array(a_np)
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', RuntimeWarning)
-        b_np = numpy.log(a_np)
-    b_xc = xchainer.log(a_xc)
-
-    _check_array_equals_ndarray(b_xc, b_np)
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_log(xp, device, input, numpy_dtype):
+    a = xp.array(input.astype(numpy_dtype))
+    return xp.log(a)
