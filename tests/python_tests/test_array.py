@@ -1172,77 +1172,83 @@ def test_getitem(input_shape, indices, output_shape, output_data):
     _check_array_equals_ndarray(y, n[indices])
 
 
-@pytest.mark.parametrize("input_shape,axis,keepdims,output_shape,output_data", [
-    ((), None, False, (), [0]),
-    ((), None, True, (), [0]),
-    ((), (), False, (), [0]),
-    ((), (), True, (), [0]),
-    ((2,), None, False, (), [1]),
-    ((2,), None, True, (1,), [1]),
-    ((2,), (), False, (2,), [0, 1]),
-    ((2,), (), True, (2,), [0, 1]),
-    ((2,), 0, False, (), [1]),
-    ((2,), 0, True, (1,), [1]),
-    ((2,), (0,), False, (), [1]),
-    ((2,), (0,), True, (1,), [1]),
-    ((2,), (-1,), False, (), [1]),
-    ((2,), (-1,), True, (1,), [1]),
-    ((2, 3), None, False, (), [15]),
-    ((2, 3), None, True, (1, 1), [15]),
-    ((2, 3), (), False, (2, 3), [0, 1, 2, 3, 4, 5]),
-    ((2, 3), (), True, (2, 3), [0, 1, 2, 3, 4, 5]),
-    ((2, 3), 0, False, (3,), [3, 5, 7]),
-    ((2, 3), 0, True, (1, 3), [3, 5, 7]),
-    ((2, 3), (0,), False, (3,), [3, 5, 7]),
-    ((2, 3), (0,), True, (1, 3), [3, 5, 7]),
-    ((2, 3), (1,), False, (2,), [3, 12]),
-    ((2, 3), (1,), True, (2, 1), [3, 12]),
-    ((2, 3), (-1,), False, (2,), [3, 12]),
-    ((2, 3), (-1,), True, (2, 1), [3, 12]),
-    ((2, 3), (-2,), False, (3,), [3, 5, 7]),
-    ((2, 3), (-2,), True, (1, 3), [3, 5, 7]),
-    ((2, 3), (0, 1), False, (), [15]),
-    ((2, 3), (0, 1), True, (1, 1), [15]),
-    ((2, 3), (-2, -1), False, (), [15]),
-    ((2, 3), (-2, -1), True, (1, 1), [15]),
-    ((1, 3), None, False, (), [3]),  # sum over 1-dim axis
-    ((1, 3), None, True, (1, 1), [3]),
-    ((0, 3), None, False, (), [0]),  # sum over 0-dim axis
-    ((0, 3), None, True, (1, 1), [0]),
+_sum_params = [
+    ((), None, False),
+    ((), None, True),
+    ((), (), False),
+    ((), (), True),
+    ((2,), None, False),
+    ((2,), None, True),
+    ((2,), (), False),
+    ((2,), (), True),
+    ((2,), 0, False),
+    ((2,), 0, True),
+    ((2,), (0,), False),
+    ((2,), (0,), True),
+    ((2,), (-1,), False),
+    ((2,), (-1,), True),
+    ((2, 3), None, False),
+    ((2, 3), None, True),
+    ((2, 3), (), False),
+    ((2, 3), (), True),
+    ((2, 3), 0, False),
+    ((2, 3), 0, True),
+    ((2, 3), (0,), False),
+    ((2, 3), (0,), True),
+    ((2, 3), (1,), False),
+    ((2, 3), (1,), True),
+    ((2, 3), (-1,), False),
+    ((2, 3), (-1,), True),
+    ((2, 3), (-2,), False),
+    ((2, 3), (-2,), True),
+    ((2, 3), (0, 1), False),
+    ((2, 3), (0, 1), True),
+    ((2, 3), (-2, -1), False),
+    ((2, 3), (-2, -1), True),
+    ((1, 3), None, False),  # sum over 1-dim axis
+    ((1, 3), None, True),
+    ((0, 3), None, False),  # sum over 0-dim axis
+    ((0, 3), None, True),
 
     # Sum over axes that are in the middle or apart
-    ((2, 3, 4), (1,), False, (2, 4), [12, 15, 18, 21, 48, 51, 54, 57]),
-    ((2, 3, 4), (1,), True, (2, 1, 4), [12, 15, 18, 21, 48, 51, 54, 57]),
-    ((2, 3, 4), (0, 2), False, (3,), [60, 92, 124]),
-    ((2, 3, 4), (0, 2), True, (1, 3, 1), [60, 92, 124]),
+    ((2, 3, 4), (1,), False),
+    ((2, 3, 4), (1,), True),
+    ((2, 3, 4), (0, 2), False),
+    ((2, 3, 4), (0, 2), True),
 
     # Sum over axes that are apart and/or unsorted
-    ((2, 3), (1, 0), False, (), [15]),
-    ((2, 3), (1, 0), True, (1, 1), [15]),
-    ((2, 3, 4), (2, 0), False, (3,), [60, 92, 124]),
-    ((2, 3, 4), (2, 0), True, (1, 3, 1), [60, 92, 124]),
-    ((2, 3, 4), (2, 0, 1), False, (), [276]),
-    ((2, 3, 4), (2, 0, 1), True, (1, 1, 1), [276]),
-    ((2, 3, 4), (-2, 2, 0), False, (), [276]),
-    ((2, 3, 4), (-2, 2, 0), True, (1, 1, 1), [276]),
-])
+    ((2, 3), (1, 0), False),
+    ((2, 3), (1, 0), True),
+    ((2, 3, 4), (2, 0), False),
+    ((2, 3, 4), (2, 0), True),
+    ((2, 3, 4), (2, 0, 1), False),
+    ((2, 3, 4), (2, 0, 1), True),
+    ((2, 3, 4), (-2, 2, 0), False),
+    ((2, 3, 4), (-2, 2, 0), True),
+]
+
+
+# TODO(sonots): Fix type compatibility
+@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+@pytest.mark.parametrize("shape,axis,keepdims", _sum_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sum(device, input_shape, axis, keepdims, output_shape, output_data):
-    total_size = functools.reduce(operator.mul, input_shape, 1)
-    input_data = list(range(0, total_size))
-    x = xchainer.Array(input_shape, xchainer.int32, input_data)
-    e = xchainer.Array(output_shape, xchainer.int32, output_data)
-    n = numpy.array(input_data, numpy.int32).reshape(input_shape).sum(axis=axis, keepdims=keepdims).astype(numpy.int32)
-
-    y = x.sum(axis=axis, keepdims=keepdims)
-    _check_arrays_equal(y, e)
-    _check_array_equals_ndarray(y, n)
-
-    y = xchainer.sum(x, axis, keepdims)
-    _check_arrays_equal(y, e)
-    _check_array_equals_ndarray(y, n)
+def test_sum(xp, device, shape, axis, keepdims):
+    ndarray = _create_dummy_ndarray(shape, 'int32')
+    a = xp.array(ndarray)
+    return a.sum(axis=axis, keepdims=keepdims)
 
 
+# TODO(sonots): Fix type compatibility
+@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+@pytest.mark.parametrize("shape,axis,keepdims", _sum_params)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_module_sum(xp, device, shape, axis, keepdims):
+    ndarray = _create_dummy_ndarray(shape, 'int32')
+    a = xp.array(ndarray)
+    return xp.sum(a, axis=axis, keepdims=keepdims)
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(TypeError))
 @pytest.mark.parametrize("input_shape,axis,keepdims", [
     ((), 0, False),
     ((), 0, True),
@@ -1269,13 +1275,10 @@ def test_sum(device, input_shape, axis, keepdims, output_shape, output_data):
     ((2, 3,), (0, -2), False),
     ((2, 3,), (0, -2), True),
 ])
-def test_invalid_sum(input_shape, axis, keepdims):
-    total_size = functools.reduce(operator.mul, input_shape, 1)
-    input_data = list(range(0, total_size))
-    x = xchainer.Array(input_shape, xchainer.int32, input_data)
-
-    with pytest.raises(xchainer.DimensionError):
-        x.sum(axis=axis, keepdims=keepdims)
+def test_invalid_sum(xp, input_shape, axis, keepdims):
+    ndarray = _create_dummy_ndarray(shape, 'int32')
+    a = xp.array(ndarray)
+    a.sum(axis=axis, keepdims=keepdims)
 
 
 @pytest.mark.parametrize("shape,value", [
