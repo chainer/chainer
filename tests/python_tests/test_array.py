@@ -662,9 +662,10 @@ def test_invalid_eq(a_shape, b_shape):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@xchainer.testing.numpy_xchainer_array_equal()
 def test_neg(xp, device, shape, dtype):
-    if dtype is xchainer.bool:  # Checked in test_invalid_bool_neg
-        return
+    if dtype.name == 'bool':  # Checked in test_invalid_bool_neg
+        return xp.array([])
     size = functools.reduce(operator.mul, shape, 1)
     obj = numpy.arange(size).reshape(shape).astype(dtype.name)
     x = xp.array(obj)
@@ -673,15 +674,20 @@ def test_neg(xp, device, shape, dtype):
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_invalid_bool_neg(device):
-    x = xchainer.array([True, False], dtype='bool')
-    with pytest.raises(xchainer.DtypeError):
-        -x
+    def check(xp, err):
+        x = xp.array([True, False], dtype='bool')
+        with pytest.raises(err):
+            -x
+
+    check(xchainer, xchainer.DtypeError)
+    check(numpy, TypeError)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@xchainer.testing.numpy_xchainer_array_equal()
 def test_negative(xp, device, shape, dtype):
-    if dtype is xchainer.bool:  # Checked in test_invalid_bool_negative
-        return
+    if dtype.name == 'bool':  # Checked in test_invalid_bool_neg
+        return xp.array([])
     size = functools.reduce(operator.mul, shape, 1)
     obj = numpy.arange(size).reshape(shape).astype(dtype.name)
     x = xp.array(obj)
@@ -690,9 +696,13 @@ def test_negative(xp, device, shape, dtype):
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_invalid_bool_negative(device):
-    x = xchainer.array([True, False], dtype='bool')
-    with pytest.raises(xchainer.DtypeError):
-        xchainer.negative(x)
+    def check(xp, err):
+        x = xp.array([True, False], dtype='bool')
+        with pytest.raises(err):
+            xp.negative(x)
+
+    check(xchainer, xchainer.DtypeError)
+    check(numpy, TypeError)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
