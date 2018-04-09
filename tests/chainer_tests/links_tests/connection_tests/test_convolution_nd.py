@@ -17,10 +17,12 @@ from chainer.utils import conv_nd
 
 @testing.parameterize(*(testing.product({
     'dims': [(3, 4), (3, 4, 3)],
-    'dtype': [numpy.float32]
+    'dtype': [numpy.float32],
+    'in_channels': [3, None],
 }) + testing.product({
     'dims': [(5,)],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'in_channels': [3, None],
 })))
 class TestConvolutionND(unittest.TestCase):
 
@@ -31,8 +33,9 @@ class TestConvolutionND(unittest.TestCase):
         self.pad = (1,) * ndim
 
         self.link = convolution_nd.ConvolutionND(
-            ndim, 3, 2, self.ksize, stride=self.stride, pad=self.pad,
-            initial_bias=initializers.Uniform(scale=1., dtype=self.dtype))
+            ndim, self.in_channels, 2, self.ksize, stride=self.stride,
+            pad=self.pad, initial_bias=initializers.Uniform(
+                scale=1., dtype=self.dtype))
         self.link.cleargrads()
 
         x_shape = (2, 3) + self.dims
