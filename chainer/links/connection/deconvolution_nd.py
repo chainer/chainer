@@ -49,22 +49,23 @@ class DeconvolutionND(link.Link):
 
     """
 
-    def __init__(self, ndim, in_channels, out_channels, ksize=None, stride=1,
-                 pad=0, nobias=False, outsize=None, initialW=None,
-                 initial_bias=None):
+    def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
+                 nobias=False, outsize=None,
+                 initialW=None, initial_bias=None):
         super(DeconvolutionND, self).__init__()
-        if ksize is None:
-            out_channels, ksize, in_channels = in_channels, out_channels, None
 
-        ksize = conv_nd.as_tuple(ksize, ndim)
+        self.out_channels = out_channels
+        self.ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
         self.outsize = outsize
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
-            self.W = variable.Parameter(W_initializer,
-                                        (in_channels, out_channels) + ksize)
+            self.W = variable.Parameter(W_initializer)
+            if in_channels is not None:
+                self._initialize_params(in_channels)
+
             if nobias:
                 self.b = None
             else:
@@ -73,7 +74,13 @@ class DeconvolutionND(link.Link):
                 initial_bias = initializers._get_initializer(initial_bias)
                 self.b = variable.Parameter(initial_bias, out_channels)
 
+    def _initialize_params(self, in_channels):
+        W_shape = (self.out_channels, in_channels) + self.ksize
+        self.W.initialize(W_shape)
+
     def __call__(self, x):
+        if self.W.data is None:
+            self._initialize_params(x.shape[1])
         return deconvolution_nd.deconvolution_nd(
             x, self.W, b=self.b, stride=self.stride, pad=self.pad,
             outsize=self.outsize)

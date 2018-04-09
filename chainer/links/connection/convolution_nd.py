@@ -55,10 +55,8 @@ class ConvolutionND(link.Link):
                  nobias=False, initialW=None, initial_bias=None, cover_all=False):
         super(ConvolutionND, self).__init__()
 
-        ksize = conv_nd.as_tuple(ksize, ndim)
-        self.ndim = ndim
         self.out_channels = out_channels
-        self.ksize = ksize
+        self.ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
         self.cover_all = cover_all
@@ -78,11 +76,7 @@ class ConvolutionND(link.Link):
                 self.b = variable.Parameter(initial_bias, out_channels)
 
     def _initialize_params(self, in_channels):
-        if hasattr(self.ksize, '__getitem__'):
-            ksize = self.ksize
-        else:
-            ksize = (self.ksize) * self.ndim
-        W_shape = (self.out_channels, in_channels) + ksize
+        W_shape = (self.out_channels, in_channels) + self.ksize
         self.W.initialize(W_shape)
 
     def __call__(self, x):
@@ -95,6 +89,8 @@ class ConvolutionND(link.Link):
             ~chainer.Variable: Output of convolution.
 
         """
+        if self.W.data is None:
+            self._initialize_params(x.shape[1])
         return convolution_nd.convolution_nd(
             x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all)
 
