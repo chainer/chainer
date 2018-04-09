@@ -1,12 +1,10 @@
-import functools
 import math
-import operator
 
 import numpy
 import pytest
 
 import xchainer
-
+from xchainer import testing
 
 _shapes = [
     (),
@@ -23,327 +21,193 @@ def shape(request):
     return request.param
 
 
-def _create_dummy_array(shape, dtype):
-    size = functools.reduce(operator.mul, shape, 1)
-    if dtype == xchainer.bool:
-        data_list = [i % 2 == 1 for i in range(size)]
-    else:
-        data_list = [i for i in range(size)]
-    return xchainer.Array(shape, dtype, data_list)
-
-
-def _check_basic_creation(a, shape, dtype, device=None):
-    assert a.shape == shape
-    assert a.dtype == dtype
-    assert a.is_contiguous
-    assert a.offset == 0
-    assert a.total_size == functools.reduce(operator.mul, shape, 1)
-    assert not a.is_grad_required()
+def _check_device(a, device=None):
     if device is None:
         device = xchainer.get_default_device()
     elif isinstance(device, str):
-        device = xchainer.get_default_context().get_device(device)
+        device = xchainer.get_device(device)
     assert a.device is device
 
 
-def test_array_from_python_list(shape, dtype):
-    # TODO(sonots): Determine dtype (bool or int64, or float64) seeing values of list.
-    # TODO(sonots): Support nested list
-    a = xchainer.array([0, 1, 2])
-    _check_basic_creation(a, (3,), xchainer.float64)
+@testing.numpy_xchainer_array_equal()
+def test_array_from_python_list(xp, dtype):
+    return xp.array([0, 1, 2], xp.dtype(dtype.name))
 
-    a = xchainer.array([0, 1, 2], xchainer.float32)
-    _check_basic_creation(a, (3,), xchainer.float32)
+
+# TODO(sonots): Determine dtype (bool or int64, or float64) seeing values of list.
+# TODO(sonots): Support nested list
+@pytest.mark.parametrize('dtype', [xchainer.float64])
+def test_array_from_python_list_without_dtype(dtype):
+    a = xchainer.array([0, 1, 2])
+    assert a.shape == (3,)
+    assert a.dtype == dtype
+    assert a._debug_flat_data == [0, 1, 2]
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-def test_array_from_python_list_with_device(shape, dtype, device):
-    a = xchainer.array([0, 1, 2], device=device)
-    _check_basic_creation(a, (3,), xchainer.float64, device)
-
-    a = xchainer.array([0, 1, 2], xchainer.float32, device)
-    _check_basic_creation(a, (3,), xchainer.float32, device)
+def test_array_from_python_list_with_device(device):
+    a = xchainer.array([0, 1, 2], 'f', device)
+    _check_device(a, device)
 
 
-def test_array_from_numpy_ndarray(shape, dtype):
-    a = xchainer.array(numpy.zeros(shape, numpy.dtype(dtype.name)))
-    _check_basic_creation(a, shape, dtype)
+@testing.numpy_xchainer_array_equal()
+def test_array_from_numpy_ndarray(xp, shape, dtype):
+    return xp.array(numpy.zeros(shape, numpy.dtype(dtype.name)))
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_array_from_numpy_ndarray_with_device(shape, dtype, device):
-    a = xchainer.array(numpy.zeros(shape, numpy.dtype(dtype.name)), device)
-    _check_basic_creation(a, shape, dtype, device)
+    a = xchainer.array(numpy.zeros((2,), 'f'), device)
+    _check_device(a, device)
 
 
 @pytest.mark.parametrize_device(['native:0'])
 def test_array_from_xchainer_array(shape, dtype, device):
     t = xchainer.zeros(shape, dtype, 'native:1')
     a = xchainer.array(t)
-    _check_basic_creation(a, shape, dtype, t.device)
     assert t is not a
+    assert a.shape == shape
+    assert a.dtype == dtype
+    assert a.device == t.device
+    assert a._debug_flat_data == t._debug_flat_data
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-def test_array_from_xchainer_array_with_device(shape, dtype, device):
+def test_array_from_xchainer_array_with_device(device):
+    shape = (2,)
+    dtype = xchainer.float64
     t = xchainer.zeros(shape, dtype, 'native:0')
     a = xchainer.array(t, device)
-    _check_basic_creation(a, shape, dtype, device)
     assert t is not a
+    assert a.shape == shape
+    assert a.dtype == dtype
+    _check_device(a, device)
+    assert a._debug_flat_data == t._debug_flat_data
 
 
-def test_empty(shape, dtype):
-    a = xchainer.empty(shape, dtype)
-    _check_basic_creation(a, shape, dtype)
+@testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_empty(xp, shape, dtype, device):
+    a = xp.empty(shape, xp.dtype(dtype.name))
+    a.fill(0)
+    return a
 
 
-def test_empty_device(shape, dtype):
-    def check(a):
-        _check_basic_creation(a, shape, dtype, 'native:1')
-
-    check(xchainer.empty(shape, dtype, 'native:1'))
-    check(xchainer.empty(shape, dtype, xchainer.get_device('native:1')))
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_empty_with_device(device):
+    a = xchainer.empty((2,), 'f', device)
+    _check_device(a, device)
 
 
-def test_empty_like(shape, dtype):
-    t = _create_dummy_array(shape, dtype)
-    a = xchainer.empty_like(t)
-    _check_basic_creation(a, shape, dtype)
-
-    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
-
-
-def test_empty_like_device(shape, dtype):
-    t = _create_dummy_array(shape, dtype)
-
-    def check(a):
-        _check_basic_creation(a, shape, dtype, 'native:1')
-
-        assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
-
-    check(xchainer.empty_like(t, 'native:1'))
-    check(xchainer.empty_like(t, xchainer.get_device('native:1')))
+@testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_empty_like(xp, shape, dtype, device):
+    t = xp.empty(shape, xp.dtype(dtype.name))
+    a = xp.empty_like(t)
+    a.fill(0)
+    return a
 
 
-def test_zeros(shape, dtype):
-    a = xchainer.zeros(shape, dtype)
-    _check_basic_creation(a, shape, dtype)
-
-    value = False if dtype == xchainer.bool else 0
-    assert all([el == value for el in a._debug_flat_data])
-
-
-def test_zeros_device(shape, dtype):
-    def check(a):
-        _check_basic_creation(a, shape, dtype, 'native:1')
-
-        value = False if dtype == xchainer.bool else 0
-        assert all([el == value for el in a._debug_flat_data])
-
-    check(xchainer.zeros(shape, dtype, 'native:1'))
-    check(xchainer.zeros(shape, dtype, xchainer.get_device('native:1')))
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_empty_like_with_device(device):
+    t = xchainer.empty((2,), 'f')
+    a = xchainer.empty_like(t, device)
+    _check_device(a, device)
 
 
-def test_zeros_like(shape, dtype):
-    t = _create_dummy_array(shape, dtype)
-    a = xchainer.zeros_like(t)
-    _check_basic_creation(a, shape, dtype)
-
-    value = False if dtype == xchainer.bool else 0
-    assert all([el == value for el in a._debug_flat_data])
-
-    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+@testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_zeros(xp, shape, dtype, device):
+    return xp.zeros(shape, xp.dtype(dtype.name))
 
 
-def test_zeros_like_device(shape, dtype):
-    t = _create_dummy_array(shape, dtype)
-
-    def check(a):
-        _check_basic_creation(a, shape, dtype, 'native:1')
-
-        value = False if dtype == xchainer.bool else 0
-        assert all([el == value for el in a._debug_flat_data])
-
-        assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
-
-    check(xchainer.zeros_like(t, 'native:1'))
-    check(xchainer.zeros_like(t, xchainer.get_device('native:1')))
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_zeros_with_device(device):
+    a = xchainer.zeros((2,), 'f', device)
+    _check_device(a, device)
 
 
-def test_ones(shape, dtype):
-    a = xchainer.ones(shape, dtype)
-    _check_basic_creation(a, shape, dtype)
-
-    value = True if dtype == xchainer.bool else 1
-    assert all([el == value for el in a._debug_flat_data])
-
-
-def test_ones_device(shape, dtype):
-    def check(a):
-        _check_basic_creation(a, shape, dtype, 'native:1')
-
-        value = True if dtype == xchainer.bool else 1
-        assert all([el == value for el in a._debug_flat_data])
-
-    check(xchainer.ones(shape, dtype, 'native:1'))
-    check(xchainer.ones(shape, dtype, xchainer.get_device('native:1')))
+@testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_zeros_like(xp, shape, dtype, device):
+    t = xp.empty(shape, xp.dtype(dtype.name))
+    return xp.zeros_like(t)
 
 
-def test_ones_like(shape, dtype):
-    t = _create_dummy_array(shape, dtype)
-    a = xchainer.ones_like(t)
-    _check_basic_creation(a, shape, dtype)
-
-    value = True if dtype == xchainer.bool else 1
-    assert all([el == value for el in a._debug_flat_data])
-
-    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_zeros_like_with_device(device):
+    t = xchainer.empty((2,), 'f')
+    a = xchainer.zeros_like(t, device)
+    _check_device(a, device)
 
 
-def test_ones_like_device(shape, dtype):
-    t = _create_dummy_array(shape, dtype)
-
-    def check(a):
-        _check_basic_creation(a, shape, dtype, 'native:1')
-
-        value = True if dtype == xchainer.bool else 1
-        assert all([el == value for el in a._debug_flat_data])
-
-        assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
-
-    check(xchainer.ones_like(t, 'native:1'))
-    check(xchainer.ones_like(t, xchainer.get_device('native:1')))
+@testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_ones(xp, shape, dtype, device):
+    return xp.ones(shape, xp.dtype(dtype.name))
 
 
-def _check_full(shape, value, dtype, device=None):
-    if device is None:
-        a = xchainer.full(shape, value, dtype)
-    else:
-        a = xchainer.full(shape, value, dtype, device)
-
-    _check_basic_creation(a, shape, dtype, device)
-
-    if math.isnan(value):
-        assert all([math.isnan(el) for el in a._debug_flat_data])
-    else:
-        assert a._debug_flat_data == [value] * a.total_size
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_ones_with_device(device):
+    a = xchainer.ones((2,), 'f', device)
+    _check_device(a, device)
 
 
-def _check_full_with_scalar(shape, scalar, device=None):
-    assert isinstance(scalar, xchainer.Scalar), 'This test must be done on xchainer.Scalar'
+@testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_ones_like(xp, shape, dtype, device):
+    t = xp.empty(shape, xp.dtype(dtype.name))
+    return xp.ones_like(t)
 
-    if device is None:
-        a = xchainer.full(shape, scalar)
-    else:
-        a = xchainer.full(shape, scalar, device)
 
-    _check_basic_creation(a, shape, scalar.dtype, device)
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_ones_like_with_device(shape, dtype, device):
+    t = xchainer.empty((2,), 'f')
+    a = xchainer.ones_like(t, device)
+    _check_device(a, device)
 
+
+@testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_full(xp, shape, value, device):
+    return xp.full(shape, value)
+
+
+@testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_full_with_dtype(xp, shape, dtype, value, device):
+    return xp.full(shape, value, xp.dtype(dtype.name))
+
+
+@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_full_with_scalar(shape, dtype, value, device):
+    scalar = xchainer.Scalar(value, dtype)
+    a = xchainer.full(shape, scalar)
     if scalar.dtype in (xchainer.float32, xchainer.float64) and math.isnan(float(scalar)):
         assert all([math.isnan(el) for el in a._debug_flat_data])
     else:
         assert a._debug_flat_data == [scalar.tolist()] * a.total_size
 
 
-def _check_full_with_py_scalar(shape, value, device=None):
-    if isinstance(value, bool):
-        dtype = xchainer.bool_
-    elif isinstance(value, int):
-        dtype = xchainer.int64
-    elif isinstance(value, float):
-        dtype = xchainer.float64
-    else:
-        assert False, 'This test should be done on either of (bool, int, float)'
-
-    if device is None:
-        a = xchainer.full(shape, value)
-    else:
-        a = xchainer.full(shape, value, device)
-
-    _check_basic_creation(a, shape, dtype, device)
-
-    if isinstance(value, float) and math.isnan(value):
-        assert all([math.isnan(el) for el in a._debug_flat_data])
-    else:
-        assert a._debug_flat_data == [value] * a.total_size
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_full_with_device(device):
+    a = xchainer.full((2,), 1, 'f', device)
+    _check_device(a, device)
 
 
-def _check_full_like(shape, value, dtype, device=None):
-    t = _create_dummy_array(shape, dtype)
-
-    if device is None:
-        a = xchainer.full_like(t, value)
-    else:
-        a = xchainer.full_like(t, value, device)
-
-    _check_basic_creation(a, shape, dtype, device)
-
-    if math.isnan(value):
-        assert all([math.isnan(el) for el in a._debug_flat_data])
-    else:
-        assert a._debug_flat_data == [value] * a.total_size
-
-    assert a._debug_data_memory_address != t._debug_data_memory_address, 'memory must not be shared'
+@testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_full_like(xp, shape, dtype, value, device):
+    t = xp.empty(shape, xp.dtype(dtype.name))
+    return xp.full_like(t, value)
 
 
-def test_full_like_device(shape, dtype):
-    value = 1 if dtype == xchainer.bool else True
-    _check_full(shape, value, dtype, 'native:1')
-    _check_full(shape, value, dtype, xchainer.get_device('native:1'))
-    _check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
-    _check_full_with_scalar(shape, xchainer.Scalar(value, dtype), xchainer.get_device('native:1'))
-    _check_full_like(shape, value, dtype, 'native:1')
-    _check_full_like(shape, value, dtype, xchainer.get_device('native:1'))
-
-
-def test_full_full_like_0(shape, dtype):
-    value = False if dtype == xchainer.bool else 0
-    _check_full(shape, value, dtype)
-    _check_full(shape, value, dtype, 'native:1')
-    _check_full_with_scalar(shape, xchainer.Scalar(value, dtype))
-    _check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
-    _check_full_like(shape, value, dtype)
-    _check_full_like(shape, value, dtype, 'native:1')
-
-
-def test_full_full_like_1(shape, dtype):
-    value = True if dtype == xchainer.bool else 1
-    _check_full(shape, value, dtype)
-    _check_full(shape, value, dtype, 'native:1')
-    _check_full_with_scalar(shape, xchainer.Scalar(value, dtype))
-    _check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
-    _check_full_like(shape, value, dtype)
-    _check_full_like(shape, value, dtype, 'native:1')
-
-
-def test_full_full_like_neg1(shape, signed_dtype):
-    dtype = signed_dtype
-    value = -1
-    _check_full(shape, value, dtype)
-    _check_full(shape, value, dtype, 'native:1')
-    _check_full_with_scalar(shape, xchainer.Scalar(value, dtype))
-    _check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
-    _check_full_like(shape, value, dtype)
-    _check_full_like(shape, value, dtype, 'native:1')
-
-
-def test_full_full_like_nan(shape, float_dtype):
-    dtype = float_dtype
-    value = float('nan')
-    _check_full(shape, value, dtype)
-    _check_full(shape, value, dtype, 'native:1')
-    _check_full_with_scalar(shape, xchainer.Scalar(value, dtype))
-    _check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
-    _check_full_like(shape, value, dtype)
-    _check_full_like(shape, value, dtype, 'native:1')
-
-
-def test_full_full_like_inf(shape, float_dtype):
-    dtype = float_dtype
-    value = float('inf')
-    _check_full(shape, value, dtype)
-    _check_full(shape, value, dtype, 'native:1')
-    _check_full_with_scalar(shape, xchainer.Scalar(value, dtype))
-    _check_full_with_scalar(shape, xchainer.Scalar(value, dtype), 'native:1')
-    _check_full_like(shape, value, dtype)
-    _check_full_like(shape, value, dtype, 'native:1')
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_full_like_with_device(device):
+    t = xchainer.empty((2,), 'f')
+    a = xchainer.full_like(t, 1, device)
+    _check_device(a, device)
