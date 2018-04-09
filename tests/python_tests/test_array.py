@@ -465,12 +465,18 @@ def test_invalid_broadcast_to(xp, src_shape, dst_shape):
     return xp.broadcast_to(a, dst_shape)
 
 
-def test_copy(shape, dtype):
-    data_list = _create_dummy_data(shape, dtype)
-    array = xchainer.Array(shape, dtype, data_list)
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_copy(xp, shape, dtype):
+    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    a = xp.array(ndarray)
+    return a.copy()
 
-    _check_arrays_equal_copy(array, array.copy())
-    _check_arrays_equal_copy(array, xchainer.copy(array))
+
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_module_copy(xp, shape, dtype):
+    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    a = xp.array(ndarray)
+    return xp.copy(a)
 
 
 def test_as_constant_copy(shape, dtype):
