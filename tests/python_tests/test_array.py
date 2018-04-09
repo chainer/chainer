@@ -353,27 +353,6 @@ def test_reshape(a_shape, b_shape):
 # TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
 
 
-def test_reshape_backward():
-    x = xchainer.Array(numpy.arange(6, dtype=numpy.float32)).require_grad()
-    gy = xchainer.ones((2, 3), x.dtype)
-    eps = xchainer.full_like(x, 1e-3)
-    xchainer.check_backward(lambda a: (a[0].reshape(gy.shape),), [x], [gy], [eps])
-
-
-def test_reshape_double_backward():
-    x = xchainer.Array(numpy.arange(6, dtype=numpy.float32)).require_grad()
-    gy = xchainer.ones((2, 3), x.dtype).require_grad()
-    ggx = xchainer.ones_like(x)
-    eps_x = xchainer.full_like(x, 1e-3)
-    eps_gy = xchainer.full_like(gy, 1e-3)
-
-    def forward(a):
-        b = a[0].reshape(gy.shape)
-        return b * b,  # to make it nonlinear
-
-    xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
-
-
 @pytest.mark.parametrize('shape1,shape2', [
     ((), (0,)),
     ((), (2,)),
@@ -476,27 +455,6 @@ def test_invalid_broadcast_to(src_shape, dst_shape):
     src = xchainer.ones(src_shape, xchainer.float32)
     with pytest.raises(xchainer.DimensionError):
         xchainer.broadcast_to(src, dst_shape)
-
-
-def test_broadcast_to_backward():
-    x = xchainer.Array(numpy.arange(9, dtype=numpy.float32).reshape(1, 3, 1, 3)).require_grad()
-    gy = xchainer.ones((2, 3, 4, 3), x.dtype)
-    eps = xchainer.full_like(x, 1e-2)
-    xchainer.check_backward(lambda a: (xchainer.broadcast_to(a[0], (2, 3, 4, 3)), ), [x], [gy], [eps], atol=1e-4)
-
-
-def test_broadcast_to_double_backward():
-    x = xchainer.Array(numpy.arange(9, dtype=numpy.float32).reshape(1, 3, 1, 3)).require_grad()
-    gy = xchainer.ones((2, 3, 4, 3), x.dtype).require_grad()
-    ggx = xchainer.ones_like(x)
-    eps_x = xchainer.full_like(x, 1e-2)
-    eps_gy = xchainer.full_like(gy, 1e-2)
-
-    def forward(a):
-        b = xchainer.broadcast_to(a[0], (2, 3, 4, 3))
-        return b * b,  # to make it nonlinear
-
-    xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-3)
 
 
 def test_copy(shape, dtype):
@@ -854,79 +812,6 @@ def test_truediv_itruediv(device, shape, dtype):
     assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
     numpy.testing.assert_allclose(lhs._debug_flat_data, expected_data_list, rtol=1e-3)
     assert rhs._debug_flat_data == rhs_data_list
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_backward(device):
-    x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
-    x2 = xchainer.Array(numpy.arange(3, dtype=numpy.float32).reshape(3)).require_grad()
-    gout = xchainer.ones_like(x1)
-    eps_x1 = xchainer.full_like(x1, 1e-2)
-    eps_x2 = xchainer.full_like(x2, 1e-2)
-    xchainer.check_backward(lambda xs: (xs[0] * xs[1],), [x1, x2], [gout], [eps_x1, eps_x2])
-    xchainer.check_backward(lambda xs: (xchainer.multiply(xs[0], xs[1]),), [x1, x2], [gout], [eps_x1, eps_x2])
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_scalar_backward(device):
-    x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
-    gout = xchainer.ones_like(x1)
-    eps_x1 = xchainer.full_like(x1, 1e-2)
-    xchainer.check_backward(lambda xs: (xs[0] * 3.2,), [x1], [gout], [eps_x1])
-    xchainer.check_backward(lambda xs: (1.1 * xs[0],), [x1], [gout], [eps_x1])
-    xchainer.check_backward(lambda xs: (xchainer.multiply(xs[0], 3.2),), [x1], [gout], [eps_x1])
-    xchainer.check_backward(lambda xs: (xchainer.multiply(-1.8, xs[0]),), [x1], [gout], [eps_x1])
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_double_backward(device):
-    x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
-    x2 = xchainer.Array(numpy.arange(3, dtype=numpy.float32).reshape(3)).require_grad()
-    gout = xchainer.ones_like(x1).require_grad()
-    ggx1 = xchainer.ones_like(x1)
-    ggx2 = xchainer.ones_like(x2)
-    eps_x1 = xchainer.full_like(x1, 1e-2)
-    eps_x2 = xchainer.full_like(x2, 1e-2)
-    eps_gout = xchainer.full_like(gout, 1e-2)
-
-    def check(func):
-        xchainer.check_double_backward(func, [x1, x2], [gout], [ggx1, ggx2], [eps_x1, eps_x2, eps_gout], atol=1e-4)
-
-    check(lambda xs: (xs[0] * xs[1],))
-    check(lambda xs: (xchainer.multiply(xs[0], xs[1]),))
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_scalar_double_backward(device):
-    x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
-    gout = xchainer.ones_like(x1).require_grad()
-    ggx1 = xchainer.ones_like(x1)
-    eps_x1 = xchainer.full_like(x1, 1e-2)
-    eps_gout = xchainer.full_like(gout, 1e-2)
-
-    def check(func):
-        xchainer.check_double_backward(func, [x1], [gout], [ggx1], [eps_x1, eps_gout], atol=1e-4)
-
-    def forward_operator_scalar_lhs(xs):
-        out = 1.2 * xs[0]
-        return out * out,  # to make it nonlinear
-
-    def forward_operator_scalar_rhs(xs):
-        out = xs[0] * 1.2
-        return out * out,  # to make it nonlinear
-
-    def forward_function_scalar_lhs(xs):
-        out = xchainer.multiply(-0.3, xs[0])
-        return out * out,  # to make it nonlinear
-
-    def forward_function_scalar_rhs(xs):
-        out = xchainer.multiply(xs[0], -0.3)
-        return out * out,  # to make it nonlinear
-
-    check(forward_operator_scalar_lhs)
-    check(forward_operator_scalar_rhs)
-    check(forward_function_scalar_lhs)
-    check(forward_function_scalar_rhs)
 
 
 def test_array_init_invalid_length():
@@ -1379,29 +1264,6 @@ def test_invalid_sum(input_shape, axis, keepdims):
         x.sum(axis=axis, keepdims=keepdims)
 
 
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sum_backward(device):
-    x = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
-    gy = xchainer.ones((2,), x.dtype)
-    eps = xchainer.full_like(x, 1e-2)
-    xchainer.check_backward(lambda a: (a[0].sum(axis=1),), [x], [gy], [eps])
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sum_double_backward(device):
-    x = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
-    gy = xchainer.ones((2,), x.dtype).require_grad()
-    ggx = xchainer.ones_like(x)
-    eps_x = xchainer.full_like(x, 1e-2)
-    eps_gy = xchainer.full_like(gy, 1e-2)
-
-    def forward(a):
-        b = a[0].sum(axis=1)
-        return b * b,  # to make it nonlinear
-
-    xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
-
-
 @pytest.mark.parametrize("shape,value", [
     ((), -1),
     ((), 1),
@@ -1419,36 +1281,6 @@ def test_maximum_with_scalar(device, shape, value, signed_dtype):
     x = xchainer.Array(x_np)
     _check_array_equals_ndarray(xchainer.maximum(x, value), y_np)
     _check_array_equals_ndarray(xchainer.maximum(value, x), y_np)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_maximum_with_scalar_backward(device, float_dtype):
-    x = xchainer.Array(numpy.arange(6, dtype=float_dtype.name).reshape(2, 3)).require_grad()
-    gy = xchainer.ones(x.shape, x.dtype)
-    eps = xchainer.full_like(x, 1e-2)
-    xchainer.check_backward(lambda a: (xchainer.maximum(a[0], 2.5),), [x], [gy], [eps])
-    xchainer.check_backward(lambda a: (xchainer.maximum(2.5, a[0]),), [x], [gy], [eps])
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_maximum_with_scalar_double_backward(device, float_dtype):
-    x = xchainer.Array(numpy.arange(6, dtype=float_dtype.name).reshape(2, 3)).require_grad()
-    gy = xchainer.ones(x.shape, x.dtype).require_grad()
-    ggx = xchainer.ones_like(x)
-    eps_x = xchainer.full_like(x, 1e-2)
-    eps_gy = xchainer.full_like(gy, 1e-2)
-
-    def forward(a):
-        b = xchainer.maximum(a[0], 2.5)
-        return b * b,  # to make it nonlinear
-
-    xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
-
-    def forward2(a):
-        b = xchainer.maximum(2.5, a[0])
-        return b * b,  # ditto
-
-    xchainer.check_double_backward(forward2, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [
