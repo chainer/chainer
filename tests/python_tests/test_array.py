@@ -165,6 +165,22 @@ def test_numpy_non_contiguous_init(shape, dtype):
     _check_numpy_init(ndarray.T, shape[::-1], dtype)
 
 
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('shape', [
+    (0,),
+    (1,),
+    (2,),
+    (2, 3),
+    (1, 1, 1),
+    (2, 1, 1),
+    (2, 0, 3),
+])
+def test_numpy_init_with_offset(xp, shape, dtype):
+    ndarray = _create_dummy_ndarray(shape, getattr(numpy, dtype.name))
+    a = xp.array(ndarray)
+    return numpy.array(a[1:])
+
+
 def test_numpy_init_device(shape, dtype):
     ndarray = _create_dummy_ndarray(shape, getattr(numpy, dtype.name))
     _check_numpy_init(ndarray, shape, dtype, xchainer.get_device('native:1'))

@@ -121,7 +121,7 @@ py::buffer_info MakeBufferFromArray(ArrayBody& self) {
     })};
 
     return py::buffer_info(
-            array.data().get(),
+            reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset(),
             array.element_bytes(),
             std::string(1, GetCharCode(array.dtype())),
             array.ndim(),
