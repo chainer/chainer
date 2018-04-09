@@ -7,7 +7,7 @@ from chainer import variable
 
 class Convolution2D(link.Link):
 
-    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None)
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
 
     Two-dimensional convolutional layer.
 
@@ -48,6 +48,11 @@ class Convolution2D(link.Link):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        dilate (int or pair of ints):
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (int): The number of groups to use grouped convolution. The
+            default is one, where grouped convolution is not used.
 
     .. seealso::
        See :func:`chainer.functions.convolution_2d` for the definition of
@@ -103,8 +108,7 @@ class Convolution2D(link.Link):
     """  # NOQA
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None, group=1,
-                 **kwargs):
+                 nobias=False, initialW=None, initial_bias=None, **kwargs):
         super(Convolution2D, self).__init__()
 
         argument.check_unexpected_kwargs(
@@ -112,7 +116,8 @@ class Convolution2D(link.Link):
             "supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
-        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
+        dilate, groups = argument.parse_kwargs(kwargs,
+                                               ('dilate', 1), ('groups', 1))
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
@@ -122,7 +127,7 @@ class Convolution2D(link.Link):
         self.pad = _pair(pad)
         self.dilate = _pair(dilate)
         self.out_channels = out_channels
-        self.group = int(group)
+        self.groups = int(groups)
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
@@ -140,11 +145,13 @@ class Convolution2D(link.Link):
 
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
-        if (self.out_channels % self.group != 0 or
-                in_channels % self.group != 0):
-            raise ValueError('number of input and output channels must be'
-                             'divisible by group count')
-        W_shape = (self.out_channels, int(in_channels / self.group), kh, kw)
+        if self.out_channels % self.groups != 0:
+            raise ValueError('the number of output channels must be'
+                             'divisible by the number of groups')
+        if in_channels % self.groups != 0:
+            raise ValueError('the number of input channels must be'
+                             'divisible by the number of groups')
+        W_shape = (self.out_channels, int(in_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)
 
     def __call__(self, x):
@@ -161,7 +168,7 @@ class Convolution2D(link.Link):
             self._initialize_params(x.shape[1])
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, dilate=self.dilate,
-            group=self.group)
+            groups=self.groups)
 
 
 def _pair(x):

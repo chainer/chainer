@@ -8,6 +8,7 @@ import weakref
 import numpy
 
 import chainer
+from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -421,8 +422,10 @@ class Variable(object):
     :class:`~chainer.variable.VariableNode` object of
     a computational graph. If the variable is constructed by the user, the node
     is *root* and does not hold any parent. If the variable is constructed by a
-    :class:`~chainer.FunctionNode` object, the node holds a reference to its
-    parent called :attr:`creator_node`.
+    :class:`~chainer.FunctionNode` object (i.e., by calling functions under
+    ``chainer.functions`` or user-defined functions), or by using operators
+    (see the list below), the node holds a reference to its parent called
+    :attr:`creator_node`.
     This reference is used in backpropagation to backtrack the graph.
 
     Users can disable (resp. enable) this chaining behavior by calling
@@ -430,6 +433,23 @@ class Variable(object):
     :func:`~chainer.force_backprop_mode`).
     In the former context, a variable never creates a computational graph,
     whereas in the latter context, it is forced to create.
+
+    .. note::
+
+        The following operators are defined for variable(s).
+
+        * Indexing: ``a[slices]`` (:meth:`__getitem__`)
+        * Addition: ``a + b`` (:meth:`__add__`, :meth:`__radd__`)
+        * Subtraction: ``a - b`` (:meth:`__sub__`, :meth:`__rsub__`)
+        * Multiplication: ``a * b`` (:meth:`__mul__`, :meth:`__rmul__`)
+        * Division: ``a / b`` (:meth:`__div__`, :meth:`__rdiv__`, \
+                               :meth:`__truediv__`, :meth:`__rtruediv__`)
+        * Floor Division: ``a // b`` (:meth:`__floordiv__`, \
+                                      :meth:`__rfloordiv__`)
+        * Exponentiation: ``a ** b`` (:meth:`__pow__`, :meth:`__rpow__`)
+        * Matirx Multiplication: ``a @ b`` (:meth:`__matmul__`, \
+                                            :meth:`__rmatmul__`)
+        * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
 
     .. warning::
 
@@ -485,6 +505,16 @@ Actual: {0}'''.format(type(data))
 
     def __str__(self):
         return variable_str(self)
+
+    @property
+    def xp(self):
+        """Array module for this variable.
+
+        Depending on which of CPU/GPU this variable is on, this property
+        returns :mod:`numpy` or :mod:`cupy`.
+
+        """
+        return cuda.get_array_module(self)
 
     @property
     def name(self):
@@ -727,8 +757,6 @@ Actual: {0}'''.format(type(data))
 
         """
         if self.data is None:
-            self._initial_device = (cuda.Device().id
-                                    if device is None else device)
             self._data = [None]  # Renew placeholder to break sharing
         else:
             self._data = [cuda.to_gpu(self.data, device)]
@@ -894,8 +922,8 @@ Actual: {0}'''.format(type(data))
         where further backprop does not take place at such inputs.
 
         This method uses :data:`grad` as the initial error array. User can
-        manually set a gradient array before calling this method. If
-        :data:`data` contains only one element (i.e., it is scalar) and
+        manually set a gradient array before calling this method.
+        If the shape of :data:`data` is ``()`` (i.e., it is scalar) and
         :data:`grad` is ``None``, then this method automatically complements
         1.0 as the initial error. This is useful on starting backprop from
         some scalar loss value.
@@ -954,6 +982,15 @@ Actual: {0}'''.format(type(data))
 
         # Initialize error by 1, if this is a loss variable
         if self.data.size == 1 and self._grad_var is None:
+            if self.data.ndim != 0:
+                warnings.warn(
+                    'Treating a scalar as a variable with only one element'
+                    ' in Variable.backward is deprecated. A scalar variable'
+                    ' must be a 0-dimensional array. Apply'
+                    ' chainer.functions.squeeze to obtain a scalar variable.'
+                    ' If the size of this variable accidentally becomes one,'
+                    ' set zero to grad.',
+                    DeprecationWarning)
             with cuda.get_device_from_array(self.data) as device:
                 if device is cuda.DummyDevice:
                     self.grad = numpy.ones_like(self.data)
@@ -978,6 +1015,15 @@ Actual: {0}'''.format(type(data))
                 return grads[node]
             return node.grad_var
 
+        def set_grad(node, value):
+            if node is None:
+                return
+            if node in grads:
+                grads[node] = value
+            var = node.get_variable()
+            if var is not None:
+                var._grad_var = value
+
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
             inputs = func.inputs
@@ -989,6 +1035,13 @@ Actual: {0}'''.format(type(data))
             outputs = [y() for y in func.outputs]  # access via weak ref
 
             in_data = tuple([x.data for x in inputs])
+            # We need calculate the value of for the out_grad which accumulated
+            # because now out_grad is used in backward calculation.
+            for y in outputs:
+                grad = get_grad(y)
+                if isinstance(grad, tuple):
+                    grad = chainer.functions.add(*grad)
+                    set_grad(y, grad)
             out_grad = tuple([get_grad(y) for y in outputs])
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
@@ -1070,13 +1123,28 @@ Actual: {0}'''.format(type(data))
                 if not x.requires_grad:
                     continue
 
-                _check_grad_type(func, x, gx.data)
+                if isinstance(gx, tuple):
+                    # No need to check each data in the tuple,
+                    # just check the new gx concated in
+                    # backward_accumulate().
+                    _check_grad_type(func, x, gx[0].data)
+                else:
+                    _check_grad_type(func, x, gx.data)
 
                 if x in target_inputs[:i]:
                     # Accumulate the duplicated gradients here. See the comment
                     # above the code that builds ``in_grad``.
                     cur_gx = grads[x]
-                    grads[x] = gx if cur_gx is None else gx + cur_gx
+                    if func.lazy_grad_sum:
+                        if x.creator is None:
+                            gx = _backprop_utils.add(gx, cur_gx)
+                            grads[x] = gx
+                        else:
+                            grads[x] = _backprop_utils.concat_variable(
+                                gx, cur_gx)
+                    else:
+                        grads[x] = gx if cur_gx is None else gx + cur_gx
+
                 else:
                     grads[x] = gx
 
@@ -1161,27 +1229,35 @@ Actual: {0}'''.format(type(data))
         self._node.data = self._data[0]
 
     def __lt__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __le__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __eq__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __ne__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __gt__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __ge__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __nonzero__(self):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __bool__(self):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     __array_priority__ = 200
@@ -1233,6 +1309,7 @@ class Parameter(Variable):
 
     initializer = None
     _grad_initializer = None
+    _initial_backend = None
     _initial_device = None
 
     def __init__(self, initializer=None, shape=None, name=None):
@@ -1273,6 +1350,7 @@ class Parameter(Variable):
     def to_cpu(self):
         super(Parameter, self).to_cpu()
         if self.data is None:
+            self._initial_backend = None
             self._initial_device = None
 
     def to_gpu(self, device=None):
@@ -1280,11 +1358,13 @@ class Parameter(Variable):
         if self.data is None:
             if device is None:
                 device = cuda.Device().id
+            self._initial_backend = 'cuda'
             self._initial_device = device
 
     def to_intel64(self):
         super(Parameter, self).to_intel64()
         if self.data is None:
+            self._initial_backend = 'intel64'
             self._initial_device = None
 
     def cleargrad(self):
@@ -1309,7 +1389,7 @@ class Parameter(Variable):
             shape (tuple of int): Shape of the data array.
 
         """
-        xp = numpy if self._initial_device is None else cuda.cupy
+        xp = numpy if self._initial_backend != 'cuda' else cuda.cupy
         with cuda.get_device_from_id(self._initial_device):
             data = initializers.generate_array(self.initializer, shape, xp)
 
@@ -1319,6 +1399,10 @@ class Parameter(Variable):
 
         self.data = data
         self.grad = grad
+
+        # Convert the array for iDeep.
+        if self._initial_backend == 'intel64':
+            self.to_intel64()
 
     def update(self):
         """Updates the data array using the gradient and the update rule.
@@ -1337,7 +1421,7 @@ def as_variable(obj):
     transparently from a raw array or a variable.
 
     Note that this function should only be used for type consistency (i.e., to
-    enforce the return value of an API having type :class:`~chainer.Varialbe`).
+    enforce the return value of an API having type :class:`~chainer.Variable`).
     The :class:`~chainer.Variable.requires_grad` flag is kept as is; if ``obj``
     is a raw array, the newly created variable has ``requires_grad = False``.
     In order to make a variable w.r.t. which you want to compute the gradient,

@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.normalization import batch_renormalization
 from chainer import gradient_check
 from chainer import testing

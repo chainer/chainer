@@ -52,6 +52,9 @@ Chainer can be installed without them, in which case the corresponding features 
 
   * `h5py <http://www.h5py.org/>`__ 2.5+
 
+* iDeep (performance acceleration for Intel CPU) support (experimental)
+
+  * `ideep <https://github.com/intel/ideep>`__ 1.0.3+
 
 Install Chainer
 ---------------
@@ -73,17 +76,15 @@ Install Chainer from source
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The tarball of the source tree is available via ``pip download chainer`` or from `the release notes page <https://github.com/chainer/chainer/releases>`_.
-You can use ``setup.py`` to install Chainer from the tarball::
+You can install Chainer from the tarball::
 
-  $ tar zxf chainer-x.x.x.tar.gz
-  $ cd chainer-x.x.x
-  $ python setup.py install
+  $ pip install chainer-x.x.x.tar.gz
 
 You can also install the development version of Chainer from a cloned Git repository::
 
   $ git clone https://github.com/chainer/chainer.git
   $ cd chainer
-  $ python setup.py install
+  $ pip install .
 
 
 .. _install_error:
@@ -110,9 +111,9 @@ Once CuPy is correctly set up, Chainer will automatically enable CUDA support.
 
 You can refer to the following flags to confirm if CUDA/cuDNN support is actually available.
 
-``chainer.cuda.available``
+``chainer.backends.cuda.available``
    ``True`` if Chainer successfully imports :mod:`cupy`.
-``chainer.cuda.cudnn_enabled``
+``chainer.backends.cuda.cudnn_enabled``
    ``True`` if cuDNN support is available.
 
 

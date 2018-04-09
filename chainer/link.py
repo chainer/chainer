@@ -343,7 +343,7 @@ Assign a Parameter object directly to an attribute within a \
             if isinstance(value, cuda.ndarray):
                 d[name] = value.get()
             elif isinstance(value, intel64.mdarray):
-                d[name] = numpy.ndarray(value)
+                d[name] = numpy.array(value)
         self._cpu = True
         self._device_id = None
         return self
@@ -371,6 +371,8 @@ Assign a Parameter object directly to an attribute within a \
                 d[name].to_gpu()
             for name in self._persistent:
                 value = d[name]
+                if isinstance(value, intel64.mdarray):
+                    value = numpy.array(value)
                 if isinstance(value, numpy.ndarray):
                     d[name] = cuda.to_gpu(value)
             self._device_id = cuda.cupy.cuda.get_device_id()
@@ -385,10 +387,13 @@ Assign a Parameter object directly to an attribute within a \
             d[name].to_intel64()
         for name in self._persistent:
             value = d[name]
+            if isinstance(value, cuda.ndarray):
+                value = value.get()  # to numpy.ndarray
             if isinstance(value, numpy.ndarray):
                 d[name] = intel64.ideep.array(
                     value, itype=intel64.ideep.wgt_array)
         self._cpu = True
+        self._device_id = None
         return self
 
     def params(self, include_uninit=True):
@@ -573,6 +578,32 @@ Assign a Parameter object directly to an attribute within a \
                     param.data.set(numpy.asarray(data))
         for name in self._persistent:
             d[name] = serializer(name, d[name])
+
+    def count_params(self):
+        """Counts the total number of parameters.
+
+        This method counts the total number of scalar values included in all
+        the :class:`~chainer.Parameter`\\ s held by this link and its
+        descendants.
+
+        If the link containts uninitialized parameters, this method raises a
+        warning.
+
+        Returns:
+            The total size of parameters (int)
+
+        """
+
+        size = 0
+        for name, param in self.namedparams():
+            if param.array is None:
+                warnings.warn(
+                    'Parameter \'{}\' has not been initialized, so the '
+                    'resulting count will not include the number of parameters'
+                    ' in it.'.format(name))
+                continue
+            size += param.size
+        return size
 
 
 class Chain(Link):

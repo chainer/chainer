@@ -1,11 +1,10 @@
 import unittest
 
-import mock
 import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -263,7 +262,7 @@ class TestSoftmaxCrossEntropyCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cuda.cudnn.softmaxForward') as func:
+            with testing.patch('cupy.cuda.cudnn.softmaxForward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))
@@ -455,9 +454,6 @@ class TestElementwiseSoftmaxCrossEntropy(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'use_cudnn': ['always', 'auto', 'never'],
-    'normalize': [True, False],
-    'cache_score': [True, False],
     'enable_double_backprop': [True, False],
 }))
 class TestSoftmaxCrossEntropyInvalidReduce(unittest.TestCase):
@@ -467,12 +463,11 @@ class TestSoftmaxCrossEntropyInvalidReduce(unittest.TestCase):
         self.t = numpy.zeros((2,), 'i')
 
     def check_invalid_reduce(self, x, t):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            with self.assertRaises(ValueError):
-                functions.softmax_cross_entropy(
-                    x, t, self.normalize, self.cache_score,
-                    reduce='unknown_reduce_type',
-                    enable_double_backprop=self.enable_double_backprop)
+        with self.assertRaises(ValueError):
+            functions.softmax_cross_entropy(
+                x, t,
+                reduce='unknown_reduce_type',
+                enable_double_backprop=self.enable_double_backprop)
 
     def test_invalid_reduce_cpu(self):
         self.check_invalid_reduce(self.x, self.t)

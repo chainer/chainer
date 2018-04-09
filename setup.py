@@ -21,7 +21,7 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 
 
 def cupy_requirement(pkg):
-    return '{}==4.0.0b4'.format(pkg)
+    return '{}==4.0.0rc1'.format(pkg)
 
 
 requirements = {
@@ -47,6 +47,7 @@ requirements = {
         'theano',
     ],
     'docs': [
+        'sphinx',
         'sphinx_rtd_theme',
     ],
     'travis': [
@@ -90,6 +91,7 @@ extras_require = {k: v for k, v in requirements.items() if k != 'install'}
 
 setup_requires = []
 install_requires = requirements['install']
+tests_require = requirements['test']
 
 
 def find_any_distribution(pkgs):
@@ -104,6 +106,7 @@ def find_any_distribution(pkgs):
 # Currently cupy provides source package (cupy) and binary wheel packages
 # (cupy-cudaXX). Chainer can use any one of these packages.
 cupy_pkg = find_any_distribution([
+    'cupy-cuda91',
     'cupy-cuda90',
     'cupy-cuda80',
     'cupy',
@@ -132,6 +135,7 @@ setup(
               'chainer.backends',
               'chainer.dataset',
               'chainer.datasets',
+              'chainer.exporters',
               'chainer.functions',
               'chainer.functions.activation',
               'chainer.functions.array',
@@ -158,6 +162,7 @@ setup(
               'chainer.links.normalization',
               'chainer.links.theano',
               'chainer.optimizers',
+              'chainer.optimizer_hooks',
               'chainer.serializers',
               'chainer.testing',
               'chainer.training',
@@ -168,6 +173,6 @@ setup(
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
-    tests_require=requirements['test'],
+    tests_require=tests_require,
     extras_require=extras_require,
 )

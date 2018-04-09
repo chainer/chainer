@@ -1,5 +1,4 @@
 import numpy
-
 import six
 
 from chainer.backends import cuda
@@ -149,7 +148,7 @@ class NpzDeserializer(serializer.Deserializer):
         elif isinstance(value, numpy.ndarray):
             numpy.copyto(value, dataset)
         elif isinstance(value, cuda.ndarray):
-            value.set(numpy.asarray(dataset))
+            value.set(numpy.asarray(dataset, dtype=value.dtype))
         else:
             value = type(value)(numpy.asarray(dataset))
         return value

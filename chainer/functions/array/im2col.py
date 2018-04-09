@@ -1,7 +1,6 @@
 import numpy
 
 from chainer import function_node
-
 from chainer.utils.conv import col2im_cpu
 from chainer.utils.conv import col2im_gpu
 from chainer.utils.conv import im2col_cpu

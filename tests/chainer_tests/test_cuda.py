@@ -10,7 +10,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
 
@@ -301,6 +301,7 @@ class TestToCPUScalar(unittest.TestCase):
         assert y == x
 
 
+@attr.cudnn
 class TestWorkspace(unittest.TestCase):
 
     def setUp(self):

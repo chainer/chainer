@@ -1,12 +1,12 @@
 from __future__ import division
 import os
-import six
 import warnings
 
 import numpy
+import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
 

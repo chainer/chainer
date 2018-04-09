@@ -1,21 +1,26 @@
 """Device, context and memory management on CuPy.
 
+.. note::
+   The package ``chainer.cuda`` has been renamed to
+   :mod:`chainer.backends.cuda` as of v4.0.0, but the previous module path
+   ``chainer.cuda`` is also available.
+
 Chainer uses `CuPy <https://cupy.chainer.org/>`_ (with very thin wrapper)
 to exploit the speed of GPU computation. Following modules and classes defined
-in CuPy are imported to :mod:`chainer.cuda` module for convenience (refer to
-this table when reading chainer's source codes).
+in CuPy are imported to :mod:`chainer.backends.cuda` module for convenience
+(refer to this table when reading chainer's source codes).
 
-============================ =================================
- imported name                original name
-============================ =================================
- ``chainer.cuda.cupy``        :mod:`cupy`
- ``chainer.cuda.cupyx``       :mod:`cupyx`
- ``chainer.cuda.ndarray``     :class:`cupy.ndarray`
- ``chainer.cuda.cupy.cuda``   :mod:`cupy.cuda`
- ``chainer.cuda.Device``      :class:`cupy.cuda.Device`
- ``chainer.cuda.Event``       :class:`cupy.cuda.Event`
- ``chainer.cuda.Stream``      :class:`cupy.cuda.Stream`
-============================ =================================
+===================================== =================================
+ imported name                         original name
+===================================== =================================
+ ``chainer.backends.cuda.cupy``        :mod:`cupy`
+ ``chainer.backends.cuda.cupyx``       :mod:`cupyx`
+ ``chainer.backends.cuda.ndarray``     :class:`cupy.ndarray`
+ ``chainer.backends.cuda.cupy.cuda``   :mod:`cupy.cuda`
+ ``chainer.backends.cuda.Device``      :class:`cupy.cuda.Device`
+ ``chainer.backends.cuda.Event``       :class:`cupy.cuda.Event`
+ ``chainer.backends.cuda.Stream``      :class:`cupy.cuda.Stream`
+===================================== =================================
 
 Chainer replaces the default allocator of CuPy by its memory pool
 implementation. It enables us to reuse the device memory over multiple
@@ -139,12 +144,6 @@ if available:
 
 
 _integer_types = six.integer_types + (numpy.integer,)
-if six.PY2:
-    try:
-        from future.types.newint import newint as _newint
-        _integer_types += (_newint,)
-    except ImportError:
-        pass
 
 
 # ------------------------------------------------------------------------------
@@ -187,8 +186,8 @@ def get_device(*args):
     .. note::
 
         This API is deprecated. Please use
-        :func:`~chainer.cuda.get_device_from_id`
-        or :func:`~chainer.cuda.get_device_from_array` instead.
+        :func:`~chainer.backends.cuda.get_device_from_id`
+        or :func:`~chainer.backends.cuda.get_device_from_array` instead.
 
     This is a convenient utility to select a correct device if the type of
     ``arg`` is unknown (i.e., one can use this function on arrays that may be
@@ -256,7 +255,7 @@ def to_gpu(array, device=None, stream=None):
     """
     if stream is not None:
         warnings.warn(
-            'The stream option is deprecated in chainer.cuda.to_gpu. '
+            'The stream option is deprecated in chainer.backends.cuda.to_gpu. '
             'Please remove it.', DeprecationWarning)
 
     check_cuda_available()
@@ -448,8 +447,8 @@ def clear_memo():
     """Clears the memoized results for all functions decorated by memoize.
 
     This function works like :func:`cupy.clear_memo` as a counterpart for
-    :func:`chainer.cuda.memoize`. It can be used even if CUDA is not available.
-    In such a case, this function does nothing.
+    :func:`chainer.backends.cuda.memoize`. It can be used even if CUDA is
+    not available. In such a case, this function does nothing.
 
     """
     if available:
@@ -463,7 +462,7 @@ def clear_memo():
 def elementwise(in_params, out_params, operation, name, **kwargs):
     """Creates an elementwise kernel function.
 
-    This function uses :func:`~chainer.cuda.memoize` to cache the
+    This function uses :func:`~chainer.backends.cuda.memoize` to cache the
     kernel object, i.e. the resulting kernel object is cached for each argument
     combination and CUDA device.
 
@@ -482,9 +481,9 @@ def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
            identity, name,  **kwargs):
     """Creates a global reduction kernel function.
 
-    This function uses :func:`~chainer.cuda.memoize` to cache the resulting
-    kernel object, i.e. the resulting kernel object is cached for each argument
-    combination and CUDA device.
+    This function uses :func:`~chainer.backends.cuda.memoize` to cache the
+    resulting kernel object, i.e. the resulting kernel object is cached for
+    each argument combination and CUDA device.
 
     The arguments are the same as those for
     :class:`cupy.ReductionKernel`, except that the ``name`` argument is
@@ -524,9 +523,6 @@ def get_array_module(*args):
         return numpy
 
 
-_max_workspace_size = 8 * 1024 * 1024
-
-
 def get_max_workspace_size():
     """Gets the workspace size for cuDNN.
 
@@ -536,7 +532,10 @@ def get_max_workspace_size():
         int: The workspace size for cuDNN.
 
     """
-    return _max_workspace_size
+    # To avoid error on no cuDNN environment
+    if cudnn_enabled:
+        return cudnn.get_max_workspace_size()
+    return 0
 
 
 def set_max_workspace_size(size):
@@ -548,8 +547,9 @@ def set_max_workspace_size(size):
         size: The workspace size for cuDNN.
 
     """
-    global _max_workspace_size
-    _max_workspace_size = size
+    # To avoid error on no cuDNN environment
+    if cudnn_enabled:
+        cudnn.set_max_workspace_size(size)
 
 
 def fuse(*args, **kwargs):
@@ -584,7 +584,7 @@ def should_use_cudnn(level, lowest_version=0):
     """Determines if we should use cuDNN.
 
     This function checks ``chainer.config.use_cudnn``,
-    ``chainer.cuda.cudnn_enabled``, and the cuDNN version. Note that
+    ``chainer.backends.cuda.cudnn_enabled``, and the cuDNN version. Note that
     ``cudnn_enabled`` flag is fixed at loading of :mod:`chainer` module.
 
     Args:

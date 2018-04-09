@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 import argparse
 
 import chainer
@@ -74,7 +73,7 @@ def main():
     # See train_mnist.py for the meaning of these lines
 
     model = L.Classifier(ParallelMLP(args.unit, 10, args.gpu0, args.gpu1))
-    chainer.cuda.get_device_from_id(args.gpu0).use()
+    chainer.backends.cuda.get_device_from_id(args.gpu0).use()
 
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
