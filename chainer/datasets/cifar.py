@@ -5,6 +5,7 @@ import tarfile
 import numpy
 import six.moves.cPickle as pickle
 
+import chainer
 from chainer.dataset import download
 from chainer.datasets import tuple_dataset
 
@@ -147,7 +148,7 @@ def _preprocess_cifar(images, labels, withlabel, ndim, scale, dtype):
         images = images.reshape(-1, 3, 32, 32)
     else:
         raise ValueError('invalid ndim for CIFAR dataset')
-    dtype = chainer._get_dtype(dtype)
+    dtype = chainer.get_dtype(dtype)
     images = images.astype(dtype)
     images *= scale / 255.
 
