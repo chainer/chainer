@@ -123,13 +123,9 @@ def test_init_without_device(shape, dtype):
     _check_init(shape, dtype, with_device=False)
 
 
-def test_init_with_device(shape, dtype):
-    _check_init(shape, dtype, device='native:1')
-    _check_init(shape, dtype, device=xchainer.get_device('native:1'))
-
-
-def test_init_with_none_device(shape, dtype):
-    _check_init(shape, dtype, device=None)
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_init_with_device(shape, dtype, device):
+    _check_init(shape, dtype, device=device)
 
 
 def _check_numpy_init(ndarray, shape, dtype, device=None):
