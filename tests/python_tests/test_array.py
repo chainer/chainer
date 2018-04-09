@@ -662,6 +662,50 @@ def test_invalid_eq(a_shape, b_shape):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_neg(xp, device, shape, dtype):
+    if dtype.name == 'bool':  # Checked in test_invalid_bool_neg
+        return xp.array([])
+    size = functools.reduce(operator.mul, shape, 1)
+    obj = numpy.arange(size).reshape(shape).astype(dtype.name)
+    x = xp.array(obj)
+    return -x
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_invalid_bool_neg(device):
+    def check(xp, err):
+        x = xp.array([True, False], dtype='bool')
+        with pytest.raises(err):
+            -x
+
+    check(xchainer, xchainer.DtypeError)
+    check(numpy, TypeError)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_negative(xp, device, shape, dtype):
+    if dtype.name == 'bool':  # Checked in test_invalid_bool_neg
+        return xp.array([])
+    size = functools.reduce(operator.mul, shape, 1)
+    obj = numpy.arange(size).reshape(shape).astype(dtype.name)
+    x = xp.array(obj)
+    return xp.negative(x)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_invalid_bool_negative(device):
+    def check(xp, err):
+        x = xp.array([True, False], dtype='bool')
+        with pytest.raises(err):
+            xp.negative(x)
+
+    check(xchainer, xchainer.DtypeError)
+    check(numpy, TypeError)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_add_iadd(device, shape, dtype):
     lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
     rhs_data_list = _create_dummy_data(shape, dtype, pattern=2)
