@@ -671,10 +671,10 @@ def test_neg(xp, device, shape, dtype):
     return -x
 
 
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DtypeError, TypeError))
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_invalid_bool_neg(xp, device):
-    return -xp.array([True, False], dtype='bool')
+    with pytest.raises(xchainer.DtypeError):
+        -xchainer.array([True, False], dtype='bool')
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -687,11 +687,10 @@ def test_negative(xp, device, shape, dtype):
     return xp.negative(x)
 
 
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DtypeError, TypeError))
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_invalid_bool_negative(xp, device):
-    x = xp.array([True, False], dtype='bool')
-    return xp.negative(x)
+    with pytest.raises(xchainer.DtypeError):
+        -xchainer.array([True, False], dtype='bool')
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
