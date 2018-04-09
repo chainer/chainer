@@ -51,10 +51,12 @@ class ConvolutionND(link.Link):
 
     """
 
-    def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None,
+    def __init__(self, ndim, in_channels, out_channels, ksize=None, stride=1,
+                 pad=0, nobias=False, initialW=None, initial_bias=None,
                  cover_all=False):
         super(ConvolutionND, self).__init__()
+        if ksize is None:
+            out_channels, ksize, in_channels = in_channels, out_channels, None
 
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
