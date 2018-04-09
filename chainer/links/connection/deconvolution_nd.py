@@ -38,14 +38,12 @@ class DeconvolutionND(link.Link):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should 1.
-        groups (:class:`int`): the positive integer that determines
-            the connection between inputs and outputs. When ``groups`` is
-            larger than one, this function splits the input into
-            ``groups`` variables axis along the channel axis, performs
-            convolution operation separately, and concatenates them.
         dilate (:class:`int` or :class:`tuple` of :class:`int` s):
-            Dilation factor of each dimension.
-            ``dilate=d`` is equivalent to ``(d, d, ..., d)``.
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (:class:`int`):
+            The number of groups to use grouped convolution.
+            The default is one, where grouped convolution is not used.
 
     .. seealso::
        :func:`~chainer.functions.deconvolution_nd`
@@ -59,15 +57,15 @@ class DeconvolutionND(link.Link):
 
     def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
                  nobias=False, outsize=None, initialW=None, initial_bias=None,
-                 groups=1, dilate=1):
+                 dilate=1, groups=1):
         super(DeconvolutionND, self).__init__()
 
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
         self.outsize = outsize
-        self.groups = int(groups)
         self.dilate = conv_nd.as_tuple(dilate, ndim)
+        self.groups = int(groups)
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
@@ -84,4 +82,4 @@ class DeconvolutionND(link.Link):
     def __call__(self, x):
         return deconvolution_nd.deconvolution_nd(
             x, self.W, b=self.b, stride=self.stride, pad=self.pad,
-            outsize=self.outsize, groups=self.groups, dilate=self.dilate)
+            outsize=self.outsize, dilate=self.dilate, groups=self.groups)
