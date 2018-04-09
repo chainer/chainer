@@ -788,10 +788,10 @@ Actual: {0}'''.format(type(data))
 
         if self._grad_var is not None:
             self._grad_var.to_intel64()
-            # ensure that the node tracks the device migration
-            node = self._node
-            if node._data is not None:
-                node.retain_data()
+        # ensure that the node tracks the device migration
+        node = self._node
+        if node._data is not None:
+            node.retain_data()
 
     def cleargrad(self):
         """Clears the gradient array."""
