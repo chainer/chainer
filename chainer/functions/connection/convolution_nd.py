@@ -12,11 +12,14 @@ from chainer.utils import type_check
 
 class ConvolutionND(function_node.FunctionNode):
 
-    def __init__(self, ndim, stride=1, pad=0, cover_all=False):
+    def __init__(self, ndim, stride=1, pad=0, cover_all=False,
+                 groups=1, dilate=1):
         self.ndim = ndim
         self.stride = conv_nd.as_tuple(stride, ndim)
         self.pad = conv_nd.as_tuple(pad, ndim)
         self.cover_all = cover_all
+        self.groups = groups
+        self.dilate = conv_nd.as_tuple(dilate, ndim)
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -50,14 +53,20 @@ class ConvolutionND(function_node.FunctionNode):
         ksize = W.shape[2:]
         stride = self.stride
         pad = self.pad
+        dilate = self.dilate
+        # TODO(msaito): Support grouped convolution for _forward_xp
+        if 1 < self.groups:
+            raise NotImplementedError(
+                'The current chainer does not support'
+                ' grouped convolution without cudnn')
 
         # Make patch array.
         if xp is numpy:
             col = conv_nd.im2col_nd_cpu(
-                x, ksize, stride, pad, cover_all=self.cover_all)
+                x, ksize, stride, pad, dilate, cover_all=self.cover_all)
         else:
             col = conv_nd.im2col_nd_gpu(
-                x, ksize, stride, pad, cover_all=self.cover_all)
+                x, ksize, stride, pad, dilate, cover_all=self.cover_all)
 
         # Compute correlation.
         axes = tuple(moves.range(1, ndim + 2))  # (1, 2, ..., N+1)
@@ -77,20 +86,20 @@ class ConvolutionND(function_node.FunctionNode):
         dims = x.shape[2:]
         stride = self.stride
         pad = self.pad
+        dilate = self.dilate
+        groups = self.groups
 
         # Make empty array for result.
         outs = tuple(
-            conv.get_conv_outsize(d, k, s, p, cover_all=self.cover_all)
-            for (d, k, s, p) in zip(dims, ksize, stride, pad))
+            conv.get_conv_outsize(d, k, s, p, cover_all=self.cover_all, d=di)
+            for (d, k, s, p, di) in zip(dims, ksize, stride, pad, dilate))
         assert all(out > 0 for out in outs), 'Output sizes should be positive.'
         y_shape = (n, out_c) + outs  # (n, c_O, out_1, out_2, ..., out_N)
         y = cuda.cupy.empty(y_shape, dtype=x.dtype)
-        dilation = (1,) * self.ndim
-        groups = 1
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
         cuda.cudnn.convolution_forward(
-            x, W, b, y, pad, stride, dilation, groups,
+            x, W, b, y, pad, stride, dilate, groups,
             auto_tune=auto_tune, tensor_core=tensor_core)
         return y,
 
@@ -115,7 +124,8 @@ class ConvolutionND(function_node.FunctionNode):
         if 0 in indexes:
             x_shape = x.shape[2:]
             gx = chainer.functions.deconvolution_nd(
-                gy, W, stride=self.stride, pad=self.pad, outsize=x_shape)
+                gy, W, stride=self.stride, pad=self.pad, outsize=x_shape,
+                dilate=self.dilate, groups=self.groups)
             ret.append(gx)
         if 1 in indexes:
             gW, = ConvolutionNDGradW(self).apply((x, gy))
@@ -137,6 +147,8 @@ class ConvolutionNDGradW(function_node.FunctionNode):
         self.stride = convnd.stride
         self.pad = convnd.pad
         self.cover_all = convnd.cover_all
+        self.dilate = convnd.dilate
+        self.groups = convnd.groups
         self.W_dtype = W_node.dtype
 
     def _use_cudnn(self, x, gy):
@@ -160,6 +172,12 @@ class ConvolutionNDGradW(function_node.FunctionNode):
             return self._forward_cudnn(x, gy)
 
     def _forward_xp(self, x, gy, xp):
+        # TODO(msaito): Support grouped convolution for _forward_xp
+        if 1 < self.groups:
+            raise NotImplementedError(
+                'The current chainer does not support'
+                ' grouped convolution without cudnn')
+
         # Compute filter weight gradient.
         # (n, _, out_1, out_2, ..., out_N)
         out_axes = (0,) + tuple(moves.range(2, self.ndim + 2))
@@ -176,10 +194,12 @@ class ConvolutionNDGradW(function_node.FunctionNode):
 
         if xp is numpy:
             col = conv_nd.im2col_nd_cpu(
-                x, self.ksize, self.stride, self.pad, cover_all=self.cover_all)
+                x, self.ksize, self.stride, self.pad, self.dilate,
+                cover_all=self.cover_all)
         else:
             col = conv_nd.im2col_nd_gpu(
-                x, self.ksize, self.stride, self.pad, cover_all=self.cover_all)
+                x, self.ksize, self.stride, self.pad, self.dilate,
+                cover_all=self.cover_all)
         gW = xp.tensordot(gy, col, (out_axes, col_axes)).astype(
             self.W_dtype, copy=False)
         return gW,
@@ -194,13 +214,13 @@ class ConvolutionNDGradW(function_node.FunctionNode):
         # Compute
         pad = self.pad
         stride = self.stride
-        dilation = (1,) * self.ndim
-        groups = 1
+        dilate = self.dilate
+        groups = self.groups
         deterministic = configuration.config.cudnn_deterministic
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
         cuda.cudnn.convolution_backward_filter(
-            x, gy, gW, pad, stride, dilation, groups,
+            x, gy, gW, pad, stride, dilate, groups,
             deterministic=deterministic, auto_tune=auto_tune,
             tensor_core=tensor_core)
 
@@ -214,18 +234,21 @@ class ConvolutionNDGradW(function_node.FunctionNode):
         if 0 in indexes:
             x_shape = x.shape[2:]
             gx = chainer.functions.deconvolution_nd(
-                gy, ggW, stride=self.stride, pad=self.pad, outsize=x_shape)
+                gy, ggW, stride=self.stride, pad=self.pad, outsize=x_shape,
+                groups=self.groups, dilate=self.dilate)
             ret.append(gx)
         if 1 in indexes:
             ggy = convolution_nd(
                 x, ggW, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, groups=self.groups,
+                dilate=self.dilate)
             ret.append(ggy)
 
         return ret
 
 
-def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
+def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
+                   groups=1, dilate=1):
     """N-dimensional convolution function.
 
     This is an implementation of N-dimensional convolution which is generalized
@@ -294,6 +317,14 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels. It may make the output size larger.
             `cover_all` needs to be ``False`` if you want to use cuDNN.
+        groups (:class:`int`): the positive integer that determines
+            the connection between inputs and outputs. When ``groups`` is
+            larger than one, this function splits the input into
+            ``groups`` variables axis along the channel axis, performs
+            convolution operation separately, and concatenates them.
+        dilate (:class:`int` or :class:`tuple` of :class:`int` s):
+            Dilation factor of each dimension.
+            ``dilate=d`` is equivalent to ``(d, d, ..., d)``.
 
     Returns:
         ~chainer.Variable:
@@ -354,7 +385,8 @@ astype(np.float32)
 
     """
     ndim = len(x.shape[2:])
-    fnode = ConvolutionND(ndim, stride, pad, cover_all)
+    fnode = ConvolutionND(
+        ndim, stride, pad, cover_all, dilate=dilate, groups=groups)
     args = (x, W) if b is None else (x, W, b)
     y, = fnode.apply(args)
     return y

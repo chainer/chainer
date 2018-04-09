@@ -37,6 +37,14 @@ class ConvolutionND(link.Link):
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels. It may make the output size larger.
             ``cover_all`` needs to be ``False`` if you want to use cuDNN.
+        groups (:class:`int`): the positive integer that determines
+            the connection between inputs and outputs. When ``groups`` is
+            larger than one, this function splits the input into
+            ``groups`` variables axis along the channel axis, performs
+            convolution operation separately, and concatenates them.
+        dilate (:class:`int` or :class:`tuple` of :class:`int` s):
+            Dilation factor of each dimension.
+            ``dilate=d`` is equivalent to ``(d, d, ..., d)``.
 
     .. seealso::
         See :func:`~chainer.functions.convolution_nd` for the definition of
@@ -53,13 +61,15 @@ class ConvolutionND(link.Link):
 
     def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
                  nobias=False, initialW=None, initial_bias=None,
-                 cover_all=False):
+                 cover_all=False, groups=1, dilate=1):
         super(ConvolutionND, self).__init__()
 
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
         self.cover_all = cover_all
+        self.groups = int(groups)
+        self.dilate = conv_nd.as_tuple(dilate, ndim)
 
         with self.init_scope():
             W_shape = (out_channels, in_channels) + ksize
@@ -85,4 +95,5 @@ class ConvolutionND(link.Link):
 
         """
         return convolution_nd.convolution_nd(
-            x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all)
+            x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all,
+            dilate=self.dilate, groups=self.groups)

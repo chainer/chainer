@@ -15,13 +15,14 @@ def as_tuple(x, n):
     return (x,) * n
 
 
-def im2col_nd_cpu(img, ksize, stride, pad, pval=0, cover_all=False):
+def im2col_nd_cpu(img, ksize, stride, pad, dilate, pval=0, cover_all=False):
     n, c = img.shape[0:2]       # (n, c, d_1, d_2, ..., d_N)
     dims = img.shape[2:]
     ndim = len(dims)
-    assert ndim == len(ksize) == len(stride) == len(pad)
-    outs = tuple(get_conv_outsize(d, k, s, p, cover_all)
-                 for (d, k, s, p) in zip(dims, ksize, stride, pad))
+    assert ndim == len(ksize) == len(stride) == len(pad) == len(dilate)
+    outs = tuple(get_conv_outsize(d, k, s, p, cover_all, di)
+                 for (d, k, s, p, di)
+                 in zip(dims, ksize, stride, pad, dilate))
     assert all(out > 0 for out in outs), 'Output sizes should be positive.'
 
     # Pad around image.
@@ -40,8 +41,9 @@ def im2col_nd_cpu(img, ksize, stride, pad, pval=0, cover_all=False):
         # col[:, :, kx_1, kx_2, ..., kx_N, :, :, ..., :]
         col_index = (colon, colon) + kxs + (colon,) * ndim
         # img[:, :, kx_1:kx_lim_1:s_1, ..., kx_N:kx_lim_N:s_N]
-        kx_lims = tuple(kx + s * out
-                        for (kx, s, out) in zip(kxs, stride, outs))
+        kx_dilate = tuple(kx * di for (kx, di) in zip(kxs, dilate))
+        kx_lims = tuple(kx_di + s * out
+                        for (kx_di, s, out) in zip(kx_dilate, stride, outs))
         img_index = (colon, colon) + tuple(
             slice(kx, kx_lim, s)
             for (kx, kx_lim, s) in zip(kxs, kx_lims, stride))
@@ -50,13 +52,14 @@ def im2col_nd_cpu(img, ksize, stride, pad, pval=0, cover_all=False):
     return col
 
 
-def im2col_nd_gpu(img, ksize, stride, pad, cover_all=False):
+def im2col_nd_gpu(img, ksize, stride, pad, dilate, cover_all=False):
     n, c = img.shape[0:2]       # (n, c, d_1, d_2, ..., d_N)
     dims = img.shape[2:]
     ndim = len(dims)
-    assert ndim == len(ksize) == len(stride) == len(pad)
-    outs = tuple(get_conv_outsize(d, k, s, p, cover_all)
-                 for (d, k, s, p) in zip(dims, ksize, stride, pad))
+    assert ndim == len(ksize) == len(stride) == len(pad) == len(dilate)
+    outs = tuple(get_conv_outsize(d, k, s, p, cover_all, di)
+                 for (d, k, s, p, di)
+                 in zip(dims, ksize, stride, pad, dilate))
     assert all(out > 0 for out in outs), 'Output sizes should be positive.'
 
     # col_shape: (n, c, k_1, k_2, ..., k_N, out_1, out_2, ..., out_N)
@@ -67,18 +70,20 @@ def im2col_nd_gpu(img, ksize, stride, pad, cover_all=False):
         conv_nd_kernel.Im2colNDKernel.generate(ndim)
 
     cuda.elementwise(in_params, out_params, operation, name)(
-        img.reduced_view(), *(dims + outs + ksize + stride + pad + (col,)))
+        img.reduced_view(),
+        *(dims + outs + ksize + stride + pad + dilate + (col,)))
 
     return col
 
 
-def col2im_nd_cpu(col, stride, pad, dims):
+def col2im_nd_cpu(col, stride, pad, dilate, dims):
     n, c = col.shape[:2]  # (n, c, kx_1, ..., kx_N, out_1, ..., out_N)
     mid = (len(col.shape) - 2) // 2 + 2
     ksize = col.shape[2:mid]
     outs = col.shape[mid:]
     colon = slice(None)
-    assert len(outs) == len(ksize) == len(stride) == len(pad) == len(dims)
+    ndim = len(outs)
+    assert all(len(x) == ndim for x in (ksize, stride, pad, dims, dilate))
 
     # Image with padded size.
     img_shape = (n, c) + tuple(d + 2 * p + s - 1
@@ -86,8 +91,9 @@ def col2im_nd_cpu(col, stride, pad, dims):
     img = numpy.zeros(img_shape, dtype=col.dtype)
     for kxs in itertools.product(*[six.moves.range(k) for k in ksize]):
         # (:, :, kx_1:kx_lim_1:s_1, ..., kx_N:kx_lim_N:s_N)
-        kx_lims = tuple(kx + s * out
-                        for (kx, s, out) in zip(kxs, stride, outs))
+        kx_dilate = tuple(kx * di for (kx, di) in zip(kxs, dilate))
+        kx_lims = tuple(kx_di + s * out
+                        for (kx_di, s, out) in zip(kx_dilate, stride, outs))
         img_index = (colon, colon) + tuple(
             slice(kx, kx_lim, s)
             for (kx, kx_lim, s) in zip(kxs, kx_lims, stride))
@@ -101,13 +107,13 @@ def col2im_nd_cpu(col, stride, pad, dims):
     return img[img_index]
 
 
-def col2im_nd_gpu(col, stride, pad, dims):
+def col2im_nd_gpu(col, stride, pad, dilate, dims):
     n, c = col.shape[:2]        # (n, c, k_1, ..., k_N, out_1, ..., out_N)
     mid = (len(col.shape) - 2) // 2 + 2
     ksize = col.shape[2:mid]
     outs = col.shape[mid:]
     ndim = len(dims)
-    assert len(outs) == len(ksize) == len(stride) == len(pad) == ndim
+    assert all(len(x) == ndim for x in (outs, ksize, stride, pad, dilate))
 
     img_shape = (n, c) + dims   # (n, c, d_1, d_2, ..., d_N)
     img = cuda.cupy.empty(img_shape, dtype=col.dtype)
@@ -116,6 +122,7 @@ def col2im_nd_gpu(col, stride, pad, dims):
         conv_nd_kernel.Col2imNDKernel.generate(ndim)
 
     cuda.elementwise(in_params, out_params, operation, name)(
-        col.reduced_view(), *(dims + outs + ksize + stride + pad + (img,)))
+        col.reduced_view(),
+        *(dims + outs + ksize + stride + pad + dilate + (img,)))
 
     return img

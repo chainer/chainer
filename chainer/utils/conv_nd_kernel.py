@@ -65,12 +65,14 @@ class Writer(object):
 
 class Im2colNDKernel(object):
 
-    def _in_params(self, ds, outs, ks, ss, ps):
+    def _in_params(self, ds, outs, ks, ss, ps, dilate):
         # 2D: raw T img, int32 d_0, int32 d_1, int32 out_0, int32 out_1,
-        #     int32 k_0, int32 k_1, int32 s_0, int32 s_1, int32 p_0, int32 p_1
+        #     int32 k_0, int32 k_1, int32 s_0, int32 s_1, int32 p_0, int32 p_1,
+        #     int32 di_0, int32 di_1
         def aux(x):
             return 'int32 {}'.format(x)
-        return ', '.join(['raw T img'] + map_(aux, ds + outs + ks + ss + ps))
+        return ', '.join(
+            ['raw T img'] + map_(aux, ds + outs + ks + ss + ps + dilate))
 
     def _out_params(self):
         return 'T col'
@@ -108,9 +110,9 @@ class Im2colNDKernel(object):
         out_x_decls = map_(aux, out_xs, succ_sublists(outs))
         return out_x_decls, out_xs
 
-    def _compile_main(self, ndim, ds, ks, ss, ps, kxs, out_xs):
-        # 2D: int in_0 = kx_0 + out_x_0 * s_0 - p_0;
-        #     int in_1 = kx_1 + out_x_1 * s_1 - p_1;
+    def _compile_main(self, ndim, ds, ks, ss, ps, dilate, kxs, out_xs):
+        # 2D: int in_0 = kx_0 * di_0 + out_x_0 * s_0 - p_0;
+        #     int in_1 = kx_1 * di_1 + out_x_1 * s_1 - p_1;
         #     if (0 <= in_0 && in_0 < d_0 && 0 <= in_1 && in_1 < d_1) {
         #       int idx_0 = in_0 + d_0 * c0;
         #       int idx_1 = in_1 + d_1 * idx_0;
@@ -121,8 +123,10 @@ class Im2colNDKernel(object):
         w = Writer()
 
         ins = vars('in', ndim)
-        for _in, kx, out_x, s, p in six.moves.zip(ins, kxs, out_xs, ss, ps):
-            w.write('int {} = {} + {} * {} - {};'.format(_in, kx, out_x, s, p))
+        for _in, kx, out_x, s, p, di in six.moves.zip(ins, kxs, out_xs,
+                                                      ss, ps, dilate):
+            target = 'int {} = {} * {} + {} * {} - {};'
+            w.write(target.format(_in, kx, di, out_x, s, p))
 
         def rel_aux(_in, d):
             return '0 <= {} && {} < {}'.format(_in, _in, d)
@@ -141,11 +145,11 @@ class Im2colNDKernel(object):
 
         return [w.get()]
 
-    def _operation(self, ndim, ds, outs, ks, ss, ps):
+    def _operation(self, ndim, ds, outs, ks, ss, ps, dilate):
         c0 = self._compile_c0(outs, ks)
         kx, kxs = self._compile_kx(ndim, outs, ks)
         out_x, out_xs = self._compile_out_x(ndim, outs)
-        main = self._compile_main(ndim, ds, ks, ss, ps, kxs, out_xs)
+        main = self._compile_main(ndim, ds, ks, ss, ps, dilate, kxs, out_xs)
         return '\n'.join(c0 + kx + out_x + main)
 
     def _generate(self, ndim):
@@ -154,10 +158,11 @@ class Im2colNDKernel(object):
         ks = vars('k', ndim)
         ss = vars('s', ndim)
         ps = vars('p', ndim)
+        dilate = vars('di', ndim)
 
-        in_params = self._in_params(ds, outs, ks, ss, ps)
+        in_params = self._in_params(ds, outs, ks, ss, ps, dilate)
         out_params = self._out_params()
-        operation = self._operation(ndim, ds, outs, ks, ss, ps)
+        operation = self._operation(ndim, ds, outs, ks, ss, ps, dilate)
         name = name = 'im2col_{}d'.format(ndim)
         return in_params, out_params, operation, name
 
@@ -175,12 +180,13 @@ _im2col_nd_kernel = Im2colNDKernel()
 
 class Col2imNDKernel(object):
 
-    def _in_params(self, ds, outs, ks, ss, ps):
+    def _in_params(self, ds, outs, ks, ss, ps, dilate):
         # 2D: raw T col, int32 d_0, int32 d_1, int32 out_0, int32 out_1,
         #     int32 k_0, int32 k_1, int32 s_0, int32 s_1, int32 p_0, int32 p_1
         def aux(x):
             return 'int32 {}'.format(x)
-        return ', '.join(['raw T col'] + map_(aux, ds + outs + ks + ss + ps))
+        return ', '.join(
+            ['raw T col'] + map_(aux, ds + outs + ks + ss + ps + dilate))
 
     def _out_params(self):
         return 'T img'
@@ -204,7 +210,7 @@ class Col2imNDKernel(object):
         x_decls = map_(aux, xs, succ_sublists(ds), ps)
         return x_decls, xs
 
-    def _compile_loop(self, ndim, outs, ks, ss, xs):
+    def _compile_loop(self, ndim, outs, ks, ss, xs, dilate):
         # 2D: int out_x0_0 = max(0,     (x_0 - k_0 + s_0) / s_0);
         #     int out_x1_0 = min(out_0, (x_0       + s_0) / s_0);
         #     int out_x0_1 = max(0,     (x_1 - k_1 + s_1) / s_1);
@@ -218,15 +224,15 @@ class Col2imNDKernel(object):
         #       }
         #     }
         #     ... After-part here ...
-        def aux(out_x0, out_x1, out, x, k, s):
+        def aux(out_x0, out_x1, out, x, k, s, di):
             return [
-                'int {} = max(0, ({} - {} + {}) / {});'.format(
-                    out_x0, x, k, s, s),
+                'int {} = max(0, ({} - {} * {} + {}) / {});'.format(
+                    out_x0, x, k, di, s, s),
                 'int {} = min({}, ({} + {}) / {});'.format(
                     out_x1, out, x, s, s)]
         out_x0s = vars('out_x0', ndim)
         out_x1s = vars('out_x1', ndim)
-        bounds = sum(map_(aux, out_x0s, out_x1s, outs, xs, ks, ss), [])
+        bounds = sum(map_(aux, out_x0s, out_x1s, outs, xs, ks, ss, dilate), [])
 
         def _loop_main(main, ndim, ks, ss):
             w = Writer()
@@ -235,12 +241,12 @@ class Col2imNDKernel(object):
             out_xs = vars('out_x', ndim)
             kxs = vars('kx', ndim)
             kxs1 = ['c0'] + kxs[:-1]
-            for out_x, out_x0, out_x1, kx, s, x, k, kx1 in six.moves.zip(
-                    out_xs, out_x0s, out_x1s, kxs, ss, xs, ks, kxs1):
+            for out_x, out_x0, out_x1, kx, s, x, k, kx1, di in six.moves.zip(
+                    out_xs, out_x0s, out_x1s, kxs, ss, xs, ks, kxs1, dilate):
                 w.write('for (int {} = {}; {} < {}; ++{}) {{'.format(
                     out_x, out_x0, out_x, out_x1, out_x), indent='inc')
-                w.write('int {} = {} - {} * {} + {} * {};'.format(
-                    kx, x, out_x, s, k, kx1))
+                w.write('int {} = ({} - {} * {} + {} * {}) / {};'.format(
+                    kx, x, out_x, s, k, kx1, di))
 
             # Main-part.
             kx = kxs[-1]
@@ -264,10 +270,11 @@ class Col2imNDKernel(object):
         after = ['img = val;']
         return before, _main, after
 
-    def _operation(self, ndim, ds, outs, ks, ss, ps):
+    def _operation(self, ndim, ds, outs, ks, ss, ps, dilate):
         c0 = self._compile_c0(ds)
         x, xs = self._compile_x(ndim, ds, ps)
-        loop_bounds, loop_main = self._compile_loop(ndim, outs, ks, ss, xs)
+        loop_bounds, loop_main = \
+            self._compile_loop(ndim, outs, ks, ss, xs, dilate)
         before, main, after = self._compile_procedure(outs, xs)
         return '\n'.join(
             c0 + x + loop_bounds + before + loop_main(
@@ -279,10 +286,11 @@ class Col2imNDKernel(object):
         ks = vars('k', ndim)
         ss = vars('s', ndim)
         ps = vars('p', ndim)
+        dilate = vars('di', ndim)
 
-        in_params = self._in_params(ds, outs, ks, ss, ps)
+        in_params = self._in_params(ds, outs, ks, ss, ps, dilate)
         out_params = self._out_params()
-        operation = self._operation(ndim, ds, outs, ks, ss, ps)
+        operation = self._operation(ndim, ds, outs, ks, ss, ps, dilate)
         name = 'col2im_{}d'.format(ndim)
         return in_params, out_params, operation, name
 
