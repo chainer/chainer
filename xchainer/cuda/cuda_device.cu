@@ -95,6 +95,16 @@ __global__ void MultiplyKernel(
 }
 
 template <typename T>
+__global__ void DivideKernel(
+        IndexableArray<const T> lhs_iarray, IndexableArray<const T> rhs_iarray, IndexableArray<T> out_iarray, Indexer indexer) {
+    const int64_t total_size = indexer.total_size();
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
+        indexer.Set(i);
+        out_iarray[indexer] = lhs_iarray[indexer] / rhs_iarray[indexer];
+    }
+}
+
+template <typename T>
 __global__ void IfLessElseASSAKernel(
         IndexableArray<const T> x1_iarray,
         T x2_value,
@@ -293,11 +303,6 @@ void CudaDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
     });
 }
 
-void CudaDevice::Negative(const Array& /*x*/, const Array& /*out*/) {
-    // TODO(niboshi): Implement
-    throw NotImplementedError("");
-}
-
 // TODO(sonots): support stream
 void CudaDevice::Add(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
@@ -376,6 +381,26 @@ void CudaDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
         MultiplyASKernel<<<grid_size, block_size>>>(x1_iarray, static_cast<T>(x2), out_iarray, indexer);
+    });
+}
+
+void CudaDevice::Divide(const Array& lhs, const Array& rhs, const Array& out) {
+    CheckDevicesCompatible(lhs, rhs, out);
+    cudaSetDevice(index());
+    VisitDtype(lhs.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
+
+        IndexableArray<const T> lhs_iarray{lhs};
+        IndexableArray<const T> rhs_iarray{rhs};
+        IndexableArray<T> out_iarray{out};
+        Indexer indexer{lhs.shape()};
+
+        int64_t total_size = indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        DivideKernel<<<grid_size, block_size>>>(lhs_iarray, rhs_iarray, out_iarray, indexer);
     });
 }
 

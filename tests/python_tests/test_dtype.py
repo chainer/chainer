@@ -37,6 +37,8 @@ def test_eq():
     assert xchainer.dtype(xchainer.int8) == xchainer.int8
     assert not 8 == xchainer.int8
     assert not xchainer.int8 == 8
+    assert not 'int8' == xchainer.int8
+    assert not xchainer.int8 == 'int8'
 
 
 def test_ne():
@@ -45,3 +47,9 @@ def test_ne():
     assert xchainer.dtype(xchainer.int32) != xchainer.int8
     assert 32 != xchainer.int32
     assert xchainer.int8 != 32
+    assert 'int32' != xchainer.int32
+    assert xchainer.int8 != 'int32'
+
+
+def test_implicity_convertible():
+    xchainer.zeros(shape=(2, 3), dtype='int32')

@@ -73,12 +73,11 @@ public:
 
     virtual void Equal(const Array& x1, const Array& x2, const Array& out) = 0;
 
-    virtual void Negative(const Array& x, const Array& out) = 0;
-
     virtual void Add(const Array& x1, const Array& x2, const Array& out) = 0;
     virtual void Subtract(const Array& x1, const Array& x2, const Array& out) = 0;
     virtual void Multiply(const Array& x1, const Array& x2, const Array& out) = 0;
     virtual void MultiplyAS(const Array& x1, Scalar x2, const Array& out) = 0;
+    virtual void Divide(const Array& lhs, const Array& rhs, const Array& out) = 0;
 
     // Compares x1 and x2 and assign either pos or neg according to the result.
     //

@@ -17,12 +17,16 @@ namespace internal {
 Array& IAdd(Array& x1, const Array& x2);
 const Array& IAdd(const Array& x1, const Array& x2);
 
+}  // namespace internal
+
+Array Add(const Array& x1, const Array& x2);
+
+namespace internal {
+
 Array& ISubtract(Array& x1, const Array& x2);
 const Array& ISubtract(const Array& x1, const Array& x2);
 
 }  // namespace internal
-
-Array Add(const Array& x1, const Array& x2);
 
 Array Subtract(const Array& x1, const Array& x2);
 
@@ -36,6 +40,15 @@ const Array& IMultiply(const Array& x1, const Array& x2);
 Array Multiply(const Array& x1, const Array& x2);
 Array Multiply(const Array& x1, Scalar x2);
 Array Multiply(Scalar x1, const Array& x2);
+
+namespace internal {
+
+Array& IDivide(Array& x1, const Array& x2);
+const Array& IDivide(const Array& x1, const Array& x2);
+
+}  // namespace internal
+
+Array Divide(const Array& x1, const Array& x2);
 
 Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false);
 

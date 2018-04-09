@@ -779,6 +779,41 @@ def test_mul_scalar(scalar, device, shape, dtype):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_truediv_itruediv(device, shape, dtype):
+    if dtype == xchainer.bool:
+        # TODO(niboshi): Compare directly with NumPy
+        return  # not supported
+    lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
+    rhs_data_list = _create_dummy_data(shape, dtype, pattern=2)
+
+    lhs = xchainer.Array(shape, dtype, lhs_data_list)
+    rhs = xchainer.Array(shape, dtype, rhs_data_list)
+
+    if dtype in (xchainer.int8, xchainer.int16, xchainer.int32, xchainer.int64, xchainer.uint8):
+        # TODO(niboshi): The behavior should be true division, but currently it's not supported.
+        # Its temporary behavior for integral division is rounding towards zero.
+        expected_data_list = [int(x / y) for x, y in zip(lhs_data_list, rhs_data_list)]
+    else:
+        expected_data_list = [x / y for x, y in zip(lhs_data_list, rhs_data_list)]
+
+    def check(out):
+        assert out.dtype == dtype
+        assert out.shape == shape
+        numpy.testing.assert_allclose(out._debug_flat_data, expected_data_list, rtol=1e-3)
+        assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
+        assert rhs._debug_flat_data == rhs_data_list
+
+    check(lhs / rhs)
+    check(xchainer.divide(lhs, rhs))
+
+    lhs_prev = lhs
+    lhs /= rhs
+    assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
+    numpy.testing.assert_allclose(lhs._debug_flat_data, expected_data_list, rtol=1e-3)
+    assert rhs._debug_flat_data == rhs_data_list
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_mul_backward(device):
     x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
     x2 = xchainer.Array(numpy.arange(3, dtype=numpy.float32).reshape(3)).require_grad()

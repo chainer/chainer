@@ -39,12 +39,11 @@ public:
 
     void Equal(const Array& x1, const Array& x2, const Array& out) override;
 
-    void Negative(const Array& x, const Array& out) override;
-
     void Add(const Array& x1, const Array& x2, const Array& out) override;
     void Subtract(const Array& x1, const Array& x2, const Array& out) override;
     void Multiply(const Array& x1, const Array& x2, const Array& out) override;
     void MultiplyAS(const Array& x1, Scalar x2, const Array& out) override;
+    void Divide(const Array& lhs, const Array& rhs, const Array& out) override;
 
     void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
 
