@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 import unittest
+import warnings
 
 import numpy
 
@@ -35,7 +36,7 @@ class Dataset(chainer.dataset.DatasetMixin):
         return numpy.array([self.values[i]], numpy.float32), numpy.int32(i % 2)
 
 
-class TestNaNKiller(unittest.TestCase):
+class TestFailOnNonNumber(unittest.TestCase):
 
     def setUp(self):
         self.n_data = 4
@@ -60,16 +61,24 @@ class TestNaNKiller(unittest.TestCase):
             self.iterator, self.optimizer, device=device)
         self.trainer = training.Trainer(
             self.updater, (self.n_epochs, 'epoch'), out=outdir)
-        self.trainer.extend(training.extensions.NaNKiller())
+        self.trainer.extend(training.extensions.FailOnNonNumber())
 
     def test_trainer(self):
         self.prepare(dirname='test_trainer')
         self.trainer.run()
 
-    def test_nan_killer(self):
-        self.prepare(dirname='test_nan_killer')
+    def test_nan(self):
+        self.prepare(dirname='test_nan')
         self.model.l.W.array[1, 0] = numpy.nan
         with self.assertRaises(RuntimeError):
+            self.trainer.run(show_loop_exception_msg=False)
+
+    def test_inf(self):
+        self.prepare(dirname='test_inf')
+        self.model.l.W.array[2, 0] = numpy.inf
+        # Ignore RuntimeWarning when using Adam on CPU
+        with warnings.catch_warnings(), self.assertRaises(RuntimeError):
+            warnings.filterwarnings('ignore', category=RuntimeWarning)
             self.trainer.run(show_loop_exception_msg=False)
 
     @attr.gpu
@@ -78,11 +87,17 @@ class TestNaNKiller(unittest.TestCase):
         self.trainer.run()
 
     @attr.gpu
-    def test_nan_killer_gpu(self):
-        self.prepare(dirname='test_nan_killer_gpu', device=0)
+    def test_nan_gpu(self):
+        self.prepare(dirname='test_nan_gpu', device=0)
         self.model.l.W.array[:] = numpy.nan
         with self.assertRaises(RuntimeError):
             self.trainer.run(show_loop_exception_msg=False)
 
+    @attr.gpu
+    def test_inf_gpu(self):
+        self.prepare(dirname='test_inf_gpu', device=0)
+        self.model.l.W.array[:] = numpy.inf
+        with self.assertRaises(RuntimeError):
+            self.trainer.run(show_loop_exception_msg=False)
 
 testing.run_module(__name__, __file__)

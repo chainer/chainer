@@ -4,11 +4,10 @@ from chainer.training.extensions._snapshot import snapshot_object  # NOQA
 from chainer.training.extensions.computational_graph import dump_graph  # NOQA
 from chainer.training.extensions.evaluator import Evaluator  # NOQA
 from chainer.training.extensions.exponential_shift import ExponentialShift  # NOQA
-from chainer.training.extensions.inverse_shift import InverseShift  # NOQA
+from chainer.training.extensions.fail_on_nonnumber import FailOnNonNumber  # NOQA
 from chainer.training.extensions.linear_shift import LinearShift  # NOQA
 from chainer.training.extensions.log_report import LogReport  # NOQA
 from chainer.training.extensions.micro_average import MicroAverage  # NOQA
-from chainer.training.extensions.nan_killer import NaNKiller  # NOQA
 from chainer.training.extensions.parameter_statistics import ParameterStatistics  # NOQA
 from chainer.training.extensions.plot_report import PlotReport  # NOQA
 from chainer.training.extensions.print_report import PrintReport  # NOQA
