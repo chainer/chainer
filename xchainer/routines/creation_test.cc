@@ -333,6 +333,55 @@ TEST_P(CreationTest, Arange) {
     testing::ExpectEqual(e, a);
 }
 
+TEST_P(CreationTest, ArangeStop) {
+    {
+        Array a = Arange(3, Dtype::kInt32);
+        Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+        testing::ExpectEqual(e, a);
+    }
+    {
+        Array a = Arange(Scalar{3, Dtype::kInt32}, GetDefaultDevice());
+        Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+        testing::ExpectEqual(e, a);
+    }
+    {
+        Array a = Arange(3, Dtype::kInt32, GetDefaultDevice());
+        Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+        testing::ExpectEqual(e, a);
+    }
+}
+
+TEST_P(CreationTest, ArangeStartStop) {
+    {
+        Array a = Arange(1, 3, Dtype::kInt32);
+        Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
+        testing::ExpectEqual(e, a);
+    }
+    {
+        Array a = Arange(1, 3, Dtype::kInt32, GetDefaultDevice());
+        Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
+        testing::ExpectEqual(e, a);
+    }
+}
+
+TEST_P(CreationTest, ArangeStartStopStep) {
+    {
+        Array a = Arange(1, 7, 2, Dtype::kInt32);
+        Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
+        testing::ExpectEqual(e, a);
+    }
+    {
+        Array a = Arange(1, 7, 2, GetDefaultDevice());
+        Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
+        testing::ExpectEqual(e, a);
+    }
+    {
+        Array a = Arange(1, 7, 2, Dtype::kInt32, GetDefaultDevice());
+        Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
+        testing::ExpectEqual(e, a);
+    }
+}
+
 TEST_P(CreationTest, ArangeNegativeStep) {
     Array a = Arange(4.f, 0.f, -1.5f, Dtype::kFloat32);
     Array e = testing::BuildArray({3}).WithData<float>({4.f, 2.5f, 1.f});
