@@ -28,13 +28,6 @@ Array Equal(const Array& x1, const Array& x2) {
         return func(x1.BroadcastTo(result_shape), x2);
     }
     return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
-
-    Array out = Array::Empty(x1.shape(), Dtype::kBool, x1.device());
-
-    assert(out.shape() == x1.shape());
-    assert(out.dtype() == Dtype::kBool);
-    assert(out.IsContiguous());
-    return out;
 }
 
 }  // namespace xchainer
