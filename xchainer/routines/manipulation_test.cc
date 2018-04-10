@@ -84,9 +84,9 @@ TEST_P(ManipulationTest, TransposeNoncontiguous) {
 TEST_P(ManipulationTest, TransposeBackward) {
     CheckBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Transpose(xs[0])}; },
-            {Array::Zeros({2, 3}, Dtype::kFloat32).RequireGrad()},
+            {Zeros({2, 3}, Dtype::kFloat32).RequireGrad()},
             {testing::BuildArray({3, 2}, {1.f, 2.f, 3.f, 4.f, 5.f, 6.f})},
-            {Array::Full({2, 3}, 1e-5f)});
+            {Full({2, 3}, 1e-5f)});
 }
 
 TEST_P(ManipulationTest, TransposeDoubleBackward) {
@@ -96,9 +96,9 @@ TEST_P(ManipulationTest, TransposeDoubleBackward) {
                 return {t * t};  // to make it nonlinear
             },
             {(*testing::BuildArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
-            {Array::Ones({3, 2}, Dtype::kFloat32).RequireGrad()},
-            {Array::Ones({2, 3}, Dtype::kFloat32)},
-            {Array::Full({2, 3}, 0.01f), Array::Full({3, 2}, 0.01f)});
+            {Ones({3, 2}, Dtype::kFloat32).RequireGrad()},
+            {Ones({2, 3}, Dtype::kFloat32)},
+            {Full({2, 3}, 0.01f), Full({3, 2}, 0.01f)});
 }
 
 TEST_P(ManipulationTest, Reshape) {
@@ -232,7 +232,7 @@ TEST_P(ManipulationTest, SqueezeBackward) {
             },
             {(*testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)},
-            {Array::Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f)});
+            {Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f)});
 }
 
 TEST_P(ManipulationTest, SqueezeDoubleBackward) {
@@ -244,7 +244,7 @@ TEST_P(ManipulationTest, SqueezeDoubleBackward) {
             {(*testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)).RequireGrad()},
             {testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>()},
-            {Array::Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f), Array::Full({2, 3, 1, 4}, 1e-2f)},
+            {Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f), Full({2, 3, 1, 4}, 1e-2f)},
             1e-4f,
             1e-3f);
 }
@@ -310,7 +310,7 @@ TEST_P(ManipulationTest, BroadcastToBackward) {
             },
             {(*testing::BuildArray({1, 3, 1, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>(-0.1, 0.1)},
-            {Array::Full({1, 3, 1, 3}, 1e-1)});
+            {Full({1, 3, 1, 3}, 1e-1)});
 }
 
 TEST_P(ManipulationTest, BroadcastToDoubleBackward) {
@@ -324,7 +324,7 @@ TEST_P(ManipulationTest, BroadcastToDoubleBackward) {
             {(*testing::BuildArray({1, 3, 1, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({1, 3, 1, 3}).WithLinearData<T>()},
-            {Array::Full({1, 3, 1, 3}, 1e-1), Array::Full({2, 3, 4, 3}, 1e-1)});
+            {Full({1, 3, 1, 3}, 1e-1), Full({2, 3, 4, 3}, 1e-1)});
 }
 
 INSTANTIATE_TEST_CASE_P(

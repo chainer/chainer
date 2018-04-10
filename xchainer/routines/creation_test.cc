@@ -173,6 +173,40 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
+TEST_P(CreationTest, FromContiguousHostData) {
+    using T = int32_t;
+    Shape shape{3, 2};
+
+    std::vector<T> raw_data{0, 1, 2, 3, 4, 5};
+    std::shared_ptr<T> data{&raw_data[0], [](const T*) {}};
+
+    Dtype dtype = TypeToDtype<T>;
+    Array x = internal::FromContiguousHostData(shape, dtype, data);
+
+    // Basic attributes
+    EXPECT_EQ(shape, x.shape());
+    EXPECT_EQ(dtype, x.dtype());
+    EXPECT_EQ(2, x.ndim());
+    EXPECT_EQ(3 * 2, x.GetTotalSize());
+    EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
+    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetTotalBytes());
+    EXPECT_TRUE(x.IsContiguous());
+    EXPECT_EQ(0, x.offset());
+
+    // Array::data
+    testing::ExpectDataEqual<T>(data.get(), x);
+
+    Device& device = GetDefaultDevice();
+    EXPECT_EQ(&device, &x.device());
+    if (device.backend().GetName() == "native") {
+        EXPECT_EQ(data.get(), x.data().get());
+    } else if (device.backend().GetName() == "cuda") {
+        EXPECT_NE(data.get(), x.data().get());
+    } else {
+        FAIL() << "invalid device_id";
+    }
+}
+
 TEST_P(CreationTest, Empty) {
     CheckEmpty<bool>();
     CheckEmpty<int8_t>();

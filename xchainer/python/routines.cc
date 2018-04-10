@@ -80,19 +80,19 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device"));
     m.def("empty",
           [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-              return Array::Empty(ToShape(shape), dtype, GetDevice(device_id)).move_body();
+              return Empty(ToShape(shape), dtype, GetDevice(device_id)).move_body();
           },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("empty",
-          [](py::tuple shape, Dtype dtype, Device& device) { return Array::Empty(ToShape(shape), dtype, device).move_body(); },
+          [](py::tuple shape, Dtype dtype, Device& device) { return Empty(ToShape(shape), dtype, device).move_body(); },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device"));
     m.def("full",
           [](py::tuple shape, Scalar fill_value, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-              return Array::Full(ToShape(shape), fill_value, dtype, GetDevice(device_id)).move_body();
+              return Full(ToShape(shape), fill_value, dtype, GetDevice(device_id)).move_body();
           },
           py::arg("shape"),
           py::arg("fill_value"),
@@ -100,7 +100,7 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("full",
           [](py::tuple shape, Scalar fill_value, Dtype dtype, Device& device) {
-              return Array::Full(ToShape(shape), fill_value, dtype, device).move_body();
+              return Full(ToShape(shape), fill_value, dtype, device).move_body();
           },
           py::arg("shape"),
           py::arg("fill_value"),
@@ -108,80 +108,80 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device"));
     m.def("full",
           [](py::tuple shape, Scalar fill_value, const nonstd::optional<std::string>& device_id) {
-              return Array::Full(ToShape(shape), fill_value, GetDevice(device_id)).move_body();
+              return Full(ToShape(shape), fill_value, GetDevice(device_id)).move_body();
           },
           py::arg("shape"),
           py::arg("fill_value"),
           py::arg("device") = nullptr);
     m.def("full",
-          [](py::tuple shape, Scalar fill_value, Device& device) { return Array::Full(ToShape(shape), fill_value, device).move_body(); },
+          [](py::tuple shape, Scalar fill_value, Device& device) { return Full(ToShape(shape), fill_value, device).move_body(); },
           py::arg("shape"),
           py::arg("fill_value"),
           py::arg("device"));
     m.def("zeros",
           [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-              return Array::Zeros(ToShape(shape), dtype, GetDevice(device_id)).move_body();
+              return Zeros(ToShape(shape), dtype, GetDevice(device_id)).move_body();
           },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("zeros",
-          [](py::tuple shape, Dtype dtype, Device& device) { return Array::Zeros(ToShape(shape), dtype, device).move_body(); },
+          [](py::tuple shape, Dtype dtype, Device& device) { return Zeros(ToShape(shape), dtype, device).move_body(); },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device"));
     m.def("ones",
           [](py::tuple shape, Dtype dtype, const nonstd::optional<std::string>& device_id) {
-              return Array::Ones(ToShape(shape), dtype, GetDevice(device_id)).move_body();
+              return Ones(ToShape(shape), dtype, GetDevice(device_id)).move_body();
           },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("ones",
-          [](py::tuple shape, Dtype dtype, Device& device) { return Array::Ones(ToShape(shape), dtype, device).move_body(); },
+          [](py::tuple shape, Dtype dtype, Device& device) { return Ones(ToShape(shape), dtype, device).move_body(); },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device"));
     m.def("empty_like",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::string>& device_id) {
-              return Array::EmptyLike(Array{a}, GetDevice(device_id)).move_body();
+              return EmptyLike(Array{a}, GetDevice(device_id)).move_body();
           },
           py::arg("a"),
           py::arg("device") = nullptr);
     m.def("empty_like",
-          [](const ArrayBodyPtr& a, Device& device) { return Array::EmptyLike(Array{a}, device).move_body(); },
+          [](const ArrayBodyPtr& a, Device& device) { return EmptyLike(Array{a}, device).move_body(); },
           py::arg("a"),
           py::arg("device"));
     m.def("full_like",
           [](const ArrayBodyPtr& a, Scalar value, const nonstd::optional<std::string>& device_id) {
-              return Array::FullLike(Array{a}, value, GetDevice(device_id)).move_body();
+              return FullLike(Array{a}, value, GetDevice(device_id)).move_body();
           },
           py::arg("a"),
           py::arg("fill_value"),
           py::arg("device") = nullptr);
     m.def("full_like",
-          [](const ArrayBodyPtr& a, Scalar value, Device& device) { return Array::FullLike(Array{a}, value, device).move_body(); },
+          [](const ArrayBodyPtr& a, Scalar value, Device& device) { return FullLike(Array{a}, value, device).move_body(); },
           py::arg("a"),
           py::arg("fill_value"),
           py::arg("device"));
     m.def("zeros_like",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::string>& device_id) {
-              return Array::ZerosLike(Array{a}, GetDevice(device_id)).move_body();
+              return ZerosLike(Array{a}, GetDevice(device_id)).move_body();
           },
           py::arg("a"),
           py::arg("device") = nullptr);
     m.def("zeros_like",
-          [](const ArrayBodyPtr& a, Device& device) { return Array::ZerosLike(Array{a}, device).move_body(); },
+          [](const ArrayBodyPtr& a, Device& device) { return ZerosLike(Array{a}, device).move_body(); },
           py::arg("a"),
           py::arg("device"));
     m.def("ones_like",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::string>& device_id) {
-              return Array::OnesLike(Array{a}, GetDevice(device_id)).move_body();
+              return OnesLike(Array{a}, GetDevice(device_id)).move_body();
           },
           py::arg("a"),
           py::arg("device") = nullptr);
     m.def("ones_like",
-          [](const ArrayBodyPtr& a, Device& device) { return Array::OnesLike(Array{a}, device).move_body(); },
+          [](const ArrayBodyPtr& a, Device& device) { return OnesLike(Array{a}, device).move_body(); },
           py::arg("a"),
           py::arg("device"));
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));

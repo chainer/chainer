@@ -10,6 +10,7 @@
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
 
 namespace xchainer {
@@ -88,7 +89,7 @@ Arrays CalculateNumericalGradient(
 
     Arrays grads;
     for (int i = 0; i < nin; ++i) {
-        Array grad_i = Array::ZerosLike(inputs.at(i));
+        Array grad_i = ZerosLike(inputs.at(i));
         int64_t size = grad_i.GetTotalSize();
 
         for (int64_t in_flat_index = 0; in_flat_index < size; ++in_flat_index) {
@@ -98,7 +99,7 @@ Arrays CalculateNumericalGradient(
 
             for (int j = 0; j < nout; ++j) {
                 Array dy = ys1.at(j) - ys0.at(j);
-                Array denom = Array::FullLike(dy, eps_scalar) * Array::FullLike(dy, Scalar(2, dtype));
+                Array denom = FullLike(dy, eps_scalar) * FullLike(dy, Scalar(2, dtype));
 
                 Array slope = (ys1.at(j) - ys0.at(j)) / denom;
                 Scalar g = AsScalar((slope * grad_outputs.at(j)).Sum());
