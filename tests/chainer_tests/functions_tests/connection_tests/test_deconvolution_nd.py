@@ -18,6 +18,7 @@ from chainer.utils import type_check
 
 @parameterize(*testing.product({
     'dims': [(4, 3, 2), (2,)],
+    'dilate': [1, 2],
     'nobias': [False],
     'test_outsize': [False],
     'c_contiguous': [True],
@@ -26,6 +27,7 @@ from chainer.utils import type_check
     'autotune': [True, False],
 }) + testing.product({
     'dims': [(3, 2)],
+    'dilate': [1, 2],
     'nobias': [False],
     'test_outsize': [False],
     'c_contiguous': [True],
@@ -34,6 +36,7 @@ from chainer.utils import type_check
     'autotune': [False],
 }) + testing.product({
     'dims': [(3, 2)],
+    'dilate': [1, 2],
     'nobias': [True, False],
     'test_outsize': [True, False],
     'c_contiguous': [True, False],
@@ -50,6 +53,7 @@ class TestDeconvolutionND(unittest.TestCase):
         ksize = (3,) * ndim
         self.stride = (2,) * ndim
         self.pad = (1,) * ndim
+        self.dilate = (self.dilate,) * ndim
 
         W_scale = numpy.sqrt(1. / functools.reduce(mul, ksize, in_channels))
         W_shape = (in_channels, out_channels) + ksize
@@ -59,8 +63,9 @@ class TestDeconvolutionND(unittest.TestCase):
             'dtype': numpy.float64, 'atol': 5e-3, 'rtol': 5e-2}
 
         outs = tuple(
-            conv.get_deconv_outsize(d, k, s, p)
-            for (d, k, s, p) in zip(self.dims, ksize, self.stride, self.pad))
+            conv.get_deconv_outsize(d, k, s, p, d=di)
+            for (d, k, s, p, di)
+            in zip(self.dims, ksize, self.stride, self.pad, self.dilate))
         self.outsize = outs if self.test_outsize else None
         x_shape = (2, in_channels) + self.dims
         self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.x_dtype)
@@ -88,7 +93,7 @@ class TestDeconvolutionND(unittest.TestCase):
         b_cpu = None if self.nobias else chainer.Variable(self.b)
         y_cpu = F.deconvolution_nd(
             x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            outsize=self.outsize)
+            outsize=self.outsize, dilate=self.dilate)
 
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
@@ -97,7 +102,7 @@ class TestDeconvolutionND(unittest.TestCase):
             with chainer.using_config('autotune', self.autotune):
                 y_gpu = F.deconvolution_nd(
                     x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-                    outsize=self.outsize)
+                    outsize=self.outsize, dilate=self.dilate)
 
         self.assertEqual(y_cpu.data.dtype, self.x_dtype)
         self.assertEqual(y_gpu.data.dtype, self.x_dtype)
@@ -120,9 +125,11 @@ class TestDeconvolutionND(unittest.TestCase):
 
         with chainer.using_config('use_cudnn', use_cudnn):
             y_nd = F.deconvolution_nd(x, W, b, stride=self.stride,
-                                      pad=self.pad, outsize=self.outsize)
+                                      pad=self.pad, outsize=self.outsize,
+                                      dilate=self.dilate)
             y_2d = F.deconvolution_2d(x, W, b, stride=self.stride,
-                                      pad=self.pad, outsize=self.outsize)
+                                      pad=self.pad, outsize=self.outsize,
+                                      dilate=self.dilate)
 
         testing.assert_allclose(
             y_nd.data, y_2d.data, **self.test_forward_options)
@@ -170,7 +177,7 @@ class TestDeconvolutionND(unittest.TestCase):
 
         def f(*args):
             return F.deconvolution_nd(*args, stride=self.stride, pad=self.pad,
-                                      outsize=self.outsize)
+                                      outsize=self.outsize, dilate=self.dilate)
 
         with chainer.using_config('use_cudnn', use_cudnn):
             with chainer.using_config('autotune', self.autotune):
@@ -234,7 +241,8 @@ class TestDeconvolutionND(unittest.TestCase):
 
         def f(*args):
             y = F.deconvolution_nd(
-                *args, stride=self.stride, pad=self.pad, outsize=self.outsize)
+                *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
+                dilate=self.dilate)
             return y * y  # make the function nonlinear
 
         with chainer.using_config('use_cudnn', use_cudnn):
