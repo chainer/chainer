@@ -250,32 +250,6 @@ TEST_P(ArrayTest, ArrayFromContiguousHostData) {
     }
 }
 
-TEST_P(ArrayTest, Empty) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Array x = Empty(Shape{3, 2}, dtype);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_EQ(x.shape(), Shape({3, 2}));
-    EXPECT_EQ(x.dtype(), dtype);
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, EmptyLike) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Array x_orig = Empty(Shape{3, 2}, dtype);
-    Array x = EmptyLike(x_orig);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_NE(x.data(), x_orig.data());
-    EXPECT_EQ(x.shape(), x_orig.shape());
-    EXPECT_EQ(x.dtype(), x_orig.dtype());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
 TEST_P(ArrayTest, ContiguousFill) {
     CheckContiguousFill(true);
     CheckContiguousFill(false);
@@ -373,105 +347,6 @@ TEST_P(ArrayTest, NonContiguousFill) {
         testing::ExpectDataEqual(0.0f, a.At({Slice{}, {0}}));
         testing::ExpectDataEqual(0.0f, a.At({Slice{}, {2}}));
     }
-}
-
-TEST_P(ArrayTest, FullWithGivenDtype) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Scalar scalar{int64_t{3}};
-    Array x = Full(Shape{3, 2}, scalar, dtype);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_EQ(x.shape(), Shape({3, 2}));
-    EXPECT_EQ(x.dtype(), dtype);
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{3}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, FullWithScalarDtype) {
-    using T = int32_t;
-    Scalar scalar{T{3}};
-    Array x = Full(Shape{3, 2}, scalar);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_EQ(x.shape(), Shape({3, 2}));
-    EXPECT_EQ(x.dtype(), scalar.dtype());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{3}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, FullLike) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Scalar scalar{int64_t{3}};
-    Array x_orig = Empty(Shape{3, 2}, dtype);
-    Array x = FullLike(x_orig, scalar);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_NE(x.data(), x_orig.data());
-    EXPECT_EQ(x.shape(), x_orig.shape());
-    EXPECT_EQ(x.dtype(), x_orig.dtype());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{3}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, Zeros) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Array x = Zeros(Shape{3, 2}, dtype);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_EQ(x.shape(), Shape({3, 2}));
-    EXPECT_EQ(x.dtype(), dtype);
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{0}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, ZerosLike) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Array x_orig = Empty(Shape{3, 2}, dtype);
-    Array x = ZerosLike(x_orig);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_NE(x.data(), x_orig.data());
-    EXPECT_EQ(x.shape(), x_orig.shape());
-    EXPECT_EQ(x.dtype(), x_orig.dtype());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{0}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, Ones) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Array x = Ones(Shape{3, 2}, dtype);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_EQ(x.shape(), Shape({3, 2}));
-    EXPECT_EQ(x.dtype(), dtype);
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{1}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, OnesLike) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Array x_orig = Empty(Shape{3, 2}, dtype);
-    Array x = OnesLike(x_orig);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_NE(x.data(), x_orig.data());
-    EXPECT_EQ(x.shape(), x_orig.shape());
-    EXPECT_EQ(x.dtype(), x_orig.dtype());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{1}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
 }
 
 TEST_P(ArrayTest, Negative) {
