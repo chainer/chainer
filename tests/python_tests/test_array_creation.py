@@ -216,8 +216,9 @@ def test_full_like_with_device(device):
 
 @pytest.mark.parametrize("stop", [-2, 0, 3, 3.2, False, True])
 @pytest.mark.parametrize_device(['native:0'])
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DtypeError, ValueError))
 def test_arange_stop(xp, stop, dtype, device):
+    if dtype.name == 'bool' and stop > 2:  # Checked in test_invalid_arange_too_long_bool
+        return xp.array([])
     return xp.arange(stop, dtype=dtype.name)
 
 
@@ -233,22 +234,46 @@ def test_arange_stop(xp, stop, dtype, device):
     (False, True),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@testing.numpy_xchainer_array_equal(accept_error=(xchainer.DtypeError, ValueError))
 def test_arange_start_stop(xp, start, stop, dtype, device):
+    if dtype.name == 'bool' and abs(stop - start) > 2:  # Checked in test_invalid_arange_too_long_bool
+        return xp.array([])
     return xp.arange(start, stop, dtype=dtype.name)
 
 
 @pytest.mark.parametrize("start,stop,step", [
     (0, 3, 1),
-    (0, 0, 0),
     (0, 0, 2),
     (0, 1, 2),
     (3., 2., 1.2),
     (2., -1., 1.),
-    (2., -1., -0.),
-    (False, True, False),
+    (False, True, True),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@testing.numpy_xchainer_array_equal(accept_error=(xchainer.DtypeError, ValueError, xchainer.XchainerError, ZeroDivisionError))
 def test_arange_start_stop_step(xp, device, start, stop, step, dtype):
+    if dtype.name == 'bool' and abs((stop - start) / step) > 2:  # Checked in test_invalid_arange_too_long_bool
+        return xp.array([])
     return xp.arange(start, stop, step, dtype=dtype.name)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_invalid_arange_too_long_bool(device):
+    def check(xp, err):
+        with pytest.raises(err):
+            xp.arange(3, dtype='bool')
+        with pytest.raises(err):
+            xp.arange(1, 4, 1, dtype='bool')
+        # Should not raise since the size is <= 2.
+        xp.arange(1, 4, 2, dtype='bool')
+
+    check(xchainer, xchainer.DtypeError)
+    check(numpy, ValueError)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_invalid_arange_zero_step(device):
+    def check(xp, err):
+        with pytest.raises(err):
+            xp.arange(1, 3, 0)
+
+    check(xchainer, xchainer.XchainerError)
+    check(numpy, ZeroDivisionError)
