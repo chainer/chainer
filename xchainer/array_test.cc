@@ -52,7 +52,7 @@ public:
     template <typename T>
     void CheckContiguousFill(T expected, Scalar scalar) {
         Dtype dtype = TypeToDtype<T>;
-        Array x = Array::Empty(Shape{3, 2}, dtype);
+        Array x = Empty(Shape{3, 2}, dtype);
         x.Fill(scalar);
         testing::ExpectDataEqual(expected, x);
     }
@@ -253,7 +253,7 @@ TEST_P(ArrayTest, ArrayFromContiguousHostData) {
 TEST_P(ArrayTest, Empty) {
     using T = int32_t;
     Dtype dtype = TypeToDtype<T>;
-    Array x = Array::Empty(Shape{3, 2}, dtype);
+    Array x = Empty(Shape{3, 2}, dtype);
     EXPECT_NE(x.data(), nullptr);
     EXPECT_EQ(x.shape(), Shape({3, 2}));
     EXPECT_EQ(x.dtype(), dtype);
@@ -265,8 +265,8 @@ TEST_P(ArrayTest, Empty) {
 TEST_P(ArrayTest, EmptyLike) {
     using T = int32_t;
     Dtype dtype = TypeToDtype<T>;
-    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
-    Array x = Array::EmptyLike(x_orig);
+    Array x_orig = Empty(Shape{3, 2}, dtype);
+    Array x = EmptyLike(x_orig);
     EXPECT_NE(x.data(), nullptr);
     EXPECT_NE(x.data(), x_orig.data());
     EXPECT_EQ(x.shape(), x_orig.shape());
@@ -351,14 +351,14 @@ TEST_P(ArrayTest, NonContiguousFill) {
     Dtype dtype = Dtype::kFloat32;
     float value = 1.0f;
     {
-        Array a = Array::Zeros(Shape{3, 3}, dtype);
+        Array a = Zeros(Shape{3, 3}, dtype);
         Array b = a.Transpose();
         b.Fill(value);
         testing::ExpectDataEqual(value, b);
         testing::ExpectDataEqual(value, a);
     }
     {
-        Array a = Array::Zeros(Shape{3, 3}, dtype);
+        Array a = Zeros(Shape{3, 3}, dtype);
         a.At({1}).Fill(value);
         testing::ExpectDataEqual(value, a.At({1}));
         // check other rows are not affected
@@ -366,7 +366,7 @@ TEST_P(ArrayTest, NonContiguousFill) {
         testing::ExpectDataEqual(0.0f, a.At({2}));
     }
     {
-        Array a = Array::Zeros(Shape{3, 3}, dtype);
+        Array a = Zeros(Shape{3, 3}, dtype);
         a.At({Slice{}, {1}}).Fill(value);
         testing::ExpectDataEqual(value, a.At({Slice{}, {1}}));
         // check other columns are not affected
@@ -379,7 +379,7 @@ TEST_P(ArrayTest, FullWithGivenDtype) {
     using T = int32_t;
     Dtype dtype = TypeToDtype<T>;
     Scalar scalar{int64_t{3}};
-    Array x = Array::Full(Shape{3, 2}, scalar, dtype);
+    Array x = Full(Shape{3, 2}, scalar, dtype);
     EXPECT_NE(x.data(), nullptr);
     EXPECT_EQ(x.shape(), Shape({3, 2}));
     EXPECT_EQ(x.dtype(), dtype);
@@ -392,7 +392,7 @@ TEST_P(ArrayTest, FullWithGivenDtype) {
 TEST_P(ArrayTest, FullWithScalarDtype) {
     using T = int32_t;
     Scalar scalar{T{3}};
-    Array x = Array::Full(Shape{3, 2}, scalar);
+    Array x = Full(Shape{3, 2}, scalar);
     EXPECT_NE(x.data(), nullptr);
     EXPECT_EQ(x.shape(), Shape({3, 2}));
     EXPECT_EQ(x.dtype(), scalar.dtype());
@@ -406,8 +406,8 @@ TEST_P(ArrayTest, FullLike) {
     using T = int32_t;
     Dtype dtype = TypeToDtype<T>;
     Scalar scalar{int64_t{3}};
-    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
-    Array x = Array::FullLike(x_orig, scalar);
+    Array x_orig = Empty(Shape{3, 2}, dtype);
+    Array x = FullLike(x_orig, scalar);
     EXPECT_NE(x.data(), nullptr);
     EXPECT_NE(x.data(), x_orig.data());
     EXPECT_EQ(x.shape(), x_orig.shape());
@@ -421,7 +421,7 @@ TEST_P(ArrayTest, FullLike) {
 TEST_P(ArrayTest, Zeros) {
     using T = int32_t;
     Dtype dtype = TypeToDtype<T>;
-    Array x = Array::Zeros(Shape{3, 2}, dtype);
+    Array x = Zeros(Shape{3, 2}, dtype);
     EXPECT_NE(x.data(), nullptr);
     EXPECT_EQ(x.shape(), Shape({3, 2}));
     EXPECT_EQ(x.dtype(), dtype);
@@ -434,8 +434,8 @@ TEST_P(ArrayTest, Zeros) {
 TEST_P(ArrayTest, ZerosLike) {
     using T = int32_t;
     Dtype dtype = TypeToDtype<T>;
-    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
-    Array x = Array::ZerosLike(x_orig);
+    Array x_orig = Empty(Shape{3, 2}, dtype);
+    Array x = ZerosLike(x_orig);
     EXPECT_NE(x.data(), nullptr);
     EXPECT_NE(x.data(), x_orig.data());
     EXPECT_EQ(x.shape(), x_orig.shape());
@@ -449,7 +449,7 @@ TEST_P(ArrayTest, ZerosLike) {
 TEST_P(ArrayTest, Ones) {
     using T = int32_t;
     Dtype dtype = TypeToDtype<T>;
-    Array x = Array::Ones(Shape{3, 2}, dtype);
+    Array x = Ones(Shape{3, 2}, dtype);
     EXPECT_NE(x.data(), nullptr);
     EXPECT_EQ(x.shape(), Shape({3, 2}));
     EXPECT_EQ(x.dtype(), dtype);
@@ -462,8 +462,8 @@ TEST_P(ArrayTest, Ones) {
 TEST_P(ArrayTest, OnesLike) {
     using T = int32_t;
     Dtype dtype = TypeToDtype<T>;
-    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
-    Array x = Array::OnesLike(x_orig);
+    Array x_orig = Empty(Shape{3, 2}, dtype);
+    Array x = OnesLike(x_orig);
     EXPECT_NE(x.data(), nullptr);
     EXPECT_NE(x.data(), x_orig.data());
     EXPECT_EQ(x.shape(), x_orig.shape());

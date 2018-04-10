@@ -23,6 +23,7 @@
 #include "xchainer/error.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/op_node.h"
+#include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
 #include "xchainer/testing/device_session.h"
 
@@ -39,13 +40,13 @@ protected:
     void TearDown() override { device_session_.reset(); }
 
 public:
-    Array MakeFullArray(const Shape& shape, float value) const { return Array::Full(shape, value); }
+    Array MakeFullArray(const Shape& shape, float value) const { return Full(shape, value); }
 
     std::vector<Array> MakeFullArrays(const Shape& shape, const std::vector<float>& values) const {
         std::vector<Array> ret;
         ret.reserve(values.size());
         for (float value : values) {
-            ret.emplace_back(Array::Full(shape, value));
+            ret.emplace_back(Full(shape, value));
         }
         return ret;
     }
@@ -179,10 +180,10 @@ TEST_P(BackpropTest, TryBackwardFromArrayWithoutNode) {
 }
 
 TEST_P(BackpropTest, BackwardSoleArrayNode) {
-    auto x = Array::Full({1}, 2.0f);
+    auto x = Full({1}, 2.0f);
     x.RequireGrad();
     Backward(x);
-    auto e = Array::OnesLike(x);
+    auto e = OnesLike(x);
     ExpectEqual<float>(e, *x.GetGrad());
 }
 
@@ -213,10 +214,10 @@ TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     GraphId graph_x = "graph_x";
     GraphId graph_y = "graph_y";
 
-    auto x = Array::Full({1}, 2.0f);
+    auto x = Full({1}, 2.0f);
     x.RequireGrad(graph_x);
 
-    auto y = Array::Full({1}, 3.0f);
+    auto y = Full({1}, 3.0f);
     y.RequireGrad(graph_y);
 
     auto z = x * (x + y);
@@ -229,7 +230,7 @@ TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     auto w = x * gx;
     Backward(w, graph_y);
 
-    auto e = Array::Full({1}, 2.0f);
+    auto e = Full({1}, 2.0f);
     ExpectEqual<float>(e, *y.GetGrad(graph_y));  // x
 }
 
@@ -252,7 +253,7 @@ TEST_P(BackpropTest, BackwardIdenticalIntermediateNodes) {
 
 TEST_P(BackpropTest, BackwardGivenInputGrad) {
     auto fprop = [](auto& xs) {
-        xs[0].SetGrad(Array::OnesLike(xs[0]));
+        xs[0].SetGrad(OnesLike(xs[0]));
         return xs[0].Copy();
     };
     CheckBackpropSingleElement({1.0f}, {2.0f}, fprop);
@@ -261,7 +262,7 @@ TEST_P(BackpropTest, BackwardGivenInputGrad) {
 TEST_P(BackpropTest, BackwardGivenOutputGrad) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * ys[0];
-        z.SetGrad(Array::FullLike(z, 2.0f));
+        z.SetGrad(FullLike(z, 2.0f));
         return z;
     };
     CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {6.0f}, fprop);
@@ -369,8 +370,8 @@ INSTANTIATE_TEST_CASE_P(
 TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
-    Array x1 = Array::Full({2}, 1.f).RequireGrad();
-    Array x2 = Array::Full({2}, 2.f);
+    Array x1 = Full({2}, 1.f).RequireGrad();
+    Array x2 = Full({2}, 2.f);
     Array y1 = x1 + x2;
     Array y2 = x1 * x2;
     Array z = y1 * y2;
@@ -397,8 +398,8 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
 TEST(BackpropEnableDoubleBackpropTest, Disabled) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
-    Array x1 = Array::Full({2}, 1.f).RequireGrad();
-    Array x2 = Array::Full({2}, 2.f);
+    Array x1 = Full({2}, 1.f).RequireGrad();
+    Array x2 = Full({2}, 2.f);
     Array y1 = x1 + x2;
     Array y2 = x1 * x2;
     Array z = y1 * y2;

@@ -58,7 +58,7 @@ TEST_P(SortingTest, ArgMaxInvalidAxis) {
 }
 
 TEST_P(SortingTest, ArgMaxEmpty) {
-    Array a = Array::Zeros({0}, Dtype::kFloat32);
+    Array a = Zeros({0}, Dtype::kFloat32);
     EXPECT_THROW(ArgMax(a), DimensionError);
 }
 

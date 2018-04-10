@@ -52,7 +52,7 @@ TEST_P(MathTest, NegativeBackward) {
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Array::Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3);
 
     CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {Negative(xs[0])}; }, {a}, {go}, {eps});
 }
@@ -63,7 +63,7 @@ TEST_P(MathTest, NegativeDoubleBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Array::Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
@@ -90,7 +90,7 @@ TEST_P(MathTest, IAdd) {
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
         Array a_view = a.At({Slice{}, Slice{1, 2}});
-        Array b = Array::OnesLike(a_view);
+        Array b = OnesLike(a_view);
         Array e_view = testing::BuildArray<int32_t>({3, 1}, {2, 5, 8});
         Array e = testing::BuildArray<int32_t>({3, 3}, {0, 2, 2, 3, 5, 5, 6, 8, 8});
         internal::IAdd(a_view, b);
@@ -101,26 +101,26 @@ TEST_P(MathTest, IAdd) {
     // broadcast
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3, 1}, Dtype::kInt32);
+        Array b = Ones({3, 1}, Dtype::kInt32);
         Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(1);
         internal::IAdd(a, b);
         testing::ExpectEqual(e, a);
     }
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3}, Dtype::kInt32);
+        Array b = Ones({3}, Dtype::kInt32);
         Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(1);
         internal::IAdd(a, b);
         testing::ExpectEqual(e, a);
     }
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({4}, Dtype::kInt32);
+        Array b = Ones({4}, Dtype::kInt32);
         EXPECT_THROW(internal::IAdd(a, b), XchainerError);
     }
     {
         Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3, 3}, Dtype::kInt32);
+        Array b = Ones({3, 3}, Dtype::kInt32);
         EXPECT_THROW(internal::IAdd(a, b), XchainerError);
     }
 }
@@ -139,7 +139,7 @@ TEST_P(MathTest, ISubtract) {
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
         Array a_view = a.At({Slice{}, Slice{1, 2}});
-        Array b = Array::OnesLike(a_view);
+        Array b = OnesLike(a_view);
         Array e_view = testing::BuildArray<int32_t>({3, 1}, {0, 3, 6});
         Array e = testing::BuildArray<int32_t>({3, 3}, {0, 0, 2, 3, 3, 5, 6, 6, 8});
         internal::ISubtract(a_view, b);
@@ -150,26 +150,26 @@ TEST_P(MathTest, ISubtract) {
     // broadcast
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3, 1}, Dtype::kInt32);
+        Array b = Ones({3, 1}, Dtype::kInt32);
         Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(-1);
         internal::ISubtract(a, b);
         testing::ExpectEqual(e, a);
     }
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3}, Dtype::kInt32);
+        Array b = Ones({3}, Dtype::kInt32);
         Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(-1);
         internal::ISubtract(a, b);
         testing::ExpectEqual(e, a);
     }
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({4}, Dtype::kInt32);
+        Array b = Ones({4}, Dtype::kInt32);
         EXPECT_THROW(internal::ISubtract(a, b), XchainerError);
     }
     {
         Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3, 3}, Dtype::kInt32);
+        Array b = Ones({3, 3}, Dtype::kInt32);
         EXPECT_THROW(internal::ISubtract(a, b), XchainerError);
     }
 }
@@ -188,7 +188,7 @@ TEST_P(MathTest, IMultiply) {
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
         Array a_view = a.At({Slice{}, Slice{1, 2}});
-        Array b = Array::FullLike(a_view, 2);
+        Array b = FullLike(a_view, 2);
         Array e = testing::BuildArray<int32_t>({3, 3}, {0, 2, 2, 3, 8, 5, 6, 14, 8});
         Array e_view = testing::BuildArray<int32_t>({3, 1}, {2, 8, 14});
         internal::IMultiply(a_view, b);
@@ -199,27 +199,27 @@ TEST_P(MathTest, IMultiply) {
     // broadcast
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Full({3, 1}, 2, Dtype::kInt32);
+        Array b = Full({3, 1}, 2, Dtype::kInt32);
         Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(0, 2);
         internal::IMultiply(a, b);
         testing::ExpectEqual(e, a);
     }
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Full({3}, 2, Dtype::kInt32);
+        Array b = Full({3}, 2, Dtype::kInt32);
         Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(0, 2);
         internal::IMultiply(a, b);
         testing::ExpectEqual(e, a);
     }
     {
         Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
-        Array b = Array::Full({3, 3}, 2, Dtype::kInt32);
+        Array b = Full({3, 3}, 2, Dtype::kInt32);
         Array e = testing::BuildArray<int32_t>({3, 3}, {0, 2, 4, 0, 2, 4, 0, 2, 4});
         EXPECT_THROW(internal::IMultiply(a, b), XchainerError);
     }
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Full({4}, 2, Dtype::kInt32);
+        Array b = Full({4}, 2, Dtype::kInt32);
         EXPECT_THROW(internal::IMultiply(a, b), XchainerError);
     }
 }
@@ -234,7 +234,7 @@ TEST_P(MathTest, IDivide) {
 
 TEST_P(MathTest, IDivideBroadcast1) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<float>().WithPadding(1);
-    Array b = Array::Full({3, 1}, 2.0f, Dtype::kFloat32);
+    Array b = Full({3, 1}, 2.0f, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 3}).WithLinearData<float>(0, 0.5f);
     internal::IDivide(a, b);
     testing::ExpectEqual(e, a);
@@ -242,7 +242,7 @@ TEST_P(MathTest, IDivideBroadcast1) {
 
 TEST_P(MathTest, IDivideBroacast2) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<float>().WithPadding(1);
-    Array b = Array::Full({3}, 2.0f, Dtype::kFloat32);
+    Array b = Full({3}, 2.0f, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 3}).WithLinearData<float>(0, 0.5f);
     internal::IDivide(a, b);
     testing::ExpectEqual(e, a);
@@ -250,13 +250,13 @@ TEST_P(MathTest, IDivideBroacast2) {
 
 TEST_P(MathTest, IDivideInvalidBroadcast1) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<float>();
-    Array b = Array::Full({4}, 2.0f, Dtype::kFloat32);
+    Array b = Full({4}, 2.0f, Dtype::kFloat32);
     EXPECT_THROW(internal::IDivide(a, b), XchainerError);
 }
 
 TEST_P(MathTest, IDivideInvalidBroadcast2) {
     Array a = testing::BuildArray({3}).WithLinearData<float>();
-    Array b = Array::Ones({3, 3}, Dtype::kFloat32);
+    Array b = Ones({3, 3}, Dtype::kFloat32);
     EXPECT_THROW(internal::IDivide(a, b), XchainerError);
 }
 
@@ -275,7 +275,7 @@ TEST_P(MathTest, Add) {
     // non-contiguous
     {
         Array a = Array(testing::BuildArray({3, 3}).WithLinearData<int32_t>()).At({Slice{}, Slice{1, 2}});
-        Array b = Array::OnesLike(a);
+        Array b = OnesLike(a);
         Array e = testing::BuildArray<int32_t>({3, 1}, {2, 5, 8});
         Array o = Add(a, b);
         testing::ExpectEqual(e, o);
@@ -284,21 +284,21 @@ TEST_P(MathTest, Add) {
     // broadcast
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3, 1}, Dtype::kInt32);
+        Array b = Ones({3, 1}, Dtype::kInt32);
         Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(1);
         Array o = Add(a, b);
         testing::ExpectEqual(e, o);
     }
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3}, Dtype::kInt32);
+        Array b = Ones({3}, Dtype::kInt32);
         Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(1);
         Array o = Add(a, b);
         testing::ExpectEqual(e, o);
     }
     {
         Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({3, 3}, Dtype::kInt32);
+        Array b = Ones({3, 3}, Dtype::kInt32);
         Array e = testing::BuildArray<int32_t>({3, 3}, {1, 2, 3, 1, 2, 3, 1, 2, 3});
         Array o = Add(a, b);
         testing::ExpectEqual(e, o);
@@ -312,7 +312,7 @@ TEST_P(MathTest, Add) {
     }
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Ones({4}, Dtype::kInt32);
+        Array b = Ones({4}, Dtype::kInt32);
         EXPECT_THROW(Add(a, b), XchainerError);
     }
 }
@@ -327,7 +327,7 @@ TEST_P(MathTest, Subtract) {
 
 TEST_P(MathTest, SubtractBroadcast1) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-    Array b = Array::Ones({3, 1}, Dtype::kInt32);
+    Array b = Ones({3, 1}, Dtype::kInt32);
     Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(-1);
     Array o = Subtract(a, b);
     testing::ExpectEqual(e, o);
@@ -335,7 +335,7 @@ TEST_P(MathTest, SubtractBroadcast1) {
 
 TEST_P(MathTest, SubtractBroadcast2) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-    Array b = Array::Ones({3}, Dtype::kInt32);
+    Array b = Ones({3}, Dtype::kInt32);
     Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(-1);
     Array o = Subtract(a, b);
     testing::ExpectEqual(e, o);
@@ -343,7 +343,7 @@ TEST_P(MathTest, SubtractBroadcast2) {
 
 TEST_P(MathTest, SubtractBroadcast3) {
     Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
-    Array b = Array::Ones({3, 3}, Dtype::kInt32);
+    Array b = Ones({3, 3}, Dtype::kInt32);
     Array e = testing::BuildArray<int32_t>({3, 3}, {-1, 0, 1, -1, 0, 1, -1, 0, 1});
     Array o = Subtract(a, b);
     testing::ExpectEqual(e, o);
@@ -359,7 +359,7 @@ TEST_P(MathTest, SubtractBroadcast4) {
 
 TEST_P(MathTest, SubtractInvalidBroadcast) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-    Array b = Array::Ones({4}, Dtype::kInt32);
+    Array b = Ones({4}, Dtype::kInt32);
     EXPECT_THROW(Subtract(a, b), XchainerError);
 }
 
@@ -385,7 +385,7 @@ TEST_P(MathTest, MultiplyScalarBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Scalar s{T{2.0}};
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Array::Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1);
 
     // array * scalar
     CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Multiply(xs[0], s)}; }, {a}, {go}, {eps});
@@ -400,7 +400,7 @@ TEST_P(MathTest, MultiplyScalarDoubleBackward) {
     Scalar s{T{2.0}};
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
-    Array eps = Array::Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1);
 
     // array * scalar
     CheckDoubleBackwardComputation(
@@ -437,7 +437,7 @@ TEST_P(MathTest, Multiply) {
     // non-contiguous
     {
         Array a = Array(testing::BuildArray({3, 3}).WithLinearData<int32_t>()).At({Slice{}, Slice{1, 2}});
-        Array b = Array::FullLike(a, 2);
+        Array b = FullLike(a, 2);
         Array e = testing::BuildArray<int32_t>({3, 1}, {2, 8, 14});
         Array o = Multiply(a, b);
         testing::ExpectEqual(e, o);
@@ -446,21 +446,21 @@ TEST_P(MathTest, Multiply) {
     // broadcast
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Full({3, 1}, 2, Dtype::kInt32);
+        Array b = Full({3, 1}, 2, Dtype::kInt32);
         Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(0, 2);
         Array o = Multiply(a, b);
         testing::ExpectEqual(e, o);
     }
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Full({3}, 2, Dtype::kInt32);
+        Array b = Full({3}, 2, Dtype::kInt32);
         Array e = testing::BuildArray({3, 3}).WithLinearData<int32_t>(0, 2);
         Array o = Multiply(a, b);
         testing::ExpectEqual(e, o);
     }
     {
         Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
-        Array b = Array::Full({3, 3}, 2, Dtype::kInt32);
+        Array b = Full({3, 3}, 2, Dtype::kInt32);
         Array e = testing::BuildArray<int32_t>({3, 3}, {0, 2, 4, 0, 2, 4, 0, 2, 4});
         Array o = Multiply(a, b);
         testing::ExpectEqual(e, o);
@@ -474,7 +474,7 @@ TEST_P(MathTest, Multiply) {
     }
     {
         Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
-        Array b = Array::Full({4}, 2, Dtype::kInt32);
+        Array b = Full({4}, 2, Dtype::kInt32);
         EXPECT_THROW(Multiply(a, b), XchainerError);
     }
 }
@@ -489,7 +489,7 @@ TEST_P(MathTest, Divide) {
 
 TEST_P(MathTest, DivideBroadcast1) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<float>().WithPadding(1);
-    Array b = Array::Full({3, 1}, 2.0f, Dtype::kFloat32);
+    Array b = Full({3, 1}, 2.0f, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 3}).WithLinearData<float>(0, 0.5f);
     Array o = Divide(a, b);
     testing::ExpectEqual(e, o);
@@ -497,7 +497,7 @@ TEST_P(MathTest, DivideBroadcast1) {
 
 TEST_P(MathTest, DivideBroadcast2) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<float>().WithPadding(1);
-    Array b = Array::Full({3}, 2.0f, Dtype::kFloat32);
+    Array b = Full({3}, 2.0f, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 3}).WithLinearData<float>(0, 0.5f);
     Array o = Divide(a, b);
     testing::ExpectEqual(e, o);
@@ -505,7 +505,7 @@ TEST_P(MathTest, DivideBroadcast2) {
 
 TEST_P(MathTest, DivideBroadcast3) {
     Array a = testing::BuildArray({3}).WithLinearData<float>().WithPadding(1);
-    Array b = Array::Full({3, 3}, 2.0f, Dtype::kFloat32);
+    Array b = Full({3, 3}, 2.0f, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 3}).WithData<float>({0.0f, 0.5f, 1.0f, 0.0f, 0.5f, 1.0f, 0.0f, 0.5f, 1.0f});
     Array o = Divide(a, b);
     testing::ExpectEqual(e, o);
@@ -513,7 +513,7 @@ TEST_P(MathTest, DivideBroadcast3) {
 
 TEST_P(MathTest, DivideBroadcast4) {
     Array a = testing::BuildArray({3, 1}).WithLinearData<float>().WithPadding(1);
-    Array b = Array::Full({1, 2}, 2.0f, Dtype::kFloat32);
+    Array b = Full({1, 2}, 2.0f, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 2}).WithData<float>({0.0f, 0.0f, 0.5f, 0.5f, 1.0f, 1.0f});
     Array o = Divide(a, b);
     testing::ExpectEqual(e, o);
@@ -521,7 +521,7 @@ TEST_P(MathTest, DivideBroadcast4) {
 
 TEST_P(MathTest, DivideInvalidBroadcast) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<float>();
-    Array b = Array::Ones({4}, Dtype::kFloat32);
+    Array b = Ones({4}, Dtype::kFloat32);
     EXPECT_THROW(Divide(a, b), XchainerError);
 }
 
@@ -531,7 +531,7 @@ TEST_P(MathTest, DivideBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
     Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
-    Array eps = Array::Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3);
 
     CheckBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
@@ -544,7 +544,7 @@ TEST_P(MathTest, DivideDoubleBackward) {
     Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(4);
-    Array eps = Array::Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], xs[1])}; },
@@ -667,7 +667,7 @@ TEST_P(MathTest, SumBackward) {
             },
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)},
-            {Array::Full({2, 3, 4, 3}, 1e-1)});
+            {Full({2, 3, 4, 3}, 1e-1)});
 }
 
 TEST_P(MathTest, SumDoubleBackward_Keepdims) {
@@ -681,7 +681,7 @@ TEST_P(MathTest, SumDoubleBackward_Keepdims) {
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 1, 4, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
-            {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 1, 4, 1}, 1e-1)});
+            {Full({2, 3, 4, 3}, 1e-1), Full({2, 1, 4, 1}, 1e-1)});
 }
 
 TEST_P(MathTest, SumDoubleBackward_NoKeepdims) {
@@ -695,7 +695,7 @@ TEST_P(MathTest, SumDoubleBackward_NoKeepdims) {
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
-            {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 4}, 1e-1)});
+            {Full({2, 3, 4, 3}, 1e-1), Full({2, 4}, 1e-1)});
 }
 
 TEST_P(MathTest, AMax) {
@@ -753,7 +753,7 @@ TEST_P(MathTest, MaximumScalarBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Scalar s{T{0.2}};
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Array::Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1);
 
     // Maximum(array, scalar)
     CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Maximum(xs[0], s)}; }, {a}, {go}, {eps});
@@ -768,7 +768,7 @@ TEST_P(MathTest, MaximumScalarDoubleBackward) {
     Scalar s{T{0.2}};
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
-    Array eps = Array::Full(shape, 1e-1);
+    Array eps = Full(shape, 1e-1);
 
     // Maximum(array, scalar)
     CheckDoubleBackwardComputation(
@@ -805,7 +805,7 @@ TEST_P(MathTest, ExpBackward) {
     Shape shape{2, 3};
     Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Array::Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3);
 
     CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {Exp(xs[0])}; }, {a}, {go}, {eps});
 }
@@ -816,7 +816,7 @@ TEST_P(MathTest, ExpDoubleBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
-    Array eps = Array::Full(shape, 1e-3);
+    Array eps = Full(shape, 1e-3);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Exp(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});

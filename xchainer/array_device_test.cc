@@ -18,6 +18,7 @@
 #include "xchainer/device.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/native/native_device.h"
+#include "xchainer/routines/creation.h"
 #include "xchainer/testing/context_session.h"
 
 namespace xchainer {
@@ -114,32 +115,32 @@ TEST_F(ArrayDeviceTest, FromContiguousHostData) {
 TEST_F(ArrayDeviceTest, Empty) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
-    CheckDeviceFallback([&]() { return Array::Empty(shape, dtype); });
-    CheckDeviceExplicit([&](Device& device) { return Array::Empty(shape, dtype, device); });
+    CheckDeviceFallback([&]() { return Empty(shape, dtype); });
+    CheckDeviceExplicit([&](Device& device) { return Empty(shape, dtype, device); });
 }
 
 TEST_F(ArrayDeviceTest, Full) {
     Shape shape({2, 3});
     Scalar scalar{2.f};
     Dtype dtype = Dtype::kFloat32;
-    CheckDeviceFallback([&]() { return Array::Full(shape, scalar, dtype); });
-    CheckDeviceFallback([&]() { return Array::Full(shape, scalar); });
-    CheckDeviceExplicit([&](Device& device) { return Array::Full(shape, scalar, dtype, device); });
-    CheckDeviceExplicit([&](Device& device) { return Array::Full(shape, scalar, device); });
+    CheckDeviceFallback([&]() { return Full(shape, scalar, dtype); });
+    CheckDeviceFallback([&]() { return Full(shape, scalar); });
+    CheckDeviceExplicit([&](Device& device) { return Full(shape, scalar, dtype, device); });
+    CheckDeviceExplicit([&](Device& device) { return Full(shape, scalar, device); });
 }
 
 TEST_F(ArrayDeviceTest, Zeros) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
-    CheckDeviceFallback([&]() { return Array::Zeros(shape, dtype); });
-    CheckDeviceExplicit([&](Device& device) { return Array::Zeros(shape, dtype, device); });
+    CheckDeviceFallback([&]() { return Zeros(shape, dtype); });
+    CheckDeviceExplicit([&](Device& device) { return Zeros(shape, dtype, device); });
 }
 
 TEST_F(ArrayDeviceTest, Ones) {
     Shape shape({2, 3});
     Dtype dtype = Dtype::kFloat32;
-    CheckDeviceFallback([&]() { return Array::Ones(shape, dtype); });
-    CheckDeviceExplicit([&](Device& device) { return Array::Ones(shape, dtype, device); });
+    CheckDeviceFallback([&]() { return Ones(shape, dtype); });
+    CheckDeviceExplicit([&](Device& device) { return Ones(shape, dtype, device); });
 }
 
 TEST_F(ArrayDeviceTest, EmptyLike) {
@@ -147,14 +148,14 @@ TEST_F(ArrayDeviceTest, EmptyLike) {
     Dtype dtype = Dtype::kFloat32;
 
     CheckDeviceFallback([&]() {
-        Array array_orig = Array::Empty(shape, dtype);
-        return Array::EmptyLike(array_orig);
+        Array array_orig = Empty(shape, dtype);
+        return EmptyLike(array_orig);
     });
     CheckDeviceExplicit([&](Device& device) {
         native::NativeBackend native_backend{device.context()};
         native::NativeDevice cpu_device{native_backend, 0};
-        Array array_orig = Array::Empty(shape, dtype, cpu_device);
-        return Array::EmptyLike(array_orig, device);
+        Array array_orig = Empty(shape, dtype, cpu_device);
+        return EmptyLike(array_orig, device);
     });
 }
 
@@ -164,14 +165,14 @@ TEST_F(ArrayDeviceTest, FullLike) {
     Dtype dtype = Dtype::kFloat32;
 
     CheckDeviceFallback([&]() {
-        Array array_orig = Array::Empty(shape, dtype);
-        return Array::FullLike(array_orig, scalar);
+        Array array_orig = Empty(shape, dtype);
+        return FullLike(array_orig, scalar);
     });
     CheckDeviceExplicit([&](Device& device) {
         native::NativeBackend native_backend{device.context()};
         native::NativeDevice cpu_device{native_backend, 0};
-        Array array_orig = Array::Empty(shape, dtype, cpu_device);
-        return Array::FullLike(array_orig, scalar, device);
+        Array array_orig = Empty(shape, dtype, cpu_device);
+        return FullLike(array_orig, scalar, device);
     });
 }
 
@@ -180,14 +181,14 @@ TEST_F(ArrayDeviceTest, ZerosLike) {
     Dtype dtype = Dtype::kFloat32;
 
     CheckDeviceFallback([&]() {
-        Array array_orig = Array::Empty(shape, dtype);
-        return Array::ZerosLike(array_orig);
+        Array array_orig = Empty(shape, dtype);
+        return ZerosLike(array_orig);
     });
     CheckDeviceExplicit([&](Device& device) {
         native::NativeBackend native_backend{device.context()};
         native::NativeDevice cpu_device{native_backend, 0};
-        Array array_orig = Array::Empty(shape, dtype, cpu_device);
-        return Array::ZerosLike(array_orig, device);
+        Array array_orig = Empty(shape, dtype, cpu_device);
+        return ZerosLike(array_orig, device);
     });
 }
 
@@ -196,14 +197,14 @@ TEST_F(ArrayDeviceTest, OnesLike) {
     Dtype dtype = Dtype::kFloat32;
 
     CheckDeviceFallback([&]() {
-        Array array_orig = Array::Empty(shape, dtype);
-        return Array::OnesLike(array_orig);
+        Array array_orig = Empty(shape, dtype);
+        return OnesLike(array_orig);
     });
     CheckDeviceExplicit([&](Device& device) {
         native::NativeBackend native_backend{device.context()};
         native::NativeDevice cpu_device{native_backend, 0};
-        Array array_orig = Array::Empty(shape, dtype, cpu_device);
-        return Array::OnesLike(array_orig, device);
+        Array array_orig = Empty(shape, dtype, cpu_device);
+        return OnesLike(array_orig, device);
     });
 }
 
@@ -216,9 +217,9 @@ TEST_F(ArrayDeviceTest, CheckDevicesCompatibleBasicArithmetics) {
     native::NativeDevice cpu_device_0{native_backend, 0};
     native::NativeDevice cpu_device_1{native_backend, 1};
 
-    Array a_device_0 = Array::Empty(shape, dtype, cpu_device_0);
-    Array b_device_0 = Array::Empty(shape, dtype, cpu_device_0);
-    Array c_device_1 = Array::Empty(shape, dtype, cpu_device_1);
+    Array a_device_0 = Empty(shape, dtype, cpu_device_0);
+    Array b_device_0 = Empty(shape, dtype, cpu_device_0);
+    Array c_device_1 = Empty(shape, dtype, cpu_device_1);
 
     // Switches default devices
     Device* default_devices[] = {&cpu_device_0, &cpu_device_1};

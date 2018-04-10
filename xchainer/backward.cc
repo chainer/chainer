@@ -13,6 +13,7 @@
 #include "xchainer/array_node.h"
 #include "xchainer/error.h"
 #include "xchainer/op_node.h"
+#include "xchainer/routines/creation.h"
 
 namespace xchainer {
 namespace {
@@ -39,7 +40,7 @@ public:
             const std::shared_ptr<ArrayNode>& array_node = output_array_nodes_[i];
 
             if (!array_node->grad()) {
-                array_node->set_grad(Array::OnesLike(output, output.device()));
+                array_node->set_grad(OnesLike(output, output.device()));
             }
             PushNextOpNode(array_node);
         }

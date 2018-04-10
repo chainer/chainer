@@ -62,7 +62,7 @@ const Array& IAdd(const Array& x1, const Array& x2) { return AddAssignImpl(x1, x
 
 Array Add(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
-        Array out = Array::EmptyLike(x1, x1.device());
+        Array out = EmptyLike(x1, x1.device());
         AddImpl(x1, x2, out);
         return out;
     };
@@ -120,7 +120,7 @@ const Array& ISubtract(const Array& x1, const Array& x2) { return SubtractAssign
 
 Array Subtract(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
-        Array out = Array::EmptyLike(x1, x1.device());
+        Array out = EmptyLike(x1, x1.device());
         SubtractImpl(x1, x2, out);
         return out;
     };
@@ -182,7 +182,7 @@ const Array& IMultiply(const Array& x1, const Array& x2) { return MultiplyAssign
 
 Array Multiply(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
-        Array out = Array::EmptyLike(x1, x1.device());
+        Array out = EmptyLike(x1, x1.device());
         MultiplyImpl(x1, x2, out);
         return out;
     };
@@ -201,7 +201,7 @@ Array Multiply(const Array& x1, const Array& x2) {
 }
 
 Array Multiply(const Array& x1, Scalar x2) {
-    Array out = Array::EmptyLike(x1, x1.device());
+    Array out = EmptyLike(x1, x1.device());
     x1.device().MultiplyAS(x1, x2, out);
 
     auto backward_function = [x2](const Array& gout, const std::vector<GraphId>&) { return gout * x2; };
@@ -256,7 +256,7 @@ const Array& IDivide(const Array& x1, const Array& x2) { return DivideAssignImpl
 
 Array Divide(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
-        Array out = Array::EmptyLike(x1, x1.device());
+        Array out = EmptyLike(x1, x1.device());
         DivideImpl(x1, x2, out);
         return out;
     };
@@ -350,7 +350,7 @@ namespace {
 // Calculates: x1 < x2 ? pos : neg
 // Can only differentiate with respect to neg.
 Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
-    Array out = Array::EmptyLike(x1, x1.device());
+    Array out = EmptyLike(x1, x1.device());
     x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
 
     auto backward_function = [x1, x2](const Array& gout, const std::vector<GraphId>&) {
@@ -370,7 +370,7 @@ Array Maximum(const Array& x1, Scalar x2) {
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 
 Array Exp(const Array& x) {
-    Array out = Array::EmptyLike(x, x.device());
+    Array out = EmptyLike(x, x.device());
     x.device().Exp(x, out);
 
     auto backward_function = [x](const Array& gout, const std::vector<GraphId>&) { return Exp(x) * gout; };
@@ -380,7 +380,7 @@ Array Exp(const Array& x) {
 }
 
 Array Log(const Array& x) {
-    Array out = Array::EmptyLike(x, x.device());
+    Array out = EmptyLike(x, x.device());
     x.device().Log(x, out);
     // TODO(niboshi): Implement backward
     return out;

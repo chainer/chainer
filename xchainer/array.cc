@@ -223,7 +223,7 @@ Array Array::ToNative() const {
 Array Array::AsConstant(CopyKind kind) const {
     switch (kind) {
         case CopyKind::kCopy: {
-            Array out = Array::EmptyLike(*this, device());
+            Array out = EmptyLike(*this, device());
             device().Copy(*this, out);
 
             assert(out.IsContiguous());
@@ -239,7 +239,7 @@ Array Array::AsConstant(CopyKind kind) const {
 Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) const {
     switch (kind) {
         case CopyKind::kCopy: {
-            Array out = Array::EmptyLike(*this, device());
+            Array out = EmptyLike(*this, device());
             internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }}, graph_ids);
             device().Copy(*this, out);
 

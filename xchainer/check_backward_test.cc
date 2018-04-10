@@ -30,7 +30,7 @@ using Fprop = std::function<std::vector<Array>(const std::vector<Array>&)>;
 
 Arrays ForwardWithIncorrectBackward(const Arrays& inputs) {
     const Array& in = inputs[0];
-    Array out = Array::EmptyLike(in);
+    Array out = EmptyLike(in);
 
     auto backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout * gout; };
     internal::SetUpOpNodes("incorrect_unary", {in}, out, {backward_function});
