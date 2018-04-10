@@ -45,8 +45,8 @@ def im2col_nd_cpu(img, ksize, stride, pad, dilate, pval=0, cover_all=False):
         kx_lims = tuple(kx_di + s * out
                         for (kx_di, s, out) in zip(kx_dilate, stride, outs))
         img_index = (colon, colon) + tuple(
-            slice(kx, kx_lim, s)
-            for (kx, kx_lim, s) in zip(kxs, kx_lims, stride))
+            slice(kx_di, kx_lim, s)
+            for (kx_di, kx_lim, s) in zip(kx_dilate, kx_lims, stride))
         col[col_index] = img[img_index]
 
     return col
@@ -95,8 +95,8 @@ def col2im_nd_cpu(col, stride, pad, dilate, dims):
         kx_lims = tuple(kx_di + s * out
                         for (kx_di, s, out) in zip(kx_dilate, stride, outs))
         img_index = (colon, colon) + tuple(
-            slice(kx, kx_lim, s)
-            for (kx, kx_lim, s) in zip(kxs, kx_lims, stride))
+            slice(kx_di, kx_lim, s)
+            for (kx_di, kx_lim, s) in zip(kx_dilate, kx_lims, stride))
         # (:, :, kx_1, kx_2, ..., kx_N, :, :, ..., :)
         col_index = (colon, colon) + kxs + (colon,) * len(outs)
         img[img_index] += col[col_index]
