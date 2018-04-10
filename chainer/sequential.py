@@ -80,23 +80,34 @@ class Sequential(link.ChainList):
         (``VGG16Layers``) and finally add a lambda function to extract the
         ``prob`` output.
 
-        Note that a :class:`~Sequential` link which has at least one ``lambda``
-        function as its member cannot be pickled. So, please use ``partial``
-        method from ``functools`` package instead::
+        You can check the structure of your model briefly using ``print``
+        as following::
 
-          from functools import partial
+          >>> print(model_C)
+          0       Linear	W(10, 10)	b(10,)
+          1       relu
+          2       Linear	W(10, 10)	b(10,)
+          3       sigmoid
 
-          # This is not pickable
-          model = Sequential(
-              L.Convolution2D(None, 64, 3, 1, 1),
-              lambda x: F.max_pooling_2d(x, 2)
-          )
+        .. note::
 
-          # This is pickable
-          model = Sequential(
-              L.Convolution2D(None, 64, 3, 1, 1),
-              partial(F.max_pooling_2d, ksize=2)
-          )
+            Note that a :class:`~Sequential` link which has at least one
+            ``lambda`` function as its member cannot be pickled. So, please
+            use ``partial`` method from ``functools`` package instead::
+
+              from functools import partial
+
+              # This is not pickable
+              model = Sequential(
+                  L.Convolution2D(None, 64, 3, 1, 1),
+                  lambda x: F.max_pooling_2d(x, 2)
+              )
+
+              # This is pickable
+              model = Sequential(
+                  L.Convolution2D(None, 64, 3, 1, 1),
+                  partial(F.max_pooling_2d, ksize=2)
+              )
 
     Args:
         layers: The layers which are called in its order. Each component should
@@ -381,21 +392,23 @@ class Sequential(link.ChainList):
 
         .. admonition:: Example
 
-            >> import chainer
-            >> import chainer.functions as F
-            >> import chainer.links as L
-            >> a = chainer.Sequential(L.Linear(None, 10), F.relu)
-            >> b = chainer.Sequential(L.Linear(None, 10), F.relu)
-            >> a.append(b)
-            >> print(a)  # Without flatten
-            0       Linear  W(None) b(10,)
-            1       relu
-            2       Sequential      which has 2 layers
-            >> print(a.flatten())  # With flatten
-            0       Linear  W(None) b(10,)
-            1       relu
-            2       Linear  W(None) b(10,)
-            3       relu
+            .. code-block:: python
+
+                >>> import chainer
+                >>> import chainer.functions as F
+                >>> import chainer.links as L
+                >>> a = chainer.Sequential(L.Linear(None, 10), F.relu)
+                >>> b = chainer.Sequential(L.Linear(None, 10), F.relu)
+                >>> a.append(b)
+                >>> print(a)  # Without flatten
+                0       Linear  W(None) b(10,)
+                1       relu
+                2       Sequential      which has 2 layers
+                >>> print(a.flatten())  # With flatten
+                0       Linear  W(None) b(10,)
+                1       relu
+                2       Linear  W(None) b(10,)
+                3       relu
 
         """
         ret = Sequential()
