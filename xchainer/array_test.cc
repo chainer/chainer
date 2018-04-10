@@ -224,7 +224,7 @@ TEST_P(ArrayTest, ArrayFromContiguousHostData) {
     std::shared_ptr<T> data{&raw_data[0], [](const T*) {}};
 
     Dtype dtype = TypeToDtype<T>;
-    Array x = Array::FromContiguousHostData(shape, dtype, data);
+    Array x = internal::FromContiguousHostData(shape, dtype, data);
 
     // Basic attributes
     EXPECT_EQ(shape, x.shape());

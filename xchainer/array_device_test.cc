@@ -108,8 +108,8 @@ TEST_F(ArrayDeviceTest, FromContiguousHostData) {
     std::shared_ptr<void> data(raw_data, [](const float* ptr) {
         (void)ptr;  // unused
     });
-    CheckDeviceFallback([&]() { return Array::FromContiguousHostData(shape, dtype, data); });
-    CheckDeviceExplicit([&](Device& device) { return Array::FromContiguousHostData(shape, dtype, data, device); });
+    CheckDeviceFallback([&]() { return internal::FromContiguousHostData(shape, dtype, data); });
+    CheckDeviceExplicit([&](Device& device) { return internal::FromContiguousHostData(shape, dtype, data, device); });
 }
 
 TEST_F(ArrayDeviceTest, Empty) {

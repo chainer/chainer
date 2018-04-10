@@ -98,7 +98,7 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
 
-    return Array::FromContiguousHostData(shape, dtype, ptr, device).move_body();
+    return xchainer::internal::FromContiguousHostData(shape, dtype, ptr, device).move_body();
 }
 
 ArrayBodyPtr MakeArray(py::array array, Device& device) {
