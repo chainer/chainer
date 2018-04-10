@@ -13,6 +13,8 @@
 #include "xchainer/routines/util.h"
 #include "xchainer/scalar.h"
 
+void xchainer_debug_breakpoint() {}
+
 namespace xchainer {
 
 Array Negative(const Array& x) {
@@ -322,6 +324,7 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
             for (auto axis : sorted_axis) {
                 out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
             }
+            xchainer_debug_breakpoint();
             return gout.Reshape({out_shape_broadcastable.begin(), out_shape_broadcastable.end()}).BroadcastTo(in_shape);
         }
         return gout.BroadcastTo(in_shape);

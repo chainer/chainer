@@ -130,7 +130,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
                 reduced_shape[i_dim] /= dim;
                 last_stride = reduced_shape[i_dim] * reduced_strides[i_dim];
                 strides_vec.push_back(last_stride);
-                if (reduced_strides[i_dim] == 1) {
+                if (reduced_shape[i_dim] == 1) {
                     ++i_dim;
                 }
             }
