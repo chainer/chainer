@@ -382,7 +382,10 @@ Array Exp(const Array& x) {
 Array Log(const Array& x) {
     Array out = Array::EmptyLike(x, x.device());
     x.device().Log(x, out);
-    // TODO(niboshi): Implement backward
+
+    auto backward_function = [x](const Array& gout, const std::vector<GraphId>&) { return gout / x; };
+    internal::SetUpOpNodes("log", {x}, out, {backward_function});
+
     return out;
 }
 
