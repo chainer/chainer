@@ -18,9 +18,9 @@ using GetSortedAxesNormalTestParam = std::tuple<std::vector<int8_t>, int8_t, std
 class GetSortedAxesNormalTest : public ::testing::TestWithParam<GetSortedAxesNormalTestParam> {};
 
 TEST_P(GetSortedAxesNormalTest, Check) {
-    auto axis = std::get<0>(GetParam());
-    auto ndim = std::get<1>(GetParam());
-    auto expect = std::get<2>(GetParam());
+    const auto& axis = std::get<0>(GetParam());
+    int8_t ndim = std::get<1>(GetParam());
+    const auto& expect = std::get<2>(GetParam());
     EXPECT_EQ(expect, GetSortedAxes(axis, ndim));
     EXPECT_EQ(expect, GetSortedAxesOrAll(axis, ndim));
 }
@@ -40,8 +40,8 @@ using GetSortedAxesInvalidTestParam = std::tuple<std::vector<int8_t>, int8_t>;
 class GetSortedAxesInvalidTest : public ::testing::TestWithParam<GetSortedAxesInvalidTestParam> {};
 
 TEST_P(GetSortedAxesInvalidTest, Invalid) {
-    auto axis = std::get<0>(GetParam());
-    auto ndim = std::get<1>(GetParam());
+    const auto& axis = std::get<0>(GetParam());
+    int8_t ndim = std::get<1>(GetParam());
     EXPECT_THROW(GetSortedAxes(axis, ndim), DimensionError);
     EXPECT_THROW(GetSortedAxesOrAll(axis, ndim), DimensionError);
 }
@@ -61,8 +61,8 @@ using GetSortedAxesOrAllTestParam = std::tuple<int8_t, std::vector<int8_t>>;
 class GetSortedAxesOrAllTest : public ::testing::TestWithParam<GetSortedAxesOrAllTestParam> {};
 
 TEST_P(GetSortedAxesOrAllTest, All) {
-    auto axis = std::get<0>(GetParam());
-    auto expect = std::get<1>(GetParam());
+    int8_t axis = std::get<0>(GetParam());
+    const auto& expect = std::get<1>(GetParam());
     EXPECT_EQ(expect, GetSortedAxesOrAll(nonstd::nullopt, axis));
 }
 
