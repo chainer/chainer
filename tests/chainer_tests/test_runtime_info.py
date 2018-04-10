@@ -4,6 +4,7 @@ import six
 
 import chainer
 from chainer import _runtime_info
+from chainer import testing
 
 
 class TestRuntimeInfo(unittest.TestCase):
@@ -15,3 +16,6 @@ class TestRuntimeInfo(unittest.TestCase):
         out = six.StringIO()
         _runtime_info.print_runtime_info(out)
         assert out.getvalue() == str(_runtime_info.get_runtime_info())
+
+
+testing.run_module(__name__, __file__)
