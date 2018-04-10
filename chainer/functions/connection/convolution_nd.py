@@ -63,10 +63,10 @@ class ConvolutionND(function_node.FunctionNode):
         # Make patch array.
         if xp is numpy:
             col = conv_nd.im2col_nd_cpu(
-                x, ksize, stride, pad, dilate, cover_all=self.cover_all)
+                x, ksize, stride, pad, cover_all=self.cover_all, dilate=dilate)
         else:
             col = conv_nd.im2col_nd_gpu(
-                x, ksize, stride, pad, dilate, cover_all=self.cover_all)
+                x, ksize, stride, pad, cover_all=self.cover_all, dilate=dilate)
 
         # Compute correlation.
         axes = tuple(moves.range(1, ndim + 2))  # (1, 2, ..., N+1)
