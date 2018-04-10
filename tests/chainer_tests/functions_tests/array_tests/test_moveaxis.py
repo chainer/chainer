@@ -123,21 +123,40 @@ class TestMoveaxisInvalidType(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'source': 0, 'destination': (2,)},
-    {'source': (2,), 'destination': 0},
     {'source': (1, 2), 'destination': (1, 2, 0)},
     {'source': (0, 0), 'destination': (1, 2)},
     {'source': (0, 1), 'destination': (2, 2)},
-    {'source': (1, 2.0), 'destination': (1, 2)},
-    {'source': (1, 2), 'destination': (1, 2.0)},
 )
-class TestMoveaxisInvalidValue(unittest.TestCase):
+class TestMoveaxisValueError(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, (2, 3, 4)).astype('f')
 
     def check_type_error(self, x):
         with self.assertRaises(ValueError):
+            functions.moveaxis(x, self.source, self.destination)
+
+    def test_type_error_cpu(self):
+        self.check_type_error(self.x)
+
+    @attr.gpu
+    def test_type_error_gpu(self):
+        self.check_type_error(cuda.to_gpu(self.x))
+
+
+@testing.parameterize(
+    {'source': (2,), 'destination': 0},
+    {'source': 0, 'destination': (2,)},
+    {'source': (1, 2), 'destination': (1, 2.0)},
+    {'source': (1, 2.0), 'destination': (1, 2)},
+)
+class TestMoveaxisTypeError(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (2, 3, 4)).astype('f')
+
+    def check_type_error(self, x):
+        with self.assertRaises(TypeError):
             functions.moveaxis(x, self.source, self.destination)
 
     def test_type_error_cpu(self):

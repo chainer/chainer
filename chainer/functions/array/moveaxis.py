@@ -18,9 +18,29 @@ def _normalize_axis_tuple(axis, ndim, xp):
 def _moveaxis(a, source, destination, xp):
     if hasattr(xp, 'moveaxis'):
         return xp.moveaxis(a, source, destination)
-    if len(source) != len(destination):
-        raise ValueError('Length of source and destination are '
-                         'different.')
+    if isinstance(source, int):
+        if not isinstance(destination, int):
+            raise ValueError('Types of source and destination are '
+                             'different.')
+    elif isinstance(source, tuple) and all(isinstance(a, int)
+                                           for a in source):
+        if not isinstance(destination, tuple):
+            raise ValueError('Types of source and destination are '
+                             'different.')
+        if len(source) != len(destination):
+            raise ValueError('Length of source and destination are '
+                             'different.')
+        if not all(isinstance(a, int) for a in destination):
+            raise TypeError('int or tuple of int are required.')
+        if len(set(source)) != len(source):
+            raise ValueError('duplicate value in source axis: ({})'.format(
+                ', '.join(map(str, source))))
+        if len(set(destination)) != len(destination):
+            raise ValueError('duplicate value in destination axis: ({})'
+                             .format(', '.join(map(str, destination))))
+    else:
+        raise TypeError('int or tuple of int are required.')
+
     source = _normalize_axis_tuple(source, a.ndim, xp)
     destination = _normalize_axis_tuple(destination, a.ndim, xp)
     order = [n for n in six.moves.range(a.ndim) if n not in source]
@@ -38,28 +58,11 @@ class Moveaxis(function_node.FunctionNode):
 
     def __init__(self, source, destination):
         if isinstance(source, int):
-            if not isinstance(destination, int):
-                raise ValueError('Types of source and destination are '
-                                 'different.')
             self.source = (source,)
             self.destination = (destination,)
-        elif isinstance(source, tuple) and all(isinstance(a, int)
-                                               for a in source):
-            if not isinstance(destination, tuple):
-                raise ValueError('Types of source and destination are '
-                                 'different.')
-            if not all(isinstance(a, int) for a in destination):
-                raise ValueError('int or tuple of int are required.')
-            if len(set(source)) != len(source):
-                raise ValueError('duplicate value in source axis: ({})'.format(
-                    ', '.join(map(str, source))))
-            if len(set(destination)) != len(destination):
-                raise ValueError('duplicate value in destination axis: ({})'
-                                 .format(', '.join(map(str, destination))))
+        else:
             self.source = source
             self.destination = destination
-        else:
-            raise ValueError('int or tuple of int are required.')
 
     def check_type_forward(self, in_types):
         type_check.expect(
