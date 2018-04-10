@@ -40,7 +40,37 @@ public:
         }
     }
 
+    // Sets an index from mutiple indexers each of which composes a portion of dimensions in order.
+    // indexers must be in the reversed order with regard to dimensions.
+    template <typename... Args>
+    XCHAINER_HOST_DEVICE void SetIndexers(Args... indexers) {
+        int8_t processed_dims = SetIndexersImpl(0, indexers...);
+        assert(processed_dims == ndim_);
+        assert(std::all_of(shape_, shape_ + ndim_, [ this, i = int8_t{0} ](int64_t) mutable {
+            bool ret = 0 <= index_[i] && index_[i] < shape_[i];
+            ++i;
+            return ret;
+        }));
+    }
+
 private:
+    // Implementation of SetIndexers.
+    // Returns the number of written dimensions, which is equal to ndim_.
+    // `processed_dim` is the number of written dimensions so far.
+    template <typename... Args>
+    XCHAINER_HOST_DEVICE int8_t SetIndexersImpl(int8_t processed_dims, const Indexer& last_indexer, Args... indexers) {
+        processed_dims = SetIndexersImpl(processed_dims, last_indexer);
+        int8_t dims = SetIndexersImpl(processed_dims, indexers...);
+        assert(dims == ndim_);
+        return dims;
+    }
+
+    XCHAINER_HOST_DEVICE int8_t SetIndexersImpl(int8_t processed_dims, const Indexer& indexer) {
+        assert(processed_dims + indexer.ndim_ <= ndim_);
+        std::copy(indexer.index_, indexer.index_ + indexer.ndim_, &index_[ndim_ - processed_dims - indexer.ndim_]);
+        return processed_dims + indexer.ndim_;
+    }
+
     int64_t shape_[kMaxNdim];
     int64_t index_[kMaxNdim];
     int64_t raw_index_;

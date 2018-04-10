@@ -600,6 +600,11 @@ void CudaDevice::Log(const Array& x, const Array& out) {
     });
 }
 
+void CudaDevice::Take(const Array& /*a*/, const Array& /*indices*/, int64_t /*axis*/, const Array& /*out*/) {
+    // TODO(niboshi): Implement
+    throw NotImplementedError("");
+}
+
 void CudaDevice::Synchronize() {
     CheckCudaError(cudaSetDevice(index()));
     CheckCudaError(cudaDeviceSynchronize());

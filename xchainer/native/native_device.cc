@@ -324,6 +324,45 @@ void NativeDevice::Log(const Array& x, const Array& out) {
     });
 }
 
+void NativeDevice::Take(const Array& a, const Array& indices, int64_t axis, const Array& out) {
+    CheckDevicesCompatible(a, indices, out);
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        IndexableArray<const T> a_iarray{a};
+        IndexableArray<T> out_iarray{out};
+        IndexableArray<int64_t> indices_iarray{indices};
+        Indexer a_indexer{a.shape()};
+        Indexer out_indexer{out.shape()};
+        Indexer indices_indexer{indices.shape()};
+
+        // left: set of input dimensions lower than the axis
+        // right: set of input dimensions higher than the axis
+        Shape left_shape{a.shape().begin(), a.shape().begin() + axis};
+        Shape right_shape{a.shape().begin() + (axis + 1), a.shape().end()};
+        Shape axis_shape{a.shape()[axis]};  // always ndim==1
+        Indexer left_indexer{left_shape};
+        Indexer right_indexer{right_shape};
+        Indexer axis_indexer{axis_shape};
+
+        for (int64_t i = 0; i < indices_indexer.total_size(); ++i) {
+            indices_indexer.Set(i);
+            int64_t index = indices_iarray[indices_indexer];
+            axis_indexer.Set(index);
+            for (int64_t i_left = 0; i_left < left_indexer.total_size(); ++i_left) {
+                left_indexer.Set(i_left);
+                for (int64_t i_right = 0; i_right < right_indexer.total_size(); ++i_right) {
+                    right_indexer.Set(i_right);
+                    // SetIndexers() accepts indexers in the reverse order.
+                    out_indexer.SetIndexers(right_indexer, indices_indexer, left_indexer);
+                    a_indexer.SetIndexers(right_indexer, axis_indexer, left_indexer);
+                    out_iarray[out_indexer] = a_iarray[a_indexer];
+                }
+            }
+        }
+    });
+}
+
 void NativeDevice::Synchronize() {}
 
 }  // namespace native

@@ -12,16 +12,21 @@
 namespace xchainer {
 namespace internal {
 
+int8_t NormalizeAxis(int8_t axis, int8_t ndim) {
+    if (axis < -ndim || ndim <= axis) {
+        throw DimensionError("Axis " + std::to_string(axis) + " is out of bounds for array of dimension " + std::to_string(ndim));
+    }
+    if (axis < 0) {
+        return axis + ndim;
+    }
+    return axis;
+}
+
 std::vector<int8_t> GetSortedAxes(const std::vector<int8_t>& axis, int8_t ndim) {
     std::vector<int8_t> sorted_axis = axis;
 
     for (auto& a : sorted_axis) {
-        if (a < -ndim || ndim <= a) {
-            throw DimensionError("Axis " + std::to_string(a) + " is out of bounds for array of dimension " + std::to_string(ndim));
-        }
-        if (a < 0) {
-            a += ndim;
-        }
+        a = NormalizeAxis(a, ndim);
     }
     std::sort(sorted_axis.begin(), sorted_axis.end());
     if (std::unique(sorted_axis.begin(), sorted_axis.end()) != sorted_axis.end()) {

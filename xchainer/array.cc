@@ -188,6 +188,8 @@ Array Array::Max(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdim
 
 Array Array::Dot(const Array& b) const { return xchainer::Dot(*this, b); }
 
+Array Array::Take(const Array& indices, int8_t axis) const { return xchainer::Take(*this, indices, axis); }
+
 Array Array::Copy() const { return xchainer::Copy(*this); }
 
 Array Array::MakeView() const {

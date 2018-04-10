@@ -1,12 +1,17 @@
 #include "xchainer/routines/indexing.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
+
+#include "nonstd/optional.hpp"
 
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
+#include "xchainer/routines/creation.h"
+#include "xchainer/routines/util.h"
 #include "xchainer/shape.h"
 #include "xchainer/slice.h"
 
@@ -91,4 +96,28 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 }
 
 }  // namespace internal
+
+Array Take(const Array& a, const Array& indices, int8_t axis) {
+    // TODO(niboshi): Support other dtypes by casting
+    if (indices.dtype() != Dtype::kInt64) {
+        throw DtypeError(
+                std::string{"Only "} + GetDtypeName(Dtype::kInt64) + " is supported as indices, but given " +
+                GetDtypeName(indices.dtype()));
+    }
+
+    int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
+
+    std::vector<int64_t> out_shape_vec;
+    out_shape_vec.reserve(a.ndim() + indices.ndim() - 1);
+    std::copy(a.shape().begin(), a.shape().begin() + axis_norm, std::back_inserter(out_shape_vec));
+    std::copy(indices.shape().begin(), indices.shape().end(), std::back_inserter(out_shape_vec));
+    std::copy(a.shape().begin() + (axis_norm + 1), a.shape().end(), std::back_inserter(out_shape_vec));
+    Array out = Empty({out_shape_vec.begin(), out_shape_vec.end()}, a.dtype(), a.device());
+
+    a.device().Take(a, indices, axis_norm, out);
+
+    // TODO(niboshi): Implement backward
+    return out;
+}
+
 }  // namespace xchainer

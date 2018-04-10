@@ -97,6 +97,11 @@ public:
     virtual void Exp(const Array& x, const Array& out) = 0;
     virtual void Log(const Array& x, const Array& out) = 0;
 
+    // Takes elements specified by indices from an array.
+    //
+    // `axis` must be within [0, a.ndim()).
+    virtual void Take(const Array& a, const Array& indices, int64_t axis, const Array& out) = 0;
+
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat
