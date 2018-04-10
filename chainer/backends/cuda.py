@@ -168,8 +168,16 @@ def get_device_from_array(*arrays):
 
     The device on which the given CuPy array reside is returned.
 
+    .. note::
+
+        This method only recognizes :class:`cupy.ndarray`\\ s in arguments.
+        Especially note that, unlike :func:`get_array_module`, this method
+        does not recognize :class:`~chainer.Variable` objects.
+        If you need to get device from the :class:`~chainer.Variable` instance
+        ``v``, you need to use ``get_device_from_array(v.data)``.
+
     Args:
-        array (cupy.ndarray or list of cupy.ndarray):
+        arrays (:class:`cupy.ndarray` or list of :class:`cupy.ndarray`):
             A CuPy array which this function returns the device corresponding
             to. If a list of :class:`cupy.ndarray`\\ s are given, it returns
             the first device object of an array in the list.
