@@ -363,9 +363,8 @@ void NativeDevice::Take(const Array& a, const Array& indices, int64_t axis, cons
                 left_indexer.Set(i_left);
                 for (int64_t i_right = 0; i_right < right_indexer.total_size(); ++i_right) {
                     right_indexer.Set(i_right);
-                    // SetIndexers() accepts indexers in the reverse order.
-                    out_indexer.SetIndexers(right_indexer, indices_indexer, left_indexer);
-                    a_indexer.SetIndexers(right_indexer, axis_indexer, left_indexer);
+                    out_indexer.SetIndexers(left_indexer, indices_indexer, right_indexer);
+                    a_indexer.SetIndexers(left_indexer, axis_indexer, right_indexer);
                     out_iarray[out_indexer] = a_iarray[a_indexer];
                 }
             }
