@@ -67,7 +67,7 @@ The typical use case is to use :class:`~chainer.training.extensions.Evaluator` t
    chainer.training.extensions.Evaluator
    chainer.training.extensions.MicroAverage
 
-   chainer.training.extensions.NaNKiller
+   chainer.training.extensions.FailOnNonNumber
    chainer.training.extensions.ParameterStatistics
 
    chainer.training.extensions.observe_lr
