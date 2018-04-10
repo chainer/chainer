@@ -1,6 +1,8 @@
 #include "xchainer/routines/indexing.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <iterator>
 #include <string>
 #include <vector>
 
