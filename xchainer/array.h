@@ -55,9 +55,6 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 // The main data structure of multi-dimensional array.
 class Array {
 public:
-    static Array FromContiguousHostData(
-            const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
-
     Array() = default;
 
     explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
