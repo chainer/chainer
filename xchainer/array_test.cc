@@ -971,7 +971,7 @@ TEST_P(ArrayTest, Take) {
     Shape indices_shape{2, 3};
     Shape output_shape{2, 2, 3};
     Array a = testing::BuildArray(input_shape).WithLinearData<T>().WithPadding(1);
-    Array indices = testing::BuildArray(indices_shape).WithData<int64_t>({0, 2, 3, 1, 2, 1});
+    Array indices = testing::BuildArray(indices_shape).WithData<int64_t>({0, 14, 3, 1, -10, 1});
     Array b = a.Take(indices, 1);
 
     EXPECT_EQ(output_shape, b.shape());

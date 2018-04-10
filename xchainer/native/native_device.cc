@@ -336,11 +336,13 @@ void NativeDevice::Take(const Array& a, const Array& indices, int64_t axis, cons
         Indexer out_indexer{out.shape()};
         Indexer indices_indexer{indices.shape()};
 
+        int64_t axis_dim = a.shape()[axis];
+
         // left: set of input dimensions lower than the axis
         // right: set of input dimensions higher than the axis
         Shape left_shape{a.shape().begin(), a.shape().begin() + axis};
         Shape right_shape{a.shape().begin() + (axis + 1), a.shape().end()};
-        Shape axis_shape{a.shape()[axis]};  // always ndim==1
+        Shape axis_shape{axis_dim};  // always ndim==1
         Indexer left_indexer{left_shape};
         Indexer right_indexer{right_shape};
         Indexer axis_indexer{axis_shape};
@@ -348,7 +350,15 @@ void NativeDevice::Take(const Array& a, const Array& indices, int64_t axis, cons
         for (int64_t i = 0; i < indices_indexer.total_size(); ++i) {
             indices_indexer.Set(i);
             int64_t index = indices_iarray[indices_indexer];
+            if (index < 0) {
+                index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
+            } else {
+                index = index % axis_dim;
+            }
+            assert(0 <= index);
+            assert(index < axis_dim);
             axis_indexer.Set(index);
+
             for (int64_t i_left = 0; i_left < left_indexer.total_size(); ++i_left) {
                 left_indexer.Set(i_left);
                 for (int64_t i_right = 0; i_right < right_indexer.total_size(); ++i_right) {
