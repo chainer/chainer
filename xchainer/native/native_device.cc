@@ -67,7 +67,6 @@ void NativeDevice::Fill(const Array& out, Scalar value) {
 void NativeDevice::Arange(Scalar start, Scalar step, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        // TODO(hvy): Support dtype promotion.
         T c_start{start};
         T c_step{step};
 

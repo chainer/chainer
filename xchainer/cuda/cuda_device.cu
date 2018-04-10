@@ -233,7 +233,6 @@ void CudaDevice::Arange(Scalar start, Scalar step, const Array& out) {
         int64_t grid_size = (indexer.total_size() + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(indexer.total_size(), kMaxBlockSize);
 
-        // TODO(hvy): Support dtype promotion.
         ArangeKernel<<<grid_size, block_size>>>(static_cast<T>(start), static_cast<T>(step), out_iarray, indexer);
     });
 }
