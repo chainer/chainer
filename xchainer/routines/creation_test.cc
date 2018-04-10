@@ -333,53 +333,56 @@ TEST_P(CreationTest, Arange) {
     testing::ExpectEqual(e, a);
 }
 
-TEST_P(CreationTest, ArangeStop) {
-    {
-        Array a = Arange(3, Dtype::kInt32);
-        Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
-        testing::ExpectEqual(e, a);
-    }
-    {
-        Array a = Arange(Scalar{3, Dtype::kInt32}, GetDefaultDevice());
-        Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
-        testing::ExpectEqual(e, a);
-    }
-    {
-        Array a = Arange(3, Dtype::kInt32, GetDefaultDevice());
-        Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
-        testing::ExpectEqual(e, a);
-    }
+TEST_P(CreationTest, ArangeStopDtype) {
+    Array a = Arange(3, Dtype::kInt32);
+    Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+    testing::ExpectEqual(e, a);
 }
 
-TEST_P(CreationTest, ArangeStartStop) {
-    {
-        Array a = Arange(1, 3, Dtype::kInt32);
-        Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
-        testing::ExpectEqual(e, a);
-    }
-    {
-        Array a = Arange(1, 3, Dtype::kInt32, GetDefaultDevice());
-        Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
-        testing::ExpectEqual(e, a);
-    }
+TEST_P(CreationTest, ArangeStopDevice) {
+    Array a = Arange(Scalar{3, Dtype::kInt32}, GetDefaultDevice());
+    Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+    testing::ExpectEqual(e, a);
 }
 
-TEST_P(CreationTest, ArangeStartStopStep) {
-    {
-        Array a = Arange(1, 7, 2, Dtype::kInt32);
-        Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
-        testing::ExpectEqual(e, a);
-    }
-    {
-        Array a = Arange(1, 7, 2, GetDefaultDevice());
-        Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
-        testing::ExpectEqual(e, a);
-    }
-    {
-        Array a = Arange(1, 7, 2, Dtype::kInt32, GetDefaultDevice());
-        Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
-        testing::ExpectEqual(e, a);
-    }
+TEST_P(CreationTest, ArangeStopDtypeDevice) {
+    Array a = Arange(3, Dtype::kInt32, GetDefaultDevice());
+    Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStartStopDtype) {
+    Array a = Arange(1, 3, Dtype::kInt32);
+    Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStartStopDevice) {
+    // TODO(hvy): Not yet supported.
+}
+
+TEST_P(CreationTest, ArangeStartStopDtypeDevice) {
+    Array a = Arange(1, 3, Dtype::kInt32, GetDefaultDevice());
+    Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStartStopStepDtype) {
+    Array a = Arange(1, 7, 2, Dtype::kInt32);
+    Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStartStopStepDevice) {
+    Array a = Arange(1, 7, 2, GetDefaultDevice());
+    Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStartStopStepDtypeDevice) {
+    Array a = Arange(1, 7, 2, Dtype::kInt32, GetDefaultDevice());
+    Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
+    testing::ExpectEqual(e, a);
 }
 
 TEST_P(CreationTest, ArangeNegativeStep) {
