@@ -10,6 +10,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/util.h"
 #include "xchainer/scalar.h"
 
@@ -387,6 +388,23 @@ Array Log(const Array& x) {
     internal::SetUpOpNodes("log", {x}, out, {backward_function});
 
     return out;
+}
+
+namespace internal {
+
+Array LogSumExp(const Array& x, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+    std::vector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, x.ndim());
+    Array xmax = AMax(x, sorted_axis, true);
+    Array out = Log(Sum(Exp(Subtract(x, xmax)), sorted_axis, keepdims));
+    return out + (keepdims ? xmax : Squeeze(xmax, axis));
+}
+
+}  // namespace internal
+
+Array LogSoftmax(const Array& x, const nonstd::optional<int8_t>& axis) {
+    std::vector<int8_t> sorted_axis =
+            axis.has_value() ? internal::GetSortedAxes({axis.value()}, x.ndim()) : std::vector<int8_t>{static_cast<int8_t>(x.ndim() - 1)};
+    return x - internal::LogSumExp(x, sorted_axis, true);
 }
 
 }  // namespace xchainer

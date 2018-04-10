@@ -852,6 +852,49 @@ TEST_P(MathTest, LogDoubleBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Log(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
 }
 
+TEST_P(MathTest, LogSumExp) {
+    Array a = Zeros({2, 3}, Dtype::kFloat32);
+    {
+        Array e = Full({}, Scalar{std::log(6.0f), Dtype::kFloat32});
+        Array b = internal::LogSumExp(a);
+        testing::ExpectAllClose(e, b, 1e-3, 0, true);
+    }
+    {
+        Array e = Full({3}, Scalar{std::log(2.0f), Dtype::kFloat32});
+        Array b = internal::LogSumExp(a, std::vector<int8_t>{0});
+        testing::ExpectAllClose(e, b, 1e-3, 0, true);
+    }
+    {
+        Array e = Full({2}, Scalar{std::log(3.0f), Dtype::kFloat32});
+        Array b = internal::LogSumExp(a, std::vector<int8_t>{1});
+        testing::ExpectAllClose(e, b, 1e-3, 0, true);
+    }
+    {
+        Array e = Full({2, 1}, Scalar{std::log(3.0f), Dtype::kFloat32});
+        Array b = internal::LogSumExp(a, std::vector<int8_t>{1}, true);
+        testing::ExpectAllClose(e, b, 1e-3, 0, true);
+    }
+    {
+        Array e = Full({}, Scalar{std::log(6.0f), Dtype::kFloat32});
+        Array b = internal::LogSumExp(a, std::vector<int8_t>{0, 1});
+        testing::ExpectAllClose(e, b, 1e-3, 0, true);
+    }
+}
+
+TEST_P(MathTest, LogSoftmax) {
+    Array a = Zeros({2, 3}, Dtype::kFloat32);
+    Array e = Full({2, 3}, -Scalar{std::log(3.0f), Dtype::kFloat32});
+    Array b = LogSoftmax(a);
+    testing::ExpectAllClose(e, b, 1e-3, 0, true);
+}
+
+TEST_P(MathTest, LogSoftmaxWithAxis) {
+    Array a = Zeros({2, 3}, Dtype::kFloat32);
+    Array e = Full({2, 3}, -Scalar{std::log(2.0f), Dtype::kFloat32});
+    Array b = LogSoftmax(a, 0);
+    testing::ExpectAllClose(e, b, 1e-3, 0, true);
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         MathTest,

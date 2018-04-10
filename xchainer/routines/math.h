@@ -59,4 +59,12 @@ Array Maximum(Scalar x1, const Array& x2);
 Array Exp(const Array& x);
 Array Log(const Array& x);
 
+namespace internal {
+
+Array LogSumExp(const Array& x, const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false);
+
+}  // namespace internal
+
+Array LogSoftmax(const Array& x, const nonstd::optional<int8_t>& axis = nonstd::nullopt);
+
 }  // namespace xchainer
