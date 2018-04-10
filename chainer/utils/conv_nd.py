@@ -76,14 +76,15 @@ def im2col_nd_gpu(img, ksize, stride, pad, dilate, cover_all=False):
     return col
 
 
-def col2im_nd_cpu(col, stride, pad, dilate, dims):
+def col2im_nd_cpu(col, stride, pad, dims, dilate=1):
     n, c = col.shape[:2]  # (n, c, kx_1, ..., kx_N, out_1, ..., out_N)
     mid = (len(col.shape) - 2) // 2 + 2
     ksize = col.shape[2:mid]
     outs = col.shape[mid:]
     colon = slice(None)
     ndim = len(outs)
-    assert all(len(x) == ndim for x in (ksize, stride, pad, dims, dilate))
+    dilate = as_tuple(dilate, ndim)
+    assert len(ksize) == len(stride) == len(pad) == len(dims) == ndim
 
     # Image with padded size.
     img_shape = (n, c) + tuple(d + 2 * p + s - 1
@@ -107,13 +108,14 @@ def col2im_nd_cpu(col, stride, pad, dilate, dims):
     return img[img_index]
 
 
-def col2im_nd_gpu(col, stride, pad, dilate, dims):
+def col2im_nd_gpu(col, stride, pad, dims, dilate=1):
     n, c = col.shape[:2]        # (n, c, k_1, ..., k_N, out_1, ..., out_N)
     mid = (len(col.shape) - 2) // 2 + 2
     ksize = col.shape[2:mid]
     outs = col.shape[mid:]
     ndim = len(dims)
-    assert all(len(x) == ndim for x in (outs, ksize, stride, pad, dilate))
+    dilate = as_tuple(dilate, ndim)
+    assert len(outs) == len(ksize) == len(stride) == len(pad) == ndim
 
     img_shape = (n, c) + dims   # (n, c, d_1, d_2, ..., d_N)
     img = cuda.cupy.empty(img_shape, dtype=col.dtype)

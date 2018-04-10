@@ -83,9 +83,11 @@ class DeconvolutionND(function_node.FunctionNode):
 
         # y: n, C_O, d_1, d_2, ..., d_N
         if xp is numpy:
-            y = conv_nd.col2im_nd_cpu(gcol, stride, pad, dilate, self.outs)
+            y = conv_nd.col2im_nd_cpu(
+                gcol, stride, pad, self.outs, dilate=dilate)
         else:
-            y = conv_nd.col2im_nd_gpu(gcol, stride, pad, dilate, self.outs)
+            y = conv_nd.col2im_nd_gpu(
+                gcol, stride, pad, self.outs, dilate=dilate)
         if b is not None:
             b_shape = (1, -1) + (1,) * ndim
             y += b.reshape(b_shape)
