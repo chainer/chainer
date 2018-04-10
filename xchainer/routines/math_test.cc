@@ -715,13 +715,13 @@ TEST_P(MathTest, AMaxAllExes) {
 }
 
 TEST_P(MathTest, AMaxZeroSized) {
-    Array a = Array::Empty({0, 2}, Dtype::kFloat32);
+    Array a = Empty({0, 2}, Dtype::kFloat32);
     Array b = AMax(a, std::vector<int8_t>{1});
     EXPECT_EQ(Shape{0}, b.shape());
 }
 
 TEST_P(MathTest, AMaxAlongZeroSized) {
-    Array a = Array::Empty({0, 2}, Dtype::kFloat32);
+    Array a = Empty({0, 2}, Dtype::kFloat32);
     EXPECT_THROW(AMax(a, std::vector<int8_t>{0}), DimensionError);
     EXPECT_THROW(AMax(a), DimensionError);
 }
