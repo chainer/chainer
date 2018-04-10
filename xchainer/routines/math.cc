@@ -341,7 +341,31 @@ Array AMax(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bo
 
     a.device().AMax(a, sorted_axis, out);
 
-    // TODO(beam2d): implement backprop
+    auto backward_function = [sorted_axis, a, out](const Array& gout, const std::vector<GraphId>&) {
+        assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+
+        // Add broadcastable dimensions to out and gout
+        // for each one that was reduced in the forward operation
+        std::vector<int64_t> shape_vec;
+        for (size_t ax = 0; ax < a.shape().size(); ++ax) {
+            if (std::find(sorted_axis.begin(), sorted_axis.end(), ax) != sorted_axis.end()) {
+                shape_vec.emplace_back(1);
+            } else {
+                shape_vec.emplace_back(a.shape()[ax]);
+            }
+        }
+        Shape shape{shape_vec.begin(), shape_vec.end()};
+        Array reshaped_gout = gout.Reshape(shape);
+        Array reshaped_out = out.Reshape(shape);
+
+        // Compute the gradient
+        Array cond = (a.AsConstant(CopyKind::kView) == reshaped_out);
+        Array broadcasted_gout = reshaped_gout.BroadcastTo(cond.shape());
+        // TODO(sonots): AsType allocates a new array, use faster methods when available instead.
+        return broadcasted_gout * cond.AsType(gout.dtype());
+    };
+    internal::SetUpOpNodes("amax", {a}, out, {backward_function});
+
     return out;
 }
 
