@@ -67,15 +67,15 @@ void NativeDevice::Fill(const Array& out, Scalar value) {
 void NativeDevice::Arange(Scalar start, Scalar step, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        T c_start{start};
-        T c_step{step};
+        T start_value{start};
+        T step_value{step};
 
         IndexableArray<T> out_iarray{out};
         Indexer indexer{out.shape()};
         for (int64_t i = 0; i < indexer.total_size(); ++i) {
             indexer.Set(i);
-            out_iarray[indexer] = c_start;
-            c_start += c_step;
+            out_iarray[indexer] = start_value;
+            start_value += step_value;
         }
     });
 }
