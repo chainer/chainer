@@ -72,14 +72,14 @@ Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device
     }
 
     // Compute the size of the output.
-    auto d_start = static_cast<double>(start);
-    auto d_stop = static_cast<double>(stop);
-    auto d_step = static_cast<double>(step);
-    if (d_step < 0) {
-        std::swap(d_start, d_stop);
-        d_step *= -1;
+    auto start_value = static_cast<double>(start);
+    auto stop_value = static_cast<double>(stop);
+    auto step_value = static_cast<double>(step);
+    if (step_value < 0) {
+        std::swap(start_value, stop_value);
+        step_value *= -1;
     }
-    auto size = std::max(int64_t{0}, static_cast<int64_t>(std::ceil((d_stop - d_start) / d_step)));
+    auto size = std::max(int64_t{0}, static_cast<int64_t>(std::ceil((stop_value - start_value) / step_value)));
     if (size > 2 && dtype == Dtype::kBool) {
         throw DtypeError("Cannot create an arange array of booleans with size larger than 2.");
     }
