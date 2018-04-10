@@ -358,7 +358,9 @@ TEST_P(CreationTest, ArangeStartStopDtype) {
 }
 
 TEST_P(CreationTest, ArangeStartStopDevice) {
-    // TODO(hvy): Not yet supported.
+    Array a = Arange(1, 3, GetDefaultDevice());
+    Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
+    testing::ExpectEqual(e, a);
 }
 
 TEST_P(CreationTest, ArangeStartStopDtypeDevice) {

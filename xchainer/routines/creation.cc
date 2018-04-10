@@ -90,13 +90,16 @@ Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device
 }
 
 Array Arange(Scalar start, Scalar stop, Scalar step, Device& device) {
-    // step may be passed by the default value 1, in which case type promotion is allowed.
-    // TODO(hvy): Revisit after supporting type promotion.
-    bool start_stop_any_float = GetKind(start.dtype()) == DtypeKind::kFloat || GetKind(stop.dtype()) == DtypeKind::kFloat;
-    return Arange(start, stop, step, start_stop_any_float ? Dtype::kFloat64 : step.dtype(), device);
+    // TODO(hvy): Type promote instead of using the dtype of step.
+    return Arange(start, stop, step, step.dtype(), device);
 }
 
 Array Arange(Scalar start, Scalar stop, Dtype dtype, Device& device) { return Arange(start, stop, 1, dtype, device); }
+
+Array Arange(Scalar start, Scalar stop, Device& device) {
+    // TODO(hvy): Type promote dtype instead of using the dtype of stop.
+    return Arange(start, stop, 1, stop.dtype(), device);
+}
 
 Array Arange(Scalar stop, Dtype dtype, Device& device) { return Arange(0, stop, 1, dtype, device); }
 

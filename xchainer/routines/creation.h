@@ -35,8 +35,9 @@ Array Zeros(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice()
 Array Ones(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
 
 Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device = GetDefaultDevice());
-Array Arange(Scalar start, Scalar stop, Scalar step = 1, Device& device = GetDefaultDevice());
+Array Arange(Scalar start, Scalar stop, Scalar step, Device& device = GetDefaultDevice());
 Array Arange(Scalar start, Scalar stop, Dtype dtype, Device& device = GetDefaultDevice());
+Array Arange(Scalar start, Scalar stop, Device& device = GetDefaultDevice());
 Array Arange(Scalar stop, Dtype dtype, Device& device = GetDefaultDevice());
 Array Arange(Scalar stop, Device& device = GetDefaultDevice());
 
