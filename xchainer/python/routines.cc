@@ -143,33 +143,26 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("device"));
     m.def("arange",
-          [](Scalar stop, const nonstd::optional<Dtype>& dtype, const nonstd::optional<std::string>& device_id) {
-              Scalar start{0, stop.dtype()};
-              Scalar step{1, stop.dtype()};
-              return dtype.has_value() ? Arange(start, stop, step, *dtype, GetDevice(device_id)).move_body()
-                                       : Arange(start, stop, step, GetDevice(device_id)).move_body();
-          },
-          py::arg("stop"),
-          py::arg("dtype") = nullptr,
-          py::arg("device") = nullptr);
-    m.def("arange",
-          [](Scalar start, Scalar stop, const nonstd::optional<Dtype>& dtype, const nonstd::optional<std::string>& device_id) {
-              Scalar step{1, stop.dtype()};
-              return dtype.has_value() ? Arange(start, stop, step, *dtype, GetDevice(device_id)).move_body()
-                                       : Arange(start, stop, step, GetDevice(device_id)).move_body();
-          },
-          py::arg("start"),
-          py::arg("stop"),
-          py::arg("dtype") = nullptr,
-          py::arg("device") = nullptr);
-    m.def("arange",
-          [](Scalar start, Scalar stop, Scalar step, const nonstd::optional<Dtype>& dtype, const nonstd::optional<std::string>& device_id) {
-              return dtype.has_value() ? Arange(start, stop, step, *dtype, GetDevice(device_id)).move_body()
+          [](Scalar start_or_stop,
+             const nonstd::optional<Scalar>& maybe_stop,
+             const nonstd::optional<Scalar>& maybe_step,
+             const nonstd::optional<Dtype>& dtype,
+             const nonstd::optional<std::string>& device_id) {
+              Scalar start{0};
+              Scalar stop{start_or_stop};
+              Scalar step = maybe_step.has_value() ? maybe_step.value() : 1;
+
+              if (maybe_stop.has_value()) {
+                  start = start_or_stop;
+                  stop = maybe_stop.value();
+              }
+
+              return dtype.has_value() ? Arange(start, stop, step, dtype.value(), GetDevice(device_id)).move_body()
                                        : Arange(start, stop, step, GetDevice(device_id)).move_body();
           },
           py::arg("start"),
-          py::arg("stop"),
-          py::arg("step"),
+          py::arg("stop") = nullptr,
+          py::arg("step") = nullptr,
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("empty_like",
