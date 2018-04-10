@@ -1184,64 +1184,39 @@ def test_getitem(xp, shape, indices):
 
 
 _sum_params = [
-    ((), None, False),
-    ((), None, True),
-    ((), (), False),
-    ((), (), True),
-    ((2,), None, False),
-    ((2,), None, True),
-    ((2,), (), False),
-    ((2,), (), True),
-    ((2,), 0, False),
-    ((2,), 0, True),
-    ((2,), (0,), False),
-    ((2,), (0,), True),
-    ((2,), (-1,), False),
-    ((2,), (-1,), True),
-    ((2, 3), None, False),
-    ((2, 3), None, True),
-    ((2, 3), (), False),
-    ((2, 3), (), True),
-    ((2, 3), 0, False),
-    ((2, 3), 0, True),
-    ((2, 3), (0,), False),
-    ((2, 3), (0,), True),
-    ((2, 3), (1,), False),
-    ((2, 3), (1,), True),
-    ((2, 3), (-1,), False),
-    ((2, 3), (-1,), True),
-    ((2, 3), (-2,), False),
-    ((2, 3), (-2,), True),
-    ((2, 3), (0, 1), False),
-    ((2, 3), (0, 1), True),
-    ((2, 3), (-2, -1), False),
-    ((2, 3), (-2, -1), True),
-    ((1, 3), None, False),  # sum over 1-dim axis
-    ((1, 3), None, True),
-    ((0, 3), None, False),  # sum over 0-dim axis
-    ((0, 3), None, True),
-
+    ((), None),
+    ((), ()),
+    ((2,), None),
+    ((2,), ()),
+    ((2,), 0),
+    ((2,), (0,)),
+    ((2,), (-1,)),
+    ((2, 3), None),
+    ((2, 3), ()),
+    ((2, 3), 0),
+    ((2, 3), (0,)),
+    ((2, 3), (1,)),
+    ((2, 3), (-1,)),
+    ((2, 3), (-2,)),
+    ((2, 3), (0, 1)),
+    ((2, 3), (-2, -1)),
+    ((1, 3), None),  # sum over 1-dim axis
+    ((0, 3), None),  # sum over 0-dim axis
     # Sum over axes that are in the middle or apart
-    ((2, 3, 4), (1,), False),
-    ((2, 3, 4), (1,), True),
-    ((2, 3, 4), (0, 2), False),
-    ((2, 3, 4), (0, 2), True),
-
+    ((2, 3, 4), (1,)),
+    ((2, 3, 4), (0, 2)),
     # Sum over axes that are apart and/or unsorted
-    ((2, 3), (1, 0), False),
-    ((2, 3), (1, 0), True),
-    ((2, 3, 4), (2, 0), False),
-    ((2, 3, 4), (2, 0), True),
-    ((2, 3, 4), (2, 0, 1), False),
-    ((2, 3, 4), (2, 0, 1), True),
-    ((2, 3, 4), (-2, 2, 0), False),
-    ((2, 3, 4), (-2, 2, 0), True),
+    ((2, 3), (1, 0)),
+    ((2, 3, 4), (2, 0)),
+    ((2, 3, 4), (2, 0, 1)),
+    ((2, 3, 4), (-2, 2, 0)),
 ]
 
 
 # TODO(sonots): Fix type compatibility
 @xchainer.testing.numpy_xchainer_array_equal(type_check=False)
-@pytest.mark.parametrize("shape,axis,keepdims", _sum_params)
+@pytest.mark.parametrize("keepdims", [False, True])
+@pytest.mark.parametrize("shape,axis", _sum_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_sum(xp, device, shape, axis, keepdims):
     ndarray = _create_dummy_ndarray(shape, 'int32')
@@ -1251,7 +1226,8 @@ def test_sum(xp, device, shape, axis, keepdims):
 
 # TODO(sonots): Fix type compatibility
 @xchainer.testing.numpy_xchainer_array_equal(type_check=False)
-@pytest.mark.parametrize("shape,axis,keepdims", _sum_params)
+@pytest.mark.parametrize("keepdims", [False, True])
+@pytest.mark.parametrize("shape,axis", _sum_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_module_sum(xp, device, shape, axis, keepdims):
     ndarray = _create_dummy_ndarray(shape, 'int32')
