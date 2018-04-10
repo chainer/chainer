@@ -45,11 +45,12 @@ public:
     XCHAINER_HOST_DEVICE void SetIndexers(Args... indexers) {
         int8_t processed_dims = SetIndexersImpl(0, indexers...);
         assert(processed_dims == ndim_);
-        assert(std::all_of(shape_, shape_ + ndim_, [ this, i = int8_t{0} ](int64_t) mutable {
-            bool ret = 0 <= index_[i] && index_[i] < shape_[i];
-            ++i;
-            return ret;
-        }));
+#ifndef NDEBUG
+        for (int8_t i = 0; i < ndim_; ++i) {
+            assert(0 <= index_[i]);
+            assert(index_[i] < shape_[i]);
+        }
+#endif
     }
 
 private:
@@ -66,7 +67,9 @@ private:
 
     XCHAINER_HOST_DEVICE int8_t SetIndexersImpl(int8_t processed_dims, const Indexer& indexer) {
         assert(processed_dims + indexer.ndim_ <= ndim_);
-        std::copy(indexer.index_, indexer.index_ + indexer.ndim_, index_ + processed_dims);
+        for (int8_t i = 0; i < indexer.ndim_; ++i) {
+            index_[processed_dims + i] = indexer.index_[i];
+        }
         return processed_dims + indexer.ndim_;
     }
 
