@@ -113,30 +113,6 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 
 }  // namespace internal
 
-Array Array::FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
-    return internal::FromHostData(shape, dtype, data, {shape, dtype}, device);
-}
-
-Array Array::Empty(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Empty(shape, dtype, device); }
-
-Array Array::Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device) {
-    return xchainer::Full(shape, fill_value, dtype, device);
-}
-
-Array Array::Full(const Shape& shape, Scalar fill_value, Device& device) { return xchainer::Full(shape, fill_value, device); }
-
-Array Array::Zeros(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Zeros(shape, dtype, device); }
-
-Array Array::Ones(const Shape& shape, Dtype dtype, Device& device) { return xchainer::Ones(shape, dtype, device); }
-
-Array Array::EmptyLike(const Array& a, Device& device) { return xchainer::EmptyLike(a, device); }
-
-Array Array::FullLike(const Array& a, Scalar fill_value, Device& device) { return xchainer::FullLike(a, fill_value, device); }
-
-Array Array::ZerosLike(const Array& a, Device& device) { return xchainer::ZerosLike(a, device); }
-
-Array Array::OnesLike(const Array& a, Device& device) { return xchainer::OnesLike(a, device); }
-
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_(std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)) {}
 
@@ -183,6 +159,8 @@ Array Array::BroadcastTo(const Shape& shape) const { return xchainer::BroadcastT
 Array Array::ArgMax(const nonstd::optional<int8_t>& axis) const { return xchainer::ArgMax(*this, axis); }
 
 Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
+
+Array Array::Max(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return xchainer::AMax(*this, axis, keepdims); }
 
 Array Array::Dot(const Array& b) const { return xchainer::Dot(*this, b); }
 
@@ -241,7 +219,7 @@ Array Array::ToNative() const {
 Array Array::AsConstant(CopyKind kind) const {
     switch (kind) {
         case CopyKind::kCopy: {
-            Array out = Array::EmptyLike(*this, device());
+            Array out = EmptyLike(*this, device());
             device().Copy(*this, out);
 
             assert(out.IsContiguous());
@@ -257,7 +235,7 @@ Array Array::AsConstant(CopyKind kind) const {
 Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) const {
     switch (kind) {
         case CopyKind::kCopy: {
-            Array out = Array::EmptyLike(*this, device());
+            Array out = EmptyLike(*this, device());
             internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }}, graph_ids);
             device().Copy(*this, out);
 

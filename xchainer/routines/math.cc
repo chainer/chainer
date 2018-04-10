@@ -62,7 +62,7 @@ const Array& IAdd(const Array& x1, const Array& x2) { return AddAssignImpl(x1, x
 
 Array Add(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
-        Array out = Array::EmptyLike(x1, x1.device());
+        Array out = EmptyLike(x1, x1.device());
         AddImpl(x1, x2, out);
         return out;
     };
@@ -120,7 +120,7 @@ const Array& ISubtract(const Array& x1, const Array& x2) { return SubtractAssign
 
 Array Subtract(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
-        Array out = Array::EmptyLike(x1, x1.device());
+        Array out = EmptyLike(x1, x1.device());
         SubtractImpl(x1, x2, out);
         return out;
     };
@@ -182,7 +182,7 @@ const Array& IMultiply(const Array& x1, const Array& x2) { return MultiplyAssign
 
 Array Multiply(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
-        Array out = Array::EmptyLike(x1, x1.device());
+        Array out = EmptyLike(x1, x1.device());
         MultiplyImpl(x1, x2, out);
         return out;
     };
@@ -201,7 +201,7 @@ Array Multiply(const Array& x1, const Array& x2) {
 }
 
 Array Multiply(const Array& x1, Scalar x2) {
-    Array out = Array::EmptyLike(x1, x1.device());
+    Array out = EmptyLike(x1, x1.device());
     x1.device().MultiplyAS(x1, x2, out);
 
     auto backward_function = [x2](const Array& gout, const std::vector<GraphId>&) { return gout * x2; };
@@ -256,7 +256,7 @@ const Array& IDivide(const Array& x1, const Array& x2) { return DivideAssignImpl
 
 Array Divide(const Array& x1, const Array& x2) {
     auto func = [](const Array& x1, const Array& x2) {
-        Array out = Array::EmptyLike(x1, x1.device());
+        Array out = EmptyLike(x1, x1.device());
         DivideImpl(x1, x2, out);
         return out;
     };
@@ -274,17 +274,9 @@ Array Divide(const Array& x1, const Array& x2) {
     return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
 }
 
-Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-    std::vector<int8_t> sorted_axis;
-    if (axis.has_value()) {
-        sorted_axis = internal::GetSortedAxes(*axis, a.ndim());
-    } else {
-        // Fill with all axes
-        sorted_axis.resize(a.ndim());
-        std::iota(sorted_axis.begin(), sorted_axis.end(), int8_t{0});
-    }
+namespace {
 
-    // Calculate output shape
+Array AllocateReductionOutput(const Array& a, const std::vector<int8_t>& sorted_axis, bool keepdims) {
     std::vector<int64_t> out_shape_vec;
     out_shape_vec.reserve(a.ndim());
     int8_t i_axis = 0;
@@ -299,19 +291,25 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
         }
     }
 
-    Array out;
-    if (keepdims) {
-        // Set reduced strides of the output array to 0
-        Shape out_shape{out_shape_vec.begin(), out_shape_vec.end()};
-        Strides contiguous_strides{out_shape, a.dtype()};
-        std::vector<int64_t> out_strides_vec(contiguous_strides.begin(), contiguous_strides.end());
-        for (int8_t i_axis : sorted_axis) {
-            out_strides_vec[i_axis] = 0;
-        }
-        out = internal::Empty(out_shape, a.dtype(), Strides{out_strides_vec.begin(), out_strides_vec.end()}, a.device());
-    } else {
-        out = Empty({out_shape_vec.begin(), out_shape_vec.end()}, a.dtype(), a.device());
+    if (!keepdims) {
+        return Empty({out_shape_vec.begin(), out_shape_vec.end()}, a.dtype(), a.device());
     }
+
+    // Set reduced strides of the output array to 0
+    Shape out_shape{out_shape_vec.begin(), out_shape_vec.end()};
+    Strides contiguous_strides{out_shape, a.dtype()};
+    std::vector<int64_t> out_strides_vec(contiguous_strides.begin(), contiguous_strides.end());
+    for (int8_t i_axis : sorted_axis) {
+        out_strides_vec[i_axis] = 0;
+    }
+    return internal::Empty(out_shape, a.dtype(), Strides{out_strides_vec.begin(), out_strides_vec.end()}, a.device());
+}
+
+}  // namespace
+
+Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+    std::vector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+    Array out = AllocateReductionOutput(a, sorted_axis, keepdims);
     a.device().Sum(a, sorted_axis, out);
 
     auto backward_function = [ sorted_axis, in_shape = a.shape(), keepdims ](const Array& gout, const std::vector<GraphId>&) {
@@ -331,12 +329,28 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
     return out;
 }
 
+Array AMax(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+    std::vector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+    Array out = AllocateReductionOutput(a, sorted_axis, keepdims);
+
+    for (int8_t i : sorted_axis) {
+        if (a.shape()[i] == 0) {
+            throw DimensionError("cannot compute the maximum along zero-sized axis");
+        }
+    }
+
+    a.device().AMax(a, sorted_axis, out);
+
+    // TODO(beam2d): implement backprop
+    return out;
+}
+
 namespace {
 
 // Calculates: x1 < x2 ? pos : neg
 // Can only differentiate with respect to neg.
 Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
-    Array out = Array::EmptyLike(x1, x1.device());
+    Array out = EmptyLike(x1, x1.device());
     x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
 
     auto backward_function = [x1, x2](const Array& gout, const std::vector<GraphId>&) {
@@ -356,7 +370,7 @@ Array Maximum(const Array& x1, Scalar x2) {
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 
 Array Exp(const Array& x) {
-    Array out = Array::EmptyLike(x, x.device());
+    Array out = EmptyLike(x, x.device());
     x.device().Exp(x, out);
 
     auto backward_function = [x](const Array& gout, const std::vector<GraphId>&) { return Exp(x) * gout; };
@@ -366,9 +380,12 @@ Array Exp(const Array& x) {
 }
 
 Array Log(const Array& x) {
-    Array out = Array::EmptyLike(x, x.device());
+    Array out = EmptyLike(x, x.device());
     x.device().Log(x, out);
-    // TODO(niboshi): Implement backward
+
+    auto backward_function = [x](const Array& gout, const std::vector<GraphId>&) { return gout / x; };
+    internal::SetUpOpNodes("log", {x}, out, {backward_function});
+
     return out;
 }
 

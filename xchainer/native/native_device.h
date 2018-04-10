@@ -37,6 +37,7 @@ public:
     void ArgMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) override;
 
     void Sum(const Array& a, const std::vector<int8_t>& axis, const Array& out) override;
+    void AMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) override;
 
     void Copy(const Array& a, const Array& out) override;
 

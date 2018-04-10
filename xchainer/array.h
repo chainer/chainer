@@ -55,22 +55,6 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 // The main data structure of multi-dimensional array.
 class Array {
 public:
-    static Array FromContiguousHostData(
-            const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
-    static Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
-    static Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device = GetDefaultDevice());
-    static Array Full(const Shape& shape, Scalar fill_value, Device& device = GetDefaultDevice());
-    static Array Zeros(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
-    static Array Ones(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
-
-    // Creates an array which has the same shape and dtype as the other array.
-    // The new array is allocated in the default device. The device of the other array
-    // is ignored.
-    static Array EmptyLike(const Array& a, Device& device = GetDefaultDevice());
-    static Array FullLike(const Array& a, Scalar fill_value, Device& device = GetDefaultDevice());
-    static Array ZerosLike(const Array& a, Device& device = GetDefaultDevice());
-    static Array OnesLike(const Array& a, Device& device = GetDefaultDevice());
-
     Array() = default;
 
     explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
@@ -132,6 +116,11 @@ public:
     // Otherwise, it will be summed over all the existing axes.
     // Note: When implementing xchainer::Sum(), be careful of the semantics of the default value of `keepdims`. See NumPy documentation.
     Array Sum(const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false) const;
+
+    // Returns the maximum value of the array.
+    // If `axis` is set, the maximum value is chosen along the specified axes.
+    // Otherwise, all the elements are searched at once.
+    Array Max(const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false) const;
 
     // Returns a dot product of the array with another one.
     Array Dot(const Array& b) const;

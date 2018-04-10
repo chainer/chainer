@@ -52,7 +52,7 @@ public:
     template <typename T>
     void CheckContiguousFill(T expected, Scalar scalar) {
         Dtype dtype = TypeToDtype<T>;
-        Array x = Array::Empty(Shape{3, 2}, dtype);
+        Array x = Empty(Shape{3, 2}, dtype);
         x.Fill(scalar);
         testing::ExpectDataEqual(expected, x);
     }
@@ -216,66 +216,6 @@ TEST_P(ArrayTest, Grad) {
     }
 }
 
-TEST_P(ArrayTest, ArrayFromContiguousHostData) {
-    using T = int32_t;
-    Shape shape{3, 2};
-
-    std::vector<T> raw_data{0, 1, 2, 3, 4, 5};
-    std::shared_ptr<T> data{&raw_data[0], [](const T*) {}};
-
-    Dtype dtype = TypeToDtype<T>;
-    Array x = Array::FromContiguousHostData(shape, dtype, data);
-
-    // Basic attributes
-    EXPECT_EQ(shape, x.shape());
-    EXPECT_EQ(dtype, x.dtype());
-    EXPECT_EQ(2, x.ndim());
-    EXPECT_EQ(3 * 2, x.GetTotalSize());
-    EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
-    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetTotalBytes());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-
-    // Array::data
-    testing::ExpectDataEqual<T>(data.get(), x);
-
-    Device& device = GetDefaultDevice();
-    EXPECT_EQ(&device, &x.device());
-    if (device.backend().GetName() == "native") {
-        EXPECT_EQ(data.get(), x.data().get());
-    } else if (device.backend().GetName() == "cuda") {
-        EXPECT_NE(data.get(), x.data().get());
-    } else {
-        FAIL() << "invalid device_id";
-    }
-}
-
-TEST_P(ArrayTest, Empty) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Array x = Array::Empty(Shape{3, 2}, dtype);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_EQ(x.shape(), Shape({3, 2}));
-    EXPECT_EQ(x.dtype(), dtype);
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, EmptyLike) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
-    Array x = Array::EmptyLike(x_orig);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_NE(x.data(), x_orig.data());
-    EXPECT_EQ(x.shape(), x_orig.shape());
-    EXPECT_EQ(x.dtype(), x_orig.dtype());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
 TEST_P(ArrayTest, ContiguousFill) {
     CheckContiguousFill(true);
     CheckContiguousFill(false);
@@ -351,14 +291,14 @@ TEST_P(ArrayTest, NonContiguousFill) {
     Dtype dtype = Dtype::kFloat32;
     float value = 1.0f;
     {
-        Array a = Array::Zeros(Shape{3, 3}, dtype);
+        Array a = Zeros(Shape{3, 3}, dtype);
         Array b = a.Transpose();
         b.Fill(value);
         testing::ExpectDataEqual(value, b);
         testing::ExpectDataEqual(value, a);
     }
     {
-        Array a = Array::Zeros(Shape{3, 3}, dtype);
+        Array a = Zeros(Shape{3, 3}, dtype);
         a.At({1}).Fill(value);
         testing::ExpectDataEqual(value, a.At({1}));
         // check other rows are not affected
@@ -366,112 +306,13 @@ TEST_P(ArrayTest, NonContiguousFill) {
         testing::ExpectDataEqual(0.0f, a.At({2}));
     }
     {
-        Array a = Array::Zeros(Shape{3, 3}, dtype);
+        Array a = Zeros(Shape{3, 3}, dtype);
         a.At({Slice{}, {1}}).Fill(value);
         testing::ExpectDataEqual(value, a.At({Slice{}, {1}}));
         // check other columns are not affected
         testing::ExpectDataEqual(0.0f, a.At({Slice{}, {0}}));
         testing::ExpectDataEqual(0.0f, a.At({Slice{}, {2}}));
     }
-}
-
-TEST_P(ArrayTest, FullWithGivenDtype) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Scalar scalar{int64_t{3}};
-    Array x = Array::Full(Shape{3, 2}, scalar, dtype);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_EQ(x.shape(), Shape({3, 2}));
-    EXPECT_EQ(x.dtype(), dtype);
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{3}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, FullWithScalarDtype) {
-    using T = int32_t;
-    Scalar scalar{T{3}};
-    Array x = Array::Full(Shape{3, 2}, scalar);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_EQ(x.shape(), Shape({3, 2}));
-    EXPECT_EQ(x.dtype(), scalar.dtype());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{3}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, FullLike) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Scalar scalar{int64_t{3}};
-    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
-    Array x = Array::FullLike(x_orig, scalar);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_NE(x.data(), x_orig.data());
-    EXPECT_EQ(x.shape(), x_orig.shape());
-    EXPECT_EQ(x.dtype(), x_orig.dtype());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{3}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, Zeros) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Array x = Array::Zeros(Shape{3, 2}, dtype);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_EQ(x.shape(), Shape({3, 2}));
-    EXPECT_EQ(x.dtype(), dtype);
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{0}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, ZerosLike) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
-    Array x = Array::ZerosLike(x_orig);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_NE(x.data(), x_orig.data());
-    EXPECT_EQ(x.shape(), x_orig.shape());
-    EXPECT_EQ(x.dtype(), x_orig.dtype());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{0}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, Ones) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Array x = Array::Ones(Shape{3, 2}, dtype);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_EQ(x.shape(), Shape({3, 2}));
-    EXPECT_EQ(x.dtype(), dtype);
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{1}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
-}
-
-TEST_P(ArrayTest, OnesLike) {
-    using T = int32_t;
-    Dtype dtype = TypeToDtype<T>;
-    Array x_orig = Array::Empty(Shape{3, 2}, dtype);
-    Array x = Array::OnesLike(x_orig);
-    EXPECT_NE(x.data(), nullptr);
-    EXPECT_NE(x.data(), x_orig.data());
-    EXPECT_EQ(x.shape(), x_orig.shape());
-    EXPECT_EQ(x.dtype(), x_orig.dtype());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
-    testing::ExpectDataEqual(T{1}, x);
-    EXPECT_EQ(&GetDefaultDevice(), &x.device());
 }
 
 TEST_P(ArrayTest, Negative) {
@@ -1098,6 +939,35 @@ TEST(ArraySumTest, SumKeepDims) {
     EXPECT_EQ(0, b.strides()[1]);
     EXPECT_EQ(0, b.strides()[3]);
     Array e = testing::BuildArray(Shape{2, 1, 2, 1}).WithData<T>({114.0f, 162.0f, 402.0f, 450.0f});
+    testing::ExpectEqual(e, b);
+}
+
+TEST(ArrayMaxTest, Max) {
+    testing::ContextSession context_session;
+    Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<float>().WithPadding(1);
+    Array b = a.Max(std::vector<int8_t>{2, 0, -1});
+    EXPECT_EQ(Shape{3}, b.shape());
+    Array e = testing::BuildArray<float>({3}, {47.f, 59.f, 71.f});
+    testing::ExpectEqual(e, b);
+}
+
+TEST(ArrayMaxTest, MaxAllAxes) {
+    testing::ContextSession context_session;
+    Array a = testing::BuildArray({2, 3, 3}).WithLinearData<float>().WithPadding(1);
+    Array b = a.Max();
+    EXPECT_EQ(Shape{}, b.shape());
+    Array e = testing::BuildArray<float>({}, {17.f});
+    testing::ExpectEqual(e, b);
+}
+
+TEST(ArrayMaxTest, MaxKeepDims) {
+    testing::ContextSession context_session;
+    Array a = testing::BuildArray({2, 3, 2, 4}).WithLinearData<float>().WithPadding(1);
+    Array b = a.Max(std::vector<int8_t>{-1, 1}, true);
+    EXPECT_EQ(Shape({2, 1, 2, 1}), b.shape());
+    EXPECT_EQ(0, b.strides()[1]);
+    EXPECT_EQ(0, b.strides()[3]);
+    Array e = testing::BuildArray<float>({2, 1, 2, 1}, {19.f, 23.f, 43.f, 47.f});
     testing::ExpectEqual(e, b);
 }
 

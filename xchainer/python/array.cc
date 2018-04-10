@@ -22,6 +22,7 @@
 #include "xchainer/native/native_backend.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
+#include "xchainer/routines/sorting.h"
 #include "xchainer/slice.h"
 
 #include "xchainer/python/array_index.h"
@@ -97,7 +98,7 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
 
-    return Array::FromContiguousHostData(shape, dtype, ptr, device).move_body();
+    return xchainer::internal::FromContiguousHostData(shape, dtype, ptr, device).move_body();
 }
 
 ArrayBodyPtr MakeArray(py::array array, Device& device) {
@@ -121,7 +122,7 @@ py::buffer_info MakeBufferFromArray(ArrayBody& self) {
     })};
 
     return py::buffer_info(
-            reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset(),
+            reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset(),  // NOLINT: reinterpret_cast
             array.element_bytes(),
             std::string(1, GetCharCode(array.dtype())),
             array.ndim(),
@@ -220,11 +221,14 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("axis"),
           py::arg("keepdims") = false);
     c.def("sum",
-          [](const ArrayBodyPtr& self, nonstd::optional<std::vector<int8_t>> axis, bool keepdims) {
+          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return Array{self}.Sum(axis, keepdims).move_body();
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
+    c.def("argmax",
+          [](const ArrayBodyPtr& self, const nonstd::optional<int8_t>& axis) { return ArgMax(Array{self}, axis).move_body(); },
+          py::arg("axis") = nullptr);
     c.def("dot", [](const ArrayBodyPtr& self, const ArrayBodyPtr& b) { return Array{self}.Dot(Array{b}).move_body(); }, py::arg("b"));
     c.def("fill",
           [](const ArrayBodyPtr& self, Scalar value) {

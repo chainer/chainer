@@ -64,16 +64,16 @@ TEST_P(LinalgTest, DotMatVec) {
 }
 
 TEST_P(LinalgTest, DotInvalidShape) {
-    Array a = Array::Zeros({2, 3}, Dtype::kFloat32);
-    Array b = Array::Zeros({2, 2}, a.dtype());
+    Array a = Zeros({2, 3}, Dtype::kFloat32);
+    Array b = Zeros({2, 2}, a.dtype());
     EXPECT_THROW(Dot(a, b), DimensionError);
 }
 
 TEST_P(LinalgTest, DotAlongZeroLengthAxis) {
-    Array a = Array::Empty({2, 0}, Dtype::kFloat32);
-    Array b = Array::Empty({0, 2}, a.dtype());
+    Array a = Empty({2, 0}, Dtype::kFloat32);
+    Array b = Empty({0, 2}, a.dtype());
     Array c = Dot(a, b);
-    Array e = Array::Zeros({2, 2}, a.dtype());
+    Array e = Zeros({2, 2}, a.dtype());
     testing::ExpectEqual(e, c);
 }
 
@@ -82,8 +82,8 @@ TEST_P(LinalgTest, DotBackward) {
     Array b = (*testing::BuildArray<float>({3, 2}, {1.f, 2.f, -1.f, -3.f, 2.f, 4.f})).RequireGrad();
 
     Array go = testing::BuildArray({2, 2}).WithLinearData(-0.1f, 0.1f).WithPadding(1);
-    Array a_eps = Array::Full(a.shape(), 1e-1f);
-    Array b_eps = Array::Full(b.shape(), 1e-1f);
+    Array a_eps = Full(a.shape(), 1e-1f);
+    Array b_eps = Full(b.shape(), 1e-1f);
 
     CheckBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Dot(xs[0], xs[1])}; }, {a, b}, {go}, {a_eps, b_eps});
@@ -94,8 +94,8 @@ TEST_P(LinalgTest, DotMatVecBackward) {
     Array b = (*testing::BuildArray<float>({3}, {1.f, 2.f, -1.f})).RequireGrad();
 
     Array go = testing::BuildArray<float>({2}, {-0.1f, 0.1f}).WithPadding(1);
-    Array a_eps = Array::Full(a.shape(), 1e-1f);
-    Array b_eps = Array::Full(b.shape(), 1e-1f);
+    Array a_eps = Full(a.shape(), 1e-1f);
+    Array b_eps = Full(b.shape(), 1e-1f);
 
     CheckBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Dot(xs[0], xs[1])}; }, {a, b}, {go}, {a_eps, b_eps});
@@ -108,9 +108,9 @@ TEST_P(LinalgTest, DotDoubleBackward) {
 
     Array gga = testing::BuildArray(a.shape()).WithLinearData(-0.3f, 0.1f).WithPadding(1);
     Array ggb = testing::BuildArray(b.shape()).WithLinearData(-0.2f, 0.1f).WithPadding(1);
-    Array a_eps = Array::Full(a.shape(), 1e-1f);
-    Array b_eps = Array::Full(b.shape(), 1e-1f);
-    Array go_eps = Array::Full(go.shape(), 1e-1f);
+    Array a_eps = Full(a.shape(), 1e-1f);
+    Array b_eps = Full(b.shape(), 1e-1f);
+    Array go_eps = Full(go.shape(), 1e-1f);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Dot(xs[0], xs[1])}; },

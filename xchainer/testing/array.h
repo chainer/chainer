@@ -173,7 +173,7 @@ Array BuildArray(const Shape& shape, const std::vector<T>& data) {
     assert(static_cast<size_t>(shape.GetTotalSize()) == data.size());
     auto a = std::make_unique<T[]>(data.size());
     std::copy(data.begin(), data.end(), a.get());
-    return Array::FromContiguousHostData(shape, TypeToDtype<T>, std::move(a));
+    return internal::FromContiguousHostData(shape, TypeToDtype<T>, std::move(a));
 }
 
 }  // namespace testing

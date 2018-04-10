@@ -15,10 +15,6 @@
 namespace xchainer {
 
 Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis) {
-    if (a.GetTotalSize() == 0) {
-        throw DimensionError("Cannot compute ArgMax for an empty array.");
-    }
-
     std::vector<int8_t> sorted_axis;
     std::vector<int64_t> out_shape_vec;
     if (axis.has_value()) {
@@ -36,6 +32,12 @@ Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis) {
         // Fill with all axes
         sorted_axis.resize(a.ndim());
         std::iota(sorted_axis.begin(), sorted_axis.end(), int8_t{0});
+    }
+
+    for (int8_t i : sorted_axis) {
+        if (a.shape()[i] == 0) {
+            throw DimensionError("Cannot compute ArgMax for an empty array.");
+        }
     }
 
     Array out = Empty({out_shape_vec.begin(), out_shape_vec.end()}, Dtype::kInt64, a.device());

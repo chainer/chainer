@@ -60,6 +60,11 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
     return Shape{new_dims.begin(), new_dims.end()};
 }
 
+bool IsValidReductionShape(const Shape& in_shape, const std::vector<int8_t>& axis, const Shape& out_shape, bool allow_keepdims) {
+    return out_shape.ndim() == in_shape.ndim() - static_cast<int64_t>(axis.size()) ||
+           (allow_keepdims && out_shape.ndim() == in_shape.ndim());
+}
+
 }  // namespace internal
 
 int64_t Shape::GetTotalSize() const {
