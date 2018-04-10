@@ -36,6 +36,10 @@ Array FromHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>&
     return MakeArray(shape, strides, dtype, device, device_data);
 }
 
+Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
+    return FromHostData(shape, dtype, data, {shape, dtype}, device);
+}
+
 Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device) {
     auto bytesize = GetRequiredBytes(shape, strides, GetElementSize(dtype));
     std::shared_ptr<void> data = device.Allocate(bytesize);

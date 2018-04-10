@@ -23,6 +23,7 @@
 #include "xchainer/native/native_device.h"
 #include "xchainer/numeric_limits.h"
 #include "xchainer/reduction_kernel_arg.h"
+#include "xchainer/routines/creation.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 
@@ -527,7 +528,7 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
     }
 
     bool is_out_contiguous = out.IsContiguous();
-    Array out_contiguous = is_out_contiguous ? out : Array::EmptyLike(out, *this);
+    Array out_contiguous = is_out_contiguous ? out : EmptyLike(out, *this);
 
     auto gemm_impl = [&](auto pt) {
         using T = typename decltype(pt)::type;
