@@ -51,16 +51,20 @@ dogs or cats. Then, the training dataset consist of input images
 ----------------------------------
 
 When we think about the generative model, it models the probability distribution
-:math:`p: s \mapsto p(s)` which generates the training data :math:`s`. The most simple
-generative model models the probability distribution :math:`p` with the map :math:`f`.
-We assign each :math:`x` and :math:`y` of :math:`f: x \mapsto y` as follows.
+:math:`p: s \mapsto p(s)` which generates the training data :math:`s`. The one of 
+most simple ideas is that the generative model models the probability distribution
+:math:`p` with the map :math:`f`. We assign each :math:`x` and :math:`y` of
+:math:`f: x \mapsto y` as follows.
 
 * :math:`x` : the training data :math:`s`
 * :math:`y` : the likelihood of generating the training data :math:`s`
 
 In the case, because we model the probability distribution :math:`p` explicitly,
-we can calculate the likelihood :math:`p(s)`. So, we can maximize the likelihood.
-There is an advantage that the training process is simple. However, there is a
+we can calculate the likelihood :math:`p(s)`. In this situation, we can often optimize
+the parameters of :math:`p` to maximize the likelihood, and train the model with
+maximum likelihood estimation.
+So, there is an advantage that the training process is simple because you can just
+maximize the likelihood by optimizing the parameters. However, there is a
 disadvantage that we have to make a mechanism for sampling because we have only
 the way of calculating the likelihood.
 
