@@ -1714,8 +1714,7 @@ class TestLossScale(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    # TODO(niboshi): shape () is not supported
-    'shape': [(0,), (3, 2)],
+    'shape': [(3, 2), (2, 3, 4, 3)],
     'dtype': [
         np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32,
         np.uint64, np.float16, np.float32, np.float64],
@@ -1789,6 +1788,35 @@ class TestIntel64(unittest.TestCase):
         # Data should be converted to numpy.ndarray
         assert isinstance(x.data, np.ndarray)
         self._check_variable_shape_and_dtype(x)
+
+
+@testing.parameterize(*testing.product({
+    'shape': [(), (0,), (3, 2, 3), (4, 4, 3, 2, 3)],
+    'dtype': [
+        np.int8, np.int16, np.int32, np.int64,
+        np.uint8, np.uint16, np.uint32, np.uint64,
+        np.float16, np.float32, np.float64,
+    ],
+}))
+@attr.ideep
+class TestIntel64Unsupported(unittest.TestCase):
+
+    """Tests for arrays that should not be converted to iDeep array."""
+
+    def setUp(self):
+        self.x_data = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+
+    def test_cpu_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        x.to_intel64()
+        assert isinstance(x.data, np.ndarray)
+
+    @attr.gpu
+    def test_gpu_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        x.to_gpu()
+        x.to_intel64()
+        assert isinstance(x.data, np.ndarray)
 
 
 @testing.parameterize(*testing.product({
