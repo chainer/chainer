@@ -14,6 +14,7 @@
 #include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/routines/creation.h"
 #include "xchainer/scalar.h"
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
@@ -830,11 +831,25 @@ TEST_P(MathTest, Log) {
 }
 
 TEST_P(MathTest, LogBackward) {
-    // TODO(niboshi): Implement
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1.0, 1.0).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {Log(xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, LogDoubleBackward) {
-    // TODO(niboshi): Implement
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1.0, 1.0).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Log(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
 }
 
 INSTANTIATE_TEST_CASE_P(
