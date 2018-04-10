@@ -8,6 +8,7 @@
 #include "xchainer/array.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -36,7 +37,7 @@ Array Dot(const Array& a, const Array& b) {
         throw DimensionError("Axis dimension mismatch");
     }
     if (k == 0) {
-        return Array::Zeros(out_shape, a.dtype(), a.device());
+        return Zeros(out_shape, a.dtype(), a.device());
     }
 
     // Make each operand a matrix
@@ -46,7 +47,7 @@ Array Dot(const Array& a, const Array& b) {
     Array b_matrix = b.Reshape({k, n});
 
     // Matrix-matrix product
-    Array out_matrix = Array::Empty({m, n}, a.dtype(), a.device());
+    Array out_matrix = Empty({m, n}, a.dtype(), a.device());
     a.device().Dot(a_matrix, b_matrix, out_matrix);
 
     auto a_matrix_backward = [b_matrix](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {

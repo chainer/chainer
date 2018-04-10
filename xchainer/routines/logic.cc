@@ -3,6 +3,7 @@
 #include "xchainer/array.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/shape.h"
 
@@ -12,7 +13,7 @@ Array Equal(const Array& x1, const Array& x2) {
     CheckEqual(x1.dtype(), x2.dtype());
 
     auto func = [](const Array& x1, const Array& x2) {
-        Array out = Array::Empty(x1.shape(), Dtype::kBool, x1.device());
+        Array out = Empty(x1.shape(), Dtype::kBool, x1.device());
         x1.device().Equal(x1, x2, out);
         return out;
     };

@@ -76,8 +76,8 @@ TEST_P(IndexingTest, AtBackward) {
                 return {internal::At(xs[0], indices)};
             },
             {(*testing::BuildArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
-            {Array::Ones({1, 2}, Dtype::kFloat32)},
-            {Array::Full({2, 3}, 1e-3f)});
+            {Ones({1, 2}, Dtype::kFloat32)},
+            {Full({2, 3}, 1e-3f)});
 }
 
 TEST_P(IndexingTest, AtDoubleBackward) {
@@ -88,9 +88,9 @@ TEST_P(IndexingTest, AtDoubleBackward) {
                 return {y * y};  // to make it nonlinear
             },
             {(*testing::BuildArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
-            {Array::Ones({1, 2}, Dtype::kFloat32).RequireGrad()},
-            {Array::Ones({2, 3}, Dtype::kFloat32)},
-            {Array::Full({2, 3}, 1e-3f), Array::Full({1, 2}, 1e-3f)});
+            {Ones({1, 2}, Dtype::kFloat32).RequireGrad()},
+            {Ones({2, 3}, Dtype::kFloat32)},
+            {Full({2, 3}, 1e-3f), Full({1, 2}, 1e-3f)});
 }
 
 INSTANTIATE_TEST_CASE_P(
