@@ -753,6 +753,24 @@ class TestVariableDataAssign(unittest.TestCase):
         assert x.node.data.shape == (2, 4)
         assert x.node.data.dtype == np.float64
 
+    @attr.gpu
+    def test_to_gpu(self):
+        x = chainer.Variable(np.ones((3, 2), np.float32))
+        chainer.functions.sin(x)
+        x.to_gpu()
+        assert x.data is x.node.data
+        x.to_cpu()
+        assert x.data is x.node.data
+
+    @attr.ideep
+    def test_to_intel64(self):
+        x = chainer.Variable(np.ones((3, 2), np.float32))
+        chainer.functions.sin(x)
+        x.to_intel64()
+        assert x.data is x.node.data
+        x.to_cpu()
+        assert x.data is x.node.data
+
 
 class TestParameter(unittest.TestCase):
 
