@@ -133,6 +133,11 @@ public:
     // Note: When implementing xchainer::Sum(), be careful of the semantics of the default value of `keepdims`. See NumPy documentation.
     Array Sum(const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false) const;
 
+    // Returns the maximum value of the array.
+    // If `axis` is set, the maximum value is chosen along the specified axes.
+    // Otherwise, all the elements are searched at once.
+    Array Max(const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false) const;
+
     // Returns a dot product of the array with another one.
     Array Dot(const Array& b) const;
 

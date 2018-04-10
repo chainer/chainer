@@ -7,6 +7,7 @@
 #include <iterator>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include <gsl/gsl>
 
@@ -93,6 +94,8 @@ namespace internal {
 bool IsContiguous(const Shape& shape, const Strides& strides, int64_t element_bytes);
 
 Shape BroadcastShapes(const Shape& shape0, const Shape& shape1);
+
+bool IsValidReductionShape(const Shape& in_shape, const std::vector<int8_t>& axis, const Shape& out_shape, bool allow_keepdims);
 
 }  // namespace internal
 

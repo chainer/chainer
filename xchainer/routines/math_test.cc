@@ -698,6 +698,34 @@ TEST_P(MathTest, SumDoubleBackward_NoKeepdims) {
             {Array::Full({2, 3, 4, 3}, 1e-1), Array::Full({2, 4}, 1e-1)});
 }
 
+TEST_P(MathTest, AMax) {
+    Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<float>().WithPadding(1);
+    Array b = AMax(a, std::vector<int8_t>{2, 0, -1});
+    EXPECT_EQ(Shape{3}, b.shape());
+    Array e = testing::BuildArray<float>({3}, {47.f, 59.f, 71.f});
+    testing::ExpectEqual(e, b);
+}
+
+TEST_P(MathTest, AMaxAllExes) {
+    Array a = testing::BuildArray({2, 3, 3}).WithLinearData<float>().WithPadding(1);
+    Array b = AMax(a);
+    EXPECT_EQ(Shape{}, b.shape());
+    Array e = testing::BuildArray<float>({}, {17.f});
+    testing::ExpectEqual(e, b);
+}
+
+TEST_P(MathTest, AMaxZeroSized) {
+    Array a = Array::Empty({0, 2}, Dtype::kFloat32);
+    Array b = AMax(a, std::vector<int8_t>{1});
+    EXPECT_EQ(Shape{0}, b.shape());
+}
+
+TEST_P(MathTest, AMaxAlongZeroSized) {
+    Array a = Array::Empty({0, 2}, Dtype::kFloat32);
+    EXPECT_THROW(AMax(a, std::vector<int8_t>{0}), DimensionError);
+    EXPECT_THROW(AMax(a), DimensionError);
+}
+
 TEST_P(MathTest, MaximumScalar) {
     Array a = testing::BuildArray<float>({3, 1}, {-1.f, 2.f, -.2f});
     Array e = testing::BuildArray<float>({3, 1}, {0.f, 2.f, 0.f});

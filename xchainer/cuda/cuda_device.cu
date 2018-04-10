@@ -21,8 +21,10 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_device.h"
+#include "xchainer/numeric_limits.h"
 #include "xchainer/reduction_kernel_arg.h"
 #include "xchainer/scalar.h"
+#include "xchainer/shape.h"
 
 namespace xchainer {
 namespace cuda {
@@ -256,11 +258,36 @@ struct SumImpl {
 }  // namespace
 
 void CudaDevice::Sum(const Array& a, const std::vector<int8_t>& axis, const Array& out) {
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
-    CheckCudaError(cudaSetDevice(index()));
+
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Reduce(MakeReductionKernelArg<T, T>(a, axis, out), SumImpl<T>{});
+    });
+}
+
+namespace {
+template <typename T>
+struct AMaxImpl {
+    __device__ T Identity() { return NumericLimits<T>::LowestOrInf(); }
+    __device__ T MapIn(T in, int64_t /*index*/) { return in; }
+    __device__ void Reduce(T next, T& accum) {
+        if (accum < next) {
+            accum = next;
+        }
+    }
+    __device__ T MapOut(T accum) { return accum; }
+};
+}  // namespace
+
+void CudaDevice::AMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) {
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    CheckDevicesCompatible(a, out);
+
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Reduce(MakeReductionKernelArg<T, T>(a, axis, out), AMaxImpl<T>{});
     });
 }
 

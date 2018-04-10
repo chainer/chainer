@@ -51,6 +51,7 @@ const Array& IDivide(const Array& x1, const Array& x2);
 Array Divide(const Array& x1, const Array& x2);
 
 Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false);
+Array AMax(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false);
 
 Array Maximum(const Array& x1, Scalar x2);
 Array Maximum(Scalar x1, const Array& x2);

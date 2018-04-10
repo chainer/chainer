@@ -5,7 +5,9 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
 #include <gsl/gsl>
@@ -15,8 +17,10 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/reduce.h"
+#include "xchainer/numeric_limits.h"
 #include "xchainer/reduction_kernel_arg.h"
 #include "xchainer/scalar.h"
+#include "xchainer/shape.h"
 
 namespace xchainer {
 namespace native {
@@ -66,7 +70,7 @@ void NativeDevice::Fill(const Array& out, Scalar value) {
 
 void NativeDevice::ArgMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) {
     assert(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
-    assert(out.ndim() == a.ndim() - static_cast<int64_t>(axis.size()));
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
     CheckDevicesCompatible(a, out);
 
     VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
@@ -91,9 +95,7 @@ void NativeDevice::ArgMax(const Array& a, const std::vector<int8_t>& axis, const
 }
 
 void NativeDevice::Sum(const Array& a, const std::vector<int8_t>& axis, const Array& out) {
-    // keepdims denotes the corresponding argument in Array::Sum().
-    assert(out.ndim() == a.ndim() - static_cast<int64_t>(axis.size()) ||  // keepdims=false
-           out.ndim() == a.ndim());                                       // keepdims=true
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
 
     VisitDtype(out.dtype(), [&a, &axis, &out](auto pt) {
@@ -105,6 +107,26 @@ void NativeDevice::Sum(const Array& a, const std::vector<int8_t>& axis, const Ar
             T MapOut(T accum) { return accum; }
         };
         Reduce(MakeReductionKernelArg<T, T>(a, axis, out), SumImpl{});
+    });
+}
+
+void NativeDevice::AMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) {
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    CheckDevicesCompatible(a, out);
+
+    VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+        using T = typename decltype(pt)::type;
+        struct AMaxImpl {
+            T Identity() { return NumericLimits<T>::LowestOrInf(); }
+            T MapIn(T in, int64_t /*index*/) { return in; }
+            void Reduce(T next, T& accum) {
+                if (accum < next) {
+                    accum = next;
+                }
+            }
+            T MapOut(T accum) { return accum; }
+        };
+        Reduce(MakeReductionKernelArg<T, T>(a, axis, out), AMaxImpl{});
     });
 }
 
