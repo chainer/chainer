@@ -35,8 +35,8 @@ requirements = {
         cupy_requirement('cupy'),
     ],
     'stylecheck': [
-        'hacking',
         'autopep8',
+        'hacking',
     ],
     'test': [
         'pytest',
