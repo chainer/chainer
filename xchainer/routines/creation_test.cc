@@ -328,7 +328,7 @@ TEST_P(CreationTest, OnesLike) {
 }
 
 TEST_P(CreationTest, Arange) {
-    Array a = Arange(0, 3, 1, Dtype::kInt32);
+    Array a = Arange(0, 3, 1);
     Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
     testing::ExpectEqual(e, a);
 }
