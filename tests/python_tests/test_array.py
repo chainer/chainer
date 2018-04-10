@@ -1225,34 +1225,23 @@ def test_module_sum(xp, device, shape, axis, keepdims):
     return xp.sum(a, axis=axis, keepdims=keepdims)
 
 
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(TypeError))
-@pytest.mark.parametrize("input_shape,axis,keepdims", [
-    ((), 0, False),
-    ((), 0, True),
-    ((), 1, False),
-    ((), 1, True),
-    ((), (1,), False),
-    ((), (1,), True),
-    ((2,), 2, False),
-    ((2,), 2, True),
-    ((2,), (2,), False),
-    ((2,), (2,), True),
-    ((2,), (-2,), False),
-    ((2,), (-2,), True),
-    ((2, 3,), (-3,), False),
-    ((2, 3,), (-3,), True),
-    ((2, 3,), (-3, -4), False),
-    ((2, 3,), (-3, -4), True),
-    ((2, 3,), (0, 0), False),
-    ((2, 3,), (0, 0), True),
-    ((2, 3,), (-1, -1), False),
-    ((2, 3,), (-1, -1), True),
-    ((2, 3,), (0, 1, 1), False),
-    ((2, 3,), (0, 1, 1), True),
-    ((2, 3,), (0, -2), False),
-    ((2, 3,), (0, -2), True),
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize("keepdims", [False, True])
+@pytest.mark.parametrize("shape,axis", [
+    # ((), 0), # TODO(sonots): Fix compatibility
+    ((), 1),
+    ((), (1,)),
+    ((2,), 2),
+    ((2,), (2,)),
+    ((2,), (-2,)),
+    ((2, 3,), (-3,)),
+    ((2, 3,), (-3, -4)),
+    ((2, 3,), (0, 0)),
+    ((2, 3,), (-1, -1)),
+    ((2, 3,), (0, 1, 1)),
+    ((2, 3,), (0, -2)),
 ])
-def test_invalid_sum(xp, input_shape, axis, keepdims):
+def test_invalid_sum(xp, shape, axis, keepdims):
     ndarray = _create_dummy_ndarray(shape, 'int32')
     a = xp.array(ndarray)
     a.sum(axis=axis, keepdims=keepdims)
