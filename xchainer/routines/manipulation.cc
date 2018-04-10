@@ -118,7 +118,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
             size_t i_dim = 0;
             strides_vec.reserve(newshape.ndim());
             for (int64_t dim : newshape) {
-                if (dim == 0) {
+                if (dim <= 1) {
                     strides_vec.push_back(last_stride);
                     continue;
                 }

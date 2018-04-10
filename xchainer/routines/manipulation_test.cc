@@ -127,6 +127,19 @@ TEST_P(ManipulationTest, ReshapeBugfix1) {
     testing::ExpectEqual(e, b);
 }
 
+TEST_P(ManipulationTest, ReshapeBugfix2) {
+    using T = double;
+    Shape input_shape{2, 4};
+    Shape output_shape{2, 1, 4, 1};
+
+    Array a = testing::BuildArray(input_shape).WithLinearData<T>();
+    Array b = Reshape(a, output_shape);
+    ASSERT_EQ(output_shape, b.shape());
+    EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
+    Array e = testing::BuildArray(output_shape).WithLinearData<T>();
+    testing::ExpectEqual(e, b);
+}
+
 // If an input array has a unit-length axis with 0-stride, that axis should not give rise to any copies.
 TEST_P(ManipulationTest, ReshapeNoCopyZeroStrideAxis) {
     using T = int32_t;
