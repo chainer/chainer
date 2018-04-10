@@ -42,8 +42,8 @@ public:
 
     // Sets an index from mutiple indexers each of which composes a portion of dimensions in order.
     template <typename... Args>
-    XCHAINER_HOST_DEVICE void SetIndexers(Args... indexers) {
-        int8_t processed_dims = SetIndexersImpl(0, indexers...);
+    XCHAINER_HOST_DEVICE void SetIndexers(Args&&... indexers) {
+        int8_t processed_dims = SetIndexersImpl(0, std::forward<Args>(indexers)...);
         assert(processed_dims == ndim_);
 #ifndef NDEBUG
         for (int8_t i = 0; i < ndim_; ++i) {
@@ -58,9 +58,9 @@ private:
     // Returns the number of written dimensions, which is equal to ndim_.
     // `processed_dim` is the number of written dimensions so far.
     template <typename... Args>
-    XCHAINER_HOST_DEVICE int8_t SetIndexersImpl(int8_t processed_dims, const Indexer& first_indexer, Args... indexers) {
+    XCHAINER_HOST_DEVICE int8_t SetIndexersImpl(int8_t processed_dims, const Indexer& first_indexer, Args&&... indexers) {
         processed_dims = SetIndexersImpl(processed_dims, first_indexer);
-        int8_t dims = SetIndexersImpl(processed_dims, indexers...);
+        int8_t dims = SetIndexersImpl(processed_dims, std::forward<Args>(indexers)...);
         assert(dims == ndim_);
         return dims;
     }
