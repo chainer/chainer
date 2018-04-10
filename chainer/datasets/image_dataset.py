@@ -216,7 +216,7 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
 
     """
 
-    def __init__(self, zipfilename, dtype=numpy.float32):
+    def __init__(self, zipfilename, dtype=None):
         self._zipfilename = zipfilename
         self._zf = zipfile.ZipFile(zipfilename)
         self._zf_pid = os.getpid()
