@@ -2,7 +2,7 @@ from chainer.training import extension
 
 
 class FailOnNonNumber(extension.Extension):
-    """Trainer extension to raise RuntimeError if parameters contain NaN or Inf
+    """Trainer extension to raise RuntimeError if parameters contain NaN or Inf.
 
     Although parameters including non-number such as NaN and Inf are
     unnecessary in most cases, :class:`~chainer.training.Trainer` will continue
