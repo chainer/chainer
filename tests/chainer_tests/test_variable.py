@@ -1818,6 +1818,7 @@ class TestIntel64Unsupported(unittest.TestCase):
         x.to_intel64()
         assert isinstance(x.data, np.ndarray)
 
+
 @testing.parameterize(*testing.product({
     'shape': [(3,), (3, 2), (3, 2, 2), (3, 2, 2, 3)],
     'dtype': [
