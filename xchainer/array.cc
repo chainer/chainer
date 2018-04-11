@@ -261,6 +261,19 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
     }
 }
 
+Array Array::AsType(Dtype dtype, bool copy) const {
+    if (!copy && dtype == this->dtype()) {
+        return *this;
+    }
+    Array out = Empty(shape(), dtype, device());
+    device().AsType(*this, out);
+
+    // TODO(sonots): backward
+
+    assert(out.IsContiguous());
+    return out;
+}
+
 void Array::Fill(Scalar value) const { device().Fill(*this, value); }
 
 const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return internal::GetArrayNode(*this, graph_id)->grad(); }

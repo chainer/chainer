@@ -619,6 +619,40 @@ TEST_P(ArrayTest, AsConstantView) {
     }
 }
 
+TEST_P(ArrayTest, AsTypeFloatToDouble) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array o = a.AsType(Dtype::kFloat64);
+    Array e = testing::BuildArray<double>({3, 1}, {1, 2, 3});
+    testing::ExpectEqualCopy(e, o);
+}
+
+TEST_P(ArrayTest, AsTypeFloatToInt) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array o = a.AsType(Dtype::kInt32);
+    Array e = testing::BuildArray<int32_t>({3, 1}, {1, 2, 3});
+    testing::ExpectEqualCopy(e, o);
+}
+
+TEST_P(ArrayTest, AsTypeBoolToFloat) {
+    Array a = testing::BuildArray<bool>({3, 1}, {true, false, true});
+    Array o = a.AsType(Dtype::kFloat32);
+    Array e = testing::BuildArray<float>({3, 1}, {1.0, 0.0, 1.0});
+    testing::ExpectEqualCopy(e, o);
+}
+
+TEST_P(ArrayTest, AsTypeCopyFalse) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array o = a.AsType(Dtype::kFloat32, false);
+    EXPECT_EQ(a.body(), o.body()) << "Bodies must be same in order for the reference to be preserved in Python";
+}
+
+TEST_P(ArrayTest, AsTypeCopyFalseButDifferentType) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array o = a.AsType(Dtype::kFloat64, false);
+    Array e = testing::BuildArray<double>({3, 1}, {1, 2, 3});
+    testing::ExpectEqualCopy(e, o);
+}
+
 TEST_P(ArrayTest, ToNative) {
     using T = float;
     Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad();

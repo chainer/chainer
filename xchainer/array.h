@@ -162,6 +162,11 @@ public:
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
     Array AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind = CopyKind::kView) const;
 
+    // Casts to a specified type.
+    // By default, always returns a newly allocated array. If `copy` is false,
+    // and the dtype requirement is satisfied, the input array is returned instead of a copy.
+    Array AsType(Dtype dtype, bool copy = true) const;
+
     void Fill(Scalar value) const;
 
     const nonstd::optional<Array>& GetGrad(const GraphId& graph_id = kDefaultGraphId) const;
