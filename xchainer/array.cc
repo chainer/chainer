@@ -267,10 +267,10 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     }
     Array out = Empty(shape(), dtype, device());
     device().AsType(*this, out);
-    assert(out.IsContiguous());
 
     // TODO(sonots): backward
 
+    assert(out.IsContiguous());
     return out;
 }
 
