@@ -13,6 +13,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/indexing.h"
 #include "xchainer/routines/linalg.h"
 #include "xchainer/routines/logic.h"
 #include "xchainer/routines/manipulation.h"
@@ -226,6 +227,18 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("a"),
           py::arg("device"));
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
+
+    // indexing routines
+    m.def("take",
+          [](const ArrayBodyPtr& a, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
+              if (!axis.has_value()) {
+                  throw NotImplementedError("axis=None is not yet supported for xchainer.take.");
+              }
+              return Take(Array{a}, Array{indices}, axis.value()).move_body();
+          },
+          py::arg("a"),
+          py::arg("indices"),
+          py::arg("axis") = nullptr);
 
     // linalg routines
     m.def("dot",

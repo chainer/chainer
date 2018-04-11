@@ -1173,6 +1173,30 @@ def test_getitem(xp, shape, indices):
     return a[indices]
 
 
+# TODO(hvy): Add tests.
+@pytest.mark.parametrize("shape,indices,axis", [
+    ((3,), [0], 0),
+    ((3,), [1], 0),
+])
+@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+def test_take(xp, shape, indices, axis):
+    ndarray = _create_dummy_ndarray(shape, 'int32')
+    a = xp.array(ndarray)
+    return a.take(xp.array(indices, dtype='int64'), axis)
+
+
+# TODO(hvy): Add tests.
+@pytest.mark.parametrize("shape,indices,axis", [
+    ((3,), [0], 0),
+    ((3,), [1], 0),
+])
+@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+def test_take(xp, shape, indices, axis):
+    ndarray = _create_dummy_ndarray(shape, 'int32')
+    a = xp.array(ndarray)
+    return xp.take(a, xp.array(indices, dtype='int64'), axis)
+
+
 _sum_params = [
     ((), None),
     ((), ()),
