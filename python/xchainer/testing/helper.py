@@ -78,7 +78,7 @@ def _contains_signed_and_unsigned(kw):
         any(d in vs for d in _float_dtypes + _signed_dtypes)
 
 
-def _make_decorator(check_func, name, device_arg, device_check, type_check, accept_error):
+def _make_decorator(check_func, name, device_check, type_check, accept_error):
     def decorator(impl):
         @functools.wraps(impl)
         def test_func(*args, **kw):
@@ -117,8 +117,8 @@ def _make_decorator(check_func, name, device_arg, device_check, type_check, acce
                 check_func(xchainer_result, numpy_result)
             if type_check:
                 assert numpy.dtype(xchainer_result.dtype.name) == numpy_result.dtype
-            if device_check and device_arg in kw:
-                assert xchainer_result.device is kw[device_arg]
+            if device_check and device_check in kw:
+                assert xchainer_result.device is kw[device_check]
         return test_func
     return decorator
 
@@ -132,10 +132,10 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', device_ar
          verbose(bool): If ``True``, the conflicting values are
              appended to the error message.
          name(str): Argument name whose value is either ``numpy`` or ``xchainer`` module.
-         device_arg(str): Argument name whose value is device
-         device_check(bool): If ``True``, check equality between device of xchainer array
-             and the device argument.
          type_check(bool): If ``True``, consistency of dtype is also checked.
+         device_check(str or None or False): Specify argument name whose value is device.
+             If not ``None`` and not ``False``, check equality between device of
+             xchainer array and the device argument.
          accept_error(Exception or tuple of Exception): Specify
              acceptable errors. When both NumPy test and xChainer test raises the
              same type of errors, and the type of the errors is specified with
@@ -150,4 +150,4 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', device_ar
     def check_func(x, y):
         array.assert_array_equal(x, y, rtol, atol, err_msg, verbose)
 
-    return _make_decorator(check_func, name, device_arg, device_check, type_check, accept_error)
+    return _make_decorator(check_func, name, device_check, type_check, accept_error)
