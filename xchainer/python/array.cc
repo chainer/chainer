@@ -226,6 +226,18 @@ void InitXchainerArray(pybind11::module& m) {
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
+    c.def("max",
+          [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) {
+              return Array{self}.Max(std::vector<int8_t>{axis}, keepdims).move_body();
+          },
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    c.def("max",
+          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return Array{self}.Max(axis, keepdims).move_body();
+          },
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
     c.def("argmax",
           [](const ArrayBodyPtr& self, const nonstd::optional<int8_t>& axis) { return ArgMax(Array{self}, axis).move_body(); },
           py::arg("axis") = nullptr);

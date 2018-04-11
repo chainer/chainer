@@ -1375,9 +1375,8 @@ def test_log(xp, device, input, numpy_dtype):
     return xp.log(a)
 
 
-# TODO(niboshi): Unify `test_argmax` and `test_argmax_member` by returning a tuple of arrays: `return xp.argmax(a, axis), a.argmax(axis)`
-# after implementing multple return support in `numpy_xchainer_array_equal`.
-@pytest.mark.parametrize('input,axis', [
+_min_max_single_axis_params = [
+    # input, axis
     (numpy.asarray(0), None),
     (numpy.asarray(-1), None),
     (numpy.asarray(float('inf')), None),
@@ -1392,7 +1391,20 @@ def test_log(xp, device, input, numpy_dtype):
     (numpy.ones((2, 0, 3)), 2),
     (numpy.ones((2, 3)), 1),
     (numpy.ones((2, 3)), -2),
-])
+]
+
+_min_max_single_axis_invalid_params = [
+    (numpy.ones((0,)), None),
+    (numpy.ones((2, 0, 3)), 1),
+    (numpy.ones((2, 0, 3)), None),
+    (numpy.ones((2, 3)), 2),
+    (numpy.ones((2, 3)), -3),
+]
+
+
+# TODO(niboshi): Unify `test_argmax` and `test_argmax_member` by returning a tuple of arrays: `return xp.argmax(a, axis), a.argmax(axis)`
+# after implementing multple return support in `numpy_xchainer_array_equal`.
+@pytest.mark.parametrize('input,axis', _min_max_single_axis_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal()
 def test_argmax(xp, device, input, axis, dtype):
@@ -1405,22 +1417,7 @@ def test_argmax(xp, device, input, axis, dtype):
     return xp.argmax(a, axis)
 
 
-@pytest.mark.parametrize('input,axis', [
-    (numpy.asarray(0), None),
-    (numpy.asarray(-1), None),
-    (numpy.asarray(float('inf')), None),
-    (numpy.asarray(float('nan')), None),
-    (numpy.asarray(-float('inf')), None),
-    (numpy.asarray([4, 1, 4, 1]), None),
-    (numpy.asarray([4, 1, 4, 1]), 0),
-    (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]), 0),
-    (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]).T, 1),
-    (numpy.asarray([-0.0, +0.0, +0.0, -0.0]), None),
-    (numpy.asarray([[True, True, False, False], [True, False, True, False]]), 0),
-    (numpy.ones((2, 0, 3)), 2),
-    (numpy.ones((2, 3)), 1),
-    (numpy.ones((2, 3)), -2),
-])
+@pytest.mark.parametrize('input,axis', _min_max_single_axis_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal()
 def test_argmax_member(xp, device, input, axis, dtype):
@@ -1433,13 +1430,7 @@ def test_argmax_member(xp, device, input, axis, dtype):
     return a.argmax(axis)
 
 
-@pytest.mark.parametrize('input,axis', [
-    (numpy.ones((0,)), None),
-    (numpy.ones((2, 0, 3)), 1),
-    (numpy.ones((2, 0, 3)), None),
-    (numpy.ones((2, 3)), 2),
-    (numpy.ones((2, 3)), -3),
-])
+@pytest.mark.parametrize('input,axis', _min_max_single_axis_invalid_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_invalid_argmax(device, input, axis):
     a_np = input
@@ -1456,3 +1447,68 @@ def test_invalid_argmax(device, input, axis):
 
     with pytest.raises(xchainer.DimensionError):
         a_xc.argmax(axis)
+
+
+_min_max_multi_axis_params = _min_max_single_axis_params + [
+    # input, axis
+    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (0, 1)),
+    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-2, -1)),
+]
+
+_min_max_multi_axis_invalid_params = _min_max_single_axis_invalid_params + [
+    # input, axis
+    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 1)),
+    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-3, 1)),
+    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 2)),
+]
+
+
+def test_max_amax():
+    assert xchainer.amax is xchainer.max
+
+
+# TODO(niboshi): Unify `test_max` and `test_max_member` by returning a tuple of arrays: `return xp.amax(a, axis), a.max(axis)`
+# after implementing multple return support in `numpy_xchainer_array_equal`.
+@pytest.mark.parametrize('input,axis', _min_max_multi_axis_params)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_max(xp, device, input, axis, dtype):
+    try:
+        a_np = input.astype(dtype.name)
+    except (ValueError, OverflowError):
+        return xp.zeros(())  # invalid combination of data and dtype
+
+    a = xp.array(a_np)
+    return xp.amax(a, axis)
+
+
+@pytest.mark.parametrize('input,axis', _min_max_multi_axis_params)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_max_member(xp, device, input, axis, dtype):
+    try:
+        a_np = input.astype(dtype.name)
+    except (ValueError, OverflowError):
+        return xp.zeros(())  # invalid combination of data and dtype
+
+    a = xp.array(a_np)
+    return a.max(axis)
+
+
+@pytest.mark.parametrize('input,axis', _min_max_multi_axis_invalid_params)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_invalid_max(device, input, axis):
+    a_np = input
+    a_xc = xchainer.array(a_np)
+
+    with pytest.raises(ValueError):
+        numpy.amax(a_np, axis)
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.amax(a_xc, axis)
+
+    with pytest.raises(ValueError):
+        a_np.max(axis)
+
+    with pytest.raises(xchainer.DimensionError):
+        a_xc.max(axis)

@@ -327,6 +327,21 @@ void InitXchainerRoutines(pybind11::module& m) {
           [](const ArrayBodyPtr& a, const nonstd::optional<int8_t>& axis) { return ArgMax(Array{a}, axis).move_body(); },
           py::arg("a"),
           py::arg("axis") = nullptr);
+
+    // statistics routines
+    m.def("amax",
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return AMax(Array{a}, std::vector<int8_t>{axis}, keepdims).move_body(); },
+          py::arg("a"),
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    m.def("amax",
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return AMax(Array{a}, axis, keepdims).move_body();
+          },
+          py::arg("a"),
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
+    m.attr("max") = m.attr("amax");
 }
 
 }  // namespace internal

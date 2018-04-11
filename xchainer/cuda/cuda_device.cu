@@ -293,11 +293,18 @@ void CudaDevice::Sum(const Array& a, const std::vector<int8_t>& axis, const Arra
 
 namespace {
 template <typename T>
+__device__ bool IsNan(T /*value*/) {
+    return false;
+}
+__device__ bool IsNan(double value) { return ::isnan(value); }
+__device__ bool IsNan(float value) { return ::isnan(value); }
+
+template <typename T>
 struct AMaxImpl {
     __device__ T Identity() { return NumericLimits<T>::LowestOrInf(); }
     __device__ T MapIn(T in, int64_t /*index*/) { return in; }
     __device__ void Reduce(T next, T& accum) {
-        if (accum < next) {
+        if (IsNan(next) || accum < next) {
             accum = next;
         }
     }
