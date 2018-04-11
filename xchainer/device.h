@@ -77,7 +77,7 @@ public:
     // The arrays must match in shape and dtype and need to reside on this device.
     virtual void Copy(const Array& a, const Array& out) = 0;
 
-    // Cast the elements from one array to the other dtype, and store into the other.
+    // Casts the elements from one array to the other dtype, and store into the other.
     virtual void AsType(const Array& a, const Array& out) = 0;
 
     virtual void Equal(const Array& x1, const Array& x2, const Array& out) = 0;
