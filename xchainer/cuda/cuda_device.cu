@@ -334,6 +334,12 @@ void CudaDevice::Copy(const Array& a, const Array& out) {
     });
 }
 
+void CudaDevice::Astype(const Array& a, const Array& out) {
+    (void)a; // unused
+    (void)out; // unused
+    return;
+}
+
 void CudaDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
     CheckCudaError(cudaSetDevice(index()));

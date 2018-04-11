@@ -40,6 +40,8 @@ public:
 
     void Copy(const Array& a, const Array& out) override;
 
+    void Astype(const Array& a, const Array& out) override;
+
     void Equal(const Array& x1, const Array& x2, const Array& out) override;
 
     void Add(const Array& x1, const Array& x2, const Array& out) override;
