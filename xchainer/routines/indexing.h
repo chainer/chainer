@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
+
+#include "nonstd/optional.hpp"
 
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"
@@ -12,4 +15,12 @@ namespace internal {
 Array At(const Array& a, const std::vector<ArrayIndex>& indices);
 
 }  // namespace internal
+
+// Takes elements specified by indices from an array.
+//
+// TODO(niboshi): Support Scalar and std::vector<int64_t> as indices.
+// TODO(niboshi): Support axis=None behavior in NumPy.
+// TODO(niboshi): Support indices dtype other than int64.
+Array Take(const Array& a, const Array& indices, int8_t axis);
+
 }  // namespace xchainer

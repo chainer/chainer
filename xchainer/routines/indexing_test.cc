@@ -93,6 +93,24 @@ TEST_P(IndexingTest, AtDoubleBackward) {
             {Full({2, 3}, 1e-3f), Full({1, 2}, 1e-3f)});
 }
 
+TEST_P(IndexingTest, Take) {
+    // TODO(niboshi): Implement for CUDA and remove this guard
+    if (GetParam() == "cuda") {
+        return;
+    }
+    using T = int8_t;
+    Shape input_shape{2, 4};
+    Shape indices_shape{2, 3};
+    Shape output_shape{2, 2, 3};
+    Array a = testing::BuildArray(input_shape).WithLinearData<T>().WithPadding(1);
+    Array indices = testing::BuildArray(indices_shape).WithData<int64_t>({0, 14, 3, 1, -10, 1});
+    Array b = Take(a, indices, 1);
+
+    EXPECT_EQ(output_shape, b.shape());
+    Array e = testing::BuildArray(output_shape).WithData<T>({0, 2, 3, 1, 2, 1, 4, 6, 7, 5, 6, 5});
+    testing::ExpectEqual(e, b);
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         IndexingTest,

@@ -125,6 +125,13 @@ public:
     // Returns a dot product of the array with another one.
     Array Dot(const Array& b) const;
 
+    // Takes elements specified by indices from the array.
+    //
+    // TODO(niboshi): Support Scalar and std::vector<int64_t> as indices.
+    // TODO(niboshi): Support axis=None behavior in NumPy.
+    // TODO(niboshi): Support indices dtype other than int64.
+    Array Take(const Array& indices, int8_t axis) const;
+
     // Creates a copy.
     // It will be connected to all the graphs.
     // It will be always C-contiguous.
