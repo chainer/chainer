@@ -640,6 +640,19 @@ TEST_P(ArrayTest, AstypeBoolToFloat) {
     testing::ExpectEqualCopy(e, o);
 }
 
+TEST_P(ArrayTest, AstypeCopyFalse) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array o = a.Astype(Dtype::kFloat32, false);
+    EXPECT_EQ(a.body(), o.body());  // bodies are same because out is not view nor copy
+}
+
+TEST_P(ArrayTest, AstypeCopyFalseButDifferentType) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array o = a.Astype(Dtype::kFloat64, false);
+    Array e = testing::BuildArray<double>({3, 1}, {1, 2, 3});
+    testing::ExpectEqualCopy(e, o);
+}
+
 TEST_P(ArrayTest, ToNative) {
     using T = float;
     Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad();
