@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "xchainer/axis.h"
 #include "xchainer/strides.h"
 
 namespace xchainer {
@@ -63,6 +64,16 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
 bool IsValidReductionShape(const Shape& in_shape, const std::vector<int8_t>& axis, const Shape& out_shape, bool allow_keepdims) {
     return out_shape.ndim() == in_shape.ndim() - static_cast<int64_t>(axis.size()) ||
            (allow_keepdims && out_shape.ndim() == in_shape.ndim());
+}
+
+Shape TransposeShape(const Shape& shape, const std::vector<int8_t>& axes) {
+    assert(IsAxesPermutation(axes, shape.ndim()));
+    std::vector<int8_t> new_shape;
+    new_shape.reserve(shape.ndim());
+    for (int8_t axis : axes) {
+        new_shape.push_back(shape[axis]);
+    }
+    return Shape{new_shape.begin(), new_shape.end()};
 }
 
 }  // namespace internal

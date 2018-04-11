@@ -55,7 +55,7 @@ public:
     void Exp(const Array& x, const Array& out) override;
     void Log(const Array& x, const Array& out) override;
 
-    void Take(const Array& a, const Array& indices, int64_t axis, const Array& out) override;
+    void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) override;
 
     void Synchronize() override;
 };

@@ -13,6 +13,7 @@ install(FILES
     array_body.h
     array_index.h
     array_repr.h
+    axis.h
     backend.h
     backward.h
     constant.h
@@ -38,6 +39,7 @@ install(FILES
 add_library(xchainer SHARED
     array.cc
     array_repr.cc
+    axis.cc
     backend.cc
     backward.cc
     check_backward.cc

@@ -624,9 +624,94 @@ void CudaDevice::Log(const Array& x, const Array& out) {
     });
 }
 
-void CudaDevice::Take(const Array& /*a*/, const Array& /*indices*/, int64_t /*axis*/, const Array& /*out*/) {
-    // TODO(niboshi): Implement
-    throw NotImplementedError("");
+namespace {
+
+// Makes axes for permutation that moves [first_axis, last_axis) to the head.
+std::vector<int8_t> MakeRollingPermutation(int8_t first_axis, int8_t last_axis, int8_t ndim) {
+    assert(0 <= first_axis);
+    assert(first_axis < last_axis);
+    assert(last_axis <= ndim);
+
+    std::vector<int8_t> permutation(ndim);
+    auto head_end = permutation.begin() + (last_axis - first_axis);
+    auto last = permutation.begin() + last_axis;
+    std::iota(permutation.begin(), head_end, first_axis);
+    std::iota(head_end, last, int8_t{0});
+    std::iota(last, permutation.end(), last_axis);
+    return permutation;
+}
+
+template <typename T>
+__global__ void TakeKernel(
+        IndexableArray<const T> a_iarray,
+        IndexableArray<T> out_iarray,
+        IndexableArray<const int64_t> indices_iarray,
+        Indexer a_indexer,
+        Indexer out_indexer,
+        Indexer indices_indexer,
+        int64_t common_total_size,
+        int64_t axis_dim) {
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < out_indexer.total_size(); i += blockDim.x * gridDim.x) {
+        out_indexer.Set(i);
+
+        int64_t indices_pos = i / common_total_size;
+        int64_t common_pos = i % common_total_size;
+
+        indices_indexer.Set(indices_pos);
+        int64_t index = indices_iarray[indices_indexer];
+        if (index < 0) {
+            index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
+        } else {
+            index = index % axis_dim;
+        }
+        assert(0 <= index);
+        assert(index < axis_dim);
+
+        a_indexer.Set(index * common_total_size + common_pos);
+        out_iarray[out_indexer] = a_iarray[a_indexer];
+    }
+}
+
+}  // namespace
+
+void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
+    CheckDevicesCompatible(a, indices, out);
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        // a and out are transposed as follows.
+        // a:       (Ni..., N, Nj...) => (N, Ni..., Nj...)
+        // out:     (Ni..., Nk..., Nj...) => (Nk..., Ni..., Nj...)
+        //
+        // indices is used as is.
+        // indices: (Nk...)
+
+        IndexableArray<const T> a_iarray{a};
+        std::vector<int8_t> a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
+        a_iarray.Permute(a_perm);
+        Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
+        Indexer a_indexer{a_shape};
+
+        IndexableArray<T> out_iarray{out};
+        std::vector<int8_t> out_perm = MakeRollingPermutation(axis, axis + indices.ndim(), out.ndim());
+        out_iarray.Permute(out_perm);
+        Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
+        Indexer out_indexer{out_shape};
+
+        IndexableArray<const int64_t> indices_iarray{indices};
+        Indexer indices_indexer{indices.shape()};
+
+        // size of (Ni..., Nj...) part
+        int64_t common_total_size = a_indexer.total_size() / a_shape[0];
+
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&TakeKernel<T>).block_size;
+        int64_t total_size = out_indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        TakeKernel<<<grid_size, block_size>>>(
+                a_iarray, out_iarray, indices_iarray, a_indexer, out_indexer, indices_indexer, common_total_size, a_shape[0]);
+    });
 }
 
 void CudaDevice::Synchronize() {

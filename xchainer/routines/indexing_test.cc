@@ -94,10 +94,6 @@ TEST_P(IndexingTest, AtDoubleBackward) {
 }
 
 TEST_P(IndexingTest, Take) {
-    // TODO(niboshi): Implement for CUDA and remove this guard
-    if (GetParam() == "cuda") {
-        return;
-    }
     using T = int8_t;
     Shape input_shape{2, 4};
     Shape indices_shape{2, 3};

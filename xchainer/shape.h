@@ -97,6 +97,8 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1);
 
 bool IsValidReductionShape(const Shape& in_shape, const std::vector<int8_t>& axis, const Shape& out_shape, bool allow_keepdims);
 
+Shape TransposeShape(const Shape& shape, const std::vector<int8_t>& axes);
+
 }  // namespace internal
 
 inline bool operator==(const Shape& lhs, const Shape& rhs) { return lhs.span() == rhs.span(); }

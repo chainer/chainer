@@ -340,7 +340,7 @@ void NativeDevice::Log(const Array& x, const Array& out) {
     });
 }
 
-void NativeDevice::Take(const Array& a, const Array& indices, int64_t axis, const Array& out) {
+void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
     CheckDevicesCompatible(a, indices, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
