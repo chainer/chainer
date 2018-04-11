@@ -401,10 +401,8 @@ Array LogSumExp(const Array& x, const nonstd::optional<std::vector<int8_t>>& axi
 
 }  // namespace internal
 
-Array LogSoftmax(const Array& x, const nonstd::optional<int8_t>& axis) {
-    std::vector<int8_t> sorted_axis =
-            axis.has_value() ? internal::GetSortedAxes({axis.value()}, x.ndim()) : std::vector<int8_t>{static_cast<int8_t>(x.ndim() - 1)};
-    return x - internal::LogSumExp(x, sorted_axis, true);
+Array LogSoftmax(const Array& x, const nonstd::optional<std::vector<int8_t>>& axis) {
+    return x - internal::LogSumExp(x, axis.has_value() ? axis.value() : std::vector<int8_t>{1}, true);
 }
 
 }  // namespace xchainer

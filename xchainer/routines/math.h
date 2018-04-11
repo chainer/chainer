@@ -65,6 +65,6 @@ Array LogSumExp(const Array& x, const nonstd::optional<std::vector<int8_t>>& axi
 
 }  // namespace internal
 
-Array LogSoftmax(const Array& x, const nonstd::optional<int8_t>& axis = nonstd::nullopt);
+Array LogSoftmax(const Array& x, const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt);
 
 }  // namespace xchainer

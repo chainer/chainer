@@ -891,7 +891,7 @@ TEST_P(MathTest, LogSoftmax) {
 TEST_P(MathTest, LogSoftmaxWithAxis) {
     Array a = Zeros({2, 3}, Dtype::kFloat32);
     Array e = Full({2, 3}, -Scalar{std::log(2.0f), Dtype::kFloat32});
-    Array b = LogSoftmax(a, 0);
+    Array b = LogSoftmax(a, std::vector<int8_t>{0});
     testing::ExpectAllClose(e, b, 1e-3, 0, true);
 }
 
