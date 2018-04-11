@@ -643,7 +643,7 @@ TEST_P(ArrayTest, AsTypeBoolToFloat) {
 TEST_P(ArrayTest, AsTypeCopyFalse) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array o = a.AsType(Dtype::kFloat32, false);
-    EXPECT_EQ(a.body(), o.body());  // bodies are same because out is not view nor copy
+    EXPECT_EQ(a.body(), o.body()) << "Bodies must be same in order for the reference to be preserved in Python";
 }
 
 TEST_P(ArrayTest, AsTypeCopyFalseButDifferentType) {
