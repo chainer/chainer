@@ -390,8 +390,6 @@ Array Log(const Array& x) {
     return out;
 }
 
-namespace internal {
-
 Array LogSumExp(const Array& x, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
     std::vector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, x.ndim());
     Array xmax = AMax(x, sorted_axis, true);
@@ -399,10 +397,8 @@ Array LogSumExp(const Array& x, const nonstd::optional<std::vector<int8_t>>& axi
     return (keepdims ? xmax : Squeeze(xmax, axis)) + logs;
 }
 
-}  // namespace internal
-
 Array LogSoftmax(const Array& x, const nonstd::optional<std::vector<int8_t>>& axis) {
-    return x - internal::LogSumExp(x, axis.has_value() ? axis.value() : std::vector<int8_t>{1}, true);
+    return x - LogSumExp(x, axis.has_value() ? axis : std::vector<int8_t>{1}, true);
 }
 
 }  // namespace xchainer
