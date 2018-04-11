@@ -371,6 +371,9 @@ class Optimizer(object):
             :meth:`update` method.
         ~Optimizer.epoch: Current epoch. It is incremented by the
             :meth:`new_epoch` method.
+        use_auto_new_epoch: Boolean flag to indicate if :meth:`new_epoch` will
+            be called by the updater. Updater should set this flag to ``True``
+            if it automatically calls :meth:`new_epoch`.
 
     """
 
@@ -380,6 +383,7 @@ class Optimizer(object):
     _pre_update_hooks = None
     _post_update_hooks = None
     _loss_scale = None
+    use_auto_new_epoch = False
 
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
@@ -446,14 +450,30 @@ class Optimizer(object):
         """
         raise NotImplementedError
 
-    def new_epoch(self):
+    def new_epoch(self, auto=False):
         """Starts a new epoch.
 
         This method increments the :attr:`epoch` count. Note that if the
         optimizer depends on the epoch count, then user should call this method
         appropriately at the beginning of each epoch.
 
+        Args:
+            auto (bool): Should be ``True`` if this method is called by an
+                updater. In this case, :attr:`use_auto_new_epoch` should be set
+                to ``True`` by the updater.
+
         """
+        if auto:
+            if not self.use_auto_new_epoch:
+                raise RuntimeError(
+                    'invalid new_epoch call with auto=True.\n'
+                    'Fix the updater to set optimizer.use_auto_new_epoch = True.')
+        else:
+            if self.use_auto_new_epoch:
+                raise RuntimeError(
+                    'duplicated new_epoch with the updater.\n'
+                    'Pass auto_new_epoch=False to the updater or stop calling '
+                    'new_epoch outside the updater.')
         self.epoch += 1
 
     def add_hook(self, hook, name=None, timing='auto'):
