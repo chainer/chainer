@@ -852,6 +852,130 @@ TEST_P(MathTest, LogDoubleBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Log(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
 }
 
+TEST_P(MathTest, LogSumExp) {
+    using T = double;
+    std::array<T, 6> adata{-1, 0, 1, 2, 3, 4};
+    Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
+    Array e = testing::BuildArray({}).WithData<T>({std::log(
+            std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
+    testing::ExpectAllClose(e, LogSumExp(a), 1e-5, 0);
+}
+
+TEST_P(MathTest, LogSumExpReduceFirstAxis) {
+    using T = double;
+    std::array<T, 6> adata{-1, 0, 1, 2, 3, 4};
+    Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
+    Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[3])),
+                                                    std::log(std::exp(adata[1]) + std::exp(adata[4])),
+                                                    std::log(std::exp(adata[2]) + std::exp(adata[5]))});
+    testing::ExpectAllClose(e, LogSumExp(a, std::vector<int8_t>{0}), 1e-5, 0);
+}
+
+TEST_P(MathTest, LogSumExpReduceSecondAxis) {
+    using T = double;
+    std::array<T, 6> adata{-1, 0, 1, 2, 3, 4};
+    Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
+    Array e = testing::BuildArray({2}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2])),
+                                                    std::log(std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
+    testing::ExpectAllClose(e, LogSumExp(a, std::vector<int8_t>{1}), 1e-5, 0);
+}
+
+TEST_P(MathTest, LogSumExpReduceMultipleAxes) {
+    using T = double;
+    std::array<T, 6> adata{-1, 0, 1, 2, 3, 4};
+    Array a = testing::BuildArray({1, 3, 1, 2}).WithData<T>(adata).WithPadding(1);
+    Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1])),
+                                                    std::log(std::exp(adata[2]) + std::exp(adata[3])),
+                                                    std::log(std::exp(adata[4]) + std::exp(adata[5]))});
+    testing::ExpectAllClose(e, LogSumExp(a, std::vector<int8_t>{0, 2, 3}), 1e-5, 0);
+}
+
+TEST_P(MathTest, LogSumExpKeepdims) {
+    using T = double;
+    std::array<T, 6> adata{-1, 0, 1, 2, 3, 4};
+    Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
+    Array e = testing::BuildArray({2, 1}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2])),
+                                                       std::log(std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
+    testing::ExpectAllClose(e, LogSumExp(a, std::vector<int8_t>{1}, true), 1e-5, 0);
+}
+
+TEST_P(MathTest, LogSumExpReduceMultipleAxesKeepdims) {
+    using T = double;
+    std::array<T, 6> adata{-1, 0, 1, 2, 3, 4};
+    Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
+    Array e = testing::BuildArray({1, 1}).WithData<T>({std::log(
+            std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
+    testing::ExpectAllClose(e, LogSumExp(a, std::vector<int8_t>{0, 1}, true), 1e-5, 0);
+}
+
+TEST_P(MathTest, LogSumExpBackward) {
+    // TODO(hvy): Write tests when backward is implemented for routines that LogSumExp depends on.
+}
+
+TEST_P(MathTest, LogSumExpDoubleBackward) {
+    // TODO(hvy): Write tests when backward is implemented for routines that LogSumExp depends on.
+}
+
+TEST_P(MathTest, LogSoftmax) {
+    using T = double;
+    Shape shape{2, 3};
+    std::array<T, 6> adata{-1, 0, 1, 2, 3, 4};
+    std::array<T, 2> log_z{std::log(std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2])),
+                           std::log(std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))};
+    Array a = testing::BuildArray(shape).WithData<T>(adata).WithPadding(1);
+    Array e = testing::BuildArray(shape).WithData<T>(
+            {adata[0] - log_z[0], adata[1] - log_z[0], adata[2] - log_z[0], adata[3] - log_z[1], adata[4] - log_z[1], adata[5] - log_z[1]});
+
+    testing::ExpectAllClose(e, LogSoftmax(a), 1e-5, 0);
+    testing::ExpectAllClose(e, LogSoftmax(a, std::vector<int8_t>{1}), 1e-5, 0);
+}
+
+TEST_P(MathTest, LogSoftmaxAlongFirstAxis) {
+    using T = double;
+    Shape shape{2, 3};
+    std::array<T, 6> adata{-1, 0, 1, 2, 3, 4};
+    std::array<T, 3> log_z{std::log(std::exp(adata[0]) + std::exp(adata[3])),
+                           std::log(std::exp(adata[1]) + std::exp(adata[4])),
+                           std::log(std::exp(adata[2]) + std::exp(adata[5]))};
+    Array a = testing::BuildArray(shape).WithData<T>(adata).WithPadding(1);
+    Array e = testing::BuildArray(shape).WithData<T>(
+            {adata[0] - log_z[0], adata[1] - log_z[1], adata[2] - log_z[2], adata[3] - log_z[0], adata[4] - log_z[1], adata[5] - log_z[2]});
+    testing::ExpectAllClose(e, LogSoftmax(a, std::vector<int8_t>{0}), 1e-5, 0);
+}
+
+TEST_P(MathTest, LogSoftmaxAlongMultipleAxes) {
+    using T = double;
+    Shape shape{2, 3};
+    std::array<T, 6> adata{-1, 0, 1, 2, 3, 4};
+    T log_z = std::log(
+            std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]));
+    Array a = testing::BuildArray(shape).WithData<T>(adata).WithPadding(1);
+    Array e = testing::BuildArray(shape).WithData<T>(
+            {adata[0] - log_z, adata[1] - log_z, adata[2] - log_z, adata[3] - log_z, adata[4] - log_z, adata[5] - log_z});
+    testing::ExpectAllClose(e, LogSoftmax(a, std::vector<int8_t>{0, 1}), 1e-3, 0);
+}
+
+TEST_P(MathTest, LogSoftmaxHighDimAlongDefaultSecondAxis) {
+    using T = double;
+    Shape shape{1, 3, 1, 2};
+    std::array<T, 6> adata{-1, 0, 1, 2, 3, 4};
+    std::array<T, 2> log_z{std::log(std::exp(adata[0]) + std::exp(adata[2]) + std::exp(adata[4])),
+                           std::log(std::exp(adata[1]) + std::exp(adata[3]) + std::exp(adata[5]))};
+    Array a = testing::BuildArray(shape).WithData<T>(adata).WithPadding(1);
+    Array e = testing::BuildArray(shape).WithData<T>(
+            {adata[0] - log_z[0], adata[1] - log_z[1], adata[2] - log_z[0], adata[3] - log_z[1], adata[4] - log_z[0], adata[5] - log_z[1]});
+    testing::ExpectAllClose(e, LogSoftmax(a), 1e-5, 0, true);
+    testing::ExpectAllClose(e, LogSoftmax(a, std::vector<int8_t>{1}), 1e-5, 0);
+}
+
+TEST_P(MathTest, LogSoftmaxBackward) {
+    // TODO(hvy): Write tests when backward is implemented for routines that LogSoftmax depends on.
+}
+
+TEST_P(MathTest, LogSoftmaxDoubleBackward) {
+    // TODO(hvy): Write tests when backward is implemented for routines that LogSoftmax depends on.
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         MathTest,
