@@ -6,29 +6,36 @@ class GradientLARS(object):
     """Optimizer/UpdateRule hook function for layer wise adaptive rate scaling.
 
     See: `Large Batch Training of Convolutional Networks \
-          <https://arxiv.org/abs/1708.03888>`_
-       : `Convergence Analysis of Gradient Descent Algorithms \
+          <https://arxiv.org/abs/1708.03888>`_.
+
+    See: `Convergence Analysis of Gradient Descent Algorithms \
           with Proportional Updates \
-          <https://arxiv.org/abs/1801.03137>`_
+          <https://arxiv.org/abs/1801.03137>`_.
 
     This hook function scales all gradient arrays to fit to the weight norm.
 
     In <https://arxiv.org/abs/1708.03888>,
-        v_{t+1} = m * v_t + \\gamma * \\lambda * (\\nabla L(w_t) + \\beta w_t)
-        w_{t+1} = w_{t} - v_{t+1}
-        where
-           \\gamma : learning_rate
-           m       : momentum
-           \\beta  : weight_decay
-           \\eta   : lars_coeeficient
-           \\lamda : local_lr
-                     = \\eta * \\frac{\|w_t\|}{\|\\nabla L(w_t)\|
-                       + \\beta * \|w_t\|}.
-    As lr in chainer.optimizers.SGD or chainer.optimizers.MomentumSGD
-    corresponds to \\gamma * \\eta, we define clip_rate as
-    \\frac{\|w_t\|}{\|\\nabla L(w_t)\| + \\beta * \|w_t\|}
+
+    .. math::
+
+        v_{t+1} &= m * v_t + \\gamma * \\lambda *
+                   (\\nabla L(w_t) + \\beta w_t), \\\\
+        w_{t+1} &= w_{t} - v_{t+1},
+
+    where
+
+        - :math:`\\gamma` : learning_rate
+        - :math:`m`       : momentum
+        - :math:`\\beta`  : weight_decay
+        - :math:`\\eta`   : lars_coeeficient
+        - :math:`\\lambda`: local_lr \
+    :math:`=\\eta * \\frac{\|w_t\|}{\|\\nabla L(w_t)\| + \\beta * \|w_t\|}`.
+
+    As :math:`lr` in chainer.optimizers.SGD or chainer.optimizers.MomentumSGD
+    corresponds to :math:`\\gamma * \\eta`, we define :math:`clip\_rate` as
+    :math:`\\frac{\|w_t\|}{\|\\nabla L(w_t)\| + \\beta * \|w_t\|}`
     and reformulate the aforementioned formula as:
-    v_{t+1} = m * v_t + lr * clip_rate * (\\nabla L(w_t) + \\beta w_t)
+    :math:`v_{t+1} = m * v_t + lr * clip\_rate * (\\nabla L(w_t) + \\beta w_t)`
     and implement in this way. So you do not set lars_coeeficient.
 
     Args:
