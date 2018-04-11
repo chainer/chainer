@@ -105,7 +105,7 @@ public:
     // Takes elements specified by indices from an array.
     //
     // `axis` must be within [0, a.ndim()).
-    virtual void Take(const Array& a, const Array& indices, int64_t axis, const Array& out) = 0;
+    virtual void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) = 0;
 
     virtual void Synchronize() = 0;
 
