@@ -123,13 +123,9 @@ def test_init_without_device(shape, dtype):
     _check_init(shape, dtype, with_device=False)
 
 
-def test_init_with_device(shape, dtype):
-    _check_init(shape, dtype, device='native:1')
-    _check_init(shape, dtype, device=xchainer.get_device('native:1'))
-
-
-def test_init_with_none_device(shape, dtype):
-    _check_init(shape, dtype, device=None)
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_init_with_device(shape, dtype, device):
+    _check_init(shape, dtype, device=device)
 
 
 def _check_numpy_init(ndarray, shape, dtype, device=None):
@@ -294,22 +290,25 @@ def test_invalid_asscalar(device, shape):
         bool(a)
 
 
-def test_transpose(shape, dtype):
-    data_list = _create_dummy_data(shape, dtype)
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_transpose(xp, shape, dtype):
+    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    array = xp.array(ndarray)
+    return array.transpose()
 
-    array = xchainer.Array(shape, dtype, data_list)
 
-    def _check_transpose(array_transpose):
-        assert shape[::-1] == array_transpose.shape
-        assert array.dtype == array_transpose.dtype
-        assert array.element_bytes == array_transpose.element_bytes
-        assert array.total_size == array_transpose.total_size
-        assert array.total_bytes == array_transpose.total_bytes
-        _check_arrays_equal(array, array_transpose.transpose())
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_T(xp, shape, dtype):
+    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    array = xp.array(ndarray)
+    return array.T
 
-    _check_transpose(array.transpose())
-    _check_transpose(array.T)
-    _check_transpose(xchainer.transpose(array))
+
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_module_transpose(xp, shape, dtype):
+    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    array = xp.array(ndarray)
+    return xp.transpose(array)
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [
@@ -360,27 +359,6 @@ def test_reshape(a_shape, b_shape):
 # TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
 
 
-def test_reshape_backward():
-    x = xchainer.Array(numpy.arange(6, dtype=numpy.float32)).require_grad()
-    gy = xchainer.ones((2, 3), x.dtype)
-    eps = xchainer.full_like(x, 1e-3)
-    xchainer.check_backward(lambda a: (a[0].reshape(gy.shape),), [x], [gy], [eps])
-
-
-def test_reshape_double_backward():
-    x = xchainer.Array(numpy.arange(6, dtype=numpy.float32)).require_grad()
-    gy = xchainer.ones((2, 3), x.dtype).require_grad()
-    ggx = xchainer.ones_like(x)
-    eps_x = xchainer.full_like(x, 1e-3)
-    eps_gy = xchainer.full_like(gy, 1e-3)
-
-    def forward(a):
-        b = a[0].reshape(gy.shape)
-        return b * b,  # to make it nonlinear
-
-    xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
-
-
 @pytest.mark.parametrize('shape1,shape2', [
     ((), (0,)),
     ((), (2,)),
@@ -404,7 +382,7 @@ def test_invalid_reshape(shape1, shape2):
     check(shape2, shape1)
 
 
-@pytest.mark.parametrize('shape,axis', [
+_squeeze_params = [
     ((), None),
     ((0,), None),
     ((1,), None),
@@ -420,98 +398,91 @@ def test_invalid_reshape(shape1, shape2):
     ((1, 2, 1, 3, 1, 1, 4), None),
     ((1, 2, 1, 3, 1, 1, 4), (2, 0, 4)),
     ((1, 2, 1, 3, 1, 1, 4), (-2, 0, 4)),
-])
-def test_squeeze(shape, axis):
-    size = functools.reduce(operator.mul, shape, 1)
-    dtype = numpy.float32
-    a_np = numpy.arange(size, dtype=dtype).reshape(shape)
-    a_xc = xchainer.Array(a_np)
-
-    _check_array_equals_ndarray(a_xc.squeeze(axis), a_np.squeeze(axis))
-    _check_array_equals_ndarray(xchainer.squeeze(a_xc, axis), numpy.squeeze(a_np, axis))
+]
 
 
-@pytest.mark.parametrize('shape,axis', [
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('shape,axis', _squeeze_params)
+def test_squeeze(xp, shape, axis):
+    ndarray = _create_dummy_ndarray(shape, numpy.float32)
+    a = xp.array(ndarray)
+    return a.squeeze(axis)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('shape,axis', _squeeze_params)
+def test_module_squeeze(xp, shape, axis):
+    ndarray = _create_dummy_ndarray(shape, numpy.float32)
+    a = xp.array(ndarray)
+    return xp.squeeze(a, axis)
+
+
+_squeeze_invalid_params = [
     ((2, 1, 3), 0),
     ((2, 1, 3), -1),
     ((2, 1, 3), (1, 2)),
     ((2, 1, 3), (1, -1)),
     ((2, 1, 3), (1, 1)),
-])
-def test_invalid_squeeze(shape, axis):
-    src = xchainer.ones(shape, xchainer.float32)
-
-    with pytest.raises(xchainer.DimensionError):
-        src.squeeze(axis)
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.squeeze(src, axis)
+]
 
 
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize('shape,axis', _squeeze_invalid_params)
+def test_invalid_squeeze(xp, shape, axis):
+    a = xp.ones(shape, xp.float32)
+    return a.squeeze(axis)
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize('shape,axis', _squeeze_invalid_params)
+def test_invalid_module_squeeze(xp, shape, axis):
+    a = xp.ones(shape, xp.float32)
+    return xp.squeeze(a, axis)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('src_shape,dst_shape', [
     ((), ()),
     ((1,), (2,)),
     ((1, 1), (2, 2)),
     ((1, 1), (1, 2)),
 ])
-def test_broadcast_to(src_shape, dst_shape):
-    size = functools.reduce(operator.mul, src_shape, 1)
-    src_np = numpy.arange(size, dtype=numpy.float32).reshape(src_shape)
-    src = xchainer.Array(src_np)
-
-    dst = xchainer.broadcast_to(src, dst_shape)
-    dst_np = numpy.broadcast_to(src_np, dst_shape)
-    _check_array_equals_ndarray(dst, dst_np)
+def test_broadcast_to(xp, src_shape, dst_shape):
+    ndarray = _create_dummy_ndarray(src_shape, numpy.float32)
+    a = xp.array(ndarray)
+    return xp.broadcast_to(a, dst_shape)
 
 
-def test_broadcast_to_auto_prefix():
-    src_np = numpy.arange(2, dtype=numpy.float32)
-    src = xchainer.Array(src_np)
-
-    dst_np = numpy.broadcast_to(src_np, (3, 2))
-    dst = xchainer.broadcast_to(src, (3, 2))
-
-    _check_array_equals_ndarray(dst, dst_np)
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, TypeError))
+def test_broadcast_to_auto_prefix(xp):
+    ndarray = numpy.arange(2, dtype=numpy.float32)
+    a = xp.array(ndarray)
+    return xp.broadcast_to(a, (3, 2))
 
 
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, TypeError))
 @pytest.mark.parametrize(('src_shape,dst_shape'), [
     ((3,), (2,)),
     ((3,), (3, 2)),
     ((1, 3), (3, 2)),
 ])
-def test_invalid_broadcast_to(src_shape, dst_shape):
-    src = xchainer.ones(src_shape, xchainer.float32)
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.broadcast_to(src, dst_shape)
+def test_invalid_broadcast_to(xp, src_shape, dst_shape):
+    a = xp.ones(src_shape, xchainer.float32)
+    return xp.broadcast_to(a, dst_shape)
 
 
-def test_broadcast_to_backward():
-    x = xchainer.Array(numpy.arange(9, dtype=numpy.float32).reshape(1, 3, 1, 3)).require_grad()
-    gy = xchainer.ones((2, 3, 4, 3), x.dtype)
-    eps = xchainer.full_like(x, 1e-2)
-    xchainer.check_backward(lambda a: (xchainer.broadcast_to(a[0], (2, 3, 4, 3)), ), [x], [gy], [eps], atol=1e-4)
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_copy(xp, shape, dtype):
+    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    a = xp.array(ndarray)
+    return a.copy()
 
 
-def test_broadcast_to_double_backward():
-    x = xchainer.Array(numpy.arange(9, dtype=numpy.float32).reshape(1, 3, 1, 3)).require_grad()
-    gy = xchainer.ones((2, 3, 4, 3), x.dtype).require_grad()
-    ggx = xchainer.ones_like(x)
-    eps_x = xchainer.full_like(x, 1e-2)
-    eps_gy = xchainer.full_like(gy, 1e-2)
-
-    def forward(a):
-        b = xchainer.broadcast_to(a[0], (2, 3, 4, 3))
-        return b * b,  # to make it nonlinear
-
-    xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-3)
-
-
-def test_copy(shape, dtype):
-    data_list = _create_dummy_data(shape, dtype)
-    array = xchainer.Array(shape, dtype, data_list)
-
-    _check_arrays_equal_copy(array, array.copy())
-    _check_arrays_equal_copy(array, xchainer.copy(array))
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_module_copy(xp, shape, dtype):
+    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    a = xp.array(ndarray)
+    return xp.copy(a)
 
 
 def test_as_constant_copy(shape, dtype):
@@ -863,79 +834,6 @@ def test_truediv_itruediv(device, shape, dtype):
     assert rhs._debug_flat_data == rhs_data_list
 
 
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_backward(device):
-    x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
-    x2 = xchainer.Array(numpy.arange(3, dtype=numpy.float32).reshape(3)).require_grad()
-    gout = xchainer.ones_like(x1)
-    eps_x1 = xchainer.full_like(x1, 1e-2)
-    eps_x2 = xchainer.full_like(x2, 1e-2)
-    xchainer.check_backward(lambda xs: (xs[0] * xs[1],), [x1, x2], [gout], [eps_x1, eps_x2])
-    xchainer.check_backward(lambda xs: (xchainer.multiply(xs[0], xs[1]),), [x1, x2], [gout], [eps_x1, eps_x2])
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_scalar_backward(device):
-    x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
-    gout = xchainer.ones_like(x1)
-    eps_x1 = xchainer.full_like(x1, 1e-2)
-    xchainer.check_backward(lambda xs: (xs[0] * 3.2,), [x1], [gout], [eps_x1])
-    xchainer.check_backward(lambda xs: (1.1 * xs[0],), [x1], [gout], [eps_x1])
-    xchainer.check_backward(lambda xs: (xchainer.multiply(xs[0], 3.2),), [x1], [gout], [eps_x1])
-    xchainer.check_backward(lambda xs: (xchainer.multiply(-1.8, xs[0]),), [x1], [gout], [eps_x1])
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_double_backward(device):
-    x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
-    x2 = xchainer.Array(numpy.arange(3, dtype=numpy.float32).reshape(3)).require_grad()
-    gout = xchainer.ones_like(x1).require_grad()
-    ggx1 = xchainer.ones_like(x1)
-    ggx2 = xchainer.ones_like(x2)
-    eps_x1 = xchainer.full_like(x1, 1e-2)
-    eps_x2 = xchainer.full_like(x2, 1e-2)
-    eps_gout = xchainer.full_like(gout, 1e-2)
-
-    def check(func):
-        xchainer.check_double_backward(func, [x1, x2], [gout], [ggx1, ggx2], [eps_x1, eps_x2, eps_gout], atol=1e-4)
-
-    check(lambda xs: (xs[0] * xs[1],))
-    check(lambda xs: (xchainer.multiply(xs[0], xs[1]),))
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_scalar_double_backward(device):
-    x1 = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
-    gout = xchainer.ones_like(x1).require_grad()
-    ggx1 = xchainer.ones_like(x1)
-    eps_x1 = xchainer.full_like(x1, 1e-2)
-    eps_gout = xchainer.full_like(gout, 1e-2)
-
-    def check(func):
-        xchainer.check_double_backward(func, [x1], [gout], [ggx1], [eps_x1, eps_gout], atol=1e-4)
-
-    def forward_operator_scalar_lhs(xs):
-        out = 1.2 * xs[0]
-        return out * out,  # to make it nonlinear
-
-    def forward_operator_scalar_rhs(xs):
-        out = xs[0] * 1.2
-        return out * out,  # to make it nonlinear
-
-    def forward_function_scalar_lhs(xs):
-        out = xchainer.multiply(-0.3, xs[0])
-        return out * out,  # to make it nonlinear
-
-    def forward_function_scalar_rhs(xs):
-        out = xchainer.multiply(xs[0], -0.3)
-        return out * out,  # to make it nonlinear
-
-    check(forward_operator_scalar_lhs)
-    check(forward_operator_scalar_rhs)
-    check(forward_function_scalar_lhs)
-    check(forward_function_scalar_rhs)
-
-
 def test_array_init_invalid_length():
     with pytest.raises(xchainer.DimensionError):
         xchainer.Array((), xchainer.int8, [])
@@ -1180,235 +1078,177 @@ def test_array_backward():
     assert gx1.get_grad(graph_id='graph_1') is not None
 
 
-@pytest.mark.parametrize("input_shape,indices,output_shape,output_data", [
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize("shape,indices", [
     # empty indexing
-    ((), (), (), [0]),
-    ((3,), (), (3,), [0, 1, 2]),
-    ((2, 2, 2), (), (2, 2, 2), [0, 1, 2, 3, 4, 5, 6, 7]),
+    ((), ()),
+    ((3,), ()),
+    ((2, 2, 2), ()),
     # integer indexing - non-tuple indexing
-    ((3,), 0, (), [0]),
-    ((3,), 1, (), [1]),
-    ((3,), 2, (), [2]),
-    ((3,), -1, (), [2]),
-    ((2, 3), 0, (3,), [0, 1, 2]),
-    ((2, 3), 1, (3,), [3, 4, 5]),
+    ((3,), 0),
+    ((3,), 1),
+    ((3,), 2),
+    ((3,), -1),
+    ((2, 3), 0),
+    ((2, 3), 1),
     # integer indexining - tuple indexing
-    ((3,), (0,), (), [0]),
-    ((3,), (1,), (), [1]),
-    ((3,), (2,), (), [2]),
-    ((3,), (-1,), (), [2]),
-    ((2, 3), (0,), (3,), [0, 1, 2]),
-    ((2, 3), (1,), (3,), [3, 4, 5]),
-    ((2, 3), (0, 0), (), [0]),
-    ((2, 3), (1, 1), (), [4]),
-    ((2, 3, 4), (0, -2, 3), (), [7]),
-    ((2, 3, 4), (1, 0), (4,), [12, 13, 14, 15]),
+    ((3,), (0,)),
+    ((3,), (1,)),
+    ((3,), (2,)),
+    ((3,), (-1,)),
+    ((2, 3), (0,)),
+    ((2, 3), (1,)),
+    ((2, 3), (0, 0)),
+    ((2, 3), (1, 1)),
+    ((2, 3, 4), (0, -2, 3)),
+    ((2, 3, 4), (1, 0)),
     # slice indexing - non-tuple indexing
-    ((3,), slice(None), (3,), [0, 1, 2]),
-    ((3,), slice(2), (2,), [0, 1]),
-    ((3,), slice(0, 3), (3,), [0, 1, 2]),
-    ((3,), slice(0, 2), (2,), [0, 1]),
-    ((3,), slice(1, 3), (2,), [1, 2]),
-    ((3,), slice(0, 0), (0,), []),
-    ((3,), slice(0, 1), (1,), [0]),
-    ((3,), slice(2, 0, -1), (2,), [2, 1]),
-    ((3,), slice(-2, -1), (1,), [1]),
-    ((3,), slice(2, None, -1), (3,), [2, 1, 0]),
-    ((3,), slice(None, 0, 1), (0,), []),
-    ((3,), slice(None, -1, -1), (0,), []),
-    ((3,), slice(None, -2, -1), (1,), [2]),
-    ((6,), slice(0, 6, 2), (3,), [0, 2, 4]),
-    ((6,), slice(1, 6, 2), (3,), [1, 3, 5]),
-    ((6,), slice(5, None, -2), (3,), [5, 3, 1]),
+    ((3,), slice(None)),
+    ((3,), slice(2)),
+    ((3,), slice(0, 3)),
+    ((3,), slice(0, 2)),
+    ((3,), slice(1, 3)),
+    ((3,), slice(0, 0)),
+    ((3,), slice(0, 1)),
+    ((3,), slice(2, 0, -1)),
+    ((3,), slice(-2, -1)),
+    ((3,), slice(2, None, -1)),
+    ((3,), slice(None, 0, 1)),
+    ((3,), slice(None, -1, -1)),
+    ((3,), slice(None, -2, -1)),
+    ((6,), slice(0, 6, 2)),
+    ((6,), slice(1, 6, 2)),
+    ((6,), slice(5, None, -2)),
     # slice indexing - tuple indexing
-    ((3,), (slice(None),), (3,), [0, 1, 2]),
-    ((3,), (slice(2),), (2,), [0, 1]),
-    ((3,), (slice(0, 3),), (3,), [0, 1, 2]),
-    ((3,), (slice(0, 2),), (2,), [0, 1]),
-    ((3,), (slice(1, 3),), (2,), [1, 2]),
-    ((3,), (slice(0, 0),), (0,), []),
-    ((3,), (slice(0, 1),), (1,), [0]),
-    ((3,), (slice(2, 0, -1),), (2,), [2, 1]),
-    ((3,), (slice(-2, -1),), (1,), [1]),
-    ((3,), (slice(2, None, -1),), (3,), [2, 1, 0]),
-    ((3,), (slice(None, 0, 1),), (0,), []),
-    ((3,), (slice(None, -1, -1),), (0,), []),
-    ((3,), (slice(None, -2, -1),), (1,), [2]),
-    ((6,), (slice(0, 6, 2),), (3,), [0, 2, 4]),
-    ((6,), (slice(1, 6, 2),), (3,), [1, 3, 5]),
-    ((6,), (slice(5, None, -2),), (3,), [5, 3, 1]),
-    ((2, 3), (slice(None), slice(None)), (2, 3), [0, 1, 2, 3, 4, 5]),
-    ((2, 3), (slice(1), slice(2)), (1, 2), [0, 1]),
-    ((2, 3), (slice(0, 2), slice(0, 3)), (2, 3), [0, 1, 2, 3, 4, 5]),
-    ((2, 3), (slice(0, 2), slice(0, -1)), (2, 2), [0, 1, 3, 4]),
-    ((2, 3), (slice(0, None, -1), slice(2, 3)), (1, 1), [2]),
-    ((2, 3), (slice(0, None, None), slice(-2, 0, -1)), (2, 1), [1, 4]),
-    ((2, 3), (slice(1, 2), slice(0, 2)), (1, 2), [3, 4]),
-    ((2, 3), (slice(-2, None, -1), slice(0, 3)), (1, 3), [0, 1, 2]),
-    ((2, 3), (slice(-2, None, -1), slice(-3, None, -1)), (1, 1), [0]),
-    ((2, 3), (slice(-2, None, -1), slice(None, None, -2)), (1, 2), [2, 0]),
-    ((2, 3), (slice(1, 2), slice(None, None, 1)), (1, 3), [3, 4, 5]),
-    ((2, 3), (slice(1, 2), slice(None, None, 2)), (1, 2), [3, 5]),
-    ((2, 3, 4), (slice(1), slice(-2, 3), slice(1, None, -1)), (1, 2, 2), [5, 4, 9, 8]),
+    ((3,), (slice(None),)),
+    ((3,), (slice(2),)),
+    ((3,), (slice(0, 3),)),
+    ((3,), (slice(0, 2),)),
+    ((3,), (slice(1, 3),)),
+    ((3,), (slice(0, 0),)),
+    ((3,), (slice(0, 1),)),
+    ((3,), (slice(2, 0, -1),)),
+    ((3,), (slice(-2, -1),)),
+    ((3,), (slice(2, None, -1),)),
+    ((3,), (slice(None, 0, 1),)),
+    ((3,), (slice(None, -1, -1),)),
+    ((3,), (slice(None, -2, -1),)),
+    ((6,), (slice(0, 6, 2),)),
+    ((6,), (slice(1, 6, 2),)),
+    ((6,), (slice(5, None, -2),)),
+    ((2, 3), (slice(None), slice(None))),
+    ((2, 3), (slice(1), slice(2))),
+    ((2, 3), (slice(0, 2), slice(0, 3))),
+    ((2, 3), (slice(0, 2), slice(0, -1))),
+    ((2, 3), (slice(0, None, -1), slice(2, 3))),
+    ((2, 3), (slice(0, None, None), slice(-2, 0, -1))),
+    ((2, 3), (slice(1, 2), slice(0, 2))),
+    ((2, 3), (slice(-2, None, -1), slice(0, 3))),
+    ((2, 3), (slice(-2, None, -1), slice(-3, None, -1))),
+    ((2, 3), (slice(-2, None, -1), slice(None, None, -2))),
+    ((2, 3), (slice(1, 2), slice(None, None, 1))),
+    ((2, 3), (slice(1, 2), slice(None, None, 2))),
+    ((2, 3, 4), (slice(1), slice(-2, 3), slice(1, None, -1))),
     # newaxis indexing - non-tuple indexing
-    ((), xchainer.newaxis, (1,), [0]),
-    ((3,), xchainer.newaxis, (1, 3), [0, 1, 2]),
+    ((), xchainer.newaxis),
+    ((3,), xchainer.newaxis),
     # newaxis indexing - tuple indexing
-    ((), (xchainer.newaxis,), (1,), [0]),
-    ((3,), (xchainer.newaxis,), (1, 3), [0, 1, 2]),
-    ((2, 3), (xchainer.newaxis, xchainer.newaxis), (1, 1, 2, 3), [0, 1, 2, 3, 4, 5]),
+    ((), (xchainer.newaxis,)),
+    ((3,), (xchainer.newaxis,)),
+    ((2, 3), (xchainer.newaxis, xchainer.newaxis)),
     # mixed indexing - tuple indexing
-    ((2, 3), (0, slice(1, 3)), (2,), [1, 2]),
-    ((4, 3), (slice(1, 3), 1), (2,), [4, 7]),
-    ((2, 3, 4), (1, slice(2,), slice(1, 3)), (2, 2), [13, 14, 17, 18]),
-    ((2, 3), (1, xchainer.newaxis, slice(1, 3)), (1, 2), [4, 5]),
-    ((2, 3, 4), (slice(0, 1), slice(1, 2), slice(1, 3), xchainer.newaxis), (1, 1, 2, 1), [5, 6]),
-    ((2, 3, 4), (slice(0, 1), slice(1, 2), xchainer.newaxis, slice(1, 3)), (1, 1, 1, 2), [5, 6]),
-    ((2, 3, 4), (slice(0, 1), xchainer.newaxis, slice(1, 2), slice(1, 3)), (1, 1, 1, 2), [5, 6]),
-    ((2, 3, 4), (xchainer.newaxis, slice(0, 1), slice(1, 2), slice(1, 3)), (1, 1, 1, 2), [5, 6]),
-    ((2, 3, 4), (1, slice(2,), xchainer.newaxis, slice(1, 3), xchainer.newaxis), (2, 1, 2, 1), [13, 14, 17, 18]),
+    ((2, 3), (0, slice(1, 3))),
+    ((4, 3), (slice(1, 3), 1)),
+    ((2, 3, 4), (1, slice(2,), slice(1, 3))),
+    ((2, 3), (1, xchainer.newaxis, slice(1, 3))),
+    ((2, 3, 4), (slice(0, 1), slice(1, 2), slice(1, 3), xchainer.newaxis)),
+    ((2, 3, 4), (slice(0, 1), slice(1, 2), xchainer.newaxis, slice(1, 3))),
+    ((2, 3, 4), (slice(0, 1), xchainer.newaxis, slice(1, 2), slice(1, 3))),
+    ((2, 3, 4), (xchainer.newaxis, slice(0, 1), slice(1, 2), slice(1, 3))),
+    ((2, 3, 4), (1, slice(2,), xchainer.newaxis, slice(1, 3), xchainer.newaxis)),
 ])
-def test_getitem(input_shape, indices, output_shape, output_data):
-    total_size = functools.reduce(operator.mul, input_shape, 1)
-    input_data = list(range(0, total_size))
-    x = xchainer.Array(input_shape, xchainer.int32, input_data)
-    y = x[indices]
-    e = xchainer.Array(output_shape, xchainer.int32, output_data)
-    _check_arrays_equal(y, e)
-
-    n = numpy.array(input_data, numpy.int32).reshape(input_shape)
-    _check_array_equals_ndarray(y, n[indices])
+def test_getitem(xp, shape, indices):
+    ndarray = _create_dummy_ndarray(shape, 'int32')
+    a = xp.array(ndarray)
+    return a[indices]
 
 
-@pytest.mark.parametrize("input_shape,axis,keepdims,output_shape,output_data", [
-    ((), None, False, (), [0]),
-    ((), None, True, (), [0]),
-    ((), (), False, (), [0]),
-    ((), (), True, (), [0]),
-    ((2,), None, False, (), [1]),
-    ((2,), None, True, (1,), [1]),
-    ((2,), (), False, (2,), [0, 1]),
-    ((2,), (), True, (2,), [0, 1]),
-    ((2,), 0, False, (), [1]),
-    ((2,), 0, True, (1,), [1]),
-    ((2,), (0,), False, (), [1]),
-    ((2,), (0,), True, (1,), [1]),
-    ((2,), (-1,), False, (), [1]),
-    ((2,), (-1,), True, (1,), [1]),
-    ((2, 3), None, False, (), [15]),
-    ((2, 3), None, True, (1, 1), [15]),
-    ((2, 3), (), False, (2, 3), [0, 1, 2, 3, 4, 5]),
-    ((2, 3), (), True, (2, 3), [0, 1, 2, 3, 4, 5]),
-    ((2, 3), 0, False, (3,), [3, 5, 7]),
-    ((2, 3), 0, True, (1, 3), [3, 5, 7]),
-    ((2, 3), (0,), False, (3,), [3, 5, 7]),
-    ((2, 3), (0,), True, (1, 3), [3, 5, 7]),
-    ((2, 3), (1,), False, (2,), [3, 12]),
-    ((2, 3), (1,), True, (2, 1), [3, 12]),
-    ((2, 3), (-1,), False, (2,), [3, 12]),
-    ((2, 3), (-1,), True, (2, 1), [3, 12]),
-    ((2, 3), (-2,), False, (3,), [3, 5, 7]),
-    ((2, 3), (-2,), True, (1, 3), [3, 5, 7]),
-    ((2, 3), (0, 1), False, (), [15]),
-    ((2, 3), (0, 1), True, (1, 1), [15]),
-    ((2, 3), (-2, -1), False, (), [15]),
-    ((2, 3), (-2, -1), True, (1, 1), [15]),
-    ((1, 3), None, False, (), [3]),  # sum over 1-dim axis
-    ((1, 3), None, True, (1, 1), [3]),
-    ((0, 3), None, False, (), [0]),  # sum over 0-dim axis
-    ((0, 3), None, True, (1, 1), [0]),
-
+_sum_params = [
+    ((), None),
+    ((), ()),
+    ((2,), None),
+    ((2,), ()),
+    ((2,), 0),
+    ((2,), (0,)),
+    ((2,), (-1,)),
+    ((2, 3), None),
+    ((2, 3), ()),
+    ((2, 3), 0),
+    ((2, 3), (0,)),
+    ((2, 3), (1,)),
+    ((2, 3), (-1,)),
+    ((2, 3), (-2,)),
+    ((2, 3), (0, 1)),
+    ((2, 3), (-2, -1)),
+    ((1, 3), None),  # sum over 1-dim axis
+    ((0, 3), None),  # sum over 0-dim axis
     # Sum over axes that are in the middle or apart
-    ((2, 3, 4), (1,), False, (2, 4), [12, 15, 18, 21, 48, 51, 54, 57]),
-    ((2, 3, 4), (1,), True, (2, 1, 4), [12, 15, 18, 21, 48, 51, 54, 57]),
-    ((2, 3, 4), (0, 2), False, (3,), [60, 92, 124]),
-    ((2, 3, 4), (0, 2), True, (1, 3, 1), [60, 92, 124]),
-
+    ((2, 3, 4), (1,)),
+    ((2, 3, 4), (0, 2)),
     # Sum over axes that are apart and/or unsorted
-    ((2, 3), (1, 0), False, (), [15]),
-    ((2, 3), (1, 0), True, (1, 1), [15]),
-    ((2, 3, 4), (2, 0), False, (3,), [60, 92, 124]),
-    ((2, 3, 4), (2, 0), True, (1, 3, 1), [60, 92, 124]),
-    ((2, 3, 4), (2, 0, 1), False, (), [276]),
-    ((2, 3, 4), (2, 0, 1), True, (1, 1, 1), [276]),
-    ((2, 3, 4), (-2, 2, 0), False, (), [276]),
-    ((2, 3, 4), (-2, 2, 0), True, (1, 1, 1), [276]),
+    ((2, 3), (1, 0)),
+    ((2, 3, 4), (2, 0)),
+    ((2, 3, 4), (2, 0, 1)),
+    ((2, 3, 4), (-2, 2, 0)),
+]
+
+
+# TODO(sonots): Fix type compatibility
+@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+@pytest.mark.parametrize("keepdims", [False, True])
+@pytest.mark.parametrize("shape,axis", _sum_params)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_sum(xp, device, shape, axis, keepdims):
+    ndarray = _create_dummy_ndarray(shape, 'int32')
+    a = xp.array(ndarray)
+    return a.sum(axis=axis, keepdims=keepdims)
+
+
+# TODO(sonots): Fix type compatibility
+@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+@pytest.mark.parametrize("keepdims", [False, True])
+@pytest.mark.parametrize("shape,axis", _sum_params)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_module_sum(xp, device, shape, axis, keepdims):
+    ndarray = _create_dummy_ndarray(shape, 'int32')
+    a = xp.array(ndarray)
+    return xp.sum(a, axis=axis, keepdims=keepdims)
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize("keepdims", [False, True])
+@pytest.mark.parametrize("shape,axis", [
+    # ((), 0), # TODO(sonots): Fix compatibility
+    ((), 1),
+    ((), (1,)),
+    ((2,), 2),
+    ((2,), (2,)),
+    ((2,), (-2,)),
+    ((2, 3,), (-3,)),
+    ((2, 3,), (-3, -4)),
+    ((2, 3,), (0, 0)),
+    ((2, 3,), (-1, -1)),
+    ((2, 3,), (0, 1, 1)),
+    ((2, 3,), (0, -2)),
 ])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sum(device, input_shape, axis, keepdims, output_shape, output_data):
-    total_size = functools.reduce(operator.mul, input_shape, 1)
-    input_data = list(range(0, total_size))
-    x = xchainer.Array(input_shape, xchainer.int32, input_data)
-    e = xchainer.Array(output_shape, xchainer.int32, output_data)
-    n = numpy.array(input_data, numpy.int32).reshape(input_shape).sum(axis=axis, keepdims=keepdims).astype(numpy.int32)
-
-    y = x.sum(axis=axis, keepdims=keepdims)
-    _check_arrays_equal(y, e)
-    _check_array_equals_ndarray(y, n)
-
-    y = xchainer.sum(x, axis, keepdims)
-    _check_arrays_equal(y, e)
-    _check_array_equals_ndarray(y, n)
+def test_invalid_sum(xp, shape, axis, keepdims):
+    ndarray = _create_dummy_ndarray(shape, 'int32')
+    a = xp.array(ndarray)
+    a.sum(axis=axis, keepdims=keepdims)
 
 
-@pytest.mark.parametrize("input_shape,axis,keepdims", [
-    ((), 0, False),
-    ((), 0, True),
-    ((), 1, False),
-    ((), 1, True),
-    ((), (1,), False),
-    ((), (1,), True),
-    ((2,), 2, False),
-    ((2,), 2, True),
-    ((2,), (2,), False),
-    ((2,), (2,), True),
-    ((2,), (-2,), False),
-    ((2,), (-2,), True),
-    ((2, 3,), (-3,), False),
-    ((2, 3,), (-3,), True),
-    ((2, 3,), (-3, -4), False),
-    ((2, 3,), (-3, -4), True),
-    ((2, 3,), (0, 0), False),
-    ((2, 3,), (0, 0), True),
-    ((2, 3,), (-1, -1), False),
-    ((2, 3,), (-1, -1), True),
-    ((2, 3,), (0, 1, 1), False),
-    ((2, 3,), (0, 1, 1), True),
-    ((2, 3,), (0, -2), False),
-    ((2, 3,), (0, -2), True),
-])
-def test_invalid_sum(input_shape, axis, keepdims):
-    total_size = functools.reduce(operator.mul, input_shape, 1)
-    input_data = list(range(0, total_size))
-    x = xchainer.Array(input_shape, xchainer.int32, input_data)
-
-    with pytest.raises(xchainer.DimensionError):
-        x.sum(axis=axis, keepdims=keepdims)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sum_backward(device):
-    x = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
-    gy = xchainer.ones((2,), x.dtype)
-    eps = xchainer.full_like(x, 1e-2)
-    xchainer.check_backward(lambda a: (a[0].sum(axis=1),), [x], [gy], [eps])
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sum_double_backward(device):
-    x = xchainer.Array(numpy.arange(6, dtype=numpy.float32).reshape(2, 3)).require_grad()
-    gy = xchainer.ones((2,), x.dtype).require_grad()
-    ggx = xchainer.ones_like(x)
-    eps_x = xchainer.full_like(x, 1e-2)
-    eps_gy = xchainer.full_like(gy, 1e-2)
-
-    def forward(a):
-        b = a[0].sum(axis=1)
-        return b * b,  # to make it nonlinear
-
-    xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
-
-
+# TODO(sonots): Fix type compatibility for when shape is ()
+@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
 @pytest.mark.parametrize("shape,value", [
     ((), -1),
     ((), 1),
@@ -1418,114 +1258,83 @@ def test_sum_double_backward(device):
     ((2, 3), 3),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_maximum_with_scalar(device, shape, value, signed_dtype):
-    total_size = functools.reduce(operator.mul, shape, 1)
-    x_np = numpy.arange(total_size, dtype=signed_dtype.name).reshape(shape)
-    y_np = numpy.maximum(x_np, x_np.dtype.type(value))
-
-    x = xchainer.Array(x_np)
-    _check_array_equals_ndarray(xchainer.maximum(x, value), y_np)
-    _check_array_equals_ndarray(xchainer.maximum(value, x), y_np)
+def test_maximum_with_scalar(xp, device, shape, value, signed_dtype):
+    ndarray = _create_dummy_ndarray(shape, signed_dtype.name)
+    a = xp.array(ndarray)
+    return xp.maximum(a, value)
 
 
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_maximum_with_scalar_backward(device, float_dtype):
-    x = xchainer.Array(numpy.arange(6, dtype=float_dtype.name).reshape(2, 3)).require_grad()
-    gy = xchainer.ones(x.shape, x.dtype)
-    eps = xchainer.full_like(x, 1e-2)
-    xchainer.check_backward(lambda a: (xchainer.maximum(a[0], 2.5),), [x], [gy], [eps])
-    xchainer.check_backward(lambda a: (xchainer.maximum(2.5, a[0]),), [x], [gy], [eps])
+def _create_dummy_array_for_dot(xp, shape, dtype):
+    x = numpy.arange(numpy.prod(shape)).reshape(shape)
+    if dtype.name == 'bool':
+        x = numpy.asarray(x % 2 == 0)
+    else:
+        x = x.astype(dtype.name)
+    return xp.array(x)
 
 
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_maximum_with_scalar_double_backward(device, float_dtype):
-    x = xchainer.Array(numpy.arange(6, dtype=float_dtype.name).reshape(2, 3)).require_grad()
-    gy = xchainer.ones(x.shape, x.dtype).require_grad()
-    ggx = xchainer.ones_like(x)
-    eps_x = xchainer.full_like(x, 1e-2)
-    eps_gy = xchainer.full_like(gy, 1e-2)
-
-    def forward(a):
-        b = xchainer.maximum(a[0], 2.5)
-        return b * b,  # to make it nonlinear
-
-    xchainer.check_double_backward(forward, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
-
-    def forward2(a):
-        b = xchainer.maximum(2.5, a[0])
-        return b * b,  # ditto
-
-    xchainer.check_double_backward(forward2, [x], [gy], [ggx], [eps_x, eps_gy], atol=1e-4)
-
-
-@pytest.mark.parametrize('a_shape,b_shape', [
+_dot_params = [
     ((), ()),
     ((), (2, 3)),
     ((2, 0), (0, 3)),
     ((0, 0), (0, 0)),
     ((2, 3), (3, 4)),
     # TODO(niboshi): Add test cases for more than 2 ndim
-])
+]
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('a_shape,b_shape', _dot_params)
 # TODO(niboshi): Add 'cuda:0'
 @pytest.mark.parametrize_device(['native:0'])
-def test_dot(device, a_shape, b_shape, dtype):
-    a_np = numpy.arange(numpy.prod(a_shape)).reshape(a_shape)
-    b_np = numpy.arange(numpy.prod(b_shape)).reshape(b_shape)
-    if dtype == xchainer.bool:
-        a_np = numpy.asarray(a_np % 2 == 0)
-        b_np = numpy.asarray(b_np % 2 == 0)
-    else:
-        a_np = a_np.astype(dtype.name)
-        b_np = b_np.astype(dtype.name)
-    a_xc = xchainer.Array(a_np)
-    b_xc = xchainer.Array(b_np)
-
-    # module functions
-    _check_array_equals_ndarray(xchainer.dot(a_xc, b_xc), numpy.dot(a_np, b_np))
-
-    # array methods
-    _check_array_equals_ndarray(a_xc.dot(b_xc), a_np.dot(b_np))
+def test_dot(xp, device, a_shape, b_shape, dtype):
+    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
+    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
+    return a.dot(b)
 
 
-@pytest.mark.parametrize('a_shape,b_shape', [
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('a_shape,b_shape', _dot_params)
+# TODO(niboshi): Add 'cuda:0'
+@pytest.mark.parametrize_device(['native:0'])
+def test_module_dot(xp, device, a_shape, b_shape, dtype):
+    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
+    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
+    return xp.dot(a, b)
+
+
+_invalid_dot_params = [
     ((3, 2), (1, 3)),
-])
+]
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize('a_shape,b_shape', _invalid_dot_params)
 # TODO(niboshi): Add 'cuda:0'
 @pytest.mark.parametrize_device(['native:0'])
-def test_invalid_dot(device, a_shape, b_shape, dtype):
-    a_np = numpy.arange(numpy.prod(a_shape)).reshape(a_shape)
-    b_np = numpy.arange(numpy.prod(b_shape)).reshape(b_shape)
-    if dtype == xchainer.bool:
-        a_np = numpy.asarray(a_np % 2 == 0)
-        b_np = numpy.asarray(b_np % 2 == 0)
-    else:
-        a_np = a_np.astype(dtype.name)
-        b_np = b_np.astype(dtype.name)
-    a_xc = xchainer.Array(a_np)
-    b_xc = xchainer.Array(b_np)
-
-    # module functions
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.dot(a_xc, b_xc)
-    with pytest.raises(ValueError):
-        numpy.dot(a_np, b_np)
-
-    # array methods
-    with pytest.raises(xchainer.DimensionError):
-        a_xc.dot(b_xc)
-    with pytest.raises(ValueError):
-        a_np.dot(b_np)
+def test_invalid_dot(xp, device, a_shape, b_shape, dtype):
+    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
+    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
+    return a.dot(b)
 
 
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize('a_shape,b_shape', _invalid_dot_params)
+# TODO(niboshi): Add 'cuda:0'
+@pytest.mark.parametrize_device(['native:0'])
+def test_invalid_module_dot(xp, device, a_shape, b_shape, dtype):
+    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
+    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
+    return xp.dot(a, b)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('value', [-1, 0, 1, 2, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_fill(device, shape, dtype, value):
-    a_np = numpy.empty(shape, numpy.dtype(dtype.name))
-    a_xc = xchainer.empty(shape, dtype)
-    a_np.fill(value)
-    a_xc.fill(value)
-    a_xc.device.synchronize()
-    numpy.testing.assert_array_equal(a_xc, a_np)
+def test_fill(xp, shape, dtype, value, device):
+    a = xp.empty(shape, xp.dtype(dtype.name))
+    a.fill(value)
+    return a
 
 
 @pytest.mark.parametrize('value', [-1, 0, 1, 2, float('inf'), float('nan')])

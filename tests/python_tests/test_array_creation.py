@@ -4,7 +4,7 @@ import numpy
 import pytest
 
 import xchainer
-from xchainer import testing
+import xchainer.testing
 
 _shapes = [
     (),
@@ -29,7 +29,7 @@ def _check_device(a, device=None):
     assert a.device is device
 
 
-@testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal()
 def test_array_from_python_list(xp, dtype):
     return xp.array([0, 1, 2], xp.dtype(dtype.name))
 
@@ -50,7 +50,7 @@ def test_array_from_python_list_with_device(device):
     _check_device(a, device)
 
 
-@testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal()
 def test_array_from_numpy_ndarray(xp, shape, dtype):
     return xp.array(numpy.zeros(shape, numpy.dtype(dtype.name)))
 
@@ -85,7 +85,7 @@ def test_array_from_xchainer_array_with_device(device):
     assert a._debug_flat_data == t._debug_flat_data
 
 
-@testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_empty(xp, shape, dtype, device):
     a = xp.empty(shape, xp.dtype(dtype.name))
@@ -99,7 +99,7 @@ def test_empty_with_device(device):
     _check_device(a, device)
 
 
-@testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_empty_like(xp, shape, dtype, device):
     t = xp.empty(shape, xp.dtype(dtype.name))
@@ -115,7 +115,7 @@ def test_empty_like_with_device(device):
     _check_device(a, device)
 
 
-@testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_zeros(xp, shape, dtype, device):
     return xp.zeros(shape, xp.dtype(dtype.name))
@@ -127,7 +127,7 @@ def test_zeros_with_device(device):
     _check_device(a, device)
 
 
-@testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_zeros_like(xp, shape, dtype, device):
     t = xp.empty(shape, xp.dtype(dtype.name))
@@ -141,7 +141,7 @@ def test_zeros_like_with_device(device):
     _check_device(a, device)
 
 
-@testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_ones(xp, shape, dtype, device):
     return xp.ones(shape, xp.dtype(dtype.name))
@@ -153,7 +153,7 @@ def test_ones_with_device(device):
     _check_device(a, device)
 
 
-@testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_ones_like(xp, shape, dtype, device):
     t = xp.empty(shape, xp.dtype(dtype.name))
@@ -167,14 +167,14 @@ def test_ones_like_with_device(shape, dtype, device):
     _check_device(a, device)
 
 
-@testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full(xp, shape, value, device):
     return xp.full(shape, value)
 
 
-@testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full_with_dtype(xp, shape, dtype, value, device):
@@ -198,7 +198,7 @@ def test_full_with_device(device):
     _check_device(a, device)
 
 
-@testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full_like(xp, shape, dtype, value, device):
