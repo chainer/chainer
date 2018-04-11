@@ -1191,7 +1191,7 @@ def test_take(xp, shape, indices, axis):
     ((3,), [1], 0),
 ])
 @xchainer.testing.numpy_xchainer_array_equal(type_check=False)
-def test_take(xp, shape, indices, axis):
+def test_module_take(xp, shape, indices, axis):
     ndarray = _create_dummy_ndarray(shape, 'int32')
     a = xp.array(ndarray)
     return xp.take(a, xp.array(indices, dtype='int64'), axis)
