@@ -269,15 +269,9 @@ Array Array::Astype(Dtype dtype, bool copy) const {
     device().Astype(*this, out);
     assert(out.IsContiguous());
 
-    Dtype in_dtype = this->dtype();
-    internal::SetUpOpNodes(
-            "astype",
-            {*this},
-            out,
-            {[in_dtype](const Array& gout, const std::vector<GraphId>&) -> Array { return gout.Astype(in_dtype); }},
-            {});
+    // TODO(sonots): backward
 
-    return std::move(out);
+    return out;
 }
 
 void Array::Fill(Scalar value) const { device().Fill(*this, value); }
