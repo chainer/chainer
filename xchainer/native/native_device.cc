@@ -161,7 +161,7 @@ void NativeDevice::Copy(const Array& a, const Array& out) {
     });
 }
 
-void NativeDevice::Astype(const Array& a, const Array& out) {
+void NativeDevice::AsType(const Array& a, const Array& out) {
     CheckDevicesCompatible(a, out);
 
     auto do_astype = [&](auto in_pt, auto out_pt) {

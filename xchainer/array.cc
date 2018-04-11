@@ -261,12 +261,12 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
     }
 }
 
-Array Array::Astype(Dtype dtype, bool copy) const {
+Array Array::AsType(Dtype dtype, bool copy) const {
     if (!copy && dtype == this->dtype()) {
         return *this;
     }
     Array out = Empty(shape(), dtype, device());
-    device().Astype(*this, out);
+    device().AsType(*this, out);
     assert(out.IsContiguous());
 
     // TODO(sonots): backward

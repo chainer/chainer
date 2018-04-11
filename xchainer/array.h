@@ -165,7 +165,7 @@ public:
     // Cast to a specified type.
     // By default, always returns a newly allocated array. If `copy` is false,
     // and the dtype requirement is satisfied, the input array is returned instead of a copy.
-    Array Astype(Dtype dtype, bool copy = true) const;
+    Array AsType(Dtype dtype, bool copy = true) const;
 
     void Fill(Scalar value) const;
 

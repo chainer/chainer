@@ -78,7 +78,7 @@ public:
     virtual void Copy(const Array& a, const Array& out) = 0;
 
     // Cast the elements from one array to the other dtype, and store into the other.
-    virtual void Astype(const Array& a, const Array& out) = 0;
+    virtual void AsType(const Array& a, const Array& out) = 0;
 
     virtual void Equal(const Array& x1, const Array& x2, const Array& out) = 0;
 
