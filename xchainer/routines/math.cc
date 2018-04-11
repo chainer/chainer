@@ -395,7 +395,7 @@ namespace internal {
 Array LogSumExp(const Array& x, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
     std::vector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, x.ndim());
     Array xmax = AMax(x, sorted_axis, true);
-    Array logs = Log(Sum(Exp(Subtract(x, xmax)), sorted_axis, keepdims));
+    Array logs = Log(Sum(Exp(x - xmax), sorted_axis, keepdims));
     return (keepdims ? xmax : Squeeze(xmax, axis)) + logs;
 }
 
