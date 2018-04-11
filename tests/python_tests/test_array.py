@@ -1173,28 +1173,62 @@ def test_getitem(xp, shape, indices):
     return a[indices]
 
 
-# TODO(hvy): Add tests.
-@pytest.mark.parametrize("shape,indices,axis", [
+# TODO(hvy): Add cases where axis=None, when supported.
+# TODO(hvy): Add cases where indices is not int64, when supported.
+# shape,indices,axis
+_take_params = [
     ((3,), [0], 0),
     ((3,), [1], 0),
-])
+    ((2, 3), [0], 0),
+    ((2, 3), [0], 1),
+    ((2, 3), [0], -1),
+    ((2, 3), [1], 0),
+    ((2, 3), [0, -1], 0),
+    ((2, 3), [1, 0], 0),
+    ((2, 3), [1, 2], 1),
+    ((2, 3), [2, 1], 1),
+    ((2, 3), [[0], [1]], 0),
+]
+
+
+@pytest.mark.parametrize("shape,indices,axis", _take_params)
 @xchainer.testing.numpy_xchainer_array_equal(type_check=False)
 def test_take(xp, shape, indices, axis):
-    ndarray = _create_dummy_ndarray(shape, 'int32')
-    a = xp.array(ndarray)
-    return a.take(xp.array(indices, dtype='int64'), axis)
+    a = xp.arange(_total_size(shape)).reshape(shape)
+
+    # First convert to ndarray since some indices are nested lists which
+    # xchainer cannot convert. Additionally, dtype is cast to int64 since no
+    # other dtypes are currently supported by xchainer.take
+    indices = numpy.array(indices).astype('int64')
+
+    return a.take(xp.array(indices), axis)
 
 
-# TODO(hvy): Add tests.
-@pytest.mark.parametrize("shape,indices,axis", [
-    ((3,), [0], 0),
-    ((3,), [1], 0),
-])
+@pytest.mark.parametrize("shape,indices,axis", _take_params)
 @xchainer.testing.numpy_xchainer_array_equal(type_check=False)
 def test_module_take(xp, shape, indices, axis):
-    ndarray = _create_dummy_ndarray(shape, 'int32')
-    a = xp.array(ndarray)
-    return xp.take(a, xp.array(indices, dtype='int64'), axis)
+    a = xp.arange(_total_size(shape)).reshape(shape)
+
+    # First convert to ndarray since some indices are nested lists which
+    # xchainer cannot convert. Additionally, dtype is cast to int64 since no
+    # other dtypes are currently supported by xchainer.take
+    indices = numpy.array(indices).astype('int64')
+
+    return xp.take(a, xp.array(indices), axis)
+
+
+def test_invalid_take_axis_out_of_bounds():
+    a = xchainer.arange(6).reshape(2, 3)
+    indices = xchainer.arange(1, dtype='int64')
+
+    with pytest.raises(xchainer.DimensionError):
+        a.take(indices, axis=2)
+    with pytest.raises(xchainer.DimensionError):
+        a.take(indices, axis=-3)
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.take(a, indices, axis=2)
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.take(a, indices, axis=-3)
 
 
 _sum_params = [
