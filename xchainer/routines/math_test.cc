@@ -945,7 +945,6 @@ TEST_P(MathTest, LogSoftmaxAlongFirstAxis) {
 TEST_P(MathTest, LogSoftmaxAlongMultipleAxes) {
     using T = double;
     Shape shape{2, 3};
-
     std::array<T, 6> adata{-1, 0, 1, 2, 3, 4};
     T log_z = std::log(
             std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]));
