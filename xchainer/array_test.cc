@@ -619,6 +619,27 @@ TEST_P(ArrayTest, AsConstantView) {
     }
 }
 
+TEST_P(ArrayTest, AstypeFloatToDouble) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array o = a.Astype(Dtype::kFloat64);
+    Array e = testing::BuildArray<double>({3, 1}, {1, 2, 3});
+    testing::ExpectEqualCopy(e, o);
+}
+
+TEST_P(ArrayTest, AstypeFloatToInt) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array o = a.Astype(Dtype::kInt32);
+    Array e = testing::BuildArray<int32_t>({3, 1}, {1, 2, 3});
+    testing::ExpectEqualCopy(e, o);
+}
+
+TEST_P(ArrayTest, AstypeBoolToFloat) {
+    Array a = testing::BuildArray<bool>({3, 1}, {true, false, true});
+    Array o = a.Astype(Dtype::kFloat32);
+    Array e = testing::BuildArray<float>({3, 1}, {1.0, 0.0, 1.0});
+    testing::ExpectEqualCopy(e, o);
+}
+
 TEST_P(ArrayTest, ToNative) {
     using T = float;
     Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad();
@@ -825,7 +846,7 @@ INSTANTIATE_TEST_CASE_P(
         ArrayTest,
         ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
-                std::string{"cuda"},
+//                std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
                 std::string{"native"}));
 

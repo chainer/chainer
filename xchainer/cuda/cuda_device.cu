@@ -335,8 +335,8 @@ void CudaDevice::Copy(const Array& a, const Array& out) {
 }
 
 void CudaDevice::Astype(const Array& a, const Array& out) {
-    (void)a; // unused
-    (void)out; // unused
+    (void)a;    // unused
+    (void)out;  // unused
     return;
 }
 

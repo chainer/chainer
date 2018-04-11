@@ -162,6 +162,22 @@ void NativeDevice::Copy(const Array& a, const Array& out) {
 }
 
 void NativeDevice::Astype(const Array& a, const Array& out) {
+    CheckDevicesCompatible(a, out);
+
+    VisitDtype(out.dtype(), [&](auto out_pt) {
+        using OutT = typename decltype(out_pt)::type;
+        IndexableArray<OutT> out_iarray{out};
+        Indexer indexer{out.shape()};
+
+        VisitDtype(a.dtype(), [&](auto in_pt) {
+            using InT = typename decltype(in_pt)::type;
+            IndexableArray<const InT> a_iarray{a};
+            for (int64_t i = 0; i < indexer.total_size(); ++i) {
+                indexer.Set(i);
+                out_iarray[indexer] = static_cast<OutT>(a_iarray[indexer]);
+            }
+        });
+    });
 }
 
 void NativeDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
