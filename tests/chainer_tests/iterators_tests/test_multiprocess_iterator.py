@@ -1,6 +1,8 @@
 from __future__ import division
 import copy
+import datetime
 import errno
+import multiprocessing
 import os
 import signal
 import subprocess
@@ -11,6 +13,7 @@ import time
 import unittest
 
 import numpy
+import pytest
 import six
 
 from chainer import iterators
@@ -576,6 +579,42 @@ if __name__ == '__main__':
         time.sleep(1.5)
         self.send_sigint()
         self.assertFalse(self.killall())
+
+
+@testing.parameterize(*testing.product({
+    'nth': [0, 1, 2],  # A fetch of whatth item will stall?
+}))
+class TestMultiprocessIteratorStalledDatasetDetection(unittest.TestCase):
+
+    def test_stalled_getitem(self):
+        nth = self.nth
+
+        class StallingDataset(object):
+
+            def __len__(self):
+                return 10
+
+            def __getitem__(self, i):
+                if i == nth:
+                    time.sleep(10)
+                return i
+
+        dataset = StallingDataset()
+        it = iterators.MultiprocessIterator(
+            dataset, 2, shuffle=False, dataset_timeout=1)
+
+        time_start = datetime.datetime.now()
+
+        # TimeoutError should be raised.
+        # Note that the error can be raised in an earlier fetch because fetches
+        # are done in per-batch manner.
+        with pytest.raises(multiprocessing.TimeoutError):
+            for i in range(nth + 1):
+                it.next()
+
+        # Check total time: it should not take too long
+        time_end = datetime.datetime.now()
+        assert time_end - time_start < datetime.timedelta(seconds=2)
 
 
 testing.run_module(__name__, __file__)

@@ -1,5 +1,6 @@
 from __future__ import division
-from collections import namedtuple
+import collections
+import datetime
 import multiprocessing
 from multiprocessing import sharedctypes
 import signal
@@ -13,9 +14,8 @@ import six
 from chainer.dataset import iterator
 
 
-_response_time = 1.
-_short_time = 0.001
-_PrefetchState = namedtuple('_PrefetchState', (
+_response_time = 0.1
+_PrefetchState = collections.namedtuple('_PrefetchState', (
     'current_position', 'epoch', 'is_new_epoch',
     'previous_epoch_detail', 'order'))
 
@@ -48,27 +48,33 @@ class MultiprocessIterator(iterator.Iterator):
         n_prefetch (int): Number of prefetch batches.
         shared_mem (int): The size of using shared memory per data.
             If ``None``, size is adjusted automatically.
+        dataset_timeout (float): :class:`multiprocessing.TimeoutError` will be
+            raised after this time in seconds elapsed in each dataset
+            realization. ``None`` to disable the error.
 
     """
 
     _interruption_testing = False  # for testing
     _finalized = False
+    _prefetch_loop = None
     _comm = None
-    _thread = None
 
     def __init__(self, dataset, batch_size, repeat=True, shuffle=True,
-                 n_processes=None, n_prefetch=1, shared_mem=None):
+                 n_processes=None, n_prefetch=1, shared_mem=None,
+                 dataset_timeout=30.0):
         self.dataset = dataset
         self.batch_size = batch_size
         self.repeat = repeat
         self.shuffle = shuffle
-
         self.n_processes = n_processes or multiprocessing.cpu_count()
         self.n_prefetch = max(n_prefetch, 1)
         self.shared_mem = shared_mem
+        self.dataset_timeout = dataset_timeout
 
-        self._comm = _Communicator(self.n_prefetch)
-        self.reset()
+        self._reset()
+
+        self._comm = _Communicator(self.n_prefetch, dataset_timeout)
+        self._set_prefetch_state()
 
         self._prefetch_loop = _PrefetchLoop(
             self.dataset, self.batch_size, self.repeat, self.shuffle,
@@ -76,16 +82,14 @@ class MultiprocessIterator(iterator.Iterator):
             self._interruption_testing)
         # defer launching prefetch thread until creating the worker pool,
         # not to leave a background thread in forked processes.
-        self._thread = None
 
     def __next__(self):
         measure_mode = False
-        if self._thread is None:
+        if self._prefetch_loop.thread is None:
             if self._prefetch_loop.measure_required():
                 measure_mode = True
-                batch, prefetch_state = self._prefetch_loop.measure()
-            self._thread = self._prefetch_loop.launch_thread()
-            del self._prefetch_loop
+                batch, prefetch_state = self._prefetch_loop.measure(self.dataset_timeout)
+            self._prefetch_loop.launch_thread()
 
         if not measure_mode:
             batch, prefetch_state = self._comm.get()
@@ -105,13 +109,12 @@ class MultiprocessIterator(iterator.Iterator):
 
         if self._comm is not None:
             self._comm.terminate()
-            self._comm = None
 
-        if self._thread is not None:
-            while self._thread.is_alive():
-                self._thread.join(_response_time)
-            self._thread = None
+        if self._prefetch_loop is not None:
+            self._prefetch_loop.terminate()
 
+        self._comm = None
+        self._prefetch_loop = None
         self._finalized = True
 
     finalize = __del__
@@ -174,6 +177,10 @@ class MultiprocessIterator(iterator.Iterator):
             raise NotImplementedError(
                 'Reset of finalized MultiProcessIterator is currently not '
                 'supported.')
+        self._reset()
+        self._set_prefetch_state()
+
+    def _reset(self):
         self.current_position = 0
         self.epoch = 0
         self.is_new_epoch = False
@@ -183,8 +190,6 @@ class MultiprocessIterator(iterator.Iterator):
             self._order = numpy.random.permutation(len(self.dataset))
         else:
             self._order = None
-
-        self._set_prefetch_state()
 
     def _set_prefetch_state(self):
         prefetch_state = _PrefetchState(
@@ -202,8 +207,9 @@ class _Communicator(object):
     STATUS_RESET = 1
     STATUS_TERMINATE = 2
 
-    def __init__(self, n_prefetch):
+    def __init__(self, n_prefetch, dataset_timeout):
         self.n_prefetch = n_prefetch
+        self.dataset_timeout = dataset_timeout
 
         self._lock = threading.Lock()
         self._not_empty_cond = threading.Condition(self._lock)
@@ -220,8 +226,12 @@ class _Communicator(object):
     # called from iterator
     def get(self):
         with self._lock:
+            start = datetime.datetime.now()
             while len(self._batch_queue) == 0:
                 self._not_empty_cond.wait(_response_time)
+                dt = datetime.datetime.now() - start
+                if self.dataset_timeout is not None and dt > datetime.timedelta(seconds=self.dataset_timeout):
+                    raise multiprocessing.TimeoutError('Stalled dataset is detected.')
             batch, prefetch_state = self._batch_queue.pop(0)
             self._not_full_cond.notify()
             return batch, prefetch_state
@@ -265,6 +275,10 @@ class _Communicator(object):
 
 class _PrefetchLoop(object):
 
+    _thread = None
+    _pool = None
+    _terminating = False
+
     def __init__(self, dataset, batch_size, repeat, shuffle,
                  n_processes, n_prefetch, mem_size, comm,
                  _interruption_testing):
@@ -274,10 +288,9 @@ class _PrefetchLoop(object):
         self.shuffle = shuffle
         self.n_processes = n_processes
         self.mem_size = mem_size
-        self.comm = comm
+        self._comm = comm
 
         self._allocate_shared_memory()
-        self._pool = None
 
         # Use a distinct RandomState in the thread
         # for deterministic random number generation.
@@ -289,11 +302,31 @@ class _PrefetchLoop(object):
 
         self._interruption_testing = _interruption_testing
 
+    def terminate(self):
+        self._terminating = True
+
+        # Terminate the thread first because it depends on the pool.
+        if self._thread is not None:
+            while self._thread.is_alive():
+                self._thread.join(_response_time)
+
+        if self._pool is not None:
+            self._pool.terminate()
+
+        self._thread = None
+        self._pool = None
+
+    @property
+    def thread(self):
+        return self._thread
+
     def measure_required(self):
         return self.mem_size is None
 
-    def measure(self):
-        status, prefetch_state, _ = self.comm.check()
+    def measure(self, dataset_timeout):
+        # dataset_timeout: timeout in seconds or None
+
+        status, prefetch_state, _ = self._comm.check()
         if status == _Communicator.STATUS_RESET:
             self.prefetch_state = prefetch_state
 
@@ -301,7 +334,24 @@ class _PrefetchLoop(object):
         if indices is None:  # stop iteration
             batch = None
         else:
-            batch = [self.dataset[idx] for idx in indices]
+            batch_ret = [None]
+
+            def fetch_batch():
+                batch_ret[0] = [self.dataset[idx] for idx in indices]
+
+            if dataset_timeout is None:
+                # Timeout is not set: fetch synchronously
+                fetch_batch()
+            else:
+                # Timeout is set: fetch asynchronously and watch for timeout
+                thr = threading.Thread(target=fetch_batch)
+                thr.daemon = True
+                thr.start()
+                thr.join(dataset_timeout)
+                if thr.is_alive():
+                    raise multiprocessing.TimeoutError('Stalled dataset is detected.')
+
+            batch = batch_ret[0]
             self.mem_size = max(map(_measure, batch))
             self._allocate_shared_memory()
 
@@ -327,19 +377,27 @@ class _PrefetchLoop(object):
         thread = threading.Thread(target=self._run, name='prefetch_loop')
         thread.setDaemon(True)
         thread.start()
+        self._thread = thread
         return thread
 
     def _run(self):
+        # The entry routine of the prefetch thread.
+
         alive = True
         try:
             while alive:
+                if self._terminating:
+                    break
                 alive = self._task()
         finally:
             self._pool.close()
             self._pool.join()
 
     def _task(self):
-        status, prefetch_state, reset_count = self.comm.check()
+        # Do a single task in the prefetch thread.
+        # Returns a bool indicating whether the loop should continue running.
+
+        status, prefetch_state, reset_count = self._comm.check()
         if status == _Communicator.STATUS_RESET:
             self.prefetch_state = prefetch_state
         elif status == _Communicator.STATUS_TERMINATE:
@@ -354,14 +412,14 @@ class _PrefetchLoop(object):
                 try:
                     data_all = future.get(_response_time)
                 except multiprocessing.TimeoutError:
-                    if self.comm.is_terminated:
+                    if self._comm.is_terminated:
                         return False
                 else:
                     break
 
             batch = [_unpack(data, self.mem_bulk) for data in data_all]
 
-        self.comm.put(batch, self.prefetch_state, reset_count)
+        self._comm.put(batch, self.prefetch_state, reset_count)
         return True
 
     def _proceed(self):
