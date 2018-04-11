@@ -43,7 +43,26 @@ ArrayBodyPtr MakeArray(const py::list& list, const nonstd::optional<Dtype>& dtyp
     return internal::MakeArray(shape_tup, dtype.value_or(Dtype::kFloat64), list, device);
 }
 
+ArrayBodyPtr MakeArangeArray(
+        Scalar start_or_stop,
+        const nonstd::optional<Scalar>& maybe_stop,
+        const nonstd::optional<Scalar>& maybe_step,
+        const nonstd::optional<Dtype>& dtype,
+        Device& device) {
+    Scalar start{0};
+    Scalar stop{start_or_stop};
+    Scalar step = maybe_step.has_value() ? maybe_step.value() : 1;
+
+    if (maybe_stop.has_value()) {
+        start = start_or_stop;
+        stop = maybe_stop.value();
+    }
+
+    return dtype.has_value() ? Arange(start, stop, step, dtype.value(), device).move_body() : Arange(start, stop, step, device).move_body();
+}
+
 }  // namespace
+
 void InitXchainerRoutines(pybind11::module& m) {
     // creation routines
     m.def("array",
@@ -143,28 +162,27 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("device"));
     m.def("arange",
-          [](Scalar start_or_stop,
-             const nonstd::optional<Scalar>& maybe_stop,
-             const nonstd::optional<Scalar>& maybe_step,
+          [](Scalar start,
+             const nonstd::optional<Scalar>& stop,
+             const nonstd::optional<Scalar>& step,
              const nonstd::optional<Dtype>& dtype,
-             const nonstd::optional<std::string>& device_id) {
-              Scalar start{0};
-              Scalar stop{start_or_stop};
-              Scalar step = maybe_step.has_value() ? maybe_step.value() : 1;
-
-              if (maybe_stop.has_value()) {
-                  start = start_or_stop;
-                  stop = maybe_stop.value();
-              }
-
-              return dtype.has_value() ? Arange(start, stop, step, dtype.value(), GetDevice(device_id)).move_body()
-                                       : Arange(start, stop, step, GetDevice(device_id)).move_body();
-          },
+             const nonstd::optional<std::string>& device_id) { return MakeArangeArray(start, stop, step, dtype, GetDevice(device_id)); },
           py::arg("start"),
           py::arg("stop") = nullptr,
           py::arg("step") = nullptr,
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
+    m.def("arange",
+          [](Scalar start,
+             const nonstd::optional<Scalar>& stop,
+             const nonstd::optional<Scalar>& step,
+             const nonstd::optional<Dtype>& dtype,
+             Device& device) { return MakeArangeArray(start, stop, step, dtype, device); },
+          py::arg("start"),
+          py::arg("stop") = nullptr,
+          py::arg("step") = nullptr,
+          py::arg("dtype") = nullptr,
+          py::arg("device"));
     m.def("empty_like",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::string>& device_id) {
               return Array::EmptyLike(Array{a}, GetDevice(device_id)).move_body();
