@@ -114,7 +114,8 @@ TEST_P(ManipulationTest, Reshape) {
     testing::ExpectEqual(e, b);
 }
 
-TEST_P(ManipulationTest, ReshapeBugfixWithStrideOne) {
+// #461
+TEST_P(ManipulationTest, ReshapeWithStrideOne) {
     using T = bool;
     Shape input_shape{6};
     Shape output_shape{2, 3};
@@ -127,7 +128,8 @@ TEST_P(ManipulationTest, ReshapeBugfixWithStrideOne) {
     testing::ExpectEqual(e, b);
 }
 
-TEST_P(ManipulationTest, ReshapeBugfixNewAxisAtEnd) {
+// #461
+TEST_P(ManipulationTest, ReshapeNewAxisAtEnd) {
     using T = double;
     Shape input_shape{2, 4};
     Shape output_shape{2, 1, 4, 1};
