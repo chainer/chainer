@@ -117,8 +117,11 @@ def _make_decorator(check_func, name, device_check, type_check, accept_error):
                 check_func(xchainer_result, numpy_result)
             if type_check:
                 assert numpy.dtype(xchainer_result.dtype.name) == numpy_result.dtype
-            if device_check and device_check in kw:
-                assert xchainer_result.device is kw[device_check]
+            if device_check:
+                if device_check in kw:
+                    assert xchainer_result.device is kw[device_check]
+                else:
+                    raise KeyError('Function {} does not have an argument named {}', impl.__name__, device_check)
         return test_func
     return decorator
 
