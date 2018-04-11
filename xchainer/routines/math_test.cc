@@ -900,28 +900,28 @@ TEST_P(MathTest, LogSoftmax) {
     testing::ExpectAllClose(e, b, 1e-3, 0, true);
 }
 
-TEST_P(MathTest, LogSoftmaxReduceFirstAxis) {
+TEST_P(MathTest, LogSoftmaxAlongFirstAxis) {
     Array a = Zeros({2, 3}, Dtype::kFloat32);
     Array e = Full({2, 3}, -Scalar{std::log(2.0f), Dtype::kFloat32});
     Array b = LogSoftmax(a, std::vector<int8_t>{0});
     testing::ExpectAllClose(e, b, 1e-3, 0, true);
 }
 
-TEST_P(MathTest, LogSoftmaxReduceSecondAxis) {
+TEST_P(MathTest, LogSoftmaxAlongSecondAxis) {
     Array a = Zeros({2, 3}, Dtype::kFloat32);
     Array e = Full({2, 3}, -Scalar{std::log(3.0f), Dtype::kFloat32});
     Array b = LogSoftmax(a, std::vector<int8_t>{1});
     testing::ExpectAllClose(e, b, 1e-3, 0, true);
 }
 
-TEST_P(MathTest, LogSoftmaxReduceMultipleAxes) {
+TEST_P(MathTest, LogSoftmaxAlongMultipleAxes) {
     Array a = Zeros({2, 3}, Dtype::kFloat32);
     Array e = Full({2, 3}, -Scalar{std::log(6.0f), Dtype::kFloat32});
     Array b = LogSoftmax(a, std::vector<int8_t>{0, 1});
     testing::ExpectAllClose(e, b, 1e-3, 0, true);
 }
 
-TEST_P(MathTest, LogSoftmaxHighDimDefaultSecondAxis) {
+TEST_P(MathTest, LogSoftmaxHighDimAlongDefaultSecondAxis) {
     Array a = Zeros({2, 3, 1, 2}, Dtype::kFloat32);
     Array e = Full({2, 3, 1, 2}, -Scalar{std::log(3.0f), Dtype::kFloat32});
     Array b = LogSoftmax(a);
