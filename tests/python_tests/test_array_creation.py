@@ -31,7 +31,8 @@ def _check_device(a, device=None):
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-def test_array_from_python_list(xp, dtype):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_array_from_python_list(xp, dtype, device):
     return xp.array([0, 1, 2], xp.dtype(dtype.name))
 
 
@@ -52,7 +53,8 @@ def test_array_from_python_list_with_device(device):
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-def test_array_from_numpy_ndarray(xp, shape, dtype):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_array_from_numpy_ndarray(xp, shape, dtype, device):
     return xp.array(numpy.zeros(shape, numpy.dtype(dtype.name)))
 
 

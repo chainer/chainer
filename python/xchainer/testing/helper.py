@@ -126,8 +126,8 @@ def _make_decorator(check_func, name, device_check, type_check, accept_error):
     return decorator
 
 
-def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', device_arg='device',
-                               rtol=0, atol=0, device_check=True, type_check=True, accept_error=()):
+def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp',
+                               rtol=0, atol=0, type_check=True, device_check='device', accept_error=()):
     """Decorator that checks NumPy results and xChainer ones are equal.
 
     Args:
