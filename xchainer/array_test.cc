@@ -846,7 +846,7 @@ INSTANTIATE_TEST_CASE_P(
         ArrayTest,
         ::testing::Values(
 #ifdef XCHAINER_ENABLE_CUDA
-//                std::string{"cuda"},
+                std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
                 std::string{"native"}));
 

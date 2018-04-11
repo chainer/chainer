@@ -166,12 +166,12 @@ void NativeDevice::Astype(const Array& a, const Array& out) {
 
     VisitDtype(out.dtype(), [&](auto out_pt) {
         using OutT = typename decltype(out_pt)::type;
-        IndexableArray<OutT> out_iarray{out};
-        Indexer indexer{out.shape()};
-
         VisitDtype(a.dtype(), [&](auto in_pt) {
             using InT = typename decltype(in_pt)::type;
             IndexableArray<const InT> a_iarray{a};
+            IndexableArray<OutT> out_iarray{out};
+            Indexer indexer{out.shape()};
+
             for (int64_t i = 0; i < indexer.total_size(); ++i) {
                 indexer.Set(i);
                 out_iarray[indexer] = static_cast<OutT>(a_iarray[indexer]);
