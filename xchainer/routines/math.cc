@@ -356,7 +356,7 @@ Array AMax(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bo
         }
         Shape shape{shape_vec.begin(), shape_vec.end()};
         Array reshaped_gout = gout.Reshape(shape);
-        Array reshaped_out = out.Reshape(shape);
+        Array reshaped_out = out.AsConstant(CopyKind::kView).Reshape(shape);
 
         // Compute the gradient
         Array cond = (a.AsConstant(CopyKind::kView) == reshaped_out);
