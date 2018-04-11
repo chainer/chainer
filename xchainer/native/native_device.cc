@@ -177,9 +177,7 @@ void NativeDevice::AsType(const Array& a, const Array& out) {
         }
     };
 
-    VisitDtype(out.dtype(), [&](auto out_pt) {
-        VisitDtype(a.dtype(), do_astype, out_pt);
-    });
+    VisitDtype(out.dtype(), [&](auto out_pt) { VisitDtype(a.dtype(), do_astype, out_pt); });
 }
 
 void NativeDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
