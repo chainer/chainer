@@ -345,22 +345,25 @@ void CudaDevice::Copy(const Array& a, const Array& out) {
 void CudaDevice::Astype(const Array& a, const Array& out) {
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
+
+    auto do_astype = [&](auto in_pt, auto out_pt) {
+       using InT = typename decltype(in_pt)::type;
+       using OutT = typename decltype(out_pt)::type;
+       static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AstypeKernel<InT, OutT>).block_size;
+
+       IndexableArray<const InT> a_iarray{a};
+       IndexableArray<OutT> out_iarray{out};
+       Indexer indexer{out.shape()};
+
+       int64_t total_size = indexer.total_size();
+       int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+       int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+       AstypeKernel<<<grid_size, block_size>>>(a_iarray, out_iarray, indexer);
+    };
+
     VisitDtype(out.dtype(), [&](auto out_pt) {
-        using OutT = typename decltype(out_pt)::type;
-        VisitDtype(a.dtype(), [&](auto in_pt) {
-            using InT = typename decltype(in_pt)::type;
-            static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AstypeKernel<InT, OutT>).block_size;
-
-            IndexableArray<const InT> a_iarray{a};
-            IndexableArray<OutT> out_iarray{out};
-            Indexer indexer{out.shape()};
-
-            int64_t total_size = indexer.total_size();
-            int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-            int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
-
-            AstypeKernel<<<grid_size, block_size>>>(a_iarray, out_iarray, indexer);
-        });
+        VisitDtype(a.dtype(), do_astype, out_pt);
     });
 }
 
