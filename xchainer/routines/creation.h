@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -35,6 +36,13 @@ Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device = 
 Array Full(const Shape& shape, Scalar fill_value, Device& device = GetDefaultDevice());
 Array Zeros(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
 Array Ones(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
+
+Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device = GetDefaultDevice());
+Array Arange(Scalar start, Scalar stop, Scalar step, Device& device = GetDefaultDevice());
+Array Arange(Scalar start, Scalar stop, Dtype dtype, Device& device = GetDefaultDevice());
+Array Arange(Scalar start, Scalar stop, Device& device = GetDefaultDevice());
+Array Arange(Scalar stop, Dtype dtype, Device& device = GetDefaultDevice());
+Array Arange(Scalar stop, Device& device = GetDefaultDevice());
 
 // Creates an array which has the same shape and dtype as the other array.
 // The new array is allocated in the default device. The device of the other array

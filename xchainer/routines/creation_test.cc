@@ -361,6 +361,92 @@ TEST_P(CreationTest, OnesLike) {
     CheckOnesLike<double>();
 }
 
+TEST_P(CreationTest, Arange) {
+    Array a = Arange(0, 3, 1);
+    Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStopDtype) {
+    Array a = Arange(3, Dtype::kInt32);
+    Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStopDevice) {
+    Array a = Arange(Scalar{3, Dtype::kInt32}, GetDefaultDevice());
+    Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStopDtypeDevice) {
+    Array a = Arange(3, Dtype::kInt32, GetDefaultDevice());
+    Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStartStopDtype) {
+    Array a = Arange(1, 3, Dtype::kInt32);
+    Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStartStopDevice) {
+    Array a = Arange(1, 3, GetDefaultDevice());
+    Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStartStopDtypeDevice) {
+    Array a = Arange(1, 3, Dtype::kInt32, GetDefaultDevice());
+    Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStartStopStepDtype) {
+    Array a = Arange(1, 7, 2, Dtype::kInt32);
+    Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStartStopStepDevice) {
+    Array a = Arange(1, 7, 2, GetDefaultDevice());
+    Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeStartStopStepDtypeDevice) {
+    Array a = Arange(1, 7, 2, Dtype::kInt32, GetDefaultDevice());
+    Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeNegativeStep) {
+    Array a = Arange(4.f, 0.f, -1.5f, Dtype::kFloat32);
+    Array e = testing::BuildArray({3}).WithData<float>({4.f, 2.5f, 1.f});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeLargeStep) {
+    Array a = Arange(2, 3, 5, Dtype::kInt32);
+    Array e = testing::BuildArray({1}).WithData<int32_t>({2});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeEmpty) {
+    Array a = Arange(2, 1, 1, Dtype::kInt32);
+    Array e = testing::BuildArray({0}).WithData<int32_t>({});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, ArangeNoDtype) {
+    Array a = Arange(Scalar{1, Dtype::kUInt8}, Scalar{4, Dtype::kUInt8}, Scalar{1, Dtype::kUInt8});
+    Array e = testing::BuildArray({3}).WithData<uint8_t>({1, 2, 3});
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(CreationTest, InvalidTooLongBooleanArange) { EXPECT_THROW(Arange(0, 3, 1, Dtype::kBool), DtypeError); }
+
 TEST_P(CreationTest, Copy) {
     {
         Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
