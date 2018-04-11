@@ -163,7 +163,7 @@ public:
     Array AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind = CopyKind::kView) const;
 
     // Cast to a specified type.
-    // By default, always returns a newly allocated array. If `kind` is `CopyKind::kView`,
+    // By default, always returns a newly allocated array. If `copy` is false,
     // and the dtype requirement is satisfied, the input array is returned instead of a copy.
     Array Astype(Dtype dtype, bool copy = true) const;
 
