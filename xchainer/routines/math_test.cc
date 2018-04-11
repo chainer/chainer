@@ -883,10 +883,11 @@ TEST_P(MathTest, LogSumExpReduceSecondAxis) {
 TEST_P(MathTest, LogSumExpReduceMultipleAxes) {
     using T = double;
     std::array<T, 6> adata{-1, 0, 1, 2, 3, 4};
-    Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
-    Array e = testing::BuildArray({}).WithData<T>({std::log(
-            std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
-    testing::ExpectAllClose(e, LogSumExp(a, std::vector<int8_t>{0, 1}), 1e-5, 0);
+    Array a = testing::BuildArray({1, 3, 1, 2}).WithData<T>(adata).WithPadding(1);
+    Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1])),
+                                                    std::log(std::exp(adata[2]) + std::exp(adata[3])),
+                                                    std::log(std::exp(adata[4]) + std::exp(adata[5]))});
+    testing::ExpectAllClose(e, LogSumExp(a, std::vector<int8_t>{0, 2, 3}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSumExpKeepdims) {
