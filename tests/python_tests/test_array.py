@@ -1424,6 +1424,87 @@ def test_log(xp, device, input, numpy_dtype):
     return xp.log(a)
 
 
+_logsumexp_params = [
+    ((2,), 0),
+    ((2,), -1),
+    ((2, 3), None),
+    ((2, 3), 0),
+    ((2, 3), 1),
+    ((2, 3), -2),
+    ((2, 3), (0, 1)),
+    ((2, 3), (-2, 1)),
+    ((1, 2, 3), None),
+    ((1, 2, 3), (1)),
+    ((1, 2, 3), (1, 0)),
+    ((1, 2, 3), (0, 1, 2)),
+]
+
+
+_invalid_logsumexp_params = [
+    ((2,), None),
+    ((2,), 1),
+    ((2,), -2),
+    ((2,), (0, 1)),
+    ((2, 3), (0, 1, 2))
+]
+
+
+def _logsumexp(xp, x, axis, keepdims):
+    return xp.log(xp.sum(xp.exp(x), axis=axis, keepdims=keepdims))
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
+# TODO(hvy): Dtype promotion is not supported yet.
+@pytest.mark.parametrize('keepdims', [True, False])
+@xchainer.testing.numpy_xchainer_array_equal(rtol=1e-7, atol=0, type_check=False)
+def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
+    a = xp.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
+    if xp is numpy:
+        return _logsumexp(xp, a, axis=axis, keepdims=keepdims)
+    return xp.logsumexp(a, axis=axis, keepdims=keepdims)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
+# TODO(hvy): Dtype promotion is not supported yet.
+@pytest.mark.parametrize('keepdims', [True, False])
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(numpy.AxisError, xchainer.DimensionError))
+def test_invalid_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
+    a = xp.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
+    if xp is numpy:
+        return _logsumexp(xp, a, axis=axis, keepdims=keepdims)
+    return xp.logsumexp(a, axis=axis, keepdims=keepdims)
+
+
+def _log_softmax(xp, x, axis):
+    # Default is the first axis
+    axis = axis if axis is not None else 1
+    return x - xp.log(xp.sum(xp.exp(x), axis=axis, keepdims=True))
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
+# TODO(hvy): Dtype promotion is not supported yet.
+@xchainer.testing.numpy_xchainer_array_equal(rtol=1e-7, atol=1e-5, type_check=False)
+def test_log_softmax(xp, device, a_shape, axis, float_dtype):
+    a = xp.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
+    if xp is numpy:
+        return _log_softmax(xp, a, axis=axis)
+    return xp.log_softmax(a, axis=axis)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
+# TODO(hvy): Dtype promotion is not supported yet.
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(numpy.AxisError, xchainer.DimensionError))
+def test_invalid_log_softmax(xp, device, a_shape, axis, float_dtype):
+    a = xp.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
+    if xp is numpy:
+        return _log_softmax(xp, a, axis=axis)
+    return xp.log_softmax(a, axis=axis)
+
+
 _min_max_single_axis_params = [
     # input, axis
     # valid params
