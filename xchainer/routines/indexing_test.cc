@@ -109,9 +109,6 @@ TEST_P(IndexingTest, Take) {
 }
 
 TEST_P(IndexingTest, TakeBackward) {
-    if (GetParam() == "cuda") {
-        return;
-    }
     using T = double;
     Shape input_shape{2, 4};
     Shape indices_shape{2, 3};
@@ -130,9 +127,6 @@ TEST_P(IndexingTest, TakeBackward) {
 }
 
 TEST_P(IndexingTest, TakeDoubleBackward) {
-    if (GetParam() == "cuda") {
-        return;
-    }
     using T = double;
     Shape input_shape{2, 4};
     Shape indices_shape{2, 3};
