@@ -6,6 +6,7 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -299,31 +300,57 @@ Assign a Parameter object directly to an attribute within a \
         self._persistent.add(name)
         self._params.discard(name)
 
-    def copy(self):
+    def copy(self, mode='share'):
         """Copies the link hierarchy to new one.
 
-        The whole hierarchy rooted by this link is copied. The copy is
-        basically shallow, except that the parameter variables are also
-        shallowly copied. It means that the parameter variables of copied one
-        are different from ones of original link, while they share the data and
-        gradient arrays.
+        The whole hierarchy rooted by this link is copied. There are three
+        modes to perform copy. Please see the document for the argument
+        ``mode`` below.
 
         The name of the link is reset on the copy, since the copied instance
         does not belong to the original parent chain (even if exists).
+
+        Args:
+            mode (str): It should be either ``init``, ``copy``, or ``share``.
+                ``init`` means parameter variables under the returned link
+                object is re-initialized by calling their
+                :meth:`~chainer.Parameter.initialize` method, so that all the
+                parameters may have different initial values from the original
+                link.
+                ``copy`` means that the link object is deeply copied, so that
+                its parameters are not re-initialized but are also deeply
+                copied. Thus, all parameters have same initial values but can
+                be changed independently.
+                ``share`` means that the link is shallowly copied, so that its
+                parameters' arrays are shared with the original one. Thus,
+                their values are changed synchronously. The default ``mode``
+                is ``share``.
 
         Returns:
             Link: Copied link object.
 
         """
-        ret = copy.copy(self)
-        ret._params = set(self._params)
-        ret._persistent = set(self._persistent)
-        ret.name = None
-        d = ret.__dict__
-        for name in ret._params:
-            d[name] = copy.copy(d[name])
-            d[name].grad = None
-        return ret
+        if mode == 'share':
+            ret = copy.copy(self)
+            ret._params = set(self._params)
+            ret._persistent = set(self._persistent)
+            ret.name = None
+            d = ret.__dict__
+            for name in ret._params:
+                d[name] = copy.copy(d[name])
+                d[name].grad = None
+            return ret
+        elif mode == 'copy':
+            return copy.deepcopy(self)
+        elif mode == 'init':
+            ret = copy.deepcopy(self)
+            for param in ret.params(include_uninit=False):
+                param.initialize(param.shape)
+            return ret
+        else:
+            raise ValueError(
+                'The \'mode\' argument should be either \'init\','
+                '\'copy\', or \'share\'. But {} was given.'.format(mode))
 
     def to_cpu(self):
         """Copies parameter variables and persistent values to CPU.
@@ -580,6 +607,97 @@ Assign a Parameter object directly to an attribute within a \
                     param.data.set(numpy.asarray(data))
         for name in self._persistent:
             d[name] = serializer(name, d[name])
+
+    def repeat(self, n_repeat, mode='init'):
+        """Repeats this link multiple times to make a :class:`~chainer.Sequential`.
+
+        This method returns a :class:`~chainer.Sequential` object which has
+        the same :class:`~chainer.Link` multiple times repeatedly. The ``mode``
+        argument means how to copy this link to repeat.
+
+        .. admonition:: Example
+
+            You can repeat the same link multiple times to create a longer
+            :class:`~chainer.Sequential` block like this:
+
+            .. code-block:: python
+
+                class ConvBNReLU(chainer.Chain):
+
+                    def __init__(self):
+                        super(ConvBNReLU, self).__init__()
+                        with self.init_scope():
+                            self.conv = L.Convolution2D(
+                                None, 64, 3, 1, 1, nobias=True)
+                            self.bn = L.BatchNormalization(64)
+
+                    def __call__(self, x):
+                        return F.relu(self.bn(self.conv(x)))
+
+                net = ConvBNReLU().repeat(16, mode='init')
+
+            The ``net`` object contains 16 blocks, each of which is
+            ``ConvBNReLU``. And the ``mode`` was ``init``, so each block
+            is re-initialized with different parameters. If you give
+            ``copy`` to this argument, each block has same values for its
+            parameters but its object ID is different from others. If it is
+            ``share``, each block is same to others in terms of not only
+            parameters but also the object IDs because they are shallow-copied,
+            so that when the parameter of one block is changed, all the
+            parameters in the others also change.
+
+        Args:
+            n_repeat (int): Number of times to repeat.
+            mode (str): It should be either ``init``, ``copy``, or ``share``.
+                ``init`` means parameters of each repeated element in the
+                returned :class:`~chainer.Sequential` will be re-initialized,
+                so that all elements have different initial parameters.
+                ``copy`` means that the parameters will not be re-initialized
+                but object itself will be deep-copied, so that all elements
+                have same initial parameters but can be changed independently.
+                ``share`` means all the elements which consist the resulting
+                :class:`~chainer.Sequential` object are same object because
+                they are shallow-copied, so that all parameters of elements
+                are shared with each other.
+
+        """
+        ret = chainer.Sequential()
+        if n_repeat <= 0:
+            return ret
+        if mode not in ['init', 'copy', 'share']:
+            raise ValueError(
+                'The \'mode\' argument should be either \'init\','
+                '\'copy\', or \'share\'. But {} was given.'.format(mode))
+        link = self
+        for _ in range(n_repeat):
+            ret.append(link.copy(mode))
+        return ret
+
+    def count_params(self):
+        """Counts the total number of parameters.
+
+        This method counts the total number of scalar values included in all
+        the :class:`~chainer.Parameter`\\ s held by this link and its
+        descendants.
+
+        If the link containts uninitialized parameters, this method raises a
+        warning.
+
+        Returns:
+            The total size of parameters (int)
+
+        """
+
+        size = 0
+        for name, param in self.namedparams():
+            if param.array is None:
+                warnings.warn(
+                    'Parameter \'{}\' has not been initialized, so the '
+                    'resulting count will not include the number of parameters'
+                    ' in it.'.format(name))
+                continue
+            size += param.size
+        return size
 
 
 class Chain(Link):

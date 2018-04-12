@@ -1324,7 +1324,6 @@ class Parameter(Variable):
             else:
                 # uninitialized parameter
                 super(Parameter, self).__init__(name=name)
-                self.initializer = initializer
                 dtype = getattr(initializer, 'dtype', numpy.float32)
                 self._grad_initializer = constant.NaN(dtype)
         else:
@@ -1339,6 +1338,7 @@ class Parameter(Variable):
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
         self.update_rule = None
+        self.initializer = initializer
 
     def __copy__(self):
         return self._copy_to(Parameter())

@@ -59,6 +59,7 @@ from chainer.reporter import report  # NOQA
 from chainer.reporter import report_scope  # NOQA
 from chainer.reporter import Reporter  # NOQA
 from chainer.reporter import Summary  # NOQA
+from chainer.sequential import Sequential  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
