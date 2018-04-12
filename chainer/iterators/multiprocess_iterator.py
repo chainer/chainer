@@ -165,7 +165,7 @@ class MultiprocessIterator(iterator.Iterator):
 
     @property
     def epoch_detail(self):
-        return self.epoch + self.current_position / self._get_epoch_size()
+        return self.epoch + self.current_position / self._epoch_size
 
     @property
     def previous_epoch_detail(self):
@@ -188,7 +188,7 @@ class MultiprocessIterator(iterator.Iterator):
         except KeyError:
             # guess previous_epoch_detail for older version
             self._previous_epoch_detail = self.epoch + \
-                (self.current_position - self.batch_size) / self._get_epoch_size()
+                (self.current_position - self.batch_size) / self._epoch_size
             if self.epoch_detail > 0:
                 self._previous_epoch_detail = max(
                     self._previous_epoch_detail, 0.)
@@ -209,12 +209,12 @@ class MultiprocessIterator(iterator.Iterator):
         self._order = self.order_sampler(numpy.arange(len(self.dataset)), 0)
         self._set_prefetch_state()
 
-    def _get_epoch_size(self):
+    @property
+    def _epoch_size(self):
         if self._order is None:
-            epoch_size = len(self.dataset)
+            return len(self.dataset)
         else:
-            epoch_size = len(self._order)
-        return epoch_size
+            return len(self._order)
 
     def _set_prefetch_state(self):
         prefetch_state = _PrefetchState(

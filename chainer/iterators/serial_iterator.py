@@ -137,7 +137,6 @@ class SerialIterator(iterator.Iterator):
                     self._previous_epoch_detail, 0.)
             else:
                 self._previous_epoch_detail = -1.
-        self._epoch_size = self._get_epoch_size()
 
     def reset(self):
         self.current_position = 0
@@ -147,11 +146,10 @@ class SerialIterator(iterator.Iterator):
         # use -1 instead of None internally.
         self._previous_epoch_detail = -1.
         self._order = self.order_sampler(numpy.arange(len(self.dataset)), 0)
-        self._epoch_size = self._get_epoch_size()
 
-    def _get_epoch_size(self):
+    @property
+    def _epoch_size(self):
         if self._order is None:
-            epoch_size = len(self.dataset)
+            return len(self.dataset)
         else:
-            epoch_size = len(self._order)
-        return epoch_size
+            return len(self._order)
