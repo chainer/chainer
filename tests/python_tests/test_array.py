@@ -1482,7 +1482,7 @@ def test_invalid_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
 
 
 def _log_softmax(xp, x, axis):
-    # Default is the first axis
+    # Default is the second axis
     axis = axis if axis is not None else 1
     return x - xp.log(xp.sum(xp.exp(x), axis=axis, keepdims=True))
 
