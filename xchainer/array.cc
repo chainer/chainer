@@ -264,14 +264,12 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
 
 Array Array::AsType(Dtype dtype, bool copy) const {
     Dtype src_dtype = this->dtype();
-    Array out;
-
     if (!copy && dtype == src_dtype) {
-        out = *this;
-    } else {
-        out = Empty(shape(), dtype, device());
-        device().AsType(*this, out);
+        return *this;
     }
+
+    Array out = Empty(shape(), dtype, device());
+    device().AsType(*this, out);
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
         internal::SetUpOpNodes(
