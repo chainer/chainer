@@ -1009,11 +1009,25 @@ TEST_P(MathTest, LogSoftmaxHighDimAlongDefaultSecondAxis) {
 }
 
 TEST_P(MathTest, LogSoftmaxBackward) {
-    // TODO(hvy): Write tests when backward is implemented for routines that LogSoftmax depends on.
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSoftmax(xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, LogSoftmaxDoubleBackward) {
-    // TODO(hvy): Write tests when backward is implemented for routines that LogSoftmax depends on.
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSoftmax(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
 }
 
 INSTANTIATE_TEST_CASE_P(
