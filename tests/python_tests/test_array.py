@@ -1192,8 +1192,9 @@ _take_params = [
 
 
 @pytest.mark.parametrize("shape,indices,axis", _take_params)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal(type_check=False)
-def test_take(xp, shape, indices, axis):
+def test_take(xp, shape, indices, axis, device):
     a = xp.arange(_total_size(shape)).reshape(shape)
 
     # First convert to ndarray since some indices are nested lists which
@@ -1205,8 +1206,9 @@ def test_take(xp, shape, indices, axis):
 
 
 @pytest.mark.parametrize("shape,indices,axis", _take_params)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal(type_check=False)
-def test_module_take(xp, shape, indices, axis):
+def test_module_take(xp, shape, indices, axis, device):
     a = xp.arange(_total_size(shape)).reshape(shape)
 
     # First convert to ndarray since some indices are nested lists which
