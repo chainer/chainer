@@ -1441,11 +1441,15 @@ _logsumexp_params = [
 
 
 _invalid_logsumexp_params = [
+    # Axis out of bounds
     ((2,), None),
     ((2,), 1),
     ((2,), -2),
     ((2,), (0, 1)),
-    ((2, 3), (0, 1, 2))
+    ((2, 3), (0, 1, 2)),
+    # Duplicate axes
+    ((2,), (0, 0)),
+    ((2, 3), (0, 0)),
 ]
 
 
@@ -1469,7 +1473,7 @@ def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
 @pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
 # TODO(hvy): Dtype promotion is not supported yet.
 @pytest.mark.parametrize('keepdims', [True, False])
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(numpy.AxisError, xchainer.DimensionError))
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(numpy.AxisError, ValueError, xchainer.DimensionError))
 def test_invalid_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
     a = xp.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
     if xp is numpy:
@@ -1497,7 +1501,7 @@ def test_log_softmax(xp, device, a_shape, axis, float_dtype):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
 # TODO(hvy): Dtype promotion is not supported yet.
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(numpy.AxisError, xchainer.DimensionError))
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(numpy.AxisError, ValueError, xchainer.DimensionError))
 def test_invalid_log_softmax(xp, device, a_shape, axis, float_dtype):
     a = xp.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
     if xp is numpy:
