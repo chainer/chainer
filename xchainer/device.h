@@ -103,6 +103,7 @@ public:
     virtual void Log(const Array& x, const Array& out) = 0;
 
     // Takes elements specified by indices from an array.
+    // Indices that are out of bounds are wrapped around.
     //
     // `axis` must be within [0, a.ndim()).
     virtual void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) = 0;
