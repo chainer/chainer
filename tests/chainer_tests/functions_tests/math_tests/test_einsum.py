@@ -20,6 +20,8 @@ def _tuple_to_gpu(xs):
         {'subscripts': 'ij,jk,kl->il', 'shapes': ((5, 2), (2, 3), (3, 4))},
         {'subscripts': 'ij,ij->i', 'shapes': ((2, 3), (2, 3))},
         {'subscripts': 'ij,jk', 'shapes': ((2, 3), (3, 4))},
+        {'subscripts': 'i->', 'shapes': ((3,),)},
+        {'subscripts': 'iij,kkj', 'shapes': ((2, 2, 3), (4, 4, 3))},
         {'subscripts': 'ii', 'shapes': ((2, 2),)},
         {'subscripts': 'ii->i', 'shapes': ((2, 2),)},
     ],

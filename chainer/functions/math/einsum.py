@@ -3,17 +3,6 @@ from chainer import function_node
 from chainer import utils
 
 
-def _parse_subscripts(subscripts):
-    subscripts = subscripts.split('->')
-    assert 1 <= len(subscripts) <= 2
-    subscripts_in = subscripts[0].split(',')
-    if len(subscripts) == 1:
-        raise "TODO(kataoka)"
-    else:
-        subscript_out = subscripts[1]
-    return subscript_out, subscripts_in
-
-
 class DiagEinSum(function_node.FunctionNode):
 
     def __init__(self, in_subs, out_sub, out_shape=None):
@@ -75,7 +64,7 @@ class DiagEinSum(function_node.FunctionNode):
         inputs = self.get_retained_inputs()
         g, = grad_outputs
 
-        fwd_in_subs = [s for s in self.in_subs.split(',')]
+        fwd_in_subs = self.in_subs.split(',')
         fwd_out_sub = self.out_sub
         return tuple(
             DiagEinSum(
