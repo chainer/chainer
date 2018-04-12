@@ -485,6 +485,20 @@ def test_module_copy(xp, shape, dtype):
     return xp.copy(a)
 
 
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('copy', [False, True])
+# TODO(beam2d): use fixtures.
+@pytest.mark.parametrize('src_dtype', ['bool', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
+@pytest.mark.parametrize('dst_dtype', ['bool', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
+def test_astype(xp, shape, device, copy, src_dtype, dst_dtype):
+    ndarray = _create_dummy_ndarray(shape, src_dtype)
+    a = xp.array(ndarray)
+    b = a.astype(dst_dtype, copy=copy)
+    assert a is b if src_dtype == dst_dtype and not copy else a is not b
+    return b
+
+
 def test_as_constant_copy(shape, dtype):
     data_list = _create_dummy_data(shape, dtype)
 

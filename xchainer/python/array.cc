@@ -184,6 +184,10 @@ void InitXchainerArray(pybind11::module& m) {
           },
           py::arg().noconvert(),
           py::arg("copy") = false);
+    c.def("astype",
+          [](const ArrayBodyPtr& self, Dtype dtype, bool copy) { return Array{self}.AsType(dtype, copy).move_body(); },
+          py::arg("dtype"),
+          py::arg("copy") = true);
     c.def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); });
     c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle handle) {
         return Array{self}.At(python::internal::MakeArrayIndices(handle)).move_body();
