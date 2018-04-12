@@ -128,7 +128,7 @@ def _make_decorator(check_func, name, type_check, accept_error):
 
 
 def numpy_xchainer_array_equal(err_msg='', verbose=True, name='xp',
-                               type_check=True, accept_error=()):
+                               rtol=0, atol=0, type_check=True, accept_error=()):
     """Decorator that checks NumPy results and xChainer ones are equal.
 
     Args:
@@ -150,6 +150,6 @@ def numpy_xchainer_array_equal(err_msg='', verbose=True, name='xp',
     .. seealso:: :func:`xchainer.testing.assert_array_equal`
     """
     def check_func(x, y):
-        array.assert_array_equal(x, y, err_msg, verbose)
+        array.assert_array_equal(x, y, rtol, atol, err_msg, verbose)
 
     return _make_decorator(check_func, name, type_check, accept_error)
