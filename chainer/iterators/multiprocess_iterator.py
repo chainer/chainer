@@ -84,8 +84,6 @@ class MultiprocessIterator(iterator.Iterator):
                 order_sampler = no_shuffle_order_sampler
         self.order_sampler = order_sampler
 
-        self._finalized = False
-
         self._comm = _Communicator(self.n_prefetch)
         self.reset()
 
