@@ -107,6 +107,14 @@ public:
     // `axis` must be within [0, a.ndim()).
     virtual void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) = 0;
 
+    // Adds each slice of `b` along the axis `axis` to `a`'s corresponding slices, specified by `indices`.
+    // The result is assigned in `out. Input arrays `a`, `indices`, and `b` are not altered.
+    //
+    // TODO(niboshi): This function may be replaced with full-featured assignable advanced indexing.
+    //
+    // `axis` must be within [0, b.ndim()).
+    virtual void AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) = 0;
+
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat

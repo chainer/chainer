@@ -23,7 +23,8 @@ namespace {
 
 // Returns an array where elements at indices are added by the addends `b`.
 //
-// The original values of this array are not altered.
+// It is not-implace operation: the input arrays are not altered.
+// It is differentiable with respect to `a` and `b`.
 Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array& b) {
     // TODO(sonots): dtype conversion
     CheckEqual(a.dtype(), b.dtype());
@@ -36,9 +37,9 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 
     a.device().Add(b, out_view, out_view);
 
-    auto this_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
-    auto addend_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.At(indices); };
-    xchainer::internal::SetUpOpNodes("add_at", {a, b}, out, {this_backward_function, addend_backward_function});
+    auto a_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
+    auto b_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.At(indices); };
+    xchainer::internal::SetUpOpNodes("add_at", {a, b}, out, {a_backward_function, b_backward_function});
 
     return out;
 }
@@ -99,6 +100,31 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
 }  // namespace internal
 
+namespace {
+
+// Adds elements of `b` indexed by `indices` into `a` and returns the result.
+// Used in backward pass of Take()
+//
+// It is not-implace operation: the input arrays are not altered.
+// It is differentiable with respect to `a` and `b`.
+Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
+    assert(0 <= axis && axis < a.ndim());
+    assert(b.ndim() == indices.ndim() + a.ndim() - 1);
+    CheckEqual(a.dtype(), b.dtype());
+
+    Array out = EmptyLike(a, a.device());
+
+    a.device().AddAt(a, indices, axis, b, out);
+
+    auto a_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
+    auto b_backward_function = [indices, axis](const Array& gout, const std::vector<GraphId>&) { return Take(gout, indices, axis); };
+    xchainer::internal::SetUpOpNodes("add_at", {a, b}, out, {a_backward_function, b_backward_function});
+
+    return out;
+}
+
+}  // namespace
+
 Array Take(const Array& a, const Array& indices, int8_t axis) {
     // TODO(niboshi): Support other dtypes by casting
     if (indices.dtype() != Dtype::kInt64) {
@@ -118,7 +144,11 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     a.device().Take(a, indices, axis_norm, out);
 
-    // TODO(niboshi): Implement backward
+    auto backward_function = [ indices, axis_norm, a_shape = a.shape() ](const Array& gout, const std::vector<GraphId>&) {
+        return AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
+    };
+    xchainer::internal::SetUpOpNodes("take", {a}, out, {backward_function});
+
     return out;
 }
 
