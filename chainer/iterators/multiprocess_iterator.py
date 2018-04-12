@@ -75,8 +75,10 @@ class MultiprocessIterator(iterator.Iterator):
         self.shared_mem = shared_mem
 
         if self.shuffle and order_sampler is not None:
-            raise ValueError(
-                'shuffle should be False when custom order_sampler is used')
+            warnings.warn('`shuffle` is `True` and a custom '
+                          '`order_sampler` is set. In this case, '
+                          'In this case, the custom `order_sampler` is '
+                          'prioritized.')
         if order_sampler is None:
             if self.shuffle:
                 order_sampler = shuffle_order_sampler

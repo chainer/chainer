@@ -1,6 +1,7 @@
 from __future__ import division
 
 import numpy
+import warnings
 
 from chainer.dataset import iterator
 from chainer.iterators.order_samplers import no_shuffle_order_sampler
@@ -50,8 +51,10 @@ class SerialIterator(iterator.Iterator):
         self._shuffle = shuffle
 
         if self._shuffle and order_sampler is not None:
-            raise ValueError(
-                'shuffle should be False when custom order_sampler is used')
+            warnings.warn('`shuffle` is `True` and a custom '
+                          '`order_sampler` is set. In this case, '
+                          'In this case, the custom `order_sampler` is '
+                          'prioritized.')
         if order_sampler is None:
             if self._shuffle:
                 order_sampler = shuffle_order_sampler
