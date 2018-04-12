@@ -283,11 +283,16 @@ class TestMultithreadIterator(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'n_threads': [1, 2],
+    'order_sampler': [
+        None, lambda order, _: numpy.random.permutation(len(order))]
 }))
 class TestMultithreadIteratorSerialize(unittest.TestCase):
 
     def setUp(self):
-        self.options = {'n_threads': self.n_threads}
+        self.options = {'n_threads': self.n_threads,
+                        'order_sampler': self.order_sampler}
+        if self.order_sampler is not None:
+            self.options['shuffle'] = False
 
     def test_iterator_serialize(self):
         dataset = [1, 2, 3, 4, 5, 6]
@@ -325,6 +330,70 @@ class TestMultithreadIteratorSerialize(unittest.TestCase):
         self.assertEqual(sorted(batch1 + batch2 + batch3), dataset)
         self.assertAlmostEqual(it.epoch_detail, 6 / 6)
         self.assertAlmostEqual(it.previous_epoch_detail, 4 / 6)
+
+
+class TestMultithreadIteratorOrderSamplerEpochSize(unittest.TestCase):
+
+    def setUp(self):
+        def order_sampler(order, cur_pos):
+            return numpy.repeat(numpy.arange(3), 2)
+        self.options = {'shuffle': False, 'order_sampler': order_sampler}
+
+    def test_iterator_repeat(self):
+        dataset = [1, 2, 3]
+        it = iterators.MultithreadIterator(dataset, 2, **self.options)
+        for i in range(3):
+            self.assertEqual(it.epoch, i)
+            self.assertAlmostEqual(it.epoch_detail, i + 0 / 6)
+            if i == 0:
+                self.assertIsNone(it.previous_epoch_detail)
+            else:
+                self.assertAlmostEqual(it.previous_epoch_detail, i - 2 / 6)
+            batch1 = it.next()
+            self.assertEqual(len(batch1), 2)
+            self.assertIsInstance(batch1, list)
+            self.assertFalse(it.is_new_epoch)
+            self.assertAlmostEqual(it.epoch_detail, i + 2 / 6)
+            self.assertAlmostEqual(it.previous_epoch_detail, i + 0 / 6)
+            batch2 = it.next()
+            self.assertEqual(len(batch2), 2)
+            self.assertIsInstance(batch2, list)
+            self.assertFalse(it.is_new_epoch)
+            self.assertAlmostEqual(it.epoch_detail, i + 4 / 6)
+            self.assertAlmostEqual(it.previous_epoch_detail, i + 2 / 6)
+            batch3 = it.next()
+            self.assertEqual(len(batch3), 2)
+            self.assertIsInstance(batch3, list)
+            self.assertTrue(it.is_new_epoch)
+            self.assertAlmostEqual(it.epoch_detail, i + 6 / 6)
+            self.assertAlmostEqual(it.previous_epoch_detail, i + 4 / 6)
+
+            self.assertEqual(
+                sorted(batch1 + batch2 + batch3), [1, 1, 2, 2, 3, 3])
+
+
+class InvalidOrderSampler(object):
+
+    def __init__(self):
+        self.n_call = 0
+
+    def __call__(self, _order, _):
+        order = numpy.arange(len(_order) - self.n_call)
+        self.n_call += 1
+        return order
+
+
+class TestMultithreadIteratorInvalidOrderSampler(unittest.TestCase):
+
+    def test_invalid_order_sampler(self):
+        dataset = [1, 2, 3, 4, 5, 6]
+
+        with self.assertRaises(ValueError):
+            it = iterators.MultithreadIterator(
+                dataset, 6, shuffle=False,
+                order_sampler=InvalidOrderSampler())
+            it.next()
+            it.next()
 
 
 testing.run_module(__name__, __file__)
