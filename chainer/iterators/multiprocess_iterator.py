@@ -12,7 +12,7 @@ import six
 
 from chainer.dataset import iterator
 from chainer.iterators.order_samplers import no_shuffle_order_sampler
-from chainer.iterators.order_samplers import shuffle_order_sampler
+from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
 _response_time = 1.
@@ -61,6 +61,9 @@ class MultiprocessIterator(iterator.Iterator):
     """
 
     _interruption_testing = False  # for testing
+    _finalized = False
+    _comm = None
+    _thread = None
 
     def __init__(self, dataset, batch_size, repeat=True, shuffle=True,
                  n_processes=None, n_prefetch=1, shared_mem=None,
@@ -79,7 +82,7 @@ class MultiprocessIterator(iterator.Iterator):
                 'shuffle should be False when custom order_sampler is used')
         if order_sampler is None:
             if self.shuffle:
-                order_sampler = shuffle_order_sampler
+                order_sampler = ShuffleOrderSampler()
             else:
                 order_sampler = no_shuffle_order_sampler
         self.order_sampler = order_sampler
@@ -120,29 +123,27 @@ class MultiprocessIterator(iterator.Iterator):
     next = __next__
 
     def __del__(self):
-        # When `self.__del__()` is called, `self.__init__()` may not be
-        # finished. So some attributes may be undefined.
-        if not hasattr(self, '_finalized'):
-            # We don't know how to finalize this uninitialized object
-            return
-        if not hasattr(self, '_comm'):
-            self._comm = None
-        if not hasattr(self, '_thread'):
-            self._thread = None
-
         if self._finalized:
             return
-        self._finalized = True
-        if self._comm is None:
-            return
-        self._comm.terminate()
 
-        if self._thread is None:
-            return
-        while self._thread.is_alive():
-            self._thread.join(_response_time)
+        if self._comm is not None:
+            self._comm.terminate()
+            self._comm = None
+
+        if self._thread is not None:
+            while self._thread.is_alive():
+                self._thread.join(_response_time)
+            self._thread = None
+
+        self._finalized = True
 
     finalize = __del__
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.finalize()
 
     def __copy__(self):
         other = MultiprocessIterator(

@@ -1,7 +1,9 @@
 [run]
-plugins = Cython.Coverage
-omit = chainer/links/caffe/protobuf2/caffe_pb2.py
-       chainer/links/caffe/protobuf3/caffe_pb2.py
+include = chainer/*, examples/*
+
+# Exclude auto-generated source files.
+omit =
+    chainer/links/caffe/protobuf3/caffe_pb2.py
 
 [report]
 exclude_lines =

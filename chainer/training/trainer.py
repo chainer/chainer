@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import collections
 import os
 import sys
@@ -117,6 +115,8 @@ class Trainer(object):
             update the models.
         stop_trigger: Trigger that determines when to stop the training loop.
             If it is not callable, it is passed to :class:`IntervalTrigger`.
+        out: Output directory.
+        extensions: Extensions registered to the trainer.
 
     Attributes:
         updater: The updater object for this trainer.
@@ -130,11 +130,14 @@ class Trainer(object):
 
     """
 
-    def __init__(self, updater, stop_trigger=None, out='result'):
+    def __init__(self, updater, stop_trigger=None, out='result',
+                 extensions=None):
         self.updater = updater
         self.stop_trigger = trigger_module.get_trigger(stop_trigger)
         self.observation = {}
         self.out = out
+        if extensions is None:
+            extensions = []
 
         reporter = reporter_module.Reporter()
         for name, optimizer in six.iteritems(updater.get_all_optimizers()):
@@ -151,6 +154,8 @@ class Trainer(object):
         self._final_elapsed_time = None
 
         updater.connect_trainer(self)
+        for ext in extensions:
+            self.extend(ext)
 
     @property
     def elapsed_time(self):
@@ -304,12 +309,12 @@ class Trainer(object):
             if show_loop_exception_msg:
                 # Show the exception here, as it will appear as if chainer
                 # hanged in case any finalize method below deadlocks.
-                print('Exception in main training loop: {}'.format(e),
-                      file=sys.stderr)
-                print('Traceback (most recent call last):', file=sys.stderr)
+                f = sys.stderr
+                f.write('Exception in main training loop: {}\n'.format(e))
+                f.write('Traceback (most recent call last):\n')
                 traceback.print_tb(sys.exc_info()[2])
-                print('Will finalize trainer extensions and updater before '
-                      'reraising the exception.', file=sys.stderr)
+                f.write('Will finalize trainer extensions and updater before '
+                        'reraising the exception.\n')
             six.reraise(*sys.exc_info())
         finally:
             for _, entry in extensions:

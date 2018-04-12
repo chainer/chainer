@@ -51,7 +51,7 @@ class IntervalTrigger(object):
             epoch_detail = updater.epoch_detail
             previous_epoch_detail = self._previous_epoch_detail
 
-            # if pvevious_epoch_detail is invalid value,
+            # if previous_epoch_detail is invalid value,
             # use the value of updater.
             if previous_epoch_detail < 0:
                 previous_epoch_detail = updater.previous_epoch_detail
@@ -65,7 +65,7 @@ class IntervalTrigger(object):
             iteration = updater.iteration
             previous_iteration = self._previous_iteration
 
-            # if pvevious_iteration is invalid value,
+            # if previous_iteration is invalid value,
             # guess it from current iteration.
             if previous_iteration < 0:
                 previous_iteration = iteration - 1
@@ -105,3 +105,6 @@ class IntervalTrigger(object):
                 'it may not work correctly.')
             # set a negative value for invalid
             self._previous_epoch_detail = -1.
+
+    def get_training_length(self):
+        return (self.period, self.unit)

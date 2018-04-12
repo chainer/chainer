@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -35,7 +35,7 @@ class Hinge(function.Function):
         x_type, t_type = in_types
         type_check.expect(
             x_type.dtype == numpy.float32,
-            t_type.dtype == numpy.int32,
+            t_type.dtype.kind == 'i',
             x_type.ndim == 2,
             t_type.ndim == 1,
             x_type.shape[0] == t_type.shape[0],
@@ -123,7 +123,7 @@ def hinge(x, t, norm='L1', reduce='mean'):
 
         .. math::
             \\delta \\{ {\\rm condition} \\} = \\left \\{ \\begin{array}{cc}
-            1 & {\\rm if~condition\ is\ true} \\\\
+            1 & {\\rm if~condition\\ is\\ true} \\\\
             -1 & {\\rm otherwise,}
             \\end{array} \\right.
 
@@ -139,7 +139,7 @@ def hinge(x, t, norm='L1', reduce='mean'):
         :math:`\\left[\\max(0, 1 - \\delta x) \\right]^p`.
         When :math:`x` and :math:`\\delta` have the same sign (meaning
         :math:`x` predicts the proper score for classification) and
-        :math:`|x| \geq 1`, the hinge loss :math:`l(x, \\delta) = 0`, but when
+        :math:`|x| \\geq 1`, the hinge loss :math:`l(x, \\delta) = 0`, but when
         they have opposite sign, :math:`l(x, \\delta)` increases linearly
         with :math:`x`.
 
@@ -153,9 +153,9 @@ def hinge(x, t, norm='L1', reduce='mean'):
             Input variable. The shape of ``x`` should be (:math:`N`, :math:`K`)
             .
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` of :class:`numpy.int32`):
+        :class:`cupy.ndarray` of signed integer):
             The :math:`N`-dimensional label vector with values
-            :math:`t_n \in \{0, 1, 2, \dots, K-1\}`.
+            :math:`t_n \\in \\{0, 1, 2, \\dots, K-1\\}`.
             The shape of ``t`` should be (:math:`N`,).
         norm (string): Specifies norm type. Either ``'L1'`` or ``'L2'`` is
             acceptable.
@@ -176,18 +176,18 @@ def hinge(x, t, norm='L1', reduce='mean'):
         is 3.
 
         >>> x = np.array([[-2.0, 3.0, 0.5],
-        ...               [5.0, 2.0, -0.5]]).astype('f')
+        ...               [5.0, 2.0, -0.5]]).astype(np.float32)
         >>> x
         array([[-2. ,  3. ,  0.5],
                [ 5. ,  2. , -0.5]], dtype=float32)
-        >>> t = np.array([1, 0]).astype('i')
+        >>> t = np.array([1, 0]).astype(np.int32)
         >>> t
         array([1, 0], dtype=int32)
         >>> F.hinge(x, t)
         variable(2.5)
         >>> F.hinge(x, t, reduce='no')
-        variable([[ 0. ,  0. ,  1.5],
-                  [ 0. ,  3. ,  0.5]])
+        variable([[0. , 0. , 1.5],
+                  [0. , 3. , 0.5]])
         >>> F.hinge(x, t, norm='L2')
         variable(5.75)
 

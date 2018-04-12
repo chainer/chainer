@@ -7,7 +7,7 @@ Chainer provides some facilities to make debugging easy.
 
 Type checking utilities
 -----------------------
-:class:`~chainer.Function` uses a systematic type checking of the :mod:`chainer.utils.type_check` module.
+:class:`~chainer.FunctionNode` uses a systematic type checking of the :mod:`chainer.utils.type_check` module.
 It enables users to easily find bugs of forward and backward implementations.
 You can find examples of type checking in some function implementations.
 

@@ -4,14 +4,23 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+from chainer.backends import intel64
 import chainer.functions as F
 from chainer import initializers
 import chainer.links as L
 from chainer import optimizers
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import backend
 from chainer.testing import condition
+
+
+# TODO(niboshi): This is temporary workaround for skipping test not working
+# with testing.condition.
+# See: https://github.com/chainer/chainer/issues/4272
+class Skipped(Exception):
+    pass
 
 
 class LinearModel(object):
@@ -66,19 +75,40 @@ class LinearModel(object):
         y_test = model(x_test)
         return F.accuracy(y_test, t_test)
 
-    def accuracy_cpu(self):
-        self.optimizer.setup(self.model)
-        return self._train_linear_classifier(self.model, self.optimizer, False)
-
-    def accuracy_gpu(self, device=None):
+    def accuracy(self, backend_config, gpu_device=None):
         model = self.model
         optimizer = self.optimizer
-        model.to_gpu(device=device)
         optimizer.setup(model)
+
+        if backend_config.use_cuda:
+            model.to_gpu(device=gpu_device)
+        elif backend_config.use_ideep == 'always':
+            if not intel64.is_ideep_available():
+                # TODO(niboshi): This is temporary workaround.
+                # See the comment on Skipped.
+                raise Skipped('ideep is required to run this test.')
+            model.to_intel64()
+
+        with backend_config:
+            return self._train_linear_classifier(
+                model, optimizer, backend_config.use_cuda)
+
+    def accuracy_gpu(self, device):
         with cuda.get_device_from_id(device):
-            return self._train_linear_classifier(model, optimizer, True)
+            return self.accuracy(
+                backend.BackendConfig({'use_cuda': True}),
+                device)
 
 
+@backend.inject_backend_tests(
+    ['test_linear_model'],
+    # CPU tests
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + [{'use_cuda': True}])
 class OptimizerTestBase(object):
 
     def create(self):
@@ -89,13 +119,14 @@ class OptimizerTestBase(object):
                                  self.use_placeholder)
 
     @condition.retry(10)
-    def test_linear_model_cpu(self):
-        self.assertGreater(self.model.accuracy_cpu().data, 0.9)
-
-    @attr.gpu
-    @condition.retry(10)
-    def test_linear_model_gpu(self):
-        self.assertGreater(cuda.to_cpu(self.model.accuracy_gpu().data), 0.9)
+    def test_linear_model(self, backend_config):
+        try:
+            accuracy = self.model.accuracy(backend_config)
+        except Skipped:
+            # TODO(niboshi): This is temporary workaround.
+            # See the comment on Skipped.
+            return
+        assert accuracy.data > 0.9
 
     @attr.multi_gpu(2)
     @condition.retry(10)
@@ -156,7 +187,11 @@ class TestAdaGrad(OptimizerTestBase, unittest.TestCase):
 class TestAdam(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
-        return optimizers.Adam(0.05)
+        if self.dtype == numpy.float16:
+            kwargs = {'eps': 1e-6}
+        else:
+            kwargs = {}
+        return optimizers.Adam(0.05, **kwargs)
 
 
 @testing.parameterize(*testing.product({
@@ -186,7 +221,11 @@ class NesterovAG(OptimizerTestBase, unittest.TestCase):
 class TestRMSprop(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
-        return optimizers.RMSprop(0.1)
+        if self.dtype == numpy.float16:
+            kwargs = {'eps': 1e-6}
+        else:
+            kwargs = {}
+        return optimizers.RMSprop(0.1, **kwargs)
 
 
 @testing.parameterize(*testing.product({

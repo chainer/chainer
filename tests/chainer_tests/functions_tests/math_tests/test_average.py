@@ -4,12 +4,11 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*(
@@ -44,7 +43,17 @@ class TestAverage(unittest.TestCase):
 
         g_shape = self.x.sum(axis=self.axis, keepdims=self.keepdims).shape
         self.gy = numpy.random.uniform(-1, 1, g_shape).astype(self.dtype)
-        self.w = numpy.random.uniform(-1, 1, w_shape).astype(self.dtype)
+
+        # Sample weights. Weights should not sum to 0.
+        while True:
+            self.w = numpy.random.uniform(-2, 2, w_shape).astype(self.dtype)
+            if self.w.sum() > 1e-2:
+                break
+
+        if self.dtype == numpy.float16:
+            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-1}
+        else:
+            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
     def check_forward(self, x_data, axis, weights):
         if self.use_weights and isinstance(self.axis, tuple):
@@ -75,19 +84,17 @@ class TestAverage(unittest.TestCase):
             y_expect = y_expect.reshape(shape)
 
         if self.dtype == numpy.float16:
-            options = {'atol': 1e-3, 'rtol': 1e-3}
+            options = {'atol': 5e-3, 'rtol': 5e-3}
         else:
             options = {}
 
         self.assertEqual(y_expect.shape, y.shape)
         testing.assert_allclose(y_expect, y.data, **options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x, self.axis, self.w)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(
             cuda.to_gpu(self.x), self.axis, cuda.to_gpu(self.w))
@@ -108,15 +115,13 @@ class TestAverage(unittest.TestCase):
             args = x_data
 
         gradient_check.check_backward(
-            f, args, y_grad, atol=1e-2, rtol=1e-2,
-            dtype=numpy.float64)
+            f, args, y_grad, dtype=numpy.float64,
+            **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy, self.axis, self.w)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), self.axis,

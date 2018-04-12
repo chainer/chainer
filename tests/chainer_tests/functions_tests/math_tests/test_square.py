@@ -4,7 +4,7 @@ import chainer.functions as F
 from chainer import testing
 
 
-@testing.unary_math_function_unittest(F.Square())
+@testing.unary_math_function_unittest(F.square)
 class TestSquare(unittest.TestCase):
     pass
 

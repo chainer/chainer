@@ -1,7 +1,6 @@
-import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -17,7 +16,7 @@ class Accuracy(function.Function):
 
         type_check.expect(
             x_type.dtype.kind == 'f',
-            t_type.dtype == numpy.int32
+            t_type.dtype.kind == 'i'
         )
 
         t_ndim = type_check.eval(t_type.ndim)
@@ -64,10 +63,10 @@ def accuracy(y, t, ignore_label=None):
             Array whose (i, j, k, ...)-th element indicates the score of
             the class j at the (i, k, ...)-th sample.
             The prediction label :math:`\\hat t` is calculated by the formula
-            :math:`\\hat t(i, k, ...) = \operatorname{\mathrm{argmax}}_j \
+            :math:`\\hat t(i, k, ...) = \\operatorname{\\mathrm{argmax}}_j \
 y(i, j, k, ...)`.
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray` of :class:`numpy.int32`):
+        :class:`cupy.ndarray` of signed integer):
             Array of ground truth labels.
         ignore_label (int or None): Skip calculating accuracy
             if the true label is ``ignore_label``.
@@ -85,17 +84,17 @@ y(i, j, k, ...)`.
         ...               [8.0, 1.0, 2.0], # prediction label is 0
         ...               [-8.0, 1.0, 2.0], # prediction label is 2
         ...               [-8.0, -1.0, -2.0]]) # prediction label is 1
-        >>> t = np.array([1, 0, 2, 1], 'i')
+        >>> t = np.array([1, 0, 2, 1], np.int32)
         >>> F.accuracy(y, t).data \
 # 100% accuracy because all samples are correct
-        array(1.0)
-        >>> t = np.array([1, 0, 0, 0], 'i')
+        array(1.)
+        >>> t = np.array([1, 0, 0, 0], np.int32)
         >>> F.accuracy(y, t).data \
 # 50% accuracy because 1st and 2nd samples are correct.
         array(0.5)
         >>> F.accuracy(y, t, ignore_label=0).data \
 # 100% accuracy because of ignoring the 2nd, 3rd and 4th samples.
-        array(1.0)
+        array(1.)
 
     """
     return Accuracy(ignore_label=ignore_label)(y, t)

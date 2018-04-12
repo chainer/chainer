@@ -4,7 +4,7 @@ import numpy
 
 from chainer.dataset import iterator
 from chainer.iterators.order_samplers import no_shuffle_order_sampler
-from chainer.iterators.order_samplers import shuffle_order_sampler
+from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
 class SerialIterator(iterator.Iterator):
@@ -54,7 +54,7 @@ class SerialIterator(iterator.Iterator):
                 'shuffle should be False when custom order_sampler is used')
         if order_sampler is None:
             if self._shuffle:
-                order_sampler = shuffle_order_sampler
+                order_sampler = ShuffleOrderSampler()
             else:
                 order_sampler = no_shuffle_order_sampler
         self.order_sampler = order_sampler

@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.loss import negative_sampling
 from chainer import link
 from chainer.utils import walker_alias

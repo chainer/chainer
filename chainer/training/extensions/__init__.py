@@ -1,17 +1,4 @@
-from chainer.training.extensions import _snapshot  # NOQA
-from chainer.training.extensions import computational_graph  # NOQA
-from chainer.training.extensions import evaluator  # NOQA
-from chainer.training.extensions import exponential_shift  # NOQA
-from chainer.training.extensions import linear_shift  # NOQA
-from chainer.training.extensions import log_report  # NOQA
-from chainer.training.extensions import micro_average  # NOQA
-from chainer.training.extensions import plot_report  # NOQA
-from chainer.training.extensions import print_report  # NOQA
-from chainer.training.extensions import progress_bar  # NOQA
-from chainer.training.extensions import value_observation  # NOQA
-
-
-# import class and function
+# import classes and functions
 from chainer.training.extensions._snapshot import snapshot  # NOQA
 from chainer.training.extensions._snapshot import snapshot_object  # NOQA
 from chainer.training.extensions.computational_graph import dump_graph  # NOQA
@@ -26,3 +13,4 @@ from chainer.training.extensions.print_report import PrintReport  # NOQA
 from chainer.training.extensions.progress_bar import ProgressBar  # NOQA
 from chainer.training.extensions.value_observation import observe_lr  # NOQA
 from chainer.training.extensions.value_observation import observe_value  # NOQA
+from chainer.training.extensions.variable_statistics_plot import VariableStatisticsPlot  # NOQA
