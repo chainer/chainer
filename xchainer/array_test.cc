@@ -653,7 +653,7 @@ TEST_P(ArrayTest, AsTypeCopyFalseButDifferentType) {
     testing::ExpectEqualCopy(e, o);
 }
 
-TEST_P(ArrayTest, AsTypeBackwardFloatToDouble) {
+TEST_P(ArrayTest, AsTypeBackward) {
     using InT = float;
     using OutT = double;
     Shape shape{2, 3};
@@ -663,7 +663,7 @@ TEST_P(ArrayTest, AsTypeBackwardFloatToDouble) {
     Array eps = Full(shape, 1e-3f);
 
     CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0].AsType(Dtype::kFloat64)}; }, {a}, {go}, {eps});
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0].AsType(TypeToDtype<OutT>)}; }, {a}, {go}, {eps});
 }
 
 TEST_P(ArrayTest, AsTypeToNonFloatNoGraph) {
@@ -672,7 +672,7 @@ TEST_P(ArrayTest, AsTypeToNonFloatNoGraph) {
     EXPECT_FALSE(a.AsType(Dtype::kBool).IsGradRequired());
 }
 
-TEST_P(ArrayTest, AsTypeDoubleBackwardFloatToDouble) {
+TEST_P(ArrayTest, AsTypeDoubleBackward) {
     using InT = float;
     using OutT = double;
     Shape shape{2, 3};
@@ -685,7 +685,7 @@ TEST_P(ArrayTest, AsTypeDoubleBackwardFloatToDouble) {
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = xs[0].AsType(Dtype::kFloat64);
+                auto y = xs[0].AsType(TypeToDtype<OutT>);
                 return {y * y};  // to make it nonlinear
             },
             {a},
