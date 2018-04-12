@@ -136,7 +136,7 @@ void NativeDevice::AMax(const Array& a, const std::vector<int8_t>& axis, const A
             T Identity() { return NumericLimits<T>::LowestOrInf(); }
             T MapIn(T in, int64_t /*index*/) { return in; }
             void Reduce(T next, T& accum) {
-                if (accum < next) {
+                if (std::isnan(next) || accum < next) {
                     accum = next;
                 }
             }
