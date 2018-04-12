@@ -335,7 +335,9 @@ void InitXchainerRoutines(pybind11::module& m) {
     m.def("exp", [](const ArrayBodyPtr& x) { return Exp(Array{x}).move_body(); }, py::arg("x"));
     m.def("log", [](const ArrayBodyPtr& x) { return Log(Array{x}).move_body(); }, py::arg("x"));
     m.def("logsumexp",
-          [](const ArrayBodyPtr& x, int8_t axis, bool keepdims) { return LogSumExp(Array{x}, std::vector<int8_t>{axis}, keepdims).move_body(); },
+          [](const ArrayBodyPtr& x, int8_t axis, bool keepdims) {
+              return LogSumExp(Array{x}, std::vector<int8_t>{axis}, keepdims).move_body();
+          },
           py::arg("x"),
           py::arg("axis"),
           py::arg("keepdims") = false);
