@@ -334,7 +334,6 @@ class TestSerialIteratorOrderSamplerEpochSize(unittest.TestCase):
     def setUp(self):
         def order_sampler(order, cur_pos):
             return numpy.repeat(numpy.arange(3), 2)
-        self.n_processes = 2
         self.options = {'shuffle': False, 'order_sampler': order_sampler}
 
     def test_iterator_repeat(self):
