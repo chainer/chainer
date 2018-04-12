@@ -30,4 +30,4 @@ Order samplers are functions that are called inside of an iterator to generate a
     :nosignatures
 
     chainer.iterators.no_shuffle_order_sampler
-    chainer.iterators.shuffle_order_sampler
+    chainer.iterators.ShuffleOrderSampler
