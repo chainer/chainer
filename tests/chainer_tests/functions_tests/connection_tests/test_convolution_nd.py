@@ -18,7 +18,6 @@ from chainer.utils import conv
     'dims': [(5,), (4, 3), (3, 4, 3)],
     'dilate': [1, 2],
     'groups': [1, 2],
-    'groups': [2],
     'cover_all': [True, False],
     'c_contiguous': [True],
     'x_dtype': [numpy.float32],
