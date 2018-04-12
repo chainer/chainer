@@ -45,11 +45,16 @@ class DummyDeserializer(serializer.Deserializer):
 
 @testing.parameterize(*testing.product({
     'n_threads': [1, 2],
+    'order_sampler': [
+        None, lambda order, _: numpy.random.permutation(len(order))]
 }))
 class TestMultithreadIterator(unittest.TestCase):
 
     def setUp(self):
-        self.options = {'n_threads': self.n_threads}
+        self.options = {'n_threads': self.n_threads,
+                        'order_sampler': self.order_sampler}
+        if self.order_sampler is not None:
+            self.options['shuffle'] = False
 
     def test_iterator_repeat(self):
         dataset = [1, 2, 3, 4, 5, 6]
