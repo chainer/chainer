@@ -234,12 +234,13 @@ def main():
     train_source = load_data(source_ids, args.SOURCE)
     train_target = load_data(target_ids, args.TARGET)
     assert len(train_source) == len(train_target)
-    train_data = [(s, t)
-                  for s, t in six.moves.zip(train_source, train_target)
-                  if args.min_source_sentence <= len(s)
-                  <= args.max_source_sentence and
-                  args.min_source_sentence <= len(t)
-                  <= args.max_source_sentence]
+
+    train_data = [
+        (s, t)
+        for s, t in six.moves.zip(train_source, train_target)
+        if (args.min_source_sentence <= len(s) <= args.max_source_sentence and
+            args.min_target_sentence <= len(t) <= args.max_target_sentence)]
+
     train_source_unknown = calculate_unknown_ratio(
         [s for s, _ in train_data])
     train_target_unknown = calculate_unknown_ratio(
