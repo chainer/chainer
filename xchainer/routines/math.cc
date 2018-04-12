@@ -355,7 +355,7 @@ Array AMax(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bo
         Array reshaped_out = out.AsConstant(CopyKind::kView).Reshape(shape);
 
         // Compute the gradient
-        Array cond = (a.AsConstant(CopyKind::kView) == reshaped_out);
+        Array cond = (a == reshaped_out);
         Array broadcasted_gout = reshaped_gout.BroadcastTo(cond.shape());
         // TODO(sonots): AsType allocates a new array, use faster methods when available instead.
         return broadcasted_gout * cond.AsType(gout.dtype());
