@@ -16,7 +16,7 @@ from chainer.testing import attr
         {'subscripts': 'kj,ji->ik', 'shapes': ((2, 3), (3, 4))},
         {'subscripts': 'ij,jk,kl->il', 'shapes': ((5, 2), (2, 3), (3, 4))},
         {'subscripts': 'ij,ij->i', 'shapes': ((2, 3), (2, 3))},
-        # {'subscripts': 'ij,jk', 'shapes': ((2, 3), (3, 4))},
+        {'subscripts': 'ij,jk', 'shapes': ((2, 3), (3, 4))},
     ],
     [
         {'dtype': numpy.float16},
