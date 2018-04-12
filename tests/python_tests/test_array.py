@@ -1188,12 +1188,15 @@ _take_params = [
     ((2, 3), [1, 2], 1),
     ((2, 3), [2, 1], 1),
     ((2, 3), [[0], [1]], 0),
+    # Axis out of bounds
+    ((2, 3), [0], 2),
+    ((2, 3), [0], -3),
 ]
 
 
 @pytest.mark.parametrize("shape,indices,axis", _take_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+@xchainer.testing.numpy_xchainer_array_equal(type_check=False, accept_error=(xchainer.DimensionError, numpy.AxisError))
 def test_take(xp, shape, indices, axis, device):
     a = xp.arange(_total_size(shape)).reshape(shape)
 
@@ -1207,7 +1210,7 @@ def test_take(xp, shape, indices, axis, device):
 
 @pytest.mark.parametrize("shape,indices,axis", _take_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+@xchainer.testing.numpy_xchainer_array_equal(type_check=False, accept_error=(xchainer.DimensionError, numpy.AxisError))
 def test_module_take(xp, shape, indices, axis, device):
     a = xp.arange(_total_size(shape)).reshape(shape)
 
@@ -1217,20 +1220,6 @@ def test_module_take(xp, shape, indices, axis, device):
     indices = numpy.array(indices).astype('int64')
 
     return xp.take(a, xp.array(indices), axis)
-
-
-def test_invalid_take_axis_out_of_bounds():
-    a = xchainer.arange(6).reshape(2, 3)
-    indices = xchainer.arange(1, dtype='int64')
-
-    with pytest.raises(xchainer.DimensionError):
-        a.take(indices, axis=2)
-    with pytest.raises(xchainer.DimensionError):
-        a.take(indices, axis=-3)
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.take(a, indices, axis=2)
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.take(a, indices, axis=-3)
 
 
 _sum_params = [
