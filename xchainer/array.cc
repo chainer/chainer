@@ -20,6 +20,7 @@
 #include "xchainer/backend.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
+#include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/op_node.h"
@@ -272,8 +273,10 @@ Array Array::AsType(Dtype dtype, bool copy) const {
         device().AsType(*this, out);
     }
 
-    internal::SetUpOpNodes(
-            "astype", {*this}, out, {[src_dtype](const Array& gout, const std::vector<GraphId>&) { return gout.AsType(src_dtype); }});
+    if (GetKind(dtype) == DtypeKind::kFloat) {
+        internal::SetUpOpNodes(
+                "astype", {*this}, out, {[src_dtype](const Array& gout, const std::vector<GraphId>&) { return gout.AsType(src_dtype); }});
+    }
 
     assert(out.IsContiguous());
     return out;

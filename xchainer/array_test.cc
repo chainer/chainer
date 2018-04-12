@@ -666,6 +666,12 @@ TEST_P(ArrayTest, AsTypeBackwardFloatToDouble) {
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0].AsType(Dtype::kFloat64)}; }, {a}, {go}, {eps});
 }
 
+TEST_P(ArrayTest, AsTypeToNonFloatNoGraph) {
+    Array a = (*testing::BuildArray({2, 3}).WithLinearData<float>(-3).WithPadding(1)).RequireGrad();
+    EXPECT_FALSE(a.AsType(Dtype::kInt32).IsGradRequired());
+    EXPECT_FALSE(a.AsType(Dtype::kBool).IsGradRequired());
+}
+
 TEST_P(ArrayTest, AsTypeDoubleBackwardFloatToDouble) {
     using InT = float;
     using OutT = double;
