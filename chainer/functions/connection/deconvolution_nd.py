@@ -1,5 +1,5 @@
 import numpy
-import six
+from six import moves
 
 import chainer
 from chainer.backends import cuda
@@ -55,7 +55,8 @@ class DeconvolutionND(function_node.FunctionNode):
             type_check.expect(
                 b_type.dtype == x_type.dtype,
                 b_type.ndim == 1,
-                b_type.shape[0] == w_type.shape[1]
+                # Need to consider the case that group count > 1.
+                # b_type.shape[0] == w_type.shape[1]
             )
 
     def _use_cudnn(self, x, W):
@@ -66,15 +67,47 @@ class DeconvolutionND(function_node.FunctionNode):
             and x.dtype == W.dtype)
 
     def _forward_xp(self, x, W, b, xp):
+        if 1 < self.groups:
+            return self._forward_grouped_convolution_xp(x, W, b, xp)
+        else:
+            return self._forward_xp_core(x, W, b, xp)
+
+    def _forward_grouped_convolution_xp(self, x, W, b, xp):
+        # G: group count
+        # N: batch size
+        # iC: input channels
+        # oC: output channels
+        G = self.groups
+        N, xC = x.shape[:2]
+        in_size = x.shape[2:]
+        yCg = W.shape[1]
+        k_size = W.shape[2:]
+
+        xCg = xC // G
+        if xC % G != 0:
+            raise TypeError('The number of groups must be '
+                            'a divisor of that of input channels')
+
+        _x = x.reshape((N, G, xCg) + in_size)
+        _x = xp.rollaxis(_x, 1)  # (G, N, xCg) + in_size
+        _W = W.reshape((G, xCg, yCg) + k_size)
+        if b is not None:
+            _b = b.reshape(G, yCg)
+
+        _ys = []
+        for g in moves.range(G):
+            _bg = None if b is None else _b[g]
+            _y, = self._forward_xp_core(_x[g], _W[g], _bg, xp)
+            _ys.append(_y)
+
+        y = xp.concatenate(_ys, axis=1)  # (N, yC) + out_size
+        return y,
+
+    def _forward_xp_core(self, x, W, b, xp):
         ndim = self.ndim
         stride = self.stride
         pad = self.pad
         dilate = self.dilate
-        # TODO(msaito): Support grouped convolution for _forward_xp
-        if 1 < self.groups:
-            raise NotImplementedError(
-                'The current chainer does not support'
-                ' grouped convolution without cudnn')
 
         # gcol: C_O, k_1, ..., k_N, n, d_1, ..., d_N
         gcol = xp.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
@@ -95,7 +128,7 @@ class DeconvolutionND(function_node.FunctionNode):
         return y,
 
     def _forward_cudnn(self, x, W, b):
-        c = W.shape[1]          # W: C_I, C_O, k_1, k_2, ..., k_N
+        c = W.shape[1] * self.groups
         n, in_c = x.shape[:2]   # x: n, C_I, d_1, d_2, ..., d_N
 
         # Make empty array for output.
@@ -156,7 +189,7 @@ class DeconvolutionND(function_node.FunctionNode):
             gW, = convolution_nd.ConvolutionNDGradW(self).apply((gy, x))
             ret.append(gW)
         if 2 in indexes:
-            axis = (0,) + tuple(six.moves.range(2, gy.ndim))
+            axis = (0,) + tuple(moves.range(2, gy.ndim))
             gb = chainer.functions.sum(gy, axis=axis)
             ret.append(gb)
 
