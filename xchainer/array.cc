@@ -262,13 +262,18 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
 }
 
 Array Array::AsType(Dtype dtype, bool copy) const {
-    if (!copy && dtype == this->dtype()) {
-        return *this;
-    }
-    Array out = Empty(shape(), dtype, device());
-    device().AsType(*this, out);
+    Dtype src_dtype = this->dtype();
+    Array out;
 
-    // TODO(sonots): backward
+    if (!copy && dtype == src_dtype) {
+        out = *this;
+    } else {
+        out = Empty(shape(), dtype, device());
+        device().AsType(*this, out);
+    }
+
+    internal::SetUpOpNodes(
+            "astype", {*this}, out, {[src_dtype](const Array& gout, const std::vector<GraphId>&) { return gout.AsType(src_dtype); }});
 
     assert(out.IsContiguous());
     return out;
