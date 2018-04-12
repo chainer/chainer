@@ -20,7 +20,6 @@ class DiagEinSum(function_node.FunctionNode):
         self.in_subs = in_subs
         self.out_sub = out_sub
         self.out_shape = out_shape
-        # self.shape_dict = shape_dict or {}
 
     def check_type_forward(self, in_types):
         pass
@@ -31,30 +30,22 @@ class DiagEinSum(function_node.FunctionNode):
 
         out_sub = self.out_sub
 
-        in_all_subs = {s for x_sub in self.in_subs for s in x_sub}
-        """
-        first_indices = [
-            out_sub.index(s)
-            for i, s in enumerate(out_sub)
-        ]
-        ein_sub = [out_sub[i] for i, i0 in enumerate(first_indices) if i == i0]
-        """
         diag_map = []
         ein_sub = []
         for i, s in enumerate(out_sub):
             i0 = out_sub.index(s)
             if i == i0:
-                if s in in_all_subs:
+                if s in self.in_subs:
                     ein_sub.append(s)
                 else:
                     i0 = None
             diag_map.append(i0)
 
-        args = []
-        for x, x_sub in zip(inputs, self.in_subs):
-            args.extend([x, x_sub])
-        args.append(ein_sub)
-        y = utils.force_array(xp.einsum(*args))
+        subscript = '{}->{}'.format(
+            self.in_subs,
+            ''.join(ein_sub)
+        )
+        y = utils.force_array(xp.einsum(subscript, *inputs))
 
         for i, i0 in enumerate(diag_map):
             if i0 is None:
@@ -84,14 +75,14 @@ class DiagEinSum(function_node.FunctionNode):
         inputs = self.get_retained_inputs()
         g, = grad_outputs
 
-        fwd_in_subs = self.in_subs
+        fwd_in_subs = [s for s in self.in_subs.split(',')]
         fwd_out_sub = self.out_sub
         return tuple(
             DiagEinSum(
-                in_subs=[
+                in_subs=','.join([
                     (fwd_out_sub if j == i else s)
                     for j, s in enumerate(fwd_in_subs)
-                ],
+                ]),
                 out_sub=fwd_in_subs[i],
                 out_shape=inputs[i].shape,
             ).apply(tuple(
@@ -106,14 +97,9 @@ def einsum(*operands):
     input_subscripts, output_subscript, ioperands = \
         _parse_einsum_input(operands)
     return DiagEinSum(
-        in_subs=[_to_ints(s) for s in input_subscripts.split(',')],
-        out_sub=_to_ints(output_subscript),
+        in_subs=input_subscripts,
+        out_sub=output_subscript,
     ).apply(ioperands)[0]
-
-
-def _to_ints(subs):
-    # TODO(kataoka): numpy Issue #7741
-    return [einsum_symbols.index(s) for s in subs.upper()]
 
 
 # #################### cupy.linalg.einsum ####################
