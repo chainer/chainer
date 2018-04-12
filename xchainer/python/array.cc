@@ -21,6 +21,7 @@
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/indexing.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/sorting.h"
 #include "xchainer/slice.h"
@@ -187,6 +188,15 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle handle) {
         return Array{self}.At(python::internal::MakeArrayIndices(handle)).move_body();
     });
+    c.def("take",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
+              if (!axis.has_value()) {
+                  throw NotImplementedError("axis=None is not yet supported for xchainer.Array.take.");
+              }
+              return Array{self}.Take(Array{indices}, axis.value()).move_body();
+          },
+          py::arg("indices"),
+          py::arg("axis") = nullptr);
     c.def("transpose", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); });
     c.def("reshape", [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.Reshape(ToShape(shape)).move_body(); });
     c.def("reshape", [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {

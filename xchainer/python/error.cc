@@ -15,8 +15,9 @@ void InitXchainerError(pybind11::module& m) {
     py::register_exception<ContextError>(m, "ContextError");
     py::register_exception<BackendError>(m, "BackendError");
     py::register_exception<DeviceError>(m, "DeviceError");
-    py::register_exception<DtypeError>(m, "DtypeError");
     py::register_exception<DimensionError>(m, "DimensionError");
+    py::register_exception<DtypeError>(m, "DtypeError");
+    py::register_exception<NotImplementedError>(m, "NotImplementedError");
     py::register_exception<GradientCheckError>(m, "GradientCheckError");
 }
 
