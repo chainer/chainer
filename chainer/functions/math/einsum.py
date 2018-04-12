@@ -14,7 +14,16 @@ class DiagEinSum(function_node.FunctionNode):
         pass
 
     def forward(self, inputs):
-        self.retain_inputs(tuple(range(len(inputs))))
+        n_args = len(inputs)
+        self.retain_inputs(tuple(range(n_args)))
+        """
+        if n_args >= 2:
+            self.retain_inputs(tuple(range(n_args)))
+        else:
+            self.input_shape = inputs[0].shape
+        self.n_args = n_args
+        """
+
         xp = cuda.get_array_module(inputs[0])
 
         out_sub = self.out_sub
@@ -34,7 +43,7 @@ class DiagEinSum(function_node.FunctionNode):
             self.in_subs,
             ''.join(ein_sub)
         )
-        y = utils.force_array(xp.einsum(subscript, *inputs))
+        y = utils.force_array(xp.einsum(subscript, *inputs))  # .copy()  # copy() for debug
 
         for i, i0 in enumerate(diag_map):
             if i0 is None:
@@ -62,10 +71,39 @@ class DiagEinSum(function_node.FunctionNode):
 
     def backward(self, indices, grad_outputs):
         inputs = self.get_retained_inputs()
+        """
+        if self.n_args >= 2:
+            inputs = self.get_retained_inputs()
+        else:
+            xp = cuda.get_array_module(grad_outputs[0])
+            inputs = [xp.zeros(self.input_shape, dtype=grad_outputs[0].dtype)]  # TODO(kataoka): f
+        """
+
         g, = grad_outputs
 
         fwd_in_subs = self.in_subs.split(',')
         fwd_out_sub = self.out_sub
+        ret = []
+        for i in indices:
+            bwd_in_subs = ','.join([
+                (fwd_out_sub if j == i else s)
+                for j, s in enumerate(fwd_in_subs)
+            ])
+            bwd_inputs = tuple(
+                (g if j == i else x)
+                for j, x in enumerate(inputs)
+            )
+            gx, = DiagEinSum(bwd_in_subs, fwd_in_subs[i], inputs[i].shape) \
+                .apply(bwd_inputs)
+            gx += inputs[i] * 0.  # yabai
+            ret.append(gx)
+        ret = tuple(ret)
+        print('{}->{}.backward'.format(self.in_subs, self.out_sub))
+        print(grad_outputs)
+        print(ret)
+        return ret
+ 
+        """
         return tuple(
             DiagEinSum(
                 in_subs=','.join([
@@ -80,6 +118,26 @@ class DiagEinSum(function_node.FunctionNode):
             ))[0]
             for i in indices
         )
+        """
+
+    def backward_accumulate(self, target_input_indexes, grad_outputs,
+                            grad_inputs):
+        print('backward_accumulate')
+        print(grad_outputs)
+        print(grad_inputs)
+        ret = super().backward_accumulate(target_input_indexes, grad_outputs, grad_inputs)
+        print('return')
+        print(ret)
+        return ret
+
+
+def _diag_einsum(
+        input_subscripts, output_subscript, *ioperands, output_shape=None):
+    return DiagEinSum(
+        in_subs=input_subscripts,
+        out_sub=output_subscript,
+        out_shape=output_shape,
+    ).apply(ioperands)[0]
 
 
 def einsum(*operands):
