@@ -5,6 +5,8 @@ import numpy
 import six
 
 from chainer.dataset import iterator
+from chainer.iterators.order_samplers import no_shuffle_order_sampler
+from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
 class MultithreadIterator(iterator.Iterator):
@@ -30,11 +32,18 @@ class MultithreadIterator(iterator.Iterator):
             beginning of each epoch. Otherwise, examples are extracted in the
             order of indexes.
         n_threads (int): Number of worker threads.
+        order_sampler (callable): A callable that generates the order
+            of the indices to sample in the next epoch when a epoch finishes.
+            This function should take two arguements: the current order
+            and the current position of the iterator.
+            This should return the next order. The size of the order
+            should remain constant.
+            This option can not be used when ``shuffle`` is ``True``.
 
     """
 
     def __init__(self, dataset, batch_size, repeat=True, shuffle=True,
-                 n_threads=1):
+                 n_threads=1, order_sampler=None):
         self.dataset = dataset
         self.batch_size = batch_size
         self._repeat = repeat
@@ -42,6 +51,16 @@ class MultithreadIterator(iterator.Iterator):
         self._prefetch_order = None  # used at the end of each epoch
         self.current_position = 0
         self.epoch = 0
+
+        if self._shuffle and order_sampler is not None:
+            raise ValueError(
+                'shuffle should be False when custom order_sampler is used')
+        if order_sampler is None:
+            if self._shuffle:
+                order_sampler = ShuffleOrderSampler()
+            else:
+                order_sampler = no_shuffle_order_sampler
+        self.order_sampler = order_sampler
 
         self.n_threads = n_threads
         self._pool = None
@@ -52,10 +71,7 @@ class MultithreadIterator(iterator.Iterator):
         self.current_position = 0
         self.epoch = 0
         self.is_new_epoch = False
-        if self._shuffle:
-            self._order = numpy.random.permutation(len(self.dataset))
-        else:
-            self._order = None
+        self._order = self.order_sampler(numpy.arange(len(self.dataset)), 0)
 
         # reset internal state
         self._next = None
@@ -93,7 +109,7 @@ class MultithreadIterator(iterator.Iterator):
 
     @property
     def epoch_detail(self):
-        return self.epoch + self.current_position / len(self.dataset)
+        return self.epoch + self.current_position / self._epoch_size
 
     @property
     def previous_epoch_detail(self):
@@ -120,7 +136,7 @@ class MultithreadIterator(iterator.Iterator):
             return
         if self._pool is None:
             self._pool = pool.ThreadPool(self.n_threads)
-        n = len(self.dataset)
+        n = self._epoch_size
         i = self.current_position
 
         order = self._order
@@ -143,8 +159,11 @@ class MultithreadIterator(iterator.Iterator):
                     # iterator may be serialized before the prefetched data are
                     # consumed by the user, in which case an inconsistency
                     # appears.
-                    order = order.copy()
-                    numpy.random.shuffle(order)
+                    new_order = self.order_sampler(order, i)
+                    if len(new_order) != len(order):
+                        raise ValueError('The size of order does not match '
+                                         'the size of the previous order.')
+                    order = new_order
 
         self._next = self._pool.map_async(MultithreadIterator._read, args)
         self._next_state = (i, epoch, is_new_epoch, order)
@@ -162,5 +181,9 @@ class MultithreadIterator(iterator.Iterator):
         return batch
 
     @property
-    def repeat(self):
-        return self._repeat
+    def _epoch_size(self):
+        if self._order is None:
+            epoch_size = len(self.dataset)
+        else:
+            epoch_size = len(self._order)
+        return epoch_size
