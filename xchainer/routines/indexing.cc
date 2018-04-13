@@ -23,7 +23,7 @@ namespace {
 
 // Returns an array where elements at indices are added by the addends `b`.
 //
-// It is not-implace operation: the input arrays are not altered.
+// It is not in-place  operation: the input arrays are not altered.
 // It is differentiable with respect to `a` and `b`.
 Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array& b) {
     // TODO(sonots): dtype conversion
@@ -105,7 +105,7 @@ namespace {
 // Adds elements of `b` indexed by `indices` into `a` and returns the result.
 // Used in backward pass of Take()
 //
-// It is not-implace operation: the input arrays are not altered.
+// It is not in-place operation: the input arrays are not altered.
 // It is differentiable with respect to `a` and `b`.
 Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
     assert(0 <= axis && axis < a.ndim());
