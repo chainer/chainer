@@ -45,21 +45,19 @@ class DiagEinSum(function_node.FunctionNode):
         )
         y = utils.force_array(xp.einsum(subscript, *inputs))
 
+        shape = list(y.shape)
         for i, i0 in enumerate(diag_map):
             if i0 is None:
                 # broadcast to new axis
                 assert self.out_shape is not None, \
                     "Give out_shape to put new subscripts in the result"
-                y = xp.broadcast_to(
-                    xp.expand_dims(y, axis=i),
-                    y.shape[:i] + (self.out_shape[i],) + y.shape[i:]
-                )
+                shape.insert(i, self.out_shape[i])
+                y = xp.broadcast_to(xp.expand_dims(y, axis=i), shape)
             elif i0 != i:
                 # make diagonal
-                size = y.shape[i0]
-                z = xp.zeros(
-                    y.shape[:i] + (size,) + y.shape[i:],
-                    dtype=y.dtype)
+                size = shape[i0]
+                shape.insert(i, size)
+                z = xp.zeros(shape, dtype=y.dtype)
                 indexer = (
                     (slice(None),) * i0
                     + (xp.arange(size),)
