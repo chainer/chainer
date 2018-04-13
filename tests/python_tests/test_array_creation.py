@@ -232,7 +232,7 @@ _none_or_dtype = [
 @pytest.mark.parametrize_device(['native:0'])
 def test_arange_stop(xp, stop, none_or_dtype, device):
     # TODO(hvy): xp.arange(True) should return an ndarray of type int64
-    if none_or_dtype is not None and none_or_dtype == 'bool' and stop > 2:  # Checked in test_invalid_arange_too_long_bool
+    if none_or_dtype == 'bool' and stop > 2:  # Checked in test_invalid_arange_too_long_bool
         return xp.array([])
     return xp.arange(stop, dtype=none_or_dtype)
 
