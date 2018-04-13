@@ -330,10 +330,32 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("a"),
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
-    m.def("log", [](const ArrayBodyPtr& x) { return Log(Array{x}).move_body(); }, py::arg("x"));
     m.def("maximum", [](const ArrayBodyPtr& x1, Scalar x2) { return Maximum(Array{x1}, x2).move_body(); }, py::arg("x1"), py::arg("x2"));
     m.def("maximum", [](Scalar x1, const ArrayBodyPtr& x2) { return Maximum(x1, Array{x2}).move_body(); }, py::arg("x1"), py::arg("x2"));
     m.def("exp", [](const ArrayBodyPtr& x) { return Exp(Array{x}).move_body(); }, py::arg("x"));
+    m.def("log", [](const ArrayBodyPtr& x) { return Log(Array{x}).move_body(); }, py::arg("x"));
+    m.def("logsumexp",
+          [](const ArrayBodyPtr& x, int8_t axis, bool keepdims) {
+              return LogSumExp(Array{x}, std::vector<int8_t>{axis}, keepdims).move_body();
+          },
+          py::arg("x"),
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    m.def("logsumexp",
+          [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return LogSumExp(Array{x}, axis, keepdims).move_body();
+          },
+          py::arg("x"),
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
+    m.def("log_softmax",
+          [](const ArrayBodyPtr& x, int8_t axis) { return LogSoftmax(Array{x}, std::vector<int8_t>{axis}).move_body(); },
+          py::arg("x"),
+          py::arg("axis"));
+    m.def("log_softmax",
+          [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis) { return LogSoftmax(Array{x}, axis).move_body(); },
+          py::arg("x"),
+          py::arg("axis") = nullptr);
 
     // sorting routines
     m.def("argmax",
