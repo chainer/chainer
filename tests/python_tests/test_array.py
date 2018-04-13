@@ -1192,7 +1192,7 @@ def test_getitem(xp, shape, indices):
 # TODO(hvy): Add cases where axis=None, when supported.
 # TODO(hvy): Add cases where indices is not int64, when supported.
 # shape,indices,axis
-_take_params = [
+_take_valid_params = [
     ((3,), [0], 0),
     ((3,), [1], 0),
     ((2, 3), [0], 0),
@@ -1204,13 +1204,16 @@ _take_params = [
     ((2, 3), [1, 2], 1),
     ((2, 3), [2, 1], 1),
     ((2, 3), [[0], [1]], 0),
+]
+
+_take_invalid_params = [
     # Axis out of bounds
     ((2, 3), [0], 2),
     ((2, 3), [0], -3),
 ]
 
 
-@pytest.mark.parametrize("shape,indices,axis", _take_params)
+@pytest.mark.parametrize("shape,indices,axis", _take_valid_params + _take_invalid_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal(type_check=False, accept_error=(xchainer.DimensionError, numpy.AxisError))
 def test_take(xp, shape, indices, axis, device):
@@ -1224,7 +1227,7 @@ def test_take(xp, shape, indices, axis, device):
     return a.take(xp.array(indices), axis)
 
 
-@pytest.mark.parametrize("shape,indices,axis", _take_params)
+@pytest.mark.parametrize("shape,indices,axis", _take_valid_params + _take_invalid_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal(type_check=False, accept_error=(xchainer.DimensionError, numpy.AxisError))
 def test_module_take(xp, shape, indices, axis, device):
@@ -1237,6 +1240,41 @@ def test_module_take(xp, shape, indices, axis, device):
 
     return xp.take(a, xp.array(indices), axis)
 
+
+@pytest.mark.parametrize('is_module', [False, True])
+@pytest.mark.parametrize('dtype', ['float32', 'float64'])
+@pytest.mark.parametrize('shape,indices,axis', _take_valid_params)
+@pytest.mark.parametrize_device(['native:0'])  # TODO(niboshi): Add cuda:0
+def test_take_backward(is_module, dtype, shape, indices, axis, device):
+    def func(a, indices, axis):
+        if is_module:
+            return xchainer.take(a, indices, axis)
+        else:
+            return a.take(indices, axis)
+
+    # First convert to ndarray since some indices are nested lists which
+    # xchainer cannot convert. Additionally, dtype is cast to int64 since no
+    # other dtypes are currently supported by xchainer.take
+    indices = xchainer.array(numpy.array(indices, dtype='int64'))
+
+    a = xchainer.arange(_total_size(shape)).reshape(shape).astype(dtype).require_grad()
+    output_shape = func(a, indices, axis).shape
+
+    numpy.random.seed(0)
+    go = xchainer.array(numpy.random.uniform(-1, 1, output_shape).astype(dtype)).require_grad()
+    ggi = xchainer.array(numpy.random.uniform(-1, 1, shape).astype(dtype))
+    epsi = xchainer.full_like(a, 1e-3)
+    epso = xchainer.full_like(go, 1e-3)
+
+    def func_bwd(inputs):
+        return func(inputs[0], indices, axis),
+
+    def func_dbwd(inputs):
+        y = func(inputs[0], indices, axis)
+        return y * y,  # make nonlinear
+
+    xchainer.check_backward(func_bwd, (a,), (go,), (epsi,))
+    xchainer.check_double_backward(func_dbwd, (a,), (go,), (ggi,), (epsi, epso))
 
 _sum_params = [
     ((), None),
