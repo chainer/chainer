@@ -1468,6 +1468,7 @@ def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
 @pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
 @pytest.mark.parametrize('keepdims', [True, False])
 # TODO(hvy): Dtype promotion is not supported yet.
+# TODO(hvy): Should not overflow for large numbers, add tests
 def test_invalid_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
     a = xchainer.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
     with pytest.raises(xchainer.DimensionError):
