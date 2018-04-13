@@ -81,11 +81,12 @@ def snapshot(savefun=npz.save_npz,
 def _snapshot_object(trainer, target, filename, savefun):
     fn = filename.format(trainer)
     prefix = 'tmp' + fn
-
-    tmpdir = tempfile.mkdtemp(prefix=prefix, dir=trainer.out)
-    tmppath = os.path.join(tmpdir, fn)
+    fd, tmppath = tempfile.mkstemp(prefix=prefix, dir=trainer.out)
     try:
         savefun(tmppath, target)
-        shutil.move(tmppath, os.path.join(trainer.out, fn))
-    finally:
-        shutil.rmtree(tmpdir)
+    except Exception:
+        os.close(fd)
+        os.remove(tmppath)
+        raise
+    os.close(fd)
+    shutil.move(tmppath, os.path.join(trainer.out, fn))
