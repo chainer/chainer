@@ -50,9 +50,10 @@ ArrayBodyPtr MakeArangeArray(
         const nonstd::optional<Scalar>& maybe_step,
         const nonstd::optional<Dtype>& dtype,
         Device& device) {
-    Scalar start{0};
+    Dtype start_or_stop_dtype = start_or_stop.dtype();
+    Scalar start{0, start_or_stop_dtype};
     Scalar stop{start_or_stop};
-    Scalar step = maybe_step.has_value() ? maybe_step.value() : 1;
+    Scalar step = maybe_step.has_value() ? maybe_step.value() : Scalar{1, start_or_stop_dtype};
 
     if (maybe_stop.has_value()) {
         start = start_or_stop;

@@ -214,7 +214,14 @@ def test_full_like_with_device(device):
     _check_device(a, device)
 
 
-@pytest.mark.parametrize("stop", [-2, 0, 3, 3.2, False, True])
+@pytest.mark.parametrize('stop', [1, 1.2])
+@pytest.mark.parametrize_device(['native:0'])
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_arange_stop_no_dtype(xp, stop, device):
+    return xp.arange(stop)
+
+
+@pytest.mark.parametrize('stop', [-2, 0, 3, 3.2, False, True])
 @pytest.mark.parametrize_device(['native:0'])
 def test_arange_stop(xp, stop, dtype, device):
     if dtype.name == 'bool' and stop > 2:  # Checked in test_invalid_arange_too_long_bool
@@ -222,7 +229,7 @@ def test_arange_stop(xp, stop, dtype, device):
     return xp.arange(stop, dtype=dtype.name)
 
 
-@pytest.mark.parametrize("start,stop", [
+@pytest.mark.parametrize('start,stop', [
     (0, 0),
     (0, 3),
     (-3, 2),
@@ -240,7 +247,7 @@ def test_arange_start_stop(xp, start, stop, dtype, device):
     return xp.arange(start, stop, dtype=dtype.name)
 
 
-@pytest.mark.parametrize("start,stop,step", [
+@pytest.mark.parametrize('start,stop,step', [
     (0, 3, 1),
     (0, 0, 2),
     (0, 1, 2),
