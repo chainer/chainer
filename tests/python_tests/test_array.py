@@ -1276,6 +1276,7 @@ def test_take_backward(is_module, dtype, shape, indices, axis, device):
     xchainer.check_backward(func_bwd, (a,), (go,), (epsi,))
     xchainer.check_double_backward(func_dbwd, (a,), (go,), (ggi,), (epsi, epso))
 
+
 _sum_params = [
     ((), None),
     ((), ()),
