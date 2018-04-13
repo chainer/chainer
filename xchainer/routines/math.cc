@@ -277,7 +277,7 @@ Array Divide(const Array& x1, const Array& x2) {
 
 namespace {
 
-Array AllocateReductionOutput(const Array& a, const std::vector<int8_t>& sorted_axis, bool keepdims) {
+Shape GetReductionOutputShape(const Array& a, const std::vector<int8_t>& sorted_axis, bool keepdims) {
     std::vector<int64_t> out_shape_vec;
     out_shape_vec.reserve(a.ndim());
     int8_t i_axis = 0;
@@ -291,13 +291,17 @@ Array AllocateReductionOutput(const Array& a, const std::vector<int8_t>& sorted_
             out_shape_vec.push_back(a.shape()[i]);
         }
     }
+    return Shape{out_shape_vec.begin(), out_shape_vec.end()};
+}
+
+Array AllocateReductionOutput(const Array& a, const std::vector<int8_t>& sorted_axis, bool keepdims) {
+    Shape out_shape = GetReductionOutputShape(a, sorted_axis, keepdims);
 
     if (!keepdims) {
-        return Empty({out_shape_vec.begin(), out_shape_vec.end()}, a.dtype(), a.device());
+        return Empty(out_shape, a.dtype(), a.device());
     }
 
     // Set reduced strides of the output array to 0
-    Shape out_shape{out_shape_vec.begin(), out_shape_vec.end()};
     Strides contiguous_strides{out_shape, a.dtype()};
     std::vector<int64_t> out_strides_vec(contiguous_strides.begin(), contiguous_strides.end());
     for (int8_t i_axis : sorted_axis) {
@@ -342,7 +346,23 @@ Array AMax(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bo
 
     a.device().AMax(a, sorted_axis, out);
 
-    // TODO(beam2d): implement backprop
+    auto backward_function = [sorted_axis, a, out](const Array& gout, const std::vector<GraphId>&) {
+        assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+
+        // Add broadcastable dimensions to out and gout
+        // for each one that was reduced in the forward operation
+        Shape shape = GetReductionOutputShape(a, sorted_axis, true);
+        Array reshaped_gout = gout.Reshape(shape);
+        Array reshaped_out = out.AsConstant(CopyKind::kView).Reshape(shape);
+
+        // Compute the gradient
+        Array cond = (a == reshaped_out);
+        Array broadcasted_gout = reshaped_gout.BroadcastTo(cond.shape());
+        // TODO(sonots): AsType allocates a new array, use faster methods when available instead.
+        return broadcasted_gout * cond.AsType(gout.dtype());
+    };
+    internal::SetUpOpNodes("amax", {a}, out, {backward_function});
+
     return out;
 }
 

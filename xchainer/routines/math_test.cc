@@ -707,7 +707,7 @@ TEST_P(MathTest, AMax) {
     testing::ExpectEqual(e, b);
 }
 
-TEST_P(MathTest, AMaxAllExes) {
+TEST_P(MathTest, AMaxAllAxes) {
     Array a = testing::BuildArray({2, 3, 3}).WithLinearData<float>().WithPadding(1);
     Array b = AMax(a);
     EXPECT_EQ(Shape{}, b.shape());
@@ -725,6 +725,46 @@ TEST_P(MathTest, AMaxAlongZeroSized) {
     Array a = Empty({0, 2}, Dtype::kFloat32);
     EXPECT_THROW(AMax(a, std::vector<int8_t>{0}), DimensionError);
     EXPECT_THROW(AMax(a), DimensionError);
+}
+
+TEST_P(MathTest, AMaxBackward) {
+    using T = double;
+
+    CheckBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                return {AMax(xs[0], std::vector<int8_t>{1, 3})};
+            },
+            {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
+            {testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)},
+            {Full({2, 3, 4, 3}, 1e-1)});
+}
+
+TEST_P(MathTest, AMaxDoubleBackward_Keepdims) {
+    using T = double;
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = AMax(xs[0], std::vector<int8_t>{1, 3}, true);
+                return {y * y};  // to make it nonlinear
+            },
+            {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
+            {(*testing::BuildArray({2, 1, 4, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
+            {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
+            {Full({2, 3, 4, 3}, 1e-1), Full({2, 1, 4, 1}, 1e-1)});
+}
+
+TEST_P(MathTest, AMaxDoubleBackward_NoKeepdims) {
+    using T = double;
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = AMax(xs[0], std::vector<int8_t>{1, 3}, false);
+                return {y * y};  // to make it nonlinear
+            },
+            {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
+            {(*testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
+            {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
+            {Full({2, 3, 4, 3}, 1e-1), Full({2, 4}, 1e-1)});
 }
 
 TEST_P(MathTest, MaximumScalar) {
@@ -969,11 +1009,25 @@ TEST_P(MathTest, LogSoftmaxHighDimAlongDefaultSecondAxis) {
 }
 
 TEST_P(MathTest, LogSoftmaxBackward) {
-    // TODO(hvy): Write tests when backward is implemented for routines that LogSoftmax depends on.
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSoftmax(xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, LogSoftmaxDoubleBackward) {
-    // TODO(hvy): Write tests when backward is implemented for routines that LogSoftmax depends on.
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSoftmax(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
 }
 
 INSTANTIATE_TEST_CASE_P(

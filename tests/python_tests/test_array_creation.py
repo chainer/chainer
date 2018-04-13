@@ -31,7 +31,8 @@ def _check_device(a, device=None):
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-def test_array_from_python_list(xp, dtype):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_array_from_python_list(xp, dtype, device):
     return xp.array([0, 1, 2], xp.dtype(dtype.name))
 
 
@@ -52,7 +53,8 @@ def test_array_from_python_list_with_device(device):
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-def test_array_from_numpy_ndarray(xp, shape, dtype):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_array_from_numpy_ndarray(xp, shape, dtype, device):
     return xp.array(numpy.zeros(shape, numpy.dtype(dtype.name)))
 
 
@@ -214,15 +216,30 @@ def test_full_like_with_device(device):
     _check_device(a, device)
 
 
-@pytest.mark.parametrize("stop", [-2, 0, 3, 3.2, False, True])
+_none_or_dtype = [
+    None,
+    'bool',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'uint8',
+    'float32',
+    'float64',
+]
+
+
+@pytest.mark.parametrize('stop', [-2, 0, 0.1, 3, 3.2, False, True])
+@pytest.mark.parametrize('none_or_dtype', _none_or_dtype)
 @pytest.mark.parametrize_device(['native:0'])
-def test_arange_stop(xp, stop, dtype, device):
-    if dtype.name == 'bool' and stop > 2:  # Checked in test_invalid_arange_too_long_bool
+def test_arange_stop(xp, stop, none_or_dtype, device):
+    # TODO(hvy): xp.arange(True) should return an ndarray of type int64
+    if none_or_dtype == 'bool' and stop > 2:  # Checked in test_invalid_arange_too_long_bool
         return xp.array([])
-    return xp.arange(stop, dtype=dtype.name)
+    return xp.arange(stop, dtype=none_or_dtype)
 
 
-@pytest.mark.parametrize("start,stop", [
+@pytest.mark.parametrize('start,stop', [
     (0, 0),
     (0, 3),
     (-3, 2),
@@ -233,14 +250,15 @@ def test_arange_stop(xp, stop, dtype, device):
     (True, False),
     (False, True),
 ])
+@pytest.mark.parametrize('none_or_dtype', _none_or_dtype)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_arange_start_stop(xp, start, stop, dtype, device):
-    if dtype.name == 'bool' and abs(stop - start) > 2:  # Checked in test_invalid_arange_too_long_bool
+def test_arange_start_stop(xp, start, stop, none_or_dtype, device):
+    if none_or_dtype == 'bool' and abs(stop - start) > 2:  # Checked in test_invalid_arange_too_long_bool
         return xp.array([])
-    return xp.arange(start, stop, dtype=dtype.name)
+    return xp.arange(start, stop, dtype=none_or_dtype)
 
 
-@pytest.mark.parametrize("start,stop,step", [
+@pytest.mark.parametrize('start,stop,step', [
     (0, 3, 1),
     (0, 0, 2),
     (0, 1, 2),
@@ -252,11 +270,12 @@ def test_arange_start_stop(xp, start, stop, dtype, device):
     (4, 1, -1.2),
     (False, True, True),
 ])
+@pytest.mark.parametrize('none_or_dtype', _none_or_dtype)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_arange_start_stop_step(xp, device, start, stop, step, dtype):
-    if dtype.name == 'bool' and abs((stop - start) / step) > 2:  # Checked in test_invalid_arange_too_long_bool
+def test_arange_start_stop_step(xp, start, stop, step, none_or_dtype, device):
+    if none_or_dtype == 'bool' and abs((stop - start) / step) > 2:  # Checked in test_invalid_arange_too_long_bool
         return xp.array([])
-    return xp.arange(start, stop, step, dtype=dtype.name)
+    return xp.arange(start, stop, step, dtype=none_or_dtype)
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])

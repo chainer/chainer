@@ -20,6 +20,7 @@
 #include "xchainer/backend.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
+#include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/op_node.h"
@@ -262,13 +263,18 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
 }
 
 Array Array::AsType(Dtype dtype, bool copy) const {
-    if (!copy && dtype == this->dtype()) {
+    Dtype src_dtype = this->dtype();
+    if (!copy && dtype == src_dtype) {
         return *this;
     }
+
     Array out = Empty(shape(), dtype, device());
     device().AsType(*this, out);
 
-    // TODO(sonots): backward
+    if (GetKind(dtype) == DtypeKind::kFloat) {
+        internal::SetUpOpNodes(
+                "astype", {*this}, out, {[src_dtype](const Array& gout, const std::vector<GraphId>&) { return gout.AsType(src_dtype); }});
+    }
 
     assert(out.IsContiguous());
     return out;

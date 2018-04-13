@@ -8,26 +8,6 @@ import pytest
 import xchainer
 from xchainer.testing import array
 
-_float_dtypes = [
-    xchainer.float32,
-    xchainer.float64,
-]
-
-
-_signed_dtypes = [
-    xchainer.int8,
-    xchainer.int16,
-    xchainer.int32,
-    xchainer.int64,
-    xchainer.float32,
-    xchainer.float64,
-]
-
-
-_unsigned_dtypes = [
-    xchainer.uint8,
-]
-
 
 def _call_func(impl, args, kw):
     try:
@@ -64,37 +44,17 @@ numpy
         pytest.fail(msg)
 
 
-def _make_positive_indices(impl, args, kw):
-    ks = [k for k, v in kw.items() if v in _unsigned_dtypes]
-    for k in ks:
-        kw[k] = numpy.intp
-    mask = numpy.array(impl(*args, **kw)) >= 0
-    return numpy.nonzero(mask)
-
-
-def _contains_signed_and_unsigned(kw):
-    vs = list(kw.values())
-    return any(d in vs for d in _unsigned_dtypes) and \
-        any(d in vs for d in _float_dtypes + _signed_dtypes)
-
-
-def _make_decorator(check_func, name, type_check, accept_error):
+def _make_decorator(check_func, name, device_check, type_check, accept_error):
     def decorator(impl):
         @functools.wraps(impl)
         def test_func(*args, **kw):
             kw[name] = xchainer
             xchainer_result, xchainer_error, xchainer_tb = _call_func(impl, args, kw)
 
-            numpy_kw = kw.copy()
-            numpy_kw[name] = numpy
-            # TODO(sonots): Change xChainer to accept e.g. string name to dtype arguments in every function
-            # so that we can directly use string names in each test case for both  xChainer and NumPy.
-            if 'dtype' in kw:
-                numpy_kw['dtype'] = numpy.dtype(kw['dtype'].name)
-
+            kw[name] = numpy
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore', RuntimeWarning)
-                numpy_result, numpy_error, numpy_tb = _call_func(impl, args, numpy_kw)
+                numpy_result, numpy_error, numpy_tb = _call_func(impl, args, kw)
 
             if xchainer_error or numpy_error:
                 _check_xchainer_numpy_error(xchainer_error, xchainer_tb,
@@ -104,40 +64,31 @@ def _make_decorator(check_func, name, type_check, accept_error):
 
             assert xchainer_result.shape == numpy_result.shape
 
-            # Behavior of assigning a negative value to an unsigned integer
-            # variable is undefined.
-            # nVidia GPUs and Intel CPUs behave differently.
-            # To avoid this difference, we need to ignore dimensions whose
-            # values are negative.
-            skip = False
-            if _contains_signed_and_unsigned(kw) and \
-                    xchainer_result.dtype in _unsigned_dtypes:
-                inds = _make_positive_indices(impl, args, kw)
-                if xchainer_result.shape == ():
-                    skip = inds[0].size == 0
-                else:
-                    xchainer_result = numpy.array(xchainer_result)[inds]
-                    numpy_result = numpy.array(numpy_result)[inds]
-
-            if not skip:
-                check_func(xchainer_result, numpy_result)
+            check_func(xchainer_result, numpy_result)
             if type_check:
                 assert numpy.dtype(xchainer_result.dtype.name) == numpy_result.dtype
+            if device_check:
+                if device_check in kw:
+                    assert xchainer_result.device is kw[device_check]
+                else:
+                    raise KeyError('Function {} does not have an argument named {}', impl.__name__, device_check)
         return test_func
     return decorator
 
 
-def numpy_xchainer_array_equal(err_msg='', verbose=True, name='xp',
-                               type_check=True, accept_error=()):
+def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp',
+                               rtol=0, atol=0, type_check=True, device_check='device', accept_error=()):
     """Decorator that checks NumPy results and xChainer ones are equal.
 
     Args:
          err_msg(str): The error message to be printed in case of failure.
          verbose(bool): If ``True``, the conflicting values are
              appended to the error message.
-         name(str): Argument name whose value is either
-             ``numpy`` or ``xchainer`` module.
+         name(str): Argument name whose value is either ``numpy`` or ``xchainer`` module.
          type_check(bool): If ``True``, consistency of dtype is also checked.
+         device_check(str or None or False): Specify argument name whose value is device.
+             If not ``None`` and not ``False``, check equality between device of
+             xchainer array and the device argument.
          accept_error(Exception or tuple of Exception): Specify
              acceptable errors. When both NumPy test and xChainer test raises the
              same type of errors, and the type of the errors is specified with
@@ -150,6 +101,6 @@ def numpy_xchainer_array_equal(err_msg='', verbose=True, name='xp',
     .. seealso:: :func:`xchainer.testing.assert_array_equal`
     """
     def check_func(x, y):
-        array.assert_array_equal(x, y, err_msg, verbose)
+        array.assert_array_equal(x, y, rtol, atol, err_msg, verbose)
 
-    return _make_decorator(check_func, name, type_check, accept_error)
+    return _make_decorator(check_func, name, device_check, type_check, accept_error)
