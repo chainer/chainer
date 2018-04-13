@@ -1244,7 +1244,7 @@ def test_module_take(xp, shape, indices, axis, device):
 @pytest.mark.parametrize('is_module', [False, True])
 @pytest.mark.parametrize('dtype', ['float32', 'float64'])  # TODO(niboshi): Use float_dtype fixture
 @pytest.mark.parametrize('shape,indices,axis', _take_valid_params)
-@pytest.mark.parametrize_device(['native:0'])  # TODO(niboshi): Add cuda:0
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_take_backward(is_module, dtype, shape, indices, axis, device):
     def func(a, indices, axis):
         if is_module:
