@@ -1,6 +1,7 @@
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
+from chainer.utils import type_check
 
 
 class DiagEinSum(function_node.FunctionNode):
@@ -9,9 +10,33 @@ class DiagEinSum(function_node.FunctionNode):
         self.in_subs = in_subs
         self.out_sub = out_sub
         self.out_shape = out_shape
+        if '...' in out_sub:
+            self.broadcast_dims = [
+                slice(len(left_sub), -len(right_sub) or None)
+                for left_sub, right_sub in \
+                    [s.split('...') for s in in_subs.split(',')]
+            ]
+        else:
+            assert '...' not in in_subs
+            self.broadcast_dims = None
+        print(self.broadcast_dims)
 
     def check_type_forward(self, in_types):
-        pass
+        in_subs = self.in_subs.split(',')
+        type_check.expect(in_types.size() == len(in_subs))
+
+        for in_type in in_types:
+            type_check.expect(in_type.dtype.kind == 'f')
+
+        if self.broadcast_dims is not None:
+            broadcast_shapes = [
+                in_type.shape[dims]
+                for in_type, dims in zip(in_types, self.broadcast_dims)
+            ]
+            for broadcast_shape_i, broadcast_shape_i_plus_one in zip(
+                    broadcast_shapes, broadcast_shapes[1:]):
+                type_check.expect(
+                    broadcast_shape_i == broadcast_shape_i_plus_one)
 
     def forward(self, inputs):
         n_args = len(inputs)
@@ -26,18 +51,32 @@ class DiagEinSum(function_node.FunctionNode):
 
         xp = cuda.get_array_module(inputs[0])
 
-        out_sub = self.out_sub
+        # out_sub = self.out_sub
+        if self.broadcast_dims is None:
+            broadcast_shape = None
+        else:
+            broadcast_shape = inputs[0].shape[self.broadcast_dims[0]]
+            # out_sub = out_sub.replace('...', '?'*len(broadcast_shape))
+        # print(broadcast_shape)
 
-        diag_map = []
         ein_sub = []
-        for i, s in enumerate(out_sub):
-            i0 = out_sub.index(s)
-            if i == i0:
-                if s in self.in_subs:
-                    ein_sub.append(s)
+        axis = 0
+        subscript_dict = {}
+        diag_map = []
+        for left_or_right, out_sub in enumerate(self.out_sub.split('...')):
+            if left_or_right == 1:  # process '...'
+                ein_sub.append('...')
+                axis += len(broadcast_shape)
+            for s in out_sub:
+                if s in subscript_dict:
+                    diag_map.append((axis, subscript_dict[s]))
                 else:
-                    i0 = None
-            diag_map.append(i0)
+                    subscript_dict[s] = axis
+                    if s in self.in_subs:
+                        ein_sub.append(s)
+                    else:
+                        diag_map.append((axis, None))
+                axis += 1
 
         subscript = '{}->{}'.format(
             self.in_subs,
@@ -46,7 +85,7 @@ class DiagEinSum(function_node.FunctionNode):
         y = utils.force_array(xp.einsum(subscript, *inputs))
 
         shape = list(y.shape)
-        for i, i0 in enumerate(diag_map):
+        for i, i0 in diag_map:
             if i0 is None:
                 # broadcast to new axis
                 assert self.out_shape is not None, \
