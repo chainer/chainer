@@ -418,11 +418,11 @@ class BaseNStepRNN(function.Function):
 
         if self.use_cell:
             # LSTM
-            self.retain_outputs([2])
+            self.retain_outputs((2,))
             return hy, cy, ys
         else:
             # GRU, RNN
-            self.retain_outputs([1])
+            self.retain_outputs((1,))
             return hy, ys
 
     def backward(self, inputs, grads):
