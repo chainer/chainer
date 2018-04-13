@@ -1452,10 +1452,6 @@ _invalid_logsumexp_params = [
 ]
 
 
-def _logsumexp(xp, x, axis, keepdims):
-    return xp.log(xp.sum(xp.exp(x), axis=axis, keepdims=keepdims))
-
-
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
 @pytest.mark.parametrize('keepdims', [True, False])
@@ -1464,7 +1460,7 @@ def _logsumexp(xp, x, axis, keepdims):
 def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
     a = xp.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
     if xp is numpy:
-        return _logsumexp(xp, a, axis=axis, keepdims=keepdims)
+        return xp.log(xp.sum(xp.exp(a), axis=axis, keepdims=keepdims))
     return xp.logsumexp(a, axis=axis, keepdims=keepdims)
 
 
@@ -1478,12 +1474,6 @@ def test_invalid_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
         xchainer.logsumexp(a, axis=axis, keepdims=keepdims)
 
 
-def _log_softmax(xp, x, axis):
-    # Default is the second axis
-    axis = axis if axis is not None else 1
-    return x - xp.log(xp.sum(xp.exp(x), axis=axis, keepdims=True))
-
-
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
 @xchainer.testing.numpy_xchainer_array_equal(rtol=1e-7, atol=1e-5, type_check=False)
@@ -1491,7 +1481,9 @@ def _log_softmax(xp, x, axis):
 def test_log_softmax(xp, device, a_shape, axis, float_dtype):
     a = xp.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
     if xp is numpy:
-        return _log_softmax(xp, a, axis=axis)
+        # Default is the second axis
+        axis = axis if axis is not None else 1
+        return a - xp.log(xp.sum(xp.exp(a), axis=axis, keepdims=True))
     return xp.log_softmax(a, axis=axis)
 
 
