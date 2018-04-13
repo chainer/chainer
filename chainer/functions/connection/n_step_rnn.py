@@ -825,7 +825,9 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         'Use chainer.using_config',
         use_cudnn='use_cudnn argument is not supported anymore. '
         'Use chainer.using_config')
-    argument.assert_kwargs_empty(kwargs)
+    lengths, = argument.parse_kwargs(kwargs, ('lengths', None))
+
+    concatenated = lengths is not None
 
     activation_list = ['tanh', 'relu']
     if activation not in activation_list:
@@ -837,8 +839,9 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         states = get_random_state().create_dropout_states(dropout_ratio)
-        lengths = [len(x) for x in xs]
-        xs = chainer.functions.concat(xs, axis=0)
+        if not concatenated:
+            lengths = [len(x) for x in xs]
+            xs = chainer.functions.concat(xs, axis=0)
 
         rnn_mode = 'rnn_%s' % activation
         w = cudnn_rnn_weight_concat(
@@ -859,7 +862,8 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
 
         hy, ys = rnn(n_layers, states, lengths)(hx, w, xs)
         sections = numpy.cumsum(lengths[:-1])
-        ys = chainer.functions.split_axis(ys, sections, 0)
+        if not concatenated:
+            ys = chainer.functions.split_axis(ys, sections, 0)
         return hy, ys
 
     else:
@@ -873,8 +877,15 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             elif activation == 'relu':
                 return relu.relu(rnn_in), None
 
+        if concatenated:
+            sections = numpy.cumsum(lengths[:-1])
+            xs = chainer.functions.split_axis(xs, sections, 0)
+
         hy, _, ys = n_step_rnn_impl(
             f, n_layers, dropout_ratio, hx, None, ws, bs, xs, use_bi_direction)
+
+        if concatenated:
+            ys = chainer.functions.concat(ys, axis=0)
         return hy, ys
 
 

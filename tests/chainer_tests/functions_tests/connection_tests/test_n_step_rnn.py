@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer.backends import cuda
@@ -128,6 +129,62 @@ class TestNStepRNN(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_cudnn_never(self):
+        self.check_forward_gpu('never')
+
+    def check_forward_concatenated(
+            self, h_data, xs_data, ws_data, bs_data):
+        lengths = [len(x) for x in xs_data]
+        h = _wrap_variable(h_data)
+        xs = chainer.functions.concat(_wrap_variable(xs_data), axis=0)
+        ws = _wrap_variable(ws_data)
+        bs = _wrap_variable(bs_data)
+        hy, ys = functions.n_step_rnn(
+            self.n_layers, self.dropout, h, ws, bs, xs,
+            activation=self.activation, lengths=lengths)
+
+        assert len(ys) == sum(lengths)
+        sections = numpy.cumsum(lengths[:-1])
+        ys = chainer.functions.split_axis(ys, sections, 0)
+
+        e_hy = self.hx.copy()
+        for x, y in six.moves.zip(self.xs, ys):
+            batch = x.shape[0]
+            for layer in range(self.n_layers):
+                w = self.ws[layer]
+                b = self.bs[layer]
+                h_prev = e_hy[layer, :batch]
+                if self.activation == 'tanh':
+                    e_h = numpy.tanh(x.dot(w[0].T) +
+                                     h_prev.dot(w[1].T) + b[0] + b[1])
+                elif self.activation == 'relu':
+                    e_h = _relu(x.dot(w[0].T) +
+                                h_prev.dot(w[1].T) + b[0] + b[1])
+
+                e_hy[layer, :batch] = e_h
+
+                x = e_h
+
+            testing.assert_allclose(y.data, x, rtol=1e-4, atol=1e-4)
+
+        testing.assert_allclose(hy.data, e_hy, rtol=1e-4, atol=1e-4)
+
+    def test_forward_concatenated_cpu(self):
+        self.check_forward_concatenated(self.hx, self.xs, self.ws, self.bs)
+
+    def check_forward_concatenated_gpu(self, use_cudnn):
+        with chainer.using_config('use_cudnn', use_cudnn):
+            self.check_forward(
+                _to_gpu(self.hx),
+                _to_gpu(self.xs),
+                _to_gpu(self.ws),
+                _to_gpu(self.bs))
+
+    @attr.gpu
+    def test_forward_concatenated_gpu_cudnn_always(self):
+        self.check_forward_gpu('always')
+
+    @attr.gpu
+    def test_forward_concatenated_gpu_cudnn_never(self):
         self.check_forward_gpu('never')
 
     def check_backward(self, h_data, xs_data, ws_data, bs_data,
