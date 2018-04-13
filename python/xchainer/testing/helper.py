@@ -8,26 +8,6 @@ import pytest
 import xchainer
 from xchainer.testing import array
 
-_float_dtypes = [
-    xchainer.float32,
-    xchainer.float64,
-]
-
-
-_signed_dtypes = [
-    xchainer.int8,
-    xchainer.int16,
-    xchainer.int32,
-    xchainer.int64,
-    xchainer.float32,
-    xchainer.float64,
-]
-
-
-_unsigned_dtypes = [
-    xchainer.uint8,
-]
-
 
 def _call_func(impl, args, kw):
     try:
@@ -64,20 +44,6 @@ numpy
         pytest.fail(msg)
 
 
-def _make_positive_indices(impl, args, kw):
-    ks = [k for k, v in kw.items() if v in _unsigned_dtypes]
-    for k in ks:
-        kw[k] = numpy.intp
-    mask = numpy.array(impl(*args, **kw)) >= 0
-    return numpy.nonzero(mask)
-
-
-def _contains_signed_and_unsigned(kw):
-    vs = list(kw.values())
-    return any(d in vs for d in _unsigned_dtypes) and \
-        any(d in vs for d in _float_dtypes + _signed_dtypes)
-
-
 def _make_decorator(check_func, name, device_check, type_check, accept_error):
     def decorator(impl):
         @functools.wraps(impl)
@@ -98,23 +64,7 @@ def _make_decorator(check_func, name, device_check, type_check, accept_error):
 
             assert xchainer_result.shape == numpy_result.shape
 
-            # Behavior of assigning a negative value to an unsigned integer
-            # variable is undefined.
-            # nVidia GPUs and Intel CPUs behave differently.
-            # To avoid this difference, we need to ignore dimensions whose
-            # values are negative.
-            skip = False
-            if _contains_signed_and_unsigned(kw) and \
-                    xchainer_result.dtype in _unsigned_dtypes:
-                inds = _make_positive_indices(impl, args, kw)
-                if xchainer_result.shape == ():
-                    skip = inds[0].size == 0
-                else:
-                    xchainer_result = numpy.array(xchainer_result)[inds]
-                    numpy_result = numpy.array(numpy_result)[inds]
-
-            if not skip:
-                check_func(xchainer_result, numpy_result)
+            check_func(xchainer_result, numpy_result)
             if type_check:
                 assert numpy.dtype(xchainer_result.dtype.name) == numpy_result.dtype
             if device_check:
