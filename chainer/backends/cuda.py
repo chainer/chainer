@@ -174,7 +174,7 @@ def get_device_from_array(*arrays):
         Especially note that, unlike :func:`get_array_module`, this method
         does not recognize :class:`~chainer.Variable` objects.
         If you need to get device from the :class:`~chainer.Variable` instance
-        ``v``, you need to use ``get_device_from_array(v.data)``.
+        ``v``, you need to use ``get_device_from_array(v.array)``.
 
     Args:
         arrays (:class:`cupy.ndarray` or list of :class:`cupy.ndarray`):
