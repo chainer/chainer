@@ -220,6 +220,7 @@ _none_or_dtype = [
     'int8',
     'int16',
     'int32',
+    'int64',
     'uint8',
     'float32',
     'float64',
