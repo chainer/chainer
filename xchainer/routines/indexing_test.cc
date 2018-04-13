@@ -123,7 +123,10 @@ TEST_P(IndexingTest, TakeBackward) {
     Array eps = Full(input_shape, 1e-3);
 
     CheckBackwardComputation(
-            [&](const std::vector<Array>& xs) -> std::vector<Array> { return {Take(xs[0], indices, axis)}; }, {a}, {go}, {eps});
+            [&indices, axis](const std::vector<Array>& xs) -> std::vector<Array> { return {Take(xs[0], indices, axis)}; },
+            {a},
+            {go},
+            {eps});
 }
 
 TEST_P(IndexingTest, TakeDoubleBackward) {
@@ -143,7 +146,7 @@ TEST_P(IndexingTest, TakeDoubleBackward) {
     Array epso = Full(output_shape, 1e-3);
 
     CheckDoubleBackwardComputation(
-            [&](const std::vector<Array>& xs) -> std::vector<Array> {
+            [&indices, axis](const std::vector<Array>& xs) -> std::vector<Array> {
                 auto y = Take(xs[0], indices, axis);
                 return {y * y};  // to make it nonlinear
             },
