@@ -43,7 +43,7 @@ class DiagEinSum(function_node.FunctionNode):
             self.in_subs,
             ''.join(ein_sub)
         )
-        y = utils.force_array(xp.einsum(subscript, *inputs))  # .copy()  # copy() for debug
+        y = utils.force_array(xp.einsum(subscript, *inputs))
 
         for i, i0 in enumerate(diag_map):
             if i0 is None:
@@ -75,36 +75,17 @@ class DiagEinSum(function_node.FunctionNode):
         if self.n_args >= 2:
             inputs = self.get_retained_inputs()
         else:
+            # TODO(kataoka): fix
             xp = cuda.get_array_module(grad_outputs[0])
-            inputs = [xp.zeros(self.input_shape, dtype=grad_outputs[0].dtype)]  # TODO(kataoka): f
+            inputs = [xp.zeros(self.input_shape, dtype=grad_outputs[0].dtype)]
         """
 
         g, = grad_outputs
 
         fwd_in_subs = self.in_subs.split(',')
         fwd_out_sub = self.out_sub
-        ret = []
-        for i in indices:
-            bwd_in_subs = ','.join([
-                (fwd_out_sub if j == i else s)
-                for j, s in enumerate(fwd_in_subs)
-            ])
-            bwd_inputs = tuple(
-                (g if j == i else x)
-                for j, x in enumerate(inputs)
-            )
-            gx, = DiagEinSum(bwd_in_subs, fwd_in_subs[i], inputs[i].shape) \
-                .apply(bwd_inputs)
-            gx += inputs[i] * 0.  # yabai
-            ret.append(gx)
-        ret = tuple(ret)
-        print('{}->{}.backward'.format(self.in_subs, self.out_sub))
-        print(grad_outputs)
-        print(ret)
-        return ret
- 
-        """
         return tuple(
+            inputs[i] * 0. +  # it seems a bug of gradient_check
             DiagEinSum(
                 in_subs=','.join([
                     (fwd_out_sub if j == i else s)
@@ -118,17 +99,6 @@ class DiagEinSum(function_node.FunctionNode):
             ))[0]
             for i in indices
         )
-        """
-
-    def backward_accumulate(self, target_input_indexes, grad_outputs,
-                            grad_inputs):
-        print('backward_accumulate')
-        print(grad_outputs)
-        print(grad_inputs)
-        ret = super().backward_accumulate(target_input_indexes, grad_outputs, grad_inputs)
-        print('return')
-        print(ret)
-        return ret
 
 
 def _diag_einsum(

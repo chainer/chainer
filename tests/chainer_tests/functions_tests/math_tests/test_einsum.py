@@ -19,24 +19,24 @@ def _tuple_to_gpu(xs):
 @testing.parameterize(*testing.product_dict(
     [
         {'subscripts': 'ij,jk->ik', 'shapes': ((2, 3), (3, 4))},
-        # {'subscripts': ',ij->i', 'shapes': ((), (3, 4),)},
-        # {'subscripts': 'kj,ji->ik', 'shapes': ((2, 3), (3, 4))},
-        # {'subscripts': 'ij,jk,kl->il', 'shapes': ((5, 2), (2, 3), (3, 4))},
-        # {'subscripts': 'ij,ij->i', 'shapes': ((2, 3), (2, 3))},
-        # {'subscripts': 'ij,jk', 'shapes': ((2, 3), (3, 4))},
-        # {'subscripts': 'i->', 'shapes': ((3,),)},
-        # {'subscripts': 'ii', 'shapes': ((2, 2),)},
-        # {'subscripts': 'ii->i', 'shapes': ((2, 2),)},
-        # {'subscripts': 'j,j', 'shapes': ((3,), (3))},
-        # {'subscripts': 'j,ij', 'shapes': ((3,), (2, 3))},
-        # {'subscripts': 'j,ij->', 'shapes': ((3,), (1, 3))},
-        # {'subscripts': 'j,ij->', 'shapes': ((1,), (2, 1))},
-        # {'subscripts': 'j,ij->', 'shapes': ((3,), (2, 3))},
-        # {'subscripts': 'j,iij', 'shapes': ((3,), (2, 2, 3))},
-        # {'subscripts': 'iij,kkj', 'shapes': ((2, 2, 3), (4, 4, 3))},
+        {'subscripts': ',ij->i', 'shapes': ((), (3, 4),)},
+        {'subscripts': 'kj,ji->ik', 'shapes': ((2, 3), (3, 4))},
+        {'subscripts': 'ij,jk,kl->il', 'shapes': ((5, 2), (2, 3), (3, 4))},
+        {'subscripts': 'ij,ij->i', 'shapes': ((2, 3), (2, 3))},
+        {'subscripts': 'ij,jk', 'shapes': ((2, 3), (3, 4))},
+        {'subscripts': 'i->', 'shapes': ((3,),)},
+        {'subscripts': 'ii', 'shapes': ((2, 2),)},
+        {'subscripts': 'ii->i', 'shapes': ((2, 2),)},
+        {'subscripts': 'j,j', 'shapes': ((3,), (3))},
+        {'subscripts': 'j,ij', 'shapes': ((3,), (2, 3))},
+        {'subscripts': 'j,ij->', 'shapes': ((3,), (1, 3))},
+        {'subscripts': 'j,ij->', 'shapes': ((1,), (2, 1))},
+        {'subscripts': 'j,ij->', 'shapes': ((3,), (2, 3))},
+        {'subscripts': 'j,iij', 'shapes': ((3,), (2, 2, 3))},
+        {'subscripts': 'iij,kkj', 'shapes': ((2, 2, 3), (4, 4, 3))},
     ],
     [
-        {'dtype': numpy.float16},
+        # {'dtype': numpy.float16},
         {'dtype': numpy.float32},
         {'dtype': numpy.float64},
     ]
@@ -49,7 +49,8 @@ class TestEinSum(unittest.TestCase):
             for shape in self.shapes
         ])
         self.forward_answer = numpy.einsum(self.subscripts, *self.inputs)
-        self.g = self._setup_tensor(-1, 1, self.forward_answer.shape, self.dtype)
+        self.g = self._setup_tensor(
+            -1, 1, self.forward_answer.shape, self.dtype)
         self.gg_inputs = tuple([
             self._setup_tensor(-1, 1, shape, self.dtype)
             for shape in self.shapes
@@ -71,11 +72,11 @@ class TestEinSum(unittest.TestCase):
 
     @attr.gpu
     def test_einsum_forward_gpu(self):
-        inputs = [cuda.to_gpu(x) for x in self.inputs]
+        inputs = _tuple_to_gpu(self.inputs)
         if self.dtype == numpy.float16:
-            self.check_forward(self.inputs, atol=1e-3, rtol=1e-3)
+            self.check_forward(inputs, atol=1e-3, rtol=1e-3)
         else:
-            self.check_forward(self.inputs)
+            self.check_forward(inputs)
 
     def check_backward(self, inputs_data, output_grad, atol, rtol):
         gradient_check.check_backward(
@@ -151,11 +152,11 @@ class TestEinSumInvalid(unittest.TestCase):
     [
         {'subscripts': 'i->ij', 'i_shapes': ((3,),), 'o_shape': (3, 4)},
         {'subscripts': '->i', 'i_shapes': ((),), 'o_shape': (3,)},
-        {'subscripts': ',i->ij', 'i_shapes': ((), (3,),), 'o_shape': (3, 4)},
+        {'subscripts': ',i->ij', 'i_shapes': ((), (2,),), 'o_shape': (2, 3)},
         {'subscripts': ',ij->i', 'i_shapes': ((), (3, 4),), 'o_shape': (3,)},
     ],
     [
-        {'dtype': numpy.float16},
+        # {'dtype': numpy.float16},
         {'dtype': numpy.float32},
         {'dtype': numpy.float64},
     ]
