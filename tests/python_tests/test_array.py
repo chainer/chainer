@@ -290,21 +290,21 @@ def test_invalid_asscalar(device, shape):
         bool(a)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal(device_check=False)
 def test_transpose(xp, shape, dtype):
     ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
     array = xp.array(ndarray)
     return array.transpose()
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal(device_check=False)
 def test_T(xp, shape, dtype):
     ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
     array = xp.array(ndarray)
     return array.T
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal(device_check=False)
 def test_module_transpose(xp, shape, dtype):
     ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
     array = xp.array(ndarray)
@@ -401,7 +401,7 @@ _squeeze_params = [
 ]
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal(device_check=False)
 @pytest.mark.parametrize('shape,axis', _squeeze_params)
 def test_squeeze(xp, shape, axis):
     ndarray = _create_dummy_ndarray(shape, numpy.float32)
@@ -409,7 +409,7 @@ def test_squeeze(xp, shape, axis):
     return a.squeeze(axis)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal(device_check=False)
 @pytest.mark.parametrize('shape,axis', _squeeze_params)
 def test_module_squeeze(xp, shape, axis):
     ndarray = _create_dummy_ndarray(shape, numpy.float32)
@@ -440,7 +440,7 @@ def test_invalid_module_squeeze(xp, shape, axis):
     return xp.squeeze(a, axis)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal(device_check=False)
 @pytest.mark.parametrize('src_shape,dst_shape', [
     ((), ()),
     ((1,), (2,)),
@@ -453,14 +453,14 @@ def test_broadcast_to(xp, src_shape, dst_shape):
     return xp.broadcast_to(a, dst_shape)
 
 
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, TypeError))
+@xchainer.testing.numpy_xchainer_array_equal(device_check=False, accept_error=(xchainer.DimensionError, TypeError))
 def test_broadcast_to_auto_prefix(xp):
     ndarray = numpy.arange(2, dtype=numpy.float32)
     a = xp.array(ndarray)
     return xp.broadcast_to(a, (3, 2))
 
 
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, TypeError))
+@xchainer.testing.numpy_xchainer_array_equal(device_check=False, accept_error=(xchainer.DimensionError, TypeError))
 @pytest.mark.parametrize(('src_shape,dst_shape'), [
     ((3,), (2,)),
     ((3,), (3, 2)),
@@ -472,14 +472,16 @@ def test_invalid_broadcast_to(xp, src_shape, dst_shape):
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-def test_copy(xp, shape, dtype):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_copy(xp, shape, dtype, device):
     ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
     a = xp.array(ndarray)
     return a.copy()
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-def test_module_copy(xp, shape, dtype):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_module_copy(xp, shape, dtype, device):
     ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
     a = xp.array(ndarray)
     return xp.copy(a)
@@ -1092,7 +1094,7 @@ def test_array_backward():
     assert gx1.get_grad(graph_id='graph_1') is not None
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal(device_check=False)
 @pytest.mark.parametrize("shape,indices", [
     # empty indexing
     ((), ()),
