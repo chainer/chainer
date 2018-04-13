@@ -36,7 +36,7 @@ def _tuple_to_gpu(xs):
         {'subscripts': 'iij,kkj', 'shapes': ((2, 2, 3), (4, 4, 3))},
     ],
     [
-        # {'dtype': numpy.float16},
+        # {'dtype': numpy.float16},  see numpy issue #10899
         {'dtype': numpy.float32},
         {'dtype': numpy.float64},
     ]
