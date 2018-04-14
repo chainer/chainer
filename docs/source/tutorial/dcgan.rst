@@ -21,141 +21,10 @@ In the tutorial, you will learn the following things:
 3. Generative Adversarial Networks (GAN)
 4. Implementation of DCGAN in Chainer
 
-1. The basic idea of generative model
-======================================
-
-1.1 What is the Model?
------------------------
-
-In the field of science and engineering, we describe a system using mathematical
-concepts and language. The description is called as a **mathematical model**,
-and the process of developing a mathematical model is **mathematical modeling**.
-Especially, in the context of machine learning, we explain a target model by a
-map :math:`f` from an input :math:`x` to an output :math:`y`.
-
-.. math::
-    f: x \mapsto y
-    
-Therefore, the purpose of model training is obtaining the map :math:`f` from training data.
-In the case of unsupervised learning, we use the dataset of inputs
-:math:`\{s^{(n)}\}=\{d_1, d_2, \cdots, d_N\}` as the training data,
-and create the model :math:`f`.
-In supervised learning, we use the dataset of inputs and their outputs
-:math:`\{s^{(n)}\}=\{(d_1, c_1), \cdots, (d_N, c_N)\}`. As a simple example,
-let's consider a supervised learning problem such as classifying images into
-dogs or cats. Then, the training dataset consist of input images
-:math:`d_1, d_2, \cdots, d_N` and their labels
-:math:`c_1={\rm cat}, c_2={\rm dog}, \cdots, c_N={\rm cat}`.
-
-1.2 What is the Generative Model?
-----------------------------------
-
-When we think about the generative model, it models the probability distribution
-:math:`p: s \mapsto p(s)` which generates the training data :math:`s`. The one of 
-most simple ideas is that the generative model models the probability distribution
-:math:`p` with the map :math:`f`. We assign each :math:`x` and :math:`y` of
-:math:`f: x \mapsto y` as follows.
-
-* :math:`x` : the training data :math:`s`
-* :math:`y` : the likelihood of generating the training data :math:`s`
-
-In the case, because we model the probability distribution :math:`p` explicitly,
-we can calculate the likelihood :math:`p(s)`. In this situation, we can often optimize
-the parameters of :math:`p` to maximize the likelihood, and train the model with
-maximum likelihood estimation.
-So, there is an advantage that the training process is simple because you can just
-maximize the likelihood by optimizing the parameters. However, there is a
-disadvantage that we have to make a mechanism for sampling because we have only
-the way of calculating the likelihood.
-
-In the first place, we often just want to sample :math:`s \sim p(s)`
-according to the distribution in practice. The likelihood :math:`p(s)` is used
-only for model training. In the case, we sometimes do not model the probability distribution
-:math:`p(s)` directly, but other targets to facilitate sampling. 
-
-There are two approaches to model the probability distribution :math:`p(s)`.
-The first case is to model the probability distributions :math:`p(z)` and :math:`p(s|z)`
-by introducing the latent variable :math:`z`. The VAE, which is described later,
-belongs to this category.
-Second, we introduce the latent variable :math:`z` and model the sample generator
-`s = G(z)` which fits the distribution :math:`p(s)`. The GAN belongs to this category.
-These models can generate the training data :math:`s \sim p(s)` by generating
-the latent variable :math:`z` based on random numbers. 
-
-These generative models can be used for the following purposes:
-
-* Assistance for creative activities (e.g. coloring of line drawings)
-* Providing interfaces to people (e.g. generating natural sentences)
-* Reduction of data creation cost (e.g. use as a simulator)
-
-.. note::
-    When we talk about generative model, we sometimes explain it against discrimination
-    model in classification problem [1]. However, when we talk about generative
-    model in GAN, it is natural to define it as a model of probability distribution
-    that generates training data.
-
-2. The difference among GAN and other generative models
-========================================================
-
-As explained in the GAN tutorial in NIPS 2016 [2], the generative models can be classified into the categories
-as shown in the following figure:
-
-.. figure:: ../../image/dcgan/class-generative-model.png
-   :scale: 100%
-
-   cited from [1]
-
-Besides GAN, other famous generative models are Fully visible belief networks (FVBNs) and Variational autoencoder
-(VAE).
-
-2.1 Fully Visible Belief Networks (FVBNs)
-------------------------------------------
-
-FVBNs decomposes the probability distribution :math:`p({\bf s})` into one-dimensional probability distributions
-using the Bayes' theorem as shown in the following equation:
-
-.. math::
-    p_{\mathrm{model}}({\bf s}) = \prod^{n}_{i=1}p_{\mathrm{model}} (s_i | s_1, \cdots, s_{i-1})
-
-Since the dimensions from :math:`s_2, \cdots, s_n`, excluding the first dimension :math:`s_1`, are
-generated based on the dimensions previously generated, FVBNs can be said to be an autoregressive model.
-PixcelRNN and PixcelCNN, which are categorized as FVBNs, model one-dimensional distribution functions
-with Recurrent Neural Networks(RNN) and Convolutional Neural Networks(CNN), respectively.
-The advantage of FVBNs is that the model can learn with explicitly computable likelihood.
-The disadvantage is that the sampling cost can be expensive because each dimension can only be generated sequentially.
-
-2.2 Variational Auto-Encoder (VAE)
------------------------------------
-
-The VAE models the probability distribution :math:`p({\bf s})` that generates the training data as follows:
-
-.. math::
-    p_{\mathrm {model}}({\bf s}) = \int p_{\mathrm {model}}({\bf s}|{\bf z}) p_{\mathrm {model}}({\bf z}) d{\bf z}
-
-:math:`p_{\mathrm {model}}({\bf s})` is modeled by the two probability distributions
-:math:`p_{\mathrm {model}}({\bf z})` and :math:`p_{\mathrm {model}}({\bf s} | {\bf z})`
-using the latent variable :math:`\bf z`.
-
-When training a model using the maximum likelihood estimation on :math:`\{{\bf s}^{(n)}\}`,
-we should calculate :math:`p_{\mathrm {model}}({\bf s})` or :math:`p_{\mathrm {model}}({\bf z}|{\bf s})`
-explicitly. However, because :math:`p_{\mathrm {model}}({\bf s})` includes integral operator as
-shown in above equation, it is difficult to calculate :math:`p_{\mathrm {model}}({\bf s})` and
-:math:`p_{\mathrm {model}}({\bf z}|{\bf s})`.
-
-So, VAE approximates :math:`p_{\mathrm {model}}({\bf z}|{\bf s})` with
-:math:`q_{\mathrm {model}}({\bf z}|{\bf s})`.
-As a result, we can calculate the lower bound of the likelihood,
-and train the model by maximizing the lower bound of the likelihood. The advantage of VAE is
-that sampling is low cost, and you can estimate latent variables by
-:math:`q_{\mathrm {model}}({\bf z}|{\bf s})`.
-The disadvantage is that calculation of the probability distribution :math:`p_{\mathrm {model}}({\bf s})`
-is difficult, and approximate values are used for training model.
-
-
-3. Generarive Adversarial Networks (GAN)
+1. Generarive Adversarial Networks (GAN)
 =========================================
 
-3.1 What is the GAN?
+1.1 What is the GAN?
 ---------------------
 
 Unlike FVBNs and VAE, GAN does not explicitly models the probability distribution :math:`p({\bf s})`
@@ -170,7 +39,7 @@ The disadvantage is that we cannot calculate the probability distribution
 :math:`p_{\mathrm {model}}({\bf s})` because we do not model any probability distribution,
 and we cannot infer the latent variable :math:`\bf z` from a sample.
 
-3.2 How the GAN works?
+1.2 How the GAN works?
 -----------------------
 
 As explained above, GAN uses the two models, the generator and the discriminator. In other words,
@@ -238,7 +107,7 @@ discriminator :math:`D({\bf s})` and the generator :math:`G({\bf x})` [5].
 
    cited from [5]
 
-3.3 What is DCGAN?
+1.3 What is DCGAN?
 -------------------
 
 In this section, we will introduce the model called DCGAN(Deep Convolutional GAN) proposed by Radford et al.[6].
@@ -257,14 +126,14 @@ for successful learning:
 3. Use batch normalization layers in the generator and the discriminator
 4. Use leaky ReLU activation functions in the discriminator
 
-4. Implementation of DCGAN in Chainer
+2. Implementation of DCGAN in Chainer
 =======================================
 
 There is an example of DCGAN in the official repository of Chainer,
 so we will explain how to implement DCGAN based on this:
 `chainer/examples/dcgan <https://github.com/chainer/chainer/tree/master/examples/dcgan>`_
 
-4.1 Define the generator model
+2.1 Define the generator model
 -------------------------------
 
 First, let's define a network for the generator.
@@ -302,7 +171,7 @@ is same with the image above.
     the output and input have to be concatenated with reshaping by 
     :class:`~chainer.functions.reshape`.
 
-4.2 Define the discriminator model
+2.2 Define the discriminator model
 -----------------------------------
 
 In addtion, let's define a network for the discriminator.
@@ -324,7 +193,7 @@ of the ``Generator``. However, there are minor different points:
    :pyobject: add_noise
    :caption: train_dcgan.py
 
-4.3 Prepare dataset and iterator
+2.3 Prepare dataset and iterator
 ---------------------------------
 
 Let's retrieve the CIFAR-10 dataset by using Chainer's dataset utility function
@@ -348,7 +217,7 @@ the interval ``[0, scale]``.
    :caption: train_dcgan.py
    :dedent: 4
 
-4.4 Prepare model and optimizer
+2.4 Prepare model and optimizer
 --------------------------------
 
 .. literalinclude:: ../../../examples/dcgan/train_dcgan.py
@@ -365,7 +234,7 @@ the interval ``[0, scale]``.
    :caption: train_dcgan.py
    :dedent: 4
 
-4.5 Prepare updater
+2.5 Prepare updater
 --------------------
 
 .. literalinclude:: ../../../examples/dcgan/updater.py
@@ -381,7 +250,7 @@ the interval ``[0, scale]``.
    :dedent: 4
 
 
-4.6 Prepare trainer and run
+2.6 Prepare trainer and run
 ----------------------------
 
 .. literalinclude:: ../../../examples/dcgan/train_dcgan.py
@@ -398,7 +267,7 @@ the interval ``[0, scale]``.
    :caption: train_dcgan.py
    :dedent: 4
 
-4.7 Start training
+2.7 Start training
 -------------------
 
 We can run the exemple as follows.
@@ -426,7 +295,7 @@ on the top of this page shows generated images at the each 10 epoch.
 
 .. image:: ../../image/dcgan/generated-image-epoch1000.png
 
-5. Reference
+3. Reference
 =============
 * [1] `Wikipedia: Generative model <https://en.wikipedia.org/wiki/Generative_model>`_
 * [2] `NIPS 2016 Tutorial: Generative Adversarial Networks <http://arxiv.org/abs/1701.00160>`_
