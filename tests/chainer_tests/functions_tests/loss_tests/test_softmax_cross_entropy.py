@@ -571,19 +571,13 @@ class TestNonDefaultIgnoreLabel(unittest.TestCase):
 
 
 @testing.parameterize(*(testing.product({
-    'shape': [None, (2, 3), (2, 3, 2), (2, 3, 2, 2)],
+    'shape_ignore': [(None, None),
+                     ((2, 3), (slice(None),)),
+                     ((2, 3, 2), (0,)),
+                     ((2, 3, 2, 2), (0, 1, 0))],
     'normalize': [True, False],
-    'ignore_index': [None, (slice(None),), (0,), (0, 1), (0, 1, 0)],
-    'dtype': [numpy.float32],
-    'weight_apply': [False, True],
-    'use_cudnn': ['always', 'auto', 'never'],
-}) + testing.product({
-    'shape': [None, (2, 3), (2, 3, 2), (2, 3, 2, 2)],
-    'normalize': [True, False],
-    'ignore_index': [(0, 1)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'weight_apply': [False, True],
-    'use_cudnn': ['always', 'auto', 'never'],
 })))
 class TestForwardConsistency(unittest.TestCase):
 
@@ -592,6 +586,7 @@ class TestForwardConsistency(unittest.TestCase):
     # agree.
 
     def setUp(self):
+        self.shape, self.ignore_index = self.shape_ignore
         if self.shape is None:
             if self.dtype == numpy.float16:
                 self.x = numpy.array([[-5, 1]], dtype=self.dtype)
@@ -634,7 +629,9 @@ class TestForwardConsistency(unittest.TestCase):
         loss_single = f(False)
         loss_double = f(True)
 
-        check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        check_forward_options = {}
+        if self.dtype == numpy.float16:
+            check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
         testing.assert_allclose(
             loss_single, loss_double, **check_forward_options)
 
@@ -642,8 +639,19 @@ class TestForwardConsistency(unittest.TestCase):
         self.check_consistency(numpy)
 
     @attr.gpu
-    def test_consistency_gpu(self):
-        self.check_consistency(cuda.cupy)
+    def test_consistency_gpu_always(self):
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_consistency(cuda.cupy)
+
+    @attr.gpu
+    def test_consistency_gpu_auto(self):
+        with chainer.using_config('use_cudnn', 'auto'):
+            self.check_consistency(cuda.cupy)
+
+    @attr.gpu
+    def test_consistency_gpu_never(self):
+        with chainer.using_config('use_cudnn', 'never'):
+            self.check_consistency(cuda.cupy)
 
 
 testing.run_module(__name__, __file__)
