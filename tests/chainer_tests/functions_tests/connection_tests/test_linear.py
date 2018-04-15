@@ -199,19 +199,19 @@ class TestLinearNBatchAxesBoundaryCondition(unittest.TestCase):
 
     def setUp(self):
         self.W = numpy.random.uniform(
-            -1, 1, (2, input_size)).astype(numpy.float32)
+            -1, 1, (2, 15)).astype(numpy.float32)
         self.x = numpy.random.uniform(
-            -1, 1, batch_shape + data_shape).astype(numpy.float32)
+            -1, 1, (3, 3, 5)).astype(numpy.float32)
 
     def test_negative(self):
         n_batch_axes = -1
         with self.assertRaises(ValueError):
-            y = functions.linear(self.x, self.W, n_batch_axes=n_batch_axes)
+            functions.linear(self.x, self.W, n_batch_axes=n_batch_axes)
 
     def test_zero(self):
         n_batch_axes = 0
         with self.assertRaises(ValueError):
-            y = functions.linear(self.x, self.W, n_batch_axes=n_batch_axes)
+            functions.linear(self.x, self.W, n_batch_axes=n_batch_axes)
 
 
 testing.run_module(__name__, __file__)
