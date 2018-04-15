@@ -195,21 +195,25 @@ def linear(x, W, b=None, n_batch_axes=1):
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable, which is a :math:`(s_B, s_1, \
-            s_2, ..., s_n)`-shaped float array. Its first dimension
-            :math:`(s_B)` is assumed to be the *minibatch dimension*. The
-            other dimensions are treated as concatenated one dimension whose
-            size must be :math:`(s_1 * ... * s_n = N)`.
+        :class:`cupy.ndarray`): Input variable, which is a :math:`(s_1, s_2, \
+            ..., s_n)`-shaped float array. Its first ``n_batch_axes``
+            dimensions are handled as *minibatch dimensions*. The
+            other dimensions are handled as concatenated one dimension whose
+            size must be :math:`(s_{\\rm n_batch_axes} * ... * s_n = N)`.
         W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Weight variable of shape :math:`(M, N)`,
-            where :math:`(N = s_1 * ... * s_n)`.
+            where :math:`(N = s_{\\rm n_batch_axes} * ... * s_n)`.
         b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Bias variable (optional) of shape
             :math:`(M,)`.
+        n_batch_axes (int): The number of batch axes. The default is 1. The
+            input variable is reshaped into
+            :math:`{\\rm n_batch_axes} + 1`-dimensional tensor.
+            This should be greater than 0.
 
     Returns:
         ~chainer.Variable: Output variable. A float array with shape
-        of :math:`(s_B, M)`.
+        of :math:`(s_1, ..., s_{\\rm n_batch_axes}, M)`.
 
     .. seealso:: :class:`~chainer.links.Linear`
 
