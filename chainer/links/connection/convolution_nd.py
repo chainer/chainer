@@ -93,4 +93,3 @@ class ConvolutionND(link.Link):
             self._initialize_params(x.shape[1])
         return convolution_nd.convolution_nd(
             x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all)
-
