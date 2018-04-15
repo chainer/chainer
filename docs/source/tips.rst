@@ -106,16 +106,16 @@ Now your model is accelerated by iDeep!
 Please note that not all functions and optimizers support iDeep acceleration.
 Also note that iDeep will not be used depending on the shape and data type of the input data.
 
-My training process gets stucked when using MultiprocessIterator
-----------------------------------------------------------------
+My training process gets stuck when using MultiprocessIterator
+--------------------------------------------------------------
 
-When you are using OpenCV somewhere in your code and the :class:`~chainer.iterators.MultiprocessIterator` in used in the
-training code, the training loop may get stucked at some point. In such situation, there are several workarounds to
-prevent the process got stucked.
+When you are using OpenCV somewhere in your code and the :class:`~chainer.iterators.MultiprocessIterator` is used in the
+training code, the training loop may get stuck at some point. In such situation, there are several workarounds to
+prevent the process got stuck.
 
 1. Set the environment variable as follows: ``OMP_NUM_THREADS=1``
 2. Add ``cv2.setNumThreads(0)`` right after ``import cv2`` in your training script.
 3. Use :class:`~chainer.iterators.MultithreadIterator` instead of :class:`~chainer.iterators.MultiprocessIterator`.
 
 This problem is originally reported here: `A training loop got stuck in a certain condition with multi-processing updater and opencv <https://github.com/chainer/chainer/issues/2903>`_
-for Chainer and the discussion on related problems is still going here `OpenCV + Python multiprocessing breaks on OSX <https://github.com/opencv/opencv/issues/5150>`_.
+for Chainer and the discussion on related problems is still going here: `OpenCV + Python multiprocessing breaks on OSX <https://github.com/opencv/opencv/issues/5150>`_.
