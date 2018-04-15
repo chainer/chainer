@@ -198,7 +198,8 @@ class TestLinearBackwardNoncontiguousGradOutputs(unittest.TestCase):
 class TestLinearNBatchAxesBoundaryCondition(unittest.TestCase):
 
     def setUp(self):
-        self.W = numpy.random.uniform(-1, 1, (2, input_size)).astype(numpy.float32)
+        self.W = numpy.random.uniform(
+            -1, 1, (2, input_size)).astype(numpy.float32)
         self.x = numpy.random.uniform(
             -1, 1, batch_shape + data_shape).astype(numpy.float32)
 
