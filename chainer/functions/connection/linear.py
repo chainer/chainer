@@ -209,6 +209,7 @@ def linear(x, W, b=None, n_batch_axes=1):
         n_batch_axes (int): The number of batch axes. The default is 1. The
             input variable is reshaped into
             :math:`{\\rm n_batch_axes} + 1`-dimensional tensor.
+            This should be greater than 0.
 
     Returns:
         ~chainer.Variable: Output variable. A float array with shape
