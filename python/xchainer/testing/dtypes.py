@@ -1,5 +1,3 @@
-import functools
-
 import numpy
 import pytest
 

@@ -84,13 +84,13 @@ Dtype GetDtype(py::handle handle) {
     }
 
     // From Python types
-    if (handle.ptr() == reinterpret_cast<PyObject*>(&PyBool_Type)) {
+    if (handle.ptr() == reinterpret_cast<PyObject*>(&PyBool_Type)) {  // NOLINT: reinterpret_cast
         return Dtype::kBool;
     }
-    if (handle.ptr() == reinterpret_cast<PyObject*>(&PyLong_Type)) {
+    if (handle.ptr() == reinterpret_cast<PyObject*>(&PyLong_Type)) {  // NOLINT: reinterpret_cast
         return Dtype::kInt64;
     }
-    if (handle.ptr() == reinterpret_cast<PyObject*>(&PyFloat_Type)) {
+    if (handle.ptr() == reinterpret_cast<PyObject*>(&PyFloat_Type)) {  // NOLINT: reinterpret_cast
         return Dtype::kFloat64;
     }
 
