@@ -5,6 +5,15 @@ class ShuffleOrderSampler(object):
 
     """Sampler that generates random orders.
 
+    This is expected to be used together with Chainer's iterators.
+    An order sampler is called by an iterator every epoch.
+
+    The two lines below create basically the same objects.
+
+    >>> chainer.iterators.MultiProcessIterator(dataset, 1, shuffle=True)
+    >>> chainer.iterators.MultiProcessIterator(
+    ...     dataset, 1, order_sampler=ShuffleOrderSampler())
+
     """
 
     def __init__(self, seed=None):
@@ -36,6 +45,9 @@ class ShuffleOrderSampler(object):
 class NoShuffleOrderSampler(object):
 
     """Sampler that generates fixed orders.
+
+    This is expected to be used together with Chainer's iterators.
+    An order sampler is called by an iterator every epoch.
 
     """
 
