@@ -5,6 +5,28 @@ import xchainer
 # NumPy-like assertion functions that accept both NumPy and xChainer arrays
 
 
+def _check_xchainer_attributes(x):
+    '''Check basic conditions that are assumed to hold true for any given xChainer array.'''
+    if not isinstance(x, xchainer.Array):
+        return
+    assert not x.is_grad_required()
+
+
+def _check_equal_attributes(x, y):
+    '''Check conditions that are assumed to hold true for both NumPy and xChainer arrays.'''
+    # TODO(sonots): Uncomment after strides compatibility between xChainer and NumPy is implemented.
+    # assert x.strides == y.strides
+    pass
+
+
+# TODO(hvy): Remove the following function if conversion from xchainer.Array to numpy.ndarray via buffer protocol supports device transfer.
+def _as_native(x):
+    if isinstance(x, xchainer.Array):
+        return x.to_device('native:0')
+    assert isinstance(x, numpy.ndarray) or numpy.isscalar(x)
+    return x
+
+
 def assert_allclose(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True):
     """Raises an AssertionError if two array_like objects are not equal up to a tolerance.
 
@@ -19,17 +41,12 @@ def assert_allclose(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose
              are appended to the error message.
     .. seealso:: :func:`numpy.testing.assert_allclose`
     """
-    # TODO(hvy): Uncomment after strides compatibility between xchaienr and numpy is implemented.
-    # assert x.strides == y.strides
-    # TODO(hvy): Remove following explicit `to_device` transfer if conversion from
-    # xchainer.Array to numpy.ndarray via buffer protocol supports the device transfer.
-    if isinstance(x, xchainer.Array):
-        assert not x.is_grad_required()
-        x = x.to_device('native:0')
-    if isinstance(y, xchainer.Array):
-        assert not x.is_grad_required()
-        y = y.to_device('native:0')
-    numpy.testing.assert_allclose(x, y, rtol=rtol, atol=atol, equal_nan=equal_nan, err_msg=err_msg, verbose=verbose)
+    _check_xchainer_attributes(x)
+    _check_xchainer_attributes(y)
+    _check_equal_attributes(x, y)
+
+    numpy.testing.assert_allclose(
+        _as_native(x), _as_native(y), rtol=rtol, atol=atol, equal_nan=equal_nan, err_msg=err_msg, verbose=verbose)
 
 
 def assert_array_equal(x, y, err_msg='', verbose=True):
@@ -43,14 +60,8 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
              are appended to the error message.
     .. seealso:: :func:`numpy.testing.assert_array_equal`
     """
-    # TODO(sonots): Uncomment after strides compatibility between xchaienr and numpy is implemented.
-    # assert x.strides == y.strides
-    # TODO(sonots): Remove following explicit `to_device` transfer if conversion from
-    # xchainer.Array to numpy.ndarray via buffer protocol supports the device transfer.
-    if isinstance(x, xchainer.Array):
-        assert not x.is_grad_required()
-        x = x.to_device('native:0')
-    if isinstance(y, xchainer.Array):
-        assert not x.is_grad_required()
-        y = y.to_device('native:0')
-    numpy.testing.assert_array_equal(x, y, err_msg=err_msg, verbose=verbose)
+    _check_xchainer_attributes(x)
+    _check_xchainer_attributes(y)
+    _check_equal_attributes(x, y)
+
+    numpy.testing.assert_array_equal(_as_native(x), _as_native(y), err_msg=err_msg, verbose=verbose)
