@@ -6,7 +6,7 @@ import six
 import warnings
 
 from chainer.dataset import iterator
-from chainer.iterators.order_samplers import no_shuffle_order_sampler
+from chainer.iterators.order_samplers import NoShuffleOrderSampler
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -61,7 +61,7 @@ class MultithreadIterator(iterator.Iterator):
             if self._shuffle:
                 order_sampler = ShuffleOrderSampler()
             else:
-                order_sampler = no_shuffle_order_sampler
+                order_sampler = NoShuffleOrderSampler()
         self.order_sampler = order_sampler
 
         self.n_threads = n_threads

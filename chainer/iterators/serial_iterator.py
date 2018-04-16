@@ -4,8 +4,8 @@ import numpy
 import warnings
 
 from chainer.dataset import iterator
-from chainer.iterators.order_samplers import no_shuffle_order_sampler
-from chainer.iterators.order_samplers import shuffle_order_sampler
+from chainer.iterators.order_samplers import NoShuffleOrderSampler
+from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
 class SerialIterator(iterator.Iterator):
@@ -56,9 +56,9 @@ class SerialIterator(iterator.Iterator):
                           'the custom `order_sampler` is prioritized.')
         if order_sampler is None:
             if self._shuffle:
-                order_sampler = shuffle_order_sampler
+                order_sampler = ShuffleOrderSampler()
             else:
-                order_sampler = no_shuffle_order_sampler
+                order_sampler = NoShuffleOrderSampler()
         self.order_sampler = order_sampler
 
         self.reset()
