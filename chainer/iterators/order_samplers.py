@@ -3,7 +3,7 @@ import numpy
 
 class ShuffleOrderSampler(object):
 
-    """The order sampler when shuffle option is True
+    """Sampler that generates random orders.
 
     """
 
@@ -35,7 +35,7 @@ class ShuffleOrderSampler(object):
 
 class NoShuffleOrderSampler(object):
 
-    """The default order sampler when shuffle option is False.
+    """Sampler that generates fixed orders.
 
     """
 
