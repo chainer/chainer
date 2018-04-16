@@ -80,9 +80,8 @@ class DiagEinSum(function_node.FunctionNode):
         subscript = '{}->{}'.format(
             self.in_subs,
             ''.join(ein_sub)
-        )
-        y = utils.force_array(
-            xp.einsum(subscript.replace('@', '...'), *inputs))
+        ).replace('@', '...')
+        y = utils.force_array(xp.einsum(subscript, *inputs))
 
         shape = list(y.shape)
         for i, i0 in diag_map:
@@ -92,7 +91,7 @@ class DiagEinSum(function_node.FunctionNode):
                     "Give out_shape to put new subscripts in the result"
                 shape.insert(i, self.out_shape[i])
                 y = xp.broadcast_to(xp.expand_dims(y, axis=i), shape)
-            elif i0 != i:
+            else:
                 # make diagonal
                 size = shape[i0]
                 shape.insert(i, size)
