@@ -11,7 +11,7 @@ import numpy
 import six
 
 from chainer.dataset import iterator
-from chainer.iterators.order_samplers import no_shuffle_order_sampler
+from chainer.iterators.order_samplers import NoShuffleOrderSampler
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -85,7 +85,7 @@ class MultiprocessIterator(iterator.Iterator):
             if self.shuffle:
                 order_sampler = ShuffleOrderSampler()
             else:
-                order_sampler = no_shuffle_order_sampler
+                order_sampler = NoShuffleOrderSampler()
         self.order_sampler = order_sampler
 
         self._comm = _Communicator(self.n_prefetch)

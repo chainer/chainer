@@ -3,6 +3,10 @@ import numpy
 
 class ShuffleOrderSampler(object):
 
+    """The order sampler when shuffle option is True
+
+    """
+
     def __init__(self, seed=None):
         # Use a distinct RandomState in the thread
         # for deterministic random number generation.
@@ -13,7 +17,7 @@ class ShuffleOrderSampler(object):
         self._random = numpy.random.RandomState(seed)
 
     def __call__(self, current_order, current_position):
-        """The order sampler of an iterator when shuffle option is True.
+        """Sample the next order.
 
         Args:
             current_order (numpy.ndarray): 1-D array of indices.
@@ -29,17 +33,23 @@ class ShuffleOrderSampler(object):
         return self._random.permutation(len(current_order))
 
 
-def no_shuffle_order_sampler(current_order, current_position):
-    """The default order sampler of an iterator when shuffle option is False.
+class NoShuffleOrderSampler(object):
 
-    Args:
-        current_order (numpy.ndarray): 1-D array of indices.
-            The length should be the same as the dataset to sample
-            data from.
-        current_position (int): The current position of an iterator.
-
-    Returns:
-        None:
+    """The default order sampler when shuffle option is False.
 
     """
-    return None
+
+    def __call__(self, current_order, current_position):
+        """Sample the next order.
+
+        Args:
+            current_order (numpy.ndarray): 1-D array of indices.
+                The length should be the same as the dataset to sample
+                data from.
+            current_position (int): The current position of an iterator.
+
+        Returns:
+            None:
+
+        """
+        return None
