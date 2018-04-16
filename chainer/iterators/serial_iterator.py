@@ -53,8 +53,7 @@ class SerialIterator(iterator.Iterator):
         if self._shuffle and order_sampler is not None:
             warnings.warn('`shuffle` is `True` and a custom '
                           '`order_sampler` is set. In this case, '
-                          'In this case, the custom `order_sampler` is '
-                          'prioritized.')
+                          'the custom `order_sampler` is prioritized.')
         if order_sampler is None:
             if self._shuffle:
                 order_sampler = shuffle_order_sampler
