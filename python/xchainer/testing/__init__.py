@@ -7,4 +7,8 @@ from xchainer.testing import array  # NOQA
 from xchainer.testing import helper  # NOQA
 
 from xchainer.testing.array import assert_array_equal  # NOQA
+from xchainer.testing.dtypes import all_dtypes  # NOQA
+from xchainer.testing.dtypes import float_dtypes  # NOQA
+from xchainer.testing.dtypes import parametrize_dtype_args  # NOQA
+from xchainer.testing.dtypes import signed_dtypes  # NOQA
 from xchainer.testing.helper import numpy_xchainer_array_equal  # NOQA

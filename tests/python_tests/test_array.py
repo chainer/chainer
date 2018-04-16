@@ -25,32 +25,37 @@ def shape(request):
 
 
 def _create_dummy_data(shape, dtype, pattern=1):
+    assert isinstance(dtype, str)
+
     total_size = _total_size(shape)
     if pattern == 1:
-        if dtype == xchainer.bool_:
+        if dtype in ('bool', 'bool_'):
             return [i % 2 == 1 for i in range(total_size)]
         else:
             return [i for i in range(total_size)]
     else:
-        if dtype == xchainer.bool_:
+        if dtype in ('bool', 'bool_'):
             return [i % 3 == 0 for i in range(total_size)]
         else:
             return [1 + i for i in range(total_size)]
 
 
-def _create_dummy_ndarray(shape, numpy_dtype):
-    return numpy.arange(_total_size(shape)).reshape(shape).astype(numpy_dtype)
+def _create_dummy_ndarray(shape, dtype):
+    assert isinstance(dtype, str)
+    return numpy.arange(_total_size(shape)).reshape(shape).astype(dtype)
 
 
-def _check_array(array, expected_dtype, expected_shape, expected_total_size, expected_data_list, expected_is_contiguous=True,
-                 device=None):
+def _check_array(array, expected_dtype, expected_shape, expected_data_list, expected_is_contiguous=True, device=None):
+    assert isinstance(expected_dtype, str)
+    expected_dtype = xchainer.dtype(expected_dtype)
+
     assert isinstance(array.dtype, xchainer.dtype)
     assert isinstance(array.shape, tuple)
     assert array.dtype == expected_dtype
     assert array.shape == expected_shape
     assert array.element_bytes == expected_dtype.itemsize
-    assert array.total_size == expected_total_size
-    assert array.total_bytes == expected_dtype.itemsize * expected_total_size
+    assert array.total_size == _total_size(expected_shape)
+    assert array.total_bytes == expected_dtype.itemsize * _total_size(expected_shape)
     assert array._debug_flat_data == expected_data_list
     assert array.is_contiguous == expected_is_contiguous
     assert array.offset == 0
@@ -108,27 +113,31 @@ def _total_size(shape):
     return functools.reduce(operator.mul, shape, 1)
 
 
-def _check_init(shape, dtype, device=None, with_device=True):
-    data_list = _create_dummy_data(shape, dtype)
+def _check_init(shape, dtype_arg, device=None, with_device=True):
+    expected_dtype = xchainer.dtype(dtype_arg).name
+    data_list = _create_dummy_data(shape, expected_dtype)
 
     if with_device:
-        array = xchainer.Array(shape, dtype, data_list, device)
+        array = xchainer.Array(shape, dtype_arg, data_list, device)
     else:
-        array = xchainer.Array(shape, dtype, data_list)
+        array = xchainer.Array(shape, dtype_arg, data_list)
 
-    _check_array(array, dtype, shape, _total_size(shape), data_list, device=device)
+    _check_array(array, expected_dtype, shape, data_list, device=device)
 
 
-def test_init_without_device(shape, dtype):
-    _check_init(shape, dtype, with_device=False)
+@xchainer.testing.parametrize_dtype_args('dtype_arg')
+def test_init_without_device(shape, dtype_arg):
+    _check_init(shape, dtype_arg, with_device=False)
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-def test_init_with_device(shape, dtype, device):
-    _check_init(shape, dtype, device=device)
+@xchainer.testing.parametrize_dtype_args('dtype_arg')
+def test_init_with_device(shape, dtype_arg, device):
+    _check_init(shape, dtype_arg, device=device)
 
 
-def _check_numpy_init(ndarray, shape, dtype, device=None):
+def _check_numpy_init(ndarray, device=None):
+    shape = ndarray.shape
     if device is None:
         array = xchainer.Array(ndarray)
     else:
@@ -136,7 +145,7 @@ def _check_numpy_init(ndarray, shape, dtype, device=None):
 
     ndarray_is_contigous = ndarray.flags['C_CONTIGUOUS']
     _check_array(
-        array, dtype, shape, _total_size(shape), ndarray.ravel().tolist(),
+        array, ndarray.dtype.name, shape, ndarray.ravel().tolist(),
         expected_is_contiguous=ndarray_is_contigous, device=device)
     _check_array_equals_ndarray(array, ndarray)
 
@@ -151,18 +160,18 @@ def _check_numpy_init(ndarray, shape, dtype, device=None):
 
     # recovered data should be a copy
     data_recovered_to_modify = numpy.array(array)
-    data_recovered_to_modify *= _create_dummy_ndarray(shape, data_copy.dtype)
+    data_recovered_to_modify *= _create_dummy_ndarray(shape, data_copy.dtype.name)
     _check_array_equals_ndarray(array, data_recovered)
 
 
 def test_numpy_init(shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, getattr(numpy, dtype.name))
-    _check_numpy_init(ndarray, shape, dtype)
+    ndarray = _create_dummy_ndarray(shape, dtype)
+    _check_numpy_init(ndarray)
 
 
 def test_numpy_non_contiguous_init(shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, getattr(numpy, dtype.name))
-    _check_numpy_init(ndarray.T, shape[::-1], dtype)
+    ndarray = _create_dummy_ndarray(shape, dtype)
+    _check_numpy_init(ndarray.T)
 
 
 def test_numpy_init_with_offset():
@@ -172,8 +181,8 @@ def test_numpy_init_with_offset():
 
 
 def test_numpy_init_device(shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, getattr(numpy, dtype.name))
-    _check_numpy_init(ndarray, shape, dtype, xchainer.get_device('native:1'))
+    ndarray = _create_dummy_ndarray(shape, dtype)
+    _check_numpy_init(ndarray, xchainer.get_device('native:1'))
 
 
 def test_to_device():
@@ -199,7 +208,7 @@ def test_view(shape, dtype):
     array = xchainer.Array(shape, dtype, data_list)
     view = array.view()
 
-    _check_array(view, dtype, shape, _total_size(shape), data_list)
+    _check_array(view, dtype, shape, data_list)
 
     # inplace modification
     if len(data_list) > 0:
@@ -226,13 +235,13 @@ def test_view_must_not_share_properties():
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_asscalar(device, value, shape, dtype):
-    np_dtype = numpy.dtype(dtype.name)
+    np_dtype = numpy.dtype(dtype)
     try:
         np_value = np_dtype.type(value)
     except (ValueError, OverflowError):
         return
 
-    a_np = numpy.asarray([np_value], dtype=np_dtype).reshape(shape)
+    a_np = numpy.asarray([np_value], dtype).reshape(shape)
     a_xc = xchainer.Array(a_np)
 
     def should_cast_succeed(typ):
@@ -292,21 +301,21 @@ def test_invalid_asscalar(device, shape):
 
 @xchainer.testing.numpy_xchainer_array_equal()
 def test_transpose(xp, shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    ndarray = _create_dummy_ndarray(shape, dtype)
     array = xp.array(ndarray)
     return array.transpose()
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 def test_T(xp, shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    ndarray = _create_dummy_ndarray(shape, dtype)
     array = xp.array(ndarray)
     return array.T
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 def test_module_transpose(xp, shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    ndarray = _create_dummy_ndarray(shape, dtype)
     array = xp.array(ndarray)
     return xp.transpose(array)
 
@@ -404,7 +413,7 @@ _squeeze_params = [
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('shape,axis', _squeeze_params)
 def test_squeeze(xp, shape, axis):
-    ndarray = _create_dummy_ndarray(shape, numpy.float32)
+    ndarray = _create_dummy_ndarray(shape, 'float32')
     a = xp.array(ndarray)
     return a.squeeze(axis)
 
@@ -412,7 +421,7 @@ def test_squeeze(xp, shape, axis):
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('shape,axis', _squeeze_params)
 def test_module_squeeze(xp, shape, axis):
-    ndarray = _create_dummy_ndarray(shape, numpy.float32)
+    ndarray = _create_dummy_ndarray(shape, 'float32')
     a = xp.array(ndarray)
     return xp.squeeze(a, axis)
 
@@ -448,7 +457,7 @@ def test_invalid_module_squeeze(xp, shape, axis):
     ((1, 1), (1, 2)),
 ])
 def test_broadcast_to(xp, src_shape, dst_shape):
-    ndarray = _create_dummy_ndarray(src_shape, numpy.float32)
+    ndarray = _create_dummy_ndarray(src_shape, 'float32')
     a = xp.array(ndarray)
     return xp.broadcast_to(a, dst_shape)
 
@@ -474,7 +483,7 @@ def test_invalid_broadcast_to(xp, src_shape, dst_shape):
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_copy(xp, shape, dtype, device):
-    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    ndarray = _create_dummy_ndarray(shape, dtype)
     a = xp.array(ndarray)
     return a.copy()
 
@@ -482,7 +491,7 @@ def test_copy(xp, shape, dtype, device):
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_module_copy(xp, shape, dtype, device):
-    ndarray = _create_dummy_ndarray(shape, numpy.dtype(dtype.name))
+    ndarray = _create_dummy_ndarray(shape, dtype)
     a = xp.array(ndarray)
     return xp.copy(a)
 
@@ -491,8 +500,8 @@ def test_module_copy(xp, shape, dtype, device):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('copy', [False, True])
 # TODO(beam2d): use fixtures.
-@pytest.mark.parametrize('src_dtype', ['bool', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
-@pytest.mark.parametrize('dst_dtype', ['bool', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
+@pytest.mark.parametrize('src_dtype', ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
+@pytest.mark.parametrize('dst_dtype', ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
 def test_astype(xp, shape, device, copy, src_dtype, dst_dtype):
     ndarray = _create_dummy_ndarray(shape, src_dtype)
     a = xp.array(ndarray)
@@ -550,7 +559,7 @@ def test_as_constant_view(shape, dtype):
     assert a.is_grad_required('graph_2')
     b = a.as_constant(copy=False)
 
-    _check_array(b, dtype, shape, _total_size(shape), data_list)
+    _check_array(b, dtype, shape, data_list)
     assert not b.is_grad_required('graph_1')
     assert not b.is_grad_required('graph_2')
 
@@ -567,7 +576,7 @@ def test_as_constant_view(shape, dtype):
     assert a.is_grad_required('graph_3')
     b = a.as_constant(['graph_1', 'graph_2'], copy=False)
 
-    _check_array(b, dtype, shape, _total_size(shape), data_list)
+    _check_array(b, dtype, shape, data_list)
     assert not b.is_grad_required('graph_1')
     assert not b.is_grad_required('graph_2')
     assert b.is_grad_required('graph_3')
@@ -610,8 +619,8 @@ def test_as_constant_view(shape, dtype):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_eq(device, a_object, b_object, dtype):
     try:
-        a_np = numpy.array(a_object, dtype=dtype.char)
-        b_np = numpy.array(b_object, dtype=dtype.char)
+        a_np = numpy.array(a_object, dtype)
+        b_np = numpy.array(b_object, dtype)
     except (ValueError, OverflowError):
         # Skip if creating an ndarray while casting the data to the parameterized dtype fails.
         # E.g. [numpy.inf] to numpy.int32.
@@ -657,10 +666,10 @@ def test_invalid_eq(a_shape, b_shape):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal()
 def test_neg(xp, device, shape, dtype):
-    if dtype.name == 'bool':  # Checked in test_invalid_bool_neg
+    if dtype == 'bool_':  # Checked in test_invalid_bool_neg
         return xp.array([])
     size = functools.reduce(operator.mul, shape, 1)
-    obj = numpy.arange(size).reshape(shape).astype(dtype.name)
+    obj = numpy.arange(size).reshape(shape).astype(dtype)
     x = xp.array(obj)
     return -x
 
@@ -668,7 +677,7 @@ def test_neg(xp, device, shape, dtype):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_invalid_bool_neg(device):
     def check(xp, err):
-        x = xp.array([True, False], dtype='bool')
+        x = xp.array([True, False], dtype='bool_')
         with pytest.raises(err):
             -x
 
@@ -679,10 +688,10 @@ def test_invalid_bool_neg(device):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal()
 def test_negative(xp, device, shape, dtype):
-    if dtype.name == 'bool':  # Checked in test_invalid_bool_neg
+    if dtype == 'bool_':  # Checked in test_invalid_bool_neg
         return xp.array([])
     size = functools.reduce(operator.mul, shape, 1)
-    obj = numpy.arange(size).reshape(shape).astype(dtype.name)
+    obj = numpy.arange(size).reshape(shape).astype(dtype)
     x = xp.array(obj)
     return xp.negative(x)
 
@@ -690,7 +699,7 @@ def test_negative(xp, device, shape, dtype):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_invalid_bool_negative(device):
     def check(xp, err):
-        x = xp.array([True, False], dtype='bool')
+        x = xp.array([True, False], dtype='bool_')
         with pytest.raises(err):
             xp.negative(x)
 
@@ -707,11 +716,11 @@ def test_add_iadd(device, shape, dtype):
     rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
     expected_data_list = [x + y for x, y in zip(lhs_data_list, rhs_data_list)]
-    if dtype == xchainer.bool_:
+    if dtype == 'bool_':
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 2] => [False, True]
 
     def check(out):
-        assert out.dtype == dtype
+        assert out.dtype == xchainer.dtype(dtype)
         assert out.shape == shape
         assert out._debug_flat_data == expected_data_list
         assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
@@ -729,7 +738,7 @@ def test_add_iadd(device, shape, dtype):
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_sub_isub(device, shape, dtype):
-    if dtype == xchainer.bool_:
+    if dtype == 'bool_':
         # TODO(niboshi): Compare directly with NumPy
         return  # not supported
     lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
@@ -738,14 +747,14 @@ def test_sub_isub(device, shape, dtype):
     lhs = xchainer.Array(shape, dtype, lhs_data_list)
     rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
-    if dtype == xchainer.uint8:
+    if dtype == 'uint8':
         # TODO(niboshi): Compare directly with NumPy
         expected_data_list = [(0x100 + x - y) & 0xff for x, y in zip(lhs_data_list, rhs_data_list)]
     else:
         expected_data_list = [x - y for x, y in zip(lhs_data_list, rhs_data_list)]
 
     def check(out):
-        assert out.dtype == dtype
+        assert out.dtype == xchainer.dtype(dtype)
         assert out.shape == shape
         assert out._debug_flat_data == expected_data_list
         assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
@@ -770,11 +779,11 @@ def test_mul_imul(device, shape, dtype):
     rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
     expected_data_list = [x * y for x, y in zip(lhs_data_list, rhs_data_list)]
-    if dtype == xchainer.bool_:
+    if dtype == 'bool_':
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 1] => [False, True]
 
     def check(out):
-        assert out.dtype == dtype
+        assert out.dtype == xchainer.dtype(dtype)
         assert out.shape == shape
         assert out._debug_flat_data == expected_data_list
         assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
@@ -799,8 +808,8 @@ def test_mul_scalar(scalar, device, shape, dtype):
     # which is not yet supported (xChainer always casts).
     # Therefore, we explicitly cast the scalar to the dtype of the ndarray
     # before the multiplication for NumPy.
-    scalar_np = numpy.dtype(dtype.name).type(scalar)
-    expected = numpy.array(data_list, dtype=dtype.name).reshape(shape)
+    scalar_np = numpy.dtype(dtype).type(scalar)
+    expected = numpy.array(data_list, dtype=dtype).reshape(shape)
     expected *= scalar_np
 
     x = xchainer.Array(shape, dtype, data_list)
@@ -817,7 +826,7 @@ def test_mul_scalar(scalar, device, shape, dtype):
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_truediv_itruediv(device, shape, dtype):
-    if dtype == xchainer.bool_:
+    if dtype == 'bool_':
         # TODO(niboshi): Compare directly with NumPy
         return  # not supported
     lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
@@ -826,7 +835,7 @@ def test_truediv_itruediv(device, shape, dtype):
     lhs = xchainer.Array(shape, dtype, lhs_data_list)
     rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
-    if dtype in (xchainer.int8, xchainer.int16, xchainer.int32, xchainer.int64, xchainer.uint8):
+    if dtype in ('int8', 'int16', 'int32', 'int64', 'uint8'):
         # TODO(niboshi): The behavior should be true division, but currently it's not supported.
         # Its temporary behavior for integral division is rounding towards zero.
         expected_data_list = [int(x / y) for x, y in zip(lhs_data_list, rhs_data_list)]
@@ -834,7 +843,7 @@ def test_truediv_itruediv(device, shape, dtype):
         expected_data_list = [x / y for x, y in zip(lhs_data_list, rhs_data_list)]
 
     def check(out):
-        assert out.dtype == dtype
+        assert out.dtype == xchainer.dtype(dtype)
         assert out.shape == shape
         numpy.testing.assert_allclose(out._debug_flat_data, expected_data_list, rtol=1e-3)
         assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
@@ -1363,17 +1372,17 @@ def test_invalid_sum(xp, shape, axis, keepdims):
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_maximum_with_scalar(xp, device, shape, value, signed_dtype):
-    ndarray = _create_dummy_ndarray(shape, signed_dtype.name)
+    ndarray = _create_dummy_ndarray(shape, signed_dtype)
     a = xp.array(ndarray)
     return xp.maximum(a, value)
 
 
 def _create_dummy_array_for_dot(xp, shape, dtype):
     x = numpy.arange(numpy.prod(shape)).reshape(shape)
-    if dtype.name == 'bool':
+    if dtype == 'bool_':
         x = numpy.asarray(x % 2 == 0)
     else:
-        x = x.astype(dtype.name)
+        x = x.astype(dtype)
     return xp.array(x)
 
 
@@ -1436,7 +1445,7 @@ def test_invalid_module_dot(xp, device, a_shape, b_shape, dtype):
 @pytest.mark.parametrize('value', [-1, 0, 1, 2, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_fill(xp, shape, dtype, value, device):
-    a = xp.empty(shape, xp.dtype(dtype.name))
+    a = xp.empty(shape, dtype)
     a.fill(value)
     return a
 
@@ -1444,7 +1453,7 @@ def test_fill(xp, shape, dtype, value, device):
 @pytest.mark.parametrize('value', [-1, 0, 1, 2, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_fill_with_scalar(device, shape, dtype, value):
-    a_np = numpy.empty(shape, numpy.dtype(dtype.name))
+    a_np = numpy.empty(shape, dtype)
     a_xc = xchainer.empty(shape, dtype)
     a_np.fill(value)
     a_xc.fill(xchainer.Scalar(value, dtype))
@@ -1459,10 +1468,10 @@ def test_fill_with_scalar(device, shape, dtype, value):
     numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
 # TODO(niboshi): Dtype promotion is not supported yet.
-@pytest.mark.parametrize('numpy_dtype', [numpy.float32, numpy.float64])
 @xchainer.testing.numpy_xchainer_array_equal()
-def test_exp(xp, device, input, numpy_dtype):
-    a = xp.array(input.astype(numpy_dtype))
+def test_exp(xp, device, input, float_dtype):
+    dtype = float_dtype
+    a = xp.array(input.astype(dtype))
     return xp.exp(a)
 
 
@@ -1472,10 +1481,10 @@ def test_exp(xp, device, input, numpy_dtype):
     numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
 ])
 # TODO(niboshi): Dtype promotion is not supported yet.
-@pytest.mark.parametrize('numpy_dtype', [numpy.float32, numpy.float64])
 @xchainer.testing.numpy_xchainer_array_equal()
-def test_log(xp, device, input, numpy_dtype):
-    a = xp.array(input.astype(numpy_dtype))
+def test_log(xp, device, input, float_dtype):
+    dtype = float_dtype
+    a = xp.array(input.astype(dtype))
     return xp.log(a)
 
 
@@ -1513,7 +1522,7 @@ _invalid_logsumexp_params = [
 @xchainer.testing.numpy_xchainer_array_equal(rtol=1e-7, atol=0, type_check=False)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
-    a = xp.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
+    a = xp.arange(_total_size(a_shape), dtype=float_dtype).reshape(a_shape)
     if xp is numpy:
         return xp.log(xp.sum(xp.exp(a), axis=axis, keepdims=keepdims))
     return xp.logsumexp(a, axis=axis, keepdims=keepdims)
@@ -1525,7 +1534,7 @@ def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
 # TODO(hvy): Dtype promotion is not supported yet.
 # TODO(hvy): Should not overflow for large numbers, add tests
 def test_invalid_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
-    a = xchainer.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
+    a = xchainer.arange(_total_size(a_shape), dtype=float_dtype).reshape(a_shape)
     with pytest.raises(xchainer.DimensionError):
         xchainer.logsumexp(a, axis=axis, keepdims=keepdims)
 
@@ -1535,7 +1544,7 @@ def test_invalid_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
 @xchainer.testing.numpy_xchainer_array_equal(rtol=1e-7, atol=1e-5, type_check=False)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_log_softmax(xp, device, a_shape, axis, float_dtype):
-    a = xp.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
+    a = xp.arange(_total_size(a_shape), dtype=float_dtype).reshape(a_shape)
     if xp is numpy:
         # Default is the second axis
         axis = axis if axis is not None else 1
@@ -1547,7 +1556,7 @@ def test_log_softmax(xp, device, a_shape, axis, float_dtype):
 @pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_invalid_log_softmax(xp, device, a_shape, axis, float_dtype):
-    a = xchainer.arange(_total_size(a_shape), dtype=float_dtype.name).reshape(a_shape)
+    a = xchainer.arange(_total_size(a_shape), dtype=float_dtype).reshape(a_shape)
     with pytest.raises(xchainer.DimensionError):
         return xchainer.log_softmax(a, axis=axis)
 
@@ -1585,7 +1594,7 @@ _min_max_single_axis_params = [
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
 def test_argmax(xp, device, input, axis, dtype):
     try:
-        a_np = input.astype(dtype.name)
+        a_np = input.astype(dtype)
     except (ValueError, OverflowError):
         return xp.zeros(())  # invalid combination of data and dtype
 
@@ -1598,7 +1607,7 @@ def test_argmax(xp, device, input, axis, dtype):
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
 def test_argmax_member(xp, device, input, axis, dtype):
     try:
-        a_np = input.astype(dtype.name)
+        a_np = input.astype(dtype)
     except (ValueError, OverflowError):
         return xp.zeros(())  # invalid combination of data and dtype
 
@@ -1629,7 +1638,7 @@ def test_max_amax():
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
 def test_max(xp, device, input, axis, dtype):
     try:
-        a_np = input.astype(dtype.name)
+        a_np = input.astype(dtype)
     except (ValueError, OverflowError):
         return xp.zeros(())  # invalid combination of data and dtype
 
@@ -1642,7 +1651,7 @@ def test_max(xp, device, input, axis, dtype):
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
 def test_max_member(xp, device, input, axis, dtype):
     try:
-        a_np = input.astype(dtype.name)
+        a_np = input.astype(dtype)
     except (ValueError, OverflowError):
         return xp.zeros(())  # invalid combination of data and dtype
 
