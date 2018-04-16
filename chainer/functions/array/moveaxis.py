@@ -59,9 +59,12 @@ class Moveaxis(function_node.FunctionNode):
     def __init__(self, source, destination):
         if isinstance(source, int):
             self.source = (source,)
-            self.destination = (destination,)
         else:
             self.source = source
+
+        if isinstance(destination, int):
+            self.destination = (destination,)
+        else:
             self.destination = destination
 
     def check_type_forward(self, in_types):

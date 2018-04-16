@@ -145,8 +145,6 @@ class TestMoveaxisValueError(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'source': (2,), 'destination': 0},
-    {'source': 0, 'destination': (2,)},
     {'source': (1, 2), 'destination': (1, 2.0)},
     {'source': (1, 2.0), 'destination': (1, 2)},
 )
