@@ -10,14 +10,13 @@ class DiagEinSum(function_node.FunctionNode):
         self.in_subs = in_subs
         self.out_sub = out_sub
         self.out_shape = out_shape
-        if '...' in out_sub:
+        if '@' in out_sub:
             self.broadcast_dims = [
                 slice(len(left_sub), -len(right_sub) or None)
                 for left_sub, right_sub in \
-                    [s.split('...') for s in in_subs.split(',')]
+                    [s.split('@') for s in in_subs.split(',')]
             ]
         else:
-            assert '...' not in in_subs
             self.broadcast_dims = None
         print(self.broadcast_dims)
 
@@ -63,9 +62,9 @@ class DiagEinSum(function_node.FunctionNode):
         axis = 0
         subscript_dict = {}
         diag_map = []
-        for left_or_right, out_sub in enumerate(self.out_sub.split('...')):
+        for left_or_right, out_sub in enumerate(self.out_sub.split('@')):
             if left_or_right == 1:  # process '...'
-                ein_sub.append('...')
+                ein_sub.append('@')
                 axis += len(broadcast_shape)
             for s in out_sub:
                 if s in subscript_dict:
@@ -82,7 +81,8 @@ class DiagEinSum(function_node.FunctionNode):
             self.in_subs,
             ''.join(ein_sub)
         )
-        y = utils.force_array(xp.einsum(subscript, *inputs))
+        y = utils.force_array(
+            xp.einsum(subscript.replace('@', '...'), *inputs))
 
         shape = list(y.shape)
         for i, i0 in diag_map:
@@ -157,6 +157,8 @@ def einsum(*operands):
 
 
 # #################### cupy.linalg.einsum ####################
+# From cupy PR #873
+
 einsum_symbols = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 einsum_symbols_set = set(einsum_symbols)
 
@@ -183,10 +185,10 @@ def _parse_einsum_input(operands):
     >>> a = np.random.rand(4, 4)
     >>> b = np.random.rand(4, 4, 4)
     >>> _parse_einsum_input(('...a,...a->...', a, b))
-    ('za,xza', 'xz', [a, b])
+    ('@a,@a', '@', [a, b])
 
     >>> _parse_einsum_input((a, [Ellipsis, 0], b, [Ellipsis, 0]))
-    ('za,xza', 'xz', [a, b])
+    ('@a,@a', '@', [a, b])
     """
 
     if len(operands) == 0:
@@ -203,6 +205,17 @@ def _parse_einsum_input(operands):
             if s not in einsum_symbols:
                 raise ValueError("Character %s is not a valid symbol." % s)
 
+        # Check for proper "->"
+        if ("-" in subscripts) or (">" in subscripts):
+            invalid = (subscripts.count("-") > 1) or (subscripts.count(">") > 1)
+            if invalid or (subscripts.count("->") != 1):
+                raise ValueError("Subscripts can only contain one '->'.")
+
+        # Parse "..."
+        subscripts = subscripts.replace("...", "@")
+        if "." in subscripts:
+            raise ValueError("Invalid Ellipses.")
+
     else:
         tmp_operands = list(operands)
         operand_list = []
@@ -218,7 +231,7 @@ def _parse_einsum_input(operands):
         for num, sub in enumerate(subscript_list):
             for s in sub:
                 if s is Ellipsis:
-                    subscripts += "..."
+                    subscripts += "@"
                 elif isinstance(s, int):
                     subscripts += einsum_symbols[s]
                 else:
@@ -231,97 +244,31 @@ def _parse_einsum_input(operands):
             subscripts += "->"
             for s in output_list:
                 if s is Ellipsis:
-                    subscripts += "..."
+                    subscripts += "@"
                 elif isinstance(s, int):
                     subscripts += einsum_symbols[s]
                 else:
                     raise TypeError("For this input type lists must contain "
                                     "either int or Ellipsis")
-    # Check for proper "->"
-    if ("-" in subscripts) or (">" in subscripts):
-        invalid = (subscripts.count("-") > 1) or (subscripts.count(">") > 1)
-        if invalid or (subscripts.count("->") != 1):
-            raise ValueError("Subscripts can only contain one '->'.")
-
-    # Parse ellipses
-    if "." in subscripts:
-        used = subscripts.replace(".", "").replace(",", "").replace("->", "")
-        unused = list(einsum_symbols_set - set(used))
-        ellipse_inds = "".join(unused)
-        longest = 0
-
-        if "->" in subscripts:
-            input_tmp, output_sub = subscripts.split("->")
-            split_subscripts = input_tmp.split(",")
-            out_sub = True
-        else:
-            split_subscripts = subscripts.split(',')
-            out_sub = False
-
-        for num, sub in enumerate(split_subscripts):
-            if "." in sub:
-                if (sub.count(".") != 3) or (sub.count("...") != 1):
-                    raise ValueError("Invalid Ellipses.")
-
-                # Take into account numerical values
-                if operands[num].shape == ():
-                    ellipse_count = 0
-                else:
-                    ellipse_count = max(operands[num].ndim, 1)
-                    ellipse_count -= (len(sub) - 3)
-
-                if ellipse_count > longest:
-                    longest = ellipse_count
-
-                if ellipse_count < 0:
-                    raise ValueError("Ellipses lengths do not match.")
-                elif ellipse_count == 0:
-                    split_subscripts[num] = sub.replace('...', '')
-                else:
-                    rep_inds = ellipse_inds[-ellipse_count:]
-                    split_subscripts[num] = sub.replace('...', rep_inds)
-
-        subscripts = ",".join(split_subscripts)
-        if longest == 0:
-            out_ellipse = ""
-        else:
-            out_ellipse = ellipse_inds[-longest:]
-
-        if out_sub:
-            subscripts += "->" + output_sub.replace("...", out_ellipse)
-        else:
-            # Special care for outputless ellipses
-            output_subscript = ""
-            tmp_subscripts = subscripts.replace(",", "")
-            for s in sorted(set(tmp_subscripts)):
-                if s not in (einsum_symbols):
-                    raise ValueError("Character %s is not a valid symbol." % s)
-                if tmp_subscripts.count(s) == 1:
-                    output_subscript += s
-            normal_inds = ''.join(sorted(set(output_subscript) -
-                                         set(out_ellipse)))
-
-            subscripts += "->" + out_ellipse + normal_inds
 
     # Build output string if does not exist
     if "->" in subscripts:
         input_subscripts, output_subscript = subscripts.split("->")
+
+        # Make sure output subscripts are in the input
+        for char in output_subscript:
+            if char not in input_subscripts:
+                raise ValueError("Output character %s did not appear in the input"
+                                 % ('...' if char == '@' else char))
+
     else:
         input_subscripts = subscripts
         # Build output subscripts
         tmp_subscripts = subscripts.replace(",", "")
         output_subscript = ""
         for s in sorted(set(tmp_subscripts)):
-            if s not in einsum_symbols:
-                raise ValueError("Character %s is not a valid symbol." % s)
-            if tmp_subscripts.count(s) == 1:
+            if s == '@' or tmp_subscripts.count(s) == 1:
                 output_subscript += s
-
-    # Make sure output subscripts are in the input
-    for char in output_subscript:
-        if char not in input_subscripts:
-            raise ValueError("Output character %s did not appear in the input"
-                             % char)
 
     # Make sure number operands is equivalent to the number of terms
     if len(input_subscripts.split(',')) != len(operands):
