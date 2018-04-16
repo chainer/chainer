@@ -12,13 +12,6 @@ def _check_xchainer_attributes(x):
     assert not x.is_grad_required()
 
 
-def _check_equal_attributes(x, y):
-    '''Check conditions that are assumed to hold true for both NumPy and xChainer arrays.'''
-    # TODO(sonots): Uncomment after strides compatibility between xChainer and NumPy is implemented.
-    # assert x.strides == y.strides
-    pass
-
-
 # TODO(hvy): Remove the following function if conversion from xchainer.Array to numpy.ndarray via buffer protocol supports device transfer.
 def _as_native(x):
     if isinstance(x, xchainer.Array):
@@ -43,7 +36,9 @@ def assert_allclose(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose
     """
     _check_xchainer_attributes(x)
     _check_xchainer_attributes(y)
-    _check_equal_attributes(x, y)
+
+    # TODO(sonots): Uncomment after strides compatibility between xChainer and NumPy is implemented.
+    # assert x.strides == y.strides
 
     numpy.testing.assert_allclose(
         _as_native(x), _as_native(y), rtol=rtol, atol=atol, equal_nan=equal_nan, err_msg=err_msg, verbose=verbose)
@@ -62,6 +57,8 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
     """
     _check_xchainer_attributes(x)
     _check_xchainer_attributes(y)
-    _check_equal_attributes(x, y)
+
+    # TODO(sonots): Uncomment after strides compatibility between xChainer and NumPy is implemented.
+    # assert x.strides == y.strides
 
     numpy.testing.assert_array_equal(_as_native(x), _as_native(y), err_msg=err_msg, verbose=verbose)
