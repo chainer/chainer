@@ -1242,7 +1242,7 @@ def test_module_take(xp, shape, indices, axis, device):
 
 
 @pytest.mark.parametrize('is_module', [False, True])
-@pytest.mark.parametrize('dtype', ['float32', 'float64'])
+@pytest.mark.parametrize('dtype', ['float32', 'float64'])  # TODO(niboshi): Use float_dtype fixture
 @pytest.mark.parametrize('shape,indices,axis', _take_valid_params)
 @pytest.mark.parametrize_device(['native:0'])  # TODO(niboshi): Add cuda:0
 def test_take_backward(is_module, dtype, shape, indices, axis, device):
@@ -1260,7 +1260,7 @@ def test_take_backward(is_module, dtype, shape, indices, axis, device):
     a = xchainer.arange(_total_size(shape)).reshape(shape).astype(dtype).require_grad()
     output_shape = func(a, indices, axis).shape
 
-    numpy.random.seed(0)
+    numpy.random.seed(0)  # TODO(niboshi): Reconsider the use of random values
     go = xchainer.array(numpy.random.uniform(-1, 1, output_shape).astype(dtype)).require_grad()
     ggi = xchainer.array(numpy.random.uniform(-1, 1, shape).astype(dtype))
     epsi = xchainer.full_like(a, 1e-3)
