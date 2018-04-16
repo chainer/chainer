@@ -3,7 +3,6 @@ from multiprocessing import pool
 
 import numpy
 import six
-import warnings
 
 from chainer.dataset import iterator
 from chainer.iterators.order_samplers import NoShuffleOrderSampler
@@ -54,9 +53,10 @@ class MultithreadIterator(iterator.Iterator):
         self.epoch = 0
 
         if self._shuffle and order_sampler is not None:
-            warnings.warn('`shuffle` is `True` and a custom '
-                          '`order_sampler` is set. In this case, '
-                          'the custom `order_sampler` is prioritized.')
+            raise ValueError('`shuffle` is `True` and a custom '
+                             '`order_sampler` is set. Please set '
+                             '`shuffle` to `False` to use the custom '
+                             'order sampler.')
         if order_sampler is None:
             if self._shuffle:
                 order_sampler = ShuffleOrderSampler()
