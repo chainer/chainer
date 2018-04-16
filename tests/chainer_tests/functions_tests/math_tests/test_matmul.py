@@ -281,7 +281,7 @@ class TestMatMulInvalid(unittest.TestCase):
 
     def test_invalid_shape(self):
         x_data = numpy.zeros((2, 3, 4), dtype=numpy.float32)
-        y_data = numpy.zeros((1, 4, 3), dtype=numpy.float32)
+        y_data = numpy.zeros((3, 4, 3), dtype=numpy.float32)
         x = chainer.Variable(x_data)
         y = chainer.Variable(y_data)
 
