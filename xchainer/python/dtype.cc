@@ -15,7 +15,7 @@ namespace py = pybind11;  // standard convention
 void InitXchainerDtype(pybind11::module& m) {
     py::enum_<Dtype> e{m, "dtype"};
     for (Dtype dtype : GetAllDtypes()) {
-        e.value(GetDtypeName(dtype), dtype);
+        e.value(dtype == Dtype::kBool ? "bool_" : GetDtypeName(dtype), dtype);
     }
     e.export_values();
     e.def(py::init(&GetDtype));
