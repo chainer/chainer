@@ -4,38 +4,41 @@ from chainer import utils
 from chainer.utils import type_check
 
 
+def _enumerate_axes(subscripts):
+    if '@' in subscripts:
+        left_sub, right_sub = subscripts.split('@')
+        for i, s in enumerate(left_sub):
+            yield i, s
+        yield slice(len(left_sub), -len(right_sub) or None), '@'
+        for i, s in enumerate(right_sub):
+            yield i - len(right_sub), s
+    else:
+        for i, s in enumerate(subscripts):
+            yield i, s
+
+
 class DiagEinSum(function_node.FunctionNode):
 
     def __init__(self, in_subs, out_sub, out_shape=None):
         self.in_subs = in_subs
         self.out_sub = out_sub
         self.out_shape = out_shape
-        if '@' in out_sub:
-            self.broadcast_dims = [
-                slice(len(left_sub), -len(right_sub) or None)
-                for left_sub, right_sub in \
-                    [s.split('@') for s in in_subs.split(',')]
-            ]
-        else:
-            self.broadcast_dims = None
-        print(self.broadcast_dims)
 
     def check_type_forward(self, in_types):
-        in_subs = self.in_subs.split(',')
-        type_check.expect(in_types.size() == len(in_subs))
-
         for in_type in in_types:
             type_check.expect(in_type.dtype.kind == 'f')
 
-        if self.broadcast_dims is not None:
-            broadcast_shapes = [
-                in_type.shape[dims]
-                for in_type, dims in zip(in_types, self.broadcast_dims)
-            ]
-            for broadcast_shape_i, broadcast_shape_i_plus_one in zip(
-                    broadcast_shapes, broadcast_shapes[1:]):
-                type_check.expect(
-                    broadcast_shape_i == broadcast_shape_i_plus_one)
+        in_subs = self.in_subs.split(',')
+        type_check.expect(in_types.size() == len(in_subs))
+
+        shape_dict = {}
+        for in_sub, in_type in zip(in_subs, in_types):
+            for axis, char in _enumerate_axes(in_sub):
+                shape = in_type.shape[axis]
+                if char in shape_dict:
+                    type_check.expect(shape_dict[char] == shape)
+                else:
+                    shape_dict[char] = shape
 
     def forward(self, inputs):
         n_args = len(inputs)
@@ -50,22 +53,12 @@ class DiagEinSum(function_node.FunctionNode):
 
         xp = cuda.get_array_module(inputs[0])
 
-        # out_sub = self.out_sub
-        if self.broadcast_dims is None:
-            broadcast_shape = None
-        else:
-            broadcast_shape = inputs[0].shape[self.broadcast_dims[0]]
-            # out_sub = out_sub.replace('...', '?'*len(broadcast_shape))
-        # print(broadcast_shape)
-
         ein_sub = []
-        axis = 0
         subscript_dict = {}
         diag_map = []
-        for s in self.out_sub:
+        for axis, s in _enumerate_axes(self.out_sub):
             if s == '@':
                 ein_sub.append('@')
-                axis += len(broadcast_shape)
             else:
                 if s in subscript_dict:
                     diag_map.append((axis, subscript_dict[s]))
@@ -75,7 +68,6 @@ class DiagEinSum(function_node.FunctionNode):
                         ein_sub.append(s)
                     else:
                         diag_map.append((axis, None))
-                axis += 1
 
         subscript = '{}->{}'.format(
             self.in_subs,
@@ -84,7 +76,10 @@ class DiagEinSum(function_node.FunctionNode):
         y = utils.force_array(xp.einsum(subscript, *inputs))
 
         shape = list(y.shape)
+        final_ndim = y.ndim + len(diag_map)
         for i, i0 in diag_map:
+            if i < 0:
+                i += final_ndim
             if i0 is None:
                 # broadcast to new axis
                 assert self.out_shape is not None, \
@@ -93,6 +88,8 @@ class DiagEinSum(function_node.FunctionNode):
                 y = xp.broadcast_to(xp.expand_dims(y, axis=i), shape)
             else:
                 # make diagonal
+                if i0 < 0:
+                    i0 += final_ndim
                 size = shape[i0]
                 shape.insert(i, size)
                 z = xp.zeros(shape, dtype=y.dtype)
