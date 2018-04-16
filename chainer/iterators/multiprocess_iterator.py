@@ -80,8 +80,7 @@ class MultiprocessIterator(iterator.Iterator):
         if self.shuffle and order_sampler is not None:
             warnings.warn('`shuffle` is `True` and a custom '
                           '`order_sampler` is set. In this case, '
-                          'In this case, the custom `order_sampler` is '
-                          'prioritized.')
+                          'the custom `order_sampler` is prioritized.')
         if order_sampler is None:
             if self.shuffle:
                 order_sampler = ShuffleOrderSampler()
