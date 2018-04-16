@@ -216,7 +216,7 @@ class TestSerialIteratorShuffled(unittest.TestCase):
 
     def test_iterator_shuffle_divisible(self):
         dataset = list(range(10))
-        it = iterators.SerialIterator(dataset, 2, shuffle=self.shuffle,
+        it = iterators.SerialIterator(dataset, 10, shuffle=self.shuffle,
                                       order_sampler=self.order_sampler)
         self.assertNotEqual(it.next(), it.next())
 
