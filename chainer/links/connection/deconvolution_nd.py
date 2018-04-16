@@ -75,7 +75,7 @@ class DeconvolutionND(link.Link):
                 self.b = variable.Parameter(initial_bias, out_channels)
 
     def _initialize_params(self, in_channels):
-        W_shape = (self.out_channels, in_channels) + self.ksize
+        W_shape = (in_channels, self.out_channels) + self.ksize
         self.W.initialize(W_shape)
 
     def __call__(self, x):
