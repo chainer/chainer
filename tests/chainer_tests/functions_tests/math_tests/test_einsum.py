@@ -8,6 +8,7 @@ import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.utils.type_check import InvalidType
 
 from chainer.functions.math.einsum import _diag_einsum
 
@@ -115,41 +116,47 @@ class TestEinSum(unittest.TestCase):
             _tuple_to_gpu(self.gg_inputs), atol=1e-2, rtol=1e-2)
 
 
-"""
+@testing.parameterize(
+    {'subscripts': 'i,i', 'shapes': ((2,), (3,))},
+    {'subscripts': 'i,i->i', 'shapes': ((2,), (3,))},
+    {'subscripts': 'ii', 'shapes': ((2, 3),)},
+    {'subscripts': '...i,...i', 'shapes': ((2, 2), (3, 2))},
+    {'subscripts': '...i,...i', 'shapes': ((2, 2), (1, 2))},  # F.einsum does not allow broadcasting
+    {'subscripts': '...i,...i', 'shapes': ((2,), (1, 2))},  # F.einsum does not allow broadcasting
+    {'subscripts': '...i,...j', 'shapes': ((2, 3), (3, 2))},
+    {'subscripts': '...i,j...', 'shapes': ((2, 3), (2, 3))},
+    {'subscripts': 'i...,j...', 'shapes': ((2, 3), (3, 2))},
+)
 class TestEinSumInvalid(unittest.TestCase):
 
-    def test_invalid_shape(self):
-        a_data = numpy.zeros((4, 3, 2), dtype=numpy.float32)
-        b_data = numpy.zeros((2, 3, 5), dtype=numpy.float32)
-        a = chainer.Variable(a_data)
-        b = chainer.Variable(b_data)
-        with self.assertRaises(ValueError):
-            F.tensordot(a, b)
-        with self.assertRaises(ValueError):
-            F.tensordot(a, b, axes=((1, 2), (0, 1)))
-        with self.assertRaises(ValueError):
-            F.tensordot(a, b, axes=((0), (0)))
-        with self.assertRaises(ValueError):
-            F.tensordot(a, b, axes=((2), (2)))
+    def setUp(self):
+        self.inputs = tuple([
+            numpy.zeros(shape, numpy.float32)
+            for shape in self.shapes
+        ])
 
-    def test_invalid_axes(self):
-        a_data = numpy.zeros((4, 3, 2), dtype=numpy.float32)
-        b_data = numpy.zeros((3, 2, 5), dtype=numpy.float32)
-        a = chainer.Variable(a_data)
-        b = chainer.Variable(b_data)
+    def test_raise_invalid_type(self):
+        with self.assertRaises(InvalidType):
+            F.einsum(self.subscripts, *self.inputs)
+
+
+@testing.parameterize(
+    {'subscripts': 'i,i', 'shapes': ((2,), (2,), (2,))},
+    {'subscripts': 'i,i', 'shapes': ((2,),)},
+    {'subscripts': 'i,i->j', 'shapes': ((2,), (2,))},
+    {'subscripts': 'i,i->...', 'shapes': ((2,), (2,))},
+)
+class TestEinSumParseError(unittest.TestCase):
+
+    def setUp(self):
+        self.inputs = tuple([
+            numpy.zeros(shape, numpy.float32)
+            for shape in self.shapes
+        ])
+
+    def test_raise_parse_error(self):
         with self.assertRaises(ValueError):
-            F.tensordot(a, b, axes=((1, 2), (0)))
-        with self.assertRaises(ValueError):
-            F.tensordot(a, b, axes=((2), (0, 1)))
-        with self.assertRaises(ValueError):
-            F.tensordot(a, b, axes=((0, 1, 2, 3), (0, 1, 2, 3)))
-        with self.assertRaises(ValueError):
-            F.tensordot(a, b, axes=(()))
-        with self.assertRaises(ValueError):
-            F.tensordot(a, b, axes=((), (), ()))
-        with self.assertRaises(TypeError):
-            F.tensordot(a, b, axes=1.0)
-"""
+            F.einsum(self.subscripts, *self.inputs)
 
 
 @testing.parameterize(*testing.product_dict(
