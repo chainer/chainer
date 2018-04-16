@@ -4,7 +4,7 @@ import xchainer
 
 
 _dtypes_data = [
-    (xchainer.bool, 'bool', '?', 1),
+    (xchainer.bool_, 'bool', '?', 1),
     (xchainer.int8, 'int8', 'b', 1),
     (xchainer.int16, 'int16', 'h', 2),
     (xchainer.int32, 'int32', 'i', 4),
@@ -15,6 +15,12 @@ _dtypes_data = [
 ]
 
 
+def test_py_types():
+    assert xchainer.bool is bool
+    assert xchainer.int is int
+    assert xchainer.float is float
+
+
 def test_dtypes_covered(dtype):
     # This test ensures _dtypes_data covers all dtypes
     assert any(tup[0] == dtype for tup in _dtypes_data), 'Not all dtypes are covered in _dtypes_data in dtypes test.'
@@ -22,7 +28,7 @@ def test_dtypes_covered(dtype):
 
 @pytest.mark.parametrize("dtype,name,char,itemsize", _dtypes_data)
 def test_dtypes(dtype, name, char, itemsize):
-    assert dtype == getattr(xchainer, name)
+    assert dtype == getattr(xchainer, 'bool_' if name == 'bool' else name)
     assert dtype.name == name
     assert dtype.char == char
     assert dtype.itemsize == itemsize

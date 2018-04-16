@@ -23,8 +23,8 @@ all_scalar_values = [
     (0.0, xchainer.float64),
     (float('inf'), xchainer.float64),
     (float('nan'), xchainer.float64),
-    (True, xchainer.bool),
-    (False, xchainer.bool),
+    (True, xchainer.bool_),
+    (False, xchainer.bool_),
 ])
 def test_init(value, dtype):
     scalar = xchainer.Scalar(value)
@@ -37,7 +37,7 @@ def test_init(value, dtype):
 
 
 @pytest.mark.parametrize('value,cast_dtype,expected_value', [
-    (0, xchainer.bool, False),
+    (0, xchainer.bool_, False),
     (0, xchainer.int8, 0),
     (0, xchainer.int16, 0),
     (0, xchainer.int32, 0),
@@ -45,7 +45,7 @@ def test_init(value, dtype):
     (0, xchainer.uint8, 0),
     (0, xchainer.float32, 0.0),
     (0, xchainer.float64, 0.0),
-    (0.0, xchainer.bool, False),
+    (0.0, xchainer.bool_, False),
     (0.0, xchainer.int8, 0),
     (0.0, xchainer.int16, 0),
     (0.0, xchainer.int32, 0),
@@ -53,7 +53,7 @@ def test_init(value, dtype):
     (0.0, xchainer.uint8, 0),
     (0.0, xchainer.float32, 0.0),
     (0.0, xchainer.float64, 0.0),
-    (1, xchainer.bool, True),
+    (1, xchainer.bool_, True),
     (1, xchainer.int8, 1),
     (1, xchainer.int16, 1),
     (1, xchainer.int32, 1),
@@ -61,7 +61,7 @@ def test_init(value, dtype):
     (1, xchainer.uint8, 1),
     (1, xchainer.float32, 1.0),
     (1, xchainer.float64, 1.0),
-    (1.0, xchainer.bool, True),
+    (1.0, xchainer.bool_, True),
     (1.0, xchainer.int8, 1),
     (1.0, xchainer.int16, 1),
     (1.0, xchainer.int32, 1),
@@ -69,7 +69,7 @@ def test_init(value, dtype):
     (1.0, xchainer.uint8, 1),
     (1.0, xchainer.float32, 1.0),
     (1.0, xchainer.float64, 1.0),
-    (-1, xchainer.bool, True),
+    (-1, xchainer.bool_, True),
     (-1, xchainer.int8, -1),
     (-1, xchainer.int16, -1),
     (-1, xchainer.int32, -1),
@@ -77,25 +77,25 @@ def test_init(value, dtype):
     (-1, xchainer.uint8, 0xff),
     (-1, xchainer.float32, -1.0),
     (-1, xchainer.float64, -1.0),
-    (0x100, xchainer.bool, True),
+    (0x100, xchainer.bool_, True),
     (0x100, xchainer.int8, 0),
     (0x100, xchainer.int16, 0x100),
     (0x100, xchainer.int32, 0x100),
     (0x100, xchainer.int64, 0x100),
     (0x100, xchainer.uint8, 0),
-    (0x10000, xchainer.bool, True),
+    (0x10000, xchainer.bool_, True),
     (0x10000, xchainer.int8, 0),
     (0x10000, xchainer.int16, 0),
     (0x10000, xchainer.int32, 0x10000),
     (0x10000, xchainer.int64, 0x10000),
     (0x10000, xchainer.uint8, 0),
-    (0x100000000, xchainer.bool, True),
+    (0x100000000, xchainer.bool_, True),
     (0x100000000, xchainer.int8, 0),
     (0x100000000, xchainer.int16, 0),
     (0x100000000, xchainer.int32, 0),
     (0x100000000, xchainer.int64, 0x100000000),
     (0x100000000, xchainer.uint8, 0),
-    (0x7fffffffffffffff, xchainer.bool, True),
+    (0x7fffffffffffffff, xchainer.bool_, True),
     (0x7fffffffffffffff, xchainer.int8, -1),
     (0x7fffffffffffffff, xchainer.int16, -1),
     (0x7fffffffffffffff, xchainer.int32, -1),
@@ -206,7 +206,7 @@ def test_dtype(value):
     scalar = xchainer.Scalar(value)
 
     if isinstance(value, bool):
-        assert scalar.dtype == xchainer.bool
+        assert scalar.dtype == xchainer.bool_
     elif isinstance(value, int):
         assert scalar.dtype == xchainer.int64
     elif isinstance(value, float):

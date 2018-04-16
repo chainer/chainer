@@ -27,12 +27,12 @@ def shape(request):
 def _create_dummy_data(shape, dtype, pattern=1):
     total_size = _total_size(shape)
     if pattern == 1:
-        if dtype == xchainer.bool:
+        if dtype == xchainer.bool_:
             return [i % 2 == 1 for i in range(total_size)]
         else:
             return [i for i in range(total_size)]
     else:
-        if dtype == xchainer.bool:
+        if dtype == xchainer.bool_:
             return [i % 3 == 0 for i in range(total_size)]
         else:
             return [1 + i for i in range(total_size)]
@@ -707,7 +707,7 @@ def test_add_iadd(device, shape, dtype):
     rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
     expected_data_list = [x + y for x, y in zip(lhs_data_list, rhs_data_list)]
-    if dtype == xchainer.bool:
+    if dtype == xchainer.bool_:
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 2] => [False, True]
 
     def check(out):
@@ -729,7 +729,7 @@ def test_add_iadd(device, shape, dtype):
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_sub_isub(device, shape, dtype):
-    if dtype == xchainer.bool:
+    if dtype == xchainer.bool_:
         # TODO(niboshi): Compare directly with NumPy
         return  # not supported
     lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
@@ -770,7 +770,7 @@ def test_mul_imul(device, shape, dtype):
     rhs = xchainer.Array(shape, dtype, rhs_data_list)
 
     expected_data_list = [x * y for x, y in zip(lhs_data_list, rhs_data_list)]
-    if dtype == xchainer.bool:
+    if dtype == xchainer.bool_:
         expected_data_list = [x > 0 for x in expected_data_list]  # [0, 1] => [False, True]
 
     def check(out):
@@ -817,7 +817,7 @@ def test_mul_scalar(scalar, device, shape, dtype):
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_truediv_itruediv(device, shape, dtype):
-    if dtype == xchainer.bool:
+    if dtype == xchainer.bool_:
         # TODO(niboshi): Compare directly with NumPy
         return  # not supported
     lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
@@ -874,10 +874,10 @@ def test_array_init_invalid_length():
 
 
 def test_array_repr():
-    array = xchainer.Array((0,), xchainer.bool, [])
+    array = xchainer.Array((0,), xchainer.bool_, [])
     assert "array([], shape=(0,), dtype=bool, device='native:0')" == str(array)
 
-    array = xchainer.Array((1,), xchainer.bool, [False])
+    array = xchainer.Array((1,), xchainer.bool_, [False])
     assert "array([False], shape=(1,), dtype=bool, device='native:0')" == str(array)
 
     array = xchainer.Array((2, 3), xchainer.int8, [0, 1, 2, 3, 4, 5])

@@ -7,7 +7,7 @@ from tests import cuda_utils
 
 
 _dtypes = [
-    xchainer.bool,
+    xchainer.bool_,
     xchainer.int8,
     xchainer.int16,
     xchainer.int32,
