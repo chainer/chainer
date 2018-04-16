@@ -1,6 +1,6 @@
 from xchainer._core import *  # NOQA
 
-from builtins import bool, int, float
+from builtins import bool, int, float  # NOQA
 
 
 _global_context = Context()
