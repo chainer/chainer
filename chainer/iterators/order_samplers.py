@@ -9,8 +9,7 @@ class ShuffleOrderSampler(object):
         # To support 32-bit platform and numpy < 1.11,
         # the seed is taken in a verbose manner.
         if seed is None:
-            seed = numpy.asscalar(
-                numpy.random.randint(-(1 << 31), 1 << 31, 1).astype('uint32'))
+            seed = numpy.random.randint(2**31)
         self._random = numpy.random.RandomState(seed)
 
     def __call__(self, current_order, current_position):
