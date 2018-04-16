@@ -471,7 +471,6 @@ class TestMultiprocessIteratorInvalidOrderSampler(unittest.TestCase):
                 dataset, 6, shuffle=False,
                 order_sampler=_InvalidOrderSampler())
             it.next()
-            it.next()
 
 
 class TestMultiprocessIteratorConcurrency(unittest.TestCase):
