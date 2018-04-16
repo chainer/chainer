@@ -98,6 +98,20 @@ class Extension(object):
         """
         pass
 
+    def on_error(self, exp, exc_info):
+        """Handle the error during training before finalize.
+
+        This method is called when an exception is thrown during the
+        training loop. An extension that needs different error handling from finalize,
+        can override this method to handle errors.
+
+        Args:
+             exp (Exception): arbitrary exception thrown during update loop.
+             exc_info: exception info e.g. stack trace
+
+        """
+        pass
+
     def serialize(self, serializer):
         """Serializes the extension state.
 
@@ -109,7 +123,7 @@ class Extension(object):
 
 
 def make_extension(trigger=None, default_name=None, priority=None,
-                   finalizer=None, initializer=None, **kwargs):
+                   finalizer=None, initializer=None, on_error=None, **kwargs):
     """Decorator to make given functions into trainer extensions.
 
     This decorator just adds some attributes to a given function. The value of
@@ -144,6 +158,7 @@ def make_extension(trigger=None, default_name=None, priority=None,
         ext.default_name = default_name or ext.__name__
         ext.priority = priority
         ext.finalize = finalizer
+        ext.on_error = on_error
         ext.initialize = initializer
         return ext
 
