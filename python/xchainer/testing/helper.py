@@ -44,7 +44,7 @@ numpy
         pytest.fail(msg)
 
 
-def _make_decorator(check_func, name, device_check, type_check, accept_error):
+def _make_decorator(check_func, name, type_check, accept_error):
     def decorator(impl):
         @functools.wraps(impl)
         def test_func(*args, **kw):
@@ -67,17 +67,13 @@ def _make_decorator(check_func, name, device_check, type_check, accept_error):
             check_func(xchainer_result, numpy_result)
             if type_check:
                 assert numpy.dtype(xchainer_result.dtype.name) == numpy_result.dtype
-            if device_check:
-                if device_check in kw:
-                    assert xchainer_result.device is kw[device_check]
-                else:
-                    raise KeyError('Function {} does not have an argument named {}', impl.__name__, device_check)
+            assert xchainer_result.device is xchainer.get_default_device()
         return test_func
     return decorator
 
 
 def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp',
-                               rtol=0, atol=0, type_check=True, device_check='device', accept_error=()):
+                               rtol=0, atol=0, type_check=True, accept_error=()):
     """Decorator that checks NumPy results and xChainer ones are equal.
 
     Args:
@@ -86,9 +82,6 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp',
              appended to the error message.
          name(str): Argument name whose value is either ``numpy`` or ``xchainer`` module.
          type_check(bool): If ``True``, consistency of dtype is also checked.
-         device_check(str or None or False): Specify argument name whose value is device.
-             If not ``None`` and not ``False``, check equality between device of
-             xchainer array and the device argument.
          accept_error(Exception or tuple of Exception): Specify
              acceptable errors. When both NumPy test and xChainer test raises the
              same type of errors, and the type of the errors is specified with
@@ -103,4 +96,4 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp',
     def check_func(x, y):
         array.assert_array_equal(x, y, rtol, atol, err_msg, verbose)
 
-    return _make_decorator(check_func, name, device_check, type_check, accept_error)
+    return _make_decorator(check_func, name, type_check, accept_error)
