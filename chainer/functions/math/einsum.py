@@ -17,6 +17,25 @@ def _enumerate_axes(subscripts):
             yield i, s
 
 
+def _einsum(xp, in_subscripts, out_subscript, *inputs):
+    if '@' in in_subscripts and '@' not in out_subscript:
+        # numpy does not allow summing over '...'
+        subscripts = '{}->...{}'.format(
+            in_subscripts.replace('@', '...'),
+            out_subscript
+        )
+        y = xp.einsum(subscripts, *inputs)
+        sum_ndim = y.ndim - len(out_subscript)
+        y = xp.sum(y, axis=tuple(range(sum_ndim)))
+    else:
+        subscripts = '{}->{}'.format(
+            in_subscripts,
+            out_subscript
+        ).replace('@', '...')
+        y = xp.einsum(subscripts, *inputs)
+    return utils.force_array(y)
+
+
 class DiagEinSum(function_node.FunctionNode):
 
     def __init__(self, in_subs, out_sub, out_shape=None):
@@ -68,12 +87,7 @@ class DiagEinSum(function_node.FunctionNode):
                         ein_sub.append(s)
                     else:
                         diag_map.append((axis, None))
-
-        subscript = '{}->{}'.format(
-            self.in_subs,
-            ''.join(ein_sub)
-        ).replace('@', '...')
-        y = utils.force_array(xp.einsum(subscript, *inputs))
+        y = _einsum(xp, self.in_subs, ''.join(ein_sub), *inputs)
 
         shape = list(y.shape)
         final_ndim = y.ndim + len(diag_map)
