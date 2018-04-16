@@ -753,6 +753,11 @@ void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const A
     });
 }
 
+void CudaDevice::AddAt(const Array& /*a*/, const Array& /*indices*/, int8_t /*axis*/, const Array& /*b*/, const Array& /*out*/) {
+    // TODO(niboshi): Implement
+    throw NotImplementedError("");
+}
+
 void CudaDevice::Synchronize() {
     CheckCudaError(cudaSetDevice(index()));
     CheckCudaError(cudaDeviceSynchronize());

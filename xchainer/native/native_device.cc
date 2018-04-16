@@ -366,7 +366,7 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
 
         IndexableArray<const T> a_iarray{a};
         IndexableArray<T> out_iarray{out};
-        IndexableArray<int64_t> indices_iarray{indices};
+        IndexableArray<const int64_t> indices_iarray{indices};
         Indexer a_indexer{a.shape()};
         Indexer out_indexer{out.shape()};
         Indexer indices_indexer{indices.shape()};
@@ -401,6 +401,63 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
                     out_indexer.SetIndexers(left_indexer, indices_indexer, right_indexer);
                     a_indexer.SetIndexers(left_indexer, axis_indexer, right_indexer);
                     out_iarray[out_indexer] = a_iarray[a_indexer];
+                }
+            }
+        }
+    });
+}
+
+void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
+    CheckDevicesCompatible(a, indices, b);
+    assert(a.shape() == out.shape());
+    VisitDtype(a.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        IndexableArray<const T> a_iarray{a};
+        IndexableArray<const T> b_iarray{b};
+        IndexableArray<const int64_t> indices_iarray{indices};
+        IndexableArray<T> out_iarray{out};
+        Indexer b_indexer{b.shape()};
+        Indexer indices_indexer{indices.shape()};
+        Indexer out_indexer{out.shape()};  // indexer for both out_iarray and a_array
+
+        int64_t axis_dim = a.shape()[axis];
+
+        // left: set of input dimensions lower than the axis
+        // right: set of input dimensions higher than the axis
+        Shape left_shape{a.shape().begin(), a.shape().begin() + axis};
+        Shape right_shape{a.shape().begin() + (axis + 1), a.shape().end()};
+        Shape axis_shape{axis_dim};  // always ndim==1
+        Indexer left_indexer{left_shape};
+        Indexer right_indexer{right_shape};
+        Indexer axis_indexer{axis_shape};
+
+        // Copy
+        for (int64_t i = 0; i < out_indexer.total_size(); ++i) {
+            out_indexer.Set(i);
+            out_iarray[out_indexer] = a_iarray[out_indexer];
+        }
+
+        // Add
+        for (int64_t i = 0; i < indices_indexer.total_size(); ++i) {
+            indices_indexer.Set(i);
+            int64_t index = indices_iarray[indices_indexer];
+            if (index < 0) {
+                index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
+            } else {
+                index = index % axis_dim;
+            }
+            assert(0 <= index);
+            assert(index < axis_dim);
+            axis_indexer.Set(index);
+
+            for (int64_t i_left = 0; i_left < left_indexer.total_size(); ++i_left) {
+                left_indexer.Set(i_left);
+                for (int64_t i_right = 0; i_right < right_indexer.total_size(); ++i_right) {
+                    right_indexer.Set(i_right);
+                    out_indexer.SetIndexers(left_indexer, axis_indexer, right_indexer);
+                    b_indexer.SetIndexers(left_indexer, indices_indexer, right_indexer);
+                    out_iarray[out_indexer] += b_iarray[b_indexer];
                 }
             }
         }

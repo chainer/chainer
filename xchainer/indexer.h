@@ -73,11 +73,11 @@ private:
         return processed_dims + indexer.ndim_;
     }
 
-    int64_t shape_[kMaxNdim];
-    int64_t index_[kMaxNdim];
-    int64_t raw_index_;
-    int64_t total_size_;
-    int8_t ndim_;
+    int64_t shape_[kMaxNdim]{};
+    int64_t index_[kMaxNdim]{};
+    int64_t raw_index_{};
+    int64_t total_size_{};
+    int8_t ndim_{};
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Indexer& indexer) {
