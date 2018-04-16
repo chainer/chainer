@@ -62,11 +62,11 @@ class DiagEinSum(function_node.FunctionNode):
         axis = 0
         subscript_dict = {}
         diag_map = []
-        for left_or_right, out_sub in enumerate(self.out_sub.split('@')):
-            if left_or_right == 1:  # process '...'
+        for s in self.out_sub:
+            if s == '@':
                 ein_sub.append('@')
                 axis += len(broadcast_shape)
-            for s in out_sub:
+            else:
                 if s in subscript_dict:
                     diag_map.append((axis, subscript_dict[s]))
                 else:
