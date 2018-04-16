@@ -35,6 +35,7 @@ def _tuple_to_gpu(xs):
         {'subscripts': '...ij,...jk->...ik', 'shapes': ((2, 1, 2, 3), (2, 1, 3, 4))},
         {'subscripts': 'i...j,jk...->k...i', 'shapes': ((4, 2, 3), (3, 5, 2))},
         {'subscripts': 'ii...,...jj', 'shapes': ((2, 2, 4), (4, 3, 3))},
+        {'subscripts': '...i,i', 'shapes': ((2, 2, 3), (3,))},
     ],
     [
         # {'dtype': numpy.float16},  see numpy issue #10899
