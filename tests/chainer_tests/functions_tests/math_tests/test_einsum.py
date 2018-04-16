@@ -30,15 +30,11 @@ def _tuple_to_gpu(xs):
         {'subscripts': 'ii->i', 'shapes': ((2, 2),)},
         {'subscripts': 'j,j', 'shapes': ((3,), (3))},
         {'subscripts': 'j,ij', 'shapes': ((3,), (2, 3))},
-        {'subscripts': 'j,ij->', 'shapes': ((3,), (1, 3))},
-        {'subscripts': 'j,ij->', 'shapes': ((1,), (2, 1))},
-        {'subscripts': 'j,ij->', 'shapes': ((3,), (2, 3))},
         {'subscripts': 'j,iij', 'shapes': ((3,), (2, 2, 3))},
         {'subscripts': 'iij,kkj', 'shapes': ((2, 2, 3), (4, 4, 3))},
         {'subscripts': '...ij,...jk->...ik', 'shapes': ((2, 1, 2, 3), (2, 1, 3, 4))},
         {'subscripts': 'i...j,jk...->k...i', 'shapes': ((4, 2, 3), (3, 5, 2))},
         {'subscripts': 'ii...,...jj', 'shapes': ((2, 2, 4), (4, 3, 3))},
-        # {'subscripts': '...i,...j', 'shapes': ((2, 1), (3, 4))},  # should fail type_check
     ],
     [
         # {'dtype': numpy.float16},  see numpy issue #10899
