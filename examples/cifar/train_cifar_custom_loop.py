@@ -80,7 +80,7 @@ def main():
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
 
-    sum_accuracy = 0
+    sum_acc = 0
     sum_loss = 0
 
     while train_iter.epoch < args.epoch:
@@ -95,28 +95,30 @@ def main():
         t = chainer.Variable(t_array)
         optimizer.update(model, x, t)
         sum_loss += float(model.loss.data) * len(t.data)
-        sum_accuracy += float(model.accuracy.data) * len(t.data)
+        sum_acc += float(model.accuracy.data) * len(t.data)
 
         if train_iter.is_new_epoch:
             print('epoch: {}'.format(train_iter.epoch))
             print('train mean loss: {}, accuracy: {}'.format(
-                sum_loss / train_count, sum_accuracy / train_count))
-            # evaluation
-            sum_accuracy = 0
+                sum_loss / train_count, sum_acc / train_count))
+            sum_acc = 0
             sum_loss = 0
+            # Enable evaluation mode.
             with configuration.using_config('train', False):
-                for batch in test_iter:
-                    x_array, t_array = convert.concat_examples(batch, args.gpu)
-                    x = chainer.Variable(x_array)
-                    t = chainer.Variable(t_array)
-                    loss = model(x, t)
-                    sum_loss += float(loss.data) * len(t.data)
-                    sum_accuracy += float(model.accuracy.data) * len(t.data)
+                # This is optional but can reduce computational overhead.
+                with chainer.using_config('enable_backprop', False):
+                    for batch in test_iter:
+                        x, t = convert.concat_examples(batch, args.gpu)
+                        x = chainer.Variable(x)
+                        t = chainer.Variable(t)
+                        loss = model(x, t)
+                        sum_loss += float(loss.data) * len(t.data)
+                        sum_acc += float(model.accuracy.data) * len(t.data)
 
             test_iter.reset()
             print('test mean  loss: {}, accuracy: {}'.format(
-                sum_loss / test_count, sum_accuracy / test_count))
-            sum_accuracy = 0
+                sum_loss / test_count, sum_acc / test_count))
+            sum_acc = 0
             sum_loss = 0
 
     # Save the model and the optimizer

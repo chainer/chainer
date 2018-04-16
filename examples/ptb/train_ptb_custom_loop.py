@@ -52,12 +52,15 @@ def main():
         evaluator.predictor.reset_state()  # initialize state
         sum_perp = 0
         data_count = 0
+        # Enable evaluation mode.
         with configuration.using_config('train', False):
-            for batch in copy.copy(iter):
-                x, t = convert.concat_examples(batch, args.gpu)
-                loss = evaluator(x, t)
-                sum_perp += loss.data
-                data_count += 1
+            # This is optional but can reduce computational overhead.
+            with chainer.using_config('enable_backprop', False):
+                for batch in copy.copy(iter):
+                    x, t = convert.concat_examples(batch, args.gpu)
+                    loss = evaluator(x, t)
+                    sum_perp += loss.data
+                    data_count += 1
         return np.exp(float(sum_perp) / data_count)
 
     # Load the Penn Tree Bank long word sequence dataset
