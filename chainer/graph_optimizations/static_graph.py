@@ -4,9 +4,6 @@ import chainer
 import chainer.function_node
 
 import numpy as np
-import chainer.functions as F
-
-from scipy import stats # fixme: remove after debug
 
 # todo: add test that use the same random seed with two models: a static chain
 # and a (non-static) chain. Enable `chainer.config.cudnn_deterministic` and
@@ -49,32 +46,15 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
     """
 
-    # fixme: in_vars not used any more
-    def __init__(self, schedule_manager, in_vars, verbosity_level=0,
+    def __init__(self, schedule_manager, verbosity_level=0,
                  enable_double_backprop=False):
         print('Creating new static schedule!')
-        # todo: maybe need weak reference here for schedule_manager?
         self._schedule_manager = schedule_manager
         self._static_schedule_forward = []
         self._backward_schedule_func = None
         self.verbosity_level = verbosity_level
         self.enable_double_backprop = enable_double_backprop
-
-        # Maps the id of an array (from the data attribute of an a variable
-        # that is an input of the sub-graph corresponding to this static schedule)
-        # to the corresponding static array index.
-        #self._input_var_array_to_static_array_index = dict()
-
-        # For each input variable, save the id of its data array as the key
-        # in a dictionary that maps to the corresponding static array.
-        #for n, var in enumerate(in_vars):
-        #    var.data = self._in_arrays[n]
-        #    self._input_var_array_to_static_array_index[id(var.data)] = n
-
         self._chain_return_vars = None
-        #self._out_arrays = None
-        #self._out_var_to_tuple_index = None
-        #self._in_arrays = None # fixme: redundant, since the same arrays are in _local_in_vars
         self._local_in_vars = None
         self.chain =None
 
@@ -165,7 +145,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         if self._backward_schedule_func is None:
             print('Creating new backward schedule...')
             # Create backward schedule and run define-by-run backward code.
-            self._backward_schedule_func = StaticScheduleFunction(self._schedule_manager, grad_outputs)
+            self._backward_schedule_func = StaticScheduleFunction(self._schedule_manager)
 
             # Make local copies of the variables in grad_outputs.
             new_grad_outputs = []
@@ -294,7 +274,7 @@ class ScheduleManager(object):
                 sched_list = self.schedules[key_str]
                 sched = sched_list[0]
             else:
-                sched = StaticScheduleFunction(self, in_vars,
+                sched = StaticScheduleFunction(self,
                                                verbosity_level=self._verbosity_level,
                                                enable_double_backprop=enable_double_backprop)
                 self.schedules[key_str] = [sched]
@@ -309,7 +289,7 @@ class ScheduleManager(object):
                 sched_list = self.schedules[key_str]
                 available_index = self.in_use_count[key_str]
                 if available_index >= len(sched_list):
-                    sched = StaticScheduleFunction(self, in_vars,
+                    sched = StaticScheduleFunction(self,
                                                    verbosity_level=self._verbosity_level,
                                                    enable_double_backprop=enable_double_backprop)
                     sched_list.append(sched)
@@ -317,7 +297,7 @@ class ScheduleManager(object):
                 sched = sched_list[available_index]
                 self.in_use_count[key_str] = available_index + 1
             else:
-                sched = StaticScheduleFunction(self, in_vars,
+                sched = StaticScheduleFunction(self,
                                                enable_double_backprop=enable_double_backprop)
                 self.schedules[key_str] = [sched]
                 self.in_use_count[key_str] = 1

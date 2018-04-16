@@ -1,5 +1,6 @@
 import numpy
 
+from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
@@ -31,6 +32,29 @@ class LinearFunction(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[0],
             )
 
+    @static_schedule_func
+    def static_linear_no_bias(self, x, W, y, xp, optimized):
+        # NumPy raises an error when the array is not contiguous.
+        # See: https://github.com/chainer/chainer/issues/2744
+        # TODO(niboshi): Remove this code when NumPy is fixed.
+        if (isinstance(x, numpy.ndarray) and
+                not (x.flags.c_contiguous or x.flags.f_contiguous) and
+                1 in x.shape):
+            x = numpy.ascontiguousarray(x)
+
+        if optimized:
+            # Note: We can only call this function when both x and W
+            # have the same dtype. Otherwise, the output type (for y)
+            # may not be as expected (i.e., not the same dtype as x).
+            xp.dot(x, W.T, out=y)
+        else:
+            y[:] = x.dot(W.T).astype(x.dtype, copy=False)
+
+    @static_schedule_func
+    def static_add_bias(self, y, bias):
+        y += bias
+
+    # fixme: either re-implement static graph here or revert to default.
     def forward(self, inputs):
         self._config_use_ideep = chainer.config.use_ideep
         if (intel64.should_use_ideep('>=auto')
@@ -52,9 +76,29 @@ class LinearFunction(function_node.FunctionNode):
                 1 in x.shape):
             x = numpy.ascontiguousarray(x)
 
-        y = x.dot(W.T).astype(x.dtype, copy=False)
-        if b is not None:
-            y += b
+        # In order to be compatible with the "static graph" feature, it is
+        # required that all output arrays of this forward
+        # function be allocated explicitly:
+        xp = cuda.get_array_module(x)
+        y = xp.empty((x.shape[0], W.shape[0])).astype(x.dtype)
+
+        # This is required because all of the "static_*()" functions
+        # use the convention that any output arrays are supplied
+        # as input arguments to the function. That is because it is
+        # not allowed for a "static_*()" function to return anything
+        # other than `None`. The reason is to prevent dynamic allocation
+        # of output arrays during execution of the static schedule
+        # because it would break the model.
+
+        self.static_linear_no_bias(x, W, y, xp, x.dtype == W.dtype)
+        if len(inputs) == 3:
+            bias = inputs[2]
+            self.static_add_bias(y, bias)
+
+
+        #y = x.dot(W.T).astype(x.dtype, copy=False)
+        #if b is not None:
+        #    y += b
         self.retain_inputs((0, 1))  # b is not retained
         return y,
 
