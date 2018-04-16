@@ -157,7 +157,7 @@ class ResNetLayers(link.Chain):
                              ' or 152, but {} was given.'.format(n_layers))
         npz.save_npz(path_npz, chainermodel, compression=False)
 
-    def __call__(self, x, layers=['prob'], **kwargs):
+    def __call__(self, x, layers=None, **kwargs):
         """__call__(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
@@ -180,6 +180,9 @@ class ResNetLayers(link.Chain):
 
         """
 
+        if layers is None:
+            layers = ['prob']
+
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '
             'Use chainer.using_config')
@@ -198,7 +201,7 @@ class ResNetLayers(link.Chain):
                 target_layers.remove(key)
         return activations
 
-    def extract(self, images, layers=['pool5'], size=(224, 224), **kwargs):
+    def extract(self, images, layers=None, size=(224, 224), **kwargs):
         """extract(self, images, layers=['pool5'], size=(224, 224))
 
         Extracts all the feature maps of given images.
@@ -232,6 +235,9 @@ class ResNetLayers(link.Chain):
             the corresponding feature map variable.
 
         """
+
+        if layers is None:
+            layers = ['pool5']
 
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '
