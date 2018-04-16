@@ -390,7 +390,6 @@ class TestSerialIteratorInvalidOrderSampler(unittest.TestCase):
                 dataset, 6, shuffle=False,
                 order_sampler=InvalidOrderSampler())
             it.next()
-            it.next()
 
 
 testing.run_module(__name__, __file__)
