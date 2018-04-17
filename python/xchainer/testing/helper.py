@@ -72,9 +72,37 @@ def _make_decorator(check_func, name, type_check, accept_error):
     return decorator
 
 
-def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp',
-                               rtol=0, atol=0, type_check=True, accept_error=()):
-    """Decorator that checks NumPy results and xChainer ones are equal.
+def numpy_xchainer_allclose(*, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', type_check=True, accept_error=()):
+    """Decorator that checks that NumPy and xChainer results are equal up to a tolerance.
+
+    Args:
+         rtol(float): Relative tolerance.
+         atol(float): Absolute tolerance.
+         equal_nan(bool): Allow NaN values if True. Otherwise, fail the assertion if any NaN is found.
+         err_msg(str): The error message to be printed in case of failure.
+         verbose(bool): If ``True``, the conflicting values are
+             appended to the error message.
+         name(str): Argument name whose value is either ``numpy`` or ``xchainer`` module.
+         type_check(bool): If ``True``, consistency of dtype is also checked.
+         accept_error(Exception or tuple of Exception): Specify
+             acceptable errors. When both NumPy test and xChainer test raises the
+             same type of errors, and the type of the errors is specified with
+             this argument, the errors are ignored and not raised.
+
+    Decorated test fixture is required to return the same arrays
+    in the sense of :func:`numpy_xchainer_allclose`
+    (except the type of array module) even if ``xp`` is ``numpy`` or ``xchainer``.
+
+    .. seealso:: :func:`xchainer.testing.assert_allclose`
+    """
+    def check_func(x, y):
+        array.assert_allclose(x, y, rtol, atol, equal_nan, err_msg, verbose)
+
+    return _make_decorator(check_func, name, type_check, accept_error)
+
+
+def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_check=True, accept_error=()):
+    """Decorator that checks that NumPy and xChainer results are equal.
 
     Args:
          err_msg(str): The error message to be printed in case of failure.
@@ -94,6 +122,6 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp',
     .. seealso:: :func:`xchainer.testing.assert_array_equal`
     """
     def check_func(x, y):
-        array.assert_array_equal(x, y, rtol, atol, err_msg, verbose)
+        array.assert_array_equal(x, y, err_msg, verbose)
 
     return _make_decorator(check_func, name, type_check, accept_error)
