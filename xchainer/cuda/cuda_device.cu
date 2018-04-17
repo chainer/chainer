@@ -419,7 +419,7 @@ void CudaDevice::Subtract(const Array& x1, const Array& x2, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SubtractKernel<T>).block_size;
 
         IndexableArray<const T> x1_iarray{x1};
         IndexableArray<const T> x2_iarray{x2};
@@ -479,7 +479,7 @@ void CudaDevice::Divide(const Array& lhs, const Array& rhs, const Array& out) {
     cudaSetDevice(index());
     VisitDtype(lhs.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddKernel<T>).block_size;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&DivideKernel<T>).block_size;
 
         IndexableArray<const T> lhs_iarray{lhs};
         IndexableArray<const T> rhs_iarray{rhs};
@@ -835,7 +835,7 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
         // size of (Ni..., Nj...) part
         int64_t common_total_size = a_indexer.total_size() / a_shape[0];
 
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&TakeKernel<T>).block_size;
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddAtKernel<T>).block_size;
         int64_t total_size = out_indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
