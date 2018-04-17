@@ -80,8 +80,7 @@ class TestGetItem(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, ggx_data):
         def f(x):
-            y = functions.get_item(x, self.slices)
-            return y * y
+            return functions.get_item(x, self.slices)
 
         gradient_check.check_double_backward(
             f, (x_data,), y_grad, ggx_data, dtype='d')

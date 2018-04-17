@@ -85,12 +85,8 @@ class TestBroadcast(unittest.TestCase):
         if len(data) == 1:
             return
 
-        def f(*xs):
-            ys = functions.broadcast(*xs)
-            return [y * y for y in ys]
-
         gradient_check.check_double_backward(
-            f, data, grads, gg, dtype=numpy.float64,
+            functions.broadcast, data, grads, gg, dtype=numpy.float64,
             **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
