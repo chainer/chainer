@@ -46,6 +46,11 @@ def device(request):
     return device
 
 
+@pytest.fixture(params=[True, False])
+def is_module(request):
+    return request.param
+
+
 @pytest.fixture(params=[xchainer, numpy])
 def xp(request):
     return request.param
