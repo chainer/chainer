@@ -820,13 +820,13 @@ Assign a Link object directly to an attribute within a \
         with self.init_scope():
             setattr(self, name, link)
 
-    def copy(self):
+    def copy(self, mode='share'):
         ret = super(Chain, self).copy()
         ret._children = set(ret._children)
         d = ret.__dict__
         for name in ret._children:
             # copy child links recursively
-            copied = d[name].copy()
+            copied = d[name].copy(mode)
             copied.name = name
             d[name] = copied
         return ret
