@@ -75,8 +75,6 @@ Max
 array([[3.],
        [6.]], shape=(2, 1), dtype=float32, device='native:0', graph_ids=['default'])
 
-.. TODO(sonots): Fix to take care of enable_double_backprop
-
 >>> y.backward(enable_double_backprop=True)
 >>> a.grad
 array([[0., 0., 1.],
@@ -136,8 +134,6 @@ Negative
 array([[-1., -2., -3.],
        [-4., -5., -6.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
 
-.. TODO(sonots): Fix to take care of enable_double_backprop
-
 >>> y.backward(enable_double_backprop=True)
 >>> a.grad
 array([[-1., -1., -1.],
@@ -180,9 +176,6 @@ False
 >>> y
 array([[1., 2., 3.],
        [4., 5., 6.]], shape=(2, 3), dtype=float64, device='native:0', graph_ids=['default'])
-
-.. TODO(sonots): Fix to take care of enable_double_backprop
-
 >>> y.backward(enable_double_backprop=True)
 >>> a.grad
 array([[1., 1., 1.],
@@ -202,8 +195,6 @@ Take
 >>> y
 array([[2., 3.],
        [5., 6.]], shape=(2, 2), dtype=float32, device='native:0', graph_ids=['default'])
-
-.. TODO(sonots): Fix to take care of enable_double_backprop
 
 >>> y.backward(enable_double_backprop=True)
 >>> a.grad
