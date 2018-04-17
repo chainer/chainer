@@ -1,3 +1,4 @@
+import six
 import unittest
 
 import numpy
@@ -10,8 +11,26 @@ from chainer import testing
 from chainer.testing import attr
 
 
+def _simple_group_normalization(x, n_groups, gamma, beta, xp, eps=1e-5):
+    batch_size, channels = x.shape[:2]
+    x_reshape = x.reshape(batch_size, n_groups, channels // n_groups, -1)
+
+    mu = xp.mean(x_reshape, axis=(2, 3), keepdims=True)
+    sigma = xp.std(x_reshape, axis=(2, 3), keepdims=True)
+
+    x_reshape = (x_reshape - mu) / (sigma + eps)
+    x = x_reshape.reshape(x.shape)
+
+    for i in six.moves.xrange(x.ndim):
+        if i != 1:  # except for channel dim
+            gamma = xp.expand_dims(gamma, i)
+            beta = xp.expand_dims(beta, i)
+
+    return x * gamma + beta
+
+
 @testing.parameterize(*(testing.product({
-    'shape': [(1, 4, 2, 2), (5, 4, 2)],
+    'shape': [(1, 4, 5, 5), (5, 4, 15)],
     'n_groups': [1, 2, 4],
     'dtype': [numpy.float32],
 })))
@@ -31,6 +50,8 @@ class TestGroupNormalization(unittest.TestCase):
         self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, args):
+        xp = cuda.get_array_module(*args)
+
         def func(*args_):
             return functions.group_normalization(
                 *[args_[0], self.n_groups, args_[1], args_[2]])
@@ -38,9 +59,14 @@ class TestGroupNormalization(unittest.TestCase):
         y = func(*args)
         self.assertEqual(y.data.dtype, self.dtype)
 
+        # Verify that implementation using batch normalization is correct
+        y_simple_gn = _simple_group_normalization(
+            args[0], self.n_groups, args[1], args[2], xp)
+        testing.assert_allclose(
+            y.data, y_simple_gn, **self.check_forward_options)
+
         # Verify that forward isn't be affected by batch size
         if self.shape[0] > 1:
-            xp = cuda.get_array_module(*args)
             y_one_each = chainer.functions.concat(
                 [func(*[xp.expand_dims(one_x, axis=0), args[1], args[2]])
                  for one_x in args[0]], axis=0)
