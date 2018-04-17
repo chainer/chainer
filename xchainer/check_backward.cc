@@ -78,6 +78,8 @@ void CheckDoubleBackpropOption(
         const std::vector<Array>& inputs,
         const GraphId& graph_id) {
     std::ostringstream failure_os;
+
+    // Disable double backprop
     {
         std::vector<Array> inputs_copy{inputs};
         std::vector<nonstd::optional<Array>> grads =
@@ -94,6 +96,8 @@ void CheckDoubleBackpropOption(
             }
         }
     }
+
+    // Enable double backprop
     {
         std::vector<Array> inputs_copy{inputs};
         std::vector<nonstd::optional<Array>> grads =
