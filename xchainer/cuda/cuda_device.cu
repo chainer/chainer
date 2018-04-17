@@ -795,8 +795,8 @@ void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const A
 }
 
 void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
-    // TODO(niboshi): Current implementation only distributes output elements in respective threads. Summation on the indices is performed serially in each thread.
-    // This implementation can be improved by distributing indices as well, possibly using atomicAdd.
+    // TODO(niboshi): Current implementation only distributes output elements in respective threads. Summation on the indices is performed
+    // serially in each thread. This implementation can be improved by distributing indices as well, possibly using atomicAdd.
 
     assert(a.shape() == out.shape());
     CheckDevicesCompatible(a, indices, out);
