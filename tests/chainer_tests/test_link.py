@@ -576,7 +576,6 @@ class TestChain(unittest.TestCase):
         self.assertIsNot(c2.c1.l1.x, self.l1.x)
         self.assertIs(c2.c1.l1.x.data, self.l1.x.data)
         self.assertIs(c2.c1.l1.x.grad, None)
-        self.assertIs(c2.name, None)
 
         self.assertTrue(hasattr(c2.c1, 'l2'))
         self.assertEqual(c2.c1.l2.name, 'l2')
