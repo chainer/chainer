@@ -221,7 +221,9 @@ void DivideImpl(const Array& lhs, const Array& rhs, const Array& out) {
     CheckEqual(lhs.dtype(), rhs.dtype());
     CheckEqual(lhs.shape(), rhs.shape());
 
-    auto lhs_backward_function = [rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array { return gout / rhs.AsConstant(graph_ids_to_stop_gradient); };
+    auto lhs_backward_function = [rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
+        return gout / rhs.AsConstant(graph_ids_to_stop_gradient);
+    };
     auto rhs_backward_function = [lhs, rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
         // TODO(niboshi): Use unary negate
         Array lhs_const = lhs.AsConstant(graph_ids_to_stop_gradient);
