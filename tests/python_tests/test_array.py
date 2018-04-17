@@ -24,6 +24,11 @@ def shape(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def is_module(request):
+    return request.param
+
+
 def _create_dummy_data(shape, dtype, pattern=1):
     assert isinstance(dtype, str)
 
