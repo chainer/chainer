@@ -24,6 +24,11 @@ def shape(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def is_module(request):
+    return request.param
+
+
 def _create_dummy_data(shape, dtype, pattern=1):
     assert isinstance(dtype, str)
 
@@ -391,7 +396,8 @@ def test_invalid_reshape(shape1, shape2):
     check(shape2, shape1)
 
 
-_squeeze_params = [
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('shape,axis', [
     ((), None),
     ((0,), None),
     ((1,), None),
@@ -407,46 +413,30 @@ _squeeze_params = [
     ((1, 2, 1, 3, 1, 1, 4), None),
     ((1, 2, 1, 3, 1, 1, 4), (2, 0, 4)),
     ((1, 2, 1, 3, 1, 1, 4), (-2, 0, 4)),
-]
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('shape,axis', _squeeze_params)
-def test_squeeze(xp, shape, axis):
+])
+def test_squeeze(is_module, xp, shape, axis):
     ndarray = _create_dummy_ndarray(shape, 'float32')
     a = xp.array(ndarray)
-    return a.squeeze(axis)
+    if is_module:
+        return xp.squeeze(a, axis)
+    else:
+        return a.squeeze(axis)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('shape,axis', _squeeze_params)
-def test_module_squeeze(xp, shape, axis):
-    ndarray = _create_dummy_ndarray(shape, 'float32')
-    a = xp.array(ndarray)
-    return xp.squeeze(a, axis)
-
-
-_squeeze_invalid_params = [
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize('shape,axis', [
     ((2, 1, 3), 0),
     ((2, 1, 3), -1),
     ((2, 1, 3), (1, 2)),
     ((2, 1, 3), (1, -1)),
     ((2, 1, 3), (1, 1)),
-]
-
-
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
-@pytest.mark.parametrize('shape,axis', _squeeze_invalid_params)
-def test_invalid_squeeze(xp, shape, axis):
+])
+def test_invalid_squeeze(is_module, xp, shape, axis):
     a = xp.ones(shape, xp.float32)
-    return a.squeeze(axis)
-
-
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
-@pytest.mark.parametrize('shape,axis', _squeeze_invalid_params)
-def test_invalid_module_squeeze(xp, shape, axis):
-    a = xp.ones(shape, xp.float32)
-    return xp.squeeze(a, axis)
+    if is_module:
+        return xp.squeeze(a, axis)
+    else:
+        return a.squeeze(axis)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
@@ -1225,7 +1215,7 @@ _take_invalid_params = [
 @pytest.mark.parametrize("shape,indices,axis", _take_valid_params + _take_invalid_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal(type_check=False, accept_error=(xchainer.DimensionError, numpy.AxisError))
-def test_take(xp, shape, indices, axis, device):
+def test_take(is_module, xp, shape, indices, axis, device):
     a = xp.arange(_total_size(shape)).reshape(shape)
 
     # First convert to ndarray since some indices are nested lists which
@@ -1233,21 +1223,10 @@ def test_take(xp, shape, indices, axis, device):
     # other dtypes are currently supported by xchainer.take
     indices = numpy.array(indices).astype('int64')
 
-    return a.take(xp.array(indices), axis)
-
-
-@pytest.mark.parametrize("shape,indices,axis", _take_valid_params + _take_invalid_params)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@xchainer.testing.numpy_xchainer_array_equal(type_check=False, accept_error=(xchainer.DimensionError, numpy.AxisError))
-def test_module_take(xp, shape, indices, axis, device):
-    a = xp.arange(_total_size(shape)).reshape(shape)
-
-    # First convert to ndarray since some indices are nested lists which
-    # xchainer cannot convert. Additionally, dtype is cast to int64 since no
-    # other dtypes are currently supported by xchainer.take
-    indices = numpy.array(indices).astype('int64')
-
-    return xp.take(a, xp.array(indices), axis)
+    if is_module:
+        return xp.take(a, xp.array(indices), axis)
+    else:
+        return a.take(xp.array(indices), axis)
 
 
 @pytest.mark.parametrize('is_module', [False, True])
@@ -1286,7 +1265,10 @@ def test_take_backward(is_module, dtype, shape, indices, axis, device):
     xchainer.check_double_backward(func_dbwd, (a,), (go,), (ggi,), (epsi, epso))
 
 
-_sum_params = [
+# TODO(sonots): Fix type compatibility
+@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+@pytest.mark.parametrize("keepdims", [False, True])
+@pytest.mark.parametrize("shape,axis", [
     ((), None),
     ((), ()),
     ((2,), None),
@@ -1313,29 +1295,15 @@ _sum_params = [
     ((2, 3, 4), (2, 0)),
     ((2, 3, 4), (2, 0, 1)),
     ((2, 3, 4), (-2, 2, 0)),
-]
-
-
-# TODO(sonots): Fix type compatibility
-@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
-@pytest.mark.parametrize("keepdims", [False, True])
-@pytest.mark.parametrize("shape,axis", _sum_params)
+])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sum(xp, device, shape, axis, keepdims):
+def test_sum(is_module, xp, device, shape, axis, keepdims):
     ndarray = _create_dummy_ndarray(shape, 'int32')
     a = xp.array(ndarray)
-    return a.sum(axis=axis, keepdims=keepdims)
-
-
-# TODO(sonots): Fix type compatibility
-@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
-@pytest.mark.parametrize("keepdims", [False, True])
-@pytest.mark.parametrize("shape,axis", _sum_params)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_module_sum(xp, device, shape, axis, keepdims):
-    ndarray = _create_dummy_ndarray(shape, 'int32')
-    a = xp.array(ndarray)
-    return xp.sum(a, axis=axis, keepdims=keepdims)
+    if is_module:
+        return xp.sum(a, axis=axis, keepdims=keepdims)
+    else:
+        return a.sum(axis=axis, keepdims=keepdims)
 
 
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
@@ -1354,10 +1322,13 @@ def test_module_sum(xp, device, shape, axis, keepdims):
     ((2, 3,), (0, 1, 1)),
     ((2, 3,), (0, -2)),
 ])
-def test_invalid_sum(xp, shape, axis, keepdims):
+def test_invalid_sum(is_module, xp, shape, axis, keepdims):
     ndarray = _create_dummy_ndarray(shape, 'int32')
     a = xp.array(ndarray)
-    a.sum(axis=axis, keepdims=keepdims)
+    if is_module:
+        xp.sum(a, axis=axis, keepdims=keepdims)
+    else:
+        a.sum(axis=axis, keepdims=keepdims)
 
 
 # TODO(sonots): Fix type compatibility for when shape is ()
@@ -1386,59 +1357,39 @@ def _create_dummy_array_for_dot(xp, shape, dtype):
     return xp.array(x)
 
 
-_dot_params = [
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('a_shape,b_shape', [
     ((), ()),
     ((), (2, 3)),
     ((2, 0), (0, 3)),
     ((0, 0), (0, 0)),
     ((2, 3), (3, 4)),
     # TODO(niboshi): Add test cases for more than 2 ndim
-]
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('a_shape,b_shape', _dot_params)
+])
 # TODO(niboshi): Add 'cuda:0'
 @pytest.mark.parametrize_device(['native:0'])
-def test_dot(xp, device, a_shape, b_shape, dtype):
+def test_dot(is_module, xp, device, a_shape, b_shape, dtype):
     a = _create_dummy_array_for_dot(xp, a_shape, dtype)
     b = _create_dummy_array_for_dot(xp, b_shape, dtype)
-    return a.dot(b)
+    if is_module:
+        return xp.dot(a, b)
+    else:
+        return a.dot(b)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('a_shape,b_shape', _dot_params)
-# TODO(niboshi): Add 'cuda:0'
-@pytest.mark.parametrize_device(['native:0'])
-def test_module_dot(xp, device, a_shape, b_shape, dtype):
-    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
-    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
-    return xp.dot(a, b)
-
-
-_invalid_dot_params = [
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize('a_shape,b_shape', [
     ((3, 2), (1, 3)),
-]
-
-
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
-@pytest.mark.parametrize('a_shape,b_shape', _invalid_dot_params)
+])
 # TODO(niboshi): Add 'cuda:0'
 @pytest.mark.parametrize_device(['native:0'])
-def test_invalid_dot(xp, device, a_shape, b_shape, dtype):
+def test_invalid_dot(is_module, xp, device, a_shape, b_shape, dtype):
     a = _create_dummy_array_for_dot(xp, a_shape, dtype)
     b = _create_dummy_array_for_dot(xp, b_shape, dtype)
-    return a.dot(b)
-
-
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
-@pytest.mark.parametrize('a_shape,b_shape', _invalid_dot_params)
-# TODO(niboshi): Add 'cuda:0'
-@pytest.mark.parametrize_device(['native:0'])
-def test_invalid_module_dot(xp, device, a_shape, b_shape, dtype):
-    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
-    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
-    return xp.dot(a, b)
+    if is_module:
+        return xp.dot(a, b)
+    else:
+        return a.dot(b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
@@ -1587,32 +1538,20 @@ _min_max_single_axis_params = [
 ]
 
 
-# TODO(niboshi): Unify `test_argmax` and `test_argmax_member` by returning a tuple of arrays: `return xp.argmax(a, axis), a.argmax(axis)`
-# after implementing multple return support in `numpy_xchainer_array_equal`.
 @pytest.mark.parametrize('input,axis', _min_max_single_axis_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
-def test_argmax(xp, device, input, axis, dtype):
+def test_argmax(is_module, xp, device, input, axis, dtype):
     try:
         a_np = input.astype(dtype)
     except (ValueError, OverflowError):
         return xp.zeros(())  # invalid combination of data and dtype
 
     a = xp.array(a_np)
-    return xp.argmax(a, axis)
-
-
-@pytest.mark.parametrize('input,axis', _min_max_single_axis_params)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
-def test_argmax_member(xp, device, input, axis, dtype):
-    try:
-        a_np = input.astype(dtype)
-    except (ValueError, OverflowError):
-        return xp.zeros(())  # invalid combination of data and dtype
-
-    a = xp.array(a_np)
-    return a.argmax(axis)
+    if is_module:
+        return xp.argmax(a, axis)
+    else:
+        return a.argmax(axis)
 
 
 _min_max_multi_axis_params = _min_max_single_axis_params + [
@@ -1631,29 +1570,17 @@ def test_max_amax():
     assert xchainer.amax is xchainer.max
 
 
-# TODO(niboshi): Unify `test_max` and `test_max_member` by returning a tuple of arrays: `return xp.amax(a, axis), a.max(axis)`
-# after implementing multple return support in `numpy_xchainer_array_equal`.
 @pytest.mark.parametrize('input,axis', _min_max_multi_axis_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
-def test_max(xp, device, input, axis, dtype):
+def test_max(is_module, xp, device, input, axis, dtype):
     try:
         a_np = input.astype(dtype)
     except (ValueError, OverflowError):
         return xp.zeros(())  # invalid combination of data and dtype
 
     a = xp.array(a_np)
-    return xp.amax(a, axis)
-
-
-@pytest.mark.parametrize('input,axis', _min_max_multi_axis_params)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
-def test_max_member(xp, device, input, axis, dtype):
-    try:
-        a_np = input.astype(dtype)
-    except (ValueError, OverflowError):
-        return xp.zeros(())  # invalid combination of data and dtype
-
-    a = xp.array(a_np)
-    return a.max(axis)
+    if is_module:
+        return xp.max(a, axis)
+    else:
+        return a.max(axis)
