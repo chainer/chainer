@@ -1,6 +1,6 @@
+from chainer.functions.normalization import group_normalization
 from chainer import link
 from chainer import variable
-from chainer.functions.normalization import group_normalization
 
 
 class GroupNormalization(link.Link):
@@ -41,6 +41,7 @@ class GroupNormalization(link.Link):
 
     See: `Group Normalization <https://arxiv.org/abs/1803.08494>`_
     """
+
     def __init__(self, n_groups, size=None, eps=1e-5, initial_gamma=None,
                  initial_beta=None):
         super(GroupNormalization, self).__init__()
