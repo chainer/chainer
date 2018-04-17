@@ -20,6 +20,20 @@ def _as_numpy(x):
     return x
 
 
+def _preprocess_input(a):
+    # Convert xchainer.Scalar to Python scalar
+    if isinstance(a, xchainer.Scalar):
+        a = a.tolist()
+
+    # Check conditions for xchainer.Array
+    if isinstance(a, xchainer.Array):
+        _check_xchainer_array(a)
+
+    # Convert to something NumPy can handle
+    a = _as_numpy(a)
+    return a
+
+
 def assert_allclose(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True):
     """Raises an AssertionError if two array_like objects are not equal up to a tolerance.
 
@@ -34,16 +48,13 @@ def assert_allclose(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose
              are appended to the error message.
     .. seealso:: :func:`numpy.testing.assert_allclose`
     """
-    if isinstance(x, xchainer.Array):
-        _check_xchainer_array(x)
-    if isinstance(y, xchainer.Array):
-        _check_xchainer_array(y)
+    x = _preprocess_input(x)
+    y = _preprocess_input(y)
 
     # TODO(sonots): Uncomment after strides compatibility between xChainer and NumPy is implemented.
     # assert x.strides == y.strides
 
-    numpy.testing.assert_allclose(
-        _as_numpy(x), _as_numpy(y), rtol=rtol, atol=atol, equal_nan=equal_nan, err_msg=err_msg, verbose=verbose)
+    numpy.testing.assert_allclose(x, y, rtol=rtol, atol=atol, equal_nan=equal_nan, err_msg=err_msg, verbose=verbose)
 
 
 def assert_array_equal(x, y, err_msg='', verbose=True):
@@ -57,12 +68,10 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
              are appended to the error message.
     .. seealso:: :func:`numpy.testing.assert_array_equal`
     """
-    if isinstance(x, xchainer.Array):
-        _check_xchainer_array(x)
-    if isinstance(y, xchainer.Array):
-        _check_xchainer_array(y)
+    x = _preprocess_input(x)
+    y = _preprocess_input(y)
 
     # TODO(sonots): Uncomment after strides compatibility between xChainer and NumPy is implemented.
     # assert x.strides == y.strides
 
-    numpy.testing.assert_array_equal(_as_numpy(x), _as_numpy(y), err_msg=err_msg, verbose=verbose)
+    numpy.testing.assert_array_equal(x, y, err_msg=err_msg, verbose=verbose)
