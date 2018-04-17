@@ -8,6 +8,12 @@
 
 namespace xchainer {
 
+// Tests whether backward functions correctly support double backprop option
+void CheckDoubleBackpropOption(
+        const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
+        const std::vector<Array>& inputs,
+        const GraphId& graph_id = kDefaultGraphId);
+
 // Tests differentiation of a given procedure.
 //
 // This function automatically checks if the backward procedure of `func` is

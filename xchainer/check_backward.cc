@@ -19,8 +19,9 @@ namespace {
 std::vector<nonstd::optional<Array>> BackwardGradients(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         std::vector<Array>& inputs,
-        const std::vector<Array>& grad_outputs,
-        const GraphId& graph_id) {
+        const nonstd::optional<std::vector<Array>>& grad_outputs,
+        const GraphId& graph_id,
+        DoubleBackpropOption double_backprop = DoubleBackpropOption::kEnable) {
     for (const auto& input : inputs) {
         if (internal::HasArrayNode(input, graph_id) && internal::GetArrayNode(input, graph_id)->next_node()) {
             throw XchainerError("BackwardGradients: All inputs must be leaf nodes of computational graph");
@@ -29,16 +30,18 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
 
     std::vector<Array> outputs = func(inputs);
 
-    const std::size_t nout = outputs.size();
-    if (nout != grad_outputs.size()) {
-        throw XchainerError(
-                "BackwardGradients: Size of function outputs: " + std::to_string(nout) +
-                " and size of grad outputs: " + std::to_string(grad_outputs.size()) + " must be same");
-    }
+    if (grad_outputs) {
+        const std::size_t nout = outputs.size();
+        if (nout != grad_outputs->size()) {
+            throw XchainerError(
+                    "BackwardGradients: Size of function outputs: " + std::to_string(nout) +
+                    " and size of grad outputs: " + std::to_string(grad_outputs->size()) + " must be same");
+        }
 
-    for (std::size_t i = 0; i < nout; ++i) {
-        if (outputs[i].IsGradRequired(graph_id)) {
-            outputs[i].SetGrad(grad_outputs[i], graph_id);
+        for (std::size_t i = 0; i < nout; ++i) {
+            if (outputs[i].IsGradRequired(graph_id)) {
+                outputs[i].SetGrad((*grad_outputs)[i], graph_id);
+            }
         }
     }
 
@@ -54,7 +57,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
     std::copy_if(outputs_ref.begin(), outputs_ref.end(), std::back_inserter(outputs_requiring_grad), [&graph_id](const Array& a) {
         return a.IsGradRequired(graph_id);
     });
-    Backward(outputs_requiring_grad, graph_id, DoubleBackpropOption::kEnable);
+    Backward(outputs_requiring_grad, graph_id, double_backprop);
 
     std::vector<nonstd::optional<Array>> backward_grads;
     std::transform(
@@ -69,6 +72,51 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
 }
 
 }  // namespace
+
+void CheckDoubleBackpropOption(
+        const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
+        const std::vector<Array>& inputs,
+        const GraphId& graph_id) {
+    std::ostringstream failure_os;
+    {
+        std::vector<Array> inputs_copy{inputs};
+        std::vector<nonstd::optional<Array>> grads =
+                BackwardGradients(func, inputs_copy, nonstd::nullopt, graph_id, DoubleBackpropOption::kDisable);
+
+        const int grads_size = grads.size();
+        for (int i = 0; i < grads_size; ++i) {
+            if (grads[i]) {
+                if (grads[i]->IsGradRequired(graph_id)) {
+                    failure_os << "Check disable double backprop failure on gradient " << i << " (Total gradients: " << grads_size << ")\n"
+                               << "Graph name: " << graph_id << "\n"
+                               << "IsGradRequired: true\n";
+                }
+            }
+        }
+    }
+    {
+        std::vector<Array> inputs_copy{inputs};
+        std::vector<nonstd::optional<Array>> grads =
+                BackwardGradients(func, inputs_copy, nonstd::nullopt, graph_id, DoubleBackpropOption::kEnable);
+
+        const int grads_size = grads.size();
+        for (int i = 0; i < grads_size; ++i) {
+            if (grads[i]) {
+                if (!grads[i]->IsGradRequired(graph_id)) {
+                    failure_os << "Check enable double backprop failure on gradient " << i << " (Total gradients: " << grads_size << ")\n"
+                               << "Graph name: " << graph_id << "\n"
+                               << "IsGradRequired: false\n";
+                }
+            }
+        }
+    }
+
+    // Do nothing unless failure
+    std::string failure_message = failure_os.str();
+    if (!failure_message.empty()) {
+        throw GradientCheckError(failure_message);
+    }
+}
 
 void CheckBackwardComputation(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
