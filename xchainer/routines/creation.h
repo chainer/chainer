@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"

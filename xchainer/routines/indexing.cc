@@ -12,6 +12,7 @@
 #include "xchainer/array_index.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
+#include "xchainer/ndim_vector.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/util.h"
 #include "xchainer/shape.h"
@@ -47,8 +48,8 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 }  // namespace
 
 Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
-    std::vector<int64_t> out_shape;
-    std::vector<int64_t> out_strides;
+    NdimVector<int64_t> out_shape{};
+    NdimVector<int64_t> out_strides{};
     int64_t out_offset = a.offset();
     int64_t i_in = 0;
     for (const ArrayIndex& index : indices) {
@@ -68,22 +69,22 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
                 const Slice& slice = index.slice();
                 int64_t slice_length = slice.GetLength(a.shape()[i_in]);
                 out_offset += a.strides()[i_in] * slice.GetStart(a.shape()[i_in]);
-                out_shape.push_back(slice_length);
-                out_strides.push_back(a.strides()[i_in] * slice.step());
+                out_shape.emplace_back(slice_length);
+                out_strides.emplace_back(a.strides()[i_in] * slice.step());
                 ++i_in;
                 break;
             }
             case ArrayIndexTag::kNewAxis:
-                out_shape.push_back(1);
-                out_strides.push_back(0);
+                out_shape.emplace_back(1);
+                out_strides.emplace_back(0);
                 break;
             default:
                 assert(false);
         }
     }
     for (int64_t i = i_in; i < a.ndim(); ++i) {
-        out_shape.push_back(a.shape()[i]);
-        out_strides.push_back(a.strides()[i]);
+        out_shape.emplace_back(a.shape()[i]);
+        out_strides.emplace_back(a.strides()[i]);
     }
 
     Array out = xchainer::internal::MakeArray(
@@ -135,8 +136,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
 
-    std::vector<int64_t> out_shape_vec;
-    out_shape_vec.reserve(a.ndim() + indices.ndim() - 1);
+    NdimVector<int64_t> out_shape_vec{};
     std::copy(a.shape().begin(), a.shape().begin() + axis_norm, std::back_inserter(out_shape_vec));
     std::copy(indices.shape().begin(), indices.shape().end(), std::back_inserter(out_shape_vec));
     std::copy(a.shape().begin() + (axis_norm + 1), a.shape().end(), std::back_inserter(out_shape_vec));

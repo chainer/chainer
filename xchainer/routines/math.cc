@@ -9,6 +9,7 @@
 #include "xchainer/array.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/ndim_vector.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/util.h"
@@ -277,24 +278,23 @@ Array Divide(const Array& x1, const Array& x2) {
 
 namespace {
 
-Shape GetReductionOutputShape(const Array& a, const std::vector<int8_t>& sorted_axis, bool keepdims) {
-    std::vector<int64_t> out_shape_vec;
-    out_shape_vec.reserve(a.ndim());
+Shape GetReductionOutputShape(const Array& a, const NdimVector<int8_t>& sorted_axis, bool keepdims) {
+    NdimVector<int64_t> out_shape_vec{};
     int8_t i_axis = 0;
     for (int8_t i = 0; i < a.ndim(); ++i) {
         if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
             ++i_axis;
             if (keepdims) {
-                out_shape_vec.push_back(int64_t{1});
+                out_shape_vec.emplace_back(int64_t{1});
             }
         } else {
-            out_shape_vec.push_back(a.shape()[i]);
+            out_shape_vec.emplace_back(a.shape()[i]);
         }
     }
     return Shape{out_shape_vec.begin(), out_shape_vec.end()};
 }
 
-Array AllocateReductionOutput(const Array& a, const std::vector<int8_t>& sorted_axis, bool keepdims) {
+Array AllocateReductionOutput(const Array& a, const NdimVector<int8_t>& sorted_axis, bool keepdims) {
     Shape out_shape = GetReductionOutputShape(a, sorted_axis, keepdims);
 
     if (!keepdims) {
@@ -303,7 +303,7 @@ Array AllocateReductionOutput(const Array& a, const std::vector<int8_t>& sorted_
 
     // Set reduced strides of the output array to 0
     Strides contiguous_strides{out_shape, a.dtype()};
-    std::vector<int64_t> out_strides_vec(contiguous_strides.begin(), contiguous_strides.end());
+    NdimVector<int64_t> out_strides_vec{contiguous_strides.begin(), contiguous_strides.end()};
     for (int8_t i_axis : sorted_axis) {
         out_strides_vec[i_axis] = 0;
     }
@@ -312,8 +312,8 @@ Array AllocateReductionOutput(const Array& a, const std::vector<int8_t>& sorted_
 
 }  // namespace
 
-Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-    std::vector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+Array Sum(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) {
+    NdimVector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
     Array out = AllocateReductionOutput(a, sorted_axis, keepdims);
     a.device().Sum(a, sorted_axis, out);
 
@@ -334,8 +334,8 @@ Array Sum(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, boo
     return out;
 }
 
-Array AMax(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-    std::vector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+Array AMax(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) {
+    NdimVector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
     Array out = AllocateReductionOutput(a, sorted_axis, keepdims);
 
     for (int8_t i : sorted_axis) {
@@ -410,15 +410,15 @@ Array Log(const Array& x) {
     return out;
 }
 
-Array LogSumExp(const Array& x, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-    std::vector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, x.ndim());
+Array LogSumExp(const Array& x, const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) {
+    NdimVector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, x.ndim());
     Array xmax = AMax(x, sorted_axis, true);
     Array logs = Log(Sum(Exp(x - xmax), sorted_axis, keepdims));
     return (keepdims ? xmax : Squeeze(xmax, axis)) + logs;
 }
 
-Array LogSoftmax(const Array& x, const nonstd::optional<std::vector<int8_t>>& axis) {
-    return x - LogSumExp(x, axis.has_value() ? axis : std::vector<int8_t>{1}, true);
+Array LogSoftmax(const Array& x, const nonstd::optional<NdimVector<int8_t>>& axis) {
+    return x - LogSumExp(x, axis.has_value() ? axis : NdimVector<int8_t>{1}, true);
 }
 
 }  // namespace xchainer

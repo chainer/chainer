@@ -153,15 +153,15 @@ Array Array::Transpose() const { return xchainer::Transpose(*this); }
 
 Array Array::Reshape(const Shape& newshape) const { return xchainer::Reshape(*this, newshape); }
 
-Array Array::Squeeze(const nonstd::optional<std::vector<int8_t>>& axis) const { return xchainer::Squeeze(*this, axis); }
+Array Array::Squeeze(const nonstd::optional<NdimVector<int8_t>>& axis) const { return xchainer::Squeeze(*this, axis); }
 
 Array Array::BroadcastTo(const Shape& shape) const { return xchainer::BroadcastTo(*this, shape); }
 
 Array Array::ArgMax(const nonstd::optional<int8_t>& axis) const { return xchainer::ArgMax(*this, axis); }
 
-Array Array::Sum(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
+Array Array::Sum(const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
 
-Array Array::Max(const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) const { return xchainer::AMax(*this, axis, keepdims); }
+Array Array::Max(const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) const { return xchainer::AMax(*this, axis, keepdims); }
 
 Array Array::Dot(const Array& b) const { return xchainer::Dot(*this, b); }
 

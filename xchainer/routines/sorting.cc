@@ -15,17 +15,16 @@
 namespace xchainer {
 
 Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis) {
-    std::vector<int8_t> sorted_axis;
-    std::vector<int64_t> out_shape_vec;
+    NdimVector<int8_t> sorted_axis{};
+    NdimVector<int64_t> out_shape_vec{};
     if (axis.has_value()) {
         sorted_axis = internal::GetSortedAxes({*axis}, a.ndim());
-        out_shape_vec.reserve(a.ndim() - 1);
         int8_t i_axis = 0;
         for (int8_t i = 0; i < a.ndim(); ++i) {
             if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
                 ++i_axis;
             } else {
-                out_shape_vec.push_back(a.shape()[i]);
+                out_shape_vec.emplace_back(a.shape()[i]);
             }
         }
     } else {

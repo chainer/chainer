@@ -2,18 +2,18 @@
 
 #include <cstdint>
 #include <tuple>
-#include <vector>
 
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
 #include "xchainer/error.h"
+#include "xchainer/ndim_vector.h"
 
 namespace xchainer {
 namespace internal {
 namespace {
 
-using GetSortedAxesNormalTestParam = std::tuple<std::vector<int8_t>, int8_t, std::vector<int8_t>>;
+using GetSortedAxesNormalTestParam = std::tuple<NdimVector<int8_t>, int8_t, NdimVector<int8_t>>;
 
 class GetSortedAxesNormalTest : public ::testing::TestWithParam<GetSortedAxesNormalTestParam> {};
 
@@ -29,13 +29,13 @@ INSTANTIATE_TEST_CASE_P(
         ForEachInputs,
         GetSortedAxesNormalTest,
         ::testing::Values(
-                GetSortedAxesNormalTestParam{std::vector<int8_t>{}, 0, std::vector<int8_t>{}},
+                GetSortedAxesNormalTestParam{{}, 0, {}},
                 GetSortedAxesNormalTestParam{{1}, 2, {1}},
                 GetSortedAxesNormalTestParam{{-1}, 2, {1}},
                 GetSortedAxesNormalTestParam{{1, 0}, 2, {0, 1}},
                 GetSortedAxesNormalTestParam{{2, -2}, 3, {1, 2}}));
 
-using GetSortedAxesInvalidTestParam = std::tuple<std::vector<int8_t>, int8_t>;
+using GetSortedAxesInvalidTestParam = std::tuple<NdimVector<int8_t>, int8_t>;
 
 class GetSortedAxesInvalidTest : public ::testing::TestWithParam<GetSortedAxesInvalidTestParam> {};
 
@@ -56,7 +56,7 @@ INSTANTIATE_TEST_CASE_P(
                 GetSortedAxesInvalidTestParam{{0, 2, 1}, 2},
                 GetSortedAxesInvalidTestParam{{0, 0}, 1}));
 
-using GetSortedAxesOrAllTestParam = std::tuple<int8_t, std::vector<int8_t>>;
+using GetSortedAxesOrAllTestParam = std::tuple<int8_t, NdimVector<int8_t>>;
 
 class GetSortedAxesOrAllTest : public ::testing::TestWithParam<GetSortedAxesOrAllTestParam> {};
 

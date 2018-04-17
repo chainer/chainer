@@ -3,13 +3,13 @@
 #include <cstdint>
 #include <memory>
 #include <tuple>
-#include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/device.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_backend.h"
+#include "xchainer/ndim_vector.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
@@ -36,10 +36,10 @@ public:
 
     void Arange(Scalar start, Scalar step, const Array& out) override;
 
-    void ArgMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) override;
+    void ArgMax(const Array& a, const NdimVector<int8_t>& axis, const Array& out) override;
 
-    void Sum(const Array& a, const std::vector<int8_t>& axis, const Array& out) override;
-    void AMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) override;
+    void Sum(const Array& a, const NdimVector<int8_t>& axis, const Array& out) override;
+    void AMax(const Array& a, const NdimVector<int8_t>& axis, const Array& out) override;
 
     void Copy(const Array& a, const Array& out) override;
 
