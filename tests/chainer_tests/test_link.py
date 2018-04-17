@@ -140,8 +140,8 @@ class TestLink(unittest.TestCase):
         self.assertNotIn('p', self.link._params)
         self.assertNotIn('p', self.link._persistent)
 
-    def test_copy(self):
-        link = self.link.copy()
+    def test_copy_with_share_mode(self):
+        link = self.link.copy(mode='share')
         self.assertIsInstance(link._params, set)
         self.assertIsInstance(link._persistent, set)
         self.assertTrue(hasattr(link, 'x'))
@@ -149,12 +149,47 @@ class TestLink(unittest.TestCase):
         self.assertTrue(hasattr(link, 'u'))
         self.assertTrue(hasattr(link, 'p'))
         self.assertIsNot(link.x, self.link.x)
-        self.assertIs(link.x.data, self.link.x.data)
+        self.assertIs(link.x.array, self.link.x.array)
         self.assertIsNot(link.y, self.link.y)
-        self.assertIs(link.y.data, self.link.y.data)
-        self.assertIsNone(link.u.data)
+        self.assertIs(link.y.array, self.link.y.array)
+        self.assertIsNone(link.u.array)
         self.assertIs(link.p, self.link.p)
         self.assertIs(link.name, None)
+
+    def test_copy_with_copy_mode(self):
+        link = self.link.copy(mode='copy')
+        self.assertIsInstance(link._params, set)
+        self.assertIsInstance(link._persistent, set)
+        self.assertTrue(hasattr(link, 'x'))
+        self.assertTrue(hasattr(link, 'y'))
+        self.assertTrue(hasattr(link, 'u'))
+        self.assertTrue(hasattr(link, 'p'))
+        self.assertIsNot(link.x, self.link.x)
+        self.assertIsNot(link.x.array, self.link.x.array)
+        self.assertIsNot(link.y, self.link.y)
+        self.assertIsNot(link.y.array, self.link.y.array)
+        self.assertIsNone(link.u.array)
+        self.assertIsNot(link.p, self.link.p)
+        self.assertIsNot(link.name, None)
+
+    def test_copy_with_init_mode(self):
+        self.link.u.initializer = initializers.Normal(
+            dtype=self.link.u.initializer.dtype)
+        self.link.u.initialize((2, 3))
+        link = self.link.copy(mode='init')
+        self.assertFalse(numpy.array_equal(self.link.u.array, link.u.array))
+        self.assertIsInstance(link._params, set)
+        self.assertIsInstance(link._persistent, set)
+        self.assertTrue(hasattr(link, 'x'))
+        self.assertTrue(hasattr(link, 'y'))
+        self.assertTrue(hasattr(link, 'u'))
+        self.assertTrue(hasattr(link, 'p'))
+        self.assertIsNot(link.x, self.link.x)
+        self.assertIsNot(link.x.array, self.link.x.array)
+        self.assertIsNot(link.y, self.link.y)
+        self.assertIsNot(link.y.array, self.link.y.array)
+        self.assertIsNot(link.p, self.link.p)
+        self.assertIsNot(link.name, None)
 
     @attr.gpu
     def test_copy_and_to_gpu_init(self):
@@ -483,6 +518,78 @@ class TestLink(unittest.TestCase):
             warnings.simplefilter('always')
             self.link.count_params()
         assert not w
+
+
+class TestLinkRepeat(unittest.TestCase):
+
+    def setUp(self):
+
+        class Layer(chainer.Link):
+            def __init__(self):
+                super(Layer, self).__init__()
+                with self.init_scope():
+                    self.x = chainer.Parameter(
+                        chainer.initializers.Normal(), shape=(2, 3))
+
+            def __call__(self):
+                pass
+
+        self.link = Layer()
+
+    def test_no_repeat(self):
+        ret = self.link.repeat(0)
+        self.assertEqual(len(ret), 0)
+
+    def test_repeat_with_init(self):
+        ret = self.link.repeat(2, mode='init')
+        self.assertEqual(len(ret), 2)
+        # Both should be different objects from the original link
+        self.assertIsNot(ret[0], self.link)
+        self.assertIsNot(ret[1], self.link)
+        # Object IDs of elements should be different
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].x, ret[1].x)
+        # But shape and type of paratmeres shuld be same
+        self.assertEqual(ret[0].x.shape, self.link.x.shape)
+        self.assertEqual(ret[0].x.dtype, self.link.x.dtype)
+        self.assertEqual(ret[0].x.shape, ret[1].x.shape)
+        self.assertEqual(ret[0].x.dtype, ret[1].x.dtype)
+        # Parameters are re-initialized, so the values should be different
+        self.assertFalse(numpy.all(ret[0].x.array == ret[1].x.array))
+
+    def test_repeat_with_copy(self):
+        ret = self.link.repeat(2, mode='copy')
+        self.assertEqual(len(ret), 2)
+        # Both should be different objects from the original link
+        self.assertIsNot(ret[0], self.link)
+        self.assertIsNot(ret[1], self.link)
+        # Object IDs of elements should be different
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].x, ret[1].x)
+        # But shape, type, and value of paratmeres shuld be same
+        self.assertEqual(ret[0].x.shape, self.link.x.shape)
+        self.assertEqual(ret[0].x.dtype, self.link.x.dtype)
+        self.assertEqual(ret[0].x.shape, ret[1].x.shape)
+        self.assertEqual(ret[0].x.dtype, ret[1].x.dtype)
+        numpy.testing.assert_array_equal(ret[0].x.array, ret[1].x.array)
+
+    def test_repeat_with_share(self):
+        ret = self.link.repeat(2, mode='share')
+        self.assertEqual(len(ret), 2)
+        # Both should be different objects from the original link
+        self.assertIsNot(ret[0], self.link)
+        self.assertIsNot(ret[1], self.link)
+        # Object IDs of elements should be different
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].x, ret[1].x)
+        # But the array objects should be the same
+        self.assertIs(ret[0].x.array, ret[1].x.array)
+        # But shape, type, and value of paratmeres shuld be same
+        self.assertEqual(ret[0].x.shape, self.link.x.shape)
+        self.assertEqual(ret[0].x.dtype, self.link.x.dtype)
+        self.assertEqual(ret[0].x.shape, ret[1].x.shape)
+        self.assertEqual(ret[0].x.dtype, ret[1].x.dtype)
+        numpy.testing.assert_array_equal(ret[0].x.array, ret[1].x.array)
 
 
 class CountParameter(chainer.Parameter):
@@ -1152,7 +1259,7 @@ class TestIntel64(unittest.TestCase):
 
     def setUp(self):
         self.link = chainer.Link()
-        shape = (2,)
+        shape = (2, 2)
         dtype = numpy.float32
         y_array = numpy.random.rand(*shape).astype(dtype)
         pa_array = numpy.random.rand(*shape).astype(dtype)
@@ -1283,6 +1390,23 @@ class TestIntel64(unittest.TestCase):
         self._assert_arrays_equal(link.pa, self.pa_array)
         # Persistent scalar
         assert link.ps == self.ps_scalar
+
+    def test_cpu_to_intel64_unsupported(self):
+        # Test for persistents that cannot be transferred to iDeep.
+        with self.link.init_scope():
+            self.link.no_ideep = numpy.ones((2, 2, 2), numpy.float32)
+            self.link.register_persistent('no_ideep')
+        self.link.to_intel64()
+        assert isinstance(self.link.no_ideep, numpy.ndarray)
+
+    @attr.gpu
+    def test_gpu_to_intel64_unsupported(self):
+        # Test for persistents that cannot be transferred to iDeep.
+        with self.link.init_scope():
+            self.link.no_ideep = cuda.cupy.ones((2, 2, 2), numpy.float32)
+            self.link.register_persistent('no_ideep')
+        self.link.to_intel64()
+        assert isinstance(self.link.no_ideep, numpy.ndarray)
 
 
 testing.run_module(__name__, __file__)
