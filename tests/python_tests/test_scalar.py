@@ -26,7 +26,7 @@ all_scalar_values = [
     (True, xchainer.bool_),
     (False, xchainer.bool_),
 ])
-def test_init(value, dtype):
+def test_init_without_dtype(value, dtype):
     scalar = xchainer.Scalar(value)
     assert scalar.dtype == dtype
     if math.isnan(value):
@@ -113,18 +113,12 @@ def test_init_casted(value, cast_dtype, expected_value):
 
 
 @pytest.mark.parametrize('value', [0, 0.0, 1, 1.0, -1, 0x100, 0x10000, 0x100000000, 0x7fffffffffffffff])
-@pytest.mark.parametrize('dtype_name', [
-    'bool',
-    'int8',
-    'int16',
-    'int32',
-    'int64',
-    'uint8',
-    'float32',
-    'float64'
-])
-def test_init_with_dtype_name(value, dtype_name):
-    assert xchainer.Scalar(value, dtype_name) == xchainer.Scalar(value, xchainer.dtype(dtype_name))
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_init_with_dtype(value, dtype_spec):
+    expected_dtype = xchainer.dtype(dtype_spec)
+    scalar = xchainer.Scalar(value, dtype_spec)
+    assert scalar.dtype == expected_dtype
+    assert scalar == xchainer.Scalar(value, expected_dtype)
 
 
 @pytest.mark.parametrize('value1,value2', [

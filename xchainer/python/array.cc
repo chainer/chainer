@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-#include <pybind11/numpy.h>
 #include <pybind11/operators.h>
 #include <nonstd/optional.hpp>
 
@@ -29,6 +28,7 @@
 #include "xchainer/python/array_index.h"
 #include "xchainer/python/common.h"
 #include "xchainer/python/device.h"
+#include "xchainer/python/dtype.h"
 #include "xchainer/python/shape.h"
 #include "xchainer/python/strides.h"
 
@@ -37,52 +37,6 @@ namespace python {
 namespace internal {
 
 namespace py = pybind11;
-
-namespace {
-
-Dtype NumpyDtypeToDtype(const py::dtype& npdtype) {
-    switch (npdtype.kind()) {
-        case 'b':
-            return Dtype::kBool;
-        case 'i':
-            switch (npdtype.itemsize()) {
-                case 1:
-                    return Dtype::kInt8;
-                case 2:
-                    return Dtype::kInt16;
-                case 4:
-                    return Dtype::kInt32;
-                case 8:
-                    return Dtype::kInt64;
-                default:
-                    break;
-            }
-            break;
-        case 'u':
-            switch (npdtype.itemsize()) {
-                case 1:
-                    return Dtype::kUInt8;
-                default:
-                    break;
-            }
-            break;
-        case 'f':
-            switch (npdtype.itemsize()) {
-                case 4:
-                    return Dtype::kFloat32;
-                case 8:
-                    return Dtype::kFloat64;
-                default:
-                    break;
-            }
-            break;
-        default:
-            break;
-    }
-    throw DtypeError("unsupported NumPy dtype");
-}
-
-}  // namespace
 
 ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& list, Device& device) {
     Shape shape = ToShape(shape_tup);
@@ -103,7 +57,7 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
 }
 
 ArrayBodyPtr MakeArray(py::array array, Device& device) {
-    Dtype dtype = NumpyDtypeToDtype(array.dtype());
+    Dtype dtype = internal::GetDtypeFromNumpyDtype(array.dtype());
     const py::buffer_info& info = array.request();
     Shape shape{info.shape};
     Strides strides{info.strides};
@@ -135,15 +89,15 @@ py::buffer_info MakeBufferFromArray(ArrayBody& self) {
 
 void InitXchainerArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "Array", py::buffer_protocol()};
-    c.def(py::init([](const py::tuple& shape, Dtype dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
-              return MakeArray(shape, dtype, list, GetDevice(device_id));
+    c.def(py::init([](const py::tuple& shape, py::handle dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
+              return MakeArray(shape, internal::GetDtype(dtype), list, GetDevice(device_id));
           }),
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("data"),
           py::arg("device") = nullptr);
-    c.def(py::init([](const py::tuple& shape, Dtype dtype, const py::list& list, Device& device) {
-              return MakeArray(shape, dtype, list, device);
+    c.def(py::init([](const py::tuple& shape, py::handle dtype, const py::list& list, Device& device) {
+              return MakeArray(shape, internal::GetDtype(dtype), list, device);
           }),
           py::arg("shape"),
           py::arg("dtype"),
@@ -185,7 +139,9 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg().noconvert(),
           py::arg("copy") = false);
     c.def("astype",
-          [](const ArrayBodyPtr& self, Dtype dtype, bool copy) { return Array{self}.AsType(dtype, copy).move_body(); },
+          [](const ArrayBodyPtr& self, py::handle dtype, bool copy) {
+              return Array{self}.AsType(internal::GetDtype(dtype), copy).move_body();
+          },
           py::arg("dtype"),
           py::arg("copy") = true);
     c.def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); });

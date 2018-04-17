@@ -32,8 +32,9 @@ def _check_device(a, device=None):
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_array_from_python_list(xp, dtype, device):
-    return xp.array([0, 1, 2], xp.dtype(dtype.name))
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec', with_xchainer_dtypes=False)
+def test_array_from_python_list_with_dtype(xp, dtype_spec, device):
+    return xp.array([0, 1, 2], dtype_spec)
 
 
 # TODO(sonots): Determine dtype (bool or int64, or float64) seeing values of list.
@@ -47,20 +48,25 @@ def test_array_from_python_list_without_dtype(dtype):
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-def test_array_from_python_list_with_device(device):
-    a = xchainer.array([0, 1, 2], 'f', device)
+def test_array_from_python_list_with_dtype_with_device(device):
+    a = xchainer.array([0, 1, 2], 'float32', device)
+    b = xchainer.array([0, 1, 2], 'float32')
+    xchainer.testing.assert_array_equal(a, b)
     _check_device(a, device)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_array_from_numpy_ndarray(xp, shape, dtype, device):
-    return xp.array(numpy.zeros(shape, numpy.dtype(dtype.name)))
+    return xp.array(numpy.zeros(shape, dtype))
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-def test_array_from_numpy_ndarray_with_device(shape, dtype, device):
-    a = xchainer.array(numpy.zeros((2,), 'f'), device)
+def test_array_from_numpy_ndarray_with_device(shape, device):
+    np_a = numpy.zeros((2,), 'float32')
+    a = xchainer.array(np_a, device)
+    b = xchainer.array(np_a)
+    xchainer.testing.assert_array_equal(a, b)
     _check_device(a, device)
 
 
@@ -69,43 +75,46 @@ def test_array_from_xchainer_array(shape, dtype, device):
     t = xchainer.zeros(shape, dtype, 'native:1')
     a = xchainer.array(t)
     assert t is not a
-    assert a.shape == shape
-    assert a.dtype == dtype
-    assert a.device == t.device
-    assert a._debug_flat_data == t._debug_flat_data
+    xchainer.testing.assert_array_equal(a, t)
+    assert a.device is t.device
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_array_from_xchainer_array_with_device(device):
     shape = (2,)
-    dtype = xchainer.float64
+    dtype = xchainer.float32
     t = xchainer.zeros(shape, dtype, 'native:0')
     a = xchainer.array(t, device)
+    b = xchainer.array(t)
     assert t is not a
-    assert a.shape == shape
-    assert a.dtype == dtype
+    xchainer.testing.assert_array_equal(a, b)
     _check_device(a, device)
-    assert a._debug_flat_data == t._debug_flat_data
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_empty(xp, shape, dtype, device):
-    a = xp.empty(shape, xp.dtype(dtype.name))
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_empty(xp, shape, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+    a = xp.empty(shape, dtype_spec)
     a.fill(0)
     return a
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_empty_with_device(device):
-    a = xchainer.empty((2,), 'f', device)
+    a = xchainer.empty((2,), 'float32', device)
+    b = xchainer.empty((2,), 'float32')
     _check_device(a, device)
+    assert a.dtype == b.dtype
+    assert a.shape == b.shape
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_empty_like(xp, shape, dtype, device):
-    t = xp.empty(shape, xp.dtype(dtype.name))
+    t = xp.empty(shape, dtype)
     a = xp.empty_like(t)
     a.fill(0)
     return a
@@ -113,61 +122,78 @@ def test_empty_like(xp, shape, dtype, device):
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_empty_like_with_device(device):
-    t = xchainer.empty((2,), 'f')
+    t = xchainer.empty((2,), 'float32')
     a = xchainer.empty_like(t, device)
+    b = xchainer.empty_like(t)
     _check_device(a, device)
+    assert a.dtype == b.dtype
+    assert a.shape == b.shape
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_zeros(xp, shape, dtype, device):
-    return xp.zeros(shape, xp.dtype(dtype.name))
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_zeros(xp, shape, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+    return xp.zeros(shape, dtype_spec)
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_zeros_with_device(device):
-    a = xchainer.zeros((2,), 'f', device)
+    a = xchainer.zeros((2,), 'float32', device)
+    b = xchainer.zeros((2,), 'float32')
+    xchainer.testing.assert_array_equal(a, b)
     _check_device(a, device)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_zeros_like(xp, shape, dtype, device):
-    t = xp.empty(shape, xp.dtype(dtype.name))
+    t = xp.empty(shape, dtype)
     return xp.zeros_like(t)
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_zeros_like_with_device(device):
-    t = xchainer.empty((2,), 'f')
+    t = xchainer.empty((2,), 'float32')
     a = xchainer.zeros_like(t, device)
+    b = xchainer.zeros_like(t)
     _check_device(a, device)
+    xchainer.testing.assert_array_equal(a, b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_ones(xp, shape, dtype, device):
-    return xp.ones(shape, xp.dtype(dtype.name))
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_ones(xp, shape, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+    return xp.ones(shape, dtype_spec)
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_ones_with_device(device):
-    a = xchainer.ones((2,), 'f', device)
+    a = xchainer.ones((2,), 'float32', device)
+    b = xchainer.ones((2,), 'float32')
     _check_device(a, device)
+    xchainer.testing.assert_array_equal(a, b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_ones_like(xp, shape, dtype, device):
-    t = xp.empty(shape, xp.dtype(dtype.name))
+    t = xp.empty(shape, dtype)
     return xp.ones_like(t)
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-def test_ones_like_with_device(shape, dtype, device):
-    t = xchainer.empty((2,), 'f')
+def test_ones_like_with_device(shape, device):
+    t = xchainer.empty((2,), 'float32')
     a = xchainer.ones_like(t, device)
+    b = xchainer.ones_like(t)
     _check_device(a, device)
+    xchainer.testing.assert_array_equal(a, b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
@@ -180,8 +206,11 @@ def test_full(xp, shape, value, device):
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_full_with_dtype(xp, shape, dtype, value, device):
-    return xp.full(shape, value, xp.dtype(dtype.name))
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_full_with_dtype(xp, shape, dtype_spec, value, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+    return xp.full(shape, value, dtype_spec)
 
 
 @pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
@@ -197,46 +226,46 @@ def test_full_with_scalar(shape, dtype, value, device):
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_full_with_device(device):
-    a = xchainer.full((2,), 1, 'f', device)
+    a = xchainer.full((2,), 1, 'float32', device)
+    b = xchainer.full((2,), 1, 'float32')
     _check_device(a, device)
+    xchainer.testing.assert_array_equal(a, b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full_like(xp, shape, dtype, value, device):
-    t = xp.empty(shape, xp.dtype(dtype.name))
+    t = xp.empty(shape, dtype)
     return xp.full_like(t, value)
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_full_like_with_device(device):
-    t = xchainer.empty((2,), 'f')
+    t = xchainer.empty((2,), 'float32')
     a = xchainer.full_like(t, 1, device)
+    b = xchainer.full_like(t, 1)
     _check_device(a, device)
+    xchainer.testing.assert_array_equal(a, b)
 
 
-_none_or_dtype = [
-    None,
-    'bool',
-    'int8',
-    'int16',
-    'int32',
-    'int64',
-    'uint8',
-    'float32',
-    'float64',
-]
+def _is_bool_spec(dtype_spec):
+    # Used in arange tests
+    if dtype_spec is None:
+        return False
+    return xchainer.dtype(dtype_spec) == xchainer.bool_
 
 
 @pytest.mark.parametrize('stop', [-2, 0, 0.1, 3, 3.2, False, True])
-@pytest.mark.parametrize('none_or_dtype', _none_or_dtype)
 @pytest.mark.parametrize_device(['native:0'])
-def test_arange_stop(xp, stop, none_or_dtype, device):
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec', additional_args=(None,))
+def test_arange_stop(xp, stop, dtype_spec, device):
     # TODO(hvy): xp.arange(True) should return an ndarray of type int64
-    if none_or_dtype == 'bool' and stop > 2:  # Checked in test_invalid_arange_too_long_bool
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+    if _is_bool_spec(dtype_spec) and stop > 2:  # Checked in test_invalid_arange_too_long_bool
         return xp.array([])
-    return xp.arange(stop, dtype=none_or_dtype)
+    return xp.arange(stop, dtype=dtype_spec)
 
 
 @pytest.mark.parametrize('start,stop', [
@@ -250,12 +279,14 @@ def test_arange_stop(xp, stop, none_or_dtype, device):
     (True, False),
     (False, True),
 ])
-@pytest.mark.parametrize('none_or_dtype', _none_or_dtype)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_arange_start_stop(xp, start, stop, none_or_dtype, device):
-    if none_or_dtype == 'bool' and abs(stop - start) > 2:  # Checked in test_invalid_arange_too_long_bool
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec', additional_args=(None,))
+def test_arange_start_stop(xp, start, stop, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+    if _is_bool_spec(dtype_spec) and abs(stop - start) > 2:  # Checked in test_invalid_arange_too_long_bool
         return xp.array([])
-    return xp.arange(start, stop, dtype=none_or_dtype)
+    return xp.arange(start, stop, dtype=dtype_spec)
 
 
 @pytest.mark.parametrize('start,stop,step', [
@@ -270,33 +301,41 @@ def test_arange_start_stop(xp, start, stop, none_or_dtype, device):
     (4, 1, -1.2),
     (False, True, True),
 ])
-@pytest.mark.parametrize('none_or_dtype', _none_or_dtype)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_arange_start_stop_step(xp, start, stop, step, none_or_dtype, device):
-    if none_or_dtype == 'bool' and abs((stop - start) / step) > 2:  # Checked in test_invalid_arange_too_long_bool
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec', additional_args=(None,))
+def test_arange_start_stop_step(xp, start, stop, step, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+    if _is_bool_spec(dtype_spec) and abs((stop - start) / step) > 2:  # Checked in test_invalid_arange_too_long_bool
         return xp.array([])
-    return xp.arange(start, stop, step, dtype=none_or_dtype)
+    return xp.arange(start, stop, step, dtype=dtype_spec)
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_arange_with_device(device):
-    _check_device(xchainer.arange(3, device=device), device)
-    _check_device(xchainer.arange(3, dtype='f', device=device), device)
-    _check_device(xchainer.arange(0, 3, device=device), device)
-    _check_device(xchainer.arange(0, 3, dtype='f', device=device), device)
-    _check_device(xchainer.arange(0, 3, 2, device=device), device)
-    _check_device(xchainer.arange(0, 3, 2, dtype='f', device=device), device)
+    def check(*args, **kwargs):
+        a = xchainer.arange(*args, device=device, **kwargs)
+        b = xchainer.arange(*args, **kwargs)
+        _check_device(a, device)
+        xchainer.testing.assert_array_equal(a, b)
+
+    check(3)
+    check(3, dtype='float32')
+    check(0, 3)
+    check(0, 3, dtype='float32')
+    check(0, 3, 2)
+    check(0, 3, 2, dtype='float32')
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_invalid_arange_too_long_bool(device):
     def check(xp, err):
         with pytest.raises(err):
-            xp.arange(3, dtype='bool')
+            xp.arange(3, dtype='bool_')
         with pytest.raises(err):
-            xp.arange(1, 4, 1, dtype='bool')
+            xp.arange(1, 4, 1, dtype='bool_')
         # Should not raise since the size is <= 2.
-        xp.arange(1, 4, 2, dtype='bool')
+        xp.arange(1, 4, 2, dtype='bool_')
 
     check(xchainer, xchainer.DtypeError)
     check(numpy, ValueError)

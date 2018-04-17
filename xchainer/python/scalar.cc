@@ -6,6 +6,7 @@
 #include "xchainer/scalar.h"
 
 #include "xchainer/python/common.h"
+#include "xchainer/python/dtype.h"
 
 namespace xchainer {
 namespace python {
@@ -13,14 +14,23 @@ namespace internal {
 
 namespace py = pybind11;  // standard convention
 
+namespace {
+
+template <typename T>
+Scalar MakeScalar(T value, py::handle dtype) {
+    return Scalar{value, internal::GetDtype(dtype)};
+}
+
+}  // namespace
+
 void InitXchainerScalar(pybind11::module& m) {
     py::class_<Scalar> c{m, "Scalar"};
     c.def(py::init<bool>());
     c.def(py::init<int64_t>());
     c.def(py::init<double>());
-    c.def(py::init<bool, Dtype>(), py::arg().noconvert(), py::arg());
-    c.def(py::init<int64_t, Dtype>(), py::arg().noconvert(), py::arg());
-    c.def(py::init<double, Dtype>(), py::arg().noconvert(), py::arg());
+    c.def(py::init(&MakeScalar<bool>));
+    c.def(py::init(&MakeScalar<int64_t>));
+    c.def(py::init(&MakeScalar<double>));
     c.def(py::self == py::self);  // NOLINT
     c.def("__eq__", [](Scalar scalar, bool value) { return scalar == Scalar{value}; });
     c.def("__eq__", [](Scalar scalar, int64_t value) { return scalar == Scalar{value}; });

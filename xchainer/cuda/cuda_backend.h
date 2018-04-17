@@ -29,7 +29,7 @@ public:
 
 private:
     std::unique_ptr<Device> CreateDevice(int index) override;
-    cublasHandle_t cublas_handle_;
+    cublasHandle_t cublas_handle_{};
 };
 
 }  // namespace cuda
