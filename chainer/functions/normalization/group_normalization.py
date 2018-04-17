@@ -8,7 +8,7 @@ from chainer.functions.normalization import batch_normalization
 
 
 def group_normalization(x, n_groups, gamma, beta, eps=1e-5):
-    """Group normalization.
+    """Group normalization function.
 
     This function implements a "group normalization"
     which divides the channels into groups and computes within each group
