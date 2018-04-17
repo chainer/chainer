@@ -1,5 +1,5 @@
-Acceptance tests for MNIST required operations
-==============================================
+Acceptance tests for operations required in MNIST
+=================================================
 
 >>> import xchainer as xc
 >>> import numpy as np
@@ -28,12 +28,12 @@ Subtract
 --------
 
 >>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
->>> b = xc.Array((1, 3), xc.float32, [4, 5, 6]).require_grad()
+>>> b = xc.Array((1, 3), xc.float32, [2, 2, 2]).require_grad()
 
 >>> y = a - b
 >>> y
-array([[-3., -3., -3.],
-       [ 0.,  0.,  0.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
+array([[-1.,  0.,  1.],
+       [ 2.,  3.,  4.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
 
 .. TODO(sonots): Fix to take care of enable_double_backprop
 
@@ -68,7 +68,7 @@ array([[-0.3125, -0.28  , -0.25  ]], shape=(1, 3), dtype=float32, device='native
 Max
 ---
 
->>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = xc.Array((2, 3), xc.float32, [3, 2, 1, 4, 5, 6]).require_grad()
 
 >>> y = xc.amax(a, axis=(1,), keepdims=True)
 >>> y
@@ -77,17 +77,17 @@ array([[3.],
 
 >>> y.backward(enable_double_backprop=True)
 >>> a.grad
-array([[0., 0., 1.],
+array([[1., 0., 0.],
        [0., 0., 1.]], shape=(2, 3), dtype=float32, device='native:0')
 
 Argmax
 ------
 
->>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6])
+>>> a = xc.Array((2, 3), xc.float32, [3, 2, 1, 4, 5, 6])
 
 >>> y = xc.argmax(a, axis=1)
 >>> y
-array([2, 2], shape=(2,), dtype=int64, device='native:0')
+array([0, 2], shape=(2,), dtype=int64, device='native:0')
 
 Log
 ---
