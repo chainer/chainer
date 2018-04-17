@@ -201,6 +201,11 @@ Take
 >>> y = a.take(indicies, axis=1)
 >>> y
 array([[2., 3.],
-       [5., 6.]], shape=(2, 2), dtype=float32, device='native:0')
+       [5., 6.]], shape=(2, 2), dtype=float32, device='native:0', graph_ids=['default'])
 
-.. TODO(sonots): Add backward acceptance tests
+.. TODO(sonots): Fix to take care of enable_double_backprop
+
+>>> y.backward(enable_double_backprop=True)
+>>> a.grad
+array([[0., 1., 1.],
+       [0., 1., 1.]], shape=(2, 3), dtype=float32, device='native:0')
