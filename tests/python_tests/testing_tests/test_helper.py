@@ -225,7 +225,7 @@ def test_numpy_xchainer_array_equal_fail_accept_error_only_xchainer(xp):
 def test_numpy_xchainer_array_equal_accept_error_multiple(xp):
     if xp is numpy:
         raise FooError()
-    if xp is xchainer:
+    else:
         raise BarError()
 
 
@@ -437,5 +437,5 @@ def test_numpy_xchainer_allclose_fail_accept_error_only_xchainer(xp):
 def test_numpy_xchainer_allclose_accept_error_multiple(xp):
     if xp is numpy:
         raise FooError()
-    if xp is xchainer:
+    else:
         raise BarError()
