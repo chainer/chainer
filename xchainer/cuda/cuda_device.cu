@@ -711,6 +711,47 @@ __global__ void TakeKernel(
     }
 }
 
+template <typename T>
+__global__ void AddAtKernel(
+        IndexableArray<const T> a_iarray,
+        IndexableArray<const T> b_iarray,
+        IndexableArray<T> out_iarray,
+        IndexableArray<const int64_t> indices_iarray,
+        Indexer b_indexer,
+        Indexer out_indexer,
+        Indexer indices_indexer,
+        int64_t common_total_size,
+        int64_t axis_dim) {
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < out_indexer.total_size(); i += blockDim.x * gridDim.x) {
+        out_indexer.Set(i);
+
+        int64_t axis_pos = i / common_total_size;
+        int64_t common_pos = i % common_total_size;
+
+        T out_value = a_iarray[out_indexer];
+
+        for (int64_t indices_pos = 0; indices_pos < indices_indexer.total_size(); ++indices_pos) {
+            indices_indexer.Set(indices_pos);
+            int64_t index = indices_iarray[indices_indexer];
+
+            if (index < 0) {
+                index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
+            } else {
+                index = index % axis_dim;
+            }
+            assert(0 <= index);
+            assert(index < axis_dim);
+
+            if (index == axis_pos) {
+                b_indexer.Set(indices_pos * common_total_size + common_pos);
+                out_value += b_iarray[b_indexer];
+            }
+        }
+
+        out_iarray[out_indexer] = out_value;
+    }
+}
+
 }  // namespace
 
 void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
@@ -719,7 +760,7 @@ void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const A
         using T = typename decltype(pt)::type;
 
         // a and out are transposed as follows.
-        // a:       (Ni..., N, Nj...) => (N, Ni..., Nj...)
+        // a:       (Ni..., N,     Nj...) => (N,     Ni..., Nj...)
         // out:     (Ni..., Nk..., Nj...) => (Nk..., Ni..., Nj...)
         //
         // indices is used as is.
@@ -753,9 +794,55 @@ void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const A
     });
 }
 
-void CudaDevice::AddAt(const Array& /*a*/, const Array& /*indices*/, int8_t /*axis*/, const Array& /*b*/, const Array& /*out*/) {
-    // TODO(niboshi): Implement
-    throw NotImplementedError("");
+void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
+    // TODO(niboshi): Current implementation only distributes output elements in respective threads. Summation on the indices is performed
+    // serially in each thread. This implementation can be improved by distributing indices as well, possibly using atomicAdd.
+
+    assert(a.shape() == out.shape());
+    CheckDevicesCompatible(a, indices, out);
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        // b and out are transposed as follows.
+        // a:       (Ni..., N,     Nj...) => (N,     Ni..., Nj...)
+        // b:       (Ni..., Nk..., Nj...) => (Nk..., Ni..., Nj...)
+        // out:     (Ni..., N    , Nj...) => (N    , Ni..., Nj...)
+        //
+        // indices is used as is.
+        // indices: (Nk...)
+
+        IndexableArray<const T> a_iarray{a};
+        std::vector<int8_t> a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
+        a_iarray.Permute(a_perm);
+        Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
+        Indexer a_indexer{a_shape};
+
+        IndexableArray<const T> b_iarray{b};
+        std::vector<int8_t> b_perm = MakeRollingPermutation(axis, axis + indices.ndim(), b.ndim());
+        b_iarray.Permute(b_perm);
+        Shape b_shape = internal::TransposeShape(b.shape(), b_perm);
+        Indexer b_indexer{b_shape};
+
+        IndexableArray<T> out_iarray{out};
+        std::vector<int8_t> out_perm = MakeRollingPermutation(axis, axis + 1, out.ndim());
+        out_iarray.Permute(out_perm);
+        Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
+        Indexer out_indexer{out_shape};
+
+        IndexableArray<const int64_t> indices_iarray{indices};
+        Indexer indices_indexer{indices.shape()};
+
+        // size of (Ni..., Nj...) part
+        int64_t common_total_size = a_indexer.total_size() / a_shape[0];
+
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&TakeKernel<T>).block_size;
+        int64_t total_size = out_indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+        AddAtKernel<<<grid_size, block_size>>>(
+                a_iarray, b_iarray, out_iarray, indices_iarray, b_indexer, out_indexer, indices_indexer, common_total_size, a_shape[0]);
+    });
 }
 
 void CudaDevice::Synchronize() {
