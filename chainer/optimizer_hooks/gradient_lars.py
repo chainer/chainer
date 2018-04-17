@@ -47,12 +47,23 @@ class GradientLARS(object):
             (See <https://arxiv.org/abs/1801.03137>)
 
     Attributes:
-        threashold (float): If weight norm is more than threshold,
-            this function scales all gradient arrays to fit weight norm.
-            (See <https://arxiv.org/abs/1801.03137>)
-        weight_decay (float): Coefficient for the weight decay.
-        eps (float): Small value for the numerical stability.
-            (See <https://arxiv.org/abs/1801.03137>)
+        ~optimizer_hooks.GradientLARS.threashold (float): If weight norm is
+                         more than threshold, this function scales all
+                         gradient arrays to fit weight norm.
+                         (See <https://arxiv.org/abs/1801.03137>)
+        ~optimizer_hooks.GradientLARS.weight_decay (float): Coefficient
+                         for the weight decay.
+        ~optimizer_hooks.GradientLARS.eps (float): Small value for the
+                         numerical stability.
+                         (See <https://arxiv.org/abs/1801.03137>)
+        ~optimizer_hooks.GradientLARS.timing (string): Specifies
+                         when this hook should be called by the
+                         Optimizer/UpdateRule. Valid values are 'pre'
+                         (before any updates) and 'post' (after any updates).
+
+    .. versionadded:: 4.0.0
+       The *timing* parameter.
+
     """
     name = 'GradientLARS'
     call_for_each_param = True
