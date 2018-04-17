@@ -533,9 +533,10 @@ TEST_P(MathTest, DivideBackward) {
     Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
     Array eps = Full(shape, 1e-3);
+    auto func = [](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], xs[1])}; };
 
-    CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
+    CheckDoubleBackpropOption(func, {a, b});
+    CheckBackwardComputation(func, {a, b}, {go}, {eps, eps});
 }
 
 TEST_P(MathTest, DivideDoubleBackward) {
