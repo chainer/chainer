@@ -249,7 +249,7 @@ def test_full_like_with_device(device):
     xchainer.testing.assert_array_equal(a, b)
 
 
-def _is_bool_arg(dtype_spec):
+def _is_bool_spec(dtype_spec):
     # Used in arange tests
     if dtype_spec is None:
         return False
@@ -263,7 +263,7 @@ def test_arange_stop(xp, stop, dtype_spec, device):
     # TODO(hvy): xp.arange(True) should return an ndarray of type int64
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = dtype_spec.name
-    if _is_bool_arg(dtype_spec) and stop > 2:  # Checked in test_invalid_arange_too_long_bool
+    if _is_bool_spec(dtype_spec) and stop > 2:  # Checked in test_invalid_arange_too_long_bool
         return xp.array([])
     return xp.arange(stop, dtype=dtype_spec)
 
@@ -284,7 +284,7 @@ def test_arange_stop(xp, stop, dtype_spec, device):
 def test_arange_start_stop(xp, start, stop, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = dtype_spec.name
-    if _is_bool_arg(dtype_spec) and abs(stop - start) > 2:  # Checked in test_invalid_arange_too_long_bool
+    if _is_bool_spec(dtype_spec) and abs(stop - start) > 2:  # Checked in test_invalid_arange_too_long_bool
         return xp.array([])
     return xp.arange(start, stop, dtype=dtype_spec)
 
@@ -306,7 +306,7 @@ def test_arange_start_stop(xp, start, stop, dtype_spec, device):
 def test_arange_start_stop_step(xp, start, stop, step, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = dtype_spec.name
-    if _is_bool_arg(dtype_spec) and abs((stop - start) / step) > 2:  # Checked in test_invalid_arange_too_long_bool
+    if _is_bool_spec(dtype_spec) and abs((stop - start) / step) > 2:  # Checked in test_invalid_arange_too_long_bool
         return xp.array([])
     return xp.arange(start, stop, step, dtype=dtype_spec)
 
