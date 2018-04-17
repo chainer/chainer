@@ -35,8 +35,6 @@ Subtract
 array([[-1.,  0.,  1.],
        [ 2.,  3.,  4.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
 
-.. TODO(sonots): Fix to take care of enable_double_backprop
-
 >>> y.backward(enable_double_backprop=True)
 >>> a.grad
 array([[1., 1., 1.],
@@ -56,7 +54,7 @@ Divide
 array([[0.25, 0.4 , 0.5 ],
        [1.  , 1.  , 1.  ]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
 
-.. TODO(sonots): Fix to take care of enable_double_backprop
+.. TODO(sonots): Fix grad not to have graph with enable_double_backprop=False
 
 >>> y.backward(enable_double_backprop=False)
 >>> a.grad
@@ -99,7 +97,7 @@ Log
 array([[0.        , 0.69314718, 1.0986123 ],
        [1.38629436, 1.60943794, 1.79175949]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
 
-.. TODO(sonots): Fix to take care of enable_double_backprop
+.. TODO(sonots): Fix grad not to have graph with enable_double_backprop=False
 
 >>> y.backward(enable_double_backprop=False)
 >>> a.grad
@@ -116,7 +114,7 @@ Exp
 array([[  2.71828175,   7.3890562 ,  20.08553696],
        [ 54.59814835, 148.41316223, 403.42880249]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
 
-.. TODO(sonots): Fix to take care of enable_double_backprop
+.. TODO(sonots): Fix grad not to have graph with enable_double_backprop=False
 
 >>> y.backward(enable_double_backprop=False)
 >>> a.grad
@@ -149,7 +147,7 @@ Log of Softmax
 array([[-2.40760589, -1.40760589, -0.40760589],
        [-2.40760612, -1.40760612, -0.40760612]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
 
-.. TODO(sonots): Fix to take care of enable_double_backprop
+.. TODO(sonots): Fix grad not to have graph with enable_double_backprop=False
 
 >>> y.backward(enable_double_backprop=False)
 >>> a.grad
