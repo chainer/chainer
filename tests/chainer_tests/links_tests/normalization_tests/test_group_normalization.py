@@ -169,8 +169,8 @@ class TestInvalidInput(unittest.TestCase):
 class TestInvalidInitialize(unittest.TestCase):
 
     def setUp(self):
-        self.shape = (2, 5, 2)
-        self.x = chainer.Variable(numpy.zeros(self.shape, dtype='f'))
+        shape = (2, 5, 2)
+        self.x = chainer.Variable(numpy.zeros(shape, dtype='f'))
 
     def test_invalid_n_groups(self):
         self.link = links.GroupNormalization(n_groups=3)
