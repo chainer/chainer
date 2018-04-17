@@ -722,7 +722,6 @@ __global__ void AddAtKernel(
         Indexer indices_indexer,
         int64_t common_total_size,
         int64_t axis_dim) {
-    int tid = threadIdx.x;
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < out_indexer.total_size(); i += blockDim.x * gridDim.x) {
         out_indexer.Set(i);
 
