@@ -119,10 +119,9 @@ def test_assert_allclose_fail_equal_nan():
     with pytest.raises(AssertionError):
         xchainer.testing.assert_allclose(float('nan'), float('nan'), equal_nan=False)
 
-    a = numpy.zeros((2, 3), numpy.float32)
-    b = numpy.zeros((2, 3), numpy.float32)
-    a[1, 1] = float('nan')
-    b[1, 1] = float('nan')
+    shape = (2, 3)
+    dtype = numpy.float32
+    a, b = _make_onehot_arrays(shape, dtype, float('nan'), float('nan'))
     xchainer.testing.assert_allclose(a, b)
     with pytest.raises(AssertionError):
         xchainer.testing.assert_allclose(a, b, equal_nan=False)
