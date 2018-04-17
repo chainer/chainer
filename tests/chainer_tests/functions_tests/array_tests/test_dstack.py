@@ -75,8 +75,7 @@ class TestDstack(unittest.TestCase):
 
     def check_double_backward(self, xs_data, y_grad, xs_grad_grad):
         def func(*xs):
-            y = functions.dstack(xs)
-            return y * y
+            return functions.dstack(xs)
 
         gradient_check.check_double_backward(
             func, xs_data, y_grad, xs_grad_grad, dtype='d',
