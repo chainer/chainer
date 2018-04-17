@@ -4,9 +4,9 @@ from chainer import variable
 
 
 class GroupNormalization(link.Link):
-    """Group normalization.
+    """Group normalization layer on outputs of linear or convolution functions.
 
-    This function implements a "group normalization"
+    This link implements a "group normalization"
     which divides the channels into groups and computes within each group
     the mean and variance, then normalize by these statistics,
     scales and shifts them.
@@ -15,7 +15,7 @@ class GroupNormalization(link.Link):
 
 
     Args:
-        groups (int):
+        n_groups (int):
             The number of channel groups.
             This value must be a divisor of the number of channels.
         size (int): Size of input units. If ``None``, parameter initialization
