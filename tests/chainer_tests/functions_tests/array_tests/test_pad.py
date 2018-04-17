@@ -67,8 +67,7 @@ class TestPadDefault(unittest.TestCase):
 
     def check_double_backward(self, x_data, gy_data, ggx_data):
         def f(x):
-            y = functions.pad(x, pad_width=self.pad_width, mode=self.mode)
-            return y * y
+            return functions.pad(x, pad_width=self.pad_width, mode=self.mode)
 
         gradient_check.check_double_backward(
             f, x_data, gy_data, ggx_data, **self.check_backward_options)
@@ -145,10 +144,9 @@ class TestPad(unittest.TestCase):
 
     def check_double_backward(self, x_data, gy_data, ggx_data):
         def f(x):
-            y = functions.pad(
+            return functions.pad(
                 x, pad_width=self.pad_width, mode=self.mode,
                 constant_values=self.constant_values)
-            return y * y
 
         gradient_check.check_double_backward(
             f, x_data, gy_data, ggx_data, **self.check_backward_options)
