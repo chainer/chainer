@@ -128,7 +128,7 @@ def test_numpy_xchainer_array_equal_fail_shape_mismatch(xp):
 
 
 # TODO(niboshi): Currently this test passes. Implement stride check and uncomment xfail.
-#@pytest.mark.xfail()
+# @pytest.mark.xfail()
 @xchainer.testing.numpy_xchainer_array_equal()
 def test_numpy_xchainer_array_equal_fail_strides_mismatch(xp):
     if xp is numpy:

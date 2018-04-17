@@ -11,7 +11,7 @@ def test_float_dtypes():
     # Check dtype kind
     for dtype in xchainer.testing.all_dtypes:
         is_float = dtype in xchainer.testing.float_dtypes
-        assert is_float == (numpy.dtype(getattr(numpy, dtype)).kind in ('f',))  # TODO(niboshi): Add 'c' when complex dtypes are supported
+        assert is_float == (numpy.dtype(getattr(numpy, dtype)).kind in ('f', 'c'))
 
 
 def test_signed_dtypes():
@@ -21,7 +21,7 @@ def test_signed_dtypes():
     # Check dtype kind
     for dtype in xchainer.testing.all_dtypes:
         is_signed = dtype in xchainer.testing.signed_dtypes
-        assert is_signed == (numpy.dtype(getattr(numpy, dtype)).kind in ('i', 'f', 'c'))  # TODO(niboshi): Add 'c' when complex dtypes are supported
+        assert is_signed == (numpy.dtype(getattr(numpy, dtype)).kind in ('i', 'f', 'c'))
 
 
 @xchainer.testing.parametrize_dtype_specifier('spec', with_xchainer_dtypes=False)
