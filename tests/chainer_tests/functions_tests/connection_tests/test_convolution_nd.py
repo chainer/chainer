@@ -240,10 +240,9 @@ class TestConvolutionND(unittest.TestCase):
             grad_grads += (b_grad_grad,)
 
         def f(*args):
-            y = F.convolution_nd(*args, stride=self.stride, pad=self.pad,
+            return F.convolution_nd(*args, stride=self.stride, pad=self.pad,
                                  cover_all=self.cover_all, dilate=self.dilate,
                                  groups=self.groups)
-            return y * y  # make the function nonlinear
 
         with chainer.using_config('use_cudnn', use_cudnn):
             with chainer.using_config('autotune', self.autotune):

@@ -129,24 +129,17 @@ class TestBilinearFunction(unittest.TestCase):
              cuda.to_gpu(self.ggW)), **self.check_backward_options)
 
     def test_full_double_backward_cpu(self):
-        def f(*inputs):
-            y = functions.bilinear(*inputs)
-            return y * y
-
         gradient_check.check_double_backward(
-            f, (self.e1, self.e2, self.W, self.V1, self.V2, self.b),
+            functions.bilinear,
+            (self.e1, self.e2, self.W, self.V1, self.V2, self.b),
             self.gy,
             (self.gge1, self.gge2, self.ggW, self.ggV1, self.ggV2, self.ggb),
             **self.check_double_backward_options)
 
     @attr.gpu
     def test_full_double_backward_gpu(self):
-        def f(*inputs):
-            y = functions.bilinear(*inputs)
-            return y * y
-
         gradient_check.check_double_backward(
-            f,
+            functions.bilinear,
             (cuda.to_gpu(self.e1), cuda.to_gpu(self.e2), cuda.to_gpu(self.W),
              cuda.to_gpu(self.V1), cuda.to_gpu(self.V2), cuda.to_gpu(self.b)),
             cuda.to_gpu(self.gy),
