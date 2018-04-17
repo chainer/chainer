@@ -84,8 +84,7 @@ class TestClippedReLU(unittest.TestCase):
     def check_double_backward(self, x_data, y_grad, x_grad_grad,
                               use_cudnn='always'):
         def f(x):
-            y = functions.clipped_relu(x, self.z)
-            return y * y
+            return functions.clipped_relu(x, self.z)
 
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
