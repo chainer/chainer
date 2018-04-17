@@ -55,7 +55,7 @@ class TestSign(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad, no_grads):
         gradient_check.check_backward(
-            F.sign, x_data, y_grad, no_grads=no_grads)
+            F.sign, x_data, y_grad, no_grads=no_grads, allow_no_grads=False)
 
         # Explicitly check that gradients are `None`
         x = chainer.Variable(x_data)

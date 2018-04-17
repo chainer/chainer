@@ -95,7 +95,8 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         gradient_check.check_backward(
             self.link_wrapper, (x_data, mask), y_grad,
             (self.link.W, self.link.b),
-            no_grads=(False, True), dtype='d', **self.check_backward_options)
+            no_grads=(False, True), allow_no_grads=False,
+            dtype='d', **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy, self.mask)
