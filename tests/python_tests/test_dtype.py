@@ -32,9 +32,9 @@ def test_dtype_from_python_type():
     assert xchainer.dtype(float) == xchainer.float64
 
 
-@xchainer.testing.parametrize_dtype_args('dtype_arg', with_xchainer_dtypes=False)
-def test_dtype_from_args(dtype_arg):
-    assert xchainer.dtype(dtype_arg).name == numpy.dtype(dtype_arg).name
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec', with_xchainer_dtypes=False)
+def test_dtype_from_args(dtype_spec):
+    assert xchainer.dtype(dtype_spec).name == numpy.dtype(dtype_spec).name
 
 
 def test_dtypes_covered(dtype):

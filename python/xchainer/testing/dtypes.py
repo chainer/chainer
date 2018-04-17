@@ -32,7 +32,7 @@ signed_dtypes = [
 ]
 
 
-def parametrize_dtype_args(argname, dtypes=None, with_xchainer_dtypes=True, additional_args=None):
+def parametrize_dtype_specifier(argname, dtypes=None, with_xchainer_dtypes=True, additional_args=None):
     """Parametrizes a test with various arguments that can be used as dtypes.
 
     Args:

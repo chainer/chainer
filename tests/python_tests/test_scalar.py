@@ -113,10 +113,10 @@ def test_init_casted(value, cast_dtype, expected_value):
 
 
 @pytest.mark.parametrize('value', [0, 0.0, 1, 1.0, -1, 0x100, 0x10000, 0x100000000, 0x7fffffffffffffff])
-@xchainer.testing.parametrize_dtype_args('dtype_arg')
-def test_init_with_dtype(value, dtype_arg):
-    expected_dtype = xchainer.dtype(dtype_arg)
-    scalar = xchainer.Scalar(value, dtype_arg)
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_init_with_dtype(value, dtype_spec):
+    expected_dtype = xchainer.dtype(dtype_spec)
+    scalar = xchainer.Scalar(value, dtype_spec)
     assert scalar.dtype == expected_dtype
     assert scalar == xchainer.Scalar(value, expected_dtype)
 

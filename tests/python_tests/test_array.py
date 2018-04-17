@@ -113,27 +113,27 @@ def _total_size(shape):
     return functools.reduce(operator.mul, shape, 1)
 
 
-def _check_init(shape, dtype_arg, device=None, with_device=True):
-    expected_dtype = xchainer.dtype(dtype_arg).name
+def _check_init(shape, dtype_spec, device=None, with_device=True):
+    expected_dtype = xchainer.dtype(dtype_spec).name
     data_list = _create_dummy_data(shape, expected_dtype)
 
     if with_device:
-        array = xchainer.Array(shape, dtype_arg, data_list, device)
+        array = xchainer.Array(shape, dtype_spec, data_list, device)
     else:
-        array = xchainer.Array(shape, dtype_arg, data_list)
+        array = xchainer.Array(shape, dtype_spec, data_list)
 
     _check_array(array, expected_dtype, shape, data_list, device=device)
 
 
-@xchainer.testing.parametrize_dtype_args('dtype_arg')
-def test_init_without_device(shape, dtype_arg):
-    _check_init(shape, dtype_arg, with_device=False)
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_init_without_device(shape, dtype_spec):
+    _check_init(shape, dtype_spec, with_device=False)
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-@xchainer.testing.parametrize_dtype_args('dtype_arg')
-def test_init_with_device(shape, dtype_arg, device):
-    _check_init(shape, dtype_arg, device=device)
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_init_with_device(shape, dtype_spec, device):
+    _check_init(shape, dtype_spec, device=device)
 
 
 def _check_numpy_init(ndarray, device=None):
