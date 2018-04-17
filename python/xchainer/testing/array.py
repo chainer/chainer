@@ -34,12 +34,10 @@ def assert_allclose(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose
              are appended to the error message.
     .. seealso:: :func:`numpy.testing.assert_allclose`
     """
-    def check_array(array):
-        if isinstance(array, xchainer.Array):
-            _check_xchainer_array(array)
-
-    check_array(x)
-    check_array(y)
+    if isinstance(x, xchainer.Array):
+        _check_xchainer_array(x)
+    if isinstance(y, xchainer.Array):
+        _check_xchainer_array(y)
 
     # TODO(sonots): Uncomment after strides compatibility between xChainer and NumPy is implemented.
     # assert x.strides == y.strides
@@ -59,12 +57,10 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
              are appended to the error message.
     .. seealso:: :func:`numpy.testing.assert_array_equal`
     """
-    def check_array(array):
-        if isinstance(array, xchainer.Array):
-            _check_xchainer_array(array)
-
-    check_array(x)
-    check_array(y)
+    if isinstance(x, xchainer.Array):
+        _check_xchainer_array(x)
+    if isinstance(y, xchainer.Array):
+        _check_xchainer_array(y)
 
     # TODO(sonots): Uncomment after strides compatibility between xChainer and NumPy is implemented.
     # assert x.strides == y.strides
