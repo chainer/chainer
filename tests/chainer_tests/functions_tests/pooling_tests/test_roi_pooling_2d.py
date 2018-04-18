@@ -75,7 +75,6 @@ class TestROIPooling2D(unittest.TestCase):
                                    outw=self.outw,
                                    spatial_scale=self.spatial_scale),
             (x_data, roi_data), y_grad, no_grads=[False, True],
-            allow_no_grads=False,
             **self.check_backward_options)
 
     def test_backward_cpu(self):

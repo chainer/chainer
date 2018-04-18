@@ -95,7 +95,6 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         gradient_check.check_backward(
             self.link_wrapper, (x_data, mask), y_grad,
             (self.link.W, self.link.b),
-            no_grads=(False, True), allow_no_grads=False,
             dtype='d', **self.check_backward_options)
 
     def test_backward_cpu(self):
@@ -162,7 +161,7 @@ class TestSimplifiedDropconnectParameterShapePlaceholder(unittest.TestCase):
     def check_backward(self, x_data, y_grad, mask):
         gradient_check.check_backward(
             self.link_wrapper, (x_data, mask), y_grad,
-            (self.link.W, self.link.b), dtype='d', no_grads=(False, True),
+            (self.link.W, self.link.b), dtype='d',
             atol=1e-4, rtol=1e-3)
 
     def test_backward_cpu(self):
