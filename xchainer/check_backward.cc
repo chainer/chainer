@@ -92,11 +92,11 @@ void CheckDoubleBackpropOption(
         std::vector<nonstd::optional<Array>> grads =
                 BackwardGradients(nonlinear_func, inputs_copy, nonstd::nullopt, graph_id, DoubleBackpropOption::kDisable);
 
-        const int grads_size = grads.size();
-        for (int i = 0; i < grads_size; ++i) {
+        for (size_t i = 0; i < grads.size(); ++i) {
             if (grads[i]) {
                 if (grads[i]->IsGradRequired(graph_id)) {
-                    failure_os << "Check disable double backprop failure on gradient " << i << " (Total gradients: " << grads_size << ")\n"
+                    failure_os << "Check disable double backprop failure on gradient " << i << " (Total gradients: " << grads.size()
+                               << ")\n"
                                << "Graph name: " << graph_id << "\n"
                                << "IsGradRequired: true\n";
                 }
@@ -110,11 +110,10 @@ void CheckDoubleBackpropOption(
         std::vector<nonstd::optional<Array>> grads =
                 BackwardGradients(nonlinear_func, inputs_copy, nonstd::nullopt, graph_id, DoubleBackpropOption::kEnable);
 
-        const int grads_size = grads.size();
-        for (int i = 0; i < grads_size; ++i) {
+        for (size_t i = 0; i < grads.size(); ++i) {
             if (grads[i]) {
                 if (!grads[i]->IsGradRequired(graph_id)) {
-                    failure_os << "Check enable double backprop failure on gradient " << i << " (Total gradients: " << grads_size << ")\n"
+                    failure_os << "Check enable double backprop failure on gradient " << i << " (Total gradients: " << grads.size() << ")\n"
                                << "Graph name: " << graph_id << "\n"
                                << "IsGradRequired: false\n";
                 }
