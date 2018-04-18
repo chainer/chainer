@@ -54,10 +54,8 @@ TEST_P(MathTest, NegativeBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
     Array eps = Full(shape, 1e-3);
-    auto func = [](const std::vector<Array>& xs) -> std::vector<Array> { return {Negative(xs[0])}; };
 
-    CheckDoubleBackpropOption(func, {a});
-    CheckBackwardComputation(func, {a}, {go}, {eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Negative(xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, NegativeDoubleBackward) {
@@ -535,10 +533,8 @@ TEST_P(MathTest, DivideBackward) {
     Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
     Array eps = Full(shape, 1e-3);
-    auto func = [](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], xs[1])}; };
 
-    CheckDoubleBackpropOption(func, {a, b});
-    CheckBackwardComputation(func, {a, b}, {go}, {eps, eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
 }
 
 TEST_P(MathTest, DivideDoubleBackward) {

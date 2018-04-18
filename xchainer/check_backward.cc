@@ -71,8 +71,6 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
     return backward_grads;
 }
 
-}  // namespace
-
 void CheckDoubleBackpropOption(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
@@ -131,6 +129,9 @@ void CheckDoubleBackpropOption(
     }
 }
 
+}  // namespace
+
+// TODO(sonots): Move to unnamed namespace after chaning all of CheckBackwardComputation to CheckBackward in tests
 void CheckBackwardComputation(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
@@ -170,6 +171,18 @@ void CheckBackwardComputation(
     if (!failure_message.empty()) {
         throw GradientCheckError(failure_message);
     }
+}
+
+void CheckBackward(
+        const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
+        const std::vector<Array>& inputs,
+        const std::vector<Array>& grad_outputs,
+        const std::vector<Array>& eps,
+        double atol,
+        double rtol,
+        const GraphId& graph_id) {
+    CheckDoubleBackpropOption(func, inputs, graph_id);
+    CheckBackwardComputation(func, inputs, grad_outputs, eps, atol, rtol, graph_id);
 }
 
 void CheckDoubleBackwardComputation(
