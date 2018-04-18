@@ -14,7 +14,7 @@ void ElementwiseKernel(ElementwiseImpl&& impl, Indexer indexer, IndexableArrays&
     const int64_t total_size = indexer.total_size();
     for (int64_t i = 0; i < total_size; ++i) {
         indexer.Set(i);
-        impl.Operation(args[indexer]...);
+        impl(args[indexer]...);
     }
 }
 

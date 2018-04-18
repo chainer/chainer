@@ -334,7 +334,7 @@ namespace {
 
 template <typename T>
 struct ExpImpl {
-    void Operation(T& out, T x) { out = std::exp(x); }
+    void operator()(T& out, T x) { out = std::exp(x); }
 };
 
 }  // namespace

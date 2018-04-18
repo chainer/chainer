@@ -630,7 +630,7 @@ namespace {
 
 template <typename T>
 struct ExpImpl {
-    __device__ void Operation(T& out, T x) { out = std::exp(x); }
+    __device__ void operator()(T& out, T x) { out = std::exp(x); }
 };
 
 }  // namespace
