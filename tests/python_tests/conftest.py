@@ -1,4 +1,3 @@
-import numpy
 import pytest
 
 import xchainer

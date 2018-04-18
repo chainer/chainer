@@ -307,7 +307,7 @@ def test_arange_start_stop(xp, start, stop, dtype_spec, device):
     (3., 2., 1.2),
     (2., -1., 1.),
     (1, 4, -1.2),
-    #(4, 1, -1.2),  # TODO(niboshi): Fix it (or maybe NumPy bug?)
+    # (4, 1, -1.2),  # TODO(niboshi): Fix it (or maybe NumPy bug?)
     (False, True, True),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
