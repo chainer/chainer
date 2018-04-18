@@ -1,16 +1,3 @@
-from chainer.optimizers import ada_delta  # NOQA
-from chainer.optimizers import ada_grad  # NOQA
-from chainer.optimizers import adam  # NOQA
-from chainer.optimizers import momentum_sgd  # NOQA
-from chainer.optimizers import msvag  # NOQA
-from chainer.optimizers import nesterov_ag  # NOQA
-from chainer.optimizers import rmsprop  # NOQA
-from chainer.optimizers import rmsprop_graves  # NOQA
-from chainer.optimizers import sgd  # NOQA
-from chainer.optimizers import smorms3  # NOQA
-
-
-# import class and function
 from chainer.optimizers.ada_delta import AdaDelta  # NOQA
 from chainer.optimizers.ada_grad import AdaGrad  # NOQA
 from chainer.optimizers.adam import Adam  # NOQA

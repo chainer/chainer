@@ -380,7 +380,6 @@ class BaseNStepRNN(function.Function):
 
         w_desc = cudnn.create_filter_descriptor(w)
 
-        self.w = w
         self.w_desc = w_desc
 
         y_list = cuda.cupy.split(ys, self.sections[:-1])
@@ -415,14 +414,15 @@ class BaseNStepRNN(function.Function):
                 self.reserve_space.data.ptr, reserve_size)
 
         self.c_y_descs = c_y_descs
-        self.ys = ys
         self.c_x_descs = c_x_descs
 
         if self.use_cell:
             # LSTM
+            self.retain_outputs((2,))
             return hy, cy, ys
         else:
             # GRU, RNN
+            self.retain_outputs((1,))
             return hy, ys
 
     def backward(self, inputs, grads):
@@ -454,6 +454,8 @@ class BaseNStepRNN(function.Function):
             cx_data_ptr = dcy_data_ptr = dcx_data_ptr = 0
             cx_desc_value = dcx_desc_value = dcy_desc_value = 0
 
+        ys = self.output_data[-1]
+
         xs = cuda.cupy.ascontiguousarray(xs)
         hx = cuda.cupy.ascontiguousarray(hx)
 
@@ -461,7 +463,7 @@ class BaseNStepRNN(function.Function):
             dhy = cuda.cupy.zeros_like(hx)
 
         if dys is None:
-            dys = cuda.cupy.zeros_like(self.ys)
+            dys = cuda.cupy.zeros_like(ys)
 
         length = len(self.lengths)
 
@@ -487,20 +489,20 @@ class BaseNStepRNN(function.Function):
 
         libcudnn.RNNBackwardData(
             handle, rnn_desc.value, length,
-            self.c_y_descs.data, self.ys.data.ptr,
+            self.c_y_descs.data, ys.data.ptr,
             c_dy_descs.data, dys.data.ptr, dhy_desc.value, dhy.data.ptr,
-            dcy_desc_value, dcy_data_ptr, self.w_desc.value, self.w.data.ptr,
+            dcy_desc_value, dcy_data_ptr, self.w_desc.value, w.data.ptr,
             hx_desc.value, hx.data.ptr, cx_desc_value, cx_data_ptr,
             c_dx_descs.data, dxs.data.ptr, dhx_desc.value, dhx.data.ptr,
             dcx_desc_value, dcx_data_ptr, workspace.data.ptr, work_size,
             self.reserve_space.data.ptr, self.reserve_space.size)
 
-        dw = cuda.cupy.zeros_like(self.w)
+        dw = cuda.cupy.zeros_like(w)
         dw_desc = cudnn.create_filter_descriptor(dw)
         libcudnn.RNNBackwardWeights(
             handle, rnn_desc.value, length,
             self.c_x_descs.data, xs.data.ptr,
-            hx_desc.value, hx.data.ptr, self.c_y_descs.data, self.ys.data.ptr,
+            hx_desc.value, hx.data.ptr, self.c_y_descs.data, ys.data.ptr,
             workspace.data.ptr, work_size, dw_desc.value, dw.data.ptr,
             self.reserve_space.data.ptr, self.reserve_space.size)
 
@@ -612,7 +614,7 @@ def n_step_rnn(
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
-            Note that this functions supports variable length sequences.
+            Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
             order by length, and transpose the sorted sequence.
             :func:`~chainer.functions.transpose_sequence` transpose a list
@@ -623,7 +625,7 @@ def n_step_rnn(
             Please select ``tanh`` or ``relu``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -722,7 +724,7 @@ def n_step_birnn(
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
-            Note that this functions supports variable length sequences.
+            Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
             order by length, and transpose the sorted sequence.
             :func:`~chainer.functions.transpose_sequence` transpose a list
@@ -733,7 +735,7 @@ def n_step_birnn(
             Please select ``tanh`` or ``relu``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -791,7 +793,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             holding input values. Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
-            Note that this functions supports variable length sequences.
+            Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
             order by length, and transpose the sorted sequence.
             :func:`~chainer.functions.transpose_sequence` transpose a list
@@ -804,7 +806,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             Bi-directional RNN.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
             ``hy`` and ``ys``.
 
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.

@@ -301,6 +301,7 @@ class TestToCPUScalar(unittest.TestCase):
         assert y == x
 
 
+@attr.cudnn
 class TestWorkspace(unittest.TestCase):
 
     def setUp(self):

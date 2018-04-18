@@ -7,30 +7,21 @@ import numpy
 
 from chainer import _version
 from chainer import backends  # NOQA
-from chainer import configuration  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
-from chainer import function  # NOQA
-from chainer import function_hook  # NOQA
 from chainer import function_hooks  # NOQA
-from chainer import function_node  # NOQA
 from chainer import functions  # NOQA
-from chainer import initializer  # NOQA
 from chainer import initializers  # NOQA
 from chainer import iterators  # NOQA
-from chainer import link  # NOQA
 from chainer import links  # NOQA
-from chainer import optimizer  # NOQA
 from chainer import optimizers  # NOQA
-from chainer import reporter  # NOQA
-from chainer import serializer  # NOQA
 from chainer import serializers  # NOQA
 from chainer import training  # NOQA
-from chainer import variable  # NOQA
 
 
 # import class and function
 # These functions from backends.cuda are kept for backward compatibility
+from chainer._runtime_info import print_runtime_info  # NOQA
 from chainer.backends.cuda import should_use_cudnn  # NOQA
 from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
@@ -58,6 +49,7 @@ from chainer.reporter import report  # NOQA
 from chainer.reporter import report_scope  # NOQA
 from chainer.reporter import Reporter  # NOQA
 from chainer.reporter import Summary  # NOQA
+from chainer.sequential import Sequential  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
@@ -153,21 +145,21 @@ global_config.lazy_grad_sum = bool(int(
 
 
 def is_debug():
-    """Get the debug mode.
+    """Returns if the debug mode is enabled or not in the current thread.
 
     Returns:
-        bool: Return ``True`` if Chainer is in debug mode.
+        bool:  ``True`` if the debug mode is enabled.
     """
     return bool(config.debug)
 
 
 def set_debug(debug):
-    """Set the debug mode.
+    """Enables or disables the debug mode in the current thread.
 
     .. note::
 
-        This method changes the global state. When you use this method on
-        multi-threading environment, it may affect other threads.
+        ``chainer.set_debug(value)`` is equivalent to
+        ``chainer.config.debug = value``.
 
     Args:
         debug (bool): New debug mode.

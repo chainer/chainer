@@ -21,7 +21,7 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 
 
 def cupy_requirement(pkg):
-    return '{}==4.0.0b4'.format(pkg)
+    return '{}==5.0.0a1'.format(pkg)
 
 
 requirements = {
@@ -35,8 +35,8 @@ requirements = {
         cupy_requirement('cupy'),
     ],
     'stylecheck': [
-        'hacking',
         'autopep8',
+        'hacking',
     ],
     'test': [
         'pytest',
@@ -135,6 +135,7 @@ setup(
               'chainer.backends',
               'chainer.dataset',
               'chainer.datasets',
+              'chainer.exporters',
               'chainer.functions',
               'chainer.functions.activation',
               'chainer.functions.array',

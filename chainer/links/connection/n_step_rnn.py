@@ -137,10 +137,28 @@ class NStepRNNBase(link.ChainList):
 
         Args:
             hx (~chainer.Variable or None): Initial hidden states. If ``None``
-                is specified zero-vector is used.
+                is specified zero-vector is used. Its shape is ``(S, B, N)``
+                for uni-directional RNN and ``(2S, B, N)`` for
+                bi-directional RNN where ``S`` is the number of layers
+                and is equal to ``n_layers``, ``B`` is the mini-batch size,
+                and ``N`` is the dimension of the hidden units.
             xs (list of ~chainer.Variable): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
-                a sequence.
+                a sequence. Its shape is ``(L_t, I)``, where ``L_t`` is the
+                length of a sequence for time ``t``, and ``I`` is the size of
+                the input and is equal to ``in_size``.
+
+        Returns:
+            tuple: This function returns a tuple containing three elements,
+            ``hy`` and ``ys``.
+
+            - ``hy`` is an updated hidden states whose shape is same as ``hx``.
+            - ``ys`` is a list of :class:`~chainer.Variable` . Each element
+              ``ys[t]`` holds hidden states of the last layer corresponding
+              to an input ``xs[t]``. Its shape is ``(L_t, N)`` for
+              uni-directional RNN and ``(L_t, 2N)`` for bi-directional RNN
+              where ``L_t`` is the length of a sequence for time ``t``,
+              and ``N`` is size of hidden units.
         """
         (hy,), ys = self._call([hx], xs, **kwargs)
         return hy, ys
