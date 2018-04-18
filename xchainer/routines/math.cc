@@ -321,7 +321,7 @@ Array Sum(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis, bool
         assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
         if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
-            std::vector<int64_t> out_shape_broadcastable{gout.shape().begin(), gout.shape().end()};
+            NdimVector<int64_t> out_shape_broadcastable{gout.shape().begin(), gout.shape().end()};
             for (auto axis : sorted_axis) {
                 out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
             }

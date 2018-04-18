@@ -219,6 +219,8 @@ public:
 
     void push_back(T&& value) { emplace_back(std::forward<T>(value)); }
 
+    iterator insert(const_iterator pos, const_reference value) { return emplace(pos, value); }
+
     iterator erase(const_iterator pos) { return erase(pos, pos + 1); }
 
     iterator erase(const_iterator first, const_iterator last) {
