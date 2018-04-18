@@ -29,7 +29,7 @@ INSTANTIATE_TEST_CASE_P(
         ForEachInputs,
         GetSortedAxesNormalTest,
         ::testing::Values(
-                GetSortedAxesNormalTestParam{{}, 0, {}},
+                GetSortedAxesNormalTestParam{NdimVector<int8_t>{}, 0, NdimVector<int8_t>{}},
                 GetSortedAxesNormalTestParam{{1}, 2, {1}},
                 GetSortedAxesNormalTestParam{{-1}, 2, {1}},
                 GetSortedAxesNormalTestParam{{1, 0}, 2, {0, 1}},
