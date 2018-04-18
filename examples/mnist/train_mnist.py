@@ -65,7 +65,7 @@ def compute_loss(y, t):
 
 def main():
     parser = argparse.ArgumentParser('Train a neural network on MNIST dataset')
-    parser.add_argument('--epoch', '-E', default=20, help='Number of epochs to train')
+    parser.add_argument('--epoch', '-E', type=int, default=20, help='Number of epochs to train')
     parser.add_argument('--data', '-p', default='mnist',
                         help='Path to the directory that contains MNIST dataset')
     parser.add_argument('--device', '-d', default='native', help='Device to use')
