@@ -54,8 +54,10 @@ TEST_P(MathTest, NegativeBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
     Array eps = Full(shape, 1e-3);
+    auto func = [](const std::vector<Array>& xs) -> std::vector<Array> { return {Negative(xs[0])}; };
 
-    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {Negative(xs[0])}; }, {a}, {go}, {eps});
+    CheckDoubleBackpropOption(func, {a});
+    CheckBackwardComputation(func, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, NegativeDoubleBackward) {

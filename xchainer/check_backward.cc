@@ -79,11 +79,20 @@ void CheckDoubleBackpropOption(
         const GraphId& graph_id) {
     std::ostringstream failure_os;
 
+    // make it nonlinear to be double differentiable
+    auto nonlinear_func = [&func](const std::vector<Array>& inputs) {
+        std::vector<Array> nonlinear_outputs;
+        for (const auto& output : func(inputs)) {
+            nonlinear_outputs.emplace_back(output * output);
+        }
+        return nonlinear_outputs;
+    };
+
     // Disable double backprop
     {
         std::vector<Array> inputs_copy{inputs};
         std::vector<nonstd::optional<Array>> grads =
-                BackwardGradients(func, inputs_copy, nonstd::nullopt, graph_id, DoubleBackpropOption::kDisable);
+                BackwardGradients(nonlinear_func, inputs_copy, nonstd::nullopt, graph_id, DoubleBackpropOption::kDisable);
 
         const int grads_size = grads.size();
         for (int i = 0; i < grads_size; ++i) {
@@ -101,7 +110,7 @@ void CheckDoubleBackpropOption(
     {
         std::vector<Array> inputs_copy{inputs};
         std::vector<nonstd::optional<Array>> grads =
-                BackwardGradients(func, inputs_copy, nonstd::nullopt, graph_id, DoubleBackpropOption::kEnable);
+                BackwardGradients(nonlinear_func, inputs_copy, nonstd::nullopt, graph_id, DoubleBackpropOption::kEnable);
 
         const int grads_size = grads.size();
         for (int i = 0; i < grads_size; ++i) {
