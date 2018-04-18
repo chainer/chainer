@@ -1399,6 +1399,96 @@ class TestChainList(unittest.TestCase):
         assert not w
 
 
+class TestChainListRepeat(unittest.TestCase):
+
+    def setUp(self):
+        class ChainListForTest(chainer.ChainList):
+            def __init__(self):
+                super(ChainListForTest, self).__init__(chainer.Link())
+
+            def __call__(self):
+                pass
+
+        self.chainlist = ChainListForTest()
+        self.link = self.chainlist[0]
+        with self.link.init_scope():
+            self.link.x = chainer.Parameter(
+                chainer.initializers.Normal(), shape=(2, 3))
+
+    def test_no_repeat(self):
+        ret = self.chainlist.repeat(0)
+        self.assertEqual(len(ret), 0)
+
+    def test_repeat_with_share_mode(self):
+        ret = self.chainlist.repeat(2, mode='share')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chainlist)
+        self.assertIsNot(ret[1], self.chainlist)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0][0], self.chainlist[0])
+        self.assertIsNot(ret[1][0], self.chainlist[0])
+        self.assertIsNot(ret[0][0], ret[1][0])
+        self.assertIsNot(ret[0][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[1][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[0][0].x, ret[1][0].x)
+        self.assertIs(ret[0][0].x.data, self.chainlist[0].x.data)
+        self.assertIs(ret[0][0].x.data, ret[1][0].x.data)
+        self.assertEqual(ret[0][0].x.shape, self.chainlist[0].x.shape)
+        self.assertEqual(ret[0][0].x.shape, ret[1][0].x.shape)
+        self.assertEqual(ret[0][0].x.dtype, self.chainlist[0].x.dtype)
+        self.assertEqual(ret[0][0].x.dtype, ret[1][0].x.dtype)
+
+    def test_repeat_with_copy_mode(self):
+        ret = self.chainlist.repeat(2, mode='copy')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chainlist)
+        self.assertIsNot(ret[1], self.chainlist)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0][0], self.chainlist[0])
+        self.assertIsNot(ret[1][0], self.chainlist[0])
+        self.assertIsNot(ret[0][0], ret[1][0])
+        self.assertIsNot(ret[0][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[1][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[0][0].x, ret[1][0].x)
+        self.assertIsNot(ret[0][0].x.data, self.chainlist[0].x.data)
+        self.assertIsNot(ret[1][0].x.data, self.chainlist[0].x.data)
+        self.assertIsNot(ret[0][0].x.data, ret[1][0].x.data)
+        self.assertTrue(numpy.array_equal(
+            ret[0][0].x.data, self.chainlist[0].x.data))
+        self.assertTrue(numpy.array_equal(
+            ret[0][0].x.data, ret[1][0].x.data))
+        self.assertEqual(ret[0][0].x.shape, self.chainlist[0].x.shape)
+        self.assertEqual(ret[0][0].x.shape, ret[1][0].x.shape)
+        self.assertEqual(ret[0][0].x.dtype, self.chainlist[0].x.dtype)
+        self.assertEqual(ret[0][0].x.dtype, ret[1][0].x.dtype)
+
+    def test_repeat_with_init_mode(self):
+        ret = self.chainlist.repeat(2, mode='init')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chainlist)
+        self.assertIsNot(ret[1], self.chainlist)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0][0], self.chainlist[0])
+        self.assertIsNot(ret[1][0], self.chainlist[0])
+        self.assertIsNot(ret[0][0], ret[1][0])
+        self.assertIsNot(ret[0][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[1][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[0][0].x, ret[1][0].x)
+        self.assertIsNot(ret[0][0].x.data, self.chainlist[0].x.data)
+        self.assertIsNot(ret[1][0].x.data, self.chainlist[0].x.data)
+        self.assertIsNot(ret[0][0].x.data, ret[1][0].x.data)
+        self.assertFalse(numpy.array_equal(
+            ret[0][0].x.data, self.chainlist[0].x.data))
+        self.assertFalse(numpy.array_equal(
+            ret[1][0].x.data, self.chainlist[0].x.data))
+        self.assertFalse(numpy.array_equal(
+            ret[0][0].x.data, ret[1][0].x.data))
+        self.assertEqual(ret[0][0].x.shape, self.chainlist[0].x.shape)
+        self.assertEqual(ret[0][0].x.shape, ret[1][0].x.shape)
+        self.assertEqual(ret[0][0].x.dtype, self.chainlist[0].x.dtype)
+        self.assertEqual(ret[0][0].x.dtype, ret[1][0].x.dtype)
+
+
 @attr.ideep
 class TestIntel64(unittest.TestCase):
 
