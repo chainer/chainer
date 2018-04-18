@@ -355,8 +355,14 @@ def check_backward(
     If :math:`r` is chosen from uniform distribution, we can conclude with
     high probability that the gradient of :math:`f` itself is correct.
 
-    If input objects (``x1_data`` or/and ``x2_data`` in this example) represent
-    integer variables, their gradients are ignored.
+    If the function is non-differentiable with respect to some input objects,
+    we can check its backprop to such objects by ``no_grads`` argument.
+    ``gradient_check`` computes numerical backward to inputs that correspond to
+    ``False`` in ``no_grads``. It also asserts the backprop lefts gradient
+    ``None`` for inputs that correspond to ``True`` in ``no_grads``.
+    The default of ``no_grads`` argument is the tuple of truth values whether
+    input objects (``x1_data`` or/and ``x2_data`` in this example) represent
+    integer variables.
 
     You can simplify a test when ``MyFunc`` gets only one argument::
 
@@ -479,10 +485,6 @@ def check_backward(
             if x.grad is not None:
                 raise RuntimeError(
                     'gradient of int variable must be None')
-        else:
-            if x.grad is None:
-                raise RuntimeError(
-                    'gradients of some arguments are not calculated')
 
     if len(xs) - no_grads.count(True) + len(params) == 0:
         # When there is no float variables, we need not to check gradient
@@ -551,7 +553,8 @@ def check_backward(
         center_outputs=y0_data)
     gx_accum = 0
     for g, direction in six.moves.zip(grads, directions):
-        gx_accum += (g.astype('d') * direction).sum()
+        if g is not None:
+            gx_accum += (g.astype('d') * direction).sum()
 
     try:
         testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
