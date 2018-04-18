@@ -14,6 +14,7 @@
 #include "xchainer/array.h"
 #include "xchainer/cuda/cublas.h"
 #include "xchainer/cuda/cuda_runtime.h"
+#include "xchainer/cuda/elementwise.cuh"
 #include "xchainer/cuda/reduce.cuh"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -625,22 +626,23 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
     }
 }
 
+namespace {
+
+template <typename T>
+struct ExpImpl {
+    __device__ void Operation(T& out, T x) { out = std::exp(x); }
+};
+
+}  // namespace
+
 void CudaDevice::Exp(const Array& x, const Array& out) {
+    // TODO(hvy): Implement internal::IsValidElementwiseShapes ?
     CheckDevicesCompatible(x, out);
     CheckCudaError(cudaSetDevice(index()));
+
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&ExpKernel<T>).block_size;
-
-        IndexableArray<const T> x_iarray{x};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        int64_t total_size = indexer.total_size();
-        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
-
-        ExpKernel<<<grid_size, block_size>>>(x_iarray, out_iarray, indexer);
+        Elementwise<T>(ExpImpl<T>{}, out, x);
     });
 }
 

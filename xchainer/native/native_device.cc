@@ -16,6 +16,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/native/elementwise.h"
 #include "xchainer/native/reduce.h"
 #include "xchainer/numeric_limits.h"
 #include "xchainer/reduction_kernel_arg.h"
@@ -329,18 +330,20 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     });
 }
 
+namespace {
+
+template <typename T>
+struct ExpImpl {
+    void Operation(T& out, T x) { out = std::exp(x); }
+};
+
+}  // namespace
+
 void NativeDevice::Exp(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> x_iarray{x};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = std::exp(x_iarray[indexer]);
-        }
+        Elementwise<T>(ExpImpl<T>{}, out, x);
     });
 }
 
