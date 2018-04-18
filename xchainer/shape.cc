@@ -68,7 +68,7 @@ bool IsValidReductionShape(const Shape& in_shape, const std::vector<int8_t>& axi
 
 Shape TransposeShape(const Shape& shape, const std::vector<int8_t>& axes) {
     assert(IsAxesPermutation(axes, shape.ndim()));
-    std::vector<int8_t> new_shape;
+    std::vector<int64_t> new_shape;
     new_shape.reserve(shape.ndim());
     for (int8_t axis : axes) {
         new_shape.push_back(shape[axis]);
