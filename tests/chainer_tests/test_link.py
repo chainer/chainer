@@ -1102,14 +1102,14 @@ class TestChainList(unittest.TestCase):
         self.assertIs(c2[0][0].x.grad, None)
 
         self.assertIsNot(c2[0][1], self.l2)
-        self.assertIsNot(c2[0][1].name, '1')
+        self.assertEqual(c2[0][1].name, '1')
         self.assertIsNot(c2[0][1].x, self.l2.x)
         self.assertIsNot(c2[0][1].x.data, self.l2.x.data)
         self.assertTrue(numpy.array_equal(c2[0][1].x.data, self.l2.x.data))
         self.assertIs(c2[0][1].x.grad, None)
 
         self.assertIsNot(c2[1], self.l3)
-        self.assertIsNot(c2[1].name, '1')
+        self.assertEqual(c2[1].name, '1')
         self.assertIsNot(c2[1].x, self.l3.x)
         self.assertIsNot(c2[1].x.data, self.l3.x.data)
         # l3 is constructed with shape argument but not initialized
@@ -1138,7 +1138,7 @@ class TestChainList(unittest.TestCase):
         self.assertTrue(numpy.isnan(c2[0][0].x.grad).all())
 
         self.assertIsNot(c2[0][1], self.l2)
-        self.assertIsNot(c2[0][1].name, '1')
+        self.assertEqual(c2[0][1].name, '1')
         self.assertIsNot(c2[0][1].x, self.l2.x)
         self.assertIsNot(c2[0][1].x.data, self.l2.x.data)
         self.assertFalse(numpy.array_equal(c2[0][1].x.data, self.l2.x.data))
@@ -1147,7 +1147,7 @@ class TestChainList(unittest.TestCase):
         self.assertTrue(numpy.isnan(c2[0][1].x.grad).all())
 
         self.assertIsNot(c2[1], self.l3)
-        self.assertIsNot(c2[1].name, '1')
+        self.assertEqual(c2[1].name, '1')
         self.assertIsNot(c2[1].x, self.l3.x)
         self.assertTrue(numpy.isnan(c2[1].x.data).all())
         self.assertTrue(numpy.isnan(c2[1].x.grad).all())
