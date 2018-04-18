@@ -54,14 +54,12 @@ Divide
 array([[0.25, 0.4 , 0.5 ],
        [1.  , 1.  , 1.  ]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
 
-.. TODO(sonots): Fix grad not to have graph with enable_double_backprop=False
-
 >>> y.backward(enable_double_backprop=False)
 >>> a.grad
 array([[0.25      , 0.2       , 0.16666667],
-       [0.25      , 0.2       , 0.16666667]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
+       [0.25      , 0.2       , 0.16666667]], shape=(2, 3), dtype=float32, device='native:0')
 >>> b.grad
-array([[-0.3125, -0.28  , -0.25  ]], shape=(1, 3), dtype=float32, device='native:0', graph_ids=['default'])
+array([[-0.3125, -0.28  , -0.25  ]], shape=(1, 3), dtype=float32, device='native:0')
 
 Max
 ---
