@@ -202,7 +202,9 @@ public:
         for (size_type i = n_; i > i_pos; --i) {
             d_[i] = std::move(d_[i - 1]);
         }
-        d_[i_pos] = T{std::forward<Args>(args)...};
+        // Using ()-initialization to evade implicit integral promotion.
+        // (e.g. int8_t + int8_t = int)
+        d_[i_pos] = T(std::forward<Args>(args)...);
         ++n_;
         return iterator{d_.begin() + i_pos};
     }
