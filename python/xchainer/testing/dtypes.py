@@ -4,7 +4,7 @@ import pytest
 import xchainer
 
 
-all_dtypes = [
+all_dtypes = (
     'bool_',
     'int8',
     'int16',
@@ -13,23 +13,23 @@ all_dtypes = [
     'uint8',
     'float32',
     'float64',
-]
+)
 
 
-float_dtypes = [
+float_dtypes = (
     'float32',
     'float64',
-]
+)
 
 
-signed_dtypes = [
+signed_dtypes = (
     'int8',
     'int16',
     'int32',
     'int64',
     'float32',
     'float64',
-]
+)
 
 
 def parametrize_dtype_specifier(argname, dtypes=None, with_xchainer_dtypes=True, additional_args=None):
@@ -49,7 +49,7 @@ def parametrize_dtype_specifier(argname, dtypes=None, with_xchainer_dtypes=True,
     lst = []
 
     # dtype names
-    lst += dtypes
+    lst += list(dtypes)
     # numpy dtypes
     lst += [numpy.dtype(dt) for dt in dtypes]
     # char codes
@@ -60,6 +60,6 @@ def parametrize_dtype_specifier(argname, dtypes=None, with_xchainer_dtypes=True,
     # User-specified args
     if additional_args is not None:
         assert isinstance(additional_args, (tuple, list))
-        lst += additional_args
+        lst += list(additional_args)
 
     return pytest.mark.parametrize(argname, lst)
