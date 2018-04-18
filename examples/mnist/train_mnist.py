@@ -65,6 +65,7 @@ def compute_loss(y, t):
 
 def main():
     parser = argparse.ArgumentParser('Train a neural network on MNIST dataset')
+    parser.add_argument('--batchsize', '-B', type=int, default=100, help='Batch size')
     parser.add_argument('--epoch', '-E', type=int, default=20, help='Number of epochs to train')
     parser.add_argument('--data', '-p', default='mnist',
                         help='Path to the directory that contains MNIST dataset')
@@ -84,7 +85,7 @@ def main():
     N = X.shape[0]   # TODO(beam2d): implement len
     N_test = X_test.shape[0]
     all_indices_np = np.arange(N, dtype=np.int64)  # TODO(beam2d): support int32 indexing
-    batch_size = 100
+    batch_size = args.batchsize
 
     for epoch in range(args.epoch):
         # Train
@@ -149,3 +150,4 @@ def get_mnist(path, name):
 
 if __name__ == '__main__':
     main()
+    
