@@ -55,7 +55,7 @@ TEST_P(MathTest, NegativeBackward) {
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
     Array eps = Full(shape, 1e-3);
 
-    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {Negative(xs[0])}; }, {a}, {go}, {eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Negative(xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, NegativeDoubleBackward) {
@@ -534,8 +534,7 @@ TEST_P(MathTest, DivideBackward) {
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
     Array eps = Full(shape, 1e-3);
 
-    CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
 }
 
 TEST_P(MathTest, DivideDoubleBackward) {
