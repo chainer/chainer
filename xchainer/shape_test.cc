@@ -233,5 +233,11 @@ TEST(TransposeShapeTest, Normal) {
     EXPECT_EQ(expected, actual);
 }
 
+TEST(TransposeShapeTest, LongAxis) {
+    Shape actual = internal::TransposeShape(Shape{128, 256, 65536}, {1, 2, 0});
+    Shape expected{256, 65536, 128};
+    EXPECT_EQ(expected, actual);
+}
+
 }  // namespace
 }  // namespace xchainer

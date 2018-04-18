@@ -150,6 +150,16 @@ TEST_P(IndexingTest, TakeDoubleBackward) {
             {epsi, epso});
 }
 
+TEST_P(IndexingTest, TakeLongAxis) {
+    Array a = testing::BuildArray({128}).WithLinearData<float>();
+    Array indices = Full({1}, int64_t{10});
+    Array b = Take(a, indices, 0);
+
+    EXPECT_EQ(Shape{1}, b.shape());
+    Array e = Full({1}, 10.f);
+    testing::ExpectEqual(e, b);
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         IndexingTest,
