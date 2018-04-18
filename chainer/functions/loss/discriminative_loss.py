@@ -29,16 +29,18 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             Small regularization loss to penalize weights against overfit
 
     Args:
-        delta_v (float): Used to define minimum distance to start penalizing variance
-        delta_d (float): Used to define maximum distance to stop penalizing distance
-        max_n_clusters (int): Used to define maximum possible number of clusters.
-        norm (int): Norm to calculate distance between pixels and cluster centers
+        delta_v (float): Minimum distance to start penalizing variance
+        delta_d (float): Maximum distance to stop penalizing distance
+        max_n_clusters (int): Maximum possible number of clusters.
+        norm (int): Norm to calculate pixels and cluster center distances
         alpha (float): Weight for variance loss      (alpha * variance_loss)
         beta (float): Weight for distance loss       (beta * distance_loss)
-        gamma (float): Weight for regularization loss   (gamma * regularizer_loss)
+        gamma (float): Weight for regularization loss(gamma * regularizer_loss)
 
     Returns:
-        float: (alpha * variance_loss)+(beta * distance_loss)+(gamma * regularizer_loss)
+        float: (alpha * variance_loss)+
+               (beta * distance_loss) +
+               (gamma * regularizer_loss)
 
     """
 
@@ -64,7 +66,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         Args:
             x (nd-array): Input matrix to calculate norm
-            axis (int / tuple): Axes information to apply matrix norm calculation
+            axis (int / tuple): Axes information for norm calculation
 
         Returns:
             nd-array : Norm applied to given axes
@@ -76,7 +78,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         Args:
             x (nd-array): Input matrix to calculate norm
-            axis (int / tuple): Axes information to apply matrix norm calculation
+            axis (int / tuple): Axes information for norm calculation
 
         Returns:
             nd-array : Norm applied to given axes
@@ -87,11 +89,11 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """ Function to calculate variance term
 
         Args:
-            pred (nd-array): Prediction output with shape (bs, n_filters, height * width)
-            gt (nd-array): Ground truth output with shape (bs, n_instances, height * width)
-            means (nd-array): Instance means with shape (bs, n_instances, n_filters)
+            pred (nd-array): Prediction output
+            gt (nd-array): Ground truth output
+            means (nd-array): Instance means
             delta_v (float): Coefficient to decide 'pull force' power
-            gt_idx (tuple / nd-array): Indexes of ground truth instances which are valid for input image
+            gt_idx (tuple / nd-array): Indexes of ground truth instances
         Returns:
             float : variance loss
         """
@@ -130,7 +132,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """ Function to calculate distance term
 
         Args:
-            means (nd-array): Instance means with shape (bs, n_instances, n_filters)
+            means (nd-array): Instance means
             delta_d (float): Coefficient to decide 'push force' power
             n_objects (nd-array): Instance count in current input
 
@@ -173,7 +175,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """ Function to calculate regularization term
 
         Args:
-            means (nd-array): Instance means with shape (bs, n_instances, n_filters)
+            means (nd-array): Instance means
             n_objects (int): Instance count in current input
 
         Returns:
@@ -194,11 +196,11 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """ Function to calculate cluster means
 
         Args:
-            pred (nd-array): Prediction output with shape (bs, n_filters, height * width)
-            gt (nd-array): Ground truth output with shape (bs, n_instances, height * width)
+            pred (nd-array): Prediction output
+            gt (nd-array): Ground truth output
             n_objects (int): Instance number in current input
             max_n_objects (int): Maximum possible instance number
-            gt_idx (tuple / nd-array): Indexes of ground truth instances which are valid for input image
+            gt_idx (tuple / nd-array): Indexes of ground truth instances
 
         Returns:
             tuple : distance loss
@@ -246,11 +248,11 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """ Function to preprocess inputs
 
         Args:
-            prediction (nd-array): Prediction output with shape (bs, n_filters, height, width)
-            labels (nd-array): Ground truth output with shape (bs, n_instances, height, width)
+            prediction (nd-array): Prediction output
+            labels (nd-array): Ground truth output
         Returns:
-            nd-array : Prediction output with shape (bs, n_filters, height * width)
-            nd-array : Ground truth output with shape (bs, n_instances, height * width)
+            nd-array : Prediction output
+            nd-array : Ground truth output
         """
         # Reshape layers to prepare for processing
 
@@ -296,8 +298,10 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     def __call__(self, *args):
         return self.apply(*args)
 
-def discriminative_margin_based_clustering_loss(*x, delta_v, delta_d, max_n_clusters,
-                                                norm=1, alpha=1.0, beta=1.0, gamma=0.001):
+
+def discriminative_margin_based_clustering_loss(
+        *x, delta_v, delta_d, max_n_clusters,
+        norm=1, alpha=1.0, beta=1.0, gamma=0.001):
     """ Discriminative margin based clustering loss function
 
     This is the implementation of following paper:
@@ -324,21 +328,18 @@ def discriminative_margin_based_clustering_loss(*x, delta_v, delta_d, max_n_clus
             Small regularization loss to penalize weights against overfit
 
     Args:
-        delta_v (float): Used to define minimum distance to start penalizing variance
-        delta_d (float): Used to define maximum distance to stop penalizing distance
-        max_n_clusters (int): Used to define maximum possible number of clusters.
-        norm (int): Norm to calculate distance between pixels and cluster centers
+        delta_v (float): Minimum distance to start penalizing variance
+        delta_d (float): Maximum distance to stop penalizing distance
+        max_n_clusters (int): Maximum possible number of clusters.
+        norm (int): Norm to calculate pixels and cluster center distances
         alpha (float): Weight for variance loss      (alpha * variance_loss)
         beta (float): Weight for distance loss       (beta * distance_loss)
-        gamma (float): Weight for regularization loss   (gamma * regularizer_loss)
-        x (tuple) : Contains several inputs
-                - x[0] = segmentation prediction output
-                - x[1] = segmentation ground truth
-                - x[2] = number of objects in ground truth
-                - x[3] = indexes of non-zero ground truths
-    Returns:
-        float: (alpha * variance_loss)+(beta * distance_loss)+(gamma * regularizer_loss)
+        gamma (float): Weight for regularization loss(gamma * regularizer_loss)
 
+    Returns:
+        float: (alpha * variance_loss)+
+               (beta * distance_loss) +
+               (gamma * regularizer_loss)
     """
     return DiscriminativeMarginBasedClusteringLoss(
         delta_v, delta_d, max_n_clusters, norm, alpha, beta, gamma).apply(x)
