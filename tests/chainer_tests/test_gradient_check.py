@@ -581,7 +581,7 @@ class TestCheckBackward(unittest.TestCase):
             return s,
 
         self.assertRaises(RuntimeError, gradient_check.check_backward,
-                          f, (x1, x2), g1, no_grads=[False, False])
+                          f, (x1, x2), g1, no_grads=[True, True])
         gradient_check.check_backward(f, (x1, x2), g1, no_grads=[False, True])
 
     def test_no_grads_option_with_dtype(self):
