@@ -619,7 +619,7 @@ Assign a Parameter object directly to an attribute within a \
             You can repeat the same link multiple times to create a longer
             :class:`~chainer.Sequential` block like this:
 
-            .. code-block:: python
+            .. testcode::
 
                 class ConvBNReLU(chainer.Chain):
 
