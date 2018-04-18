@@ -15,7 +15,7 @@ namespace internal {
 
 int8_t NormalizeAxis(int8_t axis, int8_t ndim) {
     if (axis < -ndim || ndim <= axis) {
-        throw DimensionError("Axis " + std::to_string(axis) + " is out of bounds for array of dimension " + std::to_string(ndim));
+        throw DimensionError{"Axis ", axis, " is out of bounds for array of dimension ", ndim};
     }
     if (axis < 0) {
         return axis + ndim;
