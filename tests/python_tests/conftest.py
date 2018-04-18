@@ -46,11 +46,6 @@ def device(request):
     return device
 
 
-@pytest.fixture(params=[xchainer, numpy])
-def xp(request):
-    return request.param
-
-
 @pytest.fixture(params=xchainer.testing.all_dtypes)
 def dtype(request):
     return request.param

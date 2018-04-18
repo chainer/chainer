@@ -68,7 +68,8 @@ def _make_decorator(check_func, name, type_check, accept_error):
             if type_check:
                 assert numpy.dtype(xchainer_result.dtype.name) == numpy_result.dtype
             assert xchainer_result.device is xchainer.get_default_device()
-        return test_func
+        # Apply dummy parametrization on `name` (e.g. 'xp') to avoid pytest error when collecting test functions.
+        return pytest.mark.parametrize(name, [None])(test_func)
     return decorator
 
 
