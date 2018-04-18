@@ -14,7 +14,7 @@ namespace xchainer {
 
 class Indexer {
 public:
-    explicit Indexer(const Shape& shape) : total_size_(shape.GetTotalSize()), ndim_(shape.ndim()) {
+    explicit Indexer(const Shape& shape) : total_size_{shape.GetTotalSize()}, ndim_{shape.ndim()} {
         std::copy(shape.begin(), shape.end(), shape_);
     }
 

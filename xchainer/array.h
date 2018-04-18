@@ -57,7 +57,7 @@ class Array {
 public:
     Array() = default;
 
-    explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_(std::move(body)) {}
+    explicit Array(gsl::not_null<std::shared_ptr<internal::ArrayBody>> body) : body_{std::move(body)} {}
 
     // Copy constructor that copies the pointer to the body instead of the body itself.
     //

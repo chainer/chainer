@@ -85,8 +85,8 @@ public:
 private:
     T* data_;
 #ifndef NDEBUG
-    const uint8_t* first_ = nullptr;
-    const uint8_t* last_ = nullptr;
+    const uint8_t* first_{nullptr};
+    const uint8_t* last_{nullptr};
 #endif
     int64_t strides_[kMaxNdim];
     int8_t ndim_;

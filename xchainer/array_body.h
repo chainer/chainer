@@ -35,13 +35,13 @@ public:
             std::shared_ptr<void> data,
             int64_t offset,
             std::vector<std::shared_ptr<ArrayNode>> nodes = std::vector<std::shared_ptr<ArrayNode>>())
-        : shape_(shape),
-          strides_(strides),
-          dtype_(dtype),
-          device_(device),
-          data_(std::move(data)),
-          offset_(offset),
-          nodes_(std::move(nodes)) {}
+        : shape_{shape},
+          strides_{strides},
+          dtype_{dtype},
+          device_{device},
+          data_{std::move(data)},
+          offset_{offset},
+          nodes_{std::move(nodes)} {}
 
 private:
     friend class ::xchainer::Array;

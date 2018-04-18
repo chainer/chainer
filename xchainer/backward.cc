@@ -25,7 +25,7 @@ struct OpNodeComparator {
 class BackwardImpl {
 public:
     BackwardImpl(const std::vector<ConstArrayRef>& outputs, const GraphId& graph_id, DoubleBackpropOption double_backprop)
-        : outputs_(outputs), graph_id_(graph_id), double_backprop_(double_backprop) {
+        : outputs_{outputs}, graph_id_{graph_id}, double_backprop_{double_backprop} {
         for (const Array& output : outputs) {
             if (!output.IsGradRequired(graph_id)) {
                 throw XchainerError("Cannot start backprop from an array whose gradient is not required (on graph '" + graph_id + "')");

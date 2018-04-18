@@ -16,7 +16,7 @@
 namespace xchainer {
 namespace cuda {
 
-CudaBackend::CudaBackend(Context& context) : Backend(context) { CheckCublasError(cublasCreate(&cublas_handle_)); }
+CudaBackend::CudaBackend(Context& context) : Backend{context} { CheckCublasError(cublasCreate(&cublas_handle_)); }
 
 CudaBackend::~CudaBackend() { cublasDestroy(cublas_handle_); }
 
