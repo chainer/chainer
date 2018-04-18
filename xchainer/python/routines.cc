@@ -290,7 +290,9 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("a"),
           py::arg("newshape"));
     m.def("squeeze",
-          [](const ArrayBodyPtr& a, const nonstd::optional<NdimVector<int8_t>>& axis) { return Squeeze(Array{a}, axis).move_body(); },
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis) {
+              return Squeeze(Array{a}, ToNdimVector(axis)).move_body();
+          },
           py::arg("a"),
           py::arg("axis") = nullptr);
     m.def("squeeze",
@@ -332,8 +334,8 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("axis"),
           py::arg("keepdims") = false);
     m.def("sum",
-          [](const ArrayBodyPtr& a, const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) {
-              return Sum(Array{a}, axis, keepdims).move_body();
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return Sum(Array{a}, ToNdimVector(axis), keepdims).move_body();
           },
           py::arg("a"),
           py::arg("axis") = nullptr,
@@ -350,8 +352,8 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("axis"),
           py::arg("keepdims") = false);
     m.def("logsumexp",
-          [](const ArrayBodyPtr& x, const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) {
-              return LogSumExp(Array{x}, axis, keepdims).move_body();
+          [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return LogSumExp(Array{x}, ToNdimVector(axis), keepdims).move_body();
           },
           py::arg("x"),
           py::arg("axis") = nullptr,
@@ -361,7 +363,9 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("x"),
           py::arg("axis"));
     m.def("log_softmax",
-          [](const ArrayBodyPtr& x, const nonstd::optional<NdimVector<int8_t>>& axis) { return LogSoftmax(Array{x}, axis).move_body(); },
+          [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis) {
+              return LogSoftmax(Array{x}, ToNdimVector(axis)).move_body();
+          },
           py::arg("x"),
           py::arg("axis") = nullptr);
 
@@ -378,8 +382,8 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("axis"),
           py::arg("keepdims") = false);
     m.def("amax",
-          [](const ArrayBodyPtr& a, const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) {
-              return AMax(Array{a}, axis, keepdims).move_body();
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return AMax(Array{a}, ToNdimVector(axis), keepdims).move_body();
           },
           py::arg("a"),
           py::arg("axis") = nullptr,

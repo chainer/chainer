@@ -76,6 +76,7 @@ private:
 }  // namespace stack_vector_detail
 
 // Fixed-capacity vector-like container whose buffer can be allocated statically on the stack.
+// Not all features in std::vector are implemented.
 template <typename T, stack_vector_detail::size_type N>
 class StackVector {
 private:

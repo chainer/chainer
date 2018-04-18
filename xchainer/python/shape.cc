@@ -1,7 +1,8 @@
 #include "xchainer/python/shape.h"
 
 #include <algorithm>
-#include <vector>
+
+#include "xchainer/ndim_vector.h"
 
 namespace xchainer {
 namespace python {
@@ -10,10 +11,9 @@ namespace internal {
 namespace py = pybind11;
 
 Shape ToShape(const py::tuple& tup) {
-    std::vector<int64_t> v;
-    v.reserve(tup.size());
+    NdimVector<int64_t> v{};
     std::transform(tup.begin(), tup.end(), std::back_inserter(v), [](auto& item) { return py::cast<int64_t>(item); });
-    return Shape{v};
+    return Shape{v.begin(), v.end()};
 }
 
 py::tuple ToTuple(const Shape& shape) {

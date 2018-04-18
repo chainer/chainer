@@ -164,11 +164,13 @@ void InitXchainerArray(pybind11::module& m) {
         return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
     });
     c.def("reshape", [](const ArrayBodyPtr& self, py::args args) {
-        auto shape = py::cast<NdimVector<int64_t>>(args);
+        auto shape = py::cast<std::vector<int64_t>>(args);
         return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
     });
     c.def("squeeze",
-          [](const ArrayBodyPtr& self, const nonstd::optional<NdimVector<int8_t>>& axis) { return Array{self}.Squeeze(axis).move_body(); },
+          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis) {
+              return Array{self}.Squeeze(ToNdimVector(axis)).move_body();
+          },
           py::arg("axis") = nullptr);
     c.def("squeeze",
           [](const ArrayBodyPtr& self, int8_t axis) { return Array{self}.Squeeze(NdimVector<int8_t>{axis}).move_body(); },
@@ -192,8 +194,8 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("axis"),
           py::arg("keepdims") = false);
     c.def("sum",
-          [](const ArrayBodyPtr& self, const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) {
-              return Array{self}.Sum(axis, keepdims).move_body();
+          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return Array{self}.Sum(ToNdimVector(axis), keepdims).move_body();
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
@@ -204,8 +206,8 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("axis"),
           py::arg("keepdims") = false);
     c.def("max",
-          [](const ArrayBodyPtr& self, const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) {
-              return Array{self}.Max(axis, keepdims).move_body();
+          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return Array{self}.Max(ToNdimVector(axis), keepdims).move_body();
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
