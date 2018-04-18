@@ -10,6 +10,9 @@
 namespace xchainer {
 namespace {
 
+static_assert(
+        std::is_same<std::iterator_traits<StackVector<int, 5>::iterator>::iterator_category, std::random_access_iterator_tag>::value, "");
+
 TEST(StackVectorTest, Operations) {
     using Vector = StackVector<int, 5>;
     // ctor (default)
