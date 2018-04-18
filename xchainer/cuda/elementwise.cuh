@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <utility>
 
@@ -24,14 +25,18 @@ __global__ void ElementwiseKernel(ElementwiseImpl impl, Indexer indexer, Indexab
 template <typename... Ts>
 struct KernelLauncher {
     template <typename Kernel, typename ElementwiseImpl>
-    __host__ void operator()(Kernel&& kernel, ElementwiseImpl&& impl, int64_t grid_size, int64_t block_size) {
-        UnpackAndLaunch(
-                std::forward<Kernel>(kernel), std::forward<ElementwiseImpl>(impl), grid_size, block_size, std::index_sequence_for<Ts...>());
+    __host__ void operator()(Kernel&& kernel, ElementwiseImpl&& impl) {
+        UnpackAndLaunch(std::forward<Kernel>(kernel), std::forward<ElementwiseImpl>(impl), std::index_sequence_for<Ts...>());
     }
 
     template <typename Kernel, typename ElementwiseImpl, std::size_t... Is>
-    __host__ void UnpackAndLaunch(
-            Kernel&& kernel, ElementwiseImpl&& impl, int64_t grid_size, int64_t block_size, std::index_sequence<Is...>) {
+    __host__ void UnpackAndLaunch(Kernel&& kernel, ElementwiseImpl&& impl, std::index_sequence<Is...>) {
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(kernel).block_size;
+
+        int64_t total_size = arg.indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
         kernel<<<grid_size, block_size>>>(impl, arg.indexer, std::get<Is>(arg.iarrays)...);
     }
 
@@ -43,16 +48,7 @@ struct KernelLauncher {
 template <typename ElementwiseImpl, typename... Ts>
 void Elementwise(ElementwiseKernelArg<Ts...> arg, ElementwiseImpl&& impl) {
     auto kernel = &elementwise_detail::ElementwiseKernel<ElementwiseImpl, Ts...>;
-
-    static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(kernel).block_size;
-
-    Indexer indexer = arg.indexer;
-
-    int64_t total_size = indexer.total_size();
-    int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-    int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
-
-    elementwise_detail::KernelLauncher<Ts...>{arg}(kernel, impl, grid_size, block_size);
+    elementwise_detail::KernelLauncher<Ts...>{arg}(kernel, impl);
 }
 
 }  // namespace cuda

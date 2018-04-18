@@ -41,7 +41,6 @@ template <typename ElementwiseImpl, typename... Ts>
 void Elementwise(ElementwiseKernelArg<Ts...> arg, ElementwiseImpl&& impl) {
     using Kernel = std::function<void(ElementwiseImpl, Indexer indexer, IndexableArray<Ts>...)>;
     Kernel kernel = &elementwise_detail::ElementwiseKernel<ElementwiseImpl, Ts...>;
-
     elementwise_detail::KernelLauncher<Ts...>{arg}(kernel, impl);
 }
 
