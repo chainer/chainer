@@ -77,7 +77,7 @@ void CheckDoubleBackpropOption(
         const GraphId& graph_id) {
     std::ostringstream failure_os;
 
-    // make it nonlinear to be double differentiable
+    // make it nonlinear to be double differentiable so that this utility can be used even for non double differentiable functions
     auto nonlinear_func = [&func](const std::vector<Array>& inputs) {
         std::vector<Array> nonlinear_outputs;
         for (const auto& output : func(inputs)) {
