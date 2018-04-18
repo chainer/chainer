@@ -662,8 +662,7 @@ TEST_P(ArrayTest, AsTypeBackward) {
     Array go = testing::BuildArray(shape).WithLinearData<OutT>(-0.1, 0.1).WithPadding(1);
     Array eps = Full(shape, 1e-3f);
 
-    CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0].AsType(TypeToDtype<OutT>)}; }, {a}, {go}, {eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0].AsType(TypeToDtype<OutT>)}; }, {a}, {go}, {eps});
 }
 
 TEST_P(ArrayTest, AsTypeToNonFloatNoGraph) {

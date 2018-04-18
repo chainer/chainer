@@ -70,7 +70,7 @@ TEST_P(IndexingTest, InvalidAt2) {
 }
 
 TEST_P(IndexingTest, AtBackward) {
-    CheckBackwardComputation(
+    CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
                 std::vector<ArrayIndex> indices{1, NewAxis{}, Slice{1, 3}};
                 return {internal::At(xs[0], indices)};
@@ -119,7 +119,7 @@ TEST_P(IndexingTest, TakeBackward) {
     Array go = testing::BuildArray(output_shape).WithLinearData<T>(0.1, 0.1).WithPadding(1);
     Array eps = Full(input_shape, 1e-3);
 
-    CheckBackwardComputation(
+    CheckBackward(
             [&indices, axis](const std::vector<Array>& xs) -> std::vector<Array> { return {Take(xs[0], indices, axis)}; },
             {a},
             {go},
