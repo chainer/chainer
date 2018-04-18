@@ -82,7 +82,8 @@ class TestSigmoid(unittest.TestCase):
                               use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
-                functions.sigmoid, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
+                functions.sigmoid, x_data, y_grad, x_grad_grad,
+                dtype=numpy.float64,
                 **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
