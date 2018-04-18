@@ -8,16 +8,6 @@
 
 namespace xchainer {
 
-// TODO(sonots): Remove after changing all of CheckBackwardComputation to CheckBackward in tests
-void CheckBackwardComputation(
-        const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
-        const std::vector<Array>& inputs,
-        const std::vector<Array>& grad_outputs,
-        const std::vector<Array>& eps,
-        double atol = 1e-5,
-        double rtol = 1e-4,
-        const GraphId& graph_id = kDefaultGraphId);
-
 // Tests differentiation of a given procedure.
 //
 // This function automatically checks if the backward procedure of `func` is

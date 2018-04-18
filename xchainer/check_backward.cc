@@ -128,9 +128,6 @@ void CheckDoubleBackpropOption(
     }
 }
 
-}  // namespace
-
-// TODO(sonots): Move to unnamed namespace after chaning all of CheckBackwardComputation to CheckBackward in tests
 void CheckBackwardComputation(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
@@ -171,6 +168,8 @@ void CheckBackwardComputation(
         throw GradientCheckError(failure_message);
     }
 }
+
+}  // namespace
 
 void CheckBackward(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,

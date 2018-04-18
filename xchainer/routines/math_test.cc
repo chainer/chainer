@@ -389,9 +389,9 @@ TEST_P(MathTest, MultiplyScalarBackward) {
     Array eps = Full(shape, 1e-1);
 
     // array * scalar
-    CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Multiply(xs[0], s)}; }, {a}, {go}, {eps});
+    CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Multiply(xs[0], s)}; }, {a}, {go}, {eps});
     // scalar * array
-    CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Multiply(s, xs[0])}; }, {a}, {go}, {eps});
+    CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Multiply(s, xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, MultiplyScalarDoubleBackward) {
@@ -661,7 +661,7 @@ TEST_P(MathTest, InvalidSumOutOfRangeAxes) {
 TEST_P(MathTest, SumBackward) {
     using T = double;
 
-    CheckBackwardComputation(
+    CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
                 return {Sum(xs[0], std::vector<int8_t>{1, 3})};
             },
@@ -729,7 +729,7 @@ TEST_P(MathTest, AMaxAlongZeroSized) {
 TEST_P(MathTest, AMaxBackward) {
     using T = double;
 
-    CheckBackwardComputation(
+    CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
                 return {AMax(xs[0], std::vector<int8_t>{1, 3})};
             },
@@ -796,9 +796,9 @@ TEST_P(MathTest, MaximumScalarBackward) {
     Array eps = Full(shape, 1e-1);
 
     // Maximum(array, scalar)
-    CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Maximum(xs[0], s)}; }, {a}, {go}, {eps});
+    CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Maximum(xs[0], s)}; }, {a}, {go}, {eps});
     // Maximum(scalar, array)
-    CheckBackwardComputation([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Maximum(s, xs[0])}; }, {a}, {go}, {eps});
+    CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Maximum(s, xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, MaximumScalarDoubleBackward) {
@@ -847,7 +847,7 @@ TEST_P(MathTest, ExpBackward) {
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
     Array eps = Full(shape, 1e-3);
 
-    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {Exp(xs[0])}; }, {a}, {go}, {eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Exp(xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, ExpDoubleBackward) {
@@ -876,7 +876,7 @@ TEST_P(MathTest, LogBackward) {
     Array go = testing::BuildArray(shape).WithLinearData<T>(0.1, 0.1).WithPadding(1);
     Array eps = Full(shape, 1e-3);
 
-    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {Log(xs[0])}; }, {a}, {go}, {eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Log(xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, LogDoubleBackward) {
@@ -1014,7 +1014,7 @@ TEST_P(MathTest, LogSoftmaxBackward) {
     Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
     Array eps = Full(shape, 1e-3);
 
-    CheckBackwardComputation([](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSoftmax(xs[0])}; }, {a}, {go}, {eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSoftmax(xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, LogSoftmaxDoubleBackward) {

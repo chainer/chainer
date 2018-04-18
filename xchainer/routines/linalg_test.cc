@@ -85,8 +85,7 @@ TEST_P(LinalgTest, DotBackward) {
     Array a_eps = Full(a.shape(), 1e-1f);
     Array b_eps = Full(b.shape(), 1e-1f);
 
-    CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Dot(xs[0], xs[1])}; }, {a, b}, {go}, {a_eps, b_eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Dot(xs[0], xs[1])}; }, {a, b}, {go}, {a_eps, b_eps});
 }
 
 TEST_P(LinalgTest, DotMatVecBackward) {
@@ -97,8 +96,7 @@ TEST_P(LinalgTest, DotMatVecBackward) {
     Array a_eps = Full(a.shape(), 1e-1f);
     Array b_eps = Full(b.shape(), 1e-1f);
 
-    CheckBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Dot(xs[0], xs[1])}; }, {a, b}, {go}, {a_eps, b_eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Dot(xs[0], xs[1])}; }, {a, b}, {go}, {a_eps, b_eps});
 }
 
 TEST_P(LinalgTest, DotDoubleBackward) {

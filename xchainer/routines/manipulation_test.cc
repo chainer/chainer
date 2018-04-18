@@ -82,7 +82,7 @@ TEST_P(ManipulationTest, TransposeNoncontiguous) {
 }
 
 TEST_P(ManipulationTest, TransposeBackward) {
-    CheckBackwardComputation(
+    CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Transpose(xs[0])}; },
             {Zeros({2, 3}, Dtype::kFloat32).RequireGrad()},
             {testing::BuildArray({3, 2}, {1.f, 2.f, 3.f, 4.f, 5.f, 6.f})},
@@ -254,7 +254,7 @@ TEST_P(ManipulationTest, InvalidSqueezeOutOfRangeAxes) {
 }
 
 TEST_P(ManipulationTest, SqueezeBackward) {
-    CheckBackwardComputation(
+    CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
                 return {Squeeze(xs[0], std::vector<int8_t>{0, 2, 4})};
             },
@@ -332,7 +332,7 @@ TEST_P(ManipulationTest, InvalidBroadcastTo_NotBroadcastableAtEnd) {
 TEST_P(ManipulationTest, BroadcastToBackward) {
     using T = double;
 
-    CheckBackwardComputation(
+    CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
                 return {BroadcastTo(xs[0], {2, 3, 4, 3})};
             },

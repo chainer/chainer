@@ -95,12 +95,10 @@ Log
 array([[0.        , 0.69314718, 1.0986123 ],
        [1.38629436, 1.60943794, 1.79175949]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
 
-.. TODO(sonots): Fix grad not to have graph with enable_double_backprop=False
-
 >>> y.backward(enable_double_backprop=False)
 >>> a.grad
 array([[1.        , 0.5       , 0.33333334],
-       [0.25      , 0.2       , 0.16666667]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
+       [0.25      , 0.2       , 0.16666667]], shape=(2, 3), dtype=float32, device='native:0')
 
 Exp
 ---
@@ -112,12 +110,10 @@ Exp
 array([[  2.71828175,   7.3890562 ,  20.08553696],
        [ 54.59814835, 148.41316223, 403.42880249]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
 
-.. TODO(sonots): Fix grad not to have graph with enable_double_backprop=False
-
 >>> y.backward(enable_double_backprop=False)
 >>> a.grad
 array([[  2.71828175,   7.3890562 ,  20.08553696],
-       [ 54.59814835, 148.41316223, 403.42880249]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
+       [ 54.59814835, 148.41316223, 403.42880249]], shape=(2, 3), dtype=float32, device='native:0')
 
 
 Negative
@@ -145,12 +141,10 @@ Log of Softmax
 array([[-2.40760589, -1.40760589, -0.40760589],
        [-2.40760612, -1.40760612, -0.40760612]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
 
-.. TODO(sonots): Fix grad not to have graph with enable_double_backprop=False
-
 >>> y.backward(enable_double_backprop=False)
 >>> a.grad
 array([[0.72990829, 0.26581454, -0.99572289],
-       [0.72990829, 0.26581454, -0.99572289]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
+       [0.72990829, 0.26581454, -0.99572289]], shape=(2, 3), dtype=float32, device='native:0')
 
 
 AsType

@@ -45,7 +45,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
              double atol,
              double rtol,
              const GraphId& graph_id) {
-              CheckBackwardComputation(
+              CheckBackward(
                       ForwardInPython{func},
                       {inputs.begin(), inputs.end()},
                       {grad_outputs.begin(), grad_outputs.end()},
