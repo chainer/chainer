@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tuple>
+#include <utility>
 
 #include "xchainer/array.h"
 #include "xchainer/indexable_array.h"
@@ -11,7 +12,7 @@ namespace xchainer {
 template <typename... Ts>
 struct ElementwiseKernelArg {
     explicit ElementwiseKernelArg(Indexer indexer, IndexableArray<Ts>&&... iarrays)
-        : indexer{indexer}, iarrays{std::tuple<IndexableArray<Ts>...>{iarrays...}} {}
+        : indexer{std::move(indexer)}, iarrays{std::make_tuple(iarrays...)} {}
 
     Indexer indexer;
     std::tuple<IndexableArray<Ts>...> iarrays;
