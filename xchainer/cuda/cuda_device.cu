@@ -490,8 +490,8 @@ void CudaDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Ar
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise(
-                IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)},
-                MakeElementwiseKernelArg<T, const T, const T>(out, x1, neg));
+                MakeElementwiseKernelArg<T, const T, const T>(out, x1, neg),
+                IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)});
     });
 }
 namespace {
@@ -618,7 +618,7 @@ void CudaDevice::Exp(const Array& x, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(ExpImpl<T>{}, MakeElementwiseKernelArg<T, T>(out, x));
+        Elementwise(MakeElementwiseKernelArg<T, T>(out, x), ExpImpl<T>{});
     });
 }
 

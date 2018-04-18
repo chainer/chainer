@@ -195,7 +195,7 @@ void NativeDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(EqualImpl<T>{}, MakeElementwiseKernelArg<bool, T, T>(out, x1, x2));
+        Elementwise(MakeElementwiseKernelArg<bool, T, T>(out, x1, x2), EqualImpl<T>{});
     });
 }
 
@@ -295,8 +295,8 @@ void NativeDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const 
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise(
-                IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)},
-                MakeElementwiseKernelArg<T, const T, const T>(out, x1, neg));
+                MakeElementwiseKernelArg<T, const T, const T>(out, x1, neg),
+                IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)});
     });
 }
 
@@ -349,7 +349,7 @@ void NativeDevice::Exp(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(ExpImpl<T>{}, MakeElementwiseKernelArg<T, T>(out, x));
+        Elementwise(MakeElementwiseKernelArg<T, T>(out, x), ExpImpl<T>{});
     });
 }
 

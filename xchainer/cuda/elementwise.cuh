@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <utility>
 
-#include "xchainer/array.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/elementwise_kernel_arg.h"
 #include "xchainer/indexable_array.h"
@@ -22,31 +22,26 @@ __global__ void ElementwiseKernel(ElementwiseImpl impl, Indexer indexer, Indexab
 }
 
 template <typename... Ts>
-struct TupleUnpackDispatcher {
+struct KernelLauncher {
     template <typename Kernel, typename ElementwiseImpl>
-    __host__ void operator()(Kernel kernel, ElementwiseImpl&& impl, Indexer indexer, int64_t grid_size, int64_t block_size) {
-        Dispatch(kernel, impl, indexer, grid_size, block_size, tuple, std::index_sequence_for<Ts...>());
+    __host__ void operator()(Kernel&& kernel, ElementwiseImpl&& impl, int64_t grid_size, int64_t block_size) {
+        UnpackAndLaunch(
+                std::forward<Kernel>(kernel), std::forward<ElementwiseImpl>(impl), grid_size, block_size, std::index_sequence_for<Ts...>());
     }
 
     template <typename Kernel, typename ElementwiseImpl, std::size_t... Is>
-    __host__ void Dispatch(
-            Kernel kernel,
-            ElementwiseImpl&& impl,
-            Indexer indexer,
-            int64_t grid_size,
-            int64_t block_size,
-            const std::tuple<IndexableArray<Ts>...>& tup,
-            std::index_sequence<Is...>) {
-        kernel<<<grid_size, block_size>>>(impl, indexer, std::get<Is>(tup)...);
+    __host__ void UnpackAndLaunch(
+            Kernel&& kernel, ElementwiseImpl&& impl, int64_t grid_size, int64_t block_size, std::index_sequence<Is...>) {
+        kernel<<<grid_size, block_size>>>(impl, arg.indexer, std::get<Is>(arg.iarrays)...);
     }
 
-    std::tuple<IndexableArray<Ts>...> tuple;
+    ElementwiseKernelArg<Ts...>& arg;
 };
 
 }  // namespace elementwise_detail
 
-template <typename... Ts, typename ElementwiseImpl>
-void Elementwise(ElementwiseImpl&& impl, ElementwiseKernelArg<Ts...> arg) {
+template <typename ElementwiseImpl, typename... Ts>
+void Elementwise(ElementwiseKernelArg<Ts...> arg, ElementwiseImpl&& impl) {
     auto kernel = &elementwise_detail::ElementwiseKernel<ElementwiseImpl, Ts...>;
 
     static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(kernel).block_size;
@@ -57,7 +52,7 @@ void Elementwise(ElementwiseImpl&& impl, ElementwiseKernelArg<Ts...> arg) {
     int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
     int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-    elementwise_detail::TupleUnpackDispatcher<Ts...>{arg.iarrays}(kernel, impl, indexer, grid_size, block_size);
+    elementwise_detail::KernelLauncher<Ts...>{arg}(kernel, impl, grid_size, block_size);
 }
 
 }  // namespace cuda
