@@ -398,7 +398,9 @@ Array Exp(const Array& x) {
     Array out = EmptyLike(x, x.device());
     x.device().Exp(x, out);
 
-    auto backward_function = [x](const Array& gout, const std::vector<GraphId>&) { return Exp(x) * gout; };
+    auto backward_function = [x](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+        return Exp(x.AsConstant(graph_ids_to_stop_gradient)) * gout;
+    };
     internal::SetUpOpNodes("exp", {x}, out, {backward_function});
 
     return out;
@@ -408,7 +410,9 @@ Array Log(const Array& x) {
     Array out = EmptyLike(x, x.device());
     x.device().Log(x, out);
 
-    auto backward_function = [x](const Array& gout, const std::vector<GraphId>&) { return gout / x; };
+    auto backward_function = [x](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+        return gout / x.AsConstant(graph_ids_to_stop_gradient);
+    };
     internal::SetUpOpNodes("log", {x}, out, {backward_function});
 
     return out;
