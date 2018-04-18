@@ -128,12 +128,12 @@ def test_assert_allclose_fail_equal_nan():
 
 
 @pytest.mark.parametrize('shape', [(), (1,), (2, 3)])
-def test_assert_allclose_exact(xp, shape, dtype):
+def test_assert_allclose_exact(shape, dtype):
     a, b = _make_onehot_arrays(shape, dtype, 1.0, 1.0)
     xchainer.testing.assert_allclose(a, b)
 
 
-def test_assert_allclose_close(xp, float_dtype):
+def test_assert_allclose_close(float_dtype):
     dtype = float_dtype
     shape = (2, 3)
     a, b = _make_onehot_arrays(shape, dtype, 1.0, 1.0 + 5e-8)

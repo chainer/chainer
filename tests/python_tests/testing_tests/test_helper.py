@@ -182,8 +182,6 @@ def test_numpy_xchainer_array_equal_dtype_check_disabled(xp):
         return xchainer.full((1,), 1.0, xchainer.float32)
 
 
-# TODO(niboshi): Currently this test fails. Fix it.
-@pytest.mark.xfail(strict=True)
 @xchainer.testing.numpy_xchainer_array_equal(name='foo')
 def test_numpy_xchainer_array_equal_name(foo):
     if foo is numpy:
@@ -402,6 +400,14 @@ def test_numpy_xchainer_allclose_fail_wrong_way_around(xp):
         return xchainer.full((1,), 1.0, xchainer.float64)
     else:
         return numpy.full((1,), 1.0, numpy.float64)
+
+
+@xchainer.testing.numpy_xchainer_allclose(name='foo')
+def test_numpy_xchainer_allclose_name(foo):
+    if foo is numpy:
+        return numpy.full((1,), 1.0, numpy.float64)
+    else:
+        return xchainer.full((1,), 1.0, xchainer.float64)
 
 
 @xchainer.testing.numpy_xchainer_allclose(accept_error=FooError)
