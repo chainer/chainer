@@ -14,6 +14,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/dtype.h"
+#include "xchainer/elementwise_kernel_arg.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/elementwise.h"
@@ -181,19 +182,20 @@ void NativeDevice::AsType(const Array& a, const Array& out) {
     VisitDtype(out.dtype(), [&](auto out_pt) { VisitDtype(a.dtype(), do_astype, out_pt); });
 }
 
+namespace {
+
+template <typename T>
+struct EqualImpl {
+    void operator()(bool& out, T x1, T x2) { out = x1 == x2; }
+};
+
+}  // namespace
+
 void NativeDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> x1_iarray{x1};
-        IndexableArray<const T> x2_iarray{x2};
-        IndexableArray<bool> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = x1_iarray[indexer] == x2_iarray[indexer];
-        }
+        Elementwise(EqualImpl<T>{}, MakeElementwiseKernelArg<bool, T, T>(out, x1, x2));
     });
 }
 
@@ -276,21 +278,25 @@ void NativeDevice::Divide(const Array& lhs, const Array& rhs, const Array& out) 
     });
 }
 
+namespace {
+
+template <typename T>
+struct IfLessElseASSAImpl {
+    void operator()(T& out, const T x1, const T neg) { out = x1 < x2 ? pos : neg; }
+
+    T x2;
+    T pos;
+};
+
+}  // namespace
+
 void NativeDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
-    VisitDtype(out.dtype(), [&](auto pt) {
+    VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> x1_iarray{x1};
-        IndexableArray<const T> neg_iarray{neg};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-        T x2_value{x2};
-        T pos_value{pos};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = x1_iarray[indexer] < x2_value ? pos_value : neg_iarray[indexer];
-        }
+        Elementwise(
+                IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)},
+                MakeElementwiseKernelArg<T, const T, const T>(out, x1, neg));
     });
 }
 
@@ -343,7 +349,7 @@ void NativeDevice::Exp(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<T>(ExpImpl<T>{}, out, x);
+        Elementwise(ExpImpl<T>{}, MakeElementwiseKernelArg<T, T>(out, x));
     });
 }
 

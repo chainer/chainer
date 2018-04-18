@@ -18,6 +18,7 @@
 #include "xchainer/cuda/reduce.cuh"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/elementwise_kernel_arg.h"
 #include "xchainer/enum.h"
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
@@ -122,30 +123,6 @@ __global__ void DivideKernel(
     for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
         indexer.Set(i);
         out_iarray[indexer] = lhs_iarray[indexer] / rhs_iarray[indexer];
-    }
-}
-
-template <typename T>
-__global__ void IfLessElseASSAKernel(
-        IndexableArray<const T> x1_iarray,
-        T x2_value,
-        T pos_value,
-        IndexableArray<const T> neg_iarray,
-        IndexableArray<T> out_iarray,
-        Indexer indexer) {
-    const int64_t total_size = indexer.total_size();
-    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
-        indexer.Set(i);
-        out_iarray[indexer] = x1_iarray[indexer] < x2_value ? pos_value : neg_iarray[indexer];
-    }
-}
-
-template <typename T>
-__global__ void ExpKernel(IndexableArray<const T> x_iarray, IndexableArray<T> out_iarray, Indexer indexer) {
-    const int64_t total_size = indexer.total_size();
-    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
-        indexer.Set(i);
-        out_iarray[indexer] = std::exp(x_iarray[indexer]);
     }
 }
 
@@ -495,28 +472,28 @@ void CudaDevice::Divide(const Array& lhs, const Array& rhs, const Array& out) {
     });
 }
 
+namespace {
+
+template <typename T>
+struct IfLessElseASSAImpl {
+    __device__ void operator()(T& out, const T x1, const T neg) { out = x1 < x2 ? pos : neg; }
+
+    T x2;
+    T pos;
+};
+
+}  // namespace
+
 void CudaDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&IfLessElseASSAKernel<T>).block_size;
-
-        IndexableArray<const T> x1_iarray{x1};
-        IndexableArray<const T> neg_iarray{neg};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-        T x2_value{x2};
-        T pos_value{pos};
-
-        int64_t total_size = indexer.total_size();
-        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
-
-        IfLessElseASSAKernel<<<grid_size, block_size>>>(x1_iarray, x2_value, pos_value, neg_iarray, out_iarray, indexer);
+        Elementwise(
+                IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)},
+                MakeElementwiseKernelArg<T, const T, const T>(out, x1, neg));
     });
 }
-
 namespace {
 
 // Dispatch gemm routines based on the element type T
@@ -639,10 +616,9 @@ void CudaDevice::Exp(const Array& x, const Array& out) {
     // TODO(hvy): Implement internal::IsValidElementwiseShapes ?
     CheckDevicesCompatible(x, out);
     CheckCudaError(cudaSetDevice(index()));
-
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<T>(ExpImpl<T>{}, out, x);
+        Elementwise(ExpImpl<T>{}, MakeElementwiseKernelArg<T, T>(out, x));
     });
 }
 
