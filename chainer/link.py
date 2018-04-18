@@ -988,12 +988,12 @@ class ChainList(Link):
         link.name = str(len(self._children))
         self._children.append(link)
 
-    def copy(self):
+    def copy(self, mode='share'):
         ret = super(ChainList, self).copy()
         ret._children = list(ret._children)  # copy
         children = ret._children
         for i, child in enumerate(children):
-            child = child.copy()
+            child = child.copy(mode)
             child.name = str(i)
             children[i] = child
         return ret
