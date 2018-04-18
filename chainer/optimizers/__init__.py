@@ -1,4 +1,4 @@
--# import classes and functions
+# import classes and functions
 from chainer.optimizers.ada_delta import AdaDelta  # NOQA
 from chainer.optimizers.ada_grad import AdaGrad  # NOQA
 from chainer.optimizers.adam import Adam  # NOQA
