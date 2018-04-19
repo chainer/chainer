@@ -82,7 +82,7 @@ public:
     Scalar operator-() const {
         switch (dtype_) {
             case Dtype::kBool:
-                throw DtypeError("bool scalar cannot be negated");
+                throw DtypeError{"bool scalar cannot be negated"};
             case Dtype::kInt8:
                 return -int8_;
             case Dtype::kInt16:

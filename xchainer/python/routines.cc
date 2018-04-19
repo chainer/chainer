@@ -239,7 +239,7 @@ void InitXchainerRoutines(pybind11::module& m) {
     m.def("take",
           [](const ArrayBodyPtr& a, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
               if (!axis.has_value()) {
-                  throw NotImplementedError("axis=None is not yet supported for xchainer.take.");
+                  throw NotImplementedError{"axis=None is not yet supported for xchainer.take."};
               }
               return Take(Array{a}, Array{indices}, axis.value()).move_body();
           },

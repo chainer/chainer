@@ -32,7 +32,7 @@ bool IsPointerCudaMemory(const void* ptr) {
     switch (status) {
         case cudaSuccess:
             if (attr.isManaged == 0) {
-                throw XchainerError("Non-managed GPU memory is not supported");
+                throw XchainerError{"Non-managed GPU memory is not supported"};
             }
             return true;
         case cudaErrorInvalidValue:

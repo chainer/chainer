@@ -31,7 +31,7 @@ int GetNativeDeviceLimit(Backend& backend) {
     } else {
         limit = std::stoi(env);
         if (limit < 0) {
-            throw XchainerError("XCHAINER_TEST_NATIVE_DEVICE_LIMIT must be non-negative integer: " + std::string(env));
+            throw XchainerError{"XCHAINER_TEST_NATIVE_DEVICE_LIMIT must be non-negative integer: ", env};
         }
     }
     return limit;
@@ -49,7 +49,7 @@ int GetCudaDeviceLimit(Backend& backend) {
     } else {
         limit = std::stoi(env);
         if (limit < 0) {
-            throw XchainerError("XCHAINER_TEST_CUDA_DEVICE_LIMIT must be non-negative integer: " + std::string(env));
+            throw XchainerError{"XCHAINER_TEST_CUDA_DEVICE_LIMIT must be non-negative integer: ", env};
         }
     }
     return limit;
@@ -70,7 +70,7 @@ int GetDeviceLimit(Backend& backend) {
     if (backend.GetName() == "cuda") {
         return GetCudaDeviceLimit(backend);
     }
-    throw BackendError("invalid backend: " + backend.GetName());
+    throw BackendError{"invalid backend: ", backend.GetName()};
 }
 
 bool SkipIfDeviceUnavailable(Backend& backend, int required_num) {
@@ -85,7 +85,7 @@ bool SkipIfDeviceUnavailable(Backend& backend, int required_num) {
     } else if (backend.GetName() == "cuda") {
         ++g_skipped_cuda_test_count;
     } else {
-        throw BackendError("invalid backend: " + backend.GetName());
+        throw BackendError{"invalid backend: ", backend.GetName()};
     }
     return true;
 }

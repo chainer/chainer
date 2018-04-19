@@ -23,7 +23,7 @@ Array Dot(const Array& a, const Array& b) {
 
     // TODO(beam2d): Support it. Need to transpose b so that the inner-product axis is moved to the top.
     if (b.ndim() > 2) {
-        throw NotImplementedError("dot does not support rhs operand with ndim > 2");
+        throw NotImplementedError{"dot does not support rhs operand with ndim > 2"};
     }
 
     std::vector<int64_t> out_shape_v;
@@ -34,7 +34,7 @@ Array Dot(const Array& a, const Array& b) {
 
     int64_t k = a.shape()[a.ndim() - 1];
     if (b.shape()[0] != k) {
-        throw DimensionError("Axis dimension mismatch");
+        throw DimensionError{"Axis dimension mismatch"};
     }
     if (k == 0) {
         return Zeros(out_shape, a.dtype(), a.device());

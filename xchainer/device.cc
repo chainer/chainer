@@ -17,7 +17,7 @@ static_assert(std::is_pod<decltype(t_default_device)>::value, "t_default_device 
 
 void Device::CheckDevicesCompatible(const Array& array) {
     if (this != &array.device()) {
-        throw DeviceError("Device (" + name() + ") is not compatible with array's device (" + array.device().name() + ").");
+        throw DeviceError{"Device (", name(), ") is not compatible with array's device (", array.device().name(), ")."};
     }
 }
 
@@ -36,7 +36,7 @@ Device& GetDefaultDevice() {
 
 void SetDefaultDevice(Device* device) {
     if (device != nullptr && &device->backend().context() != &GetDefaultContext()) {
-        throw ContextError("Context mismatch between default device and default context.");
+        throw ContextError{"Context mismatch between default device and default context."};
     }
     t_default_device = device;
 }

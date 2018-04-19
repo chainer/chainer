@@ -23,7 +23,7 @@ namespace xchainer {
 
 Scalar AsScalar(const Array& a) {
     if (a.GetTotalSize() != 1) {
-        throw DimensionError("Cannot convert " + std::to_string(a.GetTotalSize()) + "-dimensional array to scalar");
+        throw DimensionError{"Cannot convert ", a.GetTotalSize(), "-dimensional array to scalar"};
     }
 
     // Copy to the native device
@@ -58,7 +58,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
     // Check for invalid shape.
     int64_t total_size = in_shape.GetTotalSize();
     if (total_size != newshape.GetTotalSize()) {
-        throw DimensionError("Cannot reshape array of size " + std::to_string(total_size) + " into shape " + newshape.ToString());
+        throw DimensionError{"Cannot reshape array of size ", total_size, " into shape ", newshape};
     }
 
     int64_t element_size = GetElementSize(a.dtype());
@@ -139,7 +139,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
         if (!can_reshape_without_copy) {
             // Reshape without copy is not possible.
             // TODO(niboshi): Implement it
-            throw NotImplementedError("Reshape that requires a copy is not implemented yet.");
+            throw NotImplementedError{"Reshape that requires a copy is not implemented yet."};
         }
         assert(strides_vec.size() == newshape.size());
 
@@ -180,7 +180,7 @@ Array Squeeze(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis)
                         os << *it;
                     }
                     os << (axis->size() == 1 ? ",)." : ").");
-                    throw DimensionError(os.str());
+                    throw DimensionError{os.str()};
                 }
             } else {
                 out_shape.push_back(in_shape[i]);
@@ -215,7 +215,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
     const Strides& in_strides = array.strides();
 
     if (in_shape.size() > shape.size()) {
-        throw DimensionError("Cannot broadcast to smaller dimensions");
+        throw DimensionError{"Cannot broadcast to smaller dimensions"};
     }
 
     std::vector<int64_t> rev_strides;
@@ -235,7 +235,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
             } else if (in_dim == out_dim) {
                 nonbroadcast_stride = in_stride;
             } else {
-                throw DimensionError("Invalid broadcast from " + in_shape.ToString() + " to " + shape.ToString());
+                throw DimensionError{"Invalid broadcast from ", in_shape, " to ", shape};
             }
         } else {
             // do nothing; broadcast

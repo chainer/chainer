@@ -14,7 +14,7 @@ public:
     Slice(nonstd::optional<int64_t> start, nonstd::optional<int64_t> stop, nonstd::optional<int64_t> step)
         : start_(start), stop_(stop), step_(step ? *step : 1) {
         if (step_ == 0) {
-            throw DimensionError("Step must not be zero.");
+            throw DimensionError{"Step must not be zero."};
         }
     }
     Slice() = default;

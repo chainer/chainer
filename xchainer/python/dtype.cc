@@ -74,7 +74,7 @@ Dtype GetDtypeFromNumpyDtype(const py::dtype& npdtype) {
         default:
             break;
     }
-    throw DtypeError("unsupported NumPy dtype");
+    throw DtypeError{"unsupported NumPy dtype"};
 }
 
 Dtype GetDtype(py::handle handle) {
@@ -105,7 +105,7 @@ Dtype GetDtype(py::handle handle) {
     }
 
     // TODO(niboshi): Generate richer error message
-    throw py::type_error();
+    throw py::type_error{};
 }
 
 void InitXchainerDtype(pybind11::module& m) {

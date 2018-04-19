@@ -18,7 +18,7 @@ namespace xchainer {
 
 Array Negative(const Array& x) {
     if (x.dtype() == Dtype::kBool) {
-        throw DtypeError("Cannot negative a boolean array.");
+        throw DtypeError{"Cannot negative a boolean array."};
     }
     return Multiply(x, Scalar{-1, x.dtype()});
 }
@@ -344,7 +344,7 @@ Array AMax(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis, bo
 
     for (int8_t i : sorted_axis) {
         if (a.shape()[i] == 0) {
-            throw DimensionError("cannot compute the maximum along zero-sized axis");
+            throw DimensionError{"cannot compute the maximum along zero-sized axis"};
         }
     }
 
