@@ -84,10 +84,6 @@ Shape TransposeShape(const Shape& shape, const NdimVector<int8_t>& axes);
 
 }  // namespace internal
 
-inline bool operator==(const Shape& lhs, const Shape& rhs) { return lhs.span() == rhs.span(); }
-
-inline bool operator!=(const Shape& lhs, const Shape& rhs) { return lhs.span() != rhs.span(); }
-
 std::ostream& operator<<(std::ostream&, const Shape&);
 
 void CheckEqual(const Shape& lhs, const Shape& rhs);
