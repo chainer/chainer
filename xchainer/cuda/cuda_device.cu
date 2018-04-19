@@ -36,13 +36,13 @@ namespace {
 
 template <typename T>
 struct FillImpl {
-    __device__ void operator()(int64_t /* i */, T& out) { out = value; }
+    __device__ void operator()(int64_t /*i*/, T& out) { out = value; }
     T value;
 };
 
 template <typename T>
 struct CopyImpl {
-    __device__ void operator()(int64_t /* i */, T a, T& out) { out = a; }
+    __device__ void operator()(int64_t /*i*/, T a, T& out) { out = a; }
 };
 
 template <typename T>
@@ -54,53 +54,53 @@ struct ArangeImpl {
 
 template <typename InT, typename OutT>
 struct AsTypeImpl {
-    __device__ void operator()(int64_t /* i */, InT a, OutT& out) { out = static_cast<OutT>(a); }
+    __device__ void operator()(int64_t /*i*/, InT a, OutT& out) { out = static_cast<OutT>(a); }
 };
 
 template <typename T>
 struct EqualImpl {
-    __device__ void operator()(int64_t /* i */, T x1, T x2, bool& out) { out = x1 == x2; }
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 == x2; }
 };
 
 template <typename T>
 struct AddImpl {
-    __device__ void operator()(int64_t /* i */, T x1, T x2, T& out) { out = x1 + x2; }
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 + x2; }
 };
 
 template <typename T>
 struct SubtractImpl {
-    __device__ void operator()(int64_t /* i */, T x1, T x2, T& out) { out = x1 - x2; }
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 - x2; }
 };
 
 template <typename T>
 struct MultiplyImpl {
-    __device__ void operator()(int64_t /* i */, T x1, T x2, T& out) { out = x1 * x2; }
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 * x2; }
 };
 
 template <typename T>
 struct MultiplyASImpl {
-    __device__ void operator()(int64_t /* i */, T x1, T& out) { out = x1 * x2; }
+    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = x1 * x2; }
     T x2;
 };
 
 template <typename T>
 struct DivideImpl {
-    __device__ void operator()(int64_t /* i */, T lhs, T rhs, T& out) { out = lhs / rhs; }
+    __device__ void operator()(int64_t /*i*/, T lhs, T rhs, T& out) { out = lhs / rhs; }
 };
 
 template <typename T>
 struct ExpImpl {
-    __device__ void operator()(int64_t /* i */, T x, T& out) { out = std::exp(x); }
+    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::exp(x); }
 };
 
 template <typename T>
 struct LogImpl {
-    __device__ void operator()(int64_t /* i */, T x, T& out) { out = std::log(x); }
+    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::log(x); }
 };
 
 template <typename T>
 struct IfLessElseASSAImpl {
-    __device__ void operator()(int64_t /* i */, T x1, T neg, T& out) { out = x1 < x2 ? pos : neg; }
+    __device__ void operator()(int64_t /*i*/, T x1, T neg, T& out) { out = x1 < x2 ? pos : neg; }
     T x2;
     T pos;
 };
@@ -269,7 +269,7 @@ void CudaDevice::Copy(const Array& a, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T, T>(a, out), CopyImpl<T>{});
+        Elementwise(MakeElementwiseKernelArg<const T, T>(a, out), CopyImpl<T>{});
     });
 }
 
@@ -279,7 +279,7 @@ void CudaDevice::AsType(const Array& a, const Array& out) {
     auto do_astype = [&](auto in_pt, auto out_pt) {
         using InT = typename decltype(in_pt)::type;
         using OutT = typename decltype(out_pt)::type;
-        Elementwise(MakeElementwiseKernelArg<InT, OutT>(a, out), AsTypeImpl<InT, OutT>{});
+        Elementwise(MakeElementwiseKernelArg<const InT, OutT>(a, out), AsTypeImpl<InT, OutT>{});
     };
     VisitDtype(out.dtype(), [&](auto out_pt) { VisitDtype(a.dtype(), do_astype, out_pt); });
 }
