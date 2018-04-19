@@ -55,13 +55,13 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         # L1 or L2 norm is allowed only
         if norm == 1:
-            self.norm = self.l1_norm
+            self.norm = self._l1_norm
         elif norm == 2:
-            self.norm = self.l2_norm
+            self.norm = self._l2_norm
         else:
             raise Exception("Norm can only be 1 or 2")
 
-    def l1_norm(self, x, axis):
+    def _l1_norm(self, x, axis):
         """Function to calculate L1 Norm by given axes
 
         Args:
@@ -73,7 +73,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """
         return F.sum(F.absolute(x), axis=axis)
 
-    def l2_norm(self, x, axis):
+    def _l2_norm(self, x, axis):
         """ Function to calculate L2 Norm by given axes
 
         Args:
@@ -85,7 +85,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """
         return F.sum(x ** 2, axis=axis)
 
-    def variance_term(self, pred, gt, means, delta_v, gt_idx):
+    def _variance_term(self, pred, gt, means, delta_v, gt_idx):
         """Function to calculate variance term
 
         Args:
@@ -128,7 +128,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         return var_term
 
-    def distance_term(self, means, delta_d, n_objects):
+    def _distance_term(self, means, delta_d, n_objects):
         """Function to calculate distance term
 
         Args:
@@ -152,7 +152,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             if n_objects[i] <= 1:
                 continue
 
-            nobj = n_objects[i].get()
+            nobj = n_objects[i]
 
             # Prepare means
             m_i = F.expand_dims(m[i, :nobj, :], 1)
@@ -171,7 +171,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         return dist_term
 
-    def regularization_term(self, means, n_objects):
+    def _regularization_term(self, means, n_objects):
         """Function to calculate regularization term
 
         Args:
@@ -192,7 +192,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         return reg_term
 
-    def means(self, pred, gt, n_objects, max_n_objects, gt_idx):
+    def _means(self, pred, gt, n_objects, max_n_objects, gt_idx):
         """Function to calculate cluster means
 
         Args:
@@ -244,7 +244,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         means = F.stack(means)
         return means
 
-    def prepare_inputs(self, prediction, labels):
+    def _prepare_inputs(self, prediction, labels):
         """Function to preprocess inputs
 
         Args:
@@ -280,18 +280,18 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """
 
         # Inputs
-        prediction, labels = self.prepare_inputs(x[0], x[1])
+        prediction, labels = self._prepare_inputs(x[0], x[1])
         n_objects, gt_idx = x[2:4]
 
         # Calculate cluster means
-        c_means = self.means(prediction, labels, n_objects,
+        c_means = self._means(prediction, labels, n_objects,
                              self.max_n_clusters, gt_idx)
 
         # Calculate losses
-        l_var = self.variance_term(prediction, labels, c_means, self.delta_v,
+        l_var = self._variance_term(prediction, labels, c_means, self.delta_v,
                                    gt_idx)
-        l_dist = self.distance_term(c_means, self.delta_d, n_objects)
-        l_reg = self.regularization_term(c_means, n_objects)
+        l_dist = self._distance_term(c_means, self.delta_d, n_objects)
+        l_reg = self._regularization_term(c_means, n_objects)
 
         return self.alpha * l_var + self.beta * l_dist + self.gamma * l_reg
 
