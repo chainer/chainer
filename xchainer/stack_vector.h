@@ -169,7 +169,7 @@ public:
         } else {
             // shrinking
             for (size_type i = count; i < n_; ++i) {
-                d_[i] = T{};  // destruct obsolete elements
+                d_[i].~T();  // destruct obsolete elements
             }
         }
         n_ = count;

@@ -517,7 +517,7 @@ TEST(StackVectorTest, CtorCallCounts) {
     EXPECT_EQ(0, n_copy_assign);
     EXPECT_EQ(2, n_move_assign);
 
-    // resize
+    // resize (expand)
     {
         StackVector<Element, 5> vec = create_vec();
         reset();
@@ -529,6 +529,19 @@ TEST(StackVectorTest, CtorCallCounts) {
     EXPECT_EQ(0, n_normal_ctor);
     EXPECT_EQ(0, n_copy_assign);
     EXPECT_EQ(1, n_move_assign);
+
+    // resize (shrink)
+    {
+        StackVector<Element, 5> vec = create_vec();
+        reset();
+        vec.resize(1);
+    }
+    EXPECT_EQ(0, n_default_ctor);
+    EXPECT_EQ(0, n_copy_ctor);
+    EXPECT_EQ(0, n_move_ctor);
+    EXPECT_EQ(0, n_normal_ctor);
+    EXPECT_EQ(0, n_copy_assign);
+    EXPECT_EQ(0, n_move_assign);
 
     // emplace
     {
