@@ -20,11 +20,6 @@ struct ElementwiseKernelArg {
     static_assert(sizeof...(Ts) > 0, "Cannot create an elementwise kernel argument without any arrays.");
 };
 
-template <typename T>
-ElementwiseKernelArg<T> MakeElementwiseKernelArg(const Array& first) {
-    return ElementwiseKernelArg<T>{Indexer{first.shape()}, IndexableArray<T>{first}};
-}
-
 template <typename T, typename... Ts, typename... Arrays>
 ElementwiseKernelArg<T, Ts...> MakeElementwiseKernelArg(const Array& first, Arrays&&... rest) {
     return ElementwiseKernelArg<T, Ts...>{Indexer{first.shape()}, IndexableArray<T>{first}, IndexableArray<Ts>{rest}...};
