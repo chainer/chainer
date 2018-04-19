@@ -61,9 +61,6 @@ class GradientLARS(object):
                          Optimizer/UpdateRule. Valid values are 'pre'
                          (before any updates) and 'post' (after any updates).
 
-    .. versionadded:: 4.0.0
-       The *timing* parameter.
-
     """
     name = 'GradientLARS'
     call_for_each_param = True
