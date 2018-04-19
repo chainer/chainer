@@ -13,66 +13,6 @@ namespace stack_vector_detail {
 
 using size_type = size_t;
 
-template <typename BaseIterator, typename BaseContainer>
-class iterator {
-public:
-    using size_type = stack_vector_detail::size_type;
-
-    using difference_type = typename std::iterator_traits<BaseIterator>::difference_type;
-    using value_type = typename std::iterator_traits<BaseIterator>::value_type;
-    using pointer = typename std::iterator_traits<BaseIterator>::pointer;
-    using reference = typename std::iterator_traits<BaseIterator>::reference;
-    using iterator_category = typename std::iterator_traits<BaseIterator>::iterator_category;
-
-    iterator() : it_{BaseIterator{}} {}
-
-    iterator(BaseIterator it) : it_{std::move(it)} {}  // NOLINT: implicitly convertible with base iterator
-
-    // iterator to const_iterator conversion
-    template <typename OtherBaseIter>
-    iterator(const iterator<
-             OtherBaseIter,
-             std::enable_if_t<std::is_same<OtherBaseIter, typename BaseContainer::iterator>::value, BaseContainer>>& it_other)
-        : it_{it_other.base()} {}
-
-    reference operator*() const { return *it_; }
-
-    reference operator->() const { return it_; }
-
-    bool operator==(const iterator& rhs) const { return it_ == rhs.it_; }
-    bool operator!=(const iterator& rhs) const { return it_ != rhs.it_; }
-
-    bool operator<(const iterator& rhs) const { return it_ < rhs.it_; }
-    bool operator<=(const iterator& rhs) const { return it_ <= rhs.it_; }
-    bool operator>(const iterator& rhs) const { return it_ > rhs.it_; }
-    bool operator>=(const iterator& rhs) const { return it_ >= rhs.it_; }
-
-    iterator operator++() {
-        ++it_;
-        return *this;
-    }
-
-    iterator operator++(int) { return iterator{it_++}; }
-
-    iterator& operator--() {
-        --it_;
-        return *this;
-    }
-
-    iterator operator--(int) { return iterator{it_--}; }
-
-    iterator operator+(difference_type n) const { return iterator{it_ + n}; }
-
-    iterator operator-(difference_type n) const { return iterator{it_ - n}; }
-
-    difference_type operator-(const iterator& rhs) const { return it_ - rhs.it_; }
-
-    BaseIterator base() const noexcept { return it_; }
-
-private:
-    BaseIterator it_;
-};
-
 }  // namespace stack_vector_detail
 
 // Fixed-capacity vector-like container whose buffer can be allocated statically on the stack.
@@ -89,12 +29,12 @@ public:
     using value_type = T;
     using reference = T&;
     using const_reference = const T&;
-    using iterator = stack_vector_detail::iterator<typename BaseContainer::iterator, BaseContainer>;
-    using reverse_iterator = std::reverse_iterator<iterator>;
-    using const_iterator = stack_vector_detail::iterator<typename BaseContainer::const_iterator, BaseContainer>;
-    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-    using difference_type = typename iterator::difference_type;
-    using size_type = typename iterator::size_type;
+    using iterator = typename BaseContainer::iterator;
+    using reverse_iterator = typename BaseContainer::reverse_iterator;
+    using const_iterator = typename BaseContainer::const_iterator;
+    using const_reverse_iterator = typename BaseContainer::const_reverse_iterator;
+    using difference_type = typename BaseContainer::difference_type;
+    using size_type = typename BaseContainer::size_type;
 
     StackVector() {}
 
@@ -137,24 +77,28 @@ public:
     bool operator!=(const StackVector& rhs) const { return n_ != rhs.n_ || !std::equal(d_.cbegin(), d_.cbegin() + n_, rhs.d_.cbegin()); }
 
     // iterators
-    iterator begin() noexcept { return iterator{d_.begin()}; }
-    iterator end() noexcept { return iterator{d_.begin() + n_}; }
+    iterator begin() noexcept { return d_.begin(); }
+    iterator end() noexcept { return d_.begin() + n_; }
     const_iterator begin() const noexcept { return cbegin(); }
     const_iterator end() const noexcept { return cend(); }
-    const_iterator cbegin() const noexcept { return const_iterator{d_.cbegin()}; }
-    const_iterator cend() const noexcept { return const_iterator{d_.cbegin() + n_}; }
+    const_iterator cbegin() const noexcept { return d_.cbegin(); }
+    const_iterator cend() const noexcept { return d_.cbegin() + n_; }
 
     // reverse iterators
-    reverse_iterator rbegin() noexcept { return reverse_iterator{iterator{d_.begin() + n_}}; }
-    reverse_iterator rend() noexcept { return reverse_iterator{iterator{d_.begin()}}; }
+    reverse_iterator rbegin() noexcept { return d_.rbegin() + (N - n_); }
+    reverse_iterator rend() noexcept { return d_.rbegin() + N; }
     const_reverse_iterator rbegin() const noexcept { return crbegin(); }
     const_reverse_iterator rend() const noexcept { return crend(); }
-    const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator{const_iterator{d_.cbegin() + n_}}; }
-    const_reverse_iterator crend() const noexcept { return const_reverse_iterator{const_iterator{d_.cbegin()}}; }
+    const_reverse_iterator crbegin() const noexcept { return d_.crbegin() + (N - n_); }
+    const_reverse_iterator crend() const noexcept { return d_.crbegin() + N; }
 
     constexpr size_type max_size() const noexcept { return N; }
 
     size_type size() const noexcept { return n_; }
+
+    value_type* data() noexcept { return d_.data(); }
+
+    const value_type* data() const noexcept { return d_.data(); }
 
     bool empty() const noexcept { return n_ == 0; }
 
@@ -219,6 +163,18 @@ public:
     void push_back(T&& value) { emplace_back(std::forward<T>(value)); }
 
     iterator insert(const_iterator pos, const_reference value) { return emplace(pos, value); }
+
+    template <class InputIter>
+    iterator insert(const_iterator pos, InputIter first, InputIter last) {
+        size_type n_old = n_;
+        iterator it_pos0 = begin() + std::distance(cbegin(), pos);
+        iterator it_pos = it_pos0;
+        for (InputIter it = first; it != last; ++it, ++it_pos) {
+            emplace(it_pos, *it);
+        }
+        assert(n_ == n_old + std::distance(first, last));
+        return it_pos0;
+    }
 
     iterator erase(const_iterator pos) { return erase(pos, pos + 1); }
 

@@ -49,43 +49,40 @@ TEST(StackVectorTest, Operations) {
     // operator!=
     EXPECT_NE(vec2, vec);
 
-    // begin, end
-    {
-        std::vector<int> copy_vec{};
-        std::copy(vec.begin(), vec.end(), std::back_inserter(copy_vec));
-        EXPECT_EQ(std::vector<int>({4, 3, -1, 5}), copy_vec);
-    }
-
-    // cbegin, cend
     {
         const Vector& cvec = vec;
-        std::vector<int> copy_vec{};
-        std::copy(cvec.begin(), cvec.end(), std::back_inserter(copy_vec));
-        EXPECT_EQ(std::vector<int>({4, 3, -1, 5}), copy_vec);
-    }
 
-    // rbegin, rend
-    {
-        std::vector<int> copy_vec{};
-        std::copy(vec.rbegin(), vec.rend(), std::back_inserter(copy_vec));
-        EXPECT_EQ(std::vector<int>({5, -1, 3, 4}), copy_vec);
-    }
+        // begin, end
+        EXPECT_EQ(std::vector<int>({4, 3, -1, 5}), std::vector<int>({vec.begin(), vec.end()}));
+        EXPECT_EQ(std::vector<int>({4, 3, -1, 5}), std::vector<int>({cvec.begin(), cvec.end()}));
 
-    // crbegin, crend
-    {
-        const Vector& cvec = vec;
-        std::vector<int> copy_vec{};
-        std::copy(cvec.rbegin(), cvec.rend(), std::back_inserter(copy_vec));
-        EXPECT_EQ(std::vector<int>({5, -1, 3, 4}), copy_vec);
+        // cbegin, cend
+        EXPECT_EQ(std::vector<int>({4, 3, -1, 5}), std::vector<int>({vec.cbegin(), vec.cend()}));
+        EXPECT_EQ(std::vector<int>({4, 3, -1, 5}), std::vector<int>({cvec.cbegin(), cvec.cend()}));
+
+        // rbegin, rend
+        EXPECT_EQ(std::vector<int>({5, -1, 3, 4}), std::vector<int>({vec.rbegin(), vec.rend()}));
+        EXPECT_EQ(std::vector<int>({5, -1, 3, 4}), std::vector<int>({cvec.rbegin(), cvec.rend()}));
+
+        // crbegin, crend
+        EXPECT_EQ(std::vector<int>({5, -1, 3, 4}), std::vector<int>({vec.crbegin(), vec.crend()}));
+        EXPECT_EQ(std::vector<int>({5, -1, 3, 4}), std::vector<int>({cvec.crbegin(), cvec.crend()}));
     }
 
     // sort
     std::sort(vec.begin(), vec.end());
-    EXPECT_EQ(size_t{4}, vec.size());
-    EXPECT_EQ(-1, vec[0]);
-    EXPECT_EQ(3, vec[1]);
-    EXPECT_EQ(4, vec[2]);
-    EXPECT_EQ(5, vec[3]);
+    EXPECT_EQ(Vector({-1, 3, 4, 5}), vec);
+
+    // erase
+    vec.erase(vec.begin() + 1, vec.begin() + 3);
+    EXPECT_EQ(Vector({-1, 5}), vec);
+
+    // insert
+    {
+        int data[] = {6, 2};
+        vec.insert(vec.begin() + 1, data, data + 2);
+        EXPECT_EQ(Vector({-1, 6, 2, 5}), vec);
+    }
 
     // clear
     vec.clear();
