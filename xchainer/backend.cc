@@ -7,7 +7,7 @@ namespace xchainer {
 
 Backend::~Backend() = default;
 
-Backend::Backend(Context& context) : context_(context) {}
+Backend::Backend(Context& context) : context_{context} {}
 
 Device& Backend::GetDevice(int index) {
     if (index < 0) {

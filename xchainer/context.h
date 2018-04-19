@@ -57,14 +57,14 @@ inline Backend& GetBackend(const std::string& backend_name) { return GetDefaultC
 // Scope object that switches the default context by RAII.
 class ContextScope {
 public:
-    ContextScope() : orig_ctx_(internal::GetDefaultContextNoExcept()), orig_device_(internal::GetDefaultDeviceNoExcept()), exited_(false) {}
-    explicit ContextScope(Context& context) : ContextScope() { SetDefaultContext(&context); }
+    ContextScope() : orig_ctx_{internal::GetDefaultContextNoExcept()}, orig_device_{internal::GetDefaultDeviceNoExcept()}, exited_{false} {}
+    explicit ContextScope(Context& context) : ContextScope{} { SetDefaultContext(&context); }
 
     ContextScope(const ContextScope&) = delete;
     ContextScope& operator=(const ContextScope&) = delete;
     ContextScope& operator=(ContextScope&& other) = delete;
 
-    ContextScope(ContextScope&& other) : orig_ctx_(other.orig_ctx_), orig_device_(other.orig_device_), exited_(other.exited_) {
+    ContextScope(ContextScope&& other) : orig_ctx_{other.orig_ctx_}, orig_device_{other.orig_device_}, exited_{other.exited_} {
         other.exited_ = true;
     }
 

@@ -16,7 +16,7 @@ class Array;
 // Note that these member functions may be called from the framework or user code.
 class Device {
 public:
-    Device(Backend& backend, int index) : backend_(backend), index_(index) {}
+    Device(Backend& backend, int index) : backend_{backend}, index_{index} {}
     virtual ~Device() = default;
 
     // Allocates a memory chunk on this device.
@@ -157,11 +157,11 @@ void SetDefaultDevice(Device* device);
 // Scope object that switches the default device by RAII.
 class DeviceScope {
 public:
-    DeviceScope() : orig_(internal::GetDefaultDeviceNoExcept()), exited_(false) {}
-    explicit DeviceScope(Device& device) : DeviceScope() { SetDefaultDevice(&device); }
+    DeviceScope() : orig_{internal::GetDefaultDeviceNoExcept()}, exited_{false} {}
+    explicit DeviceScope(Device& device) : DeviceScope{} { SetDefaultDevice(&device); }
 
     // TODO(hvy): Maybe unnecessary.
-    explicit DeviceScope(Backend* backend, int index = 0) : DeviceScope(backend->GetDevice(index)) {}
+    explicit DeviceScope(Backend* backend, int index = 0) : DeviceScope{backend->GetDevice(index)} {}
 
     DeviceScope(const DeviceScope&) = delete;
     DeviceScope& operator=(const DeviceScope&) = delete;

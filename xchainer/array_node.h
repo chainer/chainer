@@ -12,7 +12,7 @@ namespace xchainer {
 class ArrayNode {
 public:
     ArrayNode() = default;
-    explicit ArrayNode(GraphId graph_id) : next_node_(), rank_(0), grad_(), graph_id_(graph_id) {}
+    explicit ArrayNode(GraphId graph_id) : graph_id_{std::move(graph_id)} {}
 
     const std::shared_ptr<OpNode>& next_node() { return next_node_; }
     std::shared_ptr<const OpNode> next_node() const { return next_node_; }

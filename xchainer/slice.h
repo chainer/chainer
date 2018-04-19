@@ -12,14 +12,14 @@ namespace xchainer {
 class Slice {
 public:
     Slice(nonstd::optional<int64_t> start, nonstd::optional<int64_t> stop, nonstd::optional<int64_t> step)
-        : start_(start), stop_(stop), step_(step ? *step : 1) {
+        : start_{start}, stop_{stop}, step_{step.value_or(1)} {
         if (step_ == 0) {
             throw DimensionError("Step must not be zero.");
         }
     }
     Slice() = default;
-    explicit Slice(int64_t stop) : Slice(0, stop, 1) {}
-    Slice(int64_t start, int64_t stop) : Slice(start, stop, 1) {}
+    explicit Slice(int64_t stop) : Slice{0, stop, 1} {}
+    Slice(int64_t start, int64_t stop) : Slice{start, stop, 1} {}
 
     const nonstd::optional<int64_t>& start() const { return start_; }
 
@@ -56,7 +56,7 @@ public:
 private:
     nonstd::optional<int64_t> start_;
     nonstd::optional<int64_t> stop_;
-    int64_t step_ = 1;
+    int64_t step_{1};
 };
 
 }  // namespace xchainer
