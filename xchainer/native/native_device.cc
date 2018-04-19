@@ -30,86 +30,73 @@ namespace {
 
 template <typename T>
 struct FillImpl {
-    void operator()(T& out) { out = value; }
+    void operator()(int64_t /* i */, T& out) { out = value; }
     T value;
-    int64_t i = 0;
 };
 
 template <typename T>
 struct CopyImpl {
-    void operator()(const T a, T& out) { out = a; }
-    int64_t i = 0;
+    void operator()(int64_t /* i */, T a, T& out) { out = a; }
 };
 
 template <typename T>
 struct ArangeImpl {
-    void operator()(T& out) { out = start + step * i; }
+    void operator()(int64_t i, T& out) { out = start + step * i; }
     T start;
     T step;
-    int64_t i = 0;
 };
 
 template <typename InT, typename OutT>
 struct AsTypeImpl {
-    void operator()(const InT a, OutT& out) { out = static_cast<OutT>(a); }
-    int64_t i = 0;
+    void operator()(int64_t /* i */, InT a, OutT& out) { out = static_cast<OutT>(a); }
 };
 
 template <typename T>
 struct EqualImpl {
-    void operator()(const T x1, const T x2, bool& out) { out = x1 == x2; }
-    int64_t i = 0;
+    void operator()(int64_t /* i */, T x1, T x2, bool& out) { out = x1 == x2; }
 };
 
 template <typename T>
 struct AddImpl {
-    void operator()(const T x1, const T x2, T& out) { out = x1 + x2; }
-    int64_t i = 0;
+    void operator()(int64_t /* i */, T x1, T x2, T& out) { out = x1 + x2; }
 };
 
 template <typename T>
 struct SubtractImpl {
-    void operator()(const T x1, const T x2, T& out) { out = x1 - x2; }
-    int64_t i = 0;
+    void operator()(int64_t /* i */, T x1, T x2, T& out) { out = x1 - x2; }
 };
 
 template <typename T>
 struct MultiplyImpl {
-    void operator()(const T x1, const T x2, T& out) { out = x1 * x2; }
-    int64_t i = 0;
+    void operator()(int64_t /* i */, T x1, T x2, T& out) { out = x1 * x2; }
 };
 
 template <typename T>
 struct MultiplyASImpl {
-    void operator()(const T x1, T& out) { out = x1 * x2; }
+    void operator()(int64_t /* i */, T x1, T& out) { out = x1 * x2; }
     T x2;
-    int64_t i = 0;
 };
 
 template <typename T>
 struct DivideImpl {
-    void operator()(const T lhs, const T rhs, T& out) { out = lhs / rhs; }
-    int64_t i = 0;
+    void operator()(int64_t /* i */, T lhs, T rhs, T& out) { out = lhs / rhs; }
 };
 
 template <typename T>
 struct ExpImpl {
-    void operator()(const T x, T& out) { out = std::exp(x); }
-    int64_t i = 0;
+    void operator()(int64_t /* i */, T x, T& out) { out = std::exp(x); }
 };
 
 template <typename T>
 struct LogImpl {
-    void operator()(const T x, T& out) { out = std::log(x); }
-    int64_t i = 0;
+    void operator()(int64_t /* i */, T x, T& out) { out = std::log(x); }
 };
 
 template <typename T>
 struct IfLessElseASSAImpl {
-    void operator()(const T x1, const T neg, T& out) { out = x1 < x2 ? pos : neg; }
+    void operator()(int64_t /* i */, T x1, T neg, T& out) { out = x1 < x2 ? pos : neg; }
     T x2;
     T pos;
-    int64_t i = 0;
 };
 
 }  // namespace

@@ -11,8 +11,8 @@ namespace xchainer {
 
 template <typename... Ts>
 struct ElementwiseKernelArg {
-    explicit ElementwiseKernelArg(Indexer indexer, IndexableArray<Ts>&&... iarrays)
-        : indexer{std::move(indexer)}, iarrays{std::make_tuple(iarrays...)} {}
+    explicit ElementwiseKernelArg(const Indexer& indexer, IndexableArray<Ts>&&... iarrays)
+        : indexer{indexer}, iarrays{std::make_tuple(iarrays...)} {}
 
     Indexer indexer;
     std::tuple<IndexableArray<Ts>...> iarrays;

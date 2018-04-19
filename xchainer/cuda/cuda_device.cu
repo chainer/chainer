@@ -36,86 +36,73 @@ namespace {
 
 template <typename T>
 struct FillImpl {
-    __device__ void operator()(T& out) { out = value; }
+    __device__ void operator()(int64_t /* i */, T& out) { out = value; }
     T value;
-    int64_t i = 0;
 };
 
 template <typename T>
 struct CopyImpl {
-    __device__ void operator()(const T a, T& out) { out = a; }
-    int64_t i = 0;
+    __device__ void operator()(int64_t /* i */, T a, T& out) { out = a; }
 };
 
 template <typename T>
 struct ArangeImpl {
-    __device__ void operator()(T& out) { out = start + step * i; }
+    __device__ void operator()(int64_t i, T& out) { out = start + step * i; }
     T start;
     T step;
-    int64_t i = 0;
 };
 
 template <typename InT, typename OutT>
 struct AsTypeImpl {
-    __device__ void operator()(const InT a, OutT& out) { out = static_cast<OutT>(a); }
-    int64_t i = 0;
+    __device__ void operator()(int64_t /* i */, InT a, OutT& out) { out = static_cast<OutT>(a); }
 };
 
 template <typename T>
 struct EqualImpl {
-    __device__ void operator()(const T x1, const T x2, bool& out) { out = x1 == x2; }
-    int64_t i = 0;
+    __device__ void operator()(int64_t /* i */, T x1, T x2, bool& out) { out = x1 == x2; }
 };
 
 template <typename T>
 struct AddImpl {
-    __device__ void operator()(const T x1, const T x2, T& out) { out = x1 + x2; }
-    int64_t i = 0;
+    __device__ void operator()(int64_t /* i */, T x1, T x2, T& out) { out = x1 + x2; }
 };
 
 template <typename T>
 struct SubtractImpl {
-    __device__ void operator()(const T x1, const T x2, T& out) { out = x1 - x2; }
-    int64_t i = 0;
+    __device__ void operator()(int64_t /* i */, T x1, T x2, T& out) { out = x1 - x2; }
 };
 
 template <typename T>
 struct MultiplyImpl {
-    __device__ void operator()(const T x1, const T x2, T& out) { out = x1 * x2; }
-    int64_t i = 0;
+    __device__ void operator()(int64_t /* i */, T x1, T x2, T& out) { out = x1 * x2; }
 };
 
 template <typename T>
 struct MultiplyASImpl {
-    __device__ void operator()(const T x1, T& out) { out = x1 * x2; }
+    __device__ void operator()(int64_t /* i */, T x1, T& out) { out = x1 * x2; }
     T x2;
-    int64_t i = 0;
 };
 
 template <typename T>
 struct DivideImpl {
-    __device__ void operator()(const T lhs, const T rhs, T& out) { out = lhs / rhs; }
-    int64_t i = 0;
+    __device__ void operator()(int64_t /* i */, T lhs, T rhs, T& out) { out = lhs / rhs; }
 };
 
 template <typename T>
 struct ExpImpl {
-    __device__ void operator()(const T x, T& out) { out = std::exp(x); }
-    int64_t i = 0;
+    __device__ void operator()(int64_t /* i */, T x, T& out) { out = std::exp(x); }
 };
 
 template <typename T>
 struct LogImpl {
-    __device__ void operator()(const T x, T& out) { out = std::log(x); }
-    int64_t i = 0;
+    __device__ void operator()(int64_t /* i */, T x, T& out) { out = std::log(x); }
 };
 
 template <typename T>
 struct IfLessElseASSAImpl {
-    __device__ void operator()(const T x1, const T neg, T& out) { out = x1 < x2 ? pos : neg; }
+    __device__ void operator()(int64_t /* i */, T x1, T neg, T& out) { out = x1 < x2 ? pos : neg; }
     T x2;
     T pos;
-    int64_t i = 0;
 };
 
 }  // namespace

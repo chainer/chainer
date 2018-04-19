@@ -15,11 +15,9 @@ namespace elementwise_detail {
 
 template <typename ElementwiseImpl, typename... Ts>
 __global__ void ElementwiseKernel(ElementwiseImpl impl, Indexer indexer, IndexableArray<Ts>... args) {
-    const int64_t total_size = indexer.total_size();
-    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < total_size; i += blockDim.x * gridDim.x) {
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < indexer.total_size(); i += blockDim.x * gridDim.x) {
         indexer.Set(i);
-        impl.i = i;
-        impl(args[indexer]...);
+        impl(i, args[indexer]...);
     }
 }
 
