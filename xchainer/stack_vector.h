@@ -81,6 +81,7 @@ template <typename T, stack_vector_detail::size_type N>
 class StackVector {
 private:
     static_assert(std::is_default_constructible<T>::value, "StackVector requires default constructible element type.");
+    static_assert(std::is_trivially_destructible<T>::value, "StackVector requires trivially destructible element type.");
     using BaseContainer = std::array<T, N>;
     using BaseIterator = typename BaseContainer::iterator;
 
@@ -167,10 +168,7 @@ public:
                 d_[i] = T{};  // default-construct new elements
             }
         } else {
-            // shrinking
-            for (size_type i = count; i < n_; ++i) {
-                d_[i].~T();  // destruct obsolete elements
-            }
+            // shrinking: Do nothing because T is required to be trivially destructible.
         }
         n_ = count;
     }
