@@ -36,7 +36,7 @@ struct KernelLauncher {
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-        kernel<<<grid_size, block_size>>>(impl, arg.indexer, std::get<Is>(arg.iarrays)...);
+        kernel<<<grid_size, block_size>>>(std::forward<ElementwiseImpl>(impl), arg.indexer, std::get<Is>(arg.iarrays)...);
     }
 
     ElementwiseKernelArg<Ts...>& arg;
@@ -46,8 +46,8 @@ struct KernelLauncher {
 
 template <typename ElementwiseImpl, typename... Ts>
 void Elementwise(ElementwiseKernelArg<Ts...> arg, ElementwiseImpl&& impl) {
-    auto kernel = &elementwise_detail::ElementwiseKernel<ElementwiseImpl, Ts...>;
-    elementwise_detail::KernelLauncher<Ts...>{arg}(kernel, impl);
+    elementwise_detail::KernelLauncher<Ts...>{arg}(
+            &elementwise_detail::ElementwiseKernel<ElementwiseImpl, Ts...>, std::forward<ElementwiseImpl>(impl));
 }
 
 }  // namespace cuda
