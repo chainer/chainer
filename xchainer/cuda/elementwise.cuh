@@ -21,6 +21,7 @@ __global__ void ElementwiseKernel(ElementwiseImpl impl, Indexer indexer, Indexab
     }
 }
 
+// Unpacks the argument arrays from a tuple to a parameter pack and launches a kernel. See xchainer/native/elementwise.h.
 template <typename... Ts>
 struct KernelLauncher {
     template <typename Kernel, typename ElementwiseImpl>

@@ -9,6 +9,8 @@
 
 namespace xchainer {
 
+// Holds any number of arrays in a tuple for elementwise operations and an indexer matching their shapes.
+// The tuples may be unpacked to match templetized kernels. See xchainer/native/elementwise.h.
 template <typename... Ts>
 struct ElementwiseKernelArg {
     explicit ElementwiseKernelArg(const Indexer& indexer, IndexableArray<Ts>&&... iarrays)

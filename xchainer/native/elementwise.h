@@ -19,6 +19,8 @@ void ElementwiseKernel(ElementwiseImpl&& impl, Indexer indexer, IndexableArray<T
     }
 }
 
+// A callable struct that launches a kernel given its definition, loop body and the sizeof...(Ts) argument arrays that should be passed to
+// it. When called, it first unpacks the argument arrays from a tuple to a parameter pack in order to pass them to the kernel.
 template <typename... Ts>
 struct KernelLauncher {
     template <typename Kernel, typename ElementwiseImpl>
