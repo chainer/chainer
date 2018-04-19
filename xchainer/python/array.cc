@@ -89,7 +89,7 @@ py::buffer_info MakeBufferFromArray(ArrayBody& self) {
 }  // namespace
 
 void InitXchainerArray(pybind11::module& m) {
-    py::class_<ArrayBody, ArrayBodyPtr> c{m, "Array", py::buffer_protocol()};
+    py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
     c.def(py::init([](const py::tuple& shape, py::handle dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
               return MakeArray(shape, internal::GetDtype(dtype), list, GetDevice(device_id));
           }),
@@ -152,7 +152,7 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("take",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
               if (!axis.has_value()) {
-                  throw NotImplementedError{"axis=None is not yet supported for xchainer.Array.take."};
+                  throw NotImplementedError{"axis=None is not yet supported for xchainer.ndarray.take."};
               }
               return Array{self}.Take(Array{indices}, axis.value()).move_body();
           },

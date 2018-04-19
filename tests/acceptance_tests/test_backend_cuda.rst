@@ -28,7 +28,7 @@ Transfer array onto a different device
 --------------------------------------
 
 >>> with xc.device_scope('native'):  # Allocate arrays on CPU
-...     a = xc.Array((2, 3), xc.float32, [0, 1, 2, 3, 4, 5]).require_grad()
+...     a = xc.ndarray((2, 3), xc.float32, [0, 1, 2, 3, 4, 5]).require_grad()
 >>> a.device
 native:0
 >>> ag = a.to_device('cuda')  # Transfer onto CUDA device
@@ -41,8 +41,8 @@ Backward on a graph with multiple devices
 -----------------------------------------
 
 >>> with xc.device_scope('native'):  # Allocate arrays on CPU
-...     a = xc.Array((2, 3), xc.float32, [0, 1, 2, 3, 4, 5]).require_grad()
-...     b = xc.Array((2, 3), xc.float32, [0, 1, 2, 3, 4, 5]).require_grad()
+...     a = xc.ndarray((2, 3), xc.float32, [0, 1, 2, 3, 4, 5]).require_grad()
+...     b = xc.ndarray((2, 3), xc.float32, [0, 1, 2, 3, 4, 5]).require_grad()
 ...
 >>> ag = a.to_device('cuda')  # Transfer onto CUDA device
 >>> y = ag * b  # Arithmetics between different devices is not allowed

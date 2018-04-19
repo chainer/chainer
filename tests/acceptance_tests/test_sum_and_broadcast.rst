@@ -8,7 +8,7 @@ sum
 ---
 
 >>> a_np = np.arange(30).reshape(2, 3, 5)
->>> a = xc.Array(a_np)
+>>> a = xc.ndarray(a_np)
 >>> a
 array([[[ 0,  1,  2,  3,  4],
         [ 5,  6,  7,  8,  9],
@@ -36,7 +36,7 @@ array([[[ 95],
 broadcast_to
 ------------
 
->>> a = xc.Array((3, 1), xc.int64, [1, 2, 3])
+>>> a = xc.ndarray((3, 1), xc.int64, [1, 2, 3])
 >>> a
 array([[1],
        [2],
@@ -63,8 +63,8 @@ array([[[1],
 Broadcast add/mul
 -----------------
 
->>> a = xc.Array((3,), xc.int64, [1, 2, 3])
->>> b = xc.Array((2, 3), xc.int64, [10, 20, 30, 40, 50, 60])
+>>> a = xc.ndarray((3,), xc.int64, [1, 2, 3])
+>>> b = xc.ndarray((2, 3), xc.int64, [10, 20, 30, 40, 50, 60])
 >>> a + b
 array([[11, 22, 33],
        [41, 52, 63]], shape=(2, 3), dtype=int64, device='native:0')
@@ -72,7 +72,7 @@ array([[11, 22, 33],
 array([[ 10,  40,  90],
        [ 40, 100, 180]], shape=(2, 3), dtype=int64, device='native:0')
 
->>> c = xc.Array((2, 1), xc.int64, [10, 20])
+>>> c = xc.ndarray((2, 1), xc.int64, [10, 20])
 >>> a + c
 array([[11, 12, 13],
        [21, 22, 23]], shape=(2, 3), dtype=int64, device='native:0')
@@ -84,7 +84,7 @@ Backward
 --------
 
 >>> a_np = np.arange(6, dtype=np.float32).reshape(2, 3)
->>> a = xc.Array(a_np).require_grad()
+>>> a = xc.ndarray(a_np).require_grad()
 >>> a
 array([[0., 1., 2.],
        [3., 4., 5.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
@@ -96,7 +96,7 @@ array([3., 5., 7.], shape=(3,), dtype=float32, device='native:0', graph_ids=['de
 array([[ 0.,  5., 14.],
        [ 9., 20., 35.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
 
->>> c.set_grad(xc.Array((2, 3), c.dtype, [1, 2, 3, 4, 5, 6]))
+>>> c.set_grad(xc.ndarray((2, 3), c.dtype, [1, 2, 3, 4, 5, 6]))
 >>> xc.backward(c)
 >>> a.grad
 array([[15., 32., 57.],

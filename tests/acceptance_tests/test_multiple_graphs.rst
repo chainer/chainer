@@ -6,8 +6,8 @@ Double backprop with different graphs
 
 >>> import xchainer as xc
 
->>> x = xc.Array((3,), xc.float32, [1, 2, 3]).require_grad('input')
->>> w = xc.Array((3,), xc.float32, [4, 5, 6]).require_grad('weight')
+>>> x = xc.ndarray((3,), xc.float32, [1, 2, 3]).require_grad('input')
+>>> w = xc.ndarray((3,), xc.float32, [4, 5, 6]).require_grad('weight')
 >>> y = x * w
 >>> y.is_grad_required('input')
 True
@@ -38,8 +38,8 @@ xchainer.XchainerError: Array does not belong to the graph: 'weight'.
 Double backprop with single graph
 ---------------------------------
 
->>> x = xc.Array((3,), xc.float32, [1, 2, 3]).require_grad()
->>> w = xc.Array((3,), xc.float32, [4, 5, 6]).require_grad()
+>>> x = xc.ndarray((3,), xc.float32, [1, 2, 3]).require_grad()
+>>> w = xc.ndarray((3,), xc.float32, [4, 5, 6]).require_grad()
 >>> y = x * w
 >>> y.is_grad_required()
 True

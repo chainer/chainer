@@ -7,8 +7,8 @@ Acceptance tests for elementwise operations
 Array equality
 --------------
 
->>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6])
->>> b = xc.Array((3,), xc.float32, [4, 2, 5])
+>>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6])
+>>> b = xc.ndarray((3,), xc.float32, [4, 2, 5])
 
 >>> a == b
 array([[False,  True, False],
@@ -20,7 +20,7 @@ array([[False,  True, False],
 Maximum with scalar
 -------------------
 
->>> a = xc.Array(np.arange(-3, 4, dtype=np.float32))
+>>> a = xc.ndarray(np.arange(-3, 4, dtype=np.float32))
 >>> a
 array([-3., -2., -1.,  0.,  1.,  2.,  3.], shape=(7,), dtype=float32, device='native:0')
 
@@ -33,7 +33,7 @@ array([2., 2., 2., 2., 2., 2., 3.], shape=(7,), dtype=float32, device='native:0'
 Multiply with scalar
 -------------------
 
->>> a = xc.Array(np.arange(-3, 4, dtype=np.float32))
+>>> a = xc.ndarray(np.arange(-3, 4, dtype=np.float32))
 >>> a
 array([-3., -2., -1.,  0.,  1.,  2.,  3.], shape=(7,), dtype=float32, device='native:0')
 
@@ -49,7 +49,7 @@ array([ 9.,  6.,  3., -0., -3., -6., -9.], shape=(7,), dtype=float32, device='na
 Conversion to Python scalar
 ---------------------------
 
->>> a = xc.Array((1,), xc.float32, [3.25])
+>>> a = xc.ndarray((1,), xc.float32, [3.25])
 >>> float(a)
 3.25
 >>> int(a)
@@ -61,7 +61,7 @@ True
 
 Backward
 --------
->>> x = xc.Array(np.arange(-3, 3, dtype=np.float32).reshape((2, 3))).require_grad()
+>>> x = xc.ndarray(np.arange(-3, 3, dtype=np.float32).reshape((2, 3))).require_grad()
 >>> x
 array([[-3., -2., -1.],
        [ 0.,  1.,  2.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])

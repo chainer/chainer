@@ -19,9 +19,9 @@ def _check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=xchainer.DEFAULT
     assert callable(fprop)
     assert isinstance(extra_xs, tuple)
     assert len(xs) == len(expected_gxs)
-    assert all([isinstance(a, xchainer.Array) for a in xs])
-    assert all([(isinstance(a, xchainer.Array) or a == xchainer.XchainerError) for a in expected_gxs])
-    assert all([isinstance(a, xchainer.Array) for a in extra_xs])
+    assert all([isinstance(a, xchainer.ndarray) for a in xs])
+    assert all([(isinstance(a, xchainer.ndarray) or a == xchainer.XchainerError) for a in expected_gxs])
+    assert all([isinstance(a, xchainer.ndarray) for a in extra_xs])
 
     outputs = fprop(xs, extra_xs)
     xchainer.backward(outputs, graph_id)

@@ -7,8 +7,8 @@ Acceptance tests for operations required in MNIST
 Dot
 ---
 
->>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
->>> b = xc.Array((3, 2), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> b = xc.ndarray((3, 2), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 
 >>> y = a.dot(b)
 >>> y
@@ -27,8 +27,8 @@ array([[5., 5.],
 Subtract
 --------
 
->>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
->>> b = xc.Array((1, 3), xc.float32, [2, 2, 2]).require_grad()
+>>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> b = xc.ndarray((1, 3), xc.float32, [2, 2, 2]).require_grad()
 
 >>> y = a - b
 >>> y
@@ -46,8 +46,8 @@ array([[-2., -2., -2.]], shape=(1, 3), dtype=float32, device='native:0')
 Divide
 ------
 
->>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
->>> b = xc.Array((1, 3), xc.float32, [4, 5, 6]).require_grad()
+>>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> b = xc.ndarray((1, 3), xc.float32, [4, 5, 6]).require_grad()
 
 >>> y = a / b
 >>> y
@@ -64,7 +64,7 @@ array([[-0.3125, -0.28  , -0.25  ]], shape=(1, 3), dtype=float32, device='native
 Max
 ---
 
->>> a = xc.Array((2, 3), xc.float32, [3, 2, 1, 4, 5, 6]).require_grad()
+>>> a = xc.ndarray((2, 3), xc.float32, [3, 2, 1, 4, 5, 6]).require_grad()
 
 >>> y = xc.amax(a, axis=(1,), keepdims=True)
 >>> y
@@ -79,7 +79,7 @@ array([[1., 0., 0.],
 Argmax
 ------
 
->>> a = xc.Array((2, 3), xc.float32, [3, 2, 1, 4, 5, 6])
+>>> a = xc.ndarray((2, 3), xc.float32, [3, 2, 1, 4, 5, 6])
 
 >>> y = xc.argmax(a, axis=1)
 >>> y
@@ -88,7 +88,7 @@ array([0, 2], shape=(2,), dtype=int64, device='native:0')
 Log
 ---
 
->>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 
 >>> y = xc.log(a)
 >>> y
@@ -103,7 +103,7 @@ array([[1.        , 0.5       , 0.33333334],
 Exp
 ---
 
->>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 
 >>> y = xc.exp(a)
 >>> y
@@ -119,7 +119,7 @@ array([[  2.71828175,   7.3890562 ,  20.08553696],
 Negative
 --------
 
->>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 
 >>> y = -a
 >>> y
@@ -134,7 +134,7 @@ array([[-1., -1., -1.],
 Log of Softmax
 --------------
 
->>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 
 >>> y = xc.log_softmax(a)
 >>> y
@@ -150,7 +150,7 @@ array([[0.72990829, 0.26581454, -0.99572289],
 AsType
 ------
 
->>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 
 >>> y = a.astype(xc.float32)
 >>> y is a
@@ -179,8 +179,8 @@ array([[1, 2, 3],
 Take
 ----
 
->>> a = xc.Array((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
->>> indicies = xc.Array((2,), xc.int64, [1, 2])
+>>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> indicies = xc.ndarray((2,), xc.int64, [1, 2])
 >>> y = a.take(indicies, axis=1)
 >>> y
 array([[2., 3.],

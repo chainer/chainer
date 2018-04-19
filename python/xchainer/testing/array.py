@@ -8,12 +8,12 @@ import xchainer
 def _check_xchainer_array(x):
     # Checks basic conditions that are assumed to hold true for any given xChainer array passed to assert_array_close and
     # assert_array_equal.
-    assert isinstance(x, xchainer.Array)
+    assert isinstance(x, xchainer.ndarray)
     assert not x.is_grad_required()
 
 
 def _as_numpy(x):
-    if isinstance(x, xchainer.Array):
+    if isinstance(x, xchainer.ndarray):
         # TODO(hvy): Use a function that converts xChainer arrays to NumPy arrays.
         return x.to_device('native:0')
     assert isinstance(x, numpy.ndarray) or numpy.isscalar(x)
@@ -25,8 +25,8 @@ def _preprocess_input(a):
     if isinstance(a, xchainer.Scalar):
         a = a.tolist()
 
-    # Check conditions for xchainer.Array
-    if isinstance(a, xchainer.Array):
+    # Check conditions for xchainer.ndarray
+    if isinstance(a, xchainer.ndarray):
         _check_xchainer_array(a)
 
     # Convert to something NumPy can handle
@@ -38,8 +38,8 @@ def assert_allclose(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose
     """Raises an AssertionError if two array_like objects are not equal up to a tolerance.
 
     Args:
-         x(numpy.ndarray or xchainer.Array): The actual object to check.
-         y(numpy.ndarray or xchainer.Array): The desired, expected object.
+         x(numpy.ndarray or xchainer.ndarray): The actual object to check.
+         y(numpy.ndarray or xchainer.ndarray): The desired, expected object.
          rtol(float): Relative tolerance.
          atol(float): Absolute tolerance.
          equal_nan(bool): Allow NaN values if True. Otherwise, fail the assertion if any NaN is found.
@@ -61,8 +61,8 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
     """Raises an AssertionError if two array_like objects are not equal.
 
     Args:
-         x(numpy.ndarray or xchainer.Array): The actual object to check.
-         y(numpy.ndarray or xchainer.Array): The desired, expected object.
+         x(numpy.ndarray or xchainer.ndarray): The actual object to check.
+         y(numpy.ndarray or xchainer.ndarray): The desired, expected object.
          err_msg(str): The error message to be printed in case of failure.
          verbose(bool): If ``True``, the conflicting values
              are appended to the error message.
