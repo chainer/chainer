@@ -87,7 +87,7 @@ class BatchNormalization(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gamma, beta = inputs
 
-        if x.shape[0] == 1:
+        if x.shape[0] == 1 and len(x.shape) == 2:
             warnings.warn(
                 'A batch with no more than one sample has been given'
                 ' to F.batch_normalization. F.batch_normalization'
