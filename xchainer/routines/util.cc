@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "xchainer/error.h"
+#include "xchainer/ndim_vector.h"
 
 namespace xchainer {
 namespace internal {
@@ -23,8 +24,8 @@ int8_t NormalizeAxis(int8_t axis, int8_t ndim) {
     return axis;
 }
 
-std::vector<int8_t> GetSortedAxes(const std::vector<int8_t>& axis, int8_t ndim) {
-    std::vector<int8_t> sorted_axis = axis;
+NdimVector<int8_t> GetSortedAxes(const NdimVector<int8_t>& axis, int8_t ndim) {
+    NdimVector<int8_t> sorted_axis = axis;
 
     for (auto& a : sorted_axis) {
         a = NormalizeAxis(a, ndim);
@@ -41,12 +42,12 @@ std::vector<int8_t> GetSortedAxes(const std::vector<int8_t>& axis, int8_t ndim) 
     return sorted_axis;
 }
 
-std::vector<int8_t> GetSortedAxesOrAll(const nonstd::optional<std::vector<int8_t>>& axis, int8_t ndim) {
+NdimVector<int8_t> GetSortedAxesOrAll(const nonstd::optional<NdimVector<int8_t>>& axis, int8_t ndim) {
     if (axis.has_value()) {
         return GetSortedAxes(*axis, ndim);
     }
     // Fill with all axes
-    std::vector<int8_t> sorted_axis;
+    NdimVector<int8_t> sorted_axis{};
     sorted_axis.resize(ndim);
     std::iota(sorted_axis.begin(), sorted_axis.end(), int8_t{0});
     return sorted_axis;

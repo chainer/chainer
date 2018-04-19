@@ -5,9 +5,9 @@
 #include <functional>
 #include <numeric>
 #include <string>
-#include <vector>
 
 #include "xchainer/axis.h"
+#include "xchainer/ndim_vector.h"
 #include "xchainer/strides.h"
 
 namespace xchainer {
@@ -39,8 +39,7 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
     }
     assert(shape0.size() >= shape1.size());
 
-    std::vector<int64_t> new_dims;
-    new_dims.reserve(shape0.size());
+    NdimVector<int64_t> new_dims{};
 
     // If shape0 is longer than shape1, they are aligned at the ending position and shape0_mid is aligned to shape1.begin().
     auto shape0_mid = shape0.begin() + (shape0.size() - shape1.size());
@@ -61,17 +60,16 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
     return Shape{new_dims.begin(), new_dims.end()};
 }
 
-bool IsValidReductionShape(const Shape& in_shape, const std::vector<int8_t>& axis, const Shape& out_shape, bool allow_keepdims) {
+bool IsValidReductionShape(const Shape& in_shape, const NdimVector<int8_t>& axis, const Shape& out_shape, bool allow_keepdims) {
     return out_shape.ndim() == in_shape.ndim() - static_cast<int64_t>(axis.size()) ||
            (allow_keepdims && out_shape.ndim() == in_shape.ndim());
 }
 
-Shape TransposeShape(const Shape& shape, const std::vector<int8_t>& axes) {
+Shape TransposeShape(const Shape& shape, const NdimVector<int8_t>& axes) {
     assert(IsAxesPermutation(axes, shape.ndim()));
-    std::vector<int64_t> new_shape;
-    new_shape.reserve(shape.ndim());
+    NdimVector<int64_t> new_shape{};
     for (int8_t axis : axes) {
-        new_shape.push_back(shape[axis]);
+        new_shape.emplace_back(shape[axis]);
     }
     return Shape{new_shape.begin(), new_shape.end()};
 }

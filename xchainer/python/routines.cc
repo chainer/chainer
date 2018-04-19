@@ -12,6 +12,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/ndim_vector.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
 #include "xchainer/routines/linalg.h"
@@ -289,11 +290,13 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("a"),
           py::arg("newshape"));
     m.def("squeeze",
-          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis) { return Squeeze(Array{a}, axis).move_body(); },
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis) {
+              return Squeeze(Array{a}, ToNdimVector(axis)).move_body();
+          },
           py::arg("a"),
           py::arg("axis") = nullptr);
     m.def("squeeze",
-          [](const ArrayBodyPtr& a, int8_t axis) { return Squeeze(Array{a}, std::vector<int8_t>{axis}).move_body(); },
+          [](const ArrayBodyPtr& a, int8_t axis) { return Squeeze(Array{a}, NdimVector<int8_t>{axis}).move_body(); },
           py::arg("a"),
           py::arg("axis"));
     m.def("broadcast_to",
@@ -326,13 +329,13 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("x1"),
           py::arg("x2"));
     m.def("sum",
-          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return Sum(Array{a}, std::vector<int8_t>{axis}, keepdims).move_body(); },
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return Sum(Array{a}, NdimVector<int8_t>{axis}, keepdims).move_body(); },
           py::arg("a"),
           py::arg("axis"),
           py::arg("keepdims") = false);
     m.def("sum",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-              return Sum(Array{a}, axis, keepdims).move_body();
+              return Sum(Array{a}, ToNdimVector(axis), keepdims).move_body();
           },
           py::arg("a"),
           py::arg("axis") = nullptr,
@@ -343,24 +346,26 @@ void InitXchainerRoutines(pybind11::module& m) {
     m.def("log", [](const ArrayBodyPtr& x) { return Log(Array{x}).move_body(); }, py::arg("x"));
     m.def("logsumexp",
           [](const ArrayBodyPtr& x, int8_t axis, bool keepdims) {
-              return LogSumExp(Array{x}, std::vector<int8_t>{axis}, keepdims).move_body();
+              return LogSumExp(Array{x}, NdimVector<int8_t>{axis}, keepdims).move_body();
           },
           py::arg("x"),
           py::arg("axis"),
           py::arg("keepdims") = false);
     m.def("logsumexp",
           [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-              return LogSumExp(Array{x}, axis, keepdims).move_body();
+              return LogSumExp(Array{x}, ToNdimVector(axis), keepdims).move_body();
           },
           py::arg("x"),
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     m.def("log_softmax",
-          [](const ArrayBodyPtr& x, int8_t axis) { return LogSoftmax(Array{x}, std::vector<int8_t>{axis}).move_body(); },
+          [](const ArrayBodyPtr& x, int8_t axis) { return LogSoftmax(Array{x}, NdimVector<int8_t>{axis}).move_body(); },
           py::arg("x"),
           py::arg("axis"));
     m.def("log_softmax",
-          [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis) { return LogSoftmax(Array{x}, axis).move_body(); },
+          [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis) {
+              return LogSoftmax(Array{x}, ToNdimVector(axis)).move_body();
+          },
           py::arg("x"),
           py::arg("axis") = nullptr);
 
@@ -372,13 +377,13 @@ void InitXchainerRoutines(pybind11::module& m) {
 
     // statistics routines
     m.def("amax",
-          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return AMax(Array{a}, std::vector<int8_t>{axis}, keepdims).move_body(); },
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return AMax(Array{a}, NdimVector<int8_t>{axis}, keepdims).move_body(); },
           py::arg("a"),
           py::arg("axis"),
           py::arg("keepdims") = false);
     m.def("amax",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-              return AMax(Array{a}, axis, keepdims).move_body();
+              return AMax(Array{a}, ToNdimVector(axis), keepdims).move_body();
           },
           py::arg("a"),
           py::arg("axis") = nullptr,

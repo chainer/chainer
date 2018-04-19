@@ -1,11 +1,11 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
 
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/ndim_vector.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -27,7 +27,7 @@ Array Reshape(const Array& a, const Shape& newshape);
 //
 // If no axes are specified, all axes of unit-lengths are removed.
 // If no axes can be removed, an array with aliased data is returned.
-Array Squeeze(const Array& a, const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt);
+Array Squeeze(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis = nonstd::nullopt);
 
 // Broadcasts the array to the specified shape.
 // Returned array is always a view to this array.

@@ -1,12 +1,13 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
+
+#include "xchainer/ndim_vector.h"
 
 namespace xchainer {
 namespace internal {
 
-bool IsAxesPermutation(const std::vector<int8_t>& axes, int8_t ndim);
+bool IsAxesPermutation(const NdimVector<int8_t>& axes, int8_t ndim);
 
 }  // namespace internal
 }  // namespace xchainer

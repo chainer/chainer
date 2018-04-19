@@ -3,9 +3,9 @@
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "xchainer/backend.h"
+#include "xchainer/ndim_vector.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
@@ -57,7 +57,7 @@ public:
 
     virtual void Arange(Scalar start, Scalar step, const Array& out) = 0;
 
-    virtual void ArgMax(const Array& a, const std::vector<int8_t>& axis, const Array& out) = 0;
+    virtual void ArgMax(const Array& a, const NdimVector<int8_t>& axis, const Array& out) = 0;
 
     // Calculate the sum of an array.
     // It will be summed over the specified axes.
@@ -66,11 +66,11 @@ public:
     // - it is sorted, and
     // - it has no duplicated values.
     // Otherwise, the behavior is undefined.
-    virtual void Sum(const Array& a, const std::vector<int8_t>& axis, const Array& out) = 0;
+    virtual void Sum(const Array& a, const NdimVector<int8_t>& axis, const Array& out) = 0;
 
     // Calculates the maximum along specified axes.
     // See Sum() for the explanation of arguments.
-    virtual void AMax(const Array& src, const std::vector<int8_t>& axis, const Array& out) = 0;
+    virtual void AMax(const Array& src, const NdimVector<int8_t>& axis, const Array& out) = 0;
 
     // Copies the elements from one array to the other.
     //

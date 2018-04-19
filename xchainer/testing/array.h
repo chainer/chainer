@@ -12,6 +12,7 @@
 #include "xchainer/array.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/ndim_vector.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
@@ -51,7 +52,7 @@ public:
             if (total_size > 0) {
                 // Copy the data to buffer, respecting strides
                 auto* raw_ptr = ptr.get();
-                std::vector<int64_t> counter(shape.begin(), shape.end());
+                NdimVector<int64_t> counter{shape.begin(), shape.end()};
                 for (const T& value : data) {
                     // Copy a single value
                     assert((raw_ptr - ptr.get()) < static_cast<ptrdiff_t>(total_bytes));
@@ -100,10 +101,10 @@ public:
         return WithData<T>(data.begin(), data.end());
     }
 
-    ArrayBuilder& WithPadding(std::vector<int64_t> padding) {
+    ArrayBuilder& WithPadding(const NdimVector<int64_t>& padding) {
         assert(padding_.empty());
         assert(padding.size() == shape_.size());
-        padding_ = std::move(padding);
+        padding_ = padding;
         return *this;
     }
 
@@ -126,15 +127,14 @@ public:
 private:
     template <typename T>
     Strides GetStrides() const {
-        std::vector<int64_t> padding = padding_;
+        NdimVector<int64_t> padding = padding_;
         if (padding.empty()) {
             std::fill_n(std::back_inserter(padding), shape_.size(), int64_t{0});
         }
 
         // Create strides with extra space specified by `padding`.
         assert(padding.size() == shape_.size());
-        std::vector<int64_t> rev_strides;
-        rev_strides.reserve(shape_.size());
+        NdimVector<int64_t> rev_strides{};
         int64_t st = sizeof(T);
         for (int8_t i = shape_.ndim() - 1; i >= 0; --i) {
             st += sizeof(T) * padding[i];  // paddings are multiples of the item-size.
@@ -150,7 +150,7 @@ private:
 
     // Padding items (multiplied by sizeof(T) during construction) to each dimension.
     // TODO(niboshi): Support negative strides
-    std::vector<int64_t> padding_;
+    NdimVector<int64_t> padding_;
 
     // Using std::function to type-erase data type T
     std::function<Array(const ArrayBuilder&)> create_array_;

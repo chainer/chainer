@@ -102,7 +102,7 @@ public:
     //
     // If no axes are specified, all axes of unit-lengths are removed.
     // If no axes can be removed, an array with aliased data is returned.
-    Array Squeeze(const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt) const;
+    Array Squeeze(const nonstd::optional<NdimVector<int8_t>>& axis = nonstd::nullopt) const;
 
     // Broadcasts the array to the specified shape.
     // Returned array is always a view to this array.
@@ -115,19 +115,19 @@ public:
     // If `axis` is set, it will be summed over the specified axes.
     // Otherwise, it will be summed over all the existing axes.
     // Note: When implementing xchainer::Sum(), be careful of the semantics of the default value of `keepdims`. See NumPy documentation.
-    Array Sum(const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false) const;
+    Array Sum(const nonstd::optional<NdimVector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false) const;
 
     // Returns the maximum value of the array.
     // If `axis` is set, the maximum value is chosen along the specified axes.
     // Otherwise, all the elements are searched at once.
-    Array Max(const nonstd::optional<std::vector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false) const;
+    Array Max(const nonstd::optional<NdimVector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false) const;
 
     // Returns a dot product of the array with another one.
     Array Dot(const Array& b) const;
 
     // Takes elements specified by indices from the array.
     //
-    // TODO(niboshi): Support Scalar and std::vector<int64_t> as indices.
+    // TODO(niboshi): Support Scalar and NdimVector<int64_t> as indices.
     // TODO(niboshi): Support axis=None behavior in NumPy.
     // TODO(niboshi): Support indices dtype other than int64.
     Array Take(const Array& indices, int8_t axis) const;

@@ -26,11 +26,13 @@ install(FILES
     indexable_array.h
     indexer.h
     macro.h
+    ndim_vector.h
     numeric_limits.h
     reduction_kernel_arg.h
     scalar.h
     shape.h
     slice.h
+    stack_vector.h
     strides.h
     xchainer.h
     DESTINATION include/xchainer
@@ -88,6 +90,7 @@ if(ENABLE_TEST)
         numeric_test.cc
         scalar_test.cc
         shape_test.cc
+        stack_vector_test.cc
         strides_test.cc
         )
     if(${CUDA_FOUND})

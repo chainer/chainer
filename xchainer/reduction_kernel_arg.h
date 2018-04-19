@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/macro.h"
+#include "xchainer/ndim_vector.h"
 
 namespace xchainer {
 
@@ -35,15 +35,15 @@ struct ReductionKernelArg {
 };
 
 template <typename In, typename Out>
-ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const std::vector<int8_t>& axis, const Array& out) {
+ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const NdimVector<int8_t>& axis, const Array& out) {
     // True if some axes are reduced but kept in output as 1-dim axes.
     // Corresponding to keepdim argument in Array::Sum().
     bool has_kept_dims = out.ndim() + static_cast<int64_t>(axis.size()) != in.ndim();
 
     // Prepare axis mappings
-    std::vector<int64_t> reduce_shape;  // Reduction dimensions
-    std::vector<int8_t> out_axis_map;   // Mapping from effective output indices to actual output indices
-    std::vector<int64_t> new_out_shape;
+    NdimVector<int64_t> reduce_shape{};  // Reduction dimensions
+    NdimVector<int8_t> out_axis_map{};   // Mapping from effective output indices to actual output indices
+    NdimVector<int64_t> new_out_shape{};
     // (Here "effective output indices" means source indices minus reduction indices.)
 
     // Example (in the case of has_kept_dims=false):
@@ -61,9 +61,6 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const std::v
     // - out_axis_map:     (0, 2, 4)
     // - new_out_shape:    (12, 14, 16)
 
-    reduce_shape.reserve(axis.size());
-    out_axis_map.reserve(out.shape().size());
-    new_out_shape.reserve(out.shape().size());
     {
         size_t i_axis = 0;
         size_t i_out_axis = 0;
@@ -72,7 +69,7 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const std::v
                 // i is to be reduced
                 int64_t in_dim = in.shape()[i];
                 if (in_dim != 1) {
-                    reduce_shape.push_back(in_dim);
+                    reduce_shape.emplace_back(in_dim);
                 }
                 ++i_axis;
                 if (has_kept_dims) {
@@ -82,8 +79,8 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const std::v
                 // i is not to be reduced
                 int64_t out_dim = out.shape()[i_out_axis];
                 if (out_dim != 1) {
-                    out_axis_map.push_back(static_cast<int8_t>(i_out_axis));
-                    new_out_shape.push_back(out_dim);
+                    out_axis_map.emplace_back(static_cast<int8_t>(i_out_axis));
+                    new_out_shape.emplace_back(out_dim);
                 }
                 ++i_out_axis;
             }
@@ -97,8 +94,7 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const std::v
     assert(out_axis_map.size() == new_out_shape.size());
 
     // Calculate source axis permutation
-    std::vector<int8_t> axis_permutes;
-    axis_permutes.reserve(in.shape().size());
+    NdimVector<int8_t> axis_permutes{};
     {
         size_t i_reduce = 0;
         for (int8_t i = 0; i < in.ndim(); ++i) {
@@ -106,23 +102,22 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const std::v
                 ++i_reduce;
             } else {
                 if (in.shape()[i] != 1) {
-                    axis_permutes.push_back(i);
+                    axis_permutes.emplace_back(i);
                 }
             }
         }
     }
     for (int8_t i : axis) {
         if (in.shape()[i] != 1) {
-            axis_permutes.push_back(i);
+            axis_permutes.emplace_back(i);
         }
     }
     assert(axis_permutes.size() <= in.shape().size());  // Inequality because 1-dim axes are eliminated.
 
     // Calculate new source shape
-    std::vector<int64_t> new_in_shape;
-    new_in_shape.reserve(axis_permutes.size());
+    NdimVector<int64_t> new_in_shape{};
     for (int8_t i : axis_permutes) {
-        new_in_shape.push_back(in.shape()[i]);
+        new_in_shape.emplace_back(in.shape()[i]);
     }
 
     // 1-dim axes must be eliminated

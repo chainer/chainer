@@ -7,12 +7,12 @@
 #include <iterator>
 #include <sstream>
 #include <string>
-#include <vector>
 
 #include <gsl/gsl>
 
 #include "xchainer/constant.h"
 #include "xchainer/error.h"
+#include "xchainer/ndim_vector.h"
 
 namespace xchainer {
 
@@ -95,9 +95,9 @@ bool IsContiguous(const Shape& shape, const Strides& strides, int64_t element_by
 
 Shape BroadcastShapes(const Shape& shape0, const Shape& shape1);
 
-bool IsValidReductionShape(const Shape& in_shape, const std::vector<int8_t>& axis, const Shape& out_shape, bool allow_keepdims);
+bool IsValidReductionShape(const Shape& in_shape, const NdimVector<int8_t>& axis, const Shape& out_shape, bool allow_keepdims);
 
-Shape TransposeShape(const Shape& shape, const std::vector<int8_t>& axes);
+Shape TransposeShape(const Shape& shape, const NdimVector<int8_t>& axes);
 
 }  // namespace internal
 

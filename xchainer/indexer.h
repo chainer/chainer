@@ -4,10 +4,10 @@
 #include <cassert>
 #include <cstdint>
 #include <ostream>
-#include <vector>
 
 #include "xchainer/constant.h"
 #include "xchainer/macro.h"
+#include "xchainer/ndim_vector.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -81,7 +81,7 @@ private:
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Indexer& indexer) {
-    std::vector<int64_t> index_vec(indexer.index(), indexer.index() + indexer.ndim());
+    NdimVector<int64_t> index_vec{indexer.index(), indexer.index() + indexer.ndim()};
     Shape shape{indexer.shape(), indexer.shape() + indexer.ndim()};
     Shape index{indexer.index(), indexer.index() + indexer.ndim()};
     return os << "Indexer(shape=" << shape << " index=" << index << ")";
