@@ -26,6 +26,93 @@
 
 namespace xchainer {
 namespace native {
+namespace {
+
+template <typename T>
+struct FillImpl {
+    void operator()(T& out) { out = value; }
+    T value;
+    int64_t i = 0;
+};
+
+template <typename T>
+struct CopyImpl {
+    void operator()(const T a, T& out) { out = a; }
+    int64_t i = 0;
+};
+
+template <typename T>
+struct ArangeImpl {
+    void operator()(T& out) { out = start + step * i; }
+    T start;
+    T step;
+    int64_t i = 0;
+};
+
+template <typename InT, typename OutT>
+struct AsTypeImpl {
+    void operator()(const InT a, OutT& out) { out = static_cast<OutT>(a); }
+    int64_t i = 0;
+};
+
+template <typename T>
+struct EqualImpl {
+    void operator()(const T x1, const T x2, bool& out) { out = x1 == x2; }
+    int64_t i = 0;
+};
+
+template <typename T>
+struct AddImpl {
+    void operator()(const T x1, const T x2, T& out) { out = x1 + x2; }
+    int64_t i = 0;
+};
+
+template <typename T>
+struct SubtractImpl {
+    void operator()(const T x1, const T x2, T& out) { out = x1 - x2; }
+    int64_t i = 0;
+};
+
+template <typename T>
+struct MultiplyImpl {
+    void operator()(const T x1, const T x2, T& out) { out = x1 * x2; }
+    int64_t i = 0;
+};
+
+template <typename T>
+struct MultiplyASImpl {
+    void operator()(const T x1, T& out) { out = x1 * x2; }
+    T x2;
+    int64_t i = 0;
+};
+
+template <typename T>
+struct DivideImpl {
+    void operator()(const T lhs, const T rhs, T& out) { out = lhs / rhs; }
+    int64_t i = 0;
+};
+
+template <typename T>
+struct ExpImpl {
+    void operator()(const T x, T& out) { out = std::exp(x); }
+    int64_t i = 0;
+};
+
+template <typename T>
+struct LogImpl {
+    void operator()(const T x, T& out) { out = std::log(x); }
+    int64_t i = 0;
+};
+
+template <typename T>
+struct IfLessElseASSAImpl {
+    void operator()(const T x1, const T neg, T& out) { out = x1 < x2 ? pos : neg; }
+    T x2;
+    T pos;
+    int64_t i = 0;
+};
+
+}  // namespace
 
 std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) { return std::make_unique<uint8_t[]>(bytesize); }
 
@@ -59,30 +146,14 @@ std::shared_ptr<void> NativeDevice::FromHostMemory(const std::shared_ptr<void>& 
 void NativeDevice::Fill(const Array& out, Scalar value) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        T c_value{value};
-
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = c_value;
-        }
+        Elementwise(MakeElementwiseKernelArg<T>(out), FillImpl<T>{static_cast<T>(value)});
     });
 }
 
 void NativeDevice::Arange(Scalar start, Scalar step, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        T start_value{start};
-        T step_value{step};
-
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = start_value;
-            start_value += step_value;
-        }
+        Elementwise(MakeElementwiseKernelArg<T>(out), ArangeImpl<T>{static_cast<T>(start), static_cast<T>(step)});
     });
 }
 
@@ -152,50 +223,25 @@ void NativeDevice::Copy(const Array& a, const Array& out) {
     CheckDevicesCompatible(a, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> a_iarray{a};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = a_iarray[indexer];
-        }
+        Elementwise(MakeElementwiseKernelArg<T, T>(a, out), CopyImpl<T>{});
     });
 }
 
 void NativeDevice::AsType(const Array& a, const Array& out) {
     CheckDevicesCompatible(a, out);
-
     auto do_astype = [&](auto in_pt, auto out_pt) {
         using InT = typename decltype(in_pt)::type;
         using OutT = typename decltype(out_pt)::type;
-        IndexableArray<const InT> a_iarray{a};
-        IndexableArray<OutT> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = static_cast<OutT>(a_iarray[indexer]);
-        }
+        Elementwise(MakeElementwiseKernelArg<InT, OutT>(a, out), AsTypeImpl<InT, OutT>{});
     };
-
     VisitDtype(out.dtype(), [&](auto out_pt) { VisitDtype(a.dtype(), do_astype, out_pt); });
 }
-
-namespace {
-
-template <typename T>
-struct EqualImpl {
-    void operator()(bool& out, T x1, T x2) { out = x1 == x2; }
-};
-
-}  // namespace
 
 void NativeDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<bool, T, T>(out, x1, x2), EqualImpl<T>{});
+        Elementwise(MakeElementwiseKernelArg<const T, const T, bool>(x1, x2, out), EqualImpl<T>{});
     });
 }
 
@@ -203,15 +249,7 @@ void NativeDevice::Add(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> x1_iarray{x1};
-        IndexableArray<const T> x2_iarray{x2};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = x1_iarray[indexer] + x2_iarray[indexer];
-        }
+        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), AddImpl<T>{});
     });
 }
 
@@ -219,15 +257,7 @@ void NativeDevice::Subtract(const Array& x1, const Array& x2, const Array& out) 
     CheckDevicesCompatible(x1, x2, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> x1_iarray{x1};
-        IndexableArray<const T> x2_iarray{x2};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = x1_iarray[indexer] - x2_iarray[indexer];
-        }
+        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), SubtractImpl<T>{});
     });
 }
 
@@ -235,15 +265,7 @@ void NativeDevice::Multiply(const Array& x1, const Array& x2, const Array& out) 
     CheckDevicesCompatible(x1, x2, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> x1_iarray{x1};
-        IndexableArray<const T> x2_iarray{x2};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = x1_iarray[indexer] * x2_iarray[indexer];
-        }
+        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), MultiplyImpl<T>{});
     });
 }
 
@@ -251,51 +273,24 @@ void NativeDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
     CheckDevicesCompatible(x1, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> x1_iarray{x1};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = x1_iarray[indexer] * static_cast<T>(x2);
-        }
+        Elementwise(MakeElementwiseKernelArg<const T, T>(x1, out), MultiplyASImpl<T>{static_cast<T>(x2)});
     });
 }
 
 void NativeDevice::Divide(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
-    VisitDtype(lhs.dtype(), [&](auto pt) {
+    VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> lhs_iarray{lhs};
-        IndexableArray<const T> rhs_iarray{rhs};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{lhs.shape()};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = lhs_iarray[indexer] / rhs_iarray[indexer];
-        }
+        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(lhs, rhs, out), DivideImpl<T>{});
     });
 }
 
-namespace {
-
-template <typename T>
-struct IfLessElseASSAImpl {
-    void operator()(T& out, const T x1, const T neg) { out = x1 < x2 ? pos : neg; }
-
-    T x2;
-    T pos;
-};
-
-}  // namespace
-
 void NativeDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
-    VisitDtype(x1.dtype(), [&](auto pt) {
+    VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise(
-                MakeElementwiseKernelArg<T, const T, const T>(out, x1, neg),
+                MakeElementwiseKernelArg<const T, const T, T>(x1, neg, out),
                 IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)});
     });
 }
@@ -336,35 +331,19 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     });
 }
 
-namespace {
-
-template <typename T>
-struct ExpImpl {
-    void operator()(T& out, T x) { out = std::exp(x); }
-};
-
-}  // namespace
-
 void NativeDevice::Exp(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
-    VisitDtype(out.dtype(), [&](auto pt) {
+    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T, T>(out, x), ExpImpl<T>{});
+        Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), ExpImpl<T>{});
     });
 }
 
 void NativeDevice::Log(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
-    VisitDtype(out.dtype(), [&](auto pt) {
+    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> x_iarray{x};
-        IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
-
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = std::log(x_iarray[indexer]);
-        }
+        Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), LogImpl<T>{});
     });
 }
 

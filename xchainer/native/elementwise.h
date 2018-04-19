@@ -12,11 +12,12 @@ namespace native {
 namespace elementwise_detail {
 
 template <typename ElementwiseImpl, typename... Ts>
-void ElementwiseKernel(ElementwiseImpl&& loop_body, Indexer indexer, IndexableArray<Ts>... iarrays) {
+void ElementwiseKernel(ElementwiseImpl&& impl, Indexer indexer, IndexableArray<Ts>... iarrays) {
     const int64_t total_size = indexer.total_size();
     for (int64_t i = 0; i < total_size; ++i) {
         indexer.Set(i);
-        loop_body(iarrays[indexer]...);
+        impl.i = i;
+        impl(iarrays[indexer]...);
     }
 }
 
