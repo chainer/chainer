@@ -80,13 +80,13 @@ private:
 template <typename T, stack_vector_detail::size_type N>
 class StackVector {
 private:
-    static_assert(std::is_default_constructible<T>::value, "");
+    static_assert(std::is_default_constructible<T>::value, "StackVector requires default constructible element type.");
     using BaseContainer = std::array<T, N>;
     using BaseIterator = typename BaseContainer::iterator;
 
 public:
     using value_type = T;
-    using reference = value_type&;
+    using reference = T&;
     using const_reference = const T&;
     using iterator = stack_vector_detail::iterator<typename BaseContainer::iterator, BaseContainer>;
     using reverse_iterator = std::reverse_iterator<iterator>;
