@@ -113,7 +113,6 @@ TEST(ShapeTest, CheckEqual) {
 TEST(ShapeTest, Iterator) {
     const Shape shape = {2, 3, 4};
     CheckSpanEqual({2, 3, 4}, gsl::make_span(shape.begin(), shape.end()));
-    CheckSpanEqual({2, 3, 4}, gsl::make_span(shape));
     CheckSpanEqual({4, 3, 2}, gsl::make_span(std::vector<int64_t>{shape.rbegin(), shape.rend()}));
 }
 
@@ -130,6 +129,11 @@ TEST(ShapeTest, ToString) {
         const Shape shape = {2, 3, 4};
         EXPECT_EQ(shape.ToString(), "(2, 3, 4)");
     }
+}
+
+TEST(StridesTest, SpanFromShape) {
+    const Shape shape = {2, 3, 4};
+    CheckSpanEqual({2, 3, 4}, gsl::make_span(shape));
 }
 
 TEST(ShapeTest, IsContiguous) {
