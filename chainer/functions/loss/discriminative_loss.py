@@ -74,7 +74,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         return F.sum(F.absolute(x), axis=axis)
 
     def _l2_norm(self, x, axis):
-        """ Function to calculate L2 Norm by given axes
+        """Function to calculate L2 Norm by given axes
 
         Args:
             x (nd-array): Input matrix to calculate norm
@@ -285,11 +285,11 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         # Calculate cluster means
         c_means = self._means(prediction, labels, n_objects,
-                             self.max_n_clusters, gt_idx)
+                              self.max_n_clusters, gt_idx)
 
         # Calculate losses
         l_var = self._variance_term(prediction, labels, c_means, self.delta_v,
-                                   gt_idx)
+                                    gt_idx)
         l_dist = self._distance_term(c_means, self.delta_d, n_objects)
         l_reg = self._regularization_term(c_means, n_objects)
 
