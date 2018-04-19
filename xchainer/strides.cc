@@ -11,10 +11,13 @@
 
 namespace xchainer {
 
-Strides::Strides(const Shape& shape, int64_t element_size) : ndim_(shape.ndim()) {
+Strides::Strides(const Shape& shape, int64_t element_size) {
     int64_t stride = element_size;
-    for (int i = ndim_ - 1; i >= 0; --i) {
-        gsl::at(dims_, i) = stride;
+    int8_t ndim = shape.ndim();
+    resize(ndim);
+    auto it = rbegin();
+    for (int8_t i = ndim - 1; i >= 0; --i, ++it) {
+        *it = stride;
         stride *= shape[i];
     }
 }
