@@ -953,6 +953,10 @@ class ChainList(Link, collections.MutableSequence):
     the list. It is useful to write a chain with arbitrary number of child
     links, e.g. an arbitrarily deep multi-layer perceptron.
 
+    This class inherits the methods `index`, `count`, `append`, `reverse`,
+    `extend`, `pop`, `remove` from `collections.abi.MutableSequence` and
+    can be accessed and assigned by index or slice.
+
     Args:
         links: Initial child links.
 
