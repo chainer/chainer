@@ -3,7 +3,7 @@ import chainer.functions as F
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
-    """ Discriminative margin based clustering loss function
+    """Discriminative margin based clustering loss function
 
     This is the implementation of following paper:
     https://arxiv.org/pdf/1802.05591.pdf
@@ -62,7 +62,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             raise Exception("Norm can only be 1 or 2")
 
     def l1_norm(self, x, axis):
-        """ Function to calculate L1 Norm by given axes
+        """Function to calculate L1 Norm by given axes
 
         Args:
             x (nd-array): Input matrix to calculate norm
@@ -86,7 +86,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         return F.sum(x ** 2, axis=axis)
 
     def variance_term(self, pred, gt, means, delta_v, gt_idx):
-        """ Function to calculate variance term
+        """Function to calculate variance term
 
         Args:
             pred (nd-array): Prediction output
@@ -129,7 +129,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         return var_term
 
     def distance_term(self, means, delta_d, n_objects):
-        """ Function to calculate distance term
+        """Function to calculate distance term
 
         Args:
             means (nd-array): Instance means
@@ -172,7 +172,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         return dist_term
 
     def regularization_term(self, means, n_objects):
-        """ Function to calculate regularization term
+        """Function to calculate regularization term
 
         Args:
             means (nd-array): Instance means
@@ -193,7 +193,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         return reg_term
 
     def means(self, pred, gt, n_objects, max_n_objects, gt_idx):
-        """ Function to calculate cluster means
+        """Function to calculate cluster means
 
         Args:
             pred (nd-array): Prediction output
@@ -245,7 +245,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         return means
 
     def prepare_inputs(self, prediction, labels):
-        """ Function to preprocess inputs
+        """Function to preprocess inputs
 
         Args:
             prediction (nd-array): Prediction output
@@ -267,7 +267,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         return prediction, labels
 
     def apply(self, *x):
-        """ Initial apply function
+        """Initial apply function
 
         Args:
             x (tuple) : Contains several inputs
@@ -300,9 +300,9 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
 
 def discriminative_margin_based_clustering_loss(
-        *x, delta_v, delta_d, max_n_clusters,
+        x, delta_v, delta_d, max_n_clusters,
         norm=1, alpha=1.0, beta=1.0, gamma=0.001):
-    """ Discriminative margin based clustering loss function
+    """Discriminative margin based clustering loss function
 
     This is the implementation of following paper:
     https://arxiv.org/pdf/1802.05591.pdf
@@ -328,6 +328,11 @@ def discriminative_margin_based_clustering_loss(
             Small regularization loss to penalize weights against overfit
 
     Args:
+        x (tuple) : Contains several inputs
+                - x[0] = segmentation prediction output
+                - x[1] = segmentation ground truth
+                - x[2] = number of objects in ground truth
+                - x[3] = indexes of non-zero ground truths
         delta_v (float): Minimum distance to start penalizing variance
         delta_d (float): Maximum distance to stop penalizing distance
         max_n_clusters (int): Maximum possible number of clusters.
