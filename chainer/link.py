@@ -942,7 +942,7 @@ Assign a Link object directly to an attribute within a \
             d[name].serialize(serializer[name])
 
 
-class ChainList(Link):
+class ChainList(Link, collections.MutableSequence):
 
     """Composable link with list-like interface.
 
@@ -952,8 +952,6 @@ class ChainList(Link):
     child links. The :meth:`add_link` method inserts a new link at the end of
     the list. It is useful to write a chain with arbitrary number of child
     links, e.g. an arbitrarily deep multi-layer perceptron.
-
-    Note that this class does not implement all methods of :class:`list`.
 
     Args:
         links: Initial child links.
@@ -974,6 +972,18 @@ class ChainList(Link):
                 ' within a "with chainlist.init_scope():" block.')
         super(ChainList, self).__setattr__(name, value)
 
+    def __setitem__(self, index, value):
+        if isinstance(index , int):
+            self._children[index].name = None
+            value.name = str(index)
+            self._children[index] = value
+        elif isinstance(index, slice):
+            for i, j in enumerate(range(*index.indices(len(self._children)))):
+                self[j] = value[i]
+        else:
+            raise TypeError(
+                'ChainList indices must be integers or slices, not %s' % type(index).__name__)
+
     def __getitem__(self, index):
         """Returns the child at given index.
 
@@ -986,24 +996,28 @@ class ChainList(Link):
         """
         return self._children[index]
 
+    def __delitem__(self, index):
+        self._children[index].name = None
+        del self._children[index]
+
+    def insert(self, index, link):
+        """Insert a child link at the given index.
+
+        Args:
+            index (int): The position of the list where the new link is inserted.
+            link (Link): The link to be inserted.
+
+        """
+        self._children.insert(index, link)
+        for i in range(index, len(self._children)):
+            self._children[i].name = str(i)
+
     def __iter__(self):
         return iter(self._children)
 
     def __len__(self):
         """Returns the number of children."""
         return len(self._children)
-
-    def append(self, link):
-        """Registers a child link and adds it to the tail of the list.
-
-        This is equivalent to :meth:`add_link`. This method has been added to
-        emulate the ``list`` interface.
-
-        Args:
-            link (Link): The link object to be regsitered.
-
-        """
-        self.add_link(link)
 
     def add_link(self, link):
         """Registers a child link and adds it to the tail of the list.
@@ -1012,10 +1026,11 @@ class ChainList(Link):
             link (Link): The link object to be registered.
 
         """
-        link.name = str(len(self._children))
-        self._children.append(link)
+        self.append(link)
 
     def copy(self):
+        """ Returns a deep copy of the chainlist.
+        """
         ret = super(ChainList, self).copy()
         ret._children = list(ret._children)  # copy
         children = ret._children
