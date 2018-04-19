@@ -233,8 +233,7 @@ private:
     void VisitElements(const Array& array, Visitor&& visitor) const {
         // array should be already synchronized
 
-        auto shape = array.shape();
-        Indexer indexer{shape};
+        Indexer indexer{array.shape()};
         IndexableArray<const T> iarray{array};
 
         int64_t total_size = array.GetTotalSize();
