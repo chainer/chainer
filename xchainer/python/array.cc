@@ -90,6 +90,19 @@ py::buffer_info MakeBufferFromArray(ArrayBody& self) {
 
 void InitXchainerArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
+    // TODO(hvy): Support all arguments in the numpy.ndarray constructor.
+    c.def(py::init([](py::tuple shape, py::handle dtype, const nonstd::optional<std::string>& device_id) {
+              return Empty(ToShape(shape), internal::GetDtype(dtype), GetDevice(device_id)).move_body();
+          }),
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device") = nullptr);
+    c.def(py::init([](py::tuple shape, py::handle dtype, Device& device) {
+              return Empty(ToShape(shape), internal::GetDtype(dtype), device).move_body();
+          }),
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device"));
     c.def(py::init([](const py::tuple& shape, py::handle dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
               return MakeArray(shape, internal::GetDtype(dtype), list, GetDevice(device_id));
           }),
