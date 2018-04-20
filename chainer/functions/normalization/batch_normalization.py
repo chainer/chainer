@@ -233,7 +233,11 @@ class BatchNormalization(function_node.FunctionNode):
             beta = beta[expander]
             self.mean = x.mean(axis=self.axis)
             var = x.var(axis=self.axis)
-            self.inv_std = (var + self.eps) ** (-0.5)
+            if xp is numpy:
+                self.inv_std = numpy.reciprocal(numpy.sqrt(
+                    var + self.eps, dtype=x.dtype))
+            else:
+                self.inv_std = cuda.cupyx.rsqrt(var + self.eps)
             y = _apply_bn_fwd(xp, x, self.mean[expander],
                               self.inv_std[expander], gamma, beta)
             # Update running statistics
