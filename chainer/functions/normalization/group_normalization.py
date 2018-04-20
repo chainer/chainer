@@ -56,7 +56,8 @@ def group_normalization(x, n_groups, gamma, beta, eps=1e-5):
 
     # By doing this reshaping, calling batch_normalization function becomes
     # equivalent to Group Normalization.
-    x = reshape.reshape(x, (1, batch_size * n_groups, -1))
+    # And redundant dimension is added in order to utilize ideep64/cuDNN.
+    x = reshape.reshape(x, (1, batch_size * n_groups, -1, 1))
     dummy_gamma = xp.ones(batch_size * n_groups).astype(xp.float32)
     dummy_beta = xp.zeros(batch_size * n_groups).astype(xp.float32)
 
