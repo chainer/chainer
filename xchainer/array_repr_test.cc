@@ -24,7 +24,7 @@ template <typename T>
 void CheckArrayRepr(
         const std::string& expected,
         const std::vector<T>& data_vec,
-        Shape shape,
+        const Shape& shape,
         Device& device,
         const std::vector<GraphId>& graph_ids = {}) {
     // Copy to a contiguous memory block because std::vector<bool> is not packed as a sequence of bool's.
