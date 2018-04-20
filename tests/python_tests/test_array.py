@@ -207,6 +207,31 @@ def test_to_device():
     _check_arrays_equal(a, b2)
 
 
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_tonumpy(device):
+    orig = numpy.arange(6).astype('int32')
+    a_xp = xchainer.array(orig)
+    a_np = xchainer.tonumpy(a_xp)
+    numpy.testing.assert_array_equal(orig, a_np)
+    xchainer.testing.assert_array_equal(a_xp, a_np)
+    # buffer is not shared
+    a_np.fill(1)
+    assert a_np[0] != orig[0]
+    assert a_np[0] != int(a_xp[0])
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_tonumpy_with_various_parameters(shape, dtype, device):
+    # TODO(sonots): pybind11 segvs with zero-sized shape. See https://github.com/pybind/pybind11/issues/1370
+    if len(shape) == 0:
+        return
+    orig = _create_dummy_ndarray(shape, dtype)
+    a_xp = xchainer.array(orig)
+    a_np = xchainer.tonumpy(a_xp)
+    numpy.testing.assert_array_equal(orig, a_np)
+    xchainer.testing.assert_array_equal(a_xp, a_np)
+
+
 def test_view(shape, dtype):
     data_list = _create_dummy_data(shape, dtype, pattern=1)
 
