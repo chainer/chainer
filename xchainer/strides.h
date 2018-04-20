@@ -24,7 +24,7 @@ public:
     using const_iterator = BaseVector::const_iterator;
     using const_reverse_iterator = BaseVector::const_reverse_iterator;
 
-    Strides() {}
+    Strides() = default;
 
     // Creates strides for contiguous array.
     Strides(const Shape& shape, Dtype dtype) : Strides{shape, GetElementSize(dtype)} {}
