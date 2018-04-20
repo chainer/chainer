@@ -37,6 +37,7 @@ void MakeMessageImpl(std::ostringstream& os, uint8_t first, const Args&... args)
 template <typename... Args>
 std::string MakeMessage(const Args&... args) {
     std::ostringstream os;
+    os << std::boolalpha;
     MakeMessageImpl(os, args...);
     return os.str();
 }
