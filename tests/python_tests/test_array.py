@@ -120,20 +120,13 @@ def _total_size(shape):
 
 
 # Ignores the device argument if with_device is False.
-def _check_init(shape, dtype_spec, data_list=None, device=None, with_device=True):
-    with_data = data_list is not None
-
-    if with_data and with_device:
-        array = xchainer.ndarray(shape, dtype_spec, data_list, device)
-    elif with_data:
-        array = xchainer.ndarray(shape, dtype_spec, data_list)
-    elif with_device:
+def _check_init(shape, dtype_spec, device=None, with_device=True):
+    if with_device:
         array = xchainer.ndarray(shape, dtype_spec, device)
     else:
         array = xchainer.ndarray(shape, dtype_spec)
-
     expected_dtype = xchainer.dtype(dtype_spec).name
-    _check_array(array, expected_dtype, shape, data_list, device=device)
+    _check_array(array, expected_dtype, shape, device=device)
 
 
 @xchainer.testing.parametrize_dtype_specifier('dtype_spec')
@@ -147,17 +140,13 @@ def test_init_shape_dtype_device(shape, dtype_spec, device):
     _check_init(shape, dtype_spec, device=device)
 
 
+# Checks the temporary constructor of ndarray taking a Python list, which will be replaced by the buffer as in numpy.ndarray.
 @xchainer.testing.parametrize_dtype_specifier('dtype_spec')
-def test_init_shape_dtype_data(shape, dtype_spec):
+def test_init_data_list(shape, dtype_spec):
     data_list = _create_dummy_data(shape, xchainer.dtype(dtype_spec).name)
-    _check_init(shape, dtype_spec, data_list, with_device=False)
-
-
-@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
-def test_init_shape_dtype_data_device(shape, dtype_spec, device):
-    data_list = _create_dummy_data(shape, xchainer.dtype(dtype_spec).name)
-    _check_init(shape, dtype_spec, data_list, device=device)
+    expected_dtype = xchainer.dtype(dtype_spec).name
+    _check_array(xchainer.ndarray(shape, dtype_spec, data_list), expected_dtype, shape)
+    _check_array(xchainer.ndarray(shape, dtype_spec, data_list, 'native:1'), expected_dtype, shape, device='native:1')
 
 
 def _check_numpy_init(ndarray, device=None):
