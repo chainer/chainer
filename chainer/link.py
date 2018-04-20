@@ -620,7 +620,7 @@ Assign a Parameter object directly to an attribute within a \
             You can repeat the same link multiple times to create a longer
             :class:`~chainer.Sequential` block like this:
 
-            .. code-block:: python
+            .. testcode::
 
                 class ConvBNReLU(chainer.Chain):
 
@@ -1034,13 +1034,13 @@ class ChainList(Link, collections.MutableSequence):
         """
         self.append(link)
 
-    def copy(self):
+    def copy(self, mode='share'):
         """Returns a deep copy of the chainlist."""
         ret = super(ChainList, self).copy()
         ret._children = list(ret._children)  # copy
         children = ret._children
         for i, child in enumerate(children):
-            child = child.copy()
+            child = child.copy(mode)
             child.name = str(i)
             children[i] = child
         return ret
