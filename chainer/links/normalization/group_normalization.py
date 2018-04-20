@@ -4,7 +4,7 @@ from chainer import variable
 
 
 class GroupNormalization(link.Link):
-    """Group normalization layer on outputs of linear or convolution functions.
+    """Group normalization layer on outputs of convolution functions.
 
     This link implements a "group normalization"
     which divides the channels into groups and computes within each group
@@ -79,7 +79,9 @@ class GroupNormalization(link.Link):
         """
         if self.gamma.data is None:
             if x.ndim <= 2:
-                raise ValueError('Input dimension must be bigger than 2.')
+                raise ValueError('Input dimension must be bigger than 2, '
+                                 'excluding batch size dimension '
+                                 '(first dimension).')
             channels = x.shape[1]
             self._initialize_params(channels)
 

@@ -38,7 +38,9 @@ def group_normalization(x, n_groups, gamma, beta, eps=1e-5):
     See: `Group Normalization <https://arxiv.org/abs/1803.08494>`_
     """
     if x.ndim <= 2:
-        raise ValueError('Input dimension must be bigger than 2.')
+        raise ValueError('Input dimension must be bigger than 2, '
+                         'excluding batch size dimension '
+                         '(first dimension).')
 
     if not isinstance(n_groups, int):
         raise TypeError('Argument: \'n_groups\' type must be (int).')
@@ -49,7 +51,7 @@ def group_normalization(x, n_groups, gamma, beta, eps=1e-5):
     original_shape = x.shape
 
     if channels % n_groups != 0:
-        raise ValueError('Argument: \'n_groups\' must be a divisor'
+        raise ValueError('Argument: \'n_groups\' must be a divisor '
                          'of the number of channel.')
 
     # By doing this reshaping, calling batch_normalization function becomes
