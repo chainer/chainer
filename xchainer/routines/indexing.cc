@@ -12,11 +12,11 @@
 #include "xchainer/array_index.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/util.h"
 #include "xchainer/shape.h"
 #include "xchainer/slice.h"
+#include "xchainer/strides.h"
 
 namespace xchainer {
 namespace internal {
@@ -48,8 +48,8 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 }  // namespace
 
 Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
-    NdimVector<int64_t> out_shape{};
-    NdimVector<int64_t> out_strides{};
+    Shape out_shape;
+    Strides out_strides;
     int64_t out_offset = a.offset();
     int64_t i_in = 0;
     for (const ArrayIndex& index : indices) {
@@ -85,8 +85,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
         out_strides.emplace_back(a.strides()[i]);
     }
 
-    Array out = xchainer::internal::MakeArray(
-            {out_shape.begin(), out_shape.end()}, {out_strides.begin(), out_strides.end()}, a.dtype(), a.device(), a.data(), out_offset);
+    Array out = xchainer::internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), out_offset);
 
     auto backward_function = [ indices, other = a ](const Array& gout, const std::vector<GraphId>&) {
         Array gin = ZerosLike(other, other.device());
@@ -134,11 +133,11 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
 
-    NdimVector<int64_t> out_shape_vec{};
-    std::copy(a.shape().begin(), a.shape().begin() + axis_norm, std::back_inserter(out_shape_vec));
-    std::copy(indices.shape().begin(), indices.shape().end(), std::back_inserter(out_shape_vec));
-    std::copy(a.shape().begin() + (axis_norm + 1), a.shape().end(), std::back_inserter(out_shape_vec));
-    Array out = Empty({out_shape_vec.begin(), out_shape_vec.end()}, a.dtype(), a.device());
+    Shape out_shape;
+    std::copy(a.shape().begin(), a.shape().begin() + axis_norm, std::back_inserter(out_shape));
+    std::copy(indices.shape().begin(), indices.shape().end(), std::back_inserter(out_shape));
+    std::copy(a.shape().begin() + (axis_norm + 1), a.shape().end(), std::back_inserter(out_shape));
+    Array out = Empty(out_shape, a.dtype(), a.device());
 
     a.device().Take(a, indices, axis_norm, out);
 

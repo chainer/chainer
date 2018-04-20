@@ -29,7 +29,6 @@ array([-1., -1., -1.,  0.,  1.,  2.,  3.], shape=(7,), dtype=float32, device='na
 >>> xc.maximum(2.0, a)
 array([2., 2., 2., 2., 2., 2., 3.], shape=(7,), dtype=float32, device='native:0')
 
-
 Multiply with scalar
 -------------------
 

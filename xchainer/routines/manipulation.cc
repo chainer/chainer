@@ -65,19 +65,18 @@ Array Reshape(const Array& a, const Shape& newshape) {
     Strides strides;
     if (total_size == 0) {
         // Calculate the strides for 0-sized array.
-        NdimVector<int64_t> rev_strides_vec{};
-        rev_strides_vec.emplace_back(element_size);
+        strides.resize(newshape.ndim());
+        strides.back() = element_size;
         for (int8_t i = newshape.ndim() - 1; i >= 1; --i) {
-            rev_strides_vec.emplace_back(rev_strides_vec.back() * std::max(int64_t{1}, newshape[i]));
+            strides[i - 1] = strides[i] * std::max(int64_t{1}, newshape[i]);
         }
-        strides = Strides{rev_strides_vec.rbegin(), rev_strides_vec.rend()};
     } else {
         // Calculate the strides for non-0-sized array.
 
         // reduced_shape and reduced_strides are the shortest shape and strides which can be convertible from input shape and strides
         // without copy.
-        NdimVector<int64_t> reduced_shape{};
-        NdimVector<int64_t> reduced_strides{};
+        Shape reduced_shape;
+        Strides reduced_strides;
         if (in_shape.ndim() == 0) {
             // Input shape is (). Treat as if it were (1).
             reduced_shape.push_back(int64_t{1});
@@ -110,23 +109,22 @@ Array Reshape(const Array& a, const Shape& newshape) {
         // Construct the strides for no-copy reshape.
         // If it's not possible, can_reshape_without_copy will be false.
         bool can_reshape_without_copy = true;
-        NdimVector<int64_t> strides_vec{};
         if (newshape.ndim() > 0) {
             int64_t last_stride = reduced_shape[0] * reduced_strides[0];
             size_t i_dim = 0;
             for (int64_t dim : newshape) {
                 if (dim <= 1) {
-                    strides_vec.push_back(last_stride);
+                    strides.push_back(last_stride);
                     continue;
                 }
                 if (i_dim >= reduced_shape.size() || reduced_shape[i_dim] % dim != 0) {
-                    strides_vec.clear();
+                    strides.clear();
                     can_reshape_without_copy = false;
                     break;
                 }
                 reduced_shape[i_dim] /= dim;
                 last_stride = reduced_shape[i_dim] * reduced_strides[i_dim];
-                strides_vec.push_back(last_stride);
+                strides.push_back(last_stride);
                 if (reduced_shape[i_dim] == 1) {
                     ++i_dim;
                 }
@@ -138,9 +136,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
             // TODO(niboshi): Implement it
             throw NotImplementedError{"Reshape that requires a copy is not implemented yet."};
         }
-        assert(strides_vec.size() == newshape.size());
-
-        strides = Strides{strides_vec.begin(), strides_vec.end()};
+        assert(strides.size() == newshape.size());
     }
 
     Array out = internal::MakeArray(newshape, strides, a.dtype(), a.device(), a.data(), a.offset());
@@ -156,8 +152,8 @@ Array Squeeze(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis) 
     const Shape& in_shape = a.shape();
     const Strides& in_strides = a.strides();
 
-    NdimVector<int64_t> out_shape{};
-    NdimVector<int64_t> out_strides{};
+    Shape out_shape;
+    Strides out_strides;
 
     if (axis.has_value()) {
         NdimVector<int8_t> sorted_axis = internal::GetSortedAxes(*axis, in_shape.ndim());
@@ -193,14 +189,9 @@ Array Squeeze(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis) 
         }
     }
 
-    Array out = in_shape.size() == out_shape.size() ? a
-                                                    : internal::MakeArray(
-                                                              Shape{out_shape.begin(), out_shape.end()},
-                                                              Strides{out_strides.begin(), out_strides.end()},
-                                                              a.dtype(),
-                                                              a.device(),
-                                                              a.data(),
-                                                              a.offset());
+    Array out = in_shape.size() == out_shape.size()
+                        ? a
+                        : internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
     internal::SetUpOpNodes(
             "squeeze", {a}, out, {[in_shape](const Array& gout, const std::vector<GraphId>&) { return gout.Reshape(in_shape); }});
 
@@ -215,7 +206,8 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
         throw DimensionError{"Cannot broadcast to smaller dimensions"};
     }
 
-    NdimVector<int64_t> rev_strides{};
+    Strides strides;
+    strides.resize(shape.ndim());
     int8_t i_in = in_shape.ndim() - 1;
     for (int8_t i_out = shape.ndim() - 1; i_out >= 0; --i_out) {
         int64_t out_dim = shape[i_out];
@@ -239,15 +231,14 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
 
         if (nonbroadcast_stride.has_value()) {
             // non-broadcast dimension
-            rev_strides.push_back(*nonbroadcast_stride);
+            strides[i_out] = nonbroadcast_stride.value();
         } else {
             // broadcast dimension
-            rev_strides.push_back(int64_t{0});
+            strides[i_out] = int64_t{0};
         }
     }
-    assert(rev_strides.size() == shape.size());
-    Array out = internal::MakeArray(
-            shape, {rev_strides.rbegin(), rev_strides.rend()}, array.dtype(), array.device(), array.data(), array.offset());
+    assert(strides.size() == shape.size());
+    Array out = internal::MakeArray(shape, strides, array.dtype(), array.device(), array.data(), array.offset());
 
     auto backward_function = [in_shape](const Array& gout, const std::vector<GraphId>&) {
         if (gout.shape() == in_shape) {

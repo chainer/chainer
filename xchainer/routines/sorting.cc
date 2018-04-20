@@ -11,12 +11,13 @@
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/util.h"
+#include "xchainer/shape.h"
 
 namespace xchainer {
 
 Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis) {
     NdimVector<int8_t> sorted_axis{};
-    NdimVector<int64_t> out_shape_vec{};
+    Shape out_shape;
     if (axis.has_value()) {
         sorted_axis = internal::GetSortedAxes({*axis}, a.ndim());
         int8_t i_axis = 0;
@@ -24,7 +25,7 @@ Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis) {
             if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
                 ++i_axis;
             } else {
-                out_shape_vec.emplace_back(a.shape()[i]);
+                out_shape.emplace_back(a.shape()[i]);
             }
         }
     } else {
@@ -39,7 +40,7 @@ Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis) {
         }
     }
 
-    Array out = Empty({out_shape_vec.begin(), out_shape_vec.end()}, Dtype::kInt64, a.device());
+    Array out = Empty(out_shape, Dtype::kInt64, a.device());
     a.device().ArgMax(a, sorted_axis, out);
     return out;
 }

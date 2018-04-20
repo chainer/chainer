@@ -8,7 +8,6 @@
 #include "xchainer/array.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
 
@@ -27,10 +26,9 @@ Array Dot(const Array& a, const Array& b) {
         throw NotImplementedError{"dot does not support rhs operand with ndim > 2"};
     }
 
-    NdimVector<int64_t> out_shape_v{};
-    std::copy(a.shape().begin(), a.shape().end() - 1, std::back_inserter(out_shape_v));
-    std::copy(b.shape().begin() + 1, b.shape().end(), std::back_inserter(out_shape_v));
-    Shape out_shape{out_shape_v.begin(), out_shape_v.end()};
+    Shape out_shape;
+    std::copy(a.shape().begin(), a.shape().end() - 1, std::back_inserter(out_shape));
+    std::copy(b.shape().begin() + 1, b.shape().end(), std::back_inserter(out_shape));
 
     int64_t k = a.shape()[a.ndim() - 1];
     if (b.shape()[0] != k) {

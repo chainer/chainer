@@ -134,14 +134,16 @@ private:
 
         // Create strides with extra space specified by `padding`.
         assert(padding.size() == shape_.size());
-        NdimVector<int64_t> rev_strides{};
+
+        Strides strides;
+        strides.resize(shape_.ndim());
         int64_t st = sizeof(T);
         for (int8_t i = shape_.ndim() - 1; i >= 0; --i) {
             st += sizeof(T) * padding[i];  // paddings are multiples of the item-size.
-            rev_strides.push_back(st);
+            strides[i] = st;
             st *= shape_[i];
         }
-        return {rev_strides.rbegin(), rev_strides.rend()};
+        return strides;
     }
 
     Shape shape_;

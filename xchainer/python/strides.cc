@@ -1,8 +1,7 @@
 #include "xchainer/python/strides.h"
 
 #include <algorithm>
-
-#include "xchainer/ndim_vector.h"
+#include <cstdint>
 
 namespace xchainer {
 namespace python {
@@ -11,9 +10,9 @@ namespace internal {
 namespace py = pybind11;
 
 Strides ToStrides(const py::tuple& tup) {
-    NdimVector<int64_t> v{};
-    std::transform(tup.begin(), tup.end(), std::back_inserter(v), [](auto& item) { return py::cast<int64_t>(item); });
-    return Strides{v.begin(), v.end()};
+    Strides strides;
+    std::transform(tup.begin(), tup.end(), std::back_inserter(strides), [](auto& item) { return py::cast<int64_t>(item); });
+    return strides;
 }
 
 py::tuple ToTuple(const Strides& strides) {

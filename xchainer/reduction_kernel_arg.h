@@ -41,9 +41,9 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const NdimVe
     bool has_kept_dims = out.ndim() + static_cast<int64_t>(axis.size()) != in.ndim();
 
     // Prepare axis mappings
-    NdimVector<int64_t> reduce_shape{};  // Reduction dimensions
-    NdimVector<int8_t> out_axis_map{};   // Mapping from effective output indices to actual output indices
-    NdimVector<int64_t> new_out_shape{};
+    Shape reduce_shape;                 // Reduction dimensions
+    NdimVector<int8_t> out_axis_map{};  // Mapping from effective output indices to actual output indices
+    Shape new_out_shape;
     // (Here "effective output indices" means source indices minus reduction indices.)
 
     // Example (in the case of has_kept_dims=false):
@@ -115,7 +115,7 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const NdimVe
     assert(axis_permutes.size() <= in.shape().size());  // Inequality because 1-dim axes are eliminated.
 
     // Calculate new source shape
-    NdimVector<int64_t> new_in_shape{};
+    Shape new_in_shape;
     for (int8_t i : axis_permutes) {
         new_in_shape.emplace_back(in.shape()[i]);
     }
@@ -126,9 +126,9 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const NdimVe
 
     return ReductionKernelArg<In, Out>{IndexableArray<const In>{in}.Permute(axis_permutes),
                                        IndexableArray<Out>{out}.Permute(out_axis_map),
-                                       Indexer{Shape{new_in_shape.begin(), new_in_shape.end()}},
-                                       Indexer{Shape{new_out_shape.begin(), new_out_shape.end()}},
-                                       Indexer{Shape{reduce_shape.begin(), reduce_shape.end()}}};
+                                       Indexer{new_in_shape},
+                                       Indexer{new_out_shape},
+                                       Indexer{reduce_shape}};
 }
 
 }  // namespace xchainer
