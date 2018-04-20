@@ -76,12 +76,7 @@ Shape TransposeShape(const Shape& shape, const NdimVector<int8_t>& axes) {
 
 }  // namespace internal
 
-int64_t Shape::GetTotalSize() const {
-    const auto first = dims_.begin();
-    const auto last = first + ndim_;
-    auto total_size = std::accumulate(first, last, int64_t{1}, std::multiplies<>());
-    return total_size;
-}
+int64_t Shape::GetTotalSize() const { return std::accumulate(begin(), end(), int64_t{1}, std::multiplies<>()); }
 
 std::string Shape::ToString() const {
     std::ostringstream os;

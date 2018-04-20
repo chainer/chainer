@@ -19,6 +19,7 @@ TEST(ShapeTest, Ctor) {
     {  // Default ctor
         const Shape shape{};
         EXPECT_EQ(0, shape.ndim());
+        EXPECT_EQ(size_t{0}, shape.size());
     }
     {  // From std::initializer_list
         const Shape shape{2, 3, 4};
@@ -39,9 +40,33 @@ TEST(ShapeTest, Ctor) {
         EXPECT_EQ(3, shape.ndim());
         CheckSpanEqual({2, 3, 4}, shape.span());
     }
-    {  // Too many dimensions
+    {  // From empty std::initializer_list
+        const Shape shape(std::initializer_list<int64_t>{});
+        EXPECT_EQ(0, shape.ndim());
+        CheckSpanEqual({}, shape.span());
+    }
+    {  // From empty gsl::span
+        const std::array<int64_t, 0> dims{};
+        const Shape shape{gsl::make_span(dims)};
+        EXPECT_EQ(0, shape.ndim());
+        CheckSpanEqual({}, shape.span());
+    }
+    {  // From empty iterators
+        const std::vector<int64_t> dims{};
+        const Shape shape{dims.begin(), dims.end()};
+        EXPECT_EQ(0, shape.ndim());
+        CheckSpanEqual({}, shape.span());
+    }
+    {  // Too long std::initializer_list
+        EXPECT_THROW(Shape({1, 2, 3, 4, 5, 6, 7, 8, 9}), DimensionError);
+    }
+    {  // Too long gsl::span
         const std::array<int64_t, kMaxNdim + 1> too_long{1};
         EXPECT_THROW(Shape{gsl::make_span(too_long)}, DimensionError);
+    }
+    {  // Too long iterators
+        const std::vector<int64_t> dims{1, 2, 3, 4, 5, 6, 7, 8, 9};
+        EXPECT_THROW(Shape({dims.begin(), dims.end()}), DimensionError);
     }
 }
 
@@ -104,6 +129,11 @@ TEST(ShapeTest, ToString) {
         const Shape shape = {2, 3, 4};
         EXPECT_EQ(shape.ToString(), "(2, 3, 4)");
     }
+}
+
+TEST(StridesTest, SpanFromShape) {
+    const Shape shape = {2, 3, 4};
+    CheckSpanEqual({2, 3, 4}, gsl::make_span(shape));
 }
 
 TEST(ShapeTest, IsContiguous) {
