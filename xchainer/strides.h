@@ -17,14 +17,14 @@
 
 namespace xchainer {
 
-class Strides {
-    using DimsType = std::array<int64_t, kMaxNdim>;
+class Strides : public StackVector<int64_t, kMaxNdim> {
+    using BaseVector = StackVector<int64_t, kMaxNdim>;
 
 public:
-    using const_iterator = DimsType::const_iterator;
-    using const_reverse_iterator = DimsType::const_reverse_iterator;
+    using const_iterator = BaseVector::const_iterator;
+    using const_reverse_iterator = BaseVector::const_reverse_iterator;
 
-    Strides() : dims_{}, ndim_{0} {}
+    Strides() = default;
 
     // Creates strides for contiguous array.
     Strides(const Shape& shape, Dtype dtype) : Strides{shape, GetElementSize(dtype)} {}
@@ -32,9 +32,11 @@ public:
 
     // by iterators
     template <typename InputIt>
-    Strides(InputIt first, InputIt last) : dims_{}, ndim_{gsl::narrow_cast<int8_t>(std::distance(first, last))} {
-        CheckNdim();
-        std::copy(first, last, dims_.begin());
+    Strides(InputIt first, InputIt last) {
+        if (std::distance(first, last) > kMaxNdim) {
+            throw DimensionError{"too many dimensions: ", std::distance(first, last)};
+        }
+        insert(begin(), first, last);
     }
 
     // by gsl:span
@@ -53,46 +55,18 @@ public:
 
     std::string ToString() const;
 
-    size_t size() const noexcept { return static_cast<size_t>(ndim_); }
+    int8_t ndim() const noexcept { return gsl::narrow_cast<int8_t>(size()); }
 
-    int8_t ndim() const noexcept { return ndim_; }
-
-    int64_t operator[](int8_t index) const {
-        if (!(0 <= index && index < ndim_)) {
+    const int64_t& operator[](int8_t index) const {
+        if (!(0 <= index && static_cast<size_t>(index) < size())) {
             throw DimensionError{"index out of bounds"};
         }
-        return dims_[index];
+        return this->StackVector::operator[](index);
     }
-
-    // iterators
-    const_iterator cbegin() const noexcept { return dims_.cbegin(); }
-    const_iterator cend() const noexcept { return dims_.cbegin() + ndim_; }
-    const_iterator begin() const noexcept { return cbegin(); }
-    const_iterator end() const noexcept { return cend(); }
-
-    // reverse iterators
-    const_reverse_iterator crbegin() const noexcept { return dims_.crend() - ndim_; }
-    const_reverse_iterator crend() const noexcept { return dims_.crend(); }
-    const_reverse_iterator rbegin() const noexcept { return crbegin(); }
-    const_reverse_iterator rend() const noexcept { return crend(); }
 
     // span
-    gsl::span<const int64_t> span() const { return {&dims_[0], static_cast<size_t>(ndim_)}; }
-
-private:
-    void CheckNdim() const {
-        if (ndim_ > kMaxNdim) {
-            throw DimensionError{"too many dimensions: ", ndim_};
-        }
-    }
-
-    DimsType dims_{};
-    int8_t ndim_;
+    gsl::span<const int64_t> span() const { return {*this}; }
 };
-
-inline bool operator==(const Strides& lhs, const Strides& rhs) { return lhs.span() == rhs.span(); }
-
-inline bool operator!=(const Strides& lhs, const Strides& rhs) { return lhs.span() != rhs.span(); }
 
 std::ostream& operator<<(std::ostream&, const Strides&);
 
