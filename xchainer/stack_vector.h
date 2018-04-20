@@ -36,7 +36,7 @@ public:
     using difference_type = typename BaseContainer::difference_type;
     using size_type = typename BaseContainer::size_type;
 
-    StackVector() {}
+    StackVector() = default;
 
     template <typename InputIter>
     StackVector(InputIter first, InputIter last) {
