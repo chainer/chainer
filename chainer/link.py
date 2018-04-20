@@ -1034,7 +1034,7 @@ class ChainList(Link, collections.MutableSequence):
         """
         self.append(link)
 
-    def copy(self, mode='share')::
+    def copy(self, mode='share'):
         """Returns a deep copy of the chainlist."""
         ret = super(ChainList, self).copy()
         ret._children = list(ret._children)  # copy
