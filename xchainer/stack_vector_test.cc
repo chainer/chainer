@@ -279,6 +279,23 @@ TEST(StackVectorTest, Resize) {
     EXPECT_TRUE(vec1.empty());
 }
 
+TEST(StackVectorTest, Data) {
+    {
+        StackVector<int, 5> vec{2, 3};
+        const StackVector<int, 5>& cvec = vec;
+        EXPECT_EQ(&vec[0], vec.data());
+        EXPECT_EQ(&vec[0], cvec.data());
+    }
+
+    // For empty vector, return values can be arbitrary but should not throw
+    {
+        StackVector<int, 5> vec{};
+        const StackVector<int, 5>& cvec = vec;
+        EXPECT_NO_THROW(vec.data());
+        EXPECT_NO_THROW(cvec.data());
+    }
+}
+
 TEST(StackVectorTest, Front) {
     StackVector<int, 5> vec1{2, 3};
 
