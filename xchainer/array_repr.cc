@@ -169,9 +169,8 @@ struct ArrayReprImpl {
                 native_array, [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T>& iarray, const IndexIterator& it) {
                     int8_t trailing_zeros = 0;
                     if (ndim > 0) {
-                        const int64_t* index = it.index();
-                        for (auto it = index + ndim; --it >= index;) {
-                            if (*it == 0) {
+                        for (int8_t i = ndim; --i >= 0;) {
+                            if (it.index()[i] == 0) {
                                 ++trailing_zeros;
                             } else {
                                 break;
