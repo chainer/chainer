@@ -9,9 +9,12 @@ namespace error_detail {
 
 inline void MakeMessageImpl(std::ostringstream& /*os*/) {}
 
-// This forward declaration is required to make the int8_t specialization visible from the generic version.
+// These two forward declarations are required to make the specializations visible from the generic version.
 template <typename... Args>
 void MakeMessageImpl(std::ostringstream& os, int8_t first, const Args&... args);
+
+template <typename... Args>
+void MakeMessageImpl(std::ostringstream& os, uint8_t first, const Args&... args);
 
 template <typename Arg, typename... Args>
 void MakeMessageImpl(std::ostringstream& os, const Arg& first, const Args&... args) {
@@ -22,6 +25,12 @@ void MakeMessageImpl(std::ostringstream& os, const Arg& first, const Args&... ar
 template <typename... Args>
 void MakeMessageImpl(std::ostringstream& os, int8_t first, const Args&... args) {
     os << static_cast<int>(first);
+    MakeMessageImpl(os, args...);
+}
+
+template <typename... Args>
+void MakeMessageImpl(std::ostringstream& os, uint8_t first, const Args&... args) {
+    os << static_cast<unsigned int>(first);
     MakeMessageImpl(os, args...);
 }
 
