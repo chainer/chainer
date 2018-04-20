@@ -19,7 +19,7 @@ Create array from numpy ndarray
 
 >>> import numpy as np
 >>> n = np.ones((3,), np.float32, [1, 2, 3])
->>> a = xc.ndarray(n, 'cuda:0')
+>>> a = xc.array(n, 'cuda:0')
 >>> a.shape
 (3,)
 >>> a.dtype

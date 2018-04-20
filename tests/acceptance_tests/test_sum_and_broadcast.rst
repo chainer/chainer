@@ -8,7 +8,7 @@ sum
 ---
 
 >>> a_np = np.arange(30).reshape(2, 3, 5)
->>> a = xc.ndarray(a_np)
+>>> a = xc.array(a_np)
 >>> a
 array([[[ 0,  1,  2,  3,  4],
         [ 5,  6,  7,  8,  9],
@@ -84,7 +84,7 @@ Backward
 --------
 
 >>> a_np = np.arange(6, dtype=np.float32).reshape(2, 3)
->>> a = xc.ndarray(a_np).require_grad()
+>>> a = xc.array(a_np).require_grad()
 >>> a
 array([[0., 1., 2.],
        [3., 4., 5.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])

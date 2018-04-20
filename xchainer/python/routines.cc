@@ -70,6 +70,7 @@ ArrayBodyPtr MakeArangeArray(
 
 void InitXchainerRoutines(pybind11::module& m) {
     // creation routines
+    // TODO(hvy): Support nested lists in xchainer.array.
     m.def("array",
           [](const py::list& list, py::handle dtype, const nonstd::optional<std::string>& device_id) {
               return MakeArray(list, dtype, GetDevice(device_id));

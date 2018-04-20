@@ -17,7 +17,7 @@ Create array from numpy ndarray
 
 >>> import numpy as np
 >>> n = np.ones((3,), np.float32, [1, 2, 3])
->>> a = xc.ndarray(n)
+>>> a = xc.array(n)
 >>> a.shape
 (3,)
 >>> a.dtype

@@ -90,7 +90,7 @@ py::buffer_info MakeBufferFromArray(ArrayBody& self) {
 
 void InitXchainerArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
-    // TODO(hvy): Support all arguments in the numpy.ndarray constructor.
+    // TODO(hvy): Support all arguments in the constructor of numpy.ndarray.
     c.def(py::init([](py::tuple shape, py::handle dtype, const nonstd::optional<std::string>& device_id) {
               return Empty(ToShape(shape), internal::GetDtype(dtype), GetDevice(device_id)).move_body();
           }),
@@ -103,6 +103,8 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device"));
+    // TODO(hvy): Remove list accepting bindings and replace calls with xchainer.array.
+    // For multidimensional arrays, nested lists should be passed to xchainer.array.
     c.def(py::init([](const py::tuple& shape, py::handle dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
               return MakeArray(shape, internal::GetDtype(dtype), list, GetDevice(device_id));
           }),
@@ -117,12 +119,6 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("data"),
           py::arg("device"));
-    c.def(py::init([](const py::array& array, const nonstd::optional<std::string>& device_id) {
-              return MakeArray(array, GetDevice(device_id));
-          }),
-          py::arg("data"),
-          py::arg("device") = nullptr);
-    c.def(py::init([](const py::array& array, Device& device) { return MakeArray(array, device); }), py::arg("data"), py::arg("device"));
     // TODO(niboshi): We cannot support buffer protocol for general device. Remove the binding and provide alternative interface
     // to convert to NumPy array.
     c.def_buffer(&MakeBufferFromArray);

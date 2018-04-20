@@ -20,7 +20,7 @@ array([[False,  True, False],
 Maximum with scalar
 -------------------
 
->>> a = xc.ndarray(np.arange(-3, 4, dtype=np.float32))
+>>> a = xc.array(np.arange(-3, 4, dtype=np.float32))
 >>> a
 array([-3., -2., -1.,  0.,  1.,  2.,  3.], shape=(7,), dtype=float32, device='native:0')
 
@@ -33,7 +33,7 @@ array([2., 2., 2., 2., 2., 2., 3.], shape=(7,), dtype=float32, device='native:0'
 Multiply with scalar
 -------------------
 
->>> a = xc.ndarray(np.arange(-3, 4, dtype=np.float32))
+>>> a = xc.array(np.arange(-3, 4, dtype=np.float32))
 >>> a
 array([-3., -2., -1.,  0.,  1.,  2.,  3.], shape=(7,), dtype=float32, device='native:0')
 
@@ -61,7 +61,7 @@ True
 
 Backward
 --------
->>> x = xc.ndarray(np.arange(-3, 3, dtype=np.float32).reshape((2, 3))).require_grad()
+>>> x = xc.array(np.arange(-3, 3, dtype=np.float32).reshape((2, 3))).require_grad()
 >>> x
 array([[-3., -2., -1.],
        [ 0.,  1.,  2.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])

@@ -163,9 +163,9 @@ def test_init_shape_dtype_data_device(shape, dtype_spec, device):
 def _check_numpy_init(ndarray, device=None):
     shape = ndarray.shape
     if device is None:
-        array = xchainer.ndarray(ndarray)
+        array = xchainer.array(ndarray)
     else:
-        array = xchainer.ndarray(ndarray, device)
+        array = xchainer.array(ndarray, device)
 
     ndarray_is_contigous = ndarray.flags['C_CONTIGUOUS']
     _check_array(
@@ -266,7 +266,7 @@ def test_asscalar(device, value, shape, dtype):
         return
 
     a_np = numpy.asarray([np_value], dtype).reshape(shape)
-    a_xc = xchainer.ndarray(a_np)
+    a_xc = xchainer.array(a_np)
 
     def should_cast_succeed(typ):
         try:
@@ -367,7 +367,7 @@ def test_reshape(a_shape, b_shape):
     dtype = numpy.float32
     a_np = numpy.arange(size, dtype=dtype).reshape(a_shape)
     b_np = a_np.reshape(b_shape)
-    a_xc = xchainer.ndarray(a_np)
+    a_xc = xchainer.array(a_np)
 
     def check(b_xc):
         assert b_xc is not a_xc
@@ -375,7 +375,7 @@ def test_reshape(a_shape, b_shape):
         assert b_xc.is_contiguous
         assert a_xc._debug_data_memory_address == b_xc._debug_data_memory_address, 'Reshape must be done without copy'
         assert b_xc.strides == b_np.strides, 'Strides after reshape must match NumPy behavior'
-        _check_arrays_equal(xchainer.ndarray(b_np), b_xc)
+        _check_arrays_equal(xchainer.array(b_np), b_xc)
 
     # instance methods
     check(a_xc.reshape(b_shape))  # by tuple
@@ -406,7 +406,7 @@ def test_invalid_reshape(shape1, shape2):
         size = functools.reduce(operator.mul, a_shape, 1)
         dtype = numpy.float32
         a_np = numpy.arange(size, dtype=dtype).reshape(a_shape)
-        a_xc = xchainer.ndarray(a_np)
+        a_xc = xchainer.array(a_np)
 
         with pytest.raises(xchainer.DimensionError):
             a_xc.reshape(b_shape)
@@ -635,8 +635,8 @@ def test_eq(device, a_object, b_object, dtype):
         # E.g. [numpy.inf] to numpy.int32.
         return
 
-    a_xc = xchainer.ndarray(a_np)
-    b_xc = xchainer.ndarray(b_np)
+    a_xc = xchainer.array(a_np)
+    b_xc = xchainer.array(b_np)
 
     _check_array_equals_ndarray(a_xc == b_xc, a_np == b_np)
     _check_array_equals_ndarray(b_xc == a_xc, b_np == a_np)
@@ -665,8 +665,8 @@ def test_invalid_eq(a_shape, b_shape):
     a_np = create_ndarray(a_shape)
     b_np = create_ndarray(b_shape)
 
-    a_xc = xchainer.ndarray(a_np)
-    b_xc = xchainer.ndarray(b_np)
+    a_xc = xchainer.array(a_np)
+    b_xc = xchainer.array(b_np)
 
     check(a_xc, b_xc)
     check(b_xc, a_xc)
