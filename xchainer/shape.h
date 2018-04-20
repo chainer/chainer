@@ -26,12 +26,14 @@ public:
     using const_reverse_iterator = BaseVector::const_reverse_iterator;
     // TODO(niboshi): Declare other types required for this class to be a container.
 
-    Shape() {}
+    Shape() = default;
 
     // by iterators
     template <typename InputIt>
     Shape(InputIt first, InputIt last) {
-        CheckNdim(std::distance(first, last));
+        if (std::distance(first, last) > kMaxNdim) {
+            throw DimensionError{"too many dimensions: ", std::distance(first, last)};
+        }
         insert(begin(), first, last);
     }
 
@@ -42,7 +44,7 @@ public:
     Shape(std::initializer_list<int64_t> dims) : Shape{dims.begin(), dims.end()} {}
 
     // copy
-    Shape(const Shape& other) = default;
+    Shape(const Shape&) = default;
     Shape& operator=(const Shape&) = default;
 
     // move
@@ -64,13 +66,6 @@ public:
 
     // span
     gsl::span<const int64_t> span() const { return {*this}; }
-
-private:
-    void CheckNdim(std::ptrdiff_t ndim) const {
-        if (ndim > kMaxNdim) {
-            throw DimensionError{"too many dimensions: ", ndim};
-        }
-    }
 };
 
 namespace internal {
