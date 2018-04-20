@@ -24,6 +24,7 @@ class Shape : public StackVector<int64_t, kMaxNdim> {
 public:
     using const_iterator = BaseVector::const_iterator;
     using const_reverse_iterator = BaseVector::const_reverse_iterator;
+    // TODO(niboshi): Declare other types required for this class to be a container.
 
     Shape() {}
 
