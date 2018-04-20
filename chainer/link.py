@@ -977,7 +977,7 @@ class ChainList(Link, collections.MutableSequence):
         super(ChainList, self).__setattr__(name, value)
 
     def __setitem__(self, index, value):
-        if isinstance(index , int):
+        if isinstance(index, int):
             self._children[index].name = None
             value.name = str(index)
             self._children[index] = value
@@ -986,7 +986,8 @@ class ChainList(Link, collections.MutableSequence):
                 self[j] = value[i]
         else:
             raise TypeError(
-                'ChainList indices must be integers or slices, not %s' % type(index).__name__)
+                'ChainList indices must be integers or slices, not %s' %
+                type(index).__name__)
 
     def __getitem__(self, index):
         """Returns the child at given index.
@@ -1008,7 +1009,8 @@ class ChainList(Link, collections.MutableSequence):
         """Insert a child link at the given index.
 
         Args:
-            index (int): The position of the list where the new link is inserted.
+            index (int): The position of the list where the new
+            link is inserted.
             link (Link): The link to be inserted.
 
         """
@@ -1033,8 +1035,7 @@ class ChainList(Link, collections.MutableSequence):
         self.append(link)
 
     def copy(self):
-        """ Returns a deep copy of the chainlist.
-        """
+        """Returns a deep copy of the chainlist."""
         ret = super(ChainList, self).copy()
         ret._children = list(ret._children)  # copy
         children = ret._children
