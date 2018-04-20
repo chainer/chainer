@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+#include <gsl/gsl>
 
 #include "xchainer/dtype.h"
 #include "xchainer/strides.h"

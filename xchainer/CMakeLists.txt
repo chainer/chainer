@@ -13,6 +13,7 @@ install(FILES
     array_body.h
     array_index.h
     array_repr.h
+    axes.h
     axis.h
     backend.h
     backward.h
@@ -42,6 +43,7 @@ install(FILES
 add_library(xchainer SHARED
     array.cc
     array_repr.cc
+    axes.cc
     axis.cc
     backend.cc
     backward.cc
@@ -79,6 +81,7 @@ if(ENABLE_TEST)
         array_repr_test.cc
         array_test.cc
         array_to_device_test.cc
+        axes_test.cc
         backward_test.cc
         check_backward_test.cc
         context_test.cc

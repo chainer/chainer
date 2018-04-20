@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+#include <gsl/gsl>
 
 namespace xchainer {
 namespace {
