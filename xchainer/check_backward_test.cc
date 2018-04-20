@@ -41,9 +41,8 @@ Arrays ForwardWithIncorrectBackward(const Arrays& inputs) {
         IndexableArray<T> out_iarray{out};
         Indexer indexer{out.shape()};
 
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            out_iarray[indexer] = in_iarray[indexer];
+        for (auto it = indexer.It(0); it; ++it) {
+            out_iarray[it] = in_iarray[it];
         }
     });
 

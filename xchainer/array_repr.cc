@@ -159,18 +159,17 @@ struct ArrayReprImpl {
         Formatter<T> formatter;
 
         // Let formatter scan all elements to print.
-        VisitElements<T>(native_array, [&formatter](const IndexableArray<const T> iarray, const Indexer& indexer) {
-            formatter.Scan(iarray[indexer]);
-        });
+        VisitElements<T>(
+                native_array, [&formatter](const IndexableArray<const T> iarray, const IndexIterator& it) { formatter.Scan(iarray[it]); });
 
         // Print values using the formatter.
         const int8_t ndim = array.ndim();
         int cur_line_size = 0;
         VisitElements<T>(
-                native_array, [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T>& iarray, const Indexer& indexer) {
+                native_array, [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T>& iarray, const IndexIterator& it) {
                     int8_t trailing_zeros = 0;
                     if (ndim > 0) {
-                        const int64_t* index = indexer.index();
+                        const int64_t* index = it.index();
                         for (auto it = index + ndim; --it >= index;) {
                             if (*it == 0) {
                                 ++trailing_zeros;
@@ -199,7 +198,7 @@ struct ArrayReprImpl {
                             os << ", ";
                         }
                     }
-                    formatter.Print(os, iarray[indexer]);
+                    formatter.Print(os, iarray[it]);
                     ++cur_line_size;
                 });
 
@@ -236,10 +235,8 @@ private:
         Indexer indexer{array.shape()};
         IndexableArray<const T> iarray{array};
 
-        int64_t total_size = array.GetTotalSize();
-        for (int64_t i = 0; i < total_size; ++i) {
-            indexer.Set(i);
-            visitor(iarray, indexer);
+        for (auto it = indexer.It(0); it; ++it) {
+            visitor(iarray, it);
         }
     }
 };

@@ -506,14 +506,11 @@ __global__ void TakeKernel(
         Indexer indices_indexer,
         int64_t common_total_size,
         int64_t axis_dim) {
-    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < out_indexer.total_size(); i += blockDim.x * gridDim.x) {
-        out_indexer.Set(i);
+    for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
+        int64_t indices_pos = it.raw_index() / common_total_size;
+        int64_t common_pos = it.raw_index() % common_total_size;
 
-        int64_t indices_pos = i / common_total_size;
-        int64_t common_pos = i % common_total_size;
-
-        indices_indexer.Set(indices_pos);
-        int64_t index = indices_iarray[indices_indexer];
+        int64_t index = indices_iarray[indices_indexer.It(indices_pos)];
         if (index < 0) {
             index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
         } else {
@@ -522,8 +519,7 @@ __global__ void TakeKernel(
         assert(0 <= index);
         assert(index < axis_dim);
 
-        a_indexer.Set(index * common_total_size + common_pos);
-        out_iarray[out_indexer] = a_iarray[a_indexer];
+        out_iarray[it] = a_iarray[a_indexer.It(index * common_total_size + common_pos)];
     }
 }
 
@@ -538,17 +534,14 @@ __global__ void AddAtKernel(
         Indexer indices_indexer,
         int64_t common_total_size,
         int64_t axis_dim) {
-    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < out_indexer.total_size(); i += blockDim.x * gridDim.x) {
-        out_indexer.Set(i);
+    for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
+        int64_t axis_pos = it.raw_index() / common_total_size;
+        int64_t common_pos = it.raw_index() % common_total_size;
 
-        int64_t axis_pos = i / common_total_size;
-        int64_t common_pos = i % common_total_size;
+        T out_value = a_iarray[it];
 
-        T out_value = a_iarray[out_indexer];
-
-        for (int64_t indices_pos = 0; indices_pos < indices_indexer.total_size(); ++indices_pos) {
-            indices_indexer.Set(indices_pos);
-            int64_t index = indices_iarray[indices_indexer];
+        for (auto it_indices = indices_indexer.It(0); it_indices; ++it_indices) {
+            int64_t index = indices_iarray[it_indices];
 
             if (index < 0) {
                 index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
@@ -559,12 +552,11 @@ __global__ void AddAtKernel(
             assert(index < axis_dim);
 
             if (index == axis_pos) {
-                b_indexer.Set(indices_pos * common_total_size + common_pos);
-                out_value += b_iarray[b_indexer];
+                out_value += b_iarray[b_indexer.It(it_indices.raw_index() * common_total_size + common_pos)];
             }
         }
 
-        out_iarray[out_indexer] = out_value;
+        out_iarray[it] = out_value;
     }
 }
 

@@ -27,10 +27,9 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol, bool equ
         IndexableArray<const T> b_iarray{b_native};
         Indexer indexer{a_native.shape()};
 
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            T ai = a_iarray[indexer];
-            T bi = b_iarray[indexer];
+        for (auto it = indexer.It(0); it; ++it) {
+            T ai = a_iarray[it];
+            T bi = b_iarray[it];
             if (equal_nan && std::isnan(ai) && std::isnan(bi)) {
                 // nop
             } else if (std::isnan(ai) || std::isnan(bi) || std::abs(ai - bi) > atol + rtol * std::abs(bi)) {

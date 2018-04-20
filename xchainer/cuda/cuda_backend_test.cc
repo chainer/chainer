@@ -41,9 +41,8 @@ void ExpectArraysEqual(const Array& expected, const Array& actual) {
         actual.device().Synchronize();
         expected.device().Synchronize();
 
-        for (int64_t i = 0; i < indexer.total_size(); ++i) {
-            indexer.Set(i);
-            EXPECT_EQ(expected_iarray[indexer], actual_iarray[indexer]);
+        for (auto it = indexer.It(0); it; ++it) {
+            EXPECT_EQ(expected_iarray[it], actual_iarray[it]);
         }
     });
 }

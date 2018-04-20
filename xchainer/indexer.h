@@ -12,11 +12,15 @@
 
 namespace xchainer {
 
+class IndexIterator;
+
 class Indexer {
 public:
     explicit Indexer(const Shape& shape) : total_size_{shape.GetTotalSize()}, ndim_{shape.ndim()} {
         std::copy(shape.begin(), shape.end(), shape_);
     }
+
+    XCHAINER_HOST_DEVICE IndexIterator It(int64_t start, int64_t step = 1) const;
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
 
@@ -24,67 +28,116 @@ public:
 
     XCHAINER_HOST_DEVICE const int64_t* shape() const { return shape_; }
 
-    XCHAINER_HOST_DEVICE const int64_t* index() const { return index_; }
-
-    XCHAINER_HOST_DEVICE int64_t* index() { return index_; }
-
-    XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
-
-    XCHAINER_HOST_DEVICE void Set(int64_t i) {
-        assert(0 <= i);
-        assert(i < total_size_);
-        raw_index_ = i;
-        for (int8_t j = ndim_; --j >= 0;) {
-            index_[j] = i % shape_[j];
-            i /= shape_[j];
-        }
-    }
-
     // Sets an index from mutiple indexers each of which composes a portion of dimensions in order.
     template <typename... Args>
-    XCHAINER_HOST_DEVICE void SetIndexers(Args&&... indexers) {
-        int8_t processed_dims = SetIndexersImpl(0, std::forward<Args>(indexers)...);
-        assert(processed_dims == ndim_);
-#ifndef NDEBUG
-        for (int8_t i = 0; i < ndim_; ++i) {
-            assert(0 <= index_[i]);
-            assert(index_[i] < shape_[i]);
-        }
-#endif
-    }
+    XCHAINER_HOST_DEVICE IndexIterator It(const IndexIterator& first, Args&&... iters);
 
 private:
-    // Implementation of SetIndexers.
+    // Combine multiple sub-iterators to make a combined iterator.
     // Returns the number of written dimensions, which is equal to ndim_.
     // `processed_dims` is the number of written dimensions so far.
     template <typename... Args>
-    XCHAINER_HOST_DEVICE int8_t SetIndexersImpl(int8_t processed_dims, const Indexer& first_indexer, Args&&... indexers) {
-        processed_dims = SetIndexersImpl(processed_dims, first_indexer);
-        int8_t dims = SetIndexersImpl(processed_dims, std::forward<Args>(indexers)...);
-        assert(dims == ndim_);
-        return dims;
-    }
+    XCHAINER_HOST_DEVICE int8_t
+    CombineIterators(IndexIterator& it, int8_t processed_dims, const IndexIterator& first_iter, Args&&... iters);
 
-    XCHAINER_HOST_DEVICE int8_t SetIndexersImpl(int8_t processed_dims, const Indexer& indexer) {
-        assert(processed_dims + indexer.ndim_ <= ndim_);
-        for (int8_t i = 0; i < indexer.ndim_; ++i) {
-            index_[processed_dims + i] = indexer.index_[i];
-        }
-        return processed_dims + indexer.ndim_;
-    }
+    XCHAINER_HOST_DEVICE int8_t CombineIterators(IndexIterator& it, int8_t processed_dims, const IndexIterator& iter);
 
+private:
     int64_t shape_[kMaxNdim]{};
-    int64_t index_[kMaxNdim]{};
-    int64_t raw_index_{};
     int64_t total_size_{};
     int8_t ndim_{};
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Indexer& indexer) {
-    NdimVector<int64_t> index_vec{indexer.index(), indexer.index() + indexer.ndim()};
     Shape shape{indexer.shape(), indexer.shape() + indexer.ndim()};
-    Shape index{indexer.index(), indexer.index() + indexer.ndim()};
-    return os << "Indexer(shape=" << shape << " index=" << index << ")";
+    return os << "Indexer(shape=" << shape << ")";
+}
+
+class IndexIterator {
+public:
+    explicit XCHAINER_HOST_DEVICE IndexIterator(const Indexer& indexer, int64_t start, int64_t step)
+        : indexer_{indexer}, index_{}, raw_index_{0}, step_{step} {
+        SetSafe(start);
+    }
+
+    XCHAINER_HOST_DEVICE const Indexer& indexer() const { return indexer_; }
+
+    XCHAINER_HOST_DEVICE int64_t* index() { return index_; }
+
+    XCHAINER_HOST_DEVICE const int64_t* index() const { return index_; }
+
+    XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
+
+    XCHAINER_HOST_DEVICE operator bool() const { return ok(); }
+
+    XCHAINER_HOST_DEVICE IndexIterator& operator++() {
+        SetSafe(raw_index_ + step_);
+        return *this;
+    }
+
+private:
+    XCHAINER_HOST_DEVICE bool ok() const { return 0 <= raw_index_ && raw_index_ < indexer_.total_size(); }
+
+    // Set raw_index_.
+    // index_ is updated only when raw_index_ is [0, total_size).
+    XCHAINER_HOST_DEVICE void SetSafe(int64_t i) {
+        raw_index_ = i;
+        if (ok()) {
+            UpdateIndex();
+        }
+    }
+
+    // Update index_ to follow raw_index_.
+    // raw_index_ must be [0, total_size).
+    XCHAINER_HOST_DEVICE void UpdateIndex() {
+        assert(0 <= raw_index_);
+        assert(raw_index_ < indexer_.total_size());
+        int64_t i = raw_index_;
+        const int64_t* shape = indexer_.shape();
+        for (int8_t j = indexer_.ndim(); --j >= 0;) {
+            index_[j] = i % shape[j];
+            i /= shape[j];
+        }
+    }
+
+    const Indexer& indexer_;
+    int64_t index_[kMaxNdim];
+    int64_t raw_index_;
+    const int64_t step_;
+};
+
+XCHAINER_HOST_DEVICE inline IndexIterator Indexer::It(int64_t start, int64_t step) const { return IndexIterator{*this, start, step}; }
+
+// Sets an index from mutiple indexers each of which composes a portion of dimensions in order.
+template <typename... Args>
+XCHAINER_HOST_DEVICE IndexIterator Indexer::It(const IndexIterator& first, Args&&... iters) {
+    IndexIterator it = It(0);
+    int8_t processed_dims = CombineIterators(it, 0, first, std::forward<Args>(iters)...);
+    assert(processed_dims == ndim_);
+#ifndef NDEBUG
+    for (int8_t i = 0; i < ndim_; ++i) {
+        assert(0 <= it.index()[i]);
+        assert(it.index()[i] < shape_[i]);
+    }
+#endif
+    return it;
+}
+
+template <typename... Args>
+XCHAINER_HOST_DEVICE int8_t
+Indexer::CombineIterators(IndexIterator& it, int8_t processed_dims, const IndexIterator& first_iter, Args&&... iters) {
+    processed_dims = CombineIterators(it, processed_dims, first_iter);
+    int8_t dims = CombineIterators(it, processed_dims, std::forward<Args>(iters)...);
+    assert(dims == ndim_);
+    return dims;
+}
+
+XCHAINER_HOST_DEVICE inline int8_t Indexer::CombineIterators(IndexIterator& it, int8_t processed_dims, const IndexIterator& iter) {
+    assert(processed_dims + iter.indexer().ndim_ <= ndim_);
+    for (int8_t i = 0; i < iter.indexer().ndim_; ++i) {
+        it.index()[processed_dims + i] = iter.index()[i];
+    }
+    return processed_dims + iter.indexer().ndim_;
 }
 
 }  // namespace xchainer

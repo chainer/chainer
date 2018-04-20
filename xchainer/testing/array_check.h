@@ -52,9 +52,9 @@ void ExpectDataEqual(const T* expected_data, const Array& actual) {
     Array native_actual = actual.ToNative();
     IndexableArray<const T> actual_iarray{native_actual};
     Indexer indexer{actual.shape()};
-    for (int64_t i = 0; i < indexer.total_size(); ++i) {
-        indexer.Set(i);
-        T actual_value = actual_iarray[indexer];
+    for (auto it = indexer.It(0); it; ++it) {
+        T actual_value = actual_iarray[it];
+        int64_t i = it.raw_index();
         EXPECT_EQ(expected_data[i], actual_value) << "where i is " << i;
     }
 }
@@ -64,13 +64,12 @@ void ExpectDataEqual(T expected, const Array& actual) {
     Array native_actual = actual.ToNative();
     IndexableArray<const T> actual_iarray{native_actual};
     Indexer indexer{actual.shape()};
-    for (int64_t i = 0; i < indexer.total_size(); ++i) {
-        indexer.Set(i);
-        T actual_value = actual_iarray[indexer];
+    for (auto it = indexer.It(0); it; ++it) {
+        T actual_value = actual_iarray[it];
         if (std::isnan(expected)) {
-            EXPECT_TRUE(std::isnan(actual_value)) << "where i is " << i;
+            EXPECT_TRUE(std::isnan(actual_value)) << "where i is " << it.raw_index();
         } else {
-            EXPECT_EQ(expected, actual_value) << "where i is " << i;
+            EXPECT_EQ(expected, actual_value) << "where i is " << it.raw_index();
         }
     }
 }

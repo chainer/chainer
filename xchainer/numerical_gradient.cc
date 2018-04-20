@@ -32,8 +32,7 @@ void Set(Array& out, int64_t flat_index, Scalar value) {
         using T = typename decltype(pt)::type;
         IndexableArray<T> iarray{out};
         Indexer indexer{out.shape()};
-        indexer.Set(flat_index);
-        iarray[indexer] = static_cast<T>(value);
+        iarray[indexer.It(flat_index)] = static_cast<T>(value);
     });
 }
 
@@ -44,8 +43,7 @@ Scalar Get(const Array& out, int64_t flat_index) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> iarray{out};
         Indexer indexer{out.shape()};
-        indexer.Set(flat_index);
-        return Scalar{iarray[indexer]};
+        return Scalar{iarray[indexer.It(flat_index)]};
     });
 }
 

@@ -62,7 +62,7 @@ public:
         return *reinterpret_cast<T*>(data_ptr);
     }
 
-    XCHAINER_HOST_DEVICE T& operator[](const Indexer& indexer) const { return operator[](indexer.index()); }
+    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator& it) const { return operator[](it.index()); }
 
     // Permutes the axes.
     //

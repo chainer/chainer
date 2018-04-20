@@ -357,9 +357,8 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
         Indexer right_indexer{right_shape};
         Indexer axis_indexer{axis_shape};
 
-        for (int64_t i = 0; i < indices_indexer.total_size(); ++i) {
-            indices_indexer.Set(i);
-            int64_t index = indices_iarray[indices_indexer];
+        for (auto it = indices_indexer.It(0); it; ++it) {
+            int64_t index = indices_iarray[it];
             if (index < 0) {
                 index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
             } else {
@@ -367,15 +366,13 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
             }
             assert(0 <= index);
             assert(index < axis_dim);
-            axis_indexer.Set(index);
+            auto it_axis = axis_indexer.It(index);
 
-            for (int64_t i_left = 0; i_left < left_indexer.total_size(); ++i_left) {
-                left_indexer.Set(i_left);
-                for (int64_t i_right = 0; i_right < right_indexer.total_size(); ++i_right) {
-                    right_indexer.Set(i_right);
-                    out_indexer.SetIndexers(left_indexer, indices_indexer, right_indexer);
-                    a_indexer.SetIndexers(left_indexer, axis_indexer, right_indexer);
-                    out_iarray[out_indexer] = a_iarray[a_indexer];
+            for (auto it_left = left_indexer.It(0); it_left; ++it_left) {
+                for (auto it_right = right_indexer.It(0); it_right; ++it_right) {
+                    auto it_out = out_indexer.It(it_left, it, it_right);
+                    auto it_a = a_indexer.It(it_left, it_axis, it_right);
+                    out_iarray[it_out] = a_iarray[it_a];
                 }
             }
         }
@@ -408,15 +405,13 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
         Indexer axis_indexer{axis_shape};
 
         // Copy
-        for (int64_t i = 0; i < out_indexer.total_size(); ++i) {
-            out_indexer.Set(i);
-            out_iarray[out_indexer] = a_iarray[out_indexer];
+        for (auto it = out_indexer.It(0); it; ++it) {
+            out_iarray[it] = a_iarray[it];
         }
 
         // Add
-        for (int64_t i = 0; i < indices_indexer.total_size(); ++i) {
-            indices_indexer.Set(i);
-            int64_t index = indices_iarray[indices_indexer];
+        for (auto it = indices_indexer.It(0); it; ++it) {
+            int64_t index = indices_iarray[it];
             if (index < 0) {
                 index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
             } else {
@@ -424,15 +419,13 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
             }
             assert(0 <= index);
             assert(index < axis_dim);
-            axis_indexer.Set(index);
+            auto it_axis = axis_indexer.It(index);
 
-            for (int64_t i_left = 0; i_left < left_indexer.total_size(); ++i_left) {
-                left_indexer.Set(i_left);
-                for (int64_t i_right = 0; i_right < right_indexer.total_size(); ++i_right) {
-                    right_indexer.Set(i_right);
-                    out_indexer.SetIndexers(left_indexer, axis_indexer, right_indexer);
-                    b_indexer.SetIndexers(left_indexer, indices_indexer, right_indexer);
-                    out_iarray[out_indexer] += b_iarray[b_indexer];
+            for (auto it_left = left_indexer.It(0); it_left; ++it_left) {
+                for (auto it_right = right_indexer.It(0); it_right; ++it_right) {
+                    auto it_out = out_indexer.It(it_left, it_axis, it_right);
+                    auto it_b = b_indexer.It(it_left, it, it_right);
+                    out_iarray[it_out] += b_iarray[it_b];
                 }
             }
         }

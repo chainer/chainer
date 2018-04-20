@@ -304,9 +304,8 @@ void InitXchainerArray(pybind11::module& m) {
             IndexableArray<const T> iarray{array};
             Indexer indexer{array.shape()};
 
-            for (int64_t i = 0; i < indexer.total_size(); ++i) {
-                indexer.Set(i);
-                list.append(iarray[indexer]);
+            for (auto it = indexer.It(0); it; ++it) {
+                list.append(iarray[it]);
             }
         });
 
