@@ -85,7 +85,7 @@ Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device
     }
     auto size = std::max(int64_t{0}, static_cast<int64_t>(std::ceil((stop_value - start_value) / step_value)));
     if (size > 2 && dtype == Dtype::kBool) {
-        throw DtypeError("Cannot create an arange array of booleans with size larger than 2.");
+        throw DtypeError{"Cannot create an arange array of booleans with size larger than 2."};
     }
 
     Array out = Empty({size}, dtype, device);

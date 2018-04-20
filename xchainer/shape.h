@@ -58,7 +58,7 @@ public:
 
     int64_t operator[](int8_t index) const {
         if (!(0 <= index && index < ndim_)) {
-            throw DimensionError("index out of bounds");
+            throw DimensionError{"index out of bounds"};
         }
         return dims_[index];
     }
@@ -81,7 +81,7 @@ public:
 private:
     void CheckNdim() const {
         if (ndim_ > kMaxNdim) {
-            throw DimensionError("too many dimensions: " + std::to_string(ndim_));
+            throw DimensionError{"too many dimensions: ", ndim_};
         }
     }
 

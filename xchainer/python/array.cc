@@ -44,7 +44,7 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
     auto total_size = shape.GetTotalSize();
     auto bytes = GetElementSize(dtype) * total_size;
     if (static_cast<size_t>(total_size) != list.size()) {
-        throw DimensionError("Invalid data length");
+        throw DimensionError{"Invalid data length"};
     }
 
     // Allocate a buffer and copy data
@@ -152,7 +152,7 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("take",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
               if (!axis.has_value()) {
-                  throw NotImplementedError("axis=None is not yet supported for xchainer.Array.take.");
+                  throw NotImplementedError{"axis=None is not yet supported for xchainer.Array.take."};
               }
               return Array{self}.Take(Array{indices}, axis.value()).move_body();
           },

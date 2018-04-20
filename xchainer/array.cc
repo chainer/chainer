@@ -48,7 +48,7 @@ void SetUpOpNodes(
         const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
         const std::vector<GraphId>& graph_ids_to_stop_gradients) {
     if (inputs.size() != backward_functions.size()) {
-        throw XchainerError("Cannot construct a graph where numbers of input Arrays and backward functions do not match.");
+        throw XchainerError{"Cannot construct a graph where numbers of input Arrays and backward functions do not match."};
     }
 
     std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_edges;
@@ -73,7 +73,7 @@ void SetUpOpNodes(
     }
 
     if (!graph_edges.empty() && std::any_of(inputs.begin(), inputs.end(), [&out](const Array& input) { return &out == &input; })) {
-        throw XchainerError("In-place operation (" + name + ") is not supported for an array that require gradients.");
+        throw XchainerError{"In-place operation (", name, ") is not supported for an array that require gradients."};
     }
 
     // Bind edges to output
@@ -95,7 +95,7 @@ bool HasArrayNode(const Array& array, const GraphId& graph_id) {
 
 const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const GraphId& graph_id) {
     if (HasArrayNode(array, graph_id)) {
-        throw XchainerError("Duplicate graph registration: '" + graph_id + "'.");
+        throw XchainerError{"Duplicate graph registration: '", graph_id, "'."};
     }
     array.nodes().emplace_back(std::make_shared<ArrayNode>(graph_id));
     return array.nodes().back();
@@ -107,7 +107,7 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
     auto it = std::find_if(
             array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); });
     if (it == array.nodes().end()) {
-        throw XchainerError("Array does not belong to the graph: '" + graph_id + "'.");
+        throw XchainerError{"Array does not belong to the graph: '", graph_id, "'."};
     }
     return *it;
 }
@@ -193,8 +193,7 @@ Array Array::ToDevice(Device& dst_device) const {
             dst_data = dst_device.TransferDataFrom(src_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes());
         } else {
             // Neither backends support transfer.
-            throw XchainerError(
-                    "Transfer between devices is not supported: src='" + src_device.name() + "' dst='" + dst_device.name() + "'.");
+            throw XchainerError{"Transfer between devices is not supported: src='", src_device.name(), "' dst='", dst_device.name(), "'."};
         }
         out = Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data), src_contig.offset()};
     }

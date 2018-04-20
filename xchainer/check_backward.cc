@@ -24,7 +24,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kEnable) {
     for (const auto& input : inputs) {
         if (internal::HasArrayNode(input, graph_id) && internal::GetArrayNode(input, graph_id)->next_node()) {
-            throw XchainerError("BackwardGradients: All inputs must be leaf nodes of computational graph");
+            throw XchainerError{"BackwardGradients: All inputs must be leaf nodes of computational graph"};
         }
     }
 
@@ -33,9 +33,11 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
     if (grad_outputs) {
         const std::size_t nout = outputs.size();
         if (nout != grad_outputs->size()) {
-            throw XchainerError(
-                    "BackwardGradients: Size of function outputs: " + std::to_string(nout) +
-                    " and size of grad outputs: " + std::to_string(grad_outputs->size()) + " must be same");
+            throw XchainerError{"BackwardGradients: Size of function outputs: ",
+                                nout,
+                                " and size of grad outputs: ",
+                                grad_outputs->size(),
+                                " must be same"};
         }
 
         for (std::size_t i = 0; i < nout; ++i) {
@@ -124,7 +126,7 @@ void CheckDoubleBackpropOption(
     // Do nothing unless failure
     std::string failure_message = failure_os.str();
     if (!failure_message.empty()) {
-        throw GradientCheckError(failure_message);
+        throw GradientCheckError{failure_message};
     }
 }
 
@@ -140,7 +142,7 @@ void CheckBackwardComputation(
     const std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps, graph_id);
     const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_copy, grad_outputs, graph_id);
     if (backward_grads.size() != numerical_grads.size()) {
-        throw XchainerError("Number of gradient arrays mismatched between backprop and numerical grad");
+        throw XchainerError{"Number of gradient arrays mismatched between backprop and numerical grad"};
     }
 
     std::ostringstream failure_os;
@@ -165,7 +167,7 @@ void CheckBackwardComputation(
     // Do nothing if all backward-numerical gradient pairs were close, else generate a nonfatal failure
     std::string failure_message = failure_os.str();
     if (!failure_message.empty()) {
-        throw GradientCheckError(failure_message);
+        throw GradientCheckError{failure_message};
     }
 }
 
@@ -195,7 +197,7 @@ void CheckDoubleBackwardComputation(
     // LIMITATION: All inputs must require gradients unlike CheckBackwardComputation
     for (const auto& input : inputs) {
         if (!input.IsGradRequired(graph_id)) {
-            throw XchainerError("All inputs must require gradients");
+            throw XchainerError{"All inputs must require gradients"};
         }
     }
 
@@ -224,7 +226,7 @@ void CheckDoubleBackwardComputation(
                 std::back_inserter(backward_grads),
                 [](const nonstd::optional<Array>& optional_backward_grad) {
                     if (!optional_backward_grad.has_value()) {
-                        throw XchainerError("All gradients must exist");
+                        throw XchainerError{"All gradients must exist"};
                     }
                     return *optional_backward_grad;
                 });
@@ -236,7 +238,7 @@ void CheckDoubleBackwardComputation(
     const std::vector<nonstd::optional<Array>> backward_grads =
             BackwardGradients(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, graph_id);
     if (backward_grads.size() != numerical_grads.size()) {
-        throw XchainerError("Number of gradient arrays mismatched between backprop and numerical grad");
+        throw XchainerError{"Number of gradient arrays mismatched between backprop and numerical grad"};
     }
 
     std::ostringstream failure_os;
@@ -263,7 +265,7 @@ void CheckDoubleBackwardComputation(
     // Do nothing if all backward-numerical gradient pairs were close, else generate a nonfatal failure
     std::string failure_message = failure_os.str();
     if (!failure_message.empty()) {
-        throw GradientCheckError(failure_message);
+        throw GradientCheckError{failure_message};
     }
 }
 

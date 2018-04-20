@@ -44,7 +44,7 @@ Dtype GetDtype(const std::string& name) {
             return pair.dtype;
         }
     }
-    throw DtypeError("unknown dtype name: \"" + name + '"');
+    throw DtypeError{"unknown dtype name: \"", name, '"'};
 }
 
 std::vector<Dtype> GetAllDtypes() {
@@ -62,9 +62,7 @@ std::vector<Dtype> GetAllDtypes() {
 
 void CheckEqual(Dtype lhs, Dtype rhs) {
     if (lhs != rhs) {
-        std::ostringstream ss;
-        ss << "dtype mismatched: " << lhs << " != " << rhs;
-        throw DtypeError(ss.str());
+        throw DtypeError{"dtype mismatched: ", lhs, " != ", rhs};
     }
 }
 

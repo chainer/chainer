@@ -120,7 +120,7 @@ auto VisitDtype(Dtype dtype, F&& f, Args&&... args) {
         case Dtype::kFloat64:
             return std::forward<F>(f)(PrimitiveType<double>{}, std::forward<Args>(args)...);
         default:
-            throw DtypeError("invalid dtype");
+            throw DtypeError{"invalid dtype"};
     }
 }
 
@@ -134,7 +134,7 @@ auto VisitFloatingPointDtype(Dtype dtype, F&& f, Args&&... args) {
         case Dtype::kFloat64:
             return std::forward<F>(f)(PrimitiveType<double>{}, std::forward<Args>(args)...);
         default:
-            throw DtypeError("invalid dtype");
+            throw DtypeError{"invalid dtype"};
     }
 }
 

@@ -20,10 +20,10 @@ DeviceId::DeviceId(const std::string& device_name) {
             // TODO(hvy): Check if device_name ends with the index without any garbage
             index_ = std::stoi(device_name.substr(pos + 1));
         } catch (const std::logic_error& e) {
-            throw DeviceError("invalid device name (no integer found after ':'): '" + device_name + "'");
+            throw DeviceError{"invalid device name (no integer found after ':'): '", device_name, "'"};
         }
         if (index_ < 0) {
-            throw DeviceError("invalid device name (negative index is not allowed): '" + device_name + "'");
+            throw DeviceError{"invalid device name (negative index is not allowed): '", device_name, "'"};
         }
     }
 }
