@@ -27,7 +27,7 @@ std::string GetXchainerPath() {
 
     char* home_path = std::getenv("HOME");
     if (home_path == nullptr) {
-        throw XchainerError("Xchainer path is not defined. Set either XCHAINER_PATH or HOME.");
+        throw XchainerError{"Xchainer path is not defined. Set either XCHAINER_PATH or HOME."};
     }
     return std::string(home_path) + "/.xchainer";
 }
@@ -65,7 +65,7 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         std::string so_file_path = GetXchainerPath() + "/backends/" + backend_name + ".so";
         void* handle = ::dlopen(so_file_path.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (handle == nullptr) {
-            throw BackendError("Backend not found: '" + backend_name + "'");
+            throw BackendError{"Backend not found: '", backend_name, "'"};
         }
         {
             std::lock_guard<std::mutex> lock{mutex_};
@@ -76,7 +76,7 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         void* ptr = ::dlsym(handle, "CreateBackend");
         auto create_backend = reinterpret_cast<std::unique_ptr<Backend> (*)(Context&)>(ptr);  // NOLINT: reinterpret_cast
         if (create_backend == nullptr) {
-            throw BackendError("Invalid backend plugin: CreateBackend is not found in '" + so_file_path + "'.");
+            throw BackendError{"Invalid backend plugin: CreateBackend is not found in '", so_file_path, "'."};
         }
         backend = create_backend(*this);
     }
@@ -98,7 +98,7 @@ Device& Context::GetDevice(const DeviceId& device_id) {
 Context& GetGlobalDefaultContext() {
     Context* context = g_global_default_context;
     if (context == nullptr) {
-        throw ContextError("Global default context is not set.");
+        throw ContextError{"Global default context is not set."};
     }
     return *context;
 }

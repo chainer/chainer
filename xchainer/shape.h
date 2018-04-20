@@ -57,7 +57,7 @@ public:
 
     const int64_t& operator[](int8_t index) const {
         if (!(0 <= index && static_cast<size_t>(index) < size())) {
-            throw DimensionError("index out of bounds");
+            throw DimensionError{"index out of bounds"};
         }
         return this->StackVector::operator[](index);
     }
@@ -68,7 +68,7 @@ public:
 private:
     void CheckNdim(std::ptrdiff_t ndim) const {
         if (ndim > kMaxNdim) {
-            throw DimensionError("too many dimensions: " + std::to_string(ndim));
+            throw DimensionError{"too many dimensions: ", ndim};
         }
     }
 };

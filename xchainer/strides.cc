@@ -39,7 +39,7 @@ std::ostream& operator<<(std::ostream& os, const Strides& strides) {
 
 void CheckEqual(const Strides& lhs, const Strides& rhs) {
     if (lhs != rhs) {
-        throw DimensionError("strides mismatched");
+        throw DimensionError{"strides mismatched"};
     }
 }
 

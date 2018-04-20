@@ -16,7 +16,7 @@ namespace internal {
 
 int8_t NormalizeAxis(int8_t axis, int8_t ndim) {
     if (axis < -ndim || ndim <= axis) {
-        throw DimensionError("Axis " + std::to_string(axis) + " is out of bounds for array of dimension " + std::to_string(ndim));
+        throw DimensionError{"Axis ", axis, " is out of bounds for array of dimension ", ndim};
     }
     if (axis < 0) {
         return axis + ndim;
@@ -32,7 +32,7 @@ NdimVector<int8_t> GetSortedAxes(const NdimVector<int8_t>& axis, int8_t ndim) {
     }
     std::sort(sorted_axis.begin(), sorted_axis.end());
     if (std::unique(sorted_axis.begin(), sorted_axis.end()) != sorted_axis.end()) {
-        throw DimensionError("Duplicate axis values.");
+        throw DimensionError{"Duplicate axis values."};
     }
 
     // sorted_axis is sorted, unique, and within bounds [0, ndim).

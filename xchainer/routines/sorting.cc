@@ -35,7 +35,7 @@ Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis) {
 
     for (int8_t i : sorted_axis) {
         if (a.shape()[i] == 0) {
-            throw DimensionError("Cannot compute ArgMax for an empty array.");
+            throw DimensionError{"Cannot compute ArgMax for an empty array."};
         }
     }
 

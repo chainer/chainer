@@ -54,7 +54,7 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
         if (dim1 == 1) {
             return dim0;
         }
-        throw DimensionError("operands could not be broadcast together with shapes " + shape0.ToString() + ' ' + shape1.ToString());
+        throw DimensionError{"operands could not be broadcast together with shapes ", shape0, " ", shape1};
     });
 
     return Shape{new_dims.begin(), new_dims.end()};
@@ -98,7 +98,7 @@ std::ostream& operator<<(std::ostream& os, const Shape& shape) {
 
 void CheckEqual(const Shape& lhs, const Shape& rhs) {
     if (lhs != rhs) {
-        throw DimensionError("Shapes do not match: " + lhs.ToString() + ", " + rhs.ToString() + ".");
+        throw DimensionError{"Shapes do not match: ", lhs, ", ", rhs, "."};
     }
 }
 
