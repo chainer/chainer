@@ -7,6 +7,7 @@ from chainer.training.extensions.exponential_shift import ExponentialShift  # NO
 from chainer.training.extensions.fail_on_nonnumber import FailOnNonNumber  # NOQA
 from chainer.training.extensions.linear_shift import LinearShift  # NOQA
 from chainer.training.extensions.log_report import LogReport  # NOQA
+from chainer.training.extensions.poly import Poly  # NOQA
 from chainer.training.extensions.micro_average import MicroAverage  # NOQA
 from chainer.training.extensions.parameter_statistics import ParameterStatistics  # NOQA
 from chainer.training.extensions.plot_report import PlotReport  # NOQA
