@@ -38,8 +38,8 @@ def group_normalization(x, n_groups, gamma, beta, eps=1e-5):
     See: `Group Normalization <https://arxiv.org/abs/1803.08494>`_
     """
     if x.ndim <= 2:
-        raise ValueError('Input dimension must be bigger than 2, '
-                         'excluding batch size dimension '
+        raise ValueError('Input dimension must be grater than 2, '
+                         'including batch size dimension '
                          '(first dimension).')
 
     if not isinstance(n_groups, int):
