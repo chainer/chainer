@@ -79,8 +79,8 @@ class GroupNormalization(link.Link):
         """
         if self.gamma.data is None:
             if x.ndim <= 2:
-                raise ValueError('Input dimension must be bigger than 2, '
-                                 'excluding batch size dimension '
+                raise ValueError('Input dimension must be grater than 2, '
+                                 'including batch size dimension '
                                  '(first dimension).')
             channels = x.shape[1]
             self._initialize_params(channels)
