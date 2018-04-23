@@ -570,7 +570,7 @@ __global__ void AddAtKernel(
 
 template <typename T>
 struct IdentityImpl {
-    IdentityImpl(int64_t n) : n_plus_one{n + 1} {}
+    explicit IdentityImpl(int64_t n) : n_plus_one{n + 1} {}
     __device__ void operator()(int64_t i, T& out) { out = i % n_plus_one == 0 ? T{1} : T{0}; }
     int64_t n_plus_one;
 };
