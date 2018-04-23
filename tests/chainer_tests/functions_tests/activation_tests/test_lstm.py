@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer.functions.activation import lstm
 from chainer import gradient_check
@@ -20,7 +20,10 @@ def inject_backend_tests(method_names):
     decorator = backend.inject_backend_tests(
         method_names,
         # CPU tests
-        [{'use_cuda': False}]
+        testing.product({
+            'use_cuda': [False],
+            'use_ideep': ['never', 'always'],
+        })
         # GPU tests
         + [{'use_cuda': True}])
     return decorator

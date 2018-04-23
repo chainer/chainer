@@ -132,9 +132,12 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
 
     .. admonition:: Example
 
-        >>> anchor = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).astype('f')
-        >>> pos = np.array([[-2.1, 2.8, 0.5], [4.9, 2.0, -0.4]]).astype('f')
-        >>> neg = np.array([[-2.1, 2.7, 0.7], [4.9, 2.0, -0.7]]).astype('f')
+        >>> anchor = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).\
+astype(np.float32)
+        >>> pos = np.array([[-2.1, 2.8, 0.5], [4.9, 2.0, -0.4]]).\
+astype(np.float32)
+        >>> neg = np.array([[-2.1, 2.7, 0.7], [4.9, 2.0, -0.7]]).\
+astype(np.float32)
         >>> F.triplet(anchor, pos, neg)
         variable(0.14000003)
         >>> y = F.triplet(anchor, pos, neg, reduce='no')

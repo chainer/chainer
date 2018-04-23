@@ -1,17 +1,17 @@
 import unittest
 
 import functools
-import mock
 import numpy
 import operator
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 from chainer.utils import conv
 from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 
@@ -36,6 +36,7 @@ class TestAveragePoolingND(unittest.TestCase):
                          self.dims, self.ksize, self.stride, self.pad))
         gy_shape = (2, 3) + outs
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
 
         self.check_forward_options = {}
         self.check_backward_options = {'eps': 1e-2}
@@ -111,11 +112,12 @@ class TestAveragePoolingND(unittest.TestCase):
         self.check_forward_consistency_regression(cuda.to_gpu(self.x), 'never')
 
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
+        def f(x):
+            return functions.average_pooling_nd(
+                x, self.ksize, stride=self.stride, pad=self.pad)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.AveragePoolingND(
-                    self.ndim, self.ksize, self.stride, self.pad),
-                x_data, y_grad, dtype=numpy.float64,
+                f, x_data, y_grad, dtype=numpy.float64,
                 **self.check_backward_options)
 
     def test_backward_cpu(self):
@@ -152,7 +154,7 @@ class TestAveragePoolingND(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn):
             func_nd = functions.AveragePoolingND(self.ndim, ksize,
                                                  stride=stride, pad=pad)
-        y_nd = func_nd(x_nd)
+        y_nd = func_nd.apply((x_nd,))[0]
         y_nd.grad = gy_data
         y_nd.backward()
 
@@ -180,6 +182,41 @@ class TestAveragePoolingND(unittest.TestCase):
     def test_backward_consistency_regression_no_cudnn(self):
         self.check_backward_consistency_regression(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), use_cudnn='never')
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad,
+                              use_cudnn='always'):
+        def f(x):
+            y = functions.average_pooling_nd(
+                x, self.ksize, stride=self.stride, pad=self.pad)
+            return y * y
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, x_data, y_grad, x_grad_grad, **self.check_backward_options)
+
+    @condition.retry(10)
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx, 'never')
+
+    @attr.gpu
+    @condition.retry(10)
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    @condition.retry(10)
+    def test_double_backward_gpu_non_contiguous(self):
+        self.check_double_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
+
+    @attr.gpu
+    @condition.retry(10)
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+            'never')
 
 
 @testing.parameterize(*testing.product({
@@ -211,7 +248,7 @@ class TestAveragePoolingNDCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cuda.cudnn.poolingForward') as func:
+            with testing.patch('cupy.cuda.cudnn.poolingForward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto') and
@@ -223,7 +260,7 @@ class TestAveragePoolingNDCudnnCall(unittest.TestCase):
             y = self.forward()
         # should be consistent to forward regardless of use_cudnn config
         y.grad = self.gy
-        with mock.patch('cupy.cuda.cudnn.poolingBackward') as func:
+        with testing.patch('cupy.cuda.cudnn.poolingBackward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
 

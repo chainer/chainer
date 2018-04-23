@@ -65,18 +65,27 @@ class BatchNormalization(link.Link):
         decay (float): Decay rate of moving average. It is used on training.
         ~BatchNormalization.eps (float): Epsilon value for numerical stability.
             This value is added to the batch variances.
+        axis (int or tuple of int): Axis over which normalization is
+            performed. When axis is ``None``, it is determined from input
+            dimensions. For example, if ``x.ndim`` is 4, axis becomes (0, 2, 3)
+            and normalization is performed over 0th, 2nd and 3rd axis of input.
+            If it is 2, axis becomes (0) and normalization is performed
+            over 0th axis of input. When a tuple of int is given to this
+            option, numbers in the tuple must be being sorted in ascending
+            order. For example, (0, 2) is OK, but (2, 0) is not.
 
     """
 
     def __init__(self, size, decay=0.9, eps=2e-5, dtype=numpy.float32,
                  use_gamma=True, use_beta=True,
-                 initial_gamma=None, initial_beta=None):
+                 initial_gamma=None, initial_beta=None, axis=None):
         super(BatchNormalization, self).__init__()
 
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
         self.eps = eps
+        self.axis = axis
 
         if isinstance(size, collections.Iterable):
             self._size = size
@@ -167,13 +176,13 @@ class BatchNormalization(link.Link):
 
             ret = functions.batch_normalization(
                 x, gamma, beta, eps=self.eps, running_mean=self.avg_mean,
-                running_var=self.avg_var, decay=decay)
+                running_var=self.avg_var, decay=decay, axis=self.axis)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = variable.Variable(self.avg_mean)
             var = variable.Variable(self.avg_var)
             ret = functions.fixed_batch_normalization(
-                x, gamma, beta, mean, var, self.eps)
+                x, gamma, beta, mean, var, self.eps, axis=self.axis)
         return ret
 
     def start_finetuning(self):

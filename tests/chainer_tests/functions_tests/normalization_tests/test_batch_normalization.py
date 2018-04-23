@@ -1,11 +1,10 @@
 import unittest
 
-import mock
 import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -19,28 +18,43 @@ def _to_fcontiguous(arrays):
 
 
 def _batch_normalization(args):
-    x, gamma, beta, mean, var, expander = args
+    x, gamma, beta, mean, var, eps, expander = args
     mean = mean[expander]
-    std = numpy.sqrt(var)[expander]
+    std = numpy.sqrt(var + eps)[expander]
     y_expect = (gamma[expander] * (x - mean) / std + beta[expander])
     return y_expect
 
 
-@testing.parameterize(*(testing.product({
-    'param_shape': [(3,), (3, 4), (3, 2, 3)],
-    'ndim': [0, 1, 2],
-    'dtype': [numpy.float32],
-    'c_contiguous': [True, False],
-}) + testing.product({
+@testing.parameterize(*(testing.product_dict(
+    testing.product({
+        'param_shape': [(3,), (3, 4), (3, 2, 3)],
+        'ndim': [0, 1, 2],
+        'axis': [None],
+    }) + [
+        {'shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
+        {'shape': (5, 4), 'axis': 0},
+        {'shape': (5, 4, 3), 'axis': (0, 1)},
+    ],
+    testing.product({
+        'dtype': [numpy.float32],
+        'eps': [2e-5, 5e-1],
+        'c_contiguous': [True, False],
+    }),
+) + testing.product({
     'param_shape': [(3,)],
     'ndim': [1],
+    'eps': [2e-5, 5e-1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'c_contiguous': [True, False],
+    'axis': [None],
 })))
 @backend.inject_backend_tests(
     ['test_forward', 'test_backward', 'test_double_backward'],
     # CPU tests
-    [{'use_cuda': False}]
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
     # GPU tests
     + testing.product({
         'use_cuda': [True],
@@ -49,28 +63,46 @@ def _batch_normalization(args):
 class TestBatchNormalization(unittest.TestCase):
 
     def setUp(self):
-        param_shape = self.param_shape
         dtype = self.dtype
-        ndim = self.ndim
-        eps = 2e-5
+        aggr_axes = self.axis
+
+        if aggr_axes is None:
+            param_shape = self.param_shape
+            ndim = self.ndim
+            shape = (5,) + param_shape + (2,) * ndim
+        else:
+            if isinstance(self.axis, int):
+                aggr_axes = self.axis,
+            param_shape = tuple(
+                s
+                for i, s in enumerate(self.shape)
+                if i not in aggr_axes
+            )
+            shape = self.shape
 
         gamma = numpy.random.uniform(.5, 1, param_shape).astype(dtype)
         beta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
-        head_ndim = gamma.ndim + 1
-        shape = (5,) + param_shape + (2,) * ndim
         x = numpy.random.uniform(-1, 1, shape).astype(dtype)
         gy = numpy.random.uniform(-1, 1, shape).astype(dtype)
         ggx = numpy.random.uniform(-1, 1, shape).astype(dtype)
         gggamma = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
         ggbeta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
 
-        aggr_axes = (0,) + tuple(six.moves.range(head_ndim, x.ndim))
-        mean = x.mean(axis=aggr_axes)
-        var = x.var(axis=aggr_axes) + eps
+        if aggr_axes is None:
+            head_ndim = gamma.ndim + 1
+            aggr_axes = (0,) + tuple(six.moves.range(head_ndim, x.ndim))
 
-        self.eps = eps
+            self.expander = (None, Ellipsis) + (None,) * ndim
+        else:
+            self.expander = tuple(
+                None if i in aggr_axes else slice(None)
+                for i in range(x.ndim)
+            )
+
+        mean = x.mean(axis=aggr_axes)
+        var = x.var(axis=aggr_axes)
+
         self.decay = 0.9
-        self.expander = (None, Ellipsis) + (None,) * ndim
         self.mean = mean
         self.var = var
 
@@ -91,7 +123,7 @@ class TestBatchNormalization(unittest.TestCase):
 
     def forward_cpu(self, inputs):
         y_expect = _batch_normalization(
-            inputs + [self.mean, self.var, self.expander])
+            inputs + [self.mean, self.var, self.eps, self.expander])
         return y_expect,
 
     def check_forward(self, inputs, backend_config):
@@ -105,7 +137,8 @@ class TestBatchNormalization(unittest.TestCase):
         with backend_config:
             y = functions.batch_normalization(
                 *inputs, running_mean=None,
-                running_var=None, decay=self.decay, eps=self.eps)
+                running_var=None, decay=self.decay, eps=self.eps,
+                axis=self.axis)
         assert y.data.dtype == self.dtype
 
         testing.assert_allclose(
@@ -124,7 +157,7 @@ class TestBatchNormalization(unittest.TestCase):
 
         def f(*inputs):
             y = functions.batch_normalization(
-                *inputs, decay=self.decay, eps=self.eps)
+                *inputs, decay=self.decay, eps=self.eps, axis=self.axis)
             return y,
 
         with backend_config:
@@ -148,7 +181,7 @@ class TestBatchNormalization(unittest.TestCase):
 
         def f(*inputs):
             y = functions.batch_normalization(
-                *inputs, decay=self.decay, eps=self.eps)
+                *inputs, decay=self.decay, eps=self.eps, axis=self.axis)
             return y * y,  # make nonlinear against beta
 
         with backend_config:
@@ -165,11 +198,13 @@ class TestBatchNormalization(unittest.TestCase):
 @testing.parameterize(*(testing.product({
     'param_shape': [(3,), (3, 4), (3, 2, 3)],
     'ndim': [0, 1, 2],
+    'eps': [2e-5, 5e-1],
     'dtype': [numpy.float32],
     'c_contiguous': [True, False],
 }) + testing.product({
     'param_shape': [(3,)],
     'ndim': [1],
+    'eps': [2e-5, 5e-1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'c_contiguous': [True, False],
 })))
@@ -203,7 +238,6 @@ class TestFixedBatchNormalization(unittest.TestCase):
         ggmean = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
         ggvar = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
 
-        self.eps = 2e-5
         self.decay = 0.0
         self.expander = (None, Ellipsis) + (None,) * ndim
 
@@ -222,7 +256,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
 
     def forward_cpu(self, inputs):
-        y_expect = _batch_normalization(inputs + [self.expander])
+        y_expect = _batch_normalization(inputs + [self.eps, self.expander])
         return y_expect,
 
     def check_forward(self, inputs, backend_config):
@@ -291,6 +325,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],
+    'eps': [2e-5, 5e-1],
     # TODO(bkvogel): Check float16 support again in next cuDNN version.
     'dtype': [numpy.float32, numpy.float64],
 }))
@@ -304,7 +339,6 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
                                               param_shape).astype(self.dtype)
         self.beta = cuda.cupy.random.uniform(-1, 1,
                                              param_shape).astype(self.dtype)
-        self.eps = 2e-5
         shape = (7,) + param_shape + (2,) * ndim
         self.x = cuda.cupy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.gy = cuda.cupy.random.uniform(-1, 1, shape).astype(self.dtype)
@@ -323,7 +357,7 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch(
+            with testing.patch(
                     'cupy.cuda.cudnn.batchNormalizationForwardTraining'
             ) as func:
                 self.forward()
@@ -333,11 +367,31 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            with mock.patch(
+            with testing.patch(
                     'cupy.cuda.cudnn.batchNormalizationBackward'
             ) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
+
+
+@attr.cudnn
+class TestBatchNormalizationCudnnEps(unittest.TestCase):
+    def setUp(self):
+        ndim = 0
+        param_shape = (3,)
+        dtype = numpy.float32
+        gamma = cuda.cupy.random.uniform(.5, 1, param_shape).astype(dtype)
+        beta = cuda.cupy.random.uniform(-1, 1, param_shape).astype(dtype)
+        shape = (7,) + param_shape + (2,) * ndim
+        x = cuda.cupy.random.uniform(-1, 1, shape).astype(dtype)
+        self.args = [x, gamma, beta]
+
+    def test_valid(self):
+        functions.batch_normalization(*self.args, eps=1e-5)
+
+    def test_invalid(self):
+        with self.assertRaises(RuntimeError):
+            functions.batch_normalization(*self.args, eps=2e-6)
 
 
 testing.run_module(__name__, __file__)

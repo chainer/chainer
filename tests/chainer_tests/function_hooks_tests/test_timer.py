@@ -5,7 +5,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_hooks
 from chainer import functions
 from chainer.functions.math import basic_math
@@ -14,8 +14,8 @@ from chainer.testing import attr
 
 
 def check_history(self, t, function_type, return_type):
-    func = getattr(t[0], 'function', t[0])
-    self.assertIsInstance(func, function_type)
+    func_name = t[0]
+    assert func_name == function_type.__name__
     self.assertIsInstance(t[1], return_type)
 
 
@@ -66,7 +66,7 @@ class TestTimerHookToLink(unittest.TestCase):
         # It includes forward of + that accumulates gradients to W and b
         self.assertEqual(3, len(self.h.call_history), self.h.call_history)
         for entry in self.h.call_history:
-            if entry[0].label == '_ + _':
+            if entry[0] == 'Add':
                 continue
             check_history(self, entry, basic_math.Mul, float)
 
@@ -130,10 +130,10 @@ class TestTimerHookToFunction(unittest.TestCase):
 
         history = dict(self.h.call_history)
         self.assertEqual(len(history), 2)
-        self.assertIn(self.f, history)
-        self.assertIn(g, history)
-        f_time = history[self.f]
-        g_time = history[g]
+        self.assertIn(self.f._impl_name, history)
+        self.assertIn(g._impl_name, history)
+        f_time = history[self.f._impl_name]
+        g_time = history[g._impl_name]
         self.assertLessEqual(g_time, t2 - t1)
         self.assertGreaterEqual(f_time, t2 - t1)
 
