@@ -56,4 +56,7 @@ Array OnesLike(const Array& a, Device& device = GetDefaultDevice());
 // It will be always C-contiguous.
 Array Copy(const Array& a);
 
+// Creates the identity array.
+Array Identity(int64_t n, Dtype dtype, Device& device = GetDefaultDevice());
+
 }  // namespace xchainer

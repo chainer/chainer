@@ -568,6 +568,13 @@ __global__ void AddAtKernel(
     }
 }
 
+template <typename T>
+struct IdentityImpl {
+    explicit IdentityImpl(int64_t n) : n_plus_one{n + 1} {}
+    __device__ void operator()(int64_t i, T& out) { out = i % n_plus_one == 0 ? T{1} : T{0}; }
+    int64_t n_plus_one;
+};
+
 }  // namespace
 
 void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
@@ -658,6 +665,17 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
 
         AddAtKernel<<<grid_size, block_size>>>(
                 a_iarray, b_iarray, out_iarray, indices_iarray, b_indexer, out_indexer, indices_indexer, common_total_size, a_shape[0]);
+    });
+}
+
+void CudaDevice::Identity(const Array& out) {
+    assert(out.ndim() == 2);
+    assert(out.shape()[0] == out.shape()[1]);
+
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise(MakeElementwiseKernelArg<T>(out), IdentityImpl<T>{out.shape()[0]});
     });
 }
 

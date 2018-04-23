@@ -116,6 +116,10 @@ public:
     // `axis` must be within [0, b.ndim()).
     virtual void AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) = 0;
 
+    // Creates the identity array.
+    // out must be a square 2-dim array.
+    virtual void Identity(const Array& out) = 0;
+
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat
