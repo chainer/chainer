@@ -270,8 +270,9 @@ def _parse_einsum_input(operands):
         # Make sure output subscripts are in the input
         for char in output_subscript:
             if char not in input_subscripts:
-                raise ValueError("Output character %s did not appear in the input"
-                                 % ('...' if char == '@' else char))
+                raise ValueError(
+                    "Output character %s did not appear in the input"
+                    % ('...' if char == '@' else char))
 
     else:
         input_subscripts = subscripts
