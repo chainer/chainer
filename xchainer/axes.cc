@@ -1,5 +1,7 @@
 #include "xchainer/axes.h"
 
+#include <ostream>
+#include <sstream>
 #include <string>
 
 #include "xchainer/axis.h"

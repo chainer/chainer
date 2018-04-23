@@ -1,5 +1,6 @@
 #include "xchainer/axes.h"
 
+#include <cstdint>
 #include <vector>
 
 #include <gtest/gtest.h>
