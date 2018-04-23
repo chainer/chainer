@@ -413,9 +413,6 @@ class TestInvalidArgument(unittest.TestCase):
 class TestChannalSizeInference(unittest.TestCase):
 
     def setUp(self):
-        self.link = links.BatchNormalization(axis=self.axis)
-        self.link_no_gamma = links.BatchNormalization(axis=self.axis, use_gamma=False)
-        self.link_no_beta = links.BatchNormalization(axis=self.axis, use_beta=False)
         self.x = numpy.random.randn(*self.shape).astype('f')
 
         axis = self.axis
@@ -433,21 +430,24 @@ class TestChannalSizeInference(unittest.TestCase):
         assert hasattr(bn, 'avg_var')
 
     def test_inference(self):
-        self.link(self.x)
-        assert self.link.beta.shape == self.expected_size
-        assert self.link.gamma.shape == self.expected_size
-        assert self.link.avg_mean.shape == self.expected_size
-        assert self.link.avg_var.shape == self.expected_size
+        bn = links.BatchNormalization(axis=self.axis)
+        bn(self.x)
+        assert bn.beta.shape == self.expected_size
+        assert bn.gamma.shape == self.expected_size
+        assert bn.avg_mean.shape == self.expected_size
+        assert bn.avg_var.shape == self.expected_size
 
     def test_no_gamma(self):
-        assert not hasattr(self.link_no_gamma, 'gamma')
-        self.link_no_gamma(self.x)
-        assert not hasattr(self.link_no_gamma, 'gamma')
+        bn = links.BatchNormalization(axis=self.axis, use_gamma=False)
+        assert not hasattr(bn, 'gamma')
+        bn(self.x)
+        assert not hasattr(bn, 'gamma')
 
     def test_no_beta(self):
-        assert not hasattr(self.link_no_beta, 'beta')
-        self.link_no_beta(self.x)
-        assert not hasattr(self.link_no_beta, 'beta')
+        bn = links.BatchNormalization(axis=self.axis, use_beta=False)
+        assert not hasattr(bn, 'beta')
+        bn(self.x)
+        assert not hasattr(bn, 'beta')
 
 
 testing.run_module(__name__, __file__)
