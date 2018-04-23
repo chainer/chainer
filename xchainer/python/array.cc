@@ -89,7 +89,22 @@ py::buffer_info MakeBufferFromArray(ArrayBody& self) {
 }  // namespace
 
 void InitXchainerArray(pybind11::module& m) {
-    py::class_<ArrayBody, ArrayBodyPtr> c{m, "Array", py::buffer_protocol()};
+    py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
+    // TODO(hvy): Support all arguments in the constructor of numpy.ndarray.
+    c.def(py::init([](py::tuple shape, py::handle dtype, const nonstd::optional<std::string>& device_id) {
+              return Empty(ToShape(shape), internal::GetDtype(dtype), GetDevice(device_id)).move_body();
+          }),
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device") = nullptr);
+    c.def(py::init([](py::tuple shape, py::handle dtype, Device& device) {
+              return Empty(ToShape(shape), internal::GetDtype(dtype), device).move_body();
+          }),
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device"));
+    // TODO(hvy): Remove list accepting bindings and replace calls with xchainer.array.
+    // For multidimensional arrays, nested lists should be passed to xchainer.array.
     c.def(py::init([](const py::tuple& shape, py::handle dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
               return MakeArray(shape, internal::GetDtype(dtype), list, GetDevice(device_id));
           }),
@@ -104,12 +119,6 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("data"),
           py::arg("device"));
-    c.def(py::init([](const py::array& array, const nonstd::optional<std::string>& device_id) {
-              return MakeArray(array, GetDevice(device_id));
-          }),
-          py::arg("data"),
-          py::arg("device") = nullptr);
-    c.def(py::init([](const py::array& array, Device& device) { return MakeArray(array, device); }), py::arg("data"), py::arg("device"));
     // TODO(niboshi): We cannot support buffer protocol for general device. Remove the binding and provide alternative interface
     // to convert to NumPy array.
     c.def_buffer(&MakeBufferFromArray);
@@ -152,7 +161,7 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("take",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
               if (!axis.has_value()) {
-                  throw NotImplementedError{"axis=None is not yet supported for xchainer.Array.take."};
+                  throw NotImplementedError{"axis=None is not yet supported for xchainer.ndarray.take."};
               }
               return Array{self}.Take(Array{indices}, axis.value()).move_body();
           },

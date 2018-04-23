@@ -5,7 +5,7 @@ Acceptance tests for reshape and basic indexing
 >>> import numpy as np
 
 >>> a_np = np.arange(30).reshape(2, 3, 5)
->>> a = xc.Array(a_np)
+>>> a = xc.array(a_np)
 >>> a
 array([[[ 0,  1,  2,  3,  4],
         [ 5,  6,  7,  8,  9],
@@ -65,7 +65,7 @@ Backward
 --------
 
 >>> a_np = np.arange(6, dtype=np.float32).reshape(2, 3)
->>> a = xc.Array(a_np).require_grad()
+>>> a = xc.array(a_np).require_grad()
 >>> a
 array([[0., 1., 2.],
        [3., 4., 5.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
@@ -78,7 +78,7 @@ array([[0., 1.],
 >>> c
 array([2., 3.], shape=(2,), dtype=float32, device='native:0', graph_ids=['default'])
 
->>> c.set_grad(xc.Array(np.array([5, 7], dtype=np.float32)))
+>>> c.set_grad(xc.array(np.array([5, 7], dtype=np.float32)))
 >>> xc.backward(c)
 >>> a.get_grad()
 array([[0., 0., 5.],
