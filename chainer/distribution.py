@@ -65,7 +65,7 @@ class Distribution(object):
     @property
     def enumerate_support(self):
         """
-        Returns candidate of discrete distribution.
+        Returns support values of discrete distribution.
 
         Returns:
             ~chainer.Variable: Output variable containing candidates.
