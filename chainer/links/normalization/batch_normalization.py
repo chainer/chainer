@@ -1,5 +1,3 @@
-import collections
-
 import numpy
 
 from chainer.backends import cuda
@@ -35,12 +33,9 @@ class BatchNormalization(link.Link):
     fine-tuning mode.
 
     Args:
-        size (int, tuple of ints, None or tuple of Nones): Size (or shape) of
-            channel dimensions. If ``None``, the size will be determined from
-            that of the second dimension of the input batch during the first
-            forward pass. If a tuple of ``None``s, the size will be determined
-            from that of the second and the following dimension(s) of the input
-            batch.
+        size (int, tuple of ints, or None): Size (or shape) of channel
+            dimensions.  If ``None``, the size will be determined from
+            dimension(s) of the input batch during the first forward pass.
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability.
         dtype (numpy.dtype): Type to use in computing.
@@ -48,14 +43,6 @@ class BatchNormalization(link.Link):
             unit(1) which makes no effect.
         use_beta (bool): If ``True``, use shifting parameter. Otherwise, use
             unit(0) which makes no effect.
-        axis (int or tuple of int): Axis over which normalization is
-            performed. When axis is ``None``, it is determined from input
-            dimensions. For example, if ``x.ndim`` is 4, axis becomes (0, 2, 3)
-            and normalization is performed over 0th, 2nd and 3rd axis of input.
-            If it is 2, axis becomes (0) and normalization is performed
-            over 0th axis of input. When a tuple of int is given to this
-            option, numbers in the tuple must be being sorted in ascending
-            order. For example, (0, 2) is OK, but (2, 0) is not.
 
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
@@ -73,23 +60,33 @@ class BatchNormalization(link.Link):
         decay (float): Decay rate of moving average. It is used on training.
         ~BatchNormalization.eps (float): Epsilon value for numerical stability.
             This value is added to the batch variances.
+        axis (int or tuple of int): Axis over which normalization is
+            performed. When axis is ``None``, it is determined from input
+            dimensions. For example, if ``x.ndim`` is 4, axis becomes (0, 2, 3)
+            and normalization is performed over 0th, 2nd and 3rd axis of input.
+            If it is 2, axis becomes (0) and normalization is performed
+            over 0th axis of input. When a tuple of int is given to this
+            option, numbers in the tuple must be being sorted in ascending
+            order. For example, (0, 2) is OK, but (2, 0) is not.
 
     """
 
-    def __init__(self, size, decay=0.9, eps=2e-5, dtype=numpy.float32,
+    def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=numpy.float32,
                  use_gamma=True, use_beta=True,
-                 initial_gamma=None, initial_beta=None):
+                 initial_gamma=None, initial_beta=None, axis=None):
         super(BatchNormalization, self).__init__()
 
+        if size is None and axis is None:
+            raise RuntimeError('size or axis is required')
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
         self.eps = eps
+        if isinstance(axis, int):
+            axis = (axis,)
+        self.axis = axis
 
-        if isinstance(size, collections.Iterable):
-            self._size = size
-        else:
-            self._size = (size,)
+        self._size = size
         self._dtype = dtype
 
         with self.init_scope():
@@ -107,7 +104,7 @@ class BatchNormalization(link.Link):
                 beta_initializer.dtype = self._dtype
                 self.beta = variable.Parameter(beta_initializer)
 
-        if not self._size or any(s is not None for s in self._size):
+        if self._size is not None:
             self._initialize_params(self._size)
 
     def _initialize_params(self, shape):
@@ -145,7 +142,11 @@ class BatchNormalization(link.Link):
 
         """
         if not hasattr(self, 'avg_mean'):
-            self._initialize_params(x.shape[1:len(self._size) + 1])
+            param_shape = tuple([
+                d
+                for i, d in enumerate(x.shape)
+                if i not in self.axis])
+            self._initialize_params(param_shape)
 
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '
@@ -175,13 +176,13 @@ class BatchNormalization(link.Link):
 
             ret = functions.batch_normalization(
                 x, gamma, beta, eps=self.eps, running_mean=self.avg_mean,
-                running_var=self.avg_var, decay=decay)
+                running_var=self.avg_var, decay=decay, axis=self.axis)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = variable.Variable(self.avg_mean)
             var = variable.Variable(self.avg_var)
             ret = functions.fixed_batch_normalization(
-                x, gamma, beta, mean, var, self.eps)
+                x, gamma, beta, mean, var, self.eps, axis=self.axis)
         return ret
 
     def start_finetuning(self):

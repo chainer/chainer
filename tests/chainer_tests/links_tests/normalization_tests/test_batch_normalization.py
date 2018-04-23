@@ -408,10 +408,10 @@ class TestInvalidArgument(unittest.TestCase):
 class TestChannalSizeInference(unittest.TestCase):
 
     def setUp(self):
-        self.link = links.BatchNormalization(None)
-        self.link_no_gamma = links.BatchNormalization(None, use_gamma=False)
-        self.link_no_beta = links.BatchNormalization(None, use_beta=False)
-        self.x = numpy.random.randn(1, 16).astype('f')
+        self.link = links.BatchNormalization(axis=0)
+        self.link_no_gamma = links.BatchNormalization(axis=0, use_gamma=False)
+        self.link_no_beta = links.BatchNormalization(axis=0, use_beta=False)
+        self.x = numpy.random.randn(3, 16).astype('f')
 
     def test_no_inference(self):
         bn = links.BatchNormalization(16)
