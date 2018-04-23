@@ -105,7 +105,7 @@ jobs:
             pip install -U 'pep8==1.5.7'
             pip install -U 'pyflakes==0.8.1'
             pip install -U 'flake8==3.5.0'
-            pip install -U 'mccabe==0.2.1'
+            pip install -U 'mccabe==0.6.1'
             pip install -U 'six>=1.9.0'
 
             pip install -U pytest pytest-cov coveralls
