@@ -92,7 +92,7 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
     // TODO(sonots): Remove following workaround if pybind11's segv problem with zero-sized shape is fixed.
     // See https://github.com/pybind/pybind11/issues/1370
     if (array.shape().ndim() == 0) {
-        py::array py_array = py::array{py::dtype{std::string{1, GetCharCode(array.dtype())}},
+        py::array py_array = py::array{py::dtype{std::string(1, GetCharCode(array.dtype()))},
                                        {1},
                                        reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()};  // NOLINT: reinterpret_cast
         py_array.resize({});
@@ -101,7 +101,7 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
 
     return py::array{py::buffer_info{reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset(),  // NOLINT: reinterpret_cast
                                      array.element_bytes(),
-                                     std::string{1, GetCharCode(array.dtype())},
+                                     std::string(1, GetCharCode(array.dtype())),
                                      array.ndim(),
                                      array.shape(),
                                      array.strides()}};
