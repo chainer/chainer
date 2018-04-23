@@ -104,7 +104,7 @@ jobs:
             pip install -U 'pbr>=1.8'
             pip install -U 'pep8==1.5.7'
             pip install -U 'pyflakes==0.8.1'
-            pip install -U 'flake8<2.6.0,>=2.5.4'
+            pip install -U 'flake8==3.5.0'
             pip install -U 'mccabe==0.2.1'
             pip install -U 'six>=1.9.0'
 
