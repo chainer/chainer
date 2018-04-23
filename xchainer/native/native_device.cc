@@ -446,12 +446,9 @@ void NativeDevice::Identity(const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         struct IdentityImpl {
-            explicit IdentityImpl(int64_t n) : n{n} {}
             void operator()(int64_t i, T& out) { out = i % n == i / n ? T{1} : T{0}; }
 
-            int64_t n{};
-            T start{};
-            T step{};
+            int64_t n;
         };
 
         Elementwise(MakeElementwiseKernelArg<T>(out), IdentityImpl{out.shape()[0]});

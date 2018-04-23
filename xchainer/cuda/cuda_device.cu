@@ -570,12 +570,8 @@ __global__ void AddAtKernel(
 
 template <typename T>
 struct IdentityImpl {
-    explicit IdentityImpl(int64_t n) : n{n} {}
     __device__ void operator()(int64_t i, T& out) { out = i % n == i / n ? T{1} : T{0}; }
-
-    int64_t n{};
-    T start{};
-    T step{};
+    int64_t n;
 };
 
 }  // namespace
