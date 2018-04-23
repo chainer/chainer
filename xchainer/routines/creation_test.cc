@@ -473,6 +473,15 @@ TEST_P(CreationTest, Copy) {
     }
 }
 
+TEST_P(CreationTest, Identity) {
+    Array o = Identity(3, Dtype::kFloat32);
+    Array e = testing::BuildArray<float>({3, 3}, {1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
+    std::cout << o << std::endl;
+    testing::ExpectEqual(e, o);
+}
+
+TEST_P(CreationTest, IdentityInvalidN) { EXPECT_THROW(Identity(-1, Dtype::kFloat32), DimensionError); }
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         CreationTest,

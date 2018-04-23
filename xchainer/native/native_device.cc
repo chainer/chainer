@@ -439,6 +439,25 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
     });
 }
 
+void NativeDevice::Identity(const Array& out) {
+    assert(out.ndim() == 2);
+    assert(out.shape()[0] == out.shape()[1]);
+
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        struct IdentityImpl {
+            explicit IdentityImpl(int64_t n) : n{n} {}
+            void operator()(int64_t i, T& out) { out = i % n == i / n ? T{1} : T{0}; }
+
+            int64_t n{};
+            T start{};
+            T step{};
+        };
+
+        Elementwise(MakeElementwiseKernelArg<T>(out), IdentityImpl{out.shape()[0]});
+    });
+}
+
 void NativeDevice::Synchronize() {}
 
 }  // namespace native

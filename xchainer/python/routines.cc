@@ -236,6 +236,20 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("a"),
           py::arg("device"));
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
+    m.def("identity",
+          [](int64_t n, py::handle dtype, const nonstd::optional<std::string>& device_id) {
+              return Identity(n, dtype.is_none() ? Dtype::kFloat64 : internal::GetDtype(dtype), GetDevice(device_id)).move_body();
+          },
+          py::arg("n"),
+          py::arg("dtype") = nullptr,
+          py::arg("device") = nullptr);
+    m.def("identity",
+          [](int64_t n, py::handle dtype, Device& device) {
+              return Identity(n, dtype.is_none() ? Dtype::kFloat64 : internal::GetDtype(dtype), device).move_body();
+          },
+          py::arg("n"),
+          py::arg("dtype") = nullptr,
+          py::arg("device"));
 
     // indexing routines
     m.def("take",

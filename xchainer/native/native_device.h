@@ -64,6 +64,8 @@ public:
 
     void AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override;
 
+    void Identity(const Array& out) override;
+
     void Synchronize() override;
 };
 
