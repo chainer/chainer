@@ -132,7 +132,6 @@ class DiagEinSum(function_node.FunctionNode):
         fwd_in_subs = self.in_subs.split(',')
         fwd_out_sub = self.out_sub
         return tuple(
-            inputs[i] * 0. +  # it seems a bug of gradient_check
             DiagEinSum(
                 in_subs=','.join([
                     (fwd_out_sub if j == i else s)
