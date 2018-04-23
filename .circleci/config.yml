@@ -100,7 +100,14 @@ jobs:
           command: |
             source activate testenv
 
-            pip install -U hacking autopep8
+            pip install -U autopep8
+            pip install -U 'pbr>=1.8'
+            pip install -U 'pep8==1.5.7'
+            pip install -U 'pyflakes==0.8.1'
+            pip install -U 'flake8==3.5.0'
+            pip install -U 'mccabe==0.6.1'
+            pip install -U 'six>=1.9.0'
+
             pip install -U pytest pytest-cov coveralls
             pip install -U cpplint
 
@@ -111,10 +118,10 @@ jobs:
             source activate testenv
 
             flake8 --version
-            flake8 setup.py python tests
+            flake8 setup.py python tests examples
 
             autopep8 --version
-            autopep8 setup.py python tests -r --global-config .pep8 --diff | tee check_autopep8
+            autopep8 setup.py python tests examples -r --global-config .pep8 --diff | tee check_autopep8
             test ! -s check_autopep8
 
       # ClangFormat
