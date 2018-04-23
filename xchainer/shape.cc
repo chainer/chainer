@@ -6,7 +6,7 @@
 #include <numeric>
 #include <string>
 
-#include "xchainer/axis.h"
+#include "xchainer/axes.h"
 #include "xchainer/ndim_vector.h"
 #include "xchainer/strides.h"
 
@@ -60,12 +60,12 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
     return new_shape;
 }
 
-bool IsValidReductionShape(const Shape& in_shape, const NdimVector<int8_t>& axis, const Shape& out_shape, bool allow_keepdims) {
+bool IsValidReductionShape(const Shape& in_shape, const Axes& axis, const Shape& out_shape, bool allow_keepdims) {
     return out_shape.ndim() == in_shape.ndim() - static_cast<int64_t>(axis.size()) ||
            (allow_keepdims && out_shape.ndim() == in_shape.ndim());
 }
 
-Shape TransposeShape(const Shape& shape, const NdimVector<int8_t>& axes) {
+Shape TransposeShape(const Shape& shape, const Axes& axes) {
     assert(IsAxesPermutation(axes, shape.ndim()));
     Shape new_shape;
     for (int8_t axis : axes) {

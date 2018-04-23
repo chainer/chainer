@@ -11,10 +11,10 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"
+#include "xchainer/axes.h"
 #include "xchainer/check_backward.h"
 #include "xchainer/device_id.h"
 #include "xchainer/error.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 #include "xchainer/testing/array.h"
@@ -182,7 +182,7 @@ TEST_P(ManipulationTest, SqueezeSpecifiedUnitLenghtAxes) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    Array b = Squeeze(a, NdimVector<int8_t>{2, 0, 4});
+    Array b = Squeeze(a, Axes{2, 0, 4});
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
     testing::ExpectEqual(e, b);
 }
@@ -200,8 +200,8 @@ TEST_P(ManipulationTest, SqueezeMultipleCalls) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    Array b = Squeeze(a, NdimVector<int8_t>{0, 2});
-    Array c = Squeeze(b, NdimVector<int8_t>{3});
+    Array b = Squeeze(a, Axes{0, 2});
+    Array c = Squeeze(b, Axes{3});
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
     testing::ExpectEqual(e, c);
 }
@@ -210,7 +210,7 @@ TEST_P(ManipulationTest, SqueezeNonContiguous) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(1);
-    Array b = Squeeze(a, NdimVector<int8_t>{0, 2, 4});
+    Array b = Squeeze(a, Axes{0, 2, 4});
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
     testing::ExpectEqual(e, b);
 }
@@ -219,7 +219,7 @@ TEST_P(ManipulationTest, SqueezeNegativeAxis) {
     using T = int32_t;
 
     Array a = testing::BuildArray({2, 3, 4, 1}).WithLinearData<T>();
-    Array b = Squeeze(a, NdimVector<int8_t>{-1});
+    Array b = Squeeze(a, Axes{-1});
     Array e = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
     testing::ExpectEqual(e, b);
 }
@@ -237,27 +237,27 @@ TEST_P(ManipulationTest, InvalidSqueezeNonUnitLengthAxis) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    EXPECT_THROW(Array b = Squeeze(a, NdimVector<int8_t>{1}), DimensionError);
+    EXPECT_THROW(Array b = Squeeze(a, Axes{1}), DimensionError);
 }
 
 TEST_P(ManipulationTest, InvalidSqueezeDuplicateAxes) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    EXPECT_THROW(Squeeze(a, NdimVector<int8_t>{0, 2, 2}), XchainerError);
+    EXPECT_THROW(Squeeze(a, Axes{0, 2, 2}), XchainerError);
 }
 
 TEST_P(ManipulationTest, InvalidSqueezeOutOfRangeAxes) {
     using T = int32_t;
 
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_THROW(Squeeze(a, NdimVector<int8_t>{3}), DimensionError);
+    EXPECT_THROW(Squeeze(a, Axes{3}), DimensionError);
 }
 
 TEST_P(ManipulationTest, SqueezeBackward) {
     CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {Squeeze(xs[0], NdimVector<int8_t>{0, 2, 4})};
+                return {Squeeze(xs[0], Axes{0, 2, 4})};
             },
             {(*testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)},
@@ -267,7 +267,7 @@ TEST_P(ManipulationTest, SqueezeBackward) {
 TEST_P(ManipulationTest, SqueezeDoubleBackward) {
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = Squeeze(xs[0], NdimVector<int8_t>{0, 2, 4});
+                auto y = Squeeze(xs[0], Axes{0, 2, 4});
                 return {y * y};  // to make it nonlinear
             },
             {(*testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>().WithPadding(1)).RequireGrad()},

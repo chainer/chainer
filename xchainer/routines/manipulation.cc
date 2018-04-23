@@ -11,13 +11,12 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/axes.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
-
-#include "xchainer/routines/util.h"
 
 namespace xchainer {
 
@@ -148,7 +147,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
     return out;
 }
 
-Array Squeeze(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis) {
+Array Squeeze(const Array& a, const OptionalAxes& axis) {
     const Shape& in_shape = a.shape();
     const Strides& in_strides = a.strides();
 
@@ -156,7 +155,7 @@ Array Squeeze(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis) 
     Strides out_strides{};
 
     if (axis.has_value()) {
-        NdimVector<int8_t> sorted_axis = internal::GetSortedAxes(*axis, in_shape.ndim());
+        const Axes sorted_axis = internal::GetSortedAxes(axis.as_vector(), in_shape.ndim());
 
         int64_t i_axis = 0;
         for (int64_t i = 0; i < in_shape.ndim(); ++i) {
@@ -166,13 +165,14 @@ Array Squeeze(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis) 
                     std::ostringstream os;
                     os << "Cannot squeeze out non-unit-length axes, where shape was " << in_shape.ToString();
                     os << " and axes were (";
-                    for (auto it = axis->begin(); it != axis->end(); ++it) {
-                        if (it != axis->begin()) {
+                    const Axes& axis_vec = axis.as_vector();
+                    for (auto it = axis_vec.begin(); it != axis_vec.end(); ++it) {
+                        if (it != axis_vec.begin()) {
                             os << ", ";
                         }
                         os << *it;
                     }
-                    os << (axis->size() == 1 ? ",)." : ").");
+                    os << (axis_vec.size() == 1 ? ",)." : ").");
                     throw DimensionError{os.str()};
                 }
             } else {
@@ -246,11 +246,11 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
         }
 
         int8_t lead = gout.ndim() - in_shape.ndim();
-        NdimVector<int8_t> lead_axis{};
+        Axes lead_axis{};
         lead_axis.resize(lead);
         std::iota(lead_axis.begin(), lead_axis.end(), int8_t{0});
 
-        NdimVector<int8_t> axis{lead_axis};
+        Axes axis{lead_axis};
         for (int8_t i = 0; i < in_shape.ndim(); ++i) {
             if (in_shape[i] == 1) {
                 axis.emplace_back(i + lead);

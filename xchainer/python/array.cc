@@ -10,6 +10,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"
+#include "xchainer/axes.h"
 #include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/context.h"
@@ -200,12 +201,10 @@ void InitXchainerArray(pybind11::module& m) {
     });
     c.def("squeeze",
           [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis) {
-              return Array{self}.Squeeze(ToNdimVector(axis)).move_body();
+              return Array{self}.Squeeze(ToAxes(axis)).move_body();
           },
           py::arg("axis") = nullptr);
-    c.def("squeeze",
-          [](const ArrayBodyPtr& self, int8_t axis) { return Array{self}.Squeeze(NdimVector<int8_t>{axis}).move_body(); },
-          py::arg("axis"));
+    c.def("squeeze", [](const ArrayBodyPtr& self, int8_t axis) { return Array{self}.Squeeze(Axes{axis}).move_body(); }, py::arg("axis"));
     c.def("__eq__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} == Array{rhs}).move_body(); });
     c.def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).move_body(); });
     c.def("__isub__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} -= Array{rhs}).move_body(); });
@@ -219,31 +218,27 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("__neg__", [](const ArrayBodyPtr& self) { return (-Array{self}).move_body(); });
     c.def("__truediv__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} / Array{rhs}).move_body(); });
     c.def("sum",
-          [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) {
-              return Array{self}.Sum(NdimVector<int8_t>{axis}, keepdims).move_body();
-          },
+          [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return Array{self}.Sum(Axes{axis}, keepdims).move_body(); },
           py::arg("axis"),
           py::arg("keepdims") = false);
     c.def("sum",
           [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-              return Array{self}.Sum(ToNdimVector(axis), keepdims).move_body();
+              return Array{self}.Sum(ToAxes(axis), keepdims).move_body();
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     c.def("max",
-          [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) {
-              return Array{self}.Max(NdimVector<int8_t>{axis}, keepdims).move_body();
-          },
+          [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return Array{self}.Max(Axes{axis}, keepdims).move_body(); },
           py::arg("axis"),
           py::arg("keepdims") = false);
     c.def("max",
           [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-              return Array{self}.Max(ToNdimVector(axis), keepdims).move_body();
+              return Array{self}.Max(ToAxes(axis), keepdims).move_body();
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     c.def("argmax",
-          [](const ArrayBodyPtr& self, const nonstd::optional<int8_t>& axis) { return ArgMax(Array{self}, axis).move_body(); },
+          [](const ArrayBodyPtr& self, const nonstd::optional<int8_t>& axis) { return ArgMax(Array{self}, ToAxes(axis)).move_body(); },
           py::arg("axis") = nullptr);
     c.def("dot", [](const ArrayBodyPtr& self, const ArrayBodyPtr& b) { return Array{self}.Dot(Array{b}).move_body(); }, py::arg("b"));
     c.def("fill",

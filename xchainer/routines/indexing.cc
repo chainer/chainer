@@ -10,10 +10,10 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"
+#include "xchainer/axes.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
 #include "xchainer/routines/creation.h"
-#include "xchainer/routines/util.h"
 #include "xchainer/shape.h"
 #include "xchainer/slice.h"
 #include "xchainer/strides.h"

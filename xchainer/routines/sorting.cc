@@ -4,22 +4,20 @@
 #include <numeric>
 #include <vector>
 
-#include <nonstd/optional.hpp>
-
 #include "xchainer/array.h"
+#include "xchainer/axes.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
-#include "xchainer/routines/util.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
 
-Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis) {
-    NdimVector<int8_t> sorted_axis{};
+Array ArgMax(const Array& a, const OptionalAxes& axis) {
+    Axes sorted_axis{};
     Shape out_shape{};
     if (axis.has_value()) {
-        sorted_axis = internal::GetSortedAxes({*axis}, a.ndim());
+        sorted_axis = internal::GetSortedAxes(axis.as_vector(), a.ndim());
         int8_t i_axis = 0;
         for (int8_t i = 0; i < a.ndim(); ++i) {
             if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {

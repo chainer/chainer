@@ -12,13 +12,13 @@
 #include <gsl/gsl>
 
 #include "xchainer/array.h"
+#include "xchainer/axes.h"
 #include "xchainer/dtype.h"
 #include "xchainer/elementwise_kernel_arg.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/elementwise.h"
 #include "xchainer/native/reduce.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/numeric_limits.h"
 #include "xchainer/reduction_kernel_arg.h"
 #include "xchainer/scalar.h"
@@ -144,7 +144,7 @@ void NativeDevice::Arange(Scalar start, Scalar step, const Array& out) {
     });
 }
 
-void NativeDevice::ArgMax(const Array& a, const NdimVector<int8_t>& axis, const Array& out) {
+void NativeDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
     assert(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
     assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
     CheckDevicesCompatible(a, out);
@@ -170,7 +170,7 @@ void NativeDevice::ArgMax(const Array& a, const NdimVector<int8_t>& axis, const 
     });
 }
 
-void NativeDevice::Sum(const Array& a, const NdimVector<int8_t>& axis, const Array& out) {
+void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
 
@@ -186,7 +186,7 @@ void NativeDevice::Sum(const Array& a, const NdimVector<int8_t>& axis, const Arr
     });
 }
 
-void NativeDevice::AMax(const Array& a, const NdimVector<int8_t>& axis, const Array& out) {
+void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
     assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
 

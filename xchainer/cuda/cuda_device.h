@@ -4,9 +4,9 @@
 #include <cstdint>
 
 #include "xchainer/array.h"
+#include "xchainer/axes.h"
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/device.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
@@ -33,10 +33,10 @@ public:
 
     void Arange(Scalar start, Scalar step, const Array& out) override;
 
-    void ArgMax(const Array& a, const NdimVector<int8_t>& axis, const Array& out) override;
+    void ArgMax(const Array& a, const Axes& axis, const Array& out) override;
 
-    void Sum(const Array& a, const NdimVector<int8_t>& axis, const Array& out) override;
-    void AMax(const Array& a, const NdimVector<int8_t>& axis, const Array& out) override;
+    void Sum(const Array& a, const Axes& axis, const Array& out) override;
+    void AMax(const Array& a, const Axes& axis, const Array& out) override;
 
     void Copy(const Array& a, const Array& out) override;
 

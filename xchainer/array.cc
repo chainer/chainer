@@ -17,6 +17,7 @@
 #include "xchainer/array_body.h"
 #include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
+#include "xchainer/axes.h"
 #include "xchainer/backend.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
@@ -31,7 +32,6 @@
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/math.h"
 #include "xchainer/routines/sorting.h"
-#include "xchainer/routines/util.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
@@ -153,15 +153,15 @@ Array Array::Transpose() const { return xchainer::Transpose(*this); }
 
 Array Array::Reshape(const Shape& newshape) const { return xchainer::Reshape(*this, newshape); }
 
-Array Array::Squeeze(const nonstd::optional<NdimVector<int8_t>>& axis) const { return xchainer::Squeeze(*this, axis); }
+Array Array::Squeeze(const OptionalAxes& axis) const { return xchainer::Squeeze(*this, axis); }
 
 Array Array::BroadcastTo(const Shape& shape) const { return xchainer::BroadcastTo(*this, shape); }
 
-Array Array::ArgMax(const nonstd::optional<int8_t>& axis) const { return xchainer::ArgMax(*this, axis); }
+Array Array::ArgMax(const OptionalAxes& axis) const { return xchainer::ArgMax(*this, axis); }
 
-Array Array::Sum(const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
+Array Array::Sum(const OptionalAxes& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
 
-Array Array::Max(const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) const { return xchainer::AMax(*this, axis, keepdims); }
+Array Array::Max(const OptionalAxes& axis, bool keepdims) const { return xchainer::AMax(*this, axis, keepdims); }
 
 Array Array::Dot(const Array& b) const { return xchainer::Dot(*this, b); }
 

@@ -14,6 +14,7 @@
 #include "xchainer/array_body.h"
 #include "xchainer/array_index.h"
 #include "xchainer/array_repr.h"
+#include "xchainer/axes.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -102,25 +103,25 @@ public:
     //
     // If no axes are specified, all axes of unit-lengths are removed.
     // If no axes can be removed, an array with aliased data is returned.
-    Array Squeeze(const nonstd::optional<NdimVector<int8_t>>& axis = nonstd::nullopt) const;
+    Array Squeeze(const OptionalAxes& axis = nonstd::nullopt) const;
 
     // Broadcasts the array to the specified shape.
     // Returned array is always a view to this array.
     Array BroadcastTo(const Shape& shape) const;
 
     // Returns the indices of the maximum values along the given axis.
-    Array ArgMax(const nonstd::optional<int8_t>& axis = nonstd::nullopt) const;
+    Array ArgMax(const OptionalAxes& axis = nonstd::nullopt) const;
 
     // Returns a sum of the array.
     // If `axis` is set, it will be summed over the specified axes.
     // Otherwise, it will be summed over all the existing axes.
     // Note: When implementing xchainer::Sum(), be careful of the semantics of the default value of `keepdims`. See NumPy documentation.
-    Array Sum(const nonstd::optional<NdimVector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false) const;
+    Array Sum(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
 
     // Returns the maximum value of the array.
     // If `axis` is set, the maximum value is chosen along the specified axes.
     // Otherwise, all the elements are searched at once.
-    Array Max(const nonstd::optional<NdimVector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false) const;
+    Array Max(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
 
     // Returns a dot product of the array with another one.
     Array Dot(const Array& b) const;

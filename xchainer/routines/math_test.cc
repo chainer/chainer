@@ -11,6 +11,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"
+#include "xchainer/axes.h"
 #include "xchainer/check_backward.h"
 #include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
@@ -577,7 +578,7 @@ TEST_P(MathTest, Sum) {
     using T = float;
 
     Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
-    Array b = Sum(a, NdimVector<int8_t>{2, 1, -1});
+    Array b = Sum(a, Axes{2, 1, -1});
     EXPECT_EQ(Shape{2}, b.shape());
     Array e = testing::BuildArray(Shape{2}).WithData<T>({630.0f, 1926.0f});
     testing::ExpectEqual(e, b);
@@ -627,7 +628,7 @@ TEST_P(MathTest, SumLarge) {
     using T = int64_t;
 
     Array a = testing::BuildArray({0x100000}).WithLinearData<T>().WithPadding(1);
-    Array b = Sum(a, NdimVector<int8_t>{0});
+    Array b = Sum(a, Axes{0});
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray(Shape{}).WithData<T>({0x7ffff80000});
     testing::ExpectEqual(e, b);
@@ -637,7 +638,7 @@ TEST_P(MathTest, SumKeepDims) {
     using T = float;
 
     Array a = testing::BuildArray({2, 3, 2, 4}).WithLinearData<T>().WithPadding(1);
-    Array b = Sum(a, NdimVector<int8_t>{-1, 1}, true);
+    Array b = Sum(a, Axes{-1, 1}, true);
     EXPECT_EQ(Shape({2, 1, 2, 1}), b.shape());
     EXPECT_EQ(0, b.strides()[1]);
     EXPECT_EQ(0, b.strides()[3]);
@@ -649,14 +650,14 @@ TEST_P(MathTest, InvalidSumDuplicateAxes) {
     using T = float;
 
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_THROW(Sum(a, NdimVector<int8_t>{1, 1}), XchainerError);
+    EXPECT_THROW(Sum(a, Axes{1, 1}), XchainerError);
 }
 
 TEST_P(MathTest, InvalidSumOutOfRangeAxes) {
     using T = float;
 
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_THROW(Sum(a, NdimVector<int8_t>{3}), DimensionError);
+    EXPECT_THROW(Sum(a, Axes{3}), DimensionError);
 }
 
 TEST_P(MathTest, SumBackward) {
@@ -664,7 +665,7 @@ TEST_P(MathTest, SumBackward) {
 
     CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {Sum(xs[0], NdimVector<int8_t>{1, 3})};
+                return {Sum(xs[0], Axes{1, 3})};
             },
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)},
@@ -676,7 +677,7 @@ TEST_P(MathTest, SumDoubleBackward_Keepdims) {
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = Sum(xs[0], NdimVector<int8_t>{1, 3}, true);
+                auto y = Sum(xs[0], Axes{1, 3}, true);
                 return {y * y};  // to make it nonlinear
             },
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
@@ -690,7 +691,7 @@ TEST_P(MathTest, SumDoubleBackward_NoKeepdims) {
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = Sum(xs[0], NdimVector<int8_t>{1, 3}, false);
+                auto y = Sum(xs[0], Axes{1, 3}, false);
                 return {y * y};  // to make it nonlinear
             },
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
@@ -701,7 +702,7 @@ TEST_P(MathTest, SumDoubleBackward_NoKeepdims) {
 
 TEST_P(MathTest, AMax) {
     Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<float>().WithPadding(1);
-    Array b = AMax(a, NdimVector<int8_t>{2, 0, -1});
+    Array b = AMax(a, Axes{2, 0, -1});
     EXPECT_EQ(Shape{3}, b.shape());
     Array e = testing::BuildArray<float>({3}, {47.f, 59.f, 71.f});
     testing::ExpectEqual(e, b);
@@ -717,13 +718,13 @@ TEST_P(MathTest, AMaxAllAxes) {
 
 TEST_P(MathTest, AMaxZeroSized) {
     Array a = Empty({0, 2}, Dtype::kFloat32);
-    Array b = AMax(a, NdimVector<int8_t>{1});
+    Array b = AMax(a, Axes{1});
     EXPECT_EQ(Shape{0}, b.shape());
 }
 
 TEST_P(MathTest, AMaxAlongZeroSized) {
     Array a = Empty({0, 2}, Dtype::kFloat32);
-    EXPECT_THROW(AMax(a, NdimVector<int8_t>{0}), DimensionError);
+    EXPECT_THROW(AMax(a, Axes{0}), DimensionError);
     EXPECT_THROW(AMax(a), DimensionError);
 }
 
@@ -732,7 +733,7 @@ TEST_P(MathTest, AMaxBackward) {
 
     CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {AMax(xs[0], NdimVector<int8_t>{1, 3})};
+                return {AMax(xs[0], Axes{1, 3})};
             },
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)},
@@ -744,7 +745,7 @@ TEST_P(MathTest, AMaxDoubleBackward_Keepdims) {
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = AMax(xs[0], NdimVector<int8_t>{1, 3}, true);
+                auto y = AMax(xs[0], Axes{1, 3}, true);
                 return {y * y};  // to make it nonlinear
             },
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
@@ -758,7 +759,7 @@ TEST_P(MathTest, AMaxDoubleBackward_NoKeepdims) {
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = AMax(xs[0], NdimVector<int8_t>{1, 3}, false);
+                auto y = AMax(xs[0], Axes{1, 3}, false);
                 return {y * y};  // to make it nonlinear
             },
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
@@ -908,7 +909,7 @@ TEST_P(MathTest, LogSumExpReduceFirstAxis) {
     Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[3])),
                                                     std::log(std::exp(adata[1]) + std::exp(adata[4])),
                                                     std::log(std::exp(adata[2]) + std::exp(adata[5]))});
-    testing::ExpectAllClose(e, LogSumExp(a, NdimVector<int8_t>{0}), 1e-5, 0);
+    testing::ExpectAllClose(e, LogSumExp(a, Axes{0}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSumExpReduceSecondAxis) {
@@ -917,7 +918,7 @@ TEST_P(MathTest, LogSumExpReduceSecondAxis) {
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
     Array e = testing::BuildArray({2}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2])),
                                                     std::log(std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
-    testing::ExpectAllClose(e, LogSumExp(a, NdimVector<int8_t>{1}), 1e-5, 0);
+    testing::ExpectAllClose(e, LogSumExp(a, Axes{1}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSumExpReduceMultipleAxes) {
@@ -927,7 +928,7 @@ TEST_P(MathTest, LogSumExpReduceMultipleAxes) {
     Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1])),
                                                     std::log(std::exp(adata[2]) + std::exp(adata[3])),
                                                     std::log(std::exp(adata[4]) + std::exp(adata[5]))});
-    testing::ExpectAllClose(e, LogSumExp(a, NdimVector<int8_t>{0, 2, 3}), 1e-5, 0);
+    testing::ExpectAllClose(e, LogSumExp(a, Axes{0, 2, 3}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSumExpKeepdims) {
@@ -936,7 +937,7 @@ TEST_P(MathTest, LogSumExpKeepdims) {
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
     Array e = testing::BuildArray({2, 1}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2])),
                                                        std::log(std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
-    testing::ExpectAllClose(e, LogSumExp(a, NdimVector<int8_t>{1}, true), 1e-5, 0);
+    testing::ExpectAllClose(e, LogSumExp(a, Axes{1}, true), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSumExpReduceMultipleAxesKeepdims) {
@@ -945,7 +946,7 @@ TEST_P(MathTest, LogSumExpReduceMultipleAxesKeepdims) {
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
     Array e = testing::BuildArray({1, 1}).WithData<T>({std::log(
             std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
-    testing::ExpectAllClose(e, LogSumExp(a, NdimVector<int8_t>{0, 1}, true), 1e-5, 0);
+    testing::ExpectAllClose(e, LogSumExp(a, Axes{0, 1}, true), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSumExpBackward) {
@@ -967,7 +968,7 @@ TEST_P(MathTest, LogSoftmax) {
             {adata[0] - log_z[0], adata[1] - log_z[0], adata[2] - log_z[0], adata[3] - log_z[1], adata[4] - log_z[1], adata[5] - log_z[1]});
 
     testing::ExpectAllClose(e, LogSoftmax(a), 1e-5, 0);
-    testing::ExpectAllClose(e, LogSoftmax(a, NdimVector<int8_t>{1}), 1e-5, 0);
+    testing::ExpectAllClose(e, LogSoftmax(a, Axes{1}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSoftmaxAlongFirstAxis) {
@@ -980,7 +981,7 @@ TEST_P(MathTest, LogSoftmaxAlongFirstAxis) {
     Array a = testing::BuildArray(shape).WithData<T>(adata).WithPadding(1);
     Array e = testing::BuildArray(shape).WithData<T>(
             {adata[0] - log_z[0], adata[1] - log_z[1], adata[2] - log_z[2], adata[3] - log_z[0], adata[4] - log_z[1], adata[5] - log_z[2]});
-    testing::ExpectAllClose(e, LogSoftmax(a, NdimVector<int8_t>{0}), 1e-5, 0);
+    testing::ExpectAllClose(e, LogSoftmax(a, Axes{0}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSoftmaxAlongMultipleAxes) {
@@ -992,7 +993,7 @@ TEST_P(MathTest, LogSoftmaxAlongMultipleAxes) {
     Array a = testing::BuildArray(shape).WithData<T>(adata).WithPadding(1);
     Array e = testing::BuildArray(shape).WithData<T>(
             {adata[0] - log_z, adata[1] - log_z, adata[2] - log_z, adata[3] - log_z, adata[4] - log_z, adata[5] - log_z});
-    testing::ExpectAllClose(e, LogSoftmax(a, NdimVector<int8_t>{0, 1}), 1e-3, 0);
+    testing::ExpectAllClose(e, LogSoftmax(a, Axes{0, 1}), 1e-3, 0);
 }
 
 TEST_P(MathTest, LogSoftmaxHighDimAlongDefaultSecondAxis) {
@@ -1005,7 +1006,7 @@ TEST_P(MathTest, LogSoftmaxHighDimAlongDefaultSecondAxis) {
     Array e = testing::BuildArray(shape).WithData<T>(
             {adata[0] - log_z[0], adata[1] - log_z[1], adata[2] - log_z[0], adata[3] - log_z[1], adata[4] - log_z[0], adata[5] - log_z[1]});
     testing::ExpectAllClose(e, LogSoftmax(a), 1e-5, 0, true);
-    testing::ExpectAllClose(e, LogSoftmax(a, NdimVector<int8_t>{1}), 1e-5, 0);
+    testing::ExpectAllClose(e, LogSoftmax(a, Axes{1}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSoftmaxBackward) {
