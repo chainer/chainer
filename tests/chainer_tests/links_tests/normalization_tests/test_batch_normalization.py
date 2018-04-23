@@ -23,18 +23,45 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
     return y_expect
 
 
-@testing.parameterize(*(testing.product({
-    'test': [True, False],
-    'ndim': [0, 1, 2, 3],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-})))
+@testing.parameterize(*(testing.product_dict(
+    testing.product({
+        'test': [True, False],
+        'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    }),
+    testing.product({
+        'ndim': [0, 1, 2, 3],
+        'axis': [None],
+    }) + [
+        {'shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
+        {'shape': (5, 4), 'axis': 0},
+        {'shape': (5, 4, 3), 'axis': (0, 1)},
+    ]
+)))
 class BatchNormalizationTest(unittest.TestCase):
 
     def setUp(self):
-        self.expander = (None, Ellipsis) + (None,) * self.ndim
-        self.aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
+        aggr_axes = self.axis
+        if aggr_axes is None:
+            aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
+            shape = (5, 3) + (2,) * self.ndim
+            size = shape[1]
+            self.expander = (None, Ellipsis) + (None,) * self.ndim
+        else:
+            if isinstance(self.axis, int):
+                aggr_axes = self.axis,
+            shape = self.shape
+            size = tuple(
+                s
+                for i, s in enumerate(shape)
+                if i not in aggr_axes
+            )
+            self.expander = tuple(
+                None if i in aggr_axes else slice(None)
+                for i in range(len(shape))
+            )
 
-        self.link = links.BatchNormalization(3, dtype=self.dtype)
+        self.link = links.BatchNormalization(
+            size, dtype=self.dtype, axis=self.axis)
         gamma = self.link.gamma.data
         gamma[...] = numpy.random.uniform(.5, 1, gamma.shape)
         beta = self.link.beta.data
@@ -44,18 +71,17 @@ class BatchNormalizationTest(unittest.TestCase):
         self.gamma = gamma.copy()[self.expander]  # fixed on CPU
         self.beta = beta.copy()[self.expander]   # fixed on CPU
 
-        shape = (5, 3) + (2,) * self.ndim
         self.x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
 
         if self.test:
-            self.mean = numpy.random.uniform(-1, 1, (3,)).astype(self.dtype)
-            self.var = numpy.random.uniform(0.5, 1, (3,)).astype(self.dtype)
+            self.mean = numpy.random.uniform(-1, 1, size).astype(self.dtype)
+            self.var = numpy.random.uniform(0.5, 1, size).astype(self.dtype)
             self.link.avg_mean[...] = self.mean
             self.link.avg_var[...] = self.var
         else:
-            self.mean = self.x.mean(axis=self.aggr_axes)
-            self.var = self.x.var(axis=self.aggr_axes)
+            self.mean = self.x.mean(axis=aggr_axes)
+            self.var = self.x.var(axis=aggr_axes)
         self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
         if self.dtype == numpy.float16:
