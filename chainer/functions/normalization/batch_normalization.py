@@ -96,7 +96,7 @@ class BatchNormalization(function_node.FunctionNode):
         self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
 
         if all(x.shape[i] == 1 for i in self.axis):
-            if x.shape[0] == 1:
+            if 0 in self.axis:
                 warnings.warn(
                     'A batch with no more than one sample has been given'
                     ' to F.batch_normalization. F.batch_normalization'
