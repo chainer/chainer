@@ -214,19 +214,11 @@ def test_tonumpy(shape, dtype, device):
     a_np = xchainer.tonumpy(a_xc)
     numpy.testing.assert_array_equal(orig, a_np)
     xchainer.testing.assert_array_equal(a_xc, a_np)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_tonumpy_generating_copy(device):
-    orig = numpy.arange(6).astype('int32')
-    a_xc = xchainer.array(orig)
-    a_np = xchainer.tonumpy(a_xc)
-    numpy.testing.assert_array_equal(orig, a_np)
-    xchainer.testing.assert_array_equal(a_xc, a_np)
-    # buffer is not shared
-    a_np.fill(1)
-    assert a_np[0] != orig[0]
-    assert a_np[0] != int(a_xc[0])
+    if orig.size > 0:
+        # test buffer is not shared
+        a_np.fill(1)
+        assert a_np.reshape(orig.size)[0] != orig.reshape(orig.size)[0]
+        assert a_np.reshape(orig.size)[0] != int(a_xc.reshape(orig.size)[0])
 
 
 def test_view(shape, dtype):
