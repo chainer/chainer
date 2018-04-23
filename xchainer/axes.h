@@ -12,7 +12,8 @@
 
 #include "xchainer/constant.h"
 #include "xchainer/error.h"
-#include "xchainer/ndim_vector.h"
+#include "xchainer/optional_vector.h"
+#include "xchainer/stack_vector.h"
 
 namespace xchainer {
 
@@ -66,7 +67,7 @@ public:
 
 std::ostream& operator<<(std::ostream&, const Axes&);
 
-using OptionalAxes = OptionalNdimVector<Axes>;
+using OptionalAxes = OptionalVector<Axes>;
 
 namespace internal {
 
