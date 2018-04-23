@@ -104,8 +104,7 @@ Dtype GetDtype(py::handle handle) {
         return GetDtypeFromString(py::cast<std::string>(handle));
     }
 
-    // TODO(niboshi): Generate richer error message
-    throw py::type_error{};
+    throw py::type_error{"Dtype not understood: " + py::cast<std::string>(py::repr(handle))};
 }
 
 void InitXchainerDtype(pybind11::module& m) {
