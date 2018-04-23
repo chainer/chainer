@@ -217,8 +217,8 @@ def test_tonumpy(shape, dtype, device):
     if orig.size > 0:
         # test buffer is not shared
         a_np.fill(1)
-        assert a_np.reshape(orig.size)[0] != orig.reshape(orig.size)[0]
-        assert a_np.reshape(orig.size)[0] != int(a_xc.reshape(orig.size)[0])
+        assert not numpy.array_equal(a_np, orig)
+        assert not numpy.array_equal(a_np, xchainer.tonumpy(a_xc))
 
 
 def test_view(shape, dtype):
