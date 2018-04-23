@@ -44,7 +44,8 @@ class MultiprocessIterator(iterator.Iterator):
             Otherwise, it stops iteration at the end of the first epoch.
         shuffle (bool): If ``True``, the order of examples is shuffled at the
             beginning of each epoch. Otherwise, examples are extracted in the
-            order of indexes.
+            order of indexes. If ``None`` and no ``order_sampler`` is given,
+            the behavior is the same as the case with ``shuffle=True``.
         n_processes (int): Number of worker processes. The number of CPUs is
             used by default.
         n_prefetch (int): Number of prefetch batches.
@@ -56,7 +57,7 @@ class MultiprocessIterator(iterator.Iterator):
             and the current position of the iterator.
             This should return the next order. The size of the order
             should remain constant.
-            This option can not be used when ``shuffle`` is ``True``.
+            This option cannot be used when ``shuffle`` is not ``None``.
 
     """
 
@@ -65,7 +66,7 @@ class MultiprocessIterator(iterator.Iterator):
     _comm = None
     _thread = None
 
-    def __init__(self, dataset, batch_size, repeat=True, shuffle=True,
+    def __init__(self, dataset, batch_size, repeat=True, shuffle=None,
                  n_processes=None, n_prefetch=1, shared_mem=None,
                  order_sampler=None):
         self.dataset = dataset
@@ -77,16 +78,20 @@ class MultiprocessIterator(iterator.Iterator):
         self.n_prefetch = max(n_prefetch, 1)
         self.shared_mem = shared_mem
 
-        if self.shuffle and order_sampler is not None:
-            raise ValueError('`shuffle` is `True` and a custom '
-                             '`order_sampler` is set. Please set '
-                             '`shuffle` to `False` to use the custom '
-                             'order sampler.')
-        if order_sampler is None:
-            if self.shuffle:
-                order_sampler = ShuffleOrderSampler()
+        if self.shuffle is not None:
+            if order_sampler is not None:
+                raise ValueError('`shuffle` is not `None` and a custom '
+                                '`order_sampler` is set. Please set '
+                                '`shuffle` to `None` to use the custom '
+                                'order sampler.')
             else:
-                order_sampler = NoShuffleOrderSampler()
+                if self.shuffle:
+                    order_sampler = ShuffleOrderSampler()
+                else:
+                    order_sampler = NoShuffleOrderSampler()
+        else:
+            if order_sampler is None:
+                order_sampler = ShuffleOrderSampler()
         self.order_sampler = order_sampler
 
         self._comm = _Communicator(self.n_prefetch)
@@ -147,7 +152,7 @@ class MultiprocessIterator(iterator.Iterator):
 
     def __copy__(self):
         other = MultiprocessIterator(
-            self.dataset, self.batch_size, self.repeat, shuffle=False,
+            self.dataset, self.batch_size, self.repeat, shuffle=None,
             n_processes=self.n_processes, n_prefetch=self.n_prefetch,
             shared_mem=self.shared_mem, order_sampler=self.order_sampler)
 
