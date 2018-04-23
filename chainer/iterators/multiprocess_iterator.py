@@ -11,7 +11,6 @@ import numpy
 import six
 
 from chainer.dataset import iterator
-from chainer.iterators.order_samplers import NoShuffleOrderSampler
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -87,8 +86,6 @@ class MultiprocessIterator(iterator.Iterator):
             else:
                 if self.shuffle:
                     order_sampler = ShuffleOrderSampler()
-                else:
-                    order_sampler = NoShuffleOrderSampler()
         else:
             if order_sampler is None:
                 order_sampler = ShuffleOrderSampler()
@@ -208,7 +205,12 @@ class MultiprocessIterator(iterator.Iterator):
         self.is_new_epoch = False
         # use -1 instead of None internally.
         self._previous_epoch_detail = -1.
-        self._order = self.order_sampler(numpy.arange(len(self.dataset)), 0)
+        if self.order_sampler:
+            self._order = self.order_sampler(
+                numpy.arange(len(self.dataset)), 0)
+        else:
+            self._order = None
+
         self._set_prefetch_state()
 
     @property
