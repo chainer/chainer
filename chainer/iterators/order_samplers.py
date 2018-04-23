@@ -40,28 +40,3 @@ class ShuffleOrderSampler(object):
 
         """
         return self._random.permutation(len(current_order))
-
-
-class NoShuffleOrderSampler(object):
-
-    """Sampler that generates fixed orders.
-
-    This is expected to be used together with Chainer's iterators.
-    An order sampler is called by an iterator every epoch.
-
-    """
-
-    def __call__(self, current_order, current_position):
-        """Sample the next order.
-
-        Args:
-            current_order (numpy.ndarray): 1-D array of indices.
-                The length should be the same as the dataset to sample
-                data from.
-            current_position (int): The current position of an iterator.
-
-        Returns:
-            None:
-
-        """
-        return None

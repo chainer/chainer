@@ -5,7 +5,6 @@ import numpy
 import six
 
 from chainer.dataset import iterator
-from chainer.iterators.order_samplers import NoShuffleOrderSampler
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -62,8 +61,6 @@ class MultithreadIterator(iterator.Iterator):
             else:
                 if self._shuffle:
                     order_sampler = ShuffleOrderSampler()
-                else:
-                    order_sampler = NoShuffleOrderSampler()
         else:
             if order_sampler is None:
                 order_sampler = ShuffleOrderSampler()
@@ -78,7 +75,11 @@ class MultithreadIterator(iterator.Iterator):
         self.current_position = 0
         self.epoch = 0
         self.is_new_epoch = False
-        self._order = self.order_sampler(numpy.arange(len(self.dataset)), 0)
+        if self.order_sampler:
+            self._order = self.order_sampler(
+                numpy.arange(len(self.dataset)), 0)
+        else:
+            self._order = None
 
         # reset internal state
         self._next = None
