@@ -99,6 +99,12 @@ struct IfLessElseASSAImpl {
     T pos;
 };
 
+template <typename T>
+struct IdentityImpl {
+    void operator()(int64_t i, T& out) { out = i % n == i / n ? T{1} : T{0}; }
+    int64_t n;
+};
+
 }  // namespace
 
 std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) { return std::make_unique<uint8_t[]>(bytesize); }
@@ -445,13 +451,7 @@ void NativeDevice::Identity(const Array& out) {
 
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        struct IdentityImpl {
-            void operator()(int64_t i, T& out) { out = i % n == i / n ? T{1} : T{0}; }
-
-            int64_t n;
-        };
-
-        Elementwise(MakeElementwiseKernelArg<T>(out), IdentityImpl{out.shape()[0]});
+        Elementwise(MakeElementwiseKernelArg<T>(out), IdentityImpl<T>{out.shape()[0]});
     });
 }
 
