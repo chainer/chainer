@@ -15,7 +15,6 @@ array([5., 7., 9.], shape=(3,), dtype=float32, device='native:0')
 >>> y
 array([ 6.,  9., 12.], shape=(3,), dtype=float32, device='native:0')
 
-
 Multiplication
 --------------
 
@@ -27,7 +26,6 @@ array([ 4., 10., 18.], shape=(3,), dtype=float32, device='native:0')
 >>> y *= a
 >>> y
 array([ 4., 20., 54.], shape=(3,), dtype=float32, device='native:0')
-
 
 Mixed
 -----

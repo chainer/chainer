@@ -39,12 +39,12 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
     }
     assert(shape0.size() >= shape1.size());
 
-    NdimVector<int64_t> new_dims{};
+    Shape new_shape;
 
     // If shape0 is longer than shape1, they are aligned at the ending position and shape0_mid is aligned to shape1.begin().
     auto shape0_mid = shape0.begin() + (shape0.size() - shape1.size());
-    std::copy(shape0.begin(), shape0_mid, std::back_inserter(new_dims));
-    std::transform(shape0_mid, shape0.end(), shape1.begin(), std::back_inserter(new_dims), [&shape0, &shape1](int64_t dim0, int64_t dim1) {
+    std::copy(shape0.begin(), shape0_mid, std::back_inserter(new_shape));
+    std::transform(shape0_mid, shape0.end(), shape1.begin(), std::back_inserter(new_shape), [&shape0, &shape1](int64_t dim0, int64_t dim1) {
         if (dim0 == dim1) {
             return dim0;
         }
@@ -57,7 +57,7 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
         throw DimensionError{"operands could not be broadcast together with shapes ", shape0, " ", shape1};
     });
 
-    return Shape{new_dims.begin(), new_dims.end()};
+    return new_shape;
 }
 
 bool IsValidReductionShape(const Shape& in_shape, const NdimVector<int8_t>& axis, const Shape& out_shape, bool allow_keepdims) {
@@ -67,11 +67,11 @@ bool IsValidReductionShape(const Shape& in_shape, const NdimVector<int8_t>& axis
 
 Shape TransposeShape(const Shape& shape, const NdimVector<int8_t>& axes) {
     assert(IsAxesPermutation(axes, shape.ndim()));
-    NdimVector<int64_t> new_shape{};
+    Shape new_shape;
     for (int8_t axis : axes) {
         new_shape.emplace_back(shape[axis]);
     }
-    return Shape{new_shape.begin(), new_shape.end()};
+    return new_shape;
 }
 
 }  // namespace internal

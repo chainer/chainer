@@ -64,6 +64,13 @@ public:
         return this->StackVector::operator[](index);
     }
 
+    int64_t& operator[](int8_t index) {
+        if (!(0 <= index && static_cast<size_t>(index) < size())) {
+            throw DimensionError{"index out of bounds"};
+        }
+        return this->StackVector::operator[](index);
+    }
+
     // span
     gsl::span<const int64_t> span() const { return {*this}; }
 };

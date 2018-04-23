@@ -283,19 +283,19 @@ Array Divide(const Array& x1, const Array& x2) {
 namespace {
 
 Shape GetReductionOutputShape(const Array& a, const NdimVector<int8_t>& sorted_axis, bool keepdims) {
-    NdimVector<int64_t> out_shape_vec{};
+    Shape out_shape;
     int8_t i_axis = 0;
     for (int8_t i = 0; i < a.ndim(); ++i) {
         if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
             ++i_axis;
             if (keepdims) {
-                out_shape_vec.emplace_back(int64_t{1});
+                out_shape.emplace_back(int64_t{1});
             }
         } else {
-            out_shape_vec.emplace_back(a.shape()[i]);
+            out_shape.emplace_back(a.shape()[i]);
         }
     }
-    return Shape{out_shape_vec.begin(), out_shape_vec.end()};
+    return out_shape;
 }
 
 Array AllocateReductionOutput(const Array& a, const NdimVector<int8_t>& sorted_axis, bool keepdims) {
@@ -307,11 +307,11 @@ Array AllocateReductionOutput(const Array& a, const NdimVector<int8_t>& sorted_a
 
     // Set reduced strides of the output array to 0
     Strides contiguous_strides{out_shape, a.dtype()};
-    NdimVector<int64_t> out_strides_vec{contiguous_strides.begin(), contiguous_strides.end()};
+    Strides out_strides = contiguous_strides;
     for (int8_t i_axis : sorted_axis) {
-        out_strides_vec[i_axis] = 0;
+        out_strides[i_axis] = 0;
     }
-    return internal::Empty(out_shape, a.dtype(), Strides{out_strides_vec.begin(), out_strides_vec.end()}, a.device());
+    return internal::Empty(out_shape, a.dtype(), out_strides, a.device());
 }
 
 }  // namespace
@@ -325,11 +325,11 @@ Array Sum(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis, bool
         assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
         if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
-            NdimVector<int64_t> out_shape_broadcastable{gout.shape().begin(), gout.shape().end()};
+            Shape out_shape_broadcastable = gout.shape();
             for (auto axis : sorted_axis) {
                 out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
             }
-            return gout.Reshape({out_shape_broadcastable.begin(), out_shape_broadcastable.end()}).BroadcastTo(in_shape);
+            return gout.Reshape(out_shape_broadcastable).BroadcastTo(in_shape);
         }
         return gout.BroadcastTo(in_shape);
     };

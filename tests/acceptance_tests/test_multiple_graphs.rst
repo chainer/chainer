@@ -34,7 +34,6 @@ Traceback (most recent call last):
   ...
 xchainer.XchainerError: Array does not belong to the graph: 'weight'.
 
-
 Double backprop with single graph
 ---------------------------------
 
