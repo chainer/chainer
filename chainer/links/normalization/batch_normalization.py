@@ -85,8 +85,6 @@ class BatchNormalization(link.Link):
         if isinstance(axis, int):
             axis = (axis,)
         self.axis = axis
-
-        self._size = size
         self._dtype = dtype
 
         with self.init_scope():
@@ -104,8 +102,8 @@ class BatchNormalization(link.Link):
                 beta_initializer.dtype = self._dtype
                 self.beta = variable.Parameter(beta_initializer)
 
-        if self._size is not None:
-            self._initialize_params(self._size)
+        if size is not None:
+            self._initialize_params(size)
 
     def _initialize_params(self, shape):
         self.avg_mean = numpy.zeros(shape, dtype=self._dtype)
