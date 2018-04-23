@@ -369,6 +369,33 @@ class TestSerialIteratorOrderSamplerEpochSize(unittest.TestCase):
                 sorted(batch1 + batch2 + batch3), [1, 1, 2, 2, 3, 3])
 
 
+class NoSameIndicesOrderSampler(object):
+
+    def __init__(self, batchsize):
+        self.n_call = 0
+
+    def __call__(self, current_order, current_pos):
+        # all batches contain unique indices
+        remaining = current_order[current_pos:]
+        first = numpy.setdiff1d(numpy.arange(len(current_order)), remaining)
+        second = numpy.setdiff1d(numpy.arange(len(current_order)), first)
+        return numpy.concatenate((first, second))
+
+
+class TestNoSameIndicesOrderSampler(unittest.TestCase):
+
+    def test_no_same_indices_order_sampler(self):
+        dataset = [1, 2, 3, 4, 5, 6]
+        batchsize = 5
+
+        it = iterators.SerialIterator(
+            dataset, batchsize,
+            order_sampler=NoSameIndicesOrderSampler(batchsize))
+        for _ in range(5):
+            batch = it.next()
+            self.assertEqual(len(numpy.unique(batch)), batchsize)
+
+
 class InvalidOrderSampler(object):
 
     def __init__(self):
