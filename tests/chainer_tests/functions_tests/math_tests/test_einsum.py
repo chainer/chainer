@@ -99,8 +99,11 @@ class TestEinSum(unittest.TestCase):
     def check_double_backward(
             self, inputs_data, y_grad, inputs_grad_grad,
             atol, rtol):
+        def nonlinear(*inputs):
+            y = self.op(*inputs)
+            return y * y
         gradient_check.check_double_backward(
-            self.op, inputs_data, y_grad, inputs_grad_grad,
+            nonlinear, inputs_data, y_grad, inputs_grad_grad,
             atol=atol, rtol=rtol, dtype=numpy.float32)
 
     def test_einsum_double_backward_cpu(self):
@@ -233,8 +236,11 @@ class TestDiagEinSum(unittest.TestCase):
     def check_double_backward(
             self, inputs_data, y_grad, inputs_grad_grad,
             atol, rtol):
+        def nonlinear(*inputs):
+            y = self.op(*inputs)
+            return y * y
         gradient_check.check_double_backward(
-            self.op, inputs_data, y_grad, inputs_grad_grad,
+            nonlinear, inputs_data, y_grad, inputs_grad_grad,
             atol=atol, rtol=rtol, dtype=numpy.float32)
 
     def test_einsum_double_backward_cpu(self):
