@@ -21,7 +21,7 @@ Chainer provides some iterators that implement typical strategies to create mini
 Order sampler examples
 ======================
 
-An Iterator iterates over a dataset according to an order represented by an 1-D array of indices.
+An Iterator iterates over a dataset according to an order represented by a 1-D array of indices.
 Order samplers are callables that are used by those iterators to generate this array.
 
 
