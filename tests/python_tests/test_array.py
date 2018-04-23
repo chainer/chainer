@@ -216,6 +216,20 @@ def test_to_device():
     _check_arrays_equal(a, b2)
 
 
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_tonumpy(shape, dtype, device):
+    orig = _create_dummy_ndarray(shape, dtype)
+    a_xc = xchainer.array(orig)
+    a_np = xchainer.tonumpy(a_xc)
+    numpy.testing.assert_array_equal(orig, a_np)
+    xchainer.testing.assert_array_equal(a_xc, a_np)
+    if orig.size > 0:
+        # test buffer is not shared
+        a_np.fill(1)
+        assert not numpy.array_equal(a_np, orig)
+        assert not numpy.array_equal(a_np, xchainer.tonumpy(a_xc))
+
+
 def test_view(shape, dtype):
     data_list = _create_dummy_data(shape, dtype, pattern=1)
 

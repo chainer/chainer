@@ -86,6 +86,27 @@ py::buffer_info MakeBufferFromArray(ArrayBody& self) {
             array.strides());
 }
 
+py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
+    Array array = Array{self}.ToNative();
+
+    // TODO(sonots): Remove following workaround if pybind11's segv problem with zero-sized shape is fixed.
+    // See https://github.com/pybind/pybind11/issues/1370
+    if (array.shape().ndim() == 0) {
+        py::array py_array = py::array{py::dtype{std::string(1, GetCharCode(array.dtype()))},
+                                       {1},
+                                       reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()};  // NOLINT: reinterpret_cast
+        py_array.resize({});
+        return py_array;
+    }
+
+    return py::array{py::buffer_info{reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset(),  // NOLINT: reinterpret_cast
+                                     array.element_bytes(),
+                                     std::string(1, GetCharCode(array.dtype())),
+                                     array.ndim(),
+                                     array.shape(),
+                                     array.strides()}};
+}
+
 }  // namespace
 
 void InitXchainerArray(pybind11::module& m) {
@@ -122,6 +143,7 @@ void InitXchainerArray(pybind11::module& m) {
     // TODO(niboshi): We cannot support buffer protocol for general device. Remove the binding and provide alternative interface
     // to convert to NumPy array.
     c.def_buffer(&MakeBufferFromArray);
+    m.def("tonumpy", &MakeNumpyArrayFromArray);
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
     c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });
