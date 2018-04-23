@@ -66,7 +66,7 @@ class TestMultiprocessIterator(unittest.TestCase):
                         'shared_mem': self.shared_mem}
         if self.order_sampler is not None:
             self.options.update(
-                {'shuffle': False, 'order_sampler': self.order_sampler})
+                {'order_sampler': self.order_sampler})
 
     def test_iterator_repeat(self):
         dataset = [1, 2, 3, 4, 5, 6]
@@ -322,7 +322,7 @@ class TestMultiprocessIteratorSerialize(unittest.TestCase):
                         'shared_mem': self.shared_mem}
         if self.order_sampler is not None:
             self.options.update(
-                {'shuffle': False, 'order_sampler': self.order_sampler})
+                {'shuffle': None, 'order_sampler': self.order_sampler})
 
     def test_iterator_serialize(self):
         dataset = [1, 2, 3, 4, 5, 6]
@@ -414,7 +414,7 @@ class TestMultiprocessIteratorOrderSamplerEpochSize(unittest.TestCase):
         self.options = {'n_processes': self.n_processes,
                         'n_prefetch': self.n_prefetch,
                         'shared_mem': self.shared_mem,
-                        'shuffle': False,
+                        'shuffle': None,
                         'order_sampler': order_sampler}
 
     def test_iterator_repeat(self):
@@ -468,7 +468,7 @@ class TestMultiprocessIteratorInvalidOrderSampler(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             it = iterators.MultiprocessIterator(
-                dataset, 6, shuffle=False,
+                dataset, 6, shuffle=None,
                 order_sampler=_InvalidOrderSampler())
             it.next()
 
@@ -532,10 +532,6 @@ class TestMultiprocessIteratorInterruption(unittest.TestCase):
             os.remove(self.code_path)
 
     def run_code(self, dataset, n_processes, operation):
-        if self.order_sampler is None:
-            shuffle = True
-        else:
-            shuffle = False
         code_template = """
 import os
 import random
@@ -574,7 +570,7 @@ if __name__ == '__main__':
     {operation}
         """
         code = code_template.format(dataset=dataset,
-                                    shuffle=shuffle,
+                                    shuffle=None,
                                     n_processes=n_processes,
                                     n_prefetch=self.n_prefetch,
                                     shared_mem=self.shared_mem,

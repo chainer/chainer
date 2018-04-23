@@ -53,8 +53,6 @@ class TestMultithreadIterator(unittest.TestCase):
     def setUp(self):
         self.options = {'n_threads': self.n_threads,
                         'order_sampler': self.order_sampler}
-        if self.order_sampler is not None:
-            self.options['shuffle'] = False
 
     def test_iterator_repeat(self):
         dataset = [1, 2, 3, 4, 5, 6]
@@ -296,8 +294,6 @@ class TestMultithreadIteratorSerialize(unittest.TestCase):
     def setUp(self):
         self.options = {'n_threads': self.n_threads,
                         'order_sampler': self.order_sampler}
-        if self.order_sampler is not None:
-            self.options['shuffle'] = False
 
     def test_iterator_serialize(self):
         dataset = [1, 2, 3, 4, 5, 6]
@@ -342,7 +338,7 @@ class TestMultithreadIteratorOrderSamplerEpochSize(unittest.TestCase):
     def setUp(self):
         def order_sampler(order, cur_pos):
             return numpy.repeat(numpy.arange(3), 2)
-        self.options = {'shuffle': False, 'order_sampler': order_sampler}
+        self.options = {'order_sampler': order_sampler}
 
     def test_iterator_repeat(self):
         dataset = [1, 2, 3]
@@ -395,8 +391,7 @@ class TestMultithreadIteratorInvalidOrderSampler(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             it = iterators.MultithreadIterator(
-                dataset, 6, shuffle=False,
-                order_sampler=InvalidOrderSampler())
+                dataset, 6, order_sampler=InvalidOrderSampler())
             it.next()
 
 

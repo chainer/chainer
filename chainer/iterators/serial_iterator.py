@@ -31,34 +31,39 @@ class SerialIterator(iterator.Iterator):
             Otherwise, it stops iteration at the end of the first epoch.
         shuffle (bool): If ``True``, the order of examples is shuffled at the
             beginning of each epoch. Otherwise, examples are extracted in the
-            order of indexes.
+            order of indexes. If ``None`` and no ``order_sampler`` is given,
+            the behavior is the same as the case with ``shuffle=True``.
         order_sampler (callable): A callable that generates the order
             of the indices to sample in the next epoch when a epoch finishes.
             This function should take two arguements: the current order
             and the current position of the iterator.
             This should return the next order. The size of the order
             should remain constant.
-            This option can not be used when ``shuffle`` is ``True``.
+            This option cannot be used when ``shuffle`` is not ``None``.
 
     """
 
     def __init__(self, dataset, batch_size,
-                 repeat=True, shuffle=True, order_sampler=None):
+                 repeat=True, shuffle=None, order_sampler=None):
         self.dataset = dataset
         self.batch_size = batch_size
         self._repeat = repeat
         self._shuffle = shuffle
 
-        if self._shuffle and order_sampler is not None:
-            raise ValueError('`shuffle` is `True` and a custom '
-                             '`order_sampler` is set. Please set '
-                             '`shuffle` to `False` to use the custom '
-                             'order sampler.')
-        if order_sampler is None:
-            if self._shuffle:
-                order_sampler = ShuffleOrderSampler()
+        if self._shuffle is not None:
+            if order_sampler is not None:
+                raise ValueError('`shuffle` is not `None` and a custom '
+                                '`order_sampler` is set. Please set '
+                                '`shuffle` to `None` to use the custom '
+                                'order sampler.')
             else:
-                order_sampler = NoShuffleOrderSampler()
+                if self._shuffle:
+                    order_sampler = ShuffleOrderSampler()
+                else:
+                    order_sampler = NoShuffleOrderSampler()
+        else:
+            if order_sampler is None:
+                order_sampler = ShuffleOrderSampler()
         self.order_sampler = order_sampler
 
         self.reset()

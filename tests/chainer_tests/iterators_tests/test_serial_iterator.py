@@ -140,7 +140,7 @@ class TestSerialIterator(unittest.TestCase):
 @testing.parameterize(
     {'order_sampler': None, 'shuffle': True},
     {'order_sampler': lambda order, _: numpy.random.permutation(len(order)),
-     'shuffle': False}
+     'shuffle': None}
 )
 class TestSerialIteratorShuffled(unittest.TestCase):
 
@@ -243,7 +243,7 @@ class TestSerialIteratorShuffled(unittest.TestCase):
 @testing.parameterize(
     {'order_sampler': None, 'shuffle': True},
     {'order_sampler': lambda order, _: numpy.random.permutation(len(order)),
-     'shuffle': False}
+     'shuffle': None}
 )
 class TestSerialIteratorSerialize(unittest.TestCase):
 
@@ -334,7 +334,7 @@ class TestSerialIteratorOrderSamplerEpochSize(unittest.TestCase):
     def setUp(self):
         def order_sampler(order, cur_pos):
             return numpy.repeat(numpy.arange(3), 2)
-        self.options = {'shuffle': False, 'order_sampler': order_sampler}
+        self.options = {'order_sampler': order_sampler}
 
     def test_iterator_repeat(self):
         dataset = [1, 2, 3]
@@ -387,8 +387,7 @@ class TestSerialIteratorInvalidOrderSampler(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             it = iterators.SerialIterator(
-                dataset, 6, shuffle=False,
-                order_sampler=InvalidOrderSampler())
+                dataset, 6, order_sampler=InvalidOrderSampler())
             it.next()
 
 
