@@ -836,6 +836,38 @@ void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
     });
 }
 
+namespace {
+
+template <typename T>
+struct LinspaceImpl {
+    __device__ void operator()(int64_t i, T& out) {
+        double value = n == 1 ? start : (start * (n - 1 - i) + stop * i) / (n - 1);
+        if (std::is_same<T, bool>::value) {
+            // T=bool
+            out = value != 0;
+        } else {
+            // T=other
+            out = static_cast<T>(value);
+        }
+    }
+    int64_t n;
+    double start;
+    double stop;
+};
+
+}  // namespace
+
+void CudaDevice::Linspace(double start, double stop, const Array& out) {
+    assert(out.ndim() == 1);
+    assert(out.shape()[0] > 0);
+
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        int64_t n = out.shape()[0];
+        Elementwise(MakeElementwiseKernelArg<T>(out), LinspaceImpl<T>{n, start, stop});
+    });
+}
+
 void CudaDevice::Synchronize() {
     CheckCudaError(cudaSetDevice(index()));
     CheckCudaError(cudaDeviceSynchronize());

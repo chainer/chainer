@@ -73,4 +73,13 @@ Array Diag(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
 
 Array Diagflat(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
 
+// Creates a 1-d array with evenly spaced numbers.
+Array Linspace(
+        Scalar start,
+        Scalar stop,
+        nonstd::optional<int64_t> num,
+        bool endpoint = true,
+        nonstd::optional<Dtype> dtype = nonstd::nullopt,
+        Device& device = GetDefaultDevice());
+
 }  // namespace xchainer

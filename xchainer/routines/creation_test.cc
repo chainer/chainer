@@ -564,6 +564,18 @@ TEST_P(CreationTest, Diagflat) {
     }
 }
 
+TEST_P(CreationTest, Linspace) {
+    Array o = Linspace(3.0, 10.0, 4, true, Dtype::kInt32);
+    Array e = testing::BuildArray<int32_t>({4}, {3, 5, 7, 10});
+    testing::ExpectEqual(e, o);
+}
+
+TEST_P(CreationTest, LinspaceEndPointFalse) {
+    Array o = Linspace(3.0, 10.0, 4, false, Dtype::kInt32);
+    Array e = testing::BuildArray<int32_t>({4}, {3, 4, 6, 8});
+    testing::ExpectEqual(e, o);
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         CreationTest,
