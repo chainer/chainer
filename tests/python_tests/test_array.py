@@ -140,7 +140,8 @@ def test_init_shape_dtype_device(shape, dtype_spec, device):
     _check_init(shape, dtype_spec, device=device)
 
 
-# Checks the temporary constructor of ndarray taking a Python list, which will be replaced by the buffer as in numpy.ndarray.
+# Checks the constructor of ndarray taking a Python list.
+# TODO(hvy): This interface differs from numpy.ndarray and should be removed.
 @xchainer.testing.parametrize_dtype_specifier('dtype_spec')
 def test_init_data_list(shape, dtype_spec):
     data_list = _create_dummy_data(shape, xchainer.dtype(dtype_spec).name)
