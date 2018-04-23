@@ -71,21 +71,6 @@ ArrayBodyPtr MakeArray(py::array array, Device& device) {
 
 namespace {
 
-py::buffer_info MakeBufferFromArray(ArrayBody& self) {
-    // Used as a temporary accessor
-    Array array{ArrayBodyPtr(&self, [](ArrayBody* ptr) {
-        (void)ptr;  // unused
-    })};
-
-    return py::buffer_info(
-            reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset(),  // NOLINT: reinterpret_cast
-            array.element_bytes(),
-            std::string(1, GetCharCode(array.dtype())),
-            array.ndim(),
-            array.shape(),
-            array.strides());
-}
-
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
     Array array = Array{self}.ToNative();
 
@@ -140,9 +125,6 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("data"),
           py::arg("device"));
-    // TODO(niboshi): We cannot support buffer protocol for general device. Remove the binding and provide alternative interface
-    // to convert to NumPy array.
-    c.def_buffer(&MakeBufferFromArray);
     m.def("tonumpy", &MakeNumpyArrayFromArray);
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });

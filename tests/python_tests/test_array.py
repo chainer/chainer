@@ -169,11 +169,11 @@ def _check_numpy_init(ndarray, device=None):
     assert array._debug_flat_data == data_copy.ravel().tolist()
 
     # recovered data should be equal
-    data_recovered = numpy.array(array)
+    data_recovered = xchainer.tonumpy(array)
     _check_ndarray_equal_ndarray(data_copy, data_recovered, skip_strides=True, skip_flags=True)
 
     # recovered data should be a copy
-    data_recovered_to_modify = numpy.array(array)
+    data_recovered_to_modify = xchainer.tonumpy(array)
     data_recovered_to_modify *= _create_dummy_ndarray(shape, data_copy.dtype.name)
     _check_array_equals_ndarray(array, data_recovered)
 
@@ -191,7 +191,7 @@ def test_numpy_non_contiguous_init(shape, dtype):
 def test_numpy_init_with_offset():
     ndarray = _create_dummy_ndarray((2, 3), 'int32')
     a = xchainer.array(ndarray)
-    numpy.testing.assert_array_equal(numpy.array(a[1:]), ndarray[1:])
+    numpy.testing.assert_array_equal(xchainer.tonumpy(a[1:]), ndarray[1:])
 
 
 def test_numpy_init_device(shape, dtype):
@@ -1432,7 +1432,7 @@ def test_fill_with_scalar(device, shape, dtype, value):
     a_np.fill(value)
     a_xc.fill(xchainer.Scalar(value, dtype))
     a_xc.device.synchronize()
-    numpy.testing.assert_array_equal(a_xc, a_np)
+    xchainer.testing.assert_array_equal(a_xc, a_np)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
