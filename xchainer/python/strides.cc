@@ -10,7 +10,7 @@ namespace internal {
 namespace py = pybind11;
 
 Strides ToStrides(const py::tuple& tup) {
-    Strides strides;
+    Strides strides{};
     std::transform(tup.begin(), tup.end(), std::back_inserter(strides), [](auto& item) { return py::cast<int64_t>(item); });
     return strides;
 }

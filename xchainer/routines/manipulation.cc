@@ -62,7 +62,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
     }
 
     int64_t element_size = GetElementSize(a.dtype());
-    Strides strides;
+    Strides strides{};
     if (total_size == 0) {
         // Calculate the strides for 0-sized array.
         strides.resize(newshape.ndim());
@@ -75,8 +75,8 @@ Array Reshape(const Array& a, const Shape& newshape) {
 
         // reduced_shape and reduced_strides are the shortest shape and strides which can be convertible from input shape and strides
         // without copy.
-        Shape reduced_shape;
-        Strides reduced_strides;
+        Shape reduced_shape{};
+        Strides reduced_strides{};
         if (in_shape.ndim() == 0) {
             // Input shape is (). Treat as if it were (1).
             reduced_shape.push_back(int64_t{1});
@@ -152,8 +152,8 @@ Array Squeeze(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis) 
     const Shape& in_shape = a.shape();
     const Strides& in_strides = a.strides();
 
-    Shape out_shape;
-    Strides out_strides;
+    Shape out_shape{};
+    Strides out_strides{};
 
     if (axis.has_value()) {
         NdimVector<int8_t> sorted_axis = internal::GetSortedAxes(*axis, in_shape.ndim());

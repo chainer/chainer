@@ -48,8 +48,8 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 }  // namespace
 
 Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
-    Shape out_shape;
-    Strides out_strides;
+    Shape out_shape{};
+    Strides out_strides{};
     int64_t out_offset = a.offset();
     int64_t i_in = 0;
     for (const ArrayIndex& index : indices) {
@@ -133,7 +133,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
 
-    Shape out_shape;
+    Shape out_shape{};
     std::copy(a.shape().begin(), a.shape().begin() + axis_norm, std::back_inserter(out_shape));
     std::copy(indices.shape().begin(), indices.shape().end(), std::back_inserter(out_shape));
     std::copy(a.shape().begin() + (axis_norm + 1), a.shape().end(), std::back_inserter(out_shape));

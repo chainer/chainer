@@ -41,9 +41,9 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const NdimVe
     bool has_kept_dims = out.ndim() + static_cast<int64_t>(axis.size()) != in.ndim();
 
     // Prepare axis mappings
-    Shape reduce_shape;                 // Reduction dimensions
+    Shape reduce_shape{};               // Reduction dimensions
     NdimVector<int8_t> out_axis_map{};  // Mapping from effective output indices to actual output indices
-    Shape new_out_shape;
+    Shape new_out_shape{};
     // (Here "effective output indices" means source indices minus reduction indices.)
 
     // Example (in the case of has_kept_dims=false):
@@ -115,7 +115,7 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const NdimVe
     assert(axis_permutes.size() <= in.shape().size());  // Inequality because 1-dim axes are eliminated.
 
     // Calculate new source shape
-    Shape new_in_shape;
+    Shape new_in_shape{};
     for (int8_t i : axis_permutes) {
         new_in_shape.emplace_back(in.shape()[i]);
     }

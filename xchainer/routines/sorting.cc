@@ -17,7 +17,7 @@ namespace xchainer {
 
 Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis) {
     NdimVector<int8_t> sorted_axis{};
-    Shape out_shape;
+    Shape out_shape{};
     if (axis.has_value()) {
         sorted_axis = internal::GetSortedAxes({*axis}, a.ndim());
         int8_t i_axis = 0;

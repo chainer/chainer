@@ -135,7 +135,7 @@ private:
         // Create strides with extra space specified by `padding`.
         assert(padding.size() == shape_.size());
 
-        Strides strides;
+        Strides strides{};
         strides.resize(shape_.ndim());
         int64_t st = sizeof(T);
         for (int8_t i = shape_.ndim() - 1; i >= 0; --i) {

@@ -26,7 +26,7 @@ Array Dot(const Array& a, const Array& b) {
         throw NotImplementedError{"dot does not support rhs operand with ndim > 2"};
     }
 
-    Shape out_shape;
+    Shape out_shape{};
     std::copy(a.shape().begin(), a.shape().end() - 1, std::back_inserter(out_shape));
     std::copy(b.shape().begin() + 1, b.shape().end(), std::back_inserter(out_shape));
 
