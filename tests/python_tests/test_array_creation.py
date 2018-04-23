@@ -374,7 +374,7 @@ def test_identity(xp, n, dtype_spec, device):
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
-def test_identify_with_device(device):
+def test_identity_with_device(device):
     a = xchainer.identity(3, 'float32', device)
     b = xchainer.identity(3, 'float32')
     _check_device(a, device)
@@ -383,11 +383,11 @@ def test_identify_with_device(device):
 
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
 @pytest.mark.parametrize('device', ['native:0', 'native:0'])
-def test_identify_invalid_negative_n(xp, device):
+def test_identity_invalid_negative_n(xp, device):
     xp.identity(-1, 'float32')
 
 
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(TypeError,))
 @pytest.mark.parametrize('device', ['native:1', 'native:0'])
-def test_identify_invalid_n_type(xp, device):
+def test_identity_invalid_n_type(xp, device):
     xp.identity(3.0, 'float32')
