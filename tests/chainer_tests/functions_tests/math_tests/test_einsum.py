@@ -32,7 +32,8 @@ def _tuple_to_gpu(xs):
         {'subscripts': 'j,ij', 'shapes': ((3,), (2, 3))},
         {'subscripts': 'j,iij', 'shapes': ((3,), (2, 2, 3))},
         {'subscripts': 'iij,kkj', 'shapes': ((2, 2, 3), (4, 4, 3))},
-        {'subscripts': '...ij,...jk->...ik', 'shapes': ((2, 1, 2, 3), (2, 1, 3, 4))},
+        {'subscripts': '...ij,...jk->...ik',
+         'shapes': ((2, 1, 2, 3), (2, 1, 3, 4))},
         {'subscripts': 'i...j,jk...->k...i', 'shapes': ((4, 2, 3), (3, 5, 2))},
         {'subscripts': 'ii...,...jj', 'shapes': ((2, 2, 4), (4, 3, 3))},
         {'subscripts': '...i,i', 'shapes': ((2, 2, 3), (3,))},
@@ -115,15 +116,20 @@ class TestEinSum(unittest.TestCase):
 
 
 @testing.parameterize(
+    # mismatch: 'i'
     {'subscripts': 'i,i', 'shapes': ((2,), (3,))},
     {'subscripts': 'i,i->i', 'shapes': ((2,), (3,))},
     {'subscripts': 'ii', 'shapes': ((2, 3),)},
+
+    # mismatch: '...'
     {'subscripts': '...i,...i', 'shapes': ((2, 2), (3, 2))},
-    {'subscripts': '...i,...i', 'shapes': ((2, 2), (1, 2))},  # F.einsum does not allow broadcasting
-    {'subscripts': '...i,...i', 'shapes': ((2,), (1, 2))},  # F.einsum does not allow broadcasting
     {'subscripts': '...i,...j', 'shapes': ((2, 3), (3, 2))},
     {'subscripts': '...i,j...', 'shapes': ((2, 3), (2, 3))},
     {'subscripts': 'i...,j...', 'shapes': ((2, 3), (3, 2))},
+
+    # F.einsum does not allow broadcasting
+    {'subscripts': '...i,...i', 'shapes': ((2, 2), (1, 2))},
+    {'subscripts': '...i,...i', 'shapes': ((2,), (1, 2))},
 )
 class TestEinSumInvalid(unittest.TestCase):
 

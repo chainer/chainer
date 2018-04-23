@@ -217,8 +217,11 @@ def _parse_einsum_input(operands):
 
         # Check for proper "->"
         if ("-" in subscripts) or (">" in subscripts):
-            invalid = (subscripts.count("-") > 1) or (subscripts.count(">") > 1)
-            if invalid or (subscripts.count("->") != 1):
+            if any((
+                    subscripts.count("-") > 1,
+                    subscripts.count(">") > 1,
+                    subscripts.count("->") != 1,
+            )):
                 raise ValueError("Subscripts can only contain one '->'.")
 
         # Parse "..."
