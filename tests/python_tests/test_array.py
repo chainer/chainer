@@ -222,9 +222,6 @@ def test_tonumpy(device):
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_tonumpy_with_various_parameters(shape, dtype, device):
-    # TODO(sonots): pybind11 segvs with zero-sized shape. See https://github.com/pybind/pybind11/issues/1370
-    if len(shape) == 0:
-        return
     orig = _create_dummy_ndarray(shape, dtype)
     a_xp = xchainer.array(orig)
     a_np = xchainer.tonumpy(a_xp)
