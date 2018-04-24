@@ -435,15 +435,15 @@ void NativeDevice::Eye(int64_t k, const Array& out) {
     VisitDtype(out.dtype(), [k, &out](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
-            Impl(int64_t M, int64_t k) : M{M}, k{k}, M_plus_one{M + 1}, M_minus_k{M - k}, k_norm{k < 0 ? -k * M : k} {}
+            Impl(int64_t m, int64_t k) : m{m}, k{k}, m_plus_one{m + 1}, m_minus_k{m - k}, k_norm{k < 0 ? -k * m : k} {}
             void operator()(int64_t i, T& out) {
-                int64_t row = i / M;
-                out = row < M_minus_k && i >= k_norm && (i - k_norm) % (M_plus_one) == 0 ? T{1} : T{0};
+                int64_t row = i / m;
+                out = row < m_minus_k && i >= k_norm && (i - k_norm) % (m_plus_one) == 0 ? T{1} : T{0};
             }
-            int64_t M;
+            int64_t m;
             int64_t k;
-            int64_t M_plus_one;
-            int64_t M_minus_k;
+            int64_t m_plus_one;
+            int64_t m_minus_k;
             int64_t k_norm;
         };
 

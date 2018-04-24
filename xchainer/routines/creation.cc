@@ -135,12 +135,12 @@ Array Identity(int64_t n, Dtype dtype, Device& device) {
     return out;
 }
 
-Array Eye(int64_t N, int64_t M, int64_t k, Dtype dtype, Device& device) {
-    if (N < 0 || M < 0) {
+Array Eye(int64_t n, int64_t m, int64_t k, Dtype dtype, Device& device) {
+    if (n < 0 || m < 0) {
         throw DimensionError{"Negative dimensions are not allowed"};
     }
 
-    Array out = Empty(Shape{N, M}, dtype, device);
+    Array out = Empty({n, m}, dtype, device);
     device.Eye(k, out);
     return out;
 }
