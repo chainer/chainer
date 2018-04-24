@@ -63,6 +63,7 @@ void NativeDevice::Fill(const Array& out, Scalar value) {
             void operator()(int64_t /*i*/, T& out) { out = value; }
             T value;
         };
+
         Elementwise(MakeElementwiseKernelArg<T>(out), Impl{static_cast<T>(value)});
     });
 }
