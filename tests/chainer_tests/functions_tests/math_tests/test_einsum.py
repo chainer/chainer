@@ -94,7 +94,7 @@ class TestEinSum(unittest.TestCase):
     def test_einsum_backward_gpu(self):
         self.check_backward(
             _tuple_to_gpu(self.inputs),
-            self.g, atol=1e-2, rtol=5e-2)
+            cuda.to_gpu(self.g), atol=1e-2, rtol=5e-2)
 
     def check_double_backward(
             self, inputs_data, y_grad, inputs_grad_grad,
@@ -231,7 +231,7 @@ class TestDiagEinSum(unittest.TestCase):
     def test_einsum_backward_gpu(self):
         self.check_backward(
             _tuple_to_gpu(self.inputs),
-            self.g, atol=1e-2, rtol=5e-2)
+            cuda.to_gpu(self.g), atol=1e-2, rtol=5e-2)
 
     def check_double_backward(
             self, inputs_data, y_grad, inputs_grad_grad,
