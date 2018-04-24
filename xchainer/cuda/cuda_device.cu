@@ -732,6 +732,32 @@ void CudaDevice::Identity(const Array& out) {
     });
 }
 
+namespace {
+
+template <typename T>
+struct EyeImpl {
+    EyeImpl(int64_t M, int64_t k) : M{M}, k{k}, M_plus_one{M + 1}, M_minus_k{M - k}, k_norm{k < 0 ? -k * M : k} {}
+    __device__ void operator()(int64_t i, T& out) {
+        int64_t row = i / M;
+        out = row < M_minus_k && i >= k_norm && (i - k_norm) % (M_plus_one) == 0 ? T{1} : T{0};
+    }
+    int64_t M;
+    int64_t k;
+    int64_t M_plus_one;
+    int64_t M_minus_k;
+    int64_t k_norm;
+};
+
+}  // namespace
+
+void CudaDevice::Eye(int64_t k, const Array& out) {
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [k, &out](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise(MakeElementwiseKernelArg<T>(out), EyeImpl<T>{out.shape()[1], k});
+    });
+}
+
 void CudaDevice::Synchronize() {
     CheckCudaError(cudaSetDevice(index()));
     CheckCudaError(cudaDeviceSynchronize());

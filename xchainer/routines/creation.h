@@ -59,4 +59,7 @@ Array Copy(const Array& a);
 // Creates the identity array.
 Array Identity(int64_t n, Dtype dtype, Device& device = GetDefaultDevice());
 
+// Creates a 2-dimensional array with ones along the k-th diagonal and zeros elsewhere.
+Array Eye(int64_t N, int64_t M, int64_t k, Dtype dtype, Device& device = GetDefaultDevice());
+
 }  // namespace xchainer

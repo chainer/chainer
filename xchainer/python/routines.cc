@@ -153,6 +153,39 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("n"),
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
+    m.def("identity",
+          [](int64_t n, py::handle dtype, Device& device) {
+              return Identity(n, dtype.is_none() ? Dtype::kFloat64 : internal::GetDtype(dtype), device).move_body();
+          },
+          py::arg("n"),
+          py::arg("dtype") = nullptr,
+          py::arg("device"));
+    m.def("eye",
+          [](int64_t N, nonstd::optional<int64_t> M, int64_t k, py::handle dtype, nonstd::optional<std::string>& device_id) {
+              if (!M.has_value()) {
+                  M = N;
+              }
+
+              return Eye(N, M.value(), k, internal::GetDtype(dtype), GetDevice(device_id)).move_body();
+          },
+          py::arg("N"),
+          py::arg("M") = nullptr,
+          py::arg("k") = 0,
+          py::arg("dtype") = nullptr,
+          py::arg("device") = nullptr);
+    m.def("eye",
+          [](int64_t N, nonstd::optional<int64_t> M, int64_t k, py::handle dtype, Device& device) {
+              if (!M.has_value()) {
+                  M = N;
+              }
+
+              return Eye(N, M.value(), k, internal::GetDtype(dtype), device).move_body();
+          },
+          py::arg("N"),
+          py::arg("M") = nullptr,
+          py::arg("k") = 0,
+          py::arg("dtype") = nullptr,
+          py::arg("device"));
 
     // indexing routines
     m.def("take",
