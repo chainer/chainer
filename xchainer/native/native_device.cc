@@ -63,7 +63,6 @@ void NativeDevice::Fill(const Array& out, Scalar value) {
             void operator()(int64_t /*i*/, T& out) { out = value; }
             T value;
         };
-
         Elementwise(MakeElementwiseKernelArg<T>(out), Impl{static_cast<T>(value)});
     });
 }
@@ -443,6 +442,60 @@ void NativeDevice::Eye(int64_t k, const Array& out) {
         };
 
         Elementwise(MakeElementwiseKernelArg<T>(out), Impl{out.shape()[1], k});
+    });
+}
+
+void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
+    assert((v.ndim() == 1 && out.ndim() == 2) || (v.ndim() == 2 && out.ndim() == 1));
+
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        IndexableArray<const T> v_iarray{v};
+        IndexableArray<T> out_iarray{out};
+        Indexer v_indexer{v.shape()};
+        Indexer out_indexer{out.shape()};
+
+        // Start indices for the 2-D array axes with applied offset k.
+        int64_t rows_start{0};
+        int64_t cols_start{0};
+
+        if (k >= 0) {
+            cols_start += k;
+        } else {
+            rows_start -= k;
+        }
+
+        if (v.ndim() == 1) {
+            // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
+            for (int64_t i = 0; i < out_indexer.total_size(); ++i) {
+                out_indexer.Set(i);
+                out_iarray[out_indexer] = T{0};
+            }
+
+            Indexer out_rows_indexer{Shape{out.shape()[0]}};
+            Indexer out_cols_indexer{Shape{out.shape()[1]}};
+
+            for (int64_t i = 0; i < v_indexer.total_size(); ++i) {
+                v_indexer.Set(i);
+                out_rows_indexer.Set(rows_start + i);
+                out_cols_indexer.Set(cols_start + i);
+                out_indexer.SetIndexers(out_rows_indexer, out_cols_indexer);
+                out_iarray[out_indexer] = v_iarray[v_indexer];
+            }
+
+        } else if (v.ndim() == 2) {
+            Indexer v_rows_indexer{Shape{v.shape()[0]}};
+            Indexer v_cols_indexer{Shape{v.shape()[1]}};
+
+            for (int64_t i = 0; i < out_indexer.total_size(); ++i) {
+                out_indexer.Set(i);
+                v_rows_indexer.Set(rows_start + i);
+                v_cols_indexer.Set(cols_start + i);
+                v_indexer.SetIndexers(v_rows_indexer, v_cols_indexer);
+                out_iarray[out_indexer] = v_iarray[v_indexer];
+            }
+        }
     });
 }
 

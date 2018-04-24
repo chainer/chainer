@@ -753,6 +753,101 @@ void CudaDevice::Eye(int64_t k, const Array& out) {
     });
 }
 
+namespace {
+
+template <typename T>
+__global__ void SetVecInMat(
+        IndexableArray<const T> vec_iarray,
+        IndexableArray<T> mat_iarray,
+        Indexer vec_indexer,
+        Indexer mat_row_indexer,
+        Indexer mat_col_indexer,
+        Indexer mat_indexer,
+        int64_t mat_row_start,
+        int64_t mat_col_start) {
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < vec_indexer.total_size(); i += blockDim.x * gridDim.x) {
+        mat_row_indexer.Set(mat_row_start + i);
+        mat_col_indexer.Set(mat_col_start + i);
+        mat_indexer.SetIndexers(mat_row_indexer, mat_col_indexer);
+
+        vec_indexer.Set(i);
+        mat_iarray[mat_indexer] = vec_iarray[vec_indexer];
+    }
+}
+
+template <typename T>
+__global__ void GetVecFromMat(
+        IndexableArray<const T> mat_iarray,
+        IndexableArray<T> vec_iarray,
+        Indexer mat_row_indexer,
+        Indexer mat_col_indexer,
+        Indexer mat_indexer,
+        Indexer vec_indexer,
+        int64_t mat_row_start,
+        int64_t mat_col_start) {
+    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < vec_indexer.total_size(); i += blockDim.x * gridDim.x) {
+        mat_row_indexer.Set(mat_row_start + i);
+        mat_col_indexer.Set(mat_col_start + i);
+        mat_indexer.SetIndexers(mat_row_indexer, mat_col_indexer);
+
+        vec_indexer.Set(i);
+        vec_iarray[vec_indexer] = mat_iarray[mat_indexer];
+    }
+}
+
+}  // namespace
+
+void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
+    assert((v.ndim() == 1 && out.ndim() == 2) || (v.ndim() == 2 && out.ndim() == 1));
+
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        IndexableArray<const T> v_iarray{v};
+        IndexableArray<T> out_iarray{out};
+        Indexer v_indexer{v.shape()};
+        Indexer out_indexer{out.shape()};
+
+        // Start indices for the 2-D array axes with applied offset k.
+        int64_t row_start{0};
+        int64_t col_start{0};
+
+        if (k >= 0) {
+            col_start += k;
+        } else {
+            row_start -= k;
+        }
+
+        if (v.ndim() == 1) {
+            // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
+            Fill(out, T{0});
+
+            Indexer out_row_indexer{Shape{out.shape()[0]}};
+            Indexer out_col_indexer{Shape{out.shape()[1]}};
+
+            static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SetVecInMat<T>).block_size;
+            int64_t total_size = out_indexer.total_size();
+            int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+            int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+            SetVecInMat<<<grid_size, block_size>>>(
+                    v_iarray, out_iarray, v_indexer, out_row_indexer, out_col_indexer, out_indexer, row_start, col_start);
+
+        } else if (v.ndim() == 2) {
+            Indexer v_row_indexer{Shape{v.shape()[0]}};
+            Indexer v_col_indexer{Shape{v.shape()[1]}};
+
+            static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&GetVecFromMat<T>).block_size;
+            int64_t total_size = out_indexer.total_size();
+            int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+            int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+            GetVecFromMat<<<grid_size, block_size>>>(
+                    v_iarray, out_iarray, v_row_indexer, v_col_indexer, v_indexer, out_indexer, row_start, col_start);
+        }
+    });
+}
+
 void CudaDevice::Synchronize() {
     CheckCudaError(cudaSetDevice(index()));
     CheckCudaError(cudaDeviceSynchronize());
