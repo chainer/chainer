@@ -55,9 +55,9 @@ class MultithreadIterator(iterator.Iterator):
         if self._shuffle is not None:
             if order_sampler is not None:
                 raise ValueError('`shuffle` is not `None` and a custom '
-                                '`order_sampler` is set. Please set '
-                                '`shuffle` to `None` to use the custom '
-                                'order sampler.')
+                                 '`order_sampler` is set. Please set '
+                                 '`shuffle` to `None` to use the custom '
+                                 'order sampler.')
             else:
                 if self._shuffle:
                     order_sampler = ShuffleOrderSampler()
