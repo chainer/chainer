@@ -20,6 +20,7 @@ def _enumerate_axes(subscripts):
 def _einsum(xp, in_subscripts, out_subscript, *inputs):
     if '@' in in_subscripts and '@' not in out_subscript:
         # numpy does not allow summing over '...'
+        # See also numpy issue #10926.
         subscripts = '{}->...{}'.format(
             in_subscripts.replace('@', '...'),
             out_subscript
