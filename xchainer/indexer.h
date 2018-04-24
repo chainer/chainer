@@ -60,7 +60,7 @@ public:
         // backward iteration is not supported in order to omit lower-bound check for performance.
         assert(start >= 0);
         assert(step > 0);
-        SetSafe(start);
+        Set(start);
     }
 
     XCHAINER_HOST_DEVICE const Indexer& indexer() const { return indexer_; }
@@ -74,28 +74,21 @@ public:
     XCHAINER_HOST_DEVICE operator bool() const { return ok(); }
 
     XCHAINER_HOST_DEVICE IndexIterator& operator++() {
-        SetSafe(raw_index_ + step_);
+        Set(raw_index_ + step_);
         return *this;
     }
 
 private:
     XCHAINER_HOST_DEVICE bool ok() const { return raw_index_ < indexer_.total_size(); }
 
-    // Set raw_index_.
-    // index_ is updated only when raw_index_ is [0, total_size).
-    XCHAINER_HOST_DEVICE void SetSafe(int64_t i) {
+    // Set raw_index_ and index_.
+    // i may be out of bounds, but raw_index_ and index_ are updated anyway.
+    XCHAINER_HOST_DEVICE void Set(int64_t i) {
         raw_index_ = i;
-        if (ok()) {
-            UpdateIndex();
+        if (indexer_.total_size() == 0) {
+            // In this case there are some j such that shape[j] == 0.
+            return;
         }
-    }
-
-    // Update index_ to follow raw_index_.
-    // raw_index_ must be [0, total_size).
-    XCHAINER_HOST_DEVICE void UpdateIndex() {
-        assert(0 <= raw_index_);
-        assert(raw_index_ < indexer_.total_size());
-        int64_t i = raw_index_;
         const int64_t* shape = indexer_.shape();
         for (int8_t j = indexer_.ndim(); --j >= 0;) {
             index_[j] = i % shape[j];
