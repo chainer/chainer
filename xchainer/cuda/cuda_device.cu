@@ -736,16 +736,11 @@ namespace {
 
 template <typename T>
 struct EyeImpl {
-    EyeImpl(int64_t m, int64_t k) : m{m}, k{k}, m_plus_one{m + 1}, m_minus_k{m - k}, k_norm{k < 0 ? -k * m : k} {}
-    __device__ void operator()(int64_t i, T& out) {
-        int64_t row = i / m;
-        out = row < m_minus_k && i >= k_norm && (i - k_norm) % (m_plus_one) == 0 ? T{1} : T{0};
-    }
-    int64_t m;
-    int64_t k;
-    int64_t m_plus_one;
-    int64_t m_minus_k;
-    int64_t k_norm;
+    EyeImpl(int64_t n, int64_t m, int64_t k) : start{k < 0 ? -k * m : k}, stop{m * (k < 0 ? n : m - k)}, step{m + 1} {}
+    __device__ void operator()(int64_t i, T& out) { out = start <= i && i < stop && (i - start) % step == 0 ? T{1} : T{0}; }
+    int64_t start;
+    int64_t stop;
+    int64_t step;
 };
 
 }  // namespace
@@ -754,7 +749,7 @@ void CudaDevice::Eye(int64_t k, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [k, &out](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T>(out), EyeImpl<T>{out.shape()[1], k});
+        Elementwise(MakeElementwiseKernelArg<T>(out), EyeImpl<T>{out.shape()[0], out.shape()[1], k});
     });
 }
 
