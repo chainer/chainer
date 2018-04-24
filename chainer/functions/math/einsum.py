@@ -74,14 +74,8 @@ class DiagEinSum(function_node.FunctionNode):
 
     def forward(self, inputs):
         n_args = len(inputs)
+        # TODO(kataoka): Do not retain inputs if n_args == 1
         self.retain_inputs(tuple(range(n_args)))
-        """
-        if n_args >= 2:
-            self.retain_inputs(tuple(range(n_args)))
-        else:
-            self.input_shape = inputs[0].shape
-        self.n_args = n_args
-        """
 
         xp = cuda.get_array_module(inputs[0])
 
@@ -131,15 +125,6 @@ class DiagEinSum(function_node.FunctionNode):
 
     def backward(self, indices, grad_outputs):
         inputs = self.get_retained_inputs()
-        """
-        if self.n_args >= 2:
-            inputs = self.get_retained_inputs()
-        else:
-            # TODO(kataoka): fix
-            xp = cuda.get_array_module(grad_outputs[0])
-            inputs = [xp.zeros(self.input_shape, dtype=grad_outputs[0].dtype)]
-        """
-
         g, = grad_outputs
 
         fwd_in_subs = self.in_subs.split(',')

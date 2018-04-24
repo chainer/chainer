@@ -194,7 +194,6 @@ class TestDiagEinSum(unittest.TestCase):
             self._setup_tensor(-1, 1, shape, self.dtype)
             for shape in self.i_shapes
         ]
-        # self.forward_answer = numpy.einsum(self.subscripts, *self.inputs)
         self.g = self._setup_tensor(-1, 1, self.o_shape, self.dtype)
         self.gg_inputs = [
             self._setup_tensor(-1, 1, shape, self.dtype)
@@ -207,25 +206,7 @@ class TestDiagEinSum(unittest.TestCase):
     def _setup_tensor(self, _min, _max, shape, dtype):
         return numpy.random.uniform(_min, _max, shape).astype(dtype)
 
-    """
-    def check_forward(self, inputs_data, atol=1e-4, rtol=1e-5):
-        out = self.op(*[chainer.Variable(x) for x in self.inputs])
-        testing.assert_allclose(self.forward_answer, out.data, atol, rtol)
-
-    def test_einsum_forward_cpu(self):
-        if self.dtype == numpy.float16:
-            self.check_forward(self.inputs, atol=1e-3, rtol=1e-3)
-        else:
-            self.check_forward(self.inputs)
-
-    @attr.gpu
-    def test_einsum_forward_gpu(self):
-        inputs = [cuda.to_gpu(x) for x in self.inputs]
-        if self.dtype == numpy.float16:
-            self.check_forward(self.inputs, atol=1e-3, rtol=1e-3)
-        else:
-            self.check_forward(self.inputs)
-    """
+    # TODO(kataoka): test forward
 
     def check_backward(self, inputs_data, output_grad, atol, rtol):
         gradient_check.check_backward(
