@@ -769,7 +769,6 @@ __global__ void SetVecInMat(
         mat_row_indexer.Set(mat_row_start + i);
         mat_col_indexer.Set(mat_col_start + i);
         mat_indexer.SetIndexers(mat_row_indexer, mat_col_indexer);
-
         vec_indexer.Set(i);
         mat_iarray[mat_indexer] = vec_iarray[vec_indexer];
     }
@@ -789,7 +788,6 @@ __global__ void GetVecFromMat(
         mat_row_indexer.Set(mat_row_start + i);
         mat_col_indexer.Set(mat_col_start + i);
         mat_indexer.SetIndexers(mat_row_indexer, mat_col_indexer);
-
         vec_indexer.Set(i);
         vec_iarray[vec_indexer] = mat_iarray[mat_indexer];
     }
