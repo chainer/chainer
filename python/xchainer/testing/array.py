@@ -14,8 +14,7 @@ def _check_xchainer_array(x):
 
 def _as_numpy(x):
     if isinstance(x, xchainer.ndarray):
-        # TODO(hvy): Use a function that converts xChainer arrays to NumPy arrays.
-        return x.to_device('native:0')
+        return xchainer.tonumpy(x)
     assert isinstance(x, numpy.ndarray) or numpy.isscalar(x)
     return x
 
