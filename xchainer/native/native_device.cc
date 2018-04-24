@@ -26,87 +26,6 @@
 
 namespace xchainer {
 namespace native {
-namespace {
-
-template <typename T>
-struct FillImpl {
-    void operator()(int64_t /*i*/, T& out) { out = value; }
-    T value;
-};
-
-template <typename T>
-struct CopyImpl {
-    void operator()(int64_t /*i*/, T a, T& out) { out = a; }
-};
-
-template <typename T>
-struct ArangeImpl {
-    void operator()(int64_t i, T& out) { out = start + step * i; }
-    T start;
-    T step;
-};
-
-template <typename InT, typename OutT>
-struct AsTypeImpl {
-    void operator()(int64_t /*i*/, InT a, OutT& out) { out = static_cast<OutT>(a); }
-};
-
-template <typename T>
-struct EqualImpl {
-    void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 == x2; }
-};
-
-template <typename T>
-struct AddImpl {
-    void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 + x2; }
-};
-
-template <typename T>
-struct SubtractImpl {
-    void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 - x2; }
-};
-
-template <typename T>
-struct MultiplyImpl {
-    void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 * x2; }
-};
-
-template <typename T>
-struct MultiplyASImpl {
-    void operator()(int64_t /*i*/, T x1, T& out) { out = x1 * x2; }
-    T x2;
-};
-
-template <typename T>
-struct DivideImpl {
-    void operator()(int64_t /*i*/, T lhs, T rhs, T& out) { out = lhs / rhs; }
-};
-
-template <typename T>
-struct ExpImpl {
-    void operator()(int64_t /*i*/, T x, T& out) { out = std::exp(x); }
-};
-
-template <typename T>
-struct LogImpl {
-    void operator()(int64_t /*i*/, T x, T& out) { out = std::log(x); }
-};
-
-template <typename T>
-struct IfLessElseASSAImpl {
-    void operator()(int64_t /*i*/, T x1, T neg, T& out) { out = x1 < x2 ? pos : neg; }
-    T x2;
-    T pos;
-};
-
-template <typename T>
-struct IdentityImpl {
-    explicit IdentityImpl(int64_t n) : n_plus_one{n + 1} {}
-    void operator()(int64_t i, T& out) { out = i % n_plus_one == 0 ? T{1} : T{0}; }
-    int64_t n_plus_one;
-};
-
-}  // namespace
 
 std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) { return std::make_unique<uint8_t[]>(bytesize); }
 
@@ -140,14 +59,25 @@ std::shared_ptr<void> NativeDevice::FromHostMemory(const std::shared_ptr<void>& 
 void NativeDevice::Fill(const Array& out, Scalar value) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T>(out), FillImpl<T>{static_cast<T>(value)});
+        struct Impl {
+            void operator()(int64_t /*i*/, T& out) { out = value; }
+            T value;
+        };
+
+        Elementwise(MakeElementwiseKernelArg<T>(out), Impl{static_cast<T>(value)});
     });
 }
 
 void NativeDevice::Arange(Scalar start, Scalar step, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T>(out), ArangeImpl<T>{static_cast<T>(start), static_cast<T>(step)});
+        struct Impl {
+            void operator()(int64_t i, T& out) { out = start + step * i; }
+            T start;
+            T step;
+        };
+
+        Elementwise(MakeElementwiseKernelArg<T>(out), Impl{static_cast<T>(start), static_cast<T>(step)});
     });
 }
 
@@ -158,7 +88,7 @@ void NativeDevice::ArgMax(const Array& a, const NdimVector<int8_t>& axis, const 
 
     VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
         using T = typename decltype(pt)::type;
-        struct ArgMaxImpl {
+        struct Impl {
             struct MaxAndArgMax {
                 T max;
                 int64_t argmax;
@@ -173,7 +103,7 @@ void NativeDevice::ArgMax(const Array& a, const NdimVector<int8_t>& axis, const 
             }
             int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
         };
-        Reduce(MakeReductionKernelArg<T, int64_t>(a, axis, out), ArgMaxImpl{});
+        Reduce(MakeReductionKernelArg<T, int64_t>(a, axis, out), Impl{});
     });
 }
 
@@ -183,13 +113,13 @@ void NativeDevice::Sum(const Array& a, const NdimVector<int8_t>& axis, const Arr
 
     VisitDtype(out.dtype(), [&a, &axis, &out](auto pt) {
         using T = typename decltype(pt)::type;
-        struct SumImpl {
+        struct Impl {
             T Identity() { return T{0}; }
             T MapIn(T in, int64_t /*index*/) { return in; }
             void Reduce(T next, T& accum) { accum += next; }
             T MapOut(T accum) { return accum; }
         };
-        Reduce(MakeReductionKernelArg<T, T>(a, axis, out), SumImpl{});
+        Reduce(MakeReductionKernelArg<T, T>(a, axis, out), Impl{});
     });
 }
 
@@ -199,7 +129,7 @@ void NativeDevice::AMax(const Array& a, const NdimVector<int8_t>& axis, const Ar
 
     VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
         using T = typename decltype(pt)::type;
-        struct AMaxImpl {
+        struct Impl {
             T Identity() { return NumericLimits<T>::LowestOrInf(); }
             T MapIn(T in, int64_t /*index*/) { return in; }
             void Reduce(T next, T& accum) {
@@ -209,7 +139,7 @@ void NativeDevice::AMax(const Array& a, const NdimVector<int8_t>& axis, const Ar
             }
             T MapOut(T accum) { return accum; }
         };
-        Reduce(MakeReductionKernelArg<T, T>(a, axis, out), AMaxImpl{});
+        Reduce(MakeReductionKernelArg<T, T>(a, axis, out), Impl{});
     });
 }
 
@@ -217,7 +147,10 @@ void NativeDevice::Copy(const Array& a, const Array& out) {
     CheckDevicesCompatible(a, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, T>(a, out), CopyImpl<T>{});
+        struct Impl {
+            void operator()(int64_t /*i*/, T a, T& out) { out = a; }
+        };
+        Elementwise(MakeElementwiseKernelArg<const T, T>(a, out), Impl{});
     });
 }
 
@@ -226,7 +159,11 @@ void NativeDevice::AsType(const Array& a, const Array& out) {
     auto do_astype = [&](auto in_pt, auto out_pt) {
         using InT = typename decltype(in_pt)::type;
         using OutT = typename decltype(out_pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const InT, OutT>(a, out), AsTypeImpl<InT, OutT>{});
+        struct Impl {
+            void operator()(int64_t /*i*/, InT a, OutT& out) { out = static_cast<OutT>(a); }
+        };
+
+        Elementwise(MakeElementwiseKernelArg<const InT, OutT>(a, out), Impl{});
     };
     VisitDtype(out.dtype(), [&](auto out_pt) { VisitDtype(a.dtype(), do_astype, out_pt); });
 }
@@ -235,7 +172,11 @@ void NativeDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, bool>(x1, x2, out), EqualImpl<T>{});
+        struct Impl {
+            void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 == x2; }
+        };
+
+        Elementwise(MakeElementwiseKernelArg<const T, const T, bool>(x1, x2, out), Impl{});
     });
 }
 
@@ -243,7 +184,11 @@ void NativeDevice::Add(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), AddImpl<T>{});
+        struct Impl {
+            void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 + x2; }
+        };
+
+        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), Impl{});
     });
 }
 
@@ -251,7 +196,10 @@ void NativeDevice::Subtract(const Array& x1, const Array& x2, const Array& out) 
     CheckDevicesCompatible(x1, x2, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), SubtractImpl<T>{});
+        struct Impl {
+            void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 - x2; }
+        };
+        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), Impl{});
     });
 }
 
@@ -259,7 +207,10 @@ void NativeDevice::Multiply(const Array& x1, const Array& x2, const Array& out) 
     CheckDevicesCompatible(x1, x2, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), MultiplyImpl<T>{});
+        struct Impl {
+            void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 * x2; }
+        };
+        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), Impl{});
     });
 }
 
@@ -267,7 +218,12 @@ void NativeDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
     CheckDevicesCompatible(x1, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, T>(x1, out), MultiplyASImpl<T>{static_cast<T>(x2)});
+        struct Impl {
+            void operator()(int64_t /*i*/, T x1, T& out) { out = x1 * x2; }
+            T x2;
+        };
+
+        Elementwise(MakeElementwiseKernelArg<const T, T>(x1, out), Impl{static_cast<T>(x2)});
     });
 }
 
@@ -275,7 +231,10 @@ void NativeDevice::Divide(const Array& lhs, const Array& rhs, const Array& out) 
     CheckDevicesCompatible(lhs, rhs, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(lhs, rhs, out), DivideImpl<T>{});
+        struct Impl {
+            void operator()(int64_t /*i*/, T lhs, T rhs, T& out) { out = lhs / rhs; }
+        };
+        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(lhs, rhs, out), Impl{});
     });
 }
 
@@ -283,9 +242,12 @@ void NativeDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const 
     CheckDevicesCompatible(x1, neg, out);
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(
-                MakeElementwiseKernelArg<const T, const T, T>(x1, neg, out),
-                IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)});
+        struct Impl {
+            void operator()(int64_t /*i*/, T x1, T neg, T& out) { out = x1 < x2 ? pos : neg; }
+            T x2;
+            T pos;
+        };
+        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, neg, out), Impl{static_cast<T>(x2), static_cast<T>(pos)});
     });
 }
 
@@ -329,7 +291,11 @@ void NativeDevice::Exp(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), ExpImpl<T>{});
+        struct Impl {
+            void operator()(int64_t /*i*/, T x, T& out) { out = std::exp(x); }
+        };
+
+        Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), Impl{});
     });
 }
 
@@ -337,7 +303,10 @@ void NativeDevice::Log(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), LogImpl<T>{});
+        struct Impl {
+            void operator()(int64_t /*i*/, T x, T& out) { out = std::log(x); }
+        };
+        Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), Impl{});
     });
 }
 
@@ -452,7 +421,13 @@ void NativeDevice::Identity(const Array& out) {
 
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T>(out), IdentityImpl<T>{out.shape()[0]});
+        struct Impl {
+            explicit Impl(int64_t n) : n_plus_one{n + 1} {}
+            void operator()(int64_t i, T& out) { out = i % n_plus_one == 0 ? T{1} : T{0}; }
+            int64_t n_plus_one;
+        };
+
+        Elementwise(MakeElementwiseKernelArg<T>(out), Impl{out.shape()[0]});
     });
 }
 

@@ -32,80 +32,6 @@
 
 namespace xchainer {
 namespace cuda {
-namespace {
-
-template <typename T>
-struct FillImpl {
-    __device__ void operator()(int64_t /*i*/, T& out) { out = value; }
-    T value;
-};
-
-template <typename T>
-struct CopyImpl {
-    __device__ void operator()(int64_t /*i*/, T a, T& out) { out = a; }
-};
-
-template <typename T>
-struct ArangeImpl {
-    __device__ void operator()(int64_t i, T& out) { out = start + step * i; }
-    T start;
-    T step;
-};
-
-template <typename InT, typename OutT>
-struct AsTypeImpl {
-    __device__ void operator()(int64_t /*i*/, InT a, OutT& out) { out = static_cast<OutT>(a); }
-};
-
-template <typename T>
-struct EqualImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 == x2; }
-};
-
-template <typename T>
-struct AddImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 + x2; }
-};
-
-template <typename T>
-struct SubtractImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 - x2; }
-};
-
-template <typename T>
-struct MultiplyImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 * x2; }
-};
-
-template <typename T>
-struct MultiplyASImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = x1 * x2; }
-    T x2;
-};
-
-template <typename T>
-struct DivideImpl {
-    __device__ void operator()(int64_t /*i*/, T lhs, T rhs, T& out) { out = lhs / rhs; }
-};
-
-template <typename T>
-struct ExpImpl {
-    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::exp(x); }
-};
-
-template <typename T>
-struct LogImpl {
-    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::log(x); }
-};
-
-template <typename T>
-struct IfLessElseASSAImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T neg, T& out) { out = x1 < x2 ? pos : neg; }
-    T x2;
-    T pos;
-};
-
-}  // namespace
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
     if (bytesize == 0) {
@@ -167,6 +93,16 @@ std::shared_ptr<void> CudaDevice::FromHostMemory(const std::shared_ptr<void>& sr
     return dst_ptr;
 }
 
+namespace {
+
+template <typename T>
+struct FillImpl {
+    __device__ void operator()(int64_t /*i*/, T& out) { out = value; }
+    T value;
+};
+
+}  // namespace
+
 void CudaDevice::Fill(const Array& out, Scalar value) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
@@ -174,6 +110,17 @@ void CudaDevice::Fill(const Array& out, Scalar value) {
         Elementwise(MakeElementwiseKernelArg<T>(out), FillImpl<T>{static_cast<T>(value)});
     });
 }
+
+namespace {
+
+template <typename T>
+struct ArangeImpl {
+    __device__ void operator()(int64_t i, T& out) { out = start + step * i; }
+    T start;
+    T step;
+};
+
+}  // namespace
 
 void CudaDevice::Arange(Scalar start, Scalar step, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
@@ -264,6 +211,15 @@ void CudaDevice::AMax(const Array& a, const NdimVector<int8_t>& axis, const Arra
     });
 }
 
+namespace {
+
+template <typename T>
+struct CopyImpl {
+    __device__ void operator()(int64_t /*i*/, T a, T& out) { out = a; }
+};
+
+}  // namespace
+
 void CudaDevice::Copy(const Array& a, const Array& out) {
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
@@ -272,6 +228,15 @@ void CudaDevice::Copy(const Array& a, const Array& out) {
         Elementwise(MakeElementwiseKernelArg<const T, T>(a, out), CopyImpl<T>{});
     });
 }
+
+namespace {
+
+template <typename InT, typename OutT>
+struct AsTypeImpl {
+    __device__ void operator()(int64_t /*i*/, InT a, OutT& out) { out = static_cast<OutT>(a); }
+};
+
+}  // namespace
 
 void CudaDevice::AsType(const Array& a, const Array& out) {
     CheckDevicesCompatible(a, out);
@@ -284,6 +249,15 @@ void CudaDevice::AsType(const Array& a, const Array& out) {
     VisitDtype(out.dtype(), [&](auto out_pt) { VisitDtype(a.dtype(), do_astype, out_pt); });
 }
 
+namespace {
+
+template <typename T>
+struct EqualImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 == x2; }
+};
+
+}  // namespace
+
 void CudaDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
     CheckCudaError(cudaSetDevice(index()));
@@ -292,6 +266,15 @@ void CudaDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
         Elementwise(MakeElementwiseKernelArg<const T, const T, bool>(x1, x2, out), EqualImpl<T>{});
     });
 }
+
+namespace {
+
+template <typename T>
+struct AddImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 + x2; }
+};
+
+}  // namespace
 
 // TODO(sonots): support stream
 void CudaDevice::Add(const Array& x1, const Array& x2, const Array& out) {
@@ -303,6 +286,15 @@ void CudaDevice::Add(const Array& x1, const Array& x2, const Array& out) {
     });
 }
 
+namespace {
+
+template <typename T>
+struct SubtractImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 - x2; }
+};
+
+}  // namespace
+
 void CudaDevice::Subtract(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
     CheckCudaError(cudaSetDevice(index()));
@@ -311,6 +303,15 @@ void CudaDevice::Subtract(const Array& x1, const Array& x2, const Array& out) {
         Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), SubtractImpl<T>{});
     });
 }
+
+namespace {
+
+template <typename T>
+struct MultiplyImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 * x2; }
+};
+
+}  // namespace
 
 // TODO(sonots): support stream
 void CudaDevice::Multiply(const Array& x1, const Array& x2, const Array& out) {
@@ -322,6 +323,16 @@ void CudaDevice::Multiply(const Array& x1, const Array& x2, const Array& out) {
     });
 }
 
+namespace {
+
+template <typename T>
+struct MultiplyASImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = x1 * x2; }
+    T x2;
+};
+
+}  // namespace
+
 void CudaDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
     CheckDevicesCompatible(x1, out);
     CheckCudaError(cudaSetDevice(index()));
@@ -331,6 +342,15 @@ void CudaDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
     });
 }
 
+namespace {
+
+template <typename T>
+struct DivideImpl {
+    __device__ void operator()(int64_t /*i*/, T lhs, T rhs, T& out) { out = lhs / rhs; }
+};
+
+}  // namespace
+
 void CudaDevice::Divide(const Array& lhs, const Array& rhs, const Array& out) {
     CheckDevicesCompatible(lhs, rhs, out);
     CheckCudaError(cudaSetDevice(index()));
@@ -339,6 +359,17 @@ void CudaDevice::Divide(const Array& lhs, const Array& rhs, const Array& out) {
         Elementwise(MakeElementwiseKernelArg<const T, const T, T>(lhs, rhs, out), DivideImpl<T>{});
     });
 }
+
+namespace {
+
+template <typename T>
+struct IfLessElseASSAImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T neg, T& out) { out = x1 < x2 ? pos : neg; }
+    T x2;
+    T pos;
+};
+
+}  // namespace
 
 void CudaDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
@@ -460,6 +491,15 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
     }
 }
 
+namespace {
+
+template <typename T>
+struct ExpImpl {
+    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::exp(x); }
+};
+
+}  // namespace
+
 void CudaDevice::Exp(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     CheckCudaError(cudaSetDevice(index()));
@@ -468,6 +508,15 @@ void CudaDevice::Exp(const Array& x, const Array& out) {
         Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), ExpImpl<T>{});
     });
 }
+
+namespace {
+
+template <typename T>
+struct LogImpl {
+    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::log(x); }
+};
+
+}  // namespace
 
 void CudaDevice::Log(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
@@ -568,13 +617,6 @@ __global__ void AddAtKernel(
     }
 }
 
-template <typename T>
-struct IdentityImpl {
-    explicit IdentityImpl(int64_t n) : n_plus_one{n + 1} {}
-    __device__ void operator()(int64_t i, T& out) { out = i % n_plus_one == 0 ? T{1} : T{0}; }
-    int64_t n_plus_one;
-};
-
 }  // namespace
 
 void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
@@ -667,6 +709,17 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
                 a_iarray, b_iarray, out_iarray, indices_iarray, b_indexer, out_indexer, indices_indexer, common_total_size, a_shape[0]);
     });
 }
+
+namespace {
+
+template <typename T>
+struct IdentityImpl {
+    explicit IdentityImpl(int64_t n) : n_plus_one{n + 1} {}
+    __device__ void operator()(int64_t i, T& out) { out = i % n_plus_one == 0 ? T{1} : T{0}; }
+    int64_t n_plus_one;
+};
+
+}  // namespace
 
 void CudaDevice::Identity(const Array& out) {
     assert(out.ndim() == 2);
