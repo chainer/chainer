@@ -415,6 +415,27 @@ def test_eye(xp, N, M, k, dtype_spec, device):
     return xp.eye(N, M, k, dtype_spec)
 
 
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('N,M,k', [
+    (3, None, 1),
+    (3, 4, None),
+    (3, None, None),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_eye_with_default(xp, N, M, k, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+
+    if M is None and k is None:
+        return xp.eye(N, dtype=dtype_spec)
+    elif M is None:
+        return xp.eye(N, k=k, dtype=dtype_spec)
+    elif k is None:
+        return xp.eye(N, M=M, dtype=dtype_spec)
+    assert False
+
+
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_eye_with_device(device):
     a = xchainer.eye(1, 2, 1, 'float32', device)
