@@ -845,7 +845,7 @@ struct LinspaceImpl {
         if (std::is_same<T, bool>::value) {
             // T=bool
             out = value != 0;
-        } else if (std::is_integral<T>::value) {
+        } else if (std::is_unsigned<T>::value) {
             // T=any unsigned integer
             // If float value is directly casted to unsigned, it's representation would be different from that of native.
             // In order to avoid that, it's casted to int64_t first.
