@@ -4,13 +4,11 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
-import chainer.functions as F
+from chainer.functions.math import einsum
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.utils.type_check import InvalidType
-
-from chainer.functions.math.einsum import _diag_einsum
+from chainer import utils
 
 
 def _tuple_to_gpu(xs):
@@ -59,7 +57,7 @@ class TestEinSum(unittest.TestCase):
             self._setup_tensor(-1, 1, shape, self.dtype)
             for shape in self.shapes
         ])
-        self.op = lambda *xs: F.einsum(self.subscripts, *xs)
+        self.op = lambda *xs: einsum.einsum(self.subscripts, *xs)
 
     def _setup_tensor(self, _min, _max, shape, dtype):
         return numpy.random.uniform(_min, _max, shape).astype(dtype)
@@ -143,8 +141,8 @@ class TestEinSumInvalid(unittest.TestCase):
         ])
 
     def test_raise_invalid_type(self):
-        with self.assertRaises(InvalidType):
-            F.einsum(self.subscripts, *self.inputs)
+        with self.assertRaises(utils.type_check.InvalidType):
+            einsum.einsum(self.subscripts, *self.inputs)
 
 
 @testing.parameterize(
@@ -163,7 +161,17 @@ class TestEinSumParseError(unittest.TestCase):
 
     def test_raise_parse_error(self):
         with self.assertRaises(ValueError):
-            F.einsum(self.subscripts, *self.inputs)
+            einsum.einsum(self.subscripts, *self.inputs)
+
+
+def diag_einsum(
+        input_subscripts, output_subscript, *ioperands, **kwargs):
+    output_shape, = utils.argument.parse_kwargs(kwargs, ('output_shape', None))
+    return einsum.DiagEinSum(
+        in_subs=input_subscripts,
+        out_sub=output_subscript,
+        out_shape=output_shape,
+    ).apply(ioperands)[0]
 
 
 @testing.parameterize(*testing.product_dict(
@@ -193,7 +201,7 @@ class TestDiagEinSum(unittest.TestCase):
             for shape in self.i_shapes
         ]
         i_sub, o_sub = self.subscripts.split('->')
-        self.op = lambda *xs: _diag_einsum(
+        self.op = lambda *xs: diag_einsum(
             i_sub, o_sub, *xs, output_shape=self.o_shape)
 
     def _setup_tensor(self, _min, _max, shape, dtype):

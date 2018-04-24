@@ -160,16 +160,6 @@ class DiagEinSum(function_node.FunctionNode):
         )
 
 
-def _diag_einsum(
-        input_subscripts, output_subscript, *ioperands, **kwargs):
-    output_shape, = utils.argument.parse_kwargs(kwargs, ('output_shape', None))
-    return DiagEinSum(
-        in_subs=input_subscripts,
-        out_sub=output_subscript,
-        out_shape=output_shape,
-    ).apply(ioperands)[0]
-
-
 def einsum(*operands):
     input_subscripts, output_subscript, ioperands = \
         _parse_einsum_input(operands)
