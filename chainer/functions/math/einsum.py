@@ -28,6 +28,9 @@ def _einsum(xp, in_subscripts, out_subscript, *inputs):
         y = xp.einsum(subscripts, *inputs)
         sum_ndim = y.ndim - len(out_subscript)
         y = xp.sum(y, axis=tuple(range(sum_ndim)))
+    elif in_subscripts == out_subscript:
+        # Avoid cupy issue #1179
+        y, = inputs
     else:
         subscripts = '{}->{}'.format(
             in_subscripts,
