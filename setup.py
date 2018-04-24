@@ -36,7 +36,15 @@ requirements = {
     ],
     'stylecheck': [
         'autopep8',
-        'hacking',
+
+        # Copied from hacking.
+        # TODO(niboshi): Update them to match our own need.
+        'pbr>=1.8',
+        'pep8==1.5.7',
+        'pyflakes==0.8.1',
+        'flake8<2.6.0,>=2.5.4',
+        'mccabe==0.2.1',
+        'six>=1.9.0',
     ],
     'test': [
         'pytest',
