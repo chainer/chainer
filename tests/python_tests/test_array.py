@@ -1416,7 +1416,7 @@ def test_invalid_dot(is_module, xp, device, a_shape, b_shape, dtype):
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('value', [-1, 0, 1, 2, float('inf'), float('nan')])
+@pytest.mark.parametrize('value', [-1, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_fill(xp, shape, dtype, value, device):
     a = xp.empty(shape, dtype)
@@ -1424,15 +1424,15 @@ def test_fill(xp, shape, dtype, value, device):
     return a
 
 
-@pytest.mark.parametrize('value', [-1, 0, 1, 2, float('inf'), float('nan')])
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('value', [-1, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_fill_with_scalar(device, shape, dtype, value):
-    a_np = numpy.empty(shape, dtype)
-    a_xc = xchainer.empty(shape, dtype)
-    a_np.fill(value)
-    a_xc.fill(xchainer.Scalar(value, dtype))
-    a_xc.device.synchronize()
-    xchainer.testing.assert_array_equal(a_xc, a_np)
+def test_fill_with_scalar(xp, device, shape, dtype, value):
+    a = xp.empty(shape, dtype)
+    if xp is xchainer:
+        value = xchainer.Scalar(value, dtype)
+    a.fill(value)
+    return a
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])

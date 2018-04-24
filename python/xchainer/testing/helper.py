@@ -62,6 +62,8 @@ def _make_decorator(check_func, name, type_check, accept_error):
                                             accept_error=accept_error)
                 return
 
+            assert isinstance(xchainer_result, xchainer.ndarray), type(xchainer_result)
+            assert isinstance(numpy_result, numpy.ndarray) or numpy.isscalar(numpy_result), type(numpy_result)
             assert xchainer_result.shape == numpy_result.shape
 
             check_func(xchainer_result, numpy_result)

@@ -197,14 +197,14 @@ def test_ones_like_with_device(shape, device):
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
+@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full(xp, shape, value, device):
     return xp.full(shape, value)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
+@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.parametrize_dtype_specifier('dtype_spec')
 def test_full_with_dtype(xp, shape, dtype_spec, value, device):
@@ -213,7 +213,7 @@ def test_full_with_dtype(xp, shape, dtype_spec, value, device):
     return xp.full(shape, value, dtype_spec)
 
 
-@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
+@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full_with_scalar(shape, dtype, value, device):
     scalar = xchainer.Scalar(value, dtype)
@@ -233,7 +233,7 @@ def test_full_with_device(device):
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, float('inf'), float('nan')])
+@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full_like(xp, shape, dtype, value, device):
     t = xp.empty(shape, dtype)
@@ -361,3 +361,33 @@ def test_invalid_arange_zero_step(device):
 
     check(xchainer, xchainer.XchainerError)
     check(numpy, ZeroDivisionError)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+@pytest.mark.parametrize('n', [0, 1, 2, 257])
+def test_identity(xp, n, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+    return xp.identity(n, dtype_spec)
+
+
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_identity_with_device(device):
+    a = xchainer.identity(3, 'float32', device)
+    b = xchainer.identity(3, 'float32')
+    _check_device(a, device)
+    xchainer.testing.assert_array_equal(a, b)
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
+@pytest.mark.parametrize('device', ['native:0', 'native:0'])
+def test_identity_invalid_negative_n(xp, device):
+    xp.identity(-1, 'float32')
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(TypeError,))
+@pytest.mark.parametrize('device', ['native:1', 'native:0'])
+def test_identity_invalid_n_type(xp, device):
+    xp.identity(3.0, 'float32')

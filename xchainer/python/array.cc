@@ -96,35 +96,22 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
 
 void InitXchainerArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
-    // TODO(hvy): Support all arguments in the constructor of numpy.ndarray.
-    c.def(py::init([](py::tuple shape, py::handle dtype, const nonstd::optional<std::string>& device_id) {
-              return Empty(ToShape(shape), internal::GetDtype(dtype), GetDevice(device_id)).move_body();
-          }),
-          py::arg("shape"),
-          py::arg("dtype"),
-          py::arg("device") = nullptr);
-    c.def(py::init([](py::tuple shape, py::handle dtype, Device& device) {
-              return Empty(ToShape(shape), internal::GetDtype(dtype), device).move_body();
-          }),
-          py::arg("shape"),
-          py::arg("dtype"),
-          py::arg("device"));
     // TODO(hvy): Remove list accepting bindings and replace calls with xchainer.array.
     // For multidimensional arrays, nested lists should be passed to xchainer.array.
-    c.def(py::init([](const py::tuple& shape, py::handle dtype, const py::list& list, const nonstd::optional<std::string>& device_id) {
-              return MakeArray(shape, internal::GetDtype(dtype), list, GetDevice(device_id));
+    c.def(py::init([](const py::tuple& shape, py::handle dtype, const py::list& list, py::handle device) {
+              return MakeArray(shape, internal::GetDtype(dtype), list, internal::GetDevice(device));
           }),
           py::arg("shape"),
           py::arg("dtype"),
-          py::arg("data"),
+          py::arg("data") = nullptr,
           py::arg("device") = nullptr);
-    c.def(py::init([](const py::tuple& shape, py::handle dtype, const py::list& list, Device& device) {
-              return MakeArray(shape, internal::GetDtype(dtype), list, device);
+    // TODO(hvy): Support all arguments in the constructor of numpy.ndarray.
+    c.def(py::init([](const py::tuple& shape, py::handle dtype, py::handle device) {
+              return Empty(ToShape(shape), internal::GetDtype(dtype), internal::GetDevice(device)).move_body();
           }),
           py::arg("shape"),
           py::arg("dtype"),
-          py::arg("data"),
-          py::arg("device"));
+          py::arg("device") = nullptr);
     m.def("tonumpy", &MakeNumpyArrayFromArray);
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });

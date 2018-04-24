@@ -124,4 +124,15 @@ Array Copy(const Array& a) {
     return out;
 }
 
+// Creates the identity array.
+Array Identity(int64_t n, Dtype dtype, Device& device) {
+    if (n < 0) {
+        throw DimensionError{"Negative dimensions are not allowed"};
+    }
+
+    Array out = Empty(Shape{n, n}, dtype, device);
+    device.Identity(out);
+    return out;
+}
+
 }  // namespace xchainer
