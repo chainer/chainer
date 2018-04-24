@@ -86,23 +86,23 @@ class TestResNetLayers(unittest.TestCase):
     def check_extract(self):
         x1 = numpy.random.uniform(0, 255, (320, 240, 3)).astype(numpy.uint8)
         x2 = numpy.random.uniform(0, 255, (320, 240)).astype(numpy.uint8)
-        with numpy.errstate(divide='ignore'):
-            with chainer.using_config('debug', True):
-                result = self.link.extract([x1, x2], layers=['res3', 'pool5'])
-                self.assertEqual(len(result), 2)
-                y1 = cuda.to_cpu(result['res3'].data)
-                self.assertEqual(y1.shape, (2, 512, 28, 28))
-                self.assertEqual(y1.dtype, numpy.float32)
-                y2 = cuda.to_cpu(result['pool5'].data)
-                self.assertEqual(y2.shape, (2, 2048))
-                self.assertEqual(y2.dtype, numpy.float32)
 
-                x3 = numpy.random.uniform(0, 255, (80, 60)).astype(numpy.uint8)
-                result = self.link.extract([x3], layers=['res2'], size=None)
-                self.assertEqual(len(result), 1)
-                y3 = cuda.to_cpu(result['res2'].data)
-                self.assertEqual(y3.shape, (1, 256, 20, 15))
-                self.assertEqual(y3.dtype, numpy.float32)
+        with numpy.errstate(divide='ignore'):
+            result = self.link.extract([x1, x2], layers=['res3', 'pool5'])
+            self.assertEqual(len(result), 2)
+            y1 = cuda.to_cpu(result['res3'].data)
+            self.assertEqual(y1.shape, (2, 512, 28, 28))
+            self.assertEqual(y1.dtype, numpy.float32)
+            y2 = cuda.to_cpu(result['pool5'].data)
+            self.assertEqual(y2.shape, (2, 2048))
+            self.assertEqual(y2.dtype, numpy.float32)
+
+            x3 = numpy.random.uniform(0, 255, (80, 60)).astype(numpy.uint8)
+            result = self.link.extract([x3], layers=['res2'], size=None)
+            self.assertEqual(len(result), 1)
+            y3 = cuda.to_cpu(result['res2'].data)
+            self.assertEqual(y3.shape, (1, 256, 20, 15))
+            self.assertEqual(y3.dtype, numpy.float32)
 
     def test_extract_cpu(self):
         self.check_extract()
