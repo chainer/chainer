@@ -148,7 +148,8 @@ class DiagEinSum(function_node.FunctionNode):
 
 
 def _diag_einsum(
-        input_subscripts, output_subscript, *ioperands, output_shape=None):
+        input_subscripts, output_subscript, *ioperands, **kwargs):
+    output_shape, = utils.argument.parse_kwargs(kwargs, ('output_shape', None))
     return DiagEinSum(
         in_subs=input_subscripts,
         out_sub=output_subscript,
