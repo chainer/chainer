@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <memory>
 
+#include <nonstd/optional.hpp>
+
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"
 #include "xchainer/device.h"
@@ -60,6 +62,11 @@ Array Copy(const Array& a);
 Array Identity(int64_t n, Dtype dtype, Device& device = GetDefaultDevice());
 
 // Creates a 2-dimensional array with ones along the k-th diagonal and zeros elsewhere.
-Array Eye(int64_t n, int64_t m, int64_t k, Dtype dtype, Device& device = GetDefaultDevice());
+Array Eye(
+        int64_t n,
+        nonstd::optional<int64_t> m,
+        nonstd::optional<int64_t> k,
+        nonstd::optional<Dtype> dtype,
+        Device& device = GetDefaultDevice());
 
 }  // namespace xchainer

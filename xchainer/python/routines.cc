@@ -164,7 +164,7 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("N"),
           py::arg("M") = nullptr,
           py::arg("k") = 0,
-          py::arg("dtype") = nullptr,
+          py::arg("dtype") = Dtype::kFloat64,
           py::arg("device") = nullptr);
 
     // indexing routines

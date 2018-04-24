@@ -135,13 +135,22 @@ Array Identity(int64_t n, Dtype dtype, Device& device) {
     return out;
 }
 
-Array Eye(int64_t n, int64_t m, int64_t k, Dtype dtype, Device& device) {
+Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, nonstd::optional<Dtype> dtype, Device& device) {
+    if (!m.has_value()) {
+        m = n;
+    }
+    if (!k.has_value()) {
+        k = 0;
+    }
+    if (!dtype.has_value()) {
+        dtype = Dtype::kFloat64;
+    }
     if (n < 0 || m < 0) {
         throw DimensionError{"Negative dimensions are not allowed"};
     }
 
-    Array out = Empty({n, m}, dtype, device);
-    device.Eye(k, out);
+    Array out = Empty({n, m.value()}, dtype.value(), device);
+    device.Eye(k.value(), out);
     return out;
 }
 
