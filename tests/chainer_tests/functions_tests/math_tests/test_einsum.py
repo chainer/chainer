@@ -15,6 +15,14 @@ def _tuple_to_gpu(xs):
     return tuple(cuda.to_gpu(x) for x in xs)
 
 
+def _from_str_subscript(subscript):
+    # subscript should be lower case (a-z)
+    return [
+        (Ellipsis if char == '@' else ord(char) - ord('a'))
+        for char in subscript.replace('...', '@')
+    ]
+
+
 @testing.parameterize(*testing.product_dict(
     [
         {'subscripts': 'ij,jk->ik', 'shapes': ((2, 3), (3, 4))},
@@ -37,11 +45,11 @@ def _tuple_to_gpu(xs):
         {'subscripts': '...i,i', 'shapes': ((2, 2, 3), (3,))},
         {'subscripts': 'i...,i->...i', 'shapes': ((3, 2, 2), (3,))},
     ],
-    [
-        # {'dtype': numpy.float16},  see numpy issue #10899
-        {'dtype': numpy.float32},
-        {'dtype': numpy.float64},
-    ]
+    testing.product({
+        # float16 is not supported. See numpy issue #10899.
+        'dtype': [numpy.float32, numpy.float64],
+        'subscript_type': ['str', 'int'],
+    }),
 ))
 class TestEinSum(unittest.TestCase):
 
@@ -50,14 +58,26 @@ class TestEinSum(unittest.TestCase):
             self._setup_tensor(-1, 1, shape, self.dtype)
             for shape in self.shapes
         ])
-        self.forward_answer = numpy.einsum(self.subscripts, *self.inputs)
+        self.forward_answer = numpy.einsum(*self._get_args(self.inputs))
         self.g = self._setup_tensor(
             -1, 1, self.forward_answer.shape, self.dtype)
         self.gg_inputs = tuple([
             self._setup_tensor(-1, 1, shape, self.dtype)
             for shape in self.shapes
         ])
-        self.op = lambda *xs: einsum.einsum(self.subscripts, *xs)
+        self.op = lambda *xs: einsum.einsum(*self._get_args(xs))
+
+    def _get_args(self, xs):
+        if self.subscript_type == 'str':
+            return (self.subscripts,) + xs
+        else:
+            args = []
+            subscripts = self.subscripts.split('->')
+            for in_subscript, x in zip(subscripts[0].split(','), xs):
+                args.extend([x, _from_str_subscript(in_subscript)])
+            if len(subscripts) == 2:
+                args.append(_from_str_subscript(subscripts[1]))
+            return tuple(args)
 
     def _setup_tensor(self, _min, _max, shape, dtype):
         return numpy.random.uniform(_min, _max, shape).astype(dtype)
