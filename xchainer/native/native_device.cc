@@ -458,13 +458,13 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
         Indexer out_indexer{out.shape()};
 
         // Start indices for the 2-D array axes with applied offset k.
-        int64_t rows_start{0};
-        int64_t cols_start{0};
+        int64_t row_start{0};
+        int64_t col_start{0};
 
         if (k >= 0) {
-            cols_start += k;
+            col_start += k;
         } else {
-            rows_start -= k;
+            row_start -= k;
         }
 
         if (v.ndim() == 1) {
@@ -479,21 +479,21 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
 
             for (int64_t i = 0; i < v_indexer.total_size(); ++i) {
                 v_indexer.Set(i);
-                out_rows_indexer.Set(rows_start + i);
-                out_cols_indexer.Set(cols_start + i);
+                out_rows_indexer.Set(row_start + i);
+                out_cols_indexer.Set(col_start + i);
                 out_indexer.SetIndexers(out_rows_indexer, out_cols_indexer);
                 out_iarray[out_indexer] = v_iarray[v_indexer];
             }
 
         } else if (v.ndim() == 2) {
-            Indexer v_rows_indexer{Shape{v.shape()[0]}};
-            Indexer v_cols_indexer{Shape{v.shape()[1]}};
+            Indexer v_row_indexer{Shape{v.shape()[0]}};
+            Indexer v_col_indexer{Shape{v.shape()[1]}};
 
             for (int64_t i = 0; i < out_indexer.total_size(); ++i) {
                 out_indexer.Set(i);
-                v_rows_indexer.Set(rows_start + i);
-                v_cols_indexer.Set(cols_start + i);
-                v_indexer.SetIndexers(v_rows_indexer, v_cols_indexer);
+                v_row_indexer.Set(row_start + i);
+                v_col_indexer.Set(col_start + i);
+                v_indexer.SetIndexers(v_row_indexer, v_col_indexer);
                 out_iarray[out_indexer] = v_iarray[v_indexer];
             }
         }
