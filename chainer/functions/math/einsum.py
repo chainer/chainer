@@ -17,6 +17,15 @@ def _enumerate_axes(subscripts):
             yield i, s
 
 
+def _broadcast_to(xp, a, shape):
+    if hasattr(xp, 'broadcast_to'):
+        return xp.broadcast_to(a, shape)
+    else:
+        # numpy 1.9 doesn't support broadcast_to method
+        dummy = xp.empty(shape)
+        return xp.broadcast_arrays(a, dummy)[0]
+
+
 def _einsum(xp, in_subscripts, out_subscript, *inputs):
     if '@' in in_subscripts and '@' not in out_subscript:
         # numpy does not allow summing over '...'
@@ -103,7 +112,7 @@ class DiagEinSum(function_node.FunctionNode):
                 assert self.out_shape is not None, \
                     "Give out_shape to put new subscripts in the result"
                 shape.insert(i, self.out_shape[i])
-                y = xp.broadcast_to(xp.expand_dims(y, axis=i), shape)
+                y = _broadcast_to(xp, xp.expand_dims(y, axis=i), shape)
             else:
                 # make diagonal
                 if i0 < 0:
