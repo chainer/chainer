@@ -212,9 +212,15 @@ Coding Guidelines
 
 We use `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ and a part of `OpenStack Style Guidelines <https://docs.openstack.org/developer/hacking/>`_ related to general coding style as our basic style guidelines.
 
-To check your code, use ``autopep8`` and ``flake8`` command installed by ``hacking`` package::
+You can use ``autopep8`` and ``flake8`` commands to check your code.
 
-  $ pip install autopep8 hacking
+In order to avoid confusion from using different tool versions, we pin the versions of those tools.
+Install them with the following command (from within the top directory of Chainer repository)::
+
+  $ pip install -e .[stylecheck]
+
+And check your code with::
+
   $ autopep8 path/to/your/code.py
   $ flake8 path/to/your/code.py
 
