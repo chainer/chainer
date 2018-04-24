@@ -16,6 +16,24 @@ namespace internal {
 
 namespace py = pybind11;  // standard convention
 
+Device& GetDevice(py::handle handle) {
+    if (handle.is_none()) {
+        return GetDefaultDevice();
+    }
+
+    if (py::isinstance<Device&>(handle)) {
+        return py::cast<Device&>(handle);
+    }
+
+    if (py::isinstance<py::str>(handle)) {
+        // Device ID
+        std::string device_id = py::cast<std::string>(handle);
+        return GetDefaultContext().GetDevice(device_id);
+    }
+
+    throw py::type_error{"Device not understood: " + py::cast<std::string>(py::repr(handle))};
+}
+
 class PyDeviceScope {
 public:
     explicit PyDeviceScope(Device& target) : target_(target) {}

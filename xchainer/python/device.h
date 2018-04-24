@@ -12,9 +12,7 @@ namespace xchainer {
 namespace python {
 namespace internal {
 
-inline Device& GetDevice(const nonstd::optional<std::string>& device_id) {
-    return device_id.has_value() ? GetDefaultContext().GetDevice(device_id.value()) : GetDefaultDevice();
-}
+Device& GetDevice(pybind11::handle handle);
 
 void InitXchainerDevice(pybind11::module&);
 
