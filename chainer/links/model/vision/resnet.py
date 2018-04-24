@@ -1,5 +1,6 @@
 import collections
 import os
+import warnings
 
 import numpy
 try:
@@ -252,6 +253,29 @@ class ResNetLayers(link.Chain):
             volatile='volatile argument is not supported anymore. '
             'Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
+
+        if chainer.is_debug() and chainer.config.train:
+            msg = """From Chainer v2, we change the default training mode
+in running this method from *train* to *test*.
+Users need to explicitly switch the mode with thread-local variable
+`chainer.config.train`.
+
+Current training mode is *train* (i.e. `chainer.config.train` is `True`).
+As we use this method in test mode in typical usecase, we suspect you
+mistakenly forget to disable train mode,
+
+You can switch the mode to test as follows:
+
+# model is an instance of `ResNetLayers`
+with chainer.using_config('train', False):
+    feature = model.extract([image])
+
+If you believe running in train mode is correct, then just ignore this warning.
+
+See: https://docs.chainer.org/en/stable/upgrade_v2.html
+#training-mode-is-configured-by-a-thread-local-flag
+"""
+            warnings.warn(msg, RuntimeWarning)
 
         x = concat_examples([prepare(img, size=size) for img in images])
         x = Variable(self.xp.asarray(x))
