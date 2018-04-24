@@ -57,6 +57,9 @@ class IndexIterator {
 public:
     explicit XCHAINER_HOST_DEVICE IndexIterator(const Indexer& indexer, int64_t start, int64_t step)
         : indexer_{indexer}, index_{}, raw_index_{0}, step_{step} {
+        // backward iteration is not supported in order to omit lower-bound check for performance.
+        assert(start >= 0);
+        assert(step > 0);
         SetSafe(start);
     }
 
@@ -76,7 +79,7 @@ public:
     }
 
 private:
-    XCHAINER_HOST_DEVICE bool ok() const { return 0 <= raw_index_ && raw_index_ < indexer_.total_size(); }
+    XCHAINER_HOST_DEVICE bool ok() const { return raw_index_ < indexer_.total_size(); }
 
     // Set raw_index_.
     // index_ is updated only when raw_index_ is [0, total_size).
