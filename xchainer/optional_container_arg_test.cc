@@ -9,6 +9,11 @@
 namespace xchainer {
 namespace {
 
+template <typename T>
+const T& AsConst(const T& value) {
+    return value;
+}
+
 // Initialize with null
 TEST(OptionalContainerArgTest, Null) {
     OptionalContainerArg<std::vector<int>> a{nonstd::nullopt};
@@ -128,6 +133,22 @@ TEST(OptionalContainerArgTest, MoveCtor) {
     OptionalContainerArg<std::vector<int>> b = std::move(a);
     EXPECT_EQ(std::vector<int>({5, -2, 3}), *b);
     EXPECT_EQ(data_ptr, b->data());
+}
+
+// value()
+TEST(OptionalContainerArgTest, Value) {
+    OptionalContainerArg<std::vector<int>> a{{5, -2, 3}};
+    EXPECT_EQ(std::vector<int>({5, -2, 3}), a.value());
+    EXPECT_EQ(std::vector<int>({5, -2, 3}), AsConst(a).value());
+
+    // assign via value()
+    a.value() = std::vector<int>({4});
+    EXPECT_EQ(std::vector<int>({4}), *a);
+
+    // value() for unset value
+    a = nonstd::nullopt;
+    EXPECT_THROW(a.value(), nonstd::bad_optional_access);
+    EXPECT_THROW(AsConst(a).value(), nonstd::bad_optional_access);
 }
 
 // Modify using iterators

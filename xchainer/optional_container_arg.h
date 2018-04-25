@@ -25,6 +25,10 @@ public:
 
     bool has_value() const { return opt_.has_value(); }
 
+    Container& value() { return opt_.value(); }
+
+    const Container& value() const { return opt_.value(); }
+
     Container& operator*() {
         assert(has_value());
         return *opt_;
