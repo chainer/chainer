@@ -736,7 +736,7 @@ namespace {
 
 template <typename T>
 struct EyeImpl {
-    EyeImpl(int64_t n, int64_t m, int64_t k) : start{k < 0 ? -k * m : k}, stop{m * (k < 0 ? n : m - k)}, step{m + 1} {}
+    EyeImpl(int64_t n, int64_t m, int64_t k) : start{k < 0 ? -k * m : k}, stop{m * (m - k)}, step{m + 1} {}
     __device__ void operator()(int64_t i, T& out) { out = start <= i && i < stop && (i - start) % step == 0 ? T{1} : T{0}; }
     int64_t start;
     int64_t stop;

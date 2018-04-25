@@ -406,6 +406,10 @@ def test_identity_invalid_n_type(xp, device):
     (3, 4, -1),
     (3, 4, 1),
     (3, 4, 4),
+    (6, 3, 1),
+    (6, 3, -1),
+    (3, 6, 1),
+    (3, 6, -1),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.parametrize_dtype_specifier('dtype_spec')
