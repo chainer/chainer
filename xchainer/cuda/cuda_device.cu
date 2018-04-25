@@ -732,6 +732,27 @@ void CudaDevice::Identity(const Array& out) {
     });
 }
 
+namespace {
+
+template <typename T>
+struct EyeImpl {
+    EyeImpl(int64_t m, int64_t k) : start{k < 0 ? -k * m : k}, stop{m * (m - k)}, step{m + 1} {}
+    __device__ void operator()(int64_t i, T& out) { out = start <= i && i < stop && (i - start) % step == 0 ? T{1} : T{0}; }
+    int64_t start;
+    int64_t stop;
+    int64_t step;
+};
+
+}  // namespace
+
+void CudaDevice::Eye(int64_t k, const Array& out) {
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [k, &out](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise(MakeElementwiseKernelArg<T>(out), EyeImpl<T>{out.shape()[1], k});
+    });
+}
+
 void CudaDevice::Synchronize() {
     CheckCudaError(cudaSetDevice(index()));
     CheckCudaError(cudaDeviceSynchronize());

@@ -391,3 +391,81 @@ def test_identity_invalid_negative_n(xp, device):
 @pytest.mark.parametrize('device', ['native:1', 'native:0'])
 def test_identity_invalid_n_type(xp, device):
     xp.identity(3.0, 'float32')
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('N,M,k', [
+    (0, 0, 0),
+    (0, 0, 1),
+    (2, 1, -2),
+    (2, 1, -1),
+    (2, 1, 0),
+    (2, 1, 1),
+    (2, 1, 2),
+    (3, 4, -4),
+    (3, 4, -1),
+    (3, 4, 1),
+    (3, 4, 4),
+    (6, 3, 1),
+    (6, 3, -1),
+    (3, 6, 1),
+    (3, 6, -1),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_eye(xp, N, M, k, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+    return xp.eye(N, M, k, dtype_spec)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('N,M,k', [
+    (3, None, 1),
+    (3, 4, None),
+    (3, None, None),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_eye_with_default(xp, N, M, k, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+
+    if M is None and k is None:
+        return xp.eye(N, dtype=dtype_spec)
+    elif M is None:
+        return xp.eye(N, k=k, dtype=dtype_spec)
+    elif k is None:
+        return xp.eye(N, M=M, dtype=dtype_spec)
+    assert False
+
+
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_eye_with_device(device):
+    a = xchainer.eye(1, 2, 1, 'float32', device)
+    b = xchainer.eye(1, 2, 1, 'float32')
+    _check_device(a, device)
+    xchainer.testing.assert_array_equal(a, b)
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
+@pytest.mark.parametrize('N,M', [
+    (-1, 2),
+    (1, -1),
+    (-2, -1),
+])
+@pytest.mark.parametrize('device', ['native:0', 'native:0'])
+def test_eye_invalid_negative_N_M(xp, N, M, device):
+    xp.eye(N, M, 1, 'float32')
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(TypeError,))
+@pytest.mark.parametrize('N,M,k', [
+    (1.0, 2, 1),
+    (2, 1.0, 1),
+    (2, 3, 1.0),
+    (2.0, 1.0, 1),
+])
+@pytest.mark.parametrize('device', ['native:1', 'native:0'])
+def test_eye_invalid_NMk_type(xp, N, M, k, device):
+    xp.eye(N, M, k, 'float32')

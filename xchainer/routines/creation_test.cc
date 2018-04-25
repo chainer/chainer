@@ -481,6 +481,25 @@ TEST_P(CreationTest, Identity) {
 
 TEST_P(CreationTest, IdentityInvalidN) { EXPECT_THROW(Identity(-1, Dtype::kFloat32), DimensionError); }
 
+TEST_P(CreationTest, Eye) {
+    {
+        Array o = Eye(2, 3, 1, Dtype::kFloat32);
+        Array e = testing::BuildArray<float>({2, 3}, {0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
+        testing::ExpectEqual(e, o);
+    }
+    {
+        Array o = Eye(3, 2, -2, Dtype::kFloat32);
+        Array e = testing::BuildArray<float>({3, 2}, {0.f, 0.f, 0.f, 0.f, 1.f, 0.f});
+        testing::ExpectEqual(e, o);
+    }
+}
+
+TEST_P(CreationTest, EyeInvalidNM) {
+    EXPECT_THROW(Eye(-1, 2, 1, Dtype::kFloat32), DimensionError);
+    EXPECT_THROW(Eye(1, -2, 1, Dtype::kFloat32), DimensionError);
+    EXPECT_THROW(Eye(-1, -2, 1, Dtype::kFloat32), DimensionError);
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         CreationTest,

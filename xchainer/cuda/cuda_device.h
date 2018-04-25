@@ -63,6 +63,8 @@ public:
 
     void Identity(const Array& out) override;
 
+    void Eye(int64_t k, const Array& out) override;
+
     void Synchronize() override;
 };
 
