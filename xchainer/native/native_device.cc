@@ -435,14 +435,14 @@ void NativeDevice::Eye(int64_t k, const Array& out) {
     VisitDtype(out.dtype(), [k, &out](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
-            Impl(int64_t n, int64_t m, int64_t k) : start{k < 0 ? -k * m : k}, stop{m * (m - k)}, step{m + 1} {}
+            Impl(int64_t m, int64_t k) : start{k < 0 ? -k * m : k}, stop{m * (m - k)}, step{m + 1} {}
             void operator()(int64_t i, T& out) { out = start <= i && i < stop && (i - start) % step == 0 ? T{1} : T{0}; }
             int64_t start;
             int64_t stop;
             int64_t step;
         };
 
-        Elementwise(MakeElementwiseKernelArg<T>(out), Impl{out.shape()[0], out.shape()[1], k});
+        Elementwise(MakeElementwiseKernelArg<T>(out), Impl{out.shape()[1], k});
     });
 }
 
