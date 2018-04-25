@@ -32,7 +32,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
 
     for (size_t i = 0; i < inputs.size(); ++i) {
         for (size_t j = 0; j < outputs.size(); ++j) {
-            if (inputs[i].body() == outputs[j].body() && inputs[i].IsGradRequired()) {
+            if (inputs[i].body() == outputs[j].body() && inputs[i].IsGradRequired(graph_id)) {
                 throw XchainerError{"BackwardGradients: Input ", i, " and output ", j, " of the forward function are identical."};
             }
         }
