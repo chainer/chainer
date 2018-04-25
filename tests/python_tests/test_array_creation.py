@@ -399,6 +399,7 @@ def test_identity_invalid_n_type(xp, device):
     xp.identity(3.0, 'float32')
 
 
+# TODO(hvy): Add tests with non-ndarray but array-like inputs when supported.
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('N,M,k', [
     (0, 0, 0),
@@ -486,6 +487,7 @@ def test_diag(xp, k, shape, device):
     return xp.diag(v, k)
 
 
+# TODO(hvy): Add tests with non-ndarray but array-like inputs when supported.
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('k', [0, -2, -1, 1, 2, -5, 4])
 @pytest.mark.parametrize('shape', [(4,), (2, 3), (6, 5)])
