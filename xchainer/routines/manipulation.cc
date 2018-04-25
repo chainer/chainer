@@ -155,7 +155,7 @@ Array Squeeze(const Array& a, const OptionalAxes& axis) {
     Strides out_strides{};
 
     if (axis.has_value()) {
-        const Axes sorted_axis = internal::GetSortedAxes(axis.as_vector(), in_shape.ndim());
+        const Axes sorted_axis = internal::GetSortedAxes(*axis, in_shape.ndim());
 
         int64_t i_axis = 0;
         for (int64_t i = 0; i < in_shape.ndim(); ++i) {
@@ -165,14 +165,13 @@ Array Squeeze(const Array& a, const OptionalAxes& axis) {
                     std::ostringstream os;
                     os << "Cannot squeeze out non-unit-length axes, where shape was " << in_shape.ToString();
                     os << " and axes were (";
-                    const Axes& axis_vec = axis.as_vector();
-                    for (auto it = axis_vec.begin(); it != axis_vec.end(); ++it) {
-                        if (it != axis_vec.begin()) {
+                    for (auto it = axis->begin(); it != axis->end(); ++it) {
+                        if (it != axis->begin()) {
                             os << ", ";
                         }
                         os << *it;
                     }
-                    os << (axis_vec.size() == 1 ? ",)." : ").");
+                    os << (axis->size() == 1 ? ",)." : ").");
                     throw DimensionError{os.str()};
                 }
             } else {

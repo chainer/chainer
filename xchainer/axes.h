@@ -12,7 +12,7 @@
 
 #include "xchainer/constant.h"
 #include "xchainer/error.h"
-#include "xchainer/optional_vector.h"
+#include "xchainer/optional_container_arg.h"
 #include "xchainer/stack_vector.h"
 
 namespace xchainer {
@@ -67,7 +67,7 @@ public:
 
 std::ostream& operator<<(std::ostream&, const Axes&);
 
-using OptionalAxes = OptionalVector<Axes>;
+using OptionalAxes = OptionalContainerArg<Axes>;
 
 namespace internal {
 

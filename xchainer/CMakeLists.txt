@@ -29,7 +29,7 @@ install(FILES
     macro.h
     ndim_vector.h
     numeric_limits.h
-    optional_vector.h
+    optional_container_arg.h
     reduction_kernel_arg.h
     scalar.h
     shape.h

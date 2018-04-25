@@ -17,7 +17,7 @@ Array ArgMax(const Array& a, const OptionalAxes& axis) {
     Axes sorted_axis{};
     Shape out_shape{};
     if (axis.has_value()) {
-        sorted_axis = internal::GetSortedAxes(axis.as_vector(), a.ndim());
+        sorted_axis = internal::GetSortedAxes(*axis, a.ndim());
         int8_t i_axis = 0;
         for (int8_t i = 0; i < a.ndim(); ++i) {
             if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {

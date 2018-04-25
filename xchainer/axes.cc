@@ -79,7 +79,7 @@ Axes GetSortedAxes(const Axes& axis, int8_t ndim) {
 
 Axes GetSortedAxesOrAll(const OptionalAxes& axis, int8_t ndim) {
     if (axis.has_value()) {
-        return GetSortedAxes(axis.as_vector(), ndim);
+        return GetSortedAxes(*axis, ndim);
     }
     // Fill with all axes
     Axes sorted_axis{};
