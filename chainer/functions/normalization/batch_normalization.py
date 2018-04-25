@@ -711,7 +711,7 @@ def _get_dtype_of_tensor_descriptor(desc):
 
 
 def batch_normalization(x, gamma, beta, **kwargs):
-    """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, running_var=None, decay=0.9)
+    """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, running_var=None, decay=0.9, axis=None)
 
     Batch normalization function.
 
@@ -769,7 +769,7 @@ def batch_normalization(x, gamma, beta, **kwargs):
             be ``None``.
         decay (float): Decay rate of moving average. It is used during
             training.
-        axis (int or tuple of int): Axis over which normalization is
+        axis (int, tuple of int or None): Axis over which normalization is
             performed. When axis is ``None``, it is determined from input
             dimensions. For example, if ``x.ndim`` is 4, axis becomes (0, 2, 3)
             and normalization is performed over 0th, 2nd and 3rd axis of input.
@@ -811,7 +811,7 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
         mean (Variable): Shifting parameter of input.
         var (Variable): Square of scaling parameter of input.
         eps (float): Epsilon value for numerical stability.
-        axis (int or tuple of int): Axis over which normalization is
+        axis (int, tuple of int or None): Axis over which normalization is
             performed. When axis is ``None``, it is determined from input
             dimensions. For example, if ``x.ndim is 4``, axis becomes (0, 2, 3)
             and normalization is performed over 0th, 2nd and 3rd axis of input.
