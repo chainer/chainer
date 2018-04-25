@@ -7,6 +7,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/device.h"
@@ -151,6 +152,28 @@ Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
 
     Array out = Empty({n, m.value()}, dtype.value(), device);
     device.Eye(k.value(), out);
+    return out;
+}
+
+Array AsContiguousArray(const Array& a, nonstd::optional<Dtype> dtype) {
+    if (!dtype.has_value()) {
+        dtype = a.dtype();
+    }
+
+    if (a.IsContiguous() && a.dtype() == *dtype) {
+        return a;
+    }
+
+    Array out = Empty(a.shape(), *dtype, a.device());
+    a.device().AsType(a, out);
+
+    if (GetKind(*dtype) == DtypeKind::kFloat) {
+        Dtype src_dtype = a.dtype();
+        internal::SetUpOpNodes("ascontiguousarray", {a}, out, {[src_dtype](const Array& gout, const std::vector<GraphId>&) {
+                                   return gout.AsType(src_dtype);
+                               }});
+    }
+    assert(out.IsContiguous());
     return out;
 }
 

@@ -11,6 +11,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/check_backward.h"
 #include "xchainer/device.h"
 #include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
@@ -492,6 +493,54 @@ TEST_P(CreationTest, Eye) {
         Array e = testing::BuildArray<float>({3, 2}, {0.f, 0.f, 0.f, 0.f, 1.f, 0.f});
         testing::ExpectEqual(e, o);
     }
+}
+
+TEST_P(CreationTest, AsContiguousArray) {
+    Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>().WithPadding(1);
+    ASSERT_FALSE(a.IsContiguous());  // test precondition
+    Array b = AsContiguousArray(a);
+
+    EXPECT_TRUE(b.IsContiguous());
+    testing::ExpectEqual(b, a);
+}
+
+TEST_P(CreationTest, AsContiguousArrayNoCopy) {
+    Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>();
+    ASSERT_TRUE(a.IsContiguous());  // test precondition
+    Array b = AsContiguousArray(a);
+
+    EXPECT_EQ(b.body(), a.body());
+}
+
+TEST_P(CreationTest, AsContiguousArrayDtypeMismatch) {
+    Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>();
+    ASSERT_TRUE(a.IsContiguous());  // test precondition
+    Array b = AsContiguousArray(a, Dtype::kInt64);
+
+    EXPECT_NE(b.body(), a.body());
+    EXPECT_TRUE(b.IsContiguous());
+    EXPECT_EQ(Dtype::kInt64, b.dtype());
+    testing::ExpectEqual(b, a.AsType(Dtype::kInt64));
+}
+
+TEST_P(CreationTest, AsContiguousArrayBackward) {
+    CheckBackward(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {AsContiguousArray(xs[0])}; },
+            {(*testing::BuildArray({2, 3}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
+            {testing::BuildArray({2, 3}).WithLinearData<float>(-2.4f, 0.8f)},
+            {Full({2, 3}, 1e-1f)});
+}
+
+TEST_P(CreationTest, AsContiguousArrayDoubleBackward) {
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = AsContiguousArray(xs[0]);
+                return {y * y};  // to make it nonlinear
+            },
+            {(*testing::BuildArray({2, 3}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
+            {(*testing::BuildArray({2, 3}).WithLinearData<float>(-2.4f, 0.8f)).RequireGrad()},
+            {testing::BuildArray({2, 3}).WithLinearData<float>(5.2f, -0.5f)},
+            {Full({2, 3}, 1e-1f), Full({2, 3}, 1e-1f)});
 }
 
 TEST_P(CreationTest, DiagVecToMat) {
