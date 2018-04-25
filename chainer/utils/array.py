@@ -1,6 +1,7 @@
 import warnings
 
 import numpy
+import six
 
 from chainer.backends import cuda
 
@@ -35,3 +36,16 @@ def empty_like(x):
         return cuda.cupy.empty_like(x)
     else:
         return numpy.empty_like(x)
+
+
+def sum_to(x, shape):
+    if x.shape == shape:
+        return x
+    ndim = len(shape)
+    lead = x.ndim - ndim
+    lead_axis = tuple(six.moves.range(lead))
+    axis = tuple([i + lead for i, sx in enumerate(shape) if sx == 1])
+    y = x.sum(lead_axis + axis, keepdims=True)
+    if lead > 0:
+        y = y.squeeze(lead_axis)
+    return y
