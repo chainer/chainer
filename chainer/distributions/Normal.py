@@ -10,22 +10,20 @@ import numpy
 
 
 class Normal(Distribution):
+
     """Normal Distribution.
+
+    Args:
+        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing the \
+        location :math:`\\mu`.
+        scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing the \
+        scale :math:`\\log(\\sigma^2)`.
 
     """
 
     def __init__(self, loc, scale):
-        """Initialize.
-
-        Args:
-            loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Parameter of distribution representing the
-            location :math:`\\mu`.
-            scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Parameter of distribution representing the
-            scale :math:`\\log(\\sigma^2)`.
-
-        """
         self.loc, self.scale = loc, scale
 
     def __copy__(self):

@@ -8,18 +8,17 @@ import numpy
 
 
 class Bernoulli(Distribution):
+
     """Bernoulli Distribution.
 
+    Args:
+        p (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing \
+        probability that variable is 1.
+
     """
+
     def __init__(self, p):
-        """Initialize.
-
-        Args:
-            p (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Parameter of distribution representing
-            probability that variable is 1.
-
-        """
         self.p = p
 
     def __copy__(self):

@@ -2,11 +2,13 @@ import copy
 
 
 class Distribution(object):
+
     """Interface of Distribution
 
     `Distribution` is a bass class to treat probability distributions.
     When initialization, it takes parameter as input.
     """
+
     def _copy_to(self, target):
         target.__dict__ = copy.copy(self.__dict__)
         return target
