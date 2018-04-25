@@ -503,6 +503,12 @@ Invalid operation is performed in: {0} (Forward)
         self.actual = actual
 
 
+def name(in_type, name):
+    """Assigns the user friendly name for the input type."""
+    if isinstance(in_type, Variable):
+        in_type.name = name
+
+
 def expect(*bool_exprs):
     """Evaluates and tests all given expressions.
 
