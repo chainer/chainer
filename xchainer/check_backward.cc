@@ -30,6 +30,14 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
 
     std::vector<Array> outputs = func(inputs);
 
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        for (size_t j = 0; j < outputs.size(); ++j) {
+            if (inputs[i].body() == outputs[j].body() && inputs[i].IsGradRequired()) {
+                throw XchainerError{"BackwardGradients: Input ", i, " and output ", j, " of the forward function are identical."};
+            }
+        }
+    }
+
     if (grad_outputs) {
         const std::size_t nout = outputs.size();
         if (nout != grad_outputs->size()) {
