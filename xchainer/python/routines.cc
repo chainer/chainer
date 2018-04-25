@@ -50,12 +50,12 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
 }
 
 ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& device) {
-    if (py::isinstance<ArrayBodyPtr&>(object)) {
-        Array a = Array{py::cast<ArrayBodyPtr&>(object)};
+    if (py::isinstance<ArrayBody>(object)) {
+        Array a = Array{py::cast<ArrayBodyPtr>(object)};
         Dtype dtype_ = dtype.is_none() ? a.dtype() : internal::GetDtype(dtype);
 
         if (!copy && a.dtype() == dtype_ && &(a.device()) == &(device)) {
-            return a.MakeView().move_body();
+            return a.move_body();
         }
         // Note that the graph is connected.
         if (&(a.device()) != &(device)) {
