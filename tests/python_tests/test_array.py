@@ -376,6 +376,8 @@ def test_reshape(is_module, xp, a_shape, b_shape, shape_type):
     if is_module:
         if shape_type == 'args':
             if len(b_shape) > 1:
+                # Skipping tests where the 'order' argument is unintentionally given a shape value, since numpy won't raise any errors
+                # in this case which you might expect at first. Additionally, xchainer does not yet support the 'order' argument.
                 pytest.skip("ndarray.reshape not supported with the 'order' argument.")
             b = xp.reshape(a, *b_shape)  # TypeError/xchainer.XchainerError in case b_shape is empty.
         else:
