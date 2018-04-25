@@ -35,48 +35,6 @@ namespace python {
 namespace internal {
 
 namespace py = pybind11;
-using namespace pybind11::literals;  // to bring in the `_a` literal
-
-ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
-    Dtype dtype = internal::GetDtypeFromNumpyDtype(array.dtype());
-    const py::buffer_info& info = array.request();
-    Shape shape{info.shape};
-    Strides strides{info.strides};
-
-    // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
-    void* underlying_data = array.mutable_data();
-    std::shared_ptr<void> data{std::make_shared<py::array>(std::move(array)), underlying_data};
-    return xchainer::internal::FromHostData(shape, dtype, data, strides, device).move_body();
-}
-
-ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& device) {
-    if (py::isinstance<ArrayBody>(object)) {
-        Array a = Array{py::cast<ArrayBodyPtr>(object)};
-        Dtype dtype_ = dtype.is_none() ? a.dtype() : internal::GetDtype(dtype);
-
-        if (!copy && a.dtype() == dtype_ && &(a.device()) == &(device)) {
-            return a.move_body();
-        }
-        // Note that the graph is connected.
-        if (&(a.device()) != &(device)) {
-            return a.ToDevice(device).AsType(dtype_, false).move_body();
-        }
-        if (a.dtype() != dtype_) {
-            return a.AsType(dtype_, true).move_body();
-        }
-        return a.Copy().move_body();
-    }
-
-    // TODO(sonots): Remove dependency on numpy
-    py::object array_func = py::module::import("numpy").attr("array");
-    py::object a = dtype.is_none() ? array_func(object, "copy"_a = false)
-                                   : array_func(object, "dtype"_a = GetDtypeName(internal::GetDtype(dtype)), "copy"_a = false);
-    return MakeArrayFromNumpyArray(a, device);
-}
-
-ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device) {
-    return MakeArray(object, dtype, copy, internal::GetDevice(device));
-}
 
 void InitXchainerRoutines(pybind11::module& m) {
     // creation routines
