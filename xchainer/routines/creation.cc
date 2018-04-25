@@ -154,4 +154,40 @@ Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
     return out;
 }
 
+Array Diag(const Array& v, int64_t k, Device& device) {
+    int8_t ndim = v.ndim();
+    if (ndim != 1 && ndim != 2) {
+        throw DimensionError{"Input must be 1D or 2D."};
+    }
+
+    Shape out_shape{};
+
+    if (ndim == 1) {
+        // Return a square matrix with filled diagonal.
+        int64_t n = v.GetTotalSize() + std::abs(k);
+        out_shape.emplace_back(n);
+        out_shape.emplace_back(n);
+    } else if (ndim == 2) {
+        // Return a 1D array, an extracted diagonal.
+        int64_t rows = v.shape()[0];
+        int64_t cols = v.shape()[1];
+        int64_t n = std::min(rows, cols);
+        if (k >= 0 && cols <= k + n - 1) {
+            n = cols - k;
+        } else if (k < 0 && rows >= k - n + 1) {
+            n = rows + k;
+        }
+        out_shape.emplace_back(std::max(int64_t{0}, n));
+    }
+
+    Array out = Empty(out_shape, v.dtype(), device);
+    device.Diag(v, k, out);
+    return out;
+}
+
+Array Diagflat(const Array& v, int64_t k, Device& device) {
+    // TODO(hvy): Use Ravel or Flatten when implemented instead of Reshape.
+    return Diag(v.Reshape({v.GetTotalSize()}), k, device);
+}
+
 }  // namespace xchainer

@@ -166,6 +166,18 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("k") = 0,
           py::arg("dtype") = Dtype::kFloat64,
           py::arg("device") = nullptr);
+    m.def("diag",
+          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return Diag(Array{v}, k, internal::GetDevice(device)).move_body(); },
+          py::arg("v"),
+          py::arg("k") = 0,
+          py::arg("device") = nullptr);
+    m.def("diagflat",
+          [](const ArrayBodyPtr& v, int64_t k, py::handle device) {
+              return Diagflat(Array{v}, k, internal::GetDevice(device)).move_body();
+          },
+          py::arg("v"),
+          py::arg("k") = 0,
+          py::arg("device") = nullptr);
 
     // indexing routines
     m.def("take",

@@ -494,10 +494,74 @@ TEST_P(CreationTest, Eye) {
     }
 }
 
+TEST_P(CreationTest, DiagVecToMat) {
+    {
+        Array v = Arange(1, 3, Dtype::kFloat32);
+        Array o = Diag(v);
+        Array e = testing::BuildArray<float>({2, 2}, {1.f, 0.f, 0.f, 2.f});
+        testing::ExpectEqual(e, o);
+    }
+    {
+        Array v = Arange(1, 4, Dtype::kFloat32);
+        Array o = Diag(v, 1);
+        Array e = testing::BuildArray<float>({4, 4}, {0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 3.f, 0.f, 0.f, 0.f, 0.f});
+        testing::ExpectEqual(e, o);
+    }
+    {
+        Array v = Arange(1, 3, Dtype::kFloat32);
+        Array o = Diag(v, -2);
+        Array e = testing::BuildArray<float>({4, 4}, {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f});
+        testing::ExpectEqual(e, o);
+    }
+}
+
 TEST_P(CreationTest, EyeInvalidNM) {
     EXPECT_THROW(Eye(-1, 2, 1, Dtype::kFloat32), DimensionError);
     EXPECT_THROW(Eye(1, -2, 1, Dtype::kFloat32), DimensionError);
     EXPECT_THROW(Eye(-1, -2, 1, Dtype::kFloat32), DimensionError);
+}
+
+TEST_P(CreationTest, DiagMatToVec) {
+    {
+        Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
+        Array o = Diag(v);
+        Array e = testing::BuildArray<float>({2}, {0.f, 4.f});
+        testing::ExpectEqual(e, o);
+    }
+    {
+        Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
+        Array o = Diag(v, 1);
+        Array e = testing::BuildArray<float>({2}, {1.f, 5.f});
+        testing::ExpectEqual(e, o);
+    }
+    {
+        Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
+        Array o = Diag(v, -1);
+        Array e = testing::BuildArray<float>({1}, {3.f});
+        testing::ExpectEqual(e, o);
+    }
+}
+
+TEST_P(CreationTest, Diagflat) {
+    {
+        Array v = Arange(1, 3, Dtype::kFloat32);
+        Array o = Diagflat(v);
+        Array e = testing::BuildArray<float>({2, 2}, {1.f, 0.f, 0.f, 2.f});
+        testing::ExpectEqual(e, o);
+    }
+    {
+        Array v = Arange(1, 5, Dtype::kFloat32).Reshape({2, 2});
+        Array o = Diagflat(v, 1);
+        Array e = testing::BuildArray<float>({5, 5}, {0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+                                                      3.f, 0.f, 0.f, 0.f, 0.f, 0.f, 4.f, 0.f, 0.f, 0.f, 0.f, 0.f});
+        testing::ExpectEqual(e, o);
+    }
+    {
+        Array v = Arange(1, 3, Dtype::kFloat32).Reshape({1, 2});
+        Array o = Diagflat(v, -1);
+        Array e = testing::BuildArray<float>({3, 3}, {0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 2.f, 0.f});
+        testing::ExpectEqual(e, o);
+    }
 }
 
 INSTANTIATE_TEST_CASE_P(

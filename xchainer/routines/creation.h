@@ -69,4 +69,8 @@ Array Eye(
         nonstd::optional<Dtype> dtype,
         Device& device = GetDefaultDevice());
 
+Array Diag(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
+
+Array Diagflat(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
+
 }  // namespace xchainer

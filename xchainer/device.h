@@ -124,6 +124,8 @@ public:
     // out must be a square 2-dim array.
     virtual void Eye(int64_t k, const Array& out) = 0;
 
+    virtual void Diag(const Array& v, int64_t k, const Array& out) = 0;
+
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat

@@ -68,6 +68,8 @@ public:
 
     void Eye(int64_t k, const Array& out) override;
 
+    void Diag(const Array& v, int64_t k, const Array& out) override;
+
     void Synchronize() override;
 };
 
