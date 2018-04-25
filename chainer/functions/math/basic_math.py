@@ -148,6 +148,8 @@ class Add(function_node.FunctionNode):
         type_check.expect(
             in_types[0].dtype == in_types[1].dtype,
         )
+        type_check.expect_broadcast_shapes(
+            in_types[0].shape, in_types[1].shape)
 
     def forward(self, x):
         # may broadcast
@@ -236,6 +238,8 @@ class Sub(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
         type_check.expect(in_types[0].dtype == in_types[1].dtype)
+        type_check.expect_broadcast_shapes(
+            in_types[0].shape, in_types[1].shape)
 
     def forward(self, x):
         # may broadcast
@@ -308,6 +312,8 @@ class Mul(function_node.FunctionNode):
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
         )
+        type_check.expect_broadcast_shapes(
+            in_types[0].shape, in_types[1].shape)
 
     def forward(self, x):
         self.retain_inputs((0, 1))
@@ -368,6 +374,8 @@ class Div(function_node.FunctionNode):
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
         )
+        type_check.expect_broadcast_shapes(
+            in_types[0].shape, in_types[1].shape)
 
     def forward(self, x):
         self.retain_inputs((0, 1))
@@ -532,6 +540,8 @@ class PowVarVar(function_node.FunctionNode):
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
         )
+        type_check.expect_broadcast_shapes(
+            in_types[0].shape, in_types[1].shape)
 
     def forward(self, x):
         self.retain_inputs((0, 1))

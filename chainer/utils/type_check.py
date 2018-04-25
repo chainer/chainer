@@ -5,6 +5,7 @@ import sys
 import threading
 
 import numpy
+import six
 
 import chainer
 from chainer.backends import cuda
@@ -604,3 +605,24 @@ def prod(xs):
         return _prod_impl(xs)
     else:
         return _prod(xs)
+
+
+def expect_broadcast_shapes(shape1_type, shape2_type, ignore_tail=0):
+    """Checks if two shapes are broadcastable at first some axes.
+
+    Args:
+        shape1_type: Type-checked shape of the first array.
+        shape2_type: Type-checked shape of the second array.
+        ignore_tail (int): Number of axes at the tail to ignore.
+
+    """
+    shape1 = eval(shape1_type)
+    shape2 = eval(shape2_type)
+    print(shape1, shape2)
+    ndim1 = len(shape1) - ignore_tail
+    ndim2 = len(shape2) - ignore_tail
+    for i in six.moves.range(min(ndim1, ndim2)):
+        i1 = ndim1 - i - 1
+        i2 = ndim2 - i - 1
+        if shape1[i1] != 1 and shape2[i2] != 1:
+            expect(shape1_type[i1] == shape2_type[i2])

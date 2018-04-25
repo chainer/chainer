@@ -102,19 +102,8 @@ class MatMul(function_node.FunctionNode):
             type_check.expect(
                 a_type.shape[a_idx] == b_type.shape[b_idx],
             )
-
-            # TODO(beam2d): add a utility tool for checking broadcastability
-            a_bc_ndim = a_ndim - 2
-            b_bc_ndim = b_ndim - 2
-            a_shape = type_check.eval(a_type.shape)
-            b_shape = type_check.eval(b_type.shape)
-            for i in range(min(a_bc_ndim, b_bc_ndim)):
-                a_i = a_bc_ndim - i - 1
-                b_i = b_bc_ndim - i - 1
-                if a_shape[a_i] != 1 and b_shape[b_i] != 1:
-                    type_check.expect(
-                        a_type.shape[a_i] == b_type.shape[b_i]
-                    )
+            type_check.expect_broadcast_shapes(
+                a_type.shape, b_type.shape, ignore_tail=2)
 
     def forward(self, x):
         self.retain_inputs((0, 1))

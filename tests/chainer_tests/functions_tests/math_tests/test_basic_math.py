@@ -12,6 +12,7 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
+from chainer.utils import type_check
 
 
 @testing.parameterize(*testing.product({
@@ -398,7 +399,7 @@ class TestBinaryOpConstant(unittest.TestCase):
             self._test_constant_array_one(func, x_data, [3.0, 4.0, 5.0])
         with self.assertRaises(TypeError):
             self._test_constant_array_one(func, x_data, (3.0, 4.0, 5.0))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(type_check.InvalidType):
             self._test_constant_array_one(
                 func, x_data, numpy.array([3.0, 4.0, 5.0], self.dtype))
 
