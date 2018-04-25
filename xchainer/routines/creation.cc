@@ -156,7 +156,7 @@ Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
 
 Array Diag(const Array& v, int64_t k, Device& device) {
     int8_t ndim = v.ndim();
-    if (ndim > 2) {
+    if (ndim != 1 && ndim != 2) {
         throw DimensionError{"Input must be 1D or 2D."};
     }
 

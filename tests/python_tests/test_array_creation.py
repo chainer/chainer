@@ -487,11 +487,29 @@ def test_diag(xp, k, shape, device):
     return xp.diag(v, k)
 
 
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
+@pytest.mark.parametrize('k', [0, -2, -1, 1, 2, -5, 4])
+@pytest.mark.parametrize('shape', [(), (2, 1, 2), (2, 0, 1)])
+@pytest.mark.parametrize('device', ['native:1', 'native:0'])
+def test_diag_invalid_ndim(xp, k, shape, device):
+    v = xp.arange(_total_size(shape)).reshape(shape)
+    return xp.diag(v, k)
+
+
 # TODO(hvy): Add tests with non-ndarray but array-like inputs when supported.
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('k', [0, -2, -1, 1, 2, -5, 4])
-@pytest.mark.parametrize('shape', [(4,), (2, 3), (6, 5)])
+@pytest.mark.parametrize('shape', [(), (4,), (2, 3), (6, 5), (2, 0)])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_diagflat(xp, k, shape, device):
+    v = xp.arange(_total_size(shape)).reshape(shape)
+    return xp.diagflat(v, k)
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
+@pytest.mark.parametrize('k', [0, -2, -1, 1, 2, -5, 4])
+@pytest.mark.parametrize('shape', [(2, 1, 2), (2, 0, 1)])
+@pytest.mark.parametrize('device', ['native:1', 'native:0'])
+def test_diagflat_invalid_ndim(xp, k, shape, device):
     v = xp.arange(_total_size(shape)).reshape(shape)
     return xp.diagflat(v, k)
