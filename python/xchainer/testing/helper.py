@@ -9,10 +9,27 @@ import xchainer
 from xchainer.testing import array
 
 
+# A test returning an instance of this class will have its return value ignored.
+#
+# This is e.g. useful when a combination of parametrizations and operations unintentionally cover non-supported function calls.
+# For instance, you might parametrize over shapes (tuples) which are unpacked and passed to a function.
+# While you might want to test empty tuples for module functions, they should maybe be ignored for ndarray functions.
+#
+# If either xchainer or numpy returns an instance of this class, the other module should too.
+# Otherwise, the test will be considered inconsistent and be treated as a failure.
+class NumPyXchainerIgnoredResult(object):
+    pass
+
+
+# A wrapper for instantiating the ignore object.
+def ignore():
+    return NumPyXchainerIgnoredResult()
+
+
 def _call_func(impl, args, kw):
     try:
         result = impl(*args, **kw)
-        assert result is not None
+        assert isinstance(result, NumPyXchainerIgnoredResult) or result is not None
         error = None
         tb = None
     except Exception as e:
@@ -44,7 +61,27 @@ numpy
         pytest.fail(msg)
 
 
-def _make_decorator(check_func, name, type_check, accept_error):
+def _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_result, type_check):
+    xchainer_ignored = isinstance(xchainer_result, NumPyXchainerIgnoredResult)
+    numpy_ignored = isinstance(numpy_result, NumPyXchainerIgnoredResult)
+    if xchainer_ignored and numpy_ignored:
+        return  # Ignore without failing.
+    elif numpy_ignored:
+        pytest.fail("Only numpy result ignored.")
+    elif xchainer_ignored:
+        pytest.fail("Only xchainer result ignored.")
+
+    assert isinstance(xchainer_result, xchainer.ndarray), type(xchainer_result)
+    assert isinstance(numpy_result, numpy.ndarray) or numpy.isscalar(numpy_result), type(numpy_result)
+    assert xchainer_result.shape == numpy_result.shape
+    assert xchainer_result.device is xchainer.get_default_device()
+    if type_check:
+        assert numpy.dtype(xchainer_result.dtype.name) == numpy_result.dtype
+
+    check_result_func(xchainer_result, numpy_result)
+
+
+def _make_decorator(check_result_func, name, type_check, accept_error):
     def decorator(impl):
         @functools.wraps(impl)
         def test_func(*args, **kw):
@@ -62,14 +99,11 @@ def _make_decorator(check_func, name, type_check, accept_error):
                                             accept_error=accept_error)
                 return
 
-            assert isinstance(xchainer_result, xchainer.ndarray), type(xchainer_result)
-            assert isinstance(numpy_result, numpy.ndarray) or numpy.isscalar(numpy_result), type(numpy_result)
-            assert xchainer_result.shape == numpy_result.shape
+            if xchainer_result is not None or numpy_result is not None:
+                _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_result, type_check)
+                return
 
-            check_func(xchainer_result, numpy_result)
-            if type_check:
-                assert numpy.dtype(xchainer_result.dtype.name) == numpy_result.dtype
-            assert xchainer_result.device is xchainer.get_default_device()
+            raise AssertionError('Using decorator without returning ndarrays.', xchainer_result, numpy_result)
         # Apply dummy parametrization on `name` (e.g. 'xp') to avoid pytest error when collecting test functions.
         return pytest.mark.parametrize(name, [None])(test_func)
     return decorator
@@ -98,10 +132,10 @@ def numpy_xchainer_allclose(*, rtol=1e-7, atol=0, equal_nan=True, err_msg='', ve
 
     .. seealso:: :func:`xchainer.testing.assert_allclose`
     """
-    def check_func(x, y):
+    def check_result_func(x, y):
         array.assert_allclose(x, y, rtol, atol, equal_nan, err_msg, verbose)
 
-    return _make_decorator(check_func, name, type_check, accept_error)
+    return _make_decorator(check_result_func, name, type_check, accept_error)
 
 
 def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_check=True, accept_error=()):
@@ -124,7 +158,7 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_chec
 
     .. seealso:: :func:`xchainer.testing.assert_array_equal`
     """
-    def check_func(x, y):
+    def check_result_func(x, y):
         array.assert_array_equal(x, y, err_msg, verbose)
 
-    return _make_decorator(check_func, name, type_check, accept_error)
+    return _make_decorator(check_result_func, name, type_check, accept_error)

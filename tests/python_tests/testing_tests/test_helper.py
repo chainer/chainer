@@ -248,6 +248,47 @@ def test_numpy_xchainer_array_equal_fail_nan_inf(xp):
     return xp.array(a)
 
 
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_numpy_xchainer_array_equal_accept_ignore(xp):
+    return xchainer.testing.ignore()
+
+
+@pytest.mark.xfail(strict=True)
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_numpy_xchainer_array_equal_fail_numpy_ignore(xp):
+    if xp is numpy:
+        return xchainer.testing.ignore()
+    else:
+        return xp.arange(10)
+
+
+@pytest.mark.xfail(strict=True)
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_numpy_xchainer_array_equal_fail_xchainer_ignore(xp):
+    if xp is numpy:
+        return xp.arange(10)
+    else:
+        return xchainer.testing.ignore()
+
+
+@pytest.mark.xfail(strict=True)
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_numpy_xchainer_array_equal_fail_ignore_none(xp):
+    if xp is numpy:
+        return xchainer.testing.ignore()
+    else:
+        return None
+
+
+@pytest.mark.xfail(strict=True)
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_numpy_xchainer_array_equal_fail_ignore_error(xp):
+    if xp is numpy:
+        return xchainer.testing.ignore()
+    else:
+        raise FooError()
+
+
 @xchainer.testing.numpy_xchainer_allclose()
 def test_numpy_xchainer_allclose_exact(xp):
     assert xp is numpy or xp is xchainer
@@ -445,3 +486,44 @@ def test_numpy_xchainer_allclose_accept_error_multiple(xp):
         raise FooError()
     else:
         raise BarError()
+
+
+@xchainer.testing.numpy_xchainer_allclose()
+def test_numpy_xchainer_allclose_accept_ignore(xp):
+    return xchainer.testing.ignore()
+
+
+@pytest.mark.xfail(strict=True)
+@xchainer.testing.numpy_xchainer_allclose()
+def test_numpy_xchainer_allclose_fail_numpy_ignore(xp):
+    if xp is numpy:
+        return xchainer.testing.ignore()
+    else:
+        return xp.arange(10)
+
+
+@pytest.mark.xfail(strict=True)
+@xchainer.testing.numpy_xchainer_allclose()
+def test_numpy_xchainer_allclose_fail_xchainer_ignore(xp):
+    if xp is numpy:
+        return xp.arange(10)
+    else:
+        return xchainer.testing.ignore()
+
+
+@pytest.mark.xfail(strict=True)
+@xchainer.testing.numpy_xchainer_allclose()
+def test_numpy_xchainer_allclose_fail_ignore_none(xp):
+    if xp is numpy:
+        return xchainer.testing.ignore()
+    else:
+        return None
+
+
+@pytest.mark.xfail(strict=True)
+@xchainer.testing.numpy_xchainer_allclose()
+def test_numpy_xchainer_allclose_fail_ignore_error(xp):
+    if xp is numpy:
+        return xchainer.testing.ignore()
+    else:
+        raise FooError()
