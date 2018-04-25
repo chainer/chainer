@@ -161,8 +161,10 @@ void InitXchainerArray(pybind11::module& m) {
         return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
     });
     c.def("reshape", [](const ArrayBodyPtr& self, py::args args) {
-        auto shape = py::cast<std::vector<int64_t>>(args);
-        return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
+        if (args.size() == 0) {
+            throw XchainerError("Reshape takes exactly 1 argument (0 given).");
+        }
+        return Array{self}.Reshape(ToShape(args)).move_body();
     });
     c.def("squeeze",
           [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis) {

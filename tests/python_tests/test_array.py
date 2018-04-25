@@ -348,6 +348,9 @@ def test_module_transpose(xp, shape, dtype):
     return xp.transpose(array)
 
 
+# TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
+# TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(TypeError, xchainer.XchainerError))
 @pytest.mark.parametrize('a_shape,b_shape', [
     ((), ()),
     ((0,), (0,)),
@@ -366,34 +369,27 @@ def test_module_transpose(xp, shape, dtype):
     ((2, 3), (3, 2)),
     ((2, 3, 4), (3, 4, 2)),
 ])
-def test_reshape(a_shape, b_shape):
+@pytest.mark.parametrize('shape_type', [tuple, list, 'args'])
+def test_reshape(is_module, xp, a_shape, b_shape, shape_type):
     size = functools.reduce(operator.mul, a_shape, 1)
-    dtype = numpy.float32
-    a_np = numpy.arange(size, dtype=dtype).reshape(a_shape)
-    b_np = a_np.reshape(b_shape)
-    a_xc = xchainer.array(a_np)
+    a = xp.arange(size)
+    if is_module:
+        if shape_type == 'args':  # Skip, not supported
+            return xp.array([])
+        else:
+            b = xp.reshape(a, shape_type(b_shape))
+    else:
+        if shape_type == 'args':
+            b = a.reshape(*b_shape)
+        else:
+            b = a.reshape(shape_type(b_shape))
 
-    def check(b_xc):
-        assert b_xc is not a_xc
-        assert b_np.shape == b_xc.shape
-        assert b_xc.is_contiguous
-        assert a_xc._debug_data_memory_address == b_xc._debug_data_memory_address, 'Reshape must be done without copy'
-        assert b_xc.strides == b_np.strides, 'Strides after reshape must match NumPy behavior'
-        _check_arrays_equal(xchainer.array(b_np), b_xc)
+    if xp is xchainer:
+        assert b.is_contiguous
+        assert a._debug_data_memory_address == b._debug_data_memory_address, 'Reshape must be done without copy'
+        assert numpy.arange(size).reshape(b_shape).strides == b.strides, 'Strides after reshape must match NumPy behavior'
 
-    # instance methods
-    check(a_xc.reshape(b_shape))  # by tuple
-    check(a_xc.reshape(list(b_shape)))  # by list
-    check(a_xc.reshape(*b_shape))  # by variable length args
-
-    # module functions
-    check(xchainer.reshape(a_xc, b_shape))  # by tuple
-    check(xchainer.reshape(a_xc, list(b_shape)))  # by list
-    with pytest.raises(TypeError):
-        xchainer.reshape(a_xc, *b_shape)
-
-# TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
-# TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
+    return b
 
 
 @pytest.mark.parametrize('shape1,shape2', [
