@@ -1,18 +1,18 @@
-from chainer import Distribution
-from chainer.functions.math import sum
-from chainer.functions.math import exponential
-from chainer.functions.array import stack
 from chainer.backends import cuda
+from chainer import Distribution
+from chainer.functions.array import stack
+from chainer.functions.math import exponential
+from chainer.functions.math import sum
 from chainer import Variable
 import numpy
 
 
 class Bernoulli(Distribution):
-    """
-    Bernoulli Distribution.
+    """Bernoulli Distribution.
+
     """
     def __init__(self, p):
-        """
+        """Initialize.
 
         Args:
             p (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -27,8 +27,7 @@ class Bernoulli(Distribution):
 
     @property
     def batch_shape(self):
-        """
-        Returns the shape of a sample.
+        """Returns the shape of a sample.
 
         Returns:
             ~chainer.Variable: Output variable representing the shape of a
@@ -39,8 +38,7 @@ class Bernoulli(Distribution):
 
     @property
     def entropy(self):
-        """
-        Returns entropy.
+        """Returns entropy.
 
         Returns:
             ~chainer.Variable: Output variable representing entropy.
@@ -51,8 +49,7 @@ class Bernoulli(Distribution):
 
     @property
     def enumerate_support(self):
-        """
-        Returns support values of discrete distribution.
+        """Returns support values of discrete distribution.
 
         Returns:
             ~chainer.Variable: Output variable containing candidates.
@@ -75,8 +72,7 @@ class Bernoulli(Distribution):
         return isinstance(self.p, cuda.ndarray)
 
     def log_prob(self, x):
-        """
-        Returns logarithm of probability for a input variable.
+        """Returns logarithm of probability for a input variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -93,8 +89,7 @@ class Bernoulli(Distribution):
 
     @property
     def mean(self):
-        """
-        Returns mean value.
+        """Returns mean value.
 
         Returns:
             ~chainer.Variable: Output variable representing mean value.
@@ -104,8 +99,7 @@ class Bernoulli(Distribution):
 
     @property
     def mode(self):
-        """
-        Returns mode.
+        """Returns mode.
 
         Returns:
             ~chainer.Variable: Output variable representing mode.
@@ -117,8 +111,7 @@ class Bernoulli(Distribution):
             return Variable((self.p > 0.5) * 1.0)
 
     def prob(self, x):
-        """
-        Returns probability for a input variable.
+        """Returns probability for a input variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -132,8 +125,7 @@ class Bernoulli(Distribution):
         return x * self.p + (1 - x) * (1 - self.p)
 
     def _sample_n(self, n):
-        """
-        Samples from this distribution.
+        """Samples from this distribution.
 
         Args:
             n(`int`): Sampling size.
@@ -156,8 +148,7 @@ class Bernoulli(Distribution):
 
     @property
     def stddev(self):
-        """
-        Returns standard deviation.
+        """Returns standard deviation.
 
         Returns:
             ~chainer.Variable: Output variable representing standard deviation.
@@ -167,8 +158,7 @@ class Bernoulli(Distribution):
 
     @property
     def variance(self):
-        """
-        Returns variance.
+        """Returns variance.
 
         Returns:
             ~chainer.Variable: Output variable representing variance.

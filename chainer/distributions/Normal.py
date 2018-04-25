@@ -1,21 +1,22 @@
+from chainer.backends import cuda
 from chainer import Distribution
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
 from chainer.functions.math import erf
 from chainer.functions.math import erfinv
-from chainer.functions.math import sum
 from chainer.functions.math import exponential
-from chainer.backends import cuda
+from chainer.functions.math import sum
 import numpy
 
 
 class Normal(Distribution):
-    """
-    Normal Distribution.
+    """Normal Distribution.
+
     """
 
     def __init__(self, loc, scale):
-        """
+        """Initialize.
+
         Args:
             loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Parameter of distribution representing the
@@ -35,8 +36,7 @@ class Normal(Distribution):
         return self.loc.shape
 
     def cdf(self, x):
-        """
-        Returns Cumulative Distribution Function for a input variable.
+        """Returns Cumulative Distribution Function for a input variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -52,8 +52,7 @@ class Normal(Distribution):
 
     @property
     def entropy(self):
-        """
-        Returns entropy.
+        """Returns entropy.
 
         Returns:
             Output Variable representing entropy.
@@ -67,8 +66,7 @@ class Normal(Distribution):
         return ()
 
     def icdf(self, x):
-        """
-        Returns Inverse Cumulative Distribution Function for a input Variable.
+        """Returns Inverse Cumulative Distribution Function for a input Variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -87,9 +85,7 @@ class Normal(Distribution):
         return isinstance(self.loc, cuda.ndarray)
 
     def log_cdf(self, x):
-        """
-        Returns logarithm of Cumulative Distribution Function for a input
-        Variable.
+        """Returns logarithm of Cumulative Distribution Function for a input Variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -104,8 +100,7 @@ class Normal(Distribution):
         return exponential.log(self.cdf(x))
 
     def log_prob(self, x):
-        """
-        Returns logarithm logarithm of probability for a input variable.
+        """Returns logarithm logarithm of probability for a input variable.
 
         Args:
             x: Input variable representing a random variable.
@@ -118,8 +113,7 @@ class Normal(Distribution):
                - 0.5 * (x - self.loc) ** 2 / self.scale ** 2
 
     def log_survival_function(self, x):
-        """
-        Returns logarithm of survival function for a input Variable.
+        """Returns logarithm of survival function for a input Variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -135,8 +129,7 @@ class Normal(Distribution):
 
     @property
     def mean(self):
-        """
-        Returns mean value.
+        """Returns mean value.
 
         Returns:
             ~chainer.Variable: Output variable representing mean value.
@@ -146,8 +139,7 @@ class Normal(Distribution):
 
     @property
     def mode(self):
-        """
-        Returns mode.
+        """Returns mode.
 
         Returns:
             ~chainer.Variable: Output variable representing mode.
@@ -156,8 +148,7 @@ class Normal(Distribution):
         return self.loc
 
     def prob(self, x):
-        """
-        Returns probability for a input variable.
+        """Returns probability for a input variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -172,8 +163,7 @@ class Normal(Distribution):
             exponential.exp(- 0.5 * (x - self.loc) ** 2 / self.scale ** 2)
 
     def _sample_n(self, n):
-        """
-        Samples from this distribution.
+        """Samples from this distribution.
 
         Args:
             n(`int`): Sampling size.
@@ -198,8 +188,7 @@ class Normal(Distribution):
 
     @property
     def stddev(self):
-        """
-        Returns standard deviation.
+        """Returns standard deviation.
 
         Returns:
             ~chainer.Variable: Output variable representing standard deviation.
@@ -209,8 +198,7 @@ class Normal(Distribution):
 
     @property
     def support(self):
-        """
-        Returns support.
+        """Returns support.
 
         Returns:
             string: Output string that means support of this distribution.
@@ -219,8 +207,7 @@ class Normal(Distribution):
         return 'real'
 
     def survival_function(self, x):
-        """
-        Returns survival function for a input variable.
+        """Returns survival function for a input variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -236,8 +223,7 @@ class Normal(Distribution):
 
     @property
     def variance(self):
-        """
-        Returns variance.
+        """Returns variance.
 
         Returns:
             ~chainer.Variable: Output variable representing variance.

@@ -1,10 +1,8 @@
-import numpy
 import copy
 
 
 class Distribution(object):
-    """
-    Interface of Distribution
+    """Interface of Distribution
 
     `Distribution` is a bass class to treat probability distributions.
     When initialization, it takes parameter as input.
@@ -15,8 +13,7 @@ class Distribution(object):
 
     @property
     def batch_shape(self):
-        """
-        Returns the shape of a sample.
+        """Returns the shape of a sample.
 
         Returns:
             ~chainer.Variable: Output variable representing the shape of a
@@ -26,8 +23,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def cdf(self, x):
-        """
-        Returns Cumulative Distribution Function for a input variable.
+        """Returns Cumulative Distribution Function for a input variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -43,8 +39,7 @@ class Distribution(object):
 
     @property
     def covariance(self):
-        """
-        Returns covariance.
+        """Returns covariance.
 
         Returns:
             ~chainer.Variable: Output variable representing covariance.
@@ -53,8 +48,7 @@ class Distribution(object):
 
     @property
     def entropy(self):
-        """
-        Returns entropy.
+        """Returns entropy.
 
         Returns:
             ~chainer.Variable: Output variable representing entropy.
@@ -64,8 +58,7 @@ class Distribution(object):
 
     @property
     def enumerate_support(self):
-        """
-        Returns support values of discrete distribution.
+        """Returns support values of discrete distribution.
 
         Returns:
             ~chainer.Variable: Output variable containing candidates.
@@ -75,8 +68,7 @@ class Distribution(object):
 
     @property
     def event_shape(self):
-        """
-        Returns the shape of an event.
+        """Returns the shape of an event.
 
         Returns:
             ~chainer.Variable: Output variable representing the shape of an
@@ -86,8 +78,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def icdf(self, x):
-        """
-        Returns Inverse Cumulative Distribution Function for a input Variable.
+        """Returns Inverse Cumulative Distribution Function for a input Variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -102,9 +93,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def log_cdf(self, x):
-        """
-        Returns logarithm of Cumulative Distribution Function for a input
-        Variable.
+        """Returns logarithm of Cumulative Distribution Function for a input Variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -119,8 +108,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def log_prob(self, x):
-        """
-        Returns logarithm of probability for a input variable.
+        """Returns logarithm of probability for a input variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -135,8 +123,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def log_survival_function(self, x):
-        """
-        Returns logarithm of survival function for a input Variable.
+        """Returns logarithm of survival function for a input Variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -152,8 +139,7 @@ class Distribution(object):
 
     @property
     def mean(self):
-        """
-        Returns mean value.
+        """Returns mean value.
 
         Returns:
             ~chainer.Variable: Output variable representing mean value.
@@ -163,8 +149,7 @@ class Distribution(object):
 
     @property
     def mode(self):
-        """
-        Returns mode.
+        """Returns mode.
 
         Returns:
             ~chainer.Variable: Output variable representing mode.
@@ -173,8 +158,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def perplexity(self, x):
-        """
-        Returns perplexity function for a input variable.
+        """Returns perplexity function for a input variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -189,8 +173,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def prob(self, x):
-        """
-        Returns probability for a input variable.
+        """Returns probability for a input variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -204,8 +187,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def sample(self, shape=()):
-        """
-        Samples from this distribution.
+        """Samples from this distribution.
 
         Args:
             shape(:class:`tuple` of :class:`int`): Sampling shape.
@@ -229,8 +211,7 @@ class Distribution(object):
         return samples.reshape(final_shape)
 
     def _sample_n(self, n):
-        """
-        Samples from this distribution.
+        """Samples from this distribution.
 
         Args:
             n(`int`): Sampling size.
@@ -243,8 +224,7 @@ class Distribution(object):
 
     @property
     def stddev(self):
-        """
-        Returns standard deviation.
+        """Returns standard deviation.
 
         Returns:
             ~chainer.Variable: Output variable representing standard deviation.
@@ -254,8 +234,7 @@ class Distribution(object):
 
     @property
     def support(self):
-        """
-        Returns support.
+        """Returns support.
 
         Returns:
             string: Output string that means support of this distribution.
@@ -264,8 +243,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def survival_function(self, x):
-        """
-        Returns survival function for a input variable.
+        """Returns survival function for a input variable.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -281,8 +259,7 @@ class Distribution(object):
 
     @property
     def variance(self):
-        """
-        Returns variance.
+        """Returns variance.
 
         Returns:
             ~chainer.Variable: Output variable representing variance.
