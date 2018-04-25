@@ -1,7 +1,7 @@
 from chainer import Distribution
-from chainer.functions.math.sum import sum
-from chainer.functions.math.exponential import log
-from chainer.functions.array.stack import stack
+from chainer.functions.math import sum
+from chainer.functions.math import exponential
+from chainer.functions.array import stack
 from chainer.backends import cuda
 from chainer import Variable
 import numpy
@@ -46,7 +46,8 @@ class Bernoulli(Distribution):
             ~chainer.Variable: Output variable representing entropy.
 
         """
-        return sum(-self.p * log(self.p) - (1 - self.p) * log(1 - self.p))
+        return sum.sum(-self.p * exponential.log(self.p) -
+                       (1 - self.p) * exponential.log(1 - self.p))
 
     @property
     def enumerate_support(self):
@@ -63,7 +64,7 @@ class Bernoulli(Distribution):
         else:
             zeros = numpy.zeros_like(self.p)
             ones = numpy.ones_like(self.p)
-        return stack([zeros, ones], axis=-1)
+        return stack.stack([zeros, ones], axis=-1)
 
     @property
     def event_shape(self):
@@ -87,7 +88,8 @@ class Bernoulli(Distribution):
             probability.
 
         """
-        return x * log(self.p) + (1 - x) * log(1 - self.p)
+        return x * exponential.log(self.p) \
+            + (1 - x) * exponential.log(1 - self.p)
 
     @property
     def mean(self):

@@ -1,10 +1,10 @@
 from chainer import Distribution
-from chainer.functions.array.expand_dims import expand_dims
-from chainer.functions.array.repeat import repeat
-from chainer.functions.math.erf import erf
-from chainer.functions.math.erfinv import erfinv
-from chainer.functions.math.sum import sum
-from chainer.functions.math.exponential import log, exp
+from chainer.functions.array import expand_dims
+from chainer.functions.array import repeat
+from chainer.functions.math import erf
+from chainer.functions.math import erfinv
+from chainer.functions.math import sum
+from chainer.functions.math import exponential
 from chainer.backends import cuda
 import numpy
 
@@ -48,7 +48,7 @@ class Normal(Distribution):
             Distribution Function.
 
         """
-        return 0.5 * (1. + erf((x - self.loc) / (2 ** 0.5 * self.scale)))
+        return 0.5 * (1. + erf.erf((x - self.loc) / (2 ** 0.5 * self.scale)))
 
     @property
     def entropy(self):
@@ -59,7 +59,8 @@ class Normal(Distribution):
             Output Variable representing entropy.
 
         """
-        return sum(log(self.scale) + 0.5 * numpy.log(2 * numpy.pi * numpy.e))
+        return sum.sum(exponential.log(self.scale)
+                       + 0.5 * numpy.log(2 * numpy.pi * numpy.e))
 
     @property
     def event_shape(self):
@@ -79,7 +80,7 @@ class Normal(Distribution):
             Distribution Function.
 
         """
-        return erfinv(2 * x - 1) * (2 ** 0.5) * self.scale + self.mean
+        return erfinv.erfinv(2 * x - 1) * (2 ** 0.5) * self.scale + self.mean
 
     @property
     def _is_gpu(self):
@@ -100,7 +101,7 @@ class Normal(Distribution):
             Cumulative Distribution Function.
 
         """
-        return log(self.cdf(x))
+        return exponential.log(self.cdf(x))
 
     def log_prob(self, x):
         """
@@ -113,7 +114,7 @@ class Normal(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        return - 0.5 * numpy.log(2 * numpy.pi) - log(self.scale) \
+        return - 0.5 * numpy.log(2 * numpy.pi) - exponential.log(self.scale) \
                - 0.5 * (x - self.loc) ** 2 / self.scale ** 2
 
     def log_survival_function(self, x):
@@ -130,7 +131,7 @@ class Normal(Distribution):
             survival function for a input variable.
 
         """
-        return log(self.survival_function(x))
+        return exponential.log(self.survival_function(x))
 
     @property
     def mean(self):
@@ -168,7 +169,7 @@ class Normal(Distribution):
 
         """
         return 1. / (2 * numpy.pi) ** 0.5 / self.scale * \
-            exp(- 0.5 * (x - self.loc) ** 2 / self.scale ** 2)
+            exponential.exp(- 0.5 * (x - self.loc) ** 2 / self.scale ** 2)
 
     def _sample_n(self, n):
         """
@@ -188,8 +189,10 @@ class Normal(Distribution):
             eps = numpy.random.standard_normal(
                 (n,)+self.loc.shape).astype(numpy.float32)
 
-        noise = repeat(expand_dims(self.scale, axis=0), n, axis=0) * eps
-        noise += repeat(expand_dims(self.loc, axis=0), n, axis=0)
+        noise = repeat.repeat(
+            expand_dims.expand_dims(self.scale, axis=0), n, axis=0) * eps
+        noise += repeat.repeat(expand_dims.expand_dims(
+            self.loc, axis=0), n, axis=0)
 
         return noise
 
@@ -229,7 +232,7 @@ class Normal(Distribution):
             for a input variable.
 
         """
-        return 0.5 * (1. - erf((x - self.loc) / (2 ** 0.5 * self.scale)))
+        return 0.5 * (1. - erf.erf((x - self.loc) / (2 ** 0.5 * self.scale)))
 
     @property
     def variance(self):
