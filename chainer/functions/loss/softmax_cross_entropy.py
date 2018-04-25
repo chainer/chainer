@@ -69,6 +69,8 @@ class SoftmaxCrossEntropy(function.Function):
         type_check.expect(in_types.size() == 2)
         x_type, t_type = in_types
 
+        type_check.name(x_type, 'x')
+        type_check.name(t_type, 't')
         type_check.expect(
             x_type.dtype.kind == 'f',
             t_type.dtype.kind == 'i',
