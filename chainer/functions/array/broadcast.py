@@ -6,19 +6,6 @@ from chainer import function_node
 from chainer.utils import type_check
 
 
-def _backward_one(g, shape):
-    if g.shape == shape:
-        return g
-    ndim = len(shape)
-    lead = g.ndim - ndim
-    lead_axis = tuple(six.moves.range(lead))
-    axis = [i + lead for i, sx in enumerate(shape) if sx == 1]
-    g = chainer.functions.sum(g, lead_axis + tuple(axis), True)
-    if lead > 0:
-        return chainer.functions.squeeze(g, lead_axis)
-    return g
-
-
 class Broadcast(function_node.FunctionNode):
 
     """Function that broadcasts given arrays."""
@@ -44,7 +31,7 @@ class Broadcast(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         return tuple([None if grad_outputs[i] is None else
-                      _backward_one(grad_outputs[i], self.inputs[i].shape)
+                      chainer.functions.sum_to(grad_outputs[i], self.inputs[i].shape)
                       for i in indexes])
 
 
@@ -116,7 +103,8 @@ class BroadcastTo(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         gx, = grad_outputs
-        return _backward_one(gx, self.inputs[0].shape),
+        x_node, = self.inputs
+        return chainer.functions.sum_to(gx, x_node.shape),
 
 
 def broadcast_to(x, shape):
