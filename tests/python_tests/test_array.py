@@ -374,13 +374,15 @@ def test_reshape(is_module, xp, a_shape, b_shape, shape_type):
     size = functools.reduce(operator.mul, a_shape, 1)
     a = xp.arange(size)
     if is_module:
-        if shape_type == 'args':  # Skip, not supported
-            return xp.array([])
+        if shape_type == 'args':
+            if len(b_shape) > 1:
+                pytest.skip("ndarray.reshape not supported with the 'order' argument.")
+            b = xp.reshape(a, *b_shape)
         else:
             b = xp.reshape(a, shape_type(b_shape))
     else:
         if shape_type == 'args':
-            b = a.reshape(*b_shape)
+            b = a.reshape(*b_shape)  # TypeError/xchainer.XchainerError in case b_shape is empty.
         else:
             b = a.reshape(shape_type(b_shape))
 

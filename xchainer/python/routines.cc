@@ -232,6 +232,14 @@ void InitXchainerRoutines(pybind11::module& m) {
           },
           py::arg("a"),
           py::arg("newshape"));
+    m.def("reshape",
+          [](const ArrayBodyPtr& a, py::args args) {
+              if (args.size() == 0) {
+                  throw XchainerError("Reshape takes exactly 1 argument (0 given).");
+              }
+              return Reshape(Array{a}, ToShape(args)).move_body();
+          },
+          py::arg("a"));
     m.def("squeeze",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis) {
               return Squeeze(Array{a}, ToNdimVector(axis)).move_body();
