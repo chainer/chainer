@@ -9,6 +9,7 @@
 #include "xchainer/device.h"
 
 #include "xchainer/python/common.h"
+#include "xchainer/python/device.h"
 
 namespace xchainer {
 namespace python {
@@ -46,11 +47,12 @@ void InitXchainerContext(pybind11::module& m) {
 
     m.def("get_backend", &GetBackend, py::return_value_policy::reference);
     m.def("get_device",
-          [](const std::string& device_name) -> Device& { return GetDevice({device_name}); },
+          [](py::handle device) -> Device& { return internal::GetDevice(device); },
+          py::arg("device") = nullptr,
           py::return_value_policy::reference);
     m.def("get_device",
           [](const std::string& backend_name, int index) -> Device& {
-              return GetDevice({backend_name, index});
+              return xchainer::GetDevice({backend_name, index});
           },
           py::return_value_policy::reference);
 

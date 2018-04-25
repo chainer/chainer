@@ -121,11 +121,8 @@ void InitXchainerArray(pybind11::module& m) {
         return std::make_shared<ArrayBody>(*self);
     });
     c.def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); });
-    c.def("to_device", [](const ArrayBodyPtr& self, Device& device) { return Array{self}.ToDevice(device).move_body(); });
-    c.def("to_device", [](const ArrayBodyPtr& self, const std::string& device_name) {
-        Device& device = GetDefaultContext().GetDevice({device_name});
-        return Array{self}.ToDevice(device).move_body();
-    });
+    c.def("to_device",
+          [](const ArrayBodyPtr& self, py::handle device) { return Array{self}.ToDevice(internal::GetDevice(device)).move_body(); });
     c.def("to_device", [](const ArrayBodyPtr& self, const std::string& backend_name, int index) {
         Device& device = GetDefaultContext().GetDevice({backend_name, index});
         return Array{self}.ToDevice(device).move_body();

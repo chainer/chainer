@@ -63,6 +63,8 @@ def test_xchainer_get_device():
         assert device.context is context
         assert device.name == 'native:0'
         assert device is xchainer.get_device('native', 0)
+        assert device is xchainer.get_device(device)
+        assert xchainer.get_default_device() is xchainer.get_device()
 
 
 @pytest.mark.usefixtures('cache_restore_context')
