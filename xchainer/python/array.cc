@@ -39,7 +39,6 @@ namespace python {
 namespace internal {
 
 namespace py = pybind11;
-using namespace pybind11::literals;  // to bring in the `_a` literal
 
 namespace {
 
@@ -75,8 +74,9 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& d
 
     // TODO(sonots): Remove dependency on numpy
     py::object array_func = py::module::import("numpy").attr("array");
-    py::object a = dtype.is_none() ? array_func(object, "copy"_a = false)
-                                   : array_func(object, "dtype"_a = GetDtypeName(internal::GetDtype(dtype)), "copy"_a = false);
+    py::object a = dtype.is_none()
+                           ? array_func(object, py::arg("copy") = false)
+                           : array_func(object, py::arg("dtype") = GetDtypeName(internal::GetDtype(dtype)), py::arg("copy") = false);
     return MakeArrayFromNumpyArray(a, device);
 }
 
