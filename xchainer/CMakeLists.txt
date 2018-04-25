@@ -91,6 +91,7 @@ if(ENABLE_TEST)
         numeric_limits_test.cc
         numerical_gradient_test.cc
         numeric_test.cc
+        optional_container_arg_test.cc
         scalar_test.cc
         shape_test.cc
         stack_vector_test.cc

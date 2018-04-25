@@ -25,13 +25,25 @@ public:
 
     bool has_value() const { return opt_.has_value(); }
 
-    Container& operator*() { return *opt_; }
+    Container& operator*() {
+        assert(has_value());
+        return *opt_;
+    }
 
-    const Container& operator*() const { return *opt_; }
+    const Container& operator*() const {
+        assert(has_value());
+        return *opt_;
+    }
 
-    Container* operator->() { return &*opt_; }
+    Container* operator->() {
+        assert(has_value());
+        return &*opt_;
+    }
 
-    const Container* operator->() const { return &*opt_; }
+    const Container* operator->() const {
+        assert(has_value());
+        return &*opt_;
+    }
 
     explicit operator bool() const { return has_value(); }
 
