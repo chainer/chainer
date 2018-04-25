@@ -155,7 +155,7 @@ def _check_numpy_init(ndarray, device=None):
     if device is None:
         array = xchainer.array(ndarray)
     else:
-        array = xchainer.array(ndarray, device)
+        array = xchainer.array(ndarray, device=device)
 
     ndarray_is_contigous = ndarray.flags['C_CONTIGUOUS']
     _check_array(
