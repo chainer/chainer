@@ -235,7 +235,7 @@ void InitXchainerRoutines(pybind11::module& m) {
     m.def("reshape",
           [](const ArrayBodyPtr& a, py::args args) {
               if (args.size() == 0) {
-                  throw XchainerError("Reshape takes exactly 1 argument (0 given).");
+                  throw XchainerError("Reshape is missing shape argument.");
               }
               return Reshape(Array{a}, ToShape(args)).move_body();
           },
