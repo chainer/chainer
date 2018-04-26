@@ -155,7 +155,7 @@ Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
     return out;
 }
 
-Array AsContiguousArray(const Array& a, nonstd::optional<Dtype> dtype) {
+Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
     Dtype dt = dtype.value_or(a.dtype());
 
     if (a.IsContiguous() && a.dtype() == dt) {

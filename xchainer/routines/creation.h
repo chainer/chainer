@@ -70,7 +70,7 @@ Array Eye(
         Device& device = GetDefaultDevice());
 
 // Returns a C-contiguous array.
-Array AsContiguousArray(const Array& a, nonstd::optional<Dtype> dtype = nonstd::nullopt);
+Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype = nonstd::nullopt);
 
 Array Diag(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
 
