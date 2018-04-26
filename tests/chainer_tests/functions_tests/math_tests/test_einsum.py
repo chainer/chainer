@@ -2,7 +2,6 @@ import functools
 import unittest
 
 import numpy
-import pytest
 
 import chainer
 from chainer.backends import cuda
@@ -30,7 +29,7 @@ def _skip_if(cond, reason):
         @functools.wraps(impl)
         def wrapper(self, *args, **kwargs):
             if cond(self):
-                pytest.skip(reason)
+                raise unittest.SkipTest(reason)
             else:
                 impl(self, *args, **kwargs)
         return wrapper
