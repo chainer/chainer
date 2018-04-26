@@ -5,7 +5,6 @@ from chainer.functions.array import repeat
 from chainer.functions.math import erf
 from chainer.functions.math import erfinv
 from chainer.functions.math import exponential
-from chainer.functions.math import sum
 import numpy
 
 

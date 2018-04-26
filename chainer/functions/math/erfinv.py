@@ -1,5 +1,3 @@
-import warnings
-
 import numpy
 
 import chainer
@@ -29,10 +27,8 @@ class ErfInv(function_node.FunctionNode):
                 from scipy import special
                 _erfinv_cpu = special.erfinv
             except ImportError:
-                raise ImportError()
-                warnings.warn(
-                    "SciPy is not available. Forward computation of erfinv in"
-                    " CPU can be done.")
+                raise ImportError("SciPy is not available. Forward computation"
+                                  " of erfinv in CPU can not be done.")
         self.retain_inputs((0,))
         return utils.force_array(_erfinv_cpu(x[0]), dtype=x[0].dtype),
 
@@ -54,7 +50,7 @@ def erfinv(x):
     """Elementwise error function.
 
     .. note::
-       Forward computation in CPU can be slow if
+       Forward computation in CPU can not be done if
        `SciPy <https://www.scipy.org/>`_ is not available.
 
     Args:
