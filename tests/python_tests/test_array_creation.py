@@ -1,6 +1,7 @@
 import functools
 import math
 import operator
+import tempfile
 
 import numpy
 import pytest
@@ -557,3 +558,25 @@ def test_linspace_with_device(device):
 @pytest.mark.parametrize('device', ['native:0', 'native:0'])
 def test_linspace_invalid_num(xp, device):
     xp.linspace(2, 4, -1)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('count', [-1, 0, 2])
+@pytest.mark.parametrize('sep', ['', 'a'])
+@pytest.mark.parametrize('device', ['native:0', 'cuda:0'])
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_fromfile(xp, count, sep, dtype_spec, device):
+    # Write array data to temporary file.
+    if isinstance(dtype_spec, xchainer.dtype):
+        numpy_dtype_spec = dtype_spec.name
+    else:
+        numpy_dtype_spec = dtype_spec
+    data = numpy.arange(2, dtype=numpy_dtype_spec)
+    f = tempfile.TemporaryFile()
+    data.tofile(f, sep=sep)
+
+    # Read file.
+    f.seek(0)
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = numpy_dtype_spec
+    return xp.fromfile(f, dtype=dtype_spec, count=count, sep=sep)
