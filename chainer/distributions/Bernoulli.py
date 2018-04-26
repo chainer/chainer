@@ -43,8 +43,8 @@ class Bernoulli(Distribution):
             ~chainer.Variable: Output variable representing entropy.
 
         """
-        return sum.sum(-self.p * exponential.log(self.p) -
-                       (1 - self.p) * exponential.log(1 - self.p))
+        return -self.p * exponential.log(self.p) - \
+            (1 - self.p) * exponential.log(1 - self.p)
 
     @property
     def enumerate_support(self):
