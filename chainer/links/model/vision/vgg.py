@@ -217,12 +217,31 @@ class VGG16Layers(link.Chain):
 
         .. warning::
 
-           ``test`` and ``volatile`` arguments are not supported anymore since
+           ``train`` and ``volatile`` arguments are not supported anymore since
            v2.
-           Instead, use ``chainer.using_config('train', train)`` and
-           ``chainer.using_config('enable_backprop', not volatile)``
-           respectively.
-           See :func:`chainer.using_config`.
+           Users should configure training and volatile mode
+           with thread-local variables ``chainer.config.train``
+           and ``chainer.config.enable_backprop``, respectively.
+
+           Note that their default values are ``True``,
+           which behave differently if we used ``train`` and ``volatile`` in v1
+           options with default setting (``False`` and ``OFF``, respectively).
+           Therefore, users need to explicitly switch
+           ``chainer.config.train`` to ``False`` if they want to run the code
+           in test mode and ``chainer.config.enable_backprop``
+           to ``False`` if turn off construction of coputational graphs.
+           These variables can be configured with ``chainer.using_config``
+           as follows:
+
+           .. code-block:: python
+
+               # model is an instance of ResNetLayers (50 or 101 or 152 layers)
+               with chainer.using_config('train', False):
+                   with chainer.using_config('enable_backprop', False):
+                       feature = model.extract([image])
+
+           See the `upgrade guide <https://docs.chainer.org/en/stable\
+           /upgrade_v2.html#training-mode-is-configured-by-a-thread-local-flag>`_.
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
@@ -248,29 +267,6 @@ class VGG16Layers(link.Chain):
             volatile='volatile argument is not supported anymore. '
             'Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
-
-        if chainer.is_debug() and chainer.config.train:
-            msg = """From Chainer v2, we change the default training mode
-in running this method from *train* to *test*.
-Users need to explicitly switch the mode with thread-local variable
-`chainer.config.train`.
-
-Current training mode is *train* (i.e. `chainer.config.train` is `True`).
-As we use this method in test mode in typical usecase, we suspect you
-mistakenly forget to disable train mode,
-
-You can switch the mode to test as follows:
-
-# model is an instance of `ResNetLayers`
-with chainer.using_config('train', False):
-    feature = model.extract([image])
-
-If you believe running in train mode is correct, then just ignore this warning.
-
-See: https://docs.chainer.org/en/stable/upgrade_v2.html
-#training-mode-is-configured-by-a-thread-local-flag
-"""
-            warnings.warn(msg, RuntimeWarning)
 
         x = concat_examples([prepare(img, size=size) for img in images])
         x = Variable(self.xp.asarray(x))
