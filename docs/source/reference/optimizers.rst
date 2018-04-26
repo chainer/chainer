@@ -39,3 +39,4 @@ Hook functions
    chainer.optimizer_hooks.GradientClipping
    chainer.optimizer_hooks.GradientHardClipping
    chainer.optimizer_hooks.GradientNoise
+   chainer.optimizer_hooks.GradientLARS
