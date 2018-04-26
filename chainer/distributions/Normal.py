@@ -56,8 +56,8 @@ class Normal(Distribution):
             Output Variable representing entropy.
 
         """
-        return sum.sum(exponential.log(self.scale)
-                       + 0.5 * numpy.log(2 * numpy.pi * numpy.e))
+        return exponential.log(self.scale) \
+            + 0.5 * numpy.log(2 * numpy.pi * numpy.e)
 
     @property
     def event_shape(self):
