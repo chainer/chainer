@@ -218,6 +218,7 @@ from chainer.functions.math.inv import batch_inv  # NOQA
 from chainer.functions.math.inv import BatchInv  # NOQA
 from chainer.functions.math.inv import inv  # NOQA
 from chainer.functions.math.inv import Inv  # NOQA
+from chainer.functions.math.lgamma import lgamma  # NOQA
 from chainer.functions.math.linear_interpolate import linear_interpolate  # NOQA
 from chainer.functions.math.linear_interpolate import LinearInterpolate  # NOQA
 from chainer.functions.math.logarithm_1p import Log1p  # NOQA
