@@ -168,7 +168,7 @@ Array AsContiguousArray(const Array& a, nonstd::optional<Dtype> dtype) {
     if (GetKind(dt) == DtypeKind::kFloat) {
         Dtype src_dtype = a.dtype();
         internal::SetUpOpNodes("ascontiguousarray", {a}, out, {[src_dtype](const Array& gout, const std::vector<GraphId>&) {
-                                   return gout.AsType(src_dtype);
+                                   return gout.AsType(src_dtype, false);
                                }});
     }
     assert(out.IsContiguous());
