@@ -454,6 +454,7 @@ def test_eye_with_device(device):
     _check_device(a, device)
     xchainer.testing.assert_array_equal(a, b)
 
+
 @xchainer.testing.numpy_xchainer_allclose()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('start,stop', [
@@ -550,6 +551,7 @@ def test_diagflat(xp, k, shape, device):
 def test_diagflat_invalid_ndim(xp, k, shape, device):
     v = xp.arange(_total_size(shape)).reshape(shape)
     return xp.diagflat(v, k)
+
 
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.XchainerError))
 @pytest.mark.parametrize('device', ['native:0', 'native:0'])
