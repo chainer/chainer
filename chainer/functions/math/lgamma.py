@@ -23,7 +23,7 @@ class LGamma(function_node.FunctionNode):
         if _lgamma_cpu is None:
             try:
                 from scipy import special
-                _lgamma_cpu = special.loggamma
+                _lgamma_cpu = special.gammaln
             except ImportError:
                 raise ImportError("SciPy is not available. Forward computation"
                                   " of lgamma can not be done.")
