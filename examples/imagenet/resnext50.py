@@ -1,6 +1,3 @@
-# Original author: yasunorikudo
-# (https://github.com/yasunorikudo/chainer-ResNet)
-
 import chainer
 import chainer.functions as F
 from chainer import initializers
