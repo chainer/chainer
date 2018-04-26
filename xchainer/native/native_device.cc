@@ -462,32 +462,28 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
 
         if (v.ndim() == 1) {
             // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
-            for (int64_t i = 0; i < out_indexer.total_size(); ++i) {
-                out_indexer.Set(i);
-                out_iarray[out_indexer] = T{0};
+            for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
+                out_iarray[out_it] = T{0};
             }
 
             Indexer out_rows_indexer{Shape{out.shape()[0]}};
             Indexer out_cols_indexer{Shape{out.shape()[1]}};
 
-            for (int64_t i = 0; i < v_indexer.total_size(); ++i) {
-                v_indexer.Set(i);
-                out_rows_indexer.Set(row_start + i);
-                out_cols_indexer.Set(col_start + i);
-                out_indexer.SetIndexers(out_rows_indexer, out_cols_indexer);
-                out_iarray[out_indexer] = v_iarray[v_indexer];
+            for (auto v_it = v_indexer.It(0); v_it; ++v_it) {
+                auto out_rows_it = out_rows_indexer.It(row_start + v_it.raw_index());
+                auto out_cols_it = out_cols_indexer.It(col_start + v_it.raw_index());
+                auto out_it = out_indexer.It(out_rows_it, out_cols_it);
+                out_iarray[out_it] = v_iarray[v_it];
             }
-
         } else if (v.ndim() == 2) {
             Indexer v_row_indexer{Shape{v.shape()[0]}};
             Indexer v_col_indexer{Shape{v.shape()[1]}};
 
-            for (int64_t i = 0; i < out_indexer.total_size(); ++i) {
-                out_indexer.Set(i);
-                v_row_indexer.Set(row_start + i);
-                v_col_indexer.Set(col_start + i);
-                v_indexer.SetIndexers(v_row_indexer, v_col_indexer);
-                out_iarray[out_indexer] = v_iarray[v_indexer];
+            for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
+                auto v_row_it = v_row_indexer.It(row_start + out_it.raw_index());
+                auto v_col_it = v_col_indexer.It(col_start + out_it.raw_index());
+                auto v_it = v_indexer.It(v_row_it, v_col_it);
+                out_iarray[out_it] = v_iarray[v_it];
             }
         }
     });
