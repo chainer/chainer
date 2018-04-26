@@ -10,6 +10,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "xchainer/axes.h"
 #include "xchainer/ndim_vector.h"
 
 // Optional type caster
@@ -27,10 +28,17 @@ namespace xchainer {
 namespace python {
 namespace internal {
 
-template <typename T>
-nonstd::optional<NdimVector<T>> ToNdimVector(const nonstd::optional<std::vector<T>>& vec) {
+inline OptionalAxes ToAxes(const nonstd::optional<std::vector<int8_t>>& vec) {
     if (vec.has_value()) {
-        return NdimVector<T>{vec->begin(), vec->end()};
+        return Axes{vec->begin(), vec->end()};
+    } else {
+        return nonstd::nullopt;
+    }
+}
+
+inline OptionalAxes ToAxes(const nonstd::optional<int8_t>& vec) {
+    if (vec.has_value()) {
+        return Axes{*vec};
     } else {
         return nonstd::nullopt;
     }

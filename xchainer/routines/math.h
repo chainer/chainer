@@ -5,6 +5,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/axes.h"
 #include "xchainer/ndim_vector.h"
 #include "xchainer/scalar.h"
 
@@ -50,9 +51,9 @@ const Array& IDivide(const Array& x1, const Array& x2);
 
 Array Divide(const Array& x1, const Array& x2);
 
-Array Sum(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false);
+Array Sum(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 // TODO(niboshi): Move to statistics routines
-Array AMax(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false);
+Array AMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
 Array Maximum(const Array& x1, Scalar x2);
 Array Maximum(Scalar x1, const Array& x2);
@@ -62,10 +63,10 @@ Array Log(const Array& x);
 
 // Returns the LogSumExp (LSE) of x, reduced along the specified axes.
 // If no axes are specified, all axes will be reduced.
-Array LogSumExp(const Array& x, const nonstd::optional<NdimVector<int8_t>>& axis = nonstd::nullopt, bool keepdims = false);
+Array LogSumExp(const Array& x, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
 // Returns the logarithm of the softmax of x along the specified axes.
 // If no axes are specified, the softmax is applied on the second axis.
-Array LogSoftmax(const Array& x, const nonstd::optional<NdimVector<int8_t>>& axis = nonstd::nullopt);
+Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 
 }  // namespace xchainer

@@ -2,12 +2,11 @@
 
 #include <cstdint>
 
-#include <nonstd/optional.hpp>
-
 #include "xchainer/array.h"
+#include "xchainer/axes.h"
 
 namespace xchainer {
 
-Array ArgMax(const Array& a, const nonstd::optional<int8_t>& axis = nonstd::nullopt);
+Array ArgMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt);
 
 }  // namespace xchainer

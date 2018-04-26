@@ -35,14 +35,14 @@ struct ReductionKernelArg {
 };
 
 template <typename In, typename Out>
-ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const NdimVector<int8_t>& axis, const Array& out) {
+ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const Axes& axis, const Array& out) {
     // True if some axes are reduced but kept in output as 1-dim axes.
     // Corresponding to keepdim argument in Array::Sum().
     bool has_kept_dims = out.ndim() + static_cast<int64_t>(axis.size()) != in.ndim();
 
     // Prepare axis mappings
-    Shape reduce_shape{};               // Reduction dimensions
-    NdimVector<int8_t> out_axis_map{};  // Mapping from effective output indices to actual output indices
+    Shape reduce_shape{};  // Reduction dimensions
+    Axes out_axis_map{};   // Mapping from effective output indices to actual output indices
     Shape new_out_shape{};
     // (Here "effective output indices" means source indices minus reduction indices.)
 
@@ -94,7 +94,7 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const NdimVe
     assert(out_axis_map.size() == new_out_shape.size());
 
     // Calculate source axis permutation
-    NdimVector<int8_t> axis_permutes{};
+    Axes axis_permutes{};
     {
         size_t i_reduce = 0;
         for (int8_t i = 0; i < in.ndim(); ++i) {

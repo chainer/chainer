@@ -7,12 +7,12 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/axes.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/ndim_vector.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
-#include "xchainer/routines/util.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {
@@ -282,7 +282,7 @@ Array Divide(const Array& x1, const Array& x2) {
 
 namespace {
 
-Shape GetReductionOutputShape(const Array& a, const NdimVector<int8_t>& sorted_axis, bool keepdims) {
+Shape GetReductionOutputShape(const Array& a, const Axes& sorted_axis, bool keepdims) {
     Shape out_shape;
     int8_t i_axis = 0;
     for (int8_t i = 0; i < a.ndim(); ++i) {
@@ -298,7 +298,7 @@ Shape GetReductionOutputShape(const Array& a, const NdimVector<int8_t>& sorted_a
     return out_shape;
 }
 
-Array AllocateReductionOutput(const Array& a, const NdimVector<int8_t>& sorted_axis, bool keepdims) {
+Array AllocateReductionOutput(const Array& a, const Axes& sorted_axis, bool keepdims) {
     Shape out_shape = GetReductionOutputShape(a, sorted_axis, keepdims);
 
     if (!keepdims) {
@@ -316,8 +316,8 @@ Array AllocateReductionOutput(const Array& a, const NdimVector<int8_t>& sorted_a
 
 }  // namespace
 
-Array Sum(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) {
-    NdimVector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
     Array out = AllocateReductionOutput(a, sorted_axis, keepdims);
     a.device().Sum(a, sorted_axis, out);
 
@@ -338,8 +338,8 @@ Array Sum(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis, bool
     return out;
 }
 
-Array AMax(const Array& a, const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) {
-    NdimVector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
     Array out = AllocateReductionOutput(a, sorted_axis, keepdims);
 
     for (int8_t i : sorted_axis) {
@@ -418,15 +418,13 @@ Array Log(const Array& x) {
     return out;
 }
 
-Array LogSumExp(const Array& x, const nonstd::optional<NdimVector<int8_t>>& axis, bool keepdims) {
-    NdimVector<int8_t> sorted_axis = internal::GetSortedAxesOrAll(axis, x.ndim());
+Array LogSumExp(const Array& x, const OptionalAxes& axis, bool keepdims) {
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, x.ndim());
     Array xmax = AMax(x, sorted_axis, true);
     Array logs = Log(Sum(Exp(x - xmax), sorted_axis, keepdims));
     return (keepdims ? xmax : Squeeze(xmax, axis)) + logs;
 }
 
-Array LogSoftmax(const Array& x, const nonstd::optional<NdimVector<int8_t>>& axis) {
-    return x - LogSumExp(x, axis.has_value() ? axis : NdimVector<int8_t>{1}, true);
-}
+Array LogSoftmax(const Array& x, const OptionalAxes& axis) { return x - LogSumExp(x, axis.has_value() ? axis : OptionalAxes{1}, true); }
 
 }  // namespace xchainer

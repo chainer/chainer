@@ -14,7 +14,6 @@ install(FILES
     array_index.h
     array_repr.h
     axes.h
-    axis.h
     backend.h
     backward.h
     constant.h
@@ -30,6 +29,7 @@ install(FILES
     macro.h
     ndim_vector.h
     numeric_limits.h
+    optional_container_arg.h
     reduction_kernel_arg.h
     scalar.h
     shape.h
@@ -44,7 +44,6 @@ add_library(xchainer SHARED
     array.cc
     array_repr.cc
     axes.cc
-    axis.cc
     backend.cc
     backward.cc
     check_backward.cc
@@ -92,6 +91,7 @@ if(ENABLE_TEST)
         numeric_limits_test.cc
         numerical_gradient_test.cc
         numeric_test.cc
+        optional_container_arg_test.cc
         scalar_test.cc
         shape_test.cc
         stack_vector_test.cc

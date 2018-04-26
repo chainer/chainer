@@ -11,6 +11,7 @@
 #include <cuda_runtime.h>
 
 #include "xchainer/array.h"
+#include "xchainer/axes.h"
 #include "xchainer/cuda/cublas.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/cuda/elementwise.cuh"
@@ -23,7 +24,6 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_device.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/numeric_limits.h"
 #include "xchainer/reduction_kernel_arg.h"
 #include "xchainer/routines/creation.h"
@@ -150,7 +150,7 @@ struct ArgMaxImpl {
 
 }  // namespace
 
-void CudaDevice::ArgMax(const Array& a, const NdimVector<int8_t>& axis, const Array& out) {
+void CudaDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(a.dtype(), [&](auto pt) {
@@ -171,7 +171,7 @@ struct SumImpl {
 
 }  // namespace
 
-void CudaDevice::Sum(const Array& a, const NdimVector<int8_t>& axis, const Array& out) {
+void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
 
@@ -202,7 +202,7 @@ struct AMaxImpl {
 };
 }  // namespace
 
-void CudaDevice::AMax(const Array& a, const NdimVector<int8_t>& axis, const Array& out) {
+void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
     assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
     VisitDtype(out.dtype(), [&](auto pt) {
@@ -530,12 +530,12 @@ void CudaDevice::Log(const Array& x, const Array& out) {
 namespace {
 
 // Makes axes for permutation that moves [first_axis, last_axis) to the head.
-NdimVector<int8_t> MakeRollingPermutation(int8_t first_axis, int8_t last_axis, int8_t ndim) {
+Axes MakeRollingPermutation(int8_t first_axis, int8_t last_axis, int8_t ndim) {
     assert(0 <= first_axis);
     assert(first_axis < last_axis);
     assert(last_axis <= ndim);
 
-    NdimVector<int8_t> permutation{};
+    Axes permutation{};
     permutation.resize(ndim);
     auto head_end = permutation.begin() + (last_axis - first_axis);
     auto last = permutation.begin() + last_axis;
@@ -624,13 +624,13 @@ void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const A
         // indices: (Nk...)
 
         IndexableArray<const T> a_iarray{a};
-        NdimVector<int8_t> a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
+        Axes a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
         a_iarray.Permute(a_perm);
         Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
         Indexer a_indexer{a_shape};
 
         IndexableArray<T> out_iarray{out};
-        NdimVector<int8_t> out_perm = MakeRollingPermutation(axis, axis + indices.ndim(), out.ndim());
+        Axes out_perm = MakeRollingPermutation(axis, axis + indices.ndim(), out.ndim());
         out_iarray.Permute(out_perm);
         Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
         Indexer out_indexer{out_shape};
@@ -669,19 +669,19 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
         // indices: (Nk...)
 
         IndexableArray<const T> a_iarray{a};
-        NdimVector<int8_t> a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
+        Axes a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
         a_iarray.Permute(a_perm);
         Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
         Indexer a_indexer{a_shape};
 
         IndexableArray<const T> b_iarray{b};
-        NdimVector<int8_t> b_perm = MakeRollingPermutation(axis, axis + indices.ndim(), b.ndim());
+        Axes b_perm = MakeRollingPermutation(axis, axis + indices.ndim(), b.ndim());
         b_iarray.Permute(b_perm);
         Shape b_shape = internal::TransposeShape(b.shape(), b_perm);
         Indexer b_indexer{b_shape};
 
         IndexableArray<T> out_iarray{out};
-        NdimVector<int8_t> out_perm = MakeRollingPermutation(axis, axis + 1, out.ndim());
+        Axes out_perm = MakeRollingPermutation(axis, axis + 1, out.ndim());
         out_iarray.Permute(out_perm);
         Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
         Indexer out_indexer{out_shape};
