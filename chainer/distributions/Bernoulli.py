@@ -2,7 +2,6 @@ from chainer.backends import cuda
 from chainer import Distribution
 from chainer.functions.array import stack
 from chainer.functions.math import exponential
-from chainer.functions.math import sum
 from chainer import Variable
 import numpy
 
