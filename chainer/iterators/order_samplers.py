@@ -42,16 +42,17 @@ class ShuffleOrderSampler(OrderSampler):
     >>> chainer.iterators.MultiProcessIterator(
     ...     dataset, 1, order_sampler=ShuffleOrderSampler())
 
+    Args:
+        random_state (numpy.random.RandomState): Pseudo-random number
+            generator.
+
     """
 
-    def __init__(self, seed=None):
-        # Use a distinct RandomState in the thread
-        # for deterministic random number generation.
-        # To support 32-bit platform and numpy < 1.11,
-        # the seed is taken in a verbose manner.
-        if seed is None:
-            seed = numpy.random.randint(2**31)
-        self._random = numpy.random.RandomState(seed)
+    def __init__(self, random_state=None):
+        if random_state is None:
+            random_state = numpy.random.RandomState(
+                numpy.random.randint(2**31))
+        self._random = random_state
 
     def __call__(self, current_order, current_position):
         return self._random.permutation(len(current_order))
