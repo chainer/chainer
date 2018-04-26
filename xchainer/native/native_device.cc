@@ -498,13 +498,7 @@ void NativeDevice::Linspace(double start, double stop, const Array& out) {
         struct Impl {
             void operator()(int64_t i, T& out) {
                 double value = n == 1 ? start : (start * (n - 1 - i) + stop * i) / (n - 1);
-                if (std::is_same<T, bool>::value) {
-                    // T=bool
-                    out = value != 0;
-                } else {
-                    // T=other
-                    out = static_cast<T>(value);
-                }
+                out = static_cast<T>(value);
             }
             int64_t n;
             double start;

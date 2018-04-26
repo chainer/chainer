@@ -12,6 +12,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/cuda/cast.cuh"
 #include "xchainer/cuda/cublas.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/cuda/elementwise.cuh"
@@ -842,18 +843,7 @@ template <typename T>
 struct LinspaceImpl {
     __device__ void operator()(int64_t i, T& out) {
         double value = n == 1 ? start : (start * (n - 1 - i) + stop * i) / (n - 1);
-        if (std::is_same<T, bool>::value) {
-            // T=bool
-            out = value != 0;
-        } else if (std::is_unsigned<T>::value) {
-            // T=any unsigned integer
-            // If float value is directly casted to unsigned, it's representation would be different from that of native.
-            // In order to avoid that, it's casted to int64_t first.
-            out = static_cast<T>(static_cast<int64_t>(value));
-        } else {
-            // T=other
-            out = static_cast<T>(value);
-        }
+        out = cuda_numeric_cast<T>(value);
     }
     int64_t n;
     double start;
