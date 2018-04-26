@@ -1,6 +1,5 @@
 import collections
 import os
-import warnings
 
 import numpy
 try:
