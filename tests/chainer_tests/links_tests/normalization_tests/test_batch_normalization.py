@@ -32,9 +32,9 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
         'ndim': [0, 1, 2, 3],
         'axis': [None],
     }) + [
-        {'shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
-        {'shape': (5, 4), 'axis': 0},
-        {'shape': (5, 4, 3), 'axis': (0, 1)},
+        {'input_shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
+        {'input_shape': (5, 4), 'axis': 0},
+        {'input_shape': (5, 4, 3), 'axis': (0, 1)},
     ]
 )))
 class BatchNormalizationTest(unittest.TestCase):
@@ -44,13 +44,13 @@ class BatchNormalizationTest(unittest.TestCase):
         if aggr_axes is None:
             aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
             shape = (5, 3) + (2,) * self.ndim
-            size = shape[1]
+            param_shape = shape[1]
             self.expander = (None, Ellipsis) + (None,) * self.ndim
         else:
             if isinstance(self.axis, int):
                 aggr_axes = self.axis,
-            shape = self.shape
-            size = tuple(
+            shape = self.input_shape
+            param_shape = tuple(
                 s
                 for i, s in enumerate(shape)
                 if i not in aggr_axes
@@ -61,7 +61,7 @@ class BatchNormalizationTest(unittest.TestCase):
             )
 
         self.link = links.BatchNormalization(
-            size, dtype=self.dtype, axis=self.axis)
+            param_shape, dtype=self.dtype, axis=self.axis)
         gamma = self.link.gamma.data
         gamma[...] = numpy.random.uniform(.5, 1, gamma.shape)
         beta = self.link.beta.data
@@ -75,8 +75,10 @@ class BatchNormalizationTest(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
 
         if self.test:
-            self.mean = numpy.random.uniform(-1, 1, size).astype(self.dtype)
-            self.var = numpy.random.uniform(0.5, 1, size).astype(self.dtype)
+            self.mean = numpy.random.uniform(
+                -1, 1, param_shape).astype(self.dtype)
+            self.var = numpy.random.uniform(
+                0.5, 1, param_shape).astype(self.dtype)
             self.link.avg_mean[...] = self.mean
             self.link.avg_var[...] = self.var
         else:

@@ -31,9 +31,9 @@ def _batch_normalization(args):
         'ndim': [0, 1, 2],
         'axis': [None],
     }) + [
-        {'shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
-        {'shape': (5, 4), 'axis': 0},
-        {'shape': (5, 4, 3), 'axis': (0, 1)},
+        {'input_shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
+        {'input_shape': (5, 4), 'axis': 0},
+        {'input_shape': (5, 4, 3), 'axis': (0, 1)},
     ],
     testing.product({
         'dtype': [numpy.float32],
@@ -75,10 +75,10 @@ class TestBatchNormalization(unittest.TestCase):
                 aggr_axes = self.axis,
             param_shape = tuple(
                 s
-                for i, s in enumerate(self.shape)
+                for i, s in enumerate(self.input_shape)
                 if i not in aggr_axes
             )
-            shape = self.shape
+            shape = self.input_shape
 
         gamma = numpy.random.uniform(.5, 1, param_shape).astype(dtype)
         beta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
