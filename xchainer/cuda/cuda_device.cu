@@ -757,12 +757,11 @@ __global__ void SetVecInMat(
         Indexer mat_indexer,
         int64_t mat_row_start,
         int64_t mat_col_start) {
-    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < vec_indexer.total_size(); i += blockDim.x * gridDim.x) {
-        mat_row_indexer.Set(mat_row_start + i);
-        mat_col_indexer.Set(mat_col_start + i);
-        mat_indexer.SetIndexers(mat_row_indexer, mat_col_indexer);
-        vec_indexer.Set(i);
-        mat_iarray[mat_indexer] = vec_iarray[vec_indexer];
+    for (auto vec_it = vec_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); vec_it; ++vec_it) {
+        auto mat_row_it = mat_row_indexer.It(mat_row_start + vec_it.raw_index());
+        auto mat_col_it = mat_col_indexer.It(mat_col_start + vec_it.raw_index());
+        auto mat_it = mat_indexer.It(mat_row_it, mat_col_it);
+        mat_iarray[mat_it] = vec_iarray[vec_it];
     }
 }
 
@@ -776,12 +775,11 @@ __global__ void GetVecFromMat(
         Indexer vec_indexer,
         int64_t mat_row_start,
         int64_t mat_col_start) {
-    for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < vec_indexer.total_size(); i += blockDim.x * gridDim.x) {
-        mat_row_indexer.Set(mat_row_start + i);
-        mat_col_indexer.Set(mat_col_start + i);
-        mat_indexer.SetIndexers(mat_row_indexer, mat_col_indexer);
-        vec_indexer.Set(i);
-        vec_iarray[vec_indexer] = mat_iarray[mat_indexer];
+    for (auto vec_it = vec_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); vec_it; ++vec_it) {
+        auto mat_row_it = mat_row_indexer.It(mat_row_start + vec_it.raw_index());
+        auto mat_col_it = mat_col_indexer.It(mat_col_start + vec_it.raw_index());
+        auto mat_it = mat_indexer.It(mat_row_it, mat_col_it);
+        vec_iarray[vec_it] = mat_iarray[mat_it];
     }
 }
 
