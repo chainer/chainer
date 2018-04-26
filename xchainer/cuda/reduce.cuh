@@ -32,26 +32,24 @@ __global__ void ReductionKernel(ReductionKernelArg<In, Out> arg, int reduce_bloc
     int tid = threadIdx.x;
     int reduce_blocks_per_grid = (blockDim.x + reduce_block_size - 1) / reduce_block_size * gridDim.x;
 
-    for (int64_t i_out = blockIdx.x; i_out < arg.out_indexer.total_size(); i_out += gridDim.x * reduce_blocks_per_grid) {
-        arg.out_indexer.Set(i_out);
+    auto it_in = arg.in_indexer.It(0);
 
+    for (auto it_out = arg.out_indexer.It(blockIdx.x, gridDim.x * reduce_blocks_per_grid); it_out; ++it_out) {
         T accum = impl.Identity();
 
         // Set output indices in the corresponding indices (out_axis) in src_index.
         for (int8_t i_out_dim = 0; i_out_dim < arg.out_indexer.ndim(); ++i_out_dim) {
-            arg.in_indexer.index()[i_out_dim] = arg.out_indexer.index()[i_out_dim];
+            it_in.index()[i_out_dim] = it_out.index()[i_out_dim];
         }
 
         // Linearly compute the partial sum into at most kMaxReductionBlockSize values.
-        for (int64_t i_reduce = tid; i_reduce < arg.reduce_indexer.total_size(); i_reduce += reduce_block_size) {
-            arg.reduce_indexer.Set(i_reduce);
-
+        for (auto it_reduce = arg.reduce_indexer.It(tid, reduce_block_size); it_reduce; ++it_reduce) {
             // Set reduction indices in the corresponding indices (axis) in src_index.
             for (int8_t i_reduce_dim = 0; i_reduce_dim < arg.reduce_indexer.ndim(); ++i_reduce_dim) {
-                arg.in_indexer.index()[arg.out_indexer.ndim() + i_reduce_dim] = arg.reduce_indexer.index()[i_reduce_dim];
+                it_in.index()[arg.out_indexer.ndim() + i_reduce_dim] = it_reduce.index()[i_reduce_dim];
             }
 
-            impl.Reduce(impl.MapIn(arg.in[arg.in_indexer], i_reduce), accum);
+            impl.Reduce(impl.MapIn(arg.in[it_in], it_reduce.raw_index()), accum);
         }
 
         if (reduce_block_size >= 2) {
@@ -115,7 +113,7 @@ __global__ void ReductionKernel(ReductionKernelArg<In, Out> arg, int reduce_bloc
         }
         // Store the output value
         if (tid == 0) {
-            arg.out[arg.out_indexer] = impl.MapOut(accum);
+            arg.out[it_out] = impl.MapOut(accum);
         }
     }
 }

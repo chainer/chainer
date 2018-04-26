@@ -35,28 +35,27 @@ namespace native {
 //     Then, it can be passed to Reduce like: Reduce(MakeReductionKernelArg(input, axis, output), SumImpl{});
 template <typename In, typename Out, typename ReductionImpl>
 void Reduce(ReductionKernelArg<In, Out> arg, ReductionImpl&& impl) {
-    // Iterate over output dimensions
-    for (int64_t i_out = 0; i_out < arg.out_indexer.total_size(); ++i_out) {
-        arg.out_indexer.Set(i_out);
+    auto it_in = arg.in_indexer.It(0);
 
+    // Iterate over output dimensions
+    for (auto it_out = arg.out_indexer.It(0); it_out; ++it_out) {
         auto accum = impl.Identity();
 
         // Set output indices in the corresponding indices (out_axis) in src_index.
         for (int8_t i_out_dim = 0; i_out_dim < arg.out_indexer.ndim(); ++i_out_dim) {
-            arg.in_indexer.index()[i_out_dim] = arg.out_indexer.index()[i_out_dim];
+            it_in.index()[i_out_dim] = it_out.index()[i_out_dim];
         }
 
         // Iterate over reduction dimensions, reducing into a single output value.
-        for (int64_t i_reduce = 0; i_reduce < arg.reduce_indexer.total_size(); ++i_reduce) {
-            arg.reduce_indexer.Set(i_reduce);
+        for (auto it_reduce = arg.reduce_indexer.It(0); it_reduce; ++it_reduce) {
             // Set reduction indices in the corresponding indices (axis) in src_index.
             for (int8_t i_reduce_dim = 0; i_reduce_dim < arg.reduce_indexer.ndim(); ++i_reduce_dim) {
-                arg.in_indexer.index()[arg.out_indexer.ndim() + i_reduce_dim] = arg.reduce_indexer.index()[i_reduce_dim];
+                it_in.index()[arg.out_indexer.ndim() + i_reduce_dim] = it_reduce.index()[i_reduce_dim];
             }
 
-            impl.Reduce(impl.MapIn(arg.in[arg.in_indexer], i_reduce), accum);
+            impl.Reduce(impl.MapIn(arg.in[it_in], it_reduce.raw_index()), accum);
         }
-        arg.out[arg.out_indexer] = impl.MapOut(accum);
+        arg.out[it_out] = impl.MapOut(accum);
     }
 }
 

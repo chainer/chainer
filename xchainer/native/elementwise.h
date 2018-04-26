@@ -13,9 +13,8 @@ namespace elementwise_detail {
 
 template <typename ElementwiseImpl, typename... Ts>
 void ElementwiseKernel(ElementwiseImpl&& impl, Indexer indexer, IndexableArray<Ts>... iarrays) {
-    for (int64_t i = 0; i < indexer.total_size(); ++i) {
-        indexer.Set(i);
-        impl(i, iarrays[indexer]...);
+    for (auto it = indexer.It(0); it; ++it) {
+        impl(it.raw_index(), iarrays[it]...);
     }
 }
 
