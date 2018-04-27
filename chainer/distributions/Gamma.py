@@ -61,7 +61,7 @@ class Gamma(Distribution):
 
         """
         return - lgamma.lgamma(self.k) - self.k * exponential.log(self.theta) \
-            + (self.k - 1) * exponential(x) - x / self.theta
+            + (self.k - 1) * exponential.log(x) - x / self.theta
 
     @property
     def mean(self):
