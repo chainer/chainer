@@ -100,7 +100,7 @@ public:
         return WithData<T>(data.begin(), data.end());
     }
 
-    ArrayBuilder& WithPadding(const Strides& padding) {
+    ArrayBuilder& WithPadding(const std::vector<int64_t>& padding) {
         assert(padding_.empty());
         assert(padding.size() == shape_.size());
         padding_ = padding;
@@ -126,7 +126,7 @@ public:
 private:
     template <typename T>
     Strides GetStrides() const {
-        Strides padding = padding_;
+        std::vector<int64_t> padding = padding_;
         if (padding.empty()) {
             std::fill_n(std::back_inserter(padding), shape_.size(), int64_t{0});
         }
@@ -151,7 +151,7 @@ private:
 
     // Padding items (multiplied by sizeof(T) during construction) to each dimension.
     // TODO(niboshi): Support negative strides
-    Strides padding_;
+    std::vector<int64_t> padding_;
 
     // Using std::function to type-erase data type T
     std::function<Array(const ArrayBuilder&)> create_array_;
