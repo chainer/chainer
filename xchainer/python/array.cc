@@ -51,7 +51,7 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     Device& native_device = xchainer::GetDevice({"native", 0});
 
     Array numpy_view = xchainer::internal::FromHostData(shape, dtype, data, strides, native_device);
-    if (&device.backend() == &native_device.backend()) {
+    if (&device == &native_device) {
         return numpy_view.Copy().move_body();
     }
     return numpy_view.ToDevice(device).move_body();
