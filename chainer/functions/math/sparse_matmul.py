@@ -189,21 +189,19 @@ class SparseMatMul(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         sp, dn = self.get_retained_inputs()
         g_c, = grad_outputs
-
-        g_sp = None
+        ret = []
         if 0 in indexes:
             g_sp = SparseMatMulGradSP(self.sp_row, self.sp_col, self.sp_shape,
                                       self.transc, not self.transb,
                                       self.transa,
                                       dtype=sp.dtype).apply((g_c, dn))[0]
-
-        g_dn = None
+            ret.append(g_sp)
         if 1 in indexes:
             g_dn = SparseMatMul(self.sp_row, self.sp_col, self.sp_shape,
                                 not self.transa, self.transc, self.transb,
                                 dtype=dn.dtype).apply((sp, g_c))[0]
-
-        return g_sp, g_dn
+            ret.append(g_dn)
+        return ret
 
 
 def _sparse_matmul_gradsp(a, b, c_row, c_col, c_shape,
@@ -377,20 +375,18 @@ class SparseMatMulGradSP(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         a, b = self.get_retained_inputs()
         g_sp, = grad_outputs
-
-        g_a = None
+        ret = []
         if 0 in indexes:
             g_a = SparseMatMul(self.sp_row, self.sp_col, self.sp_shape,
                                self.transc, not self.transb, self.transa,
                                dtype=a.dtype).apply((g_sp, b))[0]
-
-        g_b = None
-        if 0 in indexes:
+            ret.append(g_a)
+        if 1 in indexes:
             g_b = SparseMatMul(self.sp_row, self.sp_col, self.sp_shape,
                                not self.transc, self.transa, not self.transb,
                                dtype=b.dtype).apply((g_sp, a))[0]
-
-        return g_a, g_b
+            ret.append(g_b)
+        return ret
 
 
 def sparse_matmul(a, b, transa=False, transb=False):
@@ -402,22 +398,22 @@ def sparse_matmul(a, b, transa=False, transb=False):
         2. C (dense) = A (dense) * B (sparse)
 
     Args:
-        a (Variable or SparseCooMatrix): The left operand of mat-mul.
-        b (Variable or SparseCooMatrix): The right operand of mat-mul.
+        a (Variable or CooMatrix): The left operand of mat-mul.
+        b (Variable or CooMatrix): The right operand of mat-mul.
         transa (bool): If ``True``, each matrix in ``a`` will be transposed.
         transb (bool): If ``True``, each matrix in ``b`` will be transposed.
 
     Returns:
         _chainer.Variable: Result of batched mat-mul.
     """
-    if (isinstance(a, utils.SparseCooMatrix) and
+    if (isinstance(a, utils.CooMatrix) and
             isinstance(b, (chainer.Variable, numpy.ndarray, cuda.ndarray))):
         return SparseMatMul(a.row, a.col, a.shape,
                             transa=transa,
                             transb=transb,
                             transc=False).apply((a.data, b))[0]
     elif (isinstance(a, (chainer.Variable, numpy.ndarray, cuda.ndarray)) and
-          isinstance(b, utils.SparseCooMatrix)):
+          isinstance(b, utils.CooMatrix)):
         return SparseMatMul(b.row, b.col, b.shape,
                             transa=not transb,
                             transb=not transa,
