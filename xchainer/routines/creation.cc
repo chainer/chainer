@@ -191,7 +191,13 @@ Array Diagflat(const Array& v, int64_t k, Device& device) {
 }
 
 // Creates a 1-d array with evenly spaced numbers.
-Array Linspace(Scalar start, Scalar stop, nonstd::optional<int64_t> num, bool endpoint, nonstd::optional<Dtype> dtype, Device& device) {
+Array Linspace(
+        Scalar start,
+        Scalar stop,
+        const nonstd::optional<int64_t>& num,
+        bool endpoint,
+        const nonstd::optional<Dtype>& dtype,
+        Device& device) {
     static const int64_t kDefaultNum = 50;
 
     // TODO(niboshi): Determine dtype_a from both dtypes of start and stop.

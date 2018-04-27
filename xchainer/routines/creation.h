@@ -77,9 +77,9 @@ Array Diagflat(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice(
 Array Linspace(
         Scalar start,
         Scalar stop,
-        nonstd::optional<int64_t> num,
+        const nonstd::optional<int64_t>& num = nonstd::nullopt,
         bool endpoint = true,
-        nonstd::optional<Dtype> dtype = nonstd::nullopt,
+        const nonstd::optional<Dtype>& dtype = nonstd::nullopt,
         Device& device = GetDefaultDevice());
 
 }  // namespace xchainer
