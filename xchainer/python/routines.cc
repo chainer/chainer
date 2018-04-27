@@ -196,24 +196,6 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("endpoint") = true,
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
-    m.def("linspace",
-          [](Scalar start, Scalar stop, int64_t num, bool endpoint, py::handle dtype, Device& device) {
-              return Linspace(
-                             start,
-                             stop,
-                             num,
-                             endpoint,
-                             dtype.is_none() ? nonstd::optional<Dtype>{nonstd::nullopt}
-                                             : nonstd::optional<Dtype>{internal::GetDtype(dtype)},
-                             device)
-                      .move_body();
-          },
-          py::arg("start"),
-          py::arg("stop"),
-          py::arg("num") = 50,
-          py::arg("endpoint") = true,
-          py::arg("dtype") = nullptr,
-          py::arg("device"));
 
     // indexing routines
     m.def("take",
