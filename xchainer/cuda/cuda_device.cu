@@ -12,6 +12,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/cuda/cast.cuh"
 #include "xchainer/cuda/cublas.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/cuda/elementwise.cuh"
@@ -833,6 +834,32 @@ void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
             GetVecFromMat<<<grid_size, block_size>>>(
                     v_iarray, out_iarray, v_row_indexer, v_col_indexer, v_indexer, out_indexer, row_start, col_start);
         }
+    });
+}
+
+namespace {
+
+template <typename T>
+struct LinspaceImpl {
+    __device__ void operator()(int64_t i, T& out) {
+        double value = n == 1 ? start : (start * (n - 1 - i) + stop * i) / (n - 1);
+        out = cuda_numeric_cast<T>(value);
+    }
+    int64_t n;
+    double start;
+    double stop;
+};
+
+}  // namespace
+
+void CudaDevice::Linspace(double start, double stop, const Array& out) {
+    assert(out.ndim() == 1);
+    assert(out.shape()[0] > 0);
+
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        int64_t n = out.shape()[0];
+        Elementwise(MakeElementwiseKernelArg<T>(out), LinspaceImpl<T>{n, start, stop});
     });
 }
 

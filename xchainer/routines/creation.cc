@@ -211,4 +211,34 @@ Array Diagflat(const Array& v, int64_t k, Device& device) {
     return Diag(v.Reshape({v.GetTotalSize()}), k, device);
 }
 
+// Creates a 1-d array with evenly spaced numbers.
+Array Linspace(
+        Scalar start,
+        Scalar stop,
+        const nonstd::optional<int64_t>& num,
+        bool endpoint,
+        const nonstd::optional<Dtype>& dtype,
+        Device& device) {
+    static const int64_t kDefaultNum = 50;
+
+    // TODO(niboshi): Determine dtype_a from both dtypes of start and stop.
+    Dtype dtype_a = dtype.value_or(start.dtype());
+    int64_t num_a = num.value_or(kDefaultNum);
+
+    if (num_a < 0) {
+        throw XchainerError{"Number of samples, ", num_a, ", must be non-negative"};
+    }
+
+    Array out = Empty(Shape{num_a}, dtype_a, device);
+    if (num_a > 0) {
+        auto start_value = static_cast<double>(start);
+        auto stop_value = static_cast<double>(stop);
+        if (!endpoint) {
+            stop_value = start_value + (stop_value - start_value) * (num_a - 1) / num_a;
+        }
+        device.Linspace(start_value, stop_value, out);
+    }
+    return out;
+}
+
 }  // namespace xchainer

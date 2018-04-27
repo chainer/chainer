@@ -67,6 +67,8 @@ public:
 
     void Diag(const Array& v, int64_t k, const Array& out) override;
 
+    void Linspace(double start, double stop, const Array& out);
+
     void Synchronize() override;
 };
 

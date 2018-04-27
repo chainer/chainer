@@ -513,3 +513,47 @@ def test_diagflat(xp, k, shape, device):
 def test_diagflat_invalid_ndim(xp, k, shape, device):
     v = xp.arange(_total_size(shape)).reshape(shape)
     return xp.diagflat(v, k)
+
+
+@xchainer.testing.numpy_xchainer_allclose()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('start,stop', [
+    (0, 0),
+    (0, 1),
+    (1, 0),
+    (-1, 0),
+    (0, -1),
+    (1, -1),
+    (-13.3, 352.5),
+    (13.3, -352.5),
+])
+@pytest.mark.parametrize('num', [0, 1, 2, 257])
+@pytest.mark.parametrize('endpoint', [True, False])
+@pytest.mark.parametrize('range_type', [float, int])
+def test_linspace(xp, start, stop, num, endpoint, range_type, dtype, device):
+    start = range_type(start)
+    stop = range_type(stop)
+    return xp.linspace(start, stop, num, endpoint=endpoint, dtype=dtype)
+
+
+@xchainer.testing.numpy_xchainer_allclose()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_linspace_dtype_spec(xp, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+    return xp.linspace(3, 5, 10, dtype=dtype_spec)
+
+
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_linspace_with_device(device):
+    a = xchainer.linspace(3, 5, 10, dtype='float32', device=device)
+    b = xchainer.linspace(3, 5, 10, dtype='float32')
+    _check_device(a, device)
+    xchainer.testing.assert_array_equal(a, b)
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.XchainerError))
+@pytest.mark.parametrize('device', ['native:0', 'native:0'])
+def test_linspace_invalid_num(xp, device):
+    xp.linspace(2, 4, -1)

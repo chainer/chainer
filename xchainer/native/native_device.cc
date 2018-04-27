@@ -489,6 +489,27 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
     });
 }
 
+void NativeDevice::Linspace(double start, double stop, const Array& out) {
+    assert(out.ndim() == 1);
+    assert(out.shape()[0] > 0);
+
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        struct Impl {
+            void operator()(int64_t i, T& out) {
+                double value = n == 1 ? start : (start * (n - 1 - i) + stop * i) / (n - 1);
+                out = static_cast<T>(value);
+            }
+            int64_t n;
+            double start;
+            double stop;
+        };
+
+        int64_t n = out.shape()[0];
+        Elementwise(MakeElementwiseKernelArg<T>(out), Impl{n, start, stop});
+    });
+}
+
 void NativeDevice::Synchronize() {}
 
 }  // namespace native

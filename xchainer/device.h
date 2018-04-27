@@ -126,6 +126,10 @@ public:
 
     virtual void Diag(const Array& v, int64_t k, const Array& out) = 0;
 
+    // Creates an evenly spaced 1-d array.
+    // `out.ndim()` must be 1 with at least 1 elements.
+    virtual void Linspace(double start, double stop, const Array& out) = 0;
+
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat
