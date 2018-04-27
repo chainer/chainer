@@ -66,11 +66,9 @@ class SoftmaxCrossEntropy(function.Function):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.args(in_types, ('x', 't'))
         x_type, t_type = in_types
 
-        type_check.name(x_type, 'x')
-        type_check.name(t_type, 't')
         type_check.expect(
             x_type.dtype.kind == 'f',
             t_type.dtype.kind == 'i',

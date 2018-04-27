@@ -24,11 +24,9 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
         self.count = None
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
-
+        type_check.name(in_types, ('x', 't'))
         x_type, t_type = in_types
-        type_check.name(x_type, 'x')
-        type_check.name(t_type, 't')
+
         type_check.expect(
             x_type.dtype == numpy.float32,
             t_type.dtype.kind == 'i',
