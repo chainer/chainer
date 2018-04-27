@@ -503,10 +503,16 @@ Invalid operation is performed in: {0} (Forward)
         self.actual = actual
 
 
-def name(in_type, name):
+def name(in_types, names):
     """Assigns the user friendly name for the input type."""
-    if isinstance(in_type, Variable):
-        in_type.name = name
+    if len(in_types) != len(names):
+        raise InvalidType(
+            '{} argument(s)'.format(str(len(names))),
+            '{} argument(s)'.format(str(len(in_types))),
+            'Invalid number of arguments')
+    for in_type, name in zip(in_types, names):
+        if isinstance(in_type, Variable):
+            in_type.name = name
 
 
 def expect(*bool_exprs):
