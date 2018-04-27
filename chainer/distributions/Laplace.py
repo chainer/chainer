@@ -80,7 +80,7 @@ class Laplace(Distribution):
 
         """
         return self.loc - self.scale * sign.sign(x - 0.5) \
-            * exponential.log(- basic_math.absolute(2 * x - 1))
+            * exponential.log(- basic_math.absolute(2 * x - 1) + 1)
 
     @property
     def _is_gpu(self):
