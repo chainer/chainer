@@ -9,11 +9,11 @@
 #include <gsl/gsl>
 
 #include "xchainer/array.h"
+#include "xchainer/axes.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/indexer.h"
 #include "xchainer/macro.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
@@ -71,7 +71,7 @@ public:
     //
     // It is the caller's responsibility to ensure validity of permutation.
     // If the permutation is invalid, the behavior is undefined.
-    IndexableArray<T>& Permute(const NdimVector<int8_t>& axes) {
+    IndexableArray<T>& Permute(const Axes& axes) {
         assert(axes.size() <= static_cast<size_t>(ndim_));
         int64_t c[kMaxNdim]{};
         std::copy(std::begin(strides_), std::end(strides_), c);

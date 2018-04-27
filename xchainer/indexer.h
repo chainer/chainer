@@ -7,7 +7,6 @@
 
 #include "xchainer/constant.h"
 #include "xchainer/macro.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {

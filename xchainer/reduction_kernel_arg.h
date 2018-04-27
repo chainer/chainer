@@ -8,7 +8,6 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/macro.h"
-#include "xchainer/ndim_vector.h"
 
 namespace xchainer {
 

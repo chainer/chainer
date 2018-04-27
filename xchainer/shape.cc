@@ -7,7 +7,6 @@
 #include <string>
 
 #include "xchainer/axes.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/strides.h"
 
 namespace xchainer {

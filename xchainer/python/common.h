@@ -11,7 +11,6 @@
 #include <pybind11/stl.h>
 
 #include "xchainer/axes.h"
-#include "xchainer/ndim_vector.h"
 
 // Optional type caster
 // http://pybind11.readthedocs.io/en/stable/advanced/cast/stl.html

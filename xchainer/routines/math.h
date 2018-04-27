@@ -6,7 +6,6 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/scalar.h"
 
 namespace xchainer {

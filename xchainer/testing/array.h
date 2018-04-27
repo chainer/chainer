@@ -12,7 +12,6 @@
 #include "xchainer/array.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
@@ -52,7 +51,7 @@ public:
             if (total_size > 0) {
                 // Copy the data to buffer, respecting strides
                 auto* raw_ptr = ptr.get();
-                NdimVector<int64_t> counter{shape.begin(), shape.end()};
+                Shape counter = shape;
                 for (const T& value : data) {
                     // Copy a single value
                     assert((raw_ptr - ptr.get()) < static_cast<ptrdiff_t>(total_bytes));
@@ -101,7 +100,7 @@ public:
         return WithData<T>(data.begin(), data.end());
     }
 
-    ArrayBuilder& WithPadding(const NdimVector<int64_t>& padding) {
+    ArrayBuilder& WithPadding(const Strides& padding) {
         assert(padding_.empty());
         assert(padding.size() == shape_.size());
         padding_ = padding;
@@ -127,7 +126,7 @@ public:
 private:
     template <typename T>
     Strides GetStrides() const {
-        NdimVector<int64_t> padding = padding_;
+        Strides padding = padding_;
         if (padding.empty()) {
             std::fill_n(std::back_inserter(padding), shape_.size(), int64_t{0});
         }
@@ -152,7 +151,7 @@ private:
 
     // Padding items (multiplied by sizeof(T) during construction) to each dimension.
     // TODO(niboshi): Support negative strides
-    NdimVector<int64_t> padding_;
+    Strides padding_;
 
     // Using std::function to type-erase data type T
     std::function<Array(const ArrayBuilder&)> create_array_;

@@ -27,7 +27,6 @@ install(FILES
     indexable_array.h
     indexer.h
     macro.h
-    ndim_vector.h
     numeric_limits.h
     optional_container_arg.h
     reduction_kernel_arg.h

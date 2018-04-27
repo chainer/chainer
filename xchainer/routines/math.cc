@@ -10,7 +10,6 @@
 #include "xchainer/axes.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/scalar.h"
