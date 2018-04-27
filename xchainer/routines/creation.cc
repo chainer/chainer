@@ -156,19 +156,19 @@ Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
 }
 
 Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
-    Dtype dt = dtype.value_or(a.dtype());
+    Dtype src_dt = a.dtype();
+    Dtype dt = dtype.value_or(src_dt);
 
-    if (a.IsContiguous() && a.dtype() == dt) {
+    if (a.IsContiguous() && src_dt == dt) {
         return a;
     }
 
     Array out = Empty(a.shape(), dt, a.device());
     a.device().AsType(a, out);
 
-    if (GetKind(dt) == DtypeKind::kFloat) {
-        Dtype src_dtype = a.dtype();
-        internal::SetUpOpNodes("ascontiguousarray", {a}, out, {[src_dtype](const Array& gout, const std::vector<GraphId>&) {
-                                   return gout.AsType(src_dtype, false);
+    if (GetKind(dt) == DtypeKind::kFloat && GetKind(src_dt) == DtypeKind::kFloat) {
+        internal::SetUpOpNodes("ascontiguousarray", {a}, out, {[src_dt](const Array& gout, const std::vector<GraphId>&) {
+                                   return gout.AsType(src_dt, false);
                                }});
     }
     assert(out.IsContiguous());
