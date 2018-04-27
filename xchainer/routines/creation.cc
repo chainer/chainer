@@ -194,13 +194,13 @@ Array Diagflat(const Array& v, int64_t k, Device& device) {
 Array Linspace(Scalar start, Scalar stop, nonstd::optional<int64_t> num, bool endpoint, nonstd::optional<Dtype> dtype, Device& device) {
     static const int64_t kDefaultNum = 50;
 
-    if (num < 0) {
-        throw XchainerError{"Number of samples must be non-negative"};
-    }
-
     // TODO(niboshi): Determine dtype_a from both dtypes of start and stop.
-    Dtype dtype_a = dtype.has_value() ? *dtype : start.dtype();
-    int64_t num_a = num.has_value() ? *num : kDefaultNum;
+    Dtype dtype_a = dtype.value_or(start.dtype());
+    int64_t num_a = num.value_or(kDefaultNum);
+
+    if (num_a < 0) {
+        throw XchainerError{"Number of samples, ", num_a, ", must be non-negative"};
+    }
 
     Array out = Empty(Shape{num_a}, dtype_a, device);
     if (num_a > 0) {
