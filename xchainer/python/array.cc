@@ -43,15 +43,18 @@ namespace py = pybind11;
 namespace {
 
 ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
-    Dtype dtype = internal::GetDtypeFromNumpyDtype(array.dtype());
     const py::buffer_info& info = array.request();
     Shape shape{info.shape};
+    Dtype dtype = internal::GetDtypeFromNumpyDtype(array.dtype());
+    std::shared_ptr<void> data{info.ptr, [](void*) {}};
     Strides strides{info.strides};
+    Device& native_device = xchainer::GetDevice({"native", 0});
 
-    // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
-    void* underlying_data = array.mutable_data();
-    std::shared_ptr<void> data{std::make_shared<py::array>(std::move(array)), underlying_data};
-    return xchainer::internal::FromHostData(shape, dtype, data, strides, device).move_body();
+    Array numpy_view = xchainer::internal::FromHostData(shape, dtype, data, strides, native_device);
+    if (&device.backend() == &native_device.backend()) {
+        return numpy_view.Copy().move_body();
+    }
+    return numpy_view.ToDevice(device).move_body();
 }
 
 ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& device) {
