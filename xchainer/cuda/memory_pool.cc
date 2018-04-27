@@ -1,7 +1,7 @@
 #include "xchainer/cuda/memory_pool.h"
 
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include "xchainer/cuda/cuda_runtime.h"
 
@@ -33,7 +33,10 @@ void* MemoryPool::Malloc(size_t bytesize) {
     return ptr;
 }
 
-void MemoryPool::Free(void *ptr) {
+void MemoryPool::Free(void* ptr) {
+    if (ptr == nullptr) {
+        return;
+    }
     auto it = in_use_.find(ptr);
     if (it == in_use_.end()) {
         throw XchainerError{"Cannot free out-of-pool memory"};

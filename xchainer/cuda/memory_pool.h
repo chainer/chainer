@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 namespace xchainer {
 namespace cuda {
@@ -14,6 +14,7 @@ public:
 
     void* Malloc(size_t bytesize);
     void Free(void* ptr);
+
 private:
     std::unordered_map<void*, size_t> in_use_;
     std::vector<std::vector<void*>> free_bins_;
