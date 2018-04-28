@@ -177,6 +177,7 @@ Array Array::ToDevice(Device& dst_device) const {
     Device& src_device = body_->device_;
     Array out;
 
+    // TODO(sonots): Avoid copying data between native devices, e.g., from native:0 to native:1 for performance.
     if (&src_device == &dst_device) {
         // Return an alias.
         out = AsConstant(CopyKind::kView);
