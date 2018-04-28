@@ -35,8 +35,8 @@ public:
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
-    explicit IndexableArray(const Array& array)
-        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()), array.strides()} {
+    IndexableArray(const Array& array, const Strides& strides)
+        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()), strides} {
         assert(TypeToDtype<T> == array.dtype());
 
 #ifndef NDEBUG
@@ -45,6 +45,8 @@ public:
         last_ = first_ + data_range.size_bytes();
 #endif
     }
+
+    explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
 

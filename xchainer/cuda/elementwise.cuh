@@ -24,12 +24,12 @@ __global__ void ElementwiseKernel(ElementwiseImpl impl, Indexer indexer, Indexab
 template <typename... Ts>
 struct KernelLauncher {
     template <typename Kernel, typename ElementwiseImpl>
-    __host__ void operator()(Kernel&& kernel, ElementwiseImpl&& impl) {
+    void operator()(Kernel&& kernel, ElementwiseImpl&& impl) {
         UnpackAndLaunch(std::forward<Kernel>(kernel), std::forward<ElementwiseImpl>(impl), std::index_sequence_for<Ts...>());
     }
 
     template <typename Kernel, typename ElementwiseImpl, std::size_t... Is>
-    __host__ void UnpackAndLaunch(Kernel&& kernel, ElementwiseImpl&& impl, std::index_sequence<Is...>) {
+    void UnpackAndLaunch(Kernel&& kernel, ElementwiseImpl&& impl, std::index_sequence<Is...>) {
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(kernel).block_size;
 
         int64_t total_size = arg.indexer.total_size();
