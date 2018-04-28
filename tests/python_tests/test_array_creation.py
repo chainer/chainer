@@ -119,11 +119,65 @@ def test_array_from_python_tuple_or_list_with_device(obj, device):
     _check_device(a, device)
 
 
+def _check_array_from_numpy_array(a_xc, a_np, device=None):
+    assert a_xc.is_contiguous
+    assert a_xc.offset == 0
+    _check_device(a_xc, device)
+
+    # recovered data should be equal
+    a_np_recovered = xchainer.tonumpy(a_xc)
+    xchainer.testing.assert_array_equal(a_xc, a_np_recovered)
+
+
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_array_from_numpy_array(xp, shape, dtype, device):
-    t = _create_dummy_ndarray(numpy, shape, dtype)
-    return xp.array(t)
+    a_np = _create_dummy_ndarray(numpy, shape, dtype)
+    a_xp = xp.array(a_np)
+
+    if xp is xchainer:
+        _check_array_from_numpy_array(a_xp, a_np, device)
+
+        # test possibly freed memory
+        a_np_copy = a_np.copy()
+        del a_np
+        xchainer.testing.assert_array_equal(a_xp, a_np_copy)
+
+    return a_xp
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_array_from_numpy_non_contiguous_array(xp, shape, dtype, device):
+    a_np = _create_dummy_ndarray(numpy, shape, dtype).T
+    a_xp = xp.array(a_np)
+
+    if xp is xchainer:
+        _check_array_from_numpy_array(a_xp, a_np, device)
+
+        # test possibly freed memory
+        a_np_copy = a_np.copy()
+        del a_np
+        xchainer.testing.assert_array_equal(a_xp, a_np_copy)
+
+    return a_xp
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_array_from_numpy_positive_offset_array(xp, device):
+    a_np = _create_dummy_ndarray(numpy, (2, 3), 'int32')[1, 1:]
+    a_xp = xp.array(a_np)
+
+    if xp is xchainer:
+        _check_array_from_numpy_array(a_xp, a_np, device)
+
+        # test possibly freed memory
+        a_np_copy = a_np.copy()
+        del a_np
+        xchainer.testing.assert_array_equal(a_xp, a_np_copy)
+
+    return a_xp
 
 
 def _array_from_numpy_array_with_dtype(xp, shape, src_dtype, dst_dtype_spec):
