@@ -9,19 +9,7 @@
 #include "xchainer/indexer.h"
 
 namespace xchainer {
-
-// Holds any number of arrays in a tuple for elementwise operations and an indexer matching their shapes.
-// The tuples may be unpacked to match templetized kernels. See xchainer/native/elementwise.h.
-template <typename... Ts>
-struct ElementwiseKernelArg {
-    explicit ElementwiseKernelArg(const Indexer& indexer, IndexableArray<Ts>&&... iarrays)
-        : indexer{indexer}, iarrays{std::make_tuple(iarrays...)} {}
-
-    Indexer indexer;
-    std::tuple<IndexableArray<Ts>...> iarrays;
-
-    static_assert(sizeof...(Ts) > 0, "Cannot create an elementwise kernel argument without any arrays.");
-};
+namespace internal {
 
 // Returns true if dimension i can be compressed.
 template <typename... PackedStrides>
@@ -42,6 +30,21 @@ inline Strides ReducedStrides(const Shape& shape, const Strides& strides) {
     }
     return reduced;
 }
+
+}  // namespace internal
+
+// Holds any number of arrays in a tuple for elementwise operations and an indexer matching their shapes.
+// The tuples may be unpacked to match templetized kernels. See xchainer/native/elementwise.h.
+template <typename... Ts>
+struct ElementwiseKernelArg {
+    explicit ElementwiseKernelArg(const Indexer& indexer, IndexableArray<Ts>&&... iarrays)
+        : indexer{indexer}, iarrays{std::make_tuple(iarrays...)} {}
+
+    Indexer indexer;
+    std::tuple<IndexableArray<Ts>...> iarrays;
+
+    static_assert(sizeof...(Ts) > 0, "Cannot create an elementwise kernel argument without any arrays.");
+};
 
 // Returns elementwise kernel-ready arguments for arrays.
 // Arrays may consist of both inputs and outputs.
@@ -66,7 +69,7 @@ ElementwiseKernelArg<T, Ts...> MakeElementwiseKernelArg(const Array& first, Arra
         if (comp_shape[i - 1] == 1) {
             continue;
         }
-        if (IsCompressableDimension(i, comp_shape, strides, rest.strides()...)) {
+        if (internal::IsCompressableDimension(i, comp_shape, strides, rest.strides()...)) {
             comp_shape[i] *= comp_shape[i - 1];
             comp_shape[i - 1] = 1;
             continue;
@@ -90,8 +93,8 @@ ElementwiseKernelArg<T, Ts...> MakeElementwiseKernelArg(const Array& first, Arra
     Shape reduced_shape{};
     std::copy_if(comp_shape.begin(), comp_shape.end(), std::back_inserter(reduced_shape), [](int64_t dim) { return dim != 1; });
     return ElementwiseKernelArg<T, Ts...>{Indexer{reduced_shape},
-                                          IndexableArray<T>{first, ReducedStrides(comp_shape, strides)},
-                                          IndexableArray<Ts>{rest, ReducedStrides(comp_shape, rest.strides())}...};
+                                          IndexableArray<T>{first, internal::ReducedStrides(comp_shape, strides)},
+                                          IndexableArray<Ts>{rest, internal::ReducedStrides(comp_shape, rest.strides())}...};
 }
 
 }  // namespace xchainer
