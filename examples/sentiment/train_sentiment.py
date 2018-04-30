@@ -10,8 +10,6 @@ This is Socher's simple recursive model, not RTNN:
 
 import argparse
 import collections
-import random
-import time
 
 import numpy as np
 
@@ -20,6 +18,8 @@ from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import optimizers
+from chainer import reporter
+from chainer.training import extensions
 
 import data
 
@@ -38,46 +38,9 @@ def convert_tree(vocab, exp):
         return {'label': int(label), 'node': node}
 
 
-def traverse(model, node, evaluate=None, root=True):
-    if isinstance(node['node'], int):
-        # leaf node
-        word = xp.array([node['node']], np.int32)
-        loss = 0
-        v = model.leaf(word)
-    else:
-        # internal node
-        left_node, right_node = node['node']
-        left_loss, left = traverse(
-            model, left_node, evaluate=evaluate, root=False)
-        right_loss, right = traverse(
-            model, right_node, evaluate=evaluate, root=False)
-        v = model.node(left, right)
-        loss = left_loss + right_loss
-
-    y = model.label(v)
-
-    if chainer.config.train:
-        label = xp.array([node['label']], np.int32)
-        t = chainer.Variable(label)
-        loss += F.softmax_cross_entropy(y, t)
-
-    if evaluate is not None:
-        predict = cuda.to_cpu(y.data.argmax(1))
-        if predict[0] == node['label']:
-            evaluate['correct_node'] += 1
-        evaluate['total_node'] += 1
-
-        if root:
-            if predict[0] == node['label']:
-                evaluate['correct_root'] += 1
-            evaluate['total_root'] += 1
-
-    return loss, v
-
-
 class RecursiveNet(chainer.Chain):
 
-    def __init__(self, n_vocab, n_units):
+    def __init__(self, n_vocab, n_units, n_label):
         super(RecursiveNet, self).__init__()
         with self.init_scope():
             self.embed = L.EmbedID(n_vocab, n_units)
@@ -87,10 +50,11 @@ class RecursiveNet(chainer.Chain):
     def __call__(self, x):
         accum_loss = 0.0
         result = collections.defaultdict(lambda: 0)
+        # calculate each tree in batch ``x`` because we cannot process as batch
         for tree in x:
-            loss, v = self._traverse(model, tree, evaluate=result)
+            loss, _ = self._traverse(tree, evaluate=result)
             accum_loss += loss
-        
+
         reporter.report({'loss': accum_loss}, self)
         reporter.report({'total': result['total']}, self)
         reporter.report({'correct': result['correct']}, self)
@@ -104,6 +68,34 @@ class RecursiveNet(chainer.Chain):
 
     def label(self, v):
         return self.w(v)
+
+    def _traverse(self, node, evaluate=None):
+        if isinstance(node['node'], int):
+            # leaf node
+            word = xp.array([node['node']], np.int32)
+            loss = 0
+            v = self.leaf(word)
+        else:
+            # internal node
+            left_node, right_node = node['node']
+            left_loss, left = self._traverse(left_node, evaluate=evaluate)
+            right_loss, right = self._traverse(right_node, evaluate=evaluate)
+            v = self.node(left, right)
+            loss = left_loss + right_loss
+
+        y = self.label(v)
+
+        label = xp.array([node['label']], np.int32)
+        t = chainer.Variable(label)
+        loss += F.softmax_cross_entropy(y, t)
+
+        if evaluate is not None:
+            predict = cuda.to_cpu(y.data.argmax(1))
+            if predict[0] == node['label']:
+                evaluate['correct'] += 1
+            evaluate['total'] += 1
+
+        return loss, v
 
 
 def main():
@@ -134,70 +126,57 @@ def main():
         chainer.cuda.get_device(args.gpu).use()
         xp = cuda.cupy
     else:
-        xp = numpy
-    
-    vocab = {}
+        xp = np
+
     if args.test:
         max_size = 10
     else:
         max_size = None
 
-    train_trees = [convert_tree(vocab, tree)
-                   for tree in data.read_corpus('trees/train.txt', max_size)]
-    test_trees = [convert_tree(vocab, tree)
-                  for tree in data.read_corpus('trees/test.txt', max_size)]
-    develop_trees = [convert_tree(vocab, tree)
-                     for tree in data.read_corpus('trees/dev.txt', max_size)]
+    vocab = {}
+    train_data = [convert_tree(vocab, tree)
+                  for tree in data.read_corpus('trees/train.txt', max_size)]
+    train_iter = chainer.iterators.SerialIterator(train_data, batchsize)
+    test_data = [convert_tree(vocab, tree)
+                 for tree in data.read_corpus('trees/test.txt', max_size)]
+    test_iter = chainer.iterators.SerialIterator(
+        test_data, batchsize, repeat=False, shuffle=False)
 
-    model = RecursiveNet(len(vocab), n_units)
+    model = RecursiveNet(len(vocab), n_units, n_label)
 
     if args.gpu >= 0:
         model.to_gpu()
-    
+
     # Setup optimizer
     optimizer = optimizers.AdaGrad(lr=0.1)
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(0.0001))
-    
-    accum_loss = 0
-    count = 0
-    start_at = time.time()
-    cur_at = start_at
-    for epoch in range(n_epoch):
-        print('Epoch: {0:d}'.format(epoch))
-        total_loss = 0
-        cur_at = time.time()
-        random.shuffle(train_trees)
-        for tree in train_trees:
-            loss, v = traverse(model, tree)
-            accum_loss += loss
-            count += 1
-    
-            if count >= batchsize:
-                model.cleargrads()
-                accum_loss.backward()
-                optimizer.update()
-                total_loss += float(accum_loss.data)
-    
-                accum_loss = 0
-                count = 0
-    
-        print('loss: {:.2f}'.format(total_loss))
-    
-        now = time.time()
-        throughput = float(len(train_trees)) / (now - cur_at)
-        print('{:.2f} iters/sec, {:.2f} sec'.format(throughput, now - cur_at))
-        print()
-    
-        if (epoch + 1) % epoch_per_eval == 0:
-            print('Train data evaluation:')
-            evaluate(model, train_trees)
-            print('Develop data evaluation:')
-            evaluate(model, develop_trees)
-            print('')
-    
-    print('Test evaluation')
-    evaluate(model, test_trees)
+
+    def _convert(batch, _):
+        return batch
+
+    # Setup updater
+    updater = chainer.training.StandardUpdater(
+        train_iter, optimizer, device=args.gpu, converter=_convert)
+
+    # Setup trainer and run
+    trainer = chainer.training.Trainer(updater, (n_epoch, 'epoch'))
+    trainer.extend(
+        extensions.Evaluator(test_iter, model, device=args.gpu,
+                             converter=_convert),
+        trigger=(epoch_per_eval, 'epoch'))
+    trainer.extend(extensions.LogReport())
+
+    trainer.extend(extensions.MicroAverage(
+        'main/correct', 'main/total', 'main/accuracy'))
+    trainer.extend(extensions.MicroAverage(
+        'validation/main/correct', 'validation/main/total',
+        'validation/main/accuracy'))
+
+    trainer.extend(extensions.PrintReport(
+        ['epoch', 'main/loss', 'validation/main/loss',
+         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
+    trainer.run()
 
 
 if __name__ == '__main__':
