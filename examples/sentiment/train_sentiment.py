@@ -69,10 +69,10 @@ class RecursiveNet(chainer.Chain):
     def label(self, v):
         return self.w(v)
 
-    def _traverse(self, node, evaluate=None):
+    def _traverse(self, node, evaluate):
         if isinstance(node['node'], int):
             # leaf node
-            word = xp.array([node['node']], np.int32)
+            word = self.xp.array([node['node']], np.int32)
             loss = 0
             v = self.leaf(word)
         else:
@@ -85,15 +85,14 @@ class RecursiveNet(chainer.Chain):
 
         y = self.label(v)
 
-        label = xp.array([node['label']], np.int32)
+        label = self.xp.array([node['label']], np.int32)
         t = chainer.Variable(label)
         loss += F.softmax_cross_entropy(y, t)
 
-        if evaluate is not None:
-            predict = cuda.to_cpu(y.data.argmax(1))
-            if predict[0] == node['label']:
-                evaluate['correct'] += 1
-            evaluate['total'] += 1
+        predict = cuda.to_cpu(y.data.argmax(1))
+        if predict[0] == node['label']:
+            evaluate['correct'] += 1
+        evaluate['total'] += 1
 
         return loss, v
 
@@ -121,12 +120,6 @@ def main():
     batchsize = args.batchsize      # minibatch size
     n_label = args.label         # number of labels
     epoch_per_eval = args.epocheval  # number of epochs per evaluation
-
-    if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
-        xp = cuda.cupy
-    else:
-        xp = np
 
     if args.test:
         max_size = 10
