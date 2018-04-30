@@ -11,7 +11,7 @@
 namespace xchainer {
 namespace internal {
 
-// Returns true if dimension i can be compressed.
+// Returns true if dimension i can be compressed for all strides.
 template <typename... PackedStrides>
 inline bool IsCompressableDimension(size_t i, const Shape& shape, const PackedStrides&... strides) {
     // If strides[i] * shape[i] != strides[i - 1] for any i for any strides, return false.
