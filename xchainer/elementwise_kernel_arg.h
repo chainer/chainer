@@ -1,12 +1,15 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 #include <tuple>
 #include <utility>
 
 #include "xchainer/array.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/shape.h"
+#include "xchainer/strides.h"
 
 namespace xchainer {
 namespace internal {
