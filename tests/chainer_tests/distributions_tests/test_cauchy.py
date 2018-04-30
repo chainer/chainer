@@ -69,4 +69,3 @@ class TestCauchy(unittest.TestCase):
         variance1 = self.dist.variance
         variance2 = self.sp_dist.var(loc=self.loc, scale=self.scale)
         testing.assert_allclose(variance1, variance2)
-
