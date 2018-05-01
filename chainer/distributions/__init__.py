@@ -8,3 +8,4 @@ from chainer.distributions.Gamma import Gamma  # NOQA
 from chainer.distributions.Laplace import Laplace  # NOQA
 from chainer.distributions.Normal import Normal  # NOQA
 from chainer.distributions.StudentT import StudentT  # NOQA
+from chainer.distributions.Uniform import Uniform  # NOQA
