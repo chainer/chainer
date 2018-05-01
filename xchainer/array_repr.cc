@@ -159,14 +159,15 @@ struct ArrayReprImpl {
         Formatter<T> formatter;
 
         // Let formatter scan all elements to print.
-        VisitElements<T>(
-                native_array, [&formatter](const IndexableArray<const T> iarray, const IndexIterator& it) { formatter.Scan(iarray[it]); });
+        VisitElements<T>(native_array, [&formatter](const IndexableArray<const T> iarray, const IndexIterator<>& it) {
+            formatter.Scan(iarray[it]);
+        });
 
         // Print values using the formatter.
         const int8_t ndim = array.ndim();
         int cur_line_size = 0;
         VisitElements<T>(
-                native_array, [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T>& iarray, const IndexIterator& it) {
+                native_array, [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T>& iarray, const IndexIterator<>& it) {
                     int8_t trailing_zeros = 0;
                     if (ndim > 0) {
                         for (int8_t i = ndim; --i >= 0;) {

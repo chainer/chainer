@@ -11,6 +11,7 @@
 
 namespace xchainer {
 
+template <int8_t kNdim>
 class IndexIterator;
 
 template <int8_t kNdim = kDynamicNdim>
@@ -20,7 +21,7 @@ public:
         std::copy(shape.begin(), shape.end(), shape_);
     }
 
-    XCHAINER_HOST_DEVICE IndexIterator It(int64_t start, int64_t step = 1) const;
+    XCHAINER_HOST_DEVICE IndexIterator<kNdim> It(int64_t start, int64_t step = 1) const;
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
 
@@ -30,7 +31,7 @@ public:
 
     // Sets an index from mutiple indexers each of which composes a portion of dimensions in order.
     template <typename... Args>
-    XCHAINER_HOST_DEVICE IndexIterator It(const IndexIterator& first, Args&&... iters);
+    XCHAINER_HOST_DEVICE IndexIterator<kNdim> It(const IndexIterator<kNdim>& first, Args&&... iters);
 
 private:
     // Combine multiple sub-iterators to make a combined iterator.
@@ -38,9 +39,9 @@ private:
     // `processed_dims` is the number of written dimensions so far.
     template <typename... Args>
     XCHAINER_HOST_DEVICE int8_t
-    CombineIterators(IndexIterator& it, int8_t processed_dims, const IndexIterator& first_iter, Args&&... iters);
+    CombineIterators(IndexIterator<kNdim>& it, int8_t processed_dims, const IndexIterator<kNdim>& first_iter, Args&&... iters);
 
-    XCHAINER_HOST_DEVICE int8_t CombineIterators(IndexIterator& it, int8_t processed_dims, const IndexIterator& iter);
+    XCHAINER_HOST_DEVICE int8_t CombineIterators(IndexIterator<kNdim>& it, int8_t processed_dims, const IndexIterator<kNdim>& iter);
 
 private:
     int64_t shape_[kMaxNdim]{};
@@ -53,6 +54,7 @@ inline std::ostream& operator<<(std::ostream& os, const Indexer<>& indexer) {
     return os << "Indexer(shape=" << shape << ")";
 }
 
+template <int8_t kNdim = kDynamicNdim>
 class IndexIterator {
 public:
     explicit XCHAINER_HOST_DEVICE IndexIterator(const Indexer<>& indexer, int64_t start, int64_t step)
@@ -103,15 +105,15 @@ private:
 };
 
 template <int8_t kNdim>
-XCHAINER_HOST_DEVICE inline IndexIterator Indexer<kNdim>::It(int64_t start, int64_t step) const {
-    return IndexIterator{*this, start, step};
+XCHAINER_HOST_DEVICE inline IndexIterator<kNdim> Indexer<kNdim>::It(int64_t start, int64_t step) const {
+    return IndexIterator<kNdim>{*this, start, step};
 }
 
 // Sets an index from mutiple indexers each of which composes a portion of dimensions in order.
 template <int8_t kNdim>
 template <typename... Args>
-XCHAINER_HOST_DEVICE IndexIterator Indexer<kNdim>::It(const IndexIterator& first, Args&&... iters) {
-    IndexIterator it = It(0);
+XCHAINER_HOST_DEVICE IndexIterator<kNdim> Indexer<kNdim>::It(const IndexIterator<kNdim>& first, Args&&... iters) {
+    IndexIterator<kNdim> it = It(0);
     int8_t processed_dims = CombineIterators(it, 0, first, std::forward<Args>(iters)...);
     assert(processed_dims == ndim_);
 #ifndef NDEBUG
@@ -126,7 +128,7 @@ XCHAINER_HOST_DEVICE IndexIterator Indexer<kNdim>::It(const IndexIterator& first
 template <int8_t kNdim>
 template <typename... Args>
 XCHAINER_HOST_DEVICE int8_t
-Indexer<kNdim>::CombineIterators(IndexIterator& it, int8_t processed_dims, const IndexIterator& first_iter, Args&&... iters) {
+Indexer<kNdim>::CombineIterators(IndexIterator<kNdim>& it, int8_t processed_dims, const IndexIterator<kNdim>& first_iter, Args&&... iters) {
     processed_dims = CombineIterators(it, processed_dims, first_iter);
     int8_t dims = CombineIterators(it, processed_dims, std::forward<Args>(iters)...);
     assert(dims == ndim_);
@@ -134,7 +136,8 @@ Indexer<kNdim>::CombineIterators(IndexIterator& it, int8_t processed_dims, const
 }
 
 template <int8_t kNdim>
-XCHAINER_HOST_DEVICE inline int8_t Indexer<kNdim>::CombineIterators(IndexIterator& it, int8_t processed_dims, const IndexIterator& iter) {
+XCHAINER_HOST_DEVICE inline int8_t Indexer<kNdim>::CombineIterators(
+        IndexIterator<kNdim>& it, int8_t processed_dims, const IndexIterator<kNdim>& iter) {
     assert(processed_dims + iter.indexer().ndim_ <= ndim_);
     for (int8_t i = 0; i < iter.indexer().ndim_; ++i) {
         it.index()[processed_dims + i] = iter.index()[i];
