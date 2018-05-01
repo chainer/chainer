@@ -34,7 +34,7 @@ class TestStudentT(unittest.TestCase):
         self.assertEqual(self.dist.event_shape, ())
 
     def test_log_prob(self):
-        smp = numpy.random.normal(self.shape).astype(numpy.float32)
+        smp = numpy.random.normal(size=self.shape).astype(numpy.float32)
         log_prob1 = self.dist.log_prob(smp).data
         log_prob2 = self.sp_dist.logpdf(
             smp, df=self.nu, loc=self.loc, scale=self.scale)

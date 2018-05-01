@@ -9,7 +9,7 @@ from scipy import stats
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), (1,)],
 }))
-class TestNormal(unittest.TestCase):
+class TestExponential(unittest.TestCase):
     def setUp(self):
         self.lam = numpy.exp(numpy.random.uniform(
             -1, 1, self.shape)).astype(numpy.float32)
@@ -20,7 +20,8 @@ class TestNormal(unittest.TestCase):
         self.assertEqual(self.dist.batch_shape, self.shape)
 
     def test_cdf(self):
-        smp = numpy.exp(numpy.random.normal(self.shape)).astype(numpy.float32)
+        smp = numpy.exp(
+            numpy.random.normal(size=self.shape)).astype(numpy.float32)
         cdf1 = self.dist.cdf(smp).data
         cdf2 = self.sp_dist.cdf(smp, scale=1/self.lam)
         testing.assert_allclose(cdf1, cdf2)
@@ -35,7 +36,8 @@ class TestNormal(unittest.TestCase):
         self.assertEqual(self.dist.event_shape, ())
 
     def test_log_prob(self):
-        smp = numpy.random.normal(self.shape).astype(numpy.float32)
+        smp = numpy.exp(
+            numpy.random.normal(size=self.shape)).astype(numpy.float32)
         log_prob1 = self.dist.log_prob(smp).data
         log_prob2 = self.sp_dist.logpdf(smp, scale=1/self.lam)
         testing.assert_allclose(log_prob1, log_prob2)

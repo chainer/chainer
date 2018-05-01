@@ -22,7 +22,7 @@ class TestNormal(unittest.TestCase):
         self.assertEqual(self.dist.batch_shape, self.shape)
 
     def test_cdf(self):
-        smp = numpy.random.normal(self.shape).astype(numpy.float32)
+        smp = numpy.random.normal(size=self.shape).astype(numpy.float32)
         cdf1 = self.dist.cdf(smp).data
         cdf2 = self.sp_dist.cdf(smp, loc=self.loc, scale=self.scale)
         testing.assert_allclose(cdf1, cdf2)
@@ -44,19 +44,19 @@ class TestNormal(unittest.TestCase):
         testing.assert_allclose(icdf1, icdf2)
 
     def test_log_cdf(self):
-        smp = numpy.random.normal(self.shape).astype(numpy.float32)
+        smp = numpy.random.normal(size=self.shape).astype(numpy.float32)
         log_cdf1 = self.dist.log_cdf(smp).data
         log_cdf2 = self.sp_dist.logcdf(smp, loc=self.loc, scale=self.scale)
         testing.assert_allclose(log_cdf1, log_cdf2)
 
     def test_log_prob(self):
-        smp = numpy.random.normal(self.shape).astype(numpy.float32)
+        smp = numpy.random.normal(size=self.shape).astype(numpy.float32)
         log_prob1 = self.dist.log_prob(smp).data
         log_prob2 = self.sp_dist.logpdf(smp, loc=self.loc, scale=self.scale)
         testing.assert_allclose(log_prob1, log_prob2)
 
     def test_log_survival(self):
-        smp = numpy.random.normal(self.shape).astype(numpy.float32) / 10
+        smp = numpy.random.normal(size=self.shape).astype(numpy.float32) / 10
         log_survival1 = self.dist.log_survival_function(smp).data
         log_survival2 = self.sp_dist.logsf(smp, loc=self.loc, scale=self.scale)
         testing.assert_allclose(log_survival1, log_survival2)
@@ -72,7 +72,7 @@ class TestNormal(unittest.TestCase):
         testing.assert_allclose(mode1, mode2)
 
     def test_prob(self):
-        smp = numpy.random.normal(self.shape).astype(numpy.float32)
+        smp = numpy.random.normal(size=self.shape).astype(numpy.float32)
         prob1 = self.dist.prob(smp).data
         prob2 = self.sp_dist.pdf(smp, loc=self.loc, scale=self.scale)
         testing.assert_allclose(prob1, prob2)
@@ -93,7 +93,7 @@ class TestNormal(unittest.TestCase):
         self.assertEqual(self.dist.support, "real")
 
     def test_survival(self):
-        smp = numpy.random.normal(self.shape).astype(numpy.float32)
+        smp = numpy.random.normal(size=self.shape).astype(numpy.float32)
         survival1 = self.dist.survival_function(smp).data
         survival2 = self.sp_dist.sf(smp, loc=self.loc, scale=self.scale)
         testing.assert_allclose(survival1, survival2)

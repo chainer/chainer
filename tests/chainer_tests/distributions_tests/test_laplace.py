@@ -60,7 +60,7 @@ class TestLaplace(unittest.TestCase):
         testing.assert_allclose(mode1, mode2)
 
     def test_prob(self):
-        smp = numpy.random.normal(self.shape).astype(numpy.float32)
+        smp = numpy.random.normal(size=self.shape).astype(numpy.float32)
         prob1 = self.dist.prob(smp).data
         prob2 = self.sp_dist.pdf(smp, loc=self.loc, scale=self.scale)
         testing.assert_allclose(prob1, prob2)
