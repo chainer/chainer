@@ -12,9 +12,9 @@ class DecorrelatedBatchNormalization(link.Link):
     def __init__(self, size, groups=16, decay=0.9, eps=2e-5,
                  dtype=numpy.float32):
         super(DecorrelatedBatchNormalization, self).__init__()
-        self.expected_mean = numpy.zeros(size, dtype=dtype)
+        self.expected_mean = numpy.zeros(size // groups, dtype=dtype)
         self.register_persistent('expected_mean')
-        self.expected_projection = numpy.eye(size, dtype=dtype)
+        self.expected_projection = numpy.eye(size // groups, dtype=dtype)
         self.register_persistent('expected_projection')
         self.N = 0
         self.register_persistent('N')

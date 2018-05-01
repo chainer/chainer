@@ -7,12 +7,9 @@ from chainer.utils import type_check
 
 class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
 
-    mean = None
-    U = None
-
-    def __init__(self, groups, eps=2e-5, mean=None, projection=None,
+    def __init__(self, groups=16, eps=2e-5, mean=None, projection=None,
                  decay=0.9):
-        self.groups = groups  # TODO(tommi): Implement group whitening
+        self.groups = groups
 
         self.expected_mean = mean
         self.expected_projection = projection
@@ -26,6 +23,7 @@ class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         x_type = in_types[0]
         type_check.expect(
             x_type.dtype.kind == 'f',
+            x_type.shape[1] % self.groups == 0,
         )
         type_check.expect(
             x_type.ndim >= 2,
@@ -38,32 +36,38 @@ class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         spatial_ndim = len(x.shape[2:])
         spatial_axis = tuple(range(2, 2 + spatial_ndim))
         b, c = x.shape[:2]
-        m = b
+        g = self.groups
+        C = c // g
+        m = b * g
         for i in spatial_axis:
             m *= x.shape[i]
 
         if self.expected_mean is None:
-            self.expected_mean = xp.zeros(c, dtype=x.dtype)
-            self.expected_projection = xp.eye(c, dtype=x.dtype)
+            self.expected_mean = xp.zeros(C, dtype=x.dtype)
+            self.expected_projection = xp.eye(C, dtype=x.dtype)
 
-        x_hat = x.transpose((1, 0) + spatial_axis).reshape((c, -1))
+        if self.groups > 1:
+            x = x.reshape((b * g, C, ) + x.shape[2:])
+        x_hat = x.transpose((1, 0) + spatial_axis).reshape((C, -1))
 
         mean = x_hat.mean(axis=1)
         x_hat = x_hat - mean[:, None]
         self.eps = x.dtype.type(self.eps)
 
-        I = self.eps * xp.eye(c, dtype=x.dtype)
+        I = self.eps * xp.eye(C, dtype=x.dtype)
         cov = x_hat.dot(x_hat.T) / x.dtype.type(m) + I
         self.eigvals, self.eigvectors = xp.linalg.eigh(cov)
         U = xp.diag(self.eigvals ** -0.5).dot(self.eigvectors.T)
         self.y_hat_pca = U.dot(x_hat)  # PCA whitening
         y_hat = self.eigvectors.dot(self.y_hat_pca)  # ZCA whitening
 
-        y = y_hat.reshape((c, b,) + x.shape[2:]).transpose(
+        y = y_hat.reshape((C, b * g,) + x.shape[2:]).transpose(
             (1, 0) + spatial_axis)
+        if self.groups > 1:
+            y = y.reshape((-1, c, ) + x.shape[2:])
 
         # Update running statistics
-        q = x.size // c
+        q = x.size // C
         adjust = q / max(q - 1., 1.)  # unbiased estimation
         self.expected_mean *= self.decay
         self.expected_mean += (1 - self.decay) * mean
@@ -77,13 +81,14 @@ class DecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         gy, = grad_outputs
 
         f = DecorrelatedBatchNormalizationGrad(
-            self.eigvals, self.eigvectors, self.y_hat_pca)
+            self.groups, self.eigvals, self.eigvectors, self.y_hat_pca)
         return f(gy),
 
 
 class DecorrelatedBatchNormalizationGrad(function.Function):
 
-    def __init__(self, eigvals, eigvectors, y_hat_pca):
+    def __init__(self, groups, eigvals, eigvectors, y_hat_pca):
+        self.groups = groups
         self.eigvals = eigvals
         self.eigvectors = eigvectors
         self.y_hat_pca = y_hat_pca
@@ -95,18 +100,22 @@ class DecorrelatedBatchNormalizationGrad(function.Function):
         spatial_ndim = len(gy.shape[2:])
         spatial_axis = tuple(range(2, 2 + spatial_ndim))
         b, c = gy.shape[:2]
-        m = b
+        g = self.groups
+        C = c // g
+        m = b * g
         for i in spatial_axis:
             m *= gy.shape[i]
 
-        gy_hat = gy.transpose((1, 0) + spatial_axis).reshape((c, -1))  # (c, m)
+        if self.groups > 1:
+            gy = gy.reshape((b * g, C, ) + gy.shape[2:])
+        gy_hat = gy.transpose((1, 0) + spatial_axis).reshape((C, -1))
 
-        gy_hat_pca = self.eigvectors.T.dot(gy_hat)  # (c, m)
+        gy_hat_pca = self.eigvectors.T.dot(gy_hat)
         f = gy_hat_pca.mean(axis=1)
 
         K = self.eigvals[:, None] - self.eigvals[None, :]
-        xp.fill_diagonal(K, 1)
-        K = 1 / K  # (c, c)
+        valid = K != 0
+        K[valid] = 1 / K[valid]
         xp.fill_diagonal(K, 0)
 
         V = xp.diag(self.eigvals)
@@ -117,11 +126,13 @@ class DecorrelatedBatchNormalizationGrad(function.Function):
         M = xp.diag(xp.diag(F_c))
 
         S = 2 * _sym(K.T * (V.dot(F_c.T) + V_sqrt.dot(F_c).dot(V_sqrt)))
-        R = gy_hat_pca - f[:, None] + (S - M).T.dot(self.y_hat_pca)  # (c, m)
+        R = gy_hat_pca - f[:, None] + (S - M).T.dot(self.y_hat_pca)
         gx_hat = R.T.dot(V_invsqrt).dot(self.eigvectors.T).T
 
-        gx = gx_hat.reshape((c, b,) + gy.shape[2:]).transpose(
+        gx = gx_hat.reshape((C, b * g,) + gy.shape[2:]).transpose(
             (1, 0) + spatial_axis)
+        if self.groups > 1:
+            gx = gx.reshape((-1, c, ) + gy.shape[2:])
 
         self.retain_outputs(())
         return gx,
@@ -152,13 +163,19 @@ class FixedDecorrelatedBatchNormalizationFunction(function_node.FunctionNode):
         spatial_ndim = len(x.shape[2:])
         spatial_axis = tuple(range(2, 2 + spatial_ndim))
         b, c = x.shape[:2]
+        g = self.groups
+        C = c // g
 
-        x_hat = x.transpose((1, 0) + spatial_axis).reshape((c, -1))  # (c, m)
+        if self.groups > 1:
+            x = x.reshape((b * g, C, ) + x.shape[2:])
+        x_hat = x.transpose((1, 0) + spatial_axis).reshape((C, -1))
 
         y_hat = projection.dot(x_hat - mean[:, None])
 
-        y = y_hat.reshape((c, b,) + x.shape[2:]).transpose(
+        y = y_hat.reshape((C, b * g,) + x.shape[2:]).transpose(
             (1, 0) + spatial_axis)
+        if self.groups > 1:
+            y = y.reshape((-1, c, ) + x.shape[2:])
 
         return y,
 
