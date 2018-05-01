@@ -231,7 +231,7 @@ private:
     void VisitElements(const Array& array, Visitor&& visitor) const {
         // array should be already synchronized
 
-        Indexer indexer{array.shape()};
+        Indexer<> indexer{array.shape()};
         IndexableArray<const T> iarray{array};
 
         for (auto it = indexer.It(0); it; ++it) {

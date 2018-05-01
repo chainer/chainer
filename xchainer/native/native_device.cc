@@ -318,9 +318,9 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
         IndexableArray<const T> a_iarray{a};
         IndexableArray<T> out_iarray{out};
         IndexableArray<const int64_t> indices_iarray{indices};
-        Indexer a_indexer{a.shape()};
-        Indexer out_indexer{out.shape()};
-        Indexer indices_indexer{indices.shape()};
+        Indexer<> a_indexer{a.shape()};
+        Indexer<> out_indexer{out.shape()};
+        Indexer<> indices_indexer{indices.shape()};
 
         int64_t axis_dim = a.shape()[axis];
 
@@ -329,9 +329,9 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
         Shape left_shape{a.shape().begin(), a.shape().begin() + axis};
         Shape right_shape{a.shape().begin() + (axis + 1), a.shape().end()};
         Shape axis_shape{axis_dim};  // always ndim==1
-        Indexer left_indexer{left_shape};
-        Indexer right_indexer{right_shape};
-        Indexer axis_indexer{axis_shape};
+        Indexer<> left_indexer{left_shape};
+        Indexer<> right_indexer{right_shape};
+        Indexer<> axis_indexer{axis_shape};
 
         for (auto it = indices_indexer.It(0); it; ++it) {
             int64_t index = indices_iarray[it];
@@ -365,9 +365,9 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
         IndexableArray<const T> b_iarray{b};
         IndexableArray<const int64_t> indices_iarray{indices};
         IndexableArray<T> out_iarray{out};
-        Indexer b_indexer{b.shape()};
-        Indexer indices_indexer{indices.shape()};
-        Indexer out_indexer{out.shape()};  // indexer for both out_iarray and a_array
+        Indexer<> b_indexer{b.shape()};
+        Indexer<> indices_indexer{indices.shape()};
+        Indexer<> out_indexer{out.shape()};  // indexer for both out_iarray and a_array
 
         int64_t axis_dim = a.shape()[axis];
 
@@ -376,9 +376,9 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
         Shape left_shape{a.shape().begin(), a.shape().begin() + axis};
         Shape right_shape{a.shape().begin() + (axis + 1), a.shape().end()};
         Shape axis_shape{axis_dim};  // always ndim==1
-        Indexer left_indexer{left_shape};
-        Indexer right_indexer{right_shape};
-        Indexer axis_indexer{axis_shape};
+        Indexer<> left_indexer{left_shape};
+        Indexer<> right_indexer{right_shape};
+        Indexer<> axis_indexer{axis_shape};
 
         // Copy
         for (auto it = out_indexer.It(0); it; ++it) {
@@ -447,8 +447,8 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
 
         IndexableArray<const T> v_iarray{v};
         IndexableArray<T> out_iarray{out};
-        Indexer v_indexer{v.shape()};
-        Indexer out_indexer{out.shape()};
+        Indexer<> v_indexer{v.shape()};
+        Indexer<> out_indexer{out.shape()};
 
         // Start indices for the 2-D array axes with applied offset k.
         int64_t row_start{0};
@@ -466,8 +466,8 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
                 out_iarray[out_it] = T{0};
             }
 
-            Indexer out_rows_indexer{Shape{out.shape()[0]}};
-            Indexer out_cols_indexer{Shape{out.shape()[1]}};
+            Indexer<> out_rows_indexer{Shape{out.shape()[0]}};
+            Indexer<> out_cols_indexer{Shape{out.shape()[1]}};
 
             for (auto v_it = v_indexer.It(0); v_it; ++v_it) {
                 auto out_rows_it = out_rows_indexer.It(row_start + v_it.raw_index());
@@ -476,8 +476,8 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
                 out_iarray[out_it] = v_iarray[v_it];
             }
         } else if (v.ndim() == 2) {
-            Indexer v_row_indexer{Shape{v.shape()[0]}};
-            Indexer v_col_indexer{Shape{v.shape()[1]}};
+            Indexer<> v_row_indexer{Shape{v.shape()[0]}};
+            Indexer<> v_col_indexer{Shape{v.shape()[1]}};
 
             for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
                 auto v_row_it = v_row_indexer.It(row_start + out_it.raw_index());

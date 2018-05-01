@@ -14,7 +14,7 @@ namespace cuda {
 namespace elementwise_detail {
 
 template <typename ElementwiseImpl, typename... Ts>
-__global__ void ElementwiseKernel(ElementwiseImpl impl, Indexer indexer, IndexableArray<Ts>... args) {
+__global__ void ElementwiseKernel(ElementwiseImpl impl, Indexer<> indexer, IndexableArray<Ts>... args) {
     for (auto it = indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
         impl(it.raw_index(), args[it]...);
     }

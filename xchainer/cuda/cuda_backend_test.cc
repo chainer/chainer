@@ -36,7 +36,7 @@ void ExpectArraysEqual(const Array& expected, const Array& actual) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> expected_iarray{expected};
         IndexableArray<const T> actual_iarray{actual};
-        Indexer indexer{expected.shape()};
+        Indexer<> indexer{expected.shape()};
 
         actual.device().Synchronize();
         expected.device().Synchronize();

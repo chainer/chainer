@@ -25,7 +25,7 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol, bool equ
         using T = typename decltype(pt)::type;
         IndexableArray<const T> a_iarray{a_native};
         IndexableArray<const T> b_iarray{b_native};
-        Indexer indexer{a_native.shape()};
+        Indexer<> indexer{a_native.shape()};
 
         for (auto it = indexer.It(0); it; ++it) {
             T ai = a_iarray[it];
