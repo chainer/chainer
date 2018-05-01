@@ -5,19 +5,15 @@ import six.moves.cPickle as pickle
 
 import chainer
 from chainer.backends import cuda
-from chainer import gradient_check
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
-from chainer.utils import conv
 
 
 @testing.parameterize(*testing.product({
-    # 'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
-    # 'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'x_dtype': [numpy.float32, numpy.float64],
-    'W_dtype': [numpy.float32, numpy.float64],
+    'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 class TestSpectralNormalizationConvolution2D(unittest.TestCase):
 
