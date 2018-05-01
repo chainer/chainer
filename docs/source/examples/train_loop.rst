@@ -153,7 +153,7 @@ The main steps are twofold:
         gpu_id = 0 # Set to -1 if you use CPU
         model = MLP()
         if gpu_id >= 0:
-        model.to_gpu(gpu_id)
+            model.to_gpu(gpu_id)
 
 :class:`~chainer.Link`, :class:`~chainer.Chain`, :class:`~chainer.ChainList`, and those subclass objects which contain trainable parameters should be registered to the model by assigning it as a property inside the :meth:`~chainer.Chain.init_scope`. For example, a :class:`~chainer.FunctionNode` does not contain any trainable parameters, so there is no need to keep the object as a property of your network. When you want to use :meth:`~chainer.functions.relu` in your network, using it as a function in :meth:`~chainer.Chain.__call__` works correctly.
 
