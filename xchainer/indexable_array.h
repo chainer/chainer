@@ -26,7 +26,7 @@ using WithConstnessOf = std::conditional_t<std::is_const<From>::value, std::add_
 
 }  // namespace indexable_array_detail
 
-template <typename T>
+template <typename T, int8_t kNdim = kDynamicNdim>
 class IndexableArray {
 public:
     using ElementType = T;
@@ -62,7 +62,7 @@ public:
         return *reinterpret_cast<T*>(data_ptr);
     }
 
-    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<>& it) const { return operator[](it.index()); }
+    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<kNdim>& it) const { return operator[](it.index()); }
 
     // Permutes the axes.
     //
@@ -71,7 +71,7 @@ public:
     //
     // It is the caller's responsibility to ensure validity of permutation.
     // If the permutation is invalid, the behavior is undefined.
-    IndexableArray<T>& Permute(const Axes& axes) {
+    IndexableArray<T, kNdim>& Permute(const Axes& axes) {
         assert(axes.size() <= static_cast<size_t>(ndim_));
         int64_t c[kMaxNdim]{};
         std::copy(std::begin(strides_), std::end(strides_), c);
