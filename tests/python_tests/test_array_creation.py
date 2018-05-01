@@ -580,3 +580,15 @@ def test_fromfile(xp, count, sep, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = numpy_dtype_spec
     return xp.fromfile(f, dtype=dtype_spec, count=count, sep=sep)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('count', [-1, 0, 5])
+@pytest.mark.parametrize('device', ['native:0', 'cuda:0'])
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_fromiter(xp, count, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+
+    iterable = (x * x for x in range(5))
+    return xp.fromiter(iterable, dtype=dtype_spec, count=count)
