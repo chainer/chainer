@@ -11,9 +11,9 @@ from chainer import testing
 from chainer.testing import attr
 
 
-def _simple_group_normalization(x, n_groups, gamma, beta, xp, eps=1e-5):
+def _simple_group_normalization(x, groups, gamma, beta, xp, eps=1e-5):
     batch_size, channels = x.shape[:2]
-    x_reshape = x.reshape(batch_size, n_groups, channels // n_groups, -1)
+    x_reshape = x.reshape(batch_size, groups, channels // groups, -1)
 
     mu = xp.mean(x_reshape, axis=(2, 3), keepdims=True)
     sigma = xp.std(x_reshape, axis=(2, 3), keepdims=True)
@@ -31,7 +31,7 @@ def _simple_group_normalization(x, n_groups, gamma, beta, xp, eps=1e-5):
 
 @testing.parameterize(*(testing.product({
     'shape': [(1, 4, 5, 5), (5, 4, 15)],
-    'n_groups': [1, 2, 4],
+    'groups': [1, 2, 4],
     'dtype': [numpy.float32],
 })))
 class TestGroupNormalization(unittest.TestCase):
@@ -54,14 +54,14 @@ class TestGroupNormalization(unittest.TestCase):
 
         def func(*args_):
             return functions.group_normalization(
-                *[args_[0], self.n_groups, args_[1], args_[2]])
+                *[args_[0], self.groups, args_[1], args_[2]])
 
         y = func(*args)
         self.assertEqual(y.data.dtype, self.dtype)
 
         # Verify that implementation using batch normalization is correct
         y_simple_gn = _simple_group_normalization(
-            args[0], self.n_groups, args[1], args[2], xp)
+            args[0], self.groups, args[1], args[2], xp)
         testing.assert_allclose(
             y.data, y_simple_gn, **self.check_forward_options)
 
@@ -83,7 +83,7 @@ class TestGroupNormalization(unittest.TestCase):
     def check_backward(self, args, y_grad):
         def func(*args_):
             return functions.group_normalization(
-                *[args_[0], self.n_groups, args_[1], args_[2]])
+                *[args_[0], self.groups, args_[1], args_[2]])
 
         gradient_check.check_backward(
             func, args, y_grad,
@@ -100,7 +100,7 @@ class TestGroupNormalization(unittest.TestCase):
     def check_double_backward(self, args, y_grad, x_grad_grad):
         def func(*args_):
             y = functions.group_normalization(
-                *[args_[0], self.n_groups, args_[1], args_[2]])
+                *[args_[0], self.groups, args_[1], args_[2]])
             return y * y
 
         gradient_check.check_double_backward(

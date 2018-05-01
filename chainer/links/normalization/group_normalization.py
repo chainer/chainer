@@ -15,7 +15,7 @@ class GroupNormalization(link.Link):
 
 
     Args:
-        n_groups (int):
+        groups (int):
             The number of channel groups.
             This value must be a divisor of the number of channels.
         size (int): Size of input units. If ``None``, parameter initialization
@@ -34,7 +34,7 @@ class GroupNormalization(link.Link):
             If ``numpy.ndarray``, the vector is set by it.
 
     Attributes:
-        n_groups (int): The number of channel groups.
+        groups (int): The number of channel groups.
         gamma (~chainer.Parameter): Scaling parameter.
         beta (~chainer.Parameter): Shifting parameter.
         ~GroupNormalization.eps (float): Epsilon value for numerical stability.
@@ -42,7 +42,7 @@ class GroupNormalization(link.Link):
     See: `Group Normalization <https://arxiv.org/abs/1803.08494>`_
     """
 
-    def __init__(self, n_groups, size=None, eps=1e-5, initial_gamma=None,
+    def __init__(self, groups, size=None, eps=1e-5, initial_gamma=None,
                  initial_beta=None):
         super(GroupNormalization, self).__init__()
         if initial_gamma is None:
@@ -51,7 +51,7 @@ class GroupNormalization(link.Link):
             initial_beta = 0
 
         with self.init_scope():
-            self.n_groups = n_groups
+            self.groups = groups
             self.gamma = variable.Parameter(initial_gamma)
             self.beta = variable.Parameter(initial_beta)
             self.eps = eps
@@ -86,4 +86,4 @@ class GroupNormalization(link.Link):
             self._initialize_params(channels)
 
         return group_normalization.group_normalization(
-            x, self.n_groups, self.gamma, self.beta, self.eps)
+            x, self.groups, self.gamma, self.beta, self.eps)

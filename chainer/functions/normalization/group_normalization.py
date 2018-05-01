@@ -7,7 +7,7 @@ from chainer.functions.array import reshape
 from chainer.functions.normalization import batch_normalization
 
 
-def group_normalization(x, n_groups, gamma, beta, eps=1e-5):
+def group_normalization(x, groups, gamma, beta, eps=1e-5):
     """Group normalization function.
 
     This function implements a "group normalization"
@@ -23,7 +23,7 @@ def group_normalization(x, n_groups, gamma, beta, eps=1e-5):
             second dimension must be the number of channels.
             Moreover, this value must have one or more following dimensions,
             such as height and width.
-        n_groups (int):
+        groups (int):
             The number of channel groups.
             This value must be a divisor of the number of channels.
         gamma (~chainer.Variable): Scaling parameter.
@@ -42,24 +42,24 @@ def group_normalization(x, n_groups, gamma, beta, eps=1e-5):
                          'including batch size dimension '
                          '(first dimension).')
 
-    if not isinstance(n_groups, int):
-        raise TypeError('Argument: \'n_groups\' type must be (int).')
+    if not isinstance(groups, int):
+        raise TypeError('Argument: \'groups\' type must be (int).')
 
     xp = cuda.get_array_module(x)
 
     batch_size, channels = x.shape[:2]
     original_shape = x.shape
 
-    if channels % n_groups != 0:
-        raise ValueError('Argument: \'n_groups\' must be a divisor '
+    if channels % groups != 0:
+        raise ValueError('Argument: \'groups\' must be a divisor '
                          'of the number of channel.')
 
     # By doing this reshaping, calling batch_normalization function becomes
     # equivalent to Group Normalization.
     # And redundant dimension is added in order to utilize ideep64/cuDNN.
-    x = reshape.reshape(x, (1, batch_size * n_groups, -1, 1))
-    dummy_gamma = xp.ones(batch_size * n_groups).astype(xp.float32)
-    dummy_beta = xp.zeros(batch_size * n_groups).astype(xp.float32)
+    x = reshape.reshape(x, (1, batch_size * groups, -1, 1))
+    dummy_gamma = xp.ones(batch_size * groups).astype(xp.float32)
+    dummy_beta = xp.zeros(batch_size * groups).astype(xp.float32)
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

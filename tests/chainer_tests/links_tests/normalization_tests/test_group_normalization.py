@@ -13,13 +13,13 @@ from chainer.testing import condition
 
 @testing.parameterize(*(testing.product({
     'shape': [(1, 4, 5, 5), (5, 4, 15)],
-    'n_groups': [1, 2, 4],
+    'groups': [1, 2, 4],
     'dtype': [numpy.float32],
 })))
 class GroupNormalizationTest(unittest.TestCase):
 
     def setUp(self):
-        self.link = links.GroupNormalization(self.n_groups)
+        self.link = links.GroupNormalization(self.groups)
         self.link.cleargrads()
 
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
@@ -92,7 +92,7 @@ class GroupNormalizationTest(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'size': [3, 30],
-    'n_groups': [1, 3]
+    'groups': [1, 3]
 }))
 class TestInitialize(unittest.TestCase):
 
@@ -101,7 +101,7 @@ class TestInitialize(unittest.TestCase):
         self.initial_gamma = self.initial_gamma.astype(numpy.float32)
         self.initial_beta = numpy.random.uniform(-1, 1, self.size)
         self.initial_beta = self.initial_beta.astype(numpy.float32)
-        self.link = links.GroupNormalization(self.n_groups,
+        self.link = links.GroupNormalization(self.groups,
                                              initial_gamma=self.initial_gamma,
                                              initial_beta=self.initial_beta)
         self.shape = (1, self.size, 1)
@@ -123,13 +123,13 @@ class TestInitialize(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'size': [3, 30],
-    'n_groups': [1, 3]
+    'groups': [1, 3]
 }))
 class TestDefaultInitializer(unittest.TestCase):
 
     def setUp(self):
         self.size = 3
-        self.link = links.GroupNormalization(self.n_groups)
+        self.link = links.GroupNormalization(self.groups)
         self.shape = (1, self.size, 1)
 
     def test_initialize_cpu(self):
@@ -153,7 +153,7 @@ class TestDefaultInitializer(unittest.TestCase):
 class TestInvalidInput(unittest.TestCase):
 
     def setUp(self):
-        self.link = links.GroupNormalization(n_groups=3)
+        self.link = links.GroupNormalization(groups=3)
 
     def test_invalid_shape_cpu(self):
         with self.assertRaises(ValueError):
@@ -172,13 +172,13 @@ class TestInvalidInitialize(unittest.TestCase):
         shape = (2, 5, 2)
         self.x = chainer.Variable(numpy.zeros(shape, dtype='f'))
 
-    def test_invalid_n_groups(self):
-        self.link = links.GroupNormalization(n_groups=3)
+    def test_invalid_groups(self):
+        self.link = links.GroupNormalization(groups=3)
         with self.assertRaises(ValueError):
             self.link(self.x)
 
-    def test_invalid_type_n_groups(self):
-        self.link = links.GroupNormalization(n_groups=3.5)
+    def test_invalid_type_groups(self):
+        self.link = links.GroupNormalization(groups=3.5)
         with self.assertRaises(TypeError):
             self.link(self.x)
 
