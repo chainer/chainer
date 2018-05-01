@@ -11,12 +11,16 @@ class SpectralNormalizationConvolution2D(Convolution2D):
     """Two-dimensional convolutional layer with spectral normalization.
 
     This link wraps the :func:`~chainer.functions.convolution_2d` function and
-    holds the filter weight and bias vector as parameters.
+    holds the filter weight, bias vector and the current estimation of the
+    right largest singular vector of the filter weight as parameters.
+
+    See: `Spectral Normalization for Generative Adversarial Networks \
+          <https://arxiv.org/abs/1802.05957>`_
 
     Args:
-        in_channels (int): Number of channels of input arrays. If ``None``,
-            parameter initialization will be deferred until the first forward
-            datasets pass at which time the size will be determined.
+        in_channels (int or None): Number of channels of input arrays.
+            If ``None``, parameter initialization will be deferred until the
+            first forward data pass at which time the size will be determined.
         out_channels (int): Number of channels of output arrays.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
@@ -24,17 +28,18 @@ class SpectralNormalizationConvolution2D(Convolution2D):
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        wscale (float): Scaling factor of the initial weight.
-        bias (float): Initial bias value.
         nobias (bool): If ``True``, then this link does not use the bias term.
-        initialW (4-D array): Initial weight value. If ``None``, then this
-            function uses to initialize ``wscale``.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-        initial_bias (1-D array): Initial bias value. If ``None``, then this
-            function uses to initialize ``bias``.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 4.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        dilate (int or pair of ints):
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (int): The number of groups to use grouped convolution. The
+            default is one, where grouped convolution is not used.
         use_gamma (bool): If true, apply scalar multiplication to the
             normalized weight (i.e. reparameterize).
         Ip (int): The number of power iteration for calculating the spcetral
@@ -51,7 +56,7 @@ class SpectralNormalizationConvolution2D(Convolution2D):
         b (~chainer.Variable): Bias parameter.
         u (~numpy.array): Current estimation of the right largest singular
                           vector of W.
-        (optional) gamma (~chainer.Variable): the multiplier parameter.
+        (optional) gamma (~chainer.Variable): Multiplier parameter.
         (optional) factor (float): Constant factor to adjust spectral norm of
                                    W_bar.
 
@@ -59,13 +64,14 @@ class SpectralNormalizationConvolution2D(Convolution2D):
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
                  nobias=False, initialW=None, initial_bias=None,
-                 use_gamma=False, Ip=1, factor=None, dtype=np.float32):
+                 use_gamma=False, Ip=1, factor=None, dtype=np.float32,
+                 **kwargs):
         self.Ip = Ip
         self.use_gamma = use_gamma
         self.factor = factor
         super(SpectralNormalizationConvolution2D, self).__init__(
             in_channels, out_channels, ksize, stride, pad,
-            nobias, initialW, initial_bias)
+            nobias, initialW, initial_bias, **kwargs)
         self.u = np.random.normal(size=(1, out_channels)).astype(
              dtype=dtype)
         self.register_persistent('u')
