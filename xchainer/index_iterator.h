@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <cstdint>
 
 #include "xchainer/constant.h"
@@ -10,7 +11,6 @@ namespace xchainer {
 template <int8_t kNdim = kDynamicNdim>
 class IndexIterator {
 public:
-    // TODO(hvy): Make ctor private and wrap as an internal.
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start, int64_t step)
         : shape_{shape}, total_size_{total_size}, raw_index_{0}, step_{step}, index_{} {
         // backward iteration is not supported in order to omit lower-bound check for performance.
@@ -19,15 +19,20 @@ public:
         Set(start);
     }
 
-    XCHAINER_HOST_DEVICE int8_t ndim() const { return kNdim; }
-    XCHAINER_HOST_DEVICE int64_t* index() { return index_; }
-    XCHAINER_HOST_DEVICE const int64_t* index() const { return index_; }
-    XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
-    XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
     XCHAINER_HOST_DEVICE IndexIterator<kNdim>& operator++() {
         Set(raw_index_ + step_);
         return *this;
     }
+
+    XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
+
+    XCHAINER_HOST_DEVICE constexpr int8_t ndim() const { return kNdim; }
+
+    XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
+
+    XCHAINER_HOST_DEVICE int64_t* index() { return index_; }
+
+    XCHAINER_HOST_DEVICE const int64_t* index() const { return index_; }
 
 private:
     // Set raw_index_ and index_.
@@ -47,7 +52,7 @@ private:
     const int64_t* shape_;
     int64_t total_size_{};
     int64_t raw_index_{};
-    const int64_t step_{};
+    int64_t step_{};
     int64_t index_[kNdim];
 };
 
@@ -62,15 +67,20 @@ public:
         Set(start);
     }
 
-    XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
-    XCHAINER_HOST_DEVICE int64_t* index() { return index_; }
-    XCHAINER_HOST_DEVICE const int64_t* index() const { return index_; }
-    XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
-    XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
     XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim>& operator++() {
         Set(raw_index_ + step_);
         return *this;
     }
+
+    XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
+
+    XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
+
+    XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
+
+    XCHAINER_HOST_DEVICE int64_t* index() { return index_; }
+
+    XCHAINER_HOST_DEVICE const int64_t* index() const { return index_; }
 
 private:
     // Set raw_index_ and index_.
@@ -91,7 +101,7 @@ private:
     int8_t ndim_{};
     int64_t total_size_{};
     int64_t raw_index_{};
-    const int64_t step_{};
+    int64_t step_{};
     int64_t index_[kMaxNdim];
 };
 
