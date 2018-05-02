@@ -756,13 +756,12 @@ namespace {
 
 template <typename T>
 __global__ void SetVecInMat(
-        // TODO(hvy): Specialize with static dims.
-        IndexableArray<const T> vec_iarray,
-        IndexableArray<T> mat_iarray,
-        Indexer<> vec_indexer,
-        Indexer<> mat_row_indexer,
-        Indexer<> mat_col_indexer,
-        Indexer<> mat_indexer,
+        IndexableArray<const T, 1> vec_iarray,
+        IndexableArray<T, 2> mat_iarray,
+        Indexer<1> vec_indexer,
+        Indexer<1> mat_row_indexer,
+        Indexer<1> mat_col_indexer,
+        Indexer<2> mat_indexer,
         int64_t mat_row_start,
         int64_t mat_col_start) {
     for (auto vec_it = vec_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); vec_it; ++vec_it) {
@@ -775,13 +774,12 @@ __global__ void SetVecInMat(
 
 template <typename T>
 __global__ void GetVecFromMat(
-        // TODO(hvy): Specialize with static dims.
-        IndexableArray<const T> mat_iarray,
-        IndexableArray<T> vec_iarray,
-        Indexer<> mat_row_indexer,
-        Indexer<> mat_col_indexer,
-        Indexer<> mat_indexer,
-        Indexer<> vec_indexer,
+        IndexableArray<const T, 2> mat_iarray,
+        IndexableArray<T, 1> vec_iarray,
+        Indexer<1> mat_row_indexer,
+        Indexer<1> mat_col_indexer,
+        Indexer<2> mat_indexer,
+        Indexer<1> vec_indexer,
         int64_t mat_row_start,
         int64_t mat_col_start) {
     for (auto vec_it = vec_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); vec_it; ++vec_it) {
@@ -800,11 +798,6 @@ void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
-        IndexableArray<const T> v_iarray{v};
-        IndexableArray<T> out_iarray{out};
-        Indexer<> v_indexer{v.shape()};
-        Indexer<> out_indexer{out.shape()};
-
         // Start indices for the 2-D array axes with applied offset k.
         int64_t row_start{0};
         int64_t col_start{0};
@@ -819,8 +812,12 @@ void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
             // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
             Fill(out, T{0});
 
-            Indexer<> out_row_indexer{Shape{out.shape()[0]}};
-            Indexer<> out_col_indexer{Shape{out.shape()[1]}};
+            IndexableArray<const T, 1> v_iarray{v};
+            IndexableArray<T, 2> out_iarray{out};
+            Indexer<1> v_indexer{v.shape()};
+            Indexer<1> out_row_indexer{Shape{out.shape()[0]}};
+            Indexer<1> out_col_indexer{Shape{out.shape()[1]}};
+            Indexer<2> out_indexer{out.shape()};
 
             static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SetVecInMat<T>).block_size;
             int64_t total_size = out_indexer.total_size();
@@ -831,8 +828,12 @@ void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
                     v_iarray, out_iarray, v_indexer, out_row_indexer, out_col_indexer, out_indexer, row_start, col_start);
 
         } else if (v.ndim() == 2) {
-            Indexer<> v_row_indexer{Shape{v.shape()[0]}};
-            Indexer<> v_col_indexer{Shape{v.shape()[1]}};
+            IndexableArray<const T, 2> v_iarray{v};
+            IndexableArray<T, 1> out_iarray{out};
+            Indexer<1> v_row_indexer{Shape{v.shape()[0]}};
+            Indexer<1> v_col_indexer{Shape{v.shape()[1]}};
+            Indexer<2> v_indexer{v.shape()};
+            Indexer<1> out_indexer{out.shape()};
 
             static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&GetVecFromMat<T>).block_size;
             int64_t total_size = out_indexer.total_size();

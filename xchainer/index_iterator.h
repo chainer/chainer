@@ -45,8 +45,8 @@ private:
     }
 
     const int64_t* shape_;
-    int64_t raw_index_{};
     int64_t total_size_{};
+    int64_t raw_index_{};
     const int64_t step_{};
     int64_t index_[kNdim];
 };

@@ -445,11 +445,6 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
-        IndexableArray<const T> v_iarray{v};
-        IndexableArray<T> out_iarray{out};
-        Indexer<> v_indexer{v.shape()};
-        Indexer<> out_indexer{out.shape()};
-
         // Start indices for the 2-D array axes with applied offset k.
         int64_t row_start{0};
         int64_t col_start{0};
@@ -461,13 +456,17 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
         }
 
         if (v.ndim() == 1) {
+            IndexableArray<const T, 1> v_iarray{v};
+            IndexableArray<T, 2> out_iarray{out};
+            Indexer<1> v_indexer{v.shape()};
+            Indexer<1> out_rows_indexer{Shape{out.shape()[0]}};
+            Indexer<1> out_cols_indexer{Shape{out.shape()[1]}};
+            Indexer<2> out_indexer{out.shape()};
+
             // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
             for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
                 out_iarray[out_it] = T{0};
             }
-
-            Indexer<> out_rows_indexer{Shape{out.shape()[0]}};
-            Indexer<> out_cols_indexer{Shape{out.shape()[1]}};
 
             for (auto v_it = v_indexer.It(0); v_it; ++v_it) {
                 auto out_rows_it = out_rows_indexer.It(row_start + v_it.raw_index());
@@ -476,8 +475,12 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
                 out_iarray[out_it] = v_iarray[v_it];
             }
         } else if (v.ndim() == 2) {
-            Indexer<> v_row_indexer{Shape{v.shape()[0]}};
-            Indexer<> v_col_indexer{Shape{v.shape()[1]}};
+            IndexableArray<const T, 2> v_iarray{v};
+            IndexableArray<T, 1> out_iarray{out};
+            Indexer<2> v_indexer{v.shape()};
+            Indexer<1> v_row_indexer{Shape{v.shape()[0]}};
+            Indexer<1> v_col_indexer{Shape{v.shape()[1]}};
+            Indexer<1> out_indexer{out.shape()};
 
             for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
                 auto v_row_it = v_row_indexer.It(row_start + out_it.raw_index());
