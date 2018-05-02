@@ -151,7 +151,6 @@ The main steps are twofold:
         model = MyNetwork()
         
         gpu_id = 0 # Set to -1 if you use CPU
-        model = MLP()
         if gpu_id >= 0:
             model.to_gpu(gpu_id)
 
