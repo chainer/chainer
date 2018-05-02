@@ -193,9 +193,6 @@ XCHAINER_HOST_DEVICE inline IndexIterator<kDynamicNdim> Indexer<kDynamicNdim>::I
     return IndexIterator<kDynamicNdim>{*this, start, step};
 }
 
-//
-// Static
-//
 // Sets an index from mutiple indexers each of which composes a portion of dimensions in order.
 template <int8_t kNdim>
 template <int8_t kNdimFirst, typename... IndexIterators>
