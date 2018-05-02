@@ -14,6 +14,7 @@ from chainer.distributions.Geometric import Geometric   # NOQA
 from chainer.distributions.Gumbel import Gumbel  # NOQA
 from chainer.distributions.Laplace import Laplace  # NOQA
 from chainer.distributions.LogNormal import LogNormal  # NOQA
+from chainer.distributions.MultivariateNormal import MultivariateNormal  # NOQA
 from chainer.distributions.Normal import Normal  # NOQA
 from chainer.distributions.Pareto import Pareto  # NOQA
 from chainer.distributions.Poisson import Poisson  # NOQA
