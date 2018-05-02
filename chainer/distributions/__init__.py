@@ -10,6 +10,7 @@ from chainer.distributions.Dirichlet import Dirichlet   # NOQA
 from chainer.distributions.Exponential import Exponential   # NOQA
 from chainer.distributions.FisherSnedecor import FisherSnedecor   # NOQA
 from chainer.distributions.Gamma import Gamma  # NOQA
+from chainer.distributions.Geometric import Geometric   # NOQA
 from chainer.distributions.Gumbel import Gumbel  # NOQA
 from chainer.distributions.Laplace import Laplace  # NOQA
 from chainer.distributions.LogNormal import LogNormal  # NOQA

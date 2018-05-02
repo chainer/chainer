@@ -27,7 +27,7 @@ class TestCategorical(unittest.TestCase):
 
     def test_log_prob(self):
         smp = numpy.random.randint(0, self.n, self.shape).astype(numpy.int32)
-        log_prob = self.dist.log_prob(smp).data
+        self.dist.log_prob(smp).data
 
     def test_sample(self):
         smp = self.dist.sample(shape=(10000)).data
