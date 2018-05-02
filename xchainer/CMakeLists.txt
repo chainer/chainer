@@ -24,6 +24,7 @@ install(FILES
     elementwise_kernel_arg.h
     error.h
     graph.h
+    index_iterator.h
     indexable_array.h
     indexer.h
     macro.h
