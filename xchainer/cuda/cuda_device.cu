@@ -756,6 +756,7 @@ namespace {
 
 template <typename T>
 __global__ void SetVecInMat(
+        // TODO(hvy): Specialize with static dims.
         IndexableArray<const T> vec_iarray,
         IndexableArray<T> mat_iarray,
         Indexer<> vec_indexer,
@@ -774,6 +775,7 @@ __global__ void SetVecInMat(
 
 template <typename T>
 __global__ void GetVecFromMat(
+        // TODO(hvy): Specialize with static dims.
         IndexableArray<const T> mat_iarray,
         IndexableArray<T> vec_iarray,
         Indexer<> mat_row_indexer,
