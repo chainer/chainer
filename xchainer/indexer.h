@@ -64,7 +64,9 @@ public:
     }
 
     XCHAINER_HOST_DEVICE constexpr int8_t ndim() const { return kNdim; }
+
     XCHAINER_HOST_DEVICE int64_t total_size() const { return total_size_; }
+
     XCHAINER_HOST_DEVICE const int64_t* shape() const { return shape_; }
 
 private:
@@ -92,7 +94,9 @@ public:
     }
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
+
     XCHAINER_HOST_DEVICE int64_t total_size() const { return total_size_; }
+
     XCHAINER_HOST_DEVICE const int64_t* shape() const { return shape_; }
 
 private:
