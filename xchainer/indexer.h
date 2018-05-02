@@ -101,8 +101,8 @@ private:
     int64_t shape_[kMaxNdim]{};
 };
 
-template <int8_t kNdim>
-inline std::ostream& operator<<(std::ostream& os, const Indexer<kNdim>& indexer) {
+template <int8_t Ndim>
+inline std::ostream& operator<<(std::ostream& os, const Indexer<Ndim>& indexer) {
     Shape shape{indexer.shape(), indexer.shape() + indexer.ndim()};
     return os << "Indexer(shape=" << shape << ")";
 }

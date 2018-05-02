@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <cstdint>
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -11,6 +12,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
+#include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/indexable_array.h"
@@ -152,6 +154,7 @@ using Formatter = std::conditional_t<
         BoolFormatter,
         std::conditional_t<std::is_floating_point<T>::value, FloatFormatter, IntFormatter>>;
 
+template <int8_t Ndim>
 struct ArrayReprImpl {
     template <typename T>
     void operator()(const Array& array, std::ostream& os) const {
@@ -159,7 +162,7 @@ struct ArrayReprImpl {
         Formatter<T> formatter;
 
         // Let formatter scan all elements to print.
-        VisitElements<T>(native_array, [&formatter](const IndexableArray<const T> iarray, const IndexIterator<>& it) {
+        VisitElements<T>(native_array, [&formatter](const IndexableArray<const T, Ndim> iarray, const IndexIterator<Ndim>& it) {
             formatter.Scan(iarray[it]);
         });
 
@@ -167,7 +170,8 @@ struct ArrayReprImpl {
         const int8_t ndim = array.ndim();
         int cur_line_size = 0;
         VisitElements<T>(
-                native_array, [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T>& iarray, const IndexIterator<>& it) {
+                native_array,
+                [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T, Ndim>& iarray, const IndexIterator<Ndim>& it) {
                     int8_t trailing_zeros = 0;
                     if (ndim > 0) {
                         for (int8_t i = ndim; --i >= 0;) {
@@ -232,8 +236,8 @@ private:
     void VisitElements(const Array& array, Visitor&& visitor) const {
         // array should be already synchronized
 
-        Indexer<> indexer{array.shape()};
-        IndexableArray<const T> iarray{array};
+        Indexer<Ndim> indexer{array.shape()};
+        IndexableArray<const T, Ndim> iarray{array};
 
         for (auto it = indexer.It(0); it; ++it) {
             visitor(iarray, it);
@@ -246,7 +250,8 @@ private:
 std::ostream& operator<<(std::ostream& os, const Array& array) {
     // TODO(hvy): We need to determine the output specification of this function, whether or not to align with Python repr specification,
     // and also whether this functionality should be defined in C++ layer or Python layer.
-    VisitDtype(array.dtype(), [&](auto pt) { ArrayReprImpl{}.operator()<typename decltype(pt)::type>(array, os); });
+    // TODO(hvy): Consider using a static dimensionality.
+    VisitDtype(array.dtype(), [&](auto pt) { ArrayReprImpl<kDynamicNdim>{}.operator()<typename decltype(pt)::type>(array, os); });
     return os;
 }
 
