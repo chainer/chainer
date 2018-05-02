@@ -26,21 +26,8 @@ public:
     XCHAINER_HOST_DEVICE IndexIterator<kNdim> It(const IndexIterator<kNdimFirst>& first, IndexIterators&&... rest);
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return kNdim; }
-
     XCHAINER_HOST_DEVICE int64_t total_size() const { return total_size_; }
-
     XCHAINER_HOST_DEVICE const int64_t* shape() const { return shape_; }
-
-private:
-    // Combine multiple sub-iterators to make a combined iterator.
-    // Returns the number of written dimensions, which is equal to ndim_.
-    // `processed_dims` is the number of written dimensions so far.
-    template <int8_t kNdimFirstIter, typename... IndexIterators>
-    XCHAINER_HOST_DEVICE int8_t CombineIterators(
-            IndexIterator<kNdim>& it, int8_t processed_dims, const IndexIterator<kNdimFirstIter>& first_iter, IndexIterators&&... iters);
-
-    template <int8_t kNdimIter>
-    XCHAINER_HOST_DEVICE int8_t CombineIterators(IndexIterator<kNdim>& it, int8_t processed_dims, const IndexIterator<kNdimIter>& iter);
 
 private:
     int64_t total_size_{};
@@ -51,7 +38,7 @@ private:
 template <>
 class Indexer<kDynamicNdim> {
 public:
-    explicit Indexer(const Shape& shape) : total_size_{shape.GetTotalSize()}, ndim_{shape.ndim()} {
+    explicit Indexer(const Shape& shape) : ndim_{shape.ndim()}, total_size_{shape.GetTotalSize()} {
         std::copy(shape.begin(), shape.end(), shape_);
     }
 
@@ -61,26 +48,12 @@ public:
     XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim> It(const IndexIterator<kNdimFirst>& first, IndexIterators&&... rest);
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
-
     XCHAINER_HOST_DEVICE int64_t total_size() const { return total_size_; }
-
     XCHAINER_HOST_DEVICE const int64_t* shape() const { return shape_; }
 
 private:
-    template <int8_t kNdimFirstIter, typename... IndexIterators>
-    XCHAINER_HOST_DEVICE int8_t CombineIterators(
-            IndexIterator<kDynamicNdim>& it,
-            int8_t processed_dims,
-            const IndexIterator<kNdimFirstIter>& first_iter,
-            IndexIterators&&... iters);
-
-    template <int8_t kNdimIter>
-    XCHAINER_HOST_DEVICE int8_t
-    CombineIterators(IndexIterator<kDynamicNdim>& it, int8_t processed_dims, const IndexIterator<kNdimIter>& iter);
-
-private:
-    int64_t total_size_{};
     int8_t ndim_{};
+    int64_t total_size_{};
     int64_t shape_[kMaxNdim]{};
 };
 
@@ -96,15 +69,10 @@ public:
     }
 
     XCHAINER_HOST_DEVICE const Indexer<kNdim>& indexer() const { return indexer_; }
-
     XCHAINER_HOST_DEVICE int64_t* index() { return index_; }
-
     XCHAINER_HOST_DEVICE const int64_t* index() const { return index_; }
-
     XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
-
     XCHAINER_HOST_DEVICE operator bool() const { return ok(); }
-
     XCHAINER_HOST_DEVICE IndexIterator<kNdim>& operator++() {
         Set(raw_index_ + step_);
         return *this;
@@ -146,15 +114,10 @@ public:
     }
 
     XCHAINER_HOST_DEVICE const Indexer<kDynamicNdim>& indexer() const { return indexer_; }
-
     XCHAINER_HOST_DEVICE int64_t* index() { return index_; }
-
     XCHAINER_HOST_DEVICE const int64_t* index() const { return index_; }
-
     XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
-
     XCHAINER_HOST_DEVICE operator bool() const { return ok(); }
-
     XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim>& operator++() {
         Set(raw_index_ + step_);
         return *this;
@@ -193,81 +156,58 @@ XCHAINER_HOST_DEVICE inline IndexIterator<kDynamicNdim> Indexer<kDynamicNdim>::I
     return IndexIterator<kDynamicNdim>{*this, start, step};
 }
 
+namespace internal {
+
+template <int8_t kNdim, int8_t kNdimIter>
+XCHAINER_HOST_DEVICE inline int8_t CombineIterators(IndexIterator<kNdim>& it, int8_t processed_dims, const IndexIterator<kNdimIter>& iter) {
+    assert(processed_dims + iter.indexer().ndim() <= it.indexer().ndim());
+    for (int8_t i = 0; i < iter.indexer().ndim(); ++i) {
+        it.index()[processed_dims + i] = iter.index()[i];
+    }
+    return processed_dims + iter.indexer().ndim();
+}
+
+// Combine multiple sub-iterators to make a combined iterator.
+// Returns the number of written dimensions, which is equal to ndim_.
+// `processed_dims` is the number of written dimensions so far.
+template <int8_t kNdim, int8_t kNdimFirstIter, typename... IndexIterators>
+XCHAINER_HOST_DEVICE int8_t
+CombineIterators(IndexIterator<kNdim>& it, int8_t processed_dims, const IndexIterator<kNdimFirstIter>& first, IndexIterators&&... rest) {
+    processed_dims = CombineIterators(it, processed_dims, first);
+    int8_t dims = CombineIterators(it, processed_dims, std::forward<IndexIterators>(rest)...);
+    assert(dims == it.indexer().ndim());
+    return dims;
+}
+
+template <int8_t kNdim, typename... IndexIterators>
+XCHAINER_HOST_DEVICE IndexIterator<kNdim> CombinedIterator(IndexIterator<kNdim>& it, IndexIterators&&... rest) {
+    int8_t processed_dims = internal::CombineIterators<kNdim>(it, 0, std::forward<IndexIterators>(rest)...);
+    assert(processed_dims == it.indexer().ndim());
+#ifndef NDEBUG
+    for (int8_t i = 0; i < it.indexer().ndim(); ++i) {
+        assert(0 <= it.index()[i]);
+        assert(it.index()[i] < it.indexer().shape()[i]);
+    }
+#endif
+    return it;
+}
+
+}  // namespace internal
+
 // Sets an index from mutiple indexers each of which composes a portion of dimensions in order.
 template <int8_t kNdim>
 template <int8_t kNdimFirst, typename... IndexIterators>
 XCHAINER_HOST_DEVICE IndexIterator<kNdim> Indexer<kNdim>::It(const IndexIterator<kNdimFirst>& first, IndexIterators&&... rest) {
-    IndexIterator<kNdim> it = It(0);
-    int8_t processed_dims = CombineIterators(it, 0, first, std::forward<IndexIterators>(rest)...);
-    assert(processed_dims == ndim());
-#ifndef NDEBUG
-    for (int8_t i = 0; i < ndim(); ++i) {
-        assert(0 <= it.index()[i]);
-        assert(it.index()[i] < shape_[i]);
-    }
-#endif
-    return it;
+    auto it = It(0);
+    return internal::CombinedIterator<kNdim>(it, first, std::forward<IndexIterators>(rest)...);
 }
 
 // Dynamic-length specialization.
 template <int8_t kNdimFirst, typename... IndexIterators>
 XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim> Indexer<kDynamicNdim>::It(
         const IndexIterator<kNdimFirst>& first, IndexIterators&&... rest) {
-    IndexIterator<kDynamicNdim> it = It(0);
-    int8_t processed_dims = CombineIterators(it, 0, first, std::forward<IndexIterators>(rest)...);
-    assert(processed_dims == ndim());
-#ifndef NDEBUG
-    for (int8_t i = 0; i < ndim(); ++i) {
-        assert(0 <= it.index()[i]);
-        assert(it.index()[i] < shape_[i]);
-    }
-#endif
-    return it;
-}
-
-template <int8_t kNdim>
-template <int8_t kNdimFirstIter, typename... IndexIterators>
-XCHAINER_HOST_DEVICE int8_t Indexer<kNdim>::CombineIterators(
-        IndexIterator<kNdim>& it, int8_t processed_dims, const IndexIterator<kNdimFirstIter>& first_iter, IndexIterators&&... iters) {
-    processed_dims = CombineIterators(it, processed_dims, first_iter);
-    int8_t dims = CombineIterators(it, processed_dims, std::forward<IndexIterators>(iters)...);
-    // assert(dims == ndim());
-    return dims;
-}
-
-// Dynamic-length specialization.
-template <int8_t kNdimFirstIter, typename... IndexIterators>
-XCHAINER_HOST_DEVICE int8_t Indexer<kDynamicNdim>::CombineIterators(
-        IndexIterator<kDynamicNdim>& it,
-        int8_t processed_dims,
-        const IndexIterator<kNdimFirstIter>& first_iter,
-        IndexIterators&&... iters) {
-    processed_dims = CombineIterators(it, processed_dims, first_iter);
-    int8_t dims = CombineIterators(it, processed_dims, std::forward<IndexIterators>(iters)...);
-    // assert(dims == ndim());
-    return dims;
-}
-
-template <int8_t kNdim>
-template <int8_t kNdimIter>
-XCHAINER_HOST_DEVICE inline int8_t Indexer<kNdim>::CombineIterators(
-        IndexIterator<kNdim>& it, int8_t processed_dims, const IndexIterator<kNdimIter>& iter) {
-    // assert(processed_dims + iter.indexer().ndim() <= ndim());
-    for (int8_t i = 0; i < iter.indexer().ndim(); ++i) {
-        it.index()[processed_dims + i] = iter.index()[i];
-    }
-    return processed_dims + iter.indexer().ndim();
-}
-
-// Dynamic-length specialization.
-template <int8_t kNdimIter>
-XCHAINER_HOST_DEVICE inline int8_t Indexer<kDynamicNdim>::CombineIterators(
-        IndexIterator<kDynamicNdim>& it, int8_t processed_dims, const IndexIterator<kNdimIter>& iter) {
-    // assert(processed_dims + iter.indexer().ndim() <= ndim());
-    for (int8_t i = 0; i < iter.indexer().ndim(); ++i) {
-        it.index()[processed_dims + i] = iter.index()[i];
-    }
-    return processed_dims + iter.indexer().ndim();
+    auto it = It(0);
+    return internal::CombinedIterator<kDynamicNdim>(it, first, std::forward<IndexIterators>(rest)...);
 }
 
 template <int8_t kNdim>
