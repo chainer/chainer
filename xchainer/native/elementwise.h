@@ -1,46 +1,50 @@
 #pragma once
 
-#include <cstdint>
 #include <utility>
 
-#include "xchainer/elementwise_kernel_arg.h"
+#include "xchainer/constant.h"
+#include "xchainer/index_iterator.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/shape.h"
 
 namespace xchainer {
 namespace native {
 namespace elementwise_detail {
 
-template <typename ElementwiseImpl, typename... Ts>
-void ElementwiseKernel(ElementwiseImpl&& impl, Indexer<> indexer, IndexableArray<Ts>... iarrays) {
-    for (auto it = indexer.It(0); it; ++it) {
-        impl(it.raw_index(), iarrays[it]...);
+template <int8_t Ndim, typename Op, typename... Ts>
+void ElementwiseKernel(Op op, Indexer<Ndim> indexer, IndexableArray<Ts, Ndim>... args) {
+    for (auto it = indexer.It(0, 1); it; ++it) {
+        op(it.raw_index(), args[it]...);
     }
 }
 
-// A callable struct that launches a kernel given its definition, loop body and the sizeof...(Ts) argument arrays that should be passed to
-// it. When called, it first unpacks the argument arrays from a tuple to a parameter pack in order to pass them to the kernel.
-template <typename... Ts>
-struct KernelLauncher {
-    template <typename Kernel, typename ElementwiseImpl>
-    void operator()(Kernel&& kernel, ElementwiseImpl&& impl) {
-        UnpackAndLaunch(std::forward<Kernel>(kernel), std::forward<ElementwiseImpl>(impl), std::index_sequence_for<Ts...>());
-    }
-
-    template <typename Kernel, typename ElementwiseImpl, std::size_t... Is>
-    void UnpackAndLaunch(Kernel&& kernel, ElementwiseImpl&& impl, std::index_sequence<Is...>) {
-        kernel(std::forward<ElementwiseImpl>(impl), arg.indexer, std::get<Is>(arg.iarrays)...);
-    }
-
-    ElementwiseKernelArg<Ts...>& arg;
-};
+template <int8_t Ndim, typename Op, typename... Ts, typename... Arrays>
+void LaunchElementwiseKernel(Op&& op, const Shape& shape, const Arrays&... args) {
+    ElementwiseKernel<Ndim, Op, Ts...>(std::forward<Op>(op), Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args}...);
+}
 
 }  // namespace elementwise_detail
 
-template <typename ElementwiseImpl, typename... Ts>
-void Elementwise(ElementwiseKernelArg<Ts...> arg, ElementwiseImpl&& impl) {
-    elementwise_detail::KernelLauncher<Ts...>{arg}(
-            &elementwise_detail::ElementwiseKernel<ElementwiseImpl, Ts...>, std::forward<ElementwiseImpl>(impl));
+template <typename... Ts, typename... Arrays, typename Op>
+void Elementwise(Op&& op, const Array& arg, const Arrays&... args) {
+    static_assert(sizeof...(Ts) == 1 + sizeof...(Arrays), "Data types must be specified per Array. ");  // Ts includes the first array.
+    switch (arg.ndim()) {
+        case 1:
+            elementwise_detail::LaunchElementwiseKernel<1, Op, Ts...>(std::forward<Op>(op), arg.shape(), arg, args...);
+            break;
+        case 2:
+            elementwise_detail::LaunchElementwiseKernel<2, Op, Ts...>(std::forward<Op>(op), arg.shape(), arg, args...);
+            break;
+        case 3:
+            elementwise_detail::LaunchElementwiseKernel<3, Op, Ts...>(std::forward<Op>(op), arg.shape(), arg, args...);
+            break;
+        case 4:
+            elementwise_detail::LaunchElementwiseKernel<4, Op, Ts...>(std::forward<Op>(op), arg.shape(), arg, args...);
+            break;
+        default:
+            elementwise_detail::LaunchElementwiseKernel<kDynamicNdim, Op, Ts...>(std::forward<Op>(op), arg.shape(), arg, args...);
+    }
 }
 
 }  // namespace native

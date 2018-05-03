@@ -19,7 +19,6 @@
 #include "xchainer/cuda/reduce.cuh"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
-#include "xchainer/elementwise_kernel_arg.h"
 #include "xchainer/enum.h"
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
@@ -106,7 +105,7 @@ void CudaDevice::Fill(const Array& out, Scalar value) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T>(out), FillImpl<T>{static_cast<T>(value)});
+        Elementwise<T>(FillImpl<T>{static_cast<T>(value)}, out);
     });
 }
 
@@ -125,7 +124,7 @@ void CudaDevice::Arange(Scalar start, Scalar step, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T>(out), ArangeImpl<T>{static_cast<T>(start), static_cast<T>(step)});
+        Elementwise<T>(ArangeImpl<T>{static_cast<T>(start), static_cast<T>(step)}, out);
     });
 }
 
@@ -224,7 +223,7 @@ void CudaDevice::Copy(const Array& a, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, T>(a, out), CopyImpl<T>{});
+        Elementwise<const T, T>(CopyImpl<T>{}, a, out);
     });
 }
 
@@ -243,7 +242,7 @@ void CudaDevice::AsType(const Array& a, const Array& out) {
     auto do_astype = [&](auto in_pt, auto out_pt) {
         using InT = typename decltype(in_pt)::type;
         using OutT = typename decltype(out_pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const InT, OutT>(a, out), AsTypeImpl<InT, OutT>{});
+        Elementwise<const InT, OutT>(AsTypeImpl<InT, OutT>{}, a, out);
     };
     VisitDtype(out.dtype(), [&](auto out_pt) { VisitDtype(a.dtype(), do_astype, out_pt); });
 }
@@ -262,7 +261,7 @@ void CudaDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, bool>(x1, x2, out), EqualImpl<T>{});
+        Elementwise<const T, const T, bool>(EqualImpl<T>{}, x1, x2, out);
     });
 }
 
@@ -281,7 +280,7 @@ void CudaDevice::Add(const Array& x1, const Array& x2, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), AddImpl<T>{});
+        Elementwise<const T, const T, T>(AddImpl<T>{}, x1, x2, out);
     });
 }
 
@@ -299,7 +298,7 @@ void CudaDevice::Subtract(const Array& x1, const Array& x2, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), SubtractImpl<T>{});
+        Elementwise<const T, const T, T>(SubtractImpl<T>{}, x1, x2, out);
     });
 }
 
@@ -318,7 +317,7 @@ void CudaDevice::Multiply(const Array& x1, const Array& x2, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), MultiplyImpl<T>{});
+        Elementwise<const T, const T, T>(MultiplyImpl<T>{}, x1, x2, out);
     });
 }
 
@@ -337,7 +336,7 @@ void CudaDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, T>(x1, out), MultiplyASImpl<T>{static_cast<T>(x2)});
+        Elementwise<const T, T>(MultiplyASImpl<T>{static_cast<T>(x2)}, x1, out);
     });
 }
 
@@ -355,7 +354,7 @@ void CudaDevice::Divide(const Array& lhs, const Array& rhs, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(lhs, rhs, out), DivideImpl<T>{});
+        Elementwise<const T, const T, T>(DivideImpl<T>{}, lhs, rhs, out);
     });
 }
 
@@ -375,9 +374,7 @@ void CudaDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Ar
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(
-                MakeElementwiseKernelArg<const T, const T, T>(x1, neg, out),
-                IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)});
+        Elementwise<const T, const T, T>(IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)}, x1, neg, out);
     });
 }
 
@@ -504,7 +501,7 @@ void CudaDevice::Exp(const Array& x, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), ExpImpl<T>{});
+        Elementwise<const T, T>(ExpImpl<T>{}, x, out);
     });
 }
 
@@ -522,7 +519,7 @@ void CudaDevice::Log(const Array& x, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), LogImpl<T>{});
+        Elementwise<const T, T>(LogImpl<T>{}, x, out);
     });
 }
 
@@ -719,7 +716,7 @@ void CudaDevice::Identity(const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T>(out), IdentityImpl<T>{out.shape()[0]});
+        Elementwise<T>(IdentityImpl<T>{out.shape()[0]}, out);
     });
 }
 
@@ -740,7 +737,7 @@ void CudaDevice::Eye(int64_t k, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [k, &out](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T>(out), EyeImpl<T>{out.shape()[1], k});
+        Elementwise<T>(EyeImpl<T>{out.shape()[1], k}, out);
     });
 }
 
@@ -860,7 +857,7 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         int64_t n = out.shape()[0];
-        Elementwise(MakeElementwiseKernelArg<T>(out), LinspaceImpl<T>{n, start, stop});
+        Elementwise<T>(LinspaceImpl<T>{n, start, stop}, out);
     });
 }
 

@@ -21,7 +21,6 @@ install(FILES
     device.h
     device_id.h
     dtype.h
-    elementwise_kernel_arg.h
     error.h
     graph.h
     index_iterator.h
