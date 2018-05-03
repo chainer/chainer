@@ -56,7 +56,45 @@ private:
     int64_t index_[kNdim];
 };
 
-// Dynamic-length specialization.
+// Static 1-dimensional specialization.
+template <>
+class IndexIterator<1> {
+public:
+    explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* /*shape*/, int64_t total_size, int64_t start, int64_t step)
+        : total_size_{total_size}, raw_index_{start}, step_{step} {
+        // backward iteration is not supported in order to omit lower-bound check for performance.
+        assert(start >= 0);
+        assert(step > 0);
+    }
+
+    explicit XCHAINER_HOST_DEVICE IndexIterator(int64_t total_size, int64_t start, int64_t step)
+        : total_size_{total_size}, raw_index_{start}, step_{step} {
+        assert(start >= 0);
+        assert(step > 0);
+    }
+
+    XCHAINER_HOST_DEVICE IndexIterator<1>& operator++() {
+        raw_index_ += step_;
+        return *this;
+    }
+
+    XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
+
+    XCHAINER_HOST_DEVICE static constexpr int8_t ndim() { return 1; }
+
+    XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
+
+    XCHAINER_HOST_DEVICE int64_t* index() { return &raw_index_; }
+
+    XCHAINER_HOST_DEVICE const int64_t* index() const { return &raw_index_; }
+
+private:
+    int64_t total_size_{};
+    int64_t raw_index_{};
+    int64_t step_{};
+};
+
+// Runtime determined dynamic dimension specialization.
 template <>
 class IndexIterator<kDynamicNdim> {
 public:
