@@ -11,8 +11,6 @@ class Categorical(Distribution):
     """Categorical Distribution.
 
     Args:
-        n(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution.
         p(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Parameter of distribution.
 
