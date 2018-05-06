@@ -6,9 +6,9 @@ from chainer.functions.math import sum
 import numpy
 
 
-class Categorical(Distribution):
+class OneHotCategorical(Distribution):
 
-    """Categorical Distribution.
+    """OneHotCategorical Distribution.
 
     Args:
         n(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -25,7 +25,7 @@ class Categorical(Distribution):
             self.p = chainer.Variable(p)
 
     def __copy__(self):
-        return self._copy_to(Categorical(self.p))
+        return self._copy_to(OneHotCategorical(self.p))
 
     @property
     def batch_shape(self):
@@ -33,7 +33,7 @@ class Categorical(Distribution):
 
     @property
     def event_shape(self):
-        return ()
+        return self.p.shape[-1:]
 
     @property
     def _is_gpu(self):
@@ -49,9 +49,17 @@ class Categorical(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        mg = numpy.meshgrid(
-            *tuple(range(i) for i in self.batch_shape), indexing='ij')
-        return sum.sum(exponential.log(self.p)[mg + [x.astype(numpy.int32)]])
+        return sum.sum(exponential.log(self.p) * x)
+
+    @property
+    def mean(self):
+        """Returns mean value.
+
+        Returns:
+            ~chainer.Variable: Output variable representing mean value.
+
+        """
+        return self.p
 
     def _sample_n(self, n):
         """Samples from this distribution.
@@ -65,13 +73,27 @@ class Categorical(Distribution):
         """
         obo_p = self.p.data.reshape(-1, self.p.shape[-1])
         if self._is_gpu:
+            eye = numpy.eye(self.p.shape[-1])
             eps = [numpy.random.choice(
                 one_p.shape[0], size=(n,), p=one_p) for one_p in obo_p]
-            eps = numpy.stack(eps).T.reshape((n,)+self.batch_shape)
+            eps = numpy.stack(eps).reshape((n,)+self.batch_shape)
+            eps = eye[eps]
             eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.p).id)
         else:
+            eye = numpy.eye(self.p.shape[-1])
             eps = [numpy.random.choice(
                 one_p.shape[0], size=(n,), p=one_p) for one_p in obo_p]
             eps = numpy.stack(eps).T.reshape((n,)+self.batch_shape)
+            eps = eye[eps]
         noise = chainer.Variable(eps)
         return noise
+
+    @property
+    def variance(self):
+        """Returns variance.
+
+        Returns:
+            ~chainer.Variable: Output variable representing variance.
+
+        """
+        return self.p * (1. - self.p)
