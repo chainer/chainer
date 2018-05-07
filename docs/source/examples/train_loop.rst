@@ -45,7 +45,7 @@ The code below shows how to retrieve the MNIST dataset from the server and save 
     train, test = mnist.get_mnist(withlabel=True, ndim=1)
 
     # Display an example from the MNIST dataset.
-    # `x` contains the inpu t image array and `t` contains that target class
+    # `x` contains the input image array and `t` contains that target class
     # label as an integer.
     x, t = train[0]
     plt.imshow(x.reshape(28, 28), cmap='gray')
