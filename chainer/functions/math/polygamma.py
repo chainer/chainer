@@ -2,7 +2,6 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
-import numpy
 
 
 _polygamma_cpu = None
