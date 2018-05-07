@@ -151,54 +151,6 @@ def test_init_data_list(shape, dtype_spec):
     _check_array(xchainer.ndarray(shape, dtype_spec, data_list, 'native:1'), expected_dtype, shape, device='native:1')
 
 
-def _check_numpy_init(ndarray, device=None):
-    shape = ndarray.shape
-    if device is None:
-        array = xchainer.array(ndarray)
-    else:
-        array = xchainer.array(ndarray, device=device)
-
-    _check_array(
-        array, ndarray.dtype.name, shape, ndarray.ravel().tolist(),
-        expected_is_contiguous=True, device=device)
-    _check_array_equals_ndarray(array, ndarray, skip_is_contiguous=True)
-
-    # test possibly freed memory
-    data_copy = ndarray.copy()
-    del ndarray
-    assert array._debug_flat_data == data_copy.ravel().tolist()
-
-    # recovered data should be equal
-    data_recovered = xchainer.tonumpy(array)
-    _check_ndarray_equal_ndarray(data_copy, data_recovered, skip_strides=True, skip_flags=True)
-
-    # recovered data should be a copy
-    data_recovered_to_modify = xchainer.tonumpy(array)
-    data_recovered_to_modify *= _create_dummy_ndarray(shape, data_copy.dtype.name)
-    _check_array_equals_ndarray(array, data_recovered)
-
-
-def test_numpy_init(shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    _check_numpy_init(ndarray)
-
-
-def test_numpy_non_contiguous_init(shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    _check_numpy_init(ndarray.T)
-
-
-def test_numpy_init_with_offset():
-    ndarray = _create_dummy_ndarray((2, 3), 'int32')
-    a = xchainer.array(ndarray)
-    numpy.testing.assert_array_equal(xchainer.tonumpy(a[1:]), ndarray[1:])
-
-
-def test_numpy_init_device(shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    _check_numpy_init(ndarray, xchainer.get_device('native:1'))
-
-
 def test_to_device():
     a = xchainer.ones((2,), xchainer.float32, device="native:0")
     dst_device = xchainer.get_device("native:1")
@@ -216,18 +168,33 @@ def test_to_device():
     _check_arrays_equal(a, b2)
 
 
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_tonumpy(shape, dtype, device):
-    orig = _create_dummy_ndarray(shape, dtype)
-    a_xc = xchainer.array(orig)
-    a_np = xchainer.tonumpy(a_xc)
-    numpy.testing.assert_array_equal(orig, a_np)
+def _check_tonumpy(a_np, a_xc):
     xchainer.testing.assert_array_equal(a_xc, a_np)
-    if orig.size > 0:
+    if a_np.size > 0:
         # test buffer is not shared
         a_np.fill(1)
-        assert not numpy.array_equal(a_np, orig)
         assert not numpy.array_equal(a_np, xchainer.tonumpy(a_xc))
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_tonumpy(shape, dtype, device):
+    a_xc = xchainer.arange(_total_size(shape)).reshape(shape).astype(dtype)
+    a_np = xchainer.tonumpy(a_xc)
+    _check_tonumpy(a_np, a_xc)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_tonumpy_non_contiguous(shape, dtype, device):
+    a_xc = xchainer.arange(_total_size(shape)).reshape(shape).astype(dtype).T
+    a_np = xchainer.tonumpy(a_xc)
+    _check_tonumpy(a_np, a_xc)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_tonumpy_positive_offset(device):
+    a_xc = xchainer.arange(6).reshape(2, 3)[:, 1:]
+    a_np = xchainer.tonumpy(a_xc)
+    _check_tonumpy(a_np, a_xc)
 
 
 def test_view(shape, dtype):
