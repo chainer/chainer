@@ -30,8 +30,7 @@ void LaunchElementwiseKernel(Op&& op, const Shape& shape, const Arrays&... args)
     int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
     int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-    ElementwiseKernel<Ndim, Op, Ts...>
-            <<<grid_size, block_size>>>(std::forward<Op>(op), Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args}...);
+    ElementwiseKernel<Ndim, Op, Ts...><<<grid_size, block_size>>>(op, Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args}...);
 }
 
 }  // namespace elementwise_detail
