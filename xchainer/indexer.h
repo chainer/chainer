@@ -49,7 +49,10 @@ XCHAINER_HOST_DEVICE void CombineIterators(IndexIterator<Ndim>& it, IndexIterato
 template <int8_t kNdim = kDynamicNdim>
 class Indexer {
 public:
-    explicit Indexer(const Shape& shape) : total_size_{shape.GetTotalSize()} { std::copy(shape.begin(), shape.end(), shape_); }
+    explicit Indexer(const Shape& shape) : total_size_{shape.GetTotalSize()} {
+        assert(shape.ndim() == kNdim);
+        std::copy(shape.begin(), shape.end(), shape_);
+    }
 
     XCHAINER_HOST_DEVICE IndexIterator<kNdim> It(int64_t start, int64_t step = 1) const {
         return IndexIterator<kNdim>{shape_, total_size_, start, step};
