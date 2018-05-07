@@ -238,7 +238,13 @@ def _sparse_matmul_gradsp_cpu(A, B, C_row, C_col, dtype):
     # C_row/col.shape: ((nb,) ldnz)
     _m, _k = A.shape[-2:]
     ldnz = C_row.shape[-1]
-    C = numpy.matmul(A, B).astype(dtype, copy=False)
+    if hasattr(numpy, 'matmul'):
+        C = numpy.matmul(A, B)
+    elif A.ndim == 2:
+        C = numpy.dot(A, B)
+    else:
+        C = numpy.einsum('...ij,...jk->...ik', A, B)
+    C = C.astype(dtype, copy=False)
     if A.ndim == 2:
         C_data = numpy.zeros((ldnz), dtype=dtype)
         nnz = len(numpy.where(C_row >= 0)[0])
