@@ -30,10 +30,6 @@ probabilities over the target object classes. It also can output a set of
 feature maps that have the corresponding size to the input image for a pixel
 labeling task, etc.
 
-.. note::
-
-    The below example code assumes that some packages are already imported.
-
 .. include:: ../imports.rst
 
 LeNet5
