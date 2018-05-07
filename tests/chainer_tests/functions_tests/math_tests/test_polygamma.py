@@ -19,7 +19,7 @@ class TestPolyGamma(unittest.TestCase):
 
     def setUp(self):
         self.x = \
-            numpy.random.uniform(0.2, 0.8, self.shape).astype(self.dtype)
+            numpy.random.uniform(0.1, 10., self.shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.ggx = \
             numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
@@ -28,9 +28,9 @@ class TestPolyGamma(unittest.TestCase):
             self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
         else:
             self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-4}
-        self.check_backward_options = {'eps': 1e-3, 'atol': 1e-2, 'rtol': 1e-3,
+        self.check_backward_options = {'eps': 1e-3, 'atol': 5e-2, 'rtol': 1e-3,
                                        'dtype': numpy.float64}
-        self.check_double_backward_options = {'eps': 1e-3, 'atol': 1e-2,
+        self.check_double_backward_options = {'eps': 1e-3, 'atol': 5e-2,
                                               'rtol': 1e-3,
                                               'dtype': numpy.float64}
 
