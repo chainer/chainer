@@ -318,9 +318,9 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
         IndexableArray<const T> a_iarray{a};
         IndexableArray<T> out_iarray{out};
         IndexableArray<const int64_t> indices_iarray{indices};
-        Indexer a_indexer{a.shape()};
-        Indexer out_indexer{out.shape()};
-        Indexer indices_indexer{indices.shape()};
+        Indexer<> a_indexer{a.shape()};
+        Indexer<> out_indexer{out.shape()};
+        Indexer<> indices_indexer{indices.shape()};
 
         int64_t axis_dim = a.shape()[axis];
 
@@ -329,9 +329,9 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
         Shape left_shape{a.shape().begin(), a.shape().begin() + axis};
         Shape right_shape{a.shape().begin() + (axis + 1), a.shape().end()};
         Shape axis_shape{axis_dim};  // always ndim==1
-        Indexer left_indexer{left_shape};
-        Indexer right_indexer{right_shape};
-        Indexer axis_indexer{axis_shape};
+        Indexer<> left_indexer{left_shape};
+        Indexer<> right_indexer{right_shape};
+        Indexer<> axis_indexer{axis_shape};
 
         for (auto it = indices_indexer.It(0); it; ++it) {
             int64_t index = indices_iarray[it];
@@ -365,9 +365,9 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
         IndexableArray<const T> b_iarray{b};
         IndexableArray<const int64_t> indices_iarray{indices};
         IndexableArray<T> out_iarray{out};
-        Indexer b_indexer{b.shape()};
-        Indexer indices_indexer{indices.shape()};
-        Indexer out_indexer{out.shape()};  // indexer for both out_iarray and a_array
+        Indexer<> b_indexer{b.shape()};
+        Indexer<> indices_indexer{indices.shape()};
+        Indexer<> out_indexer{out.shape()};  // indexer for both out_iarray and a_array
 
         int64_t axis_dim = a.shape()[axis];
 
@@ -376,9 +376,9 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
         Shape left_shape{a.shape().begin(), a.shape().begin() + axis};
         Shape right_shape{a.shape().begin() + (axis + 1), a.shape().end()};
         Shape axis_shape{axis_dim};  // always ndim==1
-        Indexer left_indexer{left_shape};
-        Indexer right_indexer{right_shape};
-        Indexer axis_indexer{axis_shape};
+        Indexer<> left_indexer{left_shape};
+        Indexer<> right_indexer{right_shape};
+        Indexer<> axis_indexer{axis_shape};
 
         // Copy
         for (auto it = out_indexer.It(0); it; ++it) {
@@ -445,11 +445,6 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
-        IndexableArray<const T> v_iarray{v};
-        IndexableArray<T> out_iarray{out};
-        Indexer v_indexer{v.shape()};
-        Indexer out_indexer{out.shape()};
-
         // Start indices for the 2-D array axes with applied offset k.
         int64_t row_start{0};
         int64_t col_start{0};
@@ -461,13 +456,17 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
         }
 
         if (v.ndim() == 1) {
+            IndexableArray<const T, 1> v_iarray{v};
+            IndexableArray<T, 2> out_iarray{out};
+            Indexer<1> v_indexer{v.shape()};
+            Indexer<1> out_rows_indexer{Shape{out.shape()[0]}};
+            Indexer<1> out_cols_indexer{Shape{out.shape()[1]}};
+            Indexer<2> out_indexer{out.shape()};
+
             // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
             for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
                 out_iarray[out_it] = T{0};
             }
-
-            Indexer out_rows_indexer{Shape{out.shape()[0]}};
-            Indexer out_cols_indexer{Shape{out.shape()[1]}};
 
             for (auto v_it = v_indexer.It(0); v_it; ++v_it) {
                 auto out_rows_it = out_rows_indexer.It(row_start + v_it.raw_index());
@@ -476,8 +475,12 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
                 out_iarray[out_it] = v_iarray[v_it];
             }
         } else if (v.ndim() == 2) {
-            Indexer v_row_indexer{Shape{v.shape()[0]}};
-            Indexer v_col_indexer{Shape{v.shape()[1]}};
+            IndexableArray<const T, 2> v_iarray{v};
+            IndexableArray<T, 1> out_iarray{out};
+            Indexer<2> v_indexer{v.shape()};
+            Indexer<1> v_row_indexer{Shape{v.shape()[0]}};
+            Indexer<1> v_col_indexer{Shape{v.shape()[1]}};
+            Indexer<1> out_indexer{out.shape()};
 
             for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
                 auto v_row_it = v_row_indexer.It(row_start + out_it.raw_index());

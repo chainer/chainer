@@ -329,7 +329,7 @@ void InitXchainerArray(pybind11::module& m) {
         VisitDtype(array.dtype(), [&array, &list](auto pt) {
             using T = typename decltype(pt)::type;
             IndexableArray<const T> iarray{array};
-            Indexer indexer{array.shape()};
+            Indexer<> indexer{array.shape()};
 
             for (auto it = indexer.It(0); it; ++it) {
                 list.append(iarray[it]);

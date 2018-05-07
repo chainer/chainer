@@ -12,7 +12,7 @@ namespace native {
 namespace elementwise_detail {
 
 template <typename ElementwiseImpl, typename... Ts>
-void ElementwiseKernel(ElementwiseImpl&& impl, Indexer indexer, IndexableArray<Ts>... iarrays) {
+void ElementwiseKernel(ElementwiseImpl&& impl, Indexer<> indexer, IndexableArray<Ts>... iarrays) {
     for (auto it = indexer.It(0); it; ++it) {
         impl(it.raw_index(), iarrays[it]...);
     }

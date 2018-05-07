@@ -31,7 +31,7 @@ void Set(Array& out, int64_t flat_index, Scalar value) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<T> iarray{out};
-        Indexer indexer{out.shape()};
+        Indexer<> indexer{out.shape()};
         iarray[indexer.It(flat_index)] = static_cast<T>(value);
     });
 }
@@ -42,7 +42,7 @@ Scalar Get(const Array& out, int64_t flat_index) {
     return VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> iarray{out};
-        Indexer indexer{out.shape()};
+        Indexer<> indexer{out.shape()};
         return Scalar{iarray[indexer.It(flat_index)]};
     });
 }

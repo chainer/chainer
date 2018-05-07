@@ -24,6 +24,7 @@ install(FILES
     elementwise_kernel_arg.h
     error.h
     graph.h
+    index_iterator.h
     indexable_array.h
     indexer.h
     macro.h
@@ -85,6 +86,7 @@ if(ENABLE_TEST)
         context_test.cc
         device_test.cc
         dtype_test.cc
+        index_iterator_test.cc
         indexable_array_test.cc
         indexer_test.cc
         numeric_limits_test.cc

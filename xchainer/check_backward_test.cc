@@ -39,7 +39,7 @@ Arrays ForwardWithIncorrectBackward(const Arrays& inputs) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> in_iarray{in};
         IndexableArray<T> out_iarray{out};
-        Indexer indexer{out.shape()};
+        Indexer<> indexer{out.shape()};
 
         for (auto it = indexer.It(0); it; ++it) {
             out_iarray[it] = in_iarray[it];

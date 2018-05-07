@@ -549,9 +549,9 @@ __global__ void TakeKernel(
         IndexableArray<const T> a_iarray,
         IndexableArray<T> out_iarray,
         IndexableArray<const int64_t> indices_iarray,
-        Indexer a_indexer,
-        Indexer out_indexer,
-        Indexer indices_indexer,
+        Indexer<> a_indexer,
+        Indexer<> out_indexer,
+        Indexer<> indices_indexer,
         int64_t common_total_size,
         int64_t axis_dim) {
     for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
@@ -577,9 +577,9 @@ __global__ void AddAtKernel(
         IndexableArray<const T> b_iarray,
         IndexableArray<T> out_iarray,
         IndexableArray<const int64_t> indices_iarray,
-        Indexer b_indexer,
-        Indexer out_indexer,
-        Indexer indices_indexer,
+        Indexer<> b_indexer,
+        Indexer<> out_indexer,
+        Indexer<> indices_indexer,
         int64_t common_total_size,
         int64_t axis_dim) {
     for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
@@ -626,16 +626,16 @@ void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const A
         Axes a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
         a_iarray.Permute(a_perm);
         Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
-        Indexer a_indexer{a_shape};
+        Indexer<> a_indexer{a_shape};
 
         IndexableArray<T> out_iarray{out};
         Axes out_perm = MakeRollingPermutation(axis, axis + indices.ndim(), out.ndim());
         out_iarray.Permute(out_perm);
         Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
-        Indexer out_indexer{out_shape};
+        Indexer<> out_indexer{out_shape};
 
         IndexableArray<const int64_t> indices_iarray{indices};
-        Indexer indices_indexer{indices.shape()};
+        Indexer<> indices_indexer{indices.shape()};
 
         // size of (Ni..., Nj...) part
         int64_t common_total_size = a_indexer.total_size() / a_shape[0];
@@ -671,22 +671,22 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
         Axes a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
         a_iarray.Permute(a_perm);
         Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
-        Indexer a_indexer{a_shape};
+        Indexer<> a_indexer{a_shape};
 
         IndexableArray<const T> b_iarray{b};
         Axes b_perm = MakeRollingPermutation(axis, axis + indices.ndim(), b.ndim());
         b_iarray.Permute(b_perm);
         Shape b_shape = internal::TransposeShape(b.shape(), b_perm);
-        Indexer b_indexer{b_shape};
+        Indexer<> b_indexer{b_shape};
 
         IndexableArray<T> out_iarray{out};
         Axes out_perm = MakeRollingPermutation(axis, axis + 1, out.ndim());
         out_iarray.Permute(out_perm);
         Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
-        Indexer out_indexer{out_shape};
+        Indexer<> out_indexer{out_shape};
 
         IndexableArray<const int64_t> indices_iarray{indices};
-        Indexer indices_indexer{indices.shape()};
+        Indexer<> indices_indexer{indices.shape()};
 
         // size of (Ni..., Nj...) part
         int64_t common_total_size = a_indexer.total_size() / a_shape[0];
@@ -748,12 +748,12 @@ namespace {
 
 template <typename T>
 __global__ void SetVecInMat(
-        IndexableArray<const T> vec_iarray,
-        IndexableArray<T> mat_iarray,
-        Indexer vec_indexer,
-        Indexer mat_row_indexer,
-        Indexer mat_col_indexer,
-        Indexer mat_indexer,
+        IndexableArray<const T, 1> vec_iarray,
+        IndexableArray<T, 2> mat_iarray,
+        Indexer<1> vec_indexer,
+        Indexer<1> mat_row_indexer,
+        Indexer<1> mat_col_indexer,
+        Indexer<2> mat_indexer,
         int64_t mat_row_start,
         int64_t mat_col_start) {
     for (auto vec_it = vec_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); vec_it; ++vec_it) {
@@ -766,12 +766,12 @@ __global__ void SetVecInMat(
 
 template <typename T>
 __global__ void GetVecFromMat(
-        IndexableArray<const T> mat_iarray,
-        IndexableArray<T> vec_iarray,
-        Indexer mat_row_indexer,
-        Indexer mat_col_indexer,
-        Indexer mat_indexer,
-        Indexer vec_indexer,
+        IndexableArray<const T, 2> mat_iarray,
+        IndexableArray<T, 1> vec_iarray,
+        Indexer<1> mat_row_indexer,
+        Indexer<1> mat_col_indexer,
+        Indexer<2> mat_indexer,
+        Indexer<1> vec_indexer,
         int64_t mat_row_start,
         int64_t mat_col_start) {
     for (auto vec_it = vec_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); vec_it; ++vec_it) {
@@ -790,11 +790,6 @@ void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
-        IndexableArray<const T> v_iarray{v};
-        IndexableArray<T> out_iarray{out};
-        Indexer v_indexer{v.shape()};
-        Indexer out_indexer{out.shape()};
-
         // Start indices for the 2-D array axes with applied offset k.
         int64_t row_start{0};
         int64_t col_start{0};
@@ -809,8 +804,12 @@ void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
             // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
             Fill(out, T{0});
 
-            Indexer out_row_indexer{Shape{out.shape()[0]}};
-            Indexer out_col_indexer{Shape{out.shape()[1]}};
+            IndexableArray<const T, 1> v_iarray{v};
+            IndexableArray<T, 2> out_iarray{out};
+            Indexer<1> v_indexer{v.shape()};
+            Indexer<1> out_row_indexer{Shape{out.shape()[0]}};
+            Indexer<1> out_col_indexer{Shape{out.shape()[1]}};
+            Indexer<2> out_indexer{out.shape()};
 
             static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SetVecInMat<T>).block_size;
             int64_t total_size = out_indexer.total_size();
@@ -821,8 +820,12 @@ void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
                     v_iarray, out_iarray, v_indexer, out_row_indexer, out_col_indexer, out_indexer, row_start, col_start);
 
         } else if (v.ndim() == 2) {
-            Indexer v_row_indexer{Shape{v.shape()[0]}};
-            Indexer v_col_indexer{Shape{v.shape()[1]}};
+            IndexableArray<const T, 2> v_iarray{v};
+            IndexableArray<T, 1> out_iarray{out};
+            Indexer<1> v_row_indexer{Shape{v.shape()[0]}};
+            Indexer<1> v_col_indexer{Shape{v.shape()[1]}};
+            Indexer<2> v_indexer{v.shape()};
+            Indexer<1> out_indexer{out.shape()};
 
             static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&GetVecFromMat<T>).block_size;
             int64_t total_size = out_indexer.total_size();
