@@ -187,8 +187,8 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
 
         def test_sample_cpu(self):
             smp1 = self.cpu_dist.sample(shape=(100000)).data
-            smp2 = self.scipy_dist.rvs(**self.scipy_params,
-                                       size=(100000,)+self.shape)
+            smp2 = self.scipy_dist.rvs(size=(100000,)+self.shape,
+                                       **self.scipy_params)
             testing.assert_allclose(smp1.mean(axis=0), smp2.mean(axis=0),
                                     atol=1e-2, rtol=1e-2)
             testing.assert_allclose(smp1.std(axis=0), smp2.std(axis=0),
@@ -198,8 +198,8 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
         @attr.gpu
         def test_sample_gpu(self):
             smp1 = self.gpu_dist.sample(shape=(100000)).data
-            smp2 = self.scipy_dist.rvs(**self.scipy_params,
-                                       size=(100000,)+self.shape)
+            smp2 = self.scipy_dist.rvs(size=(100000,)+self.shape,
+                                       **self.scipy_params)
             testing.assert_allclose(smp1.mean(axis=0), smp2.mean(axis=0),
                                     atol=1e-2, rtol=1e-2)
             testing.assert_allclose(smp1.std(axis=0), smp2.std(axis=0),
