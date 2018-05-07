@@ -38,33 +38,13 @@ namespace py = pybind11;
 
 void InitXchainerRoutines(pybind11::module& m) {
     // creation routines
-    // TODO(hvy): Support nested lists in xchainer.array.
     m.def("array",
-          [](const py::list& list, py::handle dtype, py::handle device) {
-              // TODO(sonots): Determine dtype (bool or int64, or float64) seeing values of list.
-              // TODO(sonots): Support nested list
-              py::tuple shape_tup{1};
-              shape_tup[0] = list.size();
-              return internal::MakeArray(
-                      shape_tup, dtype.is_none() ? Dtype::kFloat64 : internal::GetDtype(dtype), list, internal::GetDevice(device));
+          [](py::handle object, py::handle dtype, bool copy, py::handle device) {
+              return internal::MakeArray(object, dtype, copy, device);
           },
           py::arg("object"),
           py::arg("dtype") = nullptr,
-          py::arg("device") = nullptr);
-    m.def("array",
-          [](const py::array& array, py::handle device) { return MakeArray(array, internal::GetDevice(device)); },
-          py::arg("object"),
-          py::arg("device") = nullptr);
-    // Returns a view of an array if device argument is not specified.
-    // Returns a new array transferred to the given device if device argument is specified. Note that the graph is connected.
-    m.def("array",
-          [](const ArrayBodyPtr& array, py::handle device) {
-              if (device.is_none()) {
-                  return Array{array}.MakeView().move_body();
-              }
-              return Array{array}.ToDevice(internal::GetDevice(device)).move_body();
-          },
-          py::arg("object"),
+          py::arg("copy") = true,
           py::arg("device") = nullptr);
     m.def("empty",
           [](py::tuple shape, py::handle dtype, py::handle device) {

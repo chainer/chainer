@@ -33,10 +33,8 @@ array([[0, 1, 2]], shape=(1, 3), dtype=int64, device='native:0')
 xchainer.array
 --------------
 
-.. TODO(sonots): Fix to take care of python list data types
-
->>> xc.array([0, 1, 2])
-array([0., 1., 2.], shape=(3,), dtype=float64, device='native:0')
+>>> xc.array([0.5, 1, 2])
+array([0.5, 1. , 2. ], shape=(3,), dtype=float64, device='native:0')
 
 >>> xc.array(np.arange(3))
 array([0, 1, 2], shape=(3,), dtype=int64, device='native:0')
