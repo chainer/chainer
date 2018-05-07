@@ -50,7 +50,10 @@ std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
 }
 
 void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
-    assert(IsPointerCudaMemory(dst));
+    assert(bytesize == 0 || IsPointerCudaMemory(dst));
+    if (bytesize == 0) {
+        return;
+    }
     if (&src_device == this || nullptr != dynamic_cast<CudaDevice*>(&src_device)) {
         // Copy between CUDA devices
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
@@ -63,7 +66,10 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
 }
 
 void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) {
-    assert(src == nullptr || IsPointerCudaMemory(src));
+    assert(bytesize == 0 || src == nullptr || IsPointerCudaMemory(src));
+    if (bytesize == 0) {
+        return;
+    }
     if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
         // Copy between CUDA devices
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));

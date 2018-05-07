@@ -147,9 +147,23 @@ TEST_P(CudaBackendTransferTest, MemoryCopyFrom) {
     size_t size = 3;
     size_t bytesize = size * sizeof(float);
     float raw_data[] = {0, 1, 2};
-    std::shared_ptr<void> src_orig(raw_data, [](const float* ptr) {
-        (void)ptr;  // unused
-    });
+    std::shared_ptr<void> src_orig(raw_data, [](float*) {});
+
+    Context ctx;
+    XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
+    Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
+    Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
+
+    std::shared_ptr<void> src = device1.FromHostMemory(src_orig, bytesize);
+    std::shared_ptr<void> dst = device0.Allocate(bytesize);
+    device0.MemoryCopyFrom(dst.get(), src.get(), bytesize, device1);
+    ExpectDataEqual<float>(src, dst, size);
+}
+
+TEST_P(CudaBackendTransferTest, MemoryCopyFromZeroByte) {
+    size_t size = 0;
+    size_t bytesize = 0;
+    std::shared_ptr<void> src_orig(nullptr, [](float*) {});
 
     Context ctx;
     XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
@@ -166,9 +180,23 @@ TEST_P(CudaBackendTransferTest, MemoryCopyTo) {
     size_t size = 3;
     size_t bytesize = size * sizeof(float);
     float raw_data[] = {0, 1, 2};
-    std::shared_ptr<void> src_orig(raw_data, [](const float* ptr) {
-        (void)ptr;  // unused
-    });
+    std::shared_ptr<void> src_orig(raw_data, [](float*) {});
+
+    Context ctx;
+    XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
+    Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
+    Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
+
+    std::shared_ptr<void> src = device0.FromHostMemory(src_orig, bytesize);
+    std::shared_ptr<void> dst = device1.Allocate(bytesize);
+    device0.MemoryCopyTo(dst.get(), src.get(), bytesize, device1);
+    ExpectDataEqual<float>(src, dst, size);
+}
+
+TEST_P(CudaBackendTransferTest, MemoryCopyToZeroByte) {
+    size_t size = 0;
+    size_t bytesize = 0;
+    std::shared_ptr<void> src_orig(nullptr, [](float*) {});
 
     Context ctx;
     XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
