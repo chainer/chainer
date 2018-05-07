@@ -89,7 +89,7 @@ class Normal(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.loc, cuda.ndarray)
+        return isinstance(self.loc.data, cuda.ndarray)
 
     def log_cdf(self, x):
         """Returns logarithm of Cumulative Distribution Function for a input Variable.
@@ -144,16 +144,6 @@ class Normal(Distribution):
         """
         return self.loc
 
-    @property
-    def mode(self):
-        """Returns mode.
-
-        Returns:
-            ~chainer.Variable: Output variable representing mode.
-
-        """
-        return self.loc
-
     def prob(self, x):
         """Returns probability for a input variable.
 
@@ -185,7 +175,6 @@ class Normal(Distribution):
         else:
             eps = numpy.random.standard_normal(
                 (n,)+self.loc.shape).astype(numpy.float32)
-
         noise = repeat.repeat(
             expand_dims.expand_dims(self.scale, axis=0), n, axis=0) * eps
         noise += repeat.repeat(expand_dims.expand_dims(
