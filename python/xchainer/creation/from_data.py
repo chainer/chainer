@@ -4,7 +4,7 @@ import xchainer
 
 
 # TODO(hvy): Define this function with other similar xchainer-numpy compatibility functions.
-def as_numpy_dtype(dtype):
+def _as_numpy_dtype(dtype):
     if isinstance(dtype, xchainer.dtype):
         return dtype.name
     return dtype
@@ -22,20 +22,20 @@ def loadtxt(
 
 # TODO(hvy): Optimize with pre-allocated memory using count for non-native devices.
 def fromiter(iterable, dtype, count=-1, device=None):
-    return xchainer.array(numpy.fromiter(iterable, dtype=as_numpy_dtype(dtype), count=count), device=device)
+    return xchainer.array(numpy.fromiter(iterable, dtype=_as_numpy_dtype(dtype), count=count), device=device)
 
 
 def fromstring(string, dtype=float, count=-1, sep='', device=None):
     # sep should always be specified in numpy.fromstring since its default argument has been deprecated since 1.14.
     # https://docs.scipy.org/doc/numpy-1.14.0/reference/generated/numpy.fromstring.html
-    return xchainer.array(numpy.fromstring(string, dtype=as_numpy_dtype(dtype), count=count, sep=sep), device=device)
+    return xchainer.array(numpy.fromstring(string, dtype=_as_numpy_dtype(dtype), count=count, sep=sep), device=device)
 
 
 def fromfile(file, dtype=float, count=-1, sep='', device=None):
-    return xchainer.array(numpy.fromfile(file, dtype=as_numpy_dtype(dtype), count=count, sep=sep), device=device)
+    return xchainer.array(numpy.fromfile(file, dtype=_as_numpy_dtype(dtype), count=count, sep=sep), device=device)
 
 
 def fromfunction(function, shape, **kwargs):
     dtype = kwargs.pop('dtype', float)
     device = kwargs.pop('device', None)
-    return xchainer.array(numpy.fromfunction(function, shape, dtype=as_numpy_dtype(dtype), **kwargs), device=device)
+    return xchainer.array(numpy.fromfunction(function, shape, dtype=_as_numpy_dtype(dtype), **kwargs), device=device)
