@@ -26,7 +26,7 @@ class TestStudentT(unittest.TestCase):
         ent1 = self.dist.entropy.data
         ent2 = self.sp_dist.entropy(
             self.nu.reshape(-1), self.loc.reshape(-1), self.scale.reshape(-1)
-            ).reshape(self.shape)
+        ).reshape(self.shape)
         testing.assert_allclose(ent1, ent2,
                                 atol=1e-2, rtol=1e-2)
 

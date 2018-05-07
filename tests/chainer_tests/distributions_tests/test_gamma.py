@@ -47,7 +47,7 @@ class TestGamma(unittest.TestCase):
     def test_sample(self):
         smp1 = self.dist.sample(shape=(1000000)).data
         smp2 = self.sp_dist.rvs(a=self.k, scale=self.theta,
-                               size=(1000000,)+self.shape)
+                                size=(1000000,)+self.shape)
         testing.assert_allclose(smp1.mean(axis=0), smp2.mean(axis=0),
                                 atol=1e-2, rtol=1e-2)
         testing.assert_allclose(smp1.std(axis=0), smp2.std(axis=0),

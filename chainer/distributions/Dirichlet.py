@@ -97,14 +97,14 @@ class Dirichlet(Distribution):
         if self._is_gpu:
             obo_alpha = self.alpha.data.reshape(-1, self.k)
             eps = [numpy.random.dirichlet(cuda.to_cpu(one_alpha),
-                   size=(n,)).astype(numpy.float32)
+                                          size=(n,)).astype(numpy.float32)
                    for one_alpha in obo_alpha]
             eps = numpy.stack(eps).reshape((n,) + self.alpha.shape)
             eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.alpha).id)
         else:
             obo_alpha = self.alpha.data.reshape(-1, self.k)
             eps = [numpy.random.dirichlet(one_alpha,
-                   size=(n,)).astype(numpy.float32)
+                                          size=(n,)).astype(numpy.float32)
                    for one_alpha in obo_alpha]
             eps = numpy.stack(eps).reshape((n,) + self.alpha.shape)
 
