@@ -16,6 +16,7 @@ class CooMatrix(object):
         requires_grad (bool): If ``True``, gradient of this sparse matrix will
             be computed in back-propagation.
     """
+
     def __init__(self, data, row, col, shape, requires_grad=False):
         if not (1 <= data.ndim <= 2):
             raise ValueError('ndim of data must be 1 or 2.')
