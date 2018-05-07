@@ -102,22 +102,24 @@ can also write the model like in this way:
 
 .. testcode::
 
+    from functools import partial
+
     class LeNet5(Chain):
         def __init__(self):
             super(LeNet5, self).__init__()
             net = [('conv1', L.Convolution2D(1, 6, 5, 1))]
-            net += [('_sigm1', F.Sigmoid())]
-            net += [('_mpool1', F.MaxPooling2D(2, 2))]
+            net += [('_sigm1', F.sigmoid)]
+            net += [('_mpool1', partial(F.max_pooling_2d, ksize=2, stride=2))]
             net += [('conv2', L.Convolution2D(6, 16, 5, 1))]
-            net += [('_sigm2', F.Sigmoid())]
-            net += [('_mpool2', F.MaxPooling2D(2, 2))]
+            net += [('_sigm2', F.sigmoid)]
+            net += [('_mpool2', partial(F.max_pooling_2d, ksize=2, stride=2))]
             net += [('conv3', L.Convolution2D(16, 120, 4, 1))]
-            net += [('_sigm3', F.Sigmoid())]
-            net += [('_mpool3', F.MaxPooling2D(2, 2))]
+            net += [('_sigm3', F.sigmoid)]
+            net += [('_mpool3', partial(F.max_pooling_2d, ksize=2, stride=2))]
             net += [('fc4', L.Linear(None, 84))]
-            net += [('_sigm4', F.Sigmoid())]
+            net += [('_sigm4', F.sigmoid)]
             net += [('fc5', L.Linear(84, 10))]
-            net += [('_sigm5', F.Sigmoid())]
+            net += [('_sigm5', F.sigmoid)]
             with self.init_scope():
                 for n in net:
                     if not n[0].startswith('_'):
@@ -134,19 +136,20 @@ can also write the model like in this way:
                 return x
             return F.softmax(x)
 
-This code creates a list of all :class:`~chainer.Link`\ s and
-:class:`~chainer.FunctionNode`\ s after calling its superclass's constructor.
-Then the elements of the list are registered to this model as
-trainable layers when the name of an element doesn't start with ``_``
-character. This operation can be freely replaced with many other ways because
-those names are just designed to select :class:`~chainer.Link`\ s only from the
-list ``net`` easily. :class:`~chainer.FunctionNode` doesn't have any trainable
-parameters, so that we can't register it to the model, but we want to use
-:class:`~chainer.FunctionNode`\ s for constructing a forward path. The list
-``net`` is stored as an attribute :attr:`forward` to refer it in
+.. note::
+
+    You can also use :class:`~chainer.Sequential` to write the above model
+    more simply. Please note that :class:`~chainer.Sequential` is an
+    experimental feature introduced in Chainer v4 and its interface may be
+    changed in the future versions.
+
+This code creates a list of pairs of component name (e.g., ``conv1``, ``_sigm1``, etc.) and all :class:`~chainer.Link`\ s and functions (e.g., ``F.sigmoid``, which internally invokes :class:`~chainer.FunctionNode`) after calling its superclass's constructor.
+In this case, components whose name start with ``_`` are functions (:class:`~chainer.FunctionNode`), which doesn't have any trainable parameters, so that we don't register (``setattr``) it to the model.
+Others (``conv1``, ``fc4``, etc.) are :class:`~chainer.Link`\ s, which are trainable layers that hold parameters.
+This operation can be freely replaced with many other ways because those component names are just designed to select :class:`~chainer.Link`\ s only from the list ``net`` easily.
+The list ``net`` is stored as an attribute :attr:`forward` to refer it in
 :meth:`__call__`. In :meth:`__call__`, it retrieves all layers in the network
-from :attr:`self.forward` sequentially regardless of what types of object (
-:class:`~chainer.Link` or :class:`~chainer.FunctionNode`) it is, and gives the
+from :attr:`self.forward` sequentially and gives the
 input variable or the intermediate output from the previous layer to the
 current layer. The last part of the :meth:`__call__` to switch its behavior
 by the training/inference mode is the same as the former way.
