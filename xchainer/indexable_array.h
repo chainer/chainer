@@ -119,7 +119,7 @@ public:
 
     XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<1>& it) const { return operator[](it.index()); }
 
-    IndexableArray<T, kDynamicNdim>& Permute(const NdimVector<int8_t>& axes) {
+    IndexableArray<T, kDynamicNdim>& Permute(const Axes& axes) {
         // NOOP for 1-dimensional array.
         return *this;
     }
