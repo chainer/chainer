@@ -51,7 +51,7 @@ class Indexer {
 public:
     explicit Indexer(const Shape& shape) : total_size_{shape.GetTotalSize()} {
         assert(shape.ndim() == kNdim);
-        std::copy(shape.begin(), shape.end(), shape_);
+        std::copy_n(shape.begin(), kNdim, shape_);
     }
 
     XCHAINER_HOST_DEVICE IndexIterator<kNdim> It(int64_t start, int64_t step = 1) const {
