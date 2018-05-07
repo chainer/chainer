@@ -162,7 +162,7 @@ struct ArrayReprImpl {
         Formatter<T> formatter;
 
         // Let formatter scan all elements to print.
-        VisitElements<T>(native_array, [&formatter](const IndexableArray<const T, Ndim> iarray, const IndexIterator<Ndim>& it) {
+        VisitElements<T>(native_array, [&formatter](const IndexableArray<const T, Ndim>& iarray, const IndexIterator<Ndim>& it) {
             formatter.Scan(iarray[it]);
         });
 
