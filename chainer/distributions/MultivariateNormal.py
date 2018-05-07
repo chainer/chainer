@@ -1,7 +1,6 @@
 import chainer
 from chainer.backends import cuda
 from chainer import Distribution
-from chainer.functions.array import broadcast
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
 from chainer.functions.array import rollaxis

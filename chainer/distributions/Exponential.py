@@ -3,9 +3,7 @@ from chainer.backends import cuda
 from chainer import Distribution
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
-from chainer.functions.math import digamma
 from chainer.functions.math import exponential
-from chainer.functions.math import lgamma
 import numpy
 
 
