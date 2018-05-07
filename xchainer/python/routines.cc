@@ -51,6 +51,14 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("object"),
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
+    m.def("ascontiguousarray",
+          [](py::handle a, py::handle dtype, py::handle device) {
+              Array arr{internal::MakeArray(a, dtype, false, device)};
+              return AsContiguousArray(arr).move_body();
+          },
+          py::arg("a"),
+          py::arg("dtype") = nullptr,
+          py::arg("device") = nullptr);
     m.def("empty",
           [](py::tuple shape, py::handle dtype, py::handle device) {
               return Empty(ToShape(shape), internal::GetDtype(dtype), internal::GetDevice(device)).move_body();
