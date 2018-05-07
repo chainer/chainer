@@ -20,7 +20,6 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_backend.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
 #include "xchainer/routines/manipulation.h"
