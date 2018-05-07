@@ -24,7 +24,7 @@ def _lgamma_expected(x, dtype):
 
 
 def make_data(shape, dtype):
-    x = numpy.random.uniform(0.1, 10., shape).astype(dtype)
+    x = numpy.random.uniform(1., 10., shape).astype(dtype)
     gy = numpy.random.uniform(-1., 1., shape).astype(dtype)
     ggx = numpy.random.uniform(-1., 1., shape).astype(dtype)
     return x, gy, ggx
