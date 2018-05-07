@@ -1,4 +1,5 @@
 import functools
+from io import StringIO
 import math
 import operator
 import tempfile
@@ -742,6 +743,28 @@ def test_fromfile(xp, count, sep, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = numpy_dtype_spec
     return xp.fromfile(f, dtype=dtype_spec, count=count, sep=sep)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('device', ['native:0', 'cuda:0'])
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_loadtxt(xp, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+
+    txt = '''// Comment to be ignored.
+1 2 3 4
+5 6 7 8
+'''
+    txt = StringIO(txt)
+
+    # Converter that is used to add 1 to each element in the 3rd column.
+    def converter(element_str):
+        return float(element_str) + 1
+
+    return xp.loadtxt(
+        txt, dtype=dtype_spec, comments='//', delimiter=' ', converters={3: converter}, skiprows=2, usecols=(1, 3), unpack=False,
+        ndmin=2, encoding='bytes')
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
