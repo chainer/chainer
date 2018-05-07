@@ -98,7 +98,7 @@ prediction result by calculating :meth:`~chainer.functions.softmax`.
   the global configuration ``chainer.config.train`` to switch the running mode.
 
 If you don't want to write ``conv1`` and the other layers more than once, you
-can also write the model like in this way:
+can also write the same model like in this way:
 
 .. testcode::
 
