@@ -19,7 +19,7 @@ class TestPolyGamma(unittest.TestCase):
 
     def setUp(self):
         self.x = \
-            numpy.random.uniform(0.1, 10., self.shape).astype(self.dtype)
+            numpy.random.uniform(1., 10., self.shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.ggx = \
             numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
