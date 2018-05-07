@@ -104,16 +104,6 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
     Array array = Array{self}.ToNative();
 
-    // TODO(sonots): Remove following workaround if pybind11's segv problem with zero-sized shape is fixed.
-    // See https://github.com/pybind/pybind11/issues/1370
-    if (array.shape().ndim() == 0) {
-        py::array py_array = py::array{py::dtype{std::string(1, GetCharCode(array.dtype()))},
-                                       {1},
-                                       reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()};  // NOLINT: reinterpret_cast
-        py_array.resize({});
-        return py_array;
-    }
-
     return py::array{py::buffer_info{reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset(),  // NOLINT: reinterpret_cast
                                      array.element_bytes(),
                                      std::string(1, GetCharCode(array.dtype())),
