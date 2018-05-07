@@ -131,7 +131,7 @@ public:
     //
     // It is the caller's responsibility to ensure validity of permutation.
     // If the permutation is invalid, the behavior is undefined.
-    IndexableArray<T, kDynamicNdim>& Permute(const NdimVector<int8_t>& axes) {
+    IndexableArray<T, kDynamicNdim>& Permute(const Axes& axes) {
         assert(axes.size() <= static_cast<size_t>(ndim_));
         int64_t c[kMaxNdim]{};
         std::copy(std::begin(strides_), std::end(strides_), c);
