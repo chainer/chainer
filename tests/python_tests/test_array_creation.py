@@ -592,3 +592,17 @@ def test_fromiter(xp, count, dtype_spec, device):
 
     iterable = (x * x for x in range(5))
     return xp.fromiter(iterable, dtype=dtype_spec, count=count)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('count', [-1, 0, 3])
+@pytest.mark.parametrize('sep', [' ', 'a'])
+@pytest.mark.parametrize('device', ['native:0', 'cuda:0'])
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_fromstring(xp, count, sep, dtype_spec, device):
+    if isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+
+    elements = ['1', '2', '3']
+    string = sep.join(elements)
+    return xp.fromstring(string, dtype=dtype_spec, count=count, sep=sep)
