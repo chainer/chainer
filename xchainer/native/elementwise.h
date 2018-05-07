@@ -29,6 +29,7 @@ void LaunchElementwiseKernel(Op&& op, const Shape& shape, const Arrays&... args)
 template <typename... Ts, typename... Arrays, typename Op>
 void Elementwise(Op&& op, const Array& arg, const Arrays&... args) {
     static_assert(sizeof...(Ts) == 1 + sizeof...(Arrays), "Data types must be specified per Array. ");  // Ts includes the first array.
+    // TODO(hvy): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
     switch (arg.ndim()) {
         case 1:
             elementwise_detail::LaunchElementwiseKernel<1, Op, Ts...>(std::forward<Op>(op), arg.shape(), arg, args...);
