@@ -31,9 +31,7 @@ class IndexableArray {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides) : data_{data}, ndim_{strides.ndim()} {
-        std::copy(strides.begin(), strides.end(), strides_);
-    }
+    IndexableArray(T* data, const Strides& strides) : data_{data} { std::copy(strides.begin(), strides.end(), strides_); }
 
     explicit IndexableArray(const Array& array)
         : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()), array.strides()} {
@@ -46,7 +44,7 @@ public:
 #endif
     }
 
-    XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
+    XCHAINER_HOST_DEVICE int8_t ndim() const { return kNdim; }
 
     XCHAINER_HOST_DEVICE const int64_t* strides() const { return strides_; }
 
@@ -54,7 +52,7 @@ public:
 
     XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
         auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_);
-        for (int8_t dim = 0; dim < ndim_; ++dim) {
+        for (int8_t dim = 0; dim < kNdim; ++dim) {
             data_ptr += strides_[dim] * index[dim];
         }
         assert(first_ == nullptr || first_ <= data_ptr);
@@ -66,19 +64,15 @@ public:
 
     // Permutes the axes.
     //
-    // Given axes may be fewer than that held by the array.
-    // In that case, the axes in the array will be reduced.
-    //
     // It is the caller's responsibility to ensure validity of permutation.
     // If the permutation is invalid, the behavior is undefined.
     IndexableArray<T, kNdim>& Permute(const Axes& axes) {
-        assert(axes.size() <= static_cast<size_t>(ndim_));
+        assert(axes.size() == static_cast<size_t>(kNdim));
         int64_t c[kNdim]{};
         std::copy(std::begin(strides_), std::end(strides_), c);
         for (size_t i = 0; i < axes.size(); ++i) {
             strides_[i] = c[axes[i]];
         }
-        ndim_ = static_cast<int8_t>(axes.size());
         return *this;
     }
 
@@ -89,7 +83,6 @@ private:
     const uint8_t* last_{nullptr};
 #endif
     int64_t strides_[kNdim];
-    int8_t ndim_;
 };
 
 // Dynamic-length specialization.
