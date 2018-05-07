@@ -24,7 +24,7 @@ def _digamma_expected(x, dtype):
 
 
 def make_data(shape, dtype):
-    x = numpy.random.uniform(0.1, 0.9, shape).astype(dtype)
+    x = numpy.random.uniform(0.1, 10., shape).astype(dtype)
     gy = numpy.random.uniform(-1., 1., shape).astype(dtype)
     ggx = numpy.random.uniform(-1., 1., shape).astype(dtype)
     return x, gy, ggx
@@ -34,9 +34,9 @@ def make_data(shape, dtype):
     F.digamma,
     func_expected=_digamma_expected,
     make_data=make_data,
-    backward_options={'eps': 1e-3, 'atol': 1e-2, 'rtol': 1e-4,
+    backward_options={'eps': 1e-3, 'atol': 5e-2, 'rtol': 1e-4,
                       'dtype': numpy.float64},
-    double_backward_options={'eps': 1e-3, 'atol': 1e-2, 'rtol': 1e-4,
+    double_backward_options={'eps': 1e-3, 'atol': 5e-2, 'rtol': 1e-4,
                              'dtype': numpy.float64}
 )
 class TestDiGamma(unittest.TestCase):
