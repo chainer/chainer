@@ -5,7 +5,7 @@ from chainer.backends import cuda
 from chainer import utils
 
 
-def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
+def assert_allclose(x, y, atol=None, rtol=None, verbose=True):
     """Asserts if some corresponding element of x and y differs too much.
 
     This function can handle both CPU and GPU arrays simultaneously.
@@ -13,13 +13,27 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
     Args:
         x: Left-hand-side array.
         y: Right-hand-side array.
-        atol (float): Absolute tolerance.
-        rtol (float): Relative tolerance.
+        atol (float): Absolute tolerance. If ``None``, the default value
+            depending on the dtype is used.
+        rtol (float): Relative tolerance. If ``None``, the default value
+            depending on the dtype is used.
         verbose (bool): If ``True``, it outputs verbose messages on error.
 
     """
     x = cuda.to_cpu(utils.force_array(x))
     y = cuda.to_cpu(utils.force_array(y))
+
+    if atol is None:
+        if x.dtype == numpy.float16:
+            atol = 1e-3
+        else:
+            atol = 1e-5
+    if rtol is None:
+        if x.dtype == numpy.float16:
+            rtol = 1e-2
+        else:
+            rtol = 1e-4
+
     try:
         numpy.testing.assert_allclose(
             x, y, atol=atol, rtol=rtol, verbose=verbose)
