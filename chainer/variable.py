@@ -474,6 +474,9 @@ class Variable(object):
                 kwargs, ('name', None), ('grad', None),
                 ('requires_grad', True))
 
+        if isinstance(data, numpy.float32) or isinstance(data, numpy.float64):
+            data = numpy.array(data)
+
         if (data is not None and
                 not isinstance(data, chainer.get_array_types())):
             msg = '''numpy.ndarray or cuda.ndarray are expected.

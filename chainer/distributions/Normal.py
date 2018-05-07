@@ -1,3 +1,4 @@
+import chainer
 from chainer.backends import cuda
 from chainer import Distribution
 from chainer.functions.array import expand_dims
@@ -23,7 +24,15 @@ class Normal(Distribution):
     """
 
     def __init__(self, loc, scale):
-        self.loc, self.scale = loc, scale
+        super(Normal, self).__init__()
+        if isinstance(loc, chainer.Variable):
+            self.loc = loc
+        else:
+            self.loc = chainer.Variable(loc)
+        if isinstance(scale, chainer.Variable):
+            self.scale = scale
+        else:
+            self.scale = chainer.Variable(scale)
 
     def __copy__(self):
         return self._copy_to(Normal(self.loc, self.scale))
@@ -75,7 +84,8 @@ class Normal(Distribution):
             Distribution Function.
 
         """
-        return erfinv.erfinv(2 * x - 1) * (2 ** 0.5) * self.scale + self.mean
+        return erfinv.erfinv(numpy.float32(2.) * x - numpy.float32(1.)) \
+            * (2 ** 0.5) * self.scale + self.mean
 
     @property
     def _is_gpu(self):
