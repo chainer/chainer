@@ -123,8 +123,9 @@ def _cupy_sparse_matmul():
         int i_B = i_n + _n * (i_k + _k * i_b);
         int i_C = i_n + _n * (i_m + _m * i_b);
         A val_A = A_data[i_A];
-        C val = _B[i_B] * val_A;
-        atomicAdd(&_C[i_C], val);
+        B val_B = _B[i_B];
+        C val_C = static_cast<C>(val_A * val_B);
+        atomicAdd(&_C[i_C], val_C);
         ''',
         'sparse_matmul')
 
@@ -140,8 +141,8 @@ class SparseMatMul(function_node.FunctionNode):
             raise ValueError('ndim of sp_row and sp_col must be one or two.')
         for i in range(sp_row.ndim):
             if sp_row.shape[i] != sp_col.shape[i]:
-                _msg = 'shape of sp_row and sp_col must be the same.'
-                raise ValueError(_msg)
+                msg = 'shape of sp_row and sp_col must be the same.'
+                raise ValueError(msg)
         if len(sp_shape) != 2:
             raise ValueError('len(sp_shape) must be two.')
         self.sp_row = sp_row  # ((nb,) ldnz)
@@ -302,7 +303,7 @@ def _cupy_sparse_matmul_gradsp():
             int i_B = i_n + _n * (i_k + _k * i_b);
             A val_A = _A[i_A];
             B val_B = _B[i_B];
-            val_C += (C)(val_A * val_B);
+            val_C += static_cast<C>(val_A * val_B);
         }
         C_data[i_C] = val_C;
         ''',
@@ -320,8 +321,8 @@ class SparseMatMulGradSP(function_node.FunctionNode):
             raise ValueError('ndim of sp_row and sp_col must be one or two.')
         for i in range(sp_row.ndim):
             if sp_row.shape[i] != sp_col.shape[i]:
-                _msg = 'shape of sp_row and sp_col must be the same.'
-                raise ValueError(_msg)
+                msg = 'shape of sp_row and sp_col must be the same.'
+                raise ValueError(msg)
         if len(sp_shape) != 2:
             raise ValueError('len(sp_shape) must be two.')
         self.sp_row = sp_row  # ((nb,) ldnz)
@@ -419,7 +420,7 @@ def sparse_matmul(a, b, transa=False, transb=False):
                             transb=not transa,
                             transc=True).apply((b.data, a))[0]
     else:
-        _msg = 'This combination of type of inputs is not supported.\n'
-        _msg += '    a: {}\n'.format(type(a))
-        _msg += '    b: {}\n'.format(type(b))
-        raise ValueError(_msg)
+        msg = 'This combination of type of inputs is not supported.\n'
+        msg += '    a: {}\n'.format(type(a))
+        msg += '    b: {}\n'.format(type(b))
+        raise ValueError(msg)

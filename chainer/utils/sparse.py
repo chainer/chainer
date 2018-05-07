@@ -3,7 +3,19 @@ from chainer.backends import cuda
 
 
 class CooMatrix(object):
+    """A sparse matrix in COO format.
 
+    Args:
+        data (numpy.ndarray or cupy.ndarray): The entries of the matrix.
+            The entries are usually non-zero-elements in the matrix.
+        row (numpy.ndarray or cupy.ndarray): The row indices of the matrix
+            entries.
+        col (numpy.ndarray or cupy.ndarray): The column indices of the matrix
+            entries.
+        shape (tuple of int): The shape of the matrix in dense format.
+        requires_grad (bool): If ``True``, gradient of this sparse matrix will
+            be computed in back-propagation.
+    """
     def __init__(self, data, row, col, shape, requires_grad=False):
         if not (1 <= data.ndim <= 2):
             raise ValueError('ndim of data must be 1 or 2.')
@@ -19,6 +31,7 @@ class CooMatrix(object):
         self.shape = shape  # (row, col)
 
     def to_dense(self):
+        """Returns a dense matrix format of this sparse matrix."""
         data = self.data.data
         xp = cuda.get_array_module(data)
         if data.ndim == 1:
@@ -37,6 +50,22 @@ class CooMatrix(object):
 
 
 def to_coo(x, ldnz=None, requires_grad=False):
+    """Returns a sparse matrix in COO format of a dense matrix.
+
+    Args:
+        x (numpy.ndarray or cupy.ndarray): Input dense matrix. The ndim of
+            ``x`` must be two or three. If ndim is two, it is treated as
+            a single matrix. If three, it is treated as batched matrices.
+        ldnz (int): Size of arrays for data, row index and column index to be
+            created. The Actual size becomes max(nnz, ldnz) where nnz is number
+            of non-zero elmeents in a input dense matrix.
+        requires_grad (bool): If ``True``, gradient of sparse matrix will be
+            computed in back-propagation.
+
+    Returns:
+        ~chainer.utils.CooMatrix: a sparse matrix or batched sparse matrices
+        in COO format of a given dense matrix or batched dense matrices.
+    """
     xp = cuda.get_array_module(x)
     if x.ndim == 2:
         _row, _col = xp.where(x != 0)
