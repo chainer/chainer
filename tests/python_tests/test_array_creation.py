@@ -220,6 +220,46 @@ def test_array_from_xchainer_array_with_device(src_dtype, dst_dtype, copy, devic
         assert a.device is dst_device
 
 
+def test_asarray_from_python_tuple_or_list():
+    obj = _array_params_list
+    a = xchainer.asarray(obj, dtype='float32')
+    e = xchainer.array(obj, dtype='float32', copy=False)
+    xchainer.testing.assert_array_equal(e, a)
+    assert e.dtype == a.dtype
+    assert e.device is a.device
+
+
+def test_asarray_from_numpy_array():
+    obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
+    a = xchainer.asarray(obj, dtype='float32')
+    e = xchainer.array(obj, dtype='float32', copy=False)
+    xchainer.testing.assert_array_equal(e, a)
+    assert e.dtype == a.dtype
+    assert e.device is a.device
+
+
+@pytest.mark.parametrize('dtype', ['int32', 'float32'])
+def test_asarray_from_xchainer_array(dtype):
+    obj = _create_dummy_ndarray(xchainer, (2, 3), 'int32')
+    a = xchainer.asarray(obj, dtype=dtype)
+    if a.dtype == obj.dtype:
+        assert a is obj
+    else:
+        assert a is not obj
+    e = xchainer.array(obj, dtype=dtype, copy=False)
+    xchainer.testing.assert_array_equal(e, a)
+    assert e.dtype == a.dtype
+    assert e.device is a.device
+
+
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_asarray_with_device(device):
+    a = xchainer.asarray([0, 1], 'float32', device)
+    b = xchainer.asarray([0, 1], 'float32')
+    xchainer.testing.assert_array_equal(a, b)
+    _check_device(a, device)
+
+
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.parametrize_dtype_specifier('dtype_spec')
