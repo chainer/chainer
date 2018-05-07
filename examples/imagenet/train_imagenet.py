@@ -91,10 +91,16 @@ def main():
                         help='GPU ID (negative value indicates CPU')
     parser.add_argument('--initmodel',
                         help='Initialize the model from given file')
+    parser.add_argument('--iteration', '-i', type=int, default=800000,
+                        help='iteration number')
     parser.add_argument('--loaderjob', '-j', type=int,
                         help='Number of parallel data loading processes')
     parser.add_argument('--mean', '-m', default='mean.npy',
                         help='Mean file (computed by compute_mean.py)')
+    parser.add_argument('--poly_policy', '-l', type=int, default=0,
+                        help='use poly policy')
+    parser.add_argument('--poly_power', '-p', type=float, default=0.5,
+                        help='set poly power')
     parser.add_argument('--resume', '-r', default='',
                         help='Initialize the trainer from given file')
     parser.add_argument('--out', '-o', default='result',
@@ -103,6 +109,8 @@ def main():
                         help='Root directory path of image files')
     parser.add_argument('--val_batchsize', '-b', type=int, default=250,
                         help='Validation minibatch size')
+    parser.add_argument('--weight_decay', '-w', type=float, default=0.0002,
+                        help='weight decay')
     parser.add_argument('--test', action='store_true')
     parser.set_defaults(test=False)
     args = parser.parse_args()
@@ -132,6 +140,11 @@ def main():
     optimizer = chainer.optimizers.MomentumSGD(lr=0.01, momentum=0.9)
     optimizer.setup(model)
 
+    if args.poly_policy >= 0:
+        print("apply poly policy, set the weight decay")
+        optimizer.add_hook(chainer.optimizer.WeightDecay(args.weight_decay))
+    else:
+        print("apply fixed lr policy")
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, device=args.gpu)
@@ -140,6 +153,11 @@ def main():
     val_interval = (1 if args.test else 100000), 'iteration'
     log_interval = (1 if args.test else 1000), 'iteration'
 
+    if args.poly_policy >= 0:
+        print("set the poly power")
+        trainer.extend(extensions.poly.Poly('lr',
+                                            (args.poly_power, args.iteration)),
+                       trigger=(1, 'iteration'))
     trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpu),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
