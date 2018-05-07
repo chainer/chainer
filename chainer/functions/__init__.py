@@ -188,6 +188,7 @@ from chainer.functions.math.cumsum import Cumsum  # NOQA
 from chainer.functions.math.det import batch_det  # NOQA
 from chainer.functions.math.det import BatchDet  # NOQA
 from chainer.functions.math.det import det  # NOQA
+from chainer.functions.math.digamma import digamma  # NOQA
 from chainer.functions.math.erf import erf  # NOQA
 from chainer.functions.math.erfc import erfc  # NOQA
 from chainer.functions.math.exponential import exp  # NOQA
@@ -216,6 +217,7 @@ from chainer.functions.math.inv import batch_inv  # NOQA
 from chainer.functions.math.inv import BatchInv  # NOQA
 from chainer.functions.math.inv import inv  # NOQA
 from chainer.functions.math.inv import Inv  # NOQA
+from chainer.functions.math.lgamma import lgamma  # NOQA
 from chainer.functions.math.linear_interpolate import linear_interpolate  # NOQA
 from chainer.functions.math.linear_interpolate import LinearInterpolate  # NOQA
 from chainer.functions.math.logarithm_1p import Log1p  # NOQA
@@ -237,6 +239,7 @@ from chainer.functions.math.minmax import max  # NOQA
 from chainer.functions.math.minmax import Max  # NOQA
 from chainer.functions.math.minmax import min  # NOQA
 from chainer.functions.math.minmax import Min  # NOQA
+from chainer.functions.math.polygamma import polygamma  # NOQA
 from chainer.functions.math.prod import prod  # NOQA
 from chainer.functions.math.prod import Prod  # NOQA
 from chainer.functions.math.scale import scale  # NOQA
