@@ -793,6 +793,7 @@ def test_fromstring(xp, count, sep, dtype_spec, device):
     return xp.fromstring(string, dtype=dtype_spec, count=count, sep=sep)
 
 
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('device', ['native:0', 'cuda:0'])
 @xchainer.testing.parametrize_dtype_specifier('dtype_spec')
 def test_fromfunction(xp, dtype_spec, device):
