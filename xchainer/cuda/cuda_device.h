@@ -6,6 +6,7 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/cuda/cuda_backend.h"
+#include "xchainer/cuda/memory_pool.h"
 #include "xchainer/device.h"
 #include "xchainer/scalar.h"
 
@@ -14,7 +15,7 @@ namespace cuda {
 
 class CudaDevice : public Device {
 public:
-    CudaDevice(CudaBackend& backend, int index) : Device(backend, index) {}
+    CudaDevice(CudaBackend& backend, int index);
 
     std::shared_ptr<void> Allocate(size_t bytesize) override;
 
@@ -70,6 +71,9 @@ public:
     void Linspace(double start, double stop, const Array& out);
 
     void Synchronize() override;
+
+private:
+    MemoryPool memory_pool_;
 };
 
 }  // namespace cuda

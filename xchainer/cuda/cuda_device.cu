@@ -34,19 +34,11 @@
 namespace xchainer {
 namespace cuda {
 
+CudaDevice::CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
+
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
-    if (bytesize == 0) {
-        return nullptr;
-    }
-    CheckCudaError(cudaSetDevice(index()));
-    void* raw_ptr = nullptr;
-    // Be careful to be exception-safe, i.e.,
-    // do not throw any exceptions before creating shared_ptr when memory allocation is succeeded
-    cudaError_t status = cudaMallocManaged(&raw_ptr, bytesize, cudaMemAttachGlobal);
-    if (status != cudaSuccess) {
-        cuda::Throw(status);
-    }
-    return std::shared_ptr<void>{raw_ptr, cudaFree};
+    void* ptr = memory_pool_.Malloc(bytesize);
+    return std::shared_ptr<void>{ptr, [this](void* ptr) { memory_pool_.Free(ptr); }};
 }
 
 void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
