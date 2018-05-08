@@ -1,6 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import Distribution
+from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
 import numpy
@@ -41,7 +42,7 @@ class Binomial(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.n, cuda.ndarray)
+        return isinstance(self.n.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -58,9 +59,11 @@ class Binomial(Distribution):
             x32 = x.data.astype(numpy.float32)
         else:
             x32 = x.astype(numpy.float32)
-        return lgamma.lgamma(n32 + 1) - lgamma.lgamma(x32 + 1) \
-            - lgamma.lgamma(n32 - x32 + 1) + x * exponential.log(self.p) \
-            + (n32 - x32) * exponential.log(1 - self.p)
+        bp = broadcast.broadcast_to(self.p, x.shape)
+        bn32 = broadcast.broadcast_to(n32, x.shape)
+        return lgamma.lgamma(bn32 + 1) - lgamma.lgamma(x32 + 1) \
+            - lgamma.lgamma(bn32 - x32 + 1) + x * exponential.log(bp) \
+            + (bn32 - x32) * exponential.log(1 - bp)
 
     @property
     def mean(self):
@@ -86,7 +89,7 @@ class Binomial(Distribution):
             eps = numpy.random.binomial(cuda.to_cpu(self.n.data),
                                         cuda.to_cpu(self.p.data),
                                         size=(n,)+self.n.shape)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.n).id)
+            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.n.data).id)
         else:
             eps = numpy.random.binomial(self.n.data, self.p.data,
                                         size=(n,)+self.n.shape)
