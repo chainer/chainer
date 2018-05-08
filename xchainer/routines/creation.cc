@@ -180,8 +180,7 @@ Array Diag(const Array& v, int64_t k, Device& device) {
     if (ndim == 1) {
         // Return a square matrix with filled diagonal.
         int64_t n = v.shape()[0] + std::abs(k);
-        Shape out_shape{n, n};
-        Array out = Empty(out_shape, v.dtype(), device);
+        Array out = Empty(Shape{n, n}, v.dtype(), device);
         device.Diagflat(v, k, out);
         return out;
     }
@@ -194,15 +193,15 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         if (k >= 0) {
             offset_items = k;
             if (cols <= k + n - 1) {
-                n = cols - k;
+                n = std::max(int64_t{0}, cols - k);
             }
-        } else if (k < 0) {
+        } else {
             offset_items = -k * cols;
             if (rows >= k - n + 1) {
-                n = rows + k;
+                n = std::max(int64_t{0}, rows + k);
             }
         }
-        Shape out_shape{std::max(int64_t{0}, n)};
+        Shape out_shape{n};
         Strides out_strides{v.strides()[0] + v.strides()[1]};
         int64_t out_offset = v.offset() + offset_items * v.strides()[1];
         Array out = internal::MakeArray(out_shape, out_strides, v.dtype(), device, v.data(), out_offset);
