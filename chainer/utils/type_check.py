@@ -620,6 +620,7 @@ def expect_broadcast_shapes(*shape_types, **kwargs):
     shapes = [eval(s) for s in shape_types]
     error = None
     try:
+        # simulate the shape calculation using zero-sized arrays
         numpy.broadcast(*[
             numpy.empty(s[:len(s) - ignore_tail] + (0,)) for s in shapes
         ])
