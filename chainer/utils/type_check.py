@@ -9,6 +9,7 @@ import six
 
 import chainer
 from chainer.backends import cuda
+from chainer.utils import argument
 
 
 _thread_local = threading.local()
@@ -607,22 +608,27 @@ def prod(xs):
         return _prod(xs)
 
 
-def expect_broadcast_shapes(shape1_type, shape2_type, ignore_tail=0):
+def expect_broadcast_shapes(*shape_types, **kwargs):
     """Checks if two shapes are broadcastable at first some axes.
 
     Args:
-        shape1_type: Type-checked shape of the first array.
-        shape2_type: Type-checked shape of the second array.
+        shapes_types: Type-checked shapes of the arrays to broadcast.
         ignore_tail (int): Number of axes at the tail to ignore.
 
     """
-    shape1 = eval(shape1_type)
-    shape2 = eval(shape2_type)
-    print(shape1, shape2)
-    ndim1 = len(shape1) - ignore_tail
-    ndim2 = len(shape2) - ignore_tail
-    for i in six.moves.range(min(ndim1, ndim2)):
-        i1 = ndim1 - i - 1
-        i2 = ndim2 - i - 1
-        if shape1[i1] != 1 and shape2[i2] != 1:
-            expect(shape1_type[i1] == shape2_type[i2])
+    ignore_tail, = argument.parse_kwargs(kwargs, ('ignore_tail', 0))
+    shapes = [eval(s) for s in shape_types]
+    try:
+        numpy.broadcast(*[
+            numpy.empty(s[:len(s) - ignore_tail] + (0,)) for s in shapes
+        ])
+    except ValueError:
+        if ignore_tail > 0:
+            msg = ('cannot broadcast inputs of the following shapes '
+                   'along all axes but the last {}:'.format(ignore_tail))
+        else:
+            msg = 'cannot broadcast inputs of the following shapes:'
+        msgs = [msg]
+        for shape_type, shape in six.moves.zip(shape_types, shapes):
+            msgs.append('{} = {}'.format(shape_type, shape))
+        raise InvalidType('', '', msg='\n'.join(msgs))
