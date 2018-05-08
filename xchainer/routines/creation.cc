@@ -184,7 +184,8 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         Array out = Empty(out_shape, v.dtype(), device);
         device.Diagflat(v, k, out);
         return out;
-    } else if (ndim == 2) {
+    }
+    if (ndim == 2) {
         // Return the diagonal as a 1D array.
         int64_t rows = v.shape()[0];
         int64_t cols = v.shape()[1];
@@ -206,9 +207,8 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         int64_t out_offset = v.offset() + offset_items * v.strides()[1];
         Array out = internal::MakeArray(out_shape, out_strides, v.dtype(), device, v.data(), out_offset);
         return out;
-    } else {
-        throw DimensionError{"Input must be 1D or 2D."};
     }
+    throw DimensionError{"Input must be 1D or 2D."};
 }
 
 Array Diagflat(const Array& v, int64_t k, Device& device) {
