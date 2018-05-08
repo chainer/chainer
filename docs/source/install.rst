@@ -39,7 +39,7 @@ You can accelerate performance of Chainer by installing the following optional c
 
 * NVIDIA CUDA / cuDNN
     * `CuPy <https://cupy.chainer.org/>`_ 4.0+
-    * See `Installation Guide <https://cupy.chainer.org/en/latest/install.html>`__ for instructions.
+    * See `CuPy Installation Guide <https://docs-cupy.chainer.org/en/latest/install.html>`__ for instructions.
 
 * Intel CPU (experimental)
     * `iDeep <https://github.com/intel/ideep>`_ 1.0.3+
