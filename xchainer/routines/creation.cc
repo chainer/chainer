@@ -53,7 +53,7 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
 }  // namespace internal
 
 Array FromData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, int64_t offset, Device& device) {
-    // TODO(sonots): Check data reside in device if possible (CUDA can do it)
+    device.CheckMemoryValidity(data.get());
     return internal::MakeArray(shape, strides, dtype, device, data, offset);
 }
 

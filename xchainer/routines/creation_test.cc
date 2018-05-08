@@ -12,6 +12,10 @@
 
 #include "xchainer/array.h"
 #include "xchainer/check_backward.h"
+#ifdef XCHAINER_ENABLE_CUDA
+#include "xchainer/cuda/cuda_backend.h"
+#include "xchainer/cuda/cuda_device.h"
+#endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/device.h"
 #include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
@@ -271,6 +275,46 @@ TEST_P(CreationTest, FromContiguousData) {
     EXPECT_EQ(&device, &x.device());
     EXPECT_EQ(data.get(), x.data().get());
 }
+
+#ifdef XCHAINER_ENABLE_CUDA
+TEST_P(CreationTest, FromDataFromAnotherDevice) {
+    Context ctx;
+    cuda::CudaBackend cuda_backend{ctx};
+    cuda::CudaDevice cuda_device{cuda_backend, 0};
+
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Shape shape{3};
+    Strides strides{shape, dtype};
+    int64_t offset = 0;
+    Device& device = GetDefaultDevice();
+    std::shared_ptr<void> data = device.Allocate(3 * sizeof(T));
+
+    if (device.name() == cuda_device.name()) {
+        EXPECT_NO_THROW(FromData(shape, dtype, data, strides, offset, cuda_device));
+    } else {
+        EXPECT_THROW(FromData(shape, dtype, data, strides, offset, cuda_device), XchainerError);
+    }
+}
+
+TEST_P(CreationTest, FromContiguousDataFromAnotherDevice) {
+    Context ctx;
+    cuda::CudaBackend cuda_backend{ctx};
+    cuda::CudaDevice cuda_device{cuda_backend, 0};
+
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Shape shape{3};
+    Device& device = GetDefaultDevice();
+    std::shared_ptr<void> data = device.Allocate(3 * sizeof(T));
+
+    if (device.name() == cuda_device.name()) {
+        EXPECT_NO_THROW(FromContiguousData(shape, dtype, data, cuda_device));
+    } else {
+        EXPECT_THROW(FromContiguousData(shape, dtype, data, cuda_device), XchainerError);
+    }
+}
+#endif  // XCHAINER_ENABLE_CUDA
 
 TEST_P(CreationTest, Empty) {
     CheckEmpty<bool>();
