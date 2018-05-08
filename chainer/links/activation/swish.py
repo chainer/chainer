@@ -35,7 +35,7 @@ class Swish(link.Link):
                     self.l2 = L.Linear(None, n_units)
                     self.l3 = L.Linear(None, n_out)
 
-            def __call__(self, x):
+            def forward(self, x):
                 h1 = F.relu(self.l1(x))
                 h2 = F.relu(self.l2(h1))
                 return self.l3(h2)
@@ -53,7 +53,7 @@ class Swish(link.Link):
                     self.s2 = L.Swish(None)
                     self.l3 = L.Linear(None, n_out)
 
-            def __call__(self, x):
+            def forward(self, x):
                 h1 = self.s1(self.l1(x))
                 h2 = self.s2(self.l2(h1))
                 return self.l3(h2)
@@ -77,7 +77,7 @@ class Swish(link.Link):
                 beta_init = initializers.Constant(beta_init)
                 self.beta = variable.Parameter(beta_init)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies the Swish activation function.
 
         Args:

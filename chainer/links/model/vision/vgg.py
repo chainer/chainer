@@ -68,7 +68,7 @@ class VGG16Layers(link.Chain):
 
     Attributes:
         ~VGG16Layers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+            layer names used by ``forward`` and ``extract`` methods.
 
     """
 
@@ -159,8 +159,8 @@ class VGG16Layers(link.Chain):
         caffemodel = CaffeFunction(path_caffemodel)
         npz.save_npz(path_npz, caffemodel, compression=False)
 
-    def __call__(self, x, layers=None, **kwargs):
-        """__call__(self, x, layers=['prob'])
+    def forward(self, x, layers=None, **kwargs):
+        """forward(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
 
@@ -208,11 +208,11 @@ class VGG16Layers(link.Chain):
 
         Extracts all the feature maps of given images.
 
-        The difference of directly executing ``__call__`` is that
+        The difference of directly executing ``forward`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
-        ``prepare`` and ``__call__`` functions.
+        ``prepare`` and ``forward`` functions.
 
         .. warning::
 
@@ -308,7 +308,7 @@ class VGG16Layers(link.Chain):
 def prepare(image, size=(224, 224)):
     """Converts the given image to the numpy array for VGG models.
 
-    Note that you have to call this method before ``__call__``
+    Note that you have to call this method before ``forward``
     because the pre-trained vgg model requires to resize the given image,
     covert the RGB to the BGR, subtract the mean,
     and permute the dimensions before calling.

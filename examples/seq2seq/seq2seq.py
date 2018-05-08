@@ -41,7 +41,7 @@ class Seq2seq(chainer.Chain):
         self.n_layers = n_layers
         self.n_units = n_units
 
-    def __call__(self, xs, ys):
+    def forward(self, xs, ys):
         xs = [x[::-1] for x in xs]
 
         eos = self.xp.array([EOS], numpy.int32)

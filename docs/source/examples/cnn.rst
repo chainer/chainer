@@ -55,7 +55,7 @@ digit images in 1998. In Chainer, the model can be written as follows:
                 self.fc4 = L.Linear(None, 84)
                 self.fc5 = L.Linear(84, 10)
 
-        def __call__(self, x):
+        def forward(self, x):
             h = F.sigmoid(self.conv1(x))
             h = F.max_pooling_2d(h, 2, 2)
             h = F.sigmoid(self.conv2(h))
@@ -126,7 +126,7 @@ can also write the same model like in this way:
                         setattr(self, n[0], n[1])
             self.forward = net
 
-        def __call__(self, x):
+        def forward(self, x):
             for n, f in self.forward:
                 if not n.startswith('_'):
                     x = getattr(self, n)(x)
@@ -230,7 +230,7 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
                 VGGBlock(512, 3),
                 VGGBlock(512, 3, True))
 
-        def __call__(self, x):
+        def forward(self, x):
             for f in self.children():
                 x = f(x)
             if chainer.config.train:
@@ -257,7 +257,7 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
             self.n_convs = n_convs
             self.fc = fc
 
-        def __call__(self, x):
+        def forward(self, x):
             h = F.relu(self.conv1(x))
             h = F.relu(self.conv2(h))
             if self.n_convs == 3:
@@ -305,7 +305,7 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
                 self.res5 = ResBlock(n_blocks[3], 1024, 512, 2048)
                 self.fc6 = L.Linear(2048, 1000)
 
-        def __call__(self, x):
+        def forward(self, x):
             h = self.bn1(self.conv1(x))
             h = F.max_pooling_2d(F.relu(h), 2, 2)
             h = self.res2(h)
@@ -326,7 +326,7 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
             for _ in range(n_layers - 1):
                 self.add_link(BottleNeck(n_out, n_mid, n_out))
 
-        def __call__(self, x):
+        def forward(self, x):
             for f in self.children():
                 x = f(x)
             return x
@@ -352,7 +352,7 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
                     self.bn_r = L.BatchNormalization(n_out)
             self.proj = proj
 
-        def __call__(self, x):
+        def forward(self, x):
             h = F.relu(self.bn_a(self.conv1x1a(x)))
             h = F.relu(self.bn_b(self.conv3x3b(h)))
             h = self.bn_c(self.conv1x1c(h))

@@ -31,8 +31,8 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
 
     n_weights = 8
 
-    def __call__(self, hx, cx, xs, **kwargs):
-        """__call__(self, hx, cx, xs)
+    def forward(self, hx, cx, xs, **kwargs):
+        """forward(self, hx, cx, xs)
 
         Calculate all hidden states and cell states.
 

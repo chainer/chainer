@@ -24,7 +24,7 @@ class CRF1d(link.Link):
         with self.init_scope():
             self.cost = variable.Parameter(0, (n_label, n_label))
 
-    def __call__(self, xs, ys, reduce='mean'):
+    def forward(self, xs, ys, reduce='mean'):
         return crf1d.crf1d(self.cost, xs, ys, reduce)
 
     def argmax(self, xs):
