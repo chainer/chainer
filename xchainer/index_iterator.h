@@ -62,15 +62,13 @@ public:
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start, int64_t step)
         : IndexIterator<1>{total_size, start, step} {
         assert(shape[0] == total_size);
-        assert(start >= 0);
-        assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
-        (void)shape;       // unused, except for sanity check.
+        (void)shape;  // unused, except for sanity check.
     }
 
     explicit XCHAINER_HOST_DEVICE IndexIterator(int64_t total_size, int64_t start, int64_t step)
         : total_size_{total_size}, raw_index_{start}, step_{step} {
         assert(start >= 0);
-        assert(step > 0);
+        assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
     }
 
     XCHAINER_HOST_DEVICE IndexIterator<1>& operator++() {
