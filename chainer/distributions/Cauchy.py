@@ -1,5 +1,7 @@
+import chainer
 from chainer.backends import cuda
 from chainer import Distribution
+from chainer.functions.array import broadcast
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
 from chainer.functions.math import exponential
@@ -22,7 +24,15 @@ class Cauchy(Distribution):
     """
 
     def __init__(self, loc, scale):
-        self.loc, self.scale = loc, scale
+        super(Cauchy, self).__init__()
+        if isinstance(loc, chainer.Variable):
+            self.loc = loc
+        else:
+            self.loc = chainer.Variable(loc)
+        if isinstance(scale, chainer.Variable):
+            self.scale = scale
+        else:
+            self.scale = chainer.Variable(scale)
 
     def __copy__(self):
         return self._copy_to(Cauchy(self.loc, self.scale))
@@ -44,8 +54,9 @@ class Cauchy(Distribution):
             Distribution Function.
 
         """
-        return 1 / numpy.pi \
-            * trigonometric.arctan((x - self.loc) / self.scale) + 0.5
+        return 1 / numpy.pi * trigonometric.arctan(
+            (x - broadcast.broadcast_to(self.loc, x.shape))
+            / broadcast.broadcast_to(self.scale, x.shape)) + 0.5
 
     @property
     def entropy(self):
@@ -74,11 +85,13 @@ class Cauchy(Distribution):
             Distribution Function.
 
         """
-        return self.loc + self.scale * trigonometric.tan((x - 0.5) * numpy.pi)
+        return broadcast.broadcast_to(self.loc, x.shape) \
+            + broadcast.broadcast_to(self.scale, x.shape) \
+            * trigonometric.tan((x - 0.5) * numpy.pi)
 
     @property
     def _is_gpu(self):
-        return isinstance(self.loc, cuda.ndarray)
+        return isinstance(self.loc.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -90,8 +103,10 @@ class Cauchy(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        return - numpy.log(numpy.pi) + exponential.log(self.scale) \
-            - exponential.log((x - self.loc)**2 + self.scale**2)
+        bs = broadcast.broadcast_to(self.scale, x.shape)
+        bl = broadcast.broadcast_to(self.loc, x.shape)
+        return - numpy.log(numpy.pi) + exponential.log(bs) \
+            - exponential.log((x - bl)**2 + bs**2)
 
     @property
     def mean(self):
@@ -116,7 +131,8 @@ class Cauchy(Distribution):
         if self._is_gpu:
             eps = numpy.random.standard_cauchy(
                 (n,)+self.loc.shape).astype(numpy.float32)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.loc).id)
+            eps = cuda.to_gpu(
+                eps, cuda.get_device_from_array(self.loc.data).id)
         else:
             eps = numpy.random.standard_cauchy(
                 (n,)+self.loc.shape).astype(numpy.float32)
