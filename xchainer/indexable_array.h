@@ -91,7 +91,7 @@ class IndexableArray<T, 1> {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides) : data_{data}, strides_{strides[0]} { assert(1 == strides.ndim()); }
+    IndexableArray(T* data, const Strides& strides) : data_{data}, stride_{strides[0]} { assert(1 == strides.ndim()); }
 
     explicit IndexableArray(const Array& array)
         : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()), array.strides()} {
@@ -106,12 +106,12 @@ public:
 
     XCHAINER_HOST_DEVICE constexpr int8_t ndim() const { return 1; }
 
-    XCHAINER_HOST_DEVICE const int64_t* strides() const { return &strides_; }
+    XCHAINER_HOST_DEVICE const int64_t* strides() const { return &stride_; }
 
     XCHAINER_HOST_DEVICE T* data() const { return data_; }
 
     XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
-        auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_) + strides_ * index[0];
+        auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_) + stride_ * index[0];
         assert(first_ == nullptr || first_ <= data_ptr);
         assert(last_ == nullptr || data_ptr <= last_ - sizeof(T));
         return *reinterpret_cast<T*>(data_ptr);
@@ -130,7 +130,7 @@ private:
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};
 #endif
-    int64_t strides_{};
+    int64_t stride_{};
 };
 
 // Runtime determined dynamic dimension specialization.
