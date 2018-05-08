@@ -662,7 +662,7 @@ def test_invalid_eq(a_shape, b_shape):
 @xchainer.testing.numpy_xchainer_array_equal()
 def test_neg(xp, device, shape, dtype):
     if dtype == 'bool_':  # Checked in test_invalid_bool_neg
-        return xp.array([])
+        return xchainer.testing.ignore()
     size = functools.reduce(operator.mul, shape, 1)
     obj = numpy.arange(size).reshape(shape).astype(dtype)
     x = xp.array(obj)
@@ -684,7 +684,7 @@ def test_invalid_bool_neg(device):
 @xchainer.testing.numpy_xchainer_array_equal()
 def test_negative(xp, device, shape, dtype):
     if dtype == 'bool_':  # Checked in test_invalid_bool_neg
-        return xp.array([])
+        return xchainer.testing.ignore()
     size = functools.reduce(operator.mul, shape, 1)
     obj = numpy.arange(size).reshape(shape).astype(dtype)
     x = xp.array(obj)

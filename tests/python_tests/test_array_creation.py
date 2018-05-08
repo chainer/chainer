@@ -540,10 +540,10 @@ def test_arange_stop(xp, stop, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = dtype_spec.name
     if _is_bool_spec(dtype_spec) and stop > 2:  # Checked in test_invalid_arange_too_long_bool
-        return xp.array([])
+        return xchainer.testing.ignore()
     if isinstance(stop, bool) and dtype_spec is None:
         # TODO(niboshi): This pattern needs dtype promotion.
-        return xp.array([])
+        return xchainer.testing.ignore()
     return xp.arange(stop, dtype=dtype_spec)
 
 
@@ -565,10 +565,10 @@ def test_arange_start_stop(xp, start, stop, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = dtype_spec.name
     if _is_bool_spec(dtype_spec) and abs(stop - start) > 2:  # Checked in test_invalid_arange_too_long_bool
-        return xp.array([])
+        return xchainer.testing.ignore()
     if (isinstance(start, bool) or isinstance(stop, bool)) and dtype_spec is None:
         # TODO(niboshi): This pattern needs dtype promotion.
-        return xp.array([])
+        return xchainer.testing.ignore()
     return xp.arange(start, stop, dtype=dtype_spec)
 
 
@@ -591,10 +591,10 @@ def test_arange_start_stop_step(xp, start, stop, step, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = dtype_spec.name
     if _is_bool_spec(dtype_spec) and abs((stop - start) / step) > 2:  # Checked in test_invalid_arange_too_long_bool
-        return xp.array([])
+        return xchainer.testing.ignore()
     if (isinstance(start, bool) or isinstance(stop, bool) or isinstance(step, bool)) and dtype_spec is None:
         # TODO(niboshi): This pattern needs dtype promotion.
-        return xp.array([])
+        return xchainer.testing.ignore()
     return xp.arange(start, stop, step, dtype=dtype_spec)
 
 
