@@ -9,19 +9,15 @@ import xchainer
 from xchainer.testing import array
 
 
-# A test returning an instance of this class will have its return value ignored.
+# A test returning this object will have its return value ignored.
 #
 # This is e.g. useful when a combination of parametrizations and operations unintentionally cover non-supported function calls.
 # For instance, you might parametrize over shapes (tuples) which are unpacked and passed to a function.
 # While you might want to test empty tuples for module functions, they should maybe be ignored for ndarray functions.
 #
-# If either xchainer or numpy returns an instance of this class, the other module should too.
+# If either xchainer or numpy returns this object, the other module should too.
 # Otherwise, the test will be considered inconsistent and be treated as a failure.
-class NumPyXchainerIgnoredResult(object):
-    pass
-
-
-_ignored_result = NumPyXchainerIgnoredResult()
+_ignored_result = object()
 
 
 # A wrapper to obtain the ignore object.
