@@ -295,7 +295,7 @@ gsl::span<const uint8_t> Array::GetDataRange() const {
     std::tuple<int64_t, int64_t> range = xchainer::GetDataRange(shape(), strides(), element_bytes());
     int64_t lower = std::get<0>(range);
     int64_t upper = std::get<1>(range);
-    auto base = reinterpret_cast<const uint8_t*>(raw_data()) + offset();
+    auto base = reinterpret_cast<const uint8_t*>(raw_data()) + offset();  // NOLINT: reinterpret_cast
     return {base + lower, base + upper};
 }
 

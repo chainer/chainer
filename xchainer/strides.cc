@@ -56,7 +56,7 @@ std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& str
         auto& first_or_last = strides[i] < 0 ? first : last;
         first_or_last += shape[i] * strides[i];
     }
-    return {first, last + element_bytes};
+    return std::tuple<int64_t, int64_t>{first, last + element_bytes};
 }
 
 }  // namespace xchainer
