@@ -77,7 +77,34 @@ private:
     int64_t shape_[kNdim]{};
 };
 
-// Dynamic-length specialization.
+// Static 1-dimensional specialization.
+template <>
+class Indexer<1> {
+public:
+    explicit Indexer(const Shape& shape) : total_size_{shape[0]} { assert(1 == shape.ndim()); }
+
+    XCHAINER_HOST_DEVICE IndexIterator<1> It(int64_t start, int64_t step = 1) const { return IndexIterator<1>{total_size_, start, step}; }
+
+    XCHAINER_HOST_DEVICE IndexIterator<1> It(const IndexIterator<1>& iter) { return It(iter.raw_index()); }
+
+    template <int8_t NdimArg, typename... IndexIterators>
+    XCHAINER_HOST_DEVICE IndexIterator<1> It(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
+        IndexIterator<1> it = It(0);
+        indexer_detail::CombineIterators<1>(it, first_iter, std::forward<IndexIterators>(iters)...);
+        return it;
+    }
+
+    XCHAINER_HOST_DEVICE static constexpr int8_t ndim() { return 1; }
+
+    XCHAINER_HOST_DEVICE int64_t total_size() const { return total_size_; }
+
+    XCHAINER_HOST_DEVICE const int64_t* shape() const { return &total_size_; }
+
+private:
+    int64_t total_size_{};
+};
+
+// Runtime determined dynamic dimension specialization.
 template <>
 class Indexer<kDynamicNdim> {
 public:

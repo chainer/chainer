@@ -85,7 +85,55 @@ private:
     int64_t strides_[kNdim];
 };
 
-// Dynamic-length specialization.
+// Static 1-dimensional specialization.
+template <typename T>
+class IndexableArray<T, 1> {
+public:
+    using ElementType = T;
+
+    IndexableArray(T* data, const Strides& strides) : data_{data}, stride_{strides[0]} { assert(1 == strides.ndim()); }
+
+    explicit IndexableArray(const Array& array)
+        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()), array.strides()} {
+        assert(TypeToDtype<T> == array.dtype());
+
+#ifndef NDEBUG
+        gsl::span<const uint8_t> data_range = array.GetDataRange();
+        first_ = data_range.data();
+        last_ = first_ + data_range.size_bytes();
+#endif
+    }
+
+    XCHAINER_HOST_DEVICE constexpr int8_t ndim() const { return 1; }
+
+    XCHAINER_HOST_DEVICE const int64_t* strides() const { return &stride_; }
+
+    XCHAINER_HOST_DEVICE T* data() const { return data_; }
+
+    XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
+        auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_) + stride_ * index[0];
+        assert(first_ == nullptr || first_ <= data_ptr);
+        assert(last_ == nullptr || data_ptr <= last_ - sizeof(T));
+        return *reinterpret_cast<T*>(data_ptr);
+    }
+
+    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<1>& it) const { return operator[](it.index()); }
+
+    IndexableArray<T, kDynamicNdim>& Permute(const Axes& axes) {
+        // NOOP for 1-dimensional array.
+        return *this;
+    }
+
+private:
+    T* data_;
+#ifndef NDEBUG
+    const uint8_t* first_{nullptr};
+    const uint8_t* last_{nullptr};
+#endif
+    int64_t stride_{};
+};
+
+// Runtime determined dynamic dimension specialization.
 template <typename T>
 class IndexableArray<T, kDynamicNdim> {
 public:
