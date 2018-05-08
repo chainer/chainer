@@ -315,6 +315,78 @@ def test_asarray_with_device(device):
     _check_device(a, device)
 
 
+# TODO(beam2d): use numpy_xchainer_array_equal after strides check is supported.
+@pytest.mark.parametrize('shape', _shapes)
+@pytest.mark.parametrize('transpose', [False, True])
+def test_ascontiguousarray_from_numpy_array(shape, dtype, transpose):
+    # transpose (or identity) to make the input non-contiguous (or not)
+    def tr(x):
+        return x.T if transpose else x
+
+    obj = tr(_create_dummy_ndarray(numpy, shape, dtype))
+    a = xchainer.ascontiguousarray(obj)
+    e = numpy.ascontiguousarray(obj)
+
+    xchainer.testing.assert_array_equal(e, a)
+    assert a.is_contiguous
+    assert e.dtype.name == a.dtype.name
+
+
+# TODO(beam2d): use numpy_xchainer_array_equal after strides check is supported.
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape', _shapes)
+@pytest.mark.parametrize('transpose', [False, True])
+def test_ascontiguousarray_from_xchainer_array(device, shape, dtype, transpose):
+    def tr(x):
+        return x.T if transpose else x
+
+    np_arr = _create_dummy_ndarray(numpy, shape, dtype)
+    obj = tr(xchainer.array(np_arr))
+    a = xchainer.ascontiguousarray(obj)
+    if not transpose:
+        assert a is obj
+    e = numpy.ascontiguousarray(tr(np_arr))
+    xchainer.testing.assert_array_equal(e, a)
+    assert a.is_contiguous
+    assert e.dtype.name == a.dtype.name
+
+
+# TODO(beam2d): use numpy_xchainer_array_equal after strides check is supported.
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape', _shapes)
+@pytest.mark.parametrize('transpose', [False, True])
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+def test_ascontiguousarray_with_dtype(device, shape, transpose, dtype_spec):
+    def tr(x):
+        return x.T if transpose else x
+
+    np_arr = _create_dummy_ndarray(numpy, shape, 'int32')
+    obj = tr(xchainer.array(np_arr))
+    a = xchainer.ascontiguousarray(obj, dtype=dtype_spec)
+    e = numpy.ascontiguousarray(tr(np_arr), dtype=xchainer.dtype(dtype_spec).name)
+    xchainer.testing.assert_array_equal(e, a)
+    assert a.is_contiguous
+    assert e.dtype.name == a.dtype.name
+
+
+# TODO(beam2d): use numpy_xchainer_array_equal after strides check is supported.
+@pytest.mark.parametrize('device_spec', [None, 'native:1', xchainer.get_device('native:1'), 'native:0'])
+@pytest.mark.parametrize('shape', _shapes)
+@pytest.mark.parametrize('transpose', [False, True])
+def test_ascontiguousarray_with_device(device_spec, shape, transpose, dtype):
+    def tr(x):
+        return x.T if transpose else x
+
+    np_arr = _create_dummy_ndarray(numpy, shape, dtype)
+    obj = tr(xchainer.array(np_arr))
+    a = xchainer.ascontiguousarray(obj, device=device_spec)
+    e = numpy.ascontiguousarray(tr(np_arr))
+    xchainer.testing.assert_array_equal(e, a)
+    assert a.device == xchainer.get_device(device_spec)
+    assert a.is_contiguous
+    assert e.dtype.name == a.dtype.name
+
+
 def test_asanyarray_from_python_tuple_or_list():
     obj = _array_params_list
     a = xchainer.asanyarray(obj, dtype='float32')
