@@ -1,6 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import Distribution
+from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
 import numpy
@@ -41,7 +42,7 @@ class FisherSnedecor(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.d1, cuda.ndarray)
+        return isinstance(self.d1.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -53,12 +54,13 @@ class FisherSnedecor(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        return 0.5 * self.d1 * exponential.log(self.d1 * x) \
-            + 0.5 * self.d2 * exponential.log(self.d2) \
-            - 0.5 * (self.d1 + self.d2) \
-            * exponential.log(self.d1 * x + self.d2) - exponential.log(x) \
-            - lgamma.lgamma(0.5 * self.d1) - lgamma.lgamma(0.5 * self.d2) \
-            + lgamma.lgamma(0.5 * (self.d1 + self.d2))
+        bd1 = broadcast.broadcast_to(self.d1, x.shape)
+        bd2 = broadcast.broadcast_to(self.d2, x.shape)
+        return 0.5 * bd1 * exponential.log(bd1 * x) \
+            + 0.5 * bd2 * exponential.log(bd2) - 0.5 * (bd1 + bd2) \
+            * exponential.log(bd1 * x + bd2) - exponential.log(x) \
+            - lgamma.lgamma(0.5 * bd1) - lgamma.lgamma(0.5 * bd2) \
+            + lgamma.lgamma(0.5 * (bd1 + bd2))
 
     @property
     def mean(self):
@@ -93,7 +95,7 @@ class FisherSnedecor(Distribution):
                 cuda.to_cpu(self.d1.data),
                 cuda.to_cpu(self.d2.data),
                 size=(n,)+self.d1.shape).astype(numpy.float32)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.k).id)
+            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.d1.data).id)
         else:
             eps = numpy.random.f(
                 self.d1.data, self.d2.data,
