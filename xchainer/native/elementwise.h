@@ -13,7 +13,7 @@ namespace native {
 namespace elementwise_detail {
 
 template <int8_t Ndim, typename Op, typename... Ts>
-void ElementwiseKernel(Op op, Indexer<Ndim> indexer, IndexableArray<Ts, Ndim>... args) {
+void ElementwiseKernel(Op op, const Indexer<Ndim>& indexer, const IndexableArray<Ts, Ndim>&... args) {
     for (auto it = indexer.It(0, 1); it; ++it) {
         op(it.raw_index(), args[it]...);
     }
@@ -21,7 +21,7 @@ void ElementwiseKernel(Op op, Indexer<Ndim> indexer, IndexableArray<Ts, Ndim>...
 
 template <int8_t Ndim, typename Op, typename... Ts, typename... Arrays>
 void LaunchElementwiseKernel(Op&& op, const Shape& shape, const Arrays&... args) {
-    ElementwiseKernel<Ndim, Op, Ts...>(std::forward<Op>(op), Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args}...);
+    ElementwiseKernel<Ndim, Op, Ts...>(op, Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args}...);
 }
 
 }  // namespace elementwise_detail
