@@ -35,7 +35,7 @@ class Categorical(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.p, cuda.ndarray)
+        return isinstance(self.p.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -49,7 +49,7 @@ class Categorical(Distribution):
         """
         mg = numpy.meshgrid(
             *tuple(range(i) for i in self.batch_shape), indexing='ij')
-        return sum.sum(exponential.log(self.p)[mg + [x.astype(numpy.int32)]])
+        return exponential.log(self.p)[mg + [x.astype(numpy.int32)]]
 
     def _sample_n(self, n):
         """Samples from this distribution.
@@ -63,10 +63,9 @@ class Categorical(Distribution):
         """
         obo_p = self.p.data.reshape(-1, self.p.shape[-1])
         if self._is_gpu:
-            eps = [numpy.random.choice(
+            eps = [cuda.cupy.random.choice(
                 one_p.shape[0], size=(n,), p=one_p) for one_p in obo_p]
-            eps = numpy.stack(eps).T.reshape((n,)+self.batch_shape)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.p).id)
+            eps = cuda.cupy.stack(eps).T.reshape((n,)+self.batch_shape)
         else:
             eps = [numpy.random.choice(
                 one_p.shape[0], size=(n,), p=one_p) for one_p in obo_p]
