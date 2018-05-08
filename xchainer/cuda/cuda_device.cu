@@ -40,6 +40,27 @@ std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
     return std::shared_ptr<void>{ptr, [this](void* ptr) { memory_pool_.Free(ptr); }};
 }
 
+void CudaDevice::CheckMemoryValidity(const void* ptr) {
+    cudaPointerAttributes attr = {};
+    cudaError_t status = cudaPointerGetAttributes(&attr, ptr);
+    switch (status) {
+        case cudaSuccess:
+            if (attr.isManaged == 0) {
+                throw XchainerError{"CUDA memory: ", ptr, " must be a managed (unified) memory"};
+            }
+            if (attr.device != index()) {
+                throw XchainerError{"CUDA memory: ", ptr, " must reside on the device: ", index()};
+            }
+            return;
+        case cudaErrorInvalidValue:
+            throw XchainerError{"Memory: ", ptr, " is not a CUDA memory"};
+        default:
+            Throw(status);
+            return;
+    }
+    assert(false);  // should never be reached
+}
+
 void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
     assert(bytesize == 0 || IsPointerCudaMemory(dst));
     if (bytesize == 0) {

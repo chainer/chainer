@@ -21,6 +21,8 @@ public:
 
     std::shared_ptr<void> Allocate(size_t bytesize) override;
 
+    void CheckMemoryValidity(const void* ptr) override;
+
     void MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) override;
 
     void MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) override;

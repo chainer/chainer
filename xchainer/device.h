@@ -22,6 +22,9 @@ public:
     // Allocates a memory chunk on this device.
     virtual std::shared_ptr<void> Allocate(size_t bytesize) = 0;
 
+    // Check if memeory pointer resides on this device (if possible).
+    virtual void CheckMemoryValidity(const void* ptr) = 0;
+
     // Copies the data between devices.
     // The other device may or may not be the same as this device.
     // The caller must guarantee that:

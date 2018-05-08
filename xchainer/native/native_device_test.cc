@@ -43,6 +43,14 @@ TEST(NativeDeviceTest, Allocate) {
     EXPECT_NE(nullptr, ptr);
 }
 
+TEST(NativeDeviceTest, CheckMemoryValidity) {
+    Context ctx;
+    NativeBackend backend{ctx};
+    NativeDevice device{backend, 0};
+
+    EXPECT_NO_THROW(device.CheckMemoryValidity(&ctx));
+}
+
 TEST(NativeDeviceTest, FromHostMemory) {
     size_t size = 3;
     size_t bytesize = size * sizeof(float);

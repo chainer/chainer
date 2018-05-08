@@ -10,6 +10,7 @@
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
+#include "xchainer/testing/util.h"
 
 namespace xchainer {
 namespace cuda {
@@ -56,6 +57,37 @@ TEST(CudaDeviceTest, Allocate) {
     {
         size_t bytesize = 0;
         EXPECT_NO_THROW(device.Allocate(bytesize));
+    }
+}
+
+TEST(CudaDeviceTest, CheckDeviceValidity) {
+    Context ctx;
+    CudaBackend backend{ctx};
+    CudaDevice device{backend, 0};
+    size_t size = 3;
+
+    {
+        std::shared_ptr<void> cuda_data = device.Allocate(size);
+        EXPECT_NO_THROW(device.CheckMemoryValidity(cuda_data.get()));
+    }
+    {
+        std::shared_ptr<void> cpu_data = std::make_unique<uint8_t[]>(size);
+        EXPECT_THROW(device.CheckMemoryValidity(cpu_data.get()), XchainerError) << "must throw an exception if non CUDA memory is given";
+    }
+    {
+        void* raw_ptr = nullptr;
+        cuda::CheckCudaError(cudaMalloc(&raw_ptr, size));
+        auto cuda_data = std::shared_ptr<void>{raw_ptr, cudaFree};
+        EXPECT_THROW(device.CheckMemoryValidity(cuda_data.get()), XchainerError)
+                << "must throw an exception if non-managed CUDA memory is given";
+    }
+
+    XCHAINER_REQUIRE_DEVICE(backend, 2);
+    {
+        CudaDevice another_device{backend, 1};
+        std::shared_ptr<void> cuda_data = another_device.Allocate(size);
+        EXPECT_THROW(device.CheckMemoryValidity(cuda_data.get()), XchainerError)
+                << "must throw an exception if CUDA memory resides on another device";
     }
 }
 

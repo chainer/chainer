@@ -28,6 +28,10 @@ namespace native {
 
 std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) { return std::make_unique<uint8_t[]>(bytesize); }
 
+void NativeDevice::CheckMemoryValidity(const void*) {
+    return;  // no way to check
+}
+
 void NativeDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
     assert(nullptr != dynamic_cast<NativeDevice*>(&src_device) && "Native device only supports copy between native devices");
     std::memcpy(dst, src, bytesize);
