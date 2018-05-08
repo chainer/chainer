@@ -1183,6 +1183,8 @@ class TestNegativePow(unittest.TestCase):
         {'x_shape': (2, 1, 3, 4),
          'y_shape': (2, 4, 2),
          'z_shape': (2, 2, 3, 2)},
+        {'x_shape': (5, 3, 2), 'y_shape': (2,), 'z_shape': (5, 3)},
+        {'x_shape': (2,), 'y_shape': (5, 2, 4), 'z_shape': (5, 4)},
         {'x_shape': (2, 3, 2), 'y_shape': (2, 4), 'z_shape': (2, 3, 4)},
         {'x_shape': (3,), 'y_shape': (3,), 'z_shape': ()},
     ]
@@ -1201,7 +1203,7 @@ class TestMatMul(unittest.TestCase):
             -1, 1, self.y_shape).astype(self.dtype)
 
     def _get_forward_answer(self, x, y):
-        if x.ndim <= 2:
+        if x.ndim <= 2 or y.ndim == 1:
             return numpy.dot(x, y)
         else:
             return numpy.einsum('...ij,...jk->...ik', x, y)
