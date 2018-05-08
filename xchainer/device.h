@@ -124,7 +124,7 @@ public:
     // out must be a square 2-dim array.
     virtual void Eye(int64_t k, const Array& out) = 0;
 
-    virtual void Diag(const Array& v, int64_t k, const Array& out) = 0;
+    virtual void Diagflat(const Array& v, int64_t k, const Array& out) = 0;
 
     // Creates an evenly spaced 1-d array.
     // `out.ndim()` must be 1 with at least 1 elements.

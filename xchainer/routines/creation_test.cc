@@ -576,18 +576,21 @@ TEST_P(CreationTest, DiagMatToVec) {
         Array o = Diag(v);
         Array e = testing::BuildArray<float>({2}, {0.f, 4.f});
         testing::ExpectEqual(e, o);
+        EXPECT_EQ(v.data().get(), o.data().get());
     }
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
         Array o = Diag(v, 1);
         Array e = testing::BuildArray<float>({2}, {1.f, 5.f});
         testing::ExpectEqual(e, o);
+        EXPECT_EQ(v.data().get(), o.data().get());
     }
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
         Array o = Diag(v, -1);
         Array e = testing::BuildArray<float>({1}, {3.f});
         testing::ExpectEqual(e, o);
+        EXPECT_EQ(v.data().get(), o.data().get());
     }
 }
 
