@@ -1,8 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import Distribution
-from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
+from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
 import numpy
 
@@ -43,7 +42,8 @@ class Exponential(Distribution):
             Distribution Function.
 
         """
-        return 1 - exponential.exp(-self.lam * x)
+        return 1 - exponential.exp(
+            -broadcast.broadcast_to(self.lam, x.shape) * x)
 
     @property
     def entropy(self):
@@ -76,7 +76,7 @@ class Exponential(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.lam, cuda.ndarray)
+        return isinstance(self.lam.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -88,7 +88,8 @@ class Exponential(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        return exponential.log(self.lam) - self.lam * x
+        bl = broadcast.broadcast_to(self.lam, x.shape)
+        return exponential.log(bl) - bl * x
 
     @property
     def mean(self):
@@ -113,13 +114,13 @@ class Exponential(Distribution):
         if self._is_gpu:
             eps = numpy.random.exponential(
                 size=(n,)+self.lam.shape).astype(numpy.float32)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.k).id)
+            eps = cuda.to_gpu(
+                eps, cuda.get_device_from_array(self.lam.data).id)
         else:
             eps = numpy.random.exponential(
                 size=(n,)+self.lam.shape).astype(numpy.float32)
 
-        noise = eps / repeat.repeat(
-            expand_dims.expand_dims(self.lam, axis=0), n, axis=0)
+        noise = eps / broadcast.broadcast_to(self.lam, eps.shape)
         return noise
 
     @property
