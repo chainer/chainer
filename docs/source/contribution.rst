@@ -398,3 +398,29 @@ Note that reviewers will test your code without the option to check CUDA-related
 .. note::
    Some of numerically unstable tests might cause errors irrelevant to your changes.
    In such a case, we ignore the failures and go on to the review process, so do not worry about it!
+
+
+Documentation
+-------------
+
+When adding a new feature to the framework, you also need to document it to the reference.
+For example, if you are adding a new function under ``chainer.functions``, you need to add it to the :doc:`reference/functions` page.
+
+.. note::
+
+   If you are unsure about how to fix the documents, you can submit a pull request without doing so.
+   Reviewers will help you fix the documents appropriately.
+
+Documents are stored under `docs directory <https://github.com/chainer/chainer/tree/master/docs>`_ and written in `reStructuredText <http://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ format.
+
+To build the document, you need to install `Sphinx <http://www.sphinx-doc.org/>`_::
+
+  $ pip install sphinx sphinx_rtd_theme
+
+Then you can build the HTML document locally::
+
+  $ cd docs
+  $ make html
+
+HTML files are generated under ``build/html`` directory.
+Open it with the browser and see if it is rendered as expected.
