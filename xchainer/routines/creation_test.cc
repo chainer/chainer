@@ -220,14 +220,21 @@ TEST_P(CreationTest, FromData) {
 
     T raw_data[] = {0, 1, 2, 3, 4, 5};
     std::shared_ptr<void> host_data{raw_data, [](const T*) {}};
-    std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
 
     // non-contiguous array like a[:,1]
-    T noncontiguous_raw_data[] = {1, 4};
+    T sub_raw_data[] = {1, 4};
     Shape shape{2};
     Strides strides{sizeof(T) * 3};
     int64_t offset = sizeof(T);
-    Array x = FromData(shape, dtype, data, strides, offset);
+
+    Array x;
+    void* data_ptr;
+    {
+        // test potential freed memory
+        std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
+        data_ptr = data.get();
+        x = FromData(shape, dtype, data, strides, offset);
+    }
 
     // Basic attributes
     EXPECT_EQ(shape, x.shape());
@@ -241,39 +248,50 @@ TEST_P(CreationTest, FromData) {
     EXPECT_EQ(offset, x.offset());
 
     // Array::data
-    testing::ExpectDataEqual<T>(noncontiguous_raw_data, x);
+    testing::ExpectDataEqual<T>(sub_raw_data, x);
 
     EXPECT_EQ(&device, &x.device());
-    EXPECT_EQ(data.get(), x.data().get());
+    EXPECT_EQ(data_ptr, x.data().get());
 }
 
 TEST_P(CreationTest, FromContiguousData) {
     using T = int32_t;
     Dtype dtype = TypeToDtype<T>;
-    Shape shape{3, 2};
     Device& device = GetDefaultDevice();
 
     T raw_data[] = {0, 1, 2, 3, 4, 5};
     std::shared_ptr<void> host_data{raw_data, [](const T*) {}};
-    std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
 
-    Array x = FromContiguousData(shape, dtype, data);
+    // contiguous array like a[1,:]
+    T* sub_raw_data = raw_data + 3;
+    Shape shape{3};
+    Strides strides{sizeof(T)};
+    int64_t offset = sizeof(T) * 3;
+
+    Array x;
+    void* data_ptr;
+    {
+        // test potential freed memory
+        std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
+        data_ptr = data.get();
+        x = FromContiguousData(shape, dtype, data, offset);
+    }
 
     // Basic attributes
     EXPECT_EQ(shape, x.shape());
     EXPECT_EQ(dtype, x.dtype());
-    EXPECT_EQ(2, x.ndim());
-    EXPECT_EQ(3 * 2, x.GetTotalSize());
+    EXPECT_EQ(1, x.ndim());
+    EXPECT_EQ(3, x.GetTotalSize());
     EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
     EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetTotalBytes());
     EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
+    EXPECT_EQ(offset, x.offset());
 
     // Array::data
-    testing::ExpectDataEqual<T>(raw_data, x);
+    testing::ExpectDataEqual<T>(sub_raw_data, x);
 
     EXPECT_EQ(&device, &x.device());
-    EXPECT_EQ(data.get(), x.data().get());
+    EXPECT_EQ(data_ptr, x.data().get());
 }
 
 #ifdef XCHAINER_ENABLE_CUDA
@@ -305,13 +323,14 @@ TEST_P(CreationTest, FromContiguousDataFromAnotherDevice) {
     using T = int32_t;
     Dtype dtype = TypeToDtype<T>;
     Shape shape{3};
+    int64_t offset = 0;
     Device& device = GetDefaultDevice();
     std::shared_ptr<void> data = device.Allocate(3 * sizeof(T));
 
     if (device.name() == cuda_device.name()) {
-        EXPECT_NO_THROW(FromContiguousData(shape, dtype, data, cuda_device));
+        EXPECT_NO_THROW(FromContiguousData(shape, dtype, data, offset, cuda_device));
     } else {
-        EXPECT_THROW(FromContiguousData(shape, dtype, data, cuda_device), XchainerError);
+        EXPECT_THROW(FromContiguousData(shape, dtype, data, offset, cuda_device), XchainerError);
     }
 }
 #endif  // XCHAINER_ENABLE_CUDA

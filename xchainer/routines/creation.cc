@@ -57,8 +57,8 @@ Array FromData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& dat
     return internal::MakeArray(shape, strides, dtype, device, data, offset);
 }
 
-Array FromContiguousData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
-    return FromData(shape, dtype, data, {shape, dtype}, 0, device);
+Array FromContiguousData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, int64_t offset, Device& device) {
+    return FromData(shape, dtype, data, {shape, dtype}, offset, device);
 }
 
 Array Empty(const Shape& shape, Dtype dtype, Device& device) {

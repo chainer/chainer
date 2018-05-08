@@ -44,7 +44,8 @@ Array FromData(
 
 // Creates an array with given contiguous data.
 // The data must reside in the specified device.
-Array FromContiguousData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
+Array FromContiguousData(
+        const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, int64_t offset = 0, Device& device = GetDefaultDevice());
 
 Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
 Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device = GetDefaultDevice());
