@@ -17,10 +17,10 @@ class TestLinkHook(unittest.TestCase):
                 super(Model, self).__init__()
                 with self.init_scope():
                     self.l1 = chainer.links.Linear(3, 2)
-            
+
             def forward(self, x):
                 return self.l1(x)
-        
+
         self.model = Model()
 
     def test_name(self):

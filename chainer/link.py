@@ -162,7 +162,7 @@ class Link(object):
         return (0 if self._local_link_hooks is None
                 else len(self._local_link_hooks))
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         hooks = chainer.get_link_hooks()
         if self._n_local_link_hooks > 0:
             hooks = collections.OrderedDict(hooks)
@@ -170,12 +170,12 @@ class Link(object):
         hooks = hooks.values()  # avoid six for performance
 
         for hook in hooks:
-            hook.forward_preprocess(self, *args)
+            hook.forward_preprocess(self, *args, **kwargs)
 
-        out = self.forward(*args)
+        out = self.forward(*args, **kwargs)
 
         for hook in hooks:
-            hook.forward_postprocess(self, *args)
+            hook.forward_postprocess(self, *args, **kwargs)
 
         return out
 

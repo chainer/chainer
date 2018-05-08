@@ -116,7 +116,7 @@ class LinkHook(object):
         pass
 
     # forward
-    def forward_preprocess(self, link, in_data):
+    def forward_preprocess(self, link, *args, **kwargs):
         """Callback function invoked before :meth:`forward`.
 
         Args:
@@ -127,7 +127,7 @@ class LinkHook(object):
         """
         pass
 
-    def forward_postprocess(self, link, in_data):
+    def forward_postprocess(self, link, *args, **kwargs):
         """Callback function invoked after link propagation.
 
         Args:

@@ -526,10 +526,6 @@ class BuildingBlock(link.Chain):
             x = l(x)
         return x
 
-    @property
-    def forward(self):
-        return [getattr(self, name) for name in self._forward]
-
 
 class BottleneckA(link.Chain):
 
