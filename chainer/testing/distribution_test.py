@@ -21,7 +21,7 @@ Reason: {}: {}'''.format(__name__, type(_error).__name__, _error))
 
 
 def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
-                          support="real", event_shape=(), ignore_tests=set()):
+                          tests=set(), support="real", event_shape=()):
     check_available()
 
     def f(klass):
@@ -41,7 +41,6 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
             self.sample_for_test = sample_for_test
             self.support = support
             self.event_shape = event_shape
-            self.ignore_tests = ignore_tests
         setattr(klass, "setUp", setUp)
 
         @property
@@ -56,12 +55,14 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
 
         def test_batch_shape_cpu(self):
             self.assertEqual(self.cpu_dist.batch_shape, self.shape)
-        setattr(klass, "test_batch_shape_cpu", test_batch_shape_cpu)
 
         @attr.gpu
         def test_batch_shape_gpu(self):
             self.assertEqual(self.gpu_dist.batch_shape, self.shape)
-        setattr(klass, "test_batch_shape_gpu", test_batch_shape_gpu)
+
+        if "batch_shape" in tests:
+            setattr(klass, "test_batch_shape_cpu", test_batch_shape_cpu)
+            setattr(klass, "test_batch_shape_gpu", test_batch_shape_gpu)
 
         def check_cdf(self, is_gpu):
             smp = self.sample_for_test(self.smp_shape + self.shape)
@@ -71,16 +72,18 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 cdf1 = self.gpu_dist.cdf(cuda.to_gpu(smp)).data
             cdf2 = self.scipy_dist.cdf(smp, **self.scipy_params)
             testing.assert_allclose(cdf1, cdf2)
-        setattr(klass, "check_cdf", check_cdf)
 
         def test_cdf_cpu(self):
             self.check_cdf(False)
-        setattr(klass, "test_cdf_cpu", test_cdf_cpu)
 
         @attr.gpu
         def test_cdf_gpu(self):
             self.check_cdf(True)
-        setattr(klass, "test_cdf_gpu", test_cdf_gpu)
+
+        if "cdf" in tests:
+            setattr(klass, "check_cdf", check_cdf)
+            setattr(klass, "test_cdf_cpu", test_cdf_cpu)
+            setattr(klass, "test_cdf_gpu", test_cdf_gpu)
 
         def check_entropy(self, is_gpu):
             if is_gpu:
@@ -89,25 +92,29 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 ent1 = self.cpu_dist.entropy.data
             ent2 = self.scipy_dist.entropy(**self.scipy_params)
             testing.assert_allclose(ent1, ent2)
-        setattr(klass, "check_entropy", check_entropy)
 
         def test_entropy_cpu(self):
             self.check_entropy(False)
-        setattr(klass, "test_entropy_cpu", test_entropy_cpu)
 
         @attr.gpu
         def test_entropy_gpu(self):
             self.check_entropy(True)
-        setattr(klass, "test_entropy_gpu", test_entropy_gpu)
+
+        if "entropy" in tests:
+            setattr(klass, "check_entropy", check_entropy)
+            setattr(klass, "test_entropy_cpu", test_entropy_cpu)
+            setattr(klass, "test_entropy_gpu", test_entropy_gpu)
 
         def test_event_shape_cpu(self):
             self.assertEqual(self.cpu_dist.event_shape, self.event_shape)
-        setattr(klass, "test_event_shape_cpu", test_event_shape_cpu)
 
         @attr.gpu
         def test_event_shape_gpu(self):
             self.assertEqual(self.gpu_dist.event_shape, self.event_shape)
-        setattr(klass, "test_event_shape_gpu", test_event_shape_gpu)
+
+        if "event_shape" in tests:
+            setattr(klass, "test_event_shape_cpu", test_event_shape_cpu)
+            setattr(klass, "test_event_shape_gpu", test_event_shape_gpu)
 
         def check_icdf(self, is_gpu):
             smp = numpy.random.uniform(
@@ -119,16 +126,18 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 icdf1 = self.gpu_dist.icdf(cuda.to_gpu(smp)).data
             icdf2 = self.scipy_dist.ppf(smp, **self.scipy_params)
             testing.assert_allclose(icdf1, icdf2)
-        setattr(klass, "check_icdf", check_icdf)
 
         def test_icdf_cpu(self):
             self.check_icdf(False)
-        setattr(klass, "test_icdf_cpu", test_icdf_cpu)
 
         @attr.gpu
         def test_icdf_gpu(self):
             self.check_icdf(True)
-        setattr(klass, "test_icdf_gpu", test_icdf_gpu)
+
+        if "icdf" in tests:
+            setattr(klass, "check_icdf", check_icdf)
+            setattr(klass, "test_icdf_cpu", test_icdf_cpu)
+            setattr(klass, "test_icdf_gpu", test_icdf_gpu)
 
         def check_log_cdf(self, is_gpu):
             smp = self.sample_for_test(self.smp_shape + self.shape)
@@ -138,16 +147,18 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 log_cdf1 = self.cpu_dist.log_cdf(smp).data
             log_cdf2 = self.scipy_dist.logcdf(smp, **self.scipy_params)
             testing.assert_allclose(log_cdf1, log_cdf2)
-        setattr(klass, "check_log_cdf", check_log_cdf)
 
         def test_log_cdf_cpu(self):
             self.check_log_cdf(False)
-        setattr(klass, "test_log_cdf_cpu", test_log_cdf_cpu)
 
         @attr.gpu
         def test_log_cdf_gpu(self):
             self.check_log_cdf(True)
-        setattr(klass, "test_log_cdf_gpu", test_log_cdf_gpu)
+
+        if "log_cdf" in tests:
+            setattr(klass, "check_log_cdf", check_log_cdf)
+            setattr(klass, "test_log_cdf_cpu", test_log_cdf_cpu)
+            setattr(klass, "test_log_cdf_gpu", test_log_cdf_gpu)
 
         def check_log_prob(self, is_gpu):
             smp = self.sample_for_test(self.smp_shape + self.shape)
@@ -157,16 +168,18 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 log_prob1 = self.cpu_dist.log_prob(smp).data
             log_prob2 = self.scipy_dist.logpdf(smp, **self.scipy_params)
             testing.assert_allclose(log_prob1, log_prob2)
-        setattr(klass, "check_log_prob", check_log_prob)
 
         def test_log_prob_cpu(self):
             self.check_log_prob(False)
-        setattr(klass, "test_log_prob_cpu", test_log_prob_cpu)
 
         @attr.gpu
         def test_log_prob_gpu(self):
             self.check_log_prob(True)
-        setattr(klass, "test_log_prob_gpu", test_log_prob_gpu)
+
+        if "log_prob" in tests:
+            setattr(klass, "check_log_prob", check_log_prob)
+            setattr(klass, "test_log_prob_cpu", test_log_prob_cpu)
+            setattr(klass, "test_log_prob_gpu", test_log_prob_gpu)
 
         def check_log_survival(self, is_gpu):
             smp = self.sample_for_test(self.smp_shape + self.shape)
@@ -177,16 +190,18 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 log_survival1 = self.cpu_dist.log_survival_function(smp).data
             log_survival2 = self.scipy_dist.logsf(smp, **self.scipy_params)
             testing.assert_allclose(log_survival1, log_survival2)
-        setattr(klass, "check_log_survival", check_log_survival)
 
         def test_log_survival_cpu(self):
             self.check_log_survival(False)
-        setattr(klass, "test_log_survival_cpu", test_log_survival_cpu)
 
         @attr.gpu
         def test_log_survival_gpu(self):
             self.check_log_survival(True)
-        setattr(klass, "test_log_survival_gpu", test_log_survival_gpu)
+
+        if "log_survival" in tests:
+            setattr(klass, "check_log_survival", check_log_survival)
+            setattr(klass, "test_log_survival_cpu", test_log_survival_cpu)
+            setattr(klass, "test_log_survival_gpu", test_log_survival_gpu)
 
         def check_mean(self, is_gpu):
             if is_gpu:
@@ -195,16 +210,18 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 mean1 = self.cpu_dist.mean.data
             mean2 = self.scipy_dist.mean(**self.scipy_params)
             testing.assert_allclose(mean1, mean2)
-        setattr(klass, "check_mean", check_mean)
 
         def test_mean_cpu(self):
             self.check_mean(False)
-        setattr(klass, "test_mean_cpu", test_mean_cpu)
 
         @attr.gpu
         def test_mean_gpu(self):
             self.check_mean(True)
-        setattr(klass, "test_mean_gpu", test_mean_gpu)
+
+        if "mean" in tests:
+            setattr(klass, "check_mean", check_mean)
+            setattr(klass, "test_mean_cpu", test_mean_cpu)
+            setattr(klass, "test_mean_gpu", test_mean_gpu)
 
         def check_prob(self, is_gpu):
             smp = self.sample_for_test(self.smp_shape + self.shape)
@@ -214,16 +231,18 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 prob1 = self.cpu_dist.prob(smp).data
             prob2 = self.scipy_dist.pdf(smp, **self.scipy_params)
             testing.assert_allclose(prob1, prob2)
-        setattr(klass, "check_prob", check_prob)
 
         def test_prob_cpu(self):
             self.check_prob(False)
-        setattr(klass, "test_prob_cpu", test_prob_cpu)
 
         @attr.gpu
         def test_prob_gpu(self):
             self.check_prob(True)
-        setattr(klass, "test_prob_gpu", test_prob_gpu)
+
+        if "prob" in tests:
+            setattr(klass, "check_prob", check_prob)
+            setattr(klass, "test_prob_cpu", test_prob_cpu)
+            setattr(klass, "test_prob_gpu", test_prob_gpu)
 
         def check_sample(self, is_gpu):
             if is_gpu:
@@ -238,16 +257,18 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                                     atol=3e-2, rtol=3e-2)
             testing.assert_allclose(smp1.std(axis=0), smp2.std(axis=0),
                                     atol=3e-2, rtol=3e-2)
-        setattr(klass, "check_sample", check_sample)
 
         def test_sample_cpu(self):
             self.check_sample(False)
-        setattr(klass, "test_sample_cpu", test_sample_cpu)
 
         @attr.gpu
         def test_sample_gpu(self):
             self.check_sample(True)
-        setattr(klass, "test_sample_gpu", test_sample_gpu)
+
+        if "sample" in tests:
+            setattr(klass, "check_sample", check_sample)
+            setattr(klass, "test_sample_cpu", test_sample_cpu)
+            setattr(klass, "test_sample_gpu", test_sample_gpu)
 
         def check_stddev(self, is_gpu):
             if is_gpu:
@@ -256,25 +277,29 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 stddev1 = self.cpu_dist.stddev.data
             stddev2 = self.scipy_dist.std(**self.scipy_params)
             testing.assert_allclose(stddev1, stddev2)
-        setattr(klass, "check_stddev", check_stddev)
 
         def test_stddev_cpu(self):
             self.check_stddev(False)
-        setattr(klass, "test_stddev_cpu", test_stddev_cpu)
 
         @attr.gpu
         def test_stddev_gpu(self):
             self.check_stddev(True)
-        setattr(klass, "test_stddev_gpu", test_stddev_gpu)
+
+        if "stddev" in tests:
+            setattr(klass, "check_stddev", check_stddev)
+            setattr(klass, "test_stddev_cpu", test_stddev_cpu)
+            setattr(klass, "test_stddev_gpu", test_stddev_gpu)
 
         def test_support_cpu(self):
             self.assertEqual(self.cpu_dist.support, self.support)
-        setattr(klass, "test_support_cpu", test_support_cpu)
 
         @attr.gpu
         def test_support_gpu(self):
             self.assertEqual(self.gpu_dist.support, self.support)
-        setattr(klass, "test_support_gpu", test_support_gpu)
+
+        if "support":
+            setattr(klass, "test_support_cpu", test_support_cpu)
+            setattr(klass, "test_support_gpu", test_support_gpu)
 
         def check_survival(self, is_gpu):
             smp = self.sample_for_test(self.smp_shape + self.shape)
@@ -285,16 +310,18 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 survival1 = self.cpu_dist.survival_function(smp).data
             survival2 = self.scipy_dist.sf(smp, **self.scipy_params)
             testing.assert_allclose(survival1, survival2)
-        setattr(klass, "check_survival", check_survival)
 
         def test_survival_cpu(self):
             self.check_survival(False)
-        setattr(klass, "test_survival_cpu", test_survival_cpu)
 
         @attr.gpu
         def test_survival_gpu(self):
             self.check_survival(True)
-        setattr(klass, "test_survival_gpu", test_survival_gpu)
+
+        if "survival" in tests:
+            setattr(klass, "check_survival", check_survival)
+            setattr(klass, "test_survival_cpu", test_survival_cpu)
+            setattr(klass, "test_survival_gpu", test_survival_gpu)
 
         def check_variance(self, is_gpu):
             if is_gpu:
@@ -303,16 +330,18 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 variance1 = self.cpu_dist.variance.data
             variance2 = self.scipy_dist.var(**self.scipy_params)
             testing.assert_allclose(variance1, variance2)
-        setattr(klass, "test_survival_cpu", test_survival_cpu)
 
         def test_variance_cpu(self):
             self.check_variance(False)
-        setattr(klass, "test_survival_cpu", test_survival_cpu)
 
         @attr.gpu
         def test_variance_gpu(self):
             self.check_variance(True)
-        setattr(klass, "test_survival_gpu", test_survival_gpu)
+
+        if "variance" in tests:
+            setattr(klass, "check_variance", check_variance)
+            setattr(klass, "test_variance_cpu", test_variance_cpu)
+            setattr(klass, "test_variance_gpu", test_variance_gpu)
 
         # Return parameterized class.
         return testing.parameterize(*testing.product({

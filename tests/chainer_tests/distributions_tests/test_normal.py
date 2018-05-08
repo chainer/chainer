@@ -18,8 +18,13 @@ def sample_for_test(shape):
     smp = numpy.random.normal(size=shape).astype(numpy.float32)
     return smp
 
+tests = set(["batch_shape", "cdf", "entropy", "event_shape", "icdf",
+             "log_cdf", "log_prob", "log_survival", "mean", "prob",
+             "sample", "stddev", "support", "survival", "variance"])
+
 
 @testing.distribution_unittest(distributions.Normal, stats.norm,
-                               normal_params_init, sample_for_test)
+                               normal_params_init, sample_for_test,
+                               tests=tests)
 class TestNormal(unittest.TestCase):
     pass
