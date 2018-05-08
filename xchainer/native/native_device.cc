@@ -14,7 +14,6 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/dtype.h"
-#include "xchainer/elementwise_kernel_arg.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/elementwise.h"
@@ -63,8 +62,7 @@ void NativeDevice::Fill(const Array& out, Scalar value) {
             void operator()(int64_t /*i*/, T& out) { out = value; }
             T value;
         };
-
-        Elementwise(MakeElementwiseKernelArg<T>(out), Impl{static_cast<T>(value)});
+        Elementwise<T>(Impl{static_cast<T>(value)}, out);
     });
 }
 
@@ -76,8 +74,7 @@ void NativeDevice::Arange(Scalar start, Scalar step, const Array& out) {
             T start;
             T step;
         };
-
-        Elementwise(MakeElementwiseKernelArg<T>(out), Impl{static_cast<T>(start), static_cast<T>(step)});
+        Elementwise<T>(Impl{static_cast<T>(start), static_cast<T>(step)}, out);
     });
 }
 
@@ -150,7 +147,7 @@ void NativeDevice::Copy(const Array& a, const Array& out) {
         struct Impl {
             void operator()(int64_t /*i*/, T a, T& out) { out = a; }
         };
-        Elementwise(MakeElementwiseKernelArg<const T, T>(a, out), Impl{});
+        Elementwise<const T, T>(Impl{}, a, out);
     });
 }
 
@@ -162,8 +159,7 @@ void NativeDevice::AsType(const Array& a, const Array& out) {
         struct Impl {
             void operator()(int64_t /*i*/, InT a, OutT& out) { out = static_cast<OutT>(a); }
         };
-
-        Elementwise(MakeElementwiseKernelArg<const InT, OutT>(a, out), Impl{});
+        Elementwise<const InT, OutT>(Impl{}, a, out);
     };
     VisitDtype(out.dtype(), [&](auto out_pt) { VisitDtype(a.dtype(), do_astype, out_pt); });
 }
@@ -175,8 +171,7 @@ void NativeDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
         struct Impl {
             void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 == x2; }
         };
-
-        Elementwise(MakeElementwiseKernelArg<const T, const T, bool>(x1, x2, out), Impl{});
+        Elementwise<const T, const T, bool>(Impl{}, x1, x2, out);
     });
 }
 
@@ -187,8 +182,7 @@ void NativeDevice::Add(const Array& x1, const Array& x2, const Array& out) {
         struct Impl {
             void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 + x2; }
         };
-
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), Impl{});
+        Elementwise<const T, const T, T>(Impl{}, x1, x2, out);
     });
 }
 
@@ -199,7 +193,7 @@ void NativeDevice::Subtract(const Array& x1, const Array& x2, const Array& out) 
         struct Impl {
             void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 - x2; }
         };
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), Impl{});
+        Elementwise<const T, const T, T>(Impl{}, x1, x2, out);
     });
 }
 
@@ -210,7 +204,7 @@ void NativeDevice::Multiply(const Array& x1, const Array& x2, const Array& out) 
         struct Impl {
             void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 * x2; }
         };
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), Impl{});
+        Elementwise<const T, const T, T>(Impl{}, x1, x2, out);
     });
 }
 
@@ -222,8 +216,7 @@ void NativeDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
             void operator()(int64_t /*i*/, T x1, T& out) { out = x1 * x2; }
             T x2;
         };
-
-        Elementwise(MakeElementwiseKernelArg<const T, T>(x1, out), Impl{static_cast<T>(x2)});
+        Elementwise<const T, T>(Impl{static_cast<T>(x2)}, x1, out);
     });
 }
 
@@ -234,7 +227,7 @@ void NativeDevice::Divide(const Array& lhs, const Array& rhs, const Array& out) 
         struct Impl {
             void operator()(int64_t /*i*/, T lhs, T rhs, T& out) { out = lhs / rhs; }
         };
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(lhs, rhs, out), Impl{});
+        Elementwise<const T, const T, T>(Impl{}, lhs, rhs, out);
     });
 }
 
@@ -247,7 +240,7 @@ void NativeDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const 
             T x2;
             T pos;
         };
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, neg, out), Impl{static_cast<T>(x2), static_cast<T>(pos)});
+        Elementwise<const T, const T, T>(Impl{static_cast<T>(x2), static_cast<T>(pos)}, x1, neg, out);
     });
 }
 
@@ -294,8 +287,7 @@ void NativeDevice::Exp(const Array& x, const Array& out) {
         struct Impl {
             void operator()(int64_t /*i*/, T x, T& out) { out = std::exp(x); }
         };
-
-        Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), Impl{});
+        Elementwise<const T, T>(Impl{}, x, out);
     });
 }
 
@@ -306,7 +298,7 @@ void NativeDevice::Log(const Array& x, const Array& out) {
         struct Impl {
             void operator()(int64_t /*i*/, T x, T& out) { out = std::log(x); }
         };
-        Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), Impl{});
+        Elementwise<const T, T>(Impl{}, x, out);
     });
 }
 
@@ -318,9 +310,9 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
         IndexableArray<const T> a_iarray{a};
         IndexableArray<T> out_iarray{out};
         IndexableArray<const int64_t> indices_iarray{indices};
-        Indexer a_indexer{a.shape()};
-        Indexer out_indexer{out.shape()};
-        Indexer indices_indexer{indices.shape()};
+        Indexer<> a_indexer{a.shape()};
+        Indexer<> out_indexer{out.shape()};
+        Indexer<> indices_indexer{indices.shape()};
 
         int64_t axis_dim = a.shape()[axis];
 
@@ -329,9 +321,9 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
         Shape left_shape{a.shape().begin(), a.shape().begin() + axis};
         Shape right_shape{a.shape().begin() + (axis + 1), a.shape().end()};
         Shape axis_shape{axis_dim};  // always ndim==1
-        Indexer left_indexer{left_shape};
-        Indexer right_indexer{right_shape};
-        Indexer axis_indexer{axis_shape};
+        Indexer<> left_indexer{left_shape};
+        Indexer<> right_indexer{right_shape};
+        Indexer<> axis_indexer{axis_shape};
 
         for (auto it = indices_indexer.It(0); it; ++it) {
             int64_t index = indices_iarray[it];
@@ -365,9 +357,9 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
         IndexableArray<const T> b_iarray{b};
         IndexableArray<const int64_t> indices_iarray{indices};
         IndexableArray<T> out_iarray{out};
-        Indexer b_indexer{b.shape()};
-        Indexer indices_indexer{indices.shape()};
-        Indexer out_indexer{out.shape()};  // indexer for both out_iarray and a_array
+        Indexer<> b_indexer{b.shape()};
+        Indexer<> indices_indexer{indices.shape()};
+        Indexer<> out_indexer{out.shape()};  // indexer for both out_iarray and a_array
 
         int64_t axis_dim = a.shape()[axis];
 
@@ -376,9 +368,9 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
         Shape left_shape{a.shape().begin(), a.shape().begin() + axis};
         Shape right_shape{a.shape().begin() + (axis + 1), a.shape().end()};
         Shape axis_shape{axis_dim};  // always ndim==1
-        Indexer left_indexer{left_shape};
-        Indexer right_indexer{right_shape};
-        Indexer axis_indexer{axis_shape};
+        Indexer<> left_indexer{left_shape};
+        Indexer<> right_indexer{right_shape};
+        Indexer<> axis_indexer{axis_shape};
 
         // Copy
         for (auto it = out_indexer.It(0); it; ++it) {
@@ -419,8 +411,7 @@ void NativeDevice::Identity(const Array& out) {
             void operator()(int64_t i, T& out) { out = i % n_plus_one == 0 ? T{1} : T{0}; }
             int64_t n_plus_one;
         };
-
-        Elementwise(MakeElementwiseKernelArg<T>(out), Impl{out.shape()[0]});
+        Elementwise<T>(Impl{out.shape()[0]}, out);
     });
 }
 
@@ -434,8 +425,7 @@ void NativeDevice::Eye(int64_t k, const Array& out) {
             int64_t stop;
             int64_t step;
         };
-
-        Elementwise(MakeElementwiseKernelArg<T>(out), Impl{out.shape()[1], k});
+        Elementwise<T>(Impl{out.shape()[1], k}, out);
     });
 }
 
@@ -444,11 +434,6 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
 
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-
-        IndexableArray<const T> v_iarray{v};
-        IndexableArray<T> out_iarray{out};
-        Indexer v_indexer{v.shape()};
-        Indexer out_indexer{out.shape()};
 
         // Start indices for the 2-D array axes with applied offset k.
         int64_t row_start{0};
@@ -461,13 +446,17 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
         }
 
         if (v.ndim() == 1) {
+            IndexableArray<const T, 1> v_iarray{v};
+            IndexableArray<T, 2> out_iarray{out};
+            Indexer<1> v_indexer{v.shape()};
+            Indexer<1> out_rows_indexer{Shape{out.shape()[0]}};
+            Indexer<1> out_cols_indexer{Shape{out.shape()[1]}};
+            Indexer<2> out_indexer{out.shape()};
+
             // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
             for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
                 out_iarray[out_it] = T{0};
             }
-
-            Indexer out_rows_indexer{Shape{out.shape()[0]}};
-            Indexer out_cols_indexer{Shape{out.shape()[1]}};
 
             for (auto v_it = v_indexer.It(0); v_it; ++v_it) {
                 auto out_rows_it = out_rows_indexer.It(row_start + v_it.raw_index());
@@ -476,8 +465,12 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
                 out_iarray[out_it] = v_iarray[v_it];
             }
         } else if (v.ndim() == 2) {
-            Indexer v_row_indexer{Shape{v.shape()[0]}};
-            Indexer v_col_indexer{Shape{v.shape()[1]}};
+            IndexableArray<const T, 2> v_iarray{v};
+            IndexableArray<T, 1> out_iarray{out};
+            Indexer<2> v_indexer{v.shape()};
+            Indexer<1> v_row_indexer{Shape{v.shape()[0]}};
+            Indexer<1> v_col_indexer{Shape{v.shape()[1]}};
+            Indexer<1> out_indexer{out.shape()};
 
             for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
                 auto v_row_it = v_row_indexer.It(row_start + out_it.raw_index());
@@ -506,7 +499,7 @@ void NativeDevice::Linspace(double start, double stop, const Array& out) {
         };
 
         int64_t n = out.shape()[0];
-        Elementwise(MakeElementwiseKernelArg<T>(out), Impl{n, start, stop});
+        Elementwise<T>(Impl{n, start, stop}, out);
     });
 }
 

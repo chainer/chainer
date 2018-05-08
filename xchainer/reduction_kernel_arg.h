@@ -8,7 +8,6 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/macro.h"
-#include "xchainer/ndim_vector.h"
 
 namespace xchainer {
 
@@ -29,9 +28,9 @@ template <typename In, typename Out>
 struct ReductionKernelArg {
     IndexableArray<const In> in;
     IndexableArray<Out> out;
-    Indexer in_indexer;
-    Indexer out_indexer;
-    Indexer reduce_indexer;
+    Indexer<> in_indexer;
+    Indexer<> out_indexer;
+    Indexer<> reduce_indexer;
 };
 
 template <typename In, typename Out>
@@ -126,9 +125,9 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const Axes& 
 
     return ReductionKernelArg<In, Out>{IndexableArray<const In>{in}.Permute(axis_permutes),
                                        IndexableArray<Out>{out}.Permute(out_axis_map),
-                                       Indexer{new_in_shape},
-                                       Indexer{new_out_shape},
-                                       Indexer{reduce_shape}};
+                                       Indexer<>{new_in_shape},
+                                       Indexer<>{new_out_shape},
+                                       Indexer<>{reduce_shape}};
 }
 
 }  // namespace xchainer

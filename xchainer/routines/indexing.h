@@ -19,7 +19,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices);
 // Takes elements specified by indices from an array.
 // Indices that are out of bounds are wrapped around.
 //
-// TODO(niboshi): Support Scalar and NdimVector<int64_t> as indices.
+// TODO(niboshi): Support Scalar and StackVector as indices.
 // TODO(niboshi): Support axis=None behavior in NumPy.
 // TODO(niboshi): Support indices dtype other than int64.
 Array Take(const Array& a, const Array& indices, int8_t axis);

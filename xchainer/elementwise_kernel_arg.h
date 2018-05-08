@@ -1,3 +1,4 @@
+/*
 #pragma once
 
 #include <algorithm>
@@ -40,10 +41,10 @@ inline Strides ReducedStrides(const Shape& shape, const Strides& strides) {
 // The tuples may be unpacked to match templetized kernels. See xchainer/native/elementwise.h.
 template <typename... Ts>
 struct ElementwiseKernelArg {
-    explicit ElementwiseKernelArg(const Indexer& indexer, IndexableArray<Ts>&&... iarrays)
+    explicit ElementwiseKernelArg(const Indexer<>& indexer, IndexableArray<Ts>&&... iarrays)
         : indexer{indexer}, iarrays{std::make_tuple(iarrays...)} {}
 
-    Indexer indexer;
+    Indexer<> indexer;
     std::tuple<IndexableArray<Ts>...> iarrays;
 
     static_assert(sizeof...(Ts) > 0, "Cannot create an elementwise kernel argument without any arrays.");
@@ -61,7 +62,7 @@ ElementwiseKernelArg<T, Ts...> MakeElementwiseKernelArg(const Array& first, Arra
 
     int8_t ndim = shape.ndim();
     if (ndim <= 1) {
-        return ElementwiseKernelArg<T, Ts...>{Indexer{shape}, IndexableArray<T>{first}, IndexableArray<Ts>{rest}...};
+        return ElementwiseKernelArg<T, Ts...>{Indexer<>{shape}, IndexableArray<T>{first}, IndexableArray<Ts>{rest}...};
     }
 
     int8_t axis = -1;
@@ -86,18 +87,19 @@ ElementwiseKernelArg<T, Ts...> MakeElementwiseKernelArg(const Array& first, Arra
     }
 
     if (keepdims == 1) {  // Compressed into a single dimensions.
-        return ElementwiseKernelArg<T, Ts...>{Indexer{Shape{{comp_shape[axis]}}},
+        return ElementwiseKernelArg<T, Ts...>{Indexer<>{Shape{{comp_shape[axis]}}},
                                               IndexableArray<T>{first, Strides{{strides[axis]}}},
                                               IndexableArray<Ts>{rest, Strides{{rest.strides()[axis]}}}...};
     } else if (keepdims == ndim) {  // No dimensions compressed.
-        return ElementwiseKernelArg<T, Ts...>{Indexer{shape}, IndexableArray<T>{first}, IndexableArray<Ts>{rest}...};
+        return ElementwiseKernelArg<T, Ts...>{Indexer<>{shape}, IndexableArray<T>{first}, IndexableArray<Ts>{rest}...};
     }
     // Compressed some, but not not all dimensions.
     Shape reduced_shape{};
     std::copy_if(comp_shape.begin(), comp_shape.end(), std::back_inserter(reduced_shape), [](int64_t dim) { return dim != 1; });
-    return ElementwiseKernelArg<T, Ts...>{Indexer{reduced_shape},
+    return ElementwiseKernelArg<T, Ts...>{Indexer<>{reduced_shape},
                                           IndexableArray<T>{first, internal::ReducedStrides(comp_shape, strides)},
                                           IndexableArray<Ts>{rest, internal::ReducedStrides(comp_shape, rest.strides())}...};
 }
 
 }  // namespace xchainer
+*/

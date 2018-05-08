@@ -21,13 +21,13 @@ install(FILES
     device.h
     device_id.h
     dtype.h
-    elementwise_kernel_arg.h
+    elementwise.h
     error.h
     graph.h
+    index_iterator.h
     indexable_array.h
     indexer.h
     macro.h
-    ndim_vector.h
     numeric_limits.h
     optional_container_arg.h
     reduction_kernel_arg.h
@@ -86,7 +86,8 @@ if(ENABLE_TEST)
         context_test.cc
         device_test.cc
         dtype_test.cc
-        elementwise_kernel_arg_test.cc
+        elementwise_test.cc
+        index_iterator_test.cc
         indexable_array_test.cc
         indexer_test.cc
         numeric_limits_test.cc

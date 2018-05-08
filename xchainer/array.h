@@ -128,7 +128,7 @@ public:
 
     // Takes elements specified by indices from the array.
     //
-    // TODO(niboshi): Support Scalar and NdimVector<int64_t> as indices.
+    // TODO(niboshi): Support Scalar and StackVector as indices.
     // TODO(niboshi): Support axis=None behavior in NumPy.
     // TODO(niboshi): Support indices dtype other than int64.
     Array Take(const Array& indices, int8_t axis) const;

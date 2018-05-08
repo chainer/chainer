@@ -10,7 +10,6 @@
 #include "xchainer/axes.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/scalar.h"
@@ -362,8 +361,8 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
         // Compute the gradient
         Array cond = (a == reshaped_out);
         Array broadcasted_gout = reshaped_gout.BroadcastTo(cond.shape());
-        // TODO(sonots): AsType allocates a new array, use faster methods when available instead.
-        return broadcasted_gout * cond.AsType(gout.dtype());
+        // TODO(sonots): Use `where` if it becomes available.
+        return broadcasted_gout * cond.AsType(gout.dtype(), false);
     };
     internal::SetUpOpNodes("amax", {a}, out, {backward_function});
 

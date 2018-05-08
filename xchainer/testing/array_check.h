@@ -51,7 +51,7 @@ template <typename T>
 void ExpectDataEqual(const T* expected_data, const Array& actual) {
     Array native_actual = actual.ToNative();
     IndexableArray<const T> actual_iarray{native_actual};
-    Indexer indexer{actual.shape()};
+    Indexer<> indexer{actual.shape()};
     for (auto it = indexer.It(0); it; ++it) {
         T actual_value = actual_iarray[it];
         int64_t i = it.raw_index();
@@ -63,7 +63,7 @@ template <typename T>
 void ExpectDataEqual(T expected, const Array& actual) {
     Array native_actual = actual.ToNative();
     IndexableArray<const T> actual_iarray{native_actual};
-    Indexer indexer{actual.shape()};
+    Indexer<> indexer{actual.shape()};
     for (auto it = indexer.It(0); it; ++it) {
         T actual_value = actual_iarray[it];
         if (std::isnan(expected)) {

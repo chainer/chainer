@@ -9,11 +9,11 @@
 #include <gsl/gsl>
 
 #include "xchainer/array.h"
+#include "xchainer/axes.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/indexer.h"
 #include "xchainer/macro.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
@@ -26,8 +26,120 @@ using WithConstnessOf = std::conditional_t<std::is_const<From>::value, std::add_
 
 }  // namespace indexable_array_detail
 
-template <typename T>
+template <typename T, int8_t kNdim = kDynamicNdim>
 class IndexableArray {
+public:
+    using ElementType = T;
+
+    IndexableArray(T* data, const Strides& strides) : data_{data} { std::copy(strides.begin(), strides.end(), strides_); }
+
+    IndexableArray(const Array& array, const Strides& strides)
+        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()), strides} {
+        assert(TypeToDtype<T> == array.dtype());
+
+#ifndef NDEBUG
+        gsl::span<const uint8_t> data_range = array.GetDataRange();
+        first_ = data_range.data();
+        last_ = first_ + data_range.size_bytes();
+#endif
+    }
+
+    explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
+
+    XCHAINER_HOST_DEVICE int8_t ndim() const { return kNdim; }
+
+    XCHAINER_HOST_DEVICE const int64_t* strides() const { return strides_; }
+
+    XCHAINER_HOST_DEVICE T* data() const { return data_; }
+
+    XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
+        auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_);
+        for (int8_t dim = 0; dim < kNdim; ++dim) {
+            data_ptr += strides_[dim] * index[dim];
+        }
+        assert(first_ == nullptr || first_ <= data_ptr);
+        assert(last_ == nullptr || data_ptr <= last_ - sizeof(T));
+        return *reinterpret_cast<T*>(data_ptr);
+    }
+
+    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<kNdim>& it) const { return operator[](it.index()); }
+
+    // Permutes the axes.
+    //
+    // It is the caller's responsibility to ensure validity of permutation.
+    // If the permutation is invalid, the behavior is undefined.
+    IndexableArray<T, kNdim>& Permute(const Axes& axes) {
+        assert(axes.size() == static_cast<size_t>(kNdim));
+        int64_t c[kNdim]{};
+        std::copy(std::begin(strides_), std::end(strides_), c);
+        for (size_t i = 0; i < axes.size(); ++i) {
+            strides_[i] = c[axes[i]];
+        }
+        return *this;
+    }
+
+private:
+    T* data_;
+#ifndef NDEBUG
+    const uint8_t* first_{nullptr};
+    const uint8_t* last_{nullptr};
+#endif
+    int64_t strides_[kNdim];
+};
+
+// Static 1-dimensional specialization.
+template <typename T>
+class IndexableArray<T, 1> {
+public:
+    using ElementType = T;
+
+    IndexableArray(T* data, const Strides& strides) : data_{data}, stride_{strides[0]} { assert(1 == strides.ndim()); }
+
+    IndexableArray(const Array& array, const Strides& strides)
+        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()), strides} {
+        assert(TypeToDtype<T> == array.dtype());
+
+#ifndef NDEBUG
+        gsl::span<const uint8_t> data_range = array.GetDataRange();
+        first_ = data_range.data();
+        last_ = first_ + data_range.size_bytes();
+#endif
+    }
+
+    explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
+
+    XCHAINER_HOST_DEVICE constexpr int8_t ndim() const { return 1; }
+
+    XCHAINER_HOST_DEVICE const int64_t* strides() const { return &stride_; }
+
+    XCHAINER_HOST_DEVICE T* data() const { return data_; }
+
+    XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
+        auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_) + stride_ * index[0];
+        assert(first_ == nullptr || first_ <= data_ptr);
+        assert(last_ == nullptr || data_ptr <= last_ - sizeof(T));
+        return *reinterpret_cast<T*>(data_ptr);
+    }
+
+    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<1>& it) const { return operator[](it.index()); }
+
+    IndexableArray<T, kDynamicNdim>& Permute(const Axes& axes) {
+        // NOOP for 1-dimensional array.
+        return *this;
+    }
+
+private:
+    T* data_;
+#ifndef NDEBUG
+    const uint8_t* first_{nullptr};
+    const uint8_t* last_{nullptr};
+#endif
+    int64_t stride_{};
+};
+
+// Runtime determined dynamic dimension specialization.
+template <typename T>
+class IndexableArray<T, kDynamicNdim> {
 public:
     using ElementType = T;
 
@@ -64,7 +176,7 @@ public:
         return *reinterpret_cast<T*>(data_ptr);
     }
 
-    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator& it) const { return operator[](it.index()); }
+    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<kDynamicNdim>& it) const { return operator[](it.index()); }
 
     // Permutes the axes.
     //
@@ -73,7 +185,7 @@ public:
     //
     // It is the caller's responsibility to ensure validity of permutation.
     // If the permutation is invalid, the behavior is undefined.
-    IndexableArray<T>& Permute(const NdimVector<int8_t>& axes) {
+    IndexableArray<T, kDynamicNdim>& Permute(const Axes& axes) {
         assert(axes.size() <= static_cast<size_t>(ndim_));
         int64_t c[kMaxNdim]{};
         std::copy(std::begin(strides_), std::end(strides_), c);

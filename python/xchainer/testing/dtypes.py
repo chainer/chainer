@@ -22,6 +22,16 @@ float_dtypes = (
 )
 
 
+nonfloat_dtypes = (
+    'bool_',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'uint8',
+)
+
+
 signed_dtypes = (
     'int8',
     'int16',
@@ -29,6 +39,11 @@ signed_dtypes = (
     'int64',
     'float32',
     'float64',
+)
+
+
+unsigned_dtypes = (
+    'uint8',
 )
 
 

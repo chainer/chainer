@@ -177,12 +177,13 @@ Array Array::ToDevice(Device& dst_device) const {
     Device& src_device = body_->device_;
     Array out;
 
+    // TODO(sonots): Avoid copying data between native devices, e.g., from native:0 to native:1 for performance.
     if (&src_device == &dst_device) {
         // Return an alias.
         out = AsConstant(CopyKind::kView);
     } else {
-        // Make a contiguous copy, then transfer it to the destination device.
-        Array src_contig = AsConstant(CopyKind::kCopy);
+        // Make a contiguous copy to transfer it to the destination device.
+        Array src_contig = AsContiguousArray(AsConstant(CopyKind::kView));
 
         std::shared_ptr<void> dst_data;
         if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
@@ -195,7 +196,7 @@ Array Array::ToDevice(Device& dst_device) const {
             // Neither backends support transfer.
             throw XchainerError{"Transfer between devices is not supported: src='", src_device.name(), "' dst='", dst_device.name(), "'."};
         }
-        out = Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data), src_contig.offset()};
+        out = Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data)};
     }
 
     assert(out.body() != nullptr);

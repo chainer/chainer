@@ -19,7 +19,6 @@
 #include "xchainer/cuda/reduce.cuh"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
-#include "xchainer/elementwise_kernel_arg.h"
 #include "xchainer/enum.h"
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
@@ -34,23 +33,18 @@
 namespace xchainer {
 namespace cuda {
 
+CudaDevice::CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
+
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
-    if (bytesize == 0) {
-        return nullptr;
-    }
-    CheckCudaError(cudaSetDevice(index()));
-    void* raw_ptr = nullptr;
-    // Be careful to be exception-safe, i.e.,
-    // do not throw any exceptions before creating shared_ptr when memory allocation is succeeded
-    cudaError_t status = cudaMallocManaged(&raw_ptr, bytesize, cudaMemAttachGlobal);
-    if (status != cudaSuccess) {
-        cuda::Throw(status);
-    }
-    return std::shared_ptr<void>{raw_ptr, cudaFree};
+    void* ptr = memory_pool_.Malloc(bytesize);
+    return std::shared_ptr<void>{ptr, [this](void* ptr) { memory_pool_.Free(ptr); }};
 }
 
 void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
-    assert(IsPointerCudaMemory(dst));
+    assert(bytesize == 0 || IsPointerCudaMemory(dst));
+    if (bytesize == 0) {
+        return;
+    }
     if (&src_device == this || nullptr != dynamic_cast<CudaDevice*>(&src_device)) {
         // Copy between CUDA devices
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
@@ -63,7 +57,10 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
 }
 
 void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) {
-    assert(src == nullptr || IsPointerCudaMemory(src));
+    assert(bytesize == 0 || src == nullptr || IsPointerCudaMemory(src));
+    if (bytesize == 0) {
+        return;
+    }
     if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
         // Copy between CUDA devices
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
@@ -108,7 +105,7 @@ void CudaDevice::Fill(const Array& out, Scalar value) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T>(out), FillImpl<T>{static_cast<T>(value)});
+        Elementwise<T>(FillImpl<T>{static_cast<T>(value)}, out);
     });
 }
 
@@ -127,7 +124,7 @@ void CudaDevice::Arange(Scalar start, Scalar step, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T>(out), ArangeImpl<T>{static_cast<T>(start), static_cast<T>(step)});
+        Elementwise<T>(ArangeImpl<T>{static_cast<T>(start), static_cast<T>(step)}, out);
     });
 }
 
@@ -226,7 +223,7 @@ void CudaDevice::Copy(const Array& a, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, T>(a, out), CopyImpl<T>{});
+        Elementwise<const T, T>(CopyImpl<T>{}, a, out);
     });
 }
 
@@ -245,7 +242,7 @@ void CudaDevice::AsType(const Array& a, const Array& out) {
     auto do_astype = [&](auto in_pt, auto out_pt) {
         using InT = typename decltype(in_pt)::type;
         using OutT = typename decltype(out_pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const InT, OutT>(a, out), AsTypeImpl<InT, OutT>{});
+        Elementwise<const InT, OutT>(AsTypeImpl<InT, OutT>{}, a, out);
     };
     VisitDtype(out.dtype(), [&](auto out_pt) { VisitDtype(a.dtype(), do_astype, out_pt); });
 }
@@ -264,7 +261,7 @@ void CudaDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, bool>(x1, x2, out), EqualImpl<T>{});
+        Elementwise<const T, const T, bool>(EqualImpl<T>{}, x1, x2, out);
     });
 }
 
@@ -283,7 +280,7 @@ void CudaDevice::Add(const Array& x1, const Array& x2, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), AddImpl<T>{});
+        Elementwise<const T, const T, T>(AddImpl<T>{}, x1, x2, out);
     });
 }
 
@@ -301,7 +298,7 @@ void CudaDevice::Subtract(const Array& x1, const Array& x2, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), SubtractImpl<T>{});
+        Elementwise<const T, const T, T>(SubtractImpl<T>{}, x1, x2, out);
     });
 }
 
@@ -320,7 +317,7 @@ void CudaDevice::Multiply(const Array& x1, const Array& x2, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(x1, x2, out), MultiplyImpl<T>{});
+        Elementwise<const T, const T, T>(MultiplyImpl<T>{}, x1, x2, out);
     });
 }
 
@@ -339,7 +336,7 @@ void CudaDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, T>(x1, out), MultiplyASImpl<T>{static_cast<T>(x2)});
+        Elementwise<const T, T>(MultiplyASImpl<T>{static_cast<T>(x2)}, x1, out);
     });
 }
 
@@ -357,7 +354,7 @@ void CudaDevice::Divide(const Array& lhs, const Array& rhs, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, const T, T>(lhs, rhs, out), DivideImpl<T>{});
+        Elementwise<const T, const T, T>(DivideImpl<T>{}, lhs, rhs, out);
     });
 }
 
@@ -377,9 +374,7 @@ void CudaDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Ar
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(
-                MakeElementwiseKernelArg<const T, const T, T>(x1, neg, out),
-                IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)});
+        Elementwise<const T, const T, T>(IfLessElseASSAImpl<T>{static_cast<T>(x2), static_cast<T>(pos)}, x1, neg, out);
     });
 }
 
@@ -506,7 +501,7 @@ void CudaDevice::Exp(const Array& x, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), ExpImpl<T>{});
+        Elementwise<const T, T>(ExpImpl<T>{}, x, out);
     });
 }
 
@@ -524,7 +519,7 @@ void CudaDevice::Log(const Array& x, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<const T, T>(x, out), LogImpl<T>{});
+        Elementwise<const T, T>(LogImpl<T>{}, x, out);
     });
 }
 
@@ -551,9 +546,9 @@ __global__ void TakeKernel(
         IndexableArray<const T> a_iarray,
         IndexableArray<T> out_iarray,
         IndexableArray<const int64_t> indices_iarray,
-        Indexer a_indexer,
-        Indexer out_indexer,
-        Indexer indices_indexer,
+        Indexer<> a_indexer,
+        Indexer<> out_indexer,
+        Indexer<> indices_indexer,
         int64_t common_total_size,
         int64_t axis_dim) {
     for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
@@ -579,9 +574,9 @@ __global__ void AddAtKernel(
         IndexableArray<const T> b_iarray,
         IndexableArray<T> out_iarray,
         IndexableArray<const int64_t> indices_iarray,
-        Indexer b_indexer,
-        Indexer out_indexer,
-        Indexer indices_indexer,
+        Indexer<> b_indexer,
+        Indexer<> out_indexer,
+        Indexer<> indices_indexer,
         int64_t common_total_size,
         int64_t axis_dim) {
     for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
@@ -628,16 +623,16 @@ void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const A
         Axes a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
         a_iarray.Permute(a_perm);
         Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
-        Indexer a_indexer{a_shape};
+        Indexer<> a_indexer{a_shape};
 
         IndexableArray<T> out_iarray{out};
         Axes out_perm = MakeRollingPermutation(axis, axis + indices.ndim(), out.ndim());
         out_iarray.Permute(out_perm);
         Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
-        Indexer out_indexer{out_shape};
+        Indexer<> out_indexer{out_shape};
 
         IndexableArray<const int64_t> indices_iarray{indices};
-        Indexer indices_indexer{indices.shape()};
+        Indexer<> indices_indexer{indices.shape()};
 
         // size of (Ni..., Nj...) part
         int64_t common_total_size = a_indexer.total_size() / a_shape[0];
@@ -673,22 +668,22 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
         Axes a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
         a_iarray.Permute(a_perm);
         Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
-        Indexer a_indexer{a_shape};
+        Indexer<> a_indexer{a_shape};
 
         IndexableArray<const T> b_iarray{b};
         Axes b_perm = MakeRollingPermutation(axis, axis + indices.ndim(), b.ndim());
         b_iarray.Permute(b_perm);
         Shape b_shape = internal::TransposeShape(b.shape(), b_perm);
-        Indexer b_indexer{b_shape};
+        Indexer<> b_indexer{b_shape};
 
         IndexableArray<T> out_iarray{out};
         Axes out_perm = MakeRollingPermutation(axis, axis + 1, out.ndim());
         out_iarray.Permute(out_perm);
         Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
-        Indexer out_indexer{out_shape};
+        Indexer<> out_indexer{out_shape};
 
         IndexableArray<const int64_t> indices_iarray{indices};
-        Indexer indices_indexer{indices.shape()};
+        Indexer<> indices_indexer{indices.shape()};
 
         // size of (Ni..., Nj...) part
         int64_t common_total_size = a_indexer.total_size() / a_shape[0];
@@ -721,7 +716,7 @@ void CudaDevice::Identity(const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T>(out), IdentityImpl<T>{out.shape()[0]});
+        Elementwise<T>(IdentityImpl<T>{out.shape()[0]}, out);
     });
 }
 
@@ -742,7 +737,7 @@ void CudaDevice::Eye(int64_t k, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [k, &out](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise(MakeElementwiseKernelArg<T>(out), EyeImpl<T>{out.shape()[1], k});
+        Elementwise<T>(EyeImpl<T>{out.shape()[1], k}, out);
     });
 }
 
@@ -750,12 +745,12 @@ namespace {
 
 template <typename T>
 __global__ void SetVecInMat(
-        IndexableArray<const T> vec_iarray,
-        IndexableArray<T> mat_iarray,
-        Indexer vec_indexer,
-        Indexer mat_row_indexer,
-        Indexer mat_col_indexer,
-        Indexer mat_indexer,
+        IndexableArray<const T, 1> vec_iarray,
+        IndexableArray<T, 2> mat_iarray,
+        Indexer<1> vec_indexer,
+        Indexer<1> mat_row_indexer,
+        Indexer<1> mat_col_indexer,
+        Indexer<2> mat_indexer,
         int64_t mat_row_start,
         int64_t mat_col_start) {
     for (auto vec_it = vec_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); vec_it; ++vec_it) {
@@ -768,12 +763,12 @@ __global__ void SetVecInMat(
 
 template <typename T>
 __global__ void GetVecFromMat(
-        IndexableArray<const T> mat_iarray,
-        IndexableArray<T> vec_iarray,
-        Indexer mat_row_indexer,
-        Indexer mat_col_indexer,
-        Indexer mat_indexer,
-        Indexer vec_indexer,
+        IndexableArray<const T, 2> mat_iarray,
+        IndexableArray<T, 1> vec_iarray,
+        Indexer<1> mat_row_indexer,
+        Indexer<1> mat_col_indexer,
+        Indexer<2> mat_indexer,
+        Indexer<1> vec_indexer,
         int64_t mat_row_start,
         int64_t mat_col_start) {
     for (auto vec_it = vec_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); vec_it; ++vec_it) {
@@ -792,11 +787,6 @@ void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
-        IndexableArray<const T> v_iarray{v};
-        IndexableArray<T> out_iarray{out};
-        Indexer v_indexer{v.shape()};
-        Indexer out_indexer{out.shape()};
-
         // Start indices for the 2-D array axes with applied offset k.
         int64_t row_start{0};
         int64_t col_start{0};
@@ -811,8 +801,12 @@ void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
             // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
             Fill(out, T{0});
 
-            Indexer out_row_indexer{Shape{out.shape()[0]}};
-            Indexer out_col_indexer{Shape{out.shape()[1]}};
+            IndexableArray<const T, 1> v_iarray{v};
+            IndexableArray<T, 2> out_iarray{out};
+            Indexer<1> v_indexer{v.shape()};
+            Indexer<1> out_row_indexer{Shape{out.shape()[0]}};
+            Indexer<1> out_col_indexer{Shape{out.shape()[1]}};
+            Indexer<2> out_indexer{out.shape()};
 
             static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SetVecInMat<T>).block_size;
             int64_t total_size = out_indexer.total_size();
@@ -823,8 +817,12 @@ void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
                     v_iarray, out_iarray, v_indexer, out_row_indexer, out_col_indexer, out_indexer, row_start, col_start);
 
         } else if (v.ndim() == 2) {
-            Indexer v_row_indexer{Shape{v.shape()[0]}};
-            Indexer v_col_indexer{Shape{v.shape()[1]}};
+            IndexableArray<const T, 2> v_iarray{v};
+            IndexableArray<T, 1> out_iarray{out};
+            Indexer<1> v_row_indexer{Shape{v.shape()[0]}};
+            Indexer<1> v_col_indexer{Shape{v.shape()[1]}};
+            Indexer<2> v_indexer{v.shape()};
+            Indexer<1> out_indexer{out.shape()};
 
             static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&GetVecFromMat<T>).block_size;
             int64_t total_size = out_indexer.total_size();
@@ -859,7 +857,7 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         int64_t n = out.shape()[0];
-        Elementwise(MakeElementwiseKernelArg<T>(out), LinspaceImpl<T>{n, start, stop});
+        Elementwise<T>(LinspaceImpl<T>{n, start, stop}, out);
     });
 }
 

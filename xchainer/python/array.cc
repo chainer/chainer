@@ -20,7 +20,6 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_backend.h"
-#include "xchainer/ndim_vector.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
 #include "xchainer/routines/manipulation.h"
@@ -40,6 +39,50 @@ namespace internal {
 
 namespace py = pybind11;
 
+namespace {
+
+ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
+    const py::buffer_info& info = array.request();
+    Shape shape{info.shape};
+    Dtype dtype = internal::GetDtypeFromNumpyDtype(array.dtype());
+    std::shared_ptr<void> data{info.ptr, [](void*) {}};
+    Strides strides{info.strides};
+    Device& native_device = xchainer::GetDevice({"native", 0});
+
+    Array numpy_view = xchainer::internal::FromHostData(shape, dtype, data, strides, native_device);
+    // TODO(sonots): Add copy option to ToDevice, and use ToDevice(device, true) to always copy.
+    if (&device == &native_device) {
+        return numpy_view.Copy().move_body();
+    }
+    return numpy_view.ToDevice(device).move_body();
+}
+
+ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& device) {
+    if (py::isinstance<ArrayBody>(object)) {
+        Array a = Array{py::cast<ArrayBodyPtr>(object)};
+        Dtype dtype_ = dtype.is_none() ? a.dtype() : internal::GetDtype(dtype);
+
+        if (!copy && a.dtype() == dtype_ && &a.device() == &device) {
+            return a.move_body();
+        }
+        // Note that the graph is connected.
+        if (&a.device() != &device) {
+            return a.ToDevice(device).AsType(dtype_, false).move_body();
+        }
+        if (a.dtype() != dtype_) {
+            return a.AsType(dtype_, true).move_body();
+        }
+        return a.Copy().move_body();
+    }
+
+    // TODO(sonots): Remove dependency on numpy
+    py::object array_func = py::module::import("numpy").attr("array");
+    py::object a = dtype.is_none()
+                           ? array_func(object, py::arg("copy") = false)
+                           : array_func(object, py::arg("dtype") = GetDtypeName(internal::GetDtype(dtype)), py::arg("copy") = false);
+    return MakeArrayFromNumpyArray(a, device);
+}
+
 ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& list, Device& device) {
     Shape shape = ToShape(shape_tup);
     auto total_size = shape.GetTotalSize();
@@ -58,32 +101,8 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
     return xchainer::internal::FromContiguousHostData(shape, dtype, ptr, device).move_body();
 }
 
-ArrayBodyPtr MakeArray(py::array array, Device& device) {
-    Dtype dtype = internal::GetDtypeFromNumpyDtype(array.dtype());
-    const py::buffer_info& info = array.request();
-    Shape shape{info.shape};
-    Strides strides{info.strides};
-
-    // data holds the copy of py::array which in turn references the NumPy array and the buffer is therefore not released
-    void* underlying_data = array.mutable_data();
-    std::shared_ptr<void> data{std::make_shared<py::array>(std::move(array)), underlying_data};
-    return xchainer::internal::FromHostData(shape, dtype, data, strides, device).move_body();
-}
-
-namespace {
-
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
     Array array = Array{self}.ToNative();
-
-    // TODO(sonots): Remove following workaround if pybind11's segv problem with zero-sized shape is fixed.
-    // See https://github.com/pybind/pybind11/issues/1370
-    if (array.shape().ndim() == 0) {
-        py::array py_array = py::array{py::dtype{std::string(1, GetCharCode(array.dtype()))},
-                                       {1},
-                                       reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()};  // NOLINT: reinterpret_cast
-        py_array.resize({});
-        return py_array;
-    }
 
     return py::array{py::buffer_info{reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset(),  // NOLINT: reinterpret_cast
                                      array.element_bytes(),
@@ -94,6 +113,10 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
 }
 
 }  // namespace
+
+ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device) {
+    return MakeArray(object, dtype, copy, internal::GetDevice(device));
+}
 
 void InitXchainerArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
@@ -296,7 +319,7 @@ void InitXchainerArray(pybind11::module& m) {
         VisitDtype(array.dtype(), [&array, &list](auto pt) {
             using T = typename decltype(pt)::type;
             IndexableArray<const T> iarray{array};
-            Indexer indexer{array.shape()};
+            Indexer<> indexer{array.shape()};
 
             for (auto it = indexer.It(0); it; ++it) {
                 list.append(iarray[it]);

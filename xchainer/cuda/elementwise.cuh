@@ -2,52 +2,68 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <tuple>
 #include <utility>
 
+#include "xchainer/constant.h"
 #include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/elementwise_kernel_arg.h"
+#include "xchainer/elementwise.h"
+#include "xchainer/index_iterator.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/shape.h"
 
 namespace xchainer {
 namespace cuda {
 namespace elementwise_detail {
 
-template <typename ElementwiseImpl, typename... Ts>
-__global__ void ElementwiseKernel(ElementwiseImpl impl, Indexer indexer, IndexableArray<Ts>... args) {
+template <int8_t Ndim, typename Op, typename... Ts>
+__global__ void ElementwiseKernel(Op op, Indexer<Ndim> indexer, IndexableArray<Ts, Ndim>... args) {
     for (auto it = indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
-        impl(it.raw_index(), args[it]...);
+        op(it.raw_index(), args[it]...);
     }
 }
 
-// Unpacks the argument arrays from a tuple to a parameter pack and launches a kernel. See xchainer/native/elementwise.h.
-template <typename... Ts>
-struct KernelLauncher {
-    template <typename Kernel, typename ElementwiseImpl>
-    void operator()(Kernel&& kernel, ElementwiseImpl&& impl) {
-        UnpackAndLaunch(std::forward<Kernel>(kernel), std::forward<ElementwiseImpl>(impl), std::index_sequence_for<Ts...>());
-    }
+template <int8_t Ndim, typename Op, typename... Ts, typename... Arrays>
+void LaunchElementwiseKernel(Op&& op, const Shape& shape, const Axes& axes, const Arrays&... args) {
+    static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&ElementwiseKernel<Ndim, Op, Ts...>).block_size;
 
-    template <typename Kernel, typename ElementwiseImpl, std::size_t... Is>
-    void UnpackAndLaunch(Kernel&& kernel, ElementwiseImpl&& impl, std::index_sequence<Is...>) {
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(kernel).block_size;
+    int64_t total_size = shape.GetTotalSize();
+    int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+    int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-        int64_t total_size = arg.indexer.total_size();
-        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
-
-        kernel<<<grid_size, block_size>>>(std::forward<ElementwiseImpl>(impl), arg.indexer, std::get<Is>(arg.iarrays)...);
-    }
-
-    ElementwiseKernelArg<Ts...>& arg;
-};
+    ElementwiseKernel<Ndim, Op, Ts...>
+            <<<grid_size, block_size>>>(op, Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args, Reduce(args.strides(), axes)}...);
+}
 
 }  // namespace elementwise_detail
 
-template <typename ElementwiseImpl, typename... Ts>
-void Elementwise(ElementwiseKernelArg<Ts...> arg, ElementwiseImpl&& impl) {
-    elementwise_detail::KernelLauncher<Ts...>{arg}(
-            &elementwise_detail::ElementwiseKernel<ElementwiseImpl, Ts...>, std::forward<ElementwiseImpl>(impl));
+template <typename... Ts, typename... Arrays, typename Op>
+void Elementwise(Op&& op, const Arrays&... args) {
+    static_assert(sizeof...(Ts) == sizeof...(Arrays), "Data types must be specified per Array. ");
+
+    Shape reduced{};
+    Axes keep{};
+    std::tie(reduced, keep) = ReducedShape(args...);
+
+    // TODO(hvy): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
+    switch (reduced.ndim()) {
+        case 1:
+            elementwise_detail::LaunchElementwiseKernel<1, Op, Ts...>(std::forward<Op>(op), reduced, keep, args...);
+            break;
+        case 2:
+            elementwise_detail::LaunchElementwiseKernel<2, Op, Ts...>(std::forward<Op>(op), reduced, keep, args...);
+            break;
+        case 3:
+            elementwise_detail::LaunchElementwiseKernel<3, Op, Ts...>(std::forward<Op>(op), reduced, keep, args...);
+            break;
+        case 4:
+            elementwise_detail::LaunchElementwiseKernel<4, Op, Ts...>(std::forward<Op>(op), reduced, keep, args...);
+            break;
+        default:
+            elementwise_detail::LaunchElementwiseKernel<kDynamicNdim, Op, Ts...>(std::forward<Op>(op), reduced, keep, args...);
+            break;
+    }
 }
 
 }  // namespace cuda
