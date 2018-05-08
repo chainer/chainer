@@ -20,12 +20,14 @@ class MeanAbsoluteError(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
-        diff = (inputs[0] - inputs[1]).ravel()
+        x0, x1 = inputs
+        diff = (x0 - x1).ravel()
         return numpy.array(abs(diff).sum() / diff.size, dtype=diff.dtype),
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))
-        diff = (inputs[0] - inputs[1]).ravel()
+        x0, x1 = inputs
+        diff = (x0 - x1).ravel()
         return abs(diff).sum() / diff.dtype.type(diff.size),
 
     def backward(self, indexes, grad_outputs):
