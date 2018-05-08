@@ -248,7 +248,7 @@ The training loop code is as follows:
         model.cleargrads()
         loss.backward()
 
-        # Update all the trainable paremters
+        # Update all the trainable parameters
         optimizer.update()
         # --------------------- until here ---------------------
 
@@ -335,7 +335,7 @@ Once the model is restored, it can be used to predict image labels on new input 
     # Create an instance of the network you trained
     model = MyNetwork()
 
-    # Load the saved paremeters into the instance
+    # Load the saved parameters into the instance
     serializers.load_npz('my_mnist.model', model)
 
     # Get a test image and label
@@ -362,7 +362,7 @@ The saved test image looks like:
     x = x[None, ...]
     print(x.shape)
 
-    # forward calculation of the model by sending X
+    # Forward calculation of the model by sending X
     y = model(x)
 
     # The result is given as Variable, then we can take a look at the contents by the attribute, .data.
