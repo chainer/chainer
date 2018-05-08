@@ -24,7 +24,9 @@
 #include "xchainer/routines/indexing.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/sorting.h"
+#include "xchainer/shape.h"
 #include "xchainer/slice.h"
+#include "xchainer/strides.h"
 
 #include "xchainer/python/array_index.h"
 #include "xchainer/python/common.h"
@@ -45,19 +47,26 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     const py::buffer_info& info = array.request();
     Shape shape{info.shape};
     Dtype dtype = internal::GetDtypeFromNumpyDtype(array.dtype());
-    std::shared_ptr<void> data{info.ptr, [](void*) {}};
-    Strides strides{info.strides};
-    Device& native_device = xchainer::GetDevice({"native", 0});
-
-    Array numpy_view = xchainer::internal::FromHostData(shape, dtype, data, strides, native_device);
-    // TODO(sonots): Add copy option to ToDevice, and use ToDevice(device, true) to always copy.
-    if (&device == &native_device) {
-        return numpy_view.Copy().move_body();
+    Strides strides{array.strides(), array.strides() + array.ndim()};
+    if (shape.GetTotalSize() == 0) {
+        for (int8_t i = strides.ndim() - 1; i >= 1; --i) {
+            if (strides[i - 1] == 0) {
+                strides[i - 1] = strides[i];
+            }
+        }
     }
-    return numpy_view.ToDevice(device).move_body();
+
+    // Copy to a newly allocated data
+    std::tuple<int64_t, int64_t> range = GetDataRange(shape, strides, info.itemsize);
+    auto bytesize = static_cast<size_t>(std::get<1>(range) - std::get<0>(range));
+    std::shared_ptr<void> data = std::make_unique<uint8_t[]>(bytesize);
+    std::memcpy(data.get(), info.ptr, bytesize);
+    // Create and return the array
+    return xchainer::internal::FromHostData(shape, dtype, data, strides, device).move_body();
 }
 
-ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& device) {
+ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& device, bool reuse_numpy_strides = false) {
+    // object is xchainer.ndarray
     if (py::isinstance<ArrayBody>(object)) {
         Array a = Array{py::cast<ArrayBodyPtr>(object)};
         Dtype dtype_ = dtype.is_none() ? a.dtype() : internal::GetDtype(dtype);
@@ -75,12 +84,31 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& d
         return a.Copy().move_body();
     }
 
-    // TODO(sonots): Remove dependency on numpy
-    py::object array_func = py::module::import("numpy").attr("array");
-    py::object a = dtype.is_none()
+    py::array np_array{};
+
+    // object is numpy.ndarray
+    if (py::isinstance<py::array>(object)) {
+        np_array = py::cast<py::array>(object);
+        if (!reuse_numpy_strides) {
+            // Adjust strides using numpy.array()
+            // TODO(niboshi): Remove dependency on numpy
+            py::object array_func = py::module::import("numpy").attr("array");
+            if (dtype.is_none()) {
+                np_array = array_func(np_array, py::arg("copy") = true);
+            } else {
+                np_array = array_func(np_array, py::arg("dtype") = GetDtypeName(internal::GetDtype(dtype)), py::arg("copy") = false);
+            }
+        }
+    } else {
+        // otherwise; convert object to NumPy array using numpy.array()
+        // TODO(sonots): Remove dependency on numpy
+        py::object array_func = py::module::import("numpy").attr("array");
+        np_array = dtype.is_none()
                            ? array_func(object, py::arg("copy") = false)
                            : array_func(object, py::arg("dtype") = GetDtypeName(internal::GetDtype(dtype)), py::arg("copy") = false);
-    return MakeArrayFromNumpyArray(a, device);
+    }
+    // Convert NumPy array to Xchainer array
+    return MakeArrayFromNumpyArray(np_array, device);
 }
 
 ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& list, Device& device) {
@@ -103,7 +131,6 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
 
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
     Array array = Array{self}.ToNative();
-
     return py::array{py::buffer_info{reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset(),  // NOLINT: reinterpret_cast
                                      array.element_bytes(),
                                      std::string(1, GetCharCode(array.dtype())),
@@ -114,8 +141,8 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
 
 }  // namespace
 
-ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device) {
-    return MakeArray(object, dtype, copy, internal::GetDevice(device));
+ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device, bool reuse_numpy_strides) {
+    return MakeArray(object, dtype, copy, internal::GetDevice(device), reuse_numpy_strides);
 }
 
 void InitXchainerArray(pybind11::module& m) {

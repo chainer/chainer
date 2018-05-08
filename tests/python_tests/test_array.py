@@ -169,7 +169,7 @@ def test_to_device():
 
 
 def _check_tonumpy(a_np, a_xc):
-    xchainer.testing.assert_array_equal(a_xc, a_np)
+    xchainer.testing.assert_array_equal(a_xc, a_np, strides_check=False)
     if a_np.size > 0:
         # test buffer is not shared
         a_np.fill(1)
@@ -1098,7 +1098,8 @@ def test_array_backward():
     assert gx1.get_grad(graph_id='graph_1') is not None
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+# TODO(niboshi): Remove strides_check=False
+@xchainer.testing.numpy_xchainer_array_equal(strides_check=False)
 @pytest.mark.parametrize("shape,indices", [
     # empty indexing
     ((), ()),
@@ -1271,7 +1272,8 @@ def test_take_backward(is_module, dtype, shape, indices, axis, device):
 
 
 # TODO(sonots): Fix type compatibility
-@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+# TODO(niboshi): Remove strides_check=False
+@xchainer.testing.numpy_xchainer_array_equal(type_check=False, strides_check=False)
 @pytest.mark.parametrize("keepdims", [False, True])
 @pytest.mark.parametrize("shape,axis", [
     ((), None),
@@ -1577,7 +1579,8 @@ def test_max_amax():
 
 @pytest.mark.parametrize('input,axis', _min_max_multi_axis_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
+# TODO(niboshi): Remove strides_check=False
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError), strides_check=False)
 def test_max(is_module, xp, device, input, axis, dtype):
     try:
         a_np = input.astype(dtype)

@@ -3,6 +3,7 @@
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <tuple>
 
 #include <gsl/gsl>
 
@@ -18,7 +19,7 @@ Strides::Strides(const Shape& shape, int64_t element_size) {
     auto it = rbegin();
     for (int8_t i = ndim - 1; i >= 0; --i, ++it) {
         *it = stride;
-        stride *= shape[i];
+        stride *= std::max(int64_t{1}, shape[i]);
     }
 }
 
@@ -44,6 +45,18 @@ void CheckEqual(const Strides& lhs, const Strides& rhs) {
     if (lhs != rhs) {
         throw DimensionError{"strides mismatched"};
     }
+}
+
+std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& strides, size_t element_bytes) {
+    assert(shape.ndim() == strides.ndim());
+    int64_t first = 0;
+    int64_t last = 0;
+
+    for (int8_t i = 0; i < shape.ndim(); ++i) {
+        auto& first_or_last = strides[i] < 0 ? first : last;
+        first_or_last += shape[i] * strides[i];
+    }
+    return {first, last + element_bytes};
 }
 
 }  // namespace xchainer

@@ -291,17 +291,11 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) const {
 void Array::ClearGrad(const GraphId& graph_id) const { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
 
 gsl::span<const uint8_t> Array::GetDataRange() const {
-    auto first = reinterpret_cast<uint8_t*>(raw_data()) + offset();  // NOLINT: reinterpret_cast
-    auto last = first;
-
-    const Shape& shape = this->shape();
-    const Strides& strides = this->strides();
-
-    for (int8_t i = 0; i < ndim(); ++i) {
-        auto& first_or_last = strides[i] < 0 ? first : last;
-        first_or_last += shape[i] * strides[i];
-    }
-    return {first, last + element_bytes()};
+    std::tuple<int64_t, int64_t> range = xchainer::GetDataRange(shape(), strides(), element_bytes());
+    int64_t lower = std::get<0>(range);
+    int64_t upper = std::get<1>(range);
+    auto base = reinterpret_cast<const uint8_t*>(raw_data()) + offset();
+    return {base + lower, base + upper};
 }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }

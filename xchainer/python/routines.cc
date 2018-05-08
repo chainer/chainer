@@ -53,7 +53,7 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("ascontiguousarray",
           [](py::handle a, py::handle dtype, py::handle device) {
-              Array arr{internal::MakeArray(a, dtype, false, device)};
+              Array arr{internal::MakeArray(a, dtype, false, device, true)};
               return AsContiguousArray(arr).move_body();
           },
           py::arg("a"),

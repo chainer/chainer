@@ -33,7 +33,7 @@ def _preprocess_input(a):
     return a
 
 
-def assert_allclose(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True):
+def assert_allclose(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, *, strides_check=True):
     """Raises an AssertionError if two array_like objects are not equal up to a tolerance.
 
     Args:
@@ -47,16 +47,17 @@ def assert_allclose(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose
              are appended to the error message.
     .. seealso:: :func:`numpy.testing.assert_allclose`
     """
+    if strides_check:
+        if isinstance(x, (numpy.ndarray, xchainer.ndarray)) and isinstance(y, (numpy.ndarray, xchainer.ndarray)):
+            assert x.strides == y.strides
+
     x = _preprocess_input(x)
     y = _preprocess_input(y)
-
-    # TODO(sonots): Uncomment after strides compatibility between xChainer and NumPy is implemented.
-    # assert x.strides == y.strides
 
     numpy.testing.assert_allclose(x, y, rtol=rtol, atol=atol, equal_nan=equal_nan, err_msg=err_msg, verbose=verbose)
 
 
-def assert_array_equal(x, y, err_msg='', verbose=True):
+def assert_array_equal(x, y, err_msg='', verbose=True, *, strides_check=True):
     """Raises an AssertionError if two array_like objects are not equal.
 
     Args:
@@ -67,10 +68,11 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
              are appended to the error message.
     .. seealso:: :func:`numpy.testing.assert_array_equal`
     """
+    if strides_check:
+        if isinstance(x, (numpy.ndarray, xchainer.ndarray)) and isinstance(y, (numpy.ndarray, xchainer.ndarray)):
+            assert x.strides == y.strides
+
     x = _preprocess_input(x)
     y = _preprocess_input(y)
-
-    # TODO(sonots): Uncomment after strides compatibility between xChainer and NumPy is implemented.
-    # assert x.strides == y.strides
 
     numpy.testing.assert_array_equal(x, y, err_msg=err_msg, verbose=verbose)

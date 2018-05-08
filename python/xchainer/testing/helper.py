@@ -112,7 +112,8 @@ def _make_decorator(check_result_func, name, type_check, accept_error):
     return decorator
 
 
-def numpy_xchainer_allclose(*, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', type_check=True, accept_error=()):
+def numpy_xchainer_allclose(
+        *, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', type_check=True, accept_error=(), strides_check=True):
     """Decorator that checks that NumPy and xChainer results are equal up to a tolerance.
 
     Args:
@@ -123,7 +124,8 @@ def numpy_xchainer_allclose(*, rtol=1e-7, atol=0, equal_nan=True, err_msg='', ve
          verbose(bool): If ``True``, the conflicting values are
              appended to the error message.
          name(str): Argument name whose value is either ``numpy`` or ``xchainer`` module.
-         type_check(bool): If ``True``, consistency of dtype is also checked.
+         type_check(bool): If ``True``, consistency of dtype is also checked. Disabling ``type_check`` also implies ``strides_check=False``.
+         strides_check(bool): If ``True``, consistency of strides is also checked.
          accept_error(Exception or tuple of Exception): Specify
              acceptable errors. When both NumPy test and xChainer test raises the
              same type of errors, and the type of the errors is specified with
@@ -135,13 +137,16 @@ def numpy_xchainer_allclose(*, rtol=1e-7, atol=0, equal_nan=True, err_msg='', ve
 
     .. seealso:: :func:`xchainer.testing.assert_allclose`
     """
+    if not type_check:
+        strides_check = False
+
     def check_result_func(x, y):
-        array.assert_allclose(x, y, rtol, atol, equal_nan, err_msg, verbose)
+        array.assert_allclose(x, y, rtol, atol, equal_nan, err_msg, verbose, strides_check=strides_check)
 
     return _make_decorator(check_result_func, name, type_check, accept_error)
 
 
-def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_check=True, accept_error=()):
+def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_check=True, accept_error=(), strides_check=True):
     """Decorator that checks that NumPy and xChainer results are equal.
 
     Args:
@@ -149,7 +154,8 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_chec
          verbose(bool): If ``True``, the conflicting values are
              appended to the error message.
          name(str): Argument name whose value is either ``numpy`` or ``xchainer`` module.
-         type_check(bool): If ``True``, consistency of dtype is also checked.
+         type_check(bool): If ``True``, consistency of dtype is also checked. Disabling ``type_check`` also implies ``strides_check=False``
+         strides_check(bool): If ``True``, consistency of strides is also checked.
          accept_error(Exception or tuple of Exception): Specify
              acceptable errors. When both NumPy test and xChainer test raises the
              same type of errors, and the type of the errors is specified with
@@ -161,7 +167,10 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_chec
 
     .. seealso:: :func:`xchainer.testing.assert_array_equal`
     """
+    if not type_check:
+        strides_check = False
+
     def check_result_func(x, y):
-        array.assert_array_equal(x, y, err_msg, verbose)
+        array.assert_array_equal(x, y, err_msg, verbose, strides_check=strides_check)
 
     return _make_decorator(check_result_func, name, type_check, accept_error)
