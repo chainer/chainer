@@ -28,8 +28,8 @@ namespace native {
 
 std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) { return std::make_unique<uint8_t[]>(bytesize); }
 
-void NativeDevice::CheckMemoryValidity(const void*) {
-    return;  // no way to check
+void NativeDevice::CheckMemoryValidity(const void* ptr) {
+    (void)ptr;  // unused
 }
 
 void NativeDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
