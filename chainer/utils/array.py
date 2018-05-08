@@ -3,7 +3,9 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
+from chainer import functions
 
 
 def as_vec(x):
@@ -41,6 +43,10 @@ def empty_like(x):
 def sum_to(x, shape):
     if x.shape == shape:
         return x
+    if isinstance(x, chainer.Variable):
+        raise TypeError(
+            'chainer.utils.sum_to does not support Variable input. '
+            'Use chainer.functions.sum_to instead.')
     ndim = len(shape)
     lead = x.ndim - ndim
     lead_axis = tuple(six.moves.range(lead))
