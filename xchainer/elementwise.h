@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <tuple>
+#include <utility>
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
