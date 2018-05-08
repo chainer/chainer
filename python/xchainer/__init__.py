@@ -4,6 +4,7 @@ from builtins import bool, int, float  # NOQA
 
 from xchainer import _core
 
+from xchainer.creation.from_data import asanyarray  # NOQA
 from xchainer.creation.from_data import fromfile  # NOQA
 from xchainer.creation.from_data import fromfunction  # NOQA
 from xchainer.creation.from_data import fromiter  # NOQA

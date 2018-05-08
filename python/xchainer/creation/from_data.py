@@ -10,6 +10,10 @@ def _as_numpy_dtype(dtype):
     return dtype
 
 
+# TODO(sonots): Support subclassing
+asanyarray = xchainer.asarray
+
+
 def loadtxt(
         fname, dtype=float, comments='#', delimiter=None, converters=None, skiprows=0, usecols=None, unpack=False, ndmin=0,
         encoding='bytes', device=None):
