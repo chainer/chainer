@@ -618,6 +618,7 @@ def expect_broadcast_shapes(*shape_types, **kwargs):
     """
     ignore_tail, = argument.parse_kwargs(kwargs, ('ignore_tail', 0))
     shapes = [eval(s) for s in shape_types]
+    error = None
     try:
         numpy.broadcast(*[
             numpy.empty(s[:len(s) - ignore_tail] + (0,)) for s in shapes
@@ -631,4 +632,6 @@ def expect_broadcast_shapes(*shape_types, **kwargs):
         msgs = [msg]
         for shape_type, shape in six.moves.zip(shape_types, shapes):
             msgs.append('{} = {}'.format(shape_type, shape))
-        raise InvalidType('', '', msg='\n'.join(msgs))
+        error = InvalidType('', '', msg='\n'.join(msgs))
+    if error is not None:
+        raise error
