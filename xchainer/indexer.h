@@ -87,6 +87,13 @@ public:
 
     XCHAINER_HOST_DEVICE IndexIterator<1> It(const IndexIterator<1>& iter) { return It(iter.raw_index()); }
 
+    template <int8_t NdimArg, typename... IndexIterators>
+    XCHAINER_HOST_DEVICE IndexIterator<1> It(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
+        IndexIterator<1> it = It(0);
+        indexer_detail::CombineIterators<1>(it, first_iter, std::forward<IndexIterators>(iters)...);
+        return it;
+    }
+
     XCHAINER_HOST_DEVICE static constexpr int8_t ndim() { return 1; }
 
     XCHAINER_HOST_DEVICE int64_t total_size() const { return total_size_; }
