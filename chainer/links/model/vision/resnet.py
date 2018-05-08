@@ -73,7 +73,7 @@ class ResNetLayers(link.Chain):
 
     Attributes:
         ~ResNetLayers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+            layer names used by ``forward`` and ``extract`` methods.
 
     """
 
@@ -156,8 +156,8 @@ class ResNetLayers(link.Chain):
                              ' or 152, but {} was given.'.format(n_layers))
         npz.save_npz(path_npz, chainermodel, compression=False)
 
-    def __call__(self, x, layers=None, **kwargs):
-        """__call__(self, x, layers=['prob'])
+    def forward(self, x, layers=None, **kwargs):
+        """forward(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
 
@@ -205,11 +205,11 @@ class ResNetLayers(link.Chain):
 
         Extracts all the feature maps of given images.
 
-        The difference of directly executing ``__call__`` is that
+        The difference of directly executing ``forward`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
-        ``prepare`` and ``__call__`` functions.
+        ``prepare`` and ``forward`` functions.
 
         .. warning::
 
@@ -330,7 +330,7 @@ class ResNet50Layers(ResNetLayers):
 
     Attributes:
         ~ResNet50Layers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+            layer names used by ``forward`` and ``extract`` methods.
 
     """
 
@@ -383,7 +383,7 @@ class ResNet101Layers(ResNetLayers):
 
     Attributes:
         ~ResNet101Layers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+            layer names used by ``forward`` and ``extract`` methods.
 
     """
 
@@ -435,7 +435,7 @@ class ResNet152Layers(ResNetLayers):
 
     Attributes:
         ~ResNet152Layers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+            layer names used by ``forward`` and ``extract`` methods.
 
     """
 
@@ -448,7 +448,7 @@ class ResNet152Layers(ResNetLayers):
 def prepare(image, size=(224, 224)):
     """Converts the given image to the numpy array for ResNets.
 
-    Note that you have to call this method before ``__call__``
+    Note that you have to call this method before ``forward``
     because the pre-trained resnet model requires to resize the given
     image, covert the RGB to the BGR, subtract the mean,
     and permute the dimensions before calling.
@@ -520,7 +520,7 @@ class BuildingBlock(link.Chain):
                 setattr(self, name, bottleneck)
                 self._forward.append(name)
 
-    def __call__(self, x):
+    def forward(self, x):
         for name in self._forward:
             l = getattr(self, name)
             x = l(x)
@@ -565,7 +565,7 @@ class BottleneckA(link.Chain):
                 nobias=True)
             self.bn4 = BatchNormalization(out_channels)
 
-    def __call__(self, x):
+    def forward(self, x):
         h1 = relu(self.bn1(self.conv1(x)))
         h1 = relu(self.bn2(self.conv2(h1)))
         h1 = self.bn3(self.conv3(h1))
@@ -600,7 +600,7 @@ class BottleneckB(link.Chain):
                 nobias=True)
             self.bn3 = BatchNormalization(in_channels)
 
-    def __call__(self, x):
+    def forward(self, x):
         h = relu(self.bn1(self.conv1(x)))
         h = relu(self.bn2(self.conv2(h)))
         h = self.bn3(self.conv3(h))

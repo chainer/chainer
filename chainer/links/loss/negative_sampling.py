@@ -49,7 +49,7 @@ class NegativeSampling(link.Link):
             super(NegativeSampling, self).to_gpu()
             self.sampler.to_gpu()
 
-    def __call__(self, x, t, reduce='sum'):
+    def forward(self, x, t, reduce='sum'):
         """Computes the loss value for given input and ground truth labels.
 
         Args:

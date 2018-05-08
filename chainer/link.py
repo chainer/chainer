@@ -108,11 +108,11 @@ class Link(object):
                       self.b = chainer.Parameter(
                           initializers.Zero(), (n_out,))
 
-              def __call__(self, x):
+              def forward(self, x):
                   return F.linear(x, self.W, self.b)
 
        This example shows that a user can define arbitrary parameters and use
-       them in any methods. Links typically implement the ``__call__``
+       them in any methods. Links typically implement the ``forward``
        operator, although they can also provide other methods to implement the
        forward propagation.
 
@@ -129,6 +129,8 @@ class Link(object):
 
     """
 
+    _local_link_hooks = None
+
     def __init__(self, **params):
         self._params = set()
         self._persistent = set()
@@ -141,6 +143,41 @@ class Link(object):
             # Note: deprecation warning will be raised in add_param
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
+
+    @property
+    def local_link_hooks(self):
+        """Ordered dictionary of registered link hooks.
+
+        Contrary to ``chainer.thread_local.link_hooks``,
+        which registers its elements to all functions,
+        Function hooks in this property is specific to this function.
+
+        """
+        if self._local_link_hooks is None:
+            self._local_link_hooks = collections.OrderedDict()
+        return self._local_link_hooks
+
+    @property
+    def _n_local_link_hooks(self):
+        return (0 if self._local_link_hooks is None
+                else len(self._local_link_hooks))
+
+    def __call__(self, *args):
+        hooks = chainer.get_link_hooks()
+        if self._n_local_link_hooks > 0:
+            hooks = collections.OrderedDict(hooks)
+            hooks.update(self.local_link_hooks)
+        hooks = hooks.values()  # avoid six for performance
+
+        for hook in hooks:
+            hook.forward_preprocess(self, *args)
+
+        out = self.forward(*args)
+
+        for hook in hooks:
+            hook.forward_postprocess(self, *args)
+
+        return out
 
     @property
     def xp(self):
@@ -631,7 +668,7 @@ Assign a Parameter object directly to an attribute within a \
                                 None, 64, 3, 1, 1, nobias=True)
                             self.bn = L.BatchNormalization(64)
 
-                    def __call__(self, x):
+                    def forward(self, x):
                         return F.relu(self.bn(self.conv(x)))
 
                 net = ConvBNReLU().repeat(16, mode='init')
@@ -760,7 +797,7 @@ class Chain(Link):
                       self.layer2 = L.Linear(n_hidden, n_hidden)
                       self.layer3 = L.Linear(n_hidden, n_out)
 
-              def __call__(self, x):
+              def forward(self, x):
                   # Forward propagation
                   h1 = F.relu(self.layer1(x))
                   h2 = F.relu(self.layer2(h1))
@@ -768,7 +805,7 @@ class Chain(Link):
 
        Child links are registered via the assignment within a
        ``with self.init_scope():`` block. The forward propagation is often
-       implemented as the ``__call__`` operator as the above example, though
+       implemented as the ``forward`` operator as the above example, though
        it is not mandatory.
 
     Args:

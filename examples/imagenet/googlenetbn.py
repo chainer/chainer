@@ -54,7 +54,7 @@ class GoogLeNetBN(chainer.Chain):
             self.normb2 = L.BatchNormalization(1024)
             self.outb = L.Linear(None, 1000)
 
-    def __call__(self, x, t):
+    def forward(self, x, t):
         h = F.max_pooling_2d(
             F.relu(self.norm1(self.conv1(x))),  3, stride=2, pad=1)
         h = F.max_pooling_2d(
@@ -161,5 +161,5 @@ class GoogLeNetBNFp16(GoogLeNetBN):
             self.normb2 = L.BatchNormalization(1024, dtype=dtype)
             self.outb = L.Linear(None, 1000, initialW=W, bias=bias)
 
-    def __call__(self, x, t):
-        return GoogLeNetBN.__call__(self, F.cast(x, self.dtype), t)
+    def forward(self, x, t):
+        return GoogLeNetBN.forward(self, F.cast(x, self.dtype), t)

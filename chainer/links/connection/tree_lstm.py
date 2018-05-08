@@ -63,7 +63,7 @@ class ChildSumTreeLSTM(link.Chain):
         self.state_size = out_size
         utils.experimental('chainer.links.tree_lstm.py')
 
-    def __call__(self, *cshsx):
+    def forward(self, *cshsx):
         """Returns new cell state and output of Child-Sum TreeLSTM.
 
         Args:
@@ -201,7 +201,7 @@ class NaryTreeLSTM(link.Chain):
         self.n_ary = n_ary
         utils.experimental('chainer.links.tree_lstm.py')
 
-    def __call__(self, *cshsx):
+    def forward(self, *cshsx):
         """Returns new cell state and output of N-ary TreeLSTM.
 
         Args:

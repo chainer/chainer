@@ -18,7 +18,7 @@ class Scale(link.Chain):
             input is applied.
         W_shape (tuple of ints): Shape of learnable weight parameter. If
             ``None``, this link does not have learnable weight parameter so an
-            explicit weight needs to be given to its ``__call__`` method's
+            explicit weight needs to be given to its ``forward`` method's
             second input.
         bias_term (bool): Whether to also learn a bias (equivalent to Scale
             link + Bias link).
@@ -55,7 +55,7 @@ class Scale(link.Chain):
                             'learnt parameter and bias_term is True.')
                     self.bias = bias.Bias(axis, bias_shape)
 
-    def __call__(self, *xs):
+    def forward(self, *xs):
         """Applies broadcasted elementwise product.
 
         Args:
