@@ -56,6 +56,8 @@ std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& str
         auto& first_or_last = strides[i] < 0 ? first : last;
         first_or_last += shape[i] * strides[i];
     }
+    assert(first <= 0);
+    assert(0 <= last);
     return std::tuple<int64_t, int64_t>{first, last + element_bytes};
 }
 
