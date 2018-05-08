@@ -59,16 +59,6 @@ class Distribution(object):
         raise NotImplementedError
 
     @property
-    def enumerate_support(self):
-        """Returns support values of discrete distribution.
-
-        Returns:
-            ~chainer.Variable: Output variable containing candidates.
-
-        """
-        raise NotImplementedError
-
-    @property
     def event_shape(self):
         """Returns the shape of an event.
 

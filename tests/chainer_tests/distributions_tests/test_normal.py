@@ -6,7 +6,7 @@ import numpy
 from scipy import stats
 
 
-def normal_params_init(shape):
+def params_init(shape):
     loc = numpy.random.uniform(-1, 1, shape).astype(numpy.float32)
     scale = numpy.exp(numpy.random.uniform(-1, 1, shape)).astype(numpy.float32)
     params = {"loc": loc, "scale": scale}
@@ -24,7 +24,7 @@ tests = set(["batch_shape", "cdf", "entropy", "event_shape", "icdf",
 
 
 @testing.distribution_unittest(distributions.Normal, stats.norm,
-                               normal_params_init, sample_for_test,
+                               params_init, sample_for_test,
                                tests=tests)
 class TestNormal(unittest.TestCase):
     pass

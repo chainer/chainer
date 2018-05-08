@@ -1,8 +1,9 @@
+import chainer
 from chainer.backends import cuda
 from chainer import Distribution
+from chainer.functions.array import broadcast
 from chainer.functions.array import stack
 from chainer.functions.math import exponential
-from chainer import Variable
 import numpy
 
 
@@ -18,7 +19,11 @@ class Bernoulli(Distribution):
     """
 
     def __init__(self, p):
-        self.p = p
+        super(Bernoulli, self).__init__()
+        if isinstance(p, chainer.Variable):
+            self.p = p
+        else:
+            self.p = chainer.Variable(p)
 
     def __copy__(self):
         return self._copy_to(Bernoulli(self.p))
@@ -43,23 +48,8 @@ class Bernoulli(Distribution):
 
         """
         return -self.p * exponential.log(self.p) - \
-            (1 - self.p) * exponential.log(1 - self.p)
-
-    @property
-    def enumerate_support(self):
-        """Returns support values of discrete distribution.
-
-        Returns:
-            ~chainer.Variable: Output variable containing candidates.
-
-        """
-        if self._is_gpu:
-            zeros = cuda.cupy.zeros_like(self.p)
-            ones = cuda.cupy.ones_like(self.p)
-        else:
-            zeros = numpy.zeros_like(self.p)
-            ones = numpy.ones_like(self.p)
-        return stack.stack([zeros, ones], axis=-1)
+            (numpy.float32(1.) - self.p) \
+            * exponential.log(numpy.float32(1.) - self.p)
 
     @property
     def event_shape(self):
@@ -67,7 +57,7 @@ class Bernoulli(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.p, cuda.ndarray)
+        return isinstance(self.p.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm of probability for a input variable.
@@ -82,8 +72,9 @@ class Bernoulli(Distribution):
             probability.
 
         """
-        return x * exponential.log(self.p) \
-            + (1 - x) * exponential.log(1 - self.p)
+        return x * exponential.log(broadcast.broadcast_to(self.p, x.shape)) \
+            + (1. - x) \
+            * exponential.log(1. - broadcast.broadcast_to(self.p, x.shape))
 
     @property
     def mean(self):
@@ -94,19 +85,6 @@ class Bernoulli(Distribution):
 
         """
         return self.p
-
-    @property
-    def mode(self):
-        """Returns mode.
-
-        Returns:
-            ~chainer.Variable: Output variable representing mode.
-
-        """
-        if isinstance(self.p, Variable):
-            return Variable((self.p.data > 0.5) * 1.0)
-        else:
-            return Variable((self.p > 0.5) * 1.0)
 
     def prob(self, x):
         """Returns probability for a input variable.
@@ -120,7 +98,8 @@ class Bernoulli(Distribution):
             ~chainer.Variable: Output variable representing probability.
 
         """
-        return x * self.p + (1 - x) * (1 - self.p)
+        return x * broadcast.broadcast_to(self.p, x.shape) \
+            + (1 - x) * (1 - broadcast.broadcast_to(self.p, x.shape))
 
     def _sample_n(self, n):
         """Samples from this distribution.
@@ -137,12 +116,14 @@ class Bernoulli(Distribution):
         else:
             rand = numpy.random.uniform(size=(n,)+self.p.shape)
 
-        if isinstance(self.p, Variable):
-            criteria = self.p.data
+        criteria = self.p.data
+
+        print(type(criteria), criteria.shape, rand.shape, self._is_gpu)
+        if self._is_gpu:
+            criteria = cuda.cupy.broadcast_to(criteria, rand.shape)
         else:
-            criteria = self.p
-        criteria = numpy.repeat(numpy.expand_dims(criteria, axis=0), n, axis=0)
-        return Variable((rand < criteria) * 1.0)
+            criteria = numpy.broadcast_to(criteria, rand.shape)
+        return chainer.Variable((rand < criteria) * 1.0)
 
     @property
     def stddev(self):
@@ -153,6 +134,16 @@ class Bernoulli(Distribution):
 
         """
         return (self.p * (1 - self.p)) ** 0.5
+
+    @property
+    def support(self):
+        """Returns support.
+
+        Returns:
+            string: Output string that means support of this distribution.
+
+        """
+        return '{0, 1}'
 
     @property
     def variance(self):

@@ -21,7 +21,8 @@ Reason: {}: {}'''.format(__name__, type(_error).__name__, _error))
 
 
 def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
-                          tests=set(), support="real", event_shape=()):
+                          tests=set(), continuous=True, support="real",
+                          event_shape=()):
     check_available()
 
     def f(klass):
@@ -41,6 +42,7 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
             self.sample_for_test = sample_for_test
             self.support = support
             self.event_shape = event_shape
+            self.continuous = continuous
         setattr(klass, "setUp", setUp)
 
         @property
@@ -166,7 +168,10 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 log_prob1 = self.gpu_dist.log_prob(cuda.to_gpu(smp)).data
             else:
                 log_prob1 = self.cpu_dist.log_prob(smp).data
-            log_prob2 = self.scipy_dist.logpdf(smp, **self.scipy_params)
+            if self.continuous:
+                log_prob2 = self.scipy_dist.logpdf(smp, **self.scipy_params)
+            else:
+                log_prob2 = self.scipy_dist.logpmf(smp, **self.scipy_params)
             testing.assert_allclose(log_prob1, log_prob2)
 
         def test_log_prob_cpu(self):
@@ -229,7 +234,12 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 prob1 = self.gpu_dist.prob(cuda.to_gpu(smp)).data
             else:
                 prob1 = self.cpu_dist.prob(smp).data
-            prob2 = self.scipy_dist.pdf(smp, **self.scipy_params)
+            print(type(self.gpu_dist.prob(cuda.to_gpu(smp))))
+            print(type(prob1))
+            if self.continuous:
+                prob2 = self.scipy_dist.pdf(smp, **self.scipy_params)
+            else:
+                prob2 = self.scipy_dist.pmf(smp, **self.scipy_params)
             testing.assert_allclose(prob1, prob2)
 
         def test_prob_cpu(self):
@@ -297,7 +307,7 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
         def test_support_gpu(self):
             self.assertEqual(self.gpu_dist.support, self.support)
 
-        if "support":
+        if "support" in tests:
             setattr(klass, "test_support_cpu", test_support_cpu)
             setattr(klass, "test_support_gpu", test_support_gpu)
 
@@ -345,7 +355,7 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
 
         # Return parameterized class.
         return testing.parameterize(*testing.product({
-            'shape': [(3, 2), (1,), ()],
+            'shape': [(3, 2), (1,)],
             'is_variable': [True, False],
             'smp_shape': [(3, 2), ()],
         }))(testing.fix_random()(klass))

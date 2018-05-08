@@ -87,7 +87,7 @@ class Normal(Distribution):
             Distribution Function.
 
         """
-        return erfinv.erfinv(numpy.float32(2.) * x - numpy.float32(1.)) \
+        return erfinv.erfinv(2. * x - 1.) \
             * (2 ** 0.5) * broadcast.broadcast_to(self.scale, x.shape) \
             + broadcast.broadcast_to(self.loc, x.shape)
 
