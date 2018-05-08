@@ -127,7 +127,7 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
         try:
             cuda.cupy.cuda.driver.ctxGetCurrent()
             _cuda_initialized = True
-        except Exception:
+        except cuda.cupy.cuda.driver.CUDADriverError:
             # The context is not initialized, it will be fine.
             _cuda_initialized = False
         if _cuda_initialized:
