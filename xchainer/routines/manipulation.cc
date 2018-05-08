@@ -22,7 +22,7 @@ namespace xchainer {
 
 Scalar AsScalar(const Array& a) {
     if (a.GetTotalSize() != 1) {
-        throw DimensionError{"Cannot convert ", a.GetTotalSize(), "-dimensional array to scalar"};
+        throw DimensionError{"Cannot convert an array of size ", a.GetTotalSize(), " to a scalar, size must be 1."};
     }
 
     // Copy to the native device
