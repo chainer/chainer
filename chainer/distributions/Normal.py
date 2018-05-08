@@ -1,6 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import Distribution
+from chainer.functions.array import broadcast
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
 from chainer.functions.math import erf
@@ -54,7 +55,9 @@ class Normal(Distribution):
             Distribution Function.
 
         """
-        return 0.5 * (1. + erf.erf((x - self.loc) / (2 ** 0.5 * self.scale)))
+        return 0.5 \
+            * (1. + erf.erf((x - broadcast.broadcast_to(self.loc, x.shape))
+               / (2 ** 0.5 * broadcast.broadcast_to(self.scale, x.shape))))
 
     @property
     def entropy(self):
@@ -85,7 +88,8 @@ class Normal(Distribution):
 
         """
         return erfinv.erfinv(numpy.float32(2.) * x - numpy.float32(1.)) \
-            * (2 ** 0.5) * self.scale + self.mean
+            * (2 ** 0.5) * broadcast.broadcast_to(self.scale, x.shape) \
+            + broadcast.broadcast_to(self.loc, x.shape)
 
     @property
     def _is_gpu(self):
@@ -116,8 +120,10 @@ class Normal(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        return - 0.5 * numpy.log(2 * numpy.pi) - exponential.log(self.scale) \
-               - 0.5 * (x - self.loc) ** 2 / self.scale ** 2
+        return - 0.5 * numpy.log(2 * numpy.pi) \
+            - exponential.log(broadcast.broadcast_to(self.scale, x.shape)) \
+            - 0.5 * (x - broadcast.broadcast_to(self.loc, x.shape)) ** 2 \
+            / broadcast.broadcast_to(self.scale, x.shape) ** 2
 
     def log_survival_function(self, x):
         """Returns logarithm of survival function for a input Variable.
@@ -156,8 +162,11 @@ class Normal(Distribution):
             ~chainer.Variable: Output variable representing probability.
 
         """
-        return 1. / (2 * numpy.pi) ** 0.5 / self.scale * \
-            exponential.exp(- 0.5 * (x - self.loc) ** 2 / self.scale ** 2)
+        return 1. / (2 * numpy.pi) ** 0.5 \
+            / broadcast.broadcast_to(self.scale, x.shape) * \
+            exponential.exp(
+                - 0.5 * (x - broadcast.broadcast_to(self.loc, x.shape)) ** 2
+                / broadcast.broadcast_to(self.scale, x.shape) ** 2)
 
     def _sample_n(self, n):
         """Samples from this distribution.
@@ -215,7 +224,9 @@ class Normal(Distribution):
             for a input variable.
 
         """
-        return 0.5 * (1. - erf.erf((x - self.loc) / (2 ** 0.5 * self.scale)))
+        return 0.5 * (1. - erf.erf(
+            (x - broadcast.broadcast_to(self.loc, x.shape))
+            / (2 ** 0.5 * broadcast.broadcast_to(self.scale, x.shape))))
 
     @property
     def variance(self):
