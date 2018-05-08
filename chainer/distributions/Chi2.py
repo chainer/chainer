@@ -1,6 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import Distribution
+from chainer.functions.array import broadcast
 from chainer.functions.math import digamma
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
@@ -18,7 +19,11 @@ class Chi2(Distribution):
     """
 
     def __init__(self, k):
-        self.k = k
+        super(Chi2, self).__init__()
+        if isinstance(k, chainer.Variable):
+            self.k = k
+        else:
+            self.k = chainer.Variable(k)
 
     def __copy__(self):
         return self._copy_to(Chi2(self.k))
@@ -44,7 +49,7 @@ class Chi2(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.k, cuda.ndarray)
+        return isinstance(self.k.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -56,8 +61,9 @@ class Chi2(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        return - lgamma.lgamma(0.5 * self.k) - 0.5 * self.k * numpy.log(2.) \
-            + (0.5 * self.k - 1) * exponential.log(x) - 0.5 * x
+        bk = broadcast.broadcast_to(self.k, x.shape)
+        return - lgamma.lgamma(0.5 * bk) - 0.5 * bk * numpy.log(2.) \
+            + (0.5 * bk - 1) * exponential.log(x) - 0.5 * x
 
     @property
     def mean(self):
@@ -83,7 +89,7 @@ class Chi2(Distribution):
             eps = numpy.random.chisquare(
                 cuda.to_cpu(self.k.data),
                 size=(n,)+self.k.shape).astype(numpy.float32)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.k).id)
+            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.k.data).id)
         else:
             eps = numpy.random.chisquare(
                 self.k.data, size=(n,)+self.k.shape).astype(numpy.float32)
