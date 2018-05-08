@@ -1,7 +1,7 @@
+import chainer
 from chainer.backends import cuda
 from chainer import Distribution
-from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
+from chainer.functions.array import broadcast
 from chainer.functions.math import digamma
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
@@ -21,8 +21,14 @@ class Gamma(Distribution):
     """
 
     def __init__(self, k, theta):
-        self.k = k
-        self.theta = theta
+        if isinstance(k, chainer.Variable):
+            self.k = k
+        else:
+            self.k = chainer.Variable(k)
+        if isinstance(theta, chainer.Variable):
+            self.theta = theta
+        else:
+            self.theta = chainer.Variable(theta)
 
     def __copy__(self):
         return self._copy_to(Gamma(self.k, self.theta))
@@ -48,7 +54,7 @@ class Gamma(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.k, cuda.ndarray)
+        return isinstance(self.k.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -87,13 +93,12 @@ class Gamma(Distribution):
             eps = numpy.random.gamma(
                 cuda.to_cpu(self.k.data),
                 size=(n,)+self.k.shape).astype(numpy.float32)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.k).id)
+            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.k.data).id)
         else:
             eps = numpy.random.gamma(
                 self.k.data, size=(n,)+self.k.shape).astype(numpy.float32)
 
-        noise = repeat.repeat(
-            expand_dims.expand_dims(self.theta, axis=0), n, axis=0) * eps
+        noise = broadcast.broadcast_to(self.theta, eps.shape) * eps
 
         return noise
 
