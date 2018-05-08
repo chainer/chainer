@@ -52,6 +52,15 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
 
 }  // namespace internal
 
+Array FromData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, int64_t offset, Device& device) {
+    // TODO(sonots): Check data reside in device if possible (CUDA can do it)
+    return internal::MakeArray(shape, strides, dtype, device, data, offset);
+}
+
+Array FromContiguousData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
+    return FromData(shape, dtype, data, {shape, dtype}, 0, device);
+}
+
 Array Empty(const Shape& shape, Dtype dtype, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetItemSize(dtype));
     std::shared_ptr<void> data = device.Allocate(bytesize);

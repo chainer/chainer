@@ -179,8 +179,8 @@ TEST_P(CreationTest, FromContiguousHostData) {
     using T = int32_t;
     Shape shape{3, 2};
 
-    std::vector<T> raw_data{0, 1, 2, 3, 4, 5};
-    std::shared_ptr<T> data{&raw_data[0], [](const T*) {}};
+    T raw_data[] = {0, 1, 2, 3, 4, 5};
+    std::shared_ptr<T> data{raw_data, [](const T*) {}};
 
     Dtype dtype = TypeToDtype<T>;
     Array x = internal::FromContiguousHostData(shape, dtype, data);
@@ -207,6 +207,69 @@ TEST_P(CreationTest, FromContiguousHostData) {
     } else {
         FAIL() << "invalid device_id";
     }
+}
+
+TEST_P(CreationTest, FromData) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Device& device = GetDefaultDevice();
+
+    T raw_data[] = {0, 1, 2, 3, 4, 5};
+    std::shared_ptr<void> host_data{raw_data, [](const T*) {}};
+    std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
+
+    // non-contiguous array like a[:,1]
+    T noncontiguous_raw_data[] = {1, 4};
+    Shape shape{2};
+    Strides strides{sizeof(T) * 3};
+    int64_t offset = sizeof(T);
+    Array x = FromData(shape, dtype, data, strides, offset);
+
+    // Basic attributes
+    EXPECT_EQ(shape, x.shape());
+    EXPECT_EQ(dtype, x.dtype());
+    EXPECT_EQ(strides, x.strides());
+    EXPECT_EQ(1, x.ndim());
+    EXPECT_EQ(2, x.GetTotalSize());
+    EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
+    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetTotalBytes());
+    EXPECT_FALSE(x.IsContiguous());
+    EXPECT_EQ(offset, x.offset());
+
+    // Array::data
+    testing::ExpectDataEqual<T>(noncontiguous_raw_data, x);
+
+    EXPECT_EQ(&device, &x.device());
+    EXPECT_EQ(data.get(), x.data().get());
+}
+
+TEST_P(CreationTest, FromContiguousData) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Shape shape{3, 2};
+    Device& device = GetDefaultDevice();
+
+    T raw_data[] = {0, 1, 2, 3, 4, 5};
+    std::shared_ptr<void> host_data{raw_data, [](const T*) {}};
+    std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
+
+    Array x = FromContiguousData(shape, dtype, data);
+
+    // Basic attributes
+    EXPECT_EQ(shape, x.shape());
+    EXPECT_EQ(dtype, x.dtype());
+    EXPECT_EQ(2, x.ndim());
+    EXPECT_EQ(3 * 2, x.GetTotalSize());
+    EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
+    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetTotalBytes());
+    EXPECT_TRUE(x.IsContiguous());
+    EXPECT_EQ(0, x.offset());
+
+    // Array::data
+    testing::ExpectDataEqual<T>(raw_data, x);
+
+    EXPECT_EQ(&device, &x.device());
+    EXPECT_EQ(data.get(), x.data().get());
 }
 
 TEST_P(CreationTest, Empty) {
