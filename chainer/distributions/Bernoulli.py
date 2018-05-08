@@ -2,7 +2,6 @@ import chainer
 from chainer.backends import cuda
 from chainer import Distribution
 from chainer.functions.array import broadcast
-from chainer.functions.array import stack
 from chainer.functions.math import exponential
 import numpy
 
