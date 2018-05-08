@@ -39,7 +39,7 @@ TEST(ElementwiseTest, Reduce) {
     }
 }
 
-TEST(ElementwiseTest, CompressAllDims) {
+TEST(ElementwiseTest, ReduceAllDimensions) {
     testing::ContextSession context_session;
     Shape shape{3, 2, 5, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>();
@@ -54,7 +54,7 @@ TEST(ElementwiseTest, CompressAllDims) {
     EXPECT_EQ(3, keep[0]);
 }
 
-TEST(ElementwiseTest, CompressSomeDims) {
+TEST(ElementwiseTest, ReducePartialDimensions) {
     testing::ContextSession context_session;
     Shape shape{3, 2, 5, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>().WithPadding({0, 2, 0, 0});
@@ -71,7 +71,7 @@ TEST(ElementwiseTest, CompressSomeDims) {
     EXPECT_EQ(3, keep[1]);
 }
 
-TEST(ElementwiseTest, CompressUnitLengthDim) {
+TEST(ElementwiseTest, ReduceUnitLengthDimensions) {
     testing::ContextSession context_session;
     Shape shape{3, 2, 1, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>().WithPadding(1);
@@ -90,7 +90,7 @@ TEST(ElementwiseTest, CompressUnitLengthDim) {
     EXPECT_EQ(3, keep[2]);
 }
 
-TEST(ElementwiseTest, CompressMultipleArrayDims) {
+TEST(ElementwiseTest, ReduceMultipleArraysDimensions) {
     testing::ContextSession context_session;
     Shape shape{3, 2, 5, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>().WithPadding({0, 2, 0, 0});
