@@ -13,9 +13,8 @@ class IndexIterator {
 public:
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start, int64_t step)
         : shape_{shape}, total_size_{total_size}, raw_index_{0}, step_{step}, index_{} {
-        // backward iteration is not supported in order to omit lower-bound check for performance.
         assert(start >= 0);
-        assert(step > 0);
+        assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
         Set(start);
     }
 
@@ -60,11 +59,12 @@ private:
 template <>
 class IndexIterator<1> {
 public:
-    explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* /*shape*/, int64_t total_size, int64_t start, int64_t step)
-        : total_size_{total_size}, raw_index_{start}, step_{step} {
-        // backward iteration is not supported in order to omit lower-bound check for performance.
+    explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start, int64_t step)
+        : IndexIterator<1>{total_size, start, step} {
+        assert(shape[0] == total_size);
         assert(start >= 0);
-        assert(step > 0);
+        assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
+        (void)shape;       // unused, except for sanity check.
     }
 
     explicit XCHAINER_HOST_DEVICE IndexIterator(int64_t total_size, int64_t start, int64_t step)
@@ -101,7 +101,7 @@ public:
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int8_t ndim, int64_t total_size, int64_t start, int64_t step)
         : shape_{shape}, ndim_{ndim}, total_size_{total_size}, raw_index_{0}, step_{step}, index_{} {
         assert(start >= 0);
-        assert(step > 0);
+        assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
         Set(start);
     }
 
