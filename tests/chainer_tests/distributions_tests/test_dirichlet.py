@@ -1,73 +1,65 @@
 import unittest
 
+from chainer.backends import cuda
 from chainer import distributions
 from chainer import testing
+from chainer.testing import attr
 import numpy
 from scipy import stats
 
 
-@testing.parameterize(*testing.product({
-    'shape': [(3, 2), (1,)],
-    'k': [3],
-}))
+def params_init(shape):
+    alpha = numpy.random.uniform(0, 10, shape + (3,)).astype(numpy.float32)
+    params = {"alpha": alpha}
+    sp_params = {"alpha": alpha}
+    return params, sp_params
+
+
+def sample_for_test(shape):
+    smp = numpy.random.normal(size=shape + (3,)).astype(numpy.float32)
+    smp = numpy.exp(smp)
+    smp /= numpy.expand_dims(smp.sum(axis=-1), axis=-1)
+    return smp
+
+tests = set(["batch_shape", "entropy", "event_shape", "mean", "sample",
+             "support", "variance"])
+
+
+@testing.distribution_unittest(distributions.Dirichlet, stats.dirichlet,
+                               params_init, sample_for_test,
+                               tests=tests, support="[0, 1]", event_shape=(3,),
+                               scipy_onebyone=True)
 class TestDirichlet(unittest.TestCase):
-    def setUp(self):
-        self.alpha = numpy.random.uniform(
-            0, 10, self.shape + (self.k,)).astype(numpy.float32)
-        self.dist = distributions.Dirichlet(self.alpha)
-        self.sp_dist = stats.dirichlet
 
-    def test_batch_shape(self):
-        self.assertEqual(self.dist.batch_shape, self.shape)
-
-    def test_entropy(self):
-        ent1 = self.dist.entropy.data
-        obo_alpha = self.alpha.reshape(-1, self.alpha.shape[-1])
-        ent2 = [self.sp_dist.entropy(one_alpha) for one_alpha in obo_alpha]
-        ent2 = numpy.stack(ent2).reshape(self.shape)
-        testing.assert_allclose(ent1, ent2, atol=1e-2, rtol=1e-2)
-
-    def test_event_shape(self):
-        self.assertEqual(self.dist.event_shape, (self.k,))
-
-    def test_log_prob(self):
-        smp = numpy.random.normal(
-            size=self.shape + (self.k,))
+    def check_log_prob(self, is_gpu):
+        smp = numpy.random.normal(size=self.smp_shape + self.shape + (3,))
         smp = numpy.exp(smp)
         smp /= numpy.expand_dims(smp.sum(axis=-1), axis=-1)
-        log_prob1 = self.dist.log_prob(smp.astype(numpy.float32)).data
+        if is_gpu:
+            log_prob1 = self.gpu_dist.log_prob(
+                cuda.to_gpu(smp.astype(numpy.float32))).data
+        else:
+            log_prob1 = self.cpu_dist.log_prob(smp.astype(numpy.float32)).data
 
-        obo_alpha = self.alpha.reshape(-1, self.alpha.shape[-1])
-        obo_smp = smp.reshape(-1, self.k)
-        log_prob2 = [self.sp_dist.logpdf(one_smp, one_alpha)
-                     for one_alpha, one_smp in zip(obo_alpha, obo_smp)]
-        log_prob2 = numpy.stack(log_prob2).reshape(self.shape)
+        scipy_prob = self.scipy_dist.logpdf
+
+        log_prob2 = []
+        onebyone_smp = smp.reshape(
+            (int(numpy.prod(self.smp_shape)), numpy.prod(self.shape), -1))
+        onebyone_smp = numpy.swapaxes(onebyone_smp, 0, 1)
+        onebyone_smp = numpy.swapaxes(onebyone_smp, 1, 2)
+        for i in range(numpy.prod(self.shape)):
+            one_params = {k: v[i] for k, v
+                          in self.scipy_onebyone_params.items()}
+            print(onebyone_smp[i], one_params)
+            log_prob2.append(scipy_prob(onebyone_smp[i], **one_params))
+        log_prob2 = numpy.stack(
+            log_prob2).T.reshape(self.smp_shape + self.shape)
         testing.assert_allclose(log_prob1, log_prob2)
 
-    def test_mean(self):
-        mean1 = self.dist.mean.data
-        obo_alpha = self.alpha.reshape(-1, self.alpha.shape[-1])
-        mean2 = [self.sp_dist.mean(one_alpha) for one_alpha in obo_alpha]
-        mean2 = numpy.stack(mean2).reshape(self.alpha.shape)
-        testing.assert_allclose(mean1, mean2)
+    def test_log_prob_cpu(self):
+        self.check_log_prob(False)
 
-    def test_sample(self):
-        smp1 = self.dist.sample(shape=(100000)).data
-        obo_alpha = self.alpha.reshape(-1, self.alpha.shape[-1])
-        smp2 = [self.sp_dist.rvs(one_alpha, size=100000)
-                for one_alpha in obo_alpha]
-        smp2 = numpy.stack(smp2).reshape((100000,) + self.alpha.shape)
-        testing.assert_allclose(smp1.mean(axis=0), smp2.mean(axis=0),
-                                atol=1e-2, rtol=1e-2)
-        testing.assert_allclose(smp1.std(axis=0), smp2.std(axis=0),
-                                atol=1e-2, rtol=1e-2)
-
-    def test_support(self):
-        self.assertEqual(self.dist.support, "[0,1]")
-
-    def test_variance(self):
-        variance1 = self.dist.variance.data
-        obo_alpha = self.alpha.reshape(-1, self.alpha.shape[-1])
-        variance2 = [self.sp_dist.var(one_alpha) for one_alpha in obo_alpha]
-        variance2 = numpy.stack(variance2).reshape(self.alpha.shape)
-        testing.assert_allclose(variance1, variance2)
+    @attr.gpu
+    def test_log_prob_gpu(self):
+        self.check_log_prob(True)

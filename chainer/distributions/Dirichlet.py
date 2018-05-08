@@ -56,7 +56,7 @@ class Dirichlet(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.alpha, cuda.ndarray)
+        return isinstance(self.alpha.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -68,9 +68,11 @@ class Dirichlet(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        return - sum.sum(lgamma.lgamma(self.alpha), axis=-1) \
-            + lgamma.lgamma(self.alpha0) \
-            + sum.sum((self.alpha - 1) * exponential.log(x), axis=-1)
+        balpha = broadcast.broadcast_to(self.alpha, x.shape)
+        balpha0 = broadcast.broadcast_to(self.alpha0, x.shape[:-1])
+        return - sum.sum(lgamma.lgamma(balpha), axis=-1) \
+            + lgamma.lgamma(balpha0) \
+            + sum.sum((balpha - 1) * exponential.log(x), axis=-1)
 
     @property
     def mean(self):
@@ -99,14 +101,17 @@ class Dirichlet(Distribution):
             eps = [numpy.random.dirichlet(cuda.to_cpu(one_alpha),
                                           size=(n,)).astype(numpy.float32)
                    for one_alpha in obo_alpha]
-            eps = numpy.stack(eps).reshape((n,) + self.alpha.shape)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.alpha).id)
+            eps = numpy.swapaxes(numpy.stack(eps), 0, 1)
+            eps = eps.reshape((n,) + self.alpha.shape)
+            eps = cuda.to_gpu(
+                eps, cuda.get_device_from_array(self.alpha.data).id)
         else:
             obo_alpha = self.alpha.data.reshape(-1, self.k)
             eps = [numpy.random.dirichlet(one_alpha,
                                           size=(n,)).astype(numpy.float32)
                    for one_alpha in obo_alpha]
-            eps = numpy.stack(eps).reshape((n,) + self.alpha.shape)
+            eps = numpy.swapaxes(numpy.stack(eps), 0, 1)
+            eps = eps.reshape((n,) + self.alpha.shape)
 
         noise = chainer.Variable(eps)
         return noise
@@ -119,7 +124,7 @@ class Dirichlet(Distribution):
             string: Output string that means support of this distribution.
 
         """
-        return '[0,1]'
+        return '[0, 1]'
 
     @property
     def variance(self):

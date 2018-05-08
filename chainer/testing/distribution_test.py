@@ -22,7 +22,7 @@ Reason: {}: {}'''.format(__name__, type(_error).__name__, _error))
 
 def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                           tests=set(), continuous=True, support="real",
-                          event_shape=()):
+                          event_shape=(), scipy_onebyone=False):
     check_available()
 
     def f(klass):
@@ -39,10 +39,14 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                                for k, v in self.params.items()}
                 self.gpu_params = {k: chainer.Variable(v)
                                    for k, v in self.gpu_params.items()}
+            self.scipy_onebyone_params = \
+                {k: v.reshape(numpy.prod(self.shape), -1)
+                 for k, v in self.scipy_params.items()}
             self.sample_for_test = sample_for_test
             self.support = support
             self.event_shape = event_shape
             self.continuous = continuous
+            self.scipy_onebyone = scipy_onebyone
         setattr(klass, "setUp", setUp)
 
         @property
@@ -92,7 +96,15 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 ent1 = self.gpu_dist.entropy.data
             else:
                 ent1 = self.cpu_dist.entropy.data
-            ent2 = self.scipy_dist.entropy(**self.scipy_params)
+            if self.scipy_onebyone:
+                ent2 = []
+                for i in range(numpy.prod(self.shape)):
+                    one_params = {k: v[i] for k, v
+                                  in self.scipy_onebyone_params.items()}
+                    ent2.append(self.scipy_dist.entropy(**one_params))
+                ent2 = numpy.stack(ent2).reshape(self.shape)
+            else:
+                ent2 = self.scipy_dist.entropy(**self.scipy_params)
             testing.assert_allclose(ent1, ent2)
 
         def test_entropy_cpu(self):
@@ -168,10 +180,12 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 log_prob1 = self.gpu_dist.log_prob(cuda.to_gpu(smp)).data
             else:
                 log_prob1 = self.cpu_dist.log_prob(smp).data
+
             if self.continuous:
-                log_prob2 = self.scipy_dist.logpdf(smp, **self.scipy_params)
+                scipy_prob = self.scipy_dist.logpdf
             else:
-                log_prob2 = self.scipy_dist.logpmf(smp, **self.scipy_params)
+                scipy_prob = self.scipy_dist.logpmf
+            log_prob2 = scipy_prob(smp, **self.scipy_params)
             testing.assert_allclose(log_prob1, log_prob2)
 
         def test_log_prob_cpu(self):
@@ -213,7 +227,17 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 mean1 = self.gpu_dist.mean.data
             else:
                 mean1 = self.cpu_dist.mean.data
-            mean2 = self.scipy_dist.mean(**self.scipy_params)
+
+            if self.scipy_onebyone:
+                mean2 = []
+                for i in range(numpy.prod(self.shape)):
+                    one_params = {k: v[i] for k, v
+                                  in self.scipy_onebyone_params.items()}
+                    mean2.append(self.scipy_dist.mean(**one_params))
+                mean2 = numpy.stack(mean2).reshape(
+                    self.shape + self.cpu_dist.event_shape)
+            else:
+                mean2 = self.scipy_dist.mean(**self.scipy_params)
             testing.assert_allclose(mean1, mean2)
 
         def test_mean_cpu(self):
@@ -234,8 +258,6 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 prob1 = self.gpu_dist.prob(cuda.to_gpu(smp)).data
             else:
                 prob1 = self.cpu_dist.prob(smp).data
-            print(type(self.gpu_dist.prob(cuda.to_gpu(smp))))
-            print(type(prob1))
             if self.continuous:
                 prob2 = self.scipy_dist.pdf(smp, **self.scipy_params)
             else:
@@ -261,8 +283,23 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
             else:
                 smp1 = self.cpu_dist.sample(
                     shape=(100000,)+self.smp_shape).data
-            smp2 = self.scipy_dist.rvs(
-                size=(100000,)+self.smp_shape+self.shape, **self.scipy_params)
+
+            if self.scipy_onebyone:
+                smp2 = []
+                for i in range(numpy.prod(self.shape)):
+                    one_params = {k: v[i] for k, v
+                                  in self.scipy_onebyone_params.items()}
+                    smp2.append(self.scipy_dist.rvs(
+                        **one_params, size=(100000,)+self.smp_shape))
+                print(numpy.stack(smp2).shape)
+                smp2 = numpy.rollaxis(numpy.stack(smp2), 0, -1)
+                print(smp2.shape)
+                smp2 = smp2.reshape((100000,) + self.smp_shape + self.shape
+                                    + self.cpu_dist.event_shape)
+            else:
+                smp2 = self.scipy_dist.rvs(
+                    size=(100000,) + self.smp_shape + self.shape,
+                    **self.scipy_params)
             testing.assert_allclose(smp1.mean(axis=0), smp2.mean(axis=0),
                                     atol=3e-2, rtol=3e-2)
             testing.assert_allclose(smp1.std(axis=0), smp2.std(axis=0),
@@ -338,7 +375,17 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 variance1 = self.gpu_dist.variance.data
             else:
                 variance1 = self.cpu_dist.variance.data
-            variance2 = self.scipy_dist.var(**self.scipy_params)
+
+            if self.scipy_onebyone:
+                variance2 = []
+                for i in range(numpy.prod(self.shape)):
+                    one_params = {k: v[i] for k, v
+                                  in self.scipy_onebyone_params.items()}
+                    variance2.append(self.scipy_dist.var(**one_params))
+                variance2 = numpy.stack(variance2).reshape(
+                    self.shape + self.cpu_dist.event_shape)
+            else:
+                variance2 = self.scipy_dist.var(**self.scipy_params)
             testing.assert_allclose(variance1, variance2)
 
         def test_variance_cpu(self):
