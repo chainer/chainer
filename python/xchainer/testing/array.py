@@ -21,7 +21,7 @@ def _as_numpy(x):
 
 def _check_dtype_and_strides(x, y, dtype_check, strides_check):
     if strides_check is not None and dtype_check is not None and strides_check and not dtype_check:
-        raise ValueError()
+        raise ValueError('Combination of dtype_check=False and strides_check=True is not allowed')
     if dtype_check is None:
         dtype_check = True
     if strides_check is None:
