@@ -109,8 +109,8 @@ def _make_decorator(check_result_func, name, accept_error):
 
 
 def numpy_xchainer_allclose(
-        *, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', type_check=None, strides_check=None, accept_error=()):
-    """numpy_xchainer_allclose(*, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', type_check=True, strides_check=True, accept_error=())
+        *, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', dtype_check=None, strides_check=None, accept_error=()):
+    """numpy_xchainer_allclose(*, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', dtype_check=True, strides_check=True, accept_error=())
 
     Decorator that checks that NumPy and xChainer results are equal up to a tolerance.
 
@@ -122,7 +122,8 @@ def numpy_xchainer_allclose(
          verbose(bool): If ``True``, the conflicting values are
              appended to the error message.
          name(str): Argument name whose value is either ``numpy`` or ``xchainer`` module.
-         type_check(bool): If ``True``, consistency of dtype is also checked. Disabling ``type_check`` also implies ``strides_check=False``.
+         dtype_check(bool): If ``True``, consistency of dtype is also checked.
+             Disabling ``dtype_check`` also implies ``strides_check=False``.
          strides_check(bool): If ``True``, consistency of strides is also checked.
          accept_error(Exception or tuple of Exception): Specify
              acceptable errors. When both NumPy test and xChainer test raises the
@@ -135,17 +136,17 @@ def numpy_xchainer_allclose(
 
     .. seealso:: :func:`xchainer.testing.assert_allclose_ex`
     """  # NOQA
-    if not type_check:
+    if not dtype_check:
         strides_check = False
 
     def check_result_func(x, y):
-        array.assert_allclose_ex(x, y, rtol, atol, equal_nan, err_msg, verbose, dtype_check=type_check, strides_check=strides_check)
+        array.assert_allclose_ex(x, y, rtol, atol, equal_nan, err_msg, verbose, dtype_check=dtype_check, strides_check=strides_check)
 
     return _make_decorator(check_result_func, name, accept_error)
 
 
-def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_check=None, strides_check=None, accept_error=()):
-    """numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_check=True, strides_check=True, accept_error=()):
+def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', dtype_check=None, strides_check=None, accept_error=()):
+    """numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', dtype_check=True, strides_check=True, accept_error=()):
 
     Decorator that checks that NumPy and xChainer results are equal.
 
@@ -154,7 +155,8 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_chec
          verbose(bool): If ``True``, the conflicting values are
              appended to the error message.
          name(str): Argument name whose value is either ``numpy`` or ``xchainer`` module.
-         type_check(bool): If ``True``, consistency of dtype is also checked. Disabling ``type_check`` also implies ``strides_check=False``
+         dtype_check(bool): If ``True``, consistency of dtype is also checked.
+             Disabling ``dtype_check`` also implies ``strides_check=False``
          strides_check(bool): If ``True``, consistency of strides is also checked.
          accept_error(Exception or tuple of Exception): Specify
              acceptable errors. When both NumPy test and xChainer test raises the
@@ -167,10 +169,10 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_chec
 
     .. seealso:: :func:`xchainer.testing.assert_array_equal_ex`
     """
-    if not type_check:
+    if not dtype_check:
         strides_check = False
 
     def check_result_func(x, y):
-        array.assert_array_equal_ex(x, y, err_msg, verbose, dtype_check=type_check, strides_check=strides_check)
+        array.assert_array_equal_ex(x, y, err_msg, verbose, dtype_check=dtype_check, strides_check=strides_check)
 
     return _make_decorator(check_result_func, name, accept_error)
