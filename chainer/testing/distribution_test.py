@@ -134,7 +134,7 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
         def check_icdf(self, is_gpu):
             smp = numpy.random.uniform(
                 1e-5, 1 - 1e-5, self.smp_shape + self.shape
-                ).astype(numpy.float32)
+            ).astype(numpy.float32)
             if is_gpu:
                 icdf1 = self.cpu_dist.icdf(smp).data
             else:

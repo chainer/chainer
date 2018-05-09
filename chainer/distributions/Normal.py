@@ -55,9 +55,9 @@ class Normal(Distribution):
             Distribution Function.
 
         """
-        return 0.5 \
-            * (1. + erf.erf((x - broadcast.broadcast_to(self.loc, x.shape))
-               / (2 ** 0.5 * broadcast.broadcast_to(self.scale, x.shape))))
+        return 0.5 * (1. + erf.erf((
+            x - broadcast.broadcast_to(self.loc, x.shape))
+            / (2 ** 0.5 * broadcast.broadcast_to(self.scale, x.shape))))
 
     @property
     def entropy(self):
