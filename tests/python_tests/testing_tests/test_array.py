@@ -245,3 +245,28 @@ def test_assert_allclose_fail_atol(float_dtype):
     a, b = _make_onehot_arrays(shape, dtype, 1e8, 1e8 + 2e2)
     with pytest.raises(AssertionError):
         xchainer.testing.assert_allclose(a, b, rtol=0, atol=1e2)
+
+
+def test_assert_array_equal_ex_fail_dtype():
+    shape = (3, 2)
+    dtype1 = 'float32'
+    dtype2 = 'int64'
+    a = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype1).reshape(shape)
+    b = a.astype(dtype2)
+    with pytest.raises(AssertionError):
+        xchainer.testing.assert_array_equal_ex(a, b)
+    with pytest.raises(AssertionError):
+        xchainer.testing.assert_array_equal_ex(a, b, strides_check=False)  # strides_check does not affect dtype_check
+    xchainer.testing.assert_array_equal_ex(a, b, dtype_check=False)
+
+
+def test_assert_array_equal_ex_fail_strides():
+    shape = (3, 2)
+    dtype = 'float32'
+    a = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype).reshape(shape)
+    b = numpy.empty(a.T.shape, dtype).T
+    b[:] = a
+    with pytest.raises(AssertionError):
+        xchainer.testing.assert_array_equal_ex(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b, strides_check=False)
+    xchainer.testing.assert_array_equal_ex(a, b, dtype_check=False)  # dtype_check=False implies strides_check=False
