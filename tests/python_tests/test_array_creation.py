@@ -816,8 +816,7 @@ def test_eye_invalid_NMk_type(xp, N, M, k, device):
     xp.eye(N, M, k, 'float32')
 
 
-# TODO(niboshi): Implement diag as a view and remove strides_check=False.
-@xchainer.testing.numpy_xchainer_array_equal(strides_check=False)
+@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('k', [0, -2, -1, 1, 2, -5, 4])
 @pytest.mark.parametrize('shape', [(4,), (2, 3), (6, 5)])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
