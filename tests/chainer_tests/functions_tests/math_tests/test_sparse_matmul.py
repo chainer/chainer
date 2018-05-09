@@ -78,7 +78,12 @@ class TestSparseMatMul(unittest.TestCase):
             a = a.swapaxes(-1, -2)
         if self.transb:
             b = b.swapaxes(-1, -2)
-        return numpy.matmul(a, b)
+        if hasattr(numpy, 'matmul'):
+            return numpy.matmul(a, b)
+        elif a.ndim == 2:
+            return numpy.dot(a, b)
+        else:
+            return numpy.einsum('...ij,...jk->...ik', a, b)
 
     #
     # SPDN: sparse A * dense B
