@@ -10,8 +10,8 @@ def params_init(shape):
     loc = numpy.random.uniform(-1, 1, shape + (3,)).astype(numpy.float32)
     cov = numpy.random.normal(size=shape + (3, 3))
     cov = numpy.matmul(cov, numpy.rollaxis(cov, -1, -2)).astype(numpy.float32)
-    l = numpy.linalg.cholesky(cov).astype(numpy.float32)
-    params = {"loc": loc, "scale_tril": l}
+    scale_tril = numpy.linalg.cholesky(cov).astype(numpy.float32)
+    params = {"loc": loc, "scale_tril": scale_tril}
     sp_params = {"mean": loc, "cov": cov}
     return params, sp_params
 
@@ -19,6 +19,7 @@ def params_init(shape):
 def sample_for_test(shape):
     smp = numpy.random.normal(size=shape + (3,)).astype(numpy.float32)
     return smp
+
 
 tests = set(["batch_shape", "entropy", "event_shape", "log_prob",
              "support"])

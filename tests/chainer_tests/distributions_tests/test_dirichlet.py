@@ -21,6 +21,7 @@ def sample_for_test(shape):
     smp /= numpy.expand_dims(smp.sum(axis=-1), axis=-1)
     return smp
 
+
 tests = set(["batch_shape", "entropy", "event_shape", "mean", "sample",
              "support", "variance"])
 

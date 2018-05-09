@@ -22,6 +22,7 @@ def sample_for_test(shape):
     smp = numpy.random.randint(0, 3, shape).astype(numpy.int32)
     return smp
 
+
 tests = set(["batch_shape", "event_shape"])
 
 

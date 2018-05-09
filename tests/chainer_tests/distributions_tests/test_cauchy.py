@@ -20,6 +20,7 @@ def sample_for_test(shape):
     smp = numpy.random.normal(size=shape).astype(numpy.float32)
     return smp
 
+
 tests = set(["batch_shape", "cdf", "entropy", "event_shape", "icdf",
              "log_prob", "mean", "support", "variance"])
 

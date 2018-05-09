@@ -2,7 +2,6 @@ import chainer
 from chainer.backends import cuda
 from chainer import Distribution
 from chainer.functions.math import exponential
-from chainer.functions.math import sum
 import numpy
 
 

@@ -20,6 +20,7 @@ def sample_for_test(shape):
     smp = numpy.exp(numpy.random.normal(size=shape)).astype(numpy.float32)
     return smp
 
+
 tests = set(["batch_shape", "event_shape", "log_prob", "mean",
              "support", "variance"])
 

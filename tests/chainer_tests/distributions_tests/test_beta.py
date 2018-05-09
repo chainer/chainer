@@ -18,6 +18,7 @@ def sample_for_test(shape):
     smp = numpy.random.uniform(size=shape).astype(numpy.float32)
     return smp
 
+
 tests = set(["batch_shape", "entropy", "event_shape", "log_prob", "mean",
              "sample", "support", "variance"])
 

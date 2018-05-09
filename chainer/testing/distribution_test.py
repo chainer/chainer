@@ -41,7 +41,7 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                                    for k, v in self.gpu_params.items()}
             self.scipy_onebyone_params = \
                 {k: v.reshape((numpy.prod(self.shape),)
-                 + v.shape[len(self.shape):])
+                              + v.shape[len(self.shape):])
                  for k, v in self.scipy_params.items()}
             self.sample_for_test = sample_for_test
             self.support = support

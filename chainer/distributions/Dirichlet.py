@@ -46,7 +46,8 @@ class Dirichlet(Distribution):
             Output Variable representing entropy.
 
         """
-        return sum.sum(lgamma.lgamma(self.alpha), axis=-1) - lgamma.lgamma(self.alpha0) \
+        return sum.sum(lgamma.lgamma(self.alpha), axis=-1) \
+            - lgamma.lgamma(self.alpha0) \
             + (self.alpha0 - self.k) * digamma.digamma(self.alpha0) \
             - sum.sum((self.alpha - 1) * digamma.digamma(self.alpha), axis=-1)
 

@@ -17,6 +17,7 @@ def sample_for_test(shape):
     smp = numpy.random.randint(2, size=shape).astype(numpy.float32)
     return smp
 
+
 tests = set(["batch_shape", "entropy", "log_prob", "mean", "prob", "sample",
              "stddev", "support", "variance"])
 
