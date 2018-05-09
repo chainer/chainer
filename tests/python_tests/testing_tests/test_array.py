@@ -14,16 +14,39 @@ def _make_onehot_arrays(shape, dtype, value1, value2):
     return a, b
 
 
-@pytest.mark.parametrize('shape', [(), (0,), (1,), (2, 3)])
-def test_assert_array_equal(shape, dtype):
-    np_a = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype).reshape(shape)
+@pytest.mark.parametrize('shape,transpose', [
+    ((), False),
+    ((0,), False),
+    ((1,), False),
+    ((2, 3), False),
+    ((2, 3), True),  # arrays with different strides
+])
+@pytest.mark.parametrize('dtype1,dtype2', list(zip(xchainer.testing.all_dtypes, xchainer.testing.all_dtypes)) + [
+    ('float32', 'int64'),  # arrays with different dtypes
+])
+def test_assert_array_equal(shape, transpose, dtype1, dtype2):
+    np_a = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype1).reshape(shape)
+    if transpose:
+        np_b = numpy.empty(np_a.T.shape, dtype=dtype2).T
+        np_b[:] = np_a
+    else:
+        np_b = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype2).reshape(shape)
+
     xc_a = xchainer.array(np_a)
-    xchainer.testing.assert_array_equal(np_a, np_a)
-    xchainer.testing.assert_array_equal(xc_a, xc_a)
-    xchainer.testing.assert_array_equal(np_a, xc_a)
-    xchainer.testing.assert_array_equal(xc_a, np_a)
-    xchainer.testing.assert_array_equal(np_a, numpy.array(np_a))
-    xchainer.testing.assert_array_equal(xc_a, xchainer.array(xc_a))
+    xc_b = xchainer.array(np_b)
+
+    # Test precondition checks
+    assert np_a.shape == np_b.shape
+    if transpose:
+        assert np_a.strides != np_b.strides
+
+    # Test checks
+    xchainer.testing.assert_array_equal(np_a, np_a)  # np-np (same obj)
+    xchainer.testing.assert_array_equal(xc_a, xc_a)  # xc-xc (same obj)
+    xchainer.testing.assert_array_equal(np_a, np_b)  # np-np (diff. obj)
+    xchainer.testing.assert_array_equal(xc_a, xc_b)  # xc-xc (diff. obj)
+    xchainer.testing.assert_array_equal(np_a, xc_b)  # np-xc
+    xchainer.testing.assert_array_equal(xc_a, np_b)  # xc-np
 
 
 @pytest.mark.parametrize('shape', [(), (1,), (2, 3)])
@@ -64,16 +87,47 @@ def test_assert_array_equal_fail_scalar(value1, value2):
         xchainer.testing.assert_array_equal(value2, value1)
 
 
-@pytest.mark.parametrize('shape', [(), (0,), (1,), (2, 3)])
-def test_assert_allclose(shape, dtype):
-    np_a = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype).reshape(shape)
+@pytest.mark.parametrize('shape,transpose', [
+    ((), False),
+    ((0,), False),
+    ((1,), False),
+    ((2, 3), False),
+    ((2, 3), True),  # arrays with different strides
+])
+@pytest.mark.parametrize('dtype1,dtype2', list(zip(xchainer.testing.all_dtypes, xchainer.testing.all_dtypes)) + [
+    ('float32', 'int64'),  # arrays with different dtypes
+])
+def test_assert_allclose(shape, transpose, dtype1, dtype2):
+    atol = 1e-5
+
+    np_a = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype1).reshape(shape)
+    if transpose:
+        np_b = numpy.empty(np_a.T.shape, dtype=dtype2).T
+        np_b[:] = np_a
+    else:
+        np_b = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype2).reshape(shape)
+
+    # Give some pertubation only if dtype is float
+    if np_a.dtype.kind in ('f', 'c'):
+        np_a += atol * 1e-1
+    if np_b.dtype.kind in ('f', 'c'):
+        np_b -= atol * 1e-1
+
     xc_a = xchainer.array(np_a)
-    xchainer.testing.assert_allclose(np_a, np_a)
-    xchainer.testing.assert_allclose(xc_a, xc_a)
-    xchainer.testing.assert_allclose(np_a, xc_a)
-    xchainer.testing.assert_allclose(xc_a, np_a)
-    xchainer.testing.assert_allclose(np_a, numpy.array(np_a))
-    xchainer.testing.assert_allclose(xc_a, xchainer.array(xc_a))
+    xc_b = xchainer.array(np_b)
+
+    # Test precondition checks
+    assert np_a.shape == np_b.shape
+    if transpose:
+        assert np_a.strides != np_b.strides
+
+    # Test checks
+    xchainer.testing.assert_allclose(np_a, np_a, atol=atol)  # np-np (same obj)
+    xchainer.testing.assert_allclose(xc_a, xc_a, atol=atol)  # xc-xc (same obj)
+    xchainer.testing.assert_allclose(np_a, np_b, atol=atol)  # np-np (diff. obj)
+    xchainer.testing.assert_allclose(xc_a, xc_b, atol=atol)  # xc-xc (diff. obj)
+    xchainer.testing.assert_allclose(np_a, xc_b, atol=atol)  # np-xc
+    xchainer.testing.assert_allclose(xc_a, np_b, atol=atol)  # xc-np
 
 
 @pytest.mark.parametrize('shape', [(), (1,), (2, 3)])
