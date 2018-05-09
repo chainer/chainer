@@ -33,13 +33,9 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
             self.dist = dist
             self.scipy_dist = scipy_dist
             self.params, self.scipy_params = params_init(self.shape)
-            self.gpu_params = {k: cuda.to_gpu(v)
-                               for k, v in self.params.items()}
             if self.is_variable:
                 self.params = {k: chainer.Variable(v)
                                for k, v in self.params.items()}
-                self.gpu_params = {k: chainer.Variable(v)
-                                   for k, v in self.gpu_params.items()}
             self.scipy_onebyone_params = \
                 {k: v.reshape((numpy.prod(self.shape),)
                               + v.shape[len(self.shape):])
@@ -58,6 +54,11 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
 
         @property
         def gpu_dist(self):
+            self.gpu_params = {k: cuda.to_gpu(v)
+                               for k, v in self.params.items()}
+            if self.is_variable:
+                self.gpu_params = {k: chainer.Variable(v)
+                                   for k, v in self.gpu_params.items()}
             return self.dist(**self.gpu_params)
         setattr(klass, "gpu_dist", gpu_dist)
 

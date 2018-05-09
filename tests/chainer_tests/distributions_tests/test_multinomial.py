@@ -28,13 +28,9 @@ class TestMultinomial(unittest.TestCase):
 
         self.params = {"n": self.n, "p": self.p}
         self.scipy_params = {"n": self.n, "p": self.p}
-        self.gpu_params = {k: cuda.to_gpu(v)
-                           for k, v in self.params.items()}
         if self.is_variable:
             self.params = {k: chainer.Variable(v)
                            for k, v in self.params.items()}
-            self.gpu_params = {k: chainer.Variable(v)
-                               for k, v in self.gpu_params.items()}
         self.scipy_onebyone_params = \
             {k: v.reshape(numpy.prod(self.shape), -1)
              for k, v in self.scipy_params.items()}
@@ -46,6 +42,11 @@ class TestMultinomial(unittest.TestCase):
 
     @property
     def gpu_dist(self):
+        self.gpu_params = {k: cuda.to_gpu(v)
+                           for k, v in self.params.items()}
+        if self.is_variable:
+            self.gpu_params = {k: chainer.Variable(v)
+                               for k, v in self.gpu_params.items()}
         return self.dist(**self.gpu_params)
 
     def test_batch_shape_cpu(self):
