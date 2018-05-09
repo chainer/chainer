@@ -28,8 +28,8 @@ public:
     Strides() = default;
 
     // Creates strides for contiguous array.
-    Strides(const Shape& shape, Dtype dtype) : Strides{shape, GetElementSize(dtype)} {}
-    Strides(const Shape& shape, int64_t element_size);
+    Strides(const Shape& shape, Dtype dtype) : Strides{shape, GetItemSize(dtype)} {}
+    Strides(const Shape& shape, int64_t item_size);
 
     // by iterators
     template <typename InputIt>

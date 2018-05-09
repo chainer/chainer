@@ -12,8 +12,8 @@
 
 namespace xchainer {
 
-Strides::Strides(const Shape& shape, int64_t element_size) {
-    int64_t stride = element_size;
+Strides::Strides(const Shape& shape, int64_t item_size) {
+    int64_t stride = item_size;
     int8_t ndim = shape.ndim();
     resize(ndim);
     auto it = rbegin();

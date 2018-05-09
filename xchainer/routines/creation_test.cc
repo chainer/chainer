@@ -190,8 +190,8 @@ TEST_P(CreationTest, FromContiguousHostData) {
     EXPECT_EQ(dtype, x.dtype());
     EXPECT_EQ(2, x.ndim());
     EXPECT_EQ(3 * 2, x.GetTotalSize());
-    EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
-    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetTotalBytes());
+    EXPECT_EQ(int64_t{sizeof(T)}, x.item_size());
+    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetNBytes());
     EXPECT_TRUE(x.IsContiguous());
     EXPECT_EQ(0, x.offset());
 
@@ -225,42 +225,42 @@ TEST_P(CreationTest, EmptyWithVariousShapes) {
         Array x = Empty(Shape{}, Dtype::kFloat32);
         EXPECT_EQ(0, x.ndim());
         EXPECT_EQ(1, x.GetTotalSize());
-        EXPECT_EQ(int64_t{sizeof(float)}, x.GetTotalBytes());
+        EXPECT_EQ(int64_t{sizeof(float)}, x.GetNBytes());
         EXPECT_TRUE(x.IsContiguous());
     }
     {
         Array x = Empty(Shape{0}, Dtype::kFloat32);
         EXPECT_EQ(1, x.ndim());
         EXPECT_EQ(0, x.GetTotalSize());
-        EXPECT_EQ(0, x.GetTotalBytes());
+        EXPECT_EQ(0, x.GetNBytes());
         EXPECT_TRUE(x.IsContiguous());
     }
     {
         Array x = Empty(Shape{1}, Dtype::kFloat32);
         EXPECT_EQ(1, x.ndim());
         EXPECT_EQ(1, x.GetTotalSize());
-        EXPECT_EQ(int64_t{sizeof(float)}, x.GetTotalBytes());
+        EXPECT_EQ(int64_t{sizeof(float)}, x.GetNBytes());
         EXPECT_TRUE(x.IsContiguous());
     }
     {
         Array x = Empty(Shape{2, 3}, Dtype::kFloat32);
         EXPECT_EQ(2, x.ndim());
         EXPECT_EQ(6, x.GetTotalSize());
-        EXPECT_EQ(6 * int64_t{sizeof(float)}, x.GetTotalBytes());
+        EXPECT_EQ(6 * int64_t{sizeof(float)}, x.GetNBytes());
         EXPECT_TRUE(x.IsContiguous());
     }
     {
         Array x = Empty(Shape{1, 1, 1}, Dtype::kFloat32);
         EXPECT_EQ(3, x.ndim());
         EXPECT_EQ(1, x.GetTotalSize());
-        EXPECT_EQ(int64_t{sizeof(float)}, x.GetTotalBytes());
+        EXPECT_EQ(int64_t{sizeof(float)}, x.GetNBytes());
         EXPECT_TRUE(x.IsContiguous());
     }
     {
         Array x = Empty(Shape{2, 0, 3}, Dtype::kFloat32);
         EXPECT_EQ(3, x.ndim());
         EXPECT_EQ(0, x.GetTotalSize());
-        EXPECT_EQ(0, x.GetTotalBytes());
+        EXPECT_EQ(0, x.GetNBytes());
         EXPECT_TRUE(x.IsContiguous());
     }
 }
@@ -576,18 +576,21 @@ TEST_P(CreationTest, DiagMatToVec) {
         Array o = Diag(v);
         Array e = testing::BuildArray<float>({2}, {0.f, 4.f});
         testing::ExpectEqual(e, o);
+        EXPECT_EQ(v.data().get(), o.data().get());
     }
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
         Array o = Diag(v, 1);
         Array e = testing::BuildArray<float>({2}, {1.f, 5.f});
         testing::ExpectEqual(e, o);
+        EXPECT_EQ(v.data().get(), o.data().get());
     }
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
         Array o = Diag(v, -1);
         Array e = testing::BuildArray<float>({1}, {3.f});
         testing::ExpectEqual(e, o);
+        EXPECT_EQ(v.data().get(), o.data().get());
     }
 }
 

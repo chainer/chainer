@@ -19,7 +19,7 @@
 namespace xchainer {
 namespace internal {
 
-size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size) {
+size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_size) {
     assert(shape.ndim() == strides.ndim());
 
     if (shape.GetTotalSize() == 0) {
@@ -27,15 +27,15 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t eleme
     }
 
     // Calculate the distance between the first and the last element, plus single element size.
-    size_t total_bytes = element_size;
+    size_t n_bytes = item_size;
     for (int8_t i = 0; i < shape.ndim(); ++i) {
-        total_bytes += (shape[i] - 1) * std::abs(strides[i]);
+        n_bytes += (shape[i] - 1) * std::abs(strides[i]);
     }
-    return total_bytes;
+    return n_bytes;
 }
 
 Array FromHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device) {
-    auto bytesize = GetRequiredBytes(shape, strides, GetElementSize(dtype));
+    auto bytesize = GetRequiredBytes(shape, strides, GetItemSize(dtype));
     std::shared_ptr<void> device_data = device.FromHostMemory(data, bytesize);
     return MakeArray(shape, strides, dtype, device, device_data);
 }
@@ -45,7 +45,7 @@ Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_
 }
 
 Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device) {
-    auto bytesize = GetRequiredBytes(shape, strides, GetElementSize(dtype));
+    auto bytesize = GetRequiredBytes(shape, strides, GetItemSize(dtype));
     std::shared_ptr<void> data = device.Allocate(bytesize);
     return MakeArray(shape, strides, dtype, device, data);
 }
@@ -53,7 +53,7 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
 }  // namespace internal
 
 Array Empty(const Shape& shape, Dtype dtype, Device& device) {
-    auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
+    auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetItemSize(dtype));
     std::shared_ptr<void> data = device.Allocate(bytesize);
     return internal::MakeArray(shape, Strides{shape, dtype}, dtype, device, data);
 }
@@ -182,33 +182,37 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
 
 Array Diag(const Array& v, int64_t k, Device& device) {
     int8_t ndim = v.ndim();
-    if (ndim != 1 && ndim != 2) {
-        throw DimensionError{"Input must be 1D or 2D."};
-    }
-
-    Shape out_shape{};
-
     if (ndim == 1) {
         // Return a square matrix with filled diagonal.
-        int64_t n = v.GetTotalSize() + std::abs(k);
-        out_shape.emplace_back(n);
-        out_shape.emplace_back(n);
-    } else if (ndim == 2) {
-        // Return a 1D array, an extracted diagonal.
+        int64_t n = v.shape()[0] + std::abs(k);
+        Array out = Empty(Shape{n, n}, v.dtype(), device);
+        device.Diagflat(v, k, out);
+        return out;
+    }
+    if (ndim == 2) {
+        // Return the diagonal as a 1D array.
         int64_t rows = v.shape()[0];
         int64_t cols = v.shape()[1];
         int64_t n = std::min(rows, cols);
-        if (k >= 0 && cols <= k + n - 1) {
-            n = cols - k;
-        } else if (k < 0 && rows >= k - n + 1) {
-            n = rows + k;
+        int64_t offset_items{};
+        if (k >= 0) {
+            offset_items = k;
+            if (cols <= k + n - 1) {
+                n = std::max(int64_t{0}, cols - k);
+            }
+        } else {
+            offset_items = -k * cols;
+            if (rows >= k - n + 1) {
+                n = std::max(int64_t{0}, rows + k);
+            }
         }
-        out_shape.emplace_back(std::max(int64_t{0}, n));
+        Shape out_shape{n};
+        Strides out_strides{v.strides()[0] + v.strides()[1]};
+        int64_t out_offset = v.offset() + offset_items * v.strides()[1];
+        Array out = internal::MakeArray(out_shape, out_strides, v.dtype(), device, v.data(), out_offset);
+        return out;
     }
-
-    Array out = Empty(out_shape, v.dtype(), device);
-    device.Diag(v, k, out);
-    return out;
+    throw DimensionError{"Input must be 1D or 2D."};
 }
 
 Array Diagflat(const Array& v, int64_t k, Device& device) {

@@ -18,7 +18,7 @@ namespace xchainer {
 namespace internal {
 
 // Returns the minimum number of bytes required to pack the data with specified strides and shape.
-size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size);
+size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_size);
 
 // Creates an array with given data packed with specified strides
 Array FromHostData(
