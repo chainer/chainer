@@ -22,3 +22,6 @@ from chainer.distributions.Pareto import Pareto  # NOQA
 from chainer.distributions.Poisson import Poisson  # NOQA
 from chainer.distributions.StudentT import StudentT  # NOQA
 from chainer.distributions.Uniform import Uniform  # NOQA
+
+from chainer.distributions.KLDivergence import kl_divergence  # NOQA
+from chainer.distributions.KLDivergence import register_kl  # NOQA
