@@ -23,15 +23,15 @@ inline bool IsSquashableDimension(size_t i, const Shape& shape, const PackedStri
 
 }  // namespace elementwise_detail
 
-// Returns a subset of strides with elements corresponding to given axes.
-// It can be used in conjunction with SquashedShape to obtain the squashed strides.
+// Returns a subset of strides with elements corresponding to the given axes that were kept after squashing a shape with SquashShape.
+// It should therefore be called with the resulting keep axes from SquashShape and the strides from the same arrays.
 inline Strides GetSquashedStrides(const Strides& strides, const Axes& keep) {
     Strides squashed{};
     std::transform(keep.begin(), keep.end(), std::back_inserter(squashed), [&strides](int8_t axis) { return strides[axis]; });
     return squashed;
 }
 
-// Given arrays with equal shapes, returns a pair of a squashed shape with possibly fewer number of dimensions (but with equal total size)
+// Given arrays with equal shapes, returns a tuple of a squashed shape with possibly fewer number of dimensions (but with equal total size)
 // and axes that were kept in the procedure. Dimensions must be either successively contiguous or unit-length in order to be squashed as in
 // the following examples.
 //
@@ -42,7 +42,7 @@ inline Strides GetSquashedStrides(const Strides& strides, const Axes& keep) {
 // Given arrays with Shape{3, 2, 1, 2}, padded first dimension => Shape{3, 4} and Axes{0, 3}.
 //
 // Strided indexing spanning over multiple dimensions can be slow and may thus be preceded with this squash.
-// Axes are needed to extract the subset of strides corresponding to the correct axes.
+// Axes are needed to extract the subset of strides corresponding to the correct axes using GetSquashedStrides.
 template <typename... Arrays>
 std::tuple<Shape, Axes> SquashShape(const Array& array, Arrays&&... arrays) {
     Shape squashed{};
