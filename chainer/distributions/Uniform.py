@@ -85,7 +85,7 @@ class Uniform(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.low, cuda.ndarray)
+        return isinstance(self.low.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -97,20 +97,25 @@ class Uniform(Distribution):
             Output variable representing logarithm of probability.
 
         """
+        if not isinstance(x, chainer.Variable):
+            x = chainer.Variable(x)
+
+        bl = broadcast.broadcast_to(self.low, x.shape)
+        bh = broadcast.broadcast_to(self.high, x.shape)
         if self._is_gpu:
-            logp = cuda.cupy.zeros_like(self.low)
-            inf = cuda.cupy.zeros_like(self.low)
+            logp = cuda.cupy.zeros_like(bl)
+            inf = cuda.cupy.zeros_like(bl)
             constraint = cuda.cupy.bitwise_and(
-                x.data >= self.low.data, x.data < self.high.data)
+                x.data >= bl.data, x.data < bh.data)
             not_constraint = cuda.cupy.logical_not(constraint)
         else:
-            logp = numpy.zeros_like(self.low)
-            inf = numpy.zeros_like(self.low)
+            logp = numpy.zeros_like(bl)
+            inf = numpy.zeros_like(bl)
             constraint = numpy.bitwise_and(
-                x.data >= self.low.data, x.data < self.high.data)
+                x.data >= bl.data, x.data < bh.data)
             not_constraint = numpy.logical_not(constraint)
         logp[constraint] = 1
-        logp *= -exponential.log(self.high - self.low)
+        logp = -exponential.log(bh - bl) * logp
         inf[not_constraint] = numpy.inf
         return logp - inf
 
