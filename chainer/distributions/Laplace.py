@@ -1,7 +1,7 @@
+import chainer
 from chainer.backends import cuda
 from chainer import Distribution
-from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
+from chainer.functions.array import broadcast
 from chainer.functions.math import basic_math
 from chainer.functions.math import clip
 from chainer.functions.math import exponential
@@ -25,7 +25,15 @@ class Laplace(Distribution):
     """
 
     def __init__(self, loc, scale):
-        self.loc, self.scale = loc, scale
+        super(Laplace, self).__init__()
+        if isinstance(loc, chainer.Variable):
+            self.loc = loc
+        else:
+            self.loc = chainer.Variable(loc)
+        if isinstance(scale, chainer.Variable):
+            self.scale = scale
+        else:
+            self.scale = chainer.Variable(scale)
 
     def __copy__(self):
         return self._copy_to(Laplace(self.loc, self.scale))
@@ -47,10 +55,12 @@ class Laplace(Distribution):
             Distribution Function.
 
         """
+        bl = broadcast.broadcast_to(self.loc, x.shape)
+        bs = broadcast.broadcast_to(self.scale, x.shape)
         return clip.clip(0.5 * exponential.exp(
-            (x - self.loc) / self.scale), 0., 0.5) \
+            (x - bl) / bs), 0., 0.5) \
             + clip.clip(0.5 - 0.5 * exponential.exp(
-                -(x - self.loc) / self.scale), 0., 0.5)
+                -(x - bl) / bs), 0., 0.5)
 
     @property
     def entropy(self):
@@ -84,7 +94,7 @@ class Laplace(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.loc, cuda.ndarray)
+        return isinstance(self.loc.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -96,8 +106,10 @@ class Laplace(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        return - exponential.log(2 * self.scale) \
-            - basic_math.absolute(x - self.loc) / self.scale
+        bl = broadcast.broadcast_to(self.loc, x.shape)
+        bs = broadcast.broadcast_to(self.scale, x.shape)
+        return - exponential.log(2 * bs) \
+            - basic_math.absolute(x - bl) / bs
 
     @property
     def mean(self):
@@ -131,8 +143,9 @@ class Laplace(Distribution):
             ~chainer.Variable: Output variable representing probability.
 
         """
-        return 0.5 / self.scale \
-            * exponential.exp(- basic_math.absolute(x - self.loc) / self.scale)
+        bl = broadcast.broadcast_to(self.loc, x.shape)
+        bs = broadcast.broadcast_to(self.scale, x.shape)
+        return 0.5 / bs * exponential.exp(- basic_math.absolute(x - bl) / bs)
 
     def _sample_n(self, n):
         """Samples from this distribution.
@@ -147,15 +160,14 @@ class Laplace(Distribution):
         if self._is_gpu:
             eps = numpy.random.laplace(
                 size=(n,) + self.loc.shape).astype(numpy.float32)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.loc).id)
+            eps = cuda.to_gpu(
+                eps, cuda.get_device_from_array(self.loc.data).id)
         else:
             eps = numpy.random.laplace(
                 size=(n,) + self.loc.shape).astype(numpy.float32)
 
-        noise = repeat.repeat(
-            expand_dims.expand_dims(self.scale, axis=0), n, axis=0) * eps
-        noise += repeat.repeat(expand_dims.expand_dims(
-            self.loc, axis=0), n, axis=0)
+        noise = broadcast.broadcast_to(self.scale, eps.shape) * eps
+        noise += broadcast.broadcast_to(self.loc, eps.shape)
 
         return noise
 
