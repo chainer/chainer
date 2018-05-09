@@ -25,7 +25,7 @@ __global__ void ElementwiseKernel(Op op, Indexer<Ndim> indexer, IndexableArray<T
 }
 
 template <int8_t Ndim, typename Op, typename... Ts, typename... Arrays>
-void LaunchElementwiseKernel(Op&& op, const Shape& shape, const Axes& axes, const Arrays&... args) {
+void LaunchElementwiseKernel(Op&& op, const Shape& shape, const Axes& keep, const Arrays&... args) {
     static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&ElementwiseKernel<Ndim, Op, Ts...>).block_size;
 
     int64_t total_size = shape.GetTotalSize();
@@ -33,7 +33,7 @@ void LaunchElementwiseKernel(Op&& op, const Shape& shape, const Axes& axes, cons
     int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
     ElementwiseKernel<Ndim, Op, Ts...>
-            <<<grid_size, block_size>>>(op, Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args, Reduce(args.strides(), axes)}...);
+            <<<grid_size, block_size>>>(op, Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args, SquashedStrides(args.strides(), keep)}...);
 }
 
 }  // namespace elementwise_detail
@@ -42,26 +42,26 @@ template <typename... Ts, typename... Arrays, typename Op>
 void Elementwise(Op&& op, const Arrays&... args) {
     static_assert(sizeof...(Ts) == sizeof...(Arrays), "Data types must be specified per Array. ");
 
-    Shape reduced{};
+    Shape squashed{};
     Axes keep{};
-    std::tie(reduced, keep) = ReducedShape(args...);
+    std::tie(squashed, keep) = SquashedShape(args...);
 
     // TODO(hvy): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
-    switch (reduced.ndim()) {
+    switch (squashed.ndim()) {
         case 1:
-            elementwise_detail::LaunchElementwiseKernel<1, Op, Ts...>(std::forward<Op>(op), reduced, keep, args...);
+            elementwise_detail::LaunchElementwiseKernel<1, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
             break;
         case 2:
-            elementwise_detail::LaunchElementwiseKernel<2, Op, Ts...>(std::forward<Op>(op), reduced, keep, args...);
+            elementwise_detail::LaunchElementwiseKernel<2, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
             break;
         case 3:
-            elementwise_detail::LaunchElementwiseKernel<3, Op, Ts...>(std::forward<Op>(op), reduced, keep, args...);
+            elementwise_detail::LaunchElementwiseKernel<3, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
             break;
         case 4:
-            elementwise_detail::LaunchElementwiseKernel<4, Op, Ts...>(std::forward<Op>(op), reduced, keep, args...);
+            elementwise_detail::LaunchElementwiseKernel<4, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
             break;
         default:
-            elementwise_detail::LaunchElementwiseKernel<kDynamicNdim, Op, Ts...>(std::forward<Op>(op), reduced, keep, args...);
+            elementwise_detail::LaunchElementwiseKernel<kDynamicNdim, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
             break;
     }
 }

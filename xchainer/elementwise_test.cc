@@ -14,96 +14,96 @@
 namespace xchainer {
 namespace {
 
-TEST(ElementwiseTest, Reduce) {
+TEST(ElementwiseTest, SquashedStrides) {
     {
-        Strides reduced = Reduce({3, 2, 5, 4}, {0, 1, 2, 3});
-        EXPECT_EQ(4, reduced.ndim());
-        EXPECT_EQ(3, reduced[0]);
-        EXPECT_EQ(2, reduced[1]);
-        EXPECT_EQ(5, reduced[2]);
-        EXPECT_EQ(4, reduced[3]);
+        Strides squashed = SquashedStrides({3, 2, 5, 4}, {0, 1, 2, 3});
+        EXPECT_EQ(4, squashed.ndim());
+        EXPECT_EQ(3, squashed[0]);
+        EXPECT_EQ(2, squashed[1]);
+        EXPECT_EQ(5, squashed[2]);
+        EXPECT_EQ(4, squashed[3]);
     }
     {
-        Strides reduced = Reduce({3, 2, 5, 4}, {1, 2});
-        EXPECT_EQ(2, reduced.ndim());
-        EXPECT_EQ(2, reduced[0]);
-        EXPECT_EQ(5, reduced[1]);
+        Strides squashed = SquashedStrides({3, 2, 5, 4}, {1, 2});
+        EXPECT_EQ(2, squashed.ndim());
+        EXPECT_EQ(2, squashed[0]);
+        EXPECT_EQ(5, squashed[1]);
     }
     {
-        Strides reduced = Reduce({3, 2, 5, 4}, {});
-        EXPECT_EQ(0, reduced.ndim());
+        Strides squashed = SquashedStrides({3, 2, 5, 4}, {});
+        EXPECT_EQ(0, squashed.ndim());
     }
     {
-        Strides reduced = Reduce({}, {});
-        EXPECT_EQ(0, reduced.ndim());
+        Strides squashed = SquashedStrides({}, {});
+        EXPECT_EQ(0, squashed.ndim());
     }
 }
 
-TEST(ElementwiseTest, ReduceAllDimensions) {
+TEST(ElementwiseTest, SquashAllDimensions) {
     testing::ContextSession context_session;
     Shape shape{3, 2, 5, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>();
 
-    Shape reduced{};
+    Shape squashed{};
     Axes keep{};
-    std::tie(reduced, keep) = ReducedShape(a);
+    std::tie(squashed, keep) = SquashedShape(a);
 
-    EXPECT_EQ(1, reduced.ndim());
-    EXPECT_EQ(shape[0] * shape[1] * shape[2] * shape[3], reduced[0]);
+    EXPECT_EQ(1, squashed.ndim());
+    EXPECT_EQ(shape[0] * shape[1] * shape[2] * shape[3], squashed[0]);
     EXPECT_EQ(1, keep.ndim());
     EXPECT_EQ(3, keep[0]);
 }
 
-TEST(ElementwiseTest, ReducePartialDimensions) {
+TEST(ElementwiseTest, SquashPartialDimensions) {
     testing::ContextSession context_session;
     Shape shape{3, 2, 5, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>().WithPadding({0, 2, 0, 0});
 
-    Shape reduced{};
+    Shape squashed{};
     Axes keep{};
-    std::tie(reduced, keep) = ReducedShape(a);
+    std::tie(squashed, keep) = SquashedShape(a);
 
-    EXPECT_EQ(2, reduced.ndim());
-    EXPECT_EQ(shape[0] * shape[1], reduced[0]);
-    EXPECT_EQ(shape[2] * shape[3], reduced[1]);
+    EXPECT_EQ(2, squashed.ndim());
+    EXPECT_EQ(shape[0] * shape[1], squashed[0]);
+    EXPECT_EQ(shape[2] * shape[3], squashed[1]);
     EXPECT_EQ(2, keep.ndim());
     EXPECT_EQ(1, keep[0]);
     EXPECT_EQ(3, keep[1]);
 }
 
-TEST(ElementwiseTest, ReduceUnitLengthDimensions) {
+TEST(ElementwiseTest, SquashUnitLengthDimensions) {
     testing::ContextSession context_session;
     Shape shape{3, 2, 1, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>().WithPadding(1);
 
-    Shape reduced{};
+    Shape squashed{};
     Axes keep{};
-    std::tie(reduced, keep) = ReducedShape(a);
+    std::tie(squashed, keep) = SquashedShape(a);
 
-    EXPECT_EQ(3, reduced.ndim());
-    EXPECT_EQ(shape[0], reduced[0]);
-    EXPECT_EQ(shape[1], reduced[1]);
-    EXPECT_EQ(shape[3], reduced[2]);
+    EXPECT_EQ(3, squashed.ndim());
+    EXPECT_EQ(shape[0], squashed[0]);
+    EXPECT_EQ(shape[1], squashed[1]);
+    EXPECT_EQ(shape[3], squashed[2]);
     EXPECT_EQ(3, keep.ndim());
     EXPECT_EQ(0, keep[0]);
     EXPECT_EQ(1, keep[1]);
     EXPECT_EQ(3, keep[2]);
 }
 
-TEST(ElementwiseTest, ReduceMultipleArraysDimensions) {
+TEST(ElementwiseTest, SquashMultipleArraysDimensions) {
     testing::ContextSession context_session;
     Shape shape{3, 2, 5, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>().WithPadding({0, 2, 0, 0});
     Array b = testing::BuildArray(shape).WithLinearData<float>().WithPadding({0, 0, 1, 0});
 
-    Shape reduced{};
+    Shape squashed{};
     Axes keep{};
-    std::tie(reduced, keep) = ReducedShape(a, b);
+    std::tie(squashed, keep) = SquashedShape(a, b);
 
-    EXPECT_EQ(3, reduced.ndim());
-    EXPECT_EQ(shape[0] * shape[1], reduced[0]);
-    EXPECT_EQ(shape[2], reduced[1]);
-    EXPECT_EQ(shape[3], reduced[2]);
+    EXPECT_EQ(3, squashed.ndim());
+    EXPECT_EQ(shape[0] * shape[1], squashed[0]);
+    EXPECT_EQ(shape[2], squashed[1]);
+    EXPECT_EQ(shape[3], squashed[2]);
     EXPECT_EQ(3, keep.ndim());
     EXPECT_EQ(1, keep[0]);
     EXPECT_EQ(2, keep[1]);
