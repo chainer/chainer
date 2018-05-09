@@ -31,7 +31,7 @@ inline Strides GetSquashedStrides(const Strides& strides, const Axes& keep) {
     return squashed;
 }
 
-// Given arrays with equal shapes, returns a tuple of a squashed shape with possibly fewer number of dimensions (but with equal total size)
+// Given arrays of equal shapes, returns a tuple with a squashed shape with possibly fewer number of dimensions (but with equal total size)
 // and axes that were kept in the procedure. Dimensions must be either successively contiguous or unit-length in order to be squashed as in
 // the following examples.
 //
@@ -62,7 +62,7 @@ std::tuple<Shape, Axes> SquashShape(const Array& array, Arrays&&... arrays) {
             Shape compressed = shape;
             for (int8_t i = 1; i < ndim; ++i) {
                 if (compressed[i - 1] == 1) {
-                    // do nothing.
+                    // Do nothing.
                 } else if (elementwise_detail::IsSquashableDimension(i, compressed, array.strides(), arrays.strides()...)) {
                     compressed[i] *= compressed[i - 1];
                     compressed[i - 1] = 1;
