@@ -2,8 +2,6 @@ import chainer
 from chainer.backends import cuda
 from chainer import Distribution
 from chainer.functions.array import broadcast
-from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
 from chainer.functions.math import exponential
 from chainer.functions.math import trigonometric
 import numpy
@@ -137,10 +135,8 @@ class Cauchy(Distribution):
             eps = numpy.random.standard_cauchy(
                 (n,)+self.loc.shape).astype(numpy.float32)
 
-        noise = repeat.repeat(
-            expand_dims.expand_dims(self.scale, axis=0), n, axis=0) * eps
-        noise += repeat.repeat(expand_dims.expand_dims(
-            self.loc, axis=0), n, axis=0)
+        noise = broadcast.broadcast_to(self.scale, eps.shape) * eps
+        noise += broadcast.broadcast_to(self.loc, eps.shape)
 
         return noise
 
