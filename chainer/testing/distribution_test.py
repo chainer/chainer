@@ -79,9 +79,9 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
         def check_cdf(self, is_gpu):
             smp = self.sample_for_test(self.smp_shape + self.shape)
             if is_gpu:
-                cdf1 = self.gpu_dist.cdf(smp).data
+                cdf1 = self.gpu_dist.cdf(cuda.to_gpu(smp)).data
             else:
-                cdf1 = self.cpu_dist.cdf(cuda.to_gpu(smp)).data
+                cdf1 = self.cpu_dist.cdf(smp).data
             cdf2 = self.scipy_dist.cdf(smp, **self.scipy_params)
             testing.assert_allclose(cdf1, cdf2)
 
@@ -141,9 +141,9 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 1e-5, 1 - 1e-5, self.smp_shape + self.shape
             ).astype(numpy.float32)
             if is_gpu:
-                icdf1 = self.gpu_dist.icdf(smp).data
+                icdf1 = self.gpu_dist.icdf(cuda.to_gpu(smp)).data
             else:
-                icdf1 = self.cpu_dist.icdf(cuda.to_gpu(smp)).data
+                icdf1 = self.cpu_dist.icdf(smp).data
             icdf2 = self.scipy_dist.ppf(smp, **self.scipy_params)
             testing.assert_allclose(icdf1, icdf2)
 

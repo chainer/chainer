@@ -223,9 +223,6 @@ from chainer.functions.math.linear_interpolate import linear_interpolate  # NOQA
 from chainer.functions.math.linear_interpolate import LinearInterpolate  # NOQA
 from chainer.functions.math.logarithm_1p import Log1p  # NOQA
 from chainer.functions.math.logarithm_1p import log1p  # NOQA
-from chainer.functions.math.logdet import batch_logdet  # NOQA
-from chainer.functions.math.logdet import BatchLogdet  # NOQA
-from chainer.functions.math.logdet import logdet  # NOQA
 from chainer.functions.math.logsumexp import logsumexp  # NOQA
 from chainer.functions.math.logsumexp import LogSumExp  # NOQA
 from chainer.functions.math.matmul import batch_matmul  # NOQA
