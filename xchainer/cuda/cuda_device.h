@@ -66,7 +66,7 @@ public:
 
     void Eye(int64_t k, const Array& out) override;
 
-    void Diag(const Array& v, int64_t k, const Array& out) override;
+    void Diagflat(const Array& v, int64_t k, const Array& out) override;
 
     void Linspace(double start, double stop, const Array& out);
 

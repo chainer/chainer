@@ -429,8 +429,9 @@ void NativeDevice::Eye(int64_t k, const Array& out) {
     });
 }
 
-void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
-    assert((v.ndim() == 1 && out.ndim() == 2) || (v.ndim() == 2 && out.ndim() == 1));
+void NativeDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
+    assert(v.ndim() == 1);
+    assert(out.ndim() == 2);
 
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
@@ -445,39 +446,23 @@ void NativeDevice::Diag(const Array& v, int64_t k, const Array& out) {
             row_start -= k;
         }
 
-        if (v.ndim() == 1) {
-            IndexableArray<const T, 1> v_iarray{v};
-            IndexableArray<T, 2> out_iarray{out};
-            Indexer<1> v_indexer{v.shape()};
-            Indexer<1> out_rows_indexer{Shape{out.shape()[0]}};
-            Indexer<1> out_cols_indexer{Shape{out.shape()[1]}};
-            Indexer<2> out_indexer{out.shape()};
+        IndexableArray<const T, 1> v_iarray{v};
+        IndexableArray<T, 2> out_iarray{out};
+        Indexer<1> v_indexer{v.shape()};
+        Indexer<1> out_rows_indexer{Shape{out.shape()[0]}};
+        Indexer<1> out_cols_indexer{Shape{out.shape()[1]}};
+        Indexer<2> out_indexer{out.shape()};
 
-            // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
-            for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
-                out_iarray[out_it] = T{0};
-            }
+        // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
+        for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
+            out_iarray[out_it] = T{0};
+        }
 
-            for (auto v_it = v_indexer.It(0); v_it; ++v_it) {
-                auto out_rows_it = out_rows_indexer.It(row_start + v_it.raw_index());
-                auto out_cols_it = out_cols_indexer.It(col_start + v_it.raw_index());
-                auto out_it = out_indexer.It(out_rows_it, out_cols_it);
-                out_iarray[out_it] = v_iarray[v_it];
-            }
-        } else if (v.ndim() == 2) {
-            IndexableArray<const T, 2> v_iarray{v};
-            IndexableArray<T, 1> out_iarray{out};
-            Indexer<2> v_indexer{v.shape()};
-            Indexer<1> v_row_indexer{Shape{v.shape()[0]}};
-            Indexer<1> v_col_indexer{Shape{v.shape()[1]}};
-            Indexer<1> out_indexer{out.shape()};
-
-            for (auto out_it = out_indexer.It(0); out_it; ++out_it) {
-                auto v_row_it = v_row_indexer.It(row_start + out_it.raw_index());
-                auto v_col_it = v_col_indexer.It(col_start + out_it.raw_index());
-                auto v_it = v_indexer.It(v_row_it, v_col_it);
-                out_iarray[out_it] = v_iarray[v_it];
-            }
+        for (auto v_it = v_indexer.It(0); v_it; ++v_it) {
+            auto out_rows_it = out_rows_indexer.It(row_start + v_it.raw_index());
+            auto out_cols_it = out_cols_indexer.It(col_start + v_it.raw_index());
+            auto out_it = out_indexer.It(out_rows_it, out_cols_it);
+            out_iarray[out_it] = v_iarray[v_it];
         }
     });
 }

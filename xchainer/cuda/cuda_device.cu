@@ -761,28 +761,11 @@ __global__ void SetVecInMat(
     }
 }
 
-template <typename T>
-__global__ void GetVecFromMat(
-        IndexableArray<const T, 2> mat_iarray,
-        IndexableArray<T, 1> vec_iarray,
-        Indexer<1> mat_row_indexer,
-        Indexer<1> mat_col_indexer,
-        Indexer<2> mat_indexer,
-        Indexer<1> vec_indexer,
-        int64_t mat_row_start,
-        int64_t mat_col_start) {
-    for (auto vec_it = vec_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); vec_it; ++vec_it) {
-        auto mat_row_it = mat_row_indexer.It(mat_row_start + vec_it.raw_index());
-        auto mat_col_it = mat_col_indexer.It(mat_col_start + vec_it.raw_index());
-        auto mat_it = mat_indexer.It(mat_row_it, mat_col_it);
-        vec_iarray[vec_it] = mat_iarray[mat_it];
-    }
-}
-
 }  // namespace
 
-void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
-    assert((v.ndim() == 1 && out.ndim() == 2) || (v.ndim() == 2 && out.ndim() == 1));
+void CudaDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
+    assert(v.ndim() == 1);
+    assert(out.ndim() == 2);
 
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
@@ -797,41 +780,23 @@ void CudaDevice::Diag(const Array& v, int64_t k, const Array& out) {
             row_start -= k;
         }
 
-        if (v.ndim() == 1) {
-            // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
-            Fill(out, T{0});
+        // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
+        Fill(out, T{0});
 
-            IndexableArray<const T, 1> v_iarray{v};
-            IndexableArray<T, 2> out_iarray{out};
-            Indexer<1> v_indexer{v.shape()};
-            Indexer<1> out_row_indexer{Shape{out.shape()[0]}};
-            Indexer<1> out_col_indexer{Shape{out.shape()[1]}};
-            Indexer<2> out_indexer{out.shape()};
+        IndexableArray<const T, 1> v_iarray{v};
+        IndexableArray<T, 2> out_iarray{out};
+        Indexer<1> v_indexer{v.shape()};
+        Indexer<1> out_row_indexer{Shape{out.shape()[0]}};
+        Indexer<1> out_col_indexer{Shape{out.shape()[1]}};
+        Indexer<2> out_indexer{out.shape()};
 
-            static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SetVecInMat<T>).block_size;
-            int64_t total_size = out_indexer.total_size();
-            int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-            int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SetVecInMat<T>).block_size;
+        int64_t total_size = out_indexer.total_size();
+        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-            SetVecInMat<<<grid_size, block_size>>>(
-                    v_iarray, out_iarray, v_indexer, out_row_indexer, out_col_indexer, out_indexer, row_start, col_start);
-
-        } else if (v.ndim() == 2) {
-            IndexableArray<const T, 2> v_iarray{v};
-            IndexableArray<T, 1> out_iarray{out};
-            Indexer<1> v_row_indexer{Shape{v.shape()[0]}};
-            Indexer<1> v_col_indexer{Shape{v.shape()[1]}};
-            Indexer<2> v_indexer{v.shape()};
-            Indexer<1> out_indexer{out.shape()};
-
-            static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&GetVecFromMat<T>).block_size;
-            int64_t total_size = out_indexer.total_size();
-            int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-            int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
-
-            GetVecFromMat<<<grid_size, block_size>>>(
-                    v_iarray, out_iarray, v_row_indexer, v_col_indexer, v_indexer, out_indexer, row_start, col_start);
-        }
+        SetVecInMat<<<grid_size, block_size>>>(
+                v_iarray, out_iarray, v_indexer, out_row_indexer, out_col_indexer, out_indexer, row_start, col_start);
     });
 }
 
