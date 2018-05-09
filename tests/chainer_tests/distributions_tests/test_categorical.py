@@ -13,8 +13,9 @@ def params_init(shape):
     p = numpy.random.normal(size=shape+(3,)).astype(numpy.float32)
     p = numpy.exp(p)
     p /= numpy.expand_dims(p.sum(axis=-1), axis=-1)
+    n = numpy.ones(shape)
     params = {"p": p}
-    sp_params = {"n": 1, "p": p}
+    sp_params = {"n": n, "p": p}
     return params, sp_params
 
 
