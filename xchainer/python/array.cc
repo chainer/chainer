@@ -296,14 +296,14 @@ void InitXchainerArray(pybind11::module& m) {
     c.def_property_readonly(
             "device", [](const ArrayBodyPtr& self) -> Device& { return Array{self}.device(); }, py::return_value_policy::reference);
     c.def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); });
-    c.def_property_readonly("element_bytes", [](const ArrayBodyPtr& self) { return Array{self}.element_bytes(); });
+    c.def_property_readonly("itemsize", [](const ArrayBodyPtr& self) { return Array{self}.element_bytes(); });
     c.def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.IsContiguous(); });
     c.def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return Array{self}.ndim(); });
     c.def_property_readonly("offset", [](const ArrayBodyPtr& self) { return Array{self}.offset(); });
     c.def_property_readonly("shape", [](const ArrayBodyPtr& self) { return ToTuple(Array{self}.shape()); });
     c.def_property_readonly("strides", [](const ArrayBodyPtr& self) { return ToTuple(Array{self}.strides()); });
-    c.def_property_readonly("total_bytes", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalBytes(); });
-    c.def_property_readonly("total_size", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalSize(); });
+    c.def_property_readonly("nbytes", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalBytes(); });
+    c.def_property_readonly("size", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalSize(); });
     c.def_property_readonly("T", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); });
     c.def_property_readonly(
             "_debug_data_memory_address",  // These methods starting with `_debug_` are stubs for testing

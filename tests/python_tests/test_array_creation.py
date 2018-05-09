@@ -26,7 +26,7 @@ def shape(request):
     return request.param
 
 
-def _total_size(shape):
+def _size(shape):
     return functools.reduce(operator.mul, shape, 1)
 
 
@@ -41,10 +41,10 @@ def _check_device(a, device=None):
 def _create_dummy_ndarray(xp, shape, dtype, device=None):
     if xchainer.dtype(dtype).name in xchainer.testing.unsigned_dtypes:
         start = 0
-        stop = _total_size(shape)
+        stop = _size(shape)
     else:
         start = -1
-        stop = _total_size(shape) - 1
+        stop = _size(shape) - 1
 
     if xp is xchainer:
         return xp.arange(start=start, stop=stop, device=device).reshape(shape).astype(dtype)
@@ -568,7 +568,7 @@ def test_full_with_scalar(shape, dtype, value, device):
     if scalar.dtype in (xchainer.float32, xchainer.float64) and math.isnan(float(scalar)):
         assert all([math.isnan(el) for el in a._debug_flat_data])
     else:
-        assert a._debug_flat_data == [scalar.tolist()] * a.total_size
+        assert a._debug_flat_data == [scalar.tolist()] * a.size
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
@@ -824,7 +824,7 @@ def test_eye_invalid_NMk_type(xp, N, M, k, device):
 @pytest.mark.parametrize('shape', [(4,), (2, 3), (6, 5)])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_diag(xp, k, shape, device):
-    v = xp.arange(_total_size(shape)).reshape(shape)
+    v = xp.arange(_size(shape)).reshape(shape)
     return xp.diag(v, k)
 
 
@@ -833,7 +833,7 @@ def test_diag(xp, k, shape, device):
 @pytest.mark.parametrize('shape', [(), (2, 1, 2), (2, 0, 1)])
 @pytest.mark.parametrize('device', ['native:1', 'native:0'])
 def test_diag_invalid_ndim(xp, k, shape, device):
-    v = xp.arange(_total_size(shape)).reshape(shape)
+    v = xp.arange(_size(shape)).reshape(shape)
     return xp.diag(v, k)
 
 
@@ -843,7 +843,7 @@ def test_diag_invalid_ndim(xp, k, shape, device):
 @pytest.mark.parametrize('shape', [(), (4,), (2, 3), (6, 5), (2, 0)])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_diagflat(xp, k, shape, device):
-    v = xp.arange(_total_size(shape)).reshape(shape)
+    v = xp.arange(_size(shape)).reshape(shape)
     return xp.diagflat(v, k)
 
 
@@ -852,7 +852,7 @@ def test_diagflat(xp, k, shape, device):
 @pytest.mark.parametrize('shape', [(2, 1, 2), (2, 0, 1)])
 @pytest.mark.parametrize('device', ['native:1', 'native:0'])
 def test_diagflat_invalid_ndim(xp, k, shape, device):
-    v = xp.arange(_total_size(shape)).reshape(shape)
+    v = xp.arange(_size(shape)).reshape(shape)
     return xp.diagflat(v, k)
 
 
