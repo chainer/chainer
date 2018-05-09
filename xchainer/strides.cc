@@ -47,7 +47,7 @@ void CheckEqual(const Strides& lhs, const Strides& rhs) {
     }
 }
 
-std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& strides, size_t element_bytes) {
+std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& strides, size_t item_size) {
     assert(shape.ndim() == strides.ndim());
     int64_t first = 0;
     int64_t last = 0;
@@ -58,7 +58,7 @@ std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& str
     }
     assert(first <= 0);
     assert(0 <= last);
-    return std::tuple<int64_t, int64_t>{first, last + element_bytes};
+    return std::tuple<int64_t, int64_t>{first, last + item_size};
 }
 
 }  // namespace xchainer
