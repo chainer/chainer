@@ -64,3 +64,6 @@ class TestDirichlet(unittest.TestCase):
     @attr.gpu
     def test_log_prob_gpu(self):
         self.check_log_prob(True)
+
+
+testing.run_module(__name__, __file__)

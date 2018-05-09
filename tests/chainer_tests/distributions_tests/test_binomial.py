@@ -28,3 +28,6 @@ tests = set(["batch_shape", "event_shape", "log_prob", "mean", "sample",
                                tests=tests, continuous=False, support="[0, n]")
 class TestBinomial(unittest.TestCase):
     pass
+
+
+testing.run_module(__name__, __file__)

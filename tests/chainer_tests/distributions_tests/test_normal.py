@@ -29,3 +29,6 @@ tests = set(["batch_shape", "cdf", "entropy", "event_shape", "icdf",
                                tests=tests)
 class TestNormal(unittest.TestCase):
     pass
+
+
+testing.run_module(__name__, __file__)

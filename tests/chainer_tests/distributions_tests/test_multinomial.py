@@ -122,3 +122,6 @@ class TestMultinomial(unittest.TestCase):
     @attr.gpu
     def test_sample_gpu(self):
         self.check_sample(True)
+
+
+testing.run_module(__name__, __file__)

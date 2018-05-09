@@ -28,3 +28,6 @@ tests = set(["batch_shape", "entropy", "event_shape", "log_prob", "mean",
                                tests=tests, support="[low, high]")
 class TestUniform(unittest.TestCase):
     pass
+
+
+testing.run_module(__name__, __file__)

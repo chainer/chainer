@@ -27,3 +27,6 @@ tests = set(["batch_shape", "cdf", "entropy", "event_shape", "log_prob",
                                tests=tests, support="positive")
 class TestExponential(unittest.TestCase):
     pass
+
+
+testing.run_module(__name__, __file__)

@@ -28,3 +28,6 @@ tests = set(["batch_shape", "event_shape", "log_prob", "mean", "sample",
                                support="non negative integer")
 class TestPoisson(unittest.TestCase):
     pass
+
+
+testing.run_module(__name__, __file__)

@@ -27,3 +27,6 @@ tests = set(["batch_shape", "entropy", "log_prob", "mean", "prob", "sample",
                                tests=tests, continuous=False, support='{0, 1}')
 class TestBernoulli(unittest.TestCase):
     pass
+
+
+testing.run_module(__name__, __file__)

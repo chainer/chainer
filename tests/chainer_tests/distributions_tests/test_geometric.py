@@ -28,3 +28,6 @@ tests = set(["batch_shape", "event_shape", "log_prob", "mean", "sample",
                                support="positive integer")
 class TestGeometric(unittest.TestCase):
     pass
+
+
+testing.run_module(__name__, __file__)
