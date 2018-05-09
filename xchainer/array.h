@@ -217,7 +217,7 @@ public:
 
     const Strides& strides() const { return body_->strides_; }
 
-    int64_t item_size() const { return GetElementSize(dtype()); }
+    int64_t item_size() const { return GetItemSize(dtype()); }
 
     const std::shared_ptr<void>& data() const { return body_->data_; }
 

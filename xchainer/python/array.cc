@@ -86,7 +86,7 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& d
 ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& list, Device& device) {
     Shape shape = ToShape(shape_tup);
     auto total_size = shape.GetTotalSize();
-    auto bytes = GetElementSize(dtype) * total_size;
+    auto bytes = GetItemSize(dtype) * total_size;
     if (static_cast<size_t>(total_size) != list.size()) {
         throw DimensionError{"Invalid data length"};
     }
