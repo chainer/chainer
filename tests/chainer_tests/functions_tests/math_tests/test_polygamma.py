@@ -1,7 +1,6 @@
 import unittest
 
 import numpy
-from scipy import special
 
 import chainer
 from chainer.backends import cuda
@@ -36,6 +35,7 @@ class TestPolyGamma(unittest.TestCase):
                                               'dtype': numpy.float64}
 
     def check_forward(self, n_data, x_data):
+        from scipy import special
         x = chainer.Variable(x_data)
         n = chainer.Variable(n_data)
         y = F.polygamma(n, x)

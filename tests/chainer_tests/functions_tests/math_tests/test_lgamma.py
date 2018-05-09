@@ -1,7 +1,6 @@
 import unittest
 
 import numpy
-from scipy import special
 
 from chainer.backends import cuda
 import chainer.functions as F
@@ -9,6 +8,7 @@ from chainer import testing
 
 
 def _lgamma_cpu(x, dtype):
+    from scipy import special
     return numpy.vectorize(special.gammaln, otypes=[dtype])(x)
 
 
