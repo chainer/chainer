@@ -134,7 +134,7 @@ def numpy_xchainer_allclose(
     (except the type of array module) even if ``xp`` is ``numpy`` or ``xchainer``.
 
     .. seealso:: :func:`xchainer.testing.assert_allclose_ex`
-    """
+    """  # NOQA
     if not type_check:
         strides_check = False
 

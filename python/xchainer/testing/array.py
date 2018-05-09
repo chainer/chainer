@@ -99,7 +99,8 @@ def assert_allclose_ex(x, y, *args, dtype_check=None, strides_check=None, **kwar
          err_msg(str): The error message to be printed in case of failure.
          verbose(bool): If ``True``, the conflicting values
              are appended to the error message.
-         dtype_check(bool): If ``True``, consistency of dtype is also checked. Disabling ``dtype_check`` also implies ``strides_check=False``.
+         dtype_check(bool): If ``True``, consistency of dtype is also checked.
+             Disabling ``dtype_check`` also implies ``strides_check=False``.
          strides_check(bool): If ``True``, consistency of strides is also checked.
     .. seealso:: :func:`numpy.testing.assert_allclose`
     """
@@ -118,7 +119,8 @@ def assert_array_equal_ex(x, y, *args, dtype_check=None, strides_check=None, **k
          err_msg(str): The error message to be printed in case of failure.
          verbose(bool): If ``True``, the conflicting values
              are appended to the error message.
-         dtype_check(bool): If ``True``, consistency of dtype is also checked. Disabling ``dtype_check`` also implies ``strides_check=False``.
+         dtype_check(bool): If ``True``, consistency of dtype is also checked.
+             Disabling ``dtype_check`` also implies ``strides_check=False``.
          strides_check(bool): If ``True``, consistency of strides is also checked.
     .. seealso::
        :func:`numpy.testing.assert_array_equal`
