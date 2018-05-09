@@ -39,6 +39,7 @@ def make_data(shape, dtype):
     double_backward_options={'eps': 1e-3, 'atol': 5e-2, 'rtol': 1e-4,
                              'dtype': numpy.float64}
 )
+@testing.with_requires('scipy')
 class TestDiGamma(unittest.TestCase):
     pass
 

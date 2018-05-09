@@ -15,6 +15,7 @@ from chainer.testing import attr
     'shape': [(), (3, 2)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64]
 }))
+@testing.with_requires('scipy')
 class TestPolyGamma(unittest.TestCase):
 
     def setUp(self):
