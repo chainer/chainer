@@ -51,7 +51,7 @@ private:
     Dtype dtype_;
     Device& device_;
     std::shared_ptr<void> data_;
-    int64_t offset_;
+    int64_t offset_;  // in bytes
     std::vector<std::shared_ptr<ArrayNode>> nodes_;
 };
 

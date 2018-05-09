@@ -863,6 +863,64 @@ def test_linspace_invalid_num(xp, device):
     xp.linspace(2, 4, -1)
 
 
+@pytest.mark.parametrize_device(['native:0'])
+def test_frombuffer_from_numpy_array(device):
+    obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
+
+    a_xc = xchainer.frombuffer(obj, obj.dtype)
+    a_np = numpy.frombuffer(obj, obj.dtype)
+
+    xchainer.testing.assert_array_equal(a_np, a_xc)
+    xchainer.testing.assert_array_equal(obj.ravel(), a_xc)
+    assert a_xc.dtype == xchainer.dtype(obj.dtype)
+    assert a_xc.device is xchainer.get_device(device)
+
+    # test buffer is shared
+    obj += obj
+    xchainer.testing.assert_array_equal(obj.ravel(), a_xc)
+
+    # test possibly freed memory
+    obj_copy = obj.copy()
+    del obj
+    xchainer.testing.assert_array_equal(obj_copy.ravel(), a_xc)
+
+
+@pytest.mark.parametrize_device(['cuda:0'])
+def test_frombuffer_from_numpy_array_with_cuda(device):
+    obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
+    with pytest.raises(xchainer.XchainerError):
+        xchainer.frombuffer(obj, obj.dtype)
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.XchainerError))
+def test_frombuffer_from_numpy_array_with_noncontiguous(xp):
+    obj = _create_dummy_ndarray(numpy, (2, 3), 'int32').T
+    return xp.frombuffer(obj, obj.dtype)
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.XchainerError))
+@pytest.mark.parametrize('count', [-1, 0, 1, 3, 4])
+@pytest.mark.parametrize('offset', [-1, 0, 1, 4, 3 * 4, 3 * 4 + 4])
+def test_frombuffer_from_numpy_array_with_offset_count(xp, count, offset):
+    obj = _create_dummy_ndarray(numpy, (3,), 'int32')
+    return xp.frombuffer(obj, obj.dtype, count=count, offset=offset)
+
+
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_frombuffer_with_device(device):
+    obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
+    a = xchainer.frombuffer(obj, obj.dtype, device=device)
+    b = xchainer.frombuffer(obj, obj.dtype)
+    xchainer.testing.assert_array_equal(a, b)
+    _check_device(a, device)
+
+
+# TODO(sonots): Implement xchainer.buffer to test from cuda buffer.
+# @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+# def test_frombuffer_from_xchainer_array(device):
+#     pass
+
+
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('count', [-1, 0, 2])
 @pytest.mark.parametrize('sep', ['', 'a'])
