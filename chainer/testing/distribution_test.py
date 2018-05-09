@@ -40,7 +40,8 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 self.gpu_params = {k: chainer.Variable(v)
                                    for k, v in self.gpu_params.items()}
             self.scipy_onebyone_params = \
-                {k: v.reshape(numpy.prod(self.shape), -1)
+                {k: v.reshape((numpy.prod(self.shape),)
+                 + v.shape[len(self.shape):])
                  for k, v in self.scipy_params.items()}
             self.sample_for_test = sample_for_test
             self.support = support
@@ -185,7 +186,26 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 scipy_prob = self.scipy_dist.logpdf
             else:
                 scipy_prob = self.scipy_dist.logpmf
-            log_prob2 = scipy_prob(smp, **self.scipy_params)
+
+            if self.scipy_onebyone:
+                onebyone_smp = smp.reshape(
+                    (int(numpy.prod(self.smp_shape)),
+                     numpy.prod(self.shape),
+                     int(numpy.prod(self.event_shape))))
+                onebyone_smp = numpy.swapaxes(onebyone_smp, 0, 1)
+                onebyone_smp = onebyone_smp.reshape((-1,) + self.smp_shape
+                                                    + self.event_shape)
+                log_prob2 = []
+                for i in range(numpy.prod(self.shape)):
+                    one_params = {k: v[i] for k, v
+                                  in self.scipy_onebyone_params.items()}
+                    one_smp = onebyone_smp[i]
+                    log_prob2.append(scipy_prob(one_smp, **one_params))
+                log_prob2 = numpy.stack(log_prob2)
+                log_prob2 = log_prob2.reshape(log_prob2.shape[0], -1).T
+                log_prob2 = log_prob2.reshape(self.smp_shape + self.shape)
+            else:
+                log_prob2 = self.scipy_dist.mean(**self.scipy_params)
             testing.assert_allclose(log_prob1, log_prob2)
 
         def test_log_prob_cpu(self):

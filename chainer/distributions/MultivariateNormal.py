@@ -1,6 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import Distribution
+from chainer.functions.array import broadcast
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
 from chainer.functions.array import rollaxis
@@ -56,7 +57,7 @@ class MultivariateNormal(Distribution):
         """
         st = rollaxis.rollaxis(self.scale_tril, -2, 0)
         st = rollaxis.rollaxis(st, -1, 1)
-        diag = st[range(self.d), range(self.d)]
+        diag = st[list(range(self.d)), list(range(self.d))]
         return sum.sum(exponential.log(basic_math.absolute(diag)), axis=0) \
             + 0.5 * numpy.log(2 * numpy.pi * numpy.e) * self.d
 
@@ -80,18 +81,25 @@ class MultivariateNormal(Distribution):
         """
         st = rollaxis.rollaxis(self.scale_tril, -2, 0)
         st = rollaxis.rollaxis(st, -1, 1)
-        diag = st[range(self.d), range(self.d)]
+        diag = st[list(range(self.d)), list(range(self.d))]
         logdet = sum.sum(exponential.log(basic_math.absolute(diag)), axis=0)
         scale_tril_inv = \
             inv.batch_inv(self.scale_tril.reshape(-1, self.d, self.d)).reshape(
                 self.scale_tril.shape)
+        scale_tril_inv = scale_tril_inv.reshape(
+            self.batch_shape+(self.d, self.d))
+        print(scale_tril_inv.shape)
+
+        bsti = broadcast.broadcast_to(scale_tril_inv, x.shape + (self.d,))
+        bl = broadcast.broadcast_to(self.loc, x.shape)
         m = matmul.matmul(
-            scale_tril_inv,
-            expand_dims.expand_dims(x - self.loc, axis=-1))
+            bsti,
+            expand_dims.expand_dims(x - bl, axis=-1))
         m = matmul.matmul(swapaxes.swapaxes(m, -1, -2), m)
         m = squeeze.squeeze(m, axis=-1)
         m = squeeze.squeeze(m, axis=-1)
-        return - 0.5 * self.d * numpy.log(2 * numpy.pi) - logdet - 0.5 * m
+        logz = - 0.5 * self.d * numpy.log(2 * numpy.pi) - logdet
+        return broadcast.broadcast_to(logz, m.shape) - 0.5 * m
 
     @property
     def mean(self):
@@ -147,17 +155,3 @@ class MultivariateNormal(Distribution):
 
         """
         return 'real'
-
-    @property
-    def variance(self):
-        """Returns variance.
-
-        Returns:
-            ~chainer.Variable: Output variable representing variance.
-
-        """
-        st = rollaxis.rollaxis(self.scale_tril, -2, 0)
-        st = rollaxis.rollaxis(st, -1, 1)
-        diag = st[range(self.d), range(self.d)]
-        diag = diag ** 2
-        return rollaxis.rollaxis(diag, 0, -1)
