@@ -42,11 +42,14 @@ class TestOneHotCategorical(unittest.TestCase):
 
     @property
     def gpu_dist(self):
-        self.gpu_params = {k: cuda.to_gpu(v)
-                           for k, v in self.params.items()}
         if self.is_variable:
+            self.gpu_params = {k: cuda.to_gpu(v.data)
+                               for k, v in self.params.items()}
             self.gpu_params = {k: chainer.Variable(v)
                                for k, v in self.gpu_params.items()}
+        else:
+            self.gpu_params = {k: cuda.to_gpu(v)
+                               for k, v in self.params.items()}
         return self.dist(**self.gpu_params)
 
     def test_batch_shape_cpu(self):
