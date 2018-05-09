@@ -115,7 +115,7 @@ def test_array_from_python_tuple_or_list_with_float_dtype(xp, obj, dtype_spec, d
 def test_array_from_python_tuple_or_list_with_device(obj, device):
     a = xchainer.array(obj, 'float32', device=device)
     b = xchainer.array(obj, 'float32')
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
     _check_device(a, device)
 
 
@@ -125,7 +125,7 @@ def _check_array_from_numpy_array(a_xc, a_np, device=None):
 
     # recovered data should be equal
     a_np_recovered = xchainer.tonumpy(a_xc)
-    xchainer.testing.assert_array_equal(a_xc, a_np_recovered)
+    xchainer.testing.assert_array_equal_ex(a_xc, a_np_recovered, strides_check=False)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
@@ -140,7 +140,7 @@ def test_array_from_numpy_array(xp, shape, dtype, device):
         # test possibly freed memory
         a_np_copy = a_np.copy()
         del a_np
-        xchainer.testing.assert_array_equal(a_xp, a_np_copy)
+        xchainer.testing.assert_array_equal_ex(a_xp, a_np_copy, strides_check=False)
 
     return a_xp
 
@@ -157,7 +157,7 @@ def test_array_from_numpy_non_contiguous_array(xp, shape, dtype, device):
         # test possibly freed memory
         a_np_copy = a_np.copy()
         del a_np
-        xchainer.testing.assert_array_equal(a_xp, a_np_copy, strides_check=False)
+        xchainer.testing.assert_array_equal_ex(a_xp, a_np_copy, strides_check=False)
 
     return a_xp
 
@@ -174,7 +174,7 @@ def test_array_from_numpy_positive_offset_array(xp, device):
         # test possibly freed memory
         a_np_copy = a_np.copy()
         del a_np
-        xchainer.testing.assert_array_equal(a_xp, a_np_copy)
+        xchainer.testing.assert_array_equal_ex(a_xp, a_np_copy)
 
     return a_xp
 
@@ -205,7 +205,7 @@ def test_array_from_numpy_array_with_device(shape, device):
     orig = _create_dummy_ndarray(numpy, (2, ), 'float32')
     a = xchainer.array(orig, device=device)
     b = xchainer.array(orig)
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
     _check_device(a, device)
 
 
@@ -218,7 +218,7 @@ def test_array_from_xchainer_array(shape, dtype, copy, device):
         assert t is a
     else:
         assert t is not a
-        xchainer.testing.assert_array_equal(a, t)
+        xchainer.testing.assert_array_equal_ex(a, t)
         assert a.dtype == t.dtype
         assert a.device is t.device
 
@@ -235,7 +235,7 @@ def _check_array_from_xchainer_array_with_dtype(shape, src_dtype, dst_dtype_spec
         assert t is a
     else:
         assert t is not a
-        xchainer.testing.assert_array_equal(a, t.astype(dst_dtype))
+        xchainer.testing.assert_array_equal_ex(a, t.astype(dst_dtype))
         assert a.dtype == dst_dtype
         assert a.device is xchainer.get_default_device()
 
@@ -269,7 +269,7 @@ def test_array_from_xchainer_array_with_device(src_dtype, dst_dtype, copy, devic
         assert t is a
     else:
         assert t is not a
-        xchainer.testing.assert_array_equal(a, t.to_device(dst_device).astype(dst_dtype))
+        xchainer.testing.assert_array_equal_ex(a, t.to_device(dst_device).astype(dst_dtype))
         assert a.dtype == xchainer.dtype(dst_dtype)
         assert a.device is dst_device
 
@@ -278,7 +278,7 @@ def test_asarray_from_python_tuple_or_list():
     obj = _array_params_list
     a = xchainer.asarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
-    xchainer.testing.assert_array_equal(e, a)
+    xchainer.testing.assert_array_equal_ex(e, a)
     assert e.dtype == a.dtype
     assert e.device is a.device
 
@@ -287,7 +287,7 @@ def test_asarray_from_numpy_array():
     obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
     a = xchainer.asarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
-    xchainer.testing.assert_array_equal(e, a)
+    xchainer.testing.assert_array_equal_ex(e, a)
     assert e.dtype == a.dtype
     assert e.device is a.device
 
@@ -301,7 +301,7 @@ def test_asarray_from_xchainer_array(dtype):
     else:
         assert a is not obj
     e = xchainer.array(obj, dtype=dtype, copy=False)
-    xchainer.testing.assert_array_equal(e, a)
+    xchainer.testing.assert_array_equal_ex(e, a)
     assert e.dtype == a.dtype
     assert e.device is a.device
 
@@ -310,7 +310,7 @@ def test_asarray_from_xchainer_array(dtype):
 def test_asarray_with_device(device):
     a = xchainer.asarray([0, 1], 'float32', device)
     b = xchainer.asarray([0, 1], 'float32')
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
     _check_device(a, device)
 
 
@@ -342,7 +342,7 @@ def test_ascontiguousarray_from_xchainer_array(device, shape, dtype, transpose):
     if not transpose and shape != ():  # () will be reshaped to (1,)
         assert a is obj
     e = xchainer.ascontiguousarray(tr(np_arr))
-    xchainer.testing.assert_array_equal(e, a)
+    xchainer.testing.assert_array_equal_ex(e, a)
     assert a.is_contiguous
     assert e.dtype.name == a.dtype.name
 
@@ -381,14 +381,14 @@ def test_ascontiguousarray_with_device(device, shape, transpose, dtype):
     b = xchainer.ascontiguousarray(obj)
     _check_device(a, device)
     assert a.is_contiguous
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
 
 
 def test_asanyarray_from_python_tuple_or_list():
     obj = _array_params_list
     a = xchainer.asanyarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
-    xchainer.testing.assert_array_equal(e, a)
+    xchainer.testing.assert_array_equal_ex(e, a)
     assert e.dtype == a.dtype
     assert e.device is a.device
 
@@ -397,7 +397,7 @@ def test_asanyarray_from_numpy_array():
     obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
     a = xchainer.asanyarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
-    xchainer.testing.assert_array_equal(e, a)
+    xchainer.testing.assert_array_equal_ex(e, a)
     assert e.dtype == a.dtype
     assert e.device is a.device
 
@@ -408,7 +408,7 @@ def test_asanyarray_from_numpy_subclass_array():
     obj = _create_dummy_ndarray(numpy, (2, 3), 'int32').view(Subclass)
     a = xchainer.asanyarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
-    xchainer.testing.assert_array_equal(e, a)
+    xchainer.testing.assert_array_equal_ex(e, a)
     assert e.dtype == a.dtype
     assert e.device is a.device
 
@@ -422,7 +422,7 @@ def test_asanyarray_from_xchainer_array(dtype):
     else:
         assert a is not obj
     e = xchainer.array(obj, dtype=dtype, copy=False)
-    xchainer.testing.assert_array_equal(e, a)
+    xchainer.testing.assert_array_equal_ex(e, a)
     assert e.dtype == a.dtype
     assert e.device is a.device
 
@@ -431,7 +431,7 @@ def test_asanyarray_from_xchainer_array(dtype):
 def test_asanyarray_with_device(device):
     a = xchainer.asanyarray([0, 1], 'float32', device)
     b = xchainer.asanyarray([0, 1], 'float32')
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
     _check_device(a, device)
 
 
@@ -487,7 +487,7 @@ def test_zeros(xp, shape, dtype_spec, device):
 def test_zeros_with_device(device):
     a = xchainer.zeros((2,), 'float32', device)
     b = xchainer.zeros((2,), 'float32')
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
     _check_device(a, device)
 
 
@@ -504,7 +504,7 @@ def test_zeros_like_with_device(device):
     a = xchainer.zeros_like(t, device)
     b = xchainer.zeros_like(t)
     _check_device(a, device)
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
@@ -521,7 +521,7 @@ def test_ones_with_device(device):
     a = xchainer.ones((2,), 'float32', device)
     b = xchainer.ones((2,), 'float32')
     _check_device(a, device)
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
@@ -537,7 +537,7 @@ def test_ones_like_with_device(shape, device):
     a = xchainer.ones_like(t, device)
     b = xchainer.ones_like(t)
     _check_device(a, device)
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
@@ -573,7 +573,7 @@ def test_full_with_device(device):
     a = xchainer.full((2,), 1, 'float32', device)
     b = xchainer.full((2,), 1, 'float32')
     _check_device(a, device)
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
@@ -590,7 +590,7 @@ def test_full_like_with_device(device):
     a = xchainer.full_like(t, 1, device)
     b = xchainer.full_like(t, 1)
     _check_device(a, device)
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
 
 
 def _is_bool_spec(dtype_spec):
@@ -673,7 +673,7 @@ def test_arange_with_device(device):
         a = xchainer.arange(*args, device=device, **kwargs)
         b = xchainer.arange(*args, **kwargs)
         _check_device(a, device)
-        xchainer.testing.assert_array_equal(a, b)
+        xchainer.testing.assert_array_equal_ex(a, b)
 
     check(3)
     check(3, dtype='float32')
@@ -722,7 +722,7 @@ def test_identity_with_device(device):
     a = xchainer.identity(3, 'float32', device)
     b = xchainer.identity(3, 'float32')
     _check_device(a, device)
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
@@ -790,7 +790,7 @@ def test_eye_with_device(device):
     a = xchainer.eye(1, 2, 1, 'float32', device)
     b = xchainer.eye(1, 2, 1, 'float32')
     _check_device(a, device)
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
@@ -889,7 +889,7 @@ def test_linspace_with_device(device):
     a = xchainer.linspace(3, 5, 10, dtype='float32', device=device)
     b = xchainer.linspace(3, 5, 10, dtype='float32')
     _check_device(a, device)
-    xchainer.testing.assert_array_equal(a, b)
+    xchainer.testing.assert_array_equal_ex(a, b)
 
 
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.XchainerError))

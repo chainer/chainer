@@ -59,7 +59,7 @@ numpy
         pytest.fail(msg)
 
 
-def _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_result, type_check):
+def _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_result):
     is_xchainer_ignored = xchainer_result is _ignored_result
     is_numpy_ignored = numpy_result is _ignored_result
 
@@ -82,14 +82,10 @@ def _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_resul
     assert xchainer_result.device is xchainer.get_default_device(), (
         f'Xchainer bad device: default: {xchainer.get_default_device()}, xchainer: {xchainer_result.device}')
 
-    if type_check:
-        assert numpy.dtype(xchainer_result.dtype.name) == numpy_result.dtype, (
-            f'Dtype mismatch: xchainer: {xchainer_result.dtype}, numpy: {numpy_result.dtype}')
-
     check_result_func(xchainer_result, numpy_result)
 
 
-def _make_decorator(check_result_func, name, type_check, accept_error):
+def _make_decorator(check_result_func, name, accept_error):
     def decorator(impl):
         @functools.wraps(impl)
         def test_func(*args, **kw):
@@ -106,15 +102,17 @@ def _make_decorator(check_result_func, name, type_check, accept_error):
                                             numpy_error, numpy_tb,
                                             accept_error=accept_error)
                 return
-            _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_result, type_check)
+            _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_result)
         # Apply dummy parametrization on `name` (e.g. 'xp') to avoid pytest error when collecting test functions.
         return pytest.mark.parametrize(name, [None])(test_func)
     return decorator
 
 
 def numpy_xchainer_allclose(
-        *, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', type_check=True, accept_error=(), strides_check=True):
-    """Decorator that checks that NumPy and xChainer results are equal up to a tolerance.
+        *, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', type_check=None, strides_check=None, accept_error=()):
+    """numpy_xchainer_allclose(*, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', type_check=True, strides_check=True, accept_error=())
+
+    Decorator that checks that NumPy and xChainer results are equal up to a tolerance.
 
     Args:
          rtol(float): Relative tolerance.
@@ -135,19 +133,21 @@ def numpy_xchainer_allclose(
     in the sense of :func:`numpy_xchainer_allclose`
     (except the type of array module) even if ``xp`` is ``numpy`` or ``xchainer``.
 
-    .. seealso:: :func:`xchainer.testing.assert_allclose`
+    .. seealso:: :func:`xchainer.testing.assert_allclose_ex`
     """
     if not type_check:
         strides_check = False
 
     def check_result_func(x, y):
-        array.assert_allclose(x, y, rtol, atol, equal_nan, err_msg, verbose, strides_check=strides_check)
+        array.assert_allclose_ex(x, y, rtol, atol, equal_nan, err_msg, verbose, dtype_check=type_check, strides_check=strides_check)
 
-    return _make_decorator(check_result_func, name, type_check, accept_error)
+    return _make_decorator(check_result_func, name, accept_error)
 
 
-def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_check=True, accept_error=(), strides_check=True):
-    """Decorator that checks that NumPy and xChainer results are equal.
+def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_check=None, strides_check=None, accept_error=()):
+    """numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_check=True, strides_check=True, accept_error=()):
+
+    Decorator that checks that NumPy and xChainer results are equal.
 
     Args:
          err_msg(str): The error message to be printed in case of failure.
@@ -165,12 +165,12 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', type_chec
     in the sense of :func:`numpy_xchainer_array_equal`
     (except the type of array module) even if ``xp`` is ``numpy`` or ``xchainer``.
 
-    .. seealso:: :func:`xchainer.testing.assert_array_equal`
+    .. seealso:: :func:`xchainer.testing.assert_array_equal_ex`
     """
     if not type_check:
         strides_check = False
 
     def check_result_func(x, y):
-        array.assert_array_equal(x, y, err_msg, verbose, strides_check=strides_check)
+        array.assert_array_equal_ex(x, y, err_msg, verbose, dtype_check=type_check, strides_check=strides_check)
 
-    return _make_decorator(check_result_func, name, type_check, accept_error)
+    return _make_decorator(check_result_func, name, accept_error)

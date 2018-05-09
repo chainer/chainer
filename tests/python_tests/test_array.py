@@ -97,7 +97,7 @@ def _check_array_equals_ndarray(array, ndarray, skip_is_contiguous=True):
     assert array.ndim == ndarray.ndim
     assert array.element_bytes == ndarray.itemsize
     assert array.total_bytes == ndarray.itemsize * ndarray.size
-    xchainer.testing.assert_array_equal(array, ndarray)
+    xchainer.testing.assert_array_equal_ex(array, ndarray)
     if not skip_is_contiguous:
         assert array.is_contiguous == ndarray.flags['C_CONTIGUOUS']
 
@@ -169,7 +169,7 @@ def test_to_device():
 
 
 def _check_tonumpy(a_np, a_xc):
-    xchainer.testing.assert_array_equal(a_xc, a_np, strides_check=False)
+    xchainer.testing.assert_array_equal_ex(a_xc, a_np, strides_check=False)
     if a_np.size > 0:
         # test buffer is not shared
         a_np.fill(1)
