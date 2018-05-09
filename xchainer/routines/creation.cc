@@ -19,7 +19,7 @@
 namespace xchainer {
 namespace internal {
 
-size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t element_size) {
+size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_size) {
     assert(shape.ndim() == strides.ndim());
 
     if (shape.GetTotalSize() == 0) {
@@ -27,15 +27,15 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t eleme
     }
 
     // Calculate the distance between the first and the last element, plus single element size.
-    size_t total_bytes = element_size;
+    size_t n_bytes = item_size;
     for (int8_t i = 0; i < shape.ndim(); ++i) {
-        total_bytes += (shape[i] - 1) * std::abs(strides[i]);
+        n_bytes += (shape[i] - 1) * std::abs(strides[i]);
     }
-    return total_bytes;
+    return n_bytes;
 }
 
 Array FromHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device) {
-    auto bytesize = GetRequiredBytes(shape, strides, GetElementSize(dtype));
+    auto bytesize = GetRequiredBytes(shape, strides, GetItemSize(dtype));
     std::shared_ptr<void> device_data = device.FromHostMemory(data, bytesize);
     return MakeArray(shape, strides, dtype, device, device_data);
 }
@@ -45,7 +45,7 @@ Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_
 }
 
 Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device) {
-    auto bytesize = GetRequiredBytes(shape, strides, GetElementSize(dtype));
+    auto bytesize = GetRequiredBytes(shape, strides, GetItemSize(dtype));
     std::shared_ptr<void> data = device.Allocate(bytesize);
     return MakeArray(shape, strides, dtype, device, data);
 }
@@ -53,7 +53,7 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
 }  // namespace internal
 
 Array Empty(const Shape& shape, Dtype dtype, Device& device) {
-    auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetElementSize(dtype));
+    auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetItemSize(dtype));
     std::shared_ptr<void> data = device.Allocate(bytesize);
     return internal::MakeArray(shape, Strides{shape, dtype}, dtype, device, data);
 }

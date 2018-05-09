@@ -60,12 +60,12 @@ Array Reshape(const Array& a, const Shape& newshape) {
         throw DimensionError{"Cannot reshape array of size ", total_size, " into shape ", newshape};
     }
 
-    int64_t element_size = GetElementSize(a.dtype());
+    int64_t item_size = GetItemSize(a.dtype());
     Strides strides{};
     if (total_size == 0) {
         // Calculate the strides for 0-sized array.
         strides.resize(newshape.ndim());
-        strides.back() = element_size;
+        strides.back() = item_size;
         for (int8_t i = newshape.ndim() - 1; i >= 1; --i) {
             strides[i - 1] = strides[i] * std::max(int64_t{1}, newshape[i]);
         }
@@ -79,7 +79,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
         if (in_shape.ndim() == 0) {
             // Input shape is (). Treat as if it were (1).
             reduced_shape.push_back(int64_t{1});
-            reduced_strides.push_back(element_size);
+            reduced_strides.push_back(item_size);
         } else {
             // Add the first pair
             reduced_shape.emplace_back(in_shape[0]);

@@ -407,7 +407,7 @@ struct GemmInputLayout {
     // Makes the array C or Fortran contiguous and configure leading dimension and transposition accordingly.
     Array Configure(const Array& a) {
         assert(a.ndim() == 2);
-        if (a.strides()[0] == a.element_bytes() && a.strides()[0] * a.shape()[0] == a.strides()[1]) {
+        if (a.strides()[0] == a.item_size() && a.strides()[0] * a.shape()[0] == a.strides()[1]) {
             // Fortran contiguous
             ld = a.shape()[0];
             return a;

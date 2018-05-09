@@ -78,7 +78,7 @@ public:
 
 namespace internal {
 
-bool IsContiguous(const Shape& shape, const Strides& strides, int64_t element_bytes);
+bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size);
 
 Shape BroadcastShapes(const Shape& shape0, const Shape& shape1);
 

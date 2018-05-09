@@ -144,7 +144,7 @@ inline char GetCharCode(Dtype dtype) {
 }
 
 // Gets the element size of the dtype in bytes.
-inline int64_t GetElementSize(Dtype dtype) {
+inline int64_t GetItemSize(Dtype dtype) {
     return VisitDtype(dtype, [](auto pt) { return decltype(pt)::kElementSize; });
 }
 

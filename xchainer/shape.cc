@@ -13,7 +13,7 @@ namespace xchainer {
 
 namespace internal {
 
-bool IsContiguous(const Shape& shape, const Strides& strides, int64_t element_bytes) {
+bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size) {
     assert(shape.size() == strides.size());
     int64_t total_size = shape.GetTotalSize();
     if (total_size == 0 || total_size == 1) {
@@ -24,10 +24,10 @@ bool IsContiguous(const Shape& shape, const Strides& strides, int64_t element_by
         if (*shape_it == 1) {
             continue;
         }
-        if (*strides_it != element_bytes) {
+        if (*strides_it != item_size) {
             return false;
         }
-        element_bytes *= *shape_it;
+        item_size *= *shape_it;
     }
     return true;
 }

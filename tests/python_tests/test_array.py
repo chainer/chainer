@@ -32,22 +32,22 @@ def is_module(request):
 def _create_dummy_data(shape, dtype, pattern=1):
     assert isinstance(dtype, str)
 
-    total_size = _total_size(shape)
+    size = _size(shape)
     if pattern == 1:
         if dtype in ('bool', 'bool_'):
-            return [i % 2 == 1 for i in range(total_size)]
+            return [i % 2 == 1 for i in range(size)]
         else:
-            return [i for i in range(total_size)]
+            return [i for i in range(size)]
     else:
         if dtype in ('bool', 'bool_'):
-            return [i % 3 == 0 for i in range(total_size)]
+            return [i % 3 == 0 for i in range(size)]
         else:
-            return [1 + i for i in range(total_size)]
+            return [1 + i for i in range(size)]
 
 
 def _create_dummy_ndarray(shape, dtype):
     assert isinstance(dtype, str)
-    return numpy.arange(_total_size(shape)).reshape(shape).astype(dtype)
+    return numpy.arange(_size(shape)).reshape(shape).astype(dtype)
 
 
 def _check_array(array, expected_dtype, expected_shape, expected_data_list=None, expected_is_contiguous=True, device=None):
@@ -58,9 +58,9 @@ def _check_array(array, expected_dtype, expected_shape, expected_data_list=None,
     assert isinstance(array.shape, tuple)
     assert array.dtype == expected_dtype
     assert array.shape == expected_shape
-    assert array.element_bytes == expected_dtype.itemsize
-    assert array.total_size == _total_size(expected_shape)
-    assert array.total_bytes == expected_dtype.itemsize * _total_size(expected_shape)
+    assert array.itemsize == expected_dtype.itemsize
+    assert array.size == _size(expected_shape)
+    assert array.nbytes == expected_dtype.itemsize * _size(expected_shape)
     if expected_data_list is not None:
         assert array._debug_flat_data == expected_data_list
     assert array.is_contiguous == expected_is_contiguous
@@ -75,9 +75,9 @@ def _check_array(array, expected_dtype, expected_shape, expected_data_list=None,
 def _check_arrays_equal(array_a, array_b):
     assert array_a.dtype == array_b.dtype
     assert array_a.shape == array_b.shape
-    assert array_a.element_bytes == array_b.element_bytes
-    assert array_a.total_size == array_b.total_size
-    assert array_a.total_bytes == array_b.total_bytes
+    assert array_a.itemsize == array_b.itemsize
+    assert array_a.size == array_b.size
+    assert array_a.nbytes == array_b.nbytes
     assert array_a._debug_flat_data == array_b._debug_flat_data
 
 
@@ -87,16 +87,16 @@ def _check_arrays_equal_copy(array_a, array_b):
     assert 0 == array_b.offset
 
     # Check memory addresses only if >0 bytes are allocated
-    if array_a.total_size > 0:
+    if array_a.size > 0:
         assert array_a._debug_data_memory_address != array_b._debug_data_memory_address
 
 
 def _check_array_equals_ndarray(array, ndarray, skip_is_contiguous=True):
     assert array.shape == ndarray.shape
-    assert array.total_size == ndarray.size
+    assert array.size == ndarray.size
     assert array.ndim == ndarray.ndim
-    assert array.element_bytes == ndarray.itemsize
-    assert array.total_bytes == ndarray.itemsize * ndarray.size
+    assert array.itemsize == ndarray.itemsize
+    assert array.nbytes == ndarray.itemsize * ndarray.size
     xchainer.testing.assert_array_equal(array, ndarray)
     if not skip_is_contiguous:
         assert array.is_contiguous == ndarray.flags['C_CONTIGUOUS']
@@ -116,7 +116,7 @@ def _check_ndarray_equal_ndarray(ndarray1, ndarray2, skip_strides=False, skip_fl
         assert ndarray1.flags == ndarray2.flags
 
 
-def _total_size(shape):
+def _size(shape):
     return functools.reduce(operator.mul, shape, 1)
 
 
@@ -178,14 +178,14 @@ def _check_tonumpy(a_np, a_xc):
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_tonumpy(shape, dtype, device):
-    a_xc = xchainer.arange(_total_size(shape)).reshape(shape).astype(dtype)
+    a_xc = xchainer.arange(_size(shape)).reshape(shape).astype(dtype)
     a_np = xchainer.tonumpy(a_xc)
     _check_tonumpy(a_np, a_xc)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_tonumpy_non_contiguous(shape, dtype, device):
-    a_xc = xchainer.arange(_total_size(shape)).reshape(shape).astype(dtype).T
+    a_xc = xchainer.arange(_size(shape)).reshape(shape).astype(dtype).T
     a_np = xchainer.tonumpy(a_xc)
     _check_tonumpy(a_np, a_xc)
 
@@ -341,7 +341,7 @@ _reshape_shape = [
 @pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
 @pytest.mark.parametrize('shape_type', [tuple, list])
 def test_reshape(is_module, xp, a_shape, b_shape, shape_type):
-    size = _total_size(a_shape)
+    size = _size(a_shape)
     a = xp.arange(size)
     if is_module:
         b = xp.reshape(a, shape_type(b_shape))
@@ -359,7 +359,7 @@ def test_reshape(is_module, xp, a_shape, b_shape, shape_type):
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(TypeError, xchainer.XchainerError))
 @pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
 def test_reshape_args(is_module, xp, a_shape, b_shape):
-    size = _total_size(a_shape)
+    size = _size(a_shape)
     a = xp.arange(size)
     if is_module:
         if len(b_shape) > 1:
@@ -1221,7 +1221,7 @@ _take_invalid_params = [
 @pytest.mark.parametrize("shape,indices,axis", _take_valid_params + _take_invalid_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_take(is_module, xp, shape, indices, axis, device):
-    a = xp.arange(_total_size(shape)).reshape(shape)
+    a = xp.arange(_size(shape)).reshape(shape)
 
     # First convert to ndarray since some indices are nested lists which
     # xchainer cannot convert. Additionally, dtype is cast to int64 since no
@@ -1250,7 +1250,7 @@ def test_take_backward(is_module, dtype, shape, indices, axis, device):
     # other dtypes are currently supported by xchainer.take
     indices = xchainer.array(numpy.array(indices, dtype='int64'))
 
-    a = xchainer.arange(_total_size(shape)).reshape(shape).astype(dtype).require_grad()
+    a = xchainer.arange(_size(shape)).reshape(shape).astype(dtype).require_grad()
     output_shape = func(a, indices, axis).shape
 
     numpy.random.seed(0)  # TODO(niboshi): Reconsider the use of random values
@@ -1478,7 +1478,7 @@ _invalid_logsumexp_params = [
 @xchainer.testing.numpy_xchainer_allclose(rtol=1e-7, atol=0, type_check=False)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
-    a = xp.arange(_total_size(a_shape), dtype=float_dtype).reshape(a_shape)
+    a = xp.arange(_size(a_shape), dtype=float_dtype).reshape(a_shape)
     if xp is numpy:
         return xp.log(xp.sum(xp.exp(a), axis=axis, keepdims=keepdims))
     return xp.logsumexp(a, axis=axis, keepdims=keepdims)
@@ -1490,7 +1490,7 @@ def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
 # TODO(hvy): Dtype promotion is not supported yet.
 # TODO(hvy): Should not overflow for large numbers, add tests
 def test_invalid_logsumexp(device, a_shape, axis, float_dtype, keepdims):
-    a = xchainer.arange(_total_size(a_shape), dtype=float_dtype).reshape(a_shape)
+    a = xchainer.arange(_size(a_shape), dtype=float_dtype).reshape(a_shape)
     with pytest.raises(xchainer.DimensionError):
         xchainer.logsumexp(a, axis=axis, keepdims=keepdims)
 
@@ -1500,7 +1500,7 @@ def test_invalid_logsumexp(device, a_shape, axis, float_dtype, keepdims):
 @xchainer.testing.numpy_xchainer_allclose(rtol=1e-7, atol=1e-5, type_check=False)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_log_softmax(xp, device, a_shape, axis, float_dtype):
-    a = xp.arange(_total_size(a_shape), dtype=float_dtype).reshape(a_shape)
+    a = xp.arange(_size(a_shape), dtype=float_dtype).reshape(a_shape)
     if xp is numpy:
         # Default is the second axis
         axis = axis if axis is not None else 1
@@ -1512,7 +1512,7 @@ def test_log_softmax(xp, device, a_shape, axis, float_dtype):
 @pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_invalid_log_softmax(device, a_shape, axis, float_dtype):
-    a = xchainer.arange(_total_size(a_shape), dtype=float_dtype).reshape(a_shape)
+    a = xchainer.arange(_size(a_shape), dtype=float_dtype).reshape(a_shape)
     with pytest.raises(xchainer.DimensionError):
         return xchainer.log_softmax(a, axis=axis)
 
