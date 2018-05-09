@@ -78,4 +78,30 @@ class TestPolyGamma(unittest.TestCase):
             cuda.to_gpu(self.ggx))
 
 
+@testing.parameterize(*testing.product({
+    'shape': [(3, 2), ()],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+}))
+@testing.without_requires('scipy')
+class TestPolyGammaExceptions(unittest.TestCase):
+    def setUp(self):
+        self.x = \
+            numpy.random.uniform(1., 10., self.shape).astype(self.dtype)
+        self.n = numpy.random.randint(3, size=self.shape).astype(numpy.int32)
+        self.func = F.polygamma
+
+    def check_forward(self, n_data, x_data):
+        x = chainer.Variable(x_data)
+        n = chainer.Variable(n_data)
+        with self.assertRaises(ImportError):
+            self.func(n, x)
+
+    def test_polygamma_forward_cpu(self):
+        self.check_forward(self.n, self.x)
+
+    @attr.gpu
+    def test_polygamma_forward_gpu(self):
+        self.check_forward(cuda.to_gpu(self.n), cuda.to_gpu(self.x))
+
+
 testing.run_module(__name__, __file__)

@@ -2,9 +2,11 @@ import unittest
 
 import numpy
 
+import chainer
 from chainer.backends import cuda
 import chainer.functions as F
 from chainer import testing
+from chainer.testing import attr
 
 
 def _digamma_cpu(x, dtype):
@@ -42,6 +44,29 @@ def make_data(shape, dtype):
 @testing.with_requires('scipy')
 class TestDiGamma(unittest.TestCase):
     pass
+
+
+@testing.parameterize(*testing.product({
+    'shape': [(3, 2), ()],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+}))
+@testing.without_requires('scipy')
+class TestDiGammaExceptions(unittest.TestCase):
+    def setUp(self):
+        self.x, self.gy, self.ggx = make_data(self.shape, self.dtype)
+        self.func = F.digamma
+
+    def check_forward(self, x_data):
+        x = chainer.Variable(x_data)
+        with self.assertRaises(ImportError):
+            self.func(x)
+
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(cuda.to_gpu(self.x))
 
 
 testing.run_module(__name__, __file__)
