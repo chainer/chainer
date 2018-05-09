@@ -19,22 +19,22 @@ class MeanAbsoluteError(function_node.FunctionNode):
         )
 
     def forward_cpu(self, inputs):
-        self.retain_inputs((0, 1))
-        diff = (inputs[0] - inputs[1]).ravel()
+        x0, x1 = inputs
+        self.diff = x0 - x1
+        diff = self.diff.ravel()
         return numpy.array(abs(diff).sum() / diff.size, dtype=diff.dtype),
 
     def forward_gpu(self, inputs):
-        self.retain_inputs((0, 1))
-        diff = (inputs[0] - inputs[1]).ravel()
+        x0, x1 = inputs
+        self.diff = x0 - x1
+        diff = self.diff.ravel()
         return abs(diff).sum() / diff.dtype.type(diff.size),
 
     def backward(self, indexes, grad_outputs):
-        x0, x1 = self.get_retained_inputs()
-        diff = x0 - x1
         gy, = grad_outputs
-        coeff = gy * gy.data.dtype.type(1. / diff.size)
-        coeff = chainer.functions.broadcast_to(coeff, diff.shape)
-        gx0 = coeff * cuda.get_array_module(gy.array).sign(diff.array)
+        coeff = gy * gy.data.dtype.type(1. / self.diff.size)
+        coeff = chainer.functions.broadcast_to(coeff, self.diff.shape)
+        gx0 = coeff * cuda.get_array_module(gy.data).sign(self.diff)
         return gx0, -gx0
 
 
