@@ -276,12 +276,13 @@ Use apply() method instead.\
 
         # NaN check of output values
         if is_debug:
-            if any(out.dtype.kind == 'f' and
-                   cuda.get_array_module(out).isnan(out).any()
-                   for out in outputs):
-                msg = ('NaN is detected on forward computation of '
-                       '{}'.format(self.label))
-                raise RuntimeError(msg)
+            with cuda.get_device_from_array(*outputs):
+                if any(out.dtype.kind == 'f' and
+                       cuda.get_array_module(out).isnan(out).any()
+                       for out in outputs):
+                    msg = ('NaN is detected on forward computation of '
+                           '{}'.format(self.label))
+                    raise RuntimeError(msg)
 
         ret = tuple([variable.Variable(y, requires_grad=requires_grad)
                      for y in outputs])
