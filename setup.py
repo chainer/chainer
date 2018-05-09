@@ -36,7 +36,7 @@ requirements = {
     ],
     'stylecheck': [
         'autopep8',
-        'hacking',
+        'hacking==1.0.0',
     ],
     'test': [
         'pytest',
