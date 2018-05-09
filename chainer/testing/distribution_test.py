@@ -2,7 +2,6 @@ import unittest
 
 import chainer
 from chainer.backends import cuda
-from chainer import testing
 import numpy
 
 try:
@@ -24,6 +23,8 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                           tests=set(), continuous=True, support="real",
                           event_shape=(), scipy_onebyone=False):
     check_available()
+
+    from chainer import testing
 
     def f(klass):
         assert issubclass(klass, unittest.TestCase)
