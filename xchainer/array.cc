@@ -188,10 +188,10 @@ Array Array::ToDevice(Device& dst_device) const {
         std::shared_ptr<void> dst_data;
         if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
             // Use src backend for transfer.
-            dst_data = src_device.TransferDataTo(dst_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes());
+            dst_data = src_device.TransferDataTo(dst_device, src_contig.data(), src_contig.offset(), src_contig.GetNBytes());
         } else if (dst_device.backend().SupportsTransfer(src_device, dst_device)) {
             // Use dst backend for transfer.
-            dst_data = dst_device.TransferDataFrom(src_device, src_contig.data(), src_contig.offset(), src_contig.GetTotalBytes());
+            dst_data = dst_device.TransferDataFrom(src_device, src_contig.data(), src_contig.offset(), src_contig.GetNBytes());
         } else {
             // Neither backends support transfer.
             throw XchainerError{"Transfer between devices is not supported: src='", src_device.name(), "' dst='", dst_device.name(), "'."};
@@ -301,7 +301,7 @@ gsl::span<const uint8_t> Array::GetDataRange() const {
         auto& first_or_last = strides[i] < 0 ? first : last;
         first_or_last += shape[i] * strides[i];
     }
-    return {first, last + element_bytes()};
+    return {first, last + item_size()};
 }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }

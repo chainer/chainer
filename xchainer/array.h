@@ -193,13 +193,13 @@ public:
 
     int64_t GetTotalSize() const { return shape().GetTotalSize(); }
 
-    int64_t GetTotalBytes() const { return GetTotalSize() * element_bytes(); }
+    int64_t GetNBytes() const { return GetTotalSize() * item_size(); }
 
     // Returns the effective contiguous memory address space occupied by this array.
     // The last element in the span refers to the past-the-end array element.
     gsl::span<const uint8_t> GetDataRange() const;
 
-    bool IsContiguous() const { return internal::IsContiguous(shape(), strides(), element_bytes()); }
+    bool IsContiguous() const { return internal::IsContiguous(shape(), strides(), item_size()); }
 
     std::string ToString() const;
 
@@ -217,7 +217,7 @@ public:
 
     const Strides& strides() const { return body_->strides_; }
 
-    int64_t element_bytes() const { return GetElementSize(dtype()); }
+    int64_t item_size() const { return GetElementSize(dtype()); }
 
     const std::shared_ptr<void>& data() const { return body_->data_; }
 

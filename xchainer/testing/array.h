@@ -44,9 +44,9 @@ public:
             assert(static_cast<size_t>(shape.GetTotalSize()) == data.size());
             Strides strides = builder.GetStrides<T>();
             int64_t total_size = shape.GetTotalSize();
-            size_t total_bytes = internal::GetRequiredBytes(shape, strides, sizeof(T));
-            auto ptr = std::make_unique<uint8_t[]>(total_bytes);
-            std::fill(ptr.get(), ptr.get() + total_bytes, uint8_t{0xff});
+            size_t n_bytes = internal::GetRequiredBytes(shape, strides, sizeof(T));
+            auto ptr = std::make_unique<uint8_t[]>(n_bytes);
+            std::fill(ptr.get(), ptr.get() + n_bytes, uint8_t{0xff});
 
             if (total_size > 0) {
                 // Copy the data to buffer, respecting strides
@@ -54,7 +54,7 @@ public:
                 Shape counter = shape;
                 for (const T& value : data) {
                     // Copy a single value
-                    assert((raw_ptr - ptr.get()) < static_cast<ptrdiff_t>(total_bytes));
+                    assert((raw_ptr - ptr.get()) < static_cast<ptrdiff_t>(n_bytes));
                     *reinterpret_cast<T*>(raw_ptr) = value;
                     // Advance the counter and the pointer
                     int8_t i_dim = shape.ndim() - 1;

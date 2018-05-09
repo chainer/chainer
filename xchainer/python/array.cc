@@ -105,7 +105,7 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
     Array array = Array{self}.ToNative();
 
     return py::array{py::buffer_info{reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset(),  // NOLINT: reinterpret_cast
-                                     array.element_bytes(),
+                                     array.item_size(),
                                      std::string(1, GetCharCode(array.dtype())),
                                      array.ndim(),
                                      array.shape(),
@@ -296,13 +296,13 @@ void InitXchainerArray(pybind11::module& m) {
     c.def_property_readonly(
             "device", [](const ArrayBodyPtr& self) -> Device& { return Array{self}.device(); }, py::return_value_policy::reference);
     c.def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); });
-    c.def_property_readonly("itemsize", [](const ArrayBodyPtr& self) { return Array{self}.element_bytes(); });
+    c.def_property_readonly("itemsize", [](const ArrayBodyPtr& self) { return Array{self}.item_size(); });
     c.def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.IsContiguous(); });
     c.def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return Array{self}.ndim(); });
     c.def_property_readonly("offset", [](const ArrayBodyPtr& self) { return Array{self}.offset(); });
     c.def_property_readonly("shape", [](const ArrayBodyPtr& self) { return ToTuple(Array{self}.shape()); });
     c.def_property_readonly("strides", [](const ArrayBodyPtr& self) { return ToTuple(Array{self}.strides()); });
-    c.def_property_readonly("nbytes", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalBytes(); });
+    c.def_property_readonly("nbytes", [](const ArrayBodyPtr& self) { return Array{self}.GetNBytes(); });
     c.def_property_readonly("size", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalSize(); });
     c.def_property_readonly("T", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); });
     c.def_property_readonly(
