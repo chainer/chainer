@@ -5,7 +5,6 @@ import six
 
 import chainer
 from chainer.backends import cuda
-from chainer import functions
 
 
 def as_vec(x):

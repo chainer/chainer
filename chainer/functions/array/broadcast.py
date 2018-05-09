@@ -31,7 +31,8 @@ class Broadcast(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         return tuple([None if grad_outputs[i] is None else
-                      chainer.functions.sum_to(grad_outputs[i], self.inputs[i].shape)
+                      chainer.functions.sum_to(
+                          grad_outputs[i], self.inputs[i].shape)
                       for i in indexes])
 
 
