@@ -44,9 +44,9 @@ TEST(ElementwiseTest, SquashAllDimensions) {
     Shape shape{3, 2, 5, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>();
 
-    Shape squashed{};
-    Axes keep{};
-    std::tie(squashed, keep) = SquashShape(a);
+    std::tuple<Shape, Axes> squashed_result = SquashShape(a);
+    const Shape& squashed = std::get<0>(squashed_result);
+    const Axes& keep = std::get<1>(squashed_result);
 
     EXPECT_EQ(1, squashed.ndim());
     EXPECT_EQ(shape[0] * shape[1] * shape[2] * shape[3], squashed[0]);
@@ -59,9 +59,9 @@ TEST(ElementwiseTest, SquashPartialDimensions) {
     Shape shape{3, 2, 5, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>().WithPadding({0, 2, 0, 0});
 
-    Shape squashed{};
-    Axes keep{};
-    std::tie(squashed, keep) = SquashShape(a);
+    std::tuple<Shape, Axes> squashed_result = SquashShape(a);
+    const Shape& squashed = std::get<0>(squashed_result);
+    const Axes& keep = std::get<1>(squashed_result);
 
     EXPECT_EQ(2, squashed.ndim());
     EXPECT_EQ(shape[0] * shape[1], squashed[0]);
@@ -76,9 +76,9 @@ TEST(ElementwiseTest, SquashUnitLengthDimensions) {
     Shape shape{3, 2, 1, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>().WithPadding(1);
 
-    Shape squashed{};
-    Axes keep{};
-    std::tie(squashed, keep) = SquashShape(a);
+    std::tuple<Shape, Axes> squashed_result = SquashShape(a);
+    const Shape& squashed = std::get<0>(squashed_result);
+    const Axes& keep = std::get<1>(squashed_result);
 
     EXPECT_EQ(3, squashed.ndim());
     EXPECT_EQ(shape[0], squashed[0]);
@@ -96,9 +96,9 @@ TEST(ElementwiseTest, SquashMultipleArraysDimensions) {
     Array a = testing::BuildArray(shape).WithLinearData<float>().WithPadding({0, 2, 0, 0});
     Array b = testing::BuildArray(shape).WithLinearData<float>().WithPadding({0, 0, 1, 0});
 
-    Shape squashed{};
-    Axes keep{};
-    std::tie(squashed, keep) = SquashShape(a, b);
+    std::tuple<Shape, Axes> squashed_result = SquashShape(a, b);
+    const Shape& squashed = std::get<0>(squashed_result);
+    const Axes& keep = std::get<1>(squashed_result);
 
     EXPECT_EQ(3, squashed.ndim());
     EXPECT_EQ(shape[0] * shape[1], squashed[0]);
