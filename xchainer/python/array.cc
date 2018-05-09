@@ -49,13 +49,6 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     Shape shape{info.shape};
     Dtype dtype = internal::GetDtypeFromNumpyDtype(array.dtype());
     Strides strides{array.strides(), array.strides() + array.ndim()};
-    if (shape.GetTotalSize() == 0) {
-        for (int8_t i = strides.ndim() - 1; i >= 1; --i) {
-            if (strides[i - 1] == 0) {
-                strides[i - 1] = strides[i];
-            }
-        }
-    }
 
     // Copy to a newly allocated data
     std::tuple<int64_t, int64_t> range = GetDataRange(shape, strides, info.itemsize);
