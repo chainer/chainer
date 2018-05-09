@@ -136,9 +136,6 @@ def numpy_xchainer_allclose(
 
     .. seealso:: :func:`xchainer.testing.assert_allclose_ex`
     """  # NOQA
-    if not dtype_check:
-        strides_check = False
-
     def check_result_func(x, y):
         array.assert_allclose_ex(x, y, rtol, atol, equal_nan, err_msg, verbose, dtype_check=dtype_check, strides_check=strides_check)
 
@@ -169,9 +166,6 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', dtype_che
 
     .. seealso:: :func:`xchainer.testing.assert_array_equal_ex`
     """
-    if not dtype_check:
-        strides_check = False
-
     def check_result_func(x, y):
         array.assert_array_equal_ex(x, y, err_msg, verbose, dtype_check=dtype_check, strides_check=strides_check)
 
