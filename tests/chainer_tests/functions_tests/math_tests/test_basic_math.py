@@ -3,7 +3,6 @@ import sys
 import unittest
 
 import numpy
-import six
 
 import chainer
 from chainer.backends import cuda
@@ -31,8 +30,10 @@ class TestBinaryOp(unittest.TestCase):
         self.x1 = numpy.random.uniform(.5, 1, self.shape[0]).astype(self.dtype)
         self.x2 = numpy.random.uniform(.5, 1, self.shape[1]).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, self.shape[2]).astype(self.dtype)
-        self.ggx1 = numpy.random.uniform(-1, 1, self.shape[0]).astype(self.dtype)
-        self.ggx2 = numpy.random.uniform(-1, 1, self.shape[1]).astype(self.dtype)
+        self.ggx1 = numpy.random.uniform(-1, 1, self.shape[0]).astype(
+            self.dtype)
+        self.ggx2 = numpy.random.uniform(-1, 1, self.shape[1]).astype(
+            self.dtype)
 
     def check_forward(self, op, x1_data, x2_data):
         x1 = chainer.Variable(x1_data)

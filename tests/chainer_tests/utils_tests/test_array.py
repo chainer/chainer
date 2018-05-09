@@ -22,10 +22,12 @@ class TestSumTo(unittest.TestCase):
 
     def test_sum_to(self):
         n_elems = numpy.prod(self.in_shape)
-        x = numpy.arange(1, n_elems + 1, dtype=numpy.float32).reshape(self.in_shape)
+        x = numpy.arange(1, n_elems + 1, dtype=numpy.float32).reshape(
+            self.in_shape)
         y_actual = array.sum_to(x, self.out_shape)
 
-        y_expect = numpy.squeeze(x.sum(self.axis, keepdims=True), tuple(range(self.lead)))
+        y_expect = numpy.squeeze(x.sum(self.axis, keepdims=True),
+                                 tuple(range(self.lead)))
         numpy.testing.assert_array_equal(y_expect, y_actual)
 
 

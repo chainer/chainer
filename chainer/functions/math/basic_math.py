@@ -6,7 +6,6 @@ from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
 from chainer.functions.math import floor as _floor
-from chainer.functions.math import matmul as _matmul
 from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
@@ -419,7 +418,7 @@ class DivGrad(function_node.FunctionNode):
             ret.append(chainer.functions.sum_to(gx0, x0.shape))
         if 1 in indexes:
             gx1 = -ggx0 * gy / x1_square + \
-                  ggx1 * 2 * gy * x0 / (x1_square * x1)
+                ggx1 * 2 * gy * x0 / (x1_square * x1)
             ret.append(chainer.functions.sum_to(gx1, x1.shape))
         if 2 in indexes:
             ggy = ggx0 / x1 - ggx1 * x0 / x1_square
