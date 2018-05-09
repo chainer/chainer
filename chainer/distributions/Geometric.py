@@ -1,8 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import Distribution
-from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
+from chainer.functions.array import broadcast
 from chainer.functions.math import ceil
 from chainer.functions.math import exponential
 import numpy
@@ -37,7 +36,7 @@ class Geometric(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.p, cuda.ndarray)
+        return isinstance(self.p.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -49,7 +48,8 @@ class Geometric(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        return (x - 1) * exponential.log(1 - self.p) + exponential.log(self.p)
+        bp = broadcast.broadcast_to(self.p, x.shape)
+        return (x - 1) * exponential.log(1 - bp) + exponential.log(bp)
 
     @property
     def mean(self):
@@ -74,14 +74,13 @@ class Geometric(Distribution):
         if self._is_gpu:
             eps = numpy.random.uniform(
                 0, 1, size=(n,)+self.p.shape).astype(numpy.float32)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.p).id)
+            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.p.data).id)
         else:
             eps = numpy.random.uniform(
                 0, 1, size=(n,)+self.p.shape).astype(numpy.float32)
 
         noise = ceil.ceil(exponential.log(1 - eps) / exponential.log(
-            1 - repeat.repeat(expand_dims.expand_dims(self.p, axis=0),
-                              n, axis=0)))
+            1 - broadcast.broadcast_to(self.p, eps.shape)))
         return noise
 
     @property
