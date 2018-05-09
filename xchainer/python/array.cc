@@ -45,16 +45,19 @@ namespace py = pybind11;
 namespace {
 
 ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
-    const py::buffer_info& info = array.request();
-    Shape shape{info.shape};
+    Shape shape{array.shape(), array.shape() + array.ndim()};
     Dtype dtype = internal::GetDtypeFromNumpyDtype(array.dtype());
     Strides strides{array.strides(), array.strides() + array.ndim()};
 
     // Copy to a newly allocated data
-    std::tuple<int64_t, int64_t> range = GetDataRange(shape, strides, info.itemsize);
+    std::tuple<int64_t, int64_t> range = GetDataRange(shape, strides, array.itemsize());
     auto bytesize = static_cast<size_t>(std::get<1>(range) - std::get<0>(range));
     std::shared_ptr<void> data = std::make_unique<uint8_t[]>(bytesize);
-    std::memcpy(data.get(), info.ptr, bytesize);
+    {
+        py::buffer_info info = array.request();
+        std::memcpy(data.get(), info.ptr, bytesize);
+    }
+
     // Create and return the array
     return xchainer::internal::FromHostData(shape, dtype, data, strides, device).move_body();
 }
