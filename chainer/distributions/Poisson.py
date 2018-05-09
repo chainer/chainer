@@ -1,6 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import Distribution
+from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
 import numpy
@@ -35,7 +36,7 @@ class Poisson(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.lam, cuda.ndarray)
+        return isinstance(self.lam.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -51,8 +52,9 @@ class Poisson(Distribution):
             x32 = x.data.astype(numpy.float32)
         else:
             x32 = x.astype(numpy.float32)
-        return x32 * exponential.log(self.lam) - lgamma.lgamma(x32 + 1) \
-            - self.lam
+        bl = broadcast.broadcast_to(self.lam, x.shape)
+        return x32 * exponential.log(bl) - lgamma.lgamma(x32 + 1) \
+            - bl
 
     @property
     def mean(self):
@@ -78,7 +80,8 @@ class Poisson(Distribution):
             eps = numpy.random.poisson(
                 cuda.to_cpu(self.lam.data),
                 size=(n,)+self.lam.shape).astype(numpy.float32)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.p).id)
+            eps = cuda.to_gpu(
+                eps, cuda.get_device_from_array(self.lam.data).id)
         else:
             eps = numpy.random.poisson(
                 self.lam.data, size=(n,)+self.lam.shape).astype(numpy.float32)

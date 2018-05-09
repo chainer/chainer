@@ -205,7 +205,7 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                 log_prob2 = log_prob2.reshape(log_prob2.shape[0], -1).T
                 log_prob2 = log_prob2.reshape(self.smp_shape + self.shape)
             else:
-                log_prob2 = self.scipy_dist.mean(**self.scipy_params)
+                log_prob2 = scipy_prob(smp, **self.scipy_params)
             testing.assert_allclose(log_prob1, log_prob2)
 
         def test_log_prob_cpu(self):
