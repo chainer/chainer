@@ -32,8 +32,8 @@ void LaunchElementwiseKernel(Op&& op, const Shape& shape, const Axes& keep, cons
     int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
     int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-    ElementwiseKernel<Ndim, Op, Ts...>
-            <<<grid_size, block_size>>>(op, Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args, SquashedStrides(args.strides(), keep)}...);
+    ElementwiseKernel<Ndim, Op, Ts...><<<grid_size, block_size>>>(
+            op, Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args, GetSquashedStrides(args.strides(), keep)}...);
 }
 
 }  // namespace elementwise_detail
@@ -42,9 +42,9 @@ template <typename... Ts, typename... Arrays, typename Op>
 void Elementwise(Op&& op, const Arrays&... args) {
     static_assert(sizeof...(Ts) == sizeof...(Arrays), "Data types must be specified per Array. ");
 
-    Shape squashed{};
-    Axes keep{};
-    std::tie(squashed, keep) = SquashedShape(args...);
+    std::tuple<Shape, Axes> squashed_result = SquashShape(args...);
+    const Shape& squashed = std::get<0>(squashed_result);
+    const Axes& keep = std::get<1>(squashed_result);
 
     // TODO(hvy): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
     switch (squashed.ndim()) {

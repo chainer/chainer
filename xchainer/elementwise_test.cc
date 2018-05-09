@@ -14,9 +14,9 @@
 namespace xchainer {
 namespace {
 
-TEST(ElementwiseTest, SquashedStrides) {
+TEST(ElementwiseTest, GetSquashedStrides) {
     {
-        Strides squashed = SquashedStrides({3, 2, 5, 4}, {0, 1, 2, 3});
+        Strides squashed = GetSquashedStrides({3, 2, 5, 4}, {0, 1, 2, 3});
         EXPECT_EQ(4, squashed.ndim());
         EXPECT_EQ(3, squashed[0]);
         EXPECT_EQ(2, squashed[1]);
@@ -24,17 +24,17 @@ TEST(ElementwiseTest, SquashedStrides) {
         EXPECT_EQ(4, squashed[3]);
     }
     {
-        Strides squashed = SquashedStrides({3, 2, 5, 4}, {1, 2});
+        Strides squashed = GetSquashedStrides({3, 2, 5, 4}, {1, 2});
         EXPECT_EQ(2, squashed.ndim());
         EXPECT_EQ(2, squashed[0]);
         EXPECT_EQ(5, squashed[1]);
     }
     {
-        Strides squashed = SquashedStrides({3, 2, 5, 4}, {});
+        Strides squashed = GetSquashedStrides({3, 2, 5, 4}, {});
         EXPECT_EQ(0, squashed.ndim());
     }
     {
-        Strides squashed = SquashedStrides({}, {});
+        Strides squashed = GetSquashedStrides({}, {});
         EXPECT_EQ(0, squashed.ndim());
     }
 }
@@ -46,7 +46,7 @@ TEST(ElementwiseTest, SquashAllDimensions) {
 
     Shape squashed{};
     Axes keep{};
-    std::tie(squashed, keep) = SquashedShape(a);
+    std::tie(squashed, keep) = SquashShape(a);
 
     EXPECT_EQ(1, squashed.ndim());
     EXPECT_EQ(shape[0] * shape[1] * shape[2] * shape[3], squashed[0]);
@@ -61,7 +61,7 @@ TEST(ElementwiseTest, SquashPartialDimensions) {
 
     Shape squashed{};
     Axes keep{};
-    std::tie(squashed, keep) = SquashedShape(a);
+    std::tie(squashed, keep) = SquashShape(a);
 
     EXPECT_EQ(2, squashed.ndim());
     EXPECT_EQ(shape[0] * shape[1], squashed[0]);
@@ -78,7 +78,7 @@ TEST(ElementwiseTest, SquashUnitLengthDimensions) {
 
     Shape squashed{};
     Axes keep{};
-    std::tie(squashed, keep) = SquashedShape(a);
+    std::tie(squashed, keep) = SquashShape(a);
 
     EXPECT_EQ(3, squashed.ndim());
     EXPECT_EQ(shape[0], squashed[0]);
@@ -98,7 +98,7 @@ TEST(ElementwiseTest, SquashMultipleArraysDimensions) {
 
     Shape squashed{};
     Axes keep{};
-    std::tie(squashed, keep) = SquashedShape(a, b);
+    std::tie(squashed, keep) = SquashShape(a, b);
 
     EXPECT_EQ(3, squashed.ndim());
     EXPECT_EQ(shape[0] * shape[1], squashed[0]);

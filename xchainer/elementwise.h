@@ -25,7 +25,7 @@ inline bool IsSquashableDimension(size_t i, const Shape& shape, const PackedStri
 
 // Returns a subset of strides with elements corresponding to given axes.
 // It can be used in conjunction with SquashedShape to obtain the squashed strides.
-inline Strides SquashedStrides(const Strides& strides, const Axes& keep) {
+inline Strides GetSquashedStrides(const Strides& strides, const Axes& keep) {
     Strides squashed{};
     std::transform(keep.begin(), keep.end(), std::back_inserter(squashed), [&strides](int8_t axis) { return strides[axis]; });
     return squashed;
@@ -44,14 +44,13 @@ inline Strides SquashedStrides(const Strides& strides, const Axes& keep) {
 // Strided indexing spanning over multiple dimensions can be slow and may thus be preceded with this squash.
 // Axes are needed to extract the subset of strides corresponding to the correct axes.
 template <typename... Arrays>
-std::pair<Shape, Axes> SquashedShape(const Array& array, Arrays&&... arrays) {
+std::tuple<Shape, Axes> SquashShape(const Array& array, Arrays&&... arrays) {
     Shape squashed{};
     Axes keep{};
 
     const Shape& shape = array.shape();
     switch (int8_t ndim = shape.ndim()) {
         case 0:
-            squashed = shape;
             break;
         case 1:
             squashed = shape;
@@ -63,13 +62,13 @@ std::pair<Shape, Axes> SquashedShape(const Array& array, Arrays&&... arrays) {
             Shape compressed = shape;
             for (int8_t i = 1; i < ndim; ++i) {
                 if (compressed[i - 1] == 1) {
-                    continue;
+                    // do nothing.
                 } else if (elementwise_detail::IsSquashableDimension(i, compressed, array.strides(), arrays.strides()...)) {
                     compressed[i] *= compressed[i - 1];
                     compressed[i - 1] = 1;
-                    continue;
+                } else {
+                    keep.emplace_back(i - 1);
                 }
-                keep.emplace_back(i - 1);
             }
             if (compressed.back() != 1) {
                 keep.emplace_back(ndim - 1);
@@ -85,7 +84,7 @@ std::pair<Shape, Axes> SquashedShape(const Array& array, Arrays&&... arrays) {
             break;
     }
     assert(squashed.ndim() == keep.ndim());
-    return std::make_pair(squashed, keep);
+    return std::make_tuple(squashed, keep);
 }
 
 }  // namespace xchainer

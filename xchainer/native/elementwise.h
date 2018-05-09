@@ -21,37 +21,38 @@ void ElementwiseKernel(Op op, const Indexer<Ndim>& indexer, const IndexableArray
     }
 }
 
+template <int8_t Ndim, typename Op, typename... Ts, typename... Arrays>
+void LaunchElementwiseKernel(Op&& op, const Shape& shape, const Axes& keep, const Arrays&... args) {
+    ElementwiseKernel<Ndim, Op, Ts...>(
+            op, Indexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args, GetSquashedStrides(args.strides(), keep)}...);
+}
+
 }  // namespace elementwise_detail
 
 template <typename... Ts, typename... Arrays, typename Op>
 void Elementwise(Op&& op, const Arrays&... args) {
     static_assert(sizeof...(Ts) == sizeof...(Arrays), "Data types must be specified per Array. ");
 
-    Shape squashed{};
-    Axes keep{};
-    std::tie(squashed, keep) = SquashedShape(args...);
+    std::tuple<Shape, Axes> squashed_result = SquashShape(args...);
+    const Shape& squashed = std::get<0>(squashed_result);
+    const Axes& keep = std::get<1>(squashed_result);
 
     // TODO(hvy): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
     switch (squashed.ndim()) {
         case 1:
-            elementwise_detail::ElementwiseKernel<1, Op, Ts...>(
-                    op, Indexer<1>{squashed}, IndexableArray<Ts, 1>{args, SquashedStrides(args.strides(), keep)}...);
+            elementwise_detail::LaunchElementwiseKernel<1, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
             break;
         case 2:
-            elementwise_detail::ElementwiseKernel<2, Op, Ts...>(
-                    op, Indexer<2>{squashed}, IndexableArray<Ts, 2>{args, SquashedStrides(args.strides(), keep)}...);
+            elementwise_detail::LaunchElementwiseKernel<2, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
             break;
         case 3:
-            elementwise_detail::ElementwiseKernel<3, Op, Ts...>(
-                    op, Indexer<3>{squashed}, IndexableArray<Ts, 3>{args, SquashedStrides(args.strides(), keep)}...);
+            elementwise_detail::LaunchElementwiseKernel<3, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
             break;
         case 4:
-            elementwise_detail::ElementwiseKernel<4, Op, Ts...>(
-                    op, Indexer<4>{squashed}, IndexableArray<Ts, 4>{args, SquashedStrides(args.strides(), keep)}...);
+            elementwise_detail::LaunchElementwiseKernel<4, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
             break;
         default:
-            elementwise_detail::ElementwiseKernel<kDynamicNdim, Op, Ts...>(
-                    op, Indexer<kDynamicNdim>{squashed}, IndexableArray<Ts, kDynamicNdim>{args, SquashedStrides(args.strides(), keep)}...);
+            elementwise_detail::LaunchElementwiseKernel<kDynamicNdim, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
             break;
     }
 }
