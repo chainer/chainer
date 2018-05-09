@@ -1,8 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import Distribution
-from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
+from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
 import numpy
 
@@ -53,7 +52,7 @@ class LogNormal(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.loc, cuda.ndarray)
+        return isinstance(self.loc.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -65,9 +64,11 @@ class LogNormal(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        return - 0.5 * numpy.log(2 * numpy.pi) - exponential.log(self.scale) \
+        bl = broadcast.broadcast_to(self.loc, x.shape)
+        bs = broadcast.broadcast_to(self.scale, x.shape)
+        return - 0.5 * numpy.log(2 * numpy.pi) - exponential.log(bs) \
             - exponential.log(x) \
-            - (0.5 * (exponential.log(x) - self.loc) ** 2 / self.scale ** 2)
+            - (0.5 * (exponential.log(x) - bl) ** 2 / bs ** 2)
 
     @property
     def mean(self):
@@ -96,10 +97,8 @@ class LogNormal(Distribution):
             eps = numpy.random.standard_normal(
                 (n,)+self.loc.shape).astype(numpy.float32)
 
-        noise = repeat.repeat(
-            expand_dims.expand_dims(self.scale, axis=0), n, axis=0) * eps
-        noise += repeat.repeat(expand_dims.expand_dims(
-            self.loc, axis=0), n, axis=0)
+        noise = broadcast.broadcast_to(self.scale, eps.shape) * eps
+        noise += broadcast.broadcast_to(self.loc, eps.shape)
 
         return exponential.exp(noise)
 
