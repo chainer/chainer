@@ -291,9 +291,9 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
                                   in self.scipy_onebyone_params.items()}
                     smp2.append(self.scipy_dist.rvs(
                         **one_params, size=(100000,)+self.smp_shape))
-                print(numpy.stack(smp2).shape)
-                smp2 = numpy.rollaxis(numpy.stack(smp2), 0, -1)
-                print(smp2.shape)
+                smp2 = numpy.stack(smp2)
+                smp2 = numpy.rollaxis(
+                    smp2, 0, len(smp2.shape)-len(self.cpu_dist.event_shape))
                 smp2 = smp2.reshape((100000,) + self.smp_shape + self.shape
                                     + self.cpu_dist.event_shape)
             else:

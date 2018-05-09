@@ -66,8 +66,10 @@ class Gamma(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        return - lgamma.lgamma(self.k) - self.k * exponential.log(self.theta) \
-            + (self.k - 1) * exponential.log(x) - x / self.theta
+        bk = broadcast.broadcast_to(self.k, x.shape)
+        btheta = broadcast.broadcast_to(self.theta, x.shape)
+        return - lgamma.lgamma(bk) - bk * exponential.log(btheta) \
+            + (bk - 1) * exponential.log(x) - x / btheta
 
     @property
     def mean(self):
