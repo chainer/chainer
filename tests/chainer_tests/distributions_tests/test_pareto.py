@@ -1,61 +1,52 @@
 import unittest
 
+from chainer.backends import cuda
 from chainer import distributions
 from chainer import testing
+from chainer.testing import attr
 import numpy
 from scipy import stats
 
 
-@testing.parameterize(*testing.product({
-    'shape': [(3, 2), (1,)],
-}))
+def params_init(shape):
+    scale = numpy.exp(numpy.random.uniform(-1, 1, shape)).astype(numpy.float32)
+    alpha = numpy.exp(numpy.random.uniform(-1, 1, shape)).astype(numpy.float32)
+    params = {"scale": scale, "alpha": alpha}
+    sp_params = {"scale": scale, "b": alpha}
+    return params, sp_params
+
+
+def sample_for_test(shape):
+    smp = numpy.random.pareto(a=1, size=shape).astype(numpy.float32)
+    return smp
+
+tests = set(["batch_shape", "entropy", "event_shape", "log_prob",
+             "mean", "support", "variance"])
+
+
+@testing.distribution_unittest(distributions.Pareto, stats.pareto,
+                               params_init, sample_for_test,
+                               tests=tests, support="[scale, inf]",
+                               scipy_onebyone=True)
 class TestPareto(unittest.TestCase):
-    def setUp(self):
-        self.scale = numpy.exp(numpy.random.uniform(
-            -1, 1, self.shape)).astype(numpy.float32)
-        self.alpha = numpy.exp(numpy.random.uniform(
-            -1, 1, self.shape)).astype(numpy.float32)
-        self.dist = distributions.Pareto(self.scale, self.alpha)
-        self.sp_dist = stats.pareto
 
-    def test_batch_shape(self):
-        self.assertEqual(self.dist.batch_shape, self.shape)
-
-    def test_entropy(self):
-        ent1 = self.dist.entropy.data
-        ent2 = self.sp_dist.entropy(
-            b=self.alpha.reshape(-1),
-            scale=self.scale.reshape(-1)).reshape(self.shape)
-        testing.assert_allclose(ent1, ent2,
-                                atol=1e-2, rtol=1e-2)
-
-    def test_event_shape(self):
-        self.assertEqual(self.dist.event_shape, ())
-
-    def test_log_prob(self):
-        smp = numpy.random.pareto(a=1, size=self.shape).astype(numpy.float32)
-        log_prob1 = self.dist.log_prob(smp).data
-        log_prob2 = self.sp_dist.logpdf(
-            smp, b=self.alpha, scale=self.scale)
-        testing.assert_allclose(log_prob1, log_prob2)
-
-    def test_mean(self):
-        mean1 = self.dist.mean.data
-        mean2 = self.sp_dist.mean(b=self.alpha, scale=self.scale)
-        testing.assert_allclose(mean1, mean2)
-
-    def test_sample(self):
-        smp1 = self.dist.sample(shape=(1000000)).data
-        smp2 = self.sp_dist.rvs(b=self.alpha, scale=self.scale,
-                                size=(1000000,)+self.shape)
+    def check_sample(self, is_gpu):
+        if is_gpu:
+            smp1 = self.gpu_dist.sample(
+                shape=(100000,)+self.smp_shape).data
+            smp1 = cuda.to_cpu(smp1)
+        else:
+            smp1 = self.cpu_dist.sample(
+                shape=(100000,)+self.smp_shape).data
+        smp2 = self.scipy_dist.rvs(
+            size=(100000,)+self.smp_shape+self.shape, **self.scipy_params)
         testing.assert_allclose(numpy.median(smp1, axis=0),
                                 numpy.median(smp2, axis=0),
-                                atol=1e-2, rtol=1e-2)
+                                atol=3e-2, rtol=3e-2)
 
-    def test_support(self):
-        self.assertEqual(self.dist.support, "[scale, inf]")
+    def test_sample_cpu(self):
+        self.check_sample(False)
 
-    def test_variance(self):
-        variance1 = self.dist.variance.data
-        variance2 = self.sp_dist.var(b=self.alpha, scale=self.scale)
-        testing.assert_allclose(variance1, variance2)
+    @attr.gpu
+    def test_sample_gpu(self):
+        self.check_sample(True)

@@ -1,6 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import Distribution
+from chainer.functions.array import broadcast
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
 from chainer.functions.math import exponential
@@ -53,7 +54,7 @@ class Pareto(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.scale, cuda.ndarray)
+        return isinstance(self.scale.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -65,6 +66,8 @@ class Pareto(Distribution):
             Output variable representing logarithm of probability.
 
         """
+        ba = broadcast.broadcast_to(self.alpha, x.shape)
+        bs = broadcast.broadcast_to(self.scale, x.shape)
         if self._is_gpu:
             valid = cuda.cupy.zeros_like(x)
             inf = cuda.cupy.zeros_like(x)
@@ -73,9 +76,9 @@ class Pareto(Distribution):
             inf = numpy.zeros_like(x)
         valid[x >= self.scale.data] = 1
         inf[x < self.scale.data] = numpy.inf
-        return (exponential.log(self.alpha)
-                + self.alpha * exponential.log(self.scale)
-                - (self.alpha + 1) * exponential.log(x)) * valid - inf
+        return (exponential.log(ba)
+                + ba * exponential.log(bs)
+                - (ba + 1) * exponential.log(x)) * valid - inf
 
     @property
     def mean(self):
@@ -109,7 +112,8 @@ class Pareto(Distribution):
             eps = numpy.random.pareto(
                 cuda.to_cpu(self.alpha.data),
                 (n,)+self.scale.shape).astype(numpy.float32)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.alpha).id)
+            eps = cuda.to_gpu(
+                eps, cuda.get_device_from_array(self.alpha.data).id)
         else:
             eps = numpy.random.pareto(
                 self.alpha.data, (n,)+self.scale.shape).astype(numpy.float32)
