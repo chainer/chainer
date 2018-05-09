@@ -1,8 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import Distribution
-from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
+from chainer.functions.array import broadcast
 from chainer.functions.math import digamma
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
@@ -66,7 +65,7 @@ class StudentT(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.loc, cuda.ndarray)
+        return isinstance(self.loc.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -78,12 +77,15 @@ class StudentT(Distribution):
             Output variable representing logarithm of probability.
 
         """
-        return lgamma.lgamma(0.5 * (self.nu + 1)) \
-            - 0.5 * exponential.log(self.nu * numpy.pi) \
-            - lgamma.lgamma(0.5 * self.nu) \
-            - (0.5 * (self.nu + 1)) * exponential.log(
-                1 + ((x - self.loc)/self.scale) ** 2 / self.nu) \
-            - exponential.log(self.scale)
+        bn = broadcast.broadcast_to(self.nu, x.shape)
+        bl = broadcast.broadcast_to(self.loc, x.shape)
+        bs = broadcast.broadcast_to(self.scale, x.shape)
+        return lgamma.lgamma(0.5 * (bn + 1)) \
+            - 0.5 * exponential.log(bn * numpy.pi) \
+            - lgamma.lgamma(0.5 * bn) \
+            - (0.5 * (bn + 1)) * exponential.log(
+                1 + ((x - bl)/bs) ** 2 / bn) \
+            - exponential.log(bs)
 
     @property
     def mean(self):
@@ -107,18 +109,17 @@ class StudentT(Distribution):
         """
         if self._is_gpu:
             eps = numpy.random.standard_t(
-                df=self.nu.data,
+                df=cuda.to_cpu(self.nu.data),
                 size=(n,)+self.loc.shape).astype(numpy.float32)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.loc).id)
+            eps = cuda.to_gpu(
+                eps, cuda.get_device_from_array(self.loc.data).id)
         else:
             eps = numpy.random.standard_t(
                 df=self.nu.data,
                 size=(n,)+self.loc.shape).astype(numpy.float32)
 
-        noise = repeat.repeat(
-            expand_dims.expand_dims(self.scale, axis=0), n, axis=0) * eps
-        noise += repeat.repeat(expand_dims.expand_dims(
-            self.loc, axis=0), n, axis=0)
+        noise = broadcast.broadcast_to(self.scale, eps.shape) * eps
+        noise += broadcast.broadcast_to(self.loc, eps.shape)
 
         return noise
 
