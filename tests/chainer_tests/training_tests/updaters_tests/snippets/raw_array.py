@@ -58,3 +58,7 @@ def test():
 
 if __name__ == '__main__':
     test()
+
+
+# This snippet is not a test code.
+# testing.run_module(__name__, __file__)
