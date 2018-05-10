@@ -950,11 +950,24 @@ TEST_P(MathTest, LogSumExpReduceMultipleAxesKeepdims) {
 }
 
 TEST_P(MathTest, LogSumExpBackward) {
-    // TODO(hvy): Write tests when backward is implemented for routines that LogSumExp depends on.
+    using T = double;
+    Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray({}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full({2, 3}, 1e-3);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSumExp(xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, LogSumExpDoubleBackward) {
-    // TODO(hvy): Write tests when backward is implemented for routines that LogSumExp depends on.
+    using T = double;
+    Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray({}).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array gga = testing::BuildArray({2, 3}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps_a = Full({2, 3}, 1e-3);
+    Array eps_go = Full({}, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSumExp(xs[0])}; }, {a}, {go}, {gga}, {eps_a, eps_go});
 }
 
 TEST_P(MathTest, LogSoftmax) {
