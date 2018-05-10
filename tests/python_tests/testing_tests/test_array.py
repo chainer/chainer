@@ -38,7 +38,7 @@ def test_assert_array_equal(shape, transpose, dtype1, dtype2):
     # Test precondition checks
     assert np_a.shape == np_b.shape
     if transpose:
-        assert np_a.strides != np_b.strides
+        assert np_a.strides != np_b.strides, 'transpose=True is meaningless'
 
     # Test checks
     xchainer.testing.assert_array_equal(np_a, np_a)  # np-np (same obj)
@@ -107,7 +107,7 @@ def test_assert_allclose(shape, transpose, dtype1, dtype2):
     else:
         np_b = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype2).reshape(shape)
 
-    # Give some pertubation only if dtype is float
+    # Give some perturbation only if dtype is float
     if np_a.dtype.kind in ('f', 'c'):
         np_a += atol * 1e-1
     if np_b.dtype.kind in ('f', 'c'):
@@ -119,7 +119,7 @@ def test_assert_allclose(shape, transpose, dtype1, dtype2):
     # Test precondition checks
     assert np_a.shape == np_b.shape
     if transpose:
-        assert np_a.strides != np_b.strides
+        assert np_a.strides != np_b.strides, 'transpose=True is meaningless'
 
     # Test checks
     xchainer.testing.assert_allclose(np_a, np_a, atol=atol)  # np-np (same obj)
