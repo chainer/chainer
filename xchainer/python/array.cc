@@ -328,6 +328,12 @@ void InitXchainerArray(pybind11::module& m) {
 
         return list;
     });
+    c.def_buffer([](const ArrayBody& body) {  // Called by e.g. memoryview
+        // def_buffer does not accept lambda functions taking a pointer to this class.
+        Array self = Array{std::make_shared<ArrayBody>(body)};
+        return py::buffer_info{
+                self.data().get(), self.item_size(), std::string(1, GetCharCode(self.dtype())), self.ndim(), self.shape(), self.strides()};
+    });
 }
 
 }  // namespace internal
