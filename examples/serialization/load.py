@@ -22,7 +22,7 @@ class MLP(chainer.Chain):
         h2 = F.relu(self.l2(h1))
         return self.l3(h2)
 
+# Create model object first
 model = MLP(n_in, n_units, n_out)
 
-# Save the model as a NPZ file
-chainer.serializers.save_npz('model.npz', model)
+chainer.serializers.load_npz('model.npz', model)
