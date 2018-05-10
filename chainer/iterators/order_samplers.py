@@ -22,8 +22,9 @@ class OrderSampler(object):
             current_position (int): The current position of an iterator.
 
         Returns:
-            numpy.ndarray: 1-D array of indices. This is the order in which
-                examples are sampled from a dataset in the next epoch.
+            numpy.ndarray:
+            1-D array of indices. This is the order in which
+            examples are sampled from a dataset in the next epoch.
 
         """
         raise NotImplementedError
