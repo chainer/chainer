@@ -176,13 +176,9 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
 }
 
 Array Diag(const Array& v, int64_t k, Device& device) {
-    int8_t ndim = v.ndim();
-    if (ndim != 1 && ndim != 2) {
-        throw DimensionError{"Input must be 1D or 2D."};
-    }
-
     Array out{};
 
+    int8_t ndim = v.ndim();
     if (ndim == 1) {
         // Return a square matrix with filled diagonal.
         int64_t n = v.shape()[0] + std::abs(k);
@@ -206,6 +202,8 @@ Array Diag(const Array& v, int64_t k, Device& device) {
             }
         }
         out = internal::MakeArray(Shape{n}, Strides{v.strides()[0] + v.strides()[1]}, v.dtype(), device, v.data(), v.offset() + offset);
+    } else {
+        throw DimensionError{"Input must be 1D or 2D."};
     }
 
     auto backward_function = [& device = v.device(), k ](const Array& gout, const std::vector<GraphId>&) { return Diag(gout, k, device); };
