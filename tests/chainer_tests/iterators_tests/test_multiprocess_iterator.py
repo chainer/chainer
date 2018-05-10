@@ -528,10 +528,14 @@ class TestMultiprocessIteratorDeterminancy(unittest.TestCase):
 
     def test_reproduce_same_permutation(self):
         dataset = [1, 2, 3, 4, 5, 6]
-        numpy.random.seed(self._seed)
-        it1 = iterators.MultiprocessIterator(dataset, 6)
-        numpy.random.seed(self._seed)
-        it2 = iterators.MultiprocessIterator(dataset, 6)
+        order_sampler1 = iterators.ShuffleOrderSampler(
+            numpy.random.RandomState(self._seed))
+        it1 = iterators.MultiprocessIterator(
+            dataset, 6, order_sampler=order_sampler1)
+        order_sampler2 = iterators.ShuffleOrderSampler(
+            numpy.random.RandomState(self._seed))
+        it2 = iterators.MultiprocessIterator(
+            dataset, 6, order_sampler=order_sampler2)
         for _ in range(5):
             self.assertEqual(it1.next(), it2.next())
 
