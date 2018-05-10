@@ -413,16 +413,34 @@ class DivGrad(function_node.FunctionNode):
 
         ret = []
         x1_square = x1 * x1
+
         if 0 in indexes:
-            gx0 = -ggx1 * gy / x1_square
-            ret.append(chainer.functions.sum_to(gx0, x0.shape))
+            if ggx1 is None:
+                ret.append(None)
+            else:
+                gx0 = -ggx1 * gy / x1_square
+                ret.append(chainer.functions.sum_to(gx0, x0.shape))
+
         if 1 in indexes:
-            gx1 = -ggx0 * gy / x1_square + \
-                ggx1 * 2 * gy * x0 / (x1_square * x1)
-            ret.append(chainer.functions.sum_to(gx1, x1.shape))
+            gx1 = None if ggx0 is None else -ggx0 * gy / x1_square
+            gx1_1 = (None if ggx1 is None else
+                     ggx1 * 2 * gy * x0 * (x1_square * x1))
+            if gx1 is None:
+                gx1 = gx1_1
+            elif gx1_1 is not None:
+                gx1 += gx1_1
+            ret.append(None if gx1 is None else
+                       chainer.functions.sum_to(gx1, x1.shape))
+
         if 2 in indexes:
-            ggy = ggx0 / x1 - ggx1 * x0 / x1_square
+            ggy = None if ggx0 is None else ggx0 / x1
+            ggy_1 = None if ggx1 is None else ggx1 * x0 / x1_square
+            if ggy is None:
+                ggy = -ggy_1
+            elif ggy_1 is not None:
+                ggy -= ggy_1
             ret.append(ggy)
+
         return ret
 
 
