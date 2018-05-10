@@ -328,7 +328,7 @@ void InitXchainerArray(pybind11::module& m) {
 
         return list;
     });
-    c.def("buffer", [](const ArrayBodyPtr& self) -> py::memoryview {
+    c.def("_memoryview", [](const ArrayBodyPtr& self) -> py::memoryview {
         Array array{self};
         return py::memoryview{py::buffer_info{array.data().get(),
                                               array.item_size(),
