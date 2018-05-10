@@ -2,6 +2,7 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
 from chainer.functions.math import floor as _floor
@@ -183,11 +184,15 @@ class MultiAdd(function_node.FunctionNode):
         self.len = len(xs)
         if len(xs) == 1:
             return xs
-        # The output should a new array. Add the first 2 arrays
-        # and get the result y. Then add the rest arrays to y.
-        y = xs[0] + xs[1]
-        for x in xs[2:]:
-            y += x
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(xs)):
+            y = intel64.ideep.multi_add(xs)
+        else:
+            # The output should be a new array. Add the first 2 arrays
+            # and get the result y. Then add the rest arrays to y.
+            y = xs[0] + xs[1]
+            for x in xs[2:]:
+                y += x
 
         return utils.force_array(y),
 

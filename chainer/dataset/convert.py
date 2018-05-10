@@ -40,12 +40,15 @@ def to_device(device, x):
 def concat_examples(batch, device=None, padding=None):
     """Concatenates a list of examples into array(s).
 
-    Dataset iterator yields a list of examples. If each example is an array,
-    this function concatenates them along the newly-inserted first axis (called
-    `batch dimension`) into one array. The basic behavior is same for examples
-    consisting of multiple arrays, i.e., corresponding arrays of all examples
-    are concatenated.
+    This function converts an "array of tuples" into a "tuple of arrays".
+    Specifically, given a list of examples each of which consists of
+    a list of elements, this function first makes an array
+    by taking the element in the same position from each example
+    and concatenates them along the newly-inserted first axis
+    (called `batch dimension`) into one array.
+    It repeats this for all positions and returns the resulting arrays.
 
+    The output type depends on the type of examples in ``batch``.
     For instance, consider each example consists of two arrays ``(x, y)``.
     Then, this function concatenates ``x`` 's into one array, and ``y`` 's
     into another array, and returns a tuple of these two arrays. Another
@@ -61,7 +64,42 @@ def concat_examples(batch, device=None, padding=None):
     contents of all arrays can be substituted to. The padding value is then
     used to the extra elements of the resulting arrays.
 
-    TODO(beam2d): Add an example.
+    .. admonition:: Example
+
+       >>> import numpy as np
+       >>> from chainer import dataset
+       >>> x = [([1, 2], 1),
+       ...      ([3, 4], 2),
+       ...      ([5, 6], 3)]
+       >>> dataset.concat_examples(x)
+       (array([[1, 2],
+              [3, 4],
+              [5, 6]]), array([1, 2, 3]))
+       >>>
+       >>> y = [(np.array([1, 2]), 0),
+       ...      (np.array([3]), 1),
+       ...      (np.array([]), 2)]
+       >>> dataset.concat_examples(y, padding=100)
+       (array([[  1,   2],
+              [  3, 100],
+              [100, 100]]), array([0, 1, 2]))
+       >>>
+       >>> z = [(np.array([1, 2]), np.array([0])),
+       ...      (np.array([3]), np.array([])),
+       ...      (np.array([]), np.array([2]))]
+       >>> dataset.concat_examples(z, padding=(100, 200))
+       (array([[  1,   2],
+              [  3, 100],
+              [100, 100]]), array([[  0],
+              [200],
+              [  2]]))
+       >>> w = [{'feature': np.array([1, 2]), 'label': 0},
+       ...      {'feature': np.array([3, 4]), 'label': 1},
+       ...      {'feature': np.array([5, 6]), 'label': 2}]
+       >>> dataset.concat_examples(w)  # doctest: +SKIP
+       {'feature': array([[1, 2],
+              [3, 4],
+              [5, 6]]), 'label': array([0, 1, 2])}
 
     Args:
         batch (list): A list of examples. This is typically given by a dataset

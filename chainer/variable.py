@@ -422,8 +422,10 @@ class Variable(object):
     :class:`~chainer.variable.VariableNode` object of
     a computational graph. If the variable is constructed by the user, the node
     is *root* and does not hold any parent. If the variable is constructed by a
-    :class:`~chainer.FunctionNode` object, the node holds a reference to its
-    parent called :attr:`creator_node`.
+    :class:`~chainer.FunctionNode` object (i.e., by calling functions under
+    ``chainer.functions`` or user-defined functions), or by using operators
+    (see the list below), the node holds a reference to its parent called
+    :attr:`creator_node`.
     This reference is used in backpropagation to backtrack the graph.
 
     Users can disable (resp. enable) this chaining behavior by calling
@@ -431,6 +433,23 @@ class Variable(object):
     :func:`~chainer.force_backprop_mode`).
     In the former context, a variable never creates a computational graph,
     whereas in the latter context, it is forced to create.
+
+    .. note::
+
+        The following operators are defined for variable(s).
+
+        * Indexing: ``a[slices]`` (:meth:`__getitem__`)
+        * Addition: ``a + b`` (:meth:`__add__`, :meth:`__radd__`)
+        * Subtraction: ``a - b`` (:meth:`__sub__`, :meth:`__rsub__`)
+        * Multiplication: ``a * b`` (:meth:`__mul__`, :meth:`__rmul__`)
+        * Division: ``a / b`` (:meth:`__div__`, :meth:`__rdiv__`, \
+                               :meth:`__truediv__`, :meth:`__rtruediv__`)
+        * Floor Division: ``a // b`` (:meth:`__floordiv__`, \
+                                      :meth:`__rfloordiv__`)
+        * Exponentiation: ``a ** b`` (:meth:`__pow__`, :meth:`__rpow__`)
+        * Matirx Multiplication: ``a @ b`` (:meth:`__matmul__`, \
+                                            :meth:`__rmatmul__`)
+        * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
 
     .. warning::
 
@@ -486,6 +505,16 @@ Actual: {0}'''.format(type(data))
 
     def __str__(self):
         return variable_str(self)
+
+    @property
+    def xp(self):
+        """Array module for this variable.
+
+        Depending on which of CPU/GPU this variable is on, this property
+        returns :mod:`numpy` or :mod:`cupy`.
+
+        """
+        return cuda.get_array_module(self)
 
     @property
     def name(self):
@@ -728,8 +757,6 @@ Actual: {0}'''.format(type(data))
 
         """
         if self.data is None:
-            self._initial_device = (cuda.Device().id
-                                    if device is None else device)
             self._data = [None]  # Renew placeholder to break sharing
         else:
             self._data = [cuda.to_gpu(self.data, device)]
@@ -749,22 +776,22 @@ Actual: {0}'''.format(type(data))
         intel64.check_ideep_available()
         data = self.data
         if data is not None:
-            if isinstance(data, numpy.ndarray):
-                # numpy.ndarray to ideep
-                self._data = [
-                    intel64.ideep.array(
-                        data, itype=intel64.ideep.wgt_array)]
-            elif isinstance(data, cuda.ndarray):
-                # cupy.ndarray to ideep
-                self._data = [
-                    intel64.ideep.array(
-                        data.get(), itype=intel64.ideep.wgt_array)]
+            if isinstance(data, cuda.ndarray):
+                # cupy.ndarray to numpy.ndarray
+                data = data.get()
+            if (isinstance(data, numpy.ndarray) and
+                    intel64.inputs_all_ready((data,))):
+                # numpy.ndarray to ideep.mdarray
+                data = intel64.ideep.array(
+                    data, itype=intel64.ideep.wgt_array)
+            self._data = [data]
+
         if self._grad_var is not None:
             self._grad_var.to_intel64()
-            # ensure that the node tracks the device migration
-            node = self._node
-            if node._data is not None:
-                node.retain_data()
+        # ensure that the node tracks the device migration
+        node = self._node
+        if node._data is not None:
+            node.retain_data()
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -1202,27 +1229,35 @@ Actual: {0}'''.format(type(data))
         self._node.data = self._data[0]
 
     def __lt__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __le__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __eq__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __ne__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __gt__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __ge__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __nonzero__(self):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __bool__(self):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     __array_priority__ = 200
@@ -1274,6 +1309,7 @@ class Parameter(Variable):
 
     initializer = None
     _grad_initializer = None
+    _initial_backend = None
     _initial_device = None
 
     def __init__(self, initializer=None, shape=None, name=None):
@@ -1288,7 +1324,6 @@ class Parameter(Variable):
             else:
                 # uninitialized parameter
                 super(Parameter, self).__init__(name=name)
-                self.initializer = initializer
                 dtype = getattr(initializer, 'dtype', numpy.float32)
                 self._grad_initializer = constant.NaN(dtype)
         else:
@@ -1303,6 +1338,7 @@ class Parameter(Variable):
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
         self.update_rule = None
+        self.initializer = initializer
 
     def __copy__(self):
         return self._copy_to(Parameter())
@@ -1314,6 +1350,7 @@ class Parameter(Variable):
     def to_cpu(self):
         super(Parameter, self).to_cpu()
         if self.data is None:
+            self._initial_backend = None
             self._initial_device = None
 
     def to_gpu(self, device=None):
@@ -1321,11 +1358,13 @@ class Parameter(Variable):
         if self.data is None:
             if device is None:
                 device = cuda.Device().id
+            self._initial_backend = 'cuda'
             self._initial_device = device
 
     def to_intel64(self):
         super(Parameter, self).to_intel64()
         if self.data is None:
+            self._initial_backend = 'intel64'
             self._initial_device = None
 
     def cleargrad(self):
@@ -1350,7 +1389,7 @@ class Parameter(Variable):
             shape (tuple of int): Shape of the data array.
 
         """
-        xp = numpy if self._initial_device is None else cuda.cupy
+        xp = numpy if self._initial_backend != 'cuda' else cuda.cupy
         with cuda.get_device_from_id(self._initial_device):
             data = initializers.generate_array(self.initializer, shape, xp)
 
@@ -1360,6 +1399,10 @@ class Parameter(Variable):
 
         self.data = data
         self.grad = grad
+
+        # Convert the array for iDeep.
+        if self._initial_backend == 'intel64':
+            self.to_intel64()
 
     def update(self):
         """Updates the data array using the gradient and the update rule.
@@ -1378,7 +1421,7 @@ def as_variable(obj):
     transparently from a raw array or a variable.
 
     Note that this function should only be used for type consistency (i.e., to
-    enforce the return value of an API having type :class:`~chainer.Varialbe`).
+    enforce the return value of an API having type :class:`~chainer.Variable`).
     The :class:`~chainer.Variable.requires_grad` flag is kept as is; if ``obj``
     is a raw array, the newly created variable has ``requires_grad = False``.
     In order to make a variable w.r.t. which you want to compute the gradient,

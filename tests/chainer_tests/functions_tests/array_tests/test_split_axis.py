@@ -45,6 +45,9 @@ def inject_backend_tests(method_names):
         {'shape': (2, 7, 3), 'axis': 1, 'ys_section': [0],
          'slices': [[slice(None), slice(None, 0)], [slice(None), slice(0, 7)]]
          },
+        {'shape': (2, 7, 3), 'axis': 1, 'ys_section': [7],
+         'slices': [[slice(None), slice(None, 7)], [slice(None), slice(7, 7)]]
+         },
         {'shape': (2, 7, 3, 2), 'axis': 1, 'ys_section': [2, 5],
          'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
                     [slice(None), slice(5, None)]]},
@@ -96,6 +99,9 @@ def inject_backend_tests(method_names):
                      slice(None, 2)], [slice(None, None), slice(None, None),
                                        slice(None, None), slice(2, None)]]
          },
+        {'shape': (10, 4, 3, 2), 'axis': 0, 'ys_section': numpy.array([]),
+         'slices': [slice(None, None)]
+         },
     ],
     [
         {'dtype': numpy.float16},
@@ -103,6 +109,7 @@ def inject_backend_tests(method_names):
         {'dtype': numpy.float64},
     ],
 ))
+@testing.with_requires('numpy>=1.11')
 @inject_backend_tests(['test_forward', 'test_backward'])
 class TestSplitAxis(unittest.TestCase):
 

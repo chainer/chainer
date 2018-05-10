@@ -111,10 +111,13 @@ class CTCTestBase(object):
 
     # expected value(via numerical differentiation) from t_data
     def check_backward(self, t_data, xs_data, l_length, x_length, gy_data):
+        def f(input_length, label_length, t, *x):
+            return functions.connectionist_temporal_classification(
+                x, t, self.blank_symbol, x_length, l_length,
+                reduce=self.reduce)
+
         gradient_check.check_backward(
-            functions.ConnectionistTemporalClassification(
-                self.blank_symbol, self.reduce),
-            (x_length, l_length, t_data) + xs_data, gy_data,
+            f, (x_length, l_length, t_data) + xs_data, gy_data,
             eps=1e-2, atol=1e-4)
 
     @condition.retry(3)

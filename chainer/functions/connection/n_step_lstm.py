@@ -1,5 +1,3 @@
-import itertools
-
 import numpy
 
 import chainer
@@ -117,7 +115,7 @@ def n_step_lstm(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy``, ``cy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is the same as
@@ -284,7 +282,7 @@ def n_step_bilstm(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy``, ``cy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is the same as
@@ -395,7 +393,7 @@ def n_step_lstm_base(
             LSTM.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy``, ``cy`` and ``ys``.
 
             - ``hy`` is an updated hidden states whose shape is the same as
@@ -428,18 +426,16 @@ def n_step_lstm_base(
         states = get_random_state().create_dropout_states(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
-        # flatten all input variables
-        inputs = tuple(itertools.chain(
-            (hx, cx),
-            itertools.chain.from_iterable(ws),
-            itertools.chain.from_iterable(bs),
-            (xs,)))
+
+        w = n_step_rnn.cudnn_rnn_weight_concat(
+            n_layers, states, use_bi_direction, 'lstm', ws, bs)
+
         if use_bi_direction:
             rnn = NStepBiLSTM
         else:
             rnn = NStepLSTM
 
-        hy, cy, ys = rnn(n_layers, states, lengths)(*inputs)
+        hy, cy, ys = rnn(n_layers, states, lengths)(hx, cx, w, xs)
         sections = numpy.cumsum(lengths[:-1])
         ys = chainer.functions.split_axis(ys, sections, 0)
         return hy, cy, ys
