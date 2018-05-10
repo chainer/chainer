@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <tuple>
 #include <type_traits>
 
 #include <gsl/gsl>
@@ -24,6 +25,14 @@ namespace indexable_array_detail {
 template <typename To, typename From>
 using WithConstnessOf = std::conditional_t<std::is_const<From>::value, std::add_const_t<To>, std::remove_const_t<To>>;
 
+static std::tuple<const uint8_t*, const uint8_t*> GetDataRange(const Array& a) {
+    std::tuple<int64_t, int64_t> range = xchainer::GetDataRange(a.shape(), a.strides(), a.item_size());
+    int64_t lower = std::get<0>(range);
+    int64_t upper = std::get<1>(range);
+    auto base = reinterpret_cast<const uint8_t*>(a.raw_data()) + a.offset();  // NOLINT: reinterpret_cast
+    return std::tuple<const uint8_t*, const uint8_t*>{base + lower, base + upper};
+}
+
 }  // namespace indexable_array_detail
 
 template <typename T, int8_t kNdim = kDynamicNdim>
@@ -38,9 +47,7 @@ public:
         assert(TypeToDtype<T> == array.dtype());
 
 #ifndef NDEBUG
-        gsl::span<const uint8_t> data_range = array.GetDataRange();
-        first_ = data_range.data();
-        last_ = first_ + data_range.size_bytes();
+        std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
 #endif
     }
 
@@ -98,9 +105,7 @@ public:
         assert(TypeToDtype<T> == array.dtype());
 
 #ifndef NDEBUG
-        gsl::span<const uint8_t> data_range = array.GetDataRange();
-        first_ = data_range.data();
-        last_ = first_ + data_range.size_bytes();
+        std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
 #endif
     }
 
@@ -148,9 +153,7 @@ public:
         assert(TypeToDtype<T> == array.dtype());
 
 #ifndef NDEBUG
-        gsl::span<const uint8_t> data_range = array.GetDataRange();
-        first_ = data_range.data();
-        last_ = first_ + data_range.size_bytes();
+        std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
 #endif
     }
 
