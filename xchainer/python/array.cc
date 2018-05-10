@@ -100,9 +100,11 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& d
         // otherwise; convert object to NumPy array using numpy.array()
         // TODO(sonots): Remove dependency on numpy
         py::object array_func = py::module::import("numpy").attr("array");
-        np_array = dtype.is_none()
-                           ? array_func(object, py::arg("copy") = false)
-                           : array_func(object, py::arg("dtype") = GetDtypeName(internal::GetDtype(dtype)), py::arg("copy") = false);
+        if (dtype.is_none()) {
+            np_array = array_func(object, py::arg("copy") = false);
+        } else {
+            np_array = array_func(object, py::arg("dtype") = GetDtypeName(internal::GetDtype(dtype)), py::arg("copy") = false);
+        }
     }
     // Convert NumPy array to Xchainer array
     return MakeArrayFromNumpyArray(np_array, device);

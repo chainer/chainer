@@ -1,5 +1,6 @@
 #include "xchainer/strides.h"
 
+#include <cstdint>
 #include <ostream>
 #include <sstream>
 #include <string>
