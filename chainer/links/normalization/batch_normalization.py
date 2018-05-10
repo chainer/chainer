@@ -129,7 +129,7 @@ class BatchNormalization(link.Link):
             >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3, 32, 32)
-            
+
             You can omit ``size`` if ``axis`` is given.
 
     """
