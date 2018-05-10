@@ -160,6 +160,9 @@ def load_npz(file, obj, path='', strict=True, ignore_names=None):
     This is a short-cut function to load from an `.npz` file that contains only
     one object.
 
+    See this example for how to use this function.
+    `MNIST custom loop example_<https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist_custom_loop.py#L56-L59>`
+
     Args:
         file (str or file-like): File to be loaded.
         obj: Object to be deserialized. It must support serialization protocol.
