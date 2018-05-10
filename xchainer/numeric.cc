@@ -12,10 +12,10 @@ namespace xchainer {
 
 bool AllClose(const Array& a, const Array& b, double rtol, double atol, bool equal_nan) {
     if (a.shape() != b.shape()) {
-        throw DimensionError{"cannot compare Arrays of different shapes"};
+        throw DimensionError{"Cannot compare Arrays of different shapes: ", a.shape(), ", ", b.shape()};
     }
     if (a.dtype() != b.dtype()) {
-        throw DtypeError{"cannot compare Arrays of different Dtypes"};
+        throw DtypeError{"Cannot compare Arrays of different Dtypes: ", a.dtype(), ", ", b.dtype()};
     }
 
     Array a_native = a.ToNative();
