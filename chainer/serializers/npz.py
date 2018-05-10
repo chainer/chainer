@@ -58,6 +58,12 @@ def save_npz(file, obj, compression=True):
 
     This is a short-cut function to save only one object into an NPZ file.
 
+    See this example for how to use this function:
+    `MNIST custom loop example_<https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist_custom_loop.py#L56-L59>`
+
+    See this documentation also:
+    `Serializers – saving and loading_<https://docs.chainer.org/en/stable/guides/serializers.html>`
+
     Args:
         file (str or file-like): Target file to write to.
         obj: Object to be serialized. It must support serialization protocol.
@@ -160,8 +166,11 @@ def load_npz(file, obj, path='', strict=True, ignore_names=None):
     This is a short-cut function to load from an `.npz` file that contains only
     one object.
 
-    See this example for how to use this function.
+    See this example for how to use this function:
     `MNIST custom loop example_<https://github.com/chainer/chainer/blob/master/examples/mnist/train_mnist_custom_loop.py#L56-L59>`
+
+    See this documentation also:
+    `Serializers – saving and loading_<https://docs.chainer.org/en/stable/guides/serializers.html>`
 
     Args:
         file (str or file-like): File to be loaded.
