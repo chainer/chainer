@@ -120,10 +120,12 @@ class AveragePoolingND(pooling_nd._PoolingND):
 
     def create_pool_desc(self):
         if self.pad_value is None:
-            pooling_mode = cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING
+            pooling_mode = (
+                cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING)
         else:
             assert self.pad_value == 0
-            pooling_mode = cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING
+            pooling_mode = (
+                cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
 
         return cuda.cudnn.create_pooling_descriptor(
             self.ksize, self.stride, self.pad, pooling_mode)
@@ -232,4 +234,5 @@ def average_pooling_nd(x, ksize, stride=None, pad=0, pad_value=0):
     """
     ndim = len(x.shape[2:])
     return AveragePoolingND(
-        ndim, ksize, stride=stride, pad=pad, pad_value=pad_value).apply((x,))[0]
+        ndim, ksize, stride=stride, pad=pad, pad_value=pad_value
+    ).apply((x,))[0]
