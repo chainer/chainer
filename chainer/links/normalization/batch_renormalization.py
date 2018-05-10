@@ -34,10 +34,11 @@ class BatchRenormalization(BatchNormalization):
     def __init__(self, size, rmax=1, dmax=0, decay=0.9, eps=2e-5,
                  dtype=numpy.float32, use_gamma=True, use_beta=True,
                  initial_gamma=None, initial_beta=None,
+                 initial_avg_mean=None, initial_avg_var=None,
                  freeze_running_statistics=False):
-        super(BatchRenormalization, self).__init__(size, decay, eps, dtype,
-                                                   use_gamma, use_beta,
-                                                   initial_gamma, initial_beta)
+        super(BatchRenormalization, self).__init__(
+            size, decay, eps, dtype, use_gamma, use_beta,
+            initial_gamma, initial_beta, initial_avg_mean, initial_avg_var)
         self.rmax = rmax  # maximum allowed correction of variance
         self.dmax = dmax  # maximum allowed correction of mean
         self.r = None
