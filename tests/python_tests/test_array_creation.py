@@ -822,9 +822,12 @@ def test_eye_invalid_NMk_type(xp, N, M, k, device):
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('k', [0, -2, -1, 1, 2, -5, 4])
 @pytest.mark.parametrize('shape', [(4,), (2, 3), (6, 5)])
+@pytest.mark.parametrize('transpose', [False, True])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_diag(xp, k, shape, device):
+def test_diag(xp, k, shape, transpose, device):
     v = xp.arange(_size(shape)).reshape(shape)
+    if transpose:  # Test non-contiguous inputs for multi-dimensional shapes.
+        v = v.T
     return xp.diag(v, k)
 
 
