@@ -1,5 +1,7 @@
 import numpy
 
+import chainer
+
 # import classes and functions
 from chainer.initializers.constant import Constant
 from chainer.initializers.constant import Identity  # NOQA
