@@ -59,14 +59,14 @@ public:
 
     const int64_t& operator[](int8_t index) const {
         if (!(0 <= index && static_cast<size_t>(index) < size())) {
-            throw DimensionError{"index out of bounds"};
+            throw DimensionError{"Stride index ", index, " out of bounds for strides with ", size(), " size."};
         }
         return this->StackVector::operator[](index);
     }
 
     int64_t& operator[](int8_t index) {
         if (!(0 <= index && static_cast<size_t>(index) < size())) {
-            throw DimensionError{"index out of bounds"};
+            throw DimensionError{"Stride index ", index, " out of bounds for strides with ", size(), " size."};
         }
         return this->StackVector::operator[](index);
     }

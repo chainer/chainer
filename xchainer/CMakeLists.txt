@@ -21,6 +21,7 @@ install(FILES
     device.h
     device_id.h
     dtype.h
+    elementwise.h
     error.h
     graph.h
     index_iterator.h
@@ -85,6 +86,7 @@ if(ENABLE_TEST)
         context_test.cc
         device_test.cc
         dtype_test.cc
+        elementwise_test.cc
         index_iterator_test.cc
         indexable_array_test.cc
         indexer_test.cc

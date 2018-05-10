@@ -138,7 +138,7 @@ private:
         strides.resize(shape_.ndim());
         int64_t st = sizeof(T);
         for (int8_t i = shape_.ndim() - 1; i >= 0; --i) {
-            st += sizeof(T) * padding[i];  // paddings are multiples of the item-size.
+            st *= 1 + padding[i];  // paddings are multiples of the item size.
             strides[i] = st;
             st *= shape_[i];
         }
