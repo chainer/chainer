@@ -50,8 +50,7 @@ class ShuffleOrderSampler(OrderSampler):
 
     def __init__(self, random_state=None):
         if random_state is None:
-            random_state = numpy.random.RandomState(
-                numpy.random.randint(2**31))
+            random_state = numpy.random.random.__self__
         self._random = random_state
 
     def __call__(self, current_order, current_position):
