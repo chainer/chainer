@@ -27,7 +27,7 @@ Order samplers are callables that are used by those iterators to generate this a
 
 
 .. autosummary::
-    :toctree generated/
+    :toctree: generated/
     :nosignatures:
 
     chainer.iterators.OrderSampler
