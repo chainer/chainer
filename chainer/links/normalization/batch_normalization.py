@@ -69,6 +69,47 @@ class BatchNormalization(link.Link):
             option, numbers in the tuple must be being sorted in ascending
             order. For example, (0, 2) is OK, but (2, 0) is not.
 
+    .. admonition:: Example
+
+        There are several ways to make a BatchNormalization link.
+        Consider an input of batched 10 images of 32x32 with 3 channels
+
+        >>> x = np.ones((10, 3, 32, 32), np.float32)
+
+        1. Give the parameter size:
+
+            To normalize for each channel, give the number of channels
+            to ``size``.
+
+            >>> bn = chainer.links.BatchNormalization(3)
+            >>> bn.avg_mean.shape
+            (3,)
+            >>> y = bn(x)
+            >>> y.shape
+            (10, 3, 32, 32)
+
+            To normalize for each channel for each pixel, do as the following.
+
+            >>> bn = chainer.links.BatchNormalization((3, 32, 32))
+            >>> bn.avg_mean.shape
+            (3, 32, 32)
+
+        2. Omit ``size`` and give ``axis``:
+
+            When you omit the parameter size, you need to specify the aggregate
+            axes.  The examples in 1. corresponds to the following,
+            respectively.
+
+            >>> bn = chainer.links.BatchNormalization(axis=(0, 2, 3))
+            >>> y = bn(x)
+            >>> bn.avg_mean.shape
+            (3,)
+
+            >>> bn = chainer.links.BatchNormalization(axis=0)
+            >>> y = bn(x)
+            >>> bn.avg_mean.shape
+            (3, 32, 32)
+
     """
 
     def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=numpy.float32,
