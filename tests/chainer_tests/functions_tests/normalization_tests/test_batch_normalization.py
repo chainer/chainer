@@ -29,7 +29,6 @@ def _batch_normalization(args):
     testing.product({
         'param_shape': [(3,), (3, 4), (3, 2, 3)],
         'ndim': [0, 1, 2],
-        'axis': [None],
     }) + [
         {'input_shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
         {'input_shape': (5, 4), 'axis': 0},
@@ -46,7 +45,6 @@ def _batch_normalization(args):
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'c_contiguous': [True, False],
-    'axis': [None],
 })))
 @backend.inject_backend_tests(
     ['test_forward', 'test_backward', 'test_double_backward'],
@@ -64,13 +62,13 @@ class TestBatchNormalization(unittest.TestCase):
 
     def setUp(self):
         dtype = self.dtype
-        aggr_axes = self.axis
 
-        if aggr_axes is None:
+        if not hasattr(self, 'axis'):
             param_shape = self.param_shape
             ndim = self.ndim
             shape = (5,) + param_shape + (2,) * ndim
         else:
+            aggr_axes = self.axis
             if isinstance(self.axis, int):
                 aggr_axes = self.axis,
             param_shape = tuple(
@@ -88,7 +86,7 @@ class TestBatchNormalization(unittest.TestCase):
         gggamma = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
         ggbeta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
 
-        if aggr_axes is None:
+        if not hasattr(self, 'axis'):
             head_ndim = gamma.ndim + 1
             aggr_axes = (0,) + tuple(six.moves.range(head_ndim, x.ndim))
 
@@ -110,6 +108,12 @@ class TestBatchNormalization(unittest.TestCase):
         self.grad_outputs = [gy]
         self.grad_grad_inputs = [ggx, gggamma, ggbeta]
 
+        self.bn_options = {
+            'decay': self.decay,
+            'eps': self.eps,
+        }
+        if hasattr(self, 'axis'):
+            self.bn_options['axis'] = self.axis
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'dtype': numpy.float64}
         self.check_double_backward_options = {
@@ -137,8 +141,7 @@ class TestBatchNormalization(unittest.TestCase):
         with backend_config:
             y = functions.batch_normalization(
                 *inputs, running_mean=None,
-                running_var=None, decay=self.decay, eps=self.eps,
-                axis=self.axis)
+                running_var=None, **self.bn_options)
         assert y.data.dtype == self.dtype
 
         testing.assert_allclose(
@@ -157,7 +160,7 @@ class TestBatchNormalization(unittest.TestCase):
 
         def f(*inputs):
             y = functions.batch_normalization(
-                *inputs, decay=self.decay, eps=self.eps, axis=self.axis)
+                *inputs, **self.bn_options)
             return y,
 
         with backend_config:
@@ -181,7 +184,7 @@ class TestBatchNormalization(unittest.TestCase):
 
         def f(*inputs):
             y = functions.batch_normalization(
-                *inputs, decay=self.decay, eps=self.eps, axis=self.axis)
+                *inputs, **self.bn_options)
             return y * y,  # make nonlinear against beta
 
         with backend_config:

@@ -30,7 +30,6 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
     }),
     testing.product({
         'ndim': [0, 1, 2, 3],
-        'axis': [None],
     }) + [
         {'input_shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
         {'input_shape': (5, 4), 'axis': 0},
@@ -40,13 +39,13 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
 class BatchNormalizationTest(unittest.TestCase):
 
     def setUp(self):
-        aggr_axes = self.axis
-        if aggr_axes is None:
+        if not hasattr(self, 'axis'):
             aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
             shape = (5, 3) + (2,) * self.ndim
             param_shape = shape[1]
             self.expander = (None, Ellipsis) + (None,) * self.ndim
         else:
+            aggr_axes = self.axis
             if isinstance(self.axis, int):
                 aggr_axes = self.axis,
             shape = self.input_shape
@@ -60,8 +59,11 @@ class BatchNormalizationTest(unittest.TestCase):
                 for i in range(len(shape))
             )
 
+        options = {}
+        if hasattr(self, 'axis'):
+            options['axis'] = self.axis
         self.link = links.BatchNormalization(
-            param_shape, dtype=self.dtype, axis=self.axis)
+            param_shape, dtype=self.dtype, **options)
         gamma = self.link.gamma.data
         gamma[...] = numpy.random.uniform(.5, 1, gamma.shape)
         beta = self.link.beta.data
