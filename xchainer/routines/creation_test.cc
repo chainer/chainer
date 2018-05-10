@@ -495,6 +495,12 @@ TEST_P(CreationTest, Eye) {
     }
 }
 
+TEST_P(CreationTest, EyeInvalidNM) {
+    EXPECT_THROW(Eye(-1, 2, 1, Dtype::kFloat32), DimensionError);
+    EXPECT_THROW(Eye(1, -2, 1, Dtype::kFloat32), DimensionError);
+    EXPECT_THROW(Eye(-1, -2, 1, Dtype::kFloat32), DimensionError);
+}
+
 TEST_P(CreationTest, AsContiguousArray) {
     Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>().WithPadding(1);
     ASSERT_FALSE(a.IsContiguous());  // test precondition
@@ -564,12 +570,6 @@ TEST_P(CreationTest, DiagVecToMat) {
     }
 }
 
-TEST_P(CreationTest, EyeInvalidNM) {
-    EXPECT_THROW(Eye(-1, 2, 1, Dtype::kFloat32), DimensionError);
-    EXPECT_THROW(Eye(1, -2, 1, Dtype::kFloat32), DimensionError);
-    EXPECT_THROW(Eye(-1, -2, 1, Dtype::kFloat32), DimensionError);
-}
-
 TEST_P(CreationTest, DiagMatToVec) {
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
@@ -594,6 +594,62 @@ TEST_P(CreationTest, DiagMatToVec) {
     }
 }
 
+TEST_P(CreationTest, DiagVecToMatBackward) {
+    using T = double;
+    Array v = (*testing::BuildArray({3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray({4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full({3}, 1e-3);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Diag(xs[0], -1)}; }, {v}, {go}, {eps});
+}
+
+TEST_P(CreationTest, DiagMatToVecBackward) {
+    using T = double;
+    Array v = (*testing::BuildArray({4, 4}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray({3}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full({4, 4}, 1e-3);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Diag(xs[0], 1)}; }, {v}, {go}, {eps});
+}
+
+TEST_P(CreationTest, DiagVecToMatDoubleBackward) {
+    using T = double;
+    Array v = (*testing::BuildArray({3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray({4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggv = testing::BuildArray({3}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps_v = Full(Shape{3}, 1e-3);
+    Array eps_go = Full(Shape{4, 4}, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Diag(xs[0], -1);
+                return {y * y};  // to make it nonlinear
+            },
+            {v},
+            {go},
+            {ggv},
+            {eps_v, eps_go});
+}
+
+TEST_P(CreationTest, DiagMatToVecDoubleBackward) {
+    using T = double;
+    Array v = (*testing::BuildArray(Shape{4, 4}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(Shape{3}).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggv = testing::BuildArray(Shape{4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps_v = Full(Shape{4, 4}, 1e-3);
+    Array eps_go = Full(Shape{3}, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Diag(xs[0], -1);
+                return {y * y};  // to make it nonlinear
+            },
+            {v},
+            {go},
+            {ggv},
+            {eps_v, eps_go});
+}
+
 TEST_P(CreationTest, Diagflat) {
     {
         Array v = Arange(1, 3, Dtype::kFloat32);
@@ -614,6 +670,34 @@ TEST_P(CreationTest, Diagflat) {
         Array e = testing::BuildArray<float>({3, 3}, {0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 2.f, 0.f});
         testing::ExpectEqual(e, o);
     }
+}
+
+TEST_P(CreationTest, DiagflatBackward) {
+    using T = double;
+    Array v = (*testing::BuildArray({3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray({4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full({3}, 1e-3);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Diagflat(xs[0], 1)}; }, {v}, {go}, {eps});
+}
+
+TEST_P(CreationTest, DiagflatDoubleBackward) {
+    using T = double;
+    Array v = (*testing::BuildArray({3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray({4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggv = testing::BuildArray({3}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps_v = Full(Shape{3}, 1e-3);
+    Array eps_go = Full(Shape{4, 4}, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Diagflat(xs[0], -1);
+                return {y * y};  // to make it nonlinear
+            },
+            {v},
+            {go},
+            {ggv},
+            {eps_v, eps_go});
 }
 
 TEST_P(CreationTest, Linspace) {

@@ -176,38 +176,40 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
 }
 
 Array Diag(const Array& v, int64_t k, Device& device) {
+    Array out{};
+
     int8_t ndim = v.ndim();
     if (ndim == 1) {
         // Return a square matrix with filled diagonal.
         int64_t n = v.shape()[0] + std::abs(k);
-        Array out = Empty(Shape{n, n}, v.dtype(), device);
+        out = Empty(Shape{n, n}, v.dtype(), device);
         device.Diagflat(v, k, out);
-        return out;
-    }
-    if (ndim == 2) {
+    } else if (ndim == 2) {
         // Return the diagonal as a 1D array.
         int64_t rows = v.shape()[0];
         int64_t cols = v.shape()[1];
         int64_t n = std::min(rows, cols);
-        int64_t offset_items{};
+        int64_t offset{};
         if (k >= 0) {
-            offset_items = k;
+            offset = k * v.strides()[1];
             if (cols <= k + n - 1) {
                 n = std::max(int64_t{0}, cols - k);
             }
         } else {
-            offset_items = -k * cols;
-            if (rows >= k - n + 1) {
+            offset = -k * v.strides()[0];
+            if (rows <= -k + n - 1) {
                 n = std::max(int64_t{0}, rows + k);
             }
         }
-        Shape out_shape{n};
-        Strides out_strides{v.strides()[0] + v.strides()[1]};
-        int64_t out_offset = v.offset() + offset_items * v.strides()[1];
-        Array out = internal::MakeArray(out_shape, out_strides, v.dtype(), device, v.data(), out_offset);
-        return out;
+        out = internal::MakeArray(Shape{n}, Strides{v.strides()[0] + v.strides()[1]}, v.dtype(), device, v.data(), v.offset() + offset);
+    } else {
+        throw DimensionError{"Input must be 1D or 2D."};
     }
-    throw DimensionError{"Input must be 1D or 2D."};
+
+    auto backward_function = [& device = v.device(), k ](const Array& gout, const std::vector<GraphId>&) { return Diag(gout, k, device); };
+    internal::SetUpOpNodes("diag", {v}, out, {backward_function});
+
+    return out;
 }
 
 Array Diagflat(const Array& v, int64_t k, Device& device) {
