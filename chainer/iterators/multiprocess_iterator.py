@@ -44,13 +44,16 @@ class MultiprocessIterator(iterator.Iterator):
 
     .. note::
 
-            When you are using OpenCV somewhere in your code and the ``MultiprocessIterator`` is used in the
-            training code, the training loop may get stuck at some point. In such situation, there are several workarounds to
-            prevent the process got stuck.
+            When you are using OpenCV somewhere in your code and the
+            ``MultiprocessIterator`` is used in the training code, the
+            training loop may get stuck at some point. In such situation,
+            there are several workarounds to prevent the process got stuck.
 
             1. Set the environment variable as follows: ``OMP_NUM_THREADS=1``
-            2. Add ``cv2.setNumThreads(0)`` right after ``import cv2`` in your training script.
-            3. Use :class:`~chainer.iterators.MultithreadIterator` instead of ``MultiprocessIterator``.
+            2. Add ``cv2.setNumThreads(0)`` right after ``import cv2`` in your
+               training script.
+            3. Use :class:`~chainer.iterators.MultithreadIterator` instead of
+               ``MultiprocessIterator``.
 
     Args:
         dataset (~chainer.dataset.Dataset): Dataset to iterate.
