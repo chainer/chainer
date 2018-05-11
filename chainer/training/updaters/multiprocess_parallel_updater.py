@@ -44,7 +44,7 @@ class _Worker(multiprocessing.Process):
     def run(self):
         try:
             self._run()
-        except:
+        except Exception:
             import os
             import signal
             import sys
@@ -53,8 +53,10 @@ class _Worker(multiprocessing.Process):
             sys.stderr.write("******************************************\n")
             sys.stderr.write("\n")
             sys.stderr.write("Chainer multiprocess parallel updater: \n")
-            sys.stderr.write("   Uncaught exception in a worker process (PID {}).\n".format(os.getpid()))
-            sys.stderr.write("To avoid deadlock, sending SIGKILL to the master process (PID {})\n".format(os.getppid()))
+            sys.stderr.write("   Uncaught exception in a worker process "
+                             "(PID {}).\n".format(os.getpid()))
+            sys.stderr.write("To avoid deadlock, sending SIGKILL to the "
+                             "master process (PID {})\n".format(os.getppid()))
             sys.stderr.write("\n")
             sys.stderr.write("******************************************\n")
             sys.stderr.write("\n\n")
