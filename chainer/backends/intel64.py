@@ -87,7 +87,7 @@ def should_use_ideep(level):
 
 
 def inputs_all_ready(inputs, supported_ndim=(2, 4)):
-    """Checks if input arrays are supported for ideep optimization.
+    """Checks if input arrays are supported for the iDeep primitive.
 
     Information to be checked includes array types, dimesions and data types.
     The function checks ``inputs`` info and ``supported_ndim``.
@@ -96,8 +96,7 @@ def inputs_all_ready(inputs, supported_ndim=(2, 4)):
         inputs (sequence of arrays or variables``):
             Inputs to be checked.
         supported_ndim (tuple of ints):
-            Supported ndim values.
-            iDeep supports array dimension in either 2 or 4 only.
+            Supported ndim values for the iDeep primitive.
 
     Returns:
         bool: ``True`` if all conditions meet.
