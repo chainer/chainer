@@ -131,7 +131,7 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             # The context is not initialized, it will be fine.
             _cuda_initialized = False
         if _cuda_initialized:
-            raise ValueError(
+            raise RuntimeError(
                 'The CUDA context has been already initialized. '
                 'MultiprocessParallelUpdater assumes the context is '
                 'uninitialized. Please do not call CUDA API before '
