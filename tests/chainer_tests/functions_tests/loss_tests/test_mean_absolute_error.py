@@ -78,6 +78,7 @@ class TestMeanAbsoluteError(unittest.TestCase):
                                    cuda.to_gpu(self.ggx0),
                                    cuda.to_gpu(self.ggx1))
 
+    # test for #4669
     @attr.multi_gpu(2)
     def test_backward_with_non_default_gpu(self):
         x0 = chainer.Variable(cuda.to_gpu(self.x0, 1))
