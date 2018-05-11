@@ -42,6 +42,28 @@ class _Worker(multiprocessing.Process):
                                     self.model.namedlinks(skipself=True))
 
     def run(self):
+        try:
+            self._run()
+        except:
+            import os
+            import signal
+            import sys
+            # Send SIGKILL to the master process to avoid deadlock.
+            sys.stderr.write("\n")
+            sys.stderr.write("******************************************\n")
+            sys.stderr.write("\n")
+            sys.stderr.write("Chainer multiprocess parallel updater: \n")
+            sys.stderr.write("   Uncaught exception in a worker process (PID {}).\n".format(os.getpid()))
+            sys.stderr.write("To avoid deadlock, sending SIGKILL to the master process (PID {})\n".format(os.getppid()))
+            sys.stderr.write("\n")
+            sys.stderr.write("******************************************\n")
+            sys.stderr.write("\n\n")
+            sys.stderr.flush()
+            os.kill(os.getppid(), signal.SIGKILL)
+
+            raise
+
+    def _run(self):
         dev = cuda.Device(self.device)
         dev.use()
         self.setup()
