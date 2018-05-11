@@ -93,7 +93,7 @@ def inputs_all_ready(inputs, supported_ndim=(2, 4)):
     The function checks ``inputs`` info and ``supported_ndim``.
 
     Args:
-        inputs (sequence of arrays or variables``):
+        inputs (sequence of arrays or variables):
             Inputs to be checked.
         supported_ndim (tuple of ints):
             Supported ndim values for the iDeep primitive.
