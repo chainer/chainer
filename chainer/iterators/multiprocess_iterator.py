@@ -88,7 +88,8 @@ class MultiprocessIterator(iterator.Iterator):
         if self._prefetch_loop.thread is None:
             if self._prefetch_loop.measure_required():
                 measure_mode = True
-                batch, prefetch_state = self._prefetch_loop.measure(self.dataset_timeout)
+                batch, prefetch_state = self._prefetch_loop.measure(
+                    self.dataset_timeout)
             self._prefetch_loop.launch_thread()
 
         if not measure_mode:
@@ -230,8 +231,11 @@ class _Communicator(object):
             while len(self._batch_queue) == 0:
                 self._not_empty_cond.wait(_response_time)
                 dt = datetime.datetime.now() - start
-                if self.dataset_timeout is not None and dt > datetime.timedelta(seconds=self.dataset_timeout):
-                    raise multiprocessing.TimeoutError('Stalled dataset is detected.')
+                if (self.dataset_timeout is not None
+                        and dt > datetime.timedelta(
+                            seconds=self.dataset_timeout)):
+                    raise multiprocessing.TimeoutError(
+                        'Stalled dataset is detected.')
             batch, prefetch_state = self._batch_queue.pop(0)
             self._not_full_cond.notify()
             return batch, prefetch_state
@@ -349,7 +353,8 @@ class _PrefetchLoop(object):
                 thr.start()
                 thr.join(dataset_timeout)
                 if thr.is_alive():
-                    raise multiprocessing.TimeoutError('Stalled dataset is detected.')
+                    raise multiprocessing.TimeoutError(
+                        'Stalled dataset is detected.')
 
             batch = batch_ret[0]
             self.mem_size = max(map(_measure, batch))
