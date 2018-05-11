@@ -424,3 +424,8 @@ Then you can build the HTML document locally::
 
 HTML files are generated under ``build/html`` directory.
 Open ``index.html`` with the browser and see if it is rendered as expected.
+
+.. note::
+
+   Docstrings (documentation comments in the source code) are collected from the installed Chainer module.
+   If you modified docstrings, make sure to install the module (e.g., using `pip install -e .`) before building the documentation.
