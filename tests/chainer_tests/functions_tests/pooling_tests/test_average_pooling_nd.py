@@ -154,7 +154,7 @@ class TestAveragePoolingND(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn):
             func_nd = functions.AveragePoolingND(self.ndim, ksize,
                                                  stride=stride, pad=pad)
-        y_nd = func_nd.apply((x_nd,))[0]
+            y_nd = func_nd.apply((x_nd,))[0]
         y_nd.grad = gy_data
         y_nd.backward()
 
@@ -163,7 +163,7 @@ class TestAveragePoolingND(unittest.TestCase):
         with chainer.using_config('use_cudnn', use_cudnn):
             func_2d = functions.AveragePooling2D(ksize, stride=stride, pad=pad,
                                                  cover_all=False)
-        y_2d = func_2d.apply((x_2d,))[0]
+            y_2d = func_2d.apply((x_2d,))[0]
         y_2d.grad = gy_data
         y_2d.backward()
 
@@ -197,13 +197,13 @@ class TestAveragePoolingND(unittest.TestCase):
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx, 'never')
 
-    @attr.gpu
+    @attr.cudnn
     @condition.retry(10)
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
-    @attr.gpu
+    @attr.cudnn
     @condition.retry(10)
     def test_double_backward_gpu_non_contiguous(self):
         self.check_double_backward(
