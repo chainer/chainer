@@ -89,8 +89,16 @@ def should_use_ideep(level):
 def inputs_all_ready(inputs, supported_ndim=(2, 4)):
     """Checks if input arrays are supported for the iDeep primitive.
 
+    Before calling iDeep primitives (e.g., ``ideep4py.linear.Forward``), you
+    need to make sure that all input arrays are ready for the primitive by
+    calling this function.
     Information to be checked includes array types, dimesions and data types.
     The function checks ``inputs`` info and ``supported_ndim``.
+
+    Inputs to be tested can be any of ``Variable``, ``numpy.ndarray`` or
+    ``ideep4py.mdarray``. However, all inputs to the iDeep primitive must be
+    ``ideep4py.mdarray``. Callers of iDeep primitives are responsible to
+    convert all inputs as ``ideep4py.mdarray``.
 
     Args:
         inputs (sequence of arrays or variables):
