@@ -1,4 +1,5 @@
 import multiprocessing
+import signal
 import warnings
 
 import six
@@ -16,6 +17,17 @@ except ImportError:
     _available = False
 
 import numpy
+
+
+def _sigchld_handler(signo, stk):
+    import sys
+    sys.stderr.write("******************************************\n")
+    sys.stderr.write("Chainer multiprocess parallel updater: \n")
+    sys.stderr.write("   It seems that an uncaught exception in a worker process\n")
+    sys.stderr.write("******************************************\n")
+    sys.stderr.write("\n\n")
+    sys.stderr.flush()
+    sys.exit(1)
 
 
 class _Worker(multiprocessing.Process):
@@ -178,6 +190,8 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             pipe.send(message)
 
     def setup_workers(self):
+        signal.signal(signal.SIGCHLD, _sigchld_handler)
+
         if self._initialized:
             return
         self._initialized = True
