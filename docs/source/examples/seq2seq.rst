@@ -131,7 +131,7 @@ Symbol                   Definition
 :math:`{\bf y}_j`        the one-hot vector of :math:`j`-th word in the output sentence
 :math:`{\bf \bar y}_j`   the embedding vector of :math:`j`-th word in the output sentence
 :math:`{\bf E}^{(t)}`    Embedding matrix of the decoder
-:math:`{\bf h}_j^{(t)}`  the :math:`j`-th hidden vector of the encoder
+:math:`{\bf h}_j^{(t)}`  the :math:`j`-th hidden vector of the decoder
 =======================  =========================================================================
 
 1.2.1 Encoder Embedding Layer
