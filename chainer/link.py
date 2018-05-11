@@ -143,8 +143,7 @@ class Link(object):
             self.add_param(name, shape, dtype=dtype)
 
     def __call__(self, *args, **kwargs):
-        out = self.forward(*args, **kwargs)
-        return out
+        return self.forward(*args, **kwargs)
 
     @property
     def xp(self):
