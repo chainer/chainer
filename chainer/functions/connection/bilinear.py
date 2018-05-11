@@ -81,7 +81,12 @@ class BilinearFunction(function_node.FunctionNode):
 
         xp = cuda.get_array_module(*inputs)
         if xp is numpy:
-            y = numpy.einsum('ij,ik,jkl->il', e1, e2, W)
+            # optimize: y = numpy.einsum('ij,ik,jkl->il', e1, e2, W)
+            y = numpy.einsum(
+                'ij,ijl->il',
+                e1,
+                numpy.einsum('ik,jkl->ijl', e2, W)
+            )
         else:
             i_len, j_len = e1.shape
             k_len = e2.shape[1]
@@ -123,9 +128,20 @@ class BilinearFunctionGrad(function_node.FunctionNode):
 
         xp = cuda.get_array_module(*inputs)
         if xp is numpy:
-            gW = numpy.einsum('ij,ik,il->jkl', e1, e2, gy)
-            ge1 = numpy.einsum('ik,jkl,il->ij', e2, W, gy)
-            ge2 = numpy.einsum('ij,jkl,il->ik', e1, W, gy)
+            # optimize: gW = numpy.einsum('ij,ik,il->jkl', e1, e2, gy)
+            gW = numpy.einsum('ij,ik->jki', e1, e2).dot(gy)
+            # optimize: ge1 = numpy.einsum('ik,jkl,il->ij', e2, W, gy)
+            ge1 = numpy.einsum(
+                'ik,ijk->ij',
+                e2,
+                numpy.einsum('jkl,il->ijk', W, gy)
+            )
+            # optimize: ge2 = numpy.einsum('ij,jkl,il->ik', e1, W, gy)
+            ge2 = numpy.einsum(
+                'ij,ijk->ik',
+                e1,
+                numpy.einsum('jkl,il->ijk', W, gy)
+            )
         else:
             kern = cuda.reduce('T in0, T in1, T in2', 'T out',
                                'in0 * in1 * in2', 'a + b', 'out = a', 0,
