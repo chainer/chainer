@@ -59,8 +59,8 @@ Array FromData(
         const nonstd::optional<Strides>& strides,
         int64_t offset,
         Device& device) {
-    device.CheckMemoryValidity(data.get());
-    return internal::MakeArray(shape, strides.value_or(Strides{shape, dtype}), dtype, device, data, offset);
+    return internal::MakeArray(
+            shape, strides.value_or(Strides{shape, dtype}), dtype, device, device.MakeDataFromForeignPointer(data), offset);
 }
 
 Array Empty(const Shape& shape, Dtype dtype, Device& device) {

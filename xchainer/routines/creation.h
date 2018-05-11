@@ -32,12 +32,10 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
 
 }  // namespace internal
 
-// Creates an array with given data packed with specified strides.
+// Creates an array with given data without copying.
 //
-// If strides are not given, the data is considered as a contiguous data.
-//
-// The data is shared, not copied.
 // The data must reside in the specified device.
+// If strides are not given, the data is considered as a contiguous data.
 Array FromData(
         const Shape& shape,
         Dtype dtype,

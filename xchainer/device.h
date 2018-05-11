@@ -22,8 +22,9 @@ public:
     // Allocates a memory chunk on this device.
     virtual std::shared_ptr<void> Allocate(size_t bytesize) = 0;
 
-    // Check if memeory pointer resides on this device (if possible).
-    virtual void CheckMemoryValidity(const void* ptr) = 0;
+    // Makes an array data pointer from a foreign pointer without copying.
+    // May throw an error if the foreign pointer is invalid for this device.
+    virtual std::shared_ptr<void> MakeDataFromForeignPointer(const std::shared_ptr<void>& data) = 0;
 
     // Copies the data between devices.
     // The other device may or may not be the same as this device.

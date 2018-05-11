@@ -43,12 +43,14 @@ TEST(NativeDeviceTest, Allocate) {
     EXPECT_NE(nullptr, ptr);
 }
 
-TEST(NativeDeviceTest, CheckMemoryValidity) {
+TEST(NativeDeviceTest, MakeDataFromForeignPointer) {
     Context ctx;
     NativeBackend backend{ctx};
     NativeDevice device{backend, 0};
 
-    EXPECT_NO_THROW(device.CheckMemoryValidity(&ctx));
+    size_t bytesize = 3;
+    std::shared_ptr<void> data = device.Allocate(bytesize);
+    EXPECT_EQ(data.get(), device.MakeDataFromForeignPointer(data).get());
 }
 
 TEST(NativeDeviceTest, FromHostMemory) {

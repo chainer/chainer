@@ -40,7 +40,8 @@ std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
     return std::shared_ptr<void>{ptr, [this](void* ptr) { memory_pool_.Free(ptr); }};
 }
 
-void CudaDevice::CheckMemoryValidity(const void* ptr) {
+std::shared_ptr<void> CudaDevice::MakeDataFromForeignPointer(const std::shared_ptr<void>& data) {
+    void* ptr = data.get();
     cudaPointerAttributes attr = {};
     cudaError_t status = cudaPointerGetAttributes(&attr, ptr);
     switch (status) {
@@ -51,14 +52,14 @@ void CudaDevice::CheckMemoryValidity(const void* ptr) {
             if (attr.device != index()) {
                 throw XchainerError{"CUDA memory: ", ptr, " must reside on the device: ", index()};
             }
-            return;
+            break;
         case cudaErrorInvalidValue:
             throw XchainerError{"Memory: ", ptr, " is not a CUDA memory"};
         default:
             Throw(status);
-            return;
+            break;
     }
-    assert(false);  // should never be reached
+    return data;
 }
 
 void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {

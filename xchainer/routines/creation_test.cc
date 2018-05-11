@@ -296,7 +296,7 @@ TEST_P(CreationTest, FromDataContiguos) {
 }
 
 #ifdef XCHAINER_ENABLE_CUDA
-TEST_P(CreationTest, FromDataFromAnotherDevice) {
+TEST_P(CreationTest, FromDataFromSameOrAnotherDevice) {
     Context ctx;
     cuda::CudaBackend cuda_backend{ctx};
     cuda::CudaDevice cuda_device{cuda_backend, 0};
