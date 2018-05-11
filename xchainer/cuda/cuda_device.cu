@@ -36,6 +36,7 @@ namespace cuda {
 CudaDevice::CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
+    CheckCudaError(cudaSetDevice(index()));
     void* ptr = memory_pool_.Malloc(bytesize);
     return std::shared_ptr<void>{ptr, [this](void* ptr) { memory_pool_.Free(ptr); }};
 }
@@ -67,6 +68,7 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
     if (bytesize == 0) {
         return;
     }
+    CheckCudaError(cudaSetDevice(index()));
     if (&src_device == this || nullptr != dynamic_cast<CudaDevice*>(&src_device)) {
         // Copy between CUDA devices
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
@@ -83,6 +85,7 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
     if (bytesize == 0) {
         return;
     }
+    CheckCudaError(cudaSetDevice(index()));
     if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
         // Copy between CUDA devices
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
@@ -194,7 +197,7 @@ struct SumImpl {
 void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
-
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Reduce(MakeReductionKernelArg<T, T>(a, axis, out), SumImpl<T>{});
@@ -225,6 +228,7 @@ struct AMaxImpl {
 void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
     assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Reduce(MakeReductionKernelArg<T, T>(a, axis, out), AMaxImpl<T>{});
@@ -631,6 +635,7 @@ __global__ void AddAtKernel(
 
 void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
     CheckDevicesCompatible(a, indices, out);
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
@@ -675,6 +680,7 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
 
     assert(a.shape() == out.shape());
     CheckDevicesCompatible(a, indices, out);
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
@@ -789,6 +795,7 @@ void CudaDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
     assert(v.ndim() == 1);
     assert(out.ndim() == 2);
 
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
@@ -841,6 +848,7 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
     assert(out.ndim() == 1);
     assert(out.shape()[0] > 0);
 
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         int64_t n = out.shape()[0];
