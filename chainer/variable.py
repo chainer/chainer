@@ -779,9 +779,10 @@ Actual: {0}'''.format(type(data))
             if isinstance(data, cuda.ndarray):
                 # cupy.ndarray to numpy.ndarray
                 data = data.get()
-            if (isinstance(data, numpy.ndarray) and
-                    intel64.inputs_all_ready((data,))):
-                # numpy.ndarray to ideep.mdarray
+            if (isinstance(data, numpy.ndarray) and data.ndim in (1, 2, 4)):
+                # Currently iDeep only supports (1, 2, 4)-dim arrays.
+                # Note that array returned from `ideep.array` may not be an
+                # iDeep mdarray, e.g., when the dtype is not float32.
                 data = intel64.ideep.array(
                     data, itype=intel64.ideep.wgt_array)
             self._data = [data]
