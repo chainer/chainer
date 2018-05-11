@@ -52,13 +52,15 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
 
 }  // namespace internal
 
-Array FromData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, int64_t offset, Device& device) {
+Array FromData(
+        const Shape& shape,
+        Dtype dtype,
+        const std::shared_ptr<void>& data,
+        const nonstd::optional<Strides>& strides,
+        int64_t offset,
+        Device& device) {
     device.CheckMemoryValidity(data.get());
-    return internal::MakeArray(shape, strides, dtype, device, data, offset);
-}
-
-Array FromData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, int64_t offset, Device& device) {
-    return FromData(shape, dtype, data, {shape, dtype}, offset, device);
+    return internal::MakeArray(shape, strides.value_or(Strides{shape, dtype}), dtype, device, data, offset);
 }
 
 Array Empty(const Shape& shape, Dtype dtype, Device& device) {

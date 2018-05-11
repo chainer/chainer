@@ -274,7 +274,7 @@ TEST_P(CreationTest, FromDataContiguos) {
         // test potential freed memory
         std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
         data_ptr = data.get();
-        x = FromData(shape, dtype, data, offset);
+        x = FromData(shape, dtype, data, nonstd::nullopt, offset);
     }
 
     // Basic attributes
@@ -312,13 +312,6 @@ TEST_P(CreationTest, FromDataFromAnotherDevice) {
         EXPECT_NO_THROW(FromData(shape, dtype, data, strides, offset, cuda_device));
     } else {
         EXPECT_THROW(FromData(shape, dtype, data, strides, offset, cuda_device), XchainerError);
-    }
-
-    // Contiguous version
-    if (device.name() == cuda_device.name()) {
-        EXPECT_NO_THROW(FromData(shape, dtype, data, offset, cuda_device));
-    } else {
-        EXPECT_THROW(FromData(shape, dtype, data, offset, cuda_device), XchainerError);
     }
 }
 #endif  // XCHAINER_ENABLE_CUDA
