@@ -19,21 +19,6 @@ except ImportError:
 import numpy
 
 
-def _sigchld_handler(signo, stk):
-    import sys
-    import os
-
-    pid, stat = os.waitpid(-1, os.WNOHANG)
-
-    if stat != 0:
-        sys.stderr.write("******************************************\n")
-        sys.stderr.write("Chainer multiprocess parallel updater: \n")
-        sys.stderr.write("   It seems that an uncaught exception in a worker process\n")
-        sys.stderr.write("******************************************\n")
-        sys.stderr.write("\n\n")
-        sys.stderr.flush()
-        sys.exit(-1)
-
 class _Worker(multiprocessing.Process):
 
     def __init__(self, proc_id, pipe, master):
@@ -183,6 +168,7 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
 
         self._pipes = []
         self._workers = []
+        self._worker_pids = []
         self.comm = None
 
     @staticmethod
@@ -193,8 +179,25 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
         for pipe in self._pipes:
             pipe.send(message)
 
+    def _sigchld_handler(self, signo, stk):
+        import sys
+        import os
+
+        pid, stat = os.waitpid(-1, os.WNOHANG)
+
+        if pid in self._worker_pids and stat != 0:
+            sys.stderr.write("\n")
+            sys.stderr.write("*" * 70 + "\n")
+            sys.stderr.write("MultiprocessParallelUpdater: \n")
+            sys.stderr.write("   An uncaught exception occured in "
+                             "a worker process (PID {})\n".format(pid))
+            sys.stderr.write("*" * 70 + "\n")
+            sys.stderr.write("\n")
+            sys.stderr.flush()
+            sys.exit(-1)
+
     def setup_workers(self):
-        signal.signal(signal.SIGCHLD, _sigchld_handler)
+        signal.signal(signal.SIGCHLD, self._sigchld_handler)
 
         if self._initialized:
             return
@@ -207,6 +210,8 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             worker.start()
             self._workers.append(worker)
             self._pipes.append(pipe)
+
+        self._worker_pids = [w.pid for w in self._workers]
 
         with cuda.Device(self._devices[0]):
             self._master.to_gpu(self._devices[0])
