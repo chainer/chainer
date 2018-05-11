@@ -89,7 +89,7 @@ class TestAbsoluteError(unittest.TestCase):
     def test_backward_non_default_gpu(self):
         x0 = chainer.Variable(cuda.to_gpu(self.x0, 1))
         x1 = chainer.Variable(cuda.to_gpu(self.x1, 1))
-        gy = chainer.Variable(cuda.to_gpu(self.gy, 1))
+        gy = cuda.to_gpu(self.gy, 1)
         with cuda.get_device_from_id(0):
             y = functions.absolute_error(x0, x1)
             y.grad = gy
