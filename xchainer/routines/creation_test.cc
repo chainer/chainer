@@ -242,8 +242,8 @@ TEST_P(CreationTest, FromData) {
     EXPECT_EQ(strides, x.strides());
     EXPECT_EQ(1, x.ndim());
     EXPECT_EQ(2, x.GetTotalSize());
-    EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
-    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetTotalBytes());
+    EXPECT_EQ(int64_t{sizeof(T)}, x.item_size());
+    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetNBytes());
     EXPECT_FALSE(x.IsContiguous());
     EXPECT_EQ(offset, x.offset());
 
@@ -280,10 +280,11 @@ TEST_P(CreationTest, FromDataContiguos) {
     // Basic attributes
     EXPECT_EQ(shape, x.shape());
     EXPECT_EQ(dtype, x.dtype());
+    EXPECT_EQ(strides, x.strides());
     EXPECT_EQ(1, x.ndim());
     EXPECT_EQ(3, x.GetTotalSize());
-    EXPECT_EQ(int64_t{sizeof(T)}, x.element_bytes());
-    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetTotalBytes());
+    EXPECT_EQ(int64_t{sizeof(T)}, x.item_size());
+    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetNBytes());
     EXPECT_TRUE(x.IsContiguous());
     EXPECT_EQ(offset, x.offset());
 
