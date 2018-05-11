@@ -59,7 +59,7 @@ def to_coo(x, ldnz=None, requires_grad=False):
             a single matrix. If three, it is treated as batched matrices.
         ldnz (int): Size of arrays for data, row index and column index to be
             created. The Actual size becomes max(nnz, ldnz) where nnz is number
-            of non-zero elmeents in a input dense matrix.
+            of non-zero elements in a input dense matrix.
         requires_grad (bool): If ``True``, gradient of sparse matrix will be
             computed in back-propagation.
 
