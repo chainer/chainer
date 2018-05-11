@@ -32,7 +32,7 @@ def _sigchld_handler(signo, stk):
         sys.stderr.write("******************************************\n")
         sys.stderr.write("\n\n")
         sys.stderr.flush()
-        exit(-1)
+        sys.exit(-1)
 
 class _Worker(multiprocessing.Process):
 
