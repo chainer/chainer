@@ -20,6 +20,13 @@ _PrefetchState = collections.namedtuple('_PrefetchState', (
     'previous_epoch_detail', 'order'))
 
 
+def _raise_timeout_error():
+    raise multiprocessing.TimeoutError(
+        'Stalled dataset is detected. '
+        'See the documentation of MultiprocessIterator for common causes and '
+        'workarounds.')
+
+
 class MultiprocessIterator(iterator.Iterator):
 
     """Dataset iterator that loads examples in parallel.
@@ -34,6 +41,16 @@ class MultiprocessIterator(iterator.Iterator):
 
     This iterator saves ``-1`` instead of ``None`` in snapshots since some
     serializers do not support ``None``.
+
+    .. note::
+
+            When you are using OpenCV somewhere in your code and the ``MultiprocessIterator`` is used in the
+            training code, the training loop may get stuck at some point. In such situation, there are several workarounds to
+            prevent the process got stuck.
+
+            1. Set the environment variable as follows: ``OMP_NUM_THREADS=1``
+            2. Add ``cv2.setNumThreads(0)`` right after ``import cv2`` in your training script.
+            3. Use :class:`~chainer.iterators.MultithreadIterator` instead of ``MultiprocessIterator``.
 
     Args:
         dataset (~chainer.dataset.Dataset): Dataset to iterate.
@@ -234,8 +251,7 @@ class _Communicator(object):
                 if (self.dataset_timeout is not None
                         and dt > datetime.timedelta(
                             seconds=self.dataset_timeout)):
-                    raise multiprocessing.TimeoutError(
-                        'Stalled dataset is detected.')
+                    _raise_timeout_error()
             batch, prefetch_state = self._batch_queue.pop(0)
             self._not_full_cond.notify()
             return batch, prefetch_state
@@ -353,8 +369,7 @@ class _PrefetchLoop(object):
                 thr.start()
                 thr.join(dataset_timeout)
                 if thr.is_alive():
-                    raise multiprocessing.TimeoutError(
-                        'Stalled dataset is detected.')
+                    _raise_timeout_error()
 
             batch = batch_ret[0]
             self.mem_size = max(map(_measure, batch))
