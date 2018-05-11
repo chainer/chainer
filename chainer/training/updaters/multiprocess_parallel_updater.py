@@ -174,7 +174,7 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
         else:
             raise ValueError(
                 'devices argument should be either dict or list, '
-                'but {} wad given.'.format(type(devices)))
+                'but {} was given.'.format(type(devices)))
         if devices is None or any(device is None for device in devices):
             raise ValueError('must specify GPU devices')
 
