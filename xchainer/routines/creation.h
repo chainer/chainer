@@ -33,6 +33,7 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
 }  // namespace internal
 
 // Creates an array with given data packed with specified strides.
+// The data is shared, not copied.
 // The data must reside in the specified device.
 Array FromData(
         const Shape& shape,
@@ -43,6 +44,7 @@ Array FromData(
         Device& device = GetDefaultDevice());
 
 // Creates an array with given contiguous data.
+// The data is shared, not copied.
 // The data must reside in the specified device.
 Array FromContiguousData(
         const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, int64_t offset = 0, Device& device = GetDefaultDevice());
