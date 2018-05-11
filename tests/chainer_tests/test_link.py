@@ -670,8 +670,15 @@ class TestChain(unittest.TestCase):
         self.assertFalse(hasattr(self.c1, 'l1'))
         self.assertNotIn('l1', self.c1._children)
 
-    def test_copy(self):
-        c2 = self.c2.copy()
+    def test_copy_with_share_mode(self):
+        self.l1.x.initializer = initializers.Normal(
+            dtype=self.l1.x.initializer.dtype)
+        self.l1.x.initialize(self.l1.x.shape)
+        self.l2.x.initializer = initializers.Normal(
+            dtype=self.l2.x.initializer.dtype)
+        self.l2.x.initialize(self.l2.x.shape)
+
+        c2 = self.c2.copy(mode='share')
         self.assertIs(c2.name, None)
         self.assertIsInstance(c2._children, set)
         self.assertTrue(hasattr(c2, 'c1'))
@@ -683,7 +690,6 @@ class TestChain(unittest.TestCase):
         self.assertIsNot(c2.c1.l1.x, self.l1.x)
         self.assertIs(c2.c1.l1.x.data, self.l1.x.data)
         self.assertIs(c2.c1.l1.x.grad, None)
-        self.assertIs(c2.name, None)
 
         self.assertTrue(hasattr(c2.c1, 'l2'))
         self.assertEqual(c2.c1.l2.name, 'l2')
@@ -697,6 +703,86 @@ class TestChain(unittest.TestCase):
         self.assertIsNot(c2.l3, self.l3)
         self.assertIsNot(c2.l3.x, self.l3.x)
         self.assertIs(c2.l3.x.data, self.l3.x.data)
+        self.assertIs(c2.l3.x.grad, None)
+
+    def test_copy_with_copy_mode(self):
+        self.l1.x.initializer = initializers.Normal(
+            dtype=self.l1.x.initializer.dtype)
+        self.l1.x.initialize(self.l1.x.shape)
+        self.l2.x.initializer = initializers.Normal(
+            dtype=self.l2.x.initializer.dtype)
+        self.l2.x.initialize(self.l2.x.shape)
+
+        c2 = self.c2.copy(mode='copy')
+        self.assertIs(c2.name, None)
+        self.assertIsInstance(c2._children, set)
+        self.assertTrue(hasattr(c2, 'c1'))
+        self.assertEqual(c2.c1.name, 'c1')
+        self.assertIsInstance(c2.c1._children, set)
+        self.assertIsNot(c2.c1, self.c1)
+        self.assertEqual(c2.c1.l1.name, 'l1')
+        self.assertIsNot(c2.c1.l1, self.l1)
+        self.assertIsNot(c2.c1.l1.x, self.l1.x)
+        self.assertIsNot(c2.c1.l1.x.data, self.l1.x.data)
+        self.assertTrue(numpy.array_equal(c2.c1.l1.x.data, self.l1.x.data))
+        self.assertIs(c2.c1.l1.x.grad, None)
+
+        self.assertTrue(hasattr(c2.c1, 'l2'))
+        self.assertEqual(c2.c1.l2.name, 'l2')
+        self.assertIsNot(c2.c1.l2, self.l2)
+        self.assertIsNot(c2.c1.l2.x, self.l2.x)
+        self.assertIsNot(c2.c1.l2.x.data, self.l2.x.data)
+        self.assertTrue(numpy.array_equal(c2.c1.l2.x.data, self.l2.x.data))
+        self.assertIs(c2.c1.l2.x.grad, None)
+
+        self.assertTrue(hasattr(c2, 'l3'))
+        self.assertEqual(c2.l3.name, 'l3')
+        self.assertIsNot(c2.l3, self.l3)
+        self.assertIsNot(c2.l3.x, self.l3.x)
+        self.assertIs(c2.l3.x.data, self.l3.x.data)
+        self.assertIs(c2.l3.x.grad, None)
+
+    def test_copy_with_init_mode(self):
+        self.l1.x.initializer = initializers.Normal(
+            dtype=self.l1.x.initializer.dtype)
+        self.l1.x.initialize(self.l1.x.shape)
+        self.l2.x.initializer = initializers.Normal(
+            dtype=self.l2.x.initializer.dtype)
+        self.l2.x.initialize(self.l2.x.shape)
+
+        c2 = self.c2.copy(mode='init')
+        self.assertIs(c2.name, None)
+        self.assertIsInstance(c2._children, set)
+        self.assertTrue(hasattr(c2, 'c1'))
+        self.assertEqual(c2.c1.name, 'c1')
+        self.assertIsInstance(c2.c1._children, set)
+        self.assertIsNot(c2.c1, self.c1)
+        self.assertEqual(c2.c1.l1.name, 'l1')
+        self.assertIsNot(c2.c1.l1, self.l1)
+        self.assertIsNot(c2.c1.l1.x, self.l1.x)
+        self.assertIsNot(c2.c1.l1.x.data, self.l1.x.data)
+        self.assertFalse(numpy.array_equal(c2.c1.l1.x.data, self.l1.x.data))
+        # _grad_initializer attribute in a copied Parameter has constant.NaN
+        # after calling initilize() method
+        self.assertTrue(numpy.isnan(c2.c1.l1.x.grad).all())
+
+        self.assertTrue(hasattr(c2.c1, 'l2'))
+        self.assertEqual(c2.c1.l2.name, 'l2')
+        self.assertIsNot(c2.c1.l2, self.l2)
+        self.assertIsNot(c2.c1.l2.x, self.l2.x)
+        self.assertIsNot(c2.c1.l2.x.data, self.l2.x.data)
+        self.assertFalse(numpy.array_equal(c2.c1.l2.x.data, self.l2.x.data))
+        # _grad_initializer attribute in a copied Parameter has constant.NaN
+        # after calling initilize() method
+        self.assertTrue(numpy.isnan(c2.c1.l2.x.grad).all())
+
+        self.assertTrue(hasattr(c2, 'l3'))
+        self.assertEqual(c2.l3.name, 'l3')
+        self.assertIsNot(c2.l3, self.l3)
+        self.assertIsNot(c2.l3.x, self.l3.x)
+        self.assertIs(c2.l3.x.data, self.l3.x.data)
+        # A Parameter constructed with shape argument but not initialized
+        # has None in grad
         self.assertIs(c2.l3.x.grad, None)
 
     def test_to_cpu_on_cpu(self):
@@ -927,6 +1013,95 @@ class TestChain(unittest.TestCase):
         assert not w
 
 
+class TestChainRepeat(unittest.TestCase):
+
+    def setUp(self):
+        class ChainForTest(chainer.Chain):
+            def __init__(self):
+                super(ChainForTest, self).__init__()
+                with self.init_scope():
+                    self.link = chainer.Link()
+
+            def __call__(self):
+                pass
+
+        self.chain = ChainForTest()
+        self.link = self.chain.link
+        with self.link.init_scope():
+            self.link.x = chainer.Parameter(
+                chainer.initializers.Normal(), shape=(2, 3))
+
+    def test_no_repeat(self):
+        ret = self.chain.repeat(0)
+        self.assertEqual(len(ret), 0)
+
+    def test_repeat_with_share_mode(self):
+        ret = self.chain.repeat(2, mode='share')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chain)
+        self.assertIsNot(ret[1], self.chain)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].link, self.chain.link)
+        self.assertIsNot(ret[1].link, self.chain.link)
+        self.assertIsNot(ret[0].link, ret[1].link)
+        self.assertIsNot(ret[0].link.x, self.chain.link.x)
+        self.assertIsNot(ret[1].link.x, self.chain.link.x)
+        self.assertIsNot(ret[0].link.x, ret[1].link.x)
+        self.assertIs(ret[0].link.x.data, self.chain.link.x.data)
+        self.assertIs(ret[0].link.x.data, ret[1].link.x.data)
+        self.assertEqual(ret[0].link.x.shape, self.chain.link.x.shape)
+        self.assertEqual(ret[0].link.x.shape, ret[1].link.x.shape)
+        self.assertEqual(ret[0].link.x.dtype, self.chain.link.x.dtype)
+        self.assertEqual(ret[0].link.x.dtype, ret[1].link.x.dtype)
+
+    def test_repeat_with_copy_mode(self):
+        ret = self.chain.repeat(2, mode='copy')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chain)
+        self.assertIsNot(ret[1], self.chain)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].link, self.chain.link)
+        self.assertIsNot(ret[1].link, self.chain.link)
+        self.assertIsNot(ret[0].link, ret[1].link)
+        self.assertIsNot(ret[0].link.x, self.link.x)
+        self.assertIsNot(ret[1].link.x, self.link.x)
+        self.assertIsNot(ret[0].link.x, ret[1].link.x)
+        self.assertIsNot(ret[0].link.x.data, self.chain.link.x.data)
+        self.assertIsNot(ret[1].link.x.data, self.chain.link.x.data)
+        self.assertIsNot(ret[0].link.x.data, ret[1].link.x.data)
+        self.assertTrue(numpy.array_equal(
+            ret[0].link.x.data, self.chain.link.x.data))
+        self.assertTrue(numpy.array_equal(
+            ret[0].link.x.data, ret[1].link.x.data))
+        self.assertEqual(ret[0].link.x.shape, self.chain.link.x.shape)
+        self.assertEqual(ret[0].link.x.shape, ret[1].link.x.shape)
+        self.assertEqual(ret[0].link.x.dtype, self.chain.link.x.dtype)
+        self.assertEqual(ret[0].link.x.dtype, ret[1].link.x.dtype)
+
+    def test_repeat_with_init_mode(self):
+        ret = self.chain.repeat(2, mode='init')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chain)
+        self.assertIsNot(ret[1], self.chain)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0].link, self.chain.link)
+        self.assertIsNot(ret[1].link, self.chain.link)
+        self.assertIsNot(ret[0].link.x, ret[1].link.x)
+        self.assertIsNot(ret[0].link.x.data, self.chain.link.x.data)
+        self.assertIsNot(ret[1].link.x.data, self.chain.link.x.data)
+        self.assertIsNot(ret[0].link.x.data, ret[1].link.x.data)
+        self.assertFalse(numpy.array_equal(
+            ret[0].link.x.data, self.chain.link.x.data))
+        self.assertFalse(numpy.array_equal(
+            ret[1].link.x.data, self.chain.link.x.data))
+        self.assertFalse(numpy.array_equal(
+            ret[0].link.x.data, ret[1].link.x.data))
+        self.assertEqual(ret[0].link.x.shape, self.chain.link.x.shape)
+        self.assertEqual(ret[0].link.x.shape, ret[1].link.x.shape)
+        self.assertEqual(ret[0].link.x.dtype, self.chain.link.x.dtype)
+        self.assertEqual(ret[0].link.x.dtype, ret[1].link.x.dtype)
+
+
 class TestChainList(unittest.TestCase):
 
     def setUp(self):
@@ -981,8 +1156,14 @@ class TestChainList(unittest.TestCase):
         self.assertEqual(len(self.c1), 2)
         self.assertEqual(len(self.c2), 2)
 
-    def test_copy(self):
-        c2 = self.c2.copy()
+    def test_copy_with_share_mode(self):
+        c2 = self.c2.copy(mode='share')
+        self.l1.x.initializer = initializers.Normal(
+            dtype=self.l1.x.initializer.dtype)
+        self.l1.x.initialize(self.l1.x.shape)
+        self.l2.x.initializer = initializers.Normal(
+            dtype=self.l2.x.initializer.dtype)
+        self.l2.x.initialize(self.l2.x.shape)
 
         self.assertIs(c2.name, None)
         self.assertIsInstance(c2._children, list)
@@ -1006,6 +1187,77 @@ class TestChainList(unittest.TestCase):
         self.assertIsNot(c2[1].x, self.l3.x)
         self.assertIs(c2[1].x.data, self.l3.x.data)
         self.assertIs(c2[1].x.grad, None)
+
+    def test_copy_with_copy_mode(self):
+        self.l1.x.initializer = initializers.Normal(
+            dtype=self.l1.x.initializer.dtype)
+        self.l1.x.initialize(self.l1.x.shape)
+        self.l2.x.initializer = initializers.Normal(
+            dtype=self.l2.x.initializer.dtype)
+        self.l2.x.initialize(self.l2.x.shape)
+
+        c2 = self.c2.copy(mode='copy')
+        self.assertIs(c2.name, None)
+        self.assertIsInstance(c2._children, list)
+        self.assertEqual(c2[0].name, '0')
+        self.assertIsInstance(c2[0]._children, list)
+        self.assertIsNot(c2[0][0], self.l1)
+        self.assertEqual(c2[0][0].name, '0')
+        self.assertIsNot(c2[0][0].x, self.l1.x)
+        self.assertIsNot(c2[0][0].x.data, self.l1.x.data)
+        self.assertTrue(numpy.array_equal(c2[0][0].x.data, self.l1.x.data))
+        self.assertIs(c2[0][0].x.grad, None)
+
+        self.assertIsNot(c2[0][1], self.l2)
+        self.assertEqual(c2[0][1].name, '1')
+        self.assertIsNot(c2[0][1].x, self.l2.x)
+        self.assertIsNot(c2[0][1].x.data, self.l2.x.data)
+        self.assertTrue(numpy.array_equal(c2[0][1].x.data, self.l2.x.data))
+        self.assertIs(c2[0][1].x.grad, None)
+
+        self.assertIsNot(c2[1], self.l3)
+        self.assertEqual(c2[1].name, '1')
+        self.assertIsNot(c2[1].x, self.l3.x)
+        self.assertIsNot(c2[1].x.data, self.l3.x.data)
+        # l3 is constructed with shape argument but not initialized
+        self.assertTrue(numpy.isnan(c2[1].x.grad).all())
+
+    def test_copy_with_init_mode(self):
+        self.l1.x.initializer = initializers.Normal(
+            dtype=self.l1.x.initializer.dtype)
+        self.l1.x.initialize(self.l1.x.shape)
+        self.l2.x.initializer = initializers.Normal(
+            dtype=self.l2.x.initializer.dtype)
+        self.l2.x.initialize(self.l2.x.shape)
+
+        c2 = self.c2.copy(mode='init')
+        self.assertIs(c2.name, None)
+        self.assertIsInstance(c2._children, list)
+        self.assertEqual(c2[0].name, '0')
+        self.assertIsInstance(c2[0]._children, list)
+        self.assertIsNot(c2[0][0], self.l1)
+        self.assertEqual(c2[0][0].name, '0')
+        self.assertIsNot(c2[0][0].x, self.l1.x)
+        self.assertIsNot(c2[0][0].x.data, self.l1.x.data)
+        self.assertFalse(numpy.array_equal(c2[0][0].x.data, self.l1.x.data))
+        # _grad_initializer attribute in a copied Parameter has constant.NaN
+        # after calling initilize() method
+        self.assertTrue(numpy.isnan(c2[0][0].x.grad).all())
+
+        self.assertIsNot(c2[0][1], self.l2)
+        self.assertEqual(c2[0][1].name, '1')
+        self.assertIsNot(c2[0][1].x, self.l2.x)
+        self.assertIsNot(c2[0][1].x.data, self.l2.x.data)
+        self.assertFalse(numpy.array_equal(c2[0][1].x.data, self.l2.x.data))
+        # _grad_initializer attribute in a copied Parameter has constant.NaN
+        # after calling initilize() method
+        self.assertTrue(numpy.isnan(c2[0][1].x.grad).all())
+
+        self.assertIsNot(c2[1], self.l3)
+        self.assertEqual(c2[1].name, '1')
+        self.assertIsNot(c2[1].x, self.l3.x)
+        self.assertTrue(numpy.isnan(c2[1].x.data).all())
+        self.assertTrue(numpy.isnan(c2[1].x.grad).all())
 
     @attr.gpu
     def test_copy_and_send_to_gpu(self):
@@ -1252,6 +1504,96 @@ class TestChainList(unittest.TestCase):
             warnings.simplefilter('always')
             self.c2.count_params()
         assert not w
+
+
+class TestChainListRepeat(unittest.TestCase):
+
+    def setUp(self):
+        class ChainListForTest(chainer.ChainList):
+            def __init__(self):
+                super(ChainListForTest, self).__init__(chainer.Link())
+
+            def __call__(self):
+                pass
+
+        self.chainlist = ChainListForTest()
+        self.link = self.chainlist[0]
+        with self.link.init_scope():
+            self.link.x = chainer.Parameter(
+                chainer.initializers.Normal(), shape=(2, 3))
+
+    def test_no_repeat(self):
+        ret = self.chainlist.repeat(0)
+        self.assertEqual(len(ret), 0)
+
+    def test_repeat_with_share_mode(self):
+        ret = self.chainlist.repeat(2, mode='share')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chainlist)
+        self.assertIsNot(ret[1], self.chainlist)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0][0], self.chainlist[0])
+        self.assertIsNot(ret[1][0], self.chainlist[0])
+        self.assertIsNot(ret[0][0], ret[1][0])
+        self.assertIsNot(ret[0][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[1][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[0][0].x, ret[1][0].x)
+        self.assertIs(ret[0][0].x.data, self.chainlist[0].x.data)
+        self.assertIs(ret[0][0].x.data, ret[1][0].x.data)
+        self.assertEqual(ret[0][0].x.shape, self.chainlist[0].x.shape)
+        self.assertEqual(ret[0][0].x.shape, ret[1][0].x.shape)
+        self.assertEqual(ret[0][0].x.dtype, self.chainlist[0].x.dtype)
+        self.assertEqual(ret[0][0].x.dtype, ret[1][0].x.dtype)
+
+    def test_repeat_with_copy_mode(self):
+        ret = self.chainlist.repeat(2, mode='copy')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chainlist)
+        self.assertIsNot(ret[1], self.chainlist)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0][0], self.chainlist[0])
+        self.assertIsNot(ret[1][0], self.chainlist[0])
+        self.assertIsNot(ret[0][0], ret[1][0])
+        self.assertIsNot(ret[0][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[1][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[0][0].x, ret[1][0].x)
+        self.assertIsNot(ret[0][0].x.data, self.chainlist[0].x.data)
+        self.assertIsNot(ret[1][0].x.data, self.chainlist[0].x.data)
+        self.assertIsNot(ret[0][0].x.data, ret[1][0].x.data)
+        self.assertTrue(numpy.array_equal(
+            ret[0][0].x.data, self.chainlist[0].x.data))
+        self.assertTrue(numpy.array_equal(
+            ret[0][0].x.data, ret[1][0].x.data))
+        self.assertEqual(ret[0][0].x.shape, self.chainlist[0].x.shape)
+        self.assertEqual(ret[0][0].x.shape, ret[1][0].x.shape)
+        self.assertEqual(ret[0][0].x.dtype, self.chainlist[0].x.dtype)
+        self.assertEqual(ret[0][0].x.dtype, ret[1][0].x.dtype)
+
+    def test_repeat_with_init_mode(self):
+        ret = self.chainlist.repeat(2, mode='init')
+        self.assertEqual(len(ret), 2)
+        self.assertIsNot(ret[0], self.chainlist)
+        self.assertIsNot(ret[1], self.chainlist)
+        self.assertIsNot(ret[0], ret[1])
+        self.assertIsNot(ret[0][0], self.chainlist[0])
+        self.assertIsNot(ret[1][0], self.chainlist[0])
+        self.assertIsNot(ret[0][0], ret[1][0])
+        self.assertIsNot(ret[0][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[1][0].x, self.chainlist[0].x)
+        self.assertIsNot(ret[0][0].x, ret[1][0].x)
+        self.assertIsNot(ret[0][0].x.data, self.chainlist[0].x.data)
+        self.assertIsNot(ret[1][0].x.data, self.chainlist[0].x.data)
+        self.assertIsNot(ret[0][0].x.data, ret[1][0].x.data)
+        self.assertFalse(numpy.array_equal(
+            ret[0][0].x.data, self.chainlist[0].x.data))
+        self.assertFalse(numpy.array_equal(
+            ret[1][0].x.data, self.chainlist[0].x.data))
+        self.assertFalse(numpy.array_equal(
+            ret[0][0].x.data, ret[1][0].x.data))
+        self.assertEqual(ret[0][0].x.shape, self.chainlist[0].x.shape)
+        self.assertEqual(ret[0][0].x.shape, ret[1][0].x.shape)
+        self.assertEqual(ret[0][0].x.dtype, self.chainlist[0].x.dtype)
+        self.assertEqual(ret[0][0].x.dtype, ret[1][0].x.dtype)
 
 
 @attr.ideep

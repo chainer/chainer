@@ -14,6 +14,7 @@ import copy
 import numpy as np
 
 import chainer
+from chainer import configuration
 from chainer.dataset import convert
 import chainer.links as L
 from chainer import serializers
@@ -47,18 +48,19 @@ def main():
 
     def evaluate(model, iter):
         # Evaluation routine to be used for validation and test.
-        model.predictor.train = False
         evaluator = model.copy()  # to use different state
         evaluator.predictor.reset_state()  # initialize state
-        evaluator.predictor.train = False  # dropout does nothing
         sum_perp = 0
         data_count = 0
-        for batch in copy.copy(iter):
-            x, t = convert.concat_examples(batch, args.gpu)
-            loss = evaluator(x, t)
-            sum_perp += loss.data
-            data_count += 1
-        model.predictor.train = True
+        # Enable evaluation mode.
+        with configuration.using_config('train', False):
+            # This is optional but can reduce computational overhead.
+            with chainer.using_config('enable_backprop', False):
+                for batch in copy.copy(iter):
+                    x, t = convert.concat_examples(batch, args.gpu)
+                    loss = evaluator(x, t)
+                    sum_perp += loss.data
+                    data_count += 1
         return np.exp(float(sum_perp) / data_count)
 
     # Load the Penn Tree Bank long word sequence dataset
