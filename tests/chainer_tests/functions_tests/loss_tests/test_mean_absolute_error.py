@@ -78,5 +78,13 @@ class TestMeanAbsoluteError(unittest.TestCase):
                                    cuda.to_gpu(self.ggx0),
                                    cuda.to_gpu(self.ggx1))
 
+    @attr.multi_gpu(2)
+    def test_backward_with_non_default_gpu(self):
+        x0 = chainer.Variable(cuda.to_gpu(self.x0, 1))
+        x1 = chainer.Variable(cuda.to_gpu(self.x1, 1))
+        with cuda.get_device_from_id(0):
+            y = functions.mean_absolute_error(x0, x1)
+            y.backward()
+
 
 testing.run_module(__name__, __file__)
