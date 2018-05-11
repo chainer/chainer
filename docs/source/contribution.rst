@@ -408,12 +408,12 @@ For example, if you are adding a new function under ``chainer.functions``, you n
 
 .. note::
 
-   If you are unsure about how to fix the documents, you can submit a pull request without doing so.
-   Reviewers will help you fix the documents appropriately.
+   If you are unsure about how to fix the documentation, you can submit a pull request without doing so.
+   Reviewers will help you fix the documentation appropriately.
 
-Documents are stored under `docs directory <https://github.com/chainer/chainer/tree/master/docs>`_ and written in `reStructuredText <http://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ format.
+The documentation is stored under `docs directory <https://github.com/chainer/chainer/tree/master/docs>`_ and written in `reStructuredText <http://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ format.
 
-To build the document, you need to install `Sphinx <http://www.sphinx-doc.org/>`_::
+To build the documentation, you need to install `Sphinx <http://www.sphinx-doc.org/>`_::
 
   $ pip install sphinx sphinx_rtd_theme
 
