@@ -423,4 +423,4 @@ Then you can build the HTML document locally::
   $ make html
 
 HTML files are generated under ``build/html`` directory.
-Open it with the browser and see if it is rendered as expected.
+Open ``index.html`` with the browser and see if it is rendered as expected.
