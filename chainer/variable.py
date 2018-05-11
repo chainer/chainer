@@ -780,6 +780,7 @@ Actual: {0}'''.format(type(data))
                 # cupy.ndarray to numpy.ndarray
                 data = data.get()
             if (isinstance(data, numpy.ndarray) and data.ndim in (1, 2, 4)):
+                # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
                 # Currently iDeep only supports (1, 2, 4)-dim arrays.
                 # Note that array returned from `ideep.array` may not be an
                 # iDeep mdarray, e.g., when the dtype is not float32.
