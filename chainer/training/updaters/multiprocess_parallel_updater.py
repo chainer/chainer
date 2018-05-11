@@ -21,14 +21,18 @@ import numpy
 
 def _sigchld_handler(signo, stk):
     import sys
-    sys.stderr.write("******************************************\n")
-    sys.stderr.write("Chainer multiprocess parallel updater: \n")
-    sys.stderr.write("   It seems that an uncaught exception in a worker process\n")
-    sys.stderr.write("******************************************\n")
-    sys.stderr.write("\n\n")
-    sys.stderr.flush()
-    sys.exit(1)
+    import os
 
+    pid, stat = os.waitpid(-1, os.WNOHANG)
+
+    if stat != 0:
+        sys.stderr.write("******************************************\n")
+        sys.stderr.write("Chainer multiprocess parallel updater: \n")
+        sys.stderr.write("   It seems that an uncaught exception in a worker process\n")
+        sys.stderr.write("******************************************\n")
+        sys.stderr.write("\n\n")
+        sys.stderr.flush()
+        exit(-1)
 
 class _Worker(multiprocessing.Process):
 
