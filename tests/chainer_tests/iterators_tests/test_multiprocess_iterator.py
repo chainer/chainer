@@ -581,6 +581,20 @@ if __name__ == '__main__':
         self.assertFalse(self.killall())
 
 
+class StallingDataset(object):
+
+    def __init__(self, nth):
+        self.nth = nth
+
+    def __len__(self):
+        return 10
+
+    def __getitem__(self, i):
+        if i == self.nth:
+            time.sleep(10)
+        return i
+
+
 @testing.parameterize(*testing.product({
     'nth': [0, 1, 2],  # A fetch of whatth item will stall?
 }))
@@ -589,17 +603,7 @@ class TestMultiprocessIteratorStalledDatasetDetection(unittest.TestCase):
     def test_stalled_getitem(self):
         nth = self.nth
 
-        class StallingDataset(object):
-
-            def __len__(self):
-                return 10
-
-            def __getitem__(self, i):
-                if i == nth:
-                    time.sleep(10)
-                return i
-
-        dataset = StallingDataset()
+        dataset = StallingDataset(nth)
         it = iterators.MultiprocessIterator(
             dataset, 2, shuffle=False, dataset_timeout=1)
 
