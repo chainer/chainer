@@ -15,7 +15,9 @@ public:
         : shape_{shape}, total_size_{total_size}, raw_index_{0}, step_{step}, index_{} {
         assert(start >= 0);
         assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
-        Set(start);
+        if (total_size > 0) {
+            Set(start);
+        }
     }
 
     XCHAINER_HOST_DEVICE IndexIterator<kNdim>& operator++() {
@@ -37,11 +39,8 @@ private:
     // Set raw_index_ and index_.
     // i may be out of bounds, but raw_index_ and index_ are updated anyway.
     XCHAINER_HOST_DEVICE void Set(int64_t i) {
+        assert(total_size_ > 0);
         raw_index_ = i;
-        if (total_size_ == 0) {
-            // In this case there are some j such that shape[j] == 0.
-            return;
-        }
         for (int8_t j = kNdim; --j >= 0;) {
             index_[j] = i % shape_[j];
             i /= shape_[j];
@@ -100,7 +99,9 @@ public:
         : shape_{shape}, ndim_{ndim}, total_size_{total_size}, raw_index_{0}, step_{step}, index_{} {
         assert(start >= 0);
         assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
-        Set(start);
+        if (total_size > 0) {
+            Set(start);
+        }
     }
 
     XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim>& operator++() {
@@ -122,11 +123,8 @@ private:
     // Set raw_index_ and index_.
     // i may be out of bounds, but raw_index_ and index_ are updated anyway.
     XCHAINER_HOST_DEVICE void Set(int64_t i) {
+        assert(total_size_ > 0);
         raw_index_ = i;
-        if (total_size_ == 0) {
-            // In this case there are some j such that shape[j] == 0.
-            return;
-        }
         for (int8_t j = ndim_; --j >= 0;) {
             index_[j] = i % shape_[j];
             i /= shape_[j];
