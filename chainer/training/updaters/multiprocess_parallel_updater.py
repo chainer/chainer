@@ -1,5 +1,7 @@
 import multiprocessing
+import os
 import signal
+import sys
 import warnings
 
 import six
@@ -180,28 +182,38 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             pipe.send(message)
 
     def _sigchld_handler(self, signo, stk):
-        import sys
-        import os
-
-        pid, stat = os.waitpid(-1, os.WNOHANG)
-
-        if pid in self._worker_pids and stat != 0:
-            sys.stderr.write("\n")
-            sys.stderr.write("*" * 70 + "\n")
-            sys.stderr.write("MultiprocessParallelUpdater: \n")
-            sys.stderr.write("   An uncaught exception occured in "
-                             "a worker process (PID {})\n".format(pid))
-            sys.stderr.write("*" * 70 + "\n")
-            sys.stderr.write("\n")
-            sys.stderr.flush()
+        # Catch SIGCHLD signal and abort the master process
+        # if necessary. If a worker process exits before the
+        # training process finishes, the whole training process
+        # will hang in the NCCL communicaton routine.
+        try:
+            # NOTE: os.waitpid() can take '-1' as pid argument
+            # only on Unix environment.
+            pid, stat = os.waitpid(-1, os.WNOHANG)
+        except OSError:
+            # os.waitpid() failed. Something is completely broken.
             sys.exit(-1)
 
-    def setup_workers(self):
-        signal.signal(signal.SIGCHLD, self._sigchld_handler)
+        if pid in self._worker_pids:
+            sig = stat & 0xff  # Signal that the child process recieved.
+            ecode = stat >> 8  # Exit code (if sig == 0)
+            if sig != 0 or ecode != 0:
+                sys.stderr.write("\n")
+                sys.stderr.write("-" * 70 + "\n")
+                sys.stderr.write("MultiprocessParallelUpdater: \n")
+                sys.stderr.write("  worker (PID {}) ".format(pid) +
+                                 "exited abnormally.\n")
+                sys.stderr.write("-" * 70 + "\n")
+                sys.stderr.write("\n")
+                sys.stderr.flush()
+                sys.exit(-1)
 
+    def setup_workers(self):
         if self._initialized:
             return
         self._initialized = True
+
+        signal.signal(signal.SIGCHLD, self._sigchld_handler)
 
         self._master.cleargrads()
         for i in six.moves.range(1, len(self._devices)):
@@ -211,6 +223,7 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             self._workers.append(worker)
             self._pipes.append(pipe)
 
+        # Record worker PIDs for SIGCHLD handler
         self._worker_pids = [w.pid for w in self._workers]
 
         with cuda.Device(self._devices[0]):
