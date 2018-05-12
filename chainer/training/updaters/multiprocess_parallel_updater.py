@@ -186,27 +186,42 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
         # if necessary. If a worker process exits before the
         # training process finishes, the whole training process
         # will hang in the NCCL communicaton routine.
-        try:
-            # NOTE: os.waitpid() can take '-1' as pid argument
-            # only on Unix environment.
-            pid, stat = os.waitpid(-1, os.WNOHANG)
-        except OSError:
-            # os.waitpid() failed. Something is completely broken.
-            sys.exit(-1)
 
-        if pid in self._worker_pids:
-            sig = stat & 0xff  # Signal that the child process recieved.
-            ecode = stat >> 8  # Exit code (if sig == 0)
-            if sig != 0 or ecode != 0:
-                sys.stderr.write("\n")
-                sys.stderr.write("-" * 70 + "\n")
-                sys.stderr.write("MultiprocessParallelUpdater: \n")
-                sys.stderr.write("  worker (PID {}) ".format(pid) +
-                                 "exited abnormally.\n")
-                sys.stderr.write("-" * 70 + "\n")
-                sys.stderr.write("\n")
-                sys.stderr.flush()
-                sys.exit(-1)
+        err = False  # Any error happened in child processes
+
+        while True:
+            # Call os.waitpid(). Note that there are possibly
+            # multiple child processes to be wait()-ed.
+            try:
+                # NOTE: os.waitpid() can take '-1' as pid argument
+                # only on Unix environment.
+                pid, stat = os.waitpid(-1, os.WNOHANG)
+                if pid == 0:
+                    break
+            except OSError as e:
+                import errno
+                if e.errno == errno.ECHILD:  # no more chld proc.
+                    break
+                else:
+                    # Something is broken.
+                    sys.exit(-1)
+
+            if pid in self._worker_pids:
+                sig = stat & 0xff  # Signal that the child process recieved.
+                ecode = stat >> 8  # Exit code (if sig == 0)
+                if sig != 0 or ecode != 0:
+                    err = True
+
+        if err:
+            sys.stderr.write("\n")
+            sys.stderr.write("-" * 70 + "\n")
+            sys.stderr.write("MultiprocessParallelUpdater: \n")
+            sys.stderr.write("  Worker(s) exited abnormally."
+                             "  Exiting to avoid deadlock.\n")
+            sys.stderr.write("-" * 70 + "\n")
+            sys.stderr.write("\n")
+            sys.stderr.flush()
+            sys.exit(-1)
 
     def setup_workers(self):
         if self._initialized:
