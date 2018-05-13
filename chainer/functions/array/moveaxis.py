@@ -18,7 +18,7 @@ def _normalize_axis_tuple(axis, ndim, xp):
 def _moveaxis(a, source, destination, xp):
     if hasattr(xp, 'moveaxis'):
         return xp.moveaxis(a, source, destination)
-    if all(isinstance(a, int) for a in source):
+    if not all(isinstance(a, int) for a in source):
         raise TypeError('int or tuple of int are required.')
     if not all(isinstance(a, int) for a in destination):
         raise TypeError('int or tuple of int are required.')
