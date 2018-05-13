@@ -62,6 +62,13 @@ def cross_entropy(dist1, dist2):
     return dist1.entropy() + kl_divergence(dist1, dist2)
 
 
+@register_kl(distributions.Bernoulli, distributions.Bernoulli)
+def _kl_bernoulli_bernoulli(dist1, dist2):
+    return dist1.p * (exponential.log(dist1.p) - exponential.log(dist2.p)) \
+        + (1 - dist1.p) * (exponential.log(1 - dist1.p)
+                           - exponential.log(1 - dist2.p))
+
+
 @register_kl(distributions.Normal, distributions.Normal)
 def _kl_normal_normal(dist1, dist2):
     return exponential.log(dist2.scale) - exponential.log(dist1.scale) \

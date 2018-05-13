@@ -27,6 +27,7 @@ class TestKLDivergence(unittest.TestCase):
         if isinstance(mc_kl, cuda.ndarray):
             mc_kl = mc_kl.get()
 
+        print(kl, mc_kl)
         testing.assert_allclose(kl, mc_kl, atol=1e-2, rtol=1e-2)
 
     def encode_params(self, params, is_gpu=False):
@@ -38,19 +39,36 @@ class TestKLDivergence(unittest.TestCase):
 
         return params
 
-    def make_normal_params(self, is_gpu=False):
+    def make_normal_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
             numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
-        return self.encode_params({"loc": loc, "scale": scale}, is_gpu)
+        params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
+        return distributions.Normal(**params)
 
-    def test_normal_cpu(self):
-        dist1 = distributions.Normal(**self.make_normal_params())
-        dist2 = distributions.Normal(**self.make_normal_params())
+    def make_bernoulli_dist(self, is_gpu=False):
+        p = numpy.random.uniform(0, 1, self.shape).astype(numpy.float32)
+        params = self.encode_params({"p": p}, is_gpu)
+        return distributions.Bernoulli(**params)
+
+    def test_normal_normal_cpu(self):
+        dist1 = self.make_normal_dist()
+        dist2 = self.make_normal_dist()
         self.check_kl(dist1, dist2)
 
     @attr.gpu
-    def test_normal_gpu(self):
-        dist1 = distributions.Normal(**self.make_normal_params(True))
-        dist2 = distributions.Normal(**self.make_normal_params(True))
+    def test_normal_normal_gpu(self):
+        dist1 = self.make_normal_dist(True)
+        dist2 = self.make_normal_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_bernoulli_bernoulli_cpu(self):
+        dist1 = self.make_bernoulli_dist()
+        dist2 = self.make_bernoulli_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_bernoulli_bernoulli_gpu(self):
+        dist1 = self.make_bernoulli_dist(True)
+        dist2 = self.make_bernoulli_dist(True)
         self.check_kl(dist1, dist2)

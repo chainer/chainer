@@ -117,12 +117,13 @@ class Bernoulli(Distribution):
 
         criteria = self.p.data
 
-        print(type(criteria), criteria.shape, rand.shape, self._is_gpu)
         if self._is_gpu:
             criteria = cuda.cupy.broadcast_to(criteria, rand.shape)
         else:
             criteria = numpy.broadcast_to(criteria, rand.shape)
-        return chainer.Variable((rand < criteria) * 1.0)
+        eps = (rand < criteria) * 1.0
+        eps = eps.astype(self.p.dtype)
+        return chainer.Variable(eps)
 
     @property
     def stddev(self):
