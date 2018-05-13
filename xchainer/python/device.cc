@@ -61,7 +61,7 @@ private:
 // avoided.
 class PyDeviceBuffer {
 public:
-    PyDeviceBuffer(const std::shared_ptr<void>& data, const std::shared_ptr<py::buffer_info>& info) : data_{data}, info_{info} {}
+    PyDeviceBuffer(std::shared_ptr<void> data, std::shared_ptr<py::buffer_info> info) : data_{std::move(data)}, info_{std::move(info)} {}
 
     PyDeviceBuffer(
             const std::shared_ptr<void>& data,
