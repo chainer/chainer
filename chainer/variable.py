@@ -450,6 +450,7 @@ class Variable(object):
         * Matrix Multiplication: ``a @ b`` (:meth:`__matmul__`, \
                                             :meth:`__rmatmul__`)
         * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
+        * Absolute value: ``abs(a)`` (:meth:`__abs__`)
 
     .. warning::
 
