@@ -18,31 +18,24 @@ def _normalize_axis_tuple(axis, ndim, xp):
 def _moveaxis(a, source, destination, xp):
     if hasattr(xp, 'moveaxis'):
         return xp.moveaxis(a, source, destination)
-    if isinstance(source, int):
-        if not isinstance(destination, int):
-            raise ValueError('Types of source and destination are '
-                             'different.')
-    elif isinstance(source, tuple) and all(isinstance(a, int)
-                                           for a in source):
-        if not isinstance(destination, tuple):
-            raise ValueError('Types of source and destination are '
-                             'different.')
-        if len(source) != len(destination):
-            raise ValueError('Length of source and destination are '
-                             'different.')
-        if not all(isinstance(a, int) for a in destination):
-            raise TypeError('int or tuple of int are required.')
-        if len(set(source)) != len(source):
-            raise ValueError('duplicate value in source axis: ({})'.format(
-                ', '.join(map(str, source))))
-        if len(set(destination)) != len(destination):
-            raise ValueError('duplicate value in destination axis: ({})'
-                             .format(', '.join(map(str, destination))))
-    else:
+    if all(isinstance(a, int) for a in source):
         raise TypeError('int or tuple of int are required.')
+    if not all(isinstance(a, int) for a in destination):
+        raise TypeError('int or tuple of int are required.')
+    if len(source) != len(destination):
+        raise ValueError('Length of source and destination are '
+                         'different.')
 
     source = _normalize_axis_tuple(source, a.ndim, xp)
     destination = _normalize_axis_tuple(destination, a.ndim, xp)
+
+    if len(set(source)) != len(source):
+        raise ValueError('duplicate value in source axis: ({})'.format(
+            ', '.join(map(str, source))))
+    if len(set(destination)) != len(destination):
+        raise ValueError('duplicate value in destination axis: ({})'
+                         .format(', '.join(map(str, destination))))
+
     order = [n for n in six.moves.range(a.ndim) if n not in source]
 
     for dest, src in sorted(six.moves.zip(destination, source)):
