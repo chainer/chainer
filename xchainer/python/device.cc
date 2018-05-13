@@ -1,5 +1,6 @@
 #include "xchainer/python/device.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <sstream>
