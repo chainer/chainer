@@ -125,3 +125,19 @@ def test_device_scope_with_name(device_instance1, device_instance2):
 
     with xchainer.device_scope(device2.backend.name, device2.index):
         assert xchainer.get_default_device() == device2
+
+
+@pytest.mark.usefixtures('cache_restore_device')
+def test_device_buffer(device_instance1):
+    device = device_instance1
+    buf = xchainer.DeviceBuffer([1, 2, 3, 4, 5, 6], (2, 3), xchainer.float32, device)
+    mv = memoryview(buf)
+    assert mv.format == 'f'
+    assert mv.itemsize == 4
+    assert mv.contiguous
+    assert not mv.f_contiguous
+    assert not mv.readonly
+    assert mv.ndim == 2
+    assert mv.shape == (2, 3)
+    assert mv.strides == (12, 4)
+    assert mv.tolist() == [[1, 2, 3], [4, 5, 6]]

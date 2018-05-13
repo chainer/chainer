@@ -328,15 +328,6 @@ void InitXchainerArray(pybind11::module& m) {
 
         return list;
     });
-    c.def("_memoryview", [](const ArrayBodyPtr& self) -> py::memoryview {
-        Array array{self};
-        return py::memoryview{py::buffer_info{array.data().get(),
-                                              array.item_size(),
-                                              std::string(1, GetCharCode(array.dtype())),
-                                              array.ndim(),
-                                              array.shape(),
-                                              array.strides()}};
-    });
 }
 
 }  // namespace internal

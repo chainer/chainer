@@ -30,6 +30,7 @@ void InitXchainerModule(pybind11::module& m) {
     InitXchainerBackend(m);
     InitXchainerDevice(m);
     InitXchainerDeviceScope(m);
+    InitXchainerDeviceBuffer(m);
     InitXchainerDtype(m);
     InitXchainerError(m);
     InitXchainerScalar(m);
