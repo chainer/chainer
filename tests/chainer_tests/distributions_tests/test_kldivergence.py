@@ -17,15 +17,14 @@ class TestKLDivergence(unittest.TestCase):
 
     def check_kl(self, dist1, dist2):
         kl = distributions.kl_divergence(dist1, dist2).data
+        if isinstance(kl, cuda.ndarray):
+            kl = kl.get()
 
         sample = dist1.sample(100000)
         mc_kl = dist1.log_prob(sample).data - dist2.log_prob(sample).data
-        mc_kl = numpy.mean(mc_kl, axis=0)
-
-        if isinstance(kl, cuda.ndarray):
-            kl = kl.get()
         if isinstance(mc_kl, cuda.ndarray):
             mc_kl = mc_kl.get()
+        mc_kl = numpy.nanmean(mc_kl, axis=0)
 
         print(kl, mc_kl)
         testing.assert_allclose(kl, mc_kl, atol=1e-2, rtol=1e-2)
@@ -51,6 +50,12 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"p": p}, is_gpu)
         return distributions.Bernoulli(**params)
 
+    def make_beta_dist(self, is_gpu=False):
+        a = numpy.random.uniform(1, 10, self.shape).astype(numpy.float32)
+        b = numpy.random.uniform(1, 10, self.shape).astype(numpy.float32)
+        params = self.encode_params({"a": a, "b": b}, is_gpu)
+        return distributions.Beta(**params)
+
     def test_normal_normal_cpu(self):
         dist1 = self.make_normal_dist()
         dist2 = self.make_normal_dist()
@@ -71,4 +76,15 @@ class TestKLDivergence(unittest.TestCase):
     def test_bernoulli_bernoulli_gpu(self):
         dist1 = self.make_bernoulli_dist(True)
         dist2 = self.make_bernoulli_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_beta_beta_cpu(self):
+        dist1 = self.make_beta_dist()
+        dist2 = self.make_beta_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_beta_beta_gpu(self):
+        dist1 = self.make_beta_dist(True)
+        dist2 = self.make_beta_dist(True)
         self.check_kl(dist1, dist2)

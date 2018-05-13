@@ -1,5 +1,7 @@
 from chainer import distributions
 from chainer.functions.math import exponential
+from chainer.functions.math import digamma
+from chainer.functions.math import lgamma
 
 _KLDIVERGENCE = {}
 
@@ -67,6 +69,18 @@ def _kl_bernoulli_bernoulli(dist1, dist2):
     return dist1.p * (exponential.log(dist1.p) - exponential.log(dist2.p)) \
         + (1 - dist1.p) * (exponential.log(1 - dist1.p)
                            - exponential.log(1 - dist2.p))
+
+
+@register_kl(distributions.Beta, distributions.Beta)
+def _kl_beta_beta(dist1, dist2):
+    return - (lgamma.lgamma(dist1.a) + lgamma.lgamma(dist1.b)
+              - lgamma.lgamma(dist1.a + dist1.b)) \
+        + (lgamma.lgamma(dist2.a) + lgamma.lgamma(dist2.b)
+           - lgamma.lgamma(dist2.a + dist2.b)) \
+        + (dist1.a - dist2.a) * digamma.digamma(dist1.a) \
+        + (dist1.b - dist2.b) * digamma.digamma(dist1.b) \
+        + (dist2.a - dist1.a + dist2.b - dist1.b) \
+        * digamma.digamma(dist1.a + dist1.b)
 
 
 @register_kl(distributions.Normal, distributions.Normal)
