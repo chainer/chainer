@@ -127,7 +127,7 @@ def _cupy_coo_matmul():
         C val_C = static_cast<C>(val_A * val_B);
         atomicAdd(&_C[i_C], val_C);
         ''',
-        'sparse_matmul')
+        'coo_matmul')
 
 
 class CooMatMul(function_node.FunctionNode):
@@ -311,7 +311,7 @@ def _cupy_coo_matmul_gradsp():
         }
         C_data[i_C] = val_C;
         ''',
-        'sparse_matmul_gradsp')
+        'coo_matmul_gradsp')
 
 
 class CooMatMulGradSP(function_node.FunctionNode):
