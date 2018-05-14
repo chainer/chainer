@@ -192,6 +192,7 @@ from chainer.functions.math.det import det  # NOQA
 from chainer.functions.math.digamma import digamma  # NOQA
 from chainer.functions.math.erf import erf  # NOQA
 from chainer.functions.math.erfc import erfc  # NOQA
+from chainer.functions.math.erfinv import erfinv  # NOQA
 from chainer.functions.math.exponential import exp  # NOQA
 from chainer.functions.math.exponential import Exp  # NOQA
 from chainer.functions.math.exponential import log  # NOQA
