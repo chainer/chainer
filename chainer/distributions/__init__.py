@@ -1,6 +1,6 @@
 """Collection of distribution implementations."""
 
-from chainer.distributions.Normal import Normal  # NOQA
+from chainer.distributions.normal import Normal  # NOQA
 
-from chainer.distributions.KLDivergence import kl_divergence  # NOQA
-from chainer.distributions.KLDivergence import register_kl  # NOQA
+from chainer.distributions.kl_divergence import kl_divergence  # NOQA
+from chainer.distributions.kl_divergence import register_kl  # NOQA
