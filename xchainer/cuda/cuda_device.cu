@@ -41,8 +41,9 @@ std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
 }
 
 std::shared_ptr<void> CudaDevice::MakeDataFromForeignPointer(const std::shared_ptr<void>& data) {
+    // check memory validity
     void* ptr = data.get();
-    cudaPointerAttributes attr = {};
+    cudaPointerAttributes attr{};
     cudaError_t status = cudaPointerGetAttributes(&attr, ptr);
     switch (status) {
         case cudaSuccess:
@@ -57,7 +58,6 @@ std::shared_ptr<void> CudaDevice::MakeDataFromForeignPointer(const std::shared_p
             throw XchainerError{"Memory: ", ptr, " is not a CUDA memory"};
         default:
             Throw(status);
-            break;
     }
     return data;
 }
