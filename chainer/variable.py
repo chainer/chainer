@@ -999,7 +999,7 @@ Actual: {0}'''.format(type(data))
                     self.grad = cuda.cupy.ones_like(self.data)
             if loss_scale is not None:
                 self.grad *= loss_scale
-        grads[self._node] = self._grad_var
+        grads[self._node] = [self._grad_var]
 
         def add_cand(cand):
             if cand not in seen_set:
@@ -1009,21 +1009,30 @@ Actual: {0}'''.format(type(data))
 
         add_cand(self.creator_node)
 
-        def get_grad(node):
-            if node is None:
+        def normalize(grad_list):
+            if not grad_list:
                 return None
-            if node in grads:
-                return grads[node]
-            return node.grad_var
+            if len(grad_list) >= 2:
+                grad_list[:] = [functions.add(*grad_list)]
+            return grad_list[0]
 
-        def set_grad(node, value):
+        def pure(grad):
+            return [] if grad is None else [grad]
+
+        def get_grad(node, strict):
             if node is None:
-                return
+                return None if strict else []
             if node in grads:
-                grads[node] = value
-            var = node.get_variable()
-            if var is not None:
-                var._grad_var = value
+                if strict:
+                    return normalize(grads[node])
+                return grads[node]
+            if strict:
+                return node.grad_var
+            if x.creator_node is None:
+                x._check_old_style_gradient()
+                # accumulate the gradient only if the node is a leaf
+                return pure(node.grad_var)
+            return []
 
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
@@ -1036,14 +1045,7 @@ Actual: {0}'''.format(type(data))
             outputs = [y() for y in func.outputs]  # access via weak ref
 
             in_data = tuple([x.data for x in inputs])
-            # We need calculate the value of for the out_grad which accumulated
-            # because now out_grad is used in backward calculation.
-            for y in outputs:
-                grad = get_grad(y)
-                if isinstance(grad, tuple):
-                    grad = chainer.functions.add(*grad)
-                    set_grad(y, grad)
-            out_grad = tuple([get_grad(y) for y in outputs])
+            out_grad = tuple([get_grad(y, strict=True) for y in outputs])
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
             hooks = chainer.get_function_hooks()
@@ -1074,29 +1076,20 @@ Actual: {0}'''.format(type(data))
             in_grad = []
             for i, index_i in enumerate(target_input_indexes):
                 x = inputs[index_i]
-                if x in target_inputs[:i]:
-                    # Pass ``None`` for duplicated input variables except for
-                    # the first occurrence (see the comment above).
-                    gx = None
-                elif x in grads:
-                    gx = grads[x]
-                elif x.creator_node is None:
-                    x._check_old_style_gradient()
-                    # accumulate the gradient only if the node is a leaf
-                    gx = x.grad_var
-                else:
-                    gx = None
+                gx = get_grad(x, strict=False)
                 in_grad.append(gx)
             in_grad = tuple(in_grad)
 
-            gxs = func.backward_accumulate(
+            func.backward_accumulate_new(
                 target_input_indexes, out_grad, in_grad)
+            gxs = in_grad
+            del in_grad  # TODO(kataoka): just rename variables
 
-            assert len(gxs) == len(in_grad)
             for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad_data)
 
             if is_debug:
+                # TODO(kataoka): wip
                 for gx in gxs:
                     if gx is None:
                         continue
@@ -1111,7 +1104,7 @@ Actual: {0}'''.format(type(data))
             if not retain_grad:
                 for y in outputs:
                     if y is not None and y is not self.node:
-                        grads[y] = None
+                        grads[y] = []
                         y_var = y.get_variable_or_none()
                         if y_var is not None:
                             y_var._grad_var = None
@@ -1121,33 +1114,14 @@ Actual: {0}'''.format(type(data))
                     continue
 
                 x = target_inputs[i]
-                if not x.requires_grad:
+                if x in target_inputs[:i] or not x.requires_grad:
                     continue
 
-                if isinstance(gx, tuple):
-                    # No need to check each data in the tuple,
-                    # just check the new gx concated in
-                    # backward_accumulate().
-                    _check_grad_type(func, x, gx[0].data)
-                else:
+                for gx_elem in gx:
                     _check_grad_type(func, x, gx.data)
 
-                if x in target_inputs[:i]:
-                    # Accumulate the duplicated gradients here. See the comment
-                    # above the code that builds ``in_grad``.
-                    cur_gx = grads[x]
-                    if func.lazy_grad_sum:
-                        if x.creator is None:
-                            gx = _backprop_utils.add(gx, cur_gx)
-                            grads[x] = gx
-                        else:
-                            grads[x] = _backprop_utils.concat_variable(
-                                gx, cur_gx)
-                    else:
-                        grads[x] = gx if cur_gx is None else gx + cur_gx
-
-                else:
-                    grads[x] = gx
+                if x.creator is None or not func.lazy_grad_sum:
+                    gx_strict = normalize(gx)
 
                 x_var = x.get_variable_or_none()
                 if x_var is not None:
