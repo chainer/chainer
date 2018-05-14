@@ -155,6 +155,8 @@ def main():
                        for tree in data.read_corpus('trees/dev.txt', max_size)]
     validation_iter = chainer.iterators.SerialIterator(
         validation_data, batchsize, repeat=False, shuffle=False)
+    test_data = [convert_tree(vocab, tree)
+                 for tree in data.read_corpus('trees/test.txt', max_size)]
 
     model = RecursiveNet(len(vocab), n_units, n_label)
 
@@ -193,8 +195,6 @@ def main():
     trainer.run()
 
     print('Test evaluation')
-    test_data = [convert_tree(vocab, tree)
-                 for tree in data.read_corpus('trees/test.txt', max_size)]
     evaluate(model, test_data)
 
 
