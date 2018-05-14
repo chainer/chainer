@@ -37,7 +37,8 @@ class CooMatrix(object):
         xp = cuda.get_array_module(data)
         if data.ndim == 1:
             x = xp.zeros(self.shape, dtype=data.dtype)
-            x[self.row, self.col] = data
+            nnz = xp.count_nonzero(data)
+            x[self.row[:nnz], self.col[:nnz]] = data[:nnz]
             return x
         if data.ndim == 2:
             nb = data.shape[0]
