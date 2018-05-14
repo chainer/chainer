@@ -110,6 +110,7 @@ jobs:
 
             pip install -U pytest pytest-cov coveralls
             pip install -U cpplint
+            pip install -U chainer
 
       # Python PEP-8 check
       - run:
