@@ -179,8 +179,8 @@ TEST_P(CreationTest, FromContiguousHostData) {
     using T = int32_t;
     Shape shape{3, 2};
 
-    std::vector<T> raw_data{0, 1, 2, 3, 4, 5};
-    std::shared_ptr<T> data{&raw_data[0], [](const T*) {}};
+    T raw_data[] = {0, 1, 2, 3, 4, 5};
+    std::shared_ptr<T> data{raw_data, [](const T*) {}};
 
     Dtype dtype = TypeToDtype<T>;
     Array x = internal::FromContiguousHostData(shape, dtype, data);
@@ -208,6 +208,99 @@ TEST_P(CreationTest, FromContiguousHostData) {
         FAIL() << "invalid device_id";
     }
 }
+
+namespace {
+
+template <typename T>
+void CheckFromData(
+        const Array& x, const Shape& shape, Dtype dtype, const Strides& strides, int64_t offset, const T* raw_data, const void* data_ptr) {
+    EXPECT_EQ(shape, x.shape());
+    EXPECT_EQ(dtype, x.dtype());
+    EXPECT_EQ(strides, x.strides());
+    EXPECT_EQ(shape.ndim(), x.ndim());
+    EXPECT_EQ(shape.GetTotalSize(), x.GetTotalSize());
+    EXPECT_EQ(int64_t{sizeof(T)}, x.item_size());
+    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetNBytes());
+    EXPECT_EQ(offset, x.offset());
+    EXPECT_EQ(internal::IsContiguous(shape, strides, GetItemSize(dtype)), x.IsContiguous());
+    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+
+    testing::ExpectDataEqual<T>(raw_data, x);
+    EXPECT_EQ(data_ptr, x.data().get());
+}
+
+}  // namespace
+
+TEST_P(CreationTest, FromData) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Device& device = GetDefaultDevice();
+
+    T raw_data[] = {0, 1, 2, 3, 4, 5};
+    std::shared_ptr<void> host_data{raw_data, [](const T*) {}};
+
+    // non-contiguous array like a[:,1]
+    T expected_data[] = {1, 4};
+    Shape shape{2};
+    Strides strides{sizeof(T) * 3};
+    int64_t offset = sizeof(T);
+
+    Array x;
+    void* data_ptr{};
+    {
+        // test potential freed memory
+        std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
+        data_ptr = data.get();
+        x = FromData(shape, dtype, data, strides, offset);
+    }
+
+    CheckFromData<T>(x, shape, dtype, strides, offset, expected_data, data_ptr);
+}
+
+TEST_P(CreationTest, FromData_Contiguous) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Device& device = GetDefaultDevice();
+
+    T raw_data[] = {0, 1, 2, 3, 4, 5};
+    std::shared_ptr<void> host_data{raw_data, [](const T*) {}};
+
+    // contiguous array like a[1,:]
+    T* expected_data = raw_data + 3;
+    Shape shape{3};
+    Strides strides{sizeof(T)};
+    int64_t offset = sizeof(T) * 3;
+
+    Array x;
+    void* data_ptr{};
+    {
+        // test potential freed memory
+        std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
+        data_ptr = data.get();
+        // nullopt strides creates an array from a contiguous data
+        x = FromData(shape, dtype, data, nonstd::nullopt, offset);
+    }
+
+    CheckFromData<T>(x, shape, dtype, strides, offset, expected_data, data_ptr);
+}
+
+// TODO(sonots): Checking `MakeDataFromForeignPointer` called is enough as a unit-test here. Use mock library if it becomes available.
+#ifdef XCHAINER_ENABLE_CUDA
+TEST(CreationTest, FromData_FromAnotherDevice) {
+    Context ctx;
+    Device& cuda_device = ctx.GetDevice({"cuda", 0});
+    Device& native_device = ctx.GetDevice({"native", 0});
+
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Shape shape{3};
+    Strides strides{shape, dtype};
+    int64_t offset = 0;
+    std::shared_ptr<void> data = native_device.Allocate(3 * sizeof(T));
+
+    EXPECT_THROW(FromData(shape, dtype, data, strides, offset, cuda_device), XchainerError);
+}
+#endif  // XCHAINER_ENABLE_CUDA
 
 TEST_P(CreationTest, Empty) {
     CheckEmpty<bool>();

@@ -32,6 +32,18 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
 
 }  // namespace internal
 
+// Creates an array with given data without copying.
+//
+// The data must reside in the specified device.
+// If strides are not given, the data is considered as a contiguous data.
+Array FromData(
+        const Shape& shape,
+        Dtype dtype,
+        const std::shared_ptr<void>& data,
+        const nonstd::optional<Strides>& strides = nonstd::nullopt,
+        int64_t offset = 0,
+        Device& device = GetDefaultDevice());
+
 Array Empty(const Shape& shape, Dtype dtype, Device& device = GetDefaultDevice());
 Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device = GetDefaultDevice());
 Array Full(const Shape& shape, Scalar fill_value, Device& device = GetDefaultDevice());

@@ -19,6 +19,8 @@ public:
 
     std::shared_ptr<void> Allocate(size_t bytesize) override;
 
+    std::shared_ptr<void> MakeDataFromForeignPointer(const std::shared_ptr<void>& data) override;
+
     void MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) override;
 
     void MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) override;
