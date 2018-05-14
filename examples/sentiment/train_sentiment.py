@@ -52,7 +52,7 @@ class RecursiveNet(chainer.Chain):
         result = collections.defaultdict(lambda: 0)
         # calculate each tree in batch ``x`` because we cannot process as batch
         for tree in x:
-            loss, _ = self._traverse(tree, evaluate=result)
+            loss, _ = self.traverse(tree, evaluate=result)
             accum_loss += loss
 
         reporter.report({'loss': accum_loss}, self)
@@ -69,7 +69,7 @@ class RecursiveNet(chainer.Chain):
     def label(self, v):
         return self.w(v)
 
-    def _traverse(self, node, evaluate):
+    def traverse(self, node, evaluate):
         if isinstance(node['node'], int):
             # leaf node
             word = self.xp.array([node['node']], np.int32)
@@ -78,8 +78,8 @@ class RecursiveNet(chainer.Chain):
         else:
             # internal node
             left_node, right_node = node['node']
-            left_loss, left = self._traverse(left_node, evaluate=evaluate)
-            right_loss, right = self._traverse(right_node, evaluate=evaluate)
+            left_loss, left = self.traverse(left_node, evaluate=evaluate)
+            right_loss, right = self.traverse(right_node, evaluate=evaluate)
             v = self.node(left, right)
             loss = left_loss + right_loss
 
@@ -95,6 +95,20 @@ class RecursiveNet(chainer.Chain):
         evaluate['total'] += 1
 
         return loss, v
+
+
+def evaluate(model, test_trees):
+    result = collections.defaultdict(lambda: 0)
+    with chainer.using_config('train', False), chainer.no_backprop_mode():
+        for tree in test_trees:
+            model.traverse(tree, evaluate=result)
+
+    acc_node = 100.0 * result['correct_node'] / result['total_node']
+    acc_root = 100.0 * result['correct_root'] / result['total_root']
+    print(' Node accuracy: {0:.2f} %% ({1:,d}/{2:,d})'.format(
+        acc_node, result['correct_node'], result['total_node']))
+    print(' Root accuracy: {0:.2f} %% ({1:,d}/{2:,d})'.format(
+        acc_root, result['correct_root'], result['total_root']))
 
 
 def main():
@@ -130,10 +144,10 @@ def main():
     train_data = [convert_tree(vocab, tree)
                   for tree in data.read_corpus('trees/train.txt', max_size)]
     train_iter = chainer.iterators.SerialIterator(train_data, batchsize)
-    test_data = [convert_tree(vocab, tree)
-                 for tree in data.read_corpus('trees/test.txt', max_size)]
-    test_iter = chainer.iterators.SerialIterator(
-        test_data, batchsize, repeat=False, shuffle=False)
+    validation_data = [convert_tree(vocab, tree)
+                       for tree in data.read_corpus('trees/dev.txt', max_size)]
+    validation_iter = chainer.iterators.SerialIterator(
+        validation_data, batchsize, repeat=False, shuffle=False)
 
     model = RecursiveNet(len(vocab), n_units, n_label)
 
@@ -155,7 +169,7 @@ def main():
     # Setup trainer and run
     trainer = chainer.training.Trainer(updater, (n_epoch, 'epoch'))
     trainer.extend(
-        extensions.Evaluator(test_iter, model, device=args.gpu,
+        extensions.Evaluator(validation_iter, model, device=args.gpu,
                              converter=_convert),
         trigger=(epoch_per_eval, 'epoch'))
     trainer.extend(extensions.LogReport())
@@ -170,6 +184,11 @@ def main():
         ['epoch', 'main/loss', 'validation/main/loss',
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
     trainer.run()
+
+    print('Test evaluation')
+    test_data = [convert_tree(vocab, tree)
+                 for tree in data.read_corpus('trees/test.txt', max_size)]
+    evaluate(model, test_data)
 
 
 if __name__ == '__main__':
