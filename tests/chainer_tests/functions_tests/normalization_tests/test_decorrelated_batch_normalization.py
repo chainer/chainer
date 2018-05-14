@@ -104,7 +104,8 @@ class TestDecorrelatedBatchNormalization(unittest.TestCase):
         self.grad_outputs = [gy]
 
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_options = {'dtype': numpy.float64}
+        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3, 'dtype':
+                                       numpy.float64}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
             self.check_backward_options = {
