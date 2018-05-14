@@ -104,6 +104,12 @@ def _kl_dirichlet_dirichlet(dist1, dist2):
                 dist1.alpha0), axis=-1), dist1.k, axis=-1)), axis=-1)
 
 
+@register_kl(distributions.Exponential, distributions.Exponential)
+def _kl_exponential_exponential(dist1, dist2):
+    return exponential.log(dist1.lam) - exponential.log(dist2.lam) \
+        + dist2.lam / dist1.lam - 1.
+
+
 @register_kl(distributions.Normal, distributions.Normal)
 def _kl_normal_normal(dist1, dist2):
     return exponential.log(dist2.scale) - exponential.log(dist1.scale) \

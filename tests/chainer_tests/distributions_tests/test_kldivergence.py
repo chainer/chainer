@@ -68,6 +68,12 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"alpha": alpha}, is_gpu)
         return distributions.Dirichlet(**params)
 
+    def make_exponential_dist(self, is_gpu=False):
+        lam = numpy.exp(
+            numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
+        params = self.encode_params({"lam": lam}, is_gpu)
+        return distributions.Exponential(**params)
+
     def make_normal_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
@@ -117,6 +123,17 @@ class TestKLDivergence(unittest.TestCase):
     def test_dirichlet_dirichlet_gpu(self):
         dist1 = self.make_dirichlet_dist(True)
         dist2 = self.make_dirichlet_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_exponential_exponential_cpu(self):
+        dist1 = self.make_exponential_dist()
+        dist2 = self.make_exponential_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_exponential_exponential_gpu(self):
+        dist1 = self.make_exponential_dist(True)
+        dist2 = self.make_exponential_dist(True)
         self.check_kl(dist1, dist2)
 
     def test_normal_normal_cpu(self):
