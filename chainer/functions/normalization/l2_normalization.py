@@ -34,14 +34,13 @@ class NormalizeL2(function_node.FunctionNode):
         gy, = grad_outputs
         F = chainer.functions
 
-        norm_noeps = F.sqrt(F.sum(F.square(x), axis=self.axis))
+        norm_noeps = F.sqrt(F.sum(F.square(x), axis=self.axis, keepdims=True))
         norm = norm_noeps + self.eps
-        norm = F.broadcast_to(F.expand_dims(norm, self.axis), gy.shape)
+        norm = F.broadcast_to(norm, gy.shape)
 
-        x_gy_reduced = F.sum((x * gy), axis=self.axis)
+        x_gy_reduced = F.sum((x * gy), axis=self.axis, keepdims=True)
         x_gy_reduced /= norm_noeps
-        x_gy_reduced = F.broadcast_to(
-            F.expand_dims(x_gy_reduced, self.axis), gy.shape)
+        x_gy_reduced = F.broadcast_to(x_gy_reduced, gy.shape)
         gx = gy * norm - x_gy_reduced * x
         gx = gx / norm ** 2
 
