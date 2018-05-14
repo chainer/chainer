@@ -15,6 +15,7 @@ from chainer.testing import attr
 @testing.parameterize(*testing.product([
     [
         {'shape': (4, 15), 'axis': 1},
+        {'shape': (4,), 'axis': 0},
         {'shape': (4, 3, 2, 5), 'axis': 0},
         {'shape': (4, 3, 2, 5), 'axis': 1},
         {'shape': (4, 3, 2, 5), 'axis': 2},
