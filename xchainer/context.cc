@@ -34,6 +34,14 @@ std::string GetXchainerPath() {
 
 }  // namespace
 
+Context::Context() {
+    // Create NativeBackend instance
+    std::unique_ptr<native::NativeBackend> native_backend = std::make_unique<native::NativeBackend>(*this);
+    native_backend_ =
+            native_backend.get();  // native_backend_ does not own the pointer: it will be invalidated if backends_ releases the pointer.
+    backends_.emplace(native::NativeBackend::kDefaultName, std::move(native_backend));
+}
+
 Context::~Context() {
     // Need to call dtor of all backends before closing shared objects
     backends_.clear();
@@ -54,13 +62,15 @@ Backend& Context::GetBackend(const std::string& backend_name) {
     // Ctor of each backend may call member functions of Context.
     // Lock is released here to avoid any deadlocks.
     std::unique_ptr<Backend> backend;
-    if (backend_name == native::NativeBackend::kDefaultName) {
-        backend = std::make_unique<native::NativeBackend>(*this);
+    if (false) {  // NOLINT
 #ifdef XCHAINER_ENABLE_CUDA
     } else if (backend_name == cuda::CudaBackend::kDefaultName) {
         backend = std::make_unique<cuda::CudaBackend>(*this);
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
+        // Native backend must have been instantiated in the ctor.
+        assert(backend_name != native::NativeBackend::kDefaultName);
+
         // Load .so file
         std::string so_file_path = GetXchainerPath() + "/backends/" + backend_name + ".so";
         void* handle = ::dlopen(so_file_path.c_str(), RTLD_NOW | RTLD_LOCAL);

@@ -11,14 +11,24 @@
 #include "xchainer/device_id.h"
 
 namespace xchainer {
+namespace native {
+class NativeBackend;
+}
 
 class Context {
 public:
+    Context();
     ~Context();
 
     // Gets the backend specified by the name.
     // If the backend does not exist, this function automatically creates it.
     Backend& GetBackend(const std::string& backend_name);
+
+    // Gets the native backend.
+    native::NativeBackend& native_backend() {
+        assert(native_backend_ != nullptr);
+        return *native_backend_;
+    }
 
     // Gets the device specified by the device ID.
     // If the backend and/or device do not exist, this function automatically creates them.
@@ -28,6 +38,11 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Backend>> backends_;
     std::vector<void*> dlopen_handles_;
     mutable std::mutex mutex_;
+
+    // A shortcut pointer to the native backend kept in backends_.
+    // It will be invalidated if the instance in backends_ is gone, but it is assumed to be alive throughout the lifetime of Context
+    // instance.
+    native::NativeBackend* native_backend_{nullptr};
 };
 
 // Gets/sets the context that used by default when current context is not set.
@@ -53,6 +68,9 @@ inline Device& GetDevice(const DeviceId& device_id) { return GetDefaultContext()
 
 // Returns the specified backend on the default context.
 inline Backend& GetBackend(const std::string& backend_name) { return GetDefaultContext().GetBackend(backend_name); }
+
+// Returns the native backend on the default context.
+inline native::NativeBackend& GetNativeBackend() { return GetDefaultContext().native_backend(); }
 
 // Scope object that switches the default context by RAII.
 class ContextScope {
