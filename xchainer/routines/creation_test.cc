@@ -209,6 +209,24 @@ TEST_P(CreationTest, FromContiguousHostData) {
     }
 }
 
+namespace {
+
+template <typename T>
+void CheckFromDataAttributes(const Array& x, const Shape& shape, Dtype dtype, const Strides& strides, int64_t offset) {
+    EXPECT_EQ(shape, x.shape());
+    EXPECT_EQ(dtype, x.dtype());
+    EXPECT_EQ(strides, x.strides());
+    EXPECT_EQ(shape.ndim(), x.ndim());
+    EXPECT_EQ(shape.GetTotalSize(), x.GetTotalSize());
+    EXPECT_EQ(int64_t{sizeof(T)}, x.item_size());
+    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetNBytes());
+    EXPECT_EQ(offset, x.offset());
+    EXPECT_EQ(internal::IsContiguous(shape, strides, GetItemSize(dtype)), x.IsContiguous());
+    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+}
+
+}  // namespace
+
 TEST_P(CreationTest, FromData) {
     using T = int32_t;
     Dtype dtype = TypeToDtype<T>;
@@ -232,25 +250,13 @@ TEST_P(CreationTest, FromData) {
         x = FromData(shape, dtype, data, strides, offset);
     }
 
-    // Basic attributes
-    EXPECT_EQ(shape, x.shape());
-    EXPECT_EQ(dtype, x.dtype());
-    EXPECT_EQ(strides, x.strides());
-    EXPECT_EQ(1, x.ndim());
-    EXPECT_EQ(2, x.GetTotalSize());
-    EXPECT_EQ(int64_t{sizeof(T)}, x.item_size());
-    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetNBytes());
-    EXPECT_FALSE(x.IsContiguous());
-    EXPECT_EQ(offset, x.offset());
+    CheckFromDataAttributes<T>(x, shape, dtype, strides, offset);
 
-    // Array::data
     testing::ExpectDataEqual<T>(sub_raw_data, x);
-
-    EXPECT_EQ(&device, &x.device());
     EXPECT_EQ(data_ptr, x.data().get());
 }
 
-TEST_P(CreationTest, FromData_Contiguos) {
+TEST_P(CreationTest, FromData_Contiguous) {
     using T = int32_t;
     Dtype dtype = TypeToDtype<T>;
     Device& device = GetDefaultDevice();
@@ -270,24 +276,13 @@ TEST_P(CreationTest, FromData_Contiguos) {
         // test potential freed memory
         std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
         data_ptr = data.get();
+        // nullopt strides creates an array from a contiguous data
         x = FromData(shape, dtype, data, nonstd::nullopt, offset);
     }
 
-    // Basic attributes
-    EXPECT_EQ(shape, x.shape());
-    EXPECT_EQ(dtype, x.dtype());
-    EXPECT_EQ(strides, x.strides());
-    EXPECT_EQ(1, x.ndim());
-    EXPECT_EQ(3, x.GetTotalSize());
-    EXPECT_EQ(int64_t{sizeof(T)}, x.item_size());
-    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetNBytes());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(offset, x.offset());
+    CheckFromDataAttributes<T>(x, shape, dtype, strides, offset);
 
-    // Array::data
     testing::ExpectDataEqual<T>(sub_raw_data, x);
-
-    EXPECT_EQ(&device, &x.device());
     EXPECT_EQ(data_ptr, x.data().get());
 }
 
