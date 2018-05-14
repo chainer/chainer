@@ -26,7 +26,8 @@ class NormalizeL2(function_node.FunctionNode):
         self.retain_inputs((0,))
         x, = inputs
         xp = cuda.get_array_module(x)
-        norm = xp.linalg.norm(x, axis=self.axis, keepdims=True) + self.eps
+        norm = xp.sqrt(xp.sum(
+            xp.square(x), axis=self.axis, keepdims=True)) + self.eps
         return x / norm,
 
     def backward(self, indexes, grad_outputs):
