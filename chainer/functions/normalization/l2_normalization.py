@@ -12,6 +12,10 @@ class NormalizeL2(function_node.FunctionNode):
 
     def __init__(self, eps=1e-5, axis=1):
         self.eps = eps
+        if isinstance(axis, int):
+            axis = axis,
+        if len(axis) not in [1, 2]:
+            raise ValueError("Improper number of dimensions to norm.")
         self.axis = axis
 
     def check_type_forward(self, in_types):
