@@ -120,6 +120,15 @@ def _kl_gamma_gamma(dist1, dist2):
         + dist1.k * dist1.theta / dist2.theta
 
 
+@register_kl(distributions.Gumbel, distributions.Gumbel)
+def _kl_gumbel_gumbel(dist1, dist2):
+    return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
+        + dist1.euler * (dist1.scale / dist2.scale - 1.) \
+        + exponential.exp((dist2.loc - dist1.loc) / dist2.scale
+                          + lgamma.lgamma(dist1.scale / dist2.scale + 1.)) \
+        - 1 + (dist1.loc - dist2.loc) / dist2.scale
+
+
 @register_kl(distributions.Normal, distributions.Normal)
 def _kl_normal_normal(dist1, dist2):
     return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
