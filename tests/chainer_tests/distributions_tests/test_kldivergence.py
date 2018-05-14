@@ -55,3 +55,6 @@ class TestKLDivergence(unittest.TestCase):
         dist1 = self.make_normal_dist(True)
         dist2 = self.make_normal_dist(True)
         self.check_kl(dist1, dist2)
+
+
+testing.run_module(__name__, __file__)
