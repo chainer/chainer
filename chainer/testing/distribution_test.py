@@ -431,5 +431,5 @@ def distribution_unittest(dist, scipy_dist_name, params_init, sample_for_test,
             'shape': [(3, 2), (1,)],
             'is_variable': [True, False],
             'smp_shape': [(3, 2), ()],
-            }))(testing.with_requires('scipy')(testing.fix_random()(klass)))
+        }))(testing.with_requires('scipy')(testing.fix_random()(klass)))
     return f
