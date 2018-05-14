@@ -1,4 +1,4 @@
-from chainer import distributions
+from chainer.distributions import normal
 from chainer.functions.math import exponential
 
 _KLDIVERGENCE = {}
@@ -62,7 +62,7 @@ def cross_entropy(dist1, dist2):
     return dist1.entropy() + kl_divergence(dist1, dist2)
 
 
-@register_kl(distributions.Normal, distributions.Normal)
+@register_kl(normal.Normal, normal.Normal)
 def _kl_normal_normal(dist1, dist2):
     return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
         + 0.5 * (dist1.scale ** 2 + (dist1.loc - dist2.loc) ** 2) \
