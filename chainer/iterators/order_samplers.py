@@ -39,9 +39,9 @@ class ShuffleOrderSampler(OrderSampler):
 
     The two lines below create basically the same objects.
 
-    >>> chainer.iterators.MultiProcessIterator(dataset, 1, shuffle=True)
-    >>> chainer.iterators.MultiProcessIterator(
-    ...     dataset, 1, order_sampler=ShuffleOrderSampler())
+    >>> chainer.iterators.MultiprocessIterator(dataset, 1, shuffle=True)
+    >>> chainer.iterators.MultiprocessIterator(
+    ...     dataset, 1, order_sampler=chainer.iterators.ShuffleOrderSampler())
 
     Args:
         random_state (numpy.random.RandomState): Pseudo-random number
