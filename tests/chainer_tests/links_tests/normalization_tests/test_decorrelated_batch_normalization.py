@@ -88,12 +88,12 @@ class BatchNormalizationTest(unittest.TestCase):
             self.mean = x_hat.mean(axis=1)
             self.projection = _calc_projection(self.x, self.mean,
                                                self.link.eps, self.groups)
-        self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_optionss = {'atol': 1e-4, 'rtol': 1e-3, 'dtype':
-                                        numpy.float64}
+        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
+        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3, 'dtype':
+                                       numpy.float64}
         if self.dtype == numpy.float16:
-            self.check_forward_optionss = {'atol': 1e-3, 'rtol': 1e-2}
-            self.check_backward_optionss = {'atol': 5e-1, 'rtol': 1e-1}
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
+            self.check_backward_options = {'atol': 5e-1, 'rtol': 1e-1}
         elif self.dtype == numpy.float32:
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
@@ -108,7 +108,7 @@ class BatchNormalizationTest(unittest.TestCase):
             self.x, self.mean, self.projection, self.groups))
 
         testing.assert_allclose(
-            y_expect, y.data, **self.check_forward_optionss)
+            y_expect, y.data, **self.check_forward_options)
 
     @condition.retry(3)
     def test_forward_cpu(self):
@@ -123,7 +123,7 @@ class BatchNormalizationTest(unittest.TestCase):
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
             self.link, x_data, y_grad, (),
-            eps=1e-2, **self.check_backward_optionss)
+            eps=1e-2, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
