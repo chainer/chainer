@@ -46,7 +46,7 @@ private:
 };
 
 void InitXchainerDeviceBuffer(pybind11::module& m) {
-    py::class_<PyDeviceBuffer> c{m, "DeviceBuffer", py::buffer_protocol()};
+    py::class_<PyDeviceBuffer> c{m, "_DeviceBuffer", py::buffer_protocol()};
     c.def(py::init([](const py::list& list, const py::tuple& shape_tup, const py::handle& dtype_handle, const py::handle& device) {
               Shape shape = ToShape(shape_tup);
               int64_t total_size = shape.GetTotalSize();
