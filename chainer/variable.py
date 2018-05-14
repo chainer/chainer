@@ -1090,17 +1090,15 @@ Actual: {0}'''.format(type(data))
                 hook.backward_postprocess(func, in_data, out_grad_data)
 
             if is_debug:
-                # TODO(kataoka): wip
                 for gx in gxs:
-                    if gx is None:
-                        continue
-                    gx_data = gx.data
-                    if gx_data.dtype.kind == 'f':
-                        cuda.get_device_from_array(gx_data).use()
-                        if cuda.get_array_module(gx_data).isnan(gx_data).any():
-                            raise RuntimeError(
-                                'NaN is detected on backward computation of '
-                                '{}'.format(func.label))
+                    for gx_elem in gx:
+                        gx_data = gx_elem.data
+                        if gx_data.dtype.kind == 'f':
+                            cuda.get_device_from_array(gx_data).use()
+                            if cuda.get_array_module(gx_data).isnan(gx_data).any():
+                                raise RuntimeError(
+                                    'NaN is detected on backward computation of '
+                                    '{}'.format(func.label))
 
             if not retain_grad:
                 for y in outputs:
@@ -1122,13 +1120,15 @@ Actual: {0}'''.format(type(data))
                     _check_grad_type(func, x, gx_elem.data)
 
                 if x.creator is None or not func.lazy_grad_sum:
-                    gx_strict = normalize(gx)
+                    gx_to_set = normalize(gx)
+                else:
+                    gx_to_set = gx
 
                 grads[x] = gx
 
                 x_var = x.get_variable_or_none()
                 if x_var is not None:
-                    x_var._grad_var = gx
+                    x_var._grad_var = gx_to_set
                     x_var._loss_scale = loss_scale
 
                 if x.creator_node is not None:
