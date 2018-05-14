@@ -1,14 +1,15 @@
 import unittest
 
 import numpy
-from scipy import special
 
+import chainer
 from chainer.backends import cuda
 import chainer.functions as F
 from chainer import testing
 
 
 def _erfinv_cpu(x, dtype):
+    from scipy import special
     return numpy.vectorize(special.erfinv, otypes=[dtype])(x)
 
 
@@ -38,8 +39,28 @@ def make_data(shape, dtype):
     backward_options={'eps': 1e-5},
     double_backward_options={'eps': 1e-5}
 )
+@testing.with_requires('scipy')
 class TestErfinv(unittest.TestCase):
     pass
+
+
+@testing.parameterize(*testing.product({
+    'shape': [(3, 2), ()],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+}))
+@testing.without_requires('scipy')
+class TestLGammaExceptions(unittest.TestCase):
+    def setUp(self):
+        self.x, self.gy, self.ggx = make_data(self.shape, self.dtype)
+        self.func = F.erfinv
+
+    def check_forward(self, x_data):
+        x = chainer.Variable(x_data)
+        with self.assertRaises(ImportError):
+            self.func(x)
+
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
 
 
 testing.run_module(__name__, __file__)
