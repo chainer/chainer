@@ -33,6 +33,19 @@ Updaters
    chainer.training.updaters.ParallelUpdater
    chainer.training.updaters.MultiprocessParallelUpdater
 
+We have two kinds of updaters for multi-gpus training. The pros/cons for the updaters are as follows:
+
+ParallelUpdater:
+* (+) Can use the same iterator for any number of GPUs
+* (-) No parallelism at CPU side
+* (-) GPUs used later may be blocked due to the limit of kernel-launch queue size
+
+MultiprocessParallelUpdater:
+* (+) Parallelism at CPU side
+* (+) No degrade due to kernel launch queue size
+* (-) Need per-process data iterator
+* (-) Reporter cannot collect data except for one of the devices
+
 .. _extensions:
 
 Extensions
