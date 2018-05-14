@@ -1,6 +1,7 @@
 from chainer import distributions
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
+from chainer.functions.math import basic_math
 from chainer.functions.math import exponential
 from chainer.functions.math import digamma
 from chainer.functions.math import lgamma
@@ -134,6 +135,14 @@ def _kl_gumbel_gumbel(dist1, dist2):
         + exponential.exp((dist2.loc - dist1.loc) / dist2.scale
                           + lgamma.lgamma(dist1.scale / dist2.scale + 1.)) \
         - 1 + (dist1.loc - dist2.loc) / dist2.scale
+
+
+@register_kl(distributions.Laplace, distributions.Laplace)
+def _kl_laplace_laplace(dist1, dist2):
+    diff = basic_math.absolute(dist1.loc - dist2.loc)
+    return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
+        + diff / dist2.scale \
+        + dist1.scale / dist2.scale * exponential.exp(- diff / dist1.scale) - 1
 
 
 @register_kl(distributions.Normal, distributions.Normal)
