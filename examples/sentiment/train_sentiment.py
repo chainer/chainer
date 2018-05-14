@@ -56,8 +56,8 @@ class RecursiveNet(chainer.Chain):
             accum_loss += loss
 
         reporter.report({'loss': accum_loss}, self)
-        reporter.report({'total': result['total']}, self)
-        reporter.report({'correct': result['correct']}, self)
+        reporter.report({'total': result['total_node']}, self)
+        reporter.report({'correct': result['correct_node']}, self)
         return accum_loss
 
     def leaf(self, x):
@@ -69,7 +69,7 @@ class RecursiveNet(chainer.Chain):
     def label(self, v):
         return self.w(v)
 
-    def traverse(self, node, evaluate):
+    def traverse(self, node, evaluate, root=True):
         if isinstance(node['node'], int):
             # leaf node
             word = self.xp.array([node['node']], np.int32)
@@ -78,8 +78,10 @@ class RecursiveNet(chainer.Chain):
         else:
             # internal node
             left_node, right_node = node['node']
-            left_loss, left = self.traverse(left_node, evaluate=evaluate)
-            right_loss, right = self.traverse(right_node, evaluate=evaluate)
+            left_loss, left = self.traverse(
+                left_node, evaluate=evaluate, root=False)
+            right_loss, right = self.traverse(
+                right_node, evaluate=evaluate, root=False)
             v = self.node(left, right)
             loss = left_loss + right_loss
 
@@ -91,8 +93,13 @@ class RecursiveNet(chainer.Chain):
 
         predict = cuda.to_cpu(y.data.argmax(1))
         if predict[0] == node['label']:
-            evaluate['correct'] += 1
-        evaluate['total'] += 1
+            evaluate['correct_node'] += 1
+        evaluate['total_node'] += 1
+
+        if root:
+            if predict[0] == node['label']:
+                evaluate['correct_root'] += 1
+            evaluate['total_root'] += 1
 
         return loss, v
 
