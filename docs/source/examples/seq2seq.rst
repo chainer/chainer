@@ -329,7 +329,7 @@ depicted in the above figure.
 
 * ``self.encoder`` and ``self.decoder`` are the encoder and the decoder of the
   seq2seq model. Each element of the decoder output ``os`` is
-  :math:`h_{[1:J] }^{(t)}` in the figure above.
+  :math:`h_{[1:J]}^{(t)}` in the figure above.
 * After calculating the recurrent layer output, the loss ``loss`` and the
   perplexity ``perp`` are calculated, and the values are logged by
   :class:`chainer.report`.
