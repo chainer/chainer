@@ -212,7 +212,8 @@ TEST_P(CreationTest, FromContiguousHostData) {
 namespace {
 
 template <typename T>
-void CheckFromDataAttributes(const Array& x, const Shape& shape, Dtype dtype, const Strides& strides, int64_t offset) {
+void CheckFromData(
+        const Array& x, const Shape& shape, Dtype dtype, const Strides& strides, int64_t offset, const T* raw_data, const void* data_ptr) {
     EXPECT_EQ(shape, x.shape());
     EXPECT_EQ(dtype, x.dtype());
     EXPECT_EQ(strides, x.strides());
@@ -223,6 +224,9 @@ void CheckFromDataAttributes(const Array& x, const Shape& shape, Dtype dtype, co
     EXPECT_EQ(offset, x.offset());
     EXPECT_EQ(internal::IsContiguous(shape, strides, GetItemSize(dtype)), x.IsContiguous());
     EXPECT_EQ(&GetDefaultDevice(), &x.device());
+
+    testing::ExpectDataEqual<T>(raw_data, x);
+    EXPECT_EQ(data_ptr, x.data().get());
 }
 
 }  // namespace
@@ -250,10 +254,7 @@ TEST_P(CreationTest, FromData) {
         x = FromData(shape, dtype, data, strides, offset);
     }
 
-    CheckFromDataAttributes<T>(x, shape, dtype, strides, offset);
-
-    testing::ExpectDataEqual<T>(sub_raw_data, x);
-    EXPECT_EQ(data_ptr, x.data().get());
+    CheckFromData<T>(x, shape, dtype, strides, offset, sub_raw_data, data_ptr);
 }
 
 TEST_P(CreationTest, FromData_Contiguous) {
@@ -280,10 +281,7 @@ TEST_P(CreationTest, FromData_Contiguous) {
         x = FromData(shape, dtype, data, nonstd::nullopt, offset);
     }
 
-    CheckFromDataAttributes<T>(x, shape, dtype, strides, offset);
-
-    testing::ExpectDataEqual<T>(sub_raw_data, x);
-    EXPECT_EQ(data_ptr, x.data().get());
+    CheckFromData<T>(x, shape, dtype, strides, offset, sub_raw_data, data_ptr);
 }
 
 // TODO(sonots): Checking `MakeDataFromForeignPointer` called is enough as a unit-test here. Use mock library if it becomes available.
