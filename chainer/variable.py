@@ -6,6 +6,7 @@ import warnings
 import weakref
 
 import numpy
+import six
 
 import chainer
 from chainer.backends import cuda
@@ -1104,12 +1105,11 @@ Actual: {0}'''.format(type(data))
                                 'NaN is detected on backward computation of '
                                 '{}'.format(func.label))
 
-            if not retain_grad:
-                for y in outputs:
-                    if y is not None and y is not self.node:
-                        y_var = y.get_variable_or_none()
-                        if y_var is not None:
-                            y_var._grad_var = None
+            for y, gy in six.moves.zip(outputs, out_grad):
+                if y is not None and y is not self.node:
+                    y_var = y.get_variable_or_none()
+                    if y_var is not None:
+                        y_var._grad_var = gy if retain_grad else None
 
             for i, gx in enumerate(gxs):
                 if not gx:
@@ -1122,19 +1122,17 @@ Actual: {0}'''.format(type(data))
                 for gx_elem in gx:
                     _check_grad_type(func, x, gx_elem.data)
 
-                if x.creator is None or not func.lazy_grad_sum:
-                    gx_to_set = normalize(gx)
-                else:
-                    gx_to_set = gx
+                if not func.lazy_grad_sum:
+                    normalize(gx)
 
                 grads[x] = gx
 
-                x_var = x.get_variable_or_none()
-                if x_var is not None:
-                    x_var._grad_var = gx_to_set
-                    x_var._loss_scale = loss_scale
-
-                if x.creator_node is not None:
+                if x.creator_node is None:
+                    x_var = x.get_variable_or_none()
+                    if x_var is not None:
+                        x_var._grad_var = normalize(gx)
+                        x_var._loss_scale = loss_scale
+                else:
                     add_cand(x.creator_node)
 
             del gxs  # to reduce memory usage
