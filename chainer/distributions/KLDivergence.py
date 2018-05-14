@@ -178,3 +178,11 @@ def _kl_normal_normal(dist1, dist2):
     return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
         + 0.5 * (dist1.scale ** 2 + (dist1.loc - dist2.loc) ** 2) \
         / dist2.scale ** 2 - 0.5
+
+
+@register_kl(distributions.Pareto, distributions.Pareto)
+def _kl_pareto_pareto(dist1, dist2):
+    return dist2.alpha * (exponential.log(dist1.scale)
+                          - exponential.log(dist2.scale)) \
+        + exponential.log(dist1.alpha) - exponential.log(dist2.alpha) \
+        + (dist2.alpha - dist1.alpha) / dist1.alpha

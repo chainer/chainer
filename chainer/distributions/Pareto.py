@@ -66,16 +66,19 @@ class Pareto(Distribution):
             Output variable representing logarithm of probability.
 
         """
+        if not isinstance(x, chainer.Variable):
+            x = chainer.Variable(x)
+
         ba = broadcast.broadcast_to(self.alpha, x.shape)
         bs = broadcast.broadcast_to(self.scale, x.shape)
         if self._is_gpu:
-            valid = cuda.cupy.zeros_like(x)
-            inf = cuda.cupy.zeros_like(x)
+            valid = cuda.cupy.zeros(x.shape)
+            inf = cuda.cupy.zeros(x.shape)
         else:
-            valid = numpy.zeros_like(x)
-            inf = numpy.zeros_like(x)
-        valid[x >= self.scale.data] = 1
-        inf[x < self.scale.data] = numpy.inf
+            valid = numpy.zeros(x.shape)
+            inf = numpy.zeros(x.shape)
+        valid[x.data >= self.scale.data] = 1
+        inf[x.data < self.scale.data] = numpy.inf
         return (exponential.log(ba)
                 + ba * exponential.log(bs)
                 - (ba + 1) * exponential.log(x)) * valid - inf

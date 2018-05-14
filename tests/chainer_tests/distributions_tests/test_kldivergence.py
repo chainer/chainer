@@ -117,6 +117,14 @@ class TestKLDivergence(unittest.TestCase):
             {"loc": loc, "scale_tril": scale_tril}, is_gpu)
         return distributions.MultivariateNormal(**params)
 
+    def make_pareto_dist(self, is_gpu=False):
+        scale = numpy.exp(numpy.random.uniform(
+            1, 1, self.shape)).astype(numpy.float32)
+        alpha = numpy.exp(numpy.random.uniform(
+            -1, 1, self.shape)).astype(numpy.float32)
+        params = self.encode_params({"scale": scale, "alpha": alpha}, is_gpu)
+        return distributions.Pareto(**params)
+
     def test_bernoulli_bernoulli_cpu(self):
         dist1 = self.make_bernoulli_dist()
         dist2 = self.make_bernoulli_dist()
@@ -236,4 +244,15 @@ class TestKLDivergence(unittest.TestCase):
     def test_multivariatenormal_multivariatenormal_gpu(self):
         dist1 = self.make_multivariatenormal_dist(True)
         dist2 = self.make_multivariatenormal_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_pareto_pareto_cpu(self):
+        dist1 = self.make_pareto_dist()
+        dist2 = self.make_pareto_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_pareto_pareto_gpu(self):
+        dist1 = self.make_pareto_dist(True)
+        dist2 = self.make_pareto_dist(True)
         self.check_kl(dist1, dist2)
