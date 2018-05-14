@@ -13,8 +13,8 @@ except ImportError:
     _scipy_available = False
 
 
-def _sparse_matmul(sp_data, sp_row, sp_col, sp_shape, dn,
-                   transa, transb, transc, dtype=None):
+def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, dn, transa, transb, transc,
+                dtype=None):
     if dtype is None:
         dtype = numpy.result_type(sp_data.dtype, dn.dtype)
 
@@ -34,16 +34,16 @@ def _sparse_matmul(sp_data, sp_row, sp_col, sp_shape, dn,
 
     xp = cuda.get_array_module(A_data, B)
     if xp is numpy:
-        C = _sparse_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype)
+        C = _coo_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype)
     else:
-        C = _sparse_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype)
+        C = _coo_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype)
 
     if transc:
         C = C.swapaxes(-1, -2)
     return C
 
 
-def _sparse_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype):
+def _coo_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype):
     # A_shape: (_m, _k)
     # B.shape: ((nb,) _k, _n)
     # A_data/row/col.shape: ((nb,) ldnz)
@@ -71,7 +71,7 @@ def _sparse_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype):
     return C
 
 
-def _sparse_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype):
+def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype):
     cupy_dtype = dtype
     if cupy_dtype == numpy.float16:
         cupy_dtype = numpy.float32
@@ -91,13 +91,13 @@ def _sparse_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype):
         C = cuda.cupy.zeros((nb, _m, _n), dtype=cupy_dtype)
 
     nthreads = nb * ldnz * _n
-    _cupy_sparse_matmul()(nb, _m, _n, _k, ldnz, A_data, A_row, A_col,
-                          B, C, size=nthreads)
+    _cupy_coo_matmul()(nb, _m, _n, _k, ldnz, A_data, A_row, A_col, B, C,
+                       size=nthreads)
 
     return C.astype(dtype, copy=False)
 
 
-def _cupy_sparse_matmul():
+def _cupy_coo_matmul():
     return cuda.cupy.ElementwiseKernel(
         'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, \
          raw A A_data, raw T A_row, raw T A_col, \
@@ -130,11 +130,10 @@ def _cupy_sparse_matmul():
         'sparse_matmul')
 
 
-class SparseMatMul(function_node.FunctionNode):
+class CooMatMul(function_node.FunctionNode):
 
     def __init__(self, sp_row, sp_col, sp_shape,
-                 transa=False, transb=False, transc=False,
-                 dtype=None):
+                 transa=False, transb=False, transc=False, dtype=None):
         if sp_row.ndim != sp_col.ndim:
             raise ValueError('ndim of sp_row and sp_col must be the same.')
         if sp_row.ndim != 1 and sp_row.ndim != 2:
@@ -183,8 +182,8 @@ class SparseMatMul(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         sp, dn = inputs
-        c = _sparse_matmul(sp, self.sp_row, self.sp_col, self.sp_shape, dn,
-                           self.transa, self.transb, self.transc, self.dtype)
+        c = _coo_matmul(sp, self.sp_row, self.sp_col, self.sp_shape, dn,
+                        self.transa, self.transb, self.transc, self.dtype)
         return utils.force_array(c, self.dtype),
 
     def backward(self, indexes, grad_outputs):
@@ -192,21 +191,20 @@ class SparseMatMul(function_node.FunctionNode):
         g_c, = grad_outputs
         ret = []
         if 0 in indexes:
-            g_sp = SparseMatMulGradSP(self.sp_row, self.sp_col, self.sp_shape,
-                                      self.transc, not self.transb,
-                                      self.transa,
-                                      dtype=sp.dtype).apply((g_c, dn))[0]
+            g_sp = CooMatMulGradSP(self.sp_row, self.sp_col, self.sp_shape,
+                                   self.transc, not self.transb, self.transa,
+                                   dtype=sp.dtype).apply((g_c, dn))[0]
             ret.append(g_sp)
         if 1 in indexes:
-            g_dn = SparseMatMul(self.sp_row, self.sp_col, self.sp_shape,
-                                not self.transa, self.transc, self.transb,
-                                dtype=dn.dtype).apply((sp, g_c))[0]
+            g_dn = CooMatMul(self.sp_row, self.sp_col, self.sp_shape,
+                             not self.transa, self.transc, self.transb,
+                             dtype=dn.dtype).apply((sp, g_c))[0]
             ret.append(g_dn)
         return ret
 
 
-def _sparse_matmul_gradsp(a, b, c_row, c_col, c_shape,
-                          transa, transb, transc, dtype):
+def _coo_matmul_gradsp(a, b, c_row, c_col, c_shape, transa, transb, transc,
+                       dtype):
     if dtype is None:
         dtype = numpy.result_type(a.dtype, b.dtype)
 
@@ -227,12 +225,12 @@ def _sparse_matmul_gradsp(a, b, c_row, c_col, c_shape,
 
     xp = cuda.get_array_module(A, B)
     if xp is numpy:
-        return _sparse_matmul_gradsp_cpu(A, B, C_row, C_col, dtype)
+        return _coo_matmul_gradsp_cpu(A, B, C_row, C_col, dtype)
     else:
-        return _sparse_matmul_gradsp_gpu(A, B, C_row, C_col, dtype)
+        return _coo_matmul_gradsp_gpu(A, B, C_row, C_col, dtype)
 
 
-def _sparse_matmul_gradsp_cpu(A, B, C_row, C_col, dtype):
+def _coo_matmul_gradsp_cpu(A, B, C_row, C_col, dtype):
     # A.shape: ((nb,) _m, _k)
     # B.shape: ((nb,) _k, _n)
     # C_row/col.shape: ((nb,) ldnz)
@@ -259,7 +257,7 @@ def _sparse_matmul_gradsp_cpu(A, B, C_row, C_col, dtype):
     return C_data
 
 
-def _sparse_matmul_gradsp_gpu(A, B, C_row, C_col, dtype):
+def _coo_matmul_gradsp_gpu(A, B, C_row, C_col, dtype):
     # A.shape: ((nb,) _m, _k)
     # B.shape: ((nb,) _k, _n)
     # C_row/col.shape: ((nb,) ldnz)
@@ -274,13 +272,13 @@ def _sparse_matmul_gradsp_gpu(A, B, C_row, C_col, dtype):
         C_data = cuda.cupy.zeros((nb, ldnz), dtype=dtype)
 
     nthreads = nb * ldnz
-    _cupy_sparse_matmul_gradsp()(nb, _m, _n, _k, ldnz, A, B,
-                                 C_data, C_row, C_col, size=nthreads)
+    _cupy_coo_matmul_gradsp()(nb, _m, _n, _k, ldnz, A, B, C_data, C_row, C_col,
+                              size=nthreads)
 
     return C_data
 
 
-def _cupy_sparse_matmul_gradsp():
+def _cupy_coo_matmul_gradsp():
     return cuda.cupy.ElementwiseKernel(
         'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, \
          raw A _A, raw B _B, \
@@ -316,7 +314,7 @@ def _cupy_sparse_matmul_gradsp():
         'sparse_matmul_gradsp')
 
 
-class SparseMatMulGradSP(function_node.FunctionNode):
+class CooMatMulGradSP(function_node.FunctionNode):
 
     def __init__(self, sp_row, sp_col, sp_shape,
                  transa=False, transb=False, transc=False,
@@ -373,10 +371,9 @@ class SparseMatMulGradSP(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         a, b = inputs
-        c = _sparse_matmul_gradsp(a, b,
-                                  self.sp_row, self.sp_col, self.sp_shape,
-                                  self.transa, self.transb, self.transc,
-                                  self.dtype)
+        c = _coo_matmul_gradsp(a, b, self.sp_row, self.sp_col, self.sp_shape,
+                               self.transa, self.transb, self.transc,
+                               self.dtype)
         return utils.force_array(c),
 
     def backward(self, indexes, grad_outputs):
@@ -384,14 +381,14 @@ class SparseMatMulGradSP(function_node.FunctionNode):
         g_sp, = grad_outputs
         ret = []
         if 0 in indexes:
-            g_a = SparseMatMul(self.sp_row, self.sp_col, self.sp_shape,
-                               self.transc, not self.transb, self.transa,
-                               dtype=a.dtype).apply((g_sp, b))[0]
+            g_a = CooMatMul(self.sp_row, self.sp_col, self.sp_shape,
+                            self.transc, not self.transb, self.transa,
+                            dtype=a.dtype).apply((g_sp, b))[0]
             ret.append(g_a)
         if 1 in indexes:
-            g_b = SparseMatMul(self.sp_row, self.sp_col, self.sp_shape,
-                               not self.transc, self.transa, not self.transb,
-                               dtype=b.dtype).apply((g_sp, a))[0]
+            g_b = CooMatMul(self.sp_row, self.sp_col, self.sp_shape,
+                            not self.transc, self.transa, not self.transb,
+                            dtype=b.dtype).apply((g_sp, a))[0]
             ret.append(g_b)
         return ret
 
@@ -415,16 +412,16 @@ def sparse_matmul(a, b, transa=False, transb=False):
     """
     if (isinstance(a, utils.CooMatrix) and
             isinstance(b, (chainer.Variable, numpy.ndarray, cuda.ndarray))):
-        return SparseMatMul(a.row, a.col, a.shape,
-                            transa=transa,
-                            transb=transb,
-                            transc=False).apply((a.data, b))[0]
+        return CooMatMul(a.row, a.col, a.shape,
+                         transa=transa,
+                         transb=transb,
+                         transc=False).apply((a.data, b))[0]
     elif (isinstance(a, (chainer.Variable, numpy.ndarray, cuda.ndarray)) and
           isinstance(b, utils.CooMatrix)):
-        return SparseMatMul(b.row, b.col, b.shape,
-                            transa=not transb,
-                            transb=not transa,
-                            transc=True).apply((b.data, a))[0]
+        return CooMatMul(b.row, b.col, b.shape,
+                         transa=not transb,
+                         transb=not transa,
+                         transc=True).apply((b.data, a))[0]
     else:
         msg = 'This combination of type of inputs is not supported.\n'
         msg += '    a: {}\n'.format(type(a))

@@ -50,7 +50,7 @@ def _setup_tensor(_min, _max, shape, dtype, threshold=None):
         {'b_dtype': numpy.float64},
     ]
 ))
-class TestSparseMatMul(unittest.TestCase):
+class TestCooMatMul(unittest.TestCase):
 
     def setUp(self):
         a_shape = self._set_shape([self.m, self.k], self.transa)
@@ -113,7 +113,7 @@ class TestSparseMatMul(unittest.TestCase):
 
     def check_SPDN_backward(self, a_data, b_data, c_grad, atol, rtol):
         sp_a = utils.to_coo(a_data)
-        func = F.math.sparse_matmul.SparseMatMul(
+        func = F.math.sparse_matmul.CooMatMul(
             sp_a.row, sp_a.col, sp_a.shape,
             transa=self.transa, transb=self.transb, transc=False)
 
@@ -140,7 +140,7 @@ class TestSparseMatMul(unittest.TestCase):
             atol, rtol):
         sp_a = utils.to_coo(a_data)
         sp_gga = utils.to_coo(a_grad_grad)
-        func = F.math.sparse_matmul.SparseMatMul(
+        func = F.math.sparse_matmul.CooMatMul(
             sp_a.row, sp_a.col, sp_a.shape,
             transa=self.transa, transb=self.transb, transc=False)
 
@@ -193,7 +193,7 @@ class TestSparseMatMul(unittest.TestCase):
 
     def check_DNSP_backward(self, a_data, b_data, c_grad, atol, rtol):
         sp_b = utils.to_coo(b_data)
-        func = F.math.sparse_matmul.SparseMatMul(
+        func = F.math.sparse_matmul.CooMatMul(
             sp_b.row, sp_b.col, sp_b.shape,
             transa=not self.transb, transb=not self.transa, transc=True)
 
@@ -220,7 +220,7 @@ class TestSparseMatMul(unittest.TestCase):
             atol, rtol):
         sp_b = utils.to_coo(b_data)
         sp_ggb = utils.to_coo(b_grad_grad)
-        func = F.math.sparse_matmul.SparseMatMul(
+        func = F.math.sparse_matmul.CooMatMul(
             sp_b.row, sp_b.col, sp_b.shape,
             transa=not self.transb, transb=not self.transa, transc=True)
 
@@ -254,7 +254,7 @@ class TestSparseMatMul(unittest.TestCase):
         {'transb': False}, {'transb': True},
     ],
 ))
-class TestSparseMatMulInvalid(unittest.TestCase):
+class TestCooMatMulInvalid(unittest.TestCase):
 
     def test_invalid_ndim(self):
         a = _setup_tensor(.5, 1, (2, 3, 3), numpy.float32, .75)
