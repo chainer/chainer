@@ -3,7 +3,6 @@ import unittest
 from chainer import distributions
 from chainer import testing
 import numpy
-from scipy import stats
 
 
 def params_init(shape):
@@ -24,7 +23,7 @@ tests = set(["batch_shape", "cdf", "entropy", "event_shape", "icdf",
              "sample", "stddev", "support", "survival", "variance"])
 
 
-@testing.distribution_unittest(distributions.Normal, stats.norm,
+@testing.distribution_unittest(distributions.Normal, 'norm',
                                params_init, sample_for_test,
                                tests=tests)
 class TestNormal(unittest.TestCase):
