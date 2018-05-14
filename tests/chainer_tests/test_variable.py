@@ -1903,6 +1903,8 @@ class TestLazyGradSum(unittest.TestCase):
     def test_backward_cpu(self):
         with chainer.using_config('lazy_grad_sum', False):
             self.check_backward()
+
+    def test_backward_cpu_lazy_grad_sum(self):
         with chainer.using_config('lazy_grad_sum', True):
             self.check_backward()
 
