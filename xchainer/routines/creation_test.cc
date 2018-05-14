@@ -286,6 +286,7 @@ TEST_P(CreationTest, FromData_Contiguous) {
     EXPECT_EQ(data_ptr, x.data().get());
 }
 
+// TODO(sonots): Checking `MakeDataFromForeignPointer` called is enough as a unit-test here. Use mock library if it becomes available.
 #ifdef XCHAINER_ENABLE_CUDA
 TEST(CreationTest, FromData_FromAnotherDevice) {
     Context ctx;
