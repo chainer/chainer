@@ -120,6 +120,13 @@ def _kl_gamma_gamma(dist1, dist2):
         + dist1.k * dist1.theta / dist2.theta
 
 
+@register_kl(distributions.Geometric, distributions.Geometric)
+def _kl_geometric_geometric(dist1, dist2):
+    return (1 / dist1.p - 1)\
+        * (exponential.log(1 - dist1.p) - exponential.log(1 - dist2.p)) \
+        + exponential.log(dist1.p) - exponential.log(dist2.p)
+
+
 @register_kl(distributions.Gumbel, distributions.Gumbel)
 def _kl_gumbel_gumbel(dist1, dist2):
     return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
