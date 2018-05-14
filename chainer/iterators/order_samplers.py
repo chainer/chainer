@@ -37,8 +37,9 @@ class ShuffleOrderSampler(OrderSampler):
     This is expected to be used together with Chainer's iterators.
     An order sampler is called by an iterator every epoch.
 
-    The two lines below create basically the same objects.
+    The two initializations below create basically the same objects.
 
+    >>> dataset = chainer.datasets.get_mnist()[0]
     >>> chainer.iterators.MultiprocessIterator(dataset, 1, shuffle=True)
     >>> chainer.iterators.MultiprocessIterator(
     ...     dataset, 1, order_sampler=chainer.iterators.ShuffleOrderSampler())
