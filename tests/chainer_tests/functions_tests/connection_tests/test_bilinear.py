@@ -155,6 +155,27 @@ class TestBilinearFunction(unittest.TestCase):
              cuda.to_gpu(self.ggb)), **self.check_double_backward_options)
 
 
+@attr.slow
+class TestBilinearFunctionLarge(unittest.TestCase):
+
+    def setUp(self):
+        self.e1 = _uniform(256, 256)
+        self.e2 = _uniform(256, 256)
+        self.w = _uniform(256, 256, 256)
+        self.v1 = _uniform(256, 256)
+        self.v2 = _uniform(256, 256)
+        self.b = _uniform(256)
+
+    def test_cpu(self):
+        chainer.functions.bilinear(
+            self.e1, self.e2, self.w, self.v1, self.v2, self.b)
+
+    @attr.gpu
+    def test_gpu(self):
+        chainer.functions.bilinear(*map(cuda.to_gpu, (
+            self.e1, self.e2, self.w, self.v1, self.v2, self.b)))
+
+
 class TestBilinearFunctionInvalidArgument(unittest.TestCase):
 
     def setUp(self):
