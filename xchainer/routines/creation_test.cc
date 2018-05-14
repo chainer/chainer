@@ -225,7 +225,7 @@ void CheckFromData(
     EXPECT_EQ(internal::IsContiguous(shape, strides, GetItemSize(dtype)), x.IsContiguous());
     EXPECT_EQ(&GetDefaultDevice(), &x.device());
 
-    testing::ExpectDataEqual<T>(raw_data, x);
+    testing::ExpectDataEqual<T>(expected_value, x);
     EXPECT_EQ(data_ptr, x.data().get());
 }
 
@@ -246,7 +246,7 @@ TEST_P(CreationTest, FromData) {
     int64_t offset = sizeof(T);
 
     Array x;
-    void* data_ptr;
+    void* data_ptr{};
     {
         // test potential freed memory
         std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
@@ -272,7 +272,7 @@ TEST_P(CreationTest, FromData_Contiguous) {
     int64_t offset = sizeof(T) * 3;
 
     Array x;
-    void* data_ptr;
+    void* data_ptr{};
     {
         // test potential freed memory
         std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
