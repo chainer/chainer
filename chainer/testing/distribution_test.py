@@ -19,7 +19,7 @@ def check_available():
 Reason: {}: {}'''.format(__name__, type(_error).__name__, _error))
 
 
-def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
+def distribution_unittest(dist, scipy_dist_name, params_init, sample_for_test,
                           tests=set(), continuous=True, support="real",
                           event_shape=(), scipy_onebyone=False):
     check_available()
@@ -30,8 +30,9 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
         assert issubclass(klass, unittest.TestCase)
 
         def setUp(self):
+            from scipy import stats
             self.dist = dist
-            self.scipy_dist = scipy_dist
+            self.scipy_dist = stats.__dict__[scipy_dist_name]
             self.params, self.scipy_params = params_init(self.shape)
             if self.is_variable:
                 self.params = {k: chainer.Variable(v)
@@ -430,5 +431,5 @@ def distribution_unittest(dist, scipy_dist, params_init, sample_for_test,
             'shape': [(3, 2), (1,)],
             'is_variable': [True, False],
             'smp_shape': [(3, 2), ()],
-        }))(testing.fix_random()(klass))
+            }))(testing.with_requires('scipy')(testing.fix_random()(klass)))
     return f
