@@ -64,31 +64,44 @@ TEST(CudaDeviceTest, MakeDataFromForeignPointer) {
     Context ctx;
     CudaBackend backend{ctx};
     CudaDevice device{backend, 0};
-    size_t size = 3;
 
-    {
-        std::shared_ptr<void> cuda_data = device.Allocate(size);
-        EXPECT_EQ(cuda_data.get(), device.MakeDataFromForeignPointer(cuda_data).get());
-    }
-    {
-        std::shared_ptr<void> cpu_data = std::make_unique<uint8_t[]>(size);
-        EXPECT_THROW(device.MakeDataFromForeignPointer(cpu_data), XchainerError) << "must throw an exception if non CUDA memory is given";
-    }
-    {
-        void* raw_ptr = nullptr;
-        cuda::CheckCudaError(cudaMalloc(&raw_ptr, size));
-        auto cuda_data = std::shared_ptr<void>{raw_ptr, cudaFree};
-        EXPECT_THROW(device.MakeDataFromForeignPointer(cuda_data), XchainerError)
-                << "must throw an exception if non-managed CUDA memory is given";
-    }
+    std::shared_ptr<void> cuda_data = device.Allocate(3);
+    EXPECT_EQ(cuda_data.get(), device.MakeDataFromForeignPointer(cuda_data).get());
+}
+
+TEST(CudaDeviceTest, MakeDataFromForeignPointer_NonCudaMemory) {
+    Context ctx;
+    CudaBackend backend{ctx};
+    CudaDevice device{backend, 0};
+
+    std::shared_ptr<void> cpu_data = std::make_unique<uint8_t[]>(3);
+    EXPECT_THROW(device.MakeDataFromForeignPointer(cpu_data), XchainerError) << "must throw an exception if non CUDA memory is given";
+}
+
+TEST(CudaDeviceTest, MakeDataFromForeignPointer_NonUnifiedMemory) {
+    Context ctx;
+    CudaBackend backend{ctx};
+    CudaDevice device{backend, 0};
+
+    void* raw_ptr = nullptr;
+    cuda::CheckCudaError(cudaMalloc(&raw_ptr, 3));
+    auto cuda_data = std::shared_ptr<void>{raw_ptr, cudaFree};
+    EXPECT_THROW(device.MakeDataFromForeignPointer(cuda_data), XchainerError)
+        << "must throw an exception if non-managed CUDA memory is given";
+}
+
+TEST(CudaDeviceTest, MakeDataFromForeignPointer_FromAnotherDevice) {
+    Context ctx;
+    CudaBackend backend{ctx};
 
     XCHAINER_REQUIRE_DEVICE(backend, 2);
-    {
-        CudaDevice another_device{backend, 1};
-        std::shared_ptr<void> cuda_data = another_device.Allocate(size);
-        EXPECT_THROW(device.MakeDataFromForeignPointer(cuda_data), XchainerError)
-                << "must throw an exception if CUDA memory resides on another device";
-    }
+
+    CudaDevice device{backend, 0};
+    CudaDevice another_device{backend, 1};
+
+    std::shared_ptr<void> cuda_data = another_device.Allocate(3);
+    EXPECT_THROW(device.MakeDataFromForeignPointer(cuda_data), XchainerError)
+        << "must throw an exception if CUDA memory resides on another device";
 }
 
 TEST(CudaDeviceTest, FromHostMemory) {
