@@ -11,10 +11,12 @@ import six
 import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
-from chainer.functions.math.basic_math import add as F_add
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
+
+
+_add = None
 
 
 def _check_grad_type(func, x, gx):
@@ -961,6 +963,10 @@ Actual: {0}'''.format(type(data))
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
+        global _add
+        if _add is None:
+            from chainer.functions import add
+            _add = add
         with chainer.using_config('enable_backprop', enable_double_backprop):
             self._backward_main(retain_grad, loss_scale)
 
@@ -1013,7 +1019,7 @@ Actual: {0}'''.format(type(data))
             if not grad_list:
                 return None
             if len(grad_list) >= 2:
-                grad_list[:] = [F_add(*grad_list)]
+                grad_list[:] = [_add(*grad_list)]
             return grad_list[0]
 
         def pure(grad):
