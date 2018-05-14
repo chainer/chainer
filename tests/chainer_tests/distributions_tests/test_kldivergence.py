@@ -74,6 +74,12 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"lam": lam}, is_gpu)
         return distributions.Exponential(**params)
 
+    def make_gamma_dist(self, is_gpu=False):
+        k = numpy.random.uniform(1, 5, self.shape).astype(numpy.float32)
+        theta = numpy.random.uniform(0, 5, self.shape).astype(numpy.float32)
+        params = self.encode_params({"k": k, "theta": theta}, is_gpu)
+        return distributions.Gamma(**params)
+
     def make_normal_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
@@ -134,6 +140,17 @@ class TestKLDivergence(unittest.TestCase):
     def test_exponential_exponential_gpu(self):
         dist1 = self.make_exponential_dist(True)
         dist2 = self.make_exponential_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_gamma_gamma_cpu(self):
+        dist1 = self.make_gamma_dist()
+        dist2 = self.make_gamma_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_gamma_gamma_gpu(self):
+        dist1 = self.make_gamma_dist(True)
+        dist2 = self.make_gamma_dist(True)
         self.check_kl(dist1, dist2)
 
     def test_normal_normal_cpu(self):

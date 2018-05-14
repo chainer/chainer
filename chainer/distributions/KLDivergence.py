@@ -110,6 +110,16 @@ def _kl_exponential_exponential(dist1, dist2):
         + dist2.lam / dist1.lam - 1.
 
 
+@register_kl(distributions.Gamma, distributions.Gamma)
+def _kl_gamma_gamma(dist1, dist2):
+    return (dist1.k - 1.) * digamma.digamma(dist1.k) \
+        - exponential.log(dist1.theta) - dist1.k - lgamma.lgamma(dist1.k) \
+        + lgamma.lgamma(dist2.k) + dist2.k * exponential.log(dist2.theta) \
+        - (dist2.k - 1.) \
+        * (digamma.digamma(dist1.k) + exponential.log(dist1.theta)) \
+        + dist1.k * dist1.theta / dist2.theta
+
+
 @register_kl(distributions.Normal, distributions.Normal)
 def _kl_normal_normal(dist1, dist2):
     return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
