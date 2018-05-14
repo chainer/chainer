@@ -6,6 +6,30 @@ import chainer.functions
 from chainer.utils import type_check
 
 
+class _WhereIndices(function_node.FunctionNode):
+
+    def __init__(self, shape, indices):
+        self.shape = shape
+        self.indices = indices
+
+    def forward(self, inputs):
+        x, = inputs
+        xp = cuda.get_array_module(x)
+        y = xp.zeros(self.shape, x.dtype)
+        y[self.indices] = x
+        return y,
+
+    def backward(self, indices, grad_outputs):
+        g, = grad_outputs
+        return g[self.indices],
+
+
+def _where_indices(shape_and_indices, values):
+    shape, indices = shape_and_indices
+    out, = _WhereIndices(shape, indices).apply((values,))
+    return out
+
+
 class NormalizeL2(function_node.FunctionNode):
 
     """L2 normalization"""
@@ -39,7 +63,11 @@ class NormalizeL2(function_node.FunctionNode):
         norm = F.broadcast_to(norm, gy.shape)
 
         x_gy_reduced = F.sum((x * gy), axis=self.axis, keepdims=True)
-        x_gy_reduced /= norm_noeps
+        nonzero_indices = norm_noeps.array.nonzero()
+        x_gy_reduced = _where_indices(
+            (norm_noeps.shape, nonzero_indices),
+            x_gy_reduced[nonzero_indices] / norm_noeps[nonzero_indices],
+        )
         x_gy_reduced = F.broadcast_to(x_gy_reduced, gy.shape)
         gx = gy * norm - x_gy_reduced * x
         gx = gx / norm ** 2

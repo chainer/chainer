@@ -1,3 +1,4 @@
+import functools
 import unittest
 
 import itertools
@@ -12,6 +13,24 @@ from chainer import testing
 from chainer.testing import attr
 
 
+def _skip_if(cond, reason):
+    def decorator(impl):
+        @functools.wraps(impl)
+        def wrapper(self, *args, **kwargs):
+            if cond(self):
+                raise unittest.SkipTest(reason)
+            else:
+                impl(self, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
+_skip_if_many_zeros = _skip_if(
+    lambda self: self.nonzeros is not None,
+    'known to be indifferentiable'
+)
+
+
 @testing.parameterize(*testing.product([
     [
         {'shape': (4, 15), 'axis': 1},
@@ -23,14 +42,20 @@ from chainer.testing import attr
         {'shape': (4, 3, 2), 'axis': (0, 1)},
     ],
     [
-        {'eps': 1e-5},
-        {'eps': 1e-1},
+        {'eps': 1e-5, 'nonzeros': None},
+        {'eps': 1e-1, 'nonzeros': None},
+        {'eps': 1e-1, 'nonzeros': 0},
+        {'eps': 1e-1, 'nonzeros': 2},
     ],
 ]))
 class TestL2Normalization(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        if self.nonzeros is not None:
+            indices = numpy.array(self.x.nonzero()).T
+            numpy.random.shuffle(indices)
+            self.x[tuple(indices[self.nonzeros:].T)] = 0
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         self.ggx = numpy.random.uniform(
             -1, 1, self.shape).astype(numpy.float32)
@@ -80,6 +105,7 @@ class TestL2Normalization(unittest.TestCase):
         self.check_backward(
             cuda.to_gpu(self.x), self.axis, cuda.to_gpu(self.gy))
 
+    @_skip_if_many_zeros
     def check_double_backward(self, x_data, axis, y_grad, x_grad_grad):
         def f(x):
             return functions.normalize(x, eps=self.eps, axis=axis)
@@ -91,6 +117,7 @@ class TestL2Normalization(unittest.TestCase):
         self.check_double_backward(self.x, self.axis, self.gy, self.ggx)
 
     @attr.gpu
+    @_skip_if_many_zeros
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), self.axis, cuda.to_gpu(self.gy),
