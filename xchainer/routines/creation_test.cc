@@ -225,7 +225,7 @@ void CheckFromData(
     EXPECT_EQ(internal::IsContiguous(shape, strides, GetItemSize(dtype)), x.IsContiguous());
     EXPECT_EQ(&GetDefaultDevice(), &x.device());
 
-    testing::ExpectDataEqual<T>(expected_value, x);
+    testing::ExpectDataEqual<T>(raw_data, x);
     EXPECT_EQ(data_ptr, x.data().get());
 }
 
@@ -240,7 +240,7 @@ TEST_P(CreationTest, FromData) {
     std::shared_ptr<void> host_data{raw_data, [](const T*) {}};
 
     // non-contiguous array like a[:,1]
-    T sub_raw_data[] = {1, 4};
+    T expected_data[] = {1, 4};
     Shape shape{2};
     Strides strides{sizeof(T) * 3};
     int64_t offset = sizeof(T);
@@ -254,7 +254,7 @@ TEST_P(CreationTest, FromData) {
         x = FromData(shape, dtype, data, strides, offset);
     }
 
-    CheckFromData<T>(x, shape, dtype, strides, offset, sub_raw_data, data_ptr);
+    CheckFromData<T>(x, shape, dtype, strides, offset, expected_data, data_ptr);
 }
 
 TEST_P(CreationTest, FromData_Contiguous) {
@@ -266,7 +266,7 @@ TEST_P(CreationTest, FromData_Contiguous) {
     std::shared_ptr<void> host_data{raw_data, [](const T*) {}};
 
     // contiguous array like a[1,:]
-    T* sub_raw_data = raw_data + 3;
+    T* expected_data = raw_data + 3;
     Shape shape{3};
     Strides strides{sizeof(T)};
     int64_t offset = sizeof(T) * 3;
@@ -281,7 +281,7 @@ TEST_P(CreationTest, FromData_Contiguous) {
         x = FromData(shape, dtype, data, nonstd::nullopt, offset);
     }
 
-    CheckFromData<T>(x, shape, dtype, strides, offset, sub_raw_data, data_ptr);
+    CheckFromData<T>(x, shape, dtype, strides, offset, expected_data, data_ptr);
 }
 
 // TODO(sonots): Checking `MakeDataFromForeignPointer` called is enough as a unit-test here. Use mock library if it becomes available.
