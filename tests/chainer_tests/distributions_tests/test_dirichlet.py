@@ -52,7 +52,6 @@ class TestDirichlet(unittest.TestCase):
         for i in range(numpy.prod(self.shape)):
             one_params = {k: v[i] for k, v
                           in self.scipy_onebyone_params.items()}
-            print(onebyone_smp[i], one_params)
             log_prob2.append(scipy_prob(onebyone_smp[i], **one_params))
         log_prob2 = numpy.stack(
             log_prob2).T.reshape(self.smp_shape + self.shape)

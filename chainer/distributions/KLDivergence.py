@@ -1,10 +1,13 @@
 from chainer import distributions
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
+from chainer.functions.array import rollaxis
 from chainer.functions.math import basic_math
-from chainer.functions.math import exponential
 from chainer.functions.math import digamma
+from chainer.functions.math import exponential
+from chainer.functions.math import inv
 from chainer.functions.math import lgamma
+from chainer.functions.math import matmul
 from chainer.functions.math import sum
 
 _KLDIVERGENCE = {}
@@ -143,6 +146,31 @@ def _kl_laplace_laplace(dist1, dist2):
     return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
         + diff / dist2.scale \
         + dist1.scale / dist2.scale * exponential.exp(- diff / dist1.scale) - 1
+
+
+@register_kl(distributions.MultivariateNormal,
+             distributions.MultivariateNormal)
+def _kl_multivariatenormal_multivariatenormal(dist1, dist2):
+    st = rollaxis.rollaxis(dist1.scale_tril, -2, 0)
+    st = rollaxis.rollaxis(st, -1, 1)
+    diag = st[list(range(dist1.d)), list(range(dist1.d))]
+    logdet1 = sum.sum(exponential.log(basic_math.absolute(diag)), axis=0)
+
+    st = rollaxis.rollaxis(dist2.scale_tril, -2, 0)
+    st = rollaxis.rollaxis(st, -1, 1)
+    diag = st[list(range(dist2.d)), list(range(dist2.d))]
+    logdet2 = sum.sum(exponential.log(basic_math.absolute(diag)), axis=0)
+
+    scale_tril_inv2 = inv.batch_inv(dist2.scale_tril.reshape(
+        -1, dist2.d, dist2.d))
+    trace = sum.sum(matmul.matmul(
+        scale_tril_inv2, dist1.scale_tril.reshape(-1, dist2.d, dist2.d)) ** 2,
+        axis=(-1, -2)).reshape(dist1.batch_shape)
+
+    mu = dist1.loc - dist2.loc
+    mah = matmul.matmul(scale_tril_inv2, mu.reshape(-1, dist1.d, 1))
+    mah = sum.sum(mah ** 2, axis=-2).reshape(dist1.batch_shape)
+    return logdet2 - logdet1 + 0.5 * trace + 0.5 * mah - 0.5 * dist1.d
 
 
 @register_kl(distributions.Normal, distributions.Normal)

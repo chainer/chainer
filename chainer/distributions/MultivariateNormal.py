@@ -67,7 +67,7 @@ class MultivariateNormal(Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.loc, cuda.ndarray)
+        return isinstance(self.loc.data, cuda.ndarray)
 
     def log_prob(self, x):
         """Returns logarithm logarithm of probability for a input variable.
@@ -88,7 +88,6 @@ class MultivariateNormal(Distribution):
                 self.scale_tril.shape)
         scale_tril_inv = scale_tril_inv.reshape(
             self.batch_shape+(self.d, self.d))
-        print(scale_tril_inv.shape)
 
         bsti = broadcast.broadcast_to(scale_tril_inv, x.shape + (self.d,))
         bl = broadcast.broadcast_to(self.loc, x.shape)
