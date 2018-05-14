@@ -130,7 +130,7 @@ def test_device_scope_with_name(device_instance1, device_instance2):
 @pytest.mark.usefixtures('cache_restore_device')
 def test_device_buffer(device_instance1):
     device = device_instance1
-    buf = xchainer.DeviceBuffer([1, 2, 3, 4, 5, 6], (2, 3), xchainer.float32, device)
+    buf = xchainer.testing.DeviceBuffer([1, 2, 3, 4, 5, 6], (2, 3), xchainer.float32, device)
     mv = memoryview(buf)
     assert mv.format == 'f'
     assert mv.itemsize == 4
