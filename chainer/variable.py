@@ -1063,18 +1063,17 @@ Actual: {0}'''.format(type(data))
 
             # Collect the current input gradients.
             #
-            # Note (Tokui): When the same variable is passed to multiple input
-            # slots (e.g. an expression like ``f(x, x)``), it makes the
-            # gradient accumulation complicated since the back-propagated
-            # gradients w.r.t. the first and second argument should be
-            # accumulated to the current gradient w.r.t. the same variable.
-            # In this case, the current implementation passes the current
-            # gradient only to the first occurrence of the variable in the
-            # input tuple and passes ``None`` to the rest of the occurrences.
-            # For example, when the input variables are ``(x, x)``, the
-            # input gradient passed to the ``backward_accumulate`` method is
-            # ``(gx, None)`` where ``gx`` is the current gradient of ``x``.
-            # See also the docstring of ``FunctionNode.backward_accumulate``.
+            # Note (Tokui, Kataoka): When the same variable is passed to
+            # multiple input slots (e.g. an expression like ``f(x, x)``), it
+            # makes the gradient accumulation complicated since the
+            # back-propagated gradients w.r.t. the first and second argument
+            # should be accumulated to the current gradient w.r.t. the same
+            # variable.  To solve this problem, the gradients are stored as
+            # references to them in the backprop process. The current
+            # implementation uses lists. Keep the lengths of lists <= 1 for the
+            # strict accumulation of gradients. Leave them to accumulate
+            # gradients lazily. See also the docstring of
+            # ``FunctionNode.backward_accumulate``.
             target_inputs = [inputs[i] for i in target_input_indexes]
             in_grad = []
             for i, index_i in enumerate(target_input_indexes):
