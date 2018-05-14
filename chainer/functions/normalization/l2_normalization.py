@@ -26,6 +26,7 @@ class NormalizeL2(function_node.FunctionNode):
         self.retain_inputs((0,))
         x, = inputs
         xp = cuda.get_array_module(x)
+        # keep x.ndim >= 1 to avoid casting to self.eps' type
         norm = xp.sqrt(xp.sum(
             xp.square(x), axis=self.axis, keepdims=True)) + self.eps
         return x / norm,
