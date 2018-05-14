@@ -11,6 +11,7 @@ import chainer
 from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer.backends import intel64
+import chainer.functions
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
@@ -999,8 +1000,6 @@ Actual: {0}'''.format(type(data))
                     self.grad = cuda.cupy.ones_like(self.data)
             if loss_scale is not None:
                 self.grad *= loss_scale
-        grads[self._node] = [self._grad_var]
-
         def add_cand(cand):
             if cand not in seen_set:
                 # Negate since heapq is min-heap
@@ -1013,11 +1012,13 @@ Actual: {0}'''.format(type(data))
             if not grad_list:
                 return None
             if len(grad_list) >= 2:
-                grad_list[:] = [functions.add(*grad_list)]
+                grad_list[:] = [chainer.functions.add(*grad_list)]
             return grad_list[0]
 
         def pure(grad):
             return [] if grad is None else [grad]
+
+        grads[self._node] = pure(self._grad_var)
 
         def get_grad(node, strict):
             if node is None:
@@ -1110,7 +1111,7 @@ Actual: {0}'''.format(type(data))
                             y_var._grad_var = None
 
             for i, gx in enumerate(gxs):
-                if gx is None:
+                if not gx:
                     continue
 
                 x = target_inputs[i]
@@ -1118,14 +1119,16 @@ Actual: {0}'''.format(type(data))
                     continue
 
                 for gx_elem in gx:
-                    _check_grad_type(func, x, gx.data)
+                    _check_grad_type(func, x, gx_elem.data)
 
                 if x.creator is None or not func.lazy_grad_sum:
                     gx_strict = normalize(gx)
 
+                grads[x] = gx
+
                 x_var = x.get_variable_or_none()
                 if x_var is not None:
-                    x_var._grad_var = grads[x]
+                    x_var._grad_var = gx
                     x_var._loss_scale = loss_scale
 
                 if x.creator_node is not None:

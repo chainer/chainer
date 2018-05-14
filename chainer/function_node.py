@@ -589,7 +589,7 @@ Use apply() method instead.\
                 'number of gradients returned by %s (%s) is incorrect.'
                 % (self._impl_name, self.label))
 
-        for g_input, gx in six.moves.zip(gxs, grad_inputs):
+        for gx, g_input in six.moves.zip(gxs, grad_inputs):
             if gx is not None:
                 g_input.append(gx)
 
