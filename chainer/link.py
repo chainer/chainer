@@ -142,6 +142,9 @@ class Link(object):
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
 
+    def __call__(self, *args, **kwargs):
+        self.forward(*args, **kwargs)
+
     @property
     def xp(self):
         """Array module for this link.
