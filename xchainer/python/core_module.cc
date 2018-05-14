@@ -26,6 +26,7 @@ void InitXchainerModule(pybind11::module& m) {
 
     m.attr("DEFAULT_GRAPH_ID") = kDefaultGraphId;
 
+    // xchainer
     InitXchainerContext(m);
     InitXchainerContextScope(m);
     InitXchainerBackend(m);
@@ -39,7 +40,10 @@ void InitXchainerModule(pybind11::module& m) {
     InitXchainerBackward(m);
     InitXchainerCheckBackward(m);
     InitXchainerRoutines(m);
-    InitXchainerDeviceBuffer(m);
+
+    // xchainer.testing
+    auto m_testing = m.def_submodule("testing");
+    InitXchainerDeviceBuffer(m_testing);
 }
 
 }  // namespace
