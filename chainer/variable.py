@@ -8,7 +8,6 @@ import weakref
 import numpy
 
 import chainer
-from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer.backends import intel64
 import chainer.functions
@@ -1000,6 +999,7 @@ Actual: {0}'''.format(type(data))
                     self.grad = cuda.cupy.ones_like(self.data)
             if loss_scale is not None:
                 self.grad *= loss_scale
+
         def add_cand(cand):
             if cand not in seen_set:
                 # Negate since heapq is min-heap
@@ -1096,12 +1096,13 @@ Actual: {0}'''.format(type(data))
                 for gx in gxs:
                     for gx_elem in gx:
                         gx_data = gx_elem.data
-                        if gx_data.dtype.kind == 'f':
-                            cuda.get_device_from_array(gx_data).use()
-                            if cuda.get_array_module(gx_data).isnan(gx_data).any():
-                                raise RuntimeError(
-                                    'NaN is detected on backward computation of '
-                                    '{}'.format(func.label))
+                        if gx_data.dtype.kind != 'f':
+                            continue
+                        cuda.get_device_from_array(gx_data).use()
+                        if cuda.get_array_module(gx_data).isnan(gx_data).any():
+                            raise RuntimeError(
+                                'NaN is detected on backward computation of '
+                                '{}'.format(func.label))
 
             if not retain_grad:
                 for y in outputs:

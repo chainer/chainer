@@ -593,7 +593,6 @@ Use apply() method instead.\
             if gx is not None:
                 g_input.append(gx)
 
-
     def get_retained_inputs(self):
         """Returns a tuple of retained input variables.
 
