@@ -1032,8 +1032,10 @@ Actual: {0}'''.format(type(data))
             if x.creator_node is None:
                 x._check_old_style_gradient()
                 # accumulate the gradient only if the node is a leaf
-                return pure(node.grad_var)
-            return []
+                grads[node] = pure(node.grad_var)
+            else:
+                grads[node] = []
+            return grads[node]
 
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
