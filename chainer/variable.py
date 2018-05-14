@@ -11,7 +11,7 @@ import six
 import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
-import chainer.functions
+from chainer.functions.math.basic_math import add as F_add
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
@@ -1013,7 +1013,7 @@ Actual: {0}'''.format(type(data))
             if not grad_list:
                 return None
             if len(grad_list) >= 2:
-                grad_list[:] = [chainer.functions.add(*grad_list)]
+                grad_list[:] = [F_add(*grad_list)]
             return grad_list[0]
 
         def pure(grad):
