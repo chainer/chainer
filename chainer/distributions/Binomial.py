@@ -62,7 +62,7 @@ class Binomial(Distribution):
         bp = broadcast.broadcast_to(self.p, x.shape)
         bn32 = broadcast.broadcast_to(n32, x.shape)
         return lgamma.lgamma(bn32 + 1) - lgamma.lgamma(x32 + 1) \
-            - lgamma.lgamma(bn32 - x32 + 1) + x * exponential.log(bp) \
+            - lgamma.lgamma(bn32 - x32 + 1) + x32 * exponential.log(bp) \
             + (bn32 - x32) * exponential.log(1 - bp)
 
     @property

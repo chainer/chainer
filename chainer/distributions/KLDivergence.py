@@ -1,7 +1,10 @@
 from chainer import distributions
+from chainer.functions.array import expand_dims
+from chainer.functions.array import repeat
 from chainer.functions.math import exponential
 from chainer.functions.math import digamma
 from chainer.functions.math import lgamma
+from chainer.functions.math import sum
 
 _KLDIVERGENCE = {}
 
@@ -81,6 +84,24 @@ def _kl_beta_beta(dist1, dist2):
         + (dist1.b - dist2.b) * digamma.digamma(dist1.b) \
         + (dist2.a - dist1.a + dist2.b - dist1.b) \
         * digamma.digamma(dist1.a + dist1.b)
+
+
+@register_kl(distributions.Categorical, distributions.Categorical)
+def _kl_categorical_categorical(dist1, dist2):
+    return sum.sum(dist1.p * (
+        exponential.log(dist1.p) - exponential.log(dist2.p)), axis=-1)
+
+
+@register_kl(distributions.Dirichlet, distributions.Dirichlet)
+def _kl_dirichlet_dirichlet(dist1, dist2):
+    return lgamma.lgamma(dist1.alpha0) \
+        - sum.sum(lgamma.lgamma(dist1.alpha), axis=-1) \
+        - lgamma.lgamma(dist2.alpha0) \
+        + sum.sum(lgamma.lgamma(dist2.alpha), axis=-1) \
+        + sum.sum((dist1.alpha - dist2.alpha) * (
+            digamma.digamma(dist1.alpha)
+            - repeat.repeat(expand_dims.expand_dims(digamma.digamma(
+                dist1.alpha0), axis=-1), dist1.k, axis=-1)), axis=-1)
 
 
 @register_kl(distributions.Normal, distributions.Normal)

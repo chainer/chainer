@@ -48,7 +48,10 @@ class Categorical(Distribution):
         """
         mg = numpy.meshgrid(
             *tuple(range(i) for i in self.batch_shape), indexing='ij')
-        return exponential.log(self.p)[mg + [x.astype(numpy.int32)]]
+        if isinstance(x, chainer.Variable):
+            return exponential.log(self.p)[mg + [x.data.astype(numpy.int32)]]
+        else:
+            return exponential.log(self.p)[mg + [x.astype(numpy.int32)]]
 
     def _sample_n(self, n):
         """Samples from this distribution.
