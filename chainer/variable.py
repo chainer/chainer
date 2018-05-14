@@ -1020,21 +1020,23 @@ Actual: {0}'''.format(type(data))
 
         grads[self._node] = pure(self._grad_var)
 
-        def get_grad(node, strict):
+        def pop_grad(node):
             if node is None:
-                return None if strict else []
+                return None
             if node in grads:
-                if strict:
-                    return normalize(grads[node])
-                return grads[node]
-            if strict:
-                return node.grad_var
-            if x.creator_node is None:
-                x._check_old_style_gradient()
-                # accumulate the gradient only if the node is a leaf
-                grads[node] = pure(node.grad_var)
-            else:
-                grads[node] = []
+                return normalize(grads.pop(node))
+            return node.grad_var
+
+        def get_grad_list(node):
+            if node is None:
+                return []
+            if node not in grads:
+                if x.creator_node is None:
+                    x._check_old_style_gradient()
+                    # accumulate the gradient only if the node is a leaf
+                    grads[node] = pure(node.grad_var)
+                else:
+                    grads[node] = []
             return grads[node]
 
         while cand_funcs:
@@ -1048,7 +1050,7 @@ Actual: {0}'''.format(type(data))
             outputs = [y() for y in func.outputs]  # access via weak ref
 
             in_data = tuple([x.data for x in inputs])
-            out_grad = tuple([get_grad(y, strict=True) for y in outputs])
+            out_grad = tuple([pop_grad(y) for y in outputs])
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
             hooks = chainer.get_function_hooks()
@@ -1078,11 +1080,11 @@ Actual: {0}'''.format(type(data))
             in_grad = []
             for i, index_i in enumerate(target_input_indexes):
                 x = inputs[index_i]
-                gx = get_grad(x, strict=False)
+                gx = get_grad_list(x)
                 in_grad.append(gx)
             in_grad = tuple(in_grad)
 
-            func.backward_accumulate_new(
+            func.backward_accumulate_list(
                 target_input_indexes, out_grad, in_grad)
             gxs = in_grad
             del in_grad  # TODO(kataoka): just rename variables
@@ -1104,7 +1106,6 @@ Actual: {0}'''.format(type(data))
             if not retain_grad:
                 for y in outputs:
                     if y is not None and y is not self.node:
-                        grads[y] = []
                         y_var = y.get_variable_or_none()
                         if y_var is not None:
                             y_var._grad_var = None

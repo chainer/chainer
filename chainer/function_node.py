@@ -571,7 +571,7 @@ Use apply() method instead.\
                           gx + g_input
                           for gx, g_input in six.moves.zip(gxs, grad_inputs)])
 
-    def backward_accumulate_new(
+    def backward_accumulate_list(
             self, target_input_indexes, grad_outputs, grad_inputs):
         assert isinstance(target_input_indexes, tuple)
         assert isinstance(grad_outputs, tuple)
