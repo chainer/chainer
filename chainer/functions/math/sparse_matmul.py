@@ -402,13 +402,15 @@ def sparse_matmul(a, b, transa=False, transb=False):
         2. C (dense) = A (dense) * B (sparse)
 
     Args:
-        a (Variable or CooMatrix): The left operand of mat-mul.
-        b (Variable or CooMatrix): The right operand of mat-mul.
+        a (~chainer.Variable or ~chainer.utils.CooMatrix): The left operand of
+            matrix multiplication.
+        b (~chainer.Variable or ~chainer.utils.CooMatrix): The right operand of
+            matrix multiplication.
         transa (bool): If ``True``, each matrix in ``a`` will be transposed.
         transb (bool): If ``True``, each matrix in ``b`` will be transposed.
 
     Returns:
-        _chainer.Variable: Result of batched mat-mul.
+        ~chainer.Variable: Result of batched mat-mul.
     """
     if (isinstance(a, utils.CooMatrix) and
             isinstance(b, (chainer.Variable, numpy.ndarray, cuda.ndarray))):

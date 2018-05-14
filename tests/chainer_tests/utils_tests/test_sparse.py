@@ -17,6 +17,7 @@ def _setup_tensor(_min, _max, shape, dtype, threshold=None):
     'shape': [(2, 3), (3, 4)],
     'nbatch': [0, 1, 4],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_ldnz': [False, True],
 }))
 class TestCooMatrix(unittest.TestCase):
 
@@ -26,16 +27,29 @@ class TestCooMatrix(unittest.TestCase):
         else:
             x_shape = self.shape
         x0 = _setup_tensor(.5, 1, x_shape, self.dtype, .75)
-        sp_x = utils.to_coo(x0)
+        if self.use_ldnz:
+            ldnz = self.shape[0] * self.shape[1]
+            sp_x = utils.to_coo(x0, ldnz=ldnz)
+        else:
+            sp_x = utils.to_coo(x0)
         assert sp_x.data.shape == sp_x.row.shape == sp_x.col.shape
-        max_nnz = self.shape[0] * self.shape[1]
         if self.nbatch > 0:
             assert sp_x.data.ndim == 2
             assert sp_x.data.shape[0] == self.nbatch
-            assert 0 <= sp_x.data.shape[1] <= max_nnz
+            if self.use_ldnz:
+                assert sp_x.data.shape[1] == ldnz
+            else:
+                max_nnz = 0
+                for i in range(self.nbatch):
+                    max_nnz = max(max_nnz, numpy.count_nonzero(x0[i]))
+                assert sp_x.data.shape[1] == max_nnz
         else:
             assert sp_x.data.ndim == 1
-            assert 0 <= sp_x.data.shape[0] <= max_nnz
+            if self.use_ldnz:
+                assert sp_x.data.shape[0] == ldnz
+            else:
+                max_nnz = numpy.count_nonzero(x0)
+                assert sp_x.data.shape[0] == max_nnz
         x1 = sp_x.to_dense()
         numpy.testing.assert_array_equal(x0, x1)
 
