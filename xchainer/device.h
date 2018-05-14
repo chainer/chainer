@@ -24,7 +24,7 @@ public:
 
     // Makes an array data pointer from a foreign pointer without copying.
     // May throw an error if the foreign pointer is invalid for this device.
-    virtual std::shared_ptr<void> MakeDataFromForeignPointer(const std::shared_ptr<void>& data) = 0;
+    virtual std::shared_ptr<void> MakeDataFromForeignPointer(const std::shared_ptr<void>& data) { return data; }
 
     // Copies the data between devices.
     // The other device may or may not be the same as this device.
