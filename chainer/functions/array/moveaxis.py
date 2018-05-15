@@ -5,10 +5,7 @@ from chainer import function_node
 from chainer.utils import type_check
 
 
-def _normalize_axis_tuple(axis, ndim, xp):
-    if xp.isscalar(axis):
-        axis = (axis,)
-
+def _normalize_axis_tuple(axis, ndim):
     ret = []
     for ax in axis:
         ret.append(ax % ndim)
@@ -26,8 +23,8 @@ def _moveaxis(a, source, destination, xp):
         raise ValueError('Length of source and destination are '
                          'different.')
 
-    source = _normalize_axis_tuple(source, a.ndim, xp)
-    destination = _normalize_axis_tuple(destination, a.ndim, xp)
+    source = _normalize_axis_tuple(source, a.ndim)
+    destination = _normalize_axis_tuple(destination, a.ndim)
 
     if len(set(source)) != len(source):
         raise ValueError('duplicate value in source axis: ({})'.format(
