@@ -197,12 +197,10 @@ class TestVariable(unittest.TestCase):
         y.backward()
         self.assertEqual(x.grad_var.shape, self.x_shape)
 
-    @unittest.skip
     def test_backward_accumulate_cpu(self):
         self.check_backward_accumulate(False)
 
     @attr.gpu
-    @unittest.skip
     def test_backward_accumulate_gpu(self):
         self.check_backward_accumulate(True)
 
