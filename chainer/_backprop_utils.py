@@ -1,3 +1,5 @@
+import six
+
 import chainer
 
 
@@ -45,3 +47,40 @@ class GradTable(object):
             return node.grad_var
         else:
             return []
+
+
+def backward(
+        func, target_input_indexes, grad_outputs, grad_inputs):
+    if hasattr(func, 'backward_accumulate'):
+        # Note (Tokui): when the same variable is passed multiple times as
+        # inputs in the same function (e.g. an expression like f(x, x)), the
+        # current implementation passes None as the current gradient w.r.t.
+        # such an input except for the first one (i.e., it builds gxs like
+        # (gx, None) where gx is the current gradient w.r.t. x).
+        grad_inputs_tuple = []
+        for i in target_input_indexes:
+            g_input = grad_inputs[func.inputs[i]]
+            grad_inputs_tuple.append(
+                normalize(g_input))
+            g_input[:] = []
+        gxs = func.backward_accumulate(
+            target_input_indexes, grad_outputs,
+            tuple(grad_inputs_tuple))
+    else:
+        gxs = func.backward(target_input_indexes, grad_outputs)
+
+        len_gxs = len(gxs)
+        if len_gxs == len(func.inputs):
+            gxs = tuple([gxs[i] for i in target_input_indexes])
+        elif len_gxs != len(target_input_indexes):
+            raise ValueError(
+                'number of gradients returned by %s (%s) is incorrect.'
+                % (func._impl_name, func.label))
+
+    for i, gx in six.moves.zip(target_input_indexes, gxs):
+        if gx is not None:
+            grad_inputs[func.inputs[i]].append(gx)
+
+    if not func.lazy_grad_sum:
+        for gx in grad_inputs.values():
+            normalize(gx)

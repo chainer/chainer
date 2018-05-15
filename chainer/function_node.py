@@ -560,42 +560,6 @@ Use apply() method instead.\
                       gx + g_input
                       for gx, g_input in six.moves.zip(gxs, grad_inputs)])
 
-    def backward_accumulate_list(
-            self, target_input_indexes, grad_outputs, grad_inputs):
-        if hasattr(self, 'backward_accumulate'):
-            # Note (Tokui): when the same variable is passed multiple times as
-            # inputs in the same function (e.g. an expression like f(x, x)),
-            # the current implementation passes None as the current gradient
-            # w.r.t.  such an input except for the first one (i.e., it builds
-            # gxs like (gx, None) where gx is the current gradient w.r.t. x).
-            grad_inputs_tuple = []
-            for i in target_input_indexes:
-                g_input = grad_inputs[self.inputs[i]]
-                grad_inputs_tuple.append(
-                    _backprop_utils.normalize(g_input))
-                g_input[:] = []
-            gxs = self.backward_accumulate(
-                target_input_indexes, grad_outputs,
-                tuple(grad_inputs_tuple))
-        else:
-            gxs = self.backward(target_input_indexes, grad_outputs)
-
-            len_gxs = len(gxs)
-            if len_gxs == len(self.inputs):
-                gxs = tuple([gxs[i] for i in target_input_indexes])
-            elif len_gxs != len(target_input_indexes):
-                raise ValueError(
-                    'number of gradients returned by %s (%s) is incorrect.'
-                    % (self._impl_name, self.label))
-
-        for i, gx in six.moves.zip(target_input_indexes, gxs):
-            if gx is not None:
-                grad_inputs[self.inputs[i]].append(gx)
-
-        if not self.lazy_grad_sum:
-            for gx in grad_inputs.values():
-                _backprop_utils.normalize(gx)
-
     def get_retained_inputs(self):
         """Returns a tuple of retained input variables.
 
@@ -914,7 +878,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         for hook in hooks:
             hook.backward_preprocess(func, in_data, out_grad_data)
 
-        func.backward_accumulate_list(input_indexes, gys, x_grads)
+        _backprop_utils.backward(func, input_indexes, gys, x_grads)
 
         # Call post-backward hooks
         for hook in hooks:

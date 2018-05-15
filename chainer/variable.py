@@ -1055,8 +1055,8 @@ Actual: {0}'''.format(type(data))
                 if x not in in_grad:
                     in_grad[x] = grads.get_as_list(x)
 
-            func.backward_accumulate_list(
-                target_input_indexes, out_grad, in_grad)
+            _backprop_utils.backward(
+                func, target_input_indexes, out_grad, in_grad)
 
             for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad_data)
