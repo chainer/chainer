@@ -174,7 +174,7 @@ def test_numpy_xchainer_array_equal_parametrize_dtype(xp, dtype):
         return xchainer.full((1,), 1.0, dtype)
 
 
-@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False)
 def test_numpy_xchainer_array_equal_dtype_check_disabled(xp):
     if xp is numpy:
         return numpy.full((1,), 1.0, numpy.float64)

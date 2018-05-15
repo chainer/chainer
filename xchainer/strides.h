@@ -7,6 +7,7 @@
 #include <iterator>
 #include <sstream>
 #include <string>
+#include <tuple>
 
 #include <gsl/gsl>
 
@@ -78,5 +79,9 @@ public:
 std::ostream& operator<<(std::ostream&, const Strides&);
 
 void CheckEqual(const Strides& lhs, const Strides& rhs);
+
+// Returns a pair of lower and upper byte offsets to store the data.
+// This forumula always holds: lower <= 0 < item_size <= upper
+std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& strides, size_t item_size);
 
 }  // namespace xchainer

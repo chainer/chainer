@@ -171,10 +171,15 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
     Dtype dt = dtype.value_or(src_dt);
 
     if (a.IsContiguous() && src_dt == dt) {
+        if (a.ndim() == 0) {
+            return a.Reshape(Shape{1});
+        }
         return a;
     }
 
-    Array out = Empty(a.shape(), dt, a.device());
+    const Shape& shape = a.ndim() == 0 ? Shape{1} : a.shape();
+
+    Array out = Empty(shape, dt, a.device());
     a.device().AsType(a, out);
 
     if (GetKind(dt) == DtypeKind::kFloat && GetKind(src_dt) == DtypeKind::kFloat) {

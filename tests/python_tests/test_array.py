@@ -97,7 +97,7 @@ def _check_array_equals_ndarray(array, ndarray, skip_is_contiguous=True):
     assert array.ndim == ndarray.ndim
     assert array.itemsize == ndarray.itemsize
     assert array.nbytes == ndarray.itemsize * ndarray.size
-    xchainer.testing.assert_array_equal(array, ndarray)
+    xchainer.testing.assert_array_equal_ex(array, ndarray)
     if not skip_is_contiguous:
         assert array.is_contiguous == ndarray.flags['C_CONTIGUOUS']
 
@@ -169,7 +169,7 @@ def test_to_device():
 
 
 def _check_tonumpy(a_np, a_xc):
-    xchainer.testing.assert_array_equal(a_xc, a_np)
+    xchainer.testing.assert_array_equal_ex(a_xc, a_np, strides_check=False)
     if a_np.size > 0:
         # test buffer is not shared
         a_np.fill(1)
@@ -1098,7 +1098,8 @@ def test_array_backward():
     assert gx1.get_grad(graph_id='graph_1') is not None
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+# TODO(niboshi): Remove strides_check=False
+@xchainer.testing.numpy_xchainer_array_equal(strides_check=False)
 @pytest.mark.parametrize("shape,indices", [
     # empty indexing
     ((), ()),
@@ -1217,7 +1218,7 @@ _take_invalid_params = [
 ]
 
 
-@xchainer.testing.numpy_xchainer_array_equal(type_check=False, accept_error=(xchainer.DimensionError, numpy.AxisError))
+@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False, accept_error=(xchainer.DimensionError, numpy.AxisError))
 @pytest.mark.parametrize("shape,indices,axis", _take_valid_params + _take_invalid_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_take(is_module, xp, shape, indices, axis, device):
@@ -1271,7 +1272,8 @@ def test_take_backward(is_module, dtype, shape, indices, axis, device):
 
 
 # TODO(sonots): Fix type compatibility
-@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+# TODO(niboshi): Remove strides_check=False
+@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False, strides_check=False)
 @pytest.mark.parametrize("keepdims", [False, True])
 @pytest.mark.parametrize("shape,axis", [
     ((), None),
@@ -1337,7 +1339,7 @@ def test_invalid_sum(is_module, xp, shape, axis, keepdims):
 
 
 # TODO(sonots): Fix type compatibility for when shape is ()
-@xchainer.testing.numpy_xchainer_array_equal(type_check=False)
+@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False)
 @pytest.mark.parametrize("shape,value", [
     ((), -1),
     ((), 1),
@@ -1475,7 +1477,7 @@ _invalid_logsumexp_params = [
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
 @pytest.mark.parametrize('keepdims', [True, False])
-@xchainer.testing.numpy_xchainer_allclose(rtol=1e-7, atol=0, type_check=False)
+@xchainer.testing.numpy_xchainer_allclose(rtol=1e-7, atol=0, dtype_check=False)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
     a = xp.arange(_size(a_shape), dtype=float_dtype).reshape(a_shape)
@@ -1497,7 +1499,7 @@ def test_invalid_logsumexp(device, a_shape, axis, float_dtype, keepdims):
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
-@xchainer.testing.numpy_xchainer_allclose(rtol=1e-7, atol=1e-5, type_check=False)
+@xchainer.testing.numpy_xchainer_allclose(rtol=1e-7, atol=1e-5, dtype_check=False)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_log_softmax(xp, device, a_shape, axis, float_dtype):
     a = xp.arange(_size(a_shape), dtype=float_dtype).reshape(a_shape)
@@ -1577,7 +1579,8 @@ def test_max_amax():
 
 @pytest.mark.parametrize('input,axis', _min_max_multi_axis_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
+# TODO(niboshi): Remove strides_check=False
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError), strides_check=False)
 def test_max(is_module, xp, device, input, axis, dtype):
     try:
         a_np = input.astype(dtype)

@@ -20,7 +20,9 @@ using ArrayBody = xchainer::internal::ArrayBody;
 using ArrayBodyPtr = std::shared_ptr<ArrayBody>;
 using ConstArrayBodyPtr = std::shared_ptr<const ArrayBody>;
 
-ArrayBodyPtr MakeArray(pybind11::handle object, pybind11::handle dtype, bool copy, pybind11::handle device);
+// If `reuse_numpy_strides` is true and `object` is a NumPy array, its strides is used as-is.
+ArrayBodyPtr MakeArray(
+        pybind11::handle object, pybind11::handle dtype, bool copy, pybind11::handle device, bool reuse_numpy_strides = false);
 
 void InitXchainerArray(pybind11::module&);
 
