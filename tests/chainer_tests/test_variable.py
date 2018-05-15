@@ -75,17 +75,30 @@ def muladd(a, b, c):
     'var_a': [False, True],
     'var_b': [False, True],
     'var_c': [False, True],
+    'dims': [(3, 2, 4), (2, 2, 2)],
 })[1:])
 class TestBackwardAccumulate(unittest.TestCase):
 
     def setUp(self):
-        self.a = np.random.randn(3, 2).astype(np.float32)
-        self.b = np.random.randn(2, 4).astype(np.float32)
-        self.c = np.random.randn(3, 4).astype(np.float32)
-        self.g = np.random.randn(3, 4).astype(np.float32)
-        self.ga = np.random.randn(3, 2).astype(np.float32)
-        self.gb = np.random.randn(2, 4).astype(np.float32)
-        self.gc = np.random.randn(3, 4).astype(np.float32)
+        i, j, k = self.dims
+        self.a = np.random.randn(i, j).astype(np.float32)
+        self.b = np.random.randn(j, k).astype(np.float32)
+        self.c = np.random.randn(i, k).astype(np.float32)
+        self.g = np.random.randn(i, k).astype(np.float32)
+        self.ga = np.random.randn(i, j).astype(np.float32)
+        self.gb = np.random.randn(j, k).astype(np.float32)
+        self.gc = np.random.randn(i, k).astype(np.float32)
+
+    def share_vars(self, a, b, c):
+        if self.dims != (2, 2, 2):
+            return a, b, c
+        if self.var_a and self.var_b:
+            b = a
+        if self.var_a and self.var_c:
+            c = a
+        elif self.var_b and self.var_c:
+            c = b
+        return a, b, c
 
     def check_backward_accumulate(self, xp, has_input_grads):
         a, b, c = self.a, self.b, self.c
@@ -99,6 +112,7 @@ class TestBackwardAccumulate(unittest.TestCase):
             b = chainer.Variable(b, grad=gb)
         if self.var_c:
             c = chainer.Variable(c, grad=gc)
+        a, b, c = self.share_vars(a, b, c)
         y = muladd(a, b, c)
         y.grad = self.g
         y.backward()
@@ -106,6 +120,7 @@ class TestBackwardAccumulate(unittest.TestCase):
         a2 = chainer.Variable(self.a, grad=ga)
         b2 = chainer.Variable(self.b, grad=gb)
         c2 = chainer.Variable(self.c, grad=gc)
+        a2, b2, c2 = self.share_vars(a2, b2, c2)
         y2 = a2.__matmul__(b2) + c2
         y2.grad = self.g
         y2.backward()
