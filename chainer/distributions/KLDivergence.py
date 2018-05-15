@@ -252,3 +252,18 @@ def _kl_beta_normal(dist1, dist2):
         + (dist1.a * (dist1.a + 1) / apb / (apb + 1) / 2
            - dist2.loc * dist1.a / apb
            + dist2.loc ** 2 / 2) / dist2.scale ** 2
+
+
+@register_kl(distributions.Beta, distributions.Uniform)
+def _kl_beta_uniform(dist1, dist2):
+    if dist1._is_gpu:
+        is_inf = cuda.cupy.logical_or(dist2.high.data < 1,
+                                      dist2.low.data > 0)
+        inf = cuda.cupy.zeros_like(dist1.a.data)
+        inf[is_inf] = numpy.inf
+    else:
+        is_inf = numpy.logical_or(dist2.high.data < 1,
+                                  dist2.low.data > 0)
+        inf = numpy.zeros_like(dist1.a.data)
+        inf[is_inf] = numpy.inf
+    return - dist1.entropy + exponential.log(dist2.high - dist2.low) + inf
