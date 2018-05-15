@@ -609,3 +609,69 @@ class TestKLDivergence(unittest.TestCase):
         dist1 = self.make_laplace_dist(True)
         dist2 = self.make_uniform_dist(True)
         self.check_kl(dist1, dist2)
+
+    def test_laplace_normal_cpu(self):
+        dist1 = self.make_laplace_dist()
+        dist2 = self.make_normal_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_laplace_normal_gpu(self):
+        dist1 = self.make_laplace_dist(True)
+        dist2 = self.make_normal_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_normal_beta_cpu(self):
+        dist1 = self.make_normal_dist()
+        dist2 = self.make_beta_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_normal_beta_gpu(self):
+        dist1 = self.make_normal_dist(True)
+        dist2 = self.make_beta_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_normal_exponential_cpu(self):
+        dist1 = self.make_normal_dist()
+        dist2 = self.make_exponential_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_normal_exponential_gpu(self):
+        dist1 = self.make_normal_dist(True)
+        dist2 = self.make_exponential_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_normal_gamma_cpu(self):
+        dist1 = self.make_normal_dist()
+        dist2 = self.make_gamma_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_normal_gamma_gpu(self):
+        dist1 = self.make_normal_dist(True)
+        dist2 = self.make_gamma_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_normal_pareto_cpu(self):
+        dist1 = self.make_normal_dist()
+        dist2 = self.make_pareto_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_normal_pareto_gpu(self):
+        dist1 = self.make_normal_dist(True)
+        dist2 = self.make_pareto_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_normal_uniform_cpu(self):
+        dist1 = self.make_normal_dist()
+        dist2 = self.make_uniform_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_normal_uniform_gpu(self):
+        dist1 = self.make_normal_dist(True)
+        dist2 = self.make_uniform_dist(True)
+        self.check_kl(dist1, dist2)

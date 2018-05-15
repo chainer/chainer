@@ -375,3 +375,25 @@ def _kl_laplace_inf(dist1, dist2):
     else:
         inf = numpy.ones_like(dist1.loc.data) * numpy.inf
     return chainer.Variable(inf)
+
+
+@register_kl(distributions.Laplace, distributions.Normal)
+def _kl_laplace_normal(dist1, dist2):
+    return - dist1.entropy + 0.5 * numpy.log(2 * numpy.pi) \
+        + exponential.log(dist2.scale) \
+        + (0.5 * (2 * dist1.scale ** 2 + dist1.loc ** 2)
+           - dist2.loc * (dist1.loc)
+           + 0.5 * dist2.loc ** 2) / dist2.scale ** 2
+
+
+@register_kl(distributions.Normal, distributions.Beta)
+@register_kl(distributions.Normal, distributions.Exponential)
+@register_kl(distributions.Normal, distributions.Gamma)
+@register_kl(distributions.Normal, distributions.Pareto)
+@register_kl(distributions.Normal, distributions.Uniform)
+def _kl_normal_inf(dist1, dist2):
+    if dist1._is_gpu:
+        inf = cuda.cupy.ones_like(dist1.loc.data) * numpy.inf
+    else:
+        inf = numpy.ones_like(dist1.loc.data) * numpy.inf
+    return chainer.Variable(inf)
