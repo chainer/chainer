@@ -41,6 +41,87 @@ def constant(xs, value):
     return Constant(value)(*xs)
 
 
+class MulAdd(chainer.FunctionNode):
+
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+        a, b, c = inputs
+        return a @ b + c,
+
+    def backward_accumulate(self, target_input_indexes, grad_outputs,
+                            grad_inputs):
+        a, b = self.get_retained_inputs()
+        g, = grad_outputs
+        ret = []
+        for i, g_in in zip(target_input_indexes, grad_inputs):
+            if g_in is None:
+                g_in = [a, b, g][i] * 0.  # sorry, it's slow.
+            if i == 0:
+                ret.append(muladd(g, b.T, g_in))
+            elif i == 1:
+                ret.append(muladd(a.T, g, g_in))
+            elif i == 2:
+                ret.append(g + g_in)
+            else:
+                assert False
+        return tuple(ret)
+
+
+def muladd(a, b, c):
+    return MulAdd().apply((a, b, c))[0]
+
+
+@testing.parameterize(*testing.product({
+    'var_a': [False, True],
+    'var_b': [False, True],
+    'var_c': [False, True],
+})[1:])
+class TestBackwardAccumulate(unittest.TestCase):
+
+    def setUp(self):
+        self.a = np.random.randn(3, 2).astype(np.float32)
+        self.b = np.random.randn(2, 4).astype(np.float32)
+        self.c = np.random.randn(3, 4).astype(np.float32)
+        self.g = np.random.randn(3, 4).astype(np.float32)
+
+    def check_backward_accumulate(self, xp):
+        a, b, c = self.a, self.b, self.c
+        if self.var_a:
+            a = chainer.Variable(a)
+        if self.var_b:
+            b = chainer.Variable(b)
+        if self.var_c:
+            c = chainer.Variable(c)
+        y = muladd(a, b, c)
+        y.grad = self.g
+        y.backward()
+
+        a2 = chainer.Variable(self.a)
+        b2 = chainer.Variable(self.b)
+        c2 = chainer.Variable(self.c)
+        y2 = a2 @ b2 + c2
+        y2.grad = self.g
+        y2.backward()
+
+        if self.var_a:
+            xp.testing.assert_allclose(a.grad, a2.grad)
+        if self.var_b:
+            xp.testing.assert_allclose(b.grad, b2.grad)
+        if self.var_c:
+            xp.testing.assert_allclose(c.grad, c2.grad)
+
+    def test_backward_accumulate_cpu(self):
+        self.check_backward_accumulate(np)
+
+    @attr.gpu
+    def test_backward_accumulate_gpu(self):
+        self.a = cuda.to_gpu(self.a)
+        self.b = cuda.to_gpu(self.b)
+        self.c = cuda.to_gpu(self.c)
+        self.g = cuda.to_gpu(self.g)
+        self.check_backward_accumulate(cuda.cupy)
+
+
 class TestVariableNode(unittest.TestCase):
 
     def test_grad(self):
