@@ -584,11 +584,11 @@ Use apply() method instead.\
                     selected_inputs.add(x)
                     g_input = grad_inputs[x]
                     grad_inputs_tuple.append(
-                            _backprop_utils.normalize(g_input))
+                        _backprop_utils.normalize(g_input))
                     g_input[:] = []
             gxs = self.backward_accumulate(
-                    target_input_indexes, grad_outputs,
-                    tuple(grad_inputs_tuple))
+                target_input_indexes, grad_outputs,
+                tuple(grad_inputs_tuple))
         else:
             gxs = self.backward(target_input_indexes, grad_outputs)
 
