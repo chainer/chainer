@@ -906,6 +906,19 @@ def test_frombuffer_from_numpy_array_with_offset_count(xp, count, offset):
     return xp.frombuffer(obj, obj.dtype, count=count, offset=offset)
 
 
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_frombuffer_from_device_buffer(device):
+    dtype = 'int32'
+
+    device_buffer = xchainer.testing._DeviceBuffer([1, 2, 3, 4, 5, 6], (2, 3), dtype)
+    a = xchainer.frombuffer(device_buffer, dtype)
+    e = xchainer.array([1, 2, 3, 4, 5, 6], dtype)
+
+    xchainer.testing.assert_array_equal(e, a)
+    assert a.dtype == xchainer.dtype(dtype)
+    assert a.device is xchainer.get_device(device)
+
+
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_frombuffer_with_device(device):
     obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
@@ -913,12 +926,6 @@ def test_frombuffer_with_device(device):
     b = xchainer.frombuffer(obj, obj.dtype)
     xchainer.testing.assert_array_equal(a, b)
     _check_device(a, device)
-
-
-# TODO(sonots): Implement xchainer.buffer to test from cuda buffer.
-# @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-# def test_frombuffer_from_xchainer_array(device):
-#     pass
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
