@@ -574,6 +574,11 @@ Use apply() method instead.\
     def backward_accumulate_list(
             self, target_input_indexes, grad_outputs, grad_inputs):
         if hasattr(self, 'backward_accumulate'):
+            # Note (Tokui): when the same variable is passed multiple times as
+            # inputs in the same function (e.g. an expression like f(x, x)),
+            # the current implementation passes None as the current gradient
+            # w.r.t.  such an input except for the first one (i.e., it builds
+            # gxs like (gx, None) where gx is the current gradient w.r.t. x).
             grad_inputs_tuple = []
             for i in target_input_indexes:
                 g_input = grad_inputs[self.inputs[i]]
@@ -892,12 +897,6 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
                     ret_grads[y] = gy
 
         # Collect the gradients w.r.t. the inputs
-        #
-        # Note (Tokui): when the same variable is passed multiple times as
-        # inputs in the same function (e.g. an expression like f(x, x)), the
-        # current implementation passes None as the current gradient w.r.t.
-        # such an input except for the first one (i.e., it builds gxs like
-        # (gx, None) where gx is the current gradient w.r.t. x).
         input_indexes = []
         x_grads = collections.OrderedDict()
         for i, x in enumerate(func.inputs):
