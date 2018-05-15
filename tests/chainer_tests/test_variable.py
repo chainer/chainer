@@ -110,12 +110,13 @@ class TestBackwardAccumulate(unittest.TestCase):
         y2.grad = self.g
         y2.backward()
 
+        tol = {'atol': 1e-4, 'rtol': 1e-4}
         if self.var_a:
-            xp.testing.assert_allclose(a.grad, a2.grad)
+            xp.testing.assert_allclose(a.grad, a2.grad, **tol)
         if self.var_b:
-            xp.testing.assert_allclose(b.grad, b2.grad)
+            xp.testing.assert_allclose(b.grad, b2.grad, **tol)
         if self.var_c:
-            xp.testing.assert_allclose(c.grad, c2.grad)
+            xp.testing.assert_allclose(c.grad, c2.grad, **tol)
 
     def test_backward_accumulate_cpu(self):
         self.check_backward_accumulate(np, True)
