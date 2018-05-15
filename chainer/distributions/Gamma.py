@@ -68,8 +68,19 @@ class Gamma(Distribution):
         """
         bk = broadcast.broadcast_to(self.k, x.shape)
         btheta = broadcast.broadcast_to(self.theta, x.shape)
+        if self._is_gpu:
+            inf = cuda.cupy.zeros(x.shape)
+            constraint = x.data >= 0
+            not_constraint = cuda.cupy.logical_not(constraint)
+        else:
+            inf = numpy.zeros(x.shape)
+            constraint = x.data >= 0
+            not_constraint = numpy.logical_not(constraint)
+        inf[not_constraint] = numpy.inf
+
         return - lgamma.lgamma(bk) - bk * exponential.log(btheta) \
-            + (bk - 1) * exponential.log(x) - x / btheta
+            + (bk - 1) * exponential.log(x * constraint + not_constraint) \
+            - x / btheta - inf
 
     @property
     def mean(self):

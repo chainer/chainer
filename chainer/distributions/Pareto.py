@@ -72,16 +72,19 @@ class Pareto(Distribution):
         ba = broadcast.broadcast_to(self.alpha, x.shape)
         bs = broadcast.broadcast_to(self.scale, x.shape)
         if self._is_gpu:
-            valid = cuda.cupy.zeros(x.shape)
             inf = cuda.cupy.zeros(x.shape)
+            constraint = x.data >= self.scale.data
+            not_constraint = cuda.cupy.logical_not(constraint)
         else:
-            valid = numpy.zeros(x.shape)
             inf = numpy.zeros(x.shape)
-        valid[x.data >= self.scale.data] = 1
-        inf[x.data < self.scale.data] = numpy.inf
+            constraint = x.data >= self.scale.data
+            not_constraint = numpy.logical_not(constraint)
+        inf[not_constraint] = numpy.inf
+
         return (exponential.log(ba)
                 + ba * exponential.log(bs)
-                - (ba + 1) * exponential.log(x)) * valid - inf
+                - (ba + 1) * exponential.log(
+                    x * constraint + not_constraint)) - inf
 
     @property
     def mean(self):

@@ -89,7 +89,17 @@ class Exponential(Distribution):
 
         """
         bl = broadcast.broadcast_to(self.lam, x.shape)
-        return exponential.log(bl) - bl * x
+        if self._is_gpu:
+            inf = cuda.cupy.zeros(x.shape)
+            constraint = x.data >= 0
+            not_constraint = cuda.cupy.logical_not(constraint)
+        else:
+            inf = numpy.zeros(x.shape)
+            constraint = x.data >= 0
+            not_constraint = numpy.logical_not(constraint)
+        inf[not_constraint] = numpy.inf
+
+        return exponential.log(bl) - bl * x - inf
 
     @property
     def mean(self):

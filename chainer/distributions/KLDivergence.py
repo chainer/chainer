@@ -339,3 +339,16 @@ def _kl_gamma_normal(dist1, dist2):
         + (0.5 * (1 + dist1.k) * dist1.k * dist1.theta ** 2
            - dist2.loc * dist1.k * dist1.theta
            + 0.5 * dist2.loc ** 2) / dist2.scale ** 2
+
+
+@register_kl(distributions.Gumbel, distributions.Beta)
+@register_kl(distributions.Gumbel, distributions.Exponential)
+@register_kl(distributions.Gumbel, distributions.Gamma)
+@register_kl(distributions.Gumbel, distributions.Pareto)
+@register_kl(distributions.Gumbel, distributions.Uniform)
+def _kl_gumbel_inf(dist1, dist2):
+    if dist1._is_gpu:
+        inf = cuda.cupy.ones_like(dist1.loc.data) * numpy.inf
+    else:
+        inf = numpy.ones_like(dist1.loc.data) * numpy.inf
+    return chainer.Variable(inf)
