@@ -13,6 +13,7 @@
 #include "xchainer/python/error.h"
 #include "xchainer/python/routines.h"
 #include "xchainer/python/scalar.h"
+#include "xchainer/python/testing/testing_module.h"
 
 namespace xchainer {
 namespace python {
@@ -25,6 +26,7 @@ void InitXchainerModule(pybind11::module& m) {
 
     m.attr("DEFAULT_GRAPH_ID") = kDefaultGraphId;
 
+    // xchainer
     InitXchainerContext(m);
     InitXchainerContextScope(m);
     InitXchainerBackend(m);
@@ -38,6 +40,10 @@ void InitXchainerModule(pybind11::module& m) {
     InitXchainerBackward(m);
     InitXchainerCheckBackward(m);
     InitXchainerRoutines(m);
+
+    // xchainer.testing
+    pybind11::module m_testing = m.def_submodule("testing");
+    testing::internal::InitXchainerTestingModule(m_testing);
 }
 
 }  // namespace

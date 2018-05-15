@@ -1,7 +1,6 @@
 #include "xchainer/python/device.h"
 
 #include <memory>
-#include <sstream>
 #include <string>
 
 #include "xchainer/backend.h"

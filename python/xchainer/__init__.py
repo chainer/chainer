@@ -1,3 +1,5 @@
+import xchainer.testing  # NOQA
+
 from xchainer._core import *  # NOQA
 
 from builtins import bool, int, float  # NOQA
