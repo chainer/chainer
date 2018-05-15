@@ -1136,8 +1136,6 @@ Actual: {0}'''.format(type(data))
                 if not func.lazy_grad_sum:
                     normalize(gx)
 
-                grads[x] = gx
-
                 if x.creator_node is None:
                     x_var = x.get_variable_or_none()
                     if x_var is not None:
