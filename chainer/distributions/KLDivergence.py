@@ -288,3 +288,11 @@ def _kl_exponential_gamma(dist1, dist2):
         + dist2.k * exponential.log(dist2.theta) \
         + (dist2.k - 1) * (exponential.log(dist1.lam) + EULER) \
         + 1 / dist2.theta / dist1.lam
+
+
+@register_kl(distributions.Exponential, distributions.Gumbel)
+def _kl_exponential_gumbel(dist1, dist2):
+    return - dist1.entropy + exponential.log(dist2.scale) \
+        - dist2.loc / dist2.scale + 1 / dist2.scale / dist1.lam \
+        + dist1.lam * exponential.exp(dist2.loc / dist2.scale) \
+        / (dist1.lam + 1. / dist2.scale)

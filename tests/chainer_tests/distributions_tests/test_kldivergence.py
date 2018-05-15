@@ -400,3 +400,14 @@ class TestKLDivergence(unittest.TestCase):
         dist1 = self.make_exponential_dist(True)
         dist2 = self.make_gamma_dist(True)
         self.check_kl(dist1, dist2)
+
+    def test_exponential_gumbel_cpu(self):
+        dist1 = self.make_exponential_dist()
+        dist2 = self.make_gumbel_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_exponential_gumbel_gpu(self):
+        dist1 = self.make_exponential_dist(True)
+        dist2 = self.make_gumbel_dist(True)
+        self.check_kl(dist1, dist2)
