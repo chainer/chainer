@@ -14,6 +14,7 @@ add_library(_core.so MODULE
     shape.cc
     slice.cc
     strides.cc
+    testing/testing_module.cc
     testing/device_buffer.cc
     )
 target_link_libraries(_core.so

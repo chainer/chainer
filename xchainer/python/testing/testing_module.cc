@@ -1,4 +1,6 @@
-#pragma once
+#include "xchainer/python/testing/testing_module.h"
+
+#include "xchainer/python/testing/device_buffer.h"
 
 #include <pybind11/pybind11.h>
 
@@ -7,7 +9,7 @@ namespace python {
 namespace testing {
 namespace internal {
 
-void InitXchainerDeviceBuffer(pybind11::module&);
+void InitXchainerTestingModule(pybind11::module& m) { InitXchainerDeviceBuffer(m); }
 
 }  // namespace internal
 }  // namespace testing

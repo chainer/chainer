@@ -13,7 +13,7 @@
 #include "xchainer/python/error.h"
 #include "xchainer/python/routines.h"
 #include "xchainer/python/scalar.h"
-#include "xchainer/python/testing/device_buffer.h"
+#include "xchainer/python/testing/testing_module.h"
 
 namespace xchainer {
 namespace python {
@@ -42,8 +42,8 @@ void InitXchainerModule(pybind11::module& m) {
     InitXchainerRoutines(m);
 
     // xchainer.testing
-    auto m_testing = m.def_submodule("testing");
-    InitXchainerDeviceBuffer(m_testing);
+    pybind11::module m_testing = m.def_submodule("testing");
+    testing::internal::InitXchainerTestingModule(m_testing);
 }
 
 }  // namespace

@@ -7,7 +7,7 @@ namespace python {
 namespace testing {
 namespace internal {
 
-void InitXchainerDeviceBuffer(pybind11::module&);
+void InitXchainerTestingModule(pybind11::module&);
 
 }  // namespace internal
 }  // namespace testing
