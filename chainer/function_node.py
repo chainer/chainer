@@ -555,21 +555,10 @@ Use apply() method instead.\
                 'number of gradients returned by %s (%s) is incorrect.'
                 % (self._impl_name, self.label))
 
-        if self.lazy_grad_sum:
-            gxs_output = ()
-            for i, (gx, g_input) in enumerate(six.moves.zip(gxs, grad_inputs)):
-                sum_gx = _backprop_utils.concat_variable(gx, g_input)
-                j = target_input_indexes[i]
-                if self.inputs[j].creator is None and \
-                        isinstance(sum_gx, tuple):
-                    sum_gx = chainer.functions.add(*sum_gx)
-                gxs_output += sum_gx,
-            return gxs_output
-        else:
-            return tuple([gx if g_input is None else
-                          g_input if gx is None else
-                          gx + g_input
-                          for gx, g_input in six.moves.zip(gxs, grad_inputs)])
+        return tuple([gx if g_input is None else
+                      g_input if gx is None else
+                      gx + g_input
+                      for gx, g_input in six.moves.zip(gxs, grad_inputs)])
 
     def backward_accumulate_list(
             self, target_input_indexes, grad_outputs, grad_inputs):
