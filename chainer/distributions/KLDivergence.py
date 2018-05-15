@@ -432,3 +432,10 @@ def _kl_pareto_inf(dist1, dist2):
 def _kl_pareto_exponential(dist1, dist2):
     return - dist1.entropy - exponential.log(dist2.lam) \
         + dist2.lam * dist1.mean
+
+@register_kl(distributions.Pareto, distributions.Gamma)
+def _kl_pareto_gamma(dist1, dist2):
+    return - dist1.entropy + lgamma.lgamma(dist2.k) \
+        + dist2.k * exponential.log(dist2.theta) \
+        - (dist2.k - 1) * (1 / dist1.alpha + exponential.log(dist1.scale)) \
+        + dist1.mean / dist2.theta

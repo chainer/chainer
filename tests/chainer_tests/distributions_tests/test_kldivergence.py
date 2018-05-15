@@ -27,7 +27,7 @@ class TestKLDivergence(unittest.TestCase):
         mc_kl = numpy.mean(mc_kl, axis=0)
 
         print(kl, mc_kl)
-        testing.assert_allclose(kl, mc_kl, atol=1e-2, rtol=1e-2)
+        testing.assert_allclose(kl, mc_kl, atol=3e-2, rtol=3e-2)
 
     def encode_params(self, params, is_gpu=False):
         if is_gpu:
@@ -718,4 +718,15 @@ class TestKLDivergence(unittest.TestCase):
     def test_pareto_exponential_gpu(self):
         dist1 = self.make_pareto_dist(True)
         dist2 = self.make_exponential_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_pareto_gamma_cpu(self):
+        dist1 = self.make_pareto_dist()
+        dist2 = self.make_gamma_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_pareto_gamma_gpu(self):
+        dist1 = self.make_pareto_dist(True)
+        dist2 = self.make_gamma_dist(True)
         self.check_kl(dist1, dist2)
