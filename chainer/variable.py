@@ -1038,8 +1038,8 @@ Actual: {0}'''.format(type(data))
             if node is None:
                 return []
             if node not in grads:
-                if x.creator_node is None:
-                    x._check_old_style_gradient()
+                if node.creator_node is None:
+                    node._check_old_style_gradient()
                     # accumulate the gradient only if the node is a leaf
                     grads[node] = pure(node.grad_var)
                 else:
