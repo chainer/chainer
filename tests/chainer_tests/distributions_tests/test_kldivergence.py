@@ -554,3 +554,58 @@ class TestKLDivergence(unittest.TestCase):
         dist1 = self.make_gumbel_dist(True)
         dist2 = self.make_normal_dist(True)
         self.check_kl(dist1, dist2)
+
+    def test_laplace_beta_cpu(self):
+        dist1 = self.make_laplace_dist()
+        dist2 = self.make_beta_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_laplace_beta_gpu(self):
+        dist1 = self.make_laplace_dist(True)
+        dist2 = self.make_beta_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_laplace_exponential_cpu(self):
+        dist1 = self.make_laplace_dist()
+        dist2 = self.make_exponential_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_laplace_exponential_gpu(self):
+        dist1 = self.make_laplace_dist(True)
+        dist2 = self.make_exponential_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_laplace_gamma_cpu(self):
+        dist1 = self.make_laplace_dist()
+        dist2 = self.make_gamma_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_laplace_gamma_gpu(self):
+        dist1 = self.make_laplace_dist(True)
+        dist2 = self.make_gamma_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_laplace_pareto_cpu(self):
+        dist1 = self.make_laplace_dist()
+        dist2 = self.make_pareto_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_laplace_pareto_gpu(self):
+        dist1 = self.make_laplace_dist(True)
+        dist2 = self.make_pareto_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_laplace_uniform_cpu(self):
+        dist1 = self.make_laplace_dist()
+        dist2 = self.make_uniform_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_laplace_uniform_gpu(self):
+        dist1 = self.make_laplace_dist(True)
+        dist2 = self.make_uniform_dist(True)
+        self.check_kl(dist1, dist2)

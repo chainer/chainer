@@ -362,3 +362,16 @@ def _kl_gumbel_normal(dist1, dist2):
            + (dist1.loc + dist1.scale * EULER) ** 2)
            - dist2.loc * (dist1.loc + dist1.scale * EULER)
            + 0.5 * dist2.loc ** 2) / dist2.scale ** 2
+
+
+@register_kl(distributions.Laplace, distributions.Beta)
+@register_kl(distributions.Laplace, distributions.Exponential)
+@register_kl(distributions.Laplace, distributions.Gamma)
+@register_kl(distributions.Laplace, distributions.Pareto)
+@register_kl(distributions.Laplace, distributions.Uniform)
+def _kl_laplace_inf(dist1, dist2):
+    if dist1._is_gpu:
+        inf = cuda.cupy.ones_like(dist1.loc.data) * numpy.inf
+    else:
+        inf = numpy.ones_like(dist1.loc.data) * numpy.inf
+    return chainer.Variable(inf)
