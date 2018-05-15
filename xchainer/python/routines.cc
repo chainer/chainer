@@ -63,7 +63,7 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
     Shape shape{count};
     std::shared_ptr<void> data{info.ptr, [](void*) {}};
 
-    return xchainer::FromContiguousData(shape, internal::GetDtype(dtype), data, offset, internal::GetDevice(device)).move_body();
+    return xchainer::FromData(shape, internal::GetDtype(dtype), data, nonstd::nullopt, offset, internal::GetDevice(device)).move_body();
 }
 
 }  // namespace
