@@ -1100,11 +1100,33 @@ Actual: {0}'''.format(type(data))
                 hook.backward_postprocess(func, in_data, out_grad_data)
 
             if is_debug:
+<<<<<<< HEAD
                 for gx in gxs:
                     for gx_elem in gx:
                         gx_data = gx_elem.data
                         if gx_data.dtype.kind != 'f':
                             continue
+=======
+                # gxs can be a tuple of tuples of variables (in case of
+                # lazy-grad-sum).
+                # iter_gxs expands it as a sequence of variables.
+                # It also ignores None entries.
+                def iter_gxs(gxs):
+                    for gx in gxs:
+                        if gx is None:
+                            continue
+                        elif isinstance(gx, tuple):
+                            for gx_ in iter_gxs(gx):
+                                yield gx_
+                        elif isinstance(gx, Variable):
+                            yield gx
+                        else:
+                            assert False
+
+                for gx in iter_gxs(gxs):
+                    gx_data = gx.data
+                    if gx_data.dtype.kind == 'f':
+>>>>>>> chainer/master
                         cuda.get_device_from_array(gx_data).use()
                         if cuda.get_array_module(gx_data).isnan(gx_data).any():
                             raise RuntimeError(
