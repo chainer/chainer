@@ -543,3 +543,14 @@ class TestKLDivergence(unittest.TestCase):
         dist1 = self.make_gumbel_dist(True)
         dist2 = self.make_uniform_dist(True)
         self.check_kl(dist1, dist2)
+
+    def test_gumbel_normal_cpu(self):
+        dist1 = self.make_gumbel_dist()
+        dist2 = self.make_normal_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_gumbel_normal_gpu(self):
+        dist1 = self.make_gumbel_dist(True)
+        dist2 = self.make_normal_dist(True)
+        self.check_kl(dist1, dist2)

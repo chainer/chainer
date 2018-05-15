@@ -352,3 +352,13 @@ def _kl_gumbel_inf(dist1, dist2):
     else:
         inf = numpy.ones_like(dist1.loc.data) * numpy.inf
     return chainer.Variable(inf)
+
+
+@register_kl(distributions.Gumbel, distributions.Normal)
+def _kl_gumbel_normal(dist1, dist2):
+    return - dist1.entropy + 0.5 * numpy.log(2 * numpy.pi) \
+        + exponential.log(dist2.scale) \
+        + (0.5 * (numpy.pi ** 2 * dist1.scale ** 2 / 6
+           + (dist1.loc + dist1.scale * EULER) ** 2)
+           - dist2.loc * (dist1.loc + dist1.scale * EULER)
+           + 0.5 * dist2.loc ** 2) / dist2.scale ** 2
