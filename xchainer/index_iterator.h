@@ -70,7 +70,7 @@ public:
 
     explicit XCHAINER_HOST_DEVICE IndexIterator(int64_t total_size, int64_t start, int64_t step)
         : total_size_{total_size}, raw_index_{start}, step_{step} {
-        //assert(start >= 0);
+        // assert(start >= 0);
         assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
     }
 

@@ -505,35 +505,36 @@ Array Im2Col(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    int64_t batch_size = x.shape()[0];
-    int64_t channels = x.shape()[1];
-    auto ndim = static_cast<int8_t>(ksize.size());
+    auto ndim = static_cast<int8_t>(ksize.size());  // Number of input image dimensions.
     assert(ndim == static_cast<int8_t>(stride.size()));
     assert(ndim == static_cast<int8_t>(pad.size()));
     assert(ndim + 2 == x.ndim());  // Additional batch and channel dimensions.
 
-    StackVector<int64_t, kMaxNdim> y_dims;
+    StackVector<int64_t, kMaxNdim> out_dims;
     for (int8_t i = 0; i < ndim; ++i) {
-        y_dims.emplace_back(GetConvOutDim(x.shape()[i + 2], ksize[i], stride[i], pad[i], cover_all));
-        assert(y_dims.back() > 0);
+        out_dims.emplace_back(GetConvOutDim(x.shape()[i + 2], ksize[i], stride[i], pad[i], cover_all));
+        assert(out_dims.back() > 0);
     }
 
-    Shape y_shape{batch_size, channels};
-    std::copy(ksize.begin(), ksize.end(), std::back_inserter(y_shape));
-    std::copy(y_dims.begin(), y_dims.end(), std::back_inserter(y_shape));
+    int64_t batch_size = x.shape()[0];
+    int64_t channels = x.shape()[1];
 
-    Array y = Zeros(y_shape, x.dtype(), x.device());
+    Shape out_shape{batch_size, channels};
+    std::copy(ksize.begin(), ksize.end(), std::back_inserter(out_shape));
+    std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
+
+    Array out = Empty(out_shape, x.dtype(), x.device());
 
     VisitDtype(x.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
         Indexer<2> batch_channel_indexer{Shape{batch_size, channels}};
         Indexer<> kernel_indexer{Shape{ksize.begin(), ksize.end()}};
-        Indexer<> outdims_indexer{Shape{y_dims.begin(), y_dims.end()}};
+        Indexer<> outdims_indexer{Shape{out_dims.begin(), out_dims.end()}};
         Indexer<> x_indexer{x.shape()};
-        Indexer<> out_indexer{y.shape()};
+        Indexer<> out_indexer{out.shape()};
         IndexableArray<const T> x_iarray{x};
-        IndexableArray<T> y_iarray{y};
+        IndexableArray<T> out_iarray{out};
 
         for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
             for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
@@ -544,25 +545,27 @@ Array Im2Col(
                     img_iters.emplace_back(img_indexers.back().It(-pad[i], stride[i]));
                 }
 
-                IndexSpan col_is;
-                col_is.ndim = ndim;
-                std::fill(col_is.index, col_is.index + col_is.ndim, 0);
-
+                // Indices over input image.
                 IndexSpan img_is;
                 img_is.ndim = ndim;
                 std::copy(it_kernel.index(), it_kernel.index() + ndim, img_is.index);
 
+                // Indices over output column.
+                IndexSpan col_is;
+                col_is.ndim = ndim;
+                std::fill(col_is.index, col_is.index + col_is.ndim, 0);
+
                 while (true) {
                     auto it_x = x_indexer.At(it_batch_channel, img_is);
-                    auto it_y = out_indexer.At(it_batch_channel, it_kernel, col_is);
+                    auto it_out = out_indexer.At(it_batch_channel, it_kernel, col_is);
 
                     // Write the output column value.
-                    y_iarray[it_y] = x_iarray[it_x];
+                    out_iarray[it_out] = x_iarray[it_x];
 
                     // Check if this column is finished, for this batch, channel and kernel element.
                     int8_t ndim_finished = 0;
                     for (int8_t i = 0; i < ndim; ++i) {
-                        // Next elment to check.
+                        // Next element to check.
                         ++img_iters[i];
                         ++col_is.index[i];
                         img_is.index[i] += stride[i];
@@ -588,7 +591,7 @@ Array Im2Col(
 
     });
 
-    return y;
+    return out;
 }
 
 // }  // namespace
