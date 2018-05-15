@@ -166,7 +166,9 @@ public:
 
     template <class InputIter>
     iterator insert(const_iterator pos, InputIter first, InputIter last) {
+#ifndef NDEBUG
         size_type n_old = n_;
+#endif
         iterator it_pos0 = begin() + std::distance(cbegin(), pos);
         iterator it_pos = it_pos0;
         for (InputIter it = first; it != last; ++it, ++it_pos) {
