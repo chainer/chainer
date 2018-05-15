@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cublas_v2.h>
+
 #include <cstddef>
 #include <cstdint>
 
@@ -16,6 +18,7 @@ namespace cuda {
 class CudaDevice : public Device {
 public:
     CudaDevice(CudaBackend& backend, int index);
+    ~CudaDevice() override;
 
     std::shared_ptr<void> Allocate(size_t bytesize) override;
 
@@ -74,8 +77,11 @@ public:
 
     void Synchronize() override;
 
+    cublasHandle_t cublas_handle() const { return cublas_handle_; }
+
 private:
     MemoryPool memory_pool_;
+    cublasHandle_t cublas_handle_{};
 };
 
 }  // namespace cuda

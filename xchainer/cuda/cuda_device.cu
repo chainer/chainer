@@ -1,5 +1,7 @@
 #include "xchainer/cuda/cuda_device.h"
 
+#include <cublas_v2.h>
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -33,9 +35,18 @@
 namespace xchainer {
 namespace cuda {
 
-CudaDevice::CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
+CudaDevice::CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {
+    CheckCudaError(cudaSetDevice(index));
+    CheckCublasError(cublasCreate(&cublas_handle_));
+}
+
+CudaDevice::~CudaDevice() {
+    cudaSetDevice(index());
+    cublasDestroy(cublas_handle_);
+}
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
+    CheckCudaError(cudaSetDevice(index()));
     void* ptr = memory_pool_.Malloc(bytesize);
     return std::shared_ptr<void>{ptr, [this](void* ptr) { memory_pool_.Free(ptr); }};
 }
@@ -67,6 +78,7 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
     if (bytesize == 0) {
         return;
     }
+    CheckCudaError(cudaSetDevice(index()));
     if (&src_device == this || nullptr != dynamic_cast<CudaDevice*>(&src_device)) {
         // Copy between CUDA devices
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
@@ -83,6 +95,7 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
     if (bytesize == 0) {
         return;
     }
+    CheckCudaError(cudaSetDevice(index()));
     if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
         // Copy between CUDA devices
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
@@ -194,7 +207,7 @@ struct SumImpl {
 void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
-
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Reduce(MakeReductionKernelArg<T, T>(a, axis, out), SumImpl<T>{});
@@ -225,6 +238,7 @@ struct AMaxImpl {
 void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
     assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Reduce(MakeReductionKernelArg<T, T>(a, axis, out), AMaxImpl<T>{});
@@ -487,13 +501,12 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
         Array a_config = a_layout.Configure(a);
         Array b_config = b_layout.Configure(b);
 
-        cublasHandle_t handle = static_cast<CudaBackend&>(backend()).cublas_handle();
         const T one = 1;
         const T zero = 0;
         const T* a_ptr = GetOffsetData<const T>(a_config);
         const T* b_ptr = GetOffsetData<const T>(b_config);
         T* out_ptr = GetOffsetData<T>(out_contiguous);
-        Gemm<T>{}(handle, b_layout.trans, a_layout.trans, n, m, k, &one, b_ptr, b_layout.ld, a_ptr, a_layout.ld, &zero, out_ptr, n);
+        Gemm<T>{}(cublas_handle_, b_layout.trans, a_layout.trans, n, m, k, &one, b_ptr, b_layout.ld, a_ptr, a_layout.ld, &zero, out_ptr, n);
     };
 
     if (a.dtype() == Dtype::kFloat32) {
@@ -631,6 +644,7 @@ __global__ void AddAtKernel(
 
 void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
     CheckDevicesCompatible(a, indices, out);
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
@@ -675,6 +689,7 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
 
     assert(a.shape() == out.shape());
     CheckDevicesCompatible(a, indices, out);
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
@@ -789,6 +804,7 @@ void CudaDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
     assert(v.ndim() == 1);
     assert(out.ndim() == 2);
 
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
@@ -841,6 +857,7 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
     assert(out.ndim() == 1);
     assert(out.shape()[0] > 0);
 
+    CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         int64_t n = out.shape()[0];
