@@ -816,7 +816,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     # 3. Backpropagation: the backpropagation is executed along the
     #    (sub-)subgraph. It uses the topological order of the subgraph which is
     #    induced by the reversed order of function applications ("rank").
-    grads = {}  # mapping from variable nodes to their gradients
+    grads = _backprop_utils.GradTable()
 
     # Initialize the gradient mapping.
     if grad_outputs is None:
@@ -845,7 +845,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                   loss_scale)
 
     # Extract the gradients w.r.t. the inputs and return them.
-    ret = [grads.get(x.node, None) for x in inputs]
+    ret = [grads.pop(x.node) for x in inputs]
     if set_grad:
         for x, gx in zip(inputs, ret):
             x.grad_var = gx
@@ -867,16 +867,8 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         func = pop_candidate()
 
         # Collect the gradients w.r.t. the outputs
-        gys = []
-        for y_ref in func.outputs:
-            y = y_ref()
-            if y is None:
-                # output is not a part of the selected subgraph and has already
-                # been released.
-                gys.append(None)
-                continue
-            gys.append(grads.get(y, None))
-        gys = tuple(gys)
+        ys = [y() for y in func.outputs]  # access via weak ref
+        gys = tuple([grads.pop(y) for y in ys])
 
         # Collect the gradients w.r.t. the inputs
         #
@@ -885,28 +877,18 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         # current implementation passes None as the current gradient w.r.t.
         # such an input except for the first one (i.e., it builds gxs like
         # (gx, None) where gx is the current gradient w.r.t. x).
-        gxs = []
         input_indexes = []
-        selected_inputs = set()
+        x_grads = collections.OrderedDict()
         for i, x in enumerate(func.inputs):
             if x not in grad_required:
                 continue
             input_indexes.append(i)
-            if x in selected_inputs:
-                gxs.append(None)
-            else:
-                gxs.append(grads.get(x, None))
-                selected_inputs.add(x)
-        gxs = tuple(gxs)
-        input_indexes = tuple(input_indexes)
-
+            if x not in x_grads:
+                x_grads[x] = grads.get_as_list(x)
         if not input_indexes:
             continue
 
         # Do backward
-        gys = tuple([gy if not isinstance(gy, tuple) else
-                     chainer.functions.add(*gy)
-                     for gy in gys])
 
         # Call pre-backward hooks
         hooks = chainer.get_function_hooks()
@@ -923,47 +905,24 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         for hook in hooks:
             hook.backward_preprocess(func, in_data, out_grad_data)
 
-        new_gxs = func.backward_accumulate(input_indexes, gys, gxs)
+        func.backward_accumulate_list(input_indexes, gys, x_grads)
 
         # Call post-backward hooks
         for hook in hooks:
             hook.backward_postprocess(func, in_data, out_grad_data)
 
-        # Delete output gradients that are not required to return
-        for y_ref in func.outputs:
-            y = y_ref()
-            if y is not None and y in grads and y not in input_nodes:
-                del grads[y]
-
         # Update grads
-        selected_inputs = set()
-        for i, g in zip(input_indexes, new_gxs):
-            if g is None:
+        for node, g in x_grads.items():
+            if not g:  # gradient == None
                 continue
 
-            node = func.inputs[i]
-            if node in selected_inputs:
-                # Accumulate the duplicated gradients here
-                cur_gx = grads.get(node, None)
-                if cur_gx is not None:
-                    if func.lazy_grad_sum:
-                        if x.creator is None:
-                            g = _backprop_utils.add(g, cur_gx)
-                        else:
-                            g = _backprop_utils.concat_variable(g, cur_gx)
-                    # cur_gx can't be tuple, the lazy_grad_sum can't
-                    # be enabled in its sibling node.
-                    else:
-                        g = g + cur_gx
-            else:
-                selected_inputs.add(node)
-
-            grads[node] = g
+            if not func.lazy_grad_sum:
+                _backprop_utils.normalize(g)
 
             if retain_grad:
                 v = node.get_variable_or_none()
                 if v is not None:
-                    v.grad_var = g
+                    v.grad_var = g  # TODO(kataoka): bugfix?
                     v._loss_scale = loss_scale
 
             creator = node.creator_node

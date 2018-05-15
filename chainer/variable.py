@@ -980,7 +980,7 @@ Actual: {0}'''.format(type(data))
 
         cand_funcs = []
         seen_set = set()
-        grads = _backprop_utils.GradTable()
+        grads = _backprop_utils.GradTable(load_if_new=True)
 
         # Initialize error by 1, if this is a loss variable
         if self.data.size == 1 and self._grad_var is None:
@@ -1085,7 +1085,7 @@ Actual: {0}'''.format(type(data))
                         y_var._grad_var = gy if retain_grad else None
 
             for x, gx in in_grad.items():
-                if not gx:  # no gradients
+                if not gx:  # gradient == None
                     continue
 
                 for gx_elem in gx:

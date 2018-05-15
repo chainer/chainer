@@ -15,8 +15,9 @@ def _pure(grad):
 
 class GradTable(object):
 
-    def __init__(self):
+    def __init__(self, load_if_new=False):
         self.grads = {}
+        self._load_if_new = load_if_new
 
     def __setitem__(self, node, grad):
         self.grads[node] = _pure(grad)
@@ -26,7 +27,7 @@ class GradTable(object):
             return []
         grads = self.grads
         if node not in grads:
-            if node.creator_node is None:
+            if self._load_if_new and node.creator_node is None:
                 node._check_old_style_gradient()
                 # accumulate the gradient only if the node is a leaf
                 grads[node] = _pure(node.grad_var)
@@ -40,7 +41,10 @@ class GradTable(object):
         grads = self.grads
         if node in grads:
             return normalize(grads.pop(node))
-        return node.grad_var
+        if self._load_if_new:
+            return node.grad_var
+        else:
+            return []
 
 
 def concat_variable(gx, g_input):
