@@ -242,3 +242,13 @@ def _kl_beta_gamma(dist1, dist2):
         - (dist2.k - 1) * (digamma.digamma(dist1.a)
                            - digamma.digamma(dist1.a + dist1.b)) \
         + dist1.a / (dist1.a + dist1.b) / dist2.theta
+
+
+@register_kl(distributions.Beta, distributions.Normal)
+def _kl_beta_normal(dist1, dist2):
+    apb = dist1.a + dist1.b
+    return - dist1.entropy + 0.5 * numpy.log(2 * numpy.pi) \
+        + exponential.log(dist2.scale) \
+        + (dist1.a * (dist1.a + 1) / apb / (apb + 1) / 2
+           - dist2.loc * dist1.a / apb
+           + dist2.loc ** 2 / 2) / dist2.scale ** 2
