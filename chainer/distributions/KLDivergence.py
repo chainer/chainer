@@ -296,3 +296,11 @@ def _kl_exponential_gumbel(dist1, dist2):
         - dist2.loc / dist2.scale + 1 / dist2.scale / dist1.lam \
         + dist1.lam * exponential.exp(dist2.loc / dist2.scale) \
         / (dist1.lam + 1. / dist2.scale)
+
+
+@register_kl(distributions.Exponential, distributions.Normal)
+def _kl_exponential_normal(dist1, dist2):
+    return - dist1.entropy + 0.5 * numpy.log(2 * numpy.pi) \
+        + exponential.log(dist2.scale) \
+        + (dist2.loc ** 2 / 2 - dist2.loc / dist1.lam + 1 / dist1.lam ** 2) \
+        / dist2.scale ** 2
