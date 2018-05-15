@@ -447,9 +447,10 @@ class Variable(object):
         * Floor Division: ``a // b`` (:meth:`__floordiv__`, \
                                       :meth:`__rfloordiv__`)
         * Exponentiation: ``a ** b`` (:meth:`__pow__`, :meth:`__rpow__`)
-        * Matirx Multiplication: ``a @ b`` (:meth:`__matmul__`, \
+        * Matrix Multiplication: ``a @ b`` (:meth:`__matmul__`, \
                                             :meth:`__rmatmul__`)
         * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
+        * Absolute value: ``abs(a)`` (:meth:`__abs__`)
 
     .. warning::
 
@@ -776,22 +777,22 @@ Actual: {0}'''.format(type(data))
         intel64.check_ideep_available()
         data = self.data
         if data is not None:
-            if isinstance(data, numpy.ndarray):
-                # numpy.ndarray to ideep
-                self._data = [
-                    intel64.ideep.array(
-                        data, itype=intel64.ideep.wgt_array)]
-            elif isinstance(data, cuda.ndarray):
-                # cupy.ndarray to ideep
-                self._data = [
-                    intel64.ideep.array(
-                        data.get(), itype=intel64.ideep.wgt_array)]
+            if isinstance(data, cuda.ndarray):
+                # cupy.ndarray to numpy.ndarray
+                data = data.get()
+            if (isinstance(data, numpy.ndarray) and
+                    intel64.inputs_all_ready((data,))):
+                # numpy.ndarray to ideep.mdarray
+                data = intel64.ideep.array(
+                    data, itype=intel64.ideep.wgt_array)
+            self._data = [data]
+
         if self._grad_var is not None:
             self._grad_var.to_intel64()
-            # ensure that the node tracks the device migration
-            node = self._node
-            if node._data is not None:
-                node.retain_data()
+        # ensure that the node tracks the device migration
+        node = self._node
+        if node._data is not None:
+            node.retain_data()
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -1324,7 +1325,6 @@ class Parameter(Variable):
             else:
                 # uninitialized parameter
                 super(Parameter, self).__init__(name=name)
-                self.initializer = initializer
                 dtype = getattr(initializer, 'dtype', numpy.float32)
                 self._grad_initializer = constant.NaN(dtype)
         else:
@@ -1339,6 +1339,7 @@ class Parameter(Variable):
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
         self.update_rule = None
+        self.initializer = initializer
 
     def __copy__(self):
         return self._copy_to(Parameter())
