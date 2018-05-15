@@ -563,12 +563,16 @@ class GradTestBase(object):
     x_names = ()
     y_names = ()
     loss_scale = None
+    extend_graph_x = False
+    extend_graph_y = False
 
     def _init_attrs(self, names):
         ret = []
         for name in names:
             v = chainer.Variable(
                 numpy.random.randint(-4, 6, self.shape).astype('f'), name=name)
+            if self.extend_graph_x:
+                v *= 1.
             ret.append(v)
             setattr(self, name, v)
         return ret
@@ -625,6 +629,8 @@ class GradTestBase(object):
     def check_grad(self):
         self.forward()
         ys = [getattr(self, name) for name in self.y_names]
+        if self.extend_graph_y:
+            self._ys = [v * 1. for v in ys]
         gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
                            loss_scale=self.loss_scale)
 
@@ -704,6 +710,10 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
         return [ggrad]
 
 
+@testing.parameterize(*testing.product({
+    'extend_graph_x': [False, True],
+    'extend_graph_y': [False, True],
+}))
 class TestGradComplex(GradTestBase, unittest.TestCase):
 
     x_names = 'x1', 'x2'
