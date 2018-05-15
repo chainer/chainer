@@ -565,7 +565,7 @@ Array Im2Col(
                         // Next elment to check.
                         ++img_iters[i];
                         ++col_is.index[i];
-                        ++img_is.index[i];
+                        img_is.index[i] += stride[i];
 
                         if (img_iters[i]) {
                             // The next element is on the same dimension.
