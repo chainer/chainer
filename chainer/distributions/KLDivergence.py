@@ -187,10 +187,19 @@ def _kl_normal_normal(dist1, dist2):
 
 @register_kl(distributions.Pareto, distributions.Pareto)
 def _kl_pareto_pareto(dist1, dist2):
+    if dist1._is_gpu:
+        is_inf = dist1.scale.data < dist2.scale.data
+        inf = cuda.cupy.zeros_like(dist1.alpha.data)
+        inf[is_inf] = numpy.inf
+    else:
+        is_inf = dist1.scale.data < dist2.scale.data
+        inf = numpy.zeros_like(dist1.alpha.data)
+        inf[is_inf] = numpy.inf
+
     return dist2.alpha * (exponential.log(dist1.scale)
                           - exponential.log(dist2.scale)) \
         + exponential.log(dist1.alpha) - exponential.log(dist2.alpha) \
-        + (dist2.alpha - dist1.alpha) / dist1.alpha
+        + (dist2.alpha - dist1.alpha) / dist1.alpha + inf
 
 
 @register_kl(distributions.Poisson, distributions.Poisson)
@@ -407,3 +416,19 @@ def _kl_normal_gumbel(dist1, dist2):
             - dist1.loc / dist2.scale
             + 0.5 * dist1.scale ** 2 / dist2.scale ** 2
             + dist2.loc / dist2.scale)
+
+
+@register_kl(distributions.Pareto, distributions.Beta)
+@register_kl(distributions.Pareto, distributions.Uniform)
+def _kl_pareto_inf(dist1, dist2):
+    if dist1._is_gpu:
+        inf = cuda.cupy.ones_like(dist1.scale.data) * numpy.inf
+    else:
+        inf = numpy.ones_like(dist1.scale.data) * numpy.inf
+    return chainer.Variable(inf)
+
+
+@register_kl(distributions.Pareto, distributions.Exponential)
+def _kl_pareto_exponential(dist1, dist2):
+    return - dist1.entropy - exponential.log(dist2.lam) \
+        + dist2.lam * dist1.mean

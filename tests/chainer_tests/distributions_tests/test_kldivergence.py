@@ -15,12 +15,12 @@ import numpy
 @testing.fix_random()
 class TestKLDivergence(unittest.TestCase):
 
-    def check_kl(self, dist1, dist2):
+    def check_kl(self, dist1, dist2, size=100000):
         kl = distributions.kl_divergence(dist1, dist2).data
         if isinstance(kl, cuda.ndarray):
             kl = kl.get()
 
-        sample = dist1.sample(100000)
+        sample = dist1.sample(size)
         mc_kl = dist1.log_prob(sample).data - dist2.log_prob(sample).data
         if isinstance(mc_kl, cuda.ndarray):
             mc_kl = mc_kl.get()
@@ -70,7 +70,7 @@ class TestKLDivergence(unittest.TestCase):
 
     def make_exponential_dist(self, is_gpu=False):
         lam = numpy.exp(
-            numpy.random.uniform(-1, 0, self.shape)).astype(numpy.float32)
+            numpy.random.uniform(0, 0.5, self.shape)).astype(numpy.float32)
         params = self.encode_params({"lam": lam}, is_gpu)
         return distributions.Exponential(**params)
 
@@ -119,9 +119,9 @@ class TestKLDivergence(unittest.TestCase):
 
     def make_pareto_dist(self, is_gpu=False):
         scale = numpy.exp(numpy.random.uniform(
-            1, 1, self.shape)).astype(numpy.float32)
+            0.5, 1, self.shape)).astype(numpy.float32)
         alpha = numpy.exp(numpy.random.uniform(
-            -1, 1, self.shape)).astype(numpy.float32)
+            0.5, 1, self.shape)).astype(numpy.float32)
         params = self.encode_params({"scale": scale, "alpha": alpha}, is_gpu)
         return distributions.Pareto(**params)
 
@@ -685,4 +685,37 @@ class TestKLDivergence(unittest.TestCase):
     def test_normal_gumbel_gpu(self):
         dist1 = self.make_normal_dist(True)
         dist2 = self.make_gumbel_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_pareto_beta_cpu(self):
+        dist1 = self.make_pareto_dist()
+        dist2 = self.make_beta_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_pareto_beta_gpu(self):
+        dist1 = self.make_pareto_dist(True)
+        dist2 = self.make_beta_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_pareto_uniform_cpu(self):
+        dist1 = self.make_pareto_dist()
+        dist2 = self.make_uniform_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_pareto_uniform_gpu(self):
+        dist1 = self.make_pareto_dist(True)
+        dist2 = self.make_uniform_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_pareto_exponential_cpu(self):
+        dist1 = self.make_pareto_dist()
+        dist2 = self.make_exponential_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_pareto_exponential_gpu(self):
+        dist1 = self.make_pareto_dist(True)
+        dist2 = self.make_exponential_dist(True)
         self.check_kl(dist1, dist2)
