@@ -232,7 +232,7 @@ Array Array::AsConstant(CopyKind kind) const {
         case CopyKind::kView:
             return Array{shape(), strides(), dtype(), device(), body_->data_, offset()};
         default:
-            assert(false);  // should never be reached
+            std::abort();  // should never be reached
     }
 }
 
@@ -259,7 +259,7 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
             return std::move(out);
         }
         default:
-            assert(false);  // should never be reached
+            std::abort();  // should never be reached
     }
 }
 
