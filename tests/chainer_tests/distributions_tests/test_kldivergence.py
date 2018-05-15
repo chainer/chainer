@@ -301,3 +301,14 @@ class TestKLDivergence(unittest.TestCase):
         dist1 = self.make_bernoulli_dist(True)
         dist2 = self.make_poisson_dist(True)
         self.check_kl(dist1, dist2)
+
+    def test_beta_pareto_cpu(self):
+        dist1 = self.make_beta_dist()
+        dist2 = self.make_pareto_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_beta_pareto_gpu(self):
+        dist1 = self.make_beta_dist(True)
+        dist2 = self.make_pareto_dist(True)
+        self.check_kl(dist1, dist2)

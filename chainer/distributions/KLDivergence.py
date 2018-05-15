@@ -1,3 +1,4 @@
+import chainer
 from chainer.backends import cuda
 from chainer import distributions
 from chainer.functions.array import expand_dims
@@ -217,3 +218,12 @@ def _kl_uniform_uniform(dist1, dist2):
 def _kl_bernoulli_poisson(dist1, dist2):
     return dist1.p * (exponential.log(dist1.p) - exponential.log(dist2.lam)) \
         + (1 - dist1.p) * exponential.log(1 - dist1.p) + dist2.lam
+
+
+@register_kl(distributions.Beta, distributions.Pareto)
+def _kl_beta_pareto(dist1, dist2):
+    if dist1._is_gpu:
+        inf = cuda.cupy.ones_like(dist1.a.data) * numpy.inf
+    else:
+        inf = numpy.ones_like(dist1.a.data) * numpy.inf
+    return chainer.Variable(inf)
