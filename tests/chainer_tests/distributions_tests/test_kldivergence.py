@@ -125,6 +125,11 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"scale": scale, "alpha": alpha}, is_gpu)
         return distributions.Pareto(**params)
 
+    def make_poisson_dist(self, is_gpu=False):
+        lam = numpy.random.uniform(0.1, 10, self.shape).astype(numpy.float32)
+        params = self.encode_params({"lam": lam}, is_gpu)
+        return distributions.Poisson(**params)
+
     def test_bernoulli_bernoulli_cpu(self):
         dist1 = self.make_bernoulli_dist()
         dist2 = self.make_bernoulli_dist()
@@ -255,4 +260,15 @@ class TestKLDivergence(unittest.TestCase):
     def test_pareto_pareto_gpu(self):
         dist1 = self.make_pareto_dist(True)
         dist2 = self.make_pareto_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_poisson_poisson_cpu(self):
+        dist1 = self.make_poisson_dist()
+        dist2 = self.make_poisson_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_poisson_poisson_gpu(self):
+        dist1 = self.make_poisson_dist(True)
+        dist2 = self.make_poisson_dist(True)
         self.check_kl(dist1, dist2)

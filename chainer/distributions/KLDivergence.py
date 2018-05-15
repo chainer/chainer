@@ -186,3 +186,9 @@ def _kl_pareto_pareto(dist1, dist2):
                           - exponential.log(dist2.scale)) \
         + exponential.log(dist1.alpha) - exponential.log(dist2.alpha) \
         + (dist2.alpha - dist1.alpha) / dist1.alpha
+
+
+@register_kl(distributions.Poisson, distributions.Poisson)
+def _kl_poisson_poisson(dist1, dist2):
+    return dist1.lam * (exponential.log(dist1.lam)
+                        - exponential.log(dist2.lam)) - dist1.lam + dist2.lam
