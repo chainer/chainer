@@ -1088,8 +1088,13 @@ Actual: {0}'''.format(type(data))
 
             func.backward_accumulate_list(
                 target_input_indexes, out_grad, in_grad)
-            gxs = in_grad
-            del in_grad  # TODO(kataoka): just rename variables
+
+            gxs = []  # make unique
+            for i, x in enumerate(target_inputs):
+                if x not in target_inputs[:i]:
+                    gxs.append(in_grad[i])
+                    assert x.requires_grad
+            del in_grad  # TODO(kataoka): just rename variables?
 
             for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad_data)
@@ -1117,12 +1122,8 @@ Actual: {0}'''.format(type(data))
                     if y_var is not None:
                         y_var._grad_var = gy if retain_grad else None
 
-            for i, gx in enumerate(gxs):
-                if not gx:
-                    continue
-
-                x = target_inputs[i]
-                if x in target_inputs[:i] or not x.requires_grad:
+            for gx in gxs:
+                if not gx:  # no gradients
                     continue
 
                 for gx_elem in gx:
