@@ -211,3 +211,9 @@ def _kl_uniform_uniform(dist1, dist2):
 
     return - exponential.log(dist1.high - dist1.low) \
         + exponential.log(dist2.high - dist2.low) + inf
+
+
+@register_kl(distributions.Bernoulli, distributions.Poisson)
+def _kl_bernoulli_poisson(dist1, dist2):
+    return dist1.p * (exponential.log(dist1.p) - exponential.log(dist2.lam)) \
+        + (1 - dist1.p) * exponential.log(1 - dist1.p) + dist2.lam

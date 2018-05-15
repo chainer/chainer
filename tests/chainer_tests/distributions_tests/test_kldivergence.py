@@ -284,3 +284,20 @@ class TestKLDivergence(unittest.TestCase):
         dist1 = self.make_uniform_dist()
         dist2 = self.make_uniform_dist()
         self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_uniform_uniform_gpu(self):
+        dist1 = self.make_uniform_dist(True)
+        dist2 = self.make_uniform_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_bernoulli_poisson_cpu(self):
+        dist1 = self.make_bernoulli_dist()
+        dist2 = self.make_poisson_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_bernoulli_poisson_gpu(self):
+        dist1 = self.make_bernoulli_dist(True)
+        dist2 = self.make_poisson_dist(True)
+        self.check_kl(dist1, dist2)
