@@ -35,14 +35,19 @@
 namespace xchainer {
 namespace cuda {
 
-CudaDevice::CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {
-    CheckCudaError(cudaSetDevice(index));
-    CheckCublasError(cublasCreate(&cublas_handle_));
+CudaDevice::~CudaDevice() {
+    if (cublas_handle_) {
+        cudaSetDevice(index());
+        cublasDestroy(cublas_handle_);
+    }
 }
 
-CudaDevice::~CudaDevice() {
-    cudaSetDevice(index());
-    cublasDestroy(cublas_handle_);
+cublasHandle_t CudaDevice::cublas_handle() {
+    if (!cublas_handle_) {
+        CheckCudaError(cudaSetDevice(index()));
+        CheckCublasError(cublasCreate(&cublas_handle_));
+    }
+    return cublas_handle_;
 }
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
@@ -506,7 +511,8 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
         const T* a_ptr = GetOffsetData<const T>(a_config);
         const T* b_ptr = GetOffsetData<const T>(b_config);
         T* out_ptr = GetOffsetData<T>(out_contiguous);
-        Gemm<T>{}(cublas_handle_, b_layout.trans, a_layout.trans, n, m, k, &one, b_ptr, b_layout.ld, a_ptr, a_layout.ld, &zero, out_ptr, n);
+        Gemm<T>{}(
+                cublas_handle(), b_layout.trans, a_layout.trans, n, m, k, &one, b_ptr, b_layout.ld, a_ptr, a_layout.ld, &zero, out_ptr, n);
     };
 
     if (a.dtype() == Dtype::kFloat32) {
