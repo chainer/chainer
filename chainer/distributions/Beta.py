@@ -72,10 +72,24 @@ class Beta(Distribution):
         """
         ba = broadcast.broadcast_to(self.a, x.shape)
         bb = broadcast.broadcast_to(self.b, x.shape)
-        return (ba - 1) * exponential.log(x) \
-            + (bb - 1) * exponential.log(1 - x) \
+        if self._is_gpu:
+            inf = cuda.cupy.zeros_like(ba.data)
+            constraint = cuda.cupy.bitwise_and(
+                x.data >= 0, x.data < 1)
+            not_constraint = cuda.cupy.logical_not(constraint)
+        else:
+            inf = numpy.zeros_like(ba.data)
+            constraint = numpy.bitwise_and(
+                x.data >= 0, x.data < 1)
+            not_constraint = numpy.logical_not(constraint)
+        inf[not_constraint] = numpy.inf
+
+        logp = (ba - 1) * exponential.log(x * constraint + not_constraint) \
+            + (bb - 1) * exponential.log(
+                (1 - x) * constraint + not_constraint) \
             - lgamma.lgamma(ba) - lgamma.lgamma(bb) \
             + lgamma.lgamma(ba + bb)
+        return logp - inf
 
     @property
     def mean(self):

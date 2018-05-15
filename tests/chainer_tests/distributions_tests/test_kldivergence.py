@@ -24,7 +24,7 @@ class TestKLDivergence(unittest.TestCase):
         mc_kl = dist1.log_prob(sample).data - dist2.log_prob(sample).data
         if isinstance(mc_kl, cuda.ndarray):
             mc_kl = mc_kl.get()
-        mc_kl = numpy.nanmean(mc_kl, axis=0)
+        mc_kl = numpy.mean(mc_kl, axis=0)
 
         print(kl, mc_kl)
         testing.assert_allclose(kl, mc_kl, atol=1e-2, rtol=1e-2)
@@ -70,7 +70,7 @@ class TestKLDivergence(unittest.TestCase):
 
     def make_exponential_dist(self, is_gpu=False):
         lam = numpy.exp(
-            numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
+            numpy.random.uniform(-1, 0, self.shape)).astype(numpy.float32)
         params = self.encode_params({"lam": lam}, is_gpu)
         return distributions.Exponential(**params)
 
@@ -354,5 +354,38 @@ class TestKLDivergence(unittest.TestCase):
     @attr.gpu
     def test_beta_uniform_gpu(self):
         dist1 = self.make_beta_dist(True)
+        dist2 = self.make_uniform_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_exponential_beta_cpu(self):
+        dist1 = self.make_exponential_dist()
+        dist2 = self.make_beta_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_exponential_beta_gpu(self):
+        dist1 = self.make_exponential_dist(True)
+        dist2 = self.make_beta_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_exponential_pareto_cpu(self):
+        dist1 = self.make_exponential_dist()
+        dist2 = self.make_pareto_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_exponential_pareto_gpu(self):
+        dist1 = self.make_exponential_dist(True)
+        dist2 = self.make_pareto_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_exponential_uniform_cpu(self):
+        dist1 = self.make_exponential_dist()
+        dist2 = self.make_uniform_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_exponential_uniform_gpu(self):
+        dist1 = self.make_exponential_dist(True)
         dist2 = self.make_uniform_dist(True)
         self.check_kl(dist1, dist2)

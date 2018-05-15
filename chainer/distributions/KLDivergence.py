@@ -37,6 +37,7 @@ def register_kl(dist1, dist2):
     """
     def f(kl):
         _KLDIVERGENCE[dist1, dist2] = kl
+        return kl
     return f
 
 
@@ -267,3 +268,14 @@ def _kl_beta_uniform(dist1, dist2):
         inf = numpy.zeros_like(dist1.a.data)
         inf[is_inf] = numpy.inf
     return - dist1.entropy + exponential.log(dist2.high - dist2.low) + inf
+
+
+@register_kl(distributions.Exponential, distributions.Beta)
+@register_kl(distributions.Exponential, distributions.Pareto)
+@register_kl(distributions.Exponential, distributions.Uniform)
+def _kl_exponential_inf(dist1, dist2):
+    if dist1._is_gpu:
+        inf = cuda.cupy.ones_like(dist1.lam.data) * numpy.inf
+    else:
+        inf = numpy.ones_like(dist1.lam.data) * numpy.inf
+    return chainer.Variable(inf)
