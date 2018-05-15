@@ -315,3 +315,9 @@ def _kl_gamma_inf(dist1, dist2):
     else:
         inf = numpy.ones_like(dist1.k.data) * numpy.inf
     return chainer.Variable(inf)
+
+
+@register_kl(distributions.Gamma, distributions.Exponential)
+def _kl_gamma_exponential(dist1, dist2):
+    return - dist1.entropy - exponential.log(dist2.lam) \
+        + dist1.k * dist1.theta * dist2.lam
