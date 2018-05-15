@@ -862,6 +862,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
             push_candidate(creator)
 
     input_nodes = set(x.node for x in inputs)
+    ret_grads = {}
 
     while candidate_funcs:
         func = pop_candidate()
@@ -910,6 +911,11 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         # Call post-backward hooks
         for hook in hooks:
             hook.backward_postprocess(func, in_data, out_grad_data)
+
+        for y, gy in six.moves.zip(ys, gys):
+            if y is not None:
+                if y in input_nodes:
+                    ret_grads[y] = gy
 
         # Update grads
         for node, g in x_grads.items():
