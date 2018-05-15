@@ -3,7 +3,7 @@ import six
 import chainer
 
 
-def normalize(grad_list):
+def _reduce(grad_list):
     if not grad_list:
         return None
     if len(grad_list) >= 2:
@@ -42,7 +42,7 @@ class GradTable(object):
             return None
         grads = self.grads
         if node in grads:
-            return normalize(grads.pop(node))
+            return _reduce(grads.pop(node))
         if self._load_if_new:
             return node.grad_var
         else:
@@ -61,7 +61,7 @@ def backward(
         for i in target_input_indexes:
             g_input = grad_inputs[func.inputs[i]]
             grad_inputs_tuple.append(
-                normalize(g_input))
+                _reduce(g_input))
             g_input[:] = []
         gxs = func.backward_accumulate(
             target_input_indexes, grad_outputs,
@@ -83,4 +83,4 @@ def backward(
 
     if not func.lazy_grad_sum:
         for gx in grad_inputs.values():
-            normalize(gx)
+            _reduce(gx)

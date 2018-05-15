@@ -1094,7 +1094,7 @@ Actual: {0}'''.format(type(data))
                 if x.creator_node is None:  # leaf
                     x_var = x.get_variable_or_none()
                     if x_var is not None:
-                        x_var._grad_var = _backprop_utils.normalize(gx)
+                        x_var._grad_var = grads.pop(x)
                         x_var._loss_scale = loss_scale
                 else:
                     add_cand(x.creator_node)
