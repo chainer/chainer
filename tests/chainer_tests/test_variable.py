@@ -41,6 +41,126 @@ def constant(xs, value):
     return Constant(value)(*xs)
 
 
+class MulAdd(chainer.FunctionNode):
+
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+        a, b, c = inputs
+        return a * b + c,
+
+    def backward_accumulate(self, target_input_indexes, grad_outputs,
+                            grad_inputs):
+        a, b = self.get_retained_inputs()
+        g, = grad_outputs
+        ret = []
+        for i, g_in in zip(target_input_indexes, grad_inputs):
+            if g_in is None:
+                g_in = g * 0.  # sorry, it's slow.
+            if i == 0:
+                ret.append(muladd(g, b, g_in))
+            elif i == 1:
+                ret.append(muladd(a, g, g_in))
+            elif i == 2:
+                ret.append(g + g_in)
+            else:
+                assert False
+        return tuple(ret)
+
+
+def muladd(a, b, c):
+    return MulAdd().apply((a, b, c))[0]
+
+
+@testing.parameterize(*testing.product({
+    'var_a': [False, True],
+    'var_b': [False, True],
+    'var_c': [False, True],
+    'distinct': [True, False],
+})[1:])
+class TestBackwardAccumulate(unittest.TestCase):
+
+    shape = 3,
+
+    def setUp(self):
+        shape = self.shape
+        self.a = np.random.randn(*shape).astype(np.float32)
+        self.b = np.random.randn(*shape).astype(np.float32)
+        self.c = np.random.randn(*shape).astype(np.float32)
+        self.g = np.random.randn(*shape).astype(np.float32)
+        self.ga = np.random.randn(*shape).astype(np.float32)
+        self.gb = np.random.randn(*shape).astype(np.float32)
+        self.gc = np.random.randn(*shape).astype(np.float32)
+
+    def share_vars(self, a, b, c):
+        if self.distinct:
+            return a, b, c
+        if self.var_a == self.var_b:
+            b = a
+        if self.var_a == self.var_c:
+            c = a
+        elif self.var_b == self.var_c:
+            c = b
+        return a, b, c
+
+    def check_backward_accumulate(self, xp, has_input_grads):
+        a, b, c = self.a, self.b, self.c
+        if has_input_grads:
+            ga, gb, gc = self.ga, self.gb, self.gc
+        else:
+            ga, gb, gc = None, None, None
+        if self.var_a:
+            a = chainer.Variable(a, grad=ga)
+        if self.var_b:
+            b = chainer.Variable(b, grad=gb)
+        if self.var_c:
+            c = chainer.Variable(c, grad=gc)
+        a, b, c = self.share_vars(a, b, c)
+        y = muladd(a, b, c)
+        y.grad = self.g
+        y.backward()
+
+        a2 = chainer.Variable(self.a, grad=ga)
+        b2 = chainer.Variable(self.b, grad=gb)
+        c2 = chainer.Variable(self.c, grad=gc)
+        a2, b2, c2 = self.share_vars(a2, b2, c2)
+        y2 = a2 * b2 + c2
+        y2.grad = self.g
+        y2.backward()
+
+        tol = {'atol': 1e-4, 'rtol': 1e-4}
+        if self.var_a:
+            xp.testing.assert_allclose(a.grad, a2.grad, **tol)
+        if self.var_b:
+            xp.testing.assert_allclose(b.grad, b2.grad, **tol)
+        if self.var_c:
+            xp.testing.assert_allclose(c.grad, c2.grad, **tol)
+
+    def test_backward_accumulate_cpu(self):
+        self.check_backward_accumulate(np, True)
+
+    def test_backward_accumulate_cpu_none(self):
+        self.check_backward_accumulate(np, False)
+
+    def _to_gpu(self):
+        self.a = cuda.to_gpu(self.a)
+        self.b = cuda.to_gpu(self.b)
+        self.c = cuda.to_gpu(self.c)
+        self.g = cuda.to_gpu(self.g)
+        self.ga = cuda.to_gpu(self.ga)
+        self.gb = cuda.to_gpu(self.gb)
+        self.gc = cuda.to_gpu(self.gc)
+
+    @attr.gpu
+    def test_backward_accumulate_gpu(self):
+        self._to_gpu()
+        self.check_backward_accumulate(cuda.cupy, True)
+
+    @attr.gpu
+    def test_backward_accumulate_gpu_none(self):
+        self._to_gpu()
+        self.check_backward_accumulate(cuda.cupy, False)
+
+
 class TestVariableNode(unittest.TestCase):
 
     def test_grad(self):
