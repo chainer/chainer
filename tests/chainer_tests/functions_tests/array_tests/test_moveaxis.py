@@ -158,7 +158,7 @@ class TestMoveaxisTypeError(unittest.TestCase):
             functions.moveaxis(x, self.source, self.destination)
 
     # For escaping numpy==1.11 bug.
-    # numpy 1.11 arrows float axis input.
+    # numpy 1.11 allows float axis input.
     @testing.with_requires('numpy!=1.11.*')
     def test_type_error_cpu(self):
         self.check_type_error(self.x)
