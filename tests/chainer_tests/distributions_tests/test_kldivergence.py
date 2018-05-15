@@ -76,7 +76,7 @@ class TestKLDivergence(unittest.TestCase):
 
     def make_gamma_dist(self, is_gpu=False):
         k = numpy.random.uniform(1, 5, self.shape).astype(numpy.float32)
-        theta = numpy.random.uniform(0, 5, self.shape).astype(numpy.float32)
+        theta = numpy.random.uniform(0, 2, self.shape).astype(numpy.float32)
         params = self.encode_params({"k": k, "theta": theta}, is_gpu)
         return distributions.Gamma(**params)
 
@@ -476,4 +476,15 @@ class TestKLDivergence(unittest.TestCase):
     def test_gamma_gumbel_gpu(self):
         dist1 = self.make_gamma_dist(True)
         dist2 = self.make_gumbel_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_gamma_normal_cpu(self):
+        dist1 = self.make_gamma_dist()
+        dist2 = self.make_normal_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_gamma_normal_gpu(self):
+        dist1 = self.make_gamma_dist(True)
+        dist2 = self.make_normal_dist(True)
         self.check_kl(dist1, dist2)
