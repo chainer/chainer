@@ -1084,33 +1084,28 @@ Actual: {0}'''.format(type(data))
             # gradients lazily. See also the docstring of
             # ``FunctionNode.backward_accumulate``.
             target_inputs = [inputs[i] for i in target_input_indexes]
-            in_grad = tuple([get_grad_list(x) for x in target_inputs])
+            # Keep the order for the portability, rather than
+            # in_grad = {x: get_grad_list(x) for x in set(target_inputs)}
+            in_grad = collections.OrderedDict()
+            for x in target_inputs:
+                if x not in in_grad:
+                    in_grad[x] = get_grad_list(x)
 
             func.backward_accumulate_list(
                 target_input_indexes, out_grad, in_grad)
-
-            # make unique
-            xs = []
-            gxs = []
-            for i, x in enumerate(target_inputs):
-                if x not in target_inputs[:i]:
-                    xs.append(x)
-                    gxs.append(in_grad[i])
-                    assert x.requires_grad
-            del in_grad  # TODO(kataoka): just rename variables?
 
             for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad_data)
 
             if is_debug:
-                # gxs is a tuple of lists of variables
+                # each grad is of list of variables
                 # iter_gxs expands it as a sequence of variables.
                 def iter_gxs(gxs):
                     for gx in gxs:
                         for gx_elem in gx:
                             yield gx_elem
 
-                for gx in iter_gxs(gxs):
+                for gx in iter_gxs(in_grad.values()):
                     gx_data = gx.data
                     if gx_data.dtype.kind == 'f':
                         cuda.get_device_from_array(gx_data).use()
@@ -1125,7 +1120,7 @@ Actual: {0}'''.format(type(data))
                     if y_var is not None:
                         y_var._grad_var = gy if retain_grad else None
 
-            for x, gx in six.moves.zip(xs, gxs):
+            for x, gx in in_grad.items():
                 if not gx:  # no gradients
                     continue
 
@@ -1143,7 +1138,7 @@ Actual: {0}'''.format(type(data))
                 else:
                     add_cand(x.creator_node)
 
-            del gxs  # to reduce memory usage
+            del in_grad  # to reduce memory usage
             if initial_device is not None:
                 initial_device.use()
 
