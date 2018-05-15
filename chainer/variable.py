@@ -1084,12 +1084,7 @@ Actual: {0}'''.format(type(data))
             # gradients lazily. See also the docstring of
             # ``FunctionNode.backward_accumulate``.
             target_inputs = [inputs[i] for i in target_input_indexes]
-            in_grad = []
-            for i, index_i in enumerate(target_input_indexes):
-                x = inputs[index_i]
-                gx = get_grad_list(x)
-                in_grad.append(gx)
-            in_grad = tuple(in_grad)
+            in_grad = tuple([get_grad_list(x) for x in target_inputs])
 
             func.backward_accumulate_list(
                 target_input_indexes, out_grad, in_grad)
