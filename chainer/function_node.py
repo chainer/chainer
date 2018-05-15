@@ -871,6 +871,11 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         ys = [y() for y in func.outputs]  # access via weak ref
         gys = tuple([grads.pop(y) for y in ys])
 
+        for y, gy in six.moves.zip(ys, gys):
+            if y is not None:
+                if y in input_nodes:
+                    ret_grads[y] = gy
+
         # Collect the gradients w.r.t. the inputs
         #
         # Note (Tokui): when the same variable is passed multiple times as
@@ -912,11 +917,6 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         for hook in hooks:
             hook.backward_postprocess(func, in_data, out_grad_data)
 
-        for y, gy in six.moves.zip(ys, gys):
-            if y is not None:
-                if y in input_nodes:
-                    ret_grads[y] = gy
-
         # Update grads
         for node, g in x_grads.items():
             if not g:  # gradient == None
@@ -934,6 +934,9 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
             creator = node.creator_node
             if creator is not None:
                 push_candidate(creator)
+
+    for y, gy in ret_grads.items():
+        grads[y] = gy
 
 
 def _get_ordered_func_heap():
