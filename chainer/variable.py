@@ -1089,9 +1089,12 @@ Actual: {0}'''.format(type(data))
             func.backward_accumulate_list(
                 target_input_indexes, out_grad, in_grad)
 
-            gxs = []  # make unique
+            # make unique
+            xs = []
+            gxs = []
             for i, x in enumerate(target_inputs):
                 if x not in target_inputs[:i]:
+                    xs.append(x)
                     gxs.append(in_grad[i])
                     assert x.requires_grad
             del in_grad  # TODO(kataoka): just rename variables?
@@ -1122,7 +1125,7 @@ Actual: {0}'''.format(type(data))
                     if y_var is not None:
                         y_var._grad_var = gy if retain_grad else None
 
-            for gx in gxs:
+            for x, gx in six.moves.zip(xs, gxs):
                 if not gx:  # no gradients
                     continue
 
@@ -1132,7 +1135,7 @@ Actual: {0}'''.format(type(data))
                 if not func.lazy_grad_sum:
                     normalize(gx)
 
-                if x.creator_node is None:
+                if x.creator_node is None:  # leaf
                     x_var = x.get_variable_or_none()
                     if x_var is not None:
                         x_var._grad_var = normalize(gx)
