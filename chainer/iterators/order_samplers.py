@@ -39,9 +39,9 @@ class ShuffleOrderSampler(OrderSampler):
 
     The two initializations below create basically the same objects.
 
-    >>> dataset = chainer.datasets.get_mnist()[0]
-    >>> chainer.iterators.MultiprocessIterator(dataset, 1, shuffle=True)
-    >>> chainer.iterators.MultiprocessIterator(
+    >>> dataset = [(1, 2), (3, 4)]
+    >>> it = chainer.iterators.MultiprocessIterator(dataset, 1, shuffle=True)
+    >>> it = chainer.iterators.MultiprocessIterator(
     ...     dataset, 1, order_sampler=chainer.iterators.ShuffleOrderSampler())
 
     Args:
