@@ -14,6 +14,7 @@ from chainer.functions.math import sum
 import numpy
 
 _KLDIVERGENCE = {}
+EULER = 0.57721566490153286060651209008240243104215933593992
 
 
 def register_kl(dist1, dist2):
@@ -138,7 +139,7 @@ def _kl_geometric_geometric(dist1, dist2):
 @register_kl(distributions.Gumbel, distributions.Gumbel)
 def _kl_gumbel_gumbel(dist1, dist2):
     return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
-        + dist1.euler * (dist1.scale / dist2.scale - 1.) \
+        + EULER * (dist1.scale / dist2.scale - 1.) \
         + exponential.exp((dist2.loc - dist1.loc) / dist2.scale
                           + lgamma.lgamma(dist1.scale / dist2.scale + 1.)) \
         - 1 + (dist1.loc - dist2.loc) / dist2.scale
@@ -279,3 +280,11 @@ def _kl_exponential_inf(dist1, dist2):
     else:
         inf = numpy.ones_like(dist1.lam.data) * numpy.inf
     return chainer.Variable(inf)
+
+
+@register_kl(distributions.Exponential, distributions.Gamma)
+def _kl_exponential_gamma(dist1, dist2):
+    return - dist1.entropy + lgamma.lgamma(dist2.k) \
+        + dist2.k * exponential.log(dist2.theta) \
+        + (dist2.k - 1) * (exponential.log(dist1.lam) + EULER) \
+        + 1 / dist2.theta / dist1.lam
