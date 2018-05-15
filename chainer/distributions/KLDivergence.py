@@ -1,3 +1,4 @@
+from chainer.backends import cuda
 from chainer import distributions
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
@@ -9,6 +10,7 @@ from chainer.functions.math import inv
 from chainer.functions.math import lgamma
 from chainer.functions.math import matmul
 from chainer.functions.math import sum
+import numpy
 
 _KLDIVERGENCE = {}
 
@@ -192,3 +194,20 @@ def _kl_pareto_pareto(dist1, dist2):
 def _kl_poisson_poisson(dist1, dist2):
     return dist1.lam * (exponential.log(dist1.lam)
                         - exponential.log(dist2.lam)) - dist1.lam + dist2.lam
+
+
+@register_kl(distributions.Uniform, distributions.Uniform)
+def _kl_uniform_uniform(dist1, dist2):
+    if dist1._is_gpu:
+        is_inf = cuda.cupy.logical_or(dist1.high.data > dist2.high.data,
+                                      dist1.low.data < dist2.low.data)
+        inf = cuda.cupy.zeros_like(dist1.high.data)
+        inf[is_inf] = numpy.inf
+    else:
+        is_inf = numpy.logical_or(dist1.high.data > dist2.high.data,
+                                  dist1.low.data < dist2.low.data)
+        inf = numpy.zeros_like(dist1.high.data)
+        inf[is_inf] = numpy.inf
+
+    return - exponential.log(dist1.high - dist1.low) \
+        + exponential.log(dist2.high - dist2.low) + inf

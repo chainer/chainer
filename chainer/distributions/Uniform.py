@@ -103,14 +103,14 @@ class Uniform(Distribution):
         bl = broadcast.broadcast_to(self.low, x.shape)
         bh = broadcast.broadcast_to(self.high, x.shape)
         if self._is_gpu:
-            logp = cuda.cupy.zeros_like(bl)
-            inf = cuda.cupy.zeros_like(bl)
+            logp = cuda.cupy.zeros_like(bl.data)
+            inf = cuda.cupy.zeros_like(bl.data)
             constraint = cuda.cupy.bitwise_and(
                 x.data >= bl.data, x.data < bh.data)
             not_constraint = cuda.cupy.logical_not(constraint)
         else:
-            logp = numpy.zeros_like(bl)
-            inf = numpy.zeros_like(bl)
+            logp = numpy.zeros_like(bl.data)
+            inf = numpy.zeros_like(bl.data)
             constraint = numpy.bitwise_and(
                 x.data >= bl.data, x.data < bh.data)
             not_constraint = numpy.logical_not(constraint)
