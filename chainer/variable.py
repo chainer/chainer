@@ -9,14 +9,12 @@ import numpy
 import six
 
 import chainer
+from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
-
-
-_add = None
 
 
 def _check_grad_type(func, x, gx):
@@ -963,10 +961,6 @@ Actual: {0}'''.format(type(data))
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
-        global _add
-        if _add is None:
-            from chainer.functions import add
-            _add = add
         with chainer.using_config('enable_backprop', enable_double_backprop):
             self._backward_main(retain_grad, loss_scale)
 
@@ -986,7 +980,7 @@ Actual: {0}'''.format(type(data))
 
         cand_funcs = []
         seen_set = set()
-        grads = {}
+        grads = _backprop_utils.GradTable()
 
         # Initialize error by 1, if this is a loss variable
         if self.data.size == 1 and self._grad_var is None:
@@ -1006,6 +1000,7 @@ Actual: {0}'''.format(type(data))
                     self.grad = cuda.cupy.ones_like(self.data)
             if loss_scale is not None:
                 self.grad *= loss_scale
+        grads[self._node] = self._grad_var
 
         def add_cand(cand):
             if cand not in seen_set:
@@ -1014,37 +1009,6 @@ Actual: {0}'''.format(type(data))
                 seen_set.add(cand)
 
         add_cand(self.creator_node)
-
-        def normalize(grad_list):
-            if not grad_list:
-                return None
-            if len(grad_list) >= 2:
-                grad_list[:] = [_add(*grad_list)]
-            return grad_list[0]
-
-        def pure(grad):
-            return [] if grad is None else [grad]
-
-        grads[self._node] = pure(self._grad_var)
-
-        def pop_grad(node):
-            if node is None:
-                return None
-            if node in grads:
-                return normalize(grads.pop(node))
-            return node.grad_var
-
-        def get_grad_list(node):
-            if node is None:
-                return []
-            if node not in grads:
-                if node.creator_node is None:
-                    node._check_old_style_gradient()
-                    # accumulate the gradient only if the node is a leaf
-                    grads[node] = pure(node.grad_var)
-                else:
-                    grads[node] = []
-            return grads[node]
 
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
@@ -1057,7 +1021,7 @@ Actual: {0}'''.format(type(data))
             outputs = [y() for y in func.outputs]  # access via weak ref
 
             in_data = tuple([x.data for x in inputs])
-            out_grad = tuple([pop_grad(y) for y in outputs])
+            out_grad = tuple([grads.pop(y) for y in outputs])
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
             hooks = chainer.get_function_hooks()
@@ -1085,11 +1049,11 @@ Actual: {0}'''.format(type(data))
             # ``FunctionNode.backward_accumulate``.
             target_inputs = [inputs[i] for i in target_input_indexes]
             # Keep the order for the portability, rather than
-            # in_grad = {x: get_grad_list(x) for x in set(target_inputs)}
+            # in_grad = {x: grads.get_as_list(x) for x in set(target_inputs)}
             in_grad = collections.OrderedDict()
             for x in target_inputs:
                 if x not in in_grad:
-                    in_grad[x] = get_grad_list(x)
+                    in_grad[x] = grads.get_as_list(x)
 
             func.backward_accumulate_list(
                 target_input_indexes, out_grad, in_grad)
@@ -1128,12 +1092,12 @@ Actual: {0}'''.format(type(data))
                     _check_grad_type(func, x, gx_elem.data)
 
                 if not func.lazy_grad_sum:
-                    normalize(gx)
+                    _backprop_utils.normalize(gx)
 
                 if x.creator_node is None:  # leaf
                     x_var = x.get_variable_or_none()
                     if x_var is not None:
-                        x_var._grad_var = normalize(gx)
+                        x_var._grad_var = _backprop_utils.normalize(gx)
                         x_var._loss_scale = loss_scale
                 else:
                     add_cand(x.creator_node)
