@@ -498,8 +498,8 @@ Use apply() method instead.\
         """
         return (None,) * len(target_input_indexes)
 
-    def backward_accumulate(self, target_input_indexes, grad_outputs,
-                            grad_inputs):
+    def _backward_accumulate(self, target_input_indexes, grad_outputs,
+                             grad_inputs):
         """Computes gradients w.r.t.\\  specified inputs and accumulates them.
 
         This method provides a way to fuse the backward computation and the
@@ -573,15 +573,32 @@ Use apply() method instead.\
 
     def backward_accumulate_list(
             self, target_input_indexes, grad_outputs, grad_inputs):
-        gxs = self.backward(target_input_indexes, grad_outputs)
+        if hasattr(self, 'backward_accumulate'):
+            selected_inputs = set()
+            grad_inputs_tuple = []
+            for i in target_input_indexes:
+                x = self.inputs[i]
+                if x in selected_inputs:
+                    grad_inputs_tuple.append(None)
+                else:
+                    selected_inputs.add(x)
+                    g_input = grad_inputs[x]
+                    grad_inputs_tuple.append(
+                            _backprop_utils.normalize(g_input))
+                    g_input[:] = []
+            gxs = self.backward_accumulate(
+                    target_input_indexes, grad_outputs,
+                    tuple(grad_inputs_tuple))
+        else:
+            gxs = self.backward(target_input_indexes, grad_outputs)
 
-        len_gxs = len(gxs)
-        if len_gxs == len(self.inputs):
-            gxs = tuple([gxs[i] for i in target_input_indexes])
-        elif len_gxs != len(target_input_indexes):
-            raise ValueError(
-                'number of gradients returned by %s (%s) is incorrect.'
-                % (self._impl_name, self.label))
+            len_gxs = len(gxs)
+            if len_gxs == len(self.inputs):
+                gxs = tuple([gxs[i] for i in target_input_indexes])
+            elif len_gxs != len(target_input_indexes):
+                raise ValueError(
+                    'number of gradients returned by %s (%s) is incorrect.'
+                    % (self._impl_name, self.label))
 
         for i, gx in six.moves.zip(target_input_indexes, gxs):
             if gx is not None:
