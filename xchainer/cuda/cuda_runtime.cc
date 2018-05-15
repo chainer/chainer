@@ -1,6 +1,6 @@
 #include "xchainer/cuda/cuda_runtime.h"
 
-#include <cassert>
+#include <cstdlib>
 #include <sstream>
 #include <string>
 
@@ -41,7 +41,7 @@ bool IsPointerCudaMemory(const void* ptr) {
             CheckCudaError(status);
             break;
     }
-    assert(false);  // should never be reached
+    std::abort();  // should never be reached
 }
 
 }  // namespace cuda

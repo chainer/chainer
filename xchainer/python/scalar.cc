@@ -1,5 +1,7 @@
 #include "xchainer/python/scalar.h"
 
+#include <cstdlib>
+
 #include <pybind11/operators.h>
 
 #include "xchainer/dtype.h"
@@ -52,7 +54,7 @@ void InitXchainerScalar(pybind11::module& m) {
             case DtypeKind::kFloat:
                 return py::float_{static_cast<double>(scalar)};
             default:
-                assert(false);  // should never be reached
+                std::abort();  // should never be reached
         }
         return {};
     });

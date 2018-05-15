@@ -1,7 +1,9 @@
 #include "xchainer/routines/indexing.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
+#include <cstdlib>
 #include <iterator>
 #include <string>
 #include <vector>
@@ -77,7 +79,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
                 out_strides.emplace_back(0);
                 break;
             default:
-                assert(false);
+                std::abort();  // should never be reached
         }
     }
     for (int64_t i = i_in; i < a.ndim(); ++i) {
