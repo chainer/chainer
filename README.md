@@ -90,6 +90,12 @@ $ ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 .. && make clang-tidy )
 
 ### Run the Python test suite
 
+xChainer requires `chainer` package for Python tests. To install the `chainer` Python package of up-to-date beta version, run the following:
+
+```shell-session
+$ pip install chainer --pre
+```
+
 To build the `xchainer` Python package in `develop` mode, run the following at the repository root:
 
 ```shell-session
