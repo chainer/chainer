@@ -574,18 +574,12 @@ Use apply() method instead.\
     def backward_accumulate_list(
             self, target_input_indexes, grad_outputs, grad_inputs):
         if hasattr(self, 'backward_accumulate'):
-            selected_inputs = set()
             grad_inputs_tuple = []
             for i in target_input_indexes:
-                x = self.inputs[i]
-                if x in selected_inputs:
-                    grad_inputs_tuple.append(None)
-                else:
-                    selected_inputs.add(x)
-                    g_input = grad_inputs[x]
-                    grad_inputs_tuple.append(
-                        _backprop_utils.normalize(g_input))
-                    g_input[:] = []
+                g_input = grad_inputs[self.inputs[i]]
+                grad_inputs_tuple.append(
+                    _backprop_utils.normalize(g_input))
+                g_input[:] = []
             gxs = self.backward_accumulate(
                 target_input_indexes, grad_outputs,
                 tuple(grad_inputs_tuple))
