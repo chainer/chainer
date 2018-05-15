@@ -1091,9 +1091,6 @@ Actual: {0}'''.format(type(data))
                 for gx_elem in gx:
                     _check_grad_type(func, x, gx_elem.data)
 
-                if not func.lazy_grad_sum:
-                    _backprop_utils.normalize(gx)
-
                 if x.creator_node is None:  # leaf
                     x_var = x.get_variable_or_none()
                     if x_var is not None:

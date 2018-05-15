@@ -587,6 +587,10 @@ Use apply() method instead.\
             if gx is not None:
                 grad_inputs[self.inputs[i]].append(gx)
 
+        if not self.lazy_grad_sum:
+            for gx in grad_inputs.values():
+                _backprop_utils.normalize(gx)
+
     def get_retained_inputs(self):
         """Returns a tuple of retained input variables.
 
@@ -921,9 +925,6 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         for node, g in x_grads.items():
             if not g:  # gradient == None
                 continue
-
-            if not func.lazy_grad_sum:
-                _backprop_utils.normalize(g)
 
             if retain_grad:
                 v = node.get_variable_or_none()
