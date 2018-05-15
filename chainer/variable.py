@@ -1054,7 +1054,7 @@ Actual: {0}'''.format(type(data))
                 hooks.update(func.local_function_hooks)
             hooks = hooks.values()  # avoid six for performance
 
-            cuda.get_device_from_array(*in_data).use()
+            cuda.get_device_from_array(*in_data, *out_grad_data).use()
             for hook in hooks:
                 hook.backward_preprocess(func, in_data, out_grad_data)
 
@@ -1091,9 +1091,8 @@ Actual: {0}'''.format(type(data))
                 in_grad.append(gx)
             in_grad = tuple(in_grad)
 
-            with cuda.get_device_from_array(*out_grad_data):
-                gxs = func.backward_accumulate(
-                    target_input_indexes, out_grad, in_grad)
+            gxs = func.backward_accumulate(
+                target_input_indexes, out_grad, in_grad)
 
             assert len(gxs) == len(in_grad)
             for hook in hooks:
