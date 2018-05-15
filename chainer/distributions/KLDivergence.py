@@ -321,3 +321,12 @@ def _kl_gamma_inf(dist1, dist2):
 def _kl_gamma_exponential(dist1, dist2):
     return - dist1.entropy - exponential.log(dist2.lam) \
         + dist1.k * dist1.theta * dist2.lam
+
+
+@register_kl(distributions.Gamma, distributions.Gumbel)
+def _kl_gamma_gumbel(dist1, dist2):
+    theta_til = 1 / (1 / dist1.theta + 1 / dist2.scale)
+    return - dist1.entropy + exponential.log(dist2.scale) \
+        + (dist1.k * dist1.theta - dist2.loc)/ dist2.scale \
+        + basic_math.pow(theta_til / dist1.theta, dist1.k) \
+        * exponential.exp(dist2.loc / dist2.scale)
