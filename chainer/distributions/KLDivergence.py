@@ -228,7 +228,17 @@ def _kl_beta_pareto(dist1, dist2):
         inf = numpy.ones_like(dist1.a.data) * numpy.inf
     return chainer.Variable(inf)
 
+
 @register_kl(distributions.Beta, distributions.Exponential)
 def _kl_beta_exponential(dist1, dist2):
     return - dist1.entropy - exponential.log(dist2.lam) \
         + dist2.lam * dist1.a / (dist1.a + dist1.b)
+
+
+@register_kl(distributions.Beta, distributions.Gamma)
+def _kl_beta_gamma(dist1, dist2):
+    return - dist1.entropy + lgamma.lgamma(dist2.k) \
+        + dist2.k * exponential.log(dist2.theta) \
+        - (dist2.k - 1) * (digamma.digamma(dist1.a)
+                           - digamma.digamma(dist1.a + dist1.b)) \
+        + dist1.a / (dist1.a + dist1.b) / dist2.theta
