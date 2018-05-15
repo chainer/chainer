@@ -304,3 +304,14 @@ def _kl_exponential_normal(dist1, dist2):
         + exponential.log(dist2.scale) \
         + (dist2.loc ** 2 / 2 - dist2.loc / dist1.lam + 1 / dist1.lam ** 2) \
         / dist2.scale ** 2
+
+
+@register_kl(distributions.Gamma, distributions.Beta)
+@register_kl(distributions.Gamma, distributions.Pareto)
+@register_kl(distributions.Gamma, distributions.Uniform)
+def _kl_gamma_inf(dist1, dist2):
+    if dist1._is_gpu:
+        inf = cuda.cupy.ones_like(dist1.k.data) * numpy.inf
+    else:
+        inf = numpy.ones_like(dist1.k.data) * numpy.inf
+    return chainer.Variable(inf)
