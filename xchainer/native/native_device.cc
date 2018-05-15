@@ -8,10 +8,12 @@
 #include <limits>
 #include <tuple>
 #include <type_traits>
+#include <vector>
 
 #include <gsl/gsl>
 
 #include "xchainer/array.h"
+#include "xchainer/array_index.h"
 #include "xchainer/axes.h"
 #include "xchainer/dtype.h"
 #include "xchainer/indexable_array.h"
@@ -23,6 +25,7 @@
 #include "xchainer/routines/creation.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
+#include "xchainer/slice.h"
 
 namespace xchainer {
 namespace native {
@@ -510,6 +513,20 @@ Array Im2Col(
     assert(ndim == static_cast<int8_t>(pad.size()));
     assert(ndim + 2 == x.ndim());  // Additional batch and channel dimensions.
 
+    Device& device = x.device();
+
+    // Create a padded copy of the input image.
+    Shape padded_shape = x.shape();
+    std::vector<ArrayIndex> unpadded_slice{ArrayIndex{Slice{}}, ArrayIndex{Slice{}}};  // All batch and channel dimensions.
+    for (int64_t i = 0; i < ndim; ++i) {
+        padded_shape[i + 2] += pad[i] * 2;  // Pad on both sides.
+        unpadded_slice.emplace_back(Slice{pad[i], padded_shape[i + 2] - pad[i]});
+    }
+    // TODO(hvy): Allow non-zero padding.
+    Array padded_x = Zeros(padded_shape, x.dtype(), device);
+    device.Copy(x, padded_x.At(unpadded_slice));
+
+    // Create the output array.
     StackVector<int64_t, kMaxNdim> out_dims;
     for (int8_t i = 0; i < ndim; ++i) {
         out_dims.emplace_back(GetConvOutDim(x.shape()[i + 2], ksize[i], stride[i], pad[i], cover_all));
@@ -522,18 +539,17 @@ Array Im2Col(
     Shape out_shape{batch_size, channels};
     std::copy(ksize.begin(), ksize.end(), std::back_inserter(out_shape));
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
+    Array out = Empty(out_shape, x.dtype(), device);
 
-    Array out = Empty(out_shape, x.dtype(), x.device());
-
+    // Write to the output array.
     VisitDtype(x.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
         Indexer<2> batch_channel_indexer{Shape{batch_size, channels}};
         Indexer<> kernel_indexer{Shape{ksize.begin(), ksize.end()}};
-        Indexer<> outdims_indexer{Shape{out_dims.begin(), out_dims.end()}};
-        Indexer<> x_indexer{x.shape()};
+        Indexer<> x_indexer{padded_x.shape()};
         Indexer<> out_indexer{out.shape()};
-        IndexableArray<const T> x_iarray{x};
+        IndexableArray<const T> x_iarray{padded_x};
         IndexableArray<T> out_iarray{out};
 
         for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
@@ -541,8 +557,8 @@ Array Im2Col(
                 StackVector<IndexIterator<1>, kMaxNdim> img_iters;
                 StackVector<Indexer<1>, kMaxNdim> img_indexers;
                 for (int8_t i = 0; i < ndim; ++i) {
-                    img_indexers.emplace_back(Shape{x.shape()[i + 2] + pad[i] - ksize[i] + 1});
-                    img_iters.emplace_back(img_indexers.back().It(-pad[i], stride[i]));
+                    img_indexers.emplace_back(Shape{x_indexer.shape()[i + 2] - ksize[i] + 1});
+                    img_iters.emplace_back(img_indexers.back().It(0, stride[i]));
                 }
 
                 // Indices over input image.
@@ -575,7 +591,7 @@ Array Im2Col(
                             break;
                         } else {
                             // The next element is the first element in the next dimension.
-                            img_iters[i].Set(-pad[i]);
+                            img_iters[i].Set(0);
                             col_is.index[i] = 0;
                             img_is.index[i] = it_kernel.index()[i];
                             ++ndim_finished;
