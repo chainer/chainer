@@ -105,7 +105,7 @@ class TestFunctionNode(unittest.TestCase):
         x1 = chainer.Variable(self.x1)
         x2 = chainer.Variable(self.x2)
         self.f.inputs = (x1.node, x2.node)
-        gx1, gx2 = self.f.backward_accumulate(
+        gx1, gx2 = self.f._backward_accumulate(  # TODO(kataoka): fix
             (0, 1), (self.gy1, self.gy2), gxs)
         if gxs[0] is None:
             numpy.testing.assert_array_equal(cuda.to_cpu(gx1.data),
