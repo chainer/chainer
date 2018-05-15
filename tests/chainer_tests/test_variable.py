@@ -46,7 +46,7 @@ class MulAdd(chainer.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         a, b, c = inputs
-        return a @ b + c,
+        return a.__matmul__(b) + c,
 
     def backward_accumulate(self, target_input_indexes, grad_outputs,
                             grad_inputs):
@@ -99,7 +99,7 @@ class TestBackwardAccumulate(unittest.TestCase):
         a2 = chainer.Variable(self.a)
         b2 = chainer.Variable(self.b)
         c2 = chainer.Variable(self.c)
-        y2 = a2 @ b2 + c2
+        y2 = a2.__matmul__(b2) + c2
         y2.grad = self.g
         y2.backward()
 
