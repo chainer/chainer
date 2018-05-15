@@ -46,7 +46,7 @@ class MulAdd(chainer.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         a, b, c = inputs
-        return a.__matmul__(b) + c,
+        return a * b + c,
 
     def backward_accumulate(self, target_input_indexes, grad_outputs,
                             grad_inputs):
@@ -55,11 +55,11 @@ class MulAdd(chainer.FunctionNode):
         ret = []
         for i, g_in in zip(target_input_indexes, grad_inputs):
             if g_in is None:
-                g_in = [a, b, g][i] * 0.  # sorry, it's slow.
+                g_in = g * 0.  # sorry, it's slow.
             if i == 0:
-                ret.append(muladd(g, b.T, g_in))
+                ret.append(muladd(g, b, g_in))
             elif i == 1:
-                ret.append(muladd(a.T, g, g_in))
+                ret.append(muladd(a, g, g_in))
             elif i == 2:
                 ret.append(g + g_in)
             else:
@@ -75,28 +75,30 @@ def muladd(a, b, c):
     'var_a': [False, True],
     'var_b': [False, True],
     'var_c': [False, True],
-    'dims': [(3, 2, 4), (2, 2, 2)],
+    'distinct': [True, False],
 })[1:])
 class TestBackwardAccumulate(unittest.TestCase):
 
+    shape = 3,
+
     def setUp(self):
-        i, j, k = self.dims
-        self.a = np.random.randn(i, j).astype(np.float32)
-        self.b = np.random.randn(j, k).astype(np.float32)
-        self.c = np.random.randn(i, k).astype(np.float32)
-        self.g = np.random.randn(i, k).astype(np.float32)
-        self.ga = np.random.randn(i, j).astype(np.float32)
-        self.gb = np.random.randn(j, k).astype(np.float32)
-        self.gc = np.random.randn(i, k).astype(np.float32)
+        shape = self.shape
+        self.a = np.random.randn(*shape).astype(np.float32)
+        self.b = np.random.randn(*shape).astype(np.float32)
+        self.c = np.random.randn(*shape).astype(np.float32)
+        self.g = np.random.randn(*shape).astype(np.float32)
+        self.ga = np.random.randn(*shape).astype(np.float32)
+        self.gb = np.random.randn(*shape).astype(np.float32)
+        self.gc = np.random.randn(*shape).astype(np.float32)
 
     def share_vars(self, a, b, c):
-        if self.dims != (2, 2, 2):
+        if self.distinct:
             return a, b, c
-        if self.var_a and self.var_b:
+        if self.var_a == self.var_b:
             b = a
-        if self.var_a and self.var_c:
+        if self.var_a == self.var_c:
             c = a
-        elif self.var_b and self.var_c:
+        elif self.var_b == self.var_c:
             c = b
         return a, b, c
 
@@ -121,7 +123,7 @@ class TestBackwardAccumulate(unittest.TestCase):
         b2 = chainer.Variable(self.b, grad=gb)
         c2 = chainer.Variable(self.c, grad=gc)
         a2, b2, c2 = self.share_vars(a2, b2, c2)
-        y2 = a2.__matmul__(b2) + c2
+        y2 = a2 * b2 + c2
         y2.grad = self.g
         y2.backward()
 
