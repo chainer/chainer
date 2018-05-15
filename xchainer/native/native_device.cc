@@ -20,6 +20,7 @@
 #include "xchainer/native/reduce.h"
 #include "xchainer/numeric_limits.h"
 #include "xchainer/reduction_kernel_arg.h"
+#include "xchainer/routines/creation.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 
@@ -338,8 +339,8 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
 
             for (auto it_left = left_indexer.It(0); it_left; ++it_left) {
                 for (auto it_right = right_indexer.It(0); it_right; ++it_right) {
-                    auto it_out = out_indexer.It(it_left, it, it_right);
-                    auto it_a = a_indexer.It(it_left, it_axis, it_right);
+                    auto it_out = out_indexer.At(it_left, it, it_right);
+                    auto it_a = a_indexer.At(it_left, it_axis, it_right);
                     out_iarray[it_out] = a_iarray[it_a];
                 }
             }
@@ -391,8 +392,8 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
 
             for (auto it_left = left_indexer.It(0); it_left; ++it_left) {
                 for (auto it_right = right_indexer.It(0); it_right; ++it_right) {
-                    auto it_out = out_indexer.It(it_left, it_axis, it_right);
-                    auto it_b = b_indexer.It(it_left, it, it_right);
+                    auto it_out = out_indexer.At(it_left, it_axis, it_right);
+                    auto it_b = b_indexer.At(it_left, it, it_right);
                     out_iarray[it_out] += b_iarray[it_b];
                 }
             }
@@ -461,7 +462,7 @@ void NativeDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
         for (auto v_it = v_indexer.It(0); v_it; ++v_it) {
             auto out_rows_it = out_rows_indexer.It(row_start + v_it.raw_index());
             auto out_cols_it = out_cols_indexer.It(col_start + v_it.raw_index());
-            auto out_it = out_indexer.It(out_rows_it, out_cols_it);
+            auto out_it = out_indexer.At(out_rows_it, out_cols_it);
             out_iarray[out_it] = v_iarray[v_it];
         }
     });
@@ -487,6 +488,110 @@ void NativeDevice::Linspace(double start, double stop, const Array& out) {
         Elementwise<T>(Impl{n, start, stop}, out);
     });
 }
+
+// namespace {
+
+int64_t GetConvOutDim(int64_t dim, int64_t ksize, int64_t stride, int64_t pad, bool cover_all) {
+    if (cover_all) {
+        return (dim + pad * 2 - ksize + stride - 1) / stride + 1;
+    } else {
+        return (dim + pad * 2 - ksize) / stride + 1;
+    }
+}
+
+Array Im2Col(
+        const Array& x,
+        const StackVector<int64_t, kMaxNdim>& ksize,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    int64_t batch_size = x.shape()[0];
+    int64_t channels = x.shape()[1];
+    auto ndim = static_cast<int8_t>(ksize.size());
+    assert(ndim == static_cast<int8_t>(stride.size()));
+    assert(ndim == static_cast<int8_t>(pad.size()));
+    assert(ndim + 2 == x.ndim());  // Additional batch and channel dimensions.
+
+    StackVector<int64_t, kMaxNdim> y_dims;
+    for (int8_t i = 0; i < ndim; ++i) {
+        y_dims.emplace_back(GetConvOutDim(x.shape()[i + 2], ksize[i], stride[i], pad[i], cover_all));
+        assert(y_dims.back() > 0);
+    }
+
+    Shape y_shape{batch_size, channels};
+    std::copy(ksize.begin(), ksize.end(), std::back_inserter(y_shape));
+    std::copy(y_dims.begin(), y_dims.end(), std::back_inserter(y_shape));
+
+    Array y = Zeros(y_shape, x.dtype(), x.device());
+
+    VisitDtype(x.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+
+        Indexer<2> batch_channel_indexer{Shape{batch_size, channels}};
+        Indexer<> kernel_indexer{Shape{ksize.begin(), ksize.end()}};
+        Indexer<> outdims_indexer{Shape{y_dims.begin(), y_dims.end()}};
+        Indexer<> x_indexer{x.shape()};
+        Indexer<> out_indexer{y.shape()};
+        IndexableArray<const T> x_iarray{x};
+        IndexableArray<T> y_iarray{y};
+
+        for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
+            for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
+                StackVector<IndexIterator<1>, kMaxNdim> img_iters;
+                StackVector<Indexer<1>, kMaxNdim> img_indexers;
+                for (int8_t i = 0; i < ndim; ++i) {
+                    img_indexers.emplace_back(Shape{x.shape()[i + 2] + pad[i] - ksize[i] + 1});
+                    img_iters.emplace_back(img_indexers.back().It(-pad[i], stride[i]));
+                }
+
+                IndexSpan col_is;
+                col_is.ndim = ndim;
+                std::fill(col_is.index, col_is.index + col_is.ndim, 0);
+
+                IndexSpan img_is;
+                img_is.ndim = ndim;
+                std::copy(it_kernel.index(), it_kernel.index() + ndim, img_is.index);
+
+                while (true) {
+                    auto it_x = x_indexer.At(it_batch_channel, img_is);
+                    auto it_y = out_indexer.At(it_batch_channel, it_kernel, col_is);
+
+                    // Write the output column value.
+                    y_iarray[it_y] = x_iarray[it_x];
+
+                    // Check if this column is finished, for this batch, channel and kernel element.
+                    int8_t ndim_finished = 0;
+                    for (int8_t i = 0; i < ndim; ++i) {
+                        // Next elment to check.
+                        ++img_iters[i];
+                        ++col_is.index[i];
+                        ++img_is.index[i];
+
+                        if (img_iters[i]) {
+                            // The next element is on the same dimension.
+                            break;
+                        } else {
+                            // The next element is the first element in the next dimension.
+                            img_iters[i].Set(-pad[i]);
+                            col_is.index[i] = 0;
+                            img_is.index[i] = it_kernel.index()[i];
+                            ++ndim_finished;
+                        }
+                    }
+                    if (ndim_finished == ndim) {
+                        // Finished with this column.
+                        break;
+                    }
+                }
+            }
+        }
+
+    });
+
+    return y;
+}
+
+// }  // namespace
 
 void NativeDevice::Synchronize() {}
 

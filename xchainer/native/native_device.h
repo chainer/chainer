@@ -75,5 +75,12 @@ public:
     void Synchronize() override;
 };
 
+Array Im2Col(
+        const Array& x,
+        const StackVector<int64_t, kMaxNdim>& ksize,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all);
+
 }  // namespace native
 }  // namespace xchainer
