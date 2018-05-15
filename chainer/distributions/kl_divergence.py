@@ -29,7 +29,7 @@ def register_kl(dist1, dist2):
 
 
 def kl_divergence(dist1, dist2):
-    """Kullback–Leibler divergence.
+    """Kullback-Leibler divergence.
 
     Args:
         dist1(:class:`~chainer.Distribution`): Distribution to calculate KL
