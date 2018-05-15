@@ -1684,25 +1684,25 @@ class TestCallMethod(unittest.TestCase):
 
     def test_has_forward_no_call(self):
         self.model.forward = mock.MagicMock()
-        model(0)  # Link.__call__ is called
+        self.model(0)  # Link.__call__ is called
         self.model.forward.assert_called_once()
         self.assertTrue(self.model._found_forward)
 
     def test_has_call_and_forward(self):
         self.model.__call__ = mock.MagicMock()
         self.model.forward = mock.MagicMock()
-        model(0)  # model.__call__ is called
+        self.model(0)  # model.__call__ is called
         self.model.__call__.assert_called_with(0)
         self.model.forward.assert_not_called()
 
     def test_has_call_no_forward(self):
         self.model.__call__ = mock.MagicMock()
-        model(0)  # model.__call__ is called
+        self.model(0)  # model.__call__ is called
         self.model.__call__.assert_called_with(0)
 
     def test_no_call_no_forward(self):
         with self.assertRaisesRegexp(TypeError, 'neither'):
-            model(0)
+            self.model(0)
 
 
 testing.run_module(__name__, __file__)

@@ -135,7 +135,6 @@ class Link(object):
         self._cpu = True
         self._device_id = None
         self._within_init_scope = False
-        self._found_forward = False
         self.name = None
 
         for name, value in six.iteritems(params):
@@ -199,13 +198,13 @@ class Link(object):
             self._within_init_scope = old_flag
 
     def __call__(self, *args, **kwargs):
-        if not self._found_forward:
-            if not hasattr(self, 'forward'):
-                raise TypeError(
+        try:
+            forward = self.forward
+        except AttributeError:
+            raise TypeError(
                     '{} object does not have neither \'__call__\' nor '
                     '\'forward\' method.'.format(self))
-            self._found_forward = True
-        return self.forward(*args, **kwargs)
+        return forward(*args, **kwargs)
 
     def __setattr__(self, name, value):
         if self.within_init_scope and isinstance(value, variable.Parameter):
