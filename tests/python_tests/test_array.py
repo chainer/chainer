@@ -551,67 +551,6 @@ def test_array_backward():
     assert gx1.get_grad(graph_id='graph_1') is not None
 
 
-# TODO(sonots): Fix type compatibility for when shape is ()
-@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False)
-@pytest.mark.parametrize("shape,value", [
-    ((), -1),
-    ((), 1),
-    ((1,), -1),
-    ((1,), 1),
-    ((2,), 1),
-    ((2, 3), 3),
-])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_maximum_with_scalar(xp, device, shape, value, signed_dtype):
-    ndarray = _create_dummy_ndarray(shape, signed_dtype)
-    a = xp.array(ndarray)
-    return xp.maximum(a, value)
-
-
-def _create_dummy_array_for_dot(xp, shape, dtype):
-    x = numpy.arange(numpy.prod(shape)).reshape(shape)
-    if dtype == 'bool_':
-        x = numpy.asarray(x % 2 == 0)
-    else:
-        x = x.astype(dtype)
-    return xp.array(x)
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('a_shape,b_shape', [
-    ((), ()),
-    ((), (2, 3)),
-    ((2, 0), (0, 3)),
-    ((0, 0), (0, 0)),
-    ((2, 3), (3, 4)),
-    # TODO(niboshi): Add test cases for more than 2 ndim
-])
-# TODO(niboshi): Add 'cuda:0'
-@pytest.mark.parametrize_device(['native:0'])
-def test_dot(is_module, xp, device, a_shape, b_shape, dtype):
-    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
-    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
-    if is_module:
-        return xp.dot(a, b)
-    else:
-        return a.dot(b)
-
-
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
-@pytest.mark.parametrize('a_shape,b_shape', [
-    ((3, 2), (1, 3)),
-])
-# TODO(niboshi): Add 'cuda:0'
-@pytest.mark.parametrize_device(['native:0'])
-def test_invalid_dot(is_module, xp, device, a_shape, b_shape, dtype):
-    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
-    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
-    if is_module:
-        return xp.dot(a, b)
-    else:
-        return a.dot(b)
-
-
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('value', [-1, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])

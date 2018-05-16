@@ -216,3 +216,28 @@ def test_sum_invalid(is_module, xp, shape, axis, keepdims, dtype):
         xp.sum(a, axis=axis, keepdims=keepdims)
     else:
         a.sum(axis=axis, keepdims=keepdims)
+
+
+# TODO(sonots): Fix type compatibility for when shape is ()
+@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False)
+@pytest.mark.parametrize("shape,value", [
+    ((), -1),
+    ((), 1),
+    ((1,), -1),
+    ((1,), 1),
+    ((2,), 1),
+    ((2, 3), 3),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_maximum_with_scalar(xp, device, shape, value, signed_dtype):
+    a = array_utils.create_dummy_ndarray(xp, shape, signed_dtype)
+    return xp.maximum(a, value)
+
+
+def _create_dummy_array_for_dot(xp, shape, dtype):
+    x = numpy.arange(numpy.prod(shape)).reshape(shape)
+    if dtype == 'bool_':
+        x = numpy.asarray(x % 2 == 0)
+    else:
+        x = x.astype(dtype)
+    return xp.array(x)
