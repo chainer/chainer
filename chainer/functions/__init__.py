@@ -63,7 +63,6 @@ from chainer.functions.array.get_item import GetItem  # NOQA
 from chainer.functions.array.hstack import hstack  # NOQA
 from chainer.functions.array.im2col import im2col  # NOQA
 from chainer.functions.array.im2col import Im2Col  # NOQA
-from chainer.functions.array.moveaxis import moveaxis  # NOQA
 from chainer.functions.array.pad import pad  # NOQA
 from chainer.functions.array.pad import Pad  # NOQA
 from chainer.functions.array.pad_sequence import pad_sequence  # NOQA
@@ -110,6 +109,7 @@ from chainer.functions.connection.convolution_nd import convolution_nd  # NOQA
 from chainer.functions.connection.deconvolution_2d import deconvolution_2d  # NOQA
 from chainer.functions.connection.deconvolution_nd import deconvolution_nd  # NOQA
 from chainer.functions.connection.depthwise_convolution_2d import depthwise_convolution_2d  # NOQA
+from chainer.functions.connection.deformable_convolution_2d_sampler import deformable_convolution_2d_sampler  # NOQA
 from chainer.functions.connection.dilated_convolution_2d import dilated_convolution_2d  # NOQA
 from chainer.functions.connection.embed_id import embed_id  # NOQA
 from chainer.functions.connection.linear import linear  # NOQA
@@ -189,10 +189,8 @@ from chainer.functions.math.cumsum import Cumsum  # NOQA
 from chainer.functions.math.det import batch_det  # NOQA
 from chainer.functions.math.det import BatchDet  # NOQA
 from chainer.functions.math.det import det  # NOQA
-from chainer.functions.math.digamma import digamma  # NOQA
 from chainer.functions.math.erf import erf  # NOQA
 from chainer.functions.math.erfc import erfc  # NOQA
-from chainer.functions.math.erfinv import erfinv  # NOQA
 from chainer.functions.math.exponential import exp  # NOQA
 from chainer.functions.math.exponential import Exp  # NOQA
 from chainer.functions.math.exponential import log  # NOQA
@@ -219,7 +217,6 @@ from chainer.functions.math.inv import batch_inv  # NOQA
 from chainer.functions.math.inv import BatchInv  # NOQA
 from chainer.functions.math.inv import inv  # NOQA
 from chainer.functions.math.inv import Inv  # NOQA
-from chainer.functions.math.lgamma import lgamma  # NOQA
 from chainer.functions.math.linear_interpolate import linear_interpolate  # NOQA
 from chainer.functions.math.linear_interpolate import LinearInterpolate  # NOQA
 from chainer.functions.math.logarithm_1p import Log1p  # NOQA
@@ -241,7 +238,6 @@ from chainer.functions.math.minmax import max  # NOQA
 from chainer.functions.math.minmax import Max  # NOQA
 from chainer.functions.math.minmax import min  # NOQA
 from chainer.functions.math.minmax import Min  # NOQA
-from chainer.functions.math.polygamma import polygamma  # NOQA
 from chainer.functions.math.prod import prod  # NOQA
 from chainer.functions.math.prod import Prod  # NOQA
 from chainer.functions.math.scale import scale  # NOQA
@@ -286,7 +282,6 @@ from chainer.functions.normalization.batch_normalization import batch_normalizat
 from chainer.functions.normalization.batch_normalization import fixed_batch_normalization  # NOQA
 from chainer.functions.normalization.batch_renormalization import batch_renormalization  # NOQA
 from chainer.functions.normalization.batch_renormalization import fixed_batch_renormalization  # NOQA
-from chainer.functions.normalization.group_normalization import group_normalization  # NOQA
 from chainer.functions.normalization.l2_normalization import normalize  # NOQA
 from chainer.functions.normalization.l2_normalization import NormalizeL2  # NOQA
 from chainer.functions.normalization.layer_normalization import layer_normalization  # NOQA
