@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstdlib>
 #include <ostream>
 #include <string>
 
@@ -50,7 +51,7 @@ public:
                 float64_ = v;
                 break;
             default:
-                assert(0);  // should never be reached
+                std::abort();  // should never be reached
         }
     }
 
@@ -99,7 +100,7 @@ public:
             case Dtype::kFloat64:
                 return -float64_;
             default:
-                assert(false);  // should never be reached
+                std::abort();  // should never be reached
         }
         return 0;
     }
@@ -154,7 +155,7 @@ private:
             case Dtype::kFloat64:
                 return float64_;
             default:
-                assert(false);  // should never be reached
+                std::abort();  // should never be reached
         }
         return T{};
     }

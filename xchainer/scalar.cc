@@ -1,6 +1,6 @@
 #include "xchainer/scalar.h"
 
-#include <cassert>
+#include <cstdlib>
 #include <sstream>
 #include <string>
 
@@ -29,7 +29,7 @@ std::ostream& operator<<(std::ostream& os, Scalar value) {
             os << static_cast<double>(value);
             break;
         default:
-            assert(false);  // should never be reached
+            std::abort();  // should never be reached
     }
     return os;
 }

@@ -58,6 +58,7 @@ XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImpl(
 template <int8_t Ndim, typename... IndexSources>
 XCHAINER_HOST_DEVICE void CombineIterators(IndexIterator<Ndim>& it, IndexSources&&... index_sources) {
     int8_t processed_dims = indexer_detail::CombineIteratorsImpl<Ndim>(it, 0, std::forward<IndexSources>(index_sources)...);
+    (void)processed_dims;  // unused
     assert(processed_dims == it.ndim());
 #ifndef NDEBUG
     for (int8_t i = 0; i < it.ndim(); ++i) {

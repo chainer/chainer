@@ -150,7 +150,7 @@ Array Array::operator/(const Array& rhs) const { return xchainer::Divide(*this, 
 
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal::At(*this, indices); }
 
-Array Array::Transpose() const { return xchainer::Transpose(*this); }
+Array Array::Transpose(const OptionalAxes& axes) const { return xchainer::Transpose(*this, axes); }
 
 Array Array::Reshape(const Shape& newshape) const { return xchainer::Reshape(*this, newshape); }
 
@@ -232,7 +232,7 @@ Array Array::AsConstant(CopyKind kind) const {
         case CopyKind::kView:
             return Array{shape(), strides(), dtype(), device(), body_->data_, offset()};
         default:
-            assert(false);  // should never be reached
+            std::abort();  // should never be reached
     }
 }
 
@@ -259,7 +259,7 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
             return std::move(out);
         }
         default:
-            assert(false);  // should never be reached
+            std::abort();  // should never be reached
     }
 }
 

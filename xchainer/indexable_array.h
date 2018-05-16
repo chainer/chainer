@@ -25,6 +25,7 @@ namespace indexable_array_detail {
 template <typename To, typename From>
 using WithConstnessOf = std::conditional_t<std::is_const<From>::value, std::add_const_t<To>, std::remove_const_t<To>>;
 
+#ifndef NDEBUG
 static std::tuple<const uint8_t*, const uint8_t*> GetDataRange(const Array& a) {
     std::tuple<int64_t, int64_t> range = xchainer::GetDataRange(a.shape(), a.strides(), a.item_size());
     int64_t lower = std::get<0>(range);
@@ -32,6 +33,7 @@ static std::tuple<const uint8_t*, const uint8_t*> GetDataRange(const Array& a) {
     auto base = reinterpret_cast<const uint8_t*>(a.raw_data()) + a.offset();  // NOLINT: reinterpret_cast
     return std::tuple<const uint8_t*, const uint8_t*>{base + lower, base + upper};
 }
+#endif
 
 }  // namespace indexable_array_detail
 

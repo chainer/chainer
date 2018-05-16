@@ -1,7 +1,7 @@
 #include "xchainer/python/routines.h"
 
-#include <cassert>
 #include <cstdint>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -231,7 +231,7 @@ void InitXchainerRoutines(pybind11::module& m) {
                   case DtypeKind::kFloat:
                       return py::float_{static_cast<double>(s)};
                   default:
-                      assert(false);  // never reach
+                      std::abort();  // never reach
               }
           },
           py::arg("a"));

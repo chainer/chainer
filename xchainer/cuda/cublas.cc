@@ -2,7 +2,7 @@
 
 #include <cublas_v2.h>
 
-#include <cassert>
+#include <cstdlib>
 #include <string>
 
 #include "xchainer/error.h"
@@ -30,7 +30,7 @@ std::string BuildErrorMessage(cublasStatus_t error) {
 
 #undef XCHAINER_MATCH_AND_RETURN_MSG
     }
-    assert(false);  // never reached
+    std::abort();  // never reached
 }
 
 }  // namespace

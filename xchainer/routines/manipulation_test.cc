@@ -58,48 +58,56 @@ TEST_P(ManipulationTest, AsScalarInvalidMoreThanOneElements) {
 }
 
 TEST_P(ManipulationTest, Transpose) {
-    Array a = testing::BuildArray({2, 3})         //
-                      .WithLinearData<int32_t>()  //
-                      .WithPadding(0);
+    Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
+    Array b = Transpose(a, {2, 0, 1});
+
+    EXPECT_EQ(Strides({4, 48, 16}), b.strides());
+
+    Array e = testing::BuildArray({4, 2, 3}).WithData<int32_t>(
+            {0, 4, 8, 12, 16, 20, 1, 5, 9, 13, 17, 21, 2, 6, 10, 14, 18, 22, 3, 7, 11, 15, 19, 23});
+    testing::ExpectEqual(e, b);
+}
+
+TEST_P(ManipulationTest, TransposeDefaultAxes) {
+    Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
     Array b = Transpose(a);
 
-    EXPECT_EQ(Shape({3, 2}), b.shape());
-    EXPECT_EQ(Strides({4, 12}), b.strides());
+    EXPECT_EQ(Strides({4, 16, 48}), b.strides());
 
-    Array e = testing::BuildArray({3, 2}).WithData<int32_t>({0, 3, 1, 4, 2, 5});
+    Array e = testing::BuildArray({4, 3, 2}).WithData<int32_t>(
+            {0, 12, 4, 16, 8, 20, 1, 13, 5, 17, 9, 21, 2, 14, 6, 18, 10, 22, 3, 15, 7, 19, 11, 23});
     testing::ExpectEqual(e, b);
 }
 
 TEST_P(ManipulationTest, TransposeNoncontiguous) {
-    Array a = testing::BuildArray({2, 3})         //
-                      .WithLinearData<int32_t>()  //
-                      .WithPadding(1);
-    Array b = Transpose(a);
+    Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>().WithPadding(1);
+    Array b = Transpose(a, {2, 0, 1});
 
-    EXPECT_EQ(Shape({3, 2}), b.shape());
-
-    Array e = testing::BuildArray({3, 2}).WithData<int32_t>({0, 3, 1, 4, 2, 5});
+    Array e = testing::BuildArray({4, 2, 3}).WithData<int32_t>(
+            {0, 4, 8, 12, 16, 20, 1, 5, 9, 13, 17, 21, 2, 6, 10, 14, 18, 22, 3, 7, 11, 15, 19, 23});
     testing::ExpectEqual(e, b);
 }
 
 TEST_P(ManipulationTest, TransposeBackward) {
     CheckBackward(
-            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Transpose(xs[0])}; },
-            {Zeros({2, 3}, Dtype::kFloat32).RequireGrad()},
-            {testing::BuildArray({3, 2}, {1.f, 2.f, 3.f, 4.f, 5.f, 6.f})},
-            {Full({2, 3}, 1e-5f)});
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                return {Transpose(xs[0], {2, 0, 1})};
+            },
+            {(*testing::BuildArray({2, 3, 4}).WithLinearData<float>()).RequireGrad()},
+            {testing::BuildArray({4, 2, 3}).WithLinearData<float>(-1.f, 0.1f)},
+            {Full({2, 3, 4}, 1e-2f)});
 }
 
 TEST_P(ManipulationTest, TransposeDoubleBackward) {
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto t = Transpose(xs[0]);
+                auto t = Transpose(xs[0], {2, 0, 1});
                 return {t * t};  // to make it nonlinear
             },
-            {(*testing::BuildArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
-            {Ones({3, 2}, Dtype::kFloat32).RequireGrad()},
-            {Ones({2, 3}, Dtype::kFloat32)},
-            {Full({2, 3}, 0.01f), Full({3, 2}, 0.01f)});
+            {(*testing::BuildArray({2, 3, 4}).WithLinearData<float>()).RequireGrad()},
+            {Ones({4, 2, 3}, Dtype::kFloat32).RequireGrad()},
+            {Ones({2, 3, 4}, Dtype::kFloat32)},
+            {Full({2, 3, 4}, 0.01f), Full({4, 2, 3}, 0.01f)});
 }
 
 TEST_P(ManipulationTest, Reshape) {

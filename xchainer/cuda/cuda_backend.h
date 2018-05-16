@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cublas_v2.h>
-
 #include <memory>
 #include <string>
 
@@ -16,8 +14,7 @@ class CudaBackend : public Backend {
 public:
     static constexpr const char* kDefaultName = "cuda";
 
-    explicit CudaBackend(Context& context);
-    ~CudaBackend() override;
+    using Backend::Backend;
 
     std::string GetName() const override;
 
@@ -25,11 +22,8 @@ public:
 
     bool SupportsTransfer(Device& src_device, Device& dst_device) override;
 
-    cublasHandle_t cublas_handle() const { return cublas_handle_; }
-
 private:
     std::unique_ptr<Device> CreateDevice(int index) override;
-    cublasHandle_t cublas_handle_{};
 };
 
 }  // namespace cuda
