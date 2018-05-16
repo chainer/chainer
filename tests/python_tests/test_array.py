@@ -146,6 +146,29 @@ def test_init_data_list(shape, dtype_spec):
     _check_array(xchainer.ndarray(shape, dtype_spec, data_list, 'native:1'), expected_dtype, shape, device='native:1')
 
 
+def test_init_invalid_length():
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.ndarray((), xchainer.int8, [])
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.ndarray((), xchainer.int8, [1, 1])
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.ndarray((1,), xchainer.int8, [])
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.ndarray((1,), xchainer.int8, [1, 1])
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.ndarray((0,), xchainer.int8, [1])
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.ndarray((3, 2), xchainer.int8, [1, 1, 1, 1, 1])
+
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.ndarray((3, 2), xchainer.int8, [1, 1, 1, 1, 1, 1, 1])
+
+
 def test_to_device():
     a = xchainer.ones((2,), xchainer.float32, device="native:0")
     dst_device = xchainer.get_device("native:1")
@@ -305,29 +328,6 @@ def test_as_constant_view(shape, dtype):
     assert a.is_grad_required('graph_1')
     assert a.is_grad_required('graph_2')
     assert a.is_grad_required('graph_3')
-
-
-def test_array_init_invalid_length():
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.ndarray((), xchainer.int8, [])
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.ndarray((), xchainer.int8, [1, 1])
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.ndarray((1,), xchainer.int8, [])
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.ndarray((1,), xchainer.int8, [1, 1])
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.ndarray((0,), xchainer.int8, [1])
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.ndarray((3, 2), xchainer.int8, [1, 1, 1, 1, 1])
-
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.ndarray((3, 2), xchainer.int8, [1, 1, 1, 1, 1, 1, 1])
 
 
 def test_array_repr():
@@ -549,179 +549,6 @@ def test_array_backward():
 
     gx1.backward(graph_id='graph_1')
     assert gx1.get_grad(graph_id='graph_1') is not None
-
-
-# TODO(niboshi): Remove strides_check=False
-@xchainer.testing.numpy_xchainer_array_equal(strides_check=False)
-@pytest.mark.parametrize("shape,indices", [
-    # empty indexing
-    ((), ()),
-    ((3,), ()),
-    ((2, 2, 2), ()),
-    # integer indexing - non-tuple indexing
-    ((3,), 0),
-    ((3,), 1),
-    ((3,), 2),
-    ((3,), -1),
-    ((2, 3), 0),
-    ((2, 3), 1),
-    # integer indexining - tuple indexing
-    ((3,), (0,)),
-    ((3,), (1,)),
-    ((3,), (2,)),
-    ((3,), (-1,)),
-    ((2, 3), (0,)),
-    ((2, 3), (1,)),
-    ((2, 3), (0, 0)),
-    ((2, 3), (1, 1)),
-    ((2, 3, 4), (0, -2, 3)),
-    ((2, 3, 4), (1, 0)),
-    # slice indexing - non-tuple indexing
-    ((3,), slice(None)),
-    ((3,), slice(2)),
-    ((3,), slice(0, 3)),
-    ((3,), slice(0, 2)),
-    ((3,), slice(1, 3)),
-    ((3,), slice(0, 0)),
-    ((3,), slice(0, 1)),
-    ((3,), slice(2, 0, -1)),
-    ((3,), slice(-2, -1)),
-    ((3,), slice(2, None, -1)),
-    ((3,), slice(None, 0, 1)),
-    ((3,), slice(None, -1, -1)),
-    ((3,), slice(None, -2, -1)),
-    ((6,), slice(0, 6, 2)),
-    ((6,), slice(1, 6, 2)),
-    ((6,), slice(5, None, -2)),
-    # slice indexing - tuple indexing
-    ((3,), (slice(None),)),
-    ((3,), (slice(2),)),
-    ((3,), (slice(0, 3),)),
-    ((3,), (slice(0, 2),)),
-    ((3,), (slice(1, 3),)),
-    ((3,), (slice(0, 0),)),
-    ((3,), (slice(0, 1),)),
-    ((3,), (slice(2, 0, -1),)),
-    ((3,), (slice(-2, -1),)),
-    ((3,), (slice(2, None, -1),)),
-    ((3,), (slice(None, 0, 1),)),
-    ((3,), (slice(None, -1, -1),)),
-    ((3,), (slice(None, -2, -1),)),
-    ((6,), (slice(0, 6, 2),)),
-    ((6,), (slice(1, 6, 2),)),
-    ((6,), (slice(5, None, -2),)),
-    ((2, 3), (slice(None), slice(None))),
-    ((2, 3), (slice(1), slice(2))),
-    ((2, 3), (slice(0, 2), slice(0, 3))),
-    ((2, 3), (slice(0, 2), slice(0, -1))),
-    ((2, 3), (slice(0, None, -1), slice(2, 3))),
-    ((2, 3), (slice(0, None, None), slice(-2, 0, -1))),
-    ((2, 3), (slice(1, 2), slice(0, 2))),
-    ((2, 3), (slice(-2, None, -1), slice(0, 3))),
-    ((2, 3), (slice(-2, None, -1), slice(-3, None, -1))),
-    ((2, 3), (slice(-2, None, -1), slice(None, None, -2))),
-    ((2, 3), (slice(1, 2), slice(None, None, 1))),
-    ((2, 3), (slice(1, 2), slice(None, None, 2))),
-    ((2, 3, 4), (slice(1), slice(-2, 3), slice(1, None, -1))),
-    # newaxis indexing - non-tuple indexing
-    ((), xchainer.newaxis),
-    ((3,), xchainer.newaxis),
-    # newaxis indexing - tuple indexing
-    ((), (xchainer.newaxis,)),
-    ((3,), (xchainer.newaxis,)),
-    ((2, 3), (xchainer.newaxis, xchainer.newaxis)),
-    # mixed indexing - tuple indexing
-    ((2, 3), (0, slice(1, 3))),
-    ((4, 3), (slice(1, 3), 1)),
-    ((2, 3, 4), (1, slice(2,), slice(1, 3))),
-    ((2, 3), (1, xchainer.newaxis, slice(1, 3))),
-    ((2, 3, 4), (slice(0, 1), slice(1, 2), slice(1, 3), xchainer.newaxis)),
-    ((2, 3, 4), (slice(0, 1), slice(1, 2), xchainer.newaxis, slice(1, 3))),
-    ((2, 3, 4), (slice(0, 1), xchainer.newaxis, slice(1, 2), slice(1, 3))),
-    ((2, 3, 4), (xchainer.newaxis, slice(0, 1), slice(1, 2), slice(1, 3))),
-    ((2, 3, 4), (1, slice(2,), xchainer.newaxis, slice(1, 3), xchainer.newaxis)),
-])
-def test_getitem(xp, shape, indices):
-    ndarray = _create_dummy_ndarray(shape, 'int32')
-    a = xp.array(ndarray)
-    return a[indices]
-
-
-# TODO(hvy): Add cases where axis=None, when supported.
-# TODO(hvy): Add cases where indices is not int64, when supported.
-# shape,indices,axis
-_take_valid_params = [
-    ((3,), [0], 0),
-    ((3,), [1], 0),
-    ((2, 3), [0], 0),
-    ((2, 3), [0], 1),
-    ((2, 3), [0], -1),
-    ((2, 3), [1], 0),
-    ((2, 3), [0, -1], 0),
-    ((2, 3), [1, 0], 0),
-    ((2, 3), [1, 2], 1),
-    ((2, 3), [2, 1], 1),
-    ((2, 3), [[0], [1]], 0),
-]
-
-_take_invalid_params = [
-    # Axis out of bounds
-    ((2, 3), [0], 2),
-    ((2, 3), [0], -3),
-]
-
-
-@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False, accept_error=(xchainer.DimensionError, numpy.AxisError))
-@pytest.mark.parametrize("shape,indices,axis", _take_valid_params + _take_invalid_params)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_take(is_module, xp, shape, indices, axis, device):
-    a = xp.arange(_size(shape)).reshape(shape)
-
-    # First convert to ndarray since some indices are nested lists which
-    # xchainer cannot convert. Additionally, dtype is cast to int64 since no
-    # other dtypes are currently supported by xchainer.take
-    indices = numpy.array(indices).astype('int64')
-
-    if is_module:
-        return xp.take(a, xp.array(indices), axis)
-    else:
-        return a.take(xp.array(indices), axis)
-
-
-@pytest.mark.parametrize('is_module', [False, True])
-@pytest.mark.parametrize('dtype', ['float32', 'float64'])  # TODO(niboshi): Use float_dtype fixture
-@pytest.mark.parametrize('shape,indices,axis', _take_valid_params)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_take_backward(is_module, dtype, shape, indices, axis, device):
-    def func(a, indices, axis):
-        if is_module:
-            return xchainer.take(a, indices, axis)
-        else:
-            return a.take(indices, axis)
-
-    # First convert to ndarray since some indices are nested lists which
-    # xchainer cannot convert. Additionally, dtype is cast to int64 since no
-    # other dtypes are currently supported by xchainer.take
-    indices = xchainer.array(numpy.array(indices, dtype='int64'))
-
-    a = xchainer.arange(_size(shape)).reshape(shape).astype(dtype).require_grad()
-    output_shape = func(a, indices, axis).shape
-
-    numpy.random.seed(0)  # TODO(niboshi): Reconsider the use of random values
-    go = xchainer.array(numpy.random.uniform(-1, 1, output_shape).astype(dtype)).require_grad()
-    ggi = xchainer.array(numpy.random.uniform(-1, 1, shape).astype(dtype))
-    epsi = xchainer.full_like(a, 1e-3)
-    epso = xchainer.full_like(go, 1e-3)
-
-    def func_bwd(inputs):
-        return func(inputs[0], indices, axis),
-
-    def func_dbwd(inputs):
-        y = func(inputs[0], indices, axis)
-        return y * y,  # make nonlinear
-
-    xchainer.check_backward(func_bwd, (a,), (go,), (epsi,))
-    xchainer.check_double_backward(func_dbwd, (a,), (go,), (ggi,), (epsi, epso))
 
 
 # TODO(sonots): Fix type compatibility
