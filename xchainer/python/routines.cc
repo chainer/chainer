@@ -36,6 +36,38 @@ namespace internal {
 
 namespace py = pybind11;
 
+namespace {
+
+ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t count, int64_t offset, py::handle device) {
+    const py::buffer_info& info = buffer.request();
+
+    int64_t n_bytes = info.size * info.itemsize;
+    if (offset < 0 || offset > n_bytes) {
+        throw XchainerError{"offset must be non-negative and no greater than buffer length (", n_bytes, ")"};
+    }
+
+    if (!xchainer::internal::IsContiguous(Shape{info.shape}, Strides{info.strides}, info.itemsize)) {
+        throw XchainerError{"ndarray is not C-contiguous"};
+    }
+
+    n_bytes -= offset;
+    if (count < 0) {
+        if (n_bytes % info.itemsize != 0) {
+            throw XchainerError{"buffer size must be a multiple of element size"};
+        }
+        count = n_bytes / info.itemsize;
+    } else if (n_bytes < count * info.itemsize) {
+        throw XchainerError{"buffer is smaller than requested size"};
+    }
+
+    Shape shape{count};
+    std::shared_ptr<void> data{info.ptr, [](void*) {}};
+
+    return xchainer::FromData(shape, internal::GetDtype(dtype), data, nonstd::nullopt, offset, internal::GetDevice(device)).move_body();
+}
+
+}  // namespace
+
 void InitXchainerRoutines(pybind11::module& m) {
     // creation routines
     m.def("array",
@@ -139,6 +171,13 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("a"),
           py::arg("device") = nullptr);
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
+    m.def("frombuffer",
+          &MakeArrayFromBuffer,
+          py::arg("buffer"),
+          py::arg("dtype") = Dtype::kFloat32,
+          py::arg("count") = -1,
+          py::arg("offset") = 0,
+          py::arg("device") = nullptr);
     m.def("identity",
           [](int64_t n, py::handle dtype, py::handle device) {
               return Identity(n, dtype.is_none() ? Dtype::kFloat64 : internal::GetDtype(dtype), internal::GetDevice(device)).move_body();
