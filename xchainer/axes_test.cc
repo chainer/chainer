@@ -59,14 +59,17 @@ TEST(AxesTest, Ctor) {
         CheckSpanEqual({}, axes.span());
     }
     {  // Too long std::initializer_list
-        EXPECT_THROW(Axes({0, 1, 2, 0, 1, 2, 0, 1, 2}), DimensionError);
+        EXPECT_THROW(Axes({0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1}), DimensionError);
     }
     {  // Too long gsl::span
         const std::array<int8_t, kMaxNdim + 1> too_long{1};
         EXPECT_THROW(Axes{gsl::make_span(too_long)}, DimensionError);
     }
     {  // Too long iterators
-        const std::vector<int8_t> dims{0, 1, 2, 0, 1, 2, 0, 1, 2};
+        std::vector<int8_t> dims{};
+        for (int i = 0; i < kMaxNdim + 1; ++i) {
+            dims.emplace_back(i % 3);
+        }
         EXPECT_THROW(Axes({dims.begin(), dims.end()}), DimensionError);
     }
 }
