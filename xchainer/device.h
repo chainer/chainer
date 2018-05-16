@@ -134,6 +134,14 @@ public:
     // `out.ndim()` must be 1 with at least 1 elements.
     virtual void Linspace(double start, double stop, const Array& out) = 0;
 
+    virtual Array Convolution(
+            const Array& x,
+            const Array& w,
+            const nonstd::optional<Array>& b,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            bool cover_all) = 0;
+
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat

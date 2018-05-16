@@ -871,6 +871,17 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
     });
 }
 
+Array CudaDevice::Convolution(
+        const Array& x,
+        const Array& w,
+        const nonstd::optional<Array>& b,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    // TODO(niboshi): Implement it
+    throw NotImplementedError{""};
+}
+
 void CudaDevice::Synchronize() {
     CheckCudaError(cudaSetDevice(index()));
     CheckCudaError(cudaDeviceSynchronize());

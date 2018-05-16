@@ -580,7 +580,93 @@ Array Im2Col(
     return out;
 }
 
+std::tuple<int64_t, Axes, Shape> GetRollAxes(const Shape& shape, const Axes& axis) {
+    bool included_in_axis[kMaxNdim]{};
+    Shape remain_dims;
+    Axes roll_axes;
+    for (int8_t i = 0; i < axis.ndim(); ++i) {
+        included_in_axis[axis[i]] = true;
+    }
+
+    int64_t remain_total_size = 1;
+    for (int8_t i = 0; i < axis.ndim(); ++i) {
+        if (!included_in_axis[i]) {
+            roll_axes.emplace_back(i);
+            remain_total_size *= shape[i];
+            remain_dims.emplace_back(shape[i]);
+        }
+    }
+    for (int8_t i = 0; i < axis.ndim(); ++i) {
+        if (included_in_axis[i]) {
+            roll_axes.emplace_back(i);
+        }
+    }
+
+    return std::make_tuple(roll_axes, remain_dims, remain_total_size);
+}
+
+Array TensorDot(const Array& a, const Array& b, const Axes& a_axis, const Axes& b_axis) {
+    assert(a_axis.ndim() == b_axis.ndim());
+    assert(a.ndim() >= a_axis.ndim());
+    assert(b.ndim() >= b_axis.ndim());
+    int8_t axis_ndim = a_axis.ndim();
+
+    int64_t axis_total_size = 1;
+    for (int8_t i = 0; i < axis_ndim; ++i) {
+        int64_t a_dim = a.shape()[a_axis[i]];
+        assert(a_dim == b.shape()[b_axis[i]]);
+        axis_total_size *= a_dim;
+    }
+
+    auto a_tup = GetRollAxes(a.shape(), a_axis);
+    auto b_tup = GetRollAxes(b.shape(), b_axis);
+    int64_t a_remain_total_size = std::get<0>(a_tup);
+    int64_t b_remain_total_size = std::get<0>(b_tup);
+    Shape a_shape{a_remain_total_size, axis_total_size};
+    Shape b_shape{axis_total_size, b_remain_total_size};
+    const Axes& a_roll_axes = std::get<1>(a_tup);
+    const Axes& b_roll_axes = std::get<1>(b_tup);
+
+    Shape dot_shape{a_remain_total_size, b_remain_total_size};
+
+    Array dot_out = Empty(dot_shape, a.dtype(), a.device());
+    a.device().Dot(a.Transpose(a_roll_axes).Reshape(a_shape), b.Transpose(b_roll_axes).Reshape(b_shape), dot_out);
+    return dot_out.Reshape();
+}
+
 // }  // namespace
+
+Array NativeDevice::Convolution(
+        const Array& x,
+        const Array& w,
+        const nonstd::optional<Array>& b,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    int8_t ndim = w.ndim() - 2;
+    StackVector<int64_t, kMaxNdim> kernel_size;
+    std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(kernel_size));
+
+    Array col = Im2Col(x, kernel_size, stride, pad, cover_all);
+    Axes axes;
+    axes.resize(ndim + 1);
+    std::iota(axes.begin(), axes.end(), 1);
+
+    Array y = TensorDot(col, w, axes, axes);
+    if (b.has_value()) {
+        y += *b;
+    }
+
+    // Move the channel axis to the second
+    Axes roll_axes;
+    roll_axes.resize(y.ndim());
+    roll_axes[0] = 0;
+    roll_axes[1] = ndim + 1;
+    std::iota(roll_axes.begin() + 2, roll_axes.end(), 1);
+    Array out = y.Transpose(roll_axes);
+
+    return out;
+}
 
 void NativeDevice::Synchronize() {}
 
