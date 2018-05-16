@@ -28,6 +28,11 @@ def shape(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def is_module(request):
+    return request.param
+
+
 def _check_device(a, device=None):
     if device is None:
         device = xchainer.get_default_device()
@@ -964,3 +969,13 @@ def test_fromfunction(xp, dtype_spec, device):
 
     # addend should be passed as a keyword argument to function.
     return xp.fromfunction(function, (2, 2), dtype=dtype_spec, addend=2)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_copy(xp, shape, dtype, device, is_module):
+    a = array_utils.create_dummy_ndarray(xp, shape, dtype)
+    if is_module:
+        return xp.copy(a)
+    else:
+        return a.copy()

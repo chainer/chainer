@@ -224,22 +224,6 @@ def test_view_must_not_share_properties():
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_copy(xp, shape, dtype, device):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    a = xp.array(ndarray)
-    return a.copy()
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_module_copy(xp, shape, dtype, device):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    a = xp.array(ndarray)
-    return xp.copy(a)
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('copy', [False, True])
 # TODO(beam2d): use fixtures.
 @pytest.mark.parametrize('src_dtype', ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
