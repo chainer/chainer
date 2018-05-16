@@ -850,3 +850,20 @@ class TestKLDivergence(unittest.TestCase):
         dist1 = self.make_uniform_dist(True, low=low, high=high)
         dist2 = self.make_normal_dist(True)
         self.check_kl(dist1, dist2)
+
+    def test_uniform_pareto_cpu(self):
+        low = numpy.random.uniform(1, 5, self.shape).astype(numpy.float32)
+        high = numpy.random.uniform(
+            low, low + 3, self.shape).astype(numpy.float32)
+        dist1 = self.make_uniform_dist(low=low, high=high)
+        dist2 = self.make_pareto_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_uniform_pareto_gpu(self):
+        low = numpy.random.uniform(1, 5, self.shape).astype(numpy.float32)
+        high = numpy.random.uniform(
+            low, low + 3, self.shape).astype(numpy.float32)
+        dist1 = self.make_uniform_dist(True, low=low, high=high)
+        dist2 = self.make_pareto_dist(True)
+        self.check_kl(dist1, dist2)

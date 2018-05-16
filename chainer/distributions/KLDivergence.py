@@ -544,3 +544,24 @@ def _kl_uniform_normal(dist1, dist2):
         + (0.5 * (dist1.variance + dist1.mean ** 2)
            - dist2.loc * (dist1.mean)
            + 0.5 * dist2.loc ** 2) / dist2.scale ** 2
+
+
+@register_kl(distributions.Uniform, distributions.Pareto)
+def _kl_uniform_pareto(dist1, dist2):
+    if dist1._is_gpu:
+        is_inf = dist1.low.data < dist2.scale.data
+        valid = cuda.cupy.logical_not(is_inf)
+        inf = cuda.cupy.zeros_like(dist1.high.data)
+        inf[is_inf] = numpy.inf
+    else:
+        is_inf = dist1.low.data < dist2.scale.data
+        valid = numpy.logical_not(is_inf)
+        inf = numpy.zeros_like(dist1.high.data)
+        inf[is_inf] = numpy.inf
+
+    return - dist1.entropy - exponential.log(dist2.alpha) \
+        - dist2.alpha * exponential.log(dist2.scale) \
+        + (dist2.alpha + 1) / (dist1.high - dist1.low) \
+        * (dist1.high * (exponential.log(dist1.high * valid + is_inf) - 1)
+           - dist1.low * (exponential.log(dist1.low * valid + is_inf) - 1)) \
+        + inf
