@@ -175,13 +175,12 @@ def test_astype(xp, shape, device, copy, src_dtype, dst_dtype):
 def test_as_constant_copy(shape, dtype):
     def check(array_a, array_b):
         xchainer.testing.assert_array_equal_ex(array_a, array_b, strides_check=False)
-    
+
         assert array_b.is_contiguous
-    
+
         # Check memory addresses only if >0 bytes are allocated
         if array_a.size > 0:
             assert array_a._debug_data_memory_address != array_b._debug_data_memory_address
-
 
     # Stop gradients on all graphs
     a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
