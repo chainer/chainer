@@ -60,6 +60,11 @@ def signed_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=xchainer.testing.numeric_dtypes)
+def numeric_dtype(request):
+    return request.param
+
+
 @pytest.fixture(params=[True, False])
 def is_module(request):
     return request.param

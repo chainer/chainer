@@ -4,33 +4,10 @@ import pytest
 import xchainer
 
 
-all_dtypes = (
-    'bool_',
-    'int8',
-    'int16',
-    'int32',
-    'int64',
-    'uint8',
-    'float32',
-    'float64',
-)
-
-
 float_dtypes = (
     'float32',
     'float64',
 )
-
-
-nonfloat_dtypes = (
-    'bool_',
-    'int8',
-    'int16',
-    'int32',
-    'int64',
-    'uint8',
-)
-
 
 signed_dtypes = (
     'int8',
@@ -45,6 +22,22 @@ signed_dtypes = (
 unsigned_dtypes = (
     'uint8',
 )
+
+
+nonfloat_dtypes = (
+    'bool_',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'uint8',
+)
+
+
+numeric_dtypes = signed_dtypes + unsigned_dtypes
+
+
+all_dtypes = ('bool_',) + numeric_dtypes
 
 
 def parametrize_dtype_specifier(argname, dtypes=None, with_xchainer_dtypes=True, additional_args=None):
