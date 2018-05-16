@@ -10,6 +10,8 @@ import pytest
 import xchainer
 import xchainer.testing
 
+from tests import array_utils
+
 
 _shapes = [
     (),
@@ -26,30 +28,12 @@ def shape(request):
     return request.param
 
 
-def _size(shape):
-    return functools.reduce(operator.mul, shape, 1)
-
-
 def _check_device(a, device=None):
     if device is None:
         device = xchainer.get_default_device()
     elif isinstance(device, str):
         device = xchainer.get_device(device)
     assert a.device is device
-
-
-def _create_dummy_ndarray(xp, shape, dtype, device=None):
-    if xchainer.dtype(dtype).name in xchainer.testing.unsigned_dtypes:
-        start = 0
-        stop = _size(shape)
-    else:
-        start = -1
-        stop = _size(shape) - 1
-
-    if xp is xchainer:
-        return xp.arange(start=start, stop=stop, device=device).reshape(shape).astype(dtype)
-    else:
-        return xp.arange(start=start, stop=stop).reshape(shape).astype(dtype)
 
 
 _array_params_nonfloat_list = [
@@ -131,7 +115,7 @@ def _check_array_from_numpy_array(a_xc, a_np, device=None):
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_array_from_numpy_array(xp, shape, dtype, device):
-    a_np = _create_dummy_ndarray(numpy, shape, dtype)
+    a_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
     a_xp = xp.array(a_np)
 
     if xp is xchainer:
@@ -148,7 +132,7 @@ def test_array_from_numpy_array(xp, shape, dtype, device):
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_array_from_numpy_non_contiguous_array(xp, shape, dtype, device):
-    a_np = _create_dummy_ndarray(numpy, shape, dtype).T
+    a_np = array_utils.create_dummy_ndarray(numpy, shape, dtype).T
     a_xp = xp.array(a_np)
 
     if xp is xchainer:
@@ -165,7 +149,7 @@ def test_array_from_numpy_non_contiguous_array(xp, shape, dtype, device):
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_array_from_numpy_positive_offset_array(xp, device):
-    a_np = _create_dummy_ndarray(numpy, (2, 3), 'int32')[1, 1:]
+    a_np = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32')[1, 1:]
     a_xp = xp.array(a_np)
 
     if xp is xchainer:
@@ -182,7 +166,7 @@ def test_array_from_numpy_positive_offset_array(xp, device):
 def _array_from_numpy_array_with_dtype(xp, shape, src_dtype, dst_dtype_spec):
     if xp is numpy and isinstance(dst_dtype_spec, xchainer.dtype):
         dst_dtype_spec = dst_dtype_spec.name
-    t = _create_dummy_ndarray(numpy, shape, src_dtype)
+    t = array_utils.create_dummy_ndarray(numpy, shape, src_dtype)
     return xp.array(t, dtype=dst_dtype_spec)
 
 
@@ -202,7 +186,7 @@ def test_array_from_numpy_array_with_dtype_spec(xp, shape, dst_dtype_spec):
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_array_from_numpy_array_with_device(shape, device):
-    orig = _create_dummy_ndarray(numpy, (2, ), 'float32')
+    orig = array_utils.create_dummy_ndarray(numpy, (2, ), 'float32')
     a = xchainer.array(orig, device=device)
     b = xchainer.array(orig)
     xchainer.testing.assert_array_equal_ex(a, b)
@@ -212,7 +196,7 @@ def test_array_from_numpy_array_with_device(shape, device):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('copy', [True, False])
 def test_array_from_xchainer_array(shape, dtype, copy, device):
-    t = _create_dummy_ndarray(xchainer, shape, dtype, device=device)
+    t = array_utils.create_dummy_ndarray(xchainer, shape, dtype, device=device)
     a = xchainer.array(t, copy=copy)
     if not copy:
         assert t is a
@@ -224,7 +208,7 @@ def test_array_from_xchainer_array(shape, dtype, copy, device):
 
 
 def _check_array_from_xchainer_array_with_dtype(shape, src_dtype, dst_dtype_spec, copy, device=None):
-    t = _create_dummy_ndarray(xchainer, shape, src_dtype, device=device)
+    t = array_utils.create_dummy_ndarray(xchainer, shape, src_dtype, device=device)
     a = xchainer.array(t, dtype=dst_dtype_spec, copy=copy)
 
     src_dtype = xchainer.dtype(src_dtype)
@@ -260,7 +244,7 @@ def test_array_from_xchainer_array_with_dtype_spec(shape, dst_dtype_spec, copy):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('dst_device_spec', [None, 'native:1', xchainer.get_device('native:1'), 'native:0'])
 def test_array_from_xchainer_array_with_device(src_dtype, dst_dtype, copy, device, dst_device_spec):
-    t = _create_dummy_ndarray(xchainer, (2,), src_dtype, device=device)
+    t = array_utils.create_dummy_ndarray(xchainer, (2,), src_dtype, device=device)
     a = xchainer.array(t, dtype=dst_dtype, copy=copy, device=dst_device_spec)
 
     dst_device = xchainer.get_device(dst_device_spec)
@@ -284,7 +268,7 @@ def test_asarray_from_python_tuple_or_list():
 
 
 def test_asarray_from_numpy_array():
-    obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32')
     a = xchainer.asarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
     xchainer.testing.assert_array_equal_ex(e, a)
@@ -294,7 +278,7 @@ def test_asarray_from_numpy_array():
 
 @pytest.mark.parametrize('dtype', ['int32', 'float32'])
 def test_asarray_from_xchainer_array(dtype):
-    obj = _create_dummy_ndarray(xchainer, (2, 3), 'int32')
+    obj = array_utils.create_dummy_ndarray(xchainer, (2, 3), 'int32')
     a = xchainer.asarray(obj, dtype=dtype)
     if a.dtype == obj.dtype:
         assert a is obj
@@ -322,7 +306,7 @@ def test_ascontiguousarray_from_numpy_array(xp, shape, dtype, transpose):
     def tr(x):
         return x.T if transpose else x
 
-    obj = tr(_create_dummy_ndarray(numpy, shape, dtype))
+    obj = tr(array_utils.create_dummy_ndarray(numpy, shape, dtype))
     a = xp.ascontiguousarray(obj)
     if xp is xchainer:
         assert a.is_contiguous
@@ -336,7 +320,7 @@ def test_ascontiguousarray_from_xchainer_array(device, shape, dtype, transpose):
     def tr(x):
         return x.T if transpose else x
 
-    np_arr = _create_dummy_ndarray(numpy, shape, dtype)
+    np_arr = array_utils.create_dummy_ndarray(numpy, shape, dtype)
     obj = tr(xchainer.array(np_arr))
     a = xchainer.ascontiguousarray(obj)
     if not transpose and shape != ():  # () will be reshaped to (1,)
@@ -356,7 +340,7 @@ def test_ascontiguousarray_with_dtype(xp, device, shape, transpose, dtype_spec):
     def tr(x):
         return x.T if transpose else x
 
-    np_arr = _create_dummy_ndarray(numpy, shape, 'int32')
+    np_arr = array_utils.create_dummy_ndarray(numpy, shape, 'int32')
     obj = tr(xp.array(np_arr))
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = dtype_spec.name
@@ -373,7 +357,7 @@ def test_ascontiguousarray_with_device(device, shape, transpose, dtype):
     def tr(x):
         return x.T if transpose else x
 
-    np_arr = _create_dummy_ndarray(numpy, shape, dtype)
+    np_arr = array_utils.create_dummy_ndarray(numpy, shape, dtype)
     obj = tr(xchainer.array(np_arr))
     a = xchainer.ascontiguousarray(obj, device=device)
     b = xchainer.ascontiguousarray(obj)
@@ -392,7 +376,7 @@ def test_asanyarray_from_python_tuple_or_list():
 
 
 def test_asanyarray_from_numpy_array():
-    obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32')
     a = xchainer.asanyarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
     xchainer.testing.assert_array_equal_ex(e, a)
@@ -403,7 +387,7 @@ def test_asanyarray_from_numpy_array():
 def test_asanyarray_from_numpy_subclass_array():
     class Subclass(numpy.ndarray):
         pass
-    obj = _create_dummy_ndarray(numpy, (2, 3), 'int32').view(Subclass)
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32').view(Subclass)
     a = xchainer.asanyarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
     xchainer.testing.assert_array_equal_ex(e, a)
@@ -413,7 +397,7 @@ def test_asanyarray_from_numpy_subclass_array():
 
 @pytest.mark.parametrize('dtype', ['int32', 'float32'])
 def test_asanyarray_from_xchainer_array(dtype):
-    obj = _create_dummy_ndarray(xchainer, (2, 3), 'int32')
+    obj = array_utils.create_dummy_ndarray(xchainer, (2, 3), 'int32')
     a = xchainer.asanyarray(obj, dtype=dtype)
     if a.dtype == obj.dtype:
         assert a is obj
@@ -820,7 +804,7 @@ def test_eye_invalid_NMk_type(xp, N, M, k, device):
 @pytest.mark.parametrize('transpose', [False, True])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_diag(xp, k, shape, transpose, device):
-    v = xp.arange(_size(shape)).reshape(shape)
+    v = xp.arange(array_utils.total_size(shape)).reshape(shape)
     if transpose:  # Test non-contiguous inputs for multi-dimensional shapes.
         v = v.T
     return xp.diag(v, k)
@@ -831,7 +815,7 @@ def test_diag(xp, k, shape, transpose, device):
 @pytest.mark.parametrize('shape', [(), (2, 1, 2), (2, 0, 1)])
 @pytest.mark.parametrize('device', ['native:1', 'native:0'])
 def test_diag_invalid_ndim(xp, k, shape, device):
-    v = xp.arange(_size(shape)).reshape(shape)
+    v = xp.arange(array_utils.total_size(shape)).reshape(shape)
     return xp.diag(v, k)
 
 
@@ -841,7 +825,7 @@ def test_diag_invalid_ndim(xp, k, shape, device):
 @pytest.mark.parametrize('shape', [(), (4,), (2, 3), (6, 5), (2, 0)])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_diagflat(xp, k, shape, device):
-    v = xp.arange(_size(shape)).reshape(shape)
+    v = xp.arange(array_utils.total_size(shape)).reshape(shape)
     return xp.diagflat(v, k)
 
 
@@ -850,7 +834,7 @@ def test_diagflat(xp, k, shape, device):
 @pytest.mark.parametrize('shape', [(2, 1, 2), (2, 0, 1)])
 @pytest.mark.parametrize('device', ['native:1', 'native:0'])
 def test_diagflat_invalid_ndim(xp, k, shape, device):
-    v = xp.arange(_size(shape)).reshape(shape)
+    v = xp.arange(array_utils.total_size(shape)).reshape(shape)
     return xp.diagflat(v, k)
 
 
