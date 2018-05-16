@@ -197,3 +197,74 @@ def test_reshape_invalid(shape1, shape2):
 
     check(shape1, shape2)
     check(shape2, shape1)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('shape,axis', [
+    ((), None),
+    ((0,), None),
+    ((1,), None),
+    ((1, 1), None),
+    ((1, 0, 1), None),
+    ((3,), None),
+    ((3, 1), None),
+    ((1, 3), None),
+    ((2, 0, 3), None),
+    ((2, 4, 3), None),
+    ((2, 1, 3), 1),
+    ((2, 1, 3), -2),
+    ((1, 2, 1, 3, 1, 1, 4), None),
+    ((1, 2, 1, 3, 1, 1, 4), (2, 0, 4)),
+    ((1, 2, 1, 3, 1, 1, 4), (-2, 0, 4)),
+])
+def test_squeeze(is_module, xp, shape, axis):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    if is_module:
+        return xp.squeeze(a, axis)
+    else:
+        return a.squeeze(axis)
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize('shape,axis', [
+    ((2, 1, 3), 0),
+    ((2, 1, 3), -1),
+    ((2, 1, 3), (1, 2)),
+    ((2, 1, 3), (1, -1)),
+    ((2, 1, 3), (1, 1)),
+])
+def test_squeeze_invalid(is_module, xp, shape, axis):
+    a = xp.ones(shape, 'float32')
+    if is_module:
+        return xp.squeeze(a, axis)
+    else:
+        return a.squeeze(axis)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('src_shape,dst_shape', [
+    ((), ()),
+    ((1,), (2,)),
+    ((1, 1), (2, 2)),
+    ((1, 1), (1, 2)),
+])
+def test_broadcast_to(xp, src_shape, dst_shape):
+    a = array_utils.create_dummy_ndarray(xp, src_shape, 'float32')
+    return xp.broadcast_to(a, dst_shape)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_broadcast_to_auto_prefix(xp):
+    a = xp.arange(2, dtype='float32')
+    return xp.broadcast_to(a, (3, 2))
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@pytest.mark.parametrize(('src_shape,dst_shape'), [
+    ((3,), (2,)),
+    ((3,), (3, 2)),
+    ((1, 3), (3, 2)),
+])
+def test_broadcast_to_invalid(xp, src_shape, dst_shape):
+    a = xp.ones(src_shape, 'float32')
+    return xp.broadcast_to(a, dst_shape)
