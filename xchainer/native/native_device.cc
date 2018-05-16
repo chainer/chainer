@@ -563,14 +563,10 @@ Array Im2Col(
                 }
 
                 // Indices over input image.
-                NdimIndex img_index;
-                img_index.ndim = ndim;
-                std::copy(it_kernel.index(), it_kernel.index() + ndim, img_index.index);
+                NdimIndex img_index{it_kernel.index(), ndim};
 
                 // Indices over output column.
-                NdimIndex col_index;
-                col_index.ndim = ndim;
-                std::fill(col_index.index, col_index.index + col_index.ndim, 0);
+                NdimIndex col_index{ndim};
 
                 while (true) {
                     auto it_x = x_indexer.At(it_batch_channel, img_index);
@@ -584,8 +580,8 @@ Array Im2Col(
                     for (int8_t i = 0; i < ndim; ++i) {
                         // Next element to check.
                         ++img_iters[i];
-                        ++col_index.index[i];
-                        img_index.index[i] += stride[i];
+                        ++col_index.index()[i];
+                        img_index.index()[i] += stride[i];
 
                         if (img_iters[i]) {
                             // The next element is on the same dimension.
@@ -593,8 +589,8 @@ Array Im2Col(
                         } else {
                             // The next element is the first element in the next dimension.
                             img_iters[i].Set(0);
-                            col_index.index[i] = 0;
-                            img_index.index[i] = it_kernel.index()[i];
+                            col_index.index()[i] = 0;
+                            img_index.index()[i] = it_kernel.index()[i];
                             ++ndim_finished;
                         }
                     }

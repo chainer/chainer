@@ -14,13 +14,14 @@ namespace xchainer {
 
 class NdimIndex {
 public:
-    NdimIndex(const int64_t* index, int8_t ndim) : ndim_{ndim} { std::copy(index, index + ndim, index_); }
+    NdimIndex(const int64_t* index, int8_t ndim) : ndim_{ndim} { std::copy_n(index, ndim, index_); }
+    explicit NdimIndex(int8_t ndim) : ndim_{ndim} { std::fill(index_, index_ + ndim, int64_t{0}); }
 
     int64_t* index() { return index_; }
 
     const int64_t* index() const { return index_; }
 
-    int8_t ndim() { return ndim_; }
+    int8_t ndim() const { return ndim_; }
 
 private:
     int64_t index_[kMaxNdim];
@@ -29,9 +30,9 @@ private:
 
 namespace indexer_detail {
 
-template <int8_t Ndim, int8_t NdimArg, typename IndexSource>
+// IndexSource is either IndexIterator or NdimIndex.
+template <int8_t Ndim, typename IndexSource>
 XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImpl(IndexIterator<Ndim>& it, int8_t processed_dims, const IndexSource& index_source) {
-    static_assert();
     assert(processed_dims + index_source.ndim() <= it.ndim());
     for (int8_t i = 0; i < index_source.ndim(); ++i) {
         it.index()[processed_dims + i] = index_source.index()[i];
