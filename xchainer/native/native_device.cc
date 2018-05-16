@@ -516,6 +516,7 @@ Array Im2Col(
     Device& device = x.device();
 
     // Create a padded copy of the input image.
+    // TODO(hvy): Use the Pad function when implemented.
     Shape padded_shape = x.shape();
     std::vector<ArrayIndex> unpadded_slice{ArrayIndex{Slice{}}, ArrayIndex{Slice{}}};  // All batch and channel dimensions.
     for (int64_t i = 0; i < ndim; ++i) {
