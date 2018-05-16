@@ -865,7 +865,7 @@ def test_linspace_invalid_num(xp, device):
 
 @pytest.mark.parametrize_device(['native:0'])
 def test_frombuffer_from_numpy_array(device):
-    obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32')
 
     a_xc = xchainer.frombuffer(obj, obj.dtype)
     a_np = numpy.frombuffer(obj, obj.dtype)
@@ -886,14 +886,14 @@ def test_frombuffer_from_numpy_array(device):
 
 @pytest.mark.parametrize_device(['cuda:0'])
 def test_frombuffer_from_numpy_array_with_cuda(device):
-    obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32')
     with pytest.raises(xchainer.XchainerError):
         xchainer.frombuffer(obj, obj.dtype)
 
 
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.XchainerError))
 def test_frombuffer_from_numpy_array_with_noncontiguous(xp):
-    obj = _create_dummy_ndarray(numpy, (2, 3), 'int32').T
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32').T
     return xp.frombuffer(obj, obj.dtype)
 
 
@@ -901,7 +901,7 @@ def test_frombuffer_from_numpy_array_with_noncontiguous(xp):
 @pytest.mark.parametrize('count', [-1, 0, 1, 3, 4])
 @pytest.mark.parametrize('offset', [-1, 0, 1, 4, 3 * 4, 3 * 4 + 4])
 def test_frombuffer_from_numpy_array_with_offset_count(xp, count, offset):
-    obj = _create_dummy_ndarray(numpy, (3,), 'int32')
+    obj = array_utils.create_dummy_ndarray(numpy, (3,), 'int32')
     return xp.frombuffer(obj, obj.dtype, count=count, offset=offset)
 
 
@@ -919,7 +919,7 @@ def test_frombuffer_from_device_buffer(device):
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_frombuffer_with_device(device):
-    obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32')
     a = xchainer.frombuffer(obj, obj.dtype, device=device)
     b = xchainer.frombuffer(obj, obj.dtype)
     xchainer.testing.assert_array_equal_ex(a, b)
