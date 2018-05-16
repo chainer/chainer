@@ -305,10 +305,10 @@ def distribution_unittest(dist, scipy_dist_name, params_init, sample_for_test,
         def check_sample(self, is_gpu):
             if is_gpu:
                 smp1 = self.gpu_dist.sample(
-                    shape=(100000,)+self.smp_shape).data
+                    sample_shape=(100000,)+self.smp_shape).data
             else:
                 smp1 = self.cpu_dist.sample(
-                    shape=(100000,)+self.smp_shape).data
+                    sample_shape=(100000,)+self.smp_shape).data
 
             if self.scipy_onebyone:
                 smp2 = []
