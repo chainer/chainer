@@ -28,14 +28,6 @@ def shape(request):
     return request.param
 
 
-def _check_device(a, device=None):
-    if device is None:
-        device = xchainer.get_default_device()
-    elif isinstance(device, str):
-        device = xchainer.get_device(device)
-    assert a.device is device
-
-
 _array_params_nonfloat_list = [
     -2,
     1,
@@ -100,12 +92,12 @@ def test_array_from_python_tuple_or_list_with_device(obj, device):
     a = xchainer.array(obj, 'float32', device=device)
     b = xchainer.array(obj, 'float32')
     xchainer.testing.assert_array_equal_ex(a, b)
-    _check_device(a, device)
+    array_utils.check_device(a, device)
 
 
 def _check_array_from_numpy_array(a_xc, a_np, device=None):
     assert a_xc.offset == 0
-    _check_device(a_xc, device)
+    array_utils.check_device(a_xc, device)
 
     # recovered data should be equal
     a_np_recovered = xchainer.tonumpy(a_xc)
@@ -190,7 +182,7 @@ def test_array_from_numpy_array_with_device(shape, device):
     a = xchainer.array(orig, device=device)
     b = xchainer.array(orig)
     xchainer.testing.assert_array_equal_ex(a, b)
-    _check_device(a, device)
+    array_utils.check_device(a, device)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -295,7 +287,7 @@ def test_asarray_with_device(device):
     a = xchainer.asarray([0, 1], 'float32', device)
     b = xchainer.asarray([0, 1], 'float32')
     xchainer.testing.assert_array_equal_ex(a, b)
-    _check_device(a, device)
+    array_utils.check_device(a, device)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
@@ -361,7 +353,7 @@ def test_ascontiguousarray_with_device(device, shape, transpose, dtype):
     obj = tr(xchainer.array(np_arr))
     a = xchainer.ascontiguousarray(obj, device=device)
     b = xchainer.ascontiguousarray(obj)
-    _check_device(a, device)
+    array_utils.check_device(a, device)
     assert a.is_contiguous
     xchainer.testing.assert_array_equal_ex(a, b)
 
@@ -414,7 +406,7 @@ def test_asanyarray_with_device(device):
     a = xchainer.asanyarray([0, 1], 'float32', device)
     b = xchainer.asanyarray([0, 1], 'float32')
     xchainer.testing.assert_array_equal_ex(a, b)
-    _check_device(a, device)
+    array_utils.check_device(a, device)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
@@ -432,7 +424,7 @@ def test_empty(xp, shape, dtype_spec, device):
 def test_empty_with_device(device):
     a = xchainer.empty((2,), 'float32', device)
     b = xchainer.empty((2,), 'float32')
-    _check_device(a, device)
+    array_utils.check_device(a, device)
     assert a.dtype == b.dtype
     assert a.shape == b.shape
 
@@ -451,7 +443,7 @@ def test_empty_like_with_device(device):
     t = xchainer.empty((2,), 'float32')
     a = xchainer.empty_like(t, device)
     b = xchainer.empty_like(t)
-    _check_device(a, device)
+    array_utils.check_device(a, device)
     assert a.dtype == b.dtype
     assert a.shape == b.shape
 
@@ -470,7 +462,7 @@ def test_zeros_with_device(device):
     a = xchainer.zeros((2,), 'float32', device)
     b = xchainer.zeros((2,), 'float32')
     xchainer.testing.assert_array_equal_ex(a, b)
-    _check_device(a, device)
+    array_utils.check_device(a, device)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
@@ -485,7 +477,7 @@ def test_zeros_like_with_device(device):
     t = xchainer.empty((2,), 'float32')
     a = xchainer.zeros_like(t, device)
     b = xchainer.zeros_like(t)
-    _check_device(a, device)
+    array_utils.check_device(a, device)
     xchainer.testing.assert_array_equal_ex(a, b)
 
 
@@ -502,7 +494,7 @@ def test_ones(xp, shape, dtype_spec, device):
 def test_ones_with_device(device):
     a = xchainer.ones((2,), 'float32', device)
     b = xchainer.ones((2,), 'float32')
-    _check_device(a, device)
+    array_utils.check_device(a, device)
     xchainer.testing.assert_array_equal_ex(a, b)
 
 
@@ -518,7 +510,7 @@ def test_ones_like_with_device(shape, device):
     t = xchainer.empty((2,), 'float32')
     a = xchainer.ones_like(t, device)
     b = xchainer.ones_like(t)
-    _check_device(a, device)
+    array_utils.check_device(a, device)
     xchainer.testing.assert_array_equal_ex(a, b)
 
 
@@ -554,7 +546,7 @@ def test_full_with_scalar(shape, dtype, value, device):
 def test_full_with_device(device):
     a = xchainer.full((2,), 1, 'float32', device)
     b = xchainer.full((2,), 1, 'float32')
-    _check_device(a, device)
+    array_utils.check_device(a, device)
     xchainer.testing.assert_array_equal_ex(a, b)
 
 
@@ -571,7 +563,7 @@ def test_full_like_with_device(device):
     t = xchainer.empty((2,), 'float32')
     a = xchainer.full_like(t, 1, device)
     b = xchainer.full_like(t, 1)
-    _check_device(a, device)
+    array_utils.check_device(a, device)
     xchainer.testing.assert_array_equal_ex(a, b)
 
 
@@ -654,7 +646,7 @@ def test_arange_with_device(device):
     def check(*args, **kwargs):
         a = xchainer.arange(*args, device=device, **kwargs)
         b = xchainer.arange(*args, **kwargs)
-        _check_device(a, device)
+        array_utils.check_device(a, device)
         xchainer.testing.assert_array_equal_ex(a, b)
 
     check(3)
@@ -703,7 +695,7 @@ def test_identity(xp, n, dtype_spec, device):
 def test_identity_with_device(device):
     a = xchainer.identity(3, 'float32', device)
     b = xchainer.identity(3, 'float32')
-    _check_device(a, device)
+    array_utils.check_device(a, device)
     xchainer.testing.assert_array_equal_ex(a, b)
 
 
@@ -771,7 +763,7 @@ def test_eye_with_default(xp, N, M, k, dtype_spec, device):
 def test_eye_with_device(device):
     a = xchainer.eye(1, 2, 1, 'float32', device)
     b = xchainer.eye(1, 2, 1, 'float32')
-    _check_device(a, device)
+    array_utils.check_device(a, device)
     xchainer.testing.assert_array_equal_ex(a, b)
 
 
@@ -872,7 +864,7 @@ def test_linspace_dtype_spec(xp, dtype_spec, device):
 def test_linspace_with_device(device):
     a = xchainer.linspace(3, 5, 10, dtype='float32', device=device)
     b = xchainer.linspace(3, 5, 10, dtype='float32')
-    _check_device(a, device)
+    array_utils.check_device(a, device)
     xchainer.testing.assert_array_equal_ex(a, b)
 
 

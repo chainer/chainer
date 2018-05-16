@@ -31,3 +31,11 @@ def create_dummy_ndarray(xp, shape, dtype, device=None, pattern=1):
         return xp.array(data, dtype=dtype, device=device).reshape(shape)
     else:
         return xp.array(data, dtype=dtype).reshape(shape)
+
+
+def check_device(a, device=None):
+    if device is None:
+        device = xchainer.get_default_device()
+    elif isinstance(device, str):
+        device = xchainer.get_device(device)
+    assert a.device is device
