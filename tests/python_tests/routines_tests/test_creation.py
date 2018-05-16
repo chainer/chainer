@@ -871,7 +871,6 @@ def test_frombuffer_from_numpy_array(device):
     a_np = numpy.frombuffer(obj, obj.dtype)
 
     xchainer.testing.assert_array_equal_ex(a_np, a_xc)
-    xchainer.testing.assert_array_equal_ex(obj.ravel(), a_xc)
     assert a_xc.device is xchainer.get_device(device)
 
     # test buffer is shared
