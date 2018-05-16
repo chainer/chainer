@@ -22,46 +22,44 @@ class Inception(link.Chain):
     See: `Going Deeper with Convolutions <https://arxiv.org/abs/1409.4842>`_.
 
     Args:
-        in_channels (int): Number of channels of input arrays.
+        in_channels (int or None): Number of channels of input arrays.
         out1 (int): Output size of 1x1 convolution path.
         proj3 (int): Projection size of 3x3 convolution path.
         out3 (int): Output size of 3x3 convolution path.
         proj5 (int): Projection size of 5x5 convolution path.
         out5 (int): Output size of 5x5 convolution path.
         proj_pool (int): Projection size of max pooling path.
-        conv_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            It is used for initialization of the convolution matrix weights.
-            Maybe be ``None`` to use default initialization.
-        bias_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            It is used for initialization of the convolution bias weights.
-            Maybe be ``None`` to use default initialization.
+        conv_init (:ref:`initializer <initializer>`): Initializer to
+            initialize the convolution matrix weights.
+            When it is :class:`numpy.ndarray`, its ``ndim`` should be 4.
+        bias_init (:ref:`initializer <initializer>`): Initializer to
+            initialize the convolution matrix weights.
+            When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     """
 
     def __init__(self, in_channels, out1, proj3, out3, proj5, out5, proj_pool,
                  conv_init=None, bias_init=None):
-        super(Inception, self).__init__(
-            conv1=convolution_2d.Convolution2D(in_channels, out1, 1,
-                                               initialW=conv_init,
-                                               initial_bias=bias_init),
-            proj3=convolution_2d.Convolution2D(in_channels, proj3, 1,
-                                               initialW=conv_init,
-                                               initial_bias=bias_init),
-            conv3=convolution_2d.Convolution2D(proj3, out3, 3, pad=1,
-                                               initialW=conv_init,
-                                               initial_bias=bias_init),
-            proj5=convolution_2d.Convolution2D(in_channels, proj5, 1,
-                                               initialW=conv_init,
-                                               initial_bias=bias_init),
-            conv5=convolution_2d.Convolution2D(proj5, out5, 5, pad=2,
-                                               initialW=conv_init,
-                                               initial_bias=bias_init),
-            projp=convolution_2d.Convolution2D(in_channels, proj_pool, 1,
-                                               initialW=conv_init,
-                                               initial_bias=bias_init),
-        )
+        super(Inception, self).__init__()
+        with self.init_scope():
+            self.conv1 = convolution_2d.Convolution2D(
+                in_channels, out1, 1, initialW=conv_init,
+                initial_bias=bias_init)
+            self.proj3 = convolution_2d.Convolution2D(
+                in_channels, proj3, 1, initialW=conv_init,
+                initial_bias=bias_init)
+            self.conv3 = convolution_2d.Convolution2D(
+                proj3, out3, 3, pad=1, initialW=conv_init,
+                initial_bias=bias_init)
+            self.proj5 = convolution_2d.Convolution2D(
+                in_channels, proj5, 1, initialW=conv_init,
+                initial_bias=bias_init)
+            self.conv5 = convolution_2d.Convolution2D(
+                proj5, out5, 5, pad=2, initialW=conv_init,
+                initial_bias=bias_init)
+            self.projp = convolution_2d.Convolution2D(
+                in_channels, proj_pool, 1, initialW=conv_init,
+                initial_bias=bias_init)
 
     def __call__(self, x):
         """Computes the output of the Inception module.

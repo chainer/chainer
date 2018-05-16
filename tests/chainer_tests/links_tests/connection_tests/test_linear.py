@@ -5,7 +5,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer.serializers import npz
@@ -65,8 +65,8 @@ class TestLinear(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            self.link, x_data, y_grad, (self.link.W, self.link.b), eps=2 ** -3,
-            **self.check_backward_options)
+            self.link, x_data, y_grad, (self.link.W, self.link.b),
+            dtype='d', **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -79,21 +79,20 @@ class TestLinear(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
-@testing.parameterize(
-    {'input_variable': True},
-    {'input_variable': False})
+@testing.parameterize(*testing.product({
+    'input_variable': [True, False],
+    'linear_args': [(None, 2), (2,)],
+}))
 class TestLinearParameterShapePlaceholder(unittest.TestCase):
 
     in_size = 3
     in_shape = (in_size,)
-    out_size = 2
-    in_size_or_none = None
 
     def setUp(self):
-        self.link = links.Linear(self.in_size_or_none, self.out_size)
-        temp_x = numpy.random.uniform(-1, 1,
-                                      (self.out_size,
-                                       self.in_size)).astype(numpy.float32)
+        self.link = links.Linear(*self.linear_args)
+        self.out_size = self.linear_args[-1]
+        temp_x = numpy.random.uniform(
+            -1, 1, (self.out_size, self.in_size)).astype(numpy.float32)
         if self.input_variable:
             self.link(chainer.Variable(temp_x))
         else:
@@ -141,7 +140,7 @@ class TestLinearParameterShapePlaceholder(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     def test_serialization(self):
-        lin1 = links.Linear(None, self.out_size)
+        lin1 = links.Linear(self.out_size)
         x = chainer.Variable(self.x)
         # Must call the link to initialize weights.
         lin1(x)
@@ -149,10 +148,21 @@ class TestLinearParameterShapePlaceholder(unittest.TestCase):
         fd, temp_file_path = tempfile.mkstemp()
         os.close(fd)
         npz.save_npz(temp_file_path, lin1)
-        lin2 = links.Linear(None, self.out_size)
+        lin2 = links.Linear(self.out_size)
         npz.load_npz(temp_file_path, lin2)
         w2 = lin2.W.data
         self.assertEqual((w1 == w2).all(), True)
+
+
+class TestEmptyBatchInitialize(unittest.TestCase):
+
+    def setUp(self):
+        self.link = links.Linear(4)
+        self.x = numpy.random.uniform(-1, 1, (0, 3)).astype(numpy.float32)
+
+    def test_empty_batch_dim(self):
+        y = self.link(chainer.Variable(self.x))
+        assert y.shape == (0, 4)
 
 
 class TestInvalidLinear(unittest.TestCase):

@@ -1,13 +1,4 @@
 #!/usr/bin/env python
-
-from __future__ import print_function
-
-try:
-    import matplotlib
-    matplotlib.use('Agg')
-except ImportError:
-    pass
-
 import argparse
 
 import chainer
@@ -21,12 +12,12 @@ from chainer.training import extensions
 class MLP(chainer.Chain):
 
     def __init__(self, n_units, n_out):
-        super(MLP, self).__init__(
+        super(MLP, self).__init__()
+        with self.init_scope():
             # the size of the inputs to each layer will be inferred
-            l1=L.Linear(None, n_units),  # n_in -> n_units
-            l2=L.Linear(None, n_units),  # n_units -> n_units
-            l3=L.Linear(None, n_out),  # n_units -> n_out
-        )
+            self.l1 = L.Linear(None, n_units)  # n_in -> n_units
+            self.l2 = L.Linear(None, n_units)  # n_units -> n_units
+            self.l3 = L.Linear(None, n_out)  # n_units -> n_out
 
     def __call__(self, x):
         h1 = F.relu(self.l1(x))
@@ -50,6 +41,8 @@ def main():
                         help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
+    parser.add_argument('--noplot', dest='plot', action='store_false',
+                        help='Disable PlotReport extension')
     args = parser.parse_args()
 
     print('GPU: {}'.format(args.gpu))
@@ -63,7 +56,8 @@ def main():
     # iteration, which will be used by the PrintReport extension below.
     model = L.Classifier(MLP(args.unit, 10))
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()  # Make a specified GPU current
+        # Make a specified GPU current
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
 
     # Setup an optimizer
@@ -78,7 +72,8 @@ def main():
                                                  repeat=False, shuffle=False)
 
     # Set up a trainer
-    updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
+    updater = training.updaters.StandardUpdater(
+        train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
@@ -96,7 +91,7 @@ def main():
     trainer.extend(extensions.LogReport())
 
     # Save two plot images to the result dir
-    if extensions.PlotReport.available():
+    if args.plot and extensions.PlotReport.available():
         trainer.extend(
             extensions.PlotReport(['main/loss', 'validation/main/loss'],
                                   'epoch', file_name='loss.png'))

@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
@@ -118,13 +118,13 @@ class TestScaleInvalidArgc(unittest.TestCase):
 
     def test_scale_invalid_argc1(self):
         func = links.Scale(self.axis, self.W.data.shape)
-        with chainer.DebugMode(True):
+        with chainer.using_config('debug', True):
             with self.assertRaises(AssertionError):
                 func(self.x, self.W)
 
     def test_scale_invalid_argc2(self):
         func = links.Scale(self.axis, None)
-        with chainer.DebugMode(True):
+        with chainer.using_config('debug', True):
             with self.assertRaises(AssertionError):
                 func(self.x)
 

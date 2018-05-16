@@ -1,6 +1,7 @@
 from chainer.functions.connection import embed_id
-from chainer import initializers
+from chainer.initializers import normal
 from chainer import link
+from chainer import variable
 
 
 class EmbedID(link.Link):
@@ -14,28 +15,47 @@ class EmbedID(link.Link):
         in_size (int): Number of different identifiers (a.k.a. vocabulary
             size).
         out_size (int): Size of embedding vector.
-        initialW (2-D array): Initial weight value. If ``None``, then the
-            matrix is initialized from the standard normal distribution.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2.
         ignore_label (int or None): If ``ignore_label`` is an int value,
             ``i``-th column of return value is filled with ``0``.
 
-    .. seealso:: :func:`chainer.functions.embed_id`
+    .. seealso:: :func:`~chainer.functions.embed_id`
 
     Attributes:
         W (~chainer.Variable): Embedding parameter matrix.
+
+    .. admonition:: Example
+
+        >>> W = np.array([[0, 0, 0],
+        ...               [1, 1, 1],
+        ...               [2, 2, 2]]).astype(np.float32)
+        >>> W
+        array([[0., 0., 0.],
+               [1., 1., 1.],
+               [2., 2., 2.]], dtype=float32)
+        >>> l = L.EmbedID(W.shape[0], W.shape[1], initialW=W)
+        >>> x = np.array([2, 1]).astype(np.int32)
+        >>> x
+        array([2, 1], dtype=int32)
+        >>> y = l(x)
+        >>> y.data
+        array([[2., 2., 2.],
+               [1., 1., 1.]], dtype=float32)
 
     """
 
     ignore_label = None
 
     def __init__(self, in_size, out_size, initialW=None, ignore_label=None):
-        super(EmbedID, self).__init__(W=(in_size, out_size))
-        if initialW is None:
-            initialW = initializers.Normal(1.0)
-        initializers.init_weight(self.W.data, initialW)
+        super(EmbedID, self).__init__()
         self.ignore_label = ignore_label
+
+        with self.init_scope():
+            if initialW is None:
+                initialW = normal.Normal(1.0)
+            self.W = variable.Parameter(initialW, (in_size, out_size))
 
     def __call__(self, x):
         """Extracts the word embedding of given IDs.

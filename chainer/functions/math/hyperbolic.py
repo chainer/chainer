@@ -1,10 +1,10 @@
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Cosh(function.Function):
+class Cosh(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -17,12 +17,13 @@ class Cosh(function.Function):
         )
 
     def forward(self, x):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.cosh(x[0])),
 
-    def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
-        gx = utils.force_array(xp.sinh(x[0]))
+    def backward(self, indexes, gy):
+        x = self.get_retained_inputs()
+        gx = sinh(x[0])
         gx *= gy[0]
         return gx,
 
@@ -39,10 +40,10 @@ def cosh(x):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Cosh()(x)
+    return Cosh().apply((x,))[0]
 
 
-class Sinh(function.Function):
+class Sinh(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -55,12 +56,13 @@ class Sinh(function.Function):
         )
 
     def forward(self, x):
+        self.retain_inputs((0,))
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.sinh(x[0])),
 
     def backward(self, x, gy):
-        xp = cuda.get_array_module(*x)
-        gx = utils.force_array(xp.cosh(x[0]))
+        x = self.get_retained_inputs()
+        gx = cosh(x[0])
         gx *= gy[0]
         return gx,
 
@@ -77,4 +79,4 @@ def sinh(x):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Sinh()(x)
+    return Sinh().apply((x,))[0]

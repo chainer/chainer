@@ -1,10 +1,10 @@
-from __future__ import print_function
 import argparse
 
 import chainer
 import chainer.links as L
 from chainer import training
 from chainer.training import extensions
+from chainer.training import triggers
 
 from chainer.datasets import get_cifar10
 from chainer.datasets import get_cifar100
@@ -12,22 +12,14 @@ from chainer.datasets import get_cifar100
 import models.VGG
 
 
-class TestModeEvaluator(extensions.Evaluator):
-
-    def evaluate(self):
-        model = self.get_target('main')
-        model.train = False
-        ret = super(TestModeEvaluator, self).evaluate()
-        model.train = True
-        return ret
-
-
 def main():
     parser = argparse.ArgumentParser(description='Chainer CIFAR example:')
     parser.add_argument('--dataset', '-d', default='cifar10',
                         help='The dataset to use: cifar10 or cifar100')
-    parser.add_argument('--batchsize', '-b', type=int, default=128,
+    parser.add_argument('--batchsize', '-b', type=int, default=64,
                         help='Number of images in each mini-batch')
+    parser.add_argument('--learnrate', '-l', type=float, default=0.05,
+                        help='Learning rate for SGD')
     parser.add_argument('--epoch', '-e', type=int, default=300,
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gpu', '-g', type=int, default=0,
@@ -36,6 +28,8 @@ def main():
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
+    parser.add_argument('--early-stopping', type=str,
+                        help='Metric to watch for early stopping')
     args = parser.parse_args()
 
     print('GPU: {}'.format(args.gpu))
@@ -58,22 +52,32 @@ def main():
         raise RuntimeError('Invalid dataset choice.')
     model = L.Classifier(models.VGG.VGG(class_labels))
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()  # Make a specified GPU current
+        # Make a specified GPU current
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
 
-    optimizer = chainer.optimizers.MomentumSGD(0.1)
+    optimizer = chainer.optimizers.MomentumSGD(args.learnrate)
     optimizer.setup(model)
-    optimizer.add_hook(chainer.optimizer.WeightDecay(5e-4))
+    optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(5e-4))
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
+
+    stop_trigger = (args.epoch, 'epoch')
+    # Early stopping option
+    if args.early_stopping:
+        stop_trigger = triggers.EarlyStoppingTrigger(
+            monitor=args.early_stopping, verbose=True,
+            max_trigger=(args.epoch, 'epoch'))
+
     # Set up a trainer
-    updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
+    updater = training.updaters.StandardUpdater(
+        train_iter, optimizer, device=args.gpu)
+    trainer = training.Trainer(updater, stop_trigger, out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(TestModeEvaluator(test_iter, model, device=args.gpu))
+    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
 
     # Reduce the learning rate by half every 25 epochs.
     trainer.extend(extensions.ExponentialShift('lr', 0.5),

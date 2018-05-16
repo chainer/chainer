@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import serializer
 
 
@@ -47,8 +47,16 @@ class HDF5Serializer(serializer.Serializer):
         ret = value
         if isinstance(value, cuda.ndarray):
             value = cuda.to_cpu(value)
-        arr = numpy.asarray(value)
-        compression = None if arr.size <= 1 else self.compression
+        if value is None:
+            # use Empty to represent None
+            if h5py.version.version_tuple < (2, 7, 0):
+                raise RuntimeError(
+                    'h5py>=2.7.0 is required to serialize None.')
+            arr = h5py.Empty('f')
+            compression = None
+        else:
+            arr = numpy.asarray(value)
+            compression = None if arr.size <= 1 else self.compression
         self.group.create_dataset(key, data=arr, compression=compression)
         return ret
 
@@ -65,6 +73,15 @@ def save_hdf5(filename, obj, compression=4):
         filename (str): Target file name.
         obj: Object to be serialized. It must support serialization protocol.
         compression (int): Gzip compression level.
+
+    .. note::
+        Currently :func:`save_hdf5` only supports writing to an actual file on
+        file system due to a limitation of HD5F library.
+        See `h5py/h5py#687 <https://github.com/h5py/h5py/issues/687>`_ for
+        details.
+
+    .. seealso::
+        :func:`chainer.serializers.load_hdf5`
 
     """
     _check_available()
@@ -113,12 +130,15 @@ class HDF5Deserializer(serializer.Deserializer):
             return value
 
         dataset = self.group[key]
+        if dataset.shape is None:  # Empty
+            return None
         if value is None:
             return numpy.asarray(dataset)
-        elif isinstance(value, numpy.ndarray):
+
+        if isinstance(value, numpy.ndarray):
             dataset.read_direct(value)
         elif isinstance(value, cuda.ndarray):
-            value.set(numpy.asarray(dataset))
+            value.set(numpy.asarray(dataset, dtype=value.dtype))
         else:
             value = type(value)(numpy.asarray(dataset))
         return value
@@ -135,6 +155,15 @@ def load_hdf5(filename, obj):
     Args:
         filename (str): Name of the file to be loaded.
         obj: Object to be deserialized. It must support serialization protocol.
+
+    .. note::
+        Currently :func:`load_hdf5` only supports loading an actual file on
+        file system due to a limitation of HD5F library.
+        See `h5py/h5py#687 <https://github.com/h5py/h5py/issues/687>`_ for
+        details.
+
+    .. seealso::
+        :func:`chainer.serializers.save_hdf5`
 
     """
     _check_available()

@@ -2,17 +2,11 @@ import unittest
 
 import numpy
 
-import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
-from chainer.testing import condition
-
-
-def _dropout(x, creator):
-    return x * creator.mask
+from chainer.testing import backend
 
 
 @testing.parameterize(
@@ -21,80 +15,118 @@ def _dropout(x, creator):
     {'dtype': numpy.float64, 'ratio': 0.5},
     {'dtype': numpy.float64, 'ratio': 0.0},
 )
+@backend.inject_backend_tests(
+    ['test_forward', 'test_backward', 'test_double_backward',
+     'test_immutable'],
+    # CPU tests
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + [{'use_cuda': True}])
 class TestDropout(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
-        self.gy = numpy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
+        dtype = self.dtype
+        x = numpy.random.uniform(-1, 1, (2, 3)).astype(dtype)
+        gy = numpy.random.uniform(-1, 1, (2, 3)).astype(dtype)
+        ggx = numpy.random.uniform(-1, 1, (2, 3)).astype(dtype)
 
-        self.check_backward_options = {}
+        self.inputs = [x]
+        self.grad_outputs = [gy]
+        self.grad_grad_inputs = [ggx]
+
+        self.check_backward_options = {'dtype': numpy.float64}
+        self.check_double_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
             self.check_backward_options = {
-                'atol': 5e-4, 'rtol': 5e-3}
+                'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
+            self.check_double_backward_options = {
+                'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
-    def check_type_forward(self, x_data):
-        x = chainer.Variable(x_data)
-        y = functions.dropout(x)
-        self.assertEqual(y.data.dtype, self.dtype)
-
-    def check_forward(self, x_data):
-        x = chainer.Variable(x_data)
-        y = functions.dropout(x, self.ratio)
-        if self.ratio == 0.0:
-            y_expect = x_data
+    def forward_cpu(self, inputs, ratio, mask):
+        x, = inputs
+        if ratio == 0.0:
+            y_expected = x
         else:
-            y_expect = _dropout(x_data, y.creator)
-        testing.assert_allclose(y_expect, y.data)
+            y_expected = x * mask
+        return y_expected,
 
-    def check_backward(self, x_data, y_grad):
-        x = chainer.Variable(x_data)
-        y = functions.dropout(x, self.ratio)
-        creator = y.creator
-        y.grad = y_grad
-        y.backward()
+    def check_forward(self, inputs, backend_config):
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
 
-        def f():
-            y = _dropout(x_data, creator)
-            return y,
-        gx, = gradient_check.numerical_grad(f, (x_data, ), (y.grad, ), eps=0.1)
-        testing.assert_allclose(gx, x.grad, **self.check_backward_options)
+        with backend_config:
+            y = functions.dropout(*(inputs + [self.ratio]))
 
-    def test_type_forward_cpu(self):
-        self.check_type_forward(self.x)
+        # In the calculation of expected results, the mask used in test forward
+        # computation is reused.
+        mask = y.creator.mask
+        y_expected, = self.forward_cpu(inputs, self.ratio, mask)
 
-    @attr.gpu
-    def test_type_forward_gpu(self):
-        self.check_type_forward(cuda.to_gpu(self.x))
+        assert y.data.dtype == self.dtype
+        testing.assert_allclose(y_expected, y.data)
 
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
+    def test_forward(self, backend_config):
+        self.check_forward(self.inputs, backend_config)
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
+    def check_backward(self, inputs, grad_outputs, backend_config):
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
+            grad_outputs = cuda.to_gpu(grad_outputs)
 
-    @condition.retry(3)
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
+        # Instantiate the function class directly in order to reuse the mask,
+        # because f will be called repeatedly.
+        dropout = functions.Dropout(self.ratio)
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x),
-                            cuda.to_gpu(self.gy))
+        def f(*inputs):
+            return dropout.apply(inputs)
 
-    def check_immutable(self, x_data):
-        d = functions.Dropout(0.5)
-        y1 = d(chainer.Variable(x_data))
-        y2 = d(chainer.Variable(x_data))
+        with backend_config:
+            gradient_check.check_backward(
+                f, inputs, grad_outputs, **self.check_backward_options)
+
+    def test_backward(self, backend_config):
+        self.check_backward(self.inputs, self.grad_outputs, backend_config)
+
+    def check_double_backward(
+            self, inputs, grad_outputs, grad_grad_inputs, backend_config):
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
+            grad_outputs = cuda.to_gpu(grad_outputs)
+            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
+
+        # Instantiate the function class directly in order to reuse the mask,
+        # because f will be called repeatedly.
+        dropout = functions.Dropout(self.ratio)
+
+        def f(*inputs):
+            y, = dropout.apply(inputs)
+            return y * y,
+
+        with backend_config:
+            gradient_check.check_double_backward(
+                f, inputs, grad_outputs, grad_grad_inputs,
+                **self.check_double_backward_options)
+
+    def test_double_backward(self, backend_config):
+        self.check_double_backward(
+            self.inputs, self.grad_outputs, self.grad_grad_inputs,
+            backend_config)
+
+    def check_immutable(self, inputs, backend_config):
+        if backend_config.use_cuda:
+            inputs = cuda.to_gpu(inputs)
+
+        with backend_config:
+            dropout = functions.Dropout(0.5)
+            y1, = dropout.apply(inputs)
+            y2, = dropout.apply(inputs)
         testing.assert_allclose(y1.data, y2.data)
 
-    def test_immutable_cpu(self):
-        self.check_immutable(self.x)
-
-    @attr.gpu
-    def test_immutable_gpu(self):
-        self.check_immutable(cuda.to_gpu(self.x))
+    def test_immutable(self, backend_config):
+        self.check_immutable(self.inputs, backend_config)
 
 
 testing.run_module(__name__, __file__)

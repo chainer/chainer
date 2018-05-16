@@ -1,6 +1,6 @@
 import unittest
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
@@ -73,7 +73,6 @@ class TestEmpty(unittest.TestCase):
         self.initializer = initializers.Orthogonal()
 
     def check_assert(self, w):
-        print(w.shape)
         with self.assertRaises(ValueError):
             self.initializer(w)
 

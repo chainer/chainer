@@ -1,9 +1,10 @@
 import numpy
 
-import chainer
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_node
+import chainer.functions
 from chainer.utils import type_check
+from chainer import variable
 
 
 def _as_mat(x):
@@ -16,18 +17,19 @@ def _matmul(a, b, xp):
     if xp is numpy:
         # numpy 1.9 does not support matmul.
         # So we use numpy.einsum instead of numpy.matmul.
-        return xp.einsum('ijk,ikl->ijl', a, b)
+        return xp.einsum('...jk,...kl->...jl', a, b)
     else:
         return xp.matmul(a, b)
 
 
-class SimplifiedDropconnect(function.Function):
+class SimplifiedDropconnect(function_node.FunctionNode):
 
     """Linear unit regularized by simplified dropconnect."""
 
-    def __init__(self, ratio, mask=None):
+    def __init__(self, ratio, mask=None, use_batchwise_mask=True):
         self.ratio = ratio
         self.mask = mask
+        self.use_batchwise_mask = use_batchwise_mask
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -41,7 +43,7 @@ class SimplifiedDropconnect(function.Function):
             w_type.ndim == 2,
             type_check.prod(x_type.shape[1:]) == w_type.shape[1],
         )
-        if n_in.eval() == 3:
+        if type_check.eval(n_in) == 3:
             b_type = in_types[2]
             type_check.expect(
                 b_type.dtype == x_type.dtype,
@@ -49,24 +51,38 @@ class SimplifiedDropconnect(function.Function):
                 b_type.shape[0] == w_type.shape[0],
             )
 
+        if self.mask is not None:
+            if self.use_batchwise_mask:
+                type_check.expect(
+                    self.mask.shape[0] == x_type.shape[0],
+                    self.mask.shape[1:] == w_type.shape,
+                )
+            else:
+                type_check.expect(self.mask.shape == w_type.shape)
+
     def forward(self, inputs):
+        self.retain_inputs((0, 1))
         scale = inputs[1].dtype.type(1. / (1 - self.ratio))
         xp = cuda.get_array_module(*inputs)
-        mask_shape = (inputs[0].shape[0], inputs[1].shape[0],
-                      inputs[1].shape[1])
+
         if self.mask is None:
+            if self.use_batchwise_mask:
+                mask_shape = (inputs[0].shape[0], inputs[1].shape[0],
+                              inputs[1].shape[1])
+            else:
+                mask_shape = (inputs[1].shape[0], inputs[1].shape[1])
             if xp == numpy:
                 self.mask = xp.random.rand(*mask_shape) >= self.ratio
             else:
                 self.mask = xp.random.rand(*mask_shape,
                                            dtype=numpy.float32) >= self.ratio
-        elif isinstance(self.mask, chainer.Variable):
+        elif isinstance(self.mask, variable.Variable):
             self.mask = self.mask.data
 
         x = _as_mat(inputs[0])
         W = inputs[1] * scale * self.mask
 
-        # ijk,ik->ij
+        # (i)jk,ik->ij
         y = _matmul(W, x[:, :, None], xp)
         y = y.reshape(y.shape[0], y.shape[1]).astype(x.dtype, copy=False)
 
@@ -75,34 +91,54 @@ class SimplifiedDropconnect(function.Function):
             y += b
         return y,
 
-    def backward(self, inputs, grad_outputs):
+    def backward(self, indexes, grad_outputs):
+        inputs = self.get_retained_inputs()
+        ret = []
+
         scale = inputs[1].dtype.type(1. / (1 - self.ratio))
         x = _as_mat(inputs[0])
-        W = inputs[1] * scale * self.mask
-        gy = grad_outputs[0]
-        xp = cuda.get_array_module(*inputs)
 
-        # ij,ijk->ik
-        gx = _matmul(gy[:, None, :], W, xp).reshape(inputs[0].shape)
-        gx = gx.astype(x.dtype, copy=False)
-
-        # ij,ik,ijk->jk
-        gW = (gy[:, :, None] * x[:, None, :] * self.mask).sum(0) * scale
-        gW = gW.astype(W.dtype, copy=False)
-
-        if len(inputs) == 3:
-            gb = gy.sum(0)
-            return gx, gW, gb
+        W = inputs[1]
+        if self.use_batchwise_mask:
+            W = chainer.functions.broadcast_to(
+                W, self.mask.shape) * scale * self.mask
         else:
-            return gx, gW
+            W = chainer.functions.broadcast_to(
+                W * scale * self.mask, (x.shape[0],) + self.mask.shape)
+        gy = grad_outputs[0]
+
+        if 0 in indexes:
+            # ij,(i)jk->ik
+            gx = chainer.functions.matmul(
+                gy[:, None, :], W).reshape(inputs[0].shape)
+            gx = chainer.functions.cast(gx, x.dtype)
+            ret.append(gx)
+
+        if 1 in indexes:
+            # ij,ik,ijk->jk
+            gy2 = gy[:, :, None]
+            x2 = x[:, None, :]
+            shape = (gy2.shape[0], gy2.shape[1], x2.shape[2])
+            gy2 = chainer.functions.broadcast_to(gy2, shape)
+            x2 = chainer.functions.broadcast_to(x2, shape)
+            gW = chainer.functions.sum(gy2 * x2 * self.mask, axis=0) * scale
+            gW = chainer.functions.cast(gW, W.dtype)
+            ret.append(gW)
+
+        if 2 in indexes:
+            gb = chainer.functions.sum(gy, axis=0)
+            ret.append(gb)
+
+        return ret
 
 
-def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None):
+def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None,
+                           use_batchwise_mask=True):
     """Linear unit regularized by simplified dropconnect.
 
     Simplified dropconnect drops weight matrix elements randomly with
     probability ``ratio`` and scales the remaining elements by factor
-    ``1 / (1 - ratio)``. Which element is dropped depends on each sample.
+    ``1 / (1 - ratio)``.
     It accepts two or three arguments: an input minibatch ``x``, a weight
     matrix ``W``, and optionally a bias vector ``b``. It computes
     :math:`Y = xW^\\top + b`.
@@ -131,12 +167,15 @@ def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None):
             If ``True``, executes simplified dropconnect.
             Otherwise, simplified dropconnect function works as a linear
             function.
-        mask (None or chainer.Variable or :class:`numpy.ndarray` or
-            cupy.ndarray):
+        mask (None or chainer.Variable or numpy.ndarray or cupy.ndarray):
             If ``None``, randomized dropconnect mask is generated.
-            Otherwise, The mask must be ``(n, M, N)`` shaped array.
+            Otherwise, The mask must be ``(n, M, N)`` or ``(M, N)`` shaped
+            array, and `use_batchwise_mask` is ignored.
             Main purpose of this option is debugging.
             `mask` array will be used as a dropconnect mask.
+        use_batchwise_mask (bool):
+            If ``True``, dropped connections depend on each sample in
+            mini-batch.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -147,11 +186,13 @@ def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None):
         Li, W., Matthew Z., Sixin Z., Yann L., Rob F. (2013).
         Regularization of Neural Network using DropConnect.
         International Conference on Machine Learning.
-        `URL <http://cs.nyu.edu/~wanli/dropc/>`_
+        `URL <https://cs.nyu.edu/~wanli/dropc/>`_
     """
     if not train:
         ratio = 0
     if b is None:
-        return SimplifiedDropconnect(ratio, mask)(x, W)
+        return SimplifiedDropconnect(
+            ratio, mask, use_batchwise_mask).apply((x, W))[0]
     else:
-        return SimplifiedDropconnect(ratio, mask)(x, W, b)
+        return SimplifiedDropconnect(
+            ratio, mask, use_batchwise_mask).apply((x, W, b))[0]

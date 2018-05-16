@@ -1,20 +1,17 @@
 #!/usr/bin/env python
-
-from __future__ import print_function
-
 import chainer
 import chainer.functions as F
 from chainer import Variable
 
 
-class DCGANUpdater(chainer.training.StandardUpdater):
+class DCGANUpdater(chainer.training.updaters.StandardUpdater):
 
     def __init__(self, *args, **kwargs):
         self.gen, self.dis = kwargs.pop('models')
         super(DCGANUpdater, self).__init__(*args, **kwargs)
 
     def loss_dis(self, dis, y_fake, y_real):
-        batchsize = y_fake.data.shape[0]
+        batchsize = len(y_fake)
         L1 = F.sum(F.softplus(-y_real)) / batchsize
         L2 = F.sum(F.softplus(y_fake)) / batchsize
         loss = L1 + L2
@@ -22,7 +19,7 @@ class DCGANUpdater(chainer.training.StandardUpdater):
         return loss
 
     def loss_gen(self, gen, y_fake):
-        batchsize = y_fake.data.shape[0]
+        batchsize = len(y_fake)
         loss = F.sum(F.softplus(-y_fake)) / batchsize
         chainer.report({'loss': loss}, gen)
         return loss
@@ -33,16 +30,16 @@ class DCGANUpdater(chainer.training.StandardUpdater):
 
         batch = self.get_iterator('main').next()
         x_real = Variable(self.converter(batch, self.device)) / 255.
-        xp = chainer.cuda.get_array_module(x_real.data)
+        xp = chainer.backends.cuda.get_array_module(x_real.data)
 
         gen, dis = self.gen, self.dis
         batchsize = len(batch)
 
-        y_real = dis(x_real, test=False)
+        y_real = dis(x_real)
 
         z = Variable(xp.asarray(gen.make_hidden(batchsize)))
-        x_fake = gen(z, test=False)
-        y_fake = dis(x_fake, test=False)
+        x_fake = gen(z)
+        y_fake = dis(x_fake)
 
         dis_optimizer.update(self.loss_dis, dis, y_fake, y_real)
         gen_optimizer.update(self.loss_gen, gen, y_fake)

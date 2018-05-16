@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
 from chainer.testing import attr
@@ -46,6 +46,23 @@ class TestReshape(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
+
+
+class TestReshapeSkip(unittest.TestCase):
+
+    shape = (2, 3)
+
+    def setUp(self):
+        self.data = numpy.random.uniform(0, 1, self.shape)
+
+    def test_ndarray(self):
+        ret = functions.reshape(self.data, self.shape)
+        self.assertIs(self.data, ret.data)
+
+    def test_variable(self):
+        x = chainer.Variable(self.data)
+        ret = functions.reshape(x, self.shape)
+        self.assertIs(x, ret)
 
 
 testing.run_module(__name__, __file__)

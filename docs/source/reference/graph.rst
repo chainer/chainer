@@ -24,7 +24,9 @@ Here is an example of (a part of) the generated graph (inception(3a) in `GoogLeN
     :scale: 60%
     :align: center
 
-.. autofunction:: build_computational_graph
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
 
-.. autoclass:: ComputationalGraph
-   :members:
+   chainer.computational_graph.build_computational_graph
+   chainer.computational_graph.ComputationalGraph

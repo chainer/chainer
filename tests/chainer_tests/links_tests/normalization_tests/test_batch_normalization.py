@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
@@ -23,24 +23,47 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
     return y_expect
 
 
-@testing.parameterize(*(testing.product({
-    'test': [True, False],
-    'volatile': ['on'],
-    'ndim': [0],
-    'dtype': [numpy.float32],
-}) + testing.product({
-    'test': [True, False],
-    'volatile': ['off'],
-    'ndim': [0, 1, 2, 3],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-})))
+@testing.parameterize(*(testing.product_dict(
+    testing.product({
+        'test': [True, False],
+        'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    }),
+    testing.product({
+        'ndim': [0, 1, 2, 3],
+    }) + [
+        {'input_shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
+        {'input_shape': (5, 4), 'axis': 0},
+        {'input_shape': (5, 4, 3), 'axis': (0, 1)},
+    ]
+)))
 class BatchNormalizationTest(unittest.TestCase):
 
     def setUp(self):
-        self.expander = (None, Ellipsis) + (None,) * self.ndim
-        self.aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
+        if not hasattr(self, 'axis'):
+            aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
+            shape = (5, 3) + (2,) * self.ndim
+            param_shape = shape[1]
+            self.expander = (None, Ellipsis) + (None,) * self.ndim
+        else:
+            aggr_axes = self.axis
+            if isinstance(self.axis, int):
+                aggr_axes = self.axis,
+            shape = self.input_shape
+            param_shape = tuple(
+                s
+                for i, s in enumerate(shape)
+                if i not in aggr_axes
+            )
+            self.expander = tuple(
+                None if i in aggr_axes else slice(None)
+                for i in range(len(shape))
+            )
 
-        self.link = links.BatchNormalization(3, dtype=self.dtype)
+        options = {}
+        if hasattr(self, 'axis'):
+            options['axis'] = self.axis
+        self.link = links.BatchNormalization(
+            param_shape, dtype=self.dtype, **options)
         gamma = self.link.gamma.data
         gamma[...] = numpy.random.uniform(.5, 1, gamma.shape)
         beta = self.link.beta.data
@@ -50,18 +73,19 @@ class BatchNormalizationTest(unittest.TestCase):
         self.gamma = gamma.copy()[self.expander]  # fixed on CPU
         self.beta = beta.copy()[self.expander]   # fixed on CPU
 
-        shape = (5, 3) + (2,) * self.ndim
         self.x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
 
         if self.test:
-            self.mean = numpy.random.uniform(-1, 1, (3,)).astype(self.dtype)
-            self.var = numpy.random.uniform(0.5, 1, (3,)).astype(self.dtype)
+            self.mean = numpy.random.uniform(
+                -1, 1, param_shape).astype(self.dtype)
+            self.var = numpy.random.uniform(
+                0.5, 1, param_shape).astype(self.dtype)
             self.link.avg_mean[...] = self.mean
             self.link.avg_var[...] = self.var
         else:
-            self.mean = self.x.mean(axis=self.aggr_axes)
-            self.var = self.x.var(axis=self.aggr_axes)
+            self.mean = self.x.mean(axis=aggr_axes)
+            self.var = self.x.var(axis=aggr_axes)
         self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
         if self.dtype == numpy.float16:
@@ -69,9 +93,10 @@ class BatchNormalizationTest(unittest.TestCase):
             self.check_backward_optionss = {'atol': 5e-1, 'rtol': 1e-1}
 
     def check_forward(self, x_data):
-        x = chainer.Variable(x_data, volatile=self.volatile)
-        y = self.link(x, test=self.test)
-        self.assertEqual(y.data.dtype, self.dtype)
+        with chainer.using_config('train', not self.test):
+            x = chainer.Variable(x_data)
+            y = self.link(x)
+            self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_normalization(
             self.expander, self.gamma, self.beta, self.x, self.mean,
@@ -92,16 +117,16 @@ class BatchNormalizationTest(unittest.TestCase):
 
     @attr.cudnn
     def test_forward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_forward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_forward_gpu()
 
     @attr.multi_gpu(2)
     @condition.retry(3)
     def test_forward_multi_gpu(self):
-        with cuda.get_device(1):
+        with cuda.get_device_from_id(1):
             self.link.to_gpu()
             x = cuda.to_gpu(self.x)
-        with cuda.get_device(0):
+        with cuda.get_device_from_id(0):
             self.check_forward(x)
 
     def check_backward(self, x_data, y_grad):
@@ -121,12 +146,13 @@ class BatchNormalizationTest(unittest.TestCase):
 
     @attr.cudnn
     def test_backward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_backward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_backward_gpu()
 
 
 @testing.parameterize(
-    {'nx': 10, 'ny': 10},
+    {'nx': 10, 'ny': 10, 'eps': 2e-5},
+    {'nx': 10, 'ny': 10, 'eps': 1e-1},
     # TODO(Kenta Oono)
     # Pass the case below (this test does not pass when nx != ny).
     # {'nx': 10, 'ny': 15}
@@ -136,7 +162,7 @@ class TestPopulationStatistics(unittest.TestCase):
     def setUp(self):
         self.decay = 0.9
         self.size = 3
-        self.link = links.BatchNormalization(self.size, self.decay)
+        self.link = links.BatchNormalization(self.size, self.decay, self.eps)
         self.x = numpy.random.uniform(
             -1, 1, (self.nx, self.size)).astype(numpy.float32)
         self.y = numpy.random.uniform(
@@ -151,24 +177,23 @@ class TestPopulationStatistics(unittest.TestCase):
         testing.assert_allclose(unbiased_var, self.link.avg_var)
 
         y = chainer.Variable(y)
-        self.link(y, test=True, finetune=True)
+        with chainer.using_config('train', False):
+            self.link(y, finetune=True)
         testing.assert_allclose(mean, self.link.avg_mean)
         testing.assert_allclose(unbiased_var, self.link.avg_var)
 
-    @condition.retry(3)
     def test_statistics_cpu(self):
         self.check_statistics(self.x, self.y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_statistics_gpu(self):
         self.link.to_gpu()
         self.check_statistics(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
 
     @attr.cudnn
     def test_statistics_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_statistics_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_statistics_gpu()
 
     def check_statistics2(self, x, y):
         x = chainer.Variable(x)
@@ -189,12 +214,10 @@ class TestPopulationStatistics(unittest.TestCase):
         testing.assert_allclose(mean, self.link.avg_mean)
         testing.assert_allclose(unbiased_var, self.link.avg_var)
 
-    @condition.retry(3)
     def test_statistics2_cpu(self):
         self.check_statistics2(self.x, self.y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_statistics2_gpu(self):
         self.link.to_gpu()
         self.check_statistics2(
@@ -203,8 +226,8 @@ class TestPopulationStatistics(unittest.TestCase):
 
     @attr.cudnn
     def test_statistics2_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_statistics2_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_statistics2_gpu()
 
 
 @testing.parameterize(*testing.product({
@@ -246,7 +269,8 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
-        y = self.link(x, test=self.test)
+        with chainer.using_config('train', not self.test):
+            y = self.link(x)
         testing.assert_allclose(self.y_expected, y.data)
 
     def test_forward_cpu(self):
@@ -260,16 +284,16 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     @attr.multi_gpu(2)
     def test_forward_gpu_multi(self):
-        with cuda.get_device(0):
+        with cuda.get_device_from_id(0):
             self.link.to_gpu()
             x = cuda.to_gpu(self.x)
-        with cuda.get_device(1):
+        with cuda.get_device_from_id(1):
             self.check_forward(x)
 
     @attr.cudnn
     def test_forward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_forward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_forward_gpu()
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(self.link, x_data, y_grad,
@@ -289,8 +313,8 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     @attr.cudnn
     def test_backward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_backward_gpu()
+        with chainer.using_config('use_cudnn', 'never'):
+            self.test_backward_gpu()
 
 
 @testing.parameterize(*testing.product({
@@ -363,6 +387,26 @@ class TestInvalidInitialize(unittest.TestCase):
     def test_invalid_type(self):
         with self.assertRaises(TypeError):
             self.link = links.BatchNormalization({})
+
+
+class TestInvalidArgument(unittest.TestCase):
+
+    def setUp(self):
+        self.link = links.BatchNormalization(1)
+        self.x = numpy.random.uniform(-1, 1, (3,)).astype('f')
+
+    def test_test_argument(self):
+        with self.assertRaises(ValueError):
+            self.link(self.x, test=True)
+
+    def test_positional_argument(self):
+        # positional argument is prohibited from v2
+        with self.assertRaises(TypeError):
+            self.link(self.x, True)
+
+    def test_redundant_argument(self):
+        with self.assertRaises(TypeError):
+            self.link(self.x, unknown_argument=1)
 
 
 testing.run_module(__name__, __file__)

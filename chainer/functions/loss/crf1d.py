@@ -9,7 +9,7 @@ from chainer.functions.math import minmax
 from chainer.functions.math import sum as _sum
 
 
-def crf1d(cost, xs, ys):
+def crf1d(cost, xs, ys, reduce='mean'):
     """Calculates negative log-likelihood of linear-chain CRF.
 
     It takes a transition cost matrix, a sequence of costs, and a sequence of
@@ -30,11 +30,11 @@ def crf1d(cost, xs, ys):
        When you want to calculate the negative log-likelihood of sequences
        which have different lengths, sort the sequences in descending order of
        lengths and transpose the sequences.
-       For example, you have three input seuqnces:
+       For example, you have three input sequences:
 
-       >>> a1 = a2 = a3 = a4 = np.random.uniform(-1, 1, 3).astype('f')
-       >>> b1 = b2 = b3 = np.random.uniform(-1, 1, 3).astype('f')
-       >>> c1 = c2 = np.random.uniform(-1, 1, 3).astype('f')
+       >>> a1 = a2 = a3 = a4 = np.random.uniform(-1, 1, 3).astype(np.float32)
+       >>> b1 = b2 = b3 = np.random.uniform(-1, 1, 3).astype(np.float32)
+       >>> c1 = c2 = np.random.uniform(-1, 1, 3).astype(np.float32)
 
        >>> a = [a1, a2, a3, a4]
        >>> b = [b1, b2, b3]
@@ -56,11 +56,16 @@ def crf1d(cost, xs, ys):
        And then, call the function:
 
        >>> cost = chainer.Variable(
-       ...     np.random.uniform(-1, 1, (3, 3)).astype('f'))
-       >>> ys = [np.zeros(x.shape[0:1], dtype='i') for x in xs]
+       ...     np.random.uniform(-1, 1, (3, 3)).astype(np.float32))
+       >>> ys = [np.zeros(x.shape[0:1], dtype=np.int32) for x in xs]
        >>> loss = F.crf1d(cost, xs, ys)
 
-       It calculates sum of the negative log-likelihood of the three sequences.
+       It calculates mean of the negative log-likelihood of the three
+       sequences.
+
+       The output is a variable whose value depends on the value of
+       the option ``reduce``. If it is ``'no'``, it holds the elementwise
+       loss values. If it is ``'mean'``, it holds mean of the loss values.
 
 
     Args:
@@ -71,7 +76,7 @@ def crf1d(cost, xs, ys):
             and each :class:`~chainer.Variable` holds a :math:`B \\times K`
             matrix, where :math:`B` is mini-batch size, :math:`K` is the number
             of labels.
-            Note that :math:`B` s in all the variables are not necessary
+            Note that :math:`B`\\ s in all the variables are not necessary
             the same, i.e., it accepts the input sequences with different
             lengths.
         ys (list of Variable): Expected output labels. It needs to have the
@@ -80,18 +85,25 @@ def crf1d(cost, xs, ys):
             When ``x`` in ``xs`` has the different :math:`B`, correspoding
             ``y`` has the same :math:`B`. In other words, ``ys`` must satisfy
             ``ys[i].shape == xs[i].shape[0:1]`` for all ``i``.
+        reduce (str): Reduction option. Its value must be either
+            ``'mean'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
 
     Returns:
         ~chainer.Variable: A variable holding the average negative
-            log-likelihood of the input sequences.
+        log-likelihood of the input sequences.
 
     .. note::
 
         See detail in the original paper: `Conditional Random Fields:
         Probabilistic Models for Segmenting and Labeling Sequence Data
-        <http://repository.upenn.edu/cis_papers/159/>`_.
+        <https://repository.upenn.edu/cis_papers/159/>`_.
 
     """
+    if reduce not in ('mean', 'no'):
+        raise ValueError(
+            "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
+            'given' % reduce)
+
     assert xs[0].shape[1] == cost.shape[0]
 
     n_label = cost.shape[0]
@@ -122,15 +134,18 @@ def crf1d(cost, xs, ys):
             y_prev, _ = split_axis.split_axis(y_prev, [batch], axis=0)
             score, score_rest = split_axis.split_axis(score, [batch], axis=0)
             scores.append(score_rest)
-        score += (select_item.select_item(x, y)
-                  + reshape.reshape(
-                      embed_id.embed_id(y_prev * n_label + y, cost), (batch,)))
+        score += (select_item.select_item(x, y) + reshape.reshape(
+            embed_id.embed_id(y_prev * n_label + y, cost), (batch,)))
 
     if len(scores) > 0:
         scores.append(score)
         score = concat.concat(scores[::-1], axis=0)
 
-    return _sum.sum(logz - score) / n_batch
+    loss = logz - score
+    if reduce == 'mean':
+        return _sum.sum(loss) / n_batch
+    else:
+        return loss
 
 
 def argmax_crf1d(cost, xs):
@@ -144,22 +159,22 @@ def argmax_crf1d(cost, xs):
             and each :class:`~chainer.Variable` holds a :math:`B \\times K`
             matrix, where :math:`B` is mini-batch size, :math:`K` is the number
             of labels.
-            Note that :math:`B` s in all the variables are not necessary
+            Note that :math:`B`\\ s in all the variables are not necessary
             the same, i.e., it accepts the input sequences with different
             lengths.
 
     Returns:
         tuple: A tuple of :class:`~chainer.Variable` object ``s`` and a
-            :class:`list` ``ps``.
-            The shape of ``s`` is ``(B,)``, where ``B`` is the mini-batch size.
-            i-th element of ``s``, ``s[i]``, represents log-likelihood of i-th
-            data.
-            ``ps`` is a list of :class:`numpy.ndarray` or
-            :class:`cupy.ndarray`, and denotes the state that maximizes the
-            point probability.
-            ``len(ps)`` is equal to ``len(xs)``, and shape of each ``ps[i]`` is
-            the mini-batch size of the corresponding ``xs[i]``. That means,
-            ``ps[i].shape == xs[i].shape[0:1]``.
+        :class:`list` ``ps``.
+        The shape of ``s`` is ``(B,)``, where ``B`` is the mini-batch size.
+        i-th element of ``s``, ``s[i]``, represents log-likelihood of i-th
+        data.
+        ``ps`` is a list of :class:`numpy.ndarray` or
+        :class:`cupy.ndarray`, and denotes the state that maximizes the
+        point probability.
+        ``len(ps)`` is equal to ``len(xs)``, and shape of each ``ps[i]`` is
+        the mini-batch size of the corresponding ``xs[i]``. That means,
+        ``ps[i].shape == xs[i].shape[0:1]``.
     """
     alpha = xs[0]
     alphas = []

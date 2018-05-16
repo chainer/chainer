@@ -1,12 +1,14 @@
 import numpy
 import six
 
-from chainer import cuda
-from chainer import function
+import chainer
+from chainer.backends import cuda
+from chainer.backends import intel64
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Concat(function.Function):
+class Concat(function_node.FunctionNode):
 
     """Concatenate multiple tensors towards specified axis."""
 
@@ -20,15 +22,15 @@ class Concat(function.Function):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
         type_check.expect(in_types[0].ndim >
-                          type_check.Variable(self.axis, 'axis'))
+                          type_check.make_variable(self.axis, 'axis'))
 
         type_check.expect(
             -in_types[0].ndim <= self.axis,
             self.axis < in_types[0].ndim
         )
-        ndim = in_types[0].ndim.eval()
+        ndim = type_check.eval(in_types[0].ndim)
         axis = self.axis % ndim
-        for i in six.moves.range(1, in_types.size().eval()):
+        for i in six.moves.range(1, type_check.eval(in_types.size())):
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,
@@ -39,16 +41,32 @@ class Concat(function.Function):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        xp = cuda.get_array_module(*xs)
-        return xp.concatenate(xs, axis=self.axis),
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(xs, (4,))):
+            # iDeep implementation
+            return self._forward_ideep(xs)
 
-    def backward(self, xs, gy):
-        if len(xs) == 1:
-            return gy
-
+        # Generic implementation
         xp = cuda.get_array_module(*xs)
-        sizes = numpy.array([x.shape[self.axis] for x in xs[:-1]]).cumsum()
-        return xp.split(gy[0], sizes, axis=self.axis)
+        return xp.concatenate(xs, self.axis),
+
+    def _forward_ideep(self, xs):
+        xs_mdarray = intel64.ideep.mdarrayVector()
+        for x in xs:
+            xs_mdarray.push_back(intel64.ideep.array(x))
+        ndim = xs[0].ndim
+        axis = self.axis % ndim
+        return intel64.ideep.concat.Forward(xs_mdarray, axis),
+
+    def backward(self, indexes, grad_outputs):
+        if len(self.inputs) == 1:
+            return grad_outputs
+
+        sizes = numpy.array(
+            [v.shape[self.axis] for v in self.inputs[:-1]]
+        ).cumsum()
+        gx, = grad_outputs
+        return chainer.functions.split_axis(gx, sizes, self.axis)
 
 
 def concat(xs, axis=1):
@@ -84,4 +102,5 @@ def concat(xs, axis=1):
                [ 8,  9, 10, 11,  2]])
 
     """
-    return Concat(axis=axis)(*xs)
+    y, = Concat(axis).apply(xs)
+    return y

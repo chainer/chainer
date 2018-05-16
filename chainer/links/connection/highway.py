@@ -28,23 +28,18 @@ class Highway(link.Chain):
         nobias (bool): If ``True``, then this function does not use the bias.
         activate: Activation function of plain array. :math:`tanh` is also
             available.
-        init_Wh (2-D array): Initial weight value of plain array. If ``None``,
-            then this function uses Gaussian distribution scaled by ``w_scale``
-            to initialize :math:`W_h`. May also be a callable that takes
-            ``numpy.ndarray`` or``cupy.ndarray`` and edits its value.
-        init_bh (1-D array): Initial bias value of plain array. If ``None``,
-            then this function uses zero vector to initialize :math:`b_h`.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-        init_Wt (2-D array): Initial weight value of transform array.
-            If ``None``, then this function uses Gaussian distribution scaled
-            by ``w_scale`` to initialize :math:`W_t`.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-        init_bt (1-D array): Initial bias value of transform array.
-            Default value is -1 vector.
-            May also be a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+        init_Wh (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2.
+        init_bh (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
+        init_Wt (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2.
+        init_bt (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
             Negative value is recommended by the author of the paper.
             (e.g. -1, -3, ...).
 
@@ -54,13 +49,16 @@ class Highway(link.Chain):
 
     def __init__(self, in_out_size, nobias=False, activate=relu.relu,
                  init_Wh=None, init_Wt=None, init_bh=None, init_bt=-1):
-        super(Highway, self).__init__(
-            plain=linear.Linear(in_out_size, in_out_size, nobias=nobias,
-                                initialW=init_Wh, initial_bias=init_bh),
-            transform=linear.Linear(in_out_size, in_out_size, nobias=nobias,
-                                    initialW=init_Wt, initial_bias=init_bt)
-        )
+        super(Highway, self).__init__()
         self.activate = activate
+
+        with self.init_scope():
+            self.plain = linear.Linear(
+                in_out_size, in_out_size, nobias=nobias,
+                initialW=init_Wh, initial_bias=init_bh)
+            self.transform = linear.Linear(
+                in_out_size, in_out_size, nobias=nobias,
+                initialW=init_Wt, initial_bias=init_bt)
 
     def __call__(self, x):
         """Computes the output of the Highway module.

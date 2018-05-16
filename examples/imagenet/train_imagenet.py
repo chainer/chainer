@@ -8,7 +8,6 @@ second column is zero-origin label (this format is same as that used by Caffe's
 ImageDataLayer).
 
 """
-from __future__ import print_function
 import argparse
 import random
 
@@ -22,13 +21,14 @@ import alex
 import googlenet
 import googlenetbn
 import nin
+import resnet50
 
 
 class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
     def __init__(self, path, root, mean, crop_size, random=True):
         self.base = chainer.datasets.LabeledImageDataset(path, root)
-        self.mean = mean.astype('f')
+        self.mean = mean.astype(np.float32)
         self.crop_size = crop_size
         self.random = random
 
@@ -65,16 +65,6 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
         return image, label
 
 
-class TestModeEvaluator(extensions.Evaluator):
-
-    def evaluate(self):
-        model = self.get_target('main')
-        model.train = False
-        ret = super(TestModeEvaluator, self).evaluate()
-        model.train = True
-        return ret
-
-
 def main():
     archs = {
         'alex': alex.Alex,
@@ -82,7 +72,9 @@ def main():
         'googlenet': googlenet.GoogLeNet,
         'googlenetbn': googlenetbn.GoogLeNetBN,
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
-        'nin': nin.NIN
+        'nin': nin.NIN,
+        'resnet50': resnet50.ResNet50,
+        'resnext50': resnet50.ResNeXt50,
     }
 
     parser = argparse.ArgumentParser(
@@ -118,10 +110,11 @@ def main():
     # Initialize the model to train
     model = archs[args.arch]()
     if args.initmodel:
-        print('Load model from', args.initmodel)
+        print('Load model from {}'.format(args.initmodel))
         chainer.serializers.load_npz(args.initmodel, model)
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()  # Make the GPU current
+        chainer.backends.cuda.get_device_from_id(
+            args.gpu).use()  # Make the GPU current
         model.to_gpu()
 
     # Load the datasets and mean file
@@ -140,13 +133,14 @@ def main():
     optimizer.setup(model)
 
     # Set up a trainer
-    updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
+    updater = training.updaters.StandardUpdater(
+        train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
-    val_interval = (10 if args.test else 100000), 'iteration'
-    log_interval = (10 if args.test else 1000), 'iteration'
+    val_interval = (1 if args.test else 100000), 'iteration'
+    log_interval = (1 if args.test else 1000), 'iteration'
 
-    trainer.extend(TestModeEvaluator(val_iter, model, device=args.gpu),
+    trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpu),
                    trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)

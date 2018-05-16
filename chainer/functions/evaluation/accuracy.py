@@ -1,7 +1,6 @@
-import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -17,16 +16,16 @@ class Accuracy(function.Function):
 
         type_check.expect(
             x_type.dtype.kind == 'f',
-            t_type.dtype == numpy.int32
+            t_type.dtype.kind == 'i'
         )
 
-        t_ndim = t_type.ndim.eval()
+        t_ndim = type_check.eval(t_type.ndim)
         type_check.expect(
             x_type.ndim >= t_type.ndim,
             x_type.shape[0] == t_type.shape[0],
             x_type.shape[2: t_ndim + 1] == t_type.shape[1:]
         )
-        for i in six.moves.range(t_ndim + 1, x_type.ndim.eval()):
+        for i in six.moves.range(t_ndim + 1, type_check.eval(x_type.ndim)):
             type_check.expect(x_type.shape[i] == 1)
 
     def forward(self, inputs):
@@ -59,9 +58,16 @@ def accuracy(y, t, ignore_label=None):
     """Computes multiclass classification accuracy of the minibatch.
 
     Args:
-        y (Variable): Variable holding a matrix whose (i, j)-th element
-            indicates the score of the class j at the i-th example.
-        t (Variable): Variable holding an int32 vector of ground truth labels.
+        y (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            Array whose (i, j, k, ...)-th element indicates the score of
+            the class j at the (i, k, ...)-th sample.
+            The prediction label :math:`\\hat t` is calculated by the formula
+            :math:`\\hat t(i, k, ...) = \\operatorname{\\mathrm{argmax}}_j \
+y(i, j, k, ...)`.
+        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray` of signed integer):
+            Array of ground truth labels.
         ignore_label (int or None): Skip calculating accuracy
             if the true label is ``ignore_label``.
 
@@ -69,6 +75,26 @@ def accuracy(y, t, ignore_label=None):
         Variable: A variable holding a scalar array of the accuracy.
 
     .. note:: This function is non-differentiable.
+
+    .. admonition:: Example
+
+        We show the most common case, when ``y`` is the two dimensional array.
+
+        >>> y = np.array([[0.1, 0.7, 0.2], # prediction label is 1
+        ...               [8.0, 1.0, 2.0], # prediction label is 0
+        ...               [-8.0, 1.0, 2.0], # prediction label is 2
+        ...               [-8.0, -1.0, -2.0]]) # prediction label is 1
+        >>> t = np.array([1, 0, 2, 1], np.int32)
+        >>> F.accuracy(y, t).data \
+# 100% accuracy because all samples are correct
+        array(1.)
+        >>> t = np.array([1, 0, 0, 0], np.int32)
+        >>> F.accuracy(y, t).data \
+# 50% accuracy because 1st and 2nd samples are correct.
+        array(0.5)
+        >>> F.accuracy(y, t, ignore_label=0).data \
+# 100% accuracy because of ignoring the 2nd, 3rd and 4th samples.
+        array(1.)
 
     """
     return Accuracy(ignore_label=ignore_label)(y, t)

@@ -3,7 +3,7 @@ import unittest
 
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import type_check as T
@@ -349,10 +349,12 @@ class TestListItem(unittest.TestCase):
 class TestProd(unittest.TestCase):
 
     def test_name(self):
-        self.assertEqual(T.prod.name, 'prod')
+        p = T.prod([])
+        self.assertEqual(str(p), 'prod([])')
 
     def test_value(self):
-        self.assertIs(T.prod.value, numpy.prod)
+        value = T.prod([2, 3]).eval()
+        self.assertEqual(value, 6)
 
 
 class TestSameTypes(unittest.TestCase):

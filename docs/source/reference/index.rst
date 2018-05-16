@@ -1,25 +1,24 @@
-************************
-Chainer Reference Manual
-************************
+*********
+Reference
+*********
 
 .. module:: chainer
 
 .. toctree::
    :maxdepth: 2
 
-   core
-   util
-   check
+   variable
    functions
    links
    optimizers
-   serializers
-   function_hooks
    initializers
+   training
    datasets
    iterators
-   extensions
-   triggers
-   caffe
+   serializers
+   util
+   configuration
+   debug
    graph
-   environment
+   caffe
+   check

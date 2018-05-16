@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import conv
 from chainer.utils import type_check
@@ -41,7 +41,7 @@ class DepthwiseConvolution2D(function.Function):
             x_type.shape[1] == w_type.shape[1],
         )
 
-        if n_in.eval() == 3:
+        if type_check.eval(n_in) == 3:
             b_type = in_types[2]
             type_check.expect(
                 b_type.dtype == x_type.dtype,
@@ -172,7 +172,7 @@ def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0):
     the output of convolution.
 
     See: `L. Sifre. Rigid-motion scattering for image classification\
-          <http://www.di.ens.fr/data/publications/papers/phd_sifre.pdf>`_
+          <https://www.di.ens.fr/data/publications/papers/phd_sifre.pdf>`_
 
     .. seealso:: :class:`~chainer.links.DepthwiseConvolution2D`
 

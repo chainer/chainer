@@ -10,7 +10,7 @@ class TestRunnable(unittest.TestCase):
         cwd = os.path.dirname(__file__)
         for dirpath, dirnames, filenames in os.walk(cwd):
             for filename in filenames:
-                if not filename.endswith('.py'):
+                if not filename.endswith('.py') or '__init__' in filename:
                     continue
                 path = os.path.join(dirpath, filename)
                 with open(path) as f:

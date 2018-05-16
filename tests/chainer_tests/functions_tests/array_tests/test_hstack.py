@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -18,6 +18,7 @@ from chainer.utils import type_check
         {'shape': (3, 4), 'y_shape': (3, 8), 'xs_length': 2},
         {'shape': (3), 'y_shape': (6,), 'xs_length': 2},
         {'shape': (), 'y_shape': (2,), 'xs_length': 2},
+        {'shape': (2, 3, 4), 'y_shape': (2, 3, 4), 'xs_length': 1},
         {'shape': (3, 4), 'y_shape': (3, 4), 'xs_length': 1},
         {'shape': (3), 'y_shape': (3,), 'xs_length': 1},
         {'shape': (), 'y_shape': (1,), 'xs_length': 1},
@@ -36,6 +37,13 @@ class TestHstack(unittest.TestCase):
             for i in six.moves.range(self.xs_length)
         ]
         self.g = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
+        self.gg = [
+            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+            for i in six.moves.range(self.xs_length)
+        ]
+        self.check_backward_options = {}
+        if self.dtype == numpy.float16:
+            self.check_backward_options = {'atol': 3e-3, 'rtol': 5e-3}
 
     def check_forward(self, xs_data):
         xs = [chainer.Variable(x) for x in xs_data]
@@ -56,7 +64,7 @@ class TestHstack(unittest.TestCase):
             return functions.hstack(xs)
 
         gradient_check.check_backward(
-            func, xs_data, g_data, eps=2.0 ** -2, atol=1e-3, rtol=1e-3)
+            func, xs_data, g_data, dtype='d', **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.xs, self.g)
@@ -65,6 +73,24 @@ class TestHstack(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(
             [cuda.to_gpu(x) for x in self.xs], cuda.to_gpu(self.g))
+
+    def check_double_backward(self, xs_data, g_data, gg_data):
+        def func(*xs):
+            y = functions.hstack(xs)
+            return y * y
+
+        gradient_check.check_double_backward(
+            func, xs_data, g_data, gg_data, dtype='d',
+            **self.check_backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.xs, self.g, self.gg)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward([cuda.to_gpu(x) for x in self.xs],
+                                   cuda.to_gpu(self.g),
+                                   [cuda.to_gpu(gg) for gg in self.gg])
 
 
 @testing.parameterize(

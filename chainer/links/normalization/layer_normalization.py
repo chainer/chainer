@@ -1,19 +1,19 @@
-from chainer import cuda
-from chainer import initializers
+import functools
+import operator
+
+from chainer.functions.normalization import layer_normalization
 from chainer import link
 from chainer import utils
-
-from chainer.functions.array import broadcast
-from chainer.functions.math import bias
-from chainer.functions.math import scale
-from chainer.functions.math import sqrt
-from chainer.functions.math import square
-from chainer.functions.math import sum
+from chainer import variable
 
 
-class LayerNormalization(link.Chain):
+class LayerNormalization(link.Link):
 
     """Layer normalization layer on outputs of linear functions.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
 
     This link implements a "layer normalization" layer
     which normalizes the input units by statistics
@@ -38,9 +38,9 @@ class LayerNormalization(link.Chain):
             If ``numpy.ndarray``, the vector is set by it.
 
     Attributes:
-        gamma (~chainer.Variable): Scaling parameter.
-        beta (~chainer.Variable): Shifting parameter.
-        eps (float): Epsilon value for numerical stability.
+        gamma (~chainer.Parameter): Scaling parameter.
+        beta (~chainer.Parameter): Shifting parameter.
+        ~LayerNormalization.eps (float): Epsilon value for numerical stability.
 
     See: `Layer Normalization <https://arxiv.org/abs/1607.06450>`_
     """
@@ -48,15 +48,15 @@ class LayerNormalization(link.Chain):
     def __init__(self, size=None, eps=1e-6, initial_gamma=None,
                  initial_beta=None):
         super(LayerNormalization, self).__init__()
-        self.add_uninitialized_param('gamma')
-        self.add_uninitialized_param('beta')
         if initial_gamma is None:
-            initial_gamma = initializers.One()
-        self._gamma_initializer = initial_gamma
+            initial_gamma = 1
         if initial_beta is None:
-            initial_beta = initializers.Zero()
-        self._beta_initializer = initial_beta
-        self.eps = eps
+            initial_beta = 0
+
+        with self.init_scope():
+            self.gamma = variable.Parameter(initial_gamma)
+            self.beta = variable.Parameter(initial_beta)
+            self.eps = eps
 
         if size is not None:
             self._initialize_params(size)
@@ -65,20 +65,8 @@ class LayerNormalization(link.Chain):
             'chainer.links.normalization.layer_normalization.py')
 
     def _initialize_params(self, size):
-        self.add_param('gamma', size)
-        initializers.init_weight(self.gamma.data, self._gamma_initializer)
-        self.add_param('beta', size)
-        initializers.init_weight(self.beta.data, self._beta_initializer)
-
-    def _normalize(self, x):
-        size = x.shape[1]
-        mean = broadcast.broadcast_to(
-            (sum.sum(x, axis=1) / size)[:, None],
-            x.shape)
-        std = broadcast.broadcast_to(sqrt.sqrt(
-            sum.sum(square.square(x - mean), axis=1) / size)[:, None],
-            x.shape) + self.eps
-        return (x - mean) / std
+        self.gamma.initialize(size)
+        self.beta.initialize(size)
 
     def __call__(self, x):
         """Apply layer normalization to given input.
@@ -92,9 +80,9 @@ class LayerNormalization(link.Chain):
             ~chainer.Variable: Output of the layer normalization.
 
         """
-        if self.has_uninitialized_params:
-            with cuda.get_device(self._device_id):
-                self._initialize_params(x.size // x.shape[0])
+        if self.gamma.data is None:
+            in_size = functools.reduce(operator.mul, x.shape[1:], 1)
+            self._initialize_params(in_size)
 
-        normalized = self._normalize(x)
-        return bias.bias(scale.scale(normalized, self.gamma), self.beta)
+        return layer_normalization.layer_normalization(
+            x, self.gamma, self.beta, self.eps)

@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -18,6 +18,7 @@ from chainer.utils import type_check
         {'shape': (3, 4), 'y_shape': (3, 4, 2), 'xs_length': 2},
         {'shape': (3), 'y_shape': (1, 3, 2), 'xs_length': 2},
         {'shape': (), 'y_shape': (1, 1, 2), 'xs_length': 2},
+        {'shape': (2, 3, 4), 'y_shape': (2, 3, 4), 'xs_length': 1},
         {'shape': (3, 4), 'y_shape': (3, 4, 1), 'xs_length': 1},
         {'shape': (3), 'y_shape': (1, 3, 1), 'xs_length': 1},
         {'shape': (), 'y_shape': (1, 1, 1), 'xs_length': 1},
@@ -35,7 +36,14 @@ class TestDstack(unittest.TestCase):
             numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
             for i in six.moves.range(self.xs_length)
         ]
-        self.g = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
+        self.gy = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
+        self.ggxs = [
+            numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+            for i in six.moves.range(self.xs_length)
+        ]
+        self.check_double_backward_options = {}
+        if self.dtype == numpy.float16:
+            self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def check_forward(self, xs_data):
         xs = [chainer.Variable(x) for x in xs_data]
@@ -51,20 +59,37 @@ class TestDstack(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward([cuda.to_gpu(x) for x in self.xs])
 
-    def check_backward(self, xs_data, g_data):
+    def check_backward(self, xs_data, y_grad):
         def func(*xs):
             return functions.dstack(xs)
 
-        gradient_check.check_backward(
-            func, xs_data, g_data, eps=2.0 ** -2, atol=1e-3, rtol=1e-3)
+        gradient_check.check_backward(func, xs_data, y_grad, dtype='d')
 
     def test_backward_cpu(self):
-        self.check_backward(self.xs, self.g)
+        self.check_backward(self.xs, self.gy)
 
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(
-            [cuda.to_gpu(x) for x in self.xs], cuda.to_gpu(self.g))
+            [cuda.to_gpu(x) for x in self.xs], cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, xs_data, y_grad, xs_grad_grad):
+        def func(*xs):
+            y = functions.dstack(xs)
+            return y * y
+
+        gradient_check.check_double_backward(
+            func, xs_data, y_grad, xs_grad_grad, dtype='d',
+            **self.check_double_backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.xs, self.gy, self.ggxs)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            [cuda.to_gpu(x) for x in self.xs], cuda.to_gpu(self.gy),
+            [cuda.to_gpu(ggx) for ggx in self.ggxs])
 
 
 @testing.parameterize(

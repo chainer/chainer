@@ -1,9 +1,8 @@
 import numpy
 import six
 
-from chainer import cuda
-from chainer import function
-from chainer.functions.pooling import pooling_2d
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
@@ -11,22 +10,20 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cudnn.cudnn
-    _cudnn_version = libcudnn.getVersion()
+    libcudnn = cuda.cuda.cudnn
 
 
-_check_cudnn_acceptable_type = pooling_2d._check_cudnn_acceptable_type
-
-
-class _PoolingND(function.Function):
+class _PoolingND(function_node.FunctionNode):
 
     """Base class of pooling function over a set of N-dimensional planes."""
 
-    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True,
-                 use_cudnn=True):
-
+    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True):
         if stride is None:
             stride = ksize
+
+        if ndim <= 0:
+            raise ValueError(
+                'pooling operation requires at least one spatial dimension.')
 
         self.ndim = ndim
         self.ksize = conv_nd.as_tuple(ksize, ndim)
@@ -34,18 +31,21 @@ class _PoolingND(function.Function):
         self.pad = conv_nd.as_tuple(pad, ndim)
 
         self.cover_all = cover_all
-        self.use_cudnn = use_cudnn
+        self._used_cudnn = False
 
     def check_type_forward(self, in_types):
         type_check.expect(
             in_types.size() == 1,
             in_types[0].dtype.kind == 'f',
-            in_types[0].ndim == 2 + self.ndim
+            in_types[0].ndim == 2 + self.ndim,
+            in_types[0].size > 0,
         )
 
     def forward_gpu(self, x):
+        self._used_cudnn = True
+
         # Implementation using cuDNN.
-        x = x[0]
+        x = cuda.cupy.ascontiguousarray(x[0])
         n, c = x.shape[:2]
         dims = x.shape[2:]
         ys = tuple(conv.get_conv_outsize(d, k, s, p, self.cover_all)
@@ -65,17 +65,16 @@ class _PoolingND(function.Function):
         libcudnn.poolingForward(
             handle, pool_desc.value, one.data, x_desc.value,
             x.data.ptr, zero.data, y_desc.value, y.data.ptr)
-        self.y = y
-
+        self.retain_outputs((0,))
         return y,
 
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
-        x = x[0]
+        x = cuda.cupy.ascontiguousarray(x[0])
+        y = self.output_data[0]
         handle = cudnn.get_handle()
         pool_desc = self.create_pool_desc()
 
-        # Pooling of cuDNNv2 does not seem to support non-contiguous gradients
         gy = cuda.cupy.ascontiguousarray(gy[0])
 
         x_desc = cudnn.create_tensor_descriptor(x)
@@ -87,7 +86,7 @@ class _PoolingND(function.Function):
         gx = cuda.cupy.empty_like(x)
         libcudnn.poolingBackward(
             handle, pool_desc.value, one.data, y_desc.value,
-            self.y.data.ptr, y_desc.value, gy.data.ptr, x_desc.value,
+            y.data.ptr, y_desc.value, gy.data.ptr, x_desc.value,
             x.data.ptr, zero.data, x_desc.value, gx.data.ptr)
         return gx,
 

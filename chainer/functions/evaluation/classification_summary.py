@@ -1,10 +1,9 @@
 from __future__ import division
 
-import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -28,21 +27,23 @@ class ClassificationSummary(function.Function):
 
         type_check.expect(
             x_type.dtype.kind == 'f',
-            t_type.dtype == numpy.int32
+            t_type.dtype.kind == 'i'
         )
 
-        t_ndim = t_type.ndim.eval()
+        t_ndim = type_check.eval(t_type.ndim)
         type_check.expect(
             x_type.ndim >= t_type.ndim,
             x_type.shape[0] == t_type.shape[0],
             x_type.shape[2: t_ndim + 1] == t_type.shape[1:]
         )
-        for i in six.moves.range(t_ndim + 1, x_type.ndim.eval()):
+        for i in six.moves.range(t_ndim + 1, type_check.eval(x_type.ndim)):
             type_check.expect(x_type.shape[i] == 1)
 
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
         y, t = inputs
+        # numpy.bincount requires int32 on Windows
+        t = t.astype('i', copy=False)
 
         if self.label_num is None:
             label_num = xp.amax(t) + 1

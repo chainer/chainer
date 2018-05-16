@@ -1,157 +1,138 @@
 from __future__ import division
 
+import numpy as np
+import random
+import tempfile
 import unittest
 
+from chainer import serializers
 from chainer import testing
+from chainer.testing import condition
 from chainer import training
-from chainer.training import triggers
 
 
-class DummyUpdater(training.Updater):
+@testing.parameterize(
+    # single iteration
+    {
+        'iter_per_epoch': 2, 'schedule': (2, 'iteration'), 'resume': 3,
+        'expected': [False, True, False, False, False, False, False]},
+    # multiple iteration
+    {
+        'iter_per_epoch': 2, 'schedule': ([2, 4], 'iteration'), 'resume': 3,
+        'expected': [False, True, False, True, False, False, False]},
+    # single epoch
+    {
+        'iter_per_epoch': 3, 'schedule': (1, 'epoch'), 'resume': 3,
+        'expected': [False, False, True, False, False, False, False]},
+    # multiple epoch
+    {
+        'iter_per_epoch': 3, 'schedule': ([1, 2], 'epoch'), 'resume': 4,
+        'expected': [False, False, True, False, False, True, False]},
+    # single fractional epoch
+    {
+        'iter_per_epoch': 2, 'schedule': (1.5, 'epoch'), 'resume': 4,
+        'expected': [False, False, True, False, False, False, False]},
+    # multiple fractional epoch
+    {
+        'iter_per_epoch': 2, 'schedule': ([1.5, 2.5], 'epoch'), 'resume': 4,
+        'expected': [False, False, True, False, True, False, False]},
+    # single unaligned epoch
+    {
+        'iter_per_epoch': 2.5, 'schedule': (1, 'epoch'), 'resume': 4,
+        'expected': [False, False, True, False, False, False, False]},
+    # multiple unaligned epoch
+    {
+        'iter_per_epoch': 2.5, 'schedule': ([1, 2], 'epoch'), 'resume': 4,
+        'expected': [False, False, True, False, True, False, False]},
+    # single tiny epoch
+    {
+        'iter_per_epoch': 0.5, 'schedule': (1, 'epoch'), 'resume': 4,
+        'expected': [True, False, False, False, False, False, False]},
+    # multiple tiny epoch
+    {
+        'iter_per_epoch': 0.5, 'schedule': ([1, 2], 'epoch'), 'resume': 4,
+        'expected': [True, False, False, False, False, False, False]},
+)
+class TestTrigger(unittest.TestCase):
 
-    def __init__(self, iters_per_epoch, initial_iteration=0):
-        self.iteration = initial_iteration
-        self.iters_per_epoch = iters_per_epoch
+    def test_trigger(self):
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
+        trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
+        for expected in self.expected:
+            trainer.updater.update()
+            self.assertEqual(trigger(trainer), expected)
 
-    def finalize(self):
-        pass
+    def test_resumed_trigger(self):
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
+            for expected in self.expected[:self.resume]:
+                trainer.updater.update()
+                self.assertEqual(trigger(trainer), expected)
+            serializers.save_npz(f.name, trigger)
 
-    def get_all_optimizers(self):
-        return {}
+            trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
+            serializers.load_npz(f.name, trigger)
+            for expected in self.expected[self.resume:]:
+                trainer.updater.update()
+                self.assertEqual(trigger(trainer), expected)
 
-    def update(self):
-        self.iteration += 1
+    @condition.repeat(10)
+    def test_trigger_sparse_call(self):
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
+        trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
+        accumulated = False
+        for expected in self.expected:
+            trainer.updater.update()
+            accumulated = accumulated or expected
+            if random.randrange(2):
+                self.assertEqual(trigger(trainer), accumulated)
+                accumulated = False
 
-    @property
-    def epoch(self):
-        return self.iteration // self.iters_per_epoch
+    @condition.repeat(10)
+    def test_resumed_trigger_sparse_call(self):
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
+        accumulated = False
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
+            for expected in self.expected[:self.resume]:
+                trainer.updater.update()
+                accumulated = accumulated or expected
+                if random.randrange(2):
+                    self.assertEqual(trigger(trainer), accumulated)
+                    accumulated = False
+            serializers.save_npz(f.name, trigger)
 
-    @property
-    def epoch_detail(self):
-        return self.iteration / self.iters_per_epoch
+            trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
+            serializers.load_npz(f.name, trigger)
+            for expected in self.expected[self.resume:]:
+                trainer.updater.update()
+                accumulated = accumulated or expected
+                if random.randrange(2):
+                    self.assertEqual(trigger(trainer), accumulated)
+                    accumulated = False
 
-    @property
-    def previous_epoch_detail(self):
-        if self.iteration == 0:
-            return None
-        return (self.iteration - 1) / self.iters_per_epoch
+    def test_resumed_trigger_backward_compat(self):
+        trainer = testing.get_trainer_with_mock_updater(
+            stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
+            for expected in self.expected[:self.resume]:
+                trainer.updater.update()
+                self.assertEqual(trigger(trainer), expected)
+            # old version does not save anything
+            np.savez(f, dummy=0)
 
-    @property
-    def is_new_epoch(self):
-        return 0 <= self.iteration % self.iters_per_epoch < 1
-
-
-def _test_trigger(self, updater, trigger, expecteds):
-    trainer = training.Trainer(updater)
-    for expected in expecteds:
-        updater.update()
-        self.assertEqual(trigger(trainer), expected)
-
-
-class TestIterationManualScheduleTrigger(unittest.TestCase):
-
-    def test_iteration_manual_single_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=3)
-        trigger = triggers.ManualScheduleTrigger(2, 'iteration')
-        expected = [False, True, False, False, False]
-        _test_trigger(self, updater, trigger, expected)
-
-    def test_iteration_manual_multiple_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=5)
-        trigger = triggers.ManualScheduleTrigger([2, 3], 'iteration')
-        expected = [False, True, True, False, False, False, False]
-        _test_trigger(self, updater, trigger, expected)
-
-
-class TestEpochManualScheduleTrigger(unittest.TestCase):
-
-    def test_epoch_manual_single_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=3)
-        trigger = triggers.ManualScheduleTrigger(1, 'epoch')
-        expected = [False, False, True, False, False, False, False]
-        _test_trigger(self, updater, trigger, expected)
-
-    def test_epoch_manual_multiple_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=3)
-        trigger = triggers.ManualScheduleTrigger([1, 2], 'epoch')
-        expected = [False, False, True, False, False, True, False]
-        _test_trigger(self, updater, trigger, expected)
-
-
-class TestFractionalEpochManualScheduleTrigger(unittest.TestCase):
-
-    def test_epoch_manual_single_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=2)
-        trigger = triggers.ManualScheduleTrigger(1.5, 'epoch')
-        expected = [False, False, True, False, False, False, False]
-        _test_trigger(self, updater, trigger, expected)
-
-    def test_epoch_manual_multiple_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=2)
-        trigger = triggers.ManualScheduleTrigger([1.5, 2.5], 'epoch')
-        expected = [False, False, True, False, True, False, False]
-        _test_trigger(self, updater, trigger, expected)
-
-
-class TestUnalignedEpochManualScheduleTrigger(unittest.TestCase):
-
-    def test_unaligned_epoch_single_manual_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=2.5)
-        trigger = triggers.ManualScheduleTrigger(1, 'epoch')
-        expected = [False, False, True, False, False, False, False]
-        _test_trigger(self, updater, trigger, expected)
-
-    def test_unaligned_epoch_multiple_manual_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=2.5)
-        trigger = triggers.ManualScheduleTrigger([1, 2], 'epoch')
-        expected = [False, False, True, False, True, False, False, False]
-        _test_trigger(self, updater, trigger, expected)
-
-
-class TestResumedIterationManualScheduleTrigger(unittest.TestCase):
-
-    def test_resumed_iteration_single_manual_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=1, initial_iteration=2)
-        trigger = triggers.ManualScheduleTrigger(3, 'iteration')
-        expected = [True, False, False, False]
-        _test_trigger(self, updater, trigger, expected)
-
-    def test_resumed_iteration_multiple_manual_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=1, initial_iteration=2)
-        trigger = triggers.ManualScheduleTrigger([1, 3, 5], 'iteration')
-        expected = [True, False, True, False, False]
-        _test_trigger(self, updater, trigger, expected)
-
-
-class TestResumedEpochManualScheduleTrigger(unittest.TestCase):
-
-    def test_resumed_epoch_single_manual_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=2, initial_iteration=3)
-        trigger = triggers.ManualScheduleTrigger(2, 'epoch')
-        expected = [True, False, False, False]
-        _test_trigger(self, updater, trigger, expected)
-
-    def test_resumed_epoch_multiple_manual_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=2, initial_iteration=3)
-        trigger = triggers.ManualScheduleTrigger([1, 2, 3], 'epoch')
-        expected = [True, False, True, False, False]
-        _test_trigger(self, updater, trigger, expected)
-
-
-class TestUnalignedResumedEpochManualScheduleTrigger(unittest.TestCase):
-
-    def test_unaligned_resumed_epoch_single_manual_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=2.5, initial_iteration=2)
-        trigger = triggers.ManualScheduleTrigger(3, 'epoch')
-        expected = [False, False, False, False, False, True, False]
-        _test_trigger(self, updater, trigger, expected)
-
-    def test_unaligned_resumed_epoch_multiple_manual_trigger(self):
-        updater = DummyUpdater(iters_per_epoch=2.5, initial_iteration=2)
-        trigger = triggers.ManualScheduleTrigger([1, 3, 5], 'epoch')
-        expected = [True, False, False, False, False,
-                    True, False, False, False, False, True, False]
-        _test_trigger(self, updater, trigger, expected)
+            trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
+            with testing.assert_warns(UserWarning):
+                serializers.load_npz(f.name, trigger)
+            for expected in self.expected[self.resume:]:
+                trainer.updater.update()
+                self.assertEqual(trigger(trainer), expected)
 
 
 testing.run_module(__name__, __file__)

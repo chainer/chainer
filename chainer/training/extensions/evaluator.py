@@ -2,12 +2,13 @@ import copy
 
 import six
 
+from chainer import configuration
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
+from chainer import function
 from chainer import link
 from chainer import reporter as reporter_module
 from chainer.training import extension
-from chainer import variable
 
 
 class Evaluator(extension.Extension):
@@ -23,7 +24,8 @@ class Evaluator(extension.Extension):
     :class:`~chainer.Reporter` for details in naming rules of the reports.
 
     Evaluator has a structure to customize similar to that of
-    :class:`~chainer.training.StandardUpdater`. The main differences are:
+    :class:`~chainer.training.updaters.StandardUpdater`.
+    The main differences are:
 
     - There are no optimizers in an evaluator. Instead, it holds links
       to evaluate.
@@ -38,7 +40,8 @@ class Evaluator(extension.Extension):
     overriding the :meth:`evaluate` method. In latter case, users have to
     create and handle a reporter object manually. Users also have to copy the
     iterators before using them, in order to reuse them at the next time of
-    evaluation.
+    evaluation. In both cases, the functions are called in testing mode
+    (i.e., ``chainer.config.train`` is set to ``False``).
 
     This extension is called at the end of each epoch by default.
 
@@ -50,7 +53,7 @@ class Evaluator(extension.Extension):
             just a link object, the link is registered by the name ``'main'``.
         converter: Converter function to build input arrays.
             :func:`~chainer.dataset.concat_examples` is used by default.
-        device: Device to which the training data is sent. Negative value
+        device: Device to which the validation data is sent. Negative value
             indicates the host memory (CPU).
         eval_hook: Function to prepare for each evaluation process. It is
             called at the beginning of the evaluation. The evaluator extension
@@ -60,7 +63,7 @@ class Evaluator(extension.Extension):
 
     Attributes:
         converter: Converter function.
-        device: Device to which the training data is sent.
+        device: Device to which the validation data is sent.
         eval_hook: Function to prepare for each evaluation process.
         eval_func: Evaluation function called at each iteration.
 
@@ -68,6 +71,8 @@ class Evaluator(extension.Extension):
     trigger = 1, 'epoch'
     default_name = 'validation'
     priority = extension.PRIORITY_WRITER
+
+    name = None
 
     def __init__(self, iterator, target, converter=convert.concat_examples,
                  device=None, eval_hook=None, eval_func=None):
@@ -116,12 +121,12 @@ class Evaluator(extension.Extension):
 
         Returns:
             dict: Result dictionary that contains mean statistics of values
-                reported by the evaluation function.
+            reported by the evaluation function.
 
         """
         # set up a reporter
         reporter = reporter_module.Reporter()
-        if hasattr(self, 'name'):
+        if self.name is not None:
             prefix = self.name + '/'
         else:
             prefix = ''
@@ -131,7 +136,8 @@ class Evaluator(extension.Extension):
                                    target.namedlinks(skipself=True))
 
         with reporter:
-            result = self.evaluate()
+            with configuration.using_config('train', False):
+                result = self.evaluate()
 
         reporter_module.report(result)
         return result
@@ -145,14 +151,21 @@ class Evaluator(extension.Extension):
 
         Users can override this method to customize the evaluation routine.
 
+        .. note::
+
+            This method encloses :attr:`eval_func` calls with
+            :func:`function.no_backprop_mode` context, so all calculations
+            using :class:`~chainer.FunctionNode`\\s inside
+            :attr:`eval_func` do not make computational graphs. It is for
+            reducing the memory consumption.
+
         Returns:
             dict: Result dictionary. This dictionary is further reported via
-                :func:`~chainer.report` without specifying any observer.
+            :func:`~chainer.report` without specifying any observer.
 
         """
         iterator = self._iterators['main']
-        target = self._targets['main']
-        eval_func = self.eval_func or target
+        eval_func = self.eval_func or self._targets['main']
 
         if self.eval_hook:
             self.eval_hook(self)
@@ -169,18 +182,25 @@ class Evaluator(extension.Extension):
             observation = {}
             with reporter_module.report_scope(observation):
                 in_arrays = self.converter(batch, self.device)
-                if isinstance(in_arrays, tuple):
-                    in_vars = tuple(variable.Variable(x, volatile='on')
-                                    for x in in_arrays)
-                    eval_func(*in_vars)
-                elif isinstance(in_arrays, dict):
-                    in_vars = {key: variable.Variable(x, volatile='on')
-                               for key, x in six.iteritems(in_arrays)}
-                    eval_func(**in_vars)
-                else:
-                    in_var = variable.Variable(in_arrays, volatile='on')
-                    eval_func(in_var)
+                with function.no_backprop_mode():
+                    if isinstance(in_arrays, tuple):
+                        eval_func(*in_arrays)
+                    elif isinstance(in_arrays, dict):
+                        eval_func(**in_arrays)
+                    else:
+                        eval_func(in_arrays)
 
             summary.add(observation)
 
         return summary.compute_mean()
+
+    def finalize(self):
+        """Finalizes the evaluator object.
+
+        This method calls the `finalize` method of each iterator that
+        this evaluator has.
+        It is called at the end of training loops.
+
+        """
+        for iterator in six.itervalues(self._iterators):
+            iterator.finalize()

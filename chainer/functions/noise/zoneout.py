@@ -1,11 +1,13 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import configuration
+from chainer import function_node
+from chainer.utils import argument
 from chainer.utils import type_check
 
 
-class Zoneout(function.Function):
+class Zoneout(function_node.FunctionNode):
 
     """Zoneout regularization."""
 
@@ -16,6 +18,8 @@ class Zoneout(function.Function):
         type_check.expect(in_types.size() == 2)
 
     def forward(self, inputs):
+        self.retain_inputs(())
+
         h, x = inputs
         xp = cuda.get_array_module(*x)
         if xp is numpy:
@@ -27,24 +31,35 @@ class Zoneout(function.Function):
         self.flag_x = flag_x
         return h * self.flag_h + x * self.flag_x,
 
-    def backward(self, inputs, gy):
-        h, x = inputs
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        ret = []
+        if 0 in indexes:
+            ret.append(gy * self.flag_h)
+        if 1 in indexes:
+            ret.append(gy * self.flag_x)
+        return ret
 
-        return gy[0] * self.flag_h, gy[0] * self.flag_x,
 
+def zoneout(h, x, ratio=.5, **kwargs):
+    """zoneout(h, x, ratio=.5)
 
-def zoneout(h, x, ratio=.5, train=True):
-    """Drops elements of input variable and sets to previous variable randomly.
+    Drops elements of input variable and sets to previous variable randomly.
 
     This function drops input elements randomly with probability ``ratio`` and
     instead sets dropping element to their previous variable. In testing mode ,
     it does nothing and just returns ``x``.
 
+    .. warning::
+
+       ``train`` argument is not supported anymore since v2.
+       Instead, use ``chainer.using_config('train', train)``.
+       See :func:`chainer.using_config`.
+
     Args:
         h (~chainer.Variable): Previous variable.
         x (~chainer.Variable): Input variable.
         ratio (float): Zoneout ratio.
-        train (bool): If ``True``, executes zoneout. Otherwise, return x.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -53,6 +68,11 @@ def zoneout(h, x, ratio=.5, train=True):
     Activations <https://arxiv.org/abs/1606.01305>`_.
 
     """
-    if train:
-        return Zoneout(ratio)(h, x)
+    argument.check_unexpected_kwargs(
+        kwargs, train='train argument is not supported anymore. '
+        'Use chainer.using_config')
+    argument.assert_kwargs_empty(kwargs)
+
+    if configuration.config.train:
+        return Zoneout(ratio).apply((h, x))[0]
     return x

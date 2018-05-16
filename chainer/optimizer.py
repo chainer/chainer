@@ -1,30 +1,343 @@
 import collections
+import copy
+import warnings
 
 import numpy
 import six
 
-from chainer import cuda
-import chainer.link as link_module
+from chainer.backends import cuda
+from chainer import link as link_module
+from chainer import optimizer_hooks
+from chainer import serializer as serializer_module
+from chainer import variable
 
 
-def _sum_sqnorm(arr):
-    sq_sum = collections.defaultdict(float)
-    for x in arr:
-        with cuda.get_device(x) as dev:
-            x = x.ravel()
-            s = x.dot(x)
-            sq_sum[int(dev)] += s
-    return sum([float(i) for i in six.itervalues(sq_sum)])
+class Hyperparameter(object):
 
+    """Set of hyperparameter entries of an optimizer.
 
-def exponential_decay_noise(xp, shape, dtype, hook, opt):
-    """Time-dependent annealed Gaussian noise function from the paper:
+    This is a utility class to provide a set of hyperparameter entries for
+    update rules and an optimizer. Each entry can be set as an attribute of a
+    hyperparameter object.
 
-    `Adding Gradient Noise Improves Learning for Very Deep Networks
-    <https://arxiv.org/pdf/1511.06807>`_.
+    A hyperparameter object can hold a reference to its parent hyperparameter
+    object. When an attribute does not exist in the child hyperparameter, it
+    automatically refers to the parent. We typically set the hyperparameter of
+    the gradient method as the parent of the hyperparameter of each update
+    rule. It enables us to centralize the management of hyperparameters (e.g.
+    we can change the learning rate of all update rules just by modifying the
+    hyperparameter of the central optimizer object), while users can freely
+    customize the hyperparameter of each update rule if needed.
+
+    Args:
+        parent (Hyperparameter): Parent hyperparameter.
+
     """
-    std = numpy.sqrt(hook.eta / numpy.power(1 + opt.t, 0.55))
-    return xp.random.normal(0, std, shape).astype(dtype)
+
+    def __init__(self, parent=None):
+        self._parent = parent
+
+    def __getattr__(self, name):
+        if '_parent' not in self.__dict__:
+            raise AttributeError('_parent is not set up yet')
+        return getattr(self._parent, name)
+
+    def __repr__(self):
+        d = self.get_dict()
+        keys = sorted(d.keys())
+        values_repr = ', '.join('%s=%s' % (k, d[k]) for k in keys)
+        return 'Hyperparameter(%s)' % values_repr
+
+    @property
+    def parent(self):
+        """Parent hyperparameter object."""
+        return self._parent
+
+    def get_dict(self):
+        """Converts the hyperparameter into a dictionary.
+
+        Returns:
+            Dictionary containing all entries that can be referred by this
+            hyperparameter object.
+
+        """
+        d = {} if self._parent is None else self._parent.get_dict()
+        for k, v in six.iteritems(self.__dict__):
+            if k != '_parent':
+                d[k] = v
+        return d
+
+
+class UpdateRule(object):
+
+    """Base class of all update rules.
+
+    Update rule is an object that implements how to update one parameter
+    variable using the gradient of a loss function. This class provides the
+    interface and the common features of any update rules.
+
+    An update rule can be set to a :class:`~chainer.Variable` object that
+    represents a parameter array of a model. An :class:`~chainer.Optimizer`
+    instance defines which parameters to update, and the update rule instance
+    of each parameter defines how to update it.
+
+    Hook functions can be set to any update rule instance. The hook function is
+    called just before or after any updates (configurable) in the order of
+    registrations.
+
+    An implementation of update rule should override :meth:`update_core` or
+    its device-dependent variants (i.e., :meth:`update_core_cpu` and
+    :meth:`update_core_gpu`).
+
+    The state (e.g. a moving average of the gradient) of the update rule is
+    stored into the state dictionary. An implementation of update rule using
+    state should also override :meth:`init_state` to initialize the state at
+    the first update. The values of the state dictionary are automatically
+    copied to the appropriate device before the update based on the data and
+    grad arrays.
+
+    Args:
+        parent_hyperparam (Hyperparameter): Hyperparameter that provides the
+            default values.
+
+    Attributes:
+        enabled (bool): Flag to configure if this update rule is active. If the
+            update rule is not active (i.e., ``enabled = False``), the
+            :meth:`update` method does not update the parameter.
+        hyperparam (Hyperparameter): Hyperparameter of the update rule.
+        ~UpdateRule.t (int): Number of updates made by this update rule.
+
+    """
+
+    def __init__(self, parent_hyperparam=None):
+        self._pre_update_hooks = collections.OrderedDict()
+        self._post_update_hooks = collections.OrderedDict()
+        self._state = None
+        self.enabled = True
+        self.hyperparam = Hyperparameter(parent_hyperparam)
+        self.t = 0
+        self._use_fp32_update = False
+        self._fp32_param = None
+
+    @property
+    def state(self):
+        """State dictionary."""
+        return self._state
+
+    def add_hook(self, hook, name=None, timing='auto'):
+        """Adds a hook function.
+
+        The hook function is called before or after any updates (see the timing
+        attribute).
+
+        Args:
+            hook (callable): Hook function to be added. It takes two
+                arguments: the update rule object and the parameter variable.
+            name (str): Name of the hook function. The name attribute of the
+                hook function is used by default.
+            timing (str): Specifies when the hook is called. If 'auto', the
+                timimg property of the hook will decide the timing.
+                If 'pre', the hook will be called before any updates.
+                If 'post', the hook will be called after any updates.
+                If 'auto' and the timing property of the hook is not
+                available, timing will default to 'pre'.
+
+        """
+        if not callable(hook):
+            raise TypeError('hook function must be callable')
+        if timing not in ('pre', 'post', 'auto'):
+            raise ValueError("timing must be one of ('pre', 'post', 'auto')")
+        if timing == 'auto':
+            timing = getattr(hook, 'timing', 'pre')
+
+        if name is None:
+            name = getattr(hook, 'name', getattr(hook, '__name__', None))
+            if name is None:
+                raise ValueError(
+                    'the name of the hook function is not specified')
+        if name in self._pre_update_hooks or name in self._post_update_hooks:
+            raise ValueError('hook "{}" already exists'.format(name))
+
+        if timing == 'pre':
+            self._pre_update_hooks[name] = hook
+        else:
+            self._post_update_hooks[name] = hook
+
+    def remove_hook(self, name):
+        """Removes the specified hook function.
+
+        Args:
+            name (str): Name of the hook function to be removed. The hook
+                function registered with this name will be removed.
+
+        """
+        try:
+            del self._pre_update_hooks[name]
+        except KeyError:
+            del self._post_update_hooks[name]
+
+    def update(self, param):
+        """Invokes hook functions and updates the parameter.
+
+        Args:
+            param (~chainer.Variable): Variable to be updated.
+
+        """
+        if not self.enabled:
+            return
+
+        self.t += 1
+
+        if self._use_fp32_update and param.dtype == numpy.float16:
+            if self._fp32_param is None:
+                self._fp32_param = variable.Variable(
+                    param.array.astype(numpy.float32),
+                    name=param.name)
+            fp32_param = self._fp32_param
+            fp32_param.grad = param.grad.astype(numpy.float32)
+
+            if fp32_param.data is not None:
+                self._prepare(fp32_param)
+            if param._loss_scale is not None:
+                fp32_param.grad /= param._loss_scale
+            for hook in six.itervalues(self._pre_update_hooks):
+                hook(self, fp32_param)
+            self.update_core(fp32_param)
+            for hook in six.itervalues(self._post_update_hooks):
+                hook(self, fp32_param)
+
+            param.data = fp32_param.data.astype(param.dtype)
+            fp32_param.grad = None
+        else:
+            if param.data is not None:
+                self._prepare(param)
+            if param._loss_scale is not None:
+                param.grad /= param._loss_scale
+            for hook in six.itervalues(self._pre_update_hooks):
+                hook(self, param)
+            self.update_core(param)
+            for hook in six.itervalues(self._post_update_hooks):
+                hook(self, param)
+
+    def update_core(self, param):
+        """Updates the parameter.
+
+        Implementation of UpdateRule should override this method or both of
+        :meth:`update_core_cpu` and :meth:`update_core_gpu`.
+
+        Args:
+            param (~chainer.Variable): Variable to be updated.
+
+        """
+        with cuda.get_device_from_array(param.data) as dev:
+            if int(dev) == -1:
+                self.update_core_cpu(param)
+            else:
+                self.update_core_gpu(param)
+
+    def update_core_cpu(self, param):
+        """Updates the parameter on CPU.
+
+        See :meth:`update_core` for details.
+
+        Args:
+            param (~chainer.Variable): Variable to be updated.
+
+        """
+        raise NotImplementedError
+
+    def update_core_gpu(self, param):
+        """Updates the parameter on GPU.
+
+        See :meth:`update_core` for details.
+
+        Args:
+            param (~chainer.Variable): Variable to be updated.
+
+        """
+        raise NotImplementedError
+
+    def init_state(self, param):
+        """Initializes the state.
+
+        Any implementations that use the state should override this mehtod.
+        This method is called at the first update.
+
+        Args:
+            param (~chainer.Variable): Parameter variable. It can be used to
+                extract the shape and the data type of the parameter.
+
+        """
+        pass
+
+    def serialize(self, serializer):
+        """Serializes the update rule state.
+
+        Be careful that this method only saves/loads the state of the update
+        rule. The parameters of the target link is not saved/loaded by this
+        method, and so you need to serialize the target link separately if you
+        want to fully recover the training state including parameters.
+
+        Args:
+            serializer (~chainer.AbstractSerializer): Serializer object.
+
+        """
+        self.t = serializer('t', self.t)
+        if self.state is None:
+            if isinstance(serializer, serializer_module.Deserializer):
+                # try to initialize the state to retrieve state entries
+                self._state = {}
+                self_copy = copy.copy(self)
+                arr = numpy.empty(1, dtype=numpy.float32)
+                self_copy.init_state(variable.Variable(arr, grad=arr))
+
+                for key in self._state:
+                    self._state[key] = serializer(key, None)
+                    # leave the update rule state as `None` if the keys are not
+                    # contained in the snapshot, so that these states can be
+                    # automatically initialized with the `_prepare` method
+                    if self._state[key] is None:
+                        self._state = None
+                        break
+        else:
+            for key in self._state:
+                self._state[key] = serializer(key, self._state[key])
+
+    def _prepare(self, param):
+        with cuda.get_device_from_array(param.data) as device:
+            state = self.state
+            if state is None:
+                state = self._state = {}
+                self.init_state(param)
+
+            for name, value in six.iteritems(state):
+                if not isinstance(value, (numpy.ndarray, cuda.ndarray)):
+                    continue
+                value_device = cuda.get_device_from_array(value)
+                if value_device.id != device.id:
+                    if device.id >= 0:
+                        state[name] = cuda.to_gpu(value)
+                    else:
+                        state[name] = cuda.to_cpu(value)
+
+    def use_fp32_update(self, flag=True):
+        """Enables use of parameter update in fp32.
+
+        This method enables use of parameter update in fp32.
+        When it is enabled and data type of original parameter variable is
+        fp16, fp32 copy of parameter variable is automatically created and
+        retained at self.fp32_param. And the parameter is update in fp32 in
+        the following way.
+
+          1. copys the grad of original parameter variable to the grad of fp32
+             parameter variable, converting its data type from fp16 to fp32.
+          2. updates the parameter in fp32.
+          3. copys the data of fp32 parameter variable to the data of original
+             parameter variable, converting its data type from fp32 to fp16.
+
+        See meth:`update` for details.
+        """
+        self._use_fp32_update = flag
 
 
 class Optimizer(object):
@@ -36,29 +349,37 @@ class Optimizer(object):
     parameters based on a given loss function.
 
     Each optimizer implementation must be defined as a child class of
-    Optimizer. It must override :meth:`update` method. An optimizer can use
-    *internal states* each of which is tied to one of the parameters. State is
-    a dictionary of serializable values (typically arrays of size same as
-    the corresponding parameters). In order to use state dictionaries, the
-    optimizer must override :meth:`init_state` method (or its CPU/GPU versions,
-    :meth:`init_state_cpu` and :meth:`init_state_gpu`).
+    Optimizer. It must override :meth:`update` method.
 
     If the optimizer is based on single gradient computation (like
     most first-order methods), then it should inherit :class:`GradientMethod`,
-    which adds some features dedicated for the first order methods.
+    which adds some features dedicated for the first order methods, including
+    the support of :class:`~chainer.UpdateRule`.
 
     Optimizer instance also supports *hook functions*. Hook function is
     registered by the :meth:`add_hook` method. Each hook function is called
-    in registration order in advance of the actual parameter update.
+    in registration order before of after the actual parameter update
+    (configurable). If the hook function has an attribute
+    ``call_for_each_param`` and its value is ``True``, the hook function is
+    used as a hook function of all update rules (i.e., it is invoked for every
+    parameter by passing the corresponding update rule and the parameter).
 
     Attributes:
-        target: Target link object. It is set by the :meth:`setup` method.
-        t: Number of update steps. It must be incremented by the
+        ~Optimizer.target: Target link object.
+            It is set by the :meth:`setup` method.
+        ~Optimizer.t: Number of update steps. It must be incremented by the
             :meth:`update` method.
-        epoch: Current epoch. It is incremented by the :meth:`new_epoch`
-            method.
+        ~Optimizer.epoch: Current epoch. It is incremented by the
+            :meth:`new_epoch` method.
 
     """
+
+    target = None
+    t = 0
+    epoch = 0
+    _pre_update_hooks = None
+    _post_update_hooks = None
+    _loss_scale = None
 
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
@@ -70,110 +391,36 @@ class Optimizer(object):
         Args:
             link (~chainer.Link): Target link object.
 
+        Returns:
+            The optimizer instance.
+
+        .. note::
+           As of v4.0.0, this function returns the optimizer instance itself
+           so that you can instantiate and setup the optimizer in one line,
+           e.g., ``optimizer = SomeOptimizer().setup(link)``.
+
         """
         if not isinstance(link, link_module.Link):
             raise TypeError('optimization target must be a link')
         self.target = link
         self.t = 0
         self.epoch = 0
-        self._states = {}
-        self._hooks = collections.OrderedDict()
-
-        self.prepare()
-
-    def prepare(self):
-        """Prepares for an update.
-
-        This method initializes missing optimizer states (e.g. for newly added
-        parameters after the set up), and copies arrays in each state
-        dictionary to CPU or GPU according to the corresponding parameter
-        array.
-
-        """
-        states = self._states
-        for name, param in self.target.namedparams():
-            if name not in states:
-                state = {}
-                self.init_state(param, state)
-                states[name] = state
-            else:
-                state = states[name]
-                with cuda.get_device(param.data) as dev:
-                    if int(dev) == -1:  # cpu
-                        for key, value in six.iteritems(state):
-                            if isinstance(value, cuda.ndarray):
-                                state[key] = value.get()
-                    else:  # gpu
-                        cupy = cuda.cupy
-                        for key, value in six.iteritems(state):
-                            if isinstance(value, numpy.ndarray):
-                                state[key] = cuda.to_gpu(value)
-                            elif (isinstance(value, cupy.ndarray) and
-                                  value.device != dev):
-                                state[key] = cupy.copy(value)
-
-    def init_state(self, param, state):
-        """Initializes the optimizer state corresponding to the parameter.
-
-        This method should add needed items to the ``state`` dictionary. Each
-        optimizer implementation that uses its own states should override this
-        method or CPU/GPU dedicated versions (:meth:`init_state_cpu` and
-        :meth:`init_state_gpu`).
-
-        Args:
-            param (~chainer.Variable): Parameter variable.
-            state (dict): State dictionary.
-
-        .. seealso:: :meth:`init_state_cpu`, :meth:`init_state_gpu`
-
-        """
-        with cuda.get_device(param.data) as dev:
-            if int(dev) == -1:
-                self.init_state_cpu(param, state)
-            else:
-                self.init_state_gpu(param, state)
-
-    def init_state_cpu(self, param, state):
-        """Initializes the optimizer state on CPU.
-
-        This method is called from :meth:`init_state` by default.
-
-        Args:
-            param (~chainer.Variable): Parameter variable. Its data array is
-                of type :class:`numpy.ndarray`.
-            state (dict): State dictionary.
-
-        .. seealso:: :meth:`init_state`
-
-        """
-        pass
-
-    def init_state_gpu(self, param, state):
-        """Initializes the optimizer state on GPU.
-
-        This method is called from :meth:`init_state` by default.
-
-        Args:
-            param (~chainer.Variable): Parameter variable. Its data array is
-                of type :class:`cupy.ndarray`.
-            state (dict): State dictionary.
-
-        .. seealso:: :meth:`init_state`
-
-        """
-        pass
+        self._pre_update_hooks = collections.OrderedDict()
+        self._post_update_hooks = collections.OrderedDict()
+        return self
 
     def update(self, lossfun=None, *args, **kwds):
-        """Updates the parameters and optimizer states.
+        """Updates the parameters.
 
-        This method updates the parameters of the target link and corresponding
-        optimizer states. The behavior of this method is different for the
-        cases either ``lossfun`` is given or not.
+        This method updates the parameters of the target link. The behavior of
+        this method is different for the cases either ``lossfun`` is given or
+        not.
 
-        If ``lossfun`` is given, then this method initializes the gradients by
-        zeros, calls it with given extra arguments, and calls the
+        If ``lossfun`` is given, this method typically clears the gradients,
+        calls the loss function with given extra arguments, and calls the
         :meth:`~chainer.Variable.backward` method of its output to compute the
-        gradients. The implementation might call ``lossfun`` more than once.
+        gradients. The actual implementation might call ``lossfun`` more than
+        once.
 
         If ``lossfun`` is not given, then this method assumes that the
         gradients of all parameters are already computed. An implementation
@@ -204,28 +451,49 @@ class Optimizer(object):
         """
         self.epoch += 1
 
-    def add_hook(self, hook, name=None):
+    def add_hook(self, hook, name=None, timing='auto'):
         """Registers a hook function.
 
         Hook function is typically called right after the gradient computation,
-        though the timing depends on the optimization method.
+        though the timing depends on the optimization method, and the timing
+        attribute.
 
         Args:
-            hook (function): Hook function. It accepts the optimizer object.
+            hook (function): Hook function. If ``hook.call_for_each_param`` is
+                true, this hook function is called for each parameter by
+                passing the update rule and the parameter. Otherwise, this hook
+                function is called only once each iteration by passing the
+                optimizer.
             name (str): Name of the registration. If omitted, ``hook.name`` is
                 used by default.
+            timing (str): Specifies when the hook is called. If 'auto', the
+                timimg property of the hook will decide the timing.
+                If 'pre', the hook will be called before any updates.
+                If 'post', the hook will be called after any updates.
 
         """
         if not callable(hook):
             raise TypeError('hook function is not callable')
-        if not hasattr(self, '_hooks'):
+        if self._pre_update_hooks is None or self._post_update_hooks is None:
             raise RuntimeError('call `setup` method before `add_hook` method')
+        if timing not in ('pre', 'post', 'auto'):
+            raise ValueError("timing must be one of ('pre', 'post', 'auto')")
+        if timing == 'auto':
+            timing = getattr(hook, 'timing', None)
+            if timing not in ('pre', 'post'):
+                warnings.warn("Hook timing attribute not in ('pre', 'post'), "
+                              "defaulting timing to 'pre'.")
+                timing = 'pre'
 
         if name is None:
             name = hook.name
-        if name in self._hooks:
-            raise KeyError('hook %s already exists' % name)
-        self._hooks[name] = hook
+        if name in self._pre_update_hooks or name in self._post_update_hooks:
+            raise KeyError('hook "{}" already exists'.format(name))
+
+        if timing == 'pre':
+            self._pre_update_hooks[name] = hook
+        else:
+            self._post_update_hooks[name] = hook
 
     def remove_hook(self, name):
         """Removes a hook function.
@@ -234,11 +502,27 @@ class Optimizer(object):
             name (str): Registered name of the hook function to remove.
 
         """
-        del self._hooks[name]
+        try:
+            del self._pre_update_hooks[name]
+        except KeyError:
+            del self._post_update_hooks[name]
 
-    def call_hooks(self):
+    def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
-        for hook in six.itervalues(self._hooks):
+        if timing not in ('pre', 'post'):
+            raise ValueError("timing must be either 'pre' or 'post'")
+        if timing == 'pre':
+            hooks = self._pre_update_hooks
+        else:
+            hooks = self._post_update_hooks
+        for hook in six.itervalues(hooks):
+            self._call_hook(hook)
+
+    def _call_hook(self, hook):
+        if getattr(hook, 'call_for_each_param', False):
+            for param in self.target.params():
+                hook(param.update_rule, param)
+        else:
             hook(self)
 
     def serialize(self, serializer):
@@ -259,94 +543,14 @@ class Optimizer(object):
         """
         self.t = serializer('t', self.t)
         self.epoch = serializer('epoch', self.epoch)
-        for name, state in six.iteritems(self._states):
-            s = serializer[name]
-            for key, value in six.iteritems(state):
-                state[key] = s(key, value)
+        for name, param in self.target.namedparams():
+            rule = getattr(param, 'update_rule', None)
+            if rule is not None:
+                rule.serialize(serializer[name])
 
-    def zero_grads(self):
-        """Fills all gradient arrays by zeros.
-
-        .. deprecated:: v1.5
-           Use the :meth:`chainer.Link.cleargrads` method for the target link
-           instead.
-
-        """
-        self.target.zerograds()
-
-    def compute_grads_norm(self):
-        """Computes the norm of whole gradients.
-
-        Returns:
-            float: L2 norm of whole gradients, i.e. square root of sum of
-            square of all gradient elements.
-
-        .. warning::
-
-            This method returns a CPU-computed value, which means that this
-            method synchronizes between CPU and GPU if at least one of the
-            gradients reside on the GPU.
-
-        .. deprecated:: v1.5
-
-        """
-        return numpy.sqrt(_sum_sqnorm([p.grad for p in self.target.params()]))
-
-    def clip_grads(self, maxnorm):
-        """Clips the norm of whole gradients up to the threshold.
-
-        Args:
-            maxnorm (float): Threshold of gradient L2 norm.
-
-        .. deprecated:: v1.5
-           Use the :class:`~chainer.optimizer.GradientClipping` hook function
-           instead.
-
-        """
-        GradientClipping(maxnorm)(self)
-
-    def weight_decay(self, decay):
-        """Applies weight decay to the parameter/gradient pairs.
-
-        Args:
-            decay (float): Coefficient of weight decay.
-
-        .. deprecated:: v1.5
-           Use the :class:`~chainer.optimizer.WeightDecay` hook function
-           instead.
-
-        """
-        WeightDecay(decay)(self)
-
-    def accumulate_grads(self, grads):
-        """Accumulates gradients from other source.
-
-        This method just adds given gradient arrays to gradients that this
-        optimizer holds. It is typically used in data-parallel optimization,
-        where gradients for different shards are computed in parallel and
-        aggregated by this method. This method correctly treats multiple GPU
-        devices.
-
-        Args:
-            grads (Iterable): Iterable of gradient arrays to be accumulated.
-
-        .. deprecated:: v1.5
-           Use the :meth:`chainer.Link.addgrads` method of the target link
-           instead.
-
-        """
-        for param, g_src in zip(self.target.params(), grads):
-            g_dst = param.grad
-            if isinstance(g_dst, numpy.ndarray):
-                g_dst += cuda.to_cpu(g_src)
-                continue
-
-            with cuda.get_device(g_dst):
-                if (isinstance(g_src, cuda.ndarray) and
-                        g_dst.device != g_src.device):
-                    g_dst += cuda.copy(g_src, out_device=g_dst.device)
-                else:
-                    g_dst += cuda.to_gpu(g_src)
+    def set_loss_scale(self, loss_scale):
+        """Sets loss scaling factor."""
+        self._loss_scale = loss_scale
 
 
 class GradientMethod(Optimizer):
@@ -356,18 +560,38 @@ class GradientMethod(Optimizer):
     methods that just require the gradient at the current parameter vector on
     an update can be implemented as its child class.
 
-    An implementation of a gradient method must override the following methods:
+    This class uses :class:`~chainer.UpdateRule` to manage the update rule of
+    each parameter. A child class of GradientMethod should override
+    :meth:`create_update_rule` to create the default update rule of each
+    parameter.
 
-    - :meth:`init_state` or both :meth:`init_state_cpu` and
-      :meth:`init_state_gpu`
-    - :meth:`update_one` or both :meth:`update_one_cpu` and
-      :meth:`update_one_gpu`
+    This class also provides :attr:`hyperparam`, which is the hyperparameter
+    used as the default configuration of each update rule. All built-in
+    gradient method implementations also provide proxy properties that act
+    as aliases to the attributes of :attr:`hyperparam`. It is recommended to
+    provide such an alias to each attribute. It can be done by only adding one
+    line for each attribute using :class:`HyperparameterProxy`.
 
-    .. note::
-       It is recommended to call :meth:`use_cleargrads` after creating a
-       :class:`GradientMethod` object for efficiency.
+    Attributes:
+        hyperparam (Hyperparameter): The hyperparameter of the gradient
+            method. It is used as the default configuration of each update
+            rule (i.e., the hyperparameter of each update rule refers this
+            hyperparameter as its parent).
 
     """
+
+    def __init__(self):
+        super(GradientMethod, self).__init__()
+        self.hyperparam = Hyperparameter()
+        self._use_fp32_update = False
+
+    def setup(self, link):
+        super(GradientMethod, self).setup(link)
+        for param in link.params():
+            param.update_rule = self.create_update_rule()
+            if self._use_fp32_update:
+                param.update_rule.use_fp32_update()
+        return self
 
     def reallocate_cleared_grads(self):
         """Reallocate gradients cleared by :meth:`~chainer.Variable.cleargrad`.
@@ -378,16 +602,22 @@ class GradientMethod(Optimizer):
         the optimizer can override this method with a blank function.
 
         """
-        for name, param in self.target.namedparams():
+        for name, param in self.target.namedparams(False):
             if param.grad is None:
-                with cuda.get_device(param.data):
+                with cuda.get_device_from_array(param.data):
                     xp = cuda.get_array_module(param.data)
                     param.grad = xp.zeros_like(param.data)
 
-    def call_hooks(self):
+    def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
-        for hook in six.itervalues(self._hooks):
-            hook(self)
+        if timing not in ('pre', 'post'):
+            raise ValueError("timing must be either 'pre' or 'post'")
+        if timing == 'pre':
+            hooks = self._pre_update_hooks
+        else:
+            hooks = self._post_update_hooks
+        for hook in six.itervalues(hooks):
+            self._call_hook(hook)
             self.reallocate_cleared_grads()
 
     def update(self, lossfun=None, *args, **kwds):
@@ -395,73 +625,37 @@ class GradientMethod(Optimizer):
 
         This method runs in two ways.
 
-        - If ``lossfun`` is given, then use it as a loss function to compute
-          gradients.
+        - If ``lossfun`` is given, then it is used as a loss function to
+          compute gradients.
         - Otherwise, this method assumes that the gradients are already
           computed.
 
         In both cases, the computed gradients are used to update parameters.
-        The actual update routines are defined by the :meth:`update_one`
-        method (or its CPU/GPU versions, :meth:`update_one_cpu` and
-        :meth:`update_one_gpu`).
+        The actual update routines are defined by the update rule of each
+        parameter.
 
         """
         if lossfun is not None:
-            use_cleargrads = getattr(self, '_use_cleargrads', False)
+            use_cleargrads = getattr(self, '_use_cleargrads', True)
             loss = lossfun(*args, **kwds)
             if use_cleargrads:
                 self.target.cleargrads()
             else:
                 self.target.zerograds()
-            loss.backward()
+            loss.backward(loss_scale=self._loss_scale)
             del loss
 
         self.reallocate_cleared_grads()
 
-        self.call_hooks()
-        self.prepare()
+        self.call_hooks('pre')
 
         self.t += 1
-        states = self._states
-        for name, param in self.target.namedparams():
-            with cuda.get_device(param.data):
-                self.update_one(param, states[name])
+        for param in self.target.params():
+            param.update()
 
-    def update_one(self, param, state):
-        """Updates a parameter based on the corresponding gradient and state.
+        self.reallocate_cleared_grads()
 
-        This method calls appropriate one from :meth:`update_param_cpu` or
-        :meth:`update_param_gpu`.
-
-        Args:
-            param (~chainer.Variable): Parameter variable.
-            state (dict): State dictionary.
-
-        """
-        if isinstance(param.data, numpy.ndarray):
-            self.update_one_cpu(param, state)
-        else:
-            self.update_one_gpu(param, state)
-
-    def update_one_cpu(self, param, state):
-        """Updates a parameter on CPU.
-
-        Args:
-            param (~chainer.Variable): Parameter variable.
-            state (dict): State dictionary.
-
-        """
-        raise NotImplementedError
-
-    def update_one_gpu(self, param, state):
-        """Updates a parameter on GPU.
-
-        Args:
-            param (~chainer.Variable): Parameter variable.
-            state (dict): State dictionary.
-
-        """
-        raise NotImplementedError
+        self.call_hooks('post')
 
     def use_cleargrads(self, use=True):
         """Enables or disables use of :func:`~chainer.Link.cleargrads` in `update`.
@@ -471,186 +665,110 @@ class GradientMethod(Optimizer):
                 `cleargrads`. If ``False``, disables use of `cleargrads`
                 (`zerograds` is used).
 
-        .. note::
-           Note that :meth:`update` calls :meth:`~Link.zerograds` by default
-           for backward compatibility. It is recommended to call this method
-           before first call of `update` because `cleargrads` is more
-           efficient than `zerograds`.
+        .. deprecated:: v2.0
+           Note that :meth:`update` calls :meth:`~Link.cleargrads` by default.
+           :meth:`~Link.cleargrads` is more efficient than
+           :meth:`~Link.zerograds`, so one does not have to call
+           :meth:`use_cleargrads`. This method remains for backward
+           compatibility.
 
         """
+        warnings.warn(
+            'GradientMethod.use_cleargrads is deprecated.',
+            DeprecationWarning)
+
         self._use_cleargrads = use
 
+    def create_update_rule(self):
+        """Creates a new update rule object.
 
-class WeightDecay(object):
-    """Optimizer hook function for weight decay regularization.
+        This method creates an update rule object. It is called by
+        :meth:`setup` to set up an update rule of each parameter.
+        Each implementation of the gradient method should override this method
+        to provide the default update rule implementation.
 
-    This hook function adds a scaled parameter to the corresponding gradient.
-    It can be used as a regularization.
+        Return:
+            UpdateRule: Update rule object.
 
-    Args:
-        rate (float): Coefficient for the weight decay.
+        """
+        raise NotImplementedError
 
-    Attributes:
-        rate (float): Coefficient for the weight decay.
-
-    """
-    name = 'WeightDecay'
-
-    def __init__(self, rate):
-        self.rate = rate
-
-    def kernel(self):
-        return cuda.elementwise(
-            'T p, T decay', 'T g', 'g += decay * p', 'weight_decay')
-
-    def __call__(self, opt):
-        rate = self.rate
-        for param in opt.target.params():
-            p, g = param.data, param.grad
-            with cuda.get_device(p) as dev:
-                if int(dev) == -1:
-                    g += rate * p
-                else:
-                    self.kernel()(p, rate, g)
+    def use_fp32_update(self, flag=True):
+        """Enables use of parameter update in fp32."""
+        self._use_fp32_update = flag
+        link = getattr(self, "target", None)
+        if link is not None:
+            for param in link.params():
+                param.update_rule.use_fp32_update()
 
 
-class Lasso(object):
-    """Optimizer hook function for Lasso regularization.
+class HyperparameterProxy(object):
 
-    This hook function adds a scaled parameter to the sign of each weight.
-    It can be used as a regularization.
+    """Property that acts as an alias to an attribute of the hyperparameter.
+
+    This class is used to define a property of an implementation of
+    :class:`GradientMethod` that acts as an alias to an attribute of the
+    hyperparameter.
 
     Args:
-        rate (float): Coefficient for the weight decay.
-
-    Attributes:
-        rate (float): Coefficient for the weight decay.
+        attr_name (str): Name of the attribute of the hyperparameter.
 
     """
-    name = 'Lasso'
 
-    def __init__(self, rate):
-        self.rate = rate
+    def __init__(self, attr_name):
+        self._attr_name = attr_name
+        self.__doc__ = 'Alias to ``self.hyperparam.{}``'.format(attr_name)
 
-    def kernel(self):
-        return cuda.elementwise(
-            'T s, T decay', 'T g', 'g += decay * s', 'lasso')
+    def __get__(self, obj, type=None):
+        if obj is None:
+            return self
+        return getattr(obj.hyperparam, self._attr_name)
 
-    def __call__(self, opt):
-        rate = self.rate
-        for param in opt.target.params():
-            p, g = param.data, param.grad
-            xp = cuda.get_array_module(p)
-            sign = xp.sign(p)
-            with cuda.get_device(p) as dev:
-                if int(dev) == -1:
-                    g += rate * sign
-                else:
-                    self.kernel()(sign, rate, g)
+    def __set__(self, obj, value):
+        setattr(obj.hyperparam, self._attr_name, value)
 
 
-class GradientClipping(object):
-    """Optimizer hook function for gradient clipping.
-
-    This hook function scales all gradient arrays to fit to the defined L2 norm
-    threshold.
-
-    Args:
-        threshold (float): L2 norm threshold.
-
-    Attributes:
-        threshold (float): L2 norm threshold of gradient norm.
-
-    """
-    name = 'GradientClipping'
-
-    def __init__(self, threshold):
-        self.threshold = threshold
-
-    def __call__(self, opt):
-        norm = numpy.sqrt(_sum_sqnorm([p.grad for p in opt.target.params()]))
-        rate = self.threshold / norm
-        if rate < 1:
-            for param in opt.target.params():
-                grad = param.grad
-                with cuda.get_device(grad):
-                    grad *= rate
+def make_deprecation_message(module_name):
+    return ('chainer.optimizer.{0} is deprecated from v4. '
+            'Use chainer.optimizer_hooks.{0} instead.'
+            ''.format(module_name))
 
 
-class GradientNoise(object):
-    """Optimizer hook function for adding gradient noise.
+class WeightDecay(optimizer_hooks.WeightDecay):
 
-    This hook function simply adds noise generated by the ``noise_func``
-    to the gradient. By default it adds time-dependent annealed Gaussian
-    noise to the gradient at every training step:
-
-    .. math::
-
-        g_t \\leftarrow g_t + N(0, \\sigma_t^2)
-
-    where
-
-    .. math::
-
-        \\sigma_t^2 = \\frac{\\eta}{(1+t)^\\gamma}
-
-    with :math:`\\eta` selected from {0.01, 0.3, 1.0} and
-    :math:`\\gamma = 0.55`.
-
-    Args:
-        eta (float): Parameter that defines the scale of the noise, which for
-            the default noise function is recommended to be either 0.01, 0.3
-            or 1.0.
-        noise_func (function): Noise generating function which by default
-            is given by `Adding Gradient Noise Improves Learning for Very Deep\
-            Networks <https://arxiv.org/pdf/1511.06807>`_.
-    """
-    name = 'GradientNoise'
-
-    def __init__(self, eta, noise_func=exponential_decay_noise):
-        self.eta = eta
-        self.noise_func = noise_func
-
-    def kernel(self):
-        return cuda.elementwise(
-            'T noise', 'T g', 'g += noise', 'gradient_noise')
-
-    def __call__(self, opt):
-        for param in opt.target.params():
-            g = param.grad
-            xp = cuda.get_array_module(g)
-            with cuda.get_device(g) as dev:
-                noise = self.noise_func(xp, g.shape, g.dtype, self, opt)
-                if int(dev) == -1:
-                    g += noise
-                else:
-                    self.kernel()(noise, g)
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('WeightDecay'),
+                      DeprecationWarning)
+        return super(WeightDecay, self).__init__(*args, **kwargs)
 
 
-class GradientHardClipping(object):
-    """Optimizer hook function for gradient clipping.
+class Lasso(optimizer_hooks.Lasso):
 
-    This hook function clips all gradient arrays to be within a lower and upper
-    bound.
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('Lasso'),
+                      DeprecationWarning)
+        return super(Lasso, self).__init__(*args, **kwargs)
 
-    Args:
-        lower_bound (float): The lower bound of the gradient value.
-        upper_bound (float): The upper bound of the gradient value.
 
-    Attributes:
-        lower_bound (float): The lower bound of the gradient value.
-        upper_bound (float): The upper bound of the gradient value.
+class GradientClipping(optimizer_hooks.GradientClipping):
 
-    """
-    name = 'GradientHardClipping'
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('GradientClipping'),
+                      DeprecationWarning)
+        return super(GradientClipping, self).__init__(*args, **kwargs)
 
-    def __init__(self, lower_bound, upper_bound):
-        self.lower_bound = lower_bound
-        self.upper_bound = upper_bound
 
-    def __call__(self, opt):
-        xp = opt.target.xp
-        for param in opt.target.params():
-            grad = param.grad
-            with cuda.get_device(grad):
-                xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
+class GradientNoise(optimizer_hooks.GradientNoise):
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('GradientNoise'),
+                      DeprecationWarning)
+        return super(GradientNoise, self).__init__(*args, **kwargs)
+
+
+class GradientHardClipping(optimizer_hooks.GradientHardClipping):
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('GradientHardClipping'),
+                      DeprecationWarning)
+        return super(GradientHardClipping, self).__init__(*args, **kwargs)

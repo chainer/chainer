@@ -1,6 +1,6 @@
 import heapq
 
-from chainer import function
+from chainer import function_node
 from chainer import variable
 
 _var_style = {'shape': 'octagon', 'fillcolor': '#E0E0E0', 'style': 'filled'}
@@ -14,7 +14,7 @@ class DotNode(object):
     with some utilities for dot language.
 
     Args:
-        node: :class: `Variable` object or :class: `Function` object.
+        node: :class: `VariableNode` object or :class: `FunctionNode` object.
         attribute (dict): Attributes for the node.
         show_name (bool): If `True`, the `name` attribute of the node is added
             to the label. Default is `True`.
@@ -22,12 +22,13 @@ class DotNode(object):
     """
 
     def __init__(self, node, attribute=None, show_name=True):
-        assert isinstance(node, (variable.Variable, function.Function))
+        assert isinstance(node, (variable.VariableNode,
+                                 function_node.FunctionNode))
         self.node = node
         self.id_ = id(node)
         self.attribute = {'label': node.label}
-        if isinstance(node, variable.Variable):
-            if show_name and hasattr(node, 'name') and node.name is not None:
+        if isinstance(node, variable.VariableNode):
+            if show_name and node.name is not None:
                 self.attribute['label'] = '{}: {}'.format(
                     node.name, self.attribute['label'])
             self.attribute.update({'shape': 'oval'})
@@ -56,22 +57,22 @@ class ComputationalGraph(object):
 
     .. note::
 
-      We assume that the computational graph is directed and acyclic.
+        We assume that the computational graph is directed and acyclic.
 
     Args:
         nodes (list): List of nodes. Each node is either
-             :class:`Variable` object or :class:`Function` object.
+             :class:`VariableNode` object or :class:`Function` object.
         edges (list): List of edges. Each edge consists of pair of nodes.
         variable_style (dict): Dot node style for variable.
         function_style (dict): Dot node style for function.
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
-        remove_variable (bool): If `True`, :class:`~chainer.Variable`s are
+        remove_variable (bool): If ``True``, :class:`~chainer.Variable`\\ s are
             removed from the resulting computational graph. Only
-            :class:`~chainer.Function`s are shown in the output.
-        show_name (bool): If `True`, the `name` attribute of each node is
-            added to the label of the node. Default is `True`.
+            :class:`~chainer.Function`\\ s are shown in the output.
+        show_name (bool): If ``True``, the ``name`` attribute of each node is
+            added to the label of the node. Default is ``True``.
 
     .. note::
 
@@ -111,8 +112,9 @@ class ComputationalGraph(object):
             self.nodes, self.edges = _skip_variable(self.nodes, self.edges)
 
         for node in self.nodes:
-            assert isinstance(node, (variable.Variable, function.Function))
-            if isinstance(node, variable.Variable):
+            assert isinstance(node, (variable.VariableNode,
+                                     function_node.FunctionNode))
+            if isinstance(node, variable.VariableNode):
                 if not self.remove_variable:
                     ret += DotNode(
                         node, self.variable_style, self.show_name).label
@@ -122,18 +124,18 @@ class ComputationalGraph(object):
         drawn_edges = []
         for edge in self.edges:
             head, tail = edge
-            if (isinstance(head, variable.Variable) and
-                    isinstance(tail, function.Function)):
+            if (isinstance(head, variable.VariableNode) and
+                    isinstance(tail, function_node.FunctionNode)):
                 head_attr = self.variable_style
                 tail_attr = self.function_style
-            elif (isinstance(head, function.Function) and
-                  isinstance(tail, variable.Variable)):
+            elif (isinstance(head, function_node.FunctionNode) and
+                  isinstance(tail, variable.VariableNode)):
                 head_attr = self.function_style
                 tail_attr = self.variable_style
             else:
                 if not self.remove_variable:
                     raise TypeError('head and tail should be the set of '
-                                    'Variable and Function')
+                                    'VariableNode and Function')
                 else:
                     head_attr = self.function_style
                     tail_attr = self.function_style
@@ -168,19 +170,19 @@ def _skip_variable(nodes, edges):
     func_edges = []
     for edge_i, edge in enumerate(edges):
         head, tail = edge
-        if isinstance(head, variable.Variable):
-            if head.creator is not None:
-                head = head.creator
+        if isinstance(head, variable.VariableNode):
+            if head.creator_node is not None:
+                head = head.creator_node
             else:
                 continue
-        if isinstance(tail, variable.Variable):
+        if isinstance(tail, variable.VariableNode):
             for node in nodes:
-                if isinstance(node, function.Function):
+                if isinstance(node, function_node.FunctionNode):
                     for input_var in node.inputs:
                         if input_var is tail:
                             tail = node
                             break
-                    if isinstance(tail, function.Function):
+                    if isinstance(tail, function_node.FunctionNode):
                         break
             else:
                 continue
@@ -196,8 +198,9 @@ def build_computational_graph(
 
     Args:
         outputs(list): nodes from which the graph is constructed.
-            Each element of outputs must be either :class:`Variable`
-            object or :class:`Function` object.
+            Each element of outputs must be either :class:`~chainer.Variable`
+            object, :class:`~chainer.variable.VariableNode` object, or
+            :class:`~chainer.Function` object.
         remove_split(bool): It must be ``True``. This argument is left for
             backward compatibility.
         variable_style(dict): Dot node style for variable.
@@ -206,11 +209,11 @@ def build_computational_graph(
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
-        remove_variable (bool): If `True`, :class:`~chainer.Variable`s are
+        remove_variable (bool): If ``True``, :class:`~chainer.Variable`\\ s are
             removed from the resulting computational graph. Only
-            :class:`~chainer.Function`s are shown in the output.
-        show_name (bool): If `True`, the `name` attribute of each node is
-            added to the label of the node. Default is `True`.
+            :class:`~chainer.Function`\\ s are shown in the output.
+        show_name (bool): If ``True``, the ``name`` attribute of each node is
+            added to the label of the node. Default is ``True``.
 
     Returns:
         ComputationalGraph: A graph consisting of nodes and edges that
@@ -255,42 +258,32 @@ def build_computational_graph(
     nodes = set()
     push_count = [0]
 
-    # This class is for object that has not been implemented __eq__
-    class HashableObject(object):
-
-        def __init__(self, v):
-            self.v = v
-
-        def __hash__(self):
-            return self.v.__hash__()
-
-        def __eq__(self, r):
-            return self.v is r.v
-
     def add_cand(cand):
         heapq.heappush(cands, (-cand.rank, push_count[0], cand))
         push_count[0] += 1
 
     for o in outputs:
+        if isinstance(o, variable.Variable):
+            o = o.node
         add_cand(o)
-        nodes.add(HashableObject(o))
+        nodes.add(o)
 
     while cands:
         _, _, cand = heapq.heappop(cands)
-        if isinstance(cand, variable.Variable):
-            creator = cand.creator
+        if isinstance(cand, variable.VariableNode):
+            creator = cand.creator_node
             if creator is not None and (creator, cand) not in seen_edges:
                 add_cand(creator)
                 seen_edges.add((creator, cand))
-                nodes.add(HashableObject(creator))
-                nodes.add(HashableObject(cand))
-        elif isinstance(cand, function.Function):
+                nodes.add(creator)
+                nodes.add(cand)
+        elif isinstance(cand, function_node.FunctionNode):
             for input_ in cand.inputs:
                 if input_ is not cand and (input_, cand) not in seen_edges:
                     add_cand(input_)
                     seen_edges.add((input_, cand))
-                    nodes.add(HashableObject(input_))
-                    nodes.add(HashableObject(cand))
+                    nodes.add(input_)
+                    nodes.add(cand)
     return ComputationalGraph(
-        list(i.v for i in nodes), list(seen_edges), variable_style,
+        list(nodes), list(seen_edges), variable_style,
         function_style, rankdir, remove_variable, show_name)

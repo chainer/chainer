@@ -1,17 +1,12 @@
 import collections
 
-try:
-    import theano
-    _available = True
-except ImportError:
-    _available = False
-
 from chainer.functions.theano import theano_function
 from chainer import link
 from chainer import utils
 
 
 def _to_var_tuple(vs):
+    import theano
     msg = ('inputs and outputs must be a TensorVariable, a list '
            'of TensorVariable or a tuple of TensorVariable')
 
@@ -30,7 +25,11 @@ class TheanoFunction(link.Link):
 
     """Theano function wrapper.
 
-    This function wrapps Theano function as a :class:`chainer.Link`.
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    This function wraps Theano function as a :class:`chainer.Link`.
     A user needs to make input Theano variables and output Theano variables.
     This function automatically creates Theano function for forward calculation
     and backward calculation from inputs and ouptuts. And then, it sends data
@@ -44,11 +43,11 @@ class TheanoFunction(link.Link):
        >>> z = x + y
        >>> w = x - y
        >>> f = L.TheanoFunction(inputs=[x, y], outputs=[z, w])
-       >>> a = chainer.Variable(numpy.array([1, 2], dtype='f'))
-       >>> b = chainer.Variable(numpy.array([2, 3], dtype='f'))
+       >>> a = chainer.Variable(np.array([1, 2], dtype=np.float32))
+       >>> b = chainer.Variable(np.array([2, 3], dtype=np.float32))
        >>> c, d = f(a, b)
        >>> c.data
-       array([ 3.,  5.], dtype=float32)
+       array([3., 5.], dtype=float32)
        >>> d.data
        array([-1., -1.], dtype=float32)
 
@@ -57,18 +56,24 @@ class TheanoFunction(link.Link):
        The current implementation always copys :class:`cupy.ndarray` to CPU.
 
     Args:
-        inputs (tuple of ~theano.tensor.TensorVariable): Input variables of
+        inputs (tuple of ``theano.tensor.TensorVariable``): Input variables of
             Theano. This function accepts the same number of
-            :class:`~chainer.Variable`s in forward computation.
-        outputs (tuple of ~theano.tensor.TensorVariable): Output variables of
-            Theano. The function returns the same number
-            :class:`~chainder.Variable`s as ``outputs``.
+            :class:`~chainer.Variable`\\ s in forward computation.
+        outputs (tuple of ``theano.tensor.TensorVariable``):
+            Output variables of Theano.
+            The function returns the same number of
+            :class:`~chainer.Variable`\\ s as ``outputs``.
 
     """
 
     def __init__(self, inputs, outputs):
         utils.experimental('chainer.links.TheanoFunction')
-        if not _available:
+        try:
+            # When Theano library is imported, it executes a lot of
+            # initialization process. To minimize its side effect,
+            # we need import theano here.
+            import theano
+        except ImportError:
             msg = '''theano is not installed on your environment.
 Please install theano to activate theano function.
 

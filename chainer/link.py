@@ -1,13 +1,15 @@
 import collections
+import contextlib
 import copy
 import warnings
 
 import numpy
 import six
 
-from chainer import cuda
+import chainer
+from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import initializers
-import chainer.serializer
 from chainer import variable
 
 
@@ -24,13 +26,11 @@ def _is_shape(value):
     except TypeError:
         return False
 
-    return False
-
 
 def _ensure_shape_dtype(value):
     # Return value paired with dtype FP32 if it is a shape.
     if _is_shape(value):
-        return (value, 'f')
+        return value, 'f'
     # Otherwise, returns it with assuming a shape-dtype pair.
     else:
         return value
@@ -46,10 +46,16 @@ class Link(object):
 
     Link is the primitive structure for the model definitions. It supports
     management of parameter variables and *persistent values* that should be
-    incorporated to serialization. Parameters are variables registered via
-    the :meth:`add_param` method, or given to the initializer method.
+    incorporated to serialization.
+
+    Parameter is an instance of :class:`~chainer.Parameter` registered to a
+    link. A :class:`~chainer.Parameter` object can be registered as a
+    parameter of the link by assigning it to an attribute within *an
+    initialization scope*, which is a code surrounded by a
+    :meth:`init_scope` context manager using the ``with`` statement.
+
     Persistent values are arrays, scalars, or any other serializable values
-    registered via the :meth:`add_persistent` method.
+    registered via :meth:`register_persistent` or :meth:`add_persistent`.
 
     .. note::
        Whereas arbitrary serializable objects can be registered as persistent
@@ -89,47 +95,50 @@ class Link(object):
 
           import chainer
           import chainer.functions as F
+          from chainer import initializers
           import numpy as np
 
           class LinearLayer(chainer.Link):
 
               def __init__(self, n_in, n_out):
-                  # Parameters are initialized as a numpy array of given shape.
-                  super(LinearLayer, self).__init__(
-                      W=(n_out, n_in),
-                      b=(n_out,),
-                  )
-                  self.W.data[...] = np.random.randn(n_out, n_in)
-                  self.b.data.fill(0)
+                  super(LinearLayer, self).__init__()
+                  with self.init_scope():
+                      self.W = chainer.Parameter(
+                          initializers.Normal(), (n_out, n_in))
+                      self.b = chainer.Parameter(
+                          initializers.Zero(), (n_out,))
 
               def __call__(self, x):
                   return F.linear(x, self.W, self.b)
 
        This example shows that a user can define arbitrary parameters and use
        them in any methods. Links typically implement the ``__call__``
-       operator.
+       operator, although they can also provide other methods to implement the
+       forward propagation.
 
     Args:
-        params: Names, shapes, and optional dtypes of initial parameters. The
-            keywords are used as the parameter names and the corresponding
-            values consist either of the shape or a tuple of shape and a dtype
-            `(shape, dtype)`. If only the shape is supplied, the default dtype
-            will be used.
+        params: *(deprecated since v2.0.0)* Names, shapes, and optional dtypes
+            of initial parameters. The keywords are used as the parameter
+            names and the corresponding values consist either of the shape or
+            a tuple of shape and a dtype ``(shape, dtype)``. If only the shape
+            is supplied, the default dtype will be used.
 
     Attributes:
-        name (str): Name of this link, given by the parent chain (if exists).
+        ~Link.name (str): Name of this link, given by the parent chain (if
+            exists).
 
     """
 
     def __init__(self, **params):
-        self._params = []
-        self._persistent = []
-        self._uninitialized_params = {}
+        self._params = set()
+        self._persistent = set()
         self._cpu = True
         self._device_id = None
+        self._within_init_scope = False
         self.name = None
 
         for name, value in six.iteritems(params):
+            # Note: deprecation warning will be raised in add_param
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
 
@@ -143,103 +152,113 @@ class Link(object):
         """
         return numpy if self._cpu else cuda.cupy
 
-    def add_param(self, name, shape, dtype=numpy.float32, initializer=None):
+    @property
+    def within_init_scope(self):
+        """True if the current code is inside of an initialization scope.
+
+        See :meth:`init_scope` for the details of the initialization scope.
+
+        """
+        return getattr(self, '_within_init_scope', False)
+
+    @contextlib.contextmanager
+    def init_scope(self):
+        """Creates an initialization scope.
+
+        This method returns a context manager object that enables registration
+        of parameters (and links for :class:`~chainer.Chain`) by an assignment.
+        A :class:`~chainer.Parameter` object can be automatically registered
+        by assigning it to an attribute under this context manager.
+
+        .. admonition:: Example
+
+           In most cases, the parameter registration is done in the
+           initializer method. Using the ``init_scope`` method, we can
+           simply assign a :class:`~chainer.Parameter` object to register
+           it to the link.
+
+           .. code-block:: python
+
+              class MyLink(chainer.Link):
+                  def __init__(self):
+                      super().__init__()
+                      with self.init_scope():
+                          self.W = chainer.Parameter(0, (10, 5))
+                          self.b = chainer.Parameter(0, (5,))
+
+        """
+        old_flag = self.within_init_scope
+        self._within_init_scope = True
+        try:
+            yield
+        finally:
+            self._within_init_scope = old_flag
+
+    def __setattr__(self, name, value):
+        if self.within_init_scope and isinstance(value, variable.Parameter):
+            value.name = name
+            if not self._cpu:
+                value.to_gpu(self._device_id)
+            self._params.add(name)
+            self._persistent.discard(name)
+        super(Link, self).__setattr__(name, value)
+
+    def __delattr__(self, name):
+        self._params.discard(name)
+        self._persistent.discard(name)
+        super(Link, self).__delattr__(name)
+
+    def add_param(self, name, shape=None, dtype=numpy.float32,
+                  initializer=None):
         """Registers a parameter to the link.
 
-        The registered parameter is saved and loaded on serialization and
-        deserialization, and involved in the optimization. The data and
-        gradient of the variable are initialized by NaN arrays.
-        If ``initializer`` is not ``None``, the data is initialized by
-        ``initializer``.
+        .. deprecated:: v2.0.0
 
-        If the supplied ``name`` argument corresponds to an uninitialized
-        parameter (that is, one that was added with the
-        :meth:`add_uninitialized_param` method), ``name`` will be removed
-        from the set of uninitialized parameters.
+           Assign a :class:`~chainer.Parameter` object directly to an
+           attribute within :meth:`~chainer.Link.init_scope` instead.
+           For example, the following code
 
-        The parameter is set to an attribute of the link with the given name.
+           .. code-block:: python
+
+               link.add_param('W', shape=(5, 3))
+
+           can be replaced by the following assignment.
+
+           .. code-block:: python
+
+               with link.init_scope():
+                   link.W = chainer.Parameter(None, (5, 3))
+
+           The latter is easier for IDEs to keep track of the attribute's
+           type.
 
         Args:
             name (str): Name of the parameter. This name is also used as the
-                attribute name. Any uninitialized parameters with the same
-                name will be removed.
-            shape (int or tuple of ints): Shape of the parameter array.
+                attribute name.
+            shape (int or tuple of ints): Shape of the parameter array. If it
+                is omitted, the parameter variable is left uninitialized.
             dtype: Data type of the parameter array.
-            initializer(chainer.initializer.Initializer): If it is not
-                ``None``, the data is initialized with the given initializer.
-                Note that in this case ``dtype`` argument is ignored.
+            initializer: If it is not ``None``, the data is initialized with
+                the given initializer. If it is an array, the data is directly
+                initialized by it. If it is callable, it is used as a weight
+                initializer. Note that in these cases, ``dtype`` argument is
+                ignored.
 
         """
-        d = self.__dict__
-        if name in d:
+        warnings.warn('''\
+Parameter registeration via Link.__init__ and Link.add_param are deprecated.
+Assign a Parameter object directly to an attribute within a \
+"with Link.init_scope():" block instead.
+''', DeprecationWarning)
+        if name in self.__dict__:
             raise AttributeError(
                 'cannot register a new parameter %s: attribute exists'
                 % name)
         if initializer is None:
-            data = self.xp.full(shape, numpy.nan, dtype=dtype)
-        else:
-            data = initializers.generate_array(initializer, shape, self.xp)
-        u = self._uninitialized_params.get(name)
-        if u is None:
-            grad = self.xp.full_like(data, numpy.nan)
-        else:
-            if u._cleared:
-                grad = None
-            elif u._zeroed:
-                grad = self.xp.zeros_like(data)
-            else:
-                grad = self.xp.full_like(data, numpy.nan)
-        var = variable.Variable(data, volatile='auto', name=name)
-        var.grad = grad
-        self._params.append(name)
-        d[name] = var
-        if name in self._uninitialized_params:
-            del self._uninitialized_params[name]
-
-    def add_uninitialized_param(self, name):
-        """Registers an uninitialized parameter to the link.
-
-        An uninitialized parameter is defined as a parameter that has a name
-        but that does not yet have a shape. If the shape of a parameter
-        depends on the shape of the inputs to the ``__call__`` operator,
-        it can be useful to defer initialization (that is, setting the shape)
-        until the first forward call of the link. Such parameters are
-        intended to be defined as uninitialized parameters in the initializer
-        and then initialized during the first forward call.
-
-        An uninitialized parameter is intended to be registered to a link by
-        calling this method in the initializer method. Then, during the
-        first forward call, the shape of the parameter will be determined
-        from the size of the inputs and the parameter must be initialized by
-        calling the :meth:`add_param` method.
-
-        Args:
-            name: (str): Name of the uninitialized parameter.
-
-        """
-        class uninitialized_param(object):
-
-            def __init__(self):
-                self._cleared = False
-                self._zeroed = False
-
-        d = self.__dict__
-        if (name in self._uninitialized_params) or (name in d):
-            raise AttributeError(
-                'cannot register a new uninitialized parameter %s: exists'
-                % name)
-        self._uninitialized_params[name] = uninitialized_param()
-
-    @property
-    def has_uninitialized_params(self):
-        """Check if the link has uninitialized parameters.
-
-        Returns:
-            bool: ``True`` if the link has any uninitialized parameters.
-            Otherwise returns ``False``.
-
-        """
-        return len(self._uninitialized_params) > 0
+            initializer = initializers.NaN(dtype)
+        param = variable.Parameter(initializer, shape)
+        with self.init_scope():
+            setattr(self, name, param)
 
     def add_persistent(self, name, value):
         """Registers a persistent value to the link.
@@ -258,34 +277,80 @@ class Link(object):
             raise AttributeError(
                 'cannot register a new persistent value %s: attribute exists'
                 % name)
-        self._persistent.append(name)
+        self._persistent.add(name)
+        self._params.discard(name)
         d[name] = value
 
-    def copy(self):
+    def register_persistent(self, name):
+        """Registers an attribute of a given name as a persistent value.
+
+        This is a convenient method to register an existing attribute as a
+        persistent value. If ``name`` has been already registered as a
+        parameter, this method removes it from the list of parameter names
+        and re-registers it as a persistent value.
+
+        Args:
+            name (str): Name of the attribute to be registered.
+
+        """
+        if not hasattr(self, name):
+            raise AttributeError(
+                'cannot register non-existent attribute %s as a persistent '
+                'value' % name)
+        self._persistent.add(name)
+        self._params.discard(name)
+
+    def copy(self, mode='share'):
         """Copies the link hierarchy to new one.
 
-        The whole hierarchy rooted by this link is copied. The copy is
-        basically shallow, except that the parameter variables are also
-        shallowly copied. It means that the parameter variables of copied one
-        are different from ones of original link, while they share the data and
-        gradient arrays.
+        The whole hierarchy rooted by this link is copied. There are three
+        modes to perform copy. Please see the document for the argument
+        ``mode`` below.
 
         The name of the link is reset on the copy, since the copied instance
         does not belong to the original parent chain (even if exists).
+
+        Args:
+            mode (str): It should be either ``init``, ``copy``, or ``share``.
+                ``init`` means parameter variables under the returned link
+                object is re-initialized by calling their
+                :meth:`~chainer.Parameter.initialize` method, so that all the
+                parameters may have different initial values from the original
+                link.
+                ``copy`` means that the link object is deeply copied, so that
+                its parameters are not re-initialized but are also deeply
+                copied. Thus, all parameters have same initial values but can
+                be changed independently.
+                ``share`` means that the link is shallowly copied, so that its
+                parameters' arrays are shared with the original one. Thus,
+                their values are changed synchronously. The default ``mode``
+                is ``share``.
 
         Returns:
             Link: Copied link object.
 
         """
-        ret = copy.copy(self)
-        ret._params = list(self._params)
-        ret._persistent = list(self._persistent)
-        ret.name = None
-        d = ret.__dict__
-        for name in ret._params:
-            d[name] = copy.copy(d[name])
-            d[name].grad = None
-        return ret
+        if mode == 'share':
+            ret = copy.copy(self)
+            ret._params = set(self._params)
+            ret._persistent = set(self._persistent)
+            ret.name = None
+            d = ret.__dict__
+            for name in ret._params:
+                d[name] = copy.copy(d[name])
+                d[name].grad = None
+            return ret
+        elif mode == 'copy':
+            return copy.deepcopy(self)
+        elif mode == 'init':
+            ret = copy.deepcopy(self)
+            for param in ret.params(include_uninit=False):
+                param.initialize(param.shape)
+            return ret
+        else:
+            raise ValueError(
+                'The \'mode\' argument should be either \'init\','
+                '\'copy\', or \'share\'. But {} was given.'.format(mode))
 
     def to_cpu(self):
         """Copies parameter variables and persistent values to CPU.
@@ -297,8 +362,6 @@ class Link(object):
         Returns: self
 
         """
-        if self._cpu:
-            return self
         d = self.__dict__
         for name in self._params:
             d[name].to_cpu()
@@ -306,6 +369,8 @@ class Link(object):
             value = d[name]
             if isinstance(value, cuda.ndarray):
                 d[name] = value.get()
+            elif isinstance(value, intel64.mdarray):
+                d[name] = numpy.array(value)
         self._cpu = True
         self._device_id = None
         return self
@@ -328,19 +393,44 @@ class Link(object):
         if not self._cpu:
             return self
         d = self.__dict__
-        with cuda.get_device(device):
+        with cuda._get_device(device):
             for name in self._params:
                 d[name].to_gpu()
             for name in self._persistent:
                 value = d[name]
+                if isinstance(value, intel64.mdarray):
+                    value = numpy.array(value)
                 if isinstance(value, numpy.ndarray):
                     d[name] = cuda.to_gpu(value)
             self._device_id = cuda.cupy.cuda.get_device_id()
         self._cpu = False
         return self
 
-    def params(self):
+    def to_intel64(self):
+        """Copies parameter variables and persistent values to CPU."""
+        intel64.check_ideep_available()
+        d = self.__dict__
+        for name in self._params:
+            d[name].to_intel64()
+        for name in self._persistent:
+            value = d[name]
+            if isinstance(value, cuda.ndarray):
+                value = value.get()  # to numpy.ndarray
+            if (isinstance(value, numpy.ndarray) and
+                    intel64.inputs_all_ready((value,))):
+                value = intel64.ideep.array(
+                    value, itype=intel64.ideep.wgt_array)
+            d[name] = value
+        self._cpu = True
+        self._device_id = None
+        return self
+
+    def params(self, include_uninit=True):
         """Returns a generator of all parameters under the link hierarchy.
+
+        Args:
+            include_uninit (bool): If ``True``, it also generates uninitialized
+                parameters.
 
         Returns:
             A generator object that generates all parameters.
@@ -348,10 +438,15 @@ class Link(object):
         """
         d = self.__dict__
         for name in self._params:
-            yield d[name]
+            if include_uninit or d[name].data is not None:
+                yield d[name]
 
-    def namedparams(self):
+    def namedparams(self, include_uninit=True):
         """Returns a generator of all (path, param) pairs under the hierarchy.
+
+        Args:
+            include_uninit (bool): If ``True``, it also generates uninitialized
+                parameters.
 
         Returns:
             A generator object that generates all (path, parameter) pairs. The
@@ -360,7 +455,8 @@ class Link(object):
         """
         d = self.__dict__
         for name in self._params:
-            yield '/' + name, d[name]
+            if include_uninit or d[name].data is not None:
+                yield '/' + name, d[name]
 
     def links(self, skipself=False):
         """Returns a generator of all links under the hierarchy.
@@ -415,12 +511,6 @@ class Link(object):
         dst = self.__dict__
         for name in self._params:
             dst[name].copydata(src[name])
-        # tuple() here is needed to avoid conflicts with add_param
-        for name in tuple(self._uninitialized_params):
-            if name in src:
-                src_param = src[name]
-                self.add_param(name, src_param.shape, src_param.dtype)
-                dst[name].copydata(src_param)
 
     def cleargrads(self):
         """Clears all gradient arrays.
@@ -431,9 +521,6 @@ class Link(object):
         """
         for param in self.params():
             param.cleargrad()
-        for link in self.links():
-            for param in link._uninitialized_params.values():
-                param._cleared = True
 
     def zerograds(self):
         """Initializes all gradient arrays by zero.
@@ -450,9 +537,6 @@ class Link(object):
             DeprecationWarning)
         for param in self.params():
             param.zerograd()
-        for link in self.links():
-            for param in link._uninitialized_params.values():
-                param._zeroed = True
 
     def addgrads(self, link):
         """Accumulates gradient values from given link.
@@ -470,6 +554,39 @@ class Link(object):
         for name in self._params:
             dst[name].addgrad(src[name])
 
+    def enable_update(self):
+        """Enables update rules of all parameters under the link hierarchy.
+
+        This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
+        update rule of each parameter variable to ``True``.
+
+        """
+        for param in self.params():
+            rule = param.update_rule
+            if rule is not None:
+                rule.enabled = True
+
+    def disable_update(self):
+        """Disables update rules of all parameters under the link hierarchy.
+
+        This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
+        update rule of each parameter variable to ``False``.
+
+        """
+        for param in self.params():
+            rule = param.update_rule
+            if rule is not None:
+                rule.enabled = False
+
+    @property
+    def update_enabled(self):
+        """``True`` if at least one parameter has an update rule enabled."""
+        for param in self.params():
+            rule = param.update_rule
+            if rule is not None and rule.enabled:
+                return True
+        return False
+
     def serialize(self, serializer):
         """Serializes the link object.
 
@@ -479,22 +596,108 @@ class Link(object):
         """
         d = self.__dict__
         for name in self._params:
-            serializer(name, d[name].data)
+            param = d[name]
+            data = serializer(name, param.data)
+            if param.data is None and data is not None:
+                # Initialize the parameter here
+                param.initialize(data.shape)
+                if isinstance(param.data, numpy.ndarray):
+                    numpy.copyto(param.data, data)
+                else:
+                    param.data.set(numpy.asarray(data))
         for name in self._persistent:
             d[name] = serializer(name, d[name])
-        if (self.has_uninitialized_params and
-                isinstance(serializer, chainer.serializer.Serializer)):
-            raise ValueError("uninitialized parameters cannot be serialized")
-        for name in self._uninitialized_params.copy():
-            # Note: There should only be uninitialized parameters
-            # during deserialization.
-            initialized_value = serializer(name, None)
-            self.add_param(name, initialized_value.shape)
-            uninitialized_value = d[name].data
-            if isinstance(uninitialized_value, numpy.ndarray):
-                numpy.copyto(uninitialized_value, initialized_value)
-            elif isinstance(uninitialized_value, cuda.ndarray):
-                uninitialized_value.set(numpy.asarray(initialized_value))
+
+    def repeat(self, n_repeat, mode='init'):
+        """Repeats this link multiple times to make a :class:`~chainer.Sequential`.
+
+        This method returns a :class:`~chainer.Sequential` object which has
+        the same :class:`~chainer.Link` multiple times repeatedly. The ``mode``
+        argument means how to copy this link to repeat.
+
+        .. admonition:: Example
+
+            You can repeat the same link multiple times to create a longer
+            :class:`~chainer.Sequential` block like this:
+
+            .. testcode::
+
+                class ConvBNReLU(chainer.Chain):
+
+                    def __init__(self):
+                        super(ConvBNReLU, self).__init__()
+                        with self.init_scope():
+                            self.conv = L.Convolution2D(
+                                None, 64, 3, 1, 1, nobias=True)
+                            self.bn = L.BatchNormalization(64)
+
+                    def __call__(self, x):
+                        return F.relu(self.bn(self.conv(x)))
+
+                net = ConvBNReLU().repeat(16, mode='init')
+
+            The ``net`` object contains 16 blocks, each of which is
+            ``ConvBNReLU``. And the ``mode`` was ``init``, so each block
+            is re-initialized with different parameters. If you give
+            ``copy`` to this argument, each block has same values for its
+            parameters but its object ID is different from others. If it is
+            ``share``, each block is same to others in terms of not only
+            parameters but also the object IDs because they are shallow-copied,
+            so that when the parameter of one block is changed, all the
+            parameters in the others also change.
+
+        Args:
+            n_repeat (int): Number of times to repeat.
+            mode (str): It should be either ``init``, ``copy``, or ``share``.
+                ``init`` means parameters of each repeated element in the
+                returned :class:`~chainer.Sequential` will be re-initialized,
+                so that all elements have different initial parameters.
+                ``copy`` means that the parameters will not be re-initialized
+                but object itself will be deep-copied, so that all elements
+                have same initial parameters but can be changed independently.
+                ``share`` means all the elements which consist the resulting
+                :class:`~chainer.Sequential` object are same object because
+                they are shallow-copied, so that all parameters of elements
+                are shared with each other.
+
+        """
+        ret = chainer.Sequential()
+        if n_repeat <= 0:
+            return ret
+        if mode not in ['init', 'copy', 'share']:
+            raise ValueError(
+                'The \'mode\' argument should be either \'init\','
+                '\'copy\', or \'share\'. But {} was given.'.format(mode))
+        link = self
+        for _ in range(n_repeat):
+            ret.append(link.copy(mode))
+        return ret
+
+    def count_params(self):
+        """Counts the total number of parameters.
+
+        This method counts the total number of scalar values included in all
+        the :class:`~chainer.Parameter`\\ s held by this link and its
+        descendants.
+
+        If the link containts uninitialized parameters, this method raises a
+        warning.
+
+        Returns:
+            The total size of parameters (int)
+
+        """
+
+        size = 0
+        for name, param in self.namedparams():
+            if param.array is None:
+                warnings.warn(
+                    'Parameter \'{}\' has not been initialized, so the '
+                    'resulting count will not include the number of parameters'
+                    ' in it.'.format(name))
+                continue
+            size += param.size
+        return size
 
 
 class Chain(Link):
@@ -521,6 +724,19 @@ class Chain(Link):
     like a file path in UNIX, consisting of names of nodes on the path, joined
     by slashes ``/``.
 
+    A child link can be added just by assigning it to an attribute of the
+    chain within :meth:`~chainer.Chain.init_scope`.
+
+    The registered child link is saved and loaded on serialization and
+    deserialization, and involved in the optimization. The registered link
+    is called a child. The child link is accessible via :meth:`children`
+    generator, which returns a generator running through the children in
+    registered order.
+
+    On registration of a child link, its :attr:`~Link.name` attribute is also
+    set (or overwritten if the link has already been registered to another
+    chain).
+
     .. admonition:: Example
 
        This is a simple example of custom chain definition. Chainer itself also
@@ -538,12 +754,11 @@ class Chain(Link):
           class MultiLayerPerceptron(chainer.Chain):
 
               def __init__(self, n_in, n_hidden, n_out):
-                  # Create and register three layers for this MLP
-                  super(MultiLayerPerceptron, self).__init__(
-                      layer1=L.Linear(n_in, n_hidden),
-                      layer2=L.Linear(n_hidden, n_hidden),
-                      layer3=L.Linear(n_hidden, n_out),
-                  )
+                  super(MultilayerPerceptron, self).__init__()
+                  with self.init_scope():
+                      self.layer1 = L.Linear(n_in, n_hidden)
+                      self.layer2 = L.Linear(n_hidden, n_hidden)
+                      self.layer3 = L.Linear(n_hidden, n_out)
 
               def __call__(self, x):
                   # Forward propagation
@@ -551,20 +766,24 @@ class Chain(Link):
                   h2 = F.relu(self.layer2(h1))
                   return self.layer3(h2)
 
-       Child links are registered via the initializer method. They also can be
-       registered by the :meth:`add_link` method. The forward propagation is
-       often implemented as The ``__call__`` operator as the above example,
-       though it is not mandatory.
+       Child links are registered via the assignment within a
+       ``with self.init_scope():`` block. The forward propagation is often
+       implemented as the ``__call__`` operator as the above example, though
+       it is not mandatory.
 
     Args:
         links: Child links. The keywords are used as their names. The names are
             also set to the links.
 
+            .. deprecated:: v2.0.0
+
+               Assign child links directly to attributes instead.
+
     """
 
     def __init__(self, **links):
         super(Chain, self).__init__()
-        self._children = []
+        self._children = set()
 
         for name, link in six.iteritems(links):
             self.add_link(name, link)
@@ -573,17 +792,41 @@ class Chain(Link):
         """Equivalent to getattr."""
         return getattr(self, name)
 
+    def __setattr__(self, name, value):
+        if self.within_init_scope and isinstance(value, Link):
+            if hasattr(self, name):
+                raise AttributeError(
+                    'cannot register a new link %s: attribute exists' % name)
+            value.name = name
+            self._children.add(name)
+        super(Chain, self).__setattr__(name, value)
+
+    def __delattr__(self, name):
+        self._children.discard(name)
+        super(Chain, self).__delattr__(name)
+
     def add_link(self, name, link):
         """Registers a child link to this chain.
 
-        The registered link is saved and loaded on serialization and
-        deserialization, and involved in the optimization. The registered link
-        is called a child. The child link is set to an attribute of the chain
-        with the given name.
+        .. deprecated:: v2.0.0
 
-        This method also sets the :attr:`~Link.name` attribute of the
-        registered link. If the given link already has the name attribute set,
-        then it raises an error.
+           Assign the child link directly to an attribute within
+           :meth:`~chainer.Chain.init_scope` instead.
+           For example, the following code
+
+           .. code-block:: python
+
+              chain.add_link('l1', L.Linear(3, 5))
+
+           can be replaced by the following line.
+
+           .. code-block:: python
+
+              with chain.init_scope():
+                  chain.l1 = L.Linear(3, 5)
+
+           The latter is easier for IDEs to keep track of the attribute's
+           type.
 
         Args:
             name (str): Name of the child link. This name is also used as the
@@ -591,25 +834,26 @@ class Chain(Link):
             link (Link): The link object to be registered.
 
         """
-        if link.name is not None:
-            raise ValueError(
-                'given link is already registered to another chain by name %s'
-                % link.name)
-        d = self.__dict__
-        if name in d:
+        warnings.warn('''\
+Child link registeration via Chain.__init__ and Chain.add_link are deprecated.
+Assign a Link object directly to an attribute within a \
+"with link.init_scope():" block instead.
+        ''', DeprecationWarning)
+        if name in self.__dict__:
             raise AttributeError(
                 'cannot register a new link %s: attribute exists' % name)
-        self._children.append(name)
-        link.name = name
-        d[name] = link
+        if not isinstance(link, Link):
+            raise TypeError('cannot register a non-link object as a child')
+        with self.init_scope():
+            setattr(self, name, link)
 
-    def copy(self):
+    def copy(self, mode='share'):
         ret = super(Chain, self).copy()
-        ret._children = list(ret._children)
+        ret._children = set(ret._children)
         d = ret.__dict__
         for name in ret._children:
             # copy child links recursively
-            copied = d[name].copy()
+            copied = d[name].copy(mode)
             copied.name = name
             d[name] = copied
         return ret
@@ -622,28 +866,35 @@ class Chain(Link):
         return self
 
     def to_gpu(self, device=None):
-        with cuda.get_device(device):
+        with cuda._get_device(device):
             super(Chain, self).to_gpu()
             d = self.__dict__
             for name in self._children:
                 d[name].to_gpu()
         return self
 
-    def params(self):
-        for param in super(Chain, self).params():
+    def to_intel64(self):
+        super(Chain, self).to_intel64()
+        d = self.__dict__
+        for name in self._children:
+            d[name].to_intel64()
+        return self
+
+    def params(self, include_uninit=True):
+        for param in super(Chain, self).params(include_uninit):
             yield param
         d = self.__dict__
         for name in self._children:
-            for param in d[name].params():
+            for param in d[name].params(include_uninit):
                 yield param
 
-    def namedparams(self):
-        for ret in super(Chain, self).namedparams():
+    def namedparams(self, include_uninit=True):
+        for ret in super(Chain, self).namedparams(include_uninit):
             yield ret
         d = self.__dict__
         for name in self._children:
             prefix = '/' + name
-            for path, param in d[name].namedparams():
+            for path, param in d[name].namedparams(include_uninit):
                 yield prefix + path, param
 
     def links(self, skipself=False):
@@ -716,6 +967,13 @@ class ChainList(Link):
         for link in links:
             self.add_link(link)
 
+    def __setattr__(self, name, value):
+        if self.within_init_scope and isinstance(value, Link):
+            raise TypeError(
+                'cannot register a new link'
+                ' within a "with chainlist.init_scope():" block.')
+        super(ChainList, self).__setattr__(name, value)
+
     def __getitem__(self, index):
         """Returns the child at given index.
 
@@ -732,39 +990,37 @@ class ChainList(Link):
         return iter(self._children)
 
     def __len__(self):
-        """Returns a number of children."""
+        """Returns the number of children."""
         return len(self._children)
 
+    def append(self, link):
+        """Registers a child link and adds it to the tail of the list.
+
+        This is equivalent to :meth:`add_link`. This method has been added to
+        emulate the ``list`` interface.
+
+        Args:
+            link (Link): The link object to be regsitered.
+
+        """
+        self.add_link(link)
+
     def add_link(self, link):
-        """Registers a child link to this chain.
-
-        The registered link is saved and loaded on serialization and
-        deserialization, and involved in the optimization. The registered link
-        is called a child. The child link is accessible via :meth:`children`
-        generator, which returns a generator running through the children in
-        registered order.
-
-        This method also sets the :attr:`~Link.name` attribute of the
-        registered link. If the given link already has the name attribute set,
-        then it raises an error.
+        """Registers a child link and adds it to the tail of the list.
 
         Args:
             link (Link): The link object to be registered.
 
         """
-        if link.name is not None:
-            raise ValueError(
-                'given link is already registered to another chain by name %s'
-                % link.name)
         link.name = str(len(self._children))
         self._children.append(link)
 
-    def copy(self):
+    def copy(self, mode='share'):
         ret = super(ChainList, self).copy()
         ret._children = list(ret._children)  # copy
         children = ret._children
         for i, child in enumerate(children):
-            child = child.copy()
+            child = child.copy(mode)
             child.name = str(i)
             children[i] = child
         return ret
@@ -776,25 +1032,31 @@ class ChainList(Link):
         return self
 
     def to_gpu(self, device=None):
-        with cuda.get_device(device):
+        with cuda._get_device(device):
             super(ChainList, self).to_gpu()
             for link in self._children:
                 link.to_gpu()
         return self
 
-    def params(self):
-        for param in super(ChainList, self).params():
+    def to_intel64(self):
+        super(ChainList, self).to_intel64()
+        for link in self._children:
+            link.to_intel64()
+        return self
+
+    def params(self, include_uninit=True):
+        for param in super(ChainList, self).params(include_uninit):
             yield param
         for link in self._children:
-            for param in link.params():
+            for param in link.params(include_uninit):
                 yield param
 
-    def namedparams(self):
-        for ret in super(ChainList, self).namedparams():
+    def namedparams(self, include_uninit=True):
+        for ret in super(ChainList, self).namedparams(include_uninit):
             yield ret
         for idx, link in enumerate(self._children):
             prefix = '/%d' % idx
-            for path, param in link.namedparams():
+            for path, param in link.namedparams(include_uninit):
                 yield prefix + path, param
 
     def links(self, skipself=False):

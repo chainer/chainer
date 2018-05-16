@@ -1,13 +1,13 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Pad(function.Function):
+class Pad(function_node.FunctionNode):
 
-    """Padding of an array"""
+    """Padding of an array."""
 
     def __init__(self, pad_width, mode, **keywords):
         self.mode = mode
@@ -30,39 +30,34 @@ class Pad(function.Function):
         return xp.pad(inputs[0], self.pad_width, mode=self.mode,
                       **self.keywords),
 
-    def backward(self, inputs, grads):
-        xp = cuda.get_array_module(*inputs)
-        gy = grads[0]
-        array = inputs[0]
-        ndims = array.ndim
+    def backward(self, inputs, grad_outputs):
+        gy, = grad_outputs
+        in_shape = self.inputs[0].shape
         if self.pad_bw.ndim == 1:
-            self.pad_bw = numpy.tile(self.pad_bw, (ndims, 1))
-        for i in range(ndims):
-            gy = xp.take(gy,
-                         indices=numpy.arange(self.pad_bw[i][0],
-                                              self.pad_bw[i][0]
-                                              + array.shape[i]),
-                         axis=i)
-        return gy,
+            self.pad_bw = numpy.tile(self.pad_bw, (len(in_shape), 1))
+        input_idxs = tuple(
+            slice(p[0], p[0] + dim) for dim, p in zip(in_shape, self.pad_bw))
+        return gy[input_idxs],
 
 
 def pad(x, pad_width, mode, **keywords):
     """Pad an input variable.
 
     Args:
-        x (chainer.Variable or :class:``numpy.ndarray`` or cupy.ndarray):
+        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
             Input data.
         pad_width (int or array-like):
             Number of values padded to the edges of each axis.
         mode (str):
             Specifies how the function fills the periphery of the array.
-            `constant`
-                Pads with a constant values.
+            The mode is passed to :func:`numpy.pad` or :func:`cupy.pad`.
+            If it is ``'constant'``, the input is padded by a constant value
+            specified by ``constant_values``.
         constant_values (int or array-like):
-            The values are padded for each axis.
+            Constant values to fill the periphery in the ``'constant'`` mode.
 
     Returns:
         ~chainer.Variable: Output variable.
 
     """
-    return Pad(pad_width, mode, **keywords)(x)
+    return Pad(pad_width, mode, **keywords).apply((x,))[0]

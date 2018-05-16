@@ -1,62 +1,88 @@
 import collections
-import pkg_resources
-import sys
 import warnings
 
 import numpy
 import six
 
+from chainer import configuration
 from chainer import functions
+from chainer import initializer
 from chainer import link
-from chainer import links
+from chainer.links.caffe.protobuf3 import caffe_pb2 as caffe_pb
+from chainer.links.connection import convolution_2d
+from chainer.links.connection import linear
+from chainer.links.connection import scale
+from chainer.links.normalization import batch_normalization
+from chainer.utils import argument
 
 
-def _protobuf3():
-    ws = pkg_resources.WorkingSet()
-    try:
-        ws.require('protobuf>=3.0.0a')
-        return True
-    except pkg_resources.VersionConflict:
-        return False
+try:
+    # This method is undocumented, but is required to read large size of
+    # model files when a user uses cpp-implementation.
+    from google.protobuf.pyext import _message
+    _message.SetAllowOversizeProtos(True)
+except ImportError:
+    pass
+
+_type_to_method = {}
+_oldname_to_method = {}
 
 
-if _protobuf3():
-    from chainer.links.caffe.protobuf3 import caffe_pb2 as caffe_pb
-    available = True
+def _layer(typ, oldname):
+    def decorator(meth):
+        global _type_to_method
+        _type_to_method[typ] = meth
+        if oldname is not None:
+            typevalue = getattr(caffe_pb.V1LayerParameter, oldname)
+            _oldname_to_method[typevalue] = meth
+        return meth
+    return decorator
 
-    try:
-        # This method is undocumented, but is required to read large size of
-        # model files when a user uses cpp-implementation.
-        from google.protobuf.pyext import _message
-        _message.SetAllowOversizeProtos(True)
-    except ImportError:
-        pass
 
-elif sys.version_info < (3, 0, 0):
-    # caffe_pb2 does not support Py3
-    from chainer.links.caffe.protobuf2 import caffe_pb2 as caffe_pb
-    available = True
-else:
-    available = False
+class _Blob(initializer.Initializer):
 
-if available:
-    _type_to_method = {}
-    _oldname_to_method = {}
+    chunk_size = 1024 * 1024
 
-    def _layer(typ, oldname):
-        def decorator(meth):
-            global _type_to_method
-            _type_to_method[typ] = meth
-            if oldname is not None:
-                typevalue = getattr(caffe_pb.V1LayerParameter, oldname)
-                _oldname_to_method[typevalue] = meth
-            return meth
-        return decorator
-else:
-    def _layer(typ, oldname):  # fallback
-        def decorator(meth):
-            return meth
-        return decorator
+    def __init__(self, blob):
+        super(_Blob, self).__init__()
+        self.data = blob.data
+
+    def __call__(self, array):
+        array = array.ravel()
+        size = len(array)
+        indices = list(range(0, size, self.chunk_size))
+
+        # Rather than accessing Protobuf's RepeatedScalar fields directly,
+        # creating a intermediate list by indexing is more efficifent due to
+        # the implementation of the Python extension of Protobuf.
+        # To avoid allocating excessively large lists, we limit the length
+        # of lists by `chunk_size`.
+        for start, end in zip(indices, indices[1:] + [size]):
+            array[start:end] = self.data[start:end]
+
+
+class _ConvolutionBlob(_Blob):
+
+    def __init__(self, blob, group):
+        super(_ConvolutionBlob, self).__init__(blob)
+        self.group = group
+
+    def __call__(self, array):
+        n_out, n_in = array.shape[:2]
+
+        part_out = n_out // self.group
+        part_in = n_in // self.group
+
+        array[...] = 0
+
+        part_size = len(self.data) // self.group
+        for i in six.moves.range(self.group):
+            out_slice = slice(i * part_out, (i + 1) * part_out)
+            in_slice = slice(i * part_in, (i + 1) * part_in)
+            w = array[out_slice, in_slice]
+
+            data = numpy.array(self.data[i * part_size:(i + 1) * part_size])
+            w[:] = data.reshape(w.shape)
 
 
 class CaffeFunction(link.Chain):
@@ -66,11 +92,6 @@ class CaffeFunction(link.Chain):
     Given a protocol buffers file of a Caffe model, this class loads and
     emulates it on :class:`~chainer.Variable` objects. It supports the official
     reference models provided by BVLC.
-
-    .. note::
-
-       protobuf>=3.0.0 is required if you use Python 3 because protobuf 2 is
-       not supported on Python 3.
 
     .. note::
 
@@ -123,10 +144,6 @@ class CaffeFunction(link.Chain):
     """
 
     def __init__(self, model_path):
-        if not available:
-            msg = 'CaffeFunction is only supported on protobuf>=3 in Python3'
-            raise RuntimeError(msg)
-
         super(CaffeFunction, self).__init__()
 
         net = caffe_pb.NetParameter()
@@ -156,13 +173,21 @@ class CaffeFunction(link.Chain):
                         'Skip the layer "%s", since CaffeFunction does not'
                         'support it' % layer.name)
 
-    def __call__(self, inputs, outputs, disable=(), train=True):
-        """Executes a sub-network of the network.
+    def __call__(self, inputs, outputs, disable=(), **kwargs):
+        """__call__(self, inputs, outputs, disable=())
+
+        Executes a sub-network of the network.
 
         This function acts as an interpreter of the network definition for
         Caffe. On execution, it interprets each layer one by one, and if the
         bottom blobs are already computed, then emulates the layer and stores
         output blobs as :class:`~chainer.Variable` objects.
+
+        .. warning::
+
+           ``train`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', train)``.
+           See :func:`chainer.using_config`.
 
         Args:
             inputs (dict): A dictionary whose key-value pairs indicate initial
@@ -172,15 +197,17 @@ class CaffeFunction(link.Chain):
                 :class:`~chainer.Variable` objects are returned.
             disable (Iterable): A list of layer names that will be ignored
                 during the forward computation.
-            train (bool): If ``True``, this function emulates the TRAIN phase
-                of the Caffe layers. Otherwise, it emulates the TEST phase.
 
         Returns:
             tuple: A tuple of output :class:`~chainer.Variable` objects
-                corresponding to elements of the  `outputs` argument.
+            corresponding to elements of the  `outputs` argument.
 
         """
-        self.train = train
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
+
         variables = dict(inputs)
         for func_name, bottom, top in self.layers:
             if (func_name in disable or
@@ -225,29 +252,18 @@ class CaffeFunction(link.Chain):
         pad = _get_pad(param)
         num = _get_num(blobs[0])
         channels = _get_channels(blobs[0])
+        bias_term = param.bias_term
 
         n_in = channels * param.group
         n_out = num
-        func = links.Convolution2D(n_in, n_out, ksize, stride, pad,
-                                   nobias=not param.bias_term)
-        func.W.data[...] = 0
 
-        part_size = len(blobs[0].data) // param.group
-        for i in six.moves.range(param.group):
-            in_slice = slice(i * n_in // param.group,
-                             (i + 1) * n_in // param.group)
-            out_slice = slice(i * n_out // param.group,
-                              (i + 1) * n_out // param.group)
-            w = func.W.data[out_slice, in_slice]
+        func = convolution_2d.Convolution2D(
+            n_in, n_out, ksize, stride, pad, nobias=not bias_term,
+            initialW=_ConvolutionBlob(blobs[0], param.group),
+            initial_bias=_Blob(blobs[1]) if bias_term else None)
 
-            data = numpy.array(
-                blobs[0].data[i * part_size:(i + 1) * part_size])
-            w[:] = data.reshape(w.shape)
-
-        if param.bias_term:
-            func.b.data[:] = blobs[1].data
-
-        self.add_link(layer.name, func)
+        with self.init_scope():
+            setattr(self, layer.name, func)
         self.forwards[layer.name] = _CallChildLink(self, layer.name)
         self._add_layer(layer)
 
@@ -260,8 +276,8 @@ class CaffeFunction(link.Chain):
     def _setup_dropout(self, layer):
         param = layer.dropout_param
 
-        self.forwards[layer.name] = _DropoutFunction(
-            self, ratio=param.dropout_ratio)
+        self.forwards[layer.name] = _SingleArgumentFunction(
+            functions.dropout, ratio=param.dropout_ratio)
         self._add_layer(layer)
 
     @_layer('InnerProduct', 'INNER_PRODUCT')
@@ -274,12 +290,14 @@ class CaffeFunction(link.Chain):
 
         blobs = layer.blobs
         width, height = _get_width(blobs[0]), _get_height(blobs[0])
-        func = links.Linear(width, height, nobias=not bias_term)
-        func.W.data.ravel()[:] = blobs[0].data
-        if bias_term:
-            func.b.data[:] = blobs[1].data
 
-        self.add_link(layer.name, func)
+        func = linear.Linear(
+            width, height, nobias=not bias_term,
+            initialW=_Blob(blobs[0]),
+            initial_bias=_Blob(blobs[1]) if bias_term else None)
+
+        with self.init_scope():
+            setattr(self, layer.name, func)
         self.forwards[layer.name] = _CallChildLink(self, layer.name)
         self._add_layer(layer)
 
@@ -310,7 +328,14 @@ class CaffeFunction(link.Chain):
         else:
             raise RuntimeError('Stochastic pooling is not supported')
 
-        fw = _SingleArgumentFunction(func, ksize, stride=stride, pad=pad)
+        if param.global_pooling and not ksize:
+            # if global_pooling is set but no kernel size, the kernel size
+            # is computed dynamically to cover the whole input feature map
+            def _func(x, stride, pad):
+                return func(x, x.shape[2:], stride=stride, pad=pad)
+            fw = _SingleArgumentFunction(_func, stride=stride, pad=pad)
+        else:
+            fw = _SingleArgumentFunction(func, ksize, stride=stride, pad=pad)
         self.forwards[layer.name] = fw
         self._add_layer(layer)
 
@@ -337,16 +362,29 @@ class CaffeFunction(link.Chain):
         size = int(blobs[0].shape.dim[0])  # Get channel dim from mean blob.
 
         # Make BatchNormalization link.
-        func = links.BatchNormalization(size, decay=decay, eps=eps,
-                                        use_gamma=False, use_beta=False)
-        func.avg_mean.ravel()[:] = blobs[0].data
-        func.avg_var.ravel()[:] = blobs[1].data
-        self.add_link(layer.name, func)
+        func = batch_normalization.BatchNormalization(
+            size, decay=decay, eps=eps, use_gamma=False, use_beta=False)
+
+        _Blob(blobs[0])(func.avg_mean)
+        _Blob(blobs[1])(func.avg_var)
+
+        # Scale the means and variances if a scaling factor is appended to the
+        # blobs to correctly mimic to the behavior of Caffe. See
+        # https://github.com/BVLC/caffe/issues/4885
+        if len(blobs) >= 3:
+            scaling_factor = blobs[2].data
+            func.avg_mean /= scaling_factor[0]
+            func.avg_var /= scaling_factor[0]
+
+        with self.init_scope():
+            setattr(self, layer.name, func)
 
         # Add layer.
-        fwd = _SingleArgumentFunction(
-            _CallChildLink(self, layer.name),
-            test=use_global_stats, finetune=False)
+        if use_global_stats:
+            func_class = _SingleArgumentFunctionTestMode
+        else:
+            func_class = _SingleArgumentFunction
+        fwd = func_class(_CallChildLink(self, layer.name), finetune=False)
         self.forwards[layer.name] = fwd
         self._add_layer(layer)
 
@@ -375,20 +413,21 @@ class CaffeFunction(link.Chain):
         # Case of only one bottom where W is learnt parameter.
         if len(bottom) == 1:
             W_shape = blobs[0].shape.dim
-            func = links.scale.Scale(axis, W_shape, bias_term)
-            func.W.data.ravel()[:] = blobs[0].data
+            func = scale.Scale(axis, W_shape, bias_term)
+            _Blob(blobs[0])(func.W.data)
             if bias_term:
-                func.bias.b.data.ravel()[:] = blobs[1].data
+                _Blob(blobs[1])(func.bias.b.data)
         # Case of two bottoms where W is given as a bottom.
         else:
             shape = blobs[0].shape.dim if bias_term else None
-            func = links.scale.Scale(
+            func = scale.Scale(
                 axis, bias_term=bias_term, bias_shape=shape)
             if bias_term:
-                func.bias.b.data.ravel()[:] = blobs[0].data
+                _Blob(blobs[0])(func.bias.b.data)
 
         # Add layer.
-        self.add_link(layer.name, func)
+        with self.init_scope():
+            setattr(self, layer.name, func)
         self.forwards[layer.name] = _CallChildLink(self, layer.name)
         self._add_layer(layer)
 
@@ -423,9 +462,9 @@ class CaffeFunction(link.Chain):
         if layer.softmax_param.engine == 0:  # DEFAULT
             fw = functions.softmax
         elif layer.softmax_param.engine == 1:  # CAFFE
-            fw = _SingleArgumentFunction(functions.softmax, use_cudnn=False)
+            fw = _SingleArgumentFunctionWithCudnn(False, functions.softmax)
         elif layer.softmax_param.engine == 2:  # CUDNN
-            fw = _SingleArgumentFunction(functions.softmax, use_cudnn=True)
+            fw = _SingleArgumentFunctionWithCudnn(True, functions.softmax)
 
         self.forwards[layer.name] = fw
         self._add_layer(layer)
@@ -537,6 +576,13 @@ class _SingleArgumentFunction(object):
         return self.func(x, *self.args, **self.kwargs)
 
 
+class _SingleArgumentFunctionTestMode(_SingleArgumentFunction):
+
+    def __call__(self, x):
+        with configuration.using_config('train', False):
+            return super(_SingleArgumentFunctionTestMode, self).__call__(x)
+
+
 class _ListArgumentFcuntion(object):
 
     def __init__(self, func, **kwargs):
@@ -547,16 +593,16 @@ class _ListArgumentFcuntion(object):
         return self.func(xs, **self.kwargs)
 
 
-class _DropoutFunction(object):
+class _SingleArgumentFunctionWithCudnn(_SingleArgumentFunction):
 
-    def __init__(self, caffe_func, ratio):
-        # `caffe_func.train` is determined when calling `__call__`
-        self.caffe_func = caffe_func
-        self.ratio = ratio
+    def __init__(self, use_cudnn, func, *args, **kwargs):
+        super(_SingleArgumentFunctionWithCudnn, self).__init__(
+            func, *args, **kwargs)
+        self.use_cudnn = use_cudnn
 
     def __call__(self, x):
-        return functions.dropout(
-            x, ratio=self.ratio, train=self.caffe_func.train)
+        with configuration.using_config('use_cudnn', self.use_cudnn):
+            return super(_SingleArgumentFunctionWithCudnn, self).__call__(x)
 
 
 class _CallChildLink(object):

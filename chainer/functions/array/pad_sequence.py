@@ -1,12 +1,15 @@
 import numpy
 import six
 
-from chainer import cuda
-from chainer import function
+import chainer
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class PadSequence(function.Function):
+class PadSequence(function_node.FunctionNode):
+
+    """Padding arrays to create a matrix."""
 
     def __init__(self, length, padding):
         self.length = length
@@ -19,7 +22,8 @@ class PadSequence(function.Function):
             type_check.expect(
                 in_type.ndim > 0,
                 in_type.shape[1:] == in_types[0].shape[1:],
-                in_type.dtype == in_types[0].dtype)
+                in_type.dtype == in_types[0].dtype
+            )
 
         if self.length is not None:
             for in_type in in_types:
@@ -36,7 +40,7 @@ class PadSequence(function.Function):
         shape = (len(xs), length) + xs[0].shape[1:]
         y = xp.empty(shape, xs[0].dtype)
         if length == 0:
-            return y,
+            return y,  # y is an empty array
 
         if xp is numpy or any(not x._c_contiguous for x in xs):
             for i, x in enumerate(xs):
@@ -49,7 +53,7 @@ class PadSequence(function.Function):
         else:
             # This code assumes that all arrays are c_contiguous
             ptr_shape = (Ellipsis,) + (None,) * xs[0].ndim
-            ptrs = cuda.cupy.array([x.data for x in xs], 'L')[ptr_shape]
+            ptrs = cuda.cupy.array([x.data for x in xs], 'P')[ptr_shape]
             lengths = cuda.cupy.array([len(x) for x in xs], 'i')[ptr_shape]
             base = numpy.prod(xs[0].shape[1:], dtype='i')
             cuda.elementwise(
@@ -68,15 +72,15 @@ class PadSequence(function.Function):
 
         return y,
 
-    def backward(self, xs, grad):
-        xp = cuda.get_array_module(*xs)
-        gs = grad[0]
-        if gs.size == 0:
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        inputs = self.inputs
+        if gy.size == 0:
             # `split` in NumPy 1.9 behaves inconsistently when size is zero.
-            gs = [gs]
+            gy = [gy]
         else:
-            gs = xp.split(gs, len(xs), axis=0)
-        return tuple([g[0, 0:len(x)] for g, x in six.moves.zip(gs, xs)])
+            gy = chainer.functions.split_axis(gy, len(inputs), axis=0)
+        return tuple(g[0, :x.shape[0]] for g, x in six.moves.zip(gy, inputs))
 
 
 def pad_sequence(xs, length=None, padding=0):
@@ -90,8 +94,8 @@ def pad_sequence(xs, length=None, padding=0):
         padding (int or float): Value to fill.
 
     Returns:
-        ~chainer.Variable: It returns a padded matrix. Its shape is
-            ``(n, length, ...)``, where ``n == len(xs)``.
+        ~chainer.Variable: A padded matrix. Its shape is
+        ``(n, length, ...)``, where ``n == len(xs)``.
 
     """
-    return PadSequence(length, padding)(*xs)
+    return PadSequence(length, padding).apply((xs))[0]

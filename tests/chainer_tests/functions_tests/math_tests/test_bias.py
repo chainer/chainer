@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -62,7 +62,7 @@ class TestBiasInvalidShape(unittest.TestCase):
         x1 = chainer.Variable(numpy.zeros((3, 2, 3), numpy.float32))
         x2 = chainer.Variable(numpy.zeros((2), numpy.float32))
         axis = 0
-        with chainer.DebugMode(True):
+        with chainer.using_config('debug', True):
             with self.assertRaises(AssertionError):
                 functions.bias(x1, x2, axis)
 

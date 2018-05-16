@@ -9,19 +9,19 @@ This is Socher's simple recursive model, not RTNN:
 """
 
 import argparse
-import codecs
 import collections
 import random
-import re
 import time
 
 import numpy as np
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import optimizers
+
+import data
 
 
 parser = argparse.ArgumentParser()
@@ -51,32 +51,6 @@ n_label = args.label         # number of labels
 epoch_per_eval = args.epocheval  # number of epochs per evaluation
 
 
-class SexpParser(object):
-
-    def __init__(self, line):
-        self.tokens = re.findall(r'\(|\)|[^\(\) ]+', line)
-        self.pos = 0
-
-    def parse(self):
-        assert self.pos < len(self.tokens)
-        token = self.tokens[self.pos]
-        assert token != ')'
-        self.pos += 1
-
-        if token == '(':
-            children = []
-            while True:
-                assert self.pos < len(self.tokens)
-                if self.tokens[self.pos] == ')':
-                    self.pos += 1
-                    break
-                else:
-                    children.append(self.parse())
-            return children
-        else:
-            return token
-
-
 def convert_tree(vocab, exp):
     assert isinstance(exp, list) and (len(exp) == 2 or len(exp) == 3)
 
@@ -91,26 +65,14 @@ def convert_tree(vocab, exp):
         return {'label': int(label), 'node': node}
 
 
-def read_corpus(path, vocab, max_size):
-    with codecs.open(path, encoding='utf-8') as f:
-        trees = []
-        for line in f:
-            line = line.strip()
-            tree = SexpParser(line).parse()
-            trees.append(convert_tree(vocab, tree))
-            if max_size and len(trees) >= max_size:
-                break
-
-        return trees
-
-
 class RecursiveNet(chainer.Chain):
 
     def __init__(self, n_vocab, n_units):
-        super(RecursiveNet, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units),
-            l=L.Linear(n_units * 2, n_units),
-            w=L.Linear(n_units, n_label))
+        super(RecursiveNet, self).__init__()
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units)
+            self.l = L.Linear(n_units * 2, n_units)
+            self.w = L.Linear(n_units, n_label)
 
     def leaf(self, x):
         return self.embed(x)
@@ -122,28 +84,27 @@ class RecursiveNet(chainer.Chain):
         return self.w(v)
 
 
-def traverse(model, node, train=True, evaluate=None, root=True):
+def traverse(model, node, evaluate=None, root=True):
     if isinstance(node['node'], int):
         # leaf node
         word = xp.array([node['node']], np.int32)
         loss = 0
-        x = chainer.Variable(word, volatile=not train)
-        v = model.leaf(x)
+        v = model.leaf(word)
     else:
         # internal node
         left_node, right_node = node['node']
         left_loss, left = traverse(
-            model, left_node, train=train, evaluate=evaluate, root=False)
+            model, left_node, evaluate=evaluate, root=False)
         right_loss, right = traverse(
-            model, right_node, train=train, evaluate=evaluate, root=False)
+            model, right_node, evaluate=evaluate, root=False)
         v = model.node(left, right)
         loss = left_loss + right_loss
 
     y = model.label(v)
 
-    if train:
+    if chainer.config.train:
         label = xp.array([node['label']], np.int32)
-        t = chainer.Variable(label, volatile=not train)
+        t = chainer.Variable(label)
         loss += F.softmax_cross_entropy(y, t)
 
     if evaluate is not None:
@@ -161,11 +122,10 @@ def traverse(model, node, train=True, evaluate=None, root=True):
 
 
 def evaluate(model, test_trees):
-    m = model.copy()
-    m.volatile = True
     result = collections.defaultdict(lambda: 0)
-    for tree in test_trees:
-        traverse(m, tree, train=False, evaluate=result)
+    with chainer.using_config('train', False), chainer.no_backprop_mode():
+        for tree in test_trees:
+            traverse(model, tree, evaluate=result)
 
     acc_node = 100.0 * result['correct_node'] / result['total_node']
     acc_root = 100.0 * result['correct_root'] / result['total_root']
@@ -180,9 +140,12 @@ if args.test:
     max_size = 10
 else:
     max_size = None
-train_trees = read_corpus('trees/train.txt', vocab, max_size)
-test_trees = read_corpus('trees/test.txt', vocab, max_size)
-develop_trees = read_corpus('trees/dev.txt', vocab, max_size)
+train_trees = [convert_tree(vocab, tree)
+               for tree in data.read_corpus('trees/train.txt', max_size)]
+test_trees = [convert_tree(vocab, tree)
+              for tree in data.read_corpus('trees/test.txt', max_size)]
+develop_trees = [convert_tree(vocab, tree)
+                 for tree in data.read_corpus('trees/dev.txt', max_size)]
 
 model = RecursiveNet(len(vocab), n_units)
 
@@ -192,7 +155,7 @@ if args.gpu >= 0:
 # Setup optimizer
 optimizer = optimizers.AdaGrad(lr=0.1)
 optimizer.setup(model)
-optimizer.add_hook(chainer.optimizer.WeightDecay(0.0001))
+optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(0.0001))
 
 accum_loss = 0
 count = 0
@@ -204,7 +167,7 @@ for epoch in range(n_epoch):
     cur_at = time.time()
     random.shuffle(train_trees)
     for tree in train_trees:
-        loss, v = traverse(model, tree, train=True)
+        loss, v = traverse(model, tree)
         accum_loss += loss
         count += 1
 
@@ -231,5 +194,5 @@ for epoch in range(n_epoch):
         evaluate(model, develop_trees)
         print('')
 
-print('Test evaluateion')
+print('Test evaluation')
 evaluate(model, test_trees)

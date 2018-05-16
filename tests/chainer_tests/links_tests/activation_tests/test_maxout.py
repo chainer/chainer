@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
@@ -32,7 +32,6 @@ def _maxout(x, W, b):
         {'in_shape': [(2, ), (2, 5)],
          'pool_size': [3],
          'out_size': [4],
-         'wscale': [1],
          'initial_bias': ['random', 'scalar', None],
          'batchsize': [7]}
     )
@@ -70,7 +69,7 @@ class TestMaxout(unittest.TestCase):
             initial_bias = None
 
         self.link = links.Maxout(in_size, self.out_size, self.pool_size,
-                                 self.wscale, initialW, initial_bias)
+                                 initialW, initial_bias)
 
         self.y = _maxout(self.x, initialW, initial_bias)
         self.link.cleargrads()

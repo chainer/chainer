@@ -1,14 +1,7 @@
-import abc
-
-import six
-
-
-@six.add_metaclass(abc.ABCMeta)
 class AbstractSerializer(object):
 
     """Abstract base class of all serializers and deserializers."""
 
-    @abc.abstractmethod
     def __getitem__(self, key):
         """Gets a child serializer.
 
@@ -21,7 +14,6 @@ class AbstractSerializer(object):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def __call__(self, key, value):
         """Serializes or deserializes a value by given name.
 
@@ -36,14 +28,20 @@ class AbstractSerializer(object):
         the ``value`` argument is used just for determining the type of
         restored value to be converted, and the converted value is returned.
         For arrays, the restored elements are directly copied into the
-        ``value`` argument. String values are treated like scalars. If the
-        ``value`` argument is ``None``, the type of the restored value will
-        typically be a numpy array but can depend on the particular subclass
-        implementation.
+        ``value`` argument. String values are treated like scalars.
+
+        .. note::
+           As of v2.0.0, serializers and deserializers are required to
+           correctly handle the ``None`` value. When ``value`` is ``None``,
+           serializers save it in format-dependent ways, and deserializers
+           just return the loaded value. When the saved ``None`` value is
+           loaded by a deserializer, it should quietly return the ``None``
+           value without modifying the ``value`` object.
 
         Args:
             key (str): Name of the serialization entry.
-            value (scalar, array, None, or str): Object to be (de)serialized.
+            value (scalar, numpy.ndarray, cupy.ndarray, None, or str):
+                Object to be (de)serialized.
                 ``None`` is only supported by deserializers.
 
         Returns:

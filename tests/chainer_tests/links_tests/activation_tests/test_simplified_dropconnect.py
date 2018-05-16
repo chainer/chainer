@@ -5,13 +5,12 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer.serializers import npz
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import type_check
 
 
@@ -23,6 +22,7 @@ def gen_mask(ratio, shape):
     'in_shape': [(3,), (3, 2, 2)],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_batchwise_mask': [True, False],
 }))
 class TestSimplifiedDropconnect(unittest.TestCase):
 
@@ -45,7 +45,10 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         W = self.link.W.data
         b = self.link.b.data
 
-        mask_shape = (4, ) + self.link.W.shape
+        if self.use_batchwise_mask:
+            mask_shape = (4,) + self.link.W.shape
+        else:
+            mask_shape = self.link.W.shape
         self.mask = gen_mask(self.ratio, mask_shape)
 
         W = (W * self.mask) * (1. / (1 - self.ratio))
@@ -53,11 +56,15 @@ class TestSimplifiedDropconnect(unittest.TestCase):
 
         # numpy 1.9 does not support matmul.
         # So we use numpy.einsum instead of numpy.matmul.
-        self.y_expect = numpy.einsum('ijk,ikl->ijl',
-                                     W, x[:, :, None]).reshape(4, -1) + b
+        if self.use_batchwise_mask:
+            self.y_expect = numpy.einsum('ijk,ikl->ijl',
+                                         W, x[:, :, None]).reshape(4, -1) + b
+        else:
+            self.y_expect = numpy.einsum('jk,ikl->ijl',
+                                         W, x[:, :, None]).reshape(4, -1) + b
 
         self.check_forward_options = {}
-        self.check_backward_options = {}
+        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
         if self.x_dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_backward_options = {'atol': 1e-2, 'rtol': 5e-2}
@@ -66,7 +73,8 @@ class TestSimplifiedDropconnect(unittest.TestCase):
 
     def check_forward(self, x_data, mask):
         x = chainer.Variable(x_data)
-        y = self.link(x, True, mask)
+        y = self.link(x, train=True, mask=mask,
+                      use_batchwise_mask=self.use_batchwise_mask)
         self.assertEqual(y.data.dtype, self.x_dtype)
         testing.assert_allclose(self.y_expect, y.data,
                                 **self.check_forward_options)
@@ -80,20 +88,19 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.mask))
 
     def link_wrapper(self, *data):
-        return self.link(data[0], True, data[1])
+        return self.link(x=data[0], train=True, mask=data[1],
+                         use_batchwise_mask=self.use_batchwise_mask)
 
     def check_backward(self, x_data, y_grad, mask):
         gradient_check.check_backward(
             self.link_wrapper, (x_data, mask), y_grad,
-            (self.link.W, self.link.b), eps=2 ** -3,
-            no_grads=(False, True), **self.check_backward_options)
+            (self.link.W, self.link.b),
+            no_grads=(False, True), dtype='d', **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy, self.mask)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
@@ -135,7 +142,7 @@ class TestSimplifiedDropconnectParameterShapePlaceholder(unittest.TestCase):
 
     def check_forward(self, x_data, mask):
         x = chainer.Variable(x_data)
-        y = self.link(x, True, mask)
+        y = self.link(x, train=True, mask=mask, use_batchwise_mask=True)
         self.assertEqual(y.data.dtype, numpy.float32)
         testing.assert_allclose(self.y_expect, y.data)
 
@@ -148,19 +155,19 @@ class TestSimplifiedDropconnectParameterShapePlaceholder(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.mask))
 
     def link_wrapper(self, *data):
-        return self.link(data[0], True, data[1])
+        return self.link(x=data[0], train=True, mask=data[1],
+                         use_batchwise_mask=True)
 
     def check_backward(self, x_data, y_grad, mask):
         gradient_check.check_backward(
             self.link_wrapper, (x_data, mask), y_grad,
-            (self.link.W, self.link.b), eps=1e-2, no_grads=(False, True))
+            (self.link.W, self.link.b), dtype='d', no_grads=(False, True),
+            atol=1e-4, rtol=1e-3)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy, self.mask)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
@@ -181,15 +188,72 @@ class TestSimplifiedDropconnectParameterShapePlaceholder(unittest.TestCase):
         self.assertEqual((w1 == w2).all(), True)
 
 
-class TestInvalidSimplifiedDropconnect(unittest.TestCase):
+class TestSimplifiedDropconnectNotBatchwiseMask(unittest.TestCase):
+
+    in_shape = (3,)
+    out_size = 2
+    ratio = 0.5
 
     def setUp(self):
-        self.link = links.SimplifiedDropconnect(3, 2)
-        self.x = numpy.random.uniform(-1, 1, (4, 1, 2)).astype(numpy.float32)
+        in_size = numpy.prod(self.in_shape)
 
-    def test_invalid_size(self):
+        self.link = links.SimplifiedDropconnect(
+            in_size, self.out_size,
+            initialW=chainer.initializers.Normal(1, numpy.float32),
+            initial_bias=chainer.initializers.Normal(1, numpy.float32))
+        self.link.cleargrads()
+
+        x_shape = (4,) + self.in_shape
+        self.x = numpy.ones(x_shape).astype(numpy.float32)
+        self.W = self.link.W.data
+        self.b = self.link.b.data
+
+    def check_forward(self, x_data):
+        x = chainer.Variable(x_data)
+        y = self.link(x, train=True, use_batchwise_mask=False)
+
+        # check mask equality here.
+        testing.assert_allclose(y.data[0], y.data[1])
+        testing.assert_allclose(y.data[0], y.data[2])
+        testing.assert_allclose(y.data[0], y.data[3])
+
+        mask = y.creator.mask
+        mask = cuda.to_cpu(mask)
+
+        y_expect = self.x.dot(self.W.T * mask.T) * (1. / (1 - self.ratio))
+        y_expect += self.b
+        testing.assert_allclose(y_expect, y.data)
+
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.link.to_gpu()
+        self.check_forward(cuda.to_gpu(self.x))
+
+
+class TestInvalidSimplifiedDropconnect(unittest.TestCase):
+
+    def test_invalid_input_size(self):
+        link = links.SimplifiedDropconnect(3, 2)
+        x = numpy.random.uniform(-1, 1, (4, 1, 2)).astype(numpy.float32)
         with self.assertRaises(type_check.InvalidType):
-            self.link(chainer.Variable(self.x))
+            link(chainer.Variable(x))
+
+    def test_invalid_mask_size(self):
+        link = links.SimplifiedDropconnect(3, 2)
+        x = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
+        mask = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+        with self.assertRaises(type_check.InvalidType):
+            link(chainer.Variable(x), use_batchwise_mask=True, mask=mask)
+
+    def test_invalid_mask_size2(self):
+        link = links.SimplifiedDropconnect(3, 2)
+        x = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
+        mask = numpy.random.uniform(-1, 1, (4, 3, 2)).astype(numpy.float32)
+        with self.assertRaises(type_check.InvalidType):
+            link(chainer.Variable(x), use_batchwise_mask=False, mask=mask)
 
 
 testing.run_module(__name__, __file__)
