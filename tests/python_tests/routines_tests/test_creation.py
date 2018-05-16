@@ -28,11 +28,6 @@ def shape(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def is_module(request):
-    return request.param
-
-
 def _check_device(a, device=None):
     if device is None:
         device = xchainer.get_default_device()

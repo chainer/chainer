@@ -24,11 +24,6 @@ def shape(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def is_module(request):
-    return request.param
-
-
 @pytest.mark.parametrize('value', [
     0, 1, -1, 0.1, 0.9, -0.1, -0.9, 1.1, -1.1, 1.9, -1.9, True, False, float('inf'), -float('inf'), float('nan'), -0.0
 ])
