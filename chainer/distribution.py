@@ -6,7 +6,32 @@ class Distribution(object):
     """Interface of Distribution
 
     `Distribution` is a bass class to treat probability distributions.
-    When initialization, it takes parameter as input.
+
+    This class provides a means to perform following operations.
+    1. Sampling random points.
+    2. Evaluating a function about probability at given realization value.
+        (e.g., probability density function, probability mass function)
+    3. Obtaining properties of distributions.
+        (e.g., mean, variance)
+
+    Note that every method and property that computes them from
+    `chainer.Variable` can basically be differentiated.
+
+    In this class, sampled random points and realization values given
+    in function about probability is called "sample". The shape of samples is
+    devided into three parts, `sample_shape`, `batch_shape`, and `event_shape`.
+    `sample_shape` is the part that is identical and independent. `batch_shape`
+    is the part that is not identical and independent. `event_shape` is the
+    part that is not identical and dependent.
+
+    When initialization, it takes parameters as inputs. `batch_shape` and
+    `event_shape` is decided by the shape of the parameter when generating an
+    instance of a class.
+
+    Every function about probability takes realization value whose shape is
+    `(sample_shape, batch_shape, event_shape)` and returns evaluated value
+    whose shape is `sample_shape`.
+
     """
 
     def _copy_to(self, target):
@@ -15,221 +40,219 @@ class Distribution(object):
 
     @property
     def batch_shape(self):
-        """Returns the shape of a sample.
+        """Returns the part of the sample shape that is not identical and
+        independent.
 
         Returns:
-            ~chainer.Variable: Output variable representing the shape of a
-            sample.
+            tuple: The shape of a sample that is not identical and indipendent.
 
         """
         raise NotImplementedError
 
     def cdf(self, x):
-        """Returns Cumulative Distribution Function for a input variable.
+        """Evaluates the cumulative distribution function at a given input.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Input variable representing a random
-            variable.
+            :class:`cupy.ndarray`): A data points in the domain of the
+            distribution
 
         Returns:
-            ~chainer.Variable: Output variable representing Cumulative
-            Distribution Function.
+            ~chainer.Variable: Cumulative distribution function value evaluated
+            at `x`.
 
         """
         raise NotImplementedError
 
     @property
     def covariance(self):
-        """Returns covariance.
+        """Returns the covariance of the distribution.
 
         Returns:
-            ~chainer.Variable: Output variable representing covariance.
+            ~chainer.Variable: The covariance of the distribution.
         """
         raise NotImplementedError
 
     @property
     def entropy(self):
-        """Returns entropy.
+        """Returns the entropy of the distribution.
 
         Returns:
-            ~chainer.Variable: Output variable representing entropy.
+            ~chainer.Variable: The entropy of the distribution.
 
         """
         raise NotImplementedError
 
     @property
     def event_shape(self):
-        """Returns the shape of an event.
+        """Returns the part of the sample shape that is not identical and
+        dependent.
 
         Returns:
-            ~chainer.Variable: Output variable representing the shape of an
-            event.
+            tuple: The shape of a sample that is not identical and indipendent.
 
         """
         raise NotImplementedError
 
     def icdf(self, x):
-        """Returns Inverse Cumulative Distribution Function for a input Variable.
+        """Evaluates the inverse cumulative distribution function at a given
+        input.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Input variable representing a random
-            variable.
+            :class:`cupy.ndarray`): A data points in the domain of the
+            distribution
 
         Returns:
-            ~chainer.Variable: Output variable representing Inverse Cumulative
-            Distribution Function.
+            ~chainer.Variable: Inverse cumulative distribution function value
+            evaluated at `x`.
 
         """
         raise NotImplementedError
 
     def log_cdf(self, x):
-        """Returns logarithm of Cumulative Distribution Function for a input Variable.
+        """Evaluates the logarithm of cumulative distribution function at a
+        given input.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Input variable representing a random
-            variable.
+            :class:`cupy.ndarray`): A data points in the domain of the
+            distribution
 
         Returns:
-            ~chainer.Variable: Output variable representing logarithm of
-            Cumulative Distribution Function.
+            ~chainer.Variable: Logarithm of cumulative distribution function
+            value evaluated at `x`.
 
         """
         raise NotImplementedError
 
     def log_prob(self, x):
-        """Returns logarithm of probability for a input variable.
+        """Evaluates the logarithm of probability at a given input.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Input variable representing a random
-            variable.
+            :class:`cupy.ndarray`): A data points in the domain of the
+            distribution
 
         Returns:
-            ~chainer.Variable: Output variable representing logarithm of
-            probability.
+            ~chainer.Variable: Logarithm of probability evaluated at `x`.
 
         """
         raise NotImplementedError
 
     def log_survival_function(self, x):
-        """Returns logarithm of survival function for a input Variable.
+        """Evaluates the logarithm of survival function at a given input.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Input variable representing a random
-            variable.
+            :class:`cupy.ndarray`): A data points in the domain of the
+            distribution
 
         Returns:
-            ~chainer.Variable: Output variable representing logarithm of
-            survival function for a input variable.
+            ~chainer.Variable: Logarithm of survival function value evaluated
+            at `x`.
 
         """
         raise NotImplementedError
 
     @property
     def mean(self):
-        """Returns mean value.
+        """Returns the mean of the distribution.
 
         Returns:
-            ~chainer.Variable: Output variable representing mean value.
+            ~chainer.Variable: The mean of the distribution.
 
         """
         raise NotImplementedError
 
     @property
     def mode(self):
-        """Returns mode.
+        """Returns the mode of the distribution.
 
         Returns:
-            ~chainer.Variable: Output variable representing mode.
+            ~chainer.Variable: The mode of the distribution.
 
         """
         raise NotImplementedError
 
     def perplexity(self, x):
-        """Returns perplexity function for a input variable.
+        """Evaluates the perplexity function at a given input.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Input variable representing a random
-            variable.
+            :class:`cupy.ndarray`): A data points in the domain of the
+            distribution
 
         Returns:
-            ~chainer.Variable: Output variable representing perplexity function
-            for a input variable.
+            ~chainer.Variable: Perplexity function value evaluated at `x`.
 
         """
         raise NotImplementedError
 
     def prob(self, x):
-        """Returns probability for a input variable.
+        """Evaluates probability at a given input.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Input variable representing a random
-            variable.
+            :class:`cupy.ndarray`): A data points in the domain of the
+            distribution
 
         Returns:
-            ~chainer.Variable: Output variable representing probability.
+            ~chainer.Variable: Probability evaluated at `x`.
 
         """
         raise NotImplementedError
 
-    def sample(self, shape=()):
-        """Samples from this distribution.
+    def sample(self, sample_shape=()):
+        """Samples random points from the distribution.
 
         Args:
-            shape(:class:`tuple` of :class:`int`): Sampling shape.
+            sample_shape(:class:`tuple` of :class:`int`): Sampling shape.
 
         Returns:
-            ~chainer.Variable: Output variable representing sampled random
-            variable.
+            ~chainer.Variable: Sampled random points.
         """
         final_shape = self.batch_shape + self.event_shape
-        if shape == ():
+        if sample_shape == ():
             n = 1
-        elif isinstance(shape, int):
-            n = shape
+        elif isinstance(sample_shape, int):
+            n = sample_shape
             final_shape = (n,) + final_shape
         else:
             n = 1
-            for shape_ in shape:
+            for shape_ in sample_shape:
                 n *= shape_
-            final_shape = shape + final_shape
+            final_shape = sample_shape + final_shape
         samples = self._sample_n(n)
         return samples.reshape(final_shape)
 
     def _sample_n(self, n):
-        """Samples from this distribution.
+        """Samples n random points from the distribution.
 
         Args:
             n(`int`): Sampling size.
 
         Returns:
-            ~chainer.Variable: Output variable representing sampled random
-            variable.
+            ~chainer.Variable: sampled random points.
         """
         raise NotImplementedError
 
     @property
     def stddev(self):
-        """Returns standard deviation.
+        """Returns the standard deviation of the distribution.
 
         Returns:
-            ~chainer.Variable: Output variable representing standard deviation.
+            ~chainer.Variable: The standard deviation of the distribution.
 
         """
         raise NotImplementedError
 
     @property
     def support(self):
-        """Returns support.
+        """Returns the support of the distribution.
 
         Returns:
-            string: Output string that means support of this distribution.
+            string: String that means support of this distribution.
 
         """
         raise NotImplementedError
@@ -239,22 +262,21 @@ class Distribution(object):
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Input variable representing a random
-            variable.
+            :class:`cupy.ndarray`): A data points in the domain of the
+            distribution
 
         Returns:
-            ~chainer.Variable: Output variable representing survival function
-            for a input variable.
+            ~chainer.Variable: Survival function value evaluated at `x`.
 
         """
         raise NotImplementedError
 
     @property
     def variance(self):
-        """Returns variance.
+        """Returns the variance of the distribution.
 
         Returns:
-            ~chainer.Variable: Output variable representing variance.
+            ~chainer.Variable: The variance of the distribution.
 
         """
         raise NotImplementedError
