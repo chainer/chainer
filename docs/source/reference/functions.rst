@@ -1,4 +1,4 @@
-Fntions
+Functions
 =========
 
 .. module:: chainer.functions
