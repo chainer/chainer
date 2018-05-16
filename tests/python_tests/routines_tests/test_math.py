@@ -341,3 +341,57 @@ def test_log_softmax_invalid(device, a_shape, axis, float_dtype):
     a = array_utils.create_dummy_ndarray(xchainer, a_shape, float_dtype)
     with pytest.raises(xchainer.DimensionError):
         return xchainer.log_softmax(a, axis=axis)
+
+
+def test_max_amax():
+    assert xchainer.amax is xchainer.max
+
+
+@pytest.mark.parametrize('input,axis', [
+    # --- single axis
+    # input, axis
+    # valid params
+    (numpy.asarray(0), None),
+    (numpy.asarray(-1), None),
+    (numpy.asarray(float('inf')), None),
+    (numpy.asarray(float('nan')), None),
+    (numpy.asarray(-float('inf')), None),
+    (numpy.asarray([4, 1, 4, 1]), None),
+    (numpy.asarray([4, 1, 4, 1]), 0),
+    (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]), 0),
+    (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]).T, 1),
+    (numpy.asarray([-0.0, +0.0, +0.0, -0.0]), None),
+    (numpy.asarray([[True, True, False, False], [True, False, True, False]]), 0),
+    (numpy.ones((2, 0, 3)), 2),
+    (numpy.ones((2, 3)), 1),
+    (numpy.ones((2, 3)), -2),
+    # invalid params
+    (numpy.ones((0,)), None),
+    (numpy.ones((2, 0, 3)), 1),
+    (numpy.ones((2, 0, 3)), None),
+    (numpy.ones((2, 3)), 2),
+    (numpy.ones((2, 3)), -3),
+    # --- multiple axes
+    # input, axis
+    # valid params
+    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (0, 1)),
+    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-2, -1)),
+    # invalid params
+    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 1)),
+    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-3, 1)),
+    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 2)),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+# TODO(niboshi): Remove strides_check=False
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError), strides_check=False)
+def test_max(is_module, xp, device, input, axis, dtype):
+    try:
+        a_np = input.astype(dtype)
+    except (ValueError, OverflowError):
+        return xp.zeros(())  # invalid combination of data and dtype
+
+    a = xp.array(a_np)
+    if is_module:
+        return xp.max(a, axis)
+    else:
+        return a.max(axis)
