@@ -11,10 +11,10 @@ import numpy
 import six
 
 from chainer.dataset import iterator
+from chainer.iterators import random_state
 
 
 _response_time = 1.
-_short_time = 0.001
 _PrefetchState = namedtuple('_PrefetchState', (
     'current_position', 'epoch', 'is_new_epoch',
     'previous_epoch_detail', 'order'))
@@ -94,7 +94,10 @@ class MultiprocessIterator(iterator.Iterator):
             self._previous_epoch_detail, self._order) = prefetch_state
         if batch is None:
             raise StopIteration
-        else:
+
+        def dummy_state():
+            raise NotImplementedError
+        with random_state.set_random_state(dummy_state):
             return batch
 
     next = __next__
@@ -281,11 +284,7 @@ class _PrefetchLoop(object):
 
         # Use a distinct RandomState in the thread
         # for deterministic random number generation.
-        # To support 32-bit platform and numpy < 1.11,
-        # the seed is taken in a verbose manner.
-        seed = numpy.asscalar(
-            numpy.random.randint(-(1 << 31), 1 << 31, 1).astype('uint32'))
-        self._random = numpy.random.RandomState(seed)
+        self._random = random_state.derive_random_state()
 
         self._interruption_testing = _interruption_testing
 

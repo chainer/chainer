@@ -5,6 +5,7 @@ import numpy
 import six
 
 from chainer.dataset import iterator
+from chainer.iterators import random_state
 
 
 class MultithreadIterator(iterator.Iterator):
@@ -87,7 +88,11 @@ class MultithreadIterator(iterator.Iterator):
 
         batch = self._get()
         self._invoke_prefetch()  # prefetch for the next iteration
-        return batch
+
+        def dummy_state():
+            raise NotImplementedError
+        with random_state.set_random_state(dummy_state):
+            return batch
 
     next = __next__
 
