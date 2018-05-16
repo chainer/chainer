@@ -40,8 +40,7 @@ class Distribution(object):
 
     @property
     def batch_shape(self):
-        """Returns the part of the sample shape that is not identical and
-        independent.
+        """Returns the part of the sample shape that is not identical and independent.
 
         Returns:
             tuple: The shape of a sample that is not identical and indipendent.
@@ -85,8 +84,7 @@ class Distribution(object):
 
     @property
     def event_shape(self):
-        """Returns the part of the sample shape that is not identical and
-        dependent.
+        """Returns the part of the sample shape that is not identical and dependent.
 
         Returns:
             tuple: The shape of a sample that is not identical and indipendent.
@@ -95,8 +93,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def icdf(self, x):
-        """Evaluates the inverse cumulative distribution function at a given
-        input.
+        """Evaluates the inverse cumulative distribution function at a given input.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -111,8 +108,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def log_cdf(self, x):
-        """Evaluates the logarithm of cumulative distribution function at a
-        given input.
+        """Evaluates the log of cumulative distribution function at a given input.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \

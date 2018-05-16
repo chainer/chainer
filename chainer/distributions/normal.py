@@ -8,8 +8,8 @@ from chainer.functions.array import repeat
 from chainer.functions.math import erf
 from chainer.functions.math import erfinv
 from chainer.functions.math import exponential
-import numpy
 import math
+import numpy
 
 
 ENTROPYC = 0.5 * math.log(2 * math.pi * math.e)
