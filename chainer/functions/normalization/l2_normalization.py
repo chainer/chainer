@@ -14,7 +14,7 @@ class NormalizeL2(function_node.FunctionNode):
         self.eps = eps
         if isinstance(axis, int):
             axis = axis,
-        if len(axis) not in [1, 2]:
+        if len(axis) not in (1, 2):
             raise ValueError("Improper number of dimensions to norm.")
         self.axis = axis
 
