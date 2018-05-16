@@ -488,3 +488,18 @@ def _kl_uniform_beta(dist1, dist2):
            ) / (dist1.high - dist1.low) \
         + lgamma.lgamma(dist2.a) + lgamma.lgamma(dist2.b) \
         - lgamma.lgamma(dist2.a + dist2.b) + inf
+
+
+@register_kl(distributions.Uniform, distributions.Exponential)
+def _kl_uniform_exponential(dist1, dist2):
+    if dist1._is_gpu:
+        is_inf = dist1.low.data < 0
+        inf = cuda.cupy.zeros_like(dist1.high.data)
+        inf[is_inf] = numpy.inf
+    else:
+        is_inf = dist1.low.data < 0
+        inf = numpy.zeros_like(dist1.high.data)
+        inf[is_inf] = numpy.inf
+
+    return - dist1.entropy - exponential.log(dist2.lam) \
+        + 0.5 * dist2.lam * (dist1.high + dist1.low) + inf
