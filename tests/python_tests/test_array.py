@@ -1,7 +1,3 @@
-import functools
-import math
-import operator
-
 import numpy
 import pytest
 
@@ -164,7 +160,9 @@ def test_astype(xp, shape, device, copy, src_dtype, dst_dtype):
     a = array_utils.create_dummy_ndarray(xp, shape, src_dtype)
 
     # Casting negative value to unsigned int behaves different in CUDA
-    if device is xchainer.get_device('cuda:0') and src_dtype in xchainer.testing.signed_dtypes and dst_dtype in xchainer.testing.unsigned_dtypes:
+    if device is xchainer.get_device('cuda:0') and \
+            src_dtype in xchainer.testing.signed_dtypes and \
+            dst_dtype in xchainer.testing.unsigned_dtypes:
         a = xp.maximum(a, 0)
 
     b = a.astype(dst_dtype, copy=copy)

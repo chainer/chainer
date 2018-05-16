@@ -1,7 +1,5 @@
-import functools
 from io import StringIO
 import math
-import operator
 import tempfile
 
 import numpy
