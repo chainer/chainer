@@ -21,7 +21,7 @@ def test_negative(xp, device, shape, dtype, is_module):
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DtypeError, TypeError))
-def test_invalid_bool_negative(xp, device, is_module):
+def test_negative_invalid_bool(xp, device, is_module):
     x = xp.array([True, False], dtype='bool_')
     if is_module:
         xp.negative(x)

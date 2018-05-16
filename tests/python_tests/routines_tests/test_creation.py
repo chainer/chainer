@@ -649,7 +649,7 @@ def test_arange_with_device(device):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_invalid_arange_too_long_bool(device):
+def test_arange_invalid_too_long_bool(device):
     def check(xp, err):
         with pytest.raises(err):
             xp.arange(3, dtype='bool_')
@@ -663,7 +663,7 @@ def test_invalid_arange_too_long_bool(device):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_invalid_arange_zero_step(device):
+def test_arange_invalid_zero_step(device):
     def check(xp, err):
         with pytest.raises(err):
             xp.arange(1, 3, 0)

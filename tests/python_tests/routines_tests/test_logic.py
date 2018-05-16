@@ -61,7 +61,7 @@ def test_eq(device, a_object, b_object, dtype):
     ((2,), (2, 3)),
     ((1, 2, 3), (1, 2, 3, 4)),
 ])
-def test_invalid_eq(a_shape, b_shape):
+def test_eq_invalid(a_shape, b_shape):
     def check(x, y):
         with pytest.raises(xchainer.DimensionError):
             x == y
