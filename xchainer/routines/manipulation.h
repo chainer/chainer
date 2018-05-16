@@ -16,7 +16,7 @@ namespace xchainer {
 Scalar AsScalar(const Array& a);
 
 // Returns a transposed view of the array.
-Array Transpose(const Array& a);
+Array Transpose(const Array& a, const OptionalAxes& axes = nonstd::nullopt);
 
 // Returns a reshaped array.
 // TODO(niboshi): Support reshape that require a copy.
