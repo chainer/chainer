@@ -1,6 +1,7 @@
 import chainer
 from chainer.backends import cuda
-from chainer import Distribution
+from chainer import distribution
+from chainer.distributions import kl_divergence
 from chainer.functions.array import broadcast
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
@@ -10,7 +11,7 @@ from chainer.functions.math import exponential
 import numpy
 
 
-class Normal(Distribution):
+class Normal(distribution.Distribution):
 
     """Normal Distribution.
 
@@ -237,3 +238,10 @@ class Normal(Distribution):
 
         """
         return self.scale ** 2
+
+
+@kl_divergence.register_kl(Normal, Normal)
+def _kl_normal_normal(dist1, dist2):
+    return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
+        + 0.5 * (dist1.scale ** 2 + (dist1.loc - dist2.loc) ** 2) \
+        / dist2.scale ** 2 - 0.5

@@ -9,6 +9,7 @@ from chainer import _version
 from chainer import backends  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
+from chainer import distributions  # NOQA
 from chainer import function_hooks  # NOQA
 from chainer import functions  # NOQA
 from chainer import initializers  # NOQA
