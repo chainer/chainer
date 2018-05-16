@@ -1,8 +1,10 @@
 from __future__ import division
 
 import numpy
+import six
 
 from chainer.dataset import iterator
+from chainer.iterators import random_state
 
 
 class SerialIterator(iterator.Iterator):
@@ -39,6 +41,8 @@ class SerialIterator(iterator.Iterator):
         self._repeat = repeat
         self._shuffle = shuffle
 
+        self._random_states = random_state.create_random_states(batch_size)
+
         self.reset()
 
     def __next__(self):
@@ -51,10 +55,17 @@ class SerialIterator(iterator.Iterator):
         i_end = i + self.batch_size
         N = len(self.dataset)
 
+        def get(dataset_idx, batch_idx):
+            state = self._random_states[batch_idx]
+            with random_state.set_random_state(state):
+                return self.dataset[dataset_idx]
+
         if self._order is None:
-            batch = self.dataset[i:i_end]
+            indices = six.moves.range(i, min(i_end, N))
         else:
-            batch = [self.dataset[index] for index in self._order[i:i_end]]
+            indices = self._order[i:i_end]
+        batch = [get(dataset_idx, batch_idx)
+                 for batch_idx, dataset_idx in enumerate(indices)]
 
         if i_end >= N:
             if self._repeat:
@@ -63,10 +74,13 @@ class SerialIterator(iterator.Iterator):
                     numpy.random.shuffle(self._order)
                 if rest > 0:
                     if self._order is None:
-                        batch.extend(self.dataset[:rest])
+                        indices = six.moves.range(min(rest, N))
                     else:
-                        batch.extend([self.dataset[index]
-                                      for index in self._order[:rest]])
+                        indices = self._order[:rest]
+                    rest_batch = [get(dataset_idx, rest_batch_idx)
+                                  for rest_batch_idx, dataset_idx
+                                  in enumerate(indices, N - i)]
+                    batch.extend(rest_batch)
                 self.current_position = rest
             else:
                 self.current_position = 0
@@ -113,6 +127,25 @@ class SerialIterator(iterator.Iterator):
                     self._previous_epoch_detail, 0.)
             else:
                 self._previous_epoch_detail = -1.
+        random_states = self._random_states
+        try:
+            for batch_idx in six.moves.range(self.batch_size):
+                magic, key, pos, has_gauss, cached_gaussian = \
+                    random_states[batch_idx].get_state()
+                key_store = numpy.frombuffer(key, dtype=numpy.uint32)
+                key_store[:] = serializer(
+                    'batch_random/{}/key'.format(batch_idx), key_store)
+                pos = serializer(
+                    'batch_random/{}/pos'.format(batch_idx), pos)
+                has_gauss = serializer(
+                    'batch_random/{}/has_gauss'.format(batch_idx), has_gauss)
+                cached_gaussian = serializer(
+                    'batch_random/{}/cached_gaussian'.format(batch_idx),
+                    cached_gaussian)
+                random_states[batch_idx].set_state((
+                    magic, key, pos, has_gauss, cached_gaussian))
+        except KeyError:
+            pass
 
     def reset(self):
         if self._shuffle:
