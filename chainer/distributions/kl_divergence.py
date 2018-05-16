@@ -1,6 +1,3 @@
-from chainer.distributions import normal
-from chainer.functions.math import exponential
-
 _KLDIVERGENCE = {}
 
 
