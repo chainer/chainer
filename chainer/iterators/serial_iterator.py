@@ -30,14 +30,23 @@ class SerialIterator(iterator.Iterator):
         shuffle (bool): If ``True``, the order of examples is shuffled at the
             beginning of each epoch. Otherwise, examples are extracted in the
             order of indexes.
+        rng: Random number generator (RNG) used for shuffling. If ``None``,
+            numpy default RNG is used.
 
     """
 
-    def __init__(self, dataset, batch_size, repeat=True, shuffle=True):
+    def __init__(
+            self, dataset, batch_size, repeat=True, shuffle=True, rng=None):
         self.dataset = dataset
         self.batch_size = batch_size
         self._repeat = repeat
         self._shuffle = shuffle
+
+        if rng is None:
+            # Use numpy default RNG.
+            self._rng = numpy.random.random.__self__
+        else:
+            self._rng = rng
 
         self.reset()
 
@@ -60,7 +69,7 @@ class SerialIterator(iterator.Iterator):
             if self._repeat:
                 rest = i_end - N
                 if self._order is not None:
-                    numpy.random.shuffle(self._order)
+                    self._rng.shuffle(self._order)
                 if rest > 0:
                     if self._order is None:
                         batch.extend(self.dataset[:rest])
@@ -116,7 +125,7 @@ class SerialIterator(iterator.Iterator):
 
     def reset(self):
         if self._shuffle:
-            self._order = numpy.random.permutation(len(self.dataset))
+            self._order = self._rng.permutation(len(self.dataset))
         else:
             self._order = None
 
@@ -126,3 +135,7 @@ class SerialIterator(iterator.Iterator):
 
         # use -1 instead of None internally.
         self._previous_epoch_detail = -1.
+
+    def set_random_state(self, rng):
+        self._rng = rng
+        self.reset()
