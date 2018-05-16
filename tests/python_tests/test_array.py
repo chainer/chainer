@@ -1,57 +1,13 @@
-import functools
-import math
-import operator
-
 import numpy
 import pytest
 
 import xchainer
 import xchainer.testing
 
-
-_shapes = [
-    (),
-    (0,),
-    (1,),
-    (2, 3),
-    (1, 1, 1),
-    (2, 0, 3),
-]
+from tests import array_utils
 
 
-@pytest.fixture(params=_shapes)
-def shape(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def is_module(request):
-    return request.param
-
-
-def _create_dummy_data(shape, dtype, pattern=1):
-    assert isinstance(dtype, str)
-
-    size = _size(shape)
-    if pattern == 1:
-        if dtype in ('bool', 'bool_'):
-            return [i % 2 == 1 for i in range(size)]
-        else:
-            return [i for i in range(size)]
-    else:
-        if dtype in ('bool', 'bool_'):
-            return [i % 3 == 0 for i in range(size)]
-        else:
-            return [1 + i for i in range(size)]
-
-
-def _create_dummy_ndarray(shape, dtype):
-    assert isinstance(dtype, str)
-    return numpy.arange(_size(shape)).reshape(shape).astype(dtype)
-
-
-def _check_array(array, expected_dtype, expected_shape, expected_data_list=None, expected_is_contiguous=True, device=None):
-    assert isinstance(expected_dtype, str)
+def _check_array(array, expected_dtype, expected_shape, expected_data_list=None, device=None):
     expected_dtype = xchainer.dtype(expected_dtype)
 
     assert isinstance(array.dtype, xchainer.dtype)
@@ -59,802 +15,49 @@ def _check_array(array, expected_dtype, expected_shape, expected_data_list=None,
     assert array.dtype == expected_dtype
     assert array.shape == expected_shape
     assert array.itemsize == expected_dtype.itemsize
-    assert array.size == _size(expected_shape)
-    assert array.nbytes == expected_dtype.itemsize * _size(expected_shape)
+    assert array.size == array_utils.total_size(expected_shape)
+    assert array.nbytes == expected_dtype.itemsize * array_utils.total_size(expected_shape)
     if expected_data_list is not None:
         assert array._debug_flat_data == expected_data_list
-    assert array.is_contiguous == expected_is_contiguous
-    assert array.offset == 0
-    if device is None:
-        device = xchainer.get_default_device()
-    elif isinstance(device, str):
-        device = xchainer.get_device(device)
-    assert array.device is device
 
+    assert array.is_contiguous
 
-def _check_arrays_equal(array_a, array_b):
-    assert array_a.dtype == array_b.dtype
-    assert array_a.shape == array_b.shape
-    assert array_a.itemsize == array_b.itemsize
-    assert array_a.size == array_b.size
-    assert array_a.nbytes == array_b.nbytes
-    assert array_a._debug_flat_data == array_b._debug_flat_data
-
-
-def _check_arrays_equal_copy(array_a, array_b):
-    _check_arrays_equal(array_a, array_b)
-    assert array_b.is_contiguous
-    assert 0 == array_b.offset
-
-    # Check memory addresses only if >0 bytes are allocated
-    if array_a.size > 0:
-        assert array_a._debug_data_memory_address != array_b._debug_data_memory_address
-
-
-def _check_array_equals_ndarray(array, ndarray, skip_is_contiguous=True):
-    assert array.shape == ndarray.shape
-    assert array.size == ndarray.size
-    assert array.ndim == ndarray.ndim
-    assert array.itemsize == ndarray.itemsize
-    assert array.nbytes == ndarray.itemsize * ndarray.size
-    xchainer.testing.assert_array_equal_ex(array, ndarray)
-    if not skip_is_contiguous:
-        assert array.is_contiguous == ndarray.flags['C_CONTIGUOUS']
-
-
-def _check_ndarray_equal_ndarray(ndarray1, ndarray2, skip_strides=False, skip_flags=False):
-    assert ndarray1.dtype == ndarray2.dtype
-    assert ndarray1.shape == ndarray2.shape
-    assert ndarray1.size == ndarray2.size
-    assert ndarray1.ndim == ndarray2.ndim
-    assert ndarray1.itemsize == ndarray2.itemsize
-    assert numpy.array_equal(ndarray1, ndarray2)
-
-    if not skip_strides:
-        assert ndarray1.strides == ndarray2.strides
-    if not skip_flags:
-        assert ndarray1.flags == ndarray2.flags
-
-
-def _size(shape):
-    return functools.reduce(operator.mul, shape, 1)
-
-
-# Ignores the device argument if with_device is False.
-def _check_init(shape, dtype_spec, device=None, with_device=True):
-    if with_device:
-        array = xchainer.ndarray(shape, dtype_spec, device)
-    else:
-        array = xchainer.ndarray(shape, dtype_spec)
-    expected_dtype = xchainer.dtype(dtype_spec).name
-    _check_array(array, expected_dtype, shape, device=device)
+    array_utils.check_device(array, device)
 
 
 @xchainer.testing.parametrize_dtype_specifier('dtype_spec')
-def test_init_shape_dtype(shape, dtype_spec):
-    _check_init(shape, dtype_spec, with_device=False)
+def test_init(shape, dtype_spec):
+    array = xchainer.ndarray(shape, dtype_spec)
+    _check_array(array, dtype_spec, shape)
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 @xchainer.testing.parametrize_dtype_specifier('dtype_spec')
-def test_init_shape_dtype_device(shape, dtype_spec, device):
-    _check_init(shape, dtype_spec, device=device)
+def test_init_with_device(shape, dtype_spec, device):
+    array = xchainer.ndarray(shape, dtype_spec, device=device)
+    _check_array(array, dtype_spec, shape, device=device)
 
 
 # Checks the constructor of ndarray taking a Python list.
 # TODO(hvy): This interface differs from numpy.ndarray and should be removed.
 @xchainer.testing.parametrize_dtype_specifier('dtype_spec')
-def test_init_data_list(shape, dtype_spec):
-    data_list = _create_dummy_data(shape, xchainer.dtype(dtype_spec).name)
-    expected_dtype = xchainer.dtype(dtype_spec).name
-    _check_array(xchainer.ndarray(shape, dtype_spec, data_list), expected_dtype, shape)
-    _check_array(xchainer.ndarray(shape, dtype_spec, data_list, 'native:1'), expected_dtype, shape, device='native:1')
-
-
-def test_to_device():
-    a = xchainer.ones((2,), xchainer.float32, device="native:0")
-    dst_device = xchainer.get_device("native:1")
-
-    b0 = a.to_device(dst_device)  # by device instance
-    assert b0.device is dst_device
-    _check_arrays_equal(a, b0)
-
-    b1 = a.to_device("native:1")  # by device name
-    assert b1.device is dst_device
-    _check_arrays_equal(a, b1)
-
-    b2 = a.to_device("native", 1)  # by backend name and index
-    assert b2.device is dst_device
-    _check_arrays_equal(a, b2)
-
-
-def _check_tonumpy(a_np, a_xc):
-    xchainer.testing.assert_array_equal_ex(a_xc, a_np, strides_check=False)
-    if a_np.size > 0:
-        # test buffer is not shared
-        a_np.fill(1)
-        assert not numpy.array_equal(a_np, xchainer.tonumpy(a_xc))
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_tonumpy(shape, dtype, device):
-    a_xc = xchainer.arange(_size(shape)).reshape(shape).astype(dtype)
-    a_np = xchainer.tonumpy(a_xc)
-    _check_tonumpy(a_np, a_xc)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_tonumpy_non_contiguous(shape, dtype, device):
-    a_xc = xchainer.arange(_size(shape)).reshape(shape).astype(dtype).T
-    a_np = xchainer.tonumpy(a_xc)
-    _check_tonumpy(a_np, a_xc)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_tonumpy_positive_offset(device):
-    a_xc = xchainer.arange(6).reshape(2, 3)[:, 1:]
-    a_np = xchainer.tonumpy(a_xc)
-    _check_tonumpy(a_np, a_xc)
-
-
-def test_view(shape, dtype):
-    data_list = _create_dummy_data(shape, dtype, pattern=1)
-
-    array = xchainer.ndarray(shape, dtype, data_list)
-    view = array.view()
-
-    _check_array(view, dtype, shape, data_list)
-
-    # inplace modification
-    if len(data_list) > 0:
-        array += array
-        assert array._debug_flat_data == view._debug_flat_data
-
-
-def test_view_must_not_share_properties():
-    array = xchainer.ndarray((1,), xchainer.float32, [3.0])
-    view = array.view()
-    # Test preconditions
-    assert not array.is_grad_required()
-    assert not view.is_grad_required()
-
-    array.require_grad()
-    assert not view.is_grad_required(), 'A view must not share is_grad_required with the original array.'
-
-
-@pytest.mark.parametrize('value', [
-    0, 1, -1, 0.1, 0.9, -0.1, -0.9, 1.1, -1.1, 1.9, -1.9, True, False, float('inf'), -float('inf'), float('nan'), -0.0
-])
-@pytest.mark.parametrize('shape', [
-    (), (1,), (1, 1, 1)
-])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_asscalar(device, value, shape, dtype):
-    np_dtype = numpy.dtype(dtype)
-    try:
-        np_value = np_dtype.type(value)
-    except (ValueError, OverflowError):
-        return
-
-    a_np = numpy.asarray([np_value], dtype).reshape(shape)
-    a_xc = xchainer.array(a_np)
-
-    def should_cast_succeed(typ):
-        try:
-            typ(np_value)
-            return True
-        except (ValueError, OverflowError):
-            return False
-
-    # Cast to float
-    if should_cast_succeed(float):
-        assert type(float(a_xc)) is float
-        if math.isnan(float(a_np)):
-            assert math.isnan(float(a_xc))
-        else:
-            assert float(a_np) == float(a_xc)
-    # Cast to int
-    if should_cast_succeed(int):
-        assert type(int(a_xc)) is int
-        assert int(a_np) == int(a_xc)
-    # Cast to bool
-    if should_cast_succeed(bool):
-        assert type(bool(a_xc)) is bool
-        assert bool(a_np) == bool(a_xc)
-
-    # xchainer.asscalar
-    assert isinstance(xchainer.asscalar(a_xc), type(numpy.asscalar(a_np)))
-    if math.isnan(numpy.asscalar(a_np)):
-        assert math.isnan(xchainer.asscalar(a_xc))
-    else:
-        assert xchainer.asscalar(a_xc) == numpy.asscalar(a_np)
-
-
-@pytest.mark.parametrize('shape', [
-    (0,), (1, 0), (2,), (1, 2), (2, 3),
-])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_invalid_asscalar(device, shape):
-    dtype = xchainer.float32
-
-    a = xchainer.ones(shape, dtype)
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.asscalar(a)
-
-    a = xchainer.ones(shape, dtype)
-    with pytest.raises(xchainer.DimensionError):
-        float(a)
-
-    a = xchainer.ones(shape, dtype)
-    with pytest.raises(xchainer.DimensionError):
-        int(a)
-
-    a = xchainer.ones(shape, dtype)
-    with pytest.raises(xchainer.DimensionError):
-        bool(a)
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_transpose(xp, shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    array = xp.array(ndarray)
-    return array.transpose()
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_T(xp, shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    array = xp.array(ndarray)
-    return array.T
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_module_transpose(xp, shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    array = xp.array(ndarray)
-    return xp.transpose(array)
-
-
-_reshape_shape = [
-    ((), ()),
-    ((0,), (0,)),
-    ((1,), (1,)),
-    ((5,), (5,)),
-    ((2, 3), (2, 3)),
-    ((1,), ()),
-    ((), (1,)),
-    ((1, 1), ()),
-    ((), (1, 1)),
-    ((6,), (2, 3)),
-    ((2, 3), (6,)),
-    ((2, 0, 3), (5, 0, 7)),
-    ((5,), (1, 1, 5, 1, 1)),
-    ((1, 1, 5, 1, 1), (5,)),
-    ((2, 3), (3, 2)),
-    ((2, 3, 4), (3, 4, 2)),
-]
-
-
-# TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
-# TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
-@pytest.mark.parametrize('shape_type', [tuple, list])
-def test_reshape(is_module, xp, a_shape, b_shape, shape_type):
-    size = _size(a_shape)
-    a = xp.arange(size)
-    if is_module:
-        b = xp.reshape(a, shape_type(b_shape))
-    else:
-        b = a.reshape(shape_type(b_shape))
-
-    if xp is xchainer:
-        assert b.is_contiguous
-        assert a._debug_data_memory_address == b._debug_data_memory_address, 'Reshape must be done without copy'
-        assert numpy.arange(size).reshape(b_shape).strides == b.strides, 'Strides after reshape must match NumPy behavior'
-
-    return b
-
-
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(TypeError, xchainer.XchainerError))
-@pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
-def test_reshape_args(is_module, xp, a_shape, b_shape):
-    size = _size(a_shape)
-    a = xp.arange(size)
-    if is_module:
-        if len(b_shape) > 1:
-            # Skipping tests where the 'order' argument is unintentionally given a shape value, since numpy won't raise any errors in
-            # this case which you might expect at first.
-            return xp.array([])
-        b = xp.reshape(a, *b_shape)  # TypeError/xchainer.XchainerError in case b_shape is empty.
-    else:
-        b = a.reshape(*b_shape)  # TypeError/xchainer.XchainerError in case b_shape is empty.
-
-    if xp is xchainer:
-        assert b.is_contiguous
-        assert a._debug_data_memory_address == b._debug_data_memory_address, 'Reshape must be done without copy'
-        assert numpy.arange(size).reshape(b_shape).strides == b.strides, 'Strides after reshape must match NumPy behavior'
-
-    return b
-
-
-@pytest.mark.parametrize('shape1,shape2', [
-    ((), (0,)),
-    ((), (2,)),
-    ((), (1, 2,)),
-    ((0,), (1,)),
-    ((0,), (1, 1, 1)),
-    ((2, 3), (2, 3, 2)),
-    ((2, 3, 4), (2, 3, 5)),
-])
-def test_invalid_reshape(shape1, shape2):
-    def check(a_shape, b_shape):
-        size = functools.reduce(operator.mul, a_shape, 1)
-        dtype = numpy.float32
-        a_np = numpy.arange(size, dtype=dtype).reshape(a_shape)
-        a_xc = xchainer.array(a_np)
-
-        with pytest.raises(xchainer.DimensionError):
-            a_xc.reshape(b_shape)
-
-    check(shape1, shape2)
-    check(shape2, shape1)
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('shape,axis', [
-    ((), None),
-    ((0,), None),
-    ((1,), None),
-    ((1, 1), None),
-    ((1, 0, 1), None),
-    ((3,), None),
-    ((3, 1), None),
-    ((1, 3), None),
-    ((2, 0, 3), None),
-    ((2, 4, 3), None),
-    ((2, 1, 3), 1),
-    ((2, 1, 3), -2),
-    ((1, 2, 1, 3, 1, 1, 4), None),
-    ((1, 2, 1, 3, 1, 1, 4), (2, 0, 4)),
-    ((1, 2, 1, 3, 1, 1, 4), (-2, 0, 4)),
-])
-def test_squeeze(is_module, xp, shape, axis):
-    ndarray = _create_dummy_ndarray(shape, 'float32')
-    a = xp.array(ndarray)
-    if is_module:
-        return xp.squeeze(a, axis)
-    else:
-        return a.squeeze(axis)
-
-
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
-@pytest.mark.parametrize('shape,axis', [
-    ((2, 1, 3), 0),
-    ((2, 1, 3), -1),
-    ((2, 1, 3), (1, 2)),
-    ((2, 1, 3), (1, -1)),
-    ((2, 1, 3), (1, 1)),
-])
-def test_invalid_squeeze(is_module, xp, shape, axis):
-    a = xp.ones(shape, xp.float32)
-    if is_module:
-        return xp.squeeze(a, axis)
-    else:
-        return a.squeeze(axis)
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('src_shape,dst_shape', [
-    ((), ()),
-    ((1,), (2,)),
-    ((1, 1), (2, 2)),
-    ((1, 1), (1, 2)),
-])
-def test_broadcast_to(xp, src_shape, dst_shape):
-    ndarray = _create_dummy_ndarray(src_shape, 'float32')
-    a = xp.array(ndarray)
-    return xp.broadcast_to(a, dst_shape)
-
-
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, TypeError))
-def test_broadcast_to_auto_prefix(xp):
-    ndarray = numpy.arange(2, dtype=numpy.float32)
-    a = xp.array(ndarray)
-    return xp.broadcast_to(a, (3, 2))
-
-
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, TypeError))
-@pytest.mark.parametrize(('src_shape,dst_shape'), [
-    ((3,), (2,)),
-    ((3,), (3, 2)),
-    ((1, 3), (3, 2)),
-])
-def test_invalid_broadcast_to(xp, src_shape, dst_shape):
-    a = xp.ones(src_shape, xchainer.float32)
-    return xp.broadcast_to(a, dst_shape)
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_copy(xp, shape, dtype, device):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    a = xp.array(ndarray)
-    return a.copy()
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_module_copy(xp, shape, dtype, device):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    a = xp.array(ndarray)
-    return xp.copy(a)
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('copy', [False, True])
-# TODO(beam2d): use fixtures.
-@pytest.mark.parametrize('src_dtype', ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
-@pytest.mark.parametrize('dst_dtype', ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
-def test_astype(xp, shape, device, copy, src_dtype, dst_dtype):
-    ndarray = _create_dummy_ndarray(shape, src_dtype)
-    a = xp.array(ndarray)
-    b = a.astype(dst_dtype, copy=copy)
-    assert a is b if src_dtype == dst_dtype and not copy else a is not b
-    return b
-
-
-def test_as_constant_copy(shape, dtype):
-    data_list = _create_dummy_data(shape, dtype)
-
-    # Stop gradients on all graphs
-    a = xchainer.ndarray(shape, dtype, data_list)
-    a.require_grad('graph_1')
-    a.require_grad('graph_2')
-    assert a.is_grad_required('graph_1')
-    assert a.is_grad_required('graph_2')
-    b = a.as_constant(copy=True)
-
-    _check_arrays_equal_copy(a, b)
-    assert not b.is_grad_required('graph_1')
-    assert not b.is_grad_required('graph_2')
-
-    assert a.is_grad_required('graph_1')
-    assert a.is_grad_required('graph_2')
-
-    # Stop gradients on some graphs
-    a = xchainer.ndarray(shape, dtype, data_list)
-    a.require_grad('graph_1')
-    a.require_grad('graph_2')
-    a.require_grad('graph_3')
-    assert a.is_grad_required('graph_1')
-    assert a.is_grad_required('graph_2')
-    assert a.is_grad_required('graph_3')
-    b = a.as_constant(['graph_1', 'graph_2'], copy=True)
-
-    _check_arrays_equal_copy(a, b)
-    assert not b.is_grad_required('graph_1')
-    assert not b.is_grad_required('graph_2')
-    assert b.is_grad_required('graph_3')
-
-    assert a.is_grad_required('graph_1')
-    assert a.is_grad_required('graph_2')
-    assert a.is_grad_required('graph_3')
-
-
-def test_as_constant_view(shape, dtype):
-    data_list = _create_dummy_data(shape, dtype)
-
-    # Stop gradients on all graphs
-    a = xchainer.ndarray(shape, dtype, data_list)
-    a.require_grad('graph_1')
-    a.require_grad('graph_2')
-    assert a.is_grad_required('graph_1')
-    assert a.is_grad_required('graph_2')
-    b = a.as_constant(copy=False)
-
-    _check_array(b, dtype, shape, data_list)
-    assert not b.is_grad_required('graph_1')
-    assert not b.is_grad_required('graph_2')
-
-    assert a.is_grad_required('graph_1')
-    assert a.is_grad_required('graph_2')
-
-    # Stop gradients on some graphs
-    a = xchainer.ndarray(shape, dtype, data_list)
-    a.require_grad('graph_1')
-    a.require_grad('graph_2')
-    a.require_grad('graph_3')
-    assert a.is_grad_required('graph_1')
-    assert a.is_grad_required('graph_2')
-    assert a.is_grad_required('graph_3')
-    b = a.as_constant(['graph_1', 'graph_2'], copy=False)
-
-    _check_array(b, dtype, shape, data_list)
-    assert not b.is_grad_required('graph_1')
-    assert not b.is_grad_required('graph_2')
-    assert b.is_grad_required('graph_3')
-
-    assert a.is_grad_required('graph_1')
-    assert a.is_grad_required('graph_2')
-    assert a.is_grad_required('graph_3')
-
-
-@pytest.mark.parametrize('a_object,b_object', [
-    ([], []),
-    ([0], [0]),
-    ([0], [-0]),
-    ([0], [1]),
-    ([0.2], [0.2]),
-    ([0.2], [-0.3]),
-    ([True], [True]),
-    ([True], [False]),
-    ([0, 1, 2], [0, 1, 2]),
-    ([1, 1, 2], [0, 1, 2]),
-    ([0, 1, 2], [1, 2, 3]),
-    ([0., numpy.nan], [0., 1.]),
-    ([0., numpy.nan], [0., numpy.nan]),
-    ([0., numpy.inf], [0., 1.]),
-    ([0., -numpy.inf], [0., 1.]),
-    ([numpy.inf, 1.], [numpy.inf, 1.]),
-    ([-numpy.inf, 1.], [-numpy.inf, 1.]),
-    ([numpy.inf, 1.], [-numpy.inf, 1.]),
-    ([numpy.inf, 1.], [-numpy.inf, numpy.nan]),
-    ([[0, 1], [2, 3]], [[0, 1], [2, 3]]),
-    ([[0, 1], [2, 3]], [[0, 1], [2, -2]]),
-    ([[0, 1], [2, 3]], [[1, 2], [3, 4]]),
-    # broadcast
-    (0, [0]),
-    (1, [0]),
-    ([], [0]),
-    ([0], [[0, 1, 2], [3, 4, 5]]),
-    ([[0], [1]], [0, 1, 2]),
-])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_eq(device, a_object, b_object, dtype):
-    try:
-        a_np = numpy.array(a_object, dtype)
-        b_np = numpy.array(b_object, dtype)
-    except (ValueError, OverflowError):
-        # Skip if creating an ndarray while casting the data to the parameterized dtype fails.
-        # E.g. [numpy.inf] to numpy.int32.
-        return
-
-    a_xc = xchainer.array(a_np)
-    b_xc = xchainer.array(b_np)
-
-    _check_array_equals_ndarray(a_xc == b_xc, a_np == b_np)
-    _check_array_equals_ndarray(b_xc == a_xc, b_np == a_np)
-    _check_array_equals_ndarray(xchainer.equal(a_xc, b_xc), numpy.equal(a_np, b_np))
-    _check_array_equals_ndarray(xchainer.equal(b_xc, a_xc), numpy.equal(b_np, a_np))
-
-
-@pytest.mark.parametrize('a_shape,b_shape', [
-    ((2,), (3,)),
-    ((2,), (2, 3)),
-    ((1, 2, 3), (1, 2, 3, 4)),
-])
-def test_invalid_eq(a_shape, b_shape):
-    def create_ndarray(shape):
-        size = functools.reduce(operator.mul, shape, 1)
-        dtype = numpy.float32
-        return numpy.arange(size, dtype=dtype).reshape(shape)
-
-    def check(a_xc, b_xc):
-        with pytest.raises(xchainer.DimensionError):
-            a_xc == b_xc
-
-        with pytest.raises(xchainer.DimensionError):
-            xchainer.equal(a_xc, b_xc)
-
-    a_np = create_ndarray(a_shape)
-    b_np = create_ndarray(b_shape)
-
-    a_xc = xchainer.array(a_np)
-    b_xc = xchainer.array(b_np)
-
-    check(a_xc, b_xc)
-    check(b_xc, a_xc)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_neg(xp, device, shape, dtype):
-    if dtype == 'bool_':  # Checked in test_invalid_bool_neg
-        return xchainer.testing.ignore()
-    size = functools.reduce(operator.mul, shape, 1)
-    obj = numpy.arange(size).reshape(shape).astype(dtype)
-    x = xp.array(obj)
-    return -x
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_invalid_bool_neg(device):
-    def check(xp, err):
-        x = xp.array([True, False], dtype='bool_')
-        with pytest.raises(err):
-            -x
-
-    check(xchainer, xchainer.DtypeError)
-    check(numpy, TypeError)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_negative(xp, device, shape, dtype):
-    if dtype == 'bool_':  # Checked in test_invalid_bool_neg
-        return xchainer.testing.ignore()
-    size = functools.reduce(operator.mul, shape, 1)
-    obj = numpy.arange(size).reshape(shape).astype(dtype)
-    x = xp.array(obj)
-    return xp.negative(x)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_invalid_bool_negative(device):
-    def check(xp, err):
-        x = xp.array([True, False], dtype='bool_')
-        with pytest.raises(err):
-            xp.negative(x)
-
-    check(xchainer, xchainer.DtypeError)
-    check(numpy, TypeError)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_add_iadd(device, shape, dtype):
-    lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
-    rhs_data_list = _create_dummy_data(shape, dtype, pattern=2)
-
-    lhs = xchainer.ndarray(shape, dtype, lhs_data_list)
-    rhs = xchainer.ndarray(shape, dtype, rhs_data_list)
-
-    expected_data_list = [x + y for x, y in zip(lhs_data_list, rhs_data_list)]
-    if dtype == 'bool_':
-        expected_data_list = [x > 0 for x in expected_data_list]  # [0, 2] => [False, True]
-
-    def check(out):
-        assert out.dtype == xchainer.dtype(dtype)
-        assert out.shape == shape
-        assert out._debug_flat_data == expected_data_list
-        assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
-        assert rhs._debug_flat_data == rhs_data_list
-
-    check(lhs + rhs)
-    check(xchainer.add(lhs, rhs))
-
-    lhs_prev = lhs
-    lhs += rhs
-    assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
-    assert lhs._debug_flat_data == expected_data_list
-    assert rhs._debug_flat_data == rhs_data_list
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sub_isub(device, shape, dtype):
-    if dtype == 'bool_':
-        # TODO(niboshi): Compare directly with NumPy
-        return  # not supported
-    lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
-    rhs_data_list = _create_dummy_data(shape, dtype, pattern=2)
-
-    lhs = xchainer.ndarray(shape, dtype, lhs_data_list)
-    rhs = xchainer.ndarray(shape, dtype, rhs_data_list)
-
-    if dtype == 'uint8':
-        # TODO(niboshi): Compare directly with NumPy
-        expected_data_list = [(0x100 + x - y) & 0xff for x, y in zip(lhs_data_list, rhs_data_list)]
-    else:
-        expected_data_list = [x - y for x, y in zip(lhs_data_list, rhs_data_list)]
-
-    def check(out):
-        assert out.dtype == xchainer.dtype(dtype)
-        assert out.shape == shape
-        assert out._debug_flat_data == expected_data_list
-        assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
-        assert rhs._debug_flat_data == rhs_data_list
-
-    check(lhs - rhs)
-    check(xchainer.subtract(lhs, rhs))
-
-    lhs_prev = lhs
-    lhs -= rhs
-    assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
-    assert lhs._debug_flat_data == expected_data_list
-    assert rhs._debug_flat_data == rhs_data_list
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_imul(device, shape, dtype):
-    lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
-    rhs_data_list = _create_dummy_data(shape, dtype, pattern=2)
-
-    lhs = xchainer.ndarray(shape, dtype, lhs_data_list)
-    rhs = xchainer.ndarray(shape, dtype, rhs_data_list)
-
-    expected_data_list = [x * y for x, y in zip(lhs_data_list, rhs_data_list)]
-    if dtype == 'bool_':
-        expected_data_list = [x > 0 for x in expected_data_list]  # [0, 1] => [False, True]
-
-    def check(out):
-        assert out.dtype == xchainer.dtype(dtype)
-        assert out.shape == shape
-        assert out._debug_flat_data == expected_data_list
-        assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
-        assert rhs._debug_flat_data == rhs_data_list
-
-    check(lhs * rhs)
-    check(xchainer.multiply(lhs, rhs))
-
-    lhs_prev = lhs
-    lhs *= rhs
-    assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
-    assert lhs._debug_flat_data == expected_data_list
-    assert rhs._debug_flat_data == rhs_data_list
-
-
-@pytest.mark.parametrize('scalar', [0, -1, 1, 2])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_mul_scalar(scalar, device, shape, dtype):
-    data_list = _create_dummy_data(shape, dtype)
-
-    # Implicit casting in NumPy's multiply depends on the 'casting' argument,
-    # which is not yet supported (xChainer always casts).
-    # Therefore, we explicitly cast the scalar to the dtype of the ndarray
-    # before the multiplication for NumPy.
-    scalar_np = numpy.dtype(dtype).type(scalar)
-    expected = numpy.array(data_list, dtype=dtype).reshape(shape)
-    expected *= scalar_np
-
-    x = xchainer.ndarray(shape, dtype, data_list)
-    scalar_xc = xchainer.Scalar(scalar, dtype)
-    _check_array_equals_ndarray(x * scalar, expected)
-    _check_array_equals_ndarray(x * scalar_xc, expected)
-    _check_array_equals_ndarray(scalar * x, expected)
-    _check_array_equals_ndarray(scalar_xc * x, expected)
-    _check_array_equals_ndarray(xchainer.multiply(x, scalar), expected)
-    _check_array_equals_ndarray(xchainer.multiply(x, scalar_xc), expected)
-    _check_array_equals_ndarray(xchainer.multiply(scalar, x), expected)
-    _check_array_equals_ndarray(xchainer.multiply(scalar_xc, x), expected)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_truediv_itruediv(device, shape, dtype):
-    if dtype == 'bool_':
-        # TODO(niboshi): Compare directly with NumPy
-        return  # not supported
-    lhs_data_list = _create_dummy_data(shape, dtype, pattern=1)
-    rhs_data_list = _create_dummy_data(shape, dtype, pattern=2)
-
-    lhs = xchainer.ndarray(shape, dtype, lhs_data_list)
-    rhs = xchainer.ndarray(shape, dtype, rhs_data_list)
-
-    if dtype in ('int8', 'int16', 'int32', 'int64', 'uint8'):
-        # TODO(niboshi): The behavior should be true division, but currently it's not supported.
-        # Its temporary behavior for integral division is rounding towards zero.
-        expected_data_list = [int(x / y) for x, y in zip(lhs_data_list, rhs_data_list)]
-    else:
-        expected_data_list = [x / y for x, y in zip(lhs_data_list, rhs_data_list)]
-
-    def check(out):
-        assert out.dtype == xchainer.dtype(dtype)
-        assert out.shape == shape
-        numpy.testing.assert_allclose(out._debug_flat_data, expected_data_list, rtol=1e-3)
-        assert lhs._debug_flat_data == lhs_data_list  # operands must not be altered
-        assert rhs._debug_flat_data == rhs_data_list
-
-    check(lhs / rhs)
-    check(xchainer.divide(lhs, rhs))
-
-    lhs_prev = lhs
-    lhs /= rhs
-    assert lhs is lhs_prev, 'inplace operation must not alter lhs reference'
-    numpy.testing.assert_allclose(lhs._debug_flat_data, expected_data_list, rtol=1e-3)
-    assert rhs._debug_flat_data == rhs_data_list
-
-
-def test_array_init_invalid_length():
+def test_init_from_list(shape, dtype_spec):
+    dtype_name = xchainer.dtype(dtype_spec).name
+    data_list = array_utils.create_dummy_ndarray(numpy, shape, dtype_name).ravel().tolist()
+    array = xchainer.ndarray(shape, dtype_spec, data_list)
+    _check_array(array, dtype_name, shape, data_list)
+
+
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+@pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
+def test_init_from_list_with_device(shape, dtype_spec, device):
+    dtype_name = xchainer.dtype(dtype_spec).name
+    data_list = array_utils.create_dummy_ndarray(numpy, shape, dtype_name).ravel().tolist()
+    array = xchainer.ndarray(shape, dtype_spec, data_list, device)
+    _check_array(array, dtype_name, shape, data_list, device=device)
+
+
+def test_init_invalid_length():
     with pytest.raises(xchainer.DimensionError):
         xchainer.ndarray((), xchainer.int8, [])
 
@@ -875,6 +78,179 @@ def test_array_init_invalid_length():
 
     with pytest.raises(xchainer.DimensionError):
         xchainer.ndarray((3, 2), xchainer.int8, [1, 1, 1, 1, 1, 1, 1])
+
+
+def test_to_device():
+    a = xchainer.ones((2,), xchainer.float32, device="native:0")
+    dst_device = xchainer.get_device("native:1")
+
+    b0 = a.to_device(dst_device)  # by device instance
+    assert b0.device is dst_device
+    xchainer.testing.assert_array_equal_ex(a, b0)
+
+    b1 = a.to_device("native:1")  # by device name
+    assert b1.device is dst_device
+    xchainer.testing.assert_array_equal_ex(a, b1)
+
+    b2 = a.to_device("native", 1)  # by backend name and index
+    assert b2.device is dst_device
+    xchainer.testing.assert_array_equal_ex(a, b2)
+
+
+def _check_tonumpy(a_np, a_xc):
+    xchainer.testing.assert_array_equal_ex(a_xc, a_np, strides_check=False)
+    if a_np.size > 0:
+        # test buffer is not shared
+        a_np.fill(1)
+        assert not numpy.array_equal(a_np, xchainer.tonumpy(a_xc))
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_tonumpy(shape, dtype, device):
+    a_xc = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
+    a_np = xchainer.tonumpy(a_xc)
+    _check_tonumpy(a_np, a_xc)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_tonumpy_non_contiguous(shape, dtype, device):
+    a_xc = array_utils.create_dummy_ndarray(xchainer, shape, dtype).T
+    a_np = xchainer.tonumpy(a_xc)
+    _check_tonumpy(a_np, a_xc)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_tonumpy_positive_offset(device):
+    a_xc = xchainer.arange(6).reshape(2, 3)[:, 1:]
+    a_np = xchainer.tonumpy(a_xc)
+    _check_tonumpy(a_np, a_xc)
+
+
+def test_view(shape, dtype):
+    array = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
+    view = array.view()
+
+    xchainer.testing.assert_array_equal_ex(view, array)
+    assert view.device is xchainer.get_default_device()
+
+    # inplace modification
+    if array.size > 0:
+        array += array
+        assert array._debug_flat_data == view._debug_flat_data
+
+
+def test_view_must_not_share_properties():
+    array = xchainer.ndarray((1,), xchainer.float32, [3.0])
+    view = array.view()
+    # Test preconditions
+    assert not array.is_grad_required()
+    assert not view.is_grad_required()
+
+    array.require_grad()
+    assert not view.is_grad_required(), 'A view must not share is_grad_required with the original array.'
+
+
+@xchainer.testing.numpy_xchainer_array_equal(strides_check=False)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('copy', [False, True])
+# TODO(beam2d): use fixtures.
+@pytest.mark.parametrize('src_dtype', ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
+@pytest.mark.parametrize('dst_dtype', ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
+def test_astype(xp, shape, device, copy, src_dtype, dst_dtype):
+    a = array_utils.create_dummy_ndarray(xp, shape, src_dtype)
+
+    # Casting negative value to unsigned int behaves different in CUDA
+    if device.name == 'cuda:0' and \
+            src_dtype in xchainer.testing.signed_dtypes and \
+            dst_dtype in xchainer.testing.unsigned_dtypes:
+        a = xp.maximum(a, 0)
+
+    b = a.astype(dst_dtype, copy=copy)
+    assert a is b if src_dtype == dst_dtype and not copy else a is not b
+    return b
+
+
+def test_as_constant_copy(shape, dtype):
+    def check(array_a, array_b):
+        xchainer.testing.assert_array_equal_ex(array_a, array_b, strides_check=False)
+
+        assert array_b.is_contiguous
+
+        # Check memory addresses only if >0 bytes are allocated
+        if array_a.size > 0:
+            assert array_a._debug_data_memory_address != array_b._debug_data_memory_address
+
+    # Stop gradients on all graphs
+    a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
+    a.require_grad('graph_1')
+    a.require_grad('graph_2')
+    assert a.is_grad_required('graph_1')
+    assert a.is_grad_required('graph_2')
+    b = a.as_constant(copy=True)
+
+    check(a, b)
+    assert not b.is_grad_required('graph_1')
+    assert not b.is_grad_required('graph_2')
+
+    assert a.is_grad_required('graph_1')
+    assert a.is_grad_required('graph_2')
+
+    # Stop gradients on some graphs
+    a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
+    a.require_grad('graph_1')
+    a.require_grad('graph_2')
+    a.require_grad('graph_3')
+    assert a.is_grad_required('graph_1')
+    assert a.is_grad_required('graph_2')
+    assert a.is_grad_required('graph_3')
+    b = a.as_constant(['graph_1', 'graph_2'], copy=True)
+
+    check(a, b)
+    assert not b.is_grad_required('graph_1')
+    assert not b.is_grad_required('graph_2')
+    assert b.is_grad_required('graph_3')
+
+    assert a.is_grad_required('graph_1')
+    assert a.is_grad_required('graph_2')
+    assert a.is_grad_required('graph_3')
+
+
+def test_as_constant_view(shape, dtype):
+    # Stop gradients on all graphs
+    a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
+    a.require_grad('graph_1')
+    a.require_grad('graph_2')
+    assert a.is_grad_required('graph_1')
+    assert a.is_grad_required('graph_2')
+    b = a.as_constant(copy=False)
+
+    xchainer.testing.assert_array_equal_ex(a, b)
+    assert b.device is a.device
+    assert not b.is_grad_required('graph_1')
+    assert not b.is_grad_required('graph_2')
+
+    assert a.is_grad_required('graph_1')
+    assert a.is_grad_required('graph_2')
+
+    # Stop gradients on some graphs
+    a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
+    a.require_grad('graph_1')
+    a.require_grad('graph_2')
+    a.require_grad('graph_3')
+    assert a.is_grad_required('graph_1')
+    assert a.is_grad_required('graph_2')
+    assert a.is_grad_required('graph_3')
+    b = a.as_constant(['graph_1', 'graph_2'], copy=False)
+
+    xchainer.testing.assert_array_equal_ex(a, b)
+    assert b.device is a.device
+    assert not b.is_grad_required('graph_1')
+    assert not b.is_grad_required('graph_2')
+    assert b.is_grad_required('graph_3')
+
+    assert a.is_grad_required('graph_1')
+    assert a.is_grad_required('graph_2')
+    assert a.is_grad_required('graph_3')
 
 
 def test_array_repr():
@@ -1098,308 +474,7 @@ def test_array_backward():
     assert gx1.get_grad(graph_id='graph_1') is not None
 
 
-# TODO(niboshi): Remove strides_check=False
 @xchainer.testing.numpy_xchainer_array_equal(strides_check=False)
-@pytest.mark.parametrize("shape,indices", [
-    # empty indexing
-    ((), ()),
-    ((3,), ()),
-    ((2, 2, 2), ()),
-    # integer indexing - non-tuple indexing
-    ((3,), 0),
-    ((3,), 1),
-    ((3,), 2),
-    ((3,), -1),
-    ((2, 3), 0),
-    ((2, 3), 1),
-    # integer indexining - tuple indexing
-    ((3,), (0,)),
-    ((3,), (1,)),
-    ((3,), (2,)),
-    ((3,), (-1,)),
-    ((2, 3), (0,)),
-    ((2, 3), (1,)),
-    ((2, 3), (0, 0)),
-    ((2, 3), (1, 1)),
-    ((2, 3, 4), (0, -2, 3)),
-    ((2, 3, 4), (1, 0)),
-    # slice indexing - non-tuple indexing
-    ((3,), slice(None)),
-    ((3,), slice(2)),
-    ((3,), slice(0, 3)),
-    ((3,), slice(0, 2)),
-    ((3,), slice(1, 3)),
-    ((3,), slice(0, 0)),
-    ((3,), slice(0, 1)),
-    ((3,), slice(2, 0, -1)),
-    ((3,), slice(-2, -1)),
-    ((3,), slice(2, None, -1)),
-    ((3,), slice(None, 0, 1)),
-    ((3,), slice(None, -1, -1)),
-    ((3,), slice(None, -2, -1)),
-    ((6,), slice(0, 6, 2)),
-    ((6,), slice(1, 6, 2)),
-    ((6,), slice(5, None, -2)),
-    # slice indexing - tuple indexing
-    ((3,), (slice(None),)),
-    ((3,), (slice(2),)),
-    ((3,), (slice(0, 3),)),
-    ((3,), (slice(0, 2),)),
-    ((3,), (slice(1, 3),)),
-    ((3,), (slice(0, 0),)),
-    ((3,), (slice(0, 1),)),
-    ((3,), (slice(2, 0, -1),)),
-    ((3,), (slice(-2, -1),)),
-    ((3,), (slice(2, None, -1),)),
-    ((3,), (slice(None, 0, 1),)),
-    ((3,), (slice(None, -1, -1),)),
-    ((3,), (slice(None, -2, -1),)),
-    ((6,), (slice(0, 6, 2),)),
-    ((6,), (slice(1, 6, 2),)),
-    ((6,), (slice(5, None, -2),)),
-    ((2, 3), (slice(None), slice(None))),
-    ((2, 3), (slice(1), slice(2))),
-    ((2, 3), (slice(0, 2), slice(0, 3))),
-    ((2, 3), (slice(0, 2), slice(0, -1))),
-    ((2, 3), (slice(0, None, -1), slice(2, 3))),
-    ((2, 3), (slice(0, None, None), slice(-2, 0, -1))),
-    ((2, 3), (slice(1, 2), slice(0, 2))),
-    ((2, 3), (slice(-2, None, -1), slice(0, 3))),
-    ((2, 3), (slice(-2, None, -1), slice(-3, None, -1))),
-    ((2, 3), (slice(-2, None, -1), slice(None, None, -2))),
-    ((2, 3), (slice(1, 2), slice(None, None, 1))),
-    ((2, 3), (slice(1, 2), slice(None, None, 2))),
-    ((2, 3, 4), (slice(1), slice(-2, 3), slice(1, None, -1))),
-    # newaxis indexing - non-tuple indexing
-    ((), xchainer.newaxis),
-    ((3,), xchainer.newaxis),
-    # newaxis indexing - tuple indexing
-    ((), (xchainer.newaxis,)),
-    ((3,), (xchainer.newaxis,)),
-    ((2, 3), (xchainer.newaxis, xchainer.newaxis)),
-    # mixed indexing - tuple indexing
-    ((2, 3), (0, slice(1, 3))),
-    ((4, 3), (slice(1, 3), 1)),
-    ((2, 3, 4), (1, slice(2,), slice(1, 3))),
-    ((2, 3), (1, xchainer.newaxis, slice(1, 3))),
-    ((2, 3, 4), (slice(0, 1), slice(1, 2), slice(1, 3), xchainer.newaxis)),
-    ((2, 3, 4), (slice(0, 1), slice(1, 2), xchainer.newaxis, slice(1, 3))),
-    ((2, 3, 4), (slice(0, 1), xchainer.newaxis, slice(1, 2), slice(1, 3))),
-    ((2, 3, 4), (xchainer.newaxis, slice(0, 1), slice(1, 2), slice(1, 3))),
-    ((2, 3, 4), (1, slice(2,), xchainer.newaxis, slice(1, 3), xchainer.newaxis)),
-])
-def test_getitem(xp, shape, indices):
-    ndarray = _create_dummy_ndarray(shape, 'int32')
-    a = xp.array(ndarray)
-    return a[indices]
-
-
-# TODO(hvy): Add cases where axis=None, when supported.
-# TODO(hvy): Add cases where indices is not int64, when supported.
-# shape,indices,axis
-_take_valid_params = [
-    ((3,), [0], 0),
-    ((3,), [1], 0),
-    ((2, 3), [0], 0),
-    ((2, 3), [0], 1),
-    ((2, 3), [0], -1),
-    ((2, 3), [1], 0),
-    ((2, 3), [0, -1], 0),
-    ((2, 3), [1, 0], 0),
-    ((2, 3), [1, 2], 1),
-    ((2, 3), [2, 1], 1),
-    ((2, 3), [[0], [1]], 0),
-]
-
-_take_invalid_params = [
-    # Axis out of bounds
-    ((2, 3), [0], 2),
-    ((2, 3), [0], -3),
-]
-
-
-@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False, accept_error=(xchainer.DimensionError, numpy.AxisError))
-@pytest.mark.parametrize("shape,indices,axis", _take_valid_params + _take_invalid_params)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_take(is_module, xp, shape, indices, axis, device):
-    a = xp.arange(_size(shape)).reshape(shape)
-
-    # First convert to ndarray since some indices are nested lists which
-    # xchainer cannot convert. Additionally, dtype is cast to int64 since no
-    # other dtypes are currently supported by xchainer.take
-    indices = numpy.array(indices).astype('int64')
-
-    if is_module:
-        return xp.take(a, xp.array(indices), axis)
-    else:
-        return a.take(xp.array(indices), axis)
-
-
-@pytest.mark.parametrize('is_module', [False, True])
-@pytest.mark.parametrize('dtype', ['float32', 'float64'])  # TODO(niboshi): Use float_dtype fixture
-@pytest.mark.parametrize('shape,indices,axis', _take_valid_params)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_take_backward(is_module, dtype, shape, indices, axis, device):
-    def func(a, indices, axis):
-        if is_module:
-            return xchainer.take(a, indices, axis)
-        else:
-            return a.take(indices, axis)
-
-    # First convert to ndarray since some indices are nested lists which
-    # xchainer cannot convert. Additionally, dtype is cast to int64 since no
-    # other dtypes are currently supported by xchainer.take
-    indices = xchainer.array(numpy.array(indices, dtype='int64'))
-
-    a = xchainer.arange(_size(shape)).reshape(shape).astype(dtype).require_grad()
-    output_shape = func(a, indices, axis).shape
-
-    numpy.random.seed(0)  # TODO(niboshi): Reconsider the use of random values
-    go = xchainer.array(numpy.random.uniform(-1, 1, output_shape).astype(dtype)).require_grad()
-    ggi = xchainer.array(numpy.random.uniform(-1, 1, shape).astype(dtype))
-    epsi = xchainer.full_like(a, 1e-3)
-    epso = xchainer.full_like(go, 1e-3)
-
-    def func_bwd(inputs):
-        return func(inputs[0], indices, axis),
-
-    def func_dbwd(inputs):
-        y = func(inputs[0], indices, axis)
-        return y * y,  # make nonlinear
-
-    xchainer.check_backward(func_bwd, (a,), (go,), (epsi,))
-    xchainer.check_double_backward(func_dbwd, (a,), (go,), (ggi,), (epsi, epso))
-
-
-# TODO(sonots): Fix type compatibility
-# TODO(niboshi): Remove strides_check=False
-@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False, strides_check=False)
-@pytest.mark.parametrize("keepdims", [False, True])
-@pytest.mark.parametrize("shape,axis", [
-    ((), None),
-    ((), ()),
-    ((2,), None),
-    ((2,), ()),
-    ((2,), 0),
-    ((2,), (0,)),
-    ((2,), (-1,)),
-    ((2, 3), None),
-    ((2, 3), ()),
-    ((2, 3), 0),
-    ((2, 3), (0,)),
-    ((2, 3), (1,)),
-    ((2, 3), (-1,)),
-    ((2, 3), (-2,)),
-    ((2, 3), (0, 1)),
-    ((2, 3), (-2, -1)),
-    ((1, 3), None),  # sum over 1-dim axis
-    ((0, 3), None),  # sum over 0-dim axis
-    # Sum over axes that are in the middle or apart
-    ((2, 3, 4), (1,)),
-    ((2, 3, 4), (0, 2)),
-    # Sum over axes that are apart and/or unsorted
-    ((2, 3), (1, 0)),
-    ((2, 3, 4), (2, 0)),
-    ((2, 3, 4), (2, 0, 1)),
-    ((2, 3, 4), (-2, 2, 0)),
-])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sum(is_module, xp, device, shape, axis, keepdims):
-    ndarray = _create_dummy_ndarray(shape, 'int32')
-    a = xp.array(ndarray)
-    if is_module:
-        return xp.sum(a, axis=axis, keepdims=keepdims)
-    else:
-        return a.sum(axis=axis, keepdims=keepdims)
-
-
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
-@pytest.mark.parametrize("keepdims", [False, True])
-@pytest.mark.parametrize("shape,axis", [
-    # ((), 0), # TODO(sonots): Fix compatibility
-    ((), 1),
-    ((), (1,)),
-    ((2,), 2),
-    ((2,), (2,)),
-    ((2,), (-2,)),
-    ((2, 3,), (-3,)),
-    ((2, 3,), (-3, -4)),
-    ((2, 3,), (0, 0)),
-    ((2, 3,), (-1, -1)),
-    ((2, 3,), (0, 1, 1)),
-    ((2, 3,), (0, -2)),
-])
-def test_invalid_sum(is_module, xp, shape, axis, keepdims):
-    ndarray = _create_dummy_ndarray(shape, 'int32')
-    a = xp.array(ndarray)
-    if is_module:
-        xp.sum(a, axis=axis, keepdims=keepdims)
-    else:
-        a.sum(axis=axis, keepdims=keepdims)
-
-
-# TODO(sonots): Fix type compatibility for when shape is ()
-@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False)
-@pytest.mark.parametrize("shape,value", [
-    ((), -1),
-    ((), 1),
-    ((1,), -1),
-    ((1,), 1),
-    ((2,), 1),
-    ((2, 3), 3),
-])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_maximum_with_scalar(xp, device, shape, value, signed_dtype):
-    ndarray = _create_dummy_ndarray(shape, signed_dtype)
-    a = xp.array(ndarray)
-    return xp.maximum(a, value)
-
-
-def _create_dummy_array_for_dot(xp, shape, dtype):
-    x = numpy.arange(numpy.prod(shape)).reshape(shape)
-    if dtype == 'bool_':
-        x = numpy.asarray(x % 2 == 0)
-    else:
-        x = x.astype(dtype)
-    return xp.array(x)
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('a_shape,b_shape', [
-    ((), ()),
-    ((), (2, 3)),
-    ((2, 0), (0, 3)),
-    ((0, 0), (0, 0)),
-    ((2, 3), (3, 4)),
-    # TODO(niboshi): Add test cases for more than 2 ndim
-])
-# TODO(niboshi): Add 'cuda:0'
-@pytest.mark.parametrize_device(['native:0'])
-def test_dot(is_module, xp, device, a_shape, b_shape, dtype):
-    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
-    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
-    if is_module:
-        return xp.dot(a, b)
-    else:
-        return a.dot(b)
-
-
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
-@pytest.mark.parametrize('a_shape,b_shape', [
-    ((3, 2), (1, 3)),
-])
-# TODO(niboshi): Add 'cuda:0'
-@pytest.mark.parametrize_device(['native:0'])
-def test_invalid_dot(is_module, xp, device, a_shape, b_shape, dtype):
-    a = _create_dummy_array_for_dot(xp, a_shape, dtype)
-    b = _create_dummy_array_for_dot(xp, b_shape, dtype)
-    if is_module:
-        return xp.dot(a, b)
-    else:
-        return a.dot(b)
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('value', [-1, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_fill(xp, shape, dtype, value, device):
@@ -1408,7 +483,7 @@ def test_fill(xp, shape, dtype, value, device):
     return a
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@xchainer.testing.numpy_xchainer_array_equal(strides_check=False)
 @pytest.mark.parametrize('value', [-1, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_fill_with_scalar(xp, device, shape, dtype, value):
@@ -1417,178 +492,3 @@ def test_fill_with_scalar(xp, device, shape, dtype, value):
         value = xchainer.Scalar(value, dtype)
     a.fill(value)
     return a
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('input', [
-    numpy.asarray(0), numpy.asarray(-4), numpy.asarray(4),
-    numpy.asarray(-float('inf')), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
-    numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
-])
-# TODO(niboshi): Dtype promotion is not supported yet.
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_exp(xp, device, input, float_dtype):
-    dtype = float_dtype
-    a = xp.array(input.astype(dtype))
-    return xp.exp(a)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('input', [
-    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
-    numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
-])
-# TODO(niboshi): Dtype promotion is not supported yet.
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_log(xp, device, input, float_dtype):
-    dtype = float_dtype
-    a = xp.array(input.astype(dtype))
-    return xp.log(a)
-
-
-_logsumexp_params = [
-    ((2,), 0),
-    ((2,), -1),
-    ((2, 3), None),
-    ((2, 3), 0),
-    ((2, 3), 1),
-    ((2, 3), -2),
-    ((2, 3), (0, 1)),
-    ((2, 3), (-2, 1)),
-    ((1, 2, 3), None),
-    ((1, 2, 3), (1)),
-    ((1, 2, 3), (1, 0)),
-    ((1, 2, 3), (0, 1, 2)),
-]
-
-
-_invalid_logsumexp_params = [
-    # Axis out of bounds
-    ((2,), 1),
-    ((2,), -2),
-    ((2,), (0, 1)),
-    ((2, 3), (0, 1, 2)),
-    # Duplicate axes
-    ((2,), (0, 0)),
-    ((2, 3), (0, 0)),
-]
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
-@pytest.mark.parametrize('keepdims', [True, False])
-@xchainer.testing.numpy_xchainer_allclose(rtol=1e-7, atol=0, dtype_check=False)
-# TODO(hvy): Dtype promotion is not supported yet.
-def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
-    a = xp.arange(_size(a_shape), dtype=float_dtype).reshape(a_shape)
-    if xp is numpy:
-        return xp.log(xp.sum(xp.exp(a), axis=axis, keepdims=keepdims))
-    return xp.logsumexp(a, axis=axis, keepdims=keepdims)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
-@pytest.mark.parametrize('keepdims', [True, False])
-# TODO(hvy): Dtype promotion is not supported yet.
-# TODO(hvy): Should not overflow for large numbers, add tests
-def test_invalid_logsumexp(device, a_shape, axis, float_dtype, keepdims):
-    a = xchainer.arange(_size(a_shape), dtype=float_dtype).reshape(a_shape)
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.logsumexp(a, axis=axis, keepdims=keepdims)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
-@xchainer.testing.numpy_xchainer_allclose(rtol=1e-7, atol=1e-5, dtype_check=False)
-# TODO(hvy): Dtype promotion is not supported yet.
-def test_log_softmax(xp, device, a_shape, axis, float_dtype):
-    a = xp.arange(_size(a_shape), dtype=float_dtype).reshape(a_shape)
-    if xp is numpy:
-        # Default is the second axis
-        axis = axis if axis is not None else 1
-        return a - xp.log(xp.sum(xp.exp(a), axis=axis, keepdims=True))
-    return xp.log_softmax(a, axis=axis)
-
-
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
-# TODO(hvy): Dtype promotion is not supported yet.
-def test_invalid_log_softmax(device, a_shape, axis, float_dtype):
-    a = xchainer.arange(_size(a_shape), dtype=float_dtype).reshape(a_shape)
-    with pytest.raises(xchainer.DimensionError):
-        return xchainer.log_softmax(a, axis=axis)
-
-
-_min_max_single_axis_params = [
-    # input, axis
-    # valid params
-    (numpy.asarray(0), None),
-    (numpy.asarray(-1), None),
-    (numpy.asarray(float('inf')), None),
-    (numpy.asarray(float('nan')), None),
-    (numpy.asarray(-float('inf')), None),
-    (numpy.asarray([4, 1, 4, 1]), None),
-    (numpy.asarray([4, 1, 4, 1]), 0),
-    (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]), 0),
-    (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]).T, 1),
-    (numpy.asarray([-0.0, +0.0, +0.0, -0.0]), None),
-    (numpy.asarray([[True, True, False, False], [True, False, True, False]]), 0),
-    (numpy.ones((2, 0, 3)), 2),
-    (numpy.ones((2, 3)), 1),
-    (numpy.ones((2, 3)), -2),
-    # invalid params
-    (numpy.ones((0,)), None),
-    (numpy.ones((2, 0, 3)), 1),
-    (numpy.ones((2, 0, 3)), None),
-    (numpy.ones((2, 3)), 2),
-    (numpy.ones((2, 3)), -3),
-]
-
-
-@pytest.mark.parametrize('input,axis', _min_max_single_axis_params)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
-def test_argmax(is_module, xp, device, input, axis, dtype):
-    try:
-        a_np = input.astype(dtype)
-    except (ValueError, OverflowError):
-        return xp.zeros(())  # invalid combination of data and dtype
-
-    a = xp.array(a_np)
-    if is_module:
-        return xp.argmax(a, axis)
-    else:
-        return a.argmax(axis)
-
-
-_min_max_multi_axis_params = _min_max_single_axis_params + [
-    # input, axis
-    # valid params
-    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (0, 1)),
-    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-2, -1)),
-    # invalid params
-    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 1)),
-    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (-3, 1)),
-    (numpy.asarray([[1, 4, 3, 1], [4, 6, 3, 2], [2, 3, 6, 1]]), (1, 2)),
-]
-
-
-def test_max_amax():
-    assert xchainer.amax is xchainer.max
-
-
-@pytest.mark.parametrize('input,axis', _min_max_multi_axis_params)
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-# TODO(niboshi): Remove strides_check=False
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError), strides_check=False)
-def test_max(is_module, xp, device, input, axis, dtype):
-    try:
-        a_np = input.astype(dtype)
-    except (ValueError, OverflowError):
-        return xp.zeros(())  # invalid combination of data and dtype
-
-    a = xp.array(a_np)
-    if is_module:
-        return xp.max(a, axis)
-    else:
-        return a.max(axis)

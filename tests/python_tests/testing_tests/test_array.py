@@ -14,15 +14,15 @@ def _make_onehot_arrays(shape, dtype, value1, value2):
     return a, b
 
 
+@pytest.mark.parametrize('dtype1,dtype2', list(zip(xchainer.testing.all_dtypes, xchainer.testing.all_dtypes)) + [
+    ('float32', 'int64'),  # arrays with different dtypes
+])
 @pytest.mark.parametrize('shape,transpose', [
     ((), False),
     ((0,), False),
     ((1,), False),
     ((2, 3), False),
     ((2, 3), True),  # arrays with different strides
-])
-@pytest.mark.parametrize('dtype1,dtype2', list(zip(xchainer.testing.all_dtypes, xchainer.testing.all_dtypes)) + [
-    ('float32', 'int64'),  # arrays with different dtypes
 ])
 def test_assert_array_equal(shape, transpose, dtype1, dtype2):
     np_a = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype1).reshape(shape)
@@ -87,15 +87,15 @@ def test_assert_array_equal_fail_scalar(value1, value2):
         xchainer.testing.assert_array_equal(value2, value1)
 
 
+@pytest.mark.parametrize('dtype1,dtype2', list(zip(xchainer.testing.all_dtypes, xchainer.testing.all_dtypes)) + [
+    ('float32', 'int64'),  # arrays with different dtypes
+])
 @pytest.mark.parametrize('shape,transpose', [
     ((), False),
     ((0,), False),
     ((1,), False),
     ((2, 3), False),
     ((2, 3), True),  # arrays with different strides
-])
-@pytest.mark.parametrize('dtype1,dtype2', list(zip(xchainer.testing.all_dtypes, xchainer.testing.all_dtypes)) + [
-    ('float32', 'int64'),  # arrays with different dtypes
 ])
 def test_assert_allclose(shape, transpose, dtype1, dtype2):
     atol = 1e-5

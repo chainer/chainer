@@ -58,3 +58,25 @@ def float_dtype(request):
 @pytest.fixture(params=xchainer.testing.signed_dtypes)
 def signed_dtype(request):
     return request.param
+
+
+@pytest.fixture(params=xchainer.testing.numeric_dtypes)
+def numeric_dtype(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def is_module(request):
+    return request.param
+
+
+@pytest.fixture(params=[
+    (),
+    (0,),
+    (1,),
+    (2, 3),
+    (1, 1, 1),
+    (2, 0, 3),
+])
+def shape(request):
+    return request.param

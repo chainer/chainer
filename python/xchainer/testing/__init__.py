@@ -13,6 +13,7 @@ from xchainer.testing.array import assert_array_equal_ex  # NOQA
 from xchainer.testing.dtypes import all_dtypes  # NOQA
 from xchainer.testing.dtypes import float_dtypes  # NOQA
 from xchainer.testing.dtypes import nonfloat_dtypes  # NOQA
+from xchainer.testing.dtypes import numeric_dtypes  # NOQA
 from xchainer.testing.dtypes import parametrize_dtype_specifier  # NOQA
 from xchainer.testing.dtypes import signed_dtypes  # NOQA
 from xchainer.testing.dtypes import unsigned_dtypes  # NOQA
