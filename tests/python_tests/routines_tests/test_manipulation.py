@@ -9,21 +9,6 @@ import xchainer.testing
 from tests import array_utils
 
 
-_shapes = [
-    (),
-    (0,),
-    (1,),
-    (2, 3),
-    (1, 1, 1),
-    (2, 0, 3),
-]
-
-
-@pytest.fixture(params=_shapes)
-def shape(request):
-    return request.param
-
-
 @pytest.mark.parametrize('value', [
     0, 1, -1, 0.1, 0.9, -0.1, -0.9, 1.1, -1.1, 1.9, -1.9, True, False, float('inf'), -float('inf'), float('nan'), -0.0
 ])

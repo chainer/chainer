@@ -13,21 +13,6 @@ import xchainer.testing
 from tests import array_utils
 
 
-_shapes = [
-    (),
-    (0,),
-    (1,),
-    (2, 3),
-    (1, 1, 1),
-    (2, 0, 3),
-]
-
-
-@pytest.fixture(params=_shapes)
-def shape(request):
-    return request.param
-
-
 _array_params_nonfloat_list = [
     -2,
     1,
@@ -291,7 +276,6 @@ def test_asarray_with_device(device):
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('shape', _shapes)
 @pytest.mark.parametrize('transpose', [False, True])
 def test_ascontiguousarray_from_numpy_array(xp, shape, dtype, transpose):
     # transpose (or identity) to make the input non-contiguous (or not)
@@ -300,13 +284,17 @@ def test_ascontiguousarray_from_numpy_array(xp, shape, dtype, transpose):
 
     obj = tr(array_utils.create_dummy_ndarray(numpy, shape, dtype))
     a = xp.ascontiguousarray(obj)
+
+    # TODO(sonots): numpy.ascontiguousarray creates (1,) shaped array from () shaped array
+    if xp is xchainer and shape == ():
+        a = a.reshape(1)
+
     if xp is xchainer:
         assert a.is_contiguous
     return a
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('shape', _shapes)
 @pytest.mark.parametrize('transpose', [False, True])
 def test_ascontiguousarray_from_xchainer_array(device, shape, dtype, transpose):
     def tr(x):
@@ -325,7 +313,6 @@ def test_ascontiguousarray_from_xchainer_array(device, shape, dtype, transpose):
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('shape', _shapes)
 @pytest.mark.parametrize('transpose', [False, True])
 @xchainer.testing.parametrize_dtype_specifier('dtype_spec')
 def test_ascontiguousarray_with_dtype(xp, device, shape, transpose, dtype_spec):
@@ -337,13 +324,17 @@ def test_ascontiguousarray_with_dtype(xp, device, shape, transpose, dtype_spec):
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = dtype_spec.name
     a = xp.ascontiguousarray(obj, dtype=dtype_spec)
+
+    # TODO(sonots): numpy.ascontiguousarray creates (1,) shaped array from () shaped array
+    if xp is xchainer and shape == ():
+        a = a.reshape(1)
+
     if xp is xchainer:
         assert a.is_contiguous
     return a
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1'), 'native:0'])
-@pytest.mark.parametrize('shape', _shapes)
 @pytest.mark.parametrize('transpose', [False, True])
 def test_ascontiguousarray_with_device(device, shape, transpose, dtype):
     def tr(x):

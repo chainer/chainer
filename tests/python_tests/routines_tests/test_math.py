@@ -7,21 +7,6 @@ import xchainer.testing
 from tests import array_utils
 
 
-_shapes = [
-    (),
-    (0,),
-    (1,),
-    (2, 3),
-    (1, 1, 1),
-    (2, 0, 3),
-]
-
-
-@pytest.fixture(params=_shapes)
-def shape(request):
-    return request.param
-
-
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @xchainer.testing.numpy_xchainer_array_equal()
 def test_negative(xp, device, shape, dtype, is_module):

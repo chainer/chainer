@@ -11,21 +11,6 @@ import xchainer.testing
 from tests import array_utils
 
 
-_shapes = [
-    (),
-    (0,),
-    (1,),
-    (2, 3),
-    (1, 1, 1),
-    (2, 0, 3),
-]
-
-
-@pytest.fixture(params=_shapes)
-def shape(request):
-    return request.param
-
-
 def _check_array(array, expected_dtype, expected_shape, expected_data_list=None, device=None):
     expected_dtype = xchainer.dtype(expected_dtype)
 
