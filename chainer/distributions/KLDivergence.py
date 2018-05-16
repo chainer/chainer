@@ -95,6 +95,26 @@ def _kl_beta_beta(dist1, dist2):
         * digamma.digamma(dist1.a + dist1.b)
 
 
+@register_kl(distributions.Binomial, distributions.Binomial)
+def _kl_binomial_binomial(dist1, dist2):
+    if (dist1.n.data < dist2.n.data).any():
+        raise NotImplementedError()
+    n32 = dist1.n.data.astype(numpy.float32)
+    if dist1._is_gpu:
+        is_inf = dist1.n.data > dist2.n.data
+        inf = cuda.cupy.zeros_like(dist1.p.data)
+        inf[is_inf] = numpy.inf
+    else:
+        is_inf = dist1.n.data > dist2.n.data
+        inf = numpy.zeros_like(dist1.p.data)
+        inf[is_inf] = numpy.inf
+
+    return n32 * dist1.p * (exponential.log(dist1.p)
+                            - exponential.log(dist2.p)) \
+        + n32 * (1 - dist1.p) * (exponential.log(1 - dist1.p)
+                                 - exponential.log(1 - dist2.p)) + inf
+
+
 @register_kl(distributions.Categorical, distributions.Categorical)
 def _kl_categorical_categorical(dist1, dist2):
     return sum.sum(dist1.p * (
