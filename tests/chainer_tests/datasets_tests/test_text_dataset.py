@@ -15,9 +15,7 @@ class TestTextDataset(unittest.TestCase):
 
     def _dataset(self, path, **kwargs):
         def _absolute(p):
-            return '{}{}{}'.format(
-                os.path.join(os.path.dirname(__file__), 'text_dataset'),
-                os.sep, p)
+            return '{}{}{}'.format(self.root, os.sep, p)
 
         if isinstance(path, six.string_types):
             path = [_absolute(path)]
