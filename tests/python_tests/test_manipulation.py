@@ -24,6 +24,11 @@ def shape(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def is_module(request):
+    return request.param
+
+
 @pytest.mark.parametrize('value', [
     0, 1, -1, 0.1, 0.9, -0.1, -0.9, 1.1, -1.1, 1.9, -1.9, True, False, float('inf'), -float('inf'), float('nan'), -0.0
 ])
@@ -76,7 +81,7 @@ def test_asscalar(device, value, shape, dtype):
     (0,), (1, 0), (2,), (1, 2), (2, 3),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_invalid_asscalar(device, shape):
+def test_asscalar_invalid(device, shape):
     dtype = xchainer.float32
 
     a = xchainer.ones(shape, dtype)
@@ -112,3 +117,83 @@ def test_T(xp, shape, dtype):
 def test_module_transpose(xp, shape, dtype):
     array = array_utils.create_dummy_ndarray(xp, shape, dtype)
     return xp.transpose(array)
+
+
+_reshape_shape = [
+    ((), ()),
+    ((0,), (0,)),
+    ((1,), (1,)),
+    ((5,), (5,)),
+    ((2, 3), (2, 3)),
+    ((1,), ()),
+    ((), (1,)),
+    ((1, 1), ()),
+    ((), (1, 1)),
+    ((6,), (2, 3)),
+    ((2, 3), (6,)),
+    ((2, 0, 3), (5, 0, 7)),
+    ((5,), (1, 1, 5, 1, 1)),
+    ((1, 1, 5, 1, 1), (5,)),
+    ((2, 3), (3, 2)),
+    ((2, 3, 4), (3, 4, 2)),
+]
+
+
+# TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
+# TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
+@pytest.mark.parametrize('shape_type', [tuple, list])
+def test_reshape(is_module, xp, a_shape, b_shape, shape_type):
+    a = array_utils.create_dummy_ndarray(xp, a_shape, 'int64')
+    if is_module:
+        b = xp.reshape(a, shape_type(b_shape))
+    else:
+        b = a.reshape(shape_type(b_shape))
+
+    if xp is xchainer:
+        assert b.is_contiguous
+        assert a._debug_data_memory_address == b._debug_data_memory_address, 'Reshape must be done without copy'
+        assert numpy.arange(a.size).reshape(b_shape).strides == b.strides, 'Strides after reshape must match NumPy behavior'
+
+    return b
+
+
+@xchainer.testing.numpy_xchainer_array_equal(accept_error=(TypeError, xchainer.XchainerError))
+@pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
+def test_reshape_args(is_module, xp, a_shape, b_shape):
+    a = array_utils.create_dummy_ndarray(xp, a_shape, 'int64')
+    if is_module:
+        if len(b_shape) > 1:
+            # Skipping tests where the 'order' argument is unintentionally given a shape value, since numpy won't raise any errors in
+            # this case which you might expect at first.
+            return xp.array([])
+        b = xp.reshape(a, *b_shape)  # TypeError/xchainer.XchainerError in case b_shape is empty.
+    else:
+        b = a.reshape(*b_shape)  # TypeError/xchainer.XchainerError in case b_shape is empty.
+
+    if xp is xchainer:
+        assert b.is_contiguous
+        assert a._debug_data_memory_address == b._debug_data_memory_address, 'Reshape must be done without copy'
+        assert numpy.arange(a.size).reshape(b_shape).strides == b.strides, 'Strides after reshape must match NumPy behavior'
+
+    return b
+
+
+@pytest.mark.parametrize('shape1,shape2', [
+    ((), (0,)),
+    ((), (2,)),
+    ((), (1, 2,)),
+    ((0,), (1,)),
+    ((0,), (1, 1, 1)),
+    ((2, 3), (2, 3, 2)),
+    ((2, 3, 4), (2, 3, 5)),
+])
+def test_reshape_invalid(shape1, shape2):
+    def check(a_shape, b_shape):
+        a = array_utils.create_dummy_ndarray(xchainer, a_shape, 'float32')
+        with pytest.raises(xchainer.DimensionError):
+            a.reshape(b_shape)
+
+    check(shape1, shape2)
+    check(shape2, shape1)
