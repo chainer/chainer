@@ -282,11 +282,6 @@ def test_ascontiguousarray_from_numpy_array(xp, shape, dtype, transpose):
 
     obj = tr(array_utils.create_dummy_ndarray(numpy, shape, dtype))
     a = xp.ascontiguousarray(obj)
-
-    # TODO(sonots): numpy.ascontiguousarray creates (1,) shaped array from () shaped array
-    if xp is xchainer and shape == ():
-        a = a.reshape(1)
-
     if xp is xchainer:
         assert a.is_contiguous
     return a
@@ -322,11 +317,6 @@ def test_ascontiguousarray_with_dtype(xp, device, shape, transpose, dtype_spec):
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = dtype_spec.name
     a = xp.ascontiguousarray(obj, dtype=dtype_spec)
-
-    # TODO(sonots): numpy.ascontiguousarray creates (1,) shaped array from () shaped array
-    if xp is xchainer and shape == ():
-        a = a.reshape(1)
-
     if xp is xchainer:
         assert a.is_contiguous
     return a
