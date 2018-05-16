@@ -19,7 +19,7 @@ from tests import array_utils
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_dot(is_module, xp, device, a_shape, b_shape, dtype):
     # TODO(beam2d): Remove the skip after supporting non-float dot on CUDA
-    if device is xchainer.get_device('cuda:0') and numpy.dtype(dtype).kind != 'f':
+    if device.name == 'cuda:0' and numpy.dtype(dtype).kind != 'f':
         return xchainer.testing.ignore()
     a = array_utils.create_dummy_ndarray(xp, a_shape, dtype)
     b = array_utils.create_dummy_ndarray(xp, b_shape, dtype)
@@ -36,7 +36,7 @@ def test_dot(is_module, xp, device, a_shape, b_shape, dtype):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
     # TODO(beam2d): Remove the skip after supporting non-float dot on CUDA
-    if device is xchainer.get_device('cuda:0') and numpy.dtype(dtype).kind != 'f':
+    if device.name == 'cuda:0' and numpy.dtype(dtype).kind != 'f':
         return xchainer.testing.ignore()
     a = array_utils.create_dummy_ndarray(xp, a_shape, dtype)
     b = array_utils.create_dummy_ndarray(xp, b_shape, dtype)
