@@ -14,6 +14,6 @@
 #define XCHAINER_NEVER_REACH() (std::abort())
 #else
 #include <cassert>
-#define XCHAINER_NEVER_REACH() (assert(false))
+#define XCHAINER_NEVER_REACH() (assert(false))  // NOLINT: cert-dcl03-c
 #endif  // NDEBUG
 #endif  // XCHAINER_NEVER_REACH
