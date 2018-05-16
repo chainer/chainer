@@ -5,7 +5,6 @@ import unittest
 import six
 
 from chainer import datasets
-from chainer.datasets import text_dataset
 from chainer import testing
 
 
