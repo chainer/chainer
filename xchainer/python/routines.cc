@@ -30,7 +30,6 @@
 #include "xchainer/python/shape.h"
 #include "xchainer/python/strides.h"
 
-
 #include "xchainer/native/native_device.h"
 
 namespace xchainer {

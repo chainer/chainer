@@ -134,6 +134,13 @@ public:
     // `out.ndim()` must be 1 with at least 1 elements.
     virtual void Linspace(double start, double stop, const Array& out) = 0;
 
+    // Computes the n-dimensional convolution.
+    //
+    // x: (batch_size, in_channels, in_1, in_2, ..., in_n)
+    // w: (out_channels, in_channels, k_1, k_2, ..., k_n)
+    // b: (out_channels)
+    //
+    // Returns an array of shape (batch_size, out_channels, out_1, out_2, ..., out_n).
     virtual Array Convolution(
             const Array& x,
             const Array& w,
