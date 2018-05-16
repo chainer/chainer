@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <cstdlib>
 #include <iterator>
 #include <string>
 #include <vector>
@@ -15,6 +14,7 @@
 #include "xchainer/axes.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
 #include "xchainer/slice.h"
@@ -79,7 +79,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
                 out_strides.emplace_back(0);
                 break;
             default:
-                std::abort();  // should never be reached
+                XCHAINER_NEVER_REACH();
         }
     }
     for (int64_t i = i_in; i < a.ndim(); ++i) {

@@ -1,8 +1,9 @@
 #include "xchainer/cuda/cuda_runtime.h"
 
-#include <cstdlib>
 #include <sstream>
 #include <string>
+
+#include "xchainer/macro.h"
 
 namespace xchainer {
 namespace cuda {
@@ -41,7 +42,7 @@ bool IsPointerCudaMemory(const void* ptr) {
             CheckCudaError(status);
             break;
     }
-    std::abort();  // should never be reached
+    XCHAINER_NEVER_REACH();
 }
 
 }  // namespace cuda

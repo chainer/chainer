@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <numeric>
 #include <ostream>
@@ -24,6 +23,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
@@ -232,7 +232,7 @@ Array Array::AsConstant(CopyKind kind) const {
         case CopyKind::kView:
             return Array{shape(), strides(), dtype(), device(), body_->data_, offset()};
         default:
-            std::abort();  // should never be reached
+            XCHAINER_NEVER_REACH();
     }
 }
 
@@ -259,7 +259,7 @@ Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) co
             return std::move(out);
         }
         default:
-            std::abort();  // should never be reached
+            XCHAINER_NEVER_REACH();
     }
 }
 

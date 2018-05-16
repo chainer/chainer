@@ -7,3 +7,13 @@
 #define XCHAINER_HOST_DEVICE
 #endif  // __CUDACC__
 #endif  // XCHAINER_HOST_DEVICE
+
+#ifndef XCHAINER_NEVER_REACH
+#ifdef NDEBUG
+#include <cstdlib>
+#define XCHAINER_NEVER_REACH() (std::abort())
+#else
+#include <cassert>
+#define XCHAINER_NEVER_REACH() (assert(false))
+#endif  // NDEBUG
+#endif  // XCHAINER_NEVER_REACH

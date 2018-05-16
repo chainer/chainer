@@ -2,10 +2,10 @@
 
 #include <cublas_v2.h>
 
-#include <cstdlib>
 #include <string>
 
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 
 namespace xchainer {
 namespace cuda {
@@ -30,7 +30,7 @@ std::string BuildErrorMessage(cublasStatus_t error) {
 
 #undef XCHAINER_MATCH_AND_RETURN_MSG
     }
-    std::abort();  // never reached
+    XCHAINER_NEVER_REACH();
 }
 
 }  // namespace
