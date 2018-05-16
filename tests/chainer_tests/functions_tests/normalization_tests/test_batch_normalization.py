@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 import six
+import warnings
 
 import chainer
 from chainer.backends import cuda
@@ -395,6 +396,37 @@ class TestBatchNormalizationCudnnEps(unittest.TestCase):
     def test_invalid(self):
         with self.assertRaises(RuntimeError):
             functions.batch_normalization(*self.args, eps=2e-6)
+
+
+class TestBatchNormalizationWarning(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def create_batch(self, ndim):
+        param_shape = (3,)
+        dtype = numpy.float32
+        gamma = cuda.cupy.random.uniform(.5, 1, param_shape).astype(dtype)
+        beta = cuda.cupy.random.uniform(-1, 1, param_shape).astype(dtype)
+        shape = (1,) + param_shape + (2,) * ndim
+        x = cuda.cupy.random.uniform(-1, 1, shape).astype(dtype)
+        args = [x, gamma, beta]
+        return args
+
+    def test_invalid_batch(self):
+        args = self.create_batch(0)
+        with testing.assert_warns(UserWarning):
+            functions.batch_normalization(*args)
+
+    def test_valid_batch(self):
+        args = self.create_batch(2)
+        with warnings.catch_warnings():
+            warnings.filterwarnings('error')
+            try:
+                functions.batch_normalization(*args)
+            except UserWarning:
+                raise AssertionError('UserWarning was triggered, '
+                                     'but it should not be.')
+
 
 
 testing.run_module(__name__, __file__)
