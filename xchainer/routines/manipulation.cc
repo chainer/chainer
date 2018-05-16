@@ -159,9 +159,8 @@ Array Reshape(const Array& a, const Shape& newshape) {
         }
 
         if (!can_reshape_without_copy) {
-            // Reshape without copy is not possible.
-            // TODO(niboshi): Implement it
-            throw NotImplementedError{"Reshape that requires a copy is not implemented yet."};
+            // Reshape without copy
+            return a.Copy().Reshape(newshape);
         }
         assert(strides.size() == newshape.size());
     }

@@ -168,6 +168,10 @@ TEST_P(ManipulationTest, ReshapeNoCopyZeroStrideAxis) {
     testing::ExpectEqual(e, b);
 }
 
+TEST_P(ManipulationTest, ReshapeWithCopy) {
+    // TODO(niboshi): Write the test
+}
+
 TEST_P(ManipulationTest, InvalidReshape) {
     using T = int32_t;
     Shape input_shape{2, 3, 4};

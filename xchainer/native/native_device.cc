@@ -522,8 +522,8 @@ Array Im2Col(
     Shape padded_shape = x.shape();
     std::vector<ArrayIndex> unpadded_slice{ArrayIndex{Slice{}}, ArrayIndex{Slice{}}};  // All batch and channel dimensions.
     for (int64_t i = 0; i < ndim; ++i) {
-        padded_shape[i + 2] += pad[i] * 2;  // Pad on both sides.
-        unpadded_slice.emplace_back(Slice{pad[i], padded_shape[i + 2] - pad[i]});
+        padded_shape[i + 2] += pad[i] * 2 + (cover_all ? stride[i] - 1 : 0);  // Pad on both sides.
+        unpadded_slice.emplace_back(Slice{pad[i], pad[i] + x.shape()[i]});
     }
     // TODO(hvy): Allow non-zero padding.
     Array padded_x = Zeros(padded_shape, x.dtype(), device);
@@ -601,14 +601,14 @@ std::tuple<Axes, Shape> GetRollAxes(const Shape& shape, const Axes& reduce_axes,
     for (int step = 0; step < 2; ++step) {
         if ((step == 0) == reduced_axes_first) {
             // Step A.
-            for (int8_t i = 0; i < reduce_axes.ndim(); ++i) {
+            for (int8_t i = 0; i < shape.ndim(); ++i) {
                 if (to_reduce[i]) {
                     roll_axes.emplace_back(i);
                 }
             }
         } else {
             // Step B.
-            for (int8_t i = 0; i < reduce_axes.ndim(); ++i) {
+            for (int8_t i = 0; i < shape.ndim(); ++i) {
                 if (!to_reduce[i]) {
                     roll_axes.emplace_back(i);
                     remain_dims.emplace_back(shape[i]);
