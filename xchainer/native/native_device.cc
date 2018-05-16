@@ -494,21 +494,21 @@ void NativeDevice::Linspace(double start, double stop, const Array& out) {
 
 // namespace {
 
-int64_t GetConvOutDim(int64_t in_dim, int64_t ksize, int64_t stride, int64_t pad, bool cover_all) {
+int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
     if (cover_all) {
-        return (in_dim + pad * 2 - ksize + stride - 1) / stride + 1;
+        return (in_dim + pad * 2 - kernel_size + stride - 1) / stride + 1;
     } else {
-        return (in_dim + pad * 2 - ksize) / stride + 1;
+        return (in_dim + pad * 2 - kernel_size) / stride + 1;
     }
 }
 
 Array Im2Col(
         const Array& x,
-        const StackVector<int64_t, kMaxNdim>& ksize,
+        const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    auto ndim = static_cast<int8_t>(ksize.size());  // Number of input image dimensions.
+    auto ndim = static_cast<int8_t>(kernel_size.size());  // Number of input image dimensions.
     assert(ndim == static_cast<int8_t>(stride.size()));
     assert(ndim == static_cast<int8_t>(pad.size()));
     assert(ndim + 2 == x.ndim());  // Batch and channel dimensions.
@@ -528,9 +528,9 @@ Array Im2Col(
     device.Copy(x, padded_x.At(unpadded_slice));
 
     // Create the output array.
-    StackVector<int64_t, kMaxNdim> out_dims;
+    StackVector<int64_t, kMaxNdim> out_dims;  // Number of patches along each axis
     for (int8_t i = 0; i < ndim; ++i) {
-        out_dims.emplace_back(GetConvOutDim(x.shape()[i + 2], ksize[i], stride[i], pad[i], cover_all));
+        out_dims.emplace_back(GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
         assert(out_dims.back() > 0);
     }
 
@@ -538,7 +538,7 @@ Array Im2Col(
     int64_t channels = x.shape()[1];
 
     Shape out_shape{batch_size, channels};
-    std::copy(ksize.begin(), ksize.end(), std::back_inserter(out_shape));
+    std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(out_shape));
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
     Array out = Empty(out_shape, x.dtype(), device);
 
@@ -547,57 +547,28 @@ Array Im2Col(
         using T = typename decltype(pt)::type;
 
         Indexer<2> batch_channel_indexer{Shape{batch_size, channels}};
-        Indexer<> kernel_indexer{Shape{ksize.begin(), ksize.end()}};
+        Indexer<> kernel_indexer{Shape{kernel_size.begin(), kernel_size.end()}};
+        Indexer<> out_dims_indexer{Shape{out_dims.begin(), out_dims.end()}};
         Indexer<> x_indexer{padded_x.shape()};
         Indexer<> out_indexer{out.shape()};
         IndexableArray<const T> x_iarray{padded_x};
         IndexableArray<T> out_iarray{out};
 
-        for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
-            for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
-                StackVector<IndexIterator<1>, kMaxNdim> img_iters;
-                StackVector<Indexer<1>, kMaxNdim> img_indexers;
-                for (int8_t i = 0; i < ndim; ++i) {
-                    img_indexers.emplace_back(Shape{x_indexer.shape()[i + 2] - ksize[i] + 1});
-                    img_iters.emplace_back(img_indexers.back().It(0, stride[i]));
+        // Indices over input image.
+        NdimIndex img_index{ndim};
+
+        for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
+            for (auto it_out_dims = out_dims_indexer.It(0); it_out_dims; ++it_out_dims) {
+                for (int i = 0; i < ndim; ++i) {
+                    img_index.index()[i] = it_out_dims.index()[i] * stride[i] + it_kernel.index()[i];
                 }
 
-                // Indices over input image.
-                NdimIndex img_index{it_kernel.index(), ndim};
-
-                // Indices over output column.
-                NdimIndex col_index{ndim};
-
-                while (true) {
+                for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
                     auto it_x = x_indexer.At(it_batch_channel, img_index);
-                    auto it_out = out_indexer.At(it_batch_channel, it_kernel, col_index);
+                    auto it_out = out_indexer.At(it_batch_channel, it_kernel, it_out_dims);
 
                     // Write the output column value.
                     out_iarray[it_out] = x_iarray[it_x];
-
-                    // Check if this column is finished, for this batch, channel and kernel element.
-                    int8_t ndim_finished = 0;
-                    for (int8_t i = 0; i < ndim; ++i) {
-                        // Next element to check.
-                        ++img_iters[i];
-                        ++col_index.index()[i];
-                        img_index.index()[i] += stride[i];
-
-                        if (img_iters[i]) {
-                            // The next element is on the same dimension.
-                            break;
-                        } else {
-                            // The next element is the first element in the next dimension.
-                            img_iters[i].Set(0);
-                            col_index.index()[i] = 0;
-                            img_index.index()[i] = it_kernel.index()[i];
-                            ++ndim_finished;
-                        }
-                    }
-                    if (ndim_finished == ndim) {
-                        // Finished with this column.
-                        break;
-                    }
                 }
             }
         }
