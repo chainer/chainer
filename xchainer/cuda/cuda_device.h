@@ -17,7 +17,7 @@ namespace cuda {
 
 class CudaDevice : public Device {
 public:
-    CudaDevice(CudaBackend& backend, int index);
+    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
     ~CudaDevice() override;
 
     std::shared_ptr<void> Allocate(size_t bytesize) override;
@@ -77,7 +77,7 @@ public:
 
     void Synchronize() override;
 
-    cublasHandle_t cublas_handle() const { return cublas_handle_; }
+    cublasHandle_t cublas_handle();
 
 private:
     MemoryPool memory_pool_;
