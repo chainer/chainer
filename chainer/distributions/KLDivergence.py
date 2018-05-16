@@ -503,3 +503,24 @@ def _kl_uniform_exponential(dist1, dist2):
 
     return - dist1.entropy - exponential.log(dist2.lam) \
         + 0.5 * dist2.lam * (dist1.high + dist1.low) + inf
+
+
+@register_kl(distributions.Uniform, distributions.Gamma)
+def _kl_uniform_gamma(dist1, dist2):
+    if dist1._is_gpu:
+        is_inf = dist1.low.data < 0
+        valid = cuda.cupy.logical_not(is_inf)
+        inf = cuda.cupy.zeros_like(dist1.high.data)
+        inf[is_inf] = numpy.inf
+    else:
+        is_inf = dist1.low.data < 0
+        valid = numpy.logical_not(is_inf)
+        inf = numpy.zeros_like(dist1.high.data)
+        inf[is_inf] = numpy.inf
+
+    return - dist1.entropy + lgamma.lgamma(dist2.k) \
+        + dist2.k * exponential.log(dist2.theta) \
+        - (dist2.k - 1) / (dist1.high - dist1.low) \
+        * (dist1.high * (exponential.log(dist1.high * valid + is_inf) - 1)
+           - dist1.low * (exponential.log(dist1.low * valid + is_inf) - 1)) \
+        + 0.5 * (dist1.high + dist1.low) / dist2.theta + inf
