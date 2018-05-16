@@ -54,6 +54,13 @@ public:
 
     int8_t ndim() const noexcept { return gsl::narrow_cast<int8_t>(size()); }
 
+    int8_t& operator[](int8_t index) {
+        if (!(0 <= index && static_cast<size_t>(index) < size())) {
+            throw DimensionError{"index out of bounds"};
+        }
+        return this->StackVector::operator[](index);
+    }
+
     const int8_t& operator[](int8_t index) const {
         if (!(0 <= index && static_cast<size_t>(index) < size())) {
             throw DimensionError{"index out of bounds"};

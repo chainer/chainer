@@ -150,7 +150,7 @@ Array Array::operator/(const Array& rhs) const { return xchainer::Divide(*this, 
 
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal::At(*this, indices); }
 
-Array Array::Transpose() const { return xchainer::Transpose(*this); }
+Array Array::Transpose(const OptionalAxes& axes) const { return xchainer::Transpose(*this, axes); }
 
 Array Array::Reshape(const Shape& newshape) const { return xchainer::Reshape(*this, newshape); }
 

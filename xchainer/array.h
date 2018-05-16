@@ -92,7 +92,7 @@ public:
     Array At(const std::vector<ArrayIndex>& indices) const;
 
     // Returns a transposed view of the array.
-    Array Transpose() const;
+    Array Transpose(const OptionalAxes& axes = nonstd::nullopt) const;
 
     // Returns a reshaped array.
     // TODO(niboshi): Support reshape that require a copy.

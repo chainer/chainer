@@ -37,11 +37,39 @@ Scalar AsScalar(const Array& a) {
     });
 }
 
-Array Transpose(const Array& a) {
-    Shape out_shape{a.shape().rbegin(), a.shape().rend()};
-    Strides out_strides{a.strides().rbegin(), a.strides().rend()};
+Array Transpose(const Array& a, const OptionalAxes& axes) {
+    Axes real_axes;
+    if (axes.has_value()) {
+        if (axes->ndim() != a.ndim()) {
+            throw XchainerError{"Axes do not match, input array dimensions: ", a.ndim(), " but axes: ", axes->ndim()};
+        }
+        real_axes = *axes;
+    } else {
+        for (int8_t i = 0; i < a.ndim(); ++i) {
+            real_axes.emplace_back(a.ndim() - i - 1);
+        }
+    }
+    assert(real_axes.ndim() == a.ndim());
+
+    Shape out_shape;
+    Strides out_strides;
+    for (int8_t axis : real_axes) {
+        out_shape.emplace_back(a.shape()[axis]);
+        out_strides.emplace_back(a.strides()[axis]);
+    }
+
     Array out = internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
-    internal::SetUpOpNodes("transpose", {a}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout.Transpose(); }});
+
+    auto backward_function = [real_axes](const Array& gout, const std::vector<GraphId>&) {
+        Axes backward_axes;
+        backward_axes.resize(real_axes.ndim());
+        for (int8_t i = 0; i < real_axes.ndim(); ++i) {
+            backward_axes[real_axes[i]] = i;
+        }
+        return Transpose(gout, backward_axes);
+    };
+    internal::SetUpOpNodes("transpose", {a}, out, {backward_function});
+
     return out;
 }
 
