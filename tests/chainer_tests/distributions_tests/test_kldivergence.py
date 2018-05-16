@@ -121,7 +121,7 @@ class TestKLDivergence(unittest.TestCase):
         scale = numpy.exp(numpy.random.uniform(
             0.5, 1, self.shape)).astype(numpy.float32)
         alpha = numpy.exp(numpy.random.uniform(
-            0.5, 1, self.shape)).astype(numpy.float32)
+            1, 2, self.shape)).astype(numpy.float32)
         params = self.encode_params({"scale": scale, "alpha": alpha}, is_gpu)
         return distributions.Pareto(**params)
 
@@ -729,4 +729,15 @@ class TestKLDivergence(unittest.TestCase):
     def test_pareto_gamma_gpu(self):
         dist1 = self.make_pareto_dist(True)
         dist2 = self.make_gamma_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_pareto_normal_cpu(self):
+        dist1 = self.make_pareto_dist()
+        dist2 = self.make_normal_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_pareto_normal_gpu(self):
+        dist1 = self.make_pareto_dist(True)
+        dist2 = self.make_normal_dist(True)
         self.check_kl(dist1, dist2)
