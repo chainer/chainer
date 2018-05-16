@@ -870,19 +870,18 @@ def test_frombuffer_from_numpy_array(device):
     a_xc = xchainer.frombuffer(obj, obj.dtype)
     a_np = numpy.frombuffer(obj, obj.dtype)
 
-    xchainer.testing.assert_array_equal(a_np, a_xc)
-    xchainer.testing.assert_array_equal(obj.ravel(), a_xc)
-    assert a_xc.dtype == xchainer.dtype(obj.dtype)
+    xchainer.testing.assert_array_equal_ex(a_np, a_xc)
+    xchainer.testing.assert_array_equal_ex(obj.ravel(), a_xc)
     assert a_xc.device is xchainer.get_device(device)
 
     # test buffer is shared
     obj += obj
-    xchainer.testing.assert_array_equal(obj.ravel(), a_xc)
+    xchainer.testing.assert_array_equal_ex(obj.ravel(), a_xc)
 
     # test possibly freed memory
     obj_copy = obj.copy()
     del obj
-    xchainer.testing.assert_array_equal(obj_copy.ravel(), a_xc)
+    xchainer.testing.assert_array_equal_ex(obj_copy.ravel(), a_xc)
 
 
 @pytest.mark.parametrize_device(['cuda:0'])
@@ -914,8 +913,7 @@ def test_frombuffer_from_device_buffer(device):
     a = xchainer.frombuffer(device_buffer, dtype)
     e = xchainer.array([1, 2, 3, 4, 5, 6], dtype)
 
-    xchainer.testing.assert_array_equal(e, a)
-    assert a.dtype == xchainer.dtype(dtype)
+    xchainer.testing.assert_array_equal_ex(e, a)
     assert a.device is xchainer.get_device(device)
 
 
@@ -924,8 +922,8 @@ def test_frombuffer_with_device(device):
     obj = _create_dummy_ndarray(numpy, (2, 3), 'int32')
     a = xchainer.frombuffer(obj, obj.dtype, device=device)
     b = xchainer.frombuffer(obj, obj.dtype)
-    xchainer.testing.assert_array_equal(a, b)
-    _check_device(a, device)
+    xchainer.testing.assert_array_equal_ex(a, b)
+    array_utils.check_device(a, device)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
