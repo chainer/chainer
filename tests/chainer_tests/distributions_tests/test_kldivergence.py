@@ -816,3 +816,20 @@ class TestKLDivergence(unittest.TestCase):
         dist1 = self.make_uniform_dist(True, low=low, high=high)
         dist2 = self.make_gamma_dist(True)
         self.check_kl(dist1, dist2)
+
+    def test_uniform_gumbel_cpu(self):
+        low = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        high = numpy.random.uniform(
+            low, low + 3, self.shape).astype(numpy.float32)
+        dist1 = self.make_uniform_dist(low=low, high=high)
+        dist2 = self.make_gumbel_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_uniform_gumbel_gpu(self):
+        low = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        high = numpy.random.uniform(
+            low, low + 3, self.shape).astype(numpy.float32)
+        dist1 = self.make_uniform_dist(True, low=low, high=high)
+        dist2 = self.make_gumbel_dist(True)
+        self.check_kl(dist1, dist2)

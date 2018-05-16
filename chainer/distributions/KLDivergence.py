@@ -524,3 +524,14 @@ def _kl_uniform_gamma(dist1, dist2):
         * (dist1.high * (exponential.log(dist1.high * valid + is_inf) - 1)
            - dist1.low * (exponential.log(dist1.low * valid + is_inf) - 1)) \
         + 0.5 * (dist1.high + dist1.low) / dist2.theta + inf
+
+
+@register_kl(distributions.Uniform, distributions.Gumbel)
+def _kl_uniform_gumbel(dist1, dist2):
+    return - dist1.entropy + exponential.log(dist2.scale) \
+        - dist2.loc / dist2.scale \
+        + 0.5 * (dist1.high + dist1.low) / dist2.scale \
+        + dist2.scale / (dist1.high - dist1.low) \
+        * exponential.exp(dist2.loc / dist2.scale) \
+        * (exponential.exp(- dist1.low / dist2.scale)
+           - exponential.exp(- dist1.high / dist2.scale))
