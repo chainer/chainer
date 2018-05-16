@@ -61,9 +61,22 @@ class Binomial(Distribution):
             x32 = x.astype(numpy.float32)
         bp = broadcast.broadcast_to(self.p, x.shape)
         bn32 = broadcast.broadcast_to(n32, x.shape)
+
+        if self._is_gpu:
+            inf = cuda.cupy.zeros_like(x32)
+            constraint = cuda.cupy.bitwise_and(
+                x.data >= 0, x.data <= bn32.data)
+            not_constraint = cuda.cupy.logical_not(constraint)
+        else:
+            inf = numpy.zeros_like(x32)
+            constraint = numpy.bitwise_or(
+                x.data >= 0, x.data <= bn32.data)
+            not_constraint = numpy.logical_not(constraint)
+        inf[not_constraint] = numpy.inf
+
         return lgamma.lgamma(bn32 + 1) - lgamma.lgamma(x32 + 1) \
             - lgamma.lgamma(bn32 - x32 + 1) + x32 * exponential.log(bp) \
-            + (bn32 - x32) * exponential.log(1 - bp)
+            + (bn32 - x32) * exponential.log(1 - bp) - inf
 
     @property
     def mean(self):

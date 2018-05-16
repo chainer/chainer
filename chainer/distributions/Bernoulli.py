@@ -71,9 +71,22 @@ class Bernoulli(Distribution):
             probability.
 
         """
+        if self._is_gpu:
+            inf = cuda.cupy.zeros(x.shape)
+            constraint = cuda.cupy.bitwise_or(
+                x.data == 0, x.data == 1)
+            not_constraint = cuda.cupy.logical_not(constraint)
+        else:
+            inf = numpy.zeros(x.shape)
+            constraint = numpy.bitwise_or(
+                x.data == 0, x.data == 1)
+            not_constraint = numpy.logical_not(constraint)
+        inf[not_constraint] = numpy.inf
+
         return x * exponential.log(broadcast.broadcast_to(self.p, x.shape)) \
             + (1. - x) \
-            * exponential.log(1. - broadcast.broadcast_to(self.p, x.shape))
+            * exponential.log(1. - broadcast.broadcast_to(self.p, x.shape)) \
+            - inf
 
     @property
     def mean(self):

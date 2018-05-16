@@ -449,3 +449,13 @@ def _kl_pareto_normal(dist1, dist2):
         + (0.5 * (dist1.variance + dist1.mean ** 2)
            - dist2.loc * (dist1.mean)
            + 0.5 * dist2.loc ** 2) / dist2.scale ** 2
+
+
+@register_kl(distributions.Poisson, distributions.Bernoulli)
+@register_kl(distributions.Poisson, distributions.Binomial)
+def _kl_poisson_inf(dist1, dist2):
+    if dist1._is_gpu:
+        inf = cuda.cupy.ones_like(dist1.lam.data) * numpy.inf
+    else:
+        inf = numpy.ones_like(dist1.lam.data) * numpy.inf
+    return chainer.Variable(inf)
