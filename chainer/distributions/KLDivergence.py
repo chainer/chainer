@@ -535,3 +535,12 @@ def _kl_uniform_gumbel(dist1, dist2):
         * exponential.exp(dist2.loc / dist2.scale) \
         * (exponential.exp(- dist1.low / dist2.scale)
            - exponential.exp(- dist1.high / dist2.scale))
+
+
+@register_kl(distributions.Uniform, distributions.Normal)
+def _kl_uniform_normal(dist1, dist2):
+    return - dist1.entropy + 0.5 * numpy.log(2 * numpy.pi) \
+        + exponential.log(dist2.scale) \
+        + (0.5 * (dist1.variance + dist1.mean ** 2)
+           - dist2.loc * (dist1.mean)
+           + 0.5 * dist2.loc ** 2) / dist2.scale ** 2
