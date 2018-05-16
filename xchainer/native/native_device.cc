@@ -494,11 +494,11 @@ void NativeDevice::Linspace(double start, double stop, const Array& out) {
 
 // namespace {
 
-int64_t GetConvOutDim(int64_t dim, int64_t ksize, int64_t stride, int64_t pad, bool cover_all) {
+int64_t GetConvOutDim(int64_t in_dim, int64_t ksize, int64_t stride, int64_t pad, bool cover_all) {
     if (cover_all) {
-        return (dim + pad * 2 - ksize + stride - 1) / stride + 1;
+        return (in_dim + pad * 2 - ksize + stride - 1) / stride + 1;
     } else {
-        return (dim + pad * 2 - ksize) / stride + 1;
+        return (in_dim + pad * 2 - ksize) / stride + 1;
     }
 }
 
@@ -511,7 +511,7 @@ Array Im2Col(
     auto ndim = static_cast<int8_t>(ksize.size());  // Number of input image dimensions.
     assert(ndim == static_cast<int8_t>(stride.size()));
     assert(ndim == static_cast<int8_t>(pad.size()));
-    assert(ndim + 2 == x.ndim());  // Additional batch and channel dimensions.
+    assert(ndim + 2 == x.ndim());  // Batch and channel dimensions.
 
     Device& device = x.device();
 
@@ -563,18 +563,18 @@ Array Im2Col(
                 }
 
                 // Indices over input image.
-                IndexSpan img_is;
-                img_is.ndim = ndim;
-                std::copy(it_kernel.index(), it_kernel.index() + ndim, img_is.index);
+                NdimIndex img_index;
+                img_index.ndim = ndim;
+                std::copy(it_kernel.index(), it_kernel.index() + ndim, img_index.index);
 
                 // Indices over output column.
-                IndexSpan col_is;
-                col_is.ndim = ndim;
-                std::fill(col_is.index, col_is.index + col_is.ndim, 0);
+                NdimIndex col_index;
+                col_index.ndim = ndim;
+                std::fill(col_index.index, col_index.index + col_index.ndim, 0);
 
                 while (true) {
-                    auto it_x = x_indexer.At(it_batch_channel, img_is);
-                    auto it_out = out_indexer.At(it_batch_channel, it_kernel, col_is);
+                    auto it_x = x_indexer.At(it_batch_channel, img_index);
+                    auto it_out = out_indexer.At(it_batch_channel, it_kernel, col_index);
 
                     // Write the output column value.
                     out_iarray[it_out] = x_iarray[it_x];
@@ -584,8 +584,8 @@ Array Im2Col(
                     for (int8_t i = 0; i < ndim; ++i) {
                         // Next element to check.
                         ++img_iters[i];
-                        ++col_is.index[i];
-                        img_is.index[i] += stride[i];
+                        ++col_index.index[i];
+                        img_index.index[i] += stride[i];
 
                         if (img_iters[i]) {
                             // The next element is on the same dimension.
@@ -593,8 +593,8 @@ Array Im2Col(
                         } else {
                             // The next element is the first element in the next dimension.
                             img_iters[i].Set(0);
-                            col_is.index[i] = 0;
-                            img_is.index[i] = it_kernel.index()[i];
+                            col_index.index[i] = 0;
+                            img_index.index[i] = it_kernel.index()[i];
                             ++ndim_finished;
                         }
                     }
