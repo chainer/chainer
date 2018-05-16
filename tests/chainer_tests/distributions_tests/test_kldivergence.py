@@ -130,10 +130,12 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"lam": lam}, is_gpu)
         return distributions.Poisson(**params)
 
-    def make_uniform_dist(self, is_gpu=False):
-        low = numpy.random.uniform(-10, 0, self.shape).astype(numpy.float32)
-        high = numpy.random.uniform(
-            low, low + 10, self.shape).astype(numpy.float32)
+    def make_uniform_dist(self, is_gpu=False, low=None, high=None):
+        if low is None:
+            low = numpy.random.uniform(-3, 0, self.shape).astype(numpy.float32)
+        if high is None:
+            high = numpy.random.uniform(
+                low, low + 5, self.shape).astype(numpy.float32)
         params = self.encode_params({"low": low, "high": high}, is_gpu)
         return distributions.Uniform(**params)
 
@@ -762,4 +764,21 @@ class TestKLDivergence(unittest.TestCase):
     def test_poisson_binomial_gpu(self):
         dist1 = self.make_poisson_dist(True)
         dist2 = self.make_binomial_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_uniform_beta_cpu(self):
+        low = numpy.random.uniform(0, 1, self.shape).astype(numpy.float32)
+        high = numpy.random.uniform(
+            low, low + 0.5, self.shape).astype(numpy.float32)
+        dist1 = self.make_uniform_dist(low=low, high=high)
+        dist2 = self.make_beta_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_uniform_beta_gpu(self):
+        low = numpy.random.uniform(0, 1, self.shape).astype(numpy.float32)
+        high = numpy.random.uniform(
+            low, low + 0.5, self.shape).astype(numpy.float32)
+        dist1 = self.make_uniform_dist(True, low=low, high=high)
+        dist2 = self.make_beta_dist(True)
         self.check_kl(dist1, dist2)

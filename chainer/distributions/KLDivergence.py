@@ -459,3 +459,32 @@ def _kl_poisson_inf(dist1, dist2):
     else:
         inf = numpy.ones_like(dist1.lam.data) * numpy.inf
     return chainer.Variable(inf)
+
+
+@register_kl(distributions.Uniform, distributions.Beta)
+def _kl_uniform_beta(dist1, dist2):
+    if dist1._is_gpu:
+        is_inf = cuda.cupy.logical_or(dist1.high.data > 1,
+                                      dist1.low.data < 0)
+        valid = cuda.cupy.logical_not(is_inf)
+        inf = cuda.cupy.zeros_like(dist1.high.data)
+        inf[is_inf] = numpy.inf
+    else:
+        is_inf = numpy.logical_or(dist1.high.data > 1,
+                                  dist1.low.data < 0)
+        valid = numpy.logical_not(is_inf)
+        inf = numpy.zeros_like(dist1.high.data)
+        inf[is_inf] = numpy.inf
+
+    return - dist1.entropy \
+        - ((dist2.a - 1) *
+           (dist1.high * (exponential.log(valid * dist1.high + is_inf) - 1)
+            - dist1.low * (exponential.log(valid * dist1.low + is_inf) - 1))
+           - (dist2.b - 1) * (
+               (1 - dist1.high)
+               * (exponential.log(valid * (1 - dist1.high) + is_inf) - 1)
+               - (1 - dist1.low)
+               * (exponential.log(valid * (1 - dist1.low) + is_inf) - 1))
+           ) / (dist1.high - dist1.low) \
+        + lgamma.lgamma(dist2.a) + lgamma.lgamma(dist2.b) \
+        - lgamma.lgamma(dist2.a + dist2.b) + inf
