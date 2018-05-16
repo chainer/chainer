@@ -9,6 +9,21 @@ import xchainer.testing
 from tests import array_utils
 
 
+_shapes = [
+    (),
+    (0,),
+    (1,),
+    (2, 3),
+    (1, 1, 1),
+    (2, 0, 3),
+]
+
+
+@pytest.fixture(params=_shapes)
+def shape(request):
+    return request.param
+
+
 @pytest.mark.parametrize('value', [
     0, 1, -1, 0.1, 0.9, -0.1, -0.9, 1.1, -1.1, 1.9, -1.9, True, False, float('inf'), -float('inf'), float('nan'), -0.0
 ])
@@ -79,3 +94,21 @@ def test_invalid_asscalar(device, shape):
     a = xchainer.ones(shape, dtype)
     with pytest.raises(xchainer.DimensionError):
         bool(a)
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_transpose(xp, shape, dtype):
+    array = array_utils.create_dummy_ndarray(xp, shape, dtype)
+    return array.transpose()
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_T(xp, shape, dtype):
+    array = array_utils.create_dummy_ndarray(xp, shape, dtype)
+    return array.T
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+def test_module_transpose(xp, shape, dtype):
+    array = array_utils.create_dummy_ndarray(xp, shape, dtype)
+    return xp.transpose(array)

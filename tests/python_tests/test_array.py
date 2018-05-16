@@ -222,27 +222,6 @@ def test_view_must_not_share_properties():
     assert not view.is_grad_required(), 'A view must not share is_grad_required with the original array.'
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_transpose(xp, shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    array = xp.array(ndarray)
-    return array.transpose()
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_T(xp, shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    array = xp.array(ndarray)
-    return array.T
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_module_transpose(xp, shape, dtype):
-    ndarray = _create_dummy_ndarray(shape, dtype)
-    array = xp.array(ndarray)
-    return xp.transpose(array)
-
-
 _reshape_shape = [
     ((), ()),
     ((0,), (0,)),
