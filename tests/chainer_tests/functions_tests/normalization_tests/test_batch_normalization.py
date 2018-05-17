@@ -405,10 +405,10 @@ class TestBatchNormalizationWarning(unittest.TestCase):
     def create_batch(self, ndim):
         param_shape = (3,)
         dtype = numpy.float32
-        gamma = cuda.cupy.random.uniform(.5, 1, param_shape).astype(dtype)
-        beta = cuda.cupy.random.uniform(-1, 1, param_shape).astype(dtype)
+        gamma = numpy.random.uniform(.5, 1, param_shape).astype(dtype)
+        beta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
         shape = (1,) + param_shape + (2,) * ndim
-        x = cuda.cupy.random.uniform(-1, 1, shape).astype(dtype)
+        x = numpy.random.uniform(-1, 1, shape).astype(dtype)
         args = [x, gamma, beta]
         return args
 
