@@ -14,6 +14,7 @@ from chainer import functions  # NOQA
 from chainer import initializers  # NOQA
 from chainer import iterators  # NOQA
 from chainer import links  # NOQA
+from chainer import np  # NOQA
 from chainer import optimizers  # NOQA
 from chainer import serializers  # NOQA
 from chainer import training  # NOQA
@@ -142,6 +143,8 @@ global_config.autotune = False
 global_config.use_ideep = os.environ.get('CHAINER_USE_IDEEP', 'never')
 global_config.lazy_grad_sum = bool(int(
     os.environ.get('CHAINER_LAZY_GRAD_SUM', '0')))
+global_config.default_device = np.get_device(
+    os.environ.get('CHAINER_DEVICE', 'native'))
 
 
 def is_debug():
