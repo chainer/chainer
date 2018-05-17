@@ -499,7 +499,7 @@ Use apply() method instead.\
         return (None,) * len(target_input_indexes)
 
     def backward_accumulate(self, target_input_indexes, grad_outputs,
-                             grad_inputs):
+                            grad_inputs):
         """Computes gradients w.r.t.\\  specified inputs and accumulates them.
 
         This method provides a way to fuse the backward computation and the

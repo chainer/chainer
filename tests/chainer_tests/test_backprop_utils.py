@@ -4,8 +4,8 @@ import mock
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import _backprop_utils
+from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
 
