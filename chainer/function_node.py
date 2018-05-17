@@ -498,7 +498,7 @@ Use apply() method instead.\
         """
         return (None,) * len(target_input_indexes)
 
-    def _backward_accumulate(self, target_input_indexes, grad_outputs,
+    def backward_accumulate(self, target_input_indexes, grad_outputs,
                              grad_inputs):
         """Computes gradients w.r.t.\\  specified inputs and accumulates them.
 
@@ -539,26 +539,7 @@ Use apply() method instead.\
            This behavior might be changed in a future version.
 
         """
-        assert isinstance(target_input_indexes, tuple)
-        assert isinstance(grad_outputs, tuple)
-        assert isinstance(grad_inputs, tuple)
-
-        # The default implementation uses backward(). You can override this
-        # method without using backward().
-        gxs = self.backward(target_input_indexes, grad_outputs)
-
-        len_gxs = len(gxs)
-        if len_gxs == len(self.inputs):
-            gxs = tuple([gxs[i] for i in target_input_indexes])
-        elif len_gxs != len(target_input_indexes):
-            raise ValueError(
-                'number of gradients returned by %s (%s) is incorrect.'
-                % (self._impl_name, self.label))
-
-        return tuple([gx if g_input is None else
-                      g_input if gx is None else
-                      gx + g_input
-                      for gx, g_input in six.moves.zip(gxs, grad_inputs)])
+        raise NotImplementedError
 
     def get_retained_inputs(self):
         """Returns a tuple of retained input variables.

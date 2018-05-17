@@ -51,7 +51,12 @@ class GradTable(object):
 
 def backward(
         func, target_input_indexes, grad_outputs, grad_inputs):
-    if hasattr(func, 'backward_accumulate'):
+    assert isinstance(target_input_indexes, tuple)
+    assert isinstance(grad_outputs, tuple)
+    if func.__class__.backward_accumulate is not \
+            chainer.FunctionNode.backward_accumulate:
+        # backward_accumulate is overridden
+
         # Note (Tokui): when the same variable is passed multiple times as
         # inputs in the same function (e.g. an expression like f(x, x)), the
         # current implementation passes None as the current gradient w.r.t.
@@ -66,8 +71,10 @@ def backward(
         gxs = func.backward_accumulate(
             target_input_indexes, grad_outputs,
             tuple(grad_inputs_tuple))
-    else:
+        assert isinstance(gxs, tuple)
+    else:  # otherwise, backward should be overridden
         gxs = func.backward(target_input_indexes, grad_outputs)
+        assert isinstance(gxs, tuple)
 
         len_gxs = len(gxs)
         if len_gxs == len(func.inputs):
