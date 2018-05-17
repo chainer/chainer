@@ -2,6 +2,7 @@ import unittest
 
 import mock
 import numpy
+import six
 
 import chainer
 from chainer import _backprop_utils
@@ -18,7 +19,14 @@ def make_array(start, shape, dtype):
     return a
 
 
-def make_legacy_backward_accumulate_method(backward):
+class FuncWithBackward(chainer.FunctionNode):
+
+    def backward(self, target_input_indexes, grad_outputs):
+        return self._mock_backward(target_input_indexes, grad_outputs)
+
+
+class FuncWithBackwardAccumulate(chainer.FunctionNode):
+
     def backward_accumulate(self, target_input_indexes, grad_outputs,
                             grad_inputs):
         """Computes gradients w.r.t.\\  specified inputs and accumulates them.
@@ -59,7 +67,7 @@ def make_legacy_backward_accumulate_method(backward):
 
         # The default implementation uses backward(). You can override this
         # method without using backward().
-        gxs = backward(self, target_input_indexes, grad_outputs)
+        gxs = self._mock_backward(self, target_input_indexes, grad_outputs)
 
         len_gxs = len(gxs)
         if len_gxs == len(self.inputs):
@@ -73,12 +81,11 @@ def make_legacy_backward_accumulate_method(backward):
                       g_input if gx is None else
                       gx + g_input
                       for gx, g_input in six.moves.zip(gxs, grad_inputs)])
-    return backward_accumulate
 
 
 @testing.parameterize(*testing.product({
-    'y_shape': [(4,) ],#, (0,), (2, 3), ()],
-    'x_shape': [(3,) ],#, (0,), (4, 1), ()],
+    'y_shape': [(4,), (0,), (2, 3), ()],
+    'x_shape': [(3,), (0,), (4, 1), ()],
     'override': ['backward', 'backward_accumulate'],
 }))
 class TestFunctionNode(unittest.TestCase):
@@ -98,17 +105,14 @@ class TestFunctionNode(unittest.TestCase):
         gy1 = make_array(1, y_shape, numpy.float32)
         gy2 = make_array(1, y_shape, numpy.float32)
 
-        f = chainer.FunctionNode()
+        f = {
+            'backward': FuncWithBackward,
+            'backward_accumulate': FuncWithBackwardAccumulate,
+        }[self.override]()
+        f._mock_backward = mock.MagicMock(return_value=(gx1, gx2))
         f.check_type_forward = mock.MagicMock()
         f.forward_cpu = mock.MagicMock(return_value=(y1, y2))
         f.forward_gpu = mock.MagicMock()
-        if self.override == 'backward':
-            f.backward = mock.MagicMock(return_value=(gx1, gx2))
-        elif self.override == 'backward_accumulate':
-            f.backward_accumulate = make_legacy_backward_accumulate_method(
-                mock.MagicMock(return_value=(gx1, gx2)))
-        else:
-            assert False
         self.f = f
 
         self.x1 = make_array(0, x_shape, numpy.float32)
@@ -144,7 +148,7 @@ class TestFunctionNode(unittest.TestCase):
         self.gy1 = cuda.to_gpu(self.gy1)
         self.gy2 = cuda.to_gpu(self.gy2)
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
-        self.f.backward = mock.MagicMock(return_value=(self.gx1, self.gx2))
+        self.f._mock_backward = mock.MagicMock(return_value=(self.gx1, self.gx2))
 
     def check_backward(self, gxs):
         flag_none = gxs[0] is None
