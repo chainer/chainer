@@ -3,7 +3,6 @@ import unittest
 import chainer
 from chainer.backends import cuda
 from chainer import distributions
-from chainer.functions.math import exponential
 from chainer import testing
 from chainer.testing import attr
 import numpy
@@ -45,16 +44,14 @@ class TestLogTransformedDistribution(unittest.TestCase):
                           + v.shape[len(self.shape):])
              for k, v in self.scipy_params.items()}
         self.sample_for_test = sample_for_test
-        self.transform = {"forward": exponential.exp,
-                          "inv": exponential.log,
-                          "inv_logdet_jac": lambda x: -exponential.log(x)}
+        self.transform = distributions.ExpBijector()
         self.continuous = True
         self.scipy_onebyone = False
 
     @property
     def cpu_dist(self):
         return distributions.TransformedDistribution(
-            self.base_dist(**self.params), **self.transform)
+            self.base_dist(**self.params), self.transform)
 
     @property
     def gpu_dist(self):
@@ -67,7 +64,7 @@ class TestLogTransformedDistribution(unittest.TestCase):
             self.gpu_params = {k: cuda.to_gpu(v)
                                for k, v in self.params.items()}
         return distributions.TransformedDistribution(
-            self.base_dist(**self.gpu_params), **self.transform)
+            self.base_dist(**self.gpu_params), self.transform)
 
     def check_cdf(self, is_gpu):
         smp = self.sample_for_test(self.smp_shape + self.shape)

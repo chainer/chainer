@@ -26,3 +26,6 @@ from chainer.distributions.Uniform import Uniform  # NOQA
 
 from chainer.distributions.KLDivergence import kl_divergence  # NOQA
 from chainer.distributions.KLDivergence import register_kl  # NOQA
+
+from chainer.distributions.bijector import Bijector  # NOQA
+from chainer.distributions.bijector import ExpBijector  # NOQA
