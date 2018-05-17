@@ -860,7 +860,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         for hook in hooks:
             hook.backward_preprocess(func, in_data, out_grad_data)
 
-        _backprop_utils.backward(func, input_indexes, gys, x_grads)
+        _backprop_utils.backprop_step(func, input_indexes, gys, x_grads)
 
         # Call post-backward hooks
         for hook in hooks:

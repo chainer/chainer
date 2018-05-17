@@ -49,7 +49,7 @@ class GradTable(object):
             return []
 
 
-def backward(
+def backprop_step(
         func, target_input_indexes, grad_outputs, grad_inputs):
     assert isinstance(target_input_indexes, tuple)
     assert isinstance(grad_outputs, tuple)

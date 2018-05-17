@@ -1055,7 +1055,7 @@ Actual: {0}'''.format(type(data))
                 if x not in in_grad:
                     in_grad[x] = grads.get_as_list(x)
 
-            _backprop_utils.backward(
+            _backprop_utils.backprop_step(
                 func, target_input_indexes, out_grad, in_grad)
 
             for hook in hooks:

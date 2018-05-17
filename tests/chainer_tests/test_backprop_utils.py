@@ -158,7 +158,7 @@ class TestFunctionNode(unittest.TestCase):
         self.f._mock_backward = mock.MagicMock(
             return_value=(self.gx1, self.gx2))
 
-    def check_backward(self, gxs):
+    def check_backprop_step(self, gxs):
         flag_none = gxs[0] is None
 
         x1 = chainer.Variable(self.x1)
@@ -167,7 +167,8 @@ class TestFunctionNode(unittest.TestCase):
         gxrefs = [[gx] if gx is not None else [] for gx in gxs]
         grad_outputs = (self.gy1, self.gy2)
         grad_inputs = dict(zip(self.f.inputs, gxrefs))
-        _backprop_utils.backward(self.f, (0, 1), grad_outputs, grad_inputs)
+        _backprop_utils.backprop_step(
+            self.f, (0, 1), grad_outputs, grad_inputs)
         gx1 = _backprop_utils._reduce(gxrefs[0])
         gx2 = _backprop_utils._reduce(gxrefs[1])
         if flag_none:
@@ -180,21 +181,21 @@ class TestFunctionNode(unittest.TestCase):
             numpy.testing.assert_array_equal(cuda.to_cpu(gx2.data),
                                              cuda.to_cpu(self.gx2_orig.data))
 
-    def test_backward_none_cpu(self):
-        self.check_backward((None, None))
+    def test_backprop_step_none_cpu(self):
+        self.check_backprop_step((None, None))
 
     @attr.gpu
-    def test_backward_none_gpu(self):
+    def test_backprop_step_none_gpu(self):
         self.setup_gpu()
-        self.check_backward((None, None))
+        self.check_backprop_step((None, None))
 
-    def test_backward_cpu(self):
-        self.check_backward((self.gx1_orig, self.gx2_orig))
+    def test_backprop_step_cpu(self):
+        self.check_backprop_step((self.gx1_orig, self.gx2_orig))
 
     @attr.gpu
-    def test_backward_gpu(self):
+    def test_backprop_step_gpu(self):
         self.setup_gpu()
-        self.check_backward((self.gx1_orig, self.gx2_orig))
+        self.check_backprop_step((self.gx1_orig, self.gx2_orig))
 
 
 testing.run_module(__name__, __file__)
