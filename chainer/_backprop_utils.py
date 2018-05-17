@@ -59,7 +59,7 @@ class GradTable(object):
         if self._load_if_new:
             return node.grad_var
         else:
-            return []
+            return None
 
 
 def backprop_step(

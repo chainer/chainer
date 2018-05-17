@@ -1050,7 +1050,7 @@ Actual: {0}'''.format(type(data))
                 hook.backward_postprocess(func, in_data, out_grad_data)
 
             if is_debug:
-                # each grad is of list of variables
+                # each grad is a list of variables
                 # iter_gxs expands it as a sequence of variables.
                 def iter_gxs(gxs):
                     for gx in gxs:
