@@ -169,6 +169,10 @@ class TestFunctionNode(unittest.TestCase):
         grad_inputs = dict(zip(self.f.inputs, gxrefs))
         _backprop_utils.backprop_step(
             self.f, (0, 1), grad_outputs, grad_inputs)
+        if not chainer.configuration.config.lazy_grad_sum:
+            # assert eager grad sum
+            for gxref in gxrefs:
+                self.assertLessEqual(len(gxref), 1)
         gx1 = _backprop_utils._reduce(gxrefs[0])
         gx2 = _backprop_utils._reduce(gxrefs[1])
         if flag_none:
