@@ -3,6 +3,7 @@ from chainer.backends import cuda
 
 
 class CooMatrix(object):
+
     """A sparse matrix in COO format.
 
     Args:
@@ -15,6 +16,18 @@ class CooMatrix(object):
         shape (tuple of int): The shape of the matrix in dense format.
         requires_grad (bool): If ``True``, gradient of this sparse matrix will
             be computed in back-propagation.
+
+    Attributes:
+        data (~chainer.Variable): The entries of the matrix.
+        row (numpy.ndarray or cupy.ndarray): The row indices of the matrix
+            entries.
+        col (numpy.ndarray or cupy.ndarray): The column indices of the matrix
+            entries.
+
+    .. seealso::
+        See :func:`~chainer.utils.to_coo` for how to construct a COO matrix
+        from an array.
+
     """
 
     def __init__(self, data, row, col, shape, requires_grad=False):
@@ -52,7 +65,8 @@ class CooMatrix(object):
 
 
 def to_coo(x, ldnz=None, requires_grad=False):
-    """Returns a sparse matrix in COO format of a dense matrix.
+    """Returns a single or a batch of matrices in COO format wrapped in a
+    :class:`~chainer.utils.CooMatrix`.
 
     Args:
         x (numpy.ndarray or cupy.ndarray): Input dense matrix. The ndim of
@@ -65,8 +79,28 @@ def to_coo(x, ldnz=None, requires_grad=False):
             computed in back-propagation.
 
     Returns:
-        ~chainer.utils.CooMatrix: a sparse matrix or batched sparse matrices
+        ~chainer.utils.CooMatrix: A sparse matrix or batched sparse matrices
         in COO format of a given dense matrix or batched dense matrices.
+
+    .. admonition:: Example
+
+        Create a :class:`~chainer.utils.CooMatrix` from an array with 2
+        non-zero elements and 4 zeros and access its attributes. No batch
+        dimension is involved.
+
+        .. doctest::
+
+            >>> data = np.array([[0, 2, 0], [-1, 0, 0]], np.float32)
+            >>> x = chainer.utils.to_coo(data)
+            >>> x.data
+            variable([ 2., -1.])
+            >>> x.row
+            array([0, 1], dtype=int32)
+            >>> x.col
+            array([1, 0], dtype=int32)
+            >>> x.shape
+            (2, 3)
+
     """
     xp = cuda.get_array_module(x)
     if x.ndim == 2:

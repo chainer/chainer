@@ -411,6 +411,11 @@ def sparse_matmul(a, b, transa=False, transb=False):
 
     Returns:
         ~chainer.Variable: Result of batched mat-mul.
+
+    .. seealso::
+        See :func:`~chainer.utils.to_coo` for how to construct a COO matrix
+        from an array.
+
     """
     if (isinstance(a, utils.CooMatrix) and
             isinstance(b, (chainer.Variable, numpy.ndarray, cuda.ndarray))):
