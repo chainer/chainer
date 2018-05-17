@@ -18,8 +18,8 @@ class NewAxis {};
 class ArrayIndex {
 public:
     ArrayIndex(int64_t index) : tag_{ArrayIndexTag::kSingleElement}, index_{index} {}  // NOLINT(runtime/explicit)
-    ArrayIndex(Slice slice) : tag_{ArrayIndexTag::kSlice}, slice_{slice} {}            // NOLINT(runtime/explicit)
-    ArrayIndex(NewAxis) : tag_{ArrayIndexTag::kNewAxis} {}                             // NOLINT(runtime/explicit)
+    ArrayIndex(Slice slice) : tag_{ArrayIndexTag::kSlice}, slice_{slice} {}  // NOLINT(runtime/explicit)
+    ArrayIndex(NewAxis) : tag_{ArrayIndexTag::kNewAxis} {}  // NOLINT(runtime/explicit)
 
     ArrayIndexTag tag() const { return tag_; }
 

@@ -168,10 +168,7 @@ TEST_P(ArrayToDeviceCompatibleTest, ToDeviceNonContiguous) {
     Device& dst_dev = GetDestinationDevice();
     Device& default_device = GetDefaultDevice();
 
-    Array a = testing::BuildArray({2, 4})         //
-                      .WithLinearData<int32_t>()  //
-                      .WithPadding(1)             //
-                      .WithDevice(src_dev);
+    Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>().WithPadding(1).WithDevice(src_dev);
 
     // Transfer
     Array b = a.ToDevice(dst_dev);
@@ -190,9 +187,9 @@ INSTANTIATE_TEST_CASE_P(
         BackendCombination,
         ArrayToDeviceCompatibleTest,
         ::testing::Values(
-                std::make_tuple(-1, 0, 0),   // transfer between same devices
-                std::make_tuple(-1, 0, 1),   // transfer to 1
-                std::make_tuple(-1, 2, 0),   // transfer from 2
+                std::make_tuple(-1, 0, 0),  // transfer between same devices
+                std::make_tuple(-1, 0, 1),  // transfer to 1
+                std::make_tuple(-1, 2, 0),  // transfer from 2
                 std::make_tuple(2, 0, 1)));  // checks default device does not change
 
 // Test for incompatible transfer

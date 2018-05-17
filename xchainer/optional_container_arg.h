@@ -20,7 +20,7 @@ public:
 
     // ctors for vector value
     OptionalContainerArg(std::initializer_list<T> list) : opt_{Container{list.begin(), list.end()}} {}
-    OptionalContainerArg(const Container& v) : opt_{v} {}        // NOLINT(runtime/explicit)
+    OptionalContainerArg(const Container& v) : opt_{v} {}  // NOLINT(runtime/explicit)
     OptionalContainerArg(Container&& v) : opt_{std::move(v)} {}  // NOLINT(runtime/explicit)
 
     bool has_value() const { return opt_.has_value(); }

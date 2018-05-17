@@ -15,5 +15,5 @@
 #else
 #include <cassert>
 #define XCHAINER_NEVER_REACH() (assert(false))  // NOLINT: cert-dcl03-c
-#endif                                          // NDEBUG
-#endif                                          // XCHAINER_NEVER_REACH
+#endif  // NDEBUG
+#endif  // XCHAINER_NEVER_REACH

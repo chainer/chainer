@@ -306,7 +306,7 @@ TEST_P(ManipulationTest, BroadcastTo) {
 
     Array aa = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
     Array a = aa.At({Slice(), Slice(), Slice(), NewAxis{}});  // Make a broadcastable axis.
-    ASSERT_EQ(Shape({2, 3, 1, 1}), a.shape());                // Check test precondition
+    ASSERT_EQ(Shape({2, 3, 1, 1}), a.shape());  // Check test precondition
 
     Array b = BroadcastTo(a, output_shape);
     ASSERT_EQ(output_shape, b.shape());

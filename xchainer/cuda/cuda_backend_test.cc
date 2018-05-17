@@ -130,8 +130,8 @@ INSTANTIATE_TEST_CASE_P(
         CudaBackendTransferTest,
         ::testing::Values(
                 // 3rd parameter is the number of required CUDA devices to run the test.
-                std::make_tuple("cuda:0", "cuda:0", 1),      // cuda:0 <-> cuda:0
-                std::make_tuple("cuda:0", "cuda:1", 2),      // cuda:0 <-> cuda:1
+                std::make_tuple("cuda:0", "cuda:0", 1),  // cuda:0 <-> cuda:0
+                std::make_tuple("cuda:0", "cuda:1", 2),  // cuda:0 <-> cuda:1
                 std::make_tuple("cuda:0", "native:0", 1)));  // cuda:0 <-> native:0
 
 TEST_P(CudaBackendTransferTest, SupportsTransfer) {

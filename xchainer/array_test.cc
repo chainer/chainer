@@ -494,9 +494,7 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
 }
 
 TEST_P(ArrayTest, Transpose) {
-    Array a = testing::BuildArray({2, 3})         //
-                      .WithLinearData<int32_t>()  //
-                      .WithPadding(0);
+    Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>().WithPadding(0);
     Array b = a.Transpose();
 
     EXPECT_EQ(Shape({3, 2}), b.shape());
@@ -564,8 +562,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
 
     // Non-contiguous
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false})  //
-                          .WithPadding(4);
+        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false}).WithPadding(4);
         Array b = a.AsConstant(CopyKind::kCopy);
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualCopy(a, b);
@@ -612,8 +609,7 @@ TEST_P(ArrayTest, AsConstantView) {
     }
     // Non-contiguous
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false})  //
-                          .WithPadding(4);
+        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false}).WithPadding(4);
         Array b = a.AsConstant(CopyKind::kView);
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualView(a, b);
@@ -961,7 +957,7 @@ TEST(ArrayBroadcastToTest, BroadcastTo) {
 
     Array aa = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
     Array a = aa.At({Slice(), Slice(), Slice(), NewAxis{}});  // Make a broadcastable axis.
-    ASSERT_EQ(Shape({2, 3, 1, 1}), a.shape());                // Check test precondition
+    ASSERT_EQ(Shape({2, 3, 1, 1}), a.shape());  // Check test precondition
 
     Array b = a.BroadcastTo(output_shape);
     ASSERT_EQ(output_shape, b.shape());

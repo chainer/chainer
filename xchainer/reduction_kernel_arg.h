@@ -41,7 +41,7 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const Axes& 
 
     // Prepare axis mappings
     Shape reduce_shape{};  // Reduction dimensions
-    Axes out_axis_map{};   // Mapping from effective output indices to actual output indices
+    Axes out_axis_map{};  // Mapping from effective output indices to actual output indices
     Shape new_out_shape{};
     // (Here "effective output indices" means source indices minus reduction indices.)
 

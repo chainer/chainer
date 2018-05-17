@@ -118,12 +118,12 @@ void InitXchainerDtype(pybind11::module& m) {
     e.def_property_readonly("itemsize", &GetItemSize);
     e.def_property_readonly("name", &GetDtypeName);
     e.def("__eq__", [](Dtype self, py::handle other) {
-        (void)self;   // unused
+        (void)self;  // unused
         (void)other;  // unused
         return false;
     });
     e.def("__ne__", [](Dtype self, py::handle other) {
-        (void)self;   // unused
+        (void)self;  // unused
         (void)other;  // unused
         return true;
     });
