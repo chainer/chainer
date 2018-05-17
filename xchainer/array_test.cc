@@ -494,9 +494,7 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
 }
 
 TEST_P(ArrayTest, Transpose) {
-    Array a = testing::BuildArray({2, 3})  //
-                      .WithLinearData<int32_t>()  //
-                      .WithPadding(0);
+    Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>().WithPadding(0);
     Array b = a.Transpose();
 
     EXPECT_EQ(Shape({3, 2}), b.shape());
@@ -564,8 +562,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
 
     // Non-contiguous
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false})  //
-                          .WithPadding(4);
+        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false}).WithPadding(4);
         Array b = a.AsConstant(CopyKind::kCopy);
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualCopy(a, b);
@@ -612,8 +609,7 @@ TEST_P(ArrayTest, AsConstantView) {
     }
     // Non-contiguous
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false})  //
-                          .WithPadding(4);
+        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false}).WithPadding(4);
         Array b = a.AsConstant(CopyKind::kView);
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualView(a, b);
