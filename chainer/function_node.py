@@ -841,6 +841,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
                 x_grads[x] = grads.get_as_list(x)
         if not input_indexes:
             continue
+        input_indexes = tuple(input_indexes)
 
         # Do backward
 
