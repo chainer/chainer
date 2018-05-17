@@ -30,12 +30,15 @@ class FuncWithBackwardAccumulate(chainer.FunctionNode):
     def backward_accumulate(self, target_input_indexes, grad_outputs,
                             grad_inputs):
         """Computes gradients w.r.t.\\  specified inputs and accumulates them.
+
         This method provides a way to fuse the backward computation and the
         gradient accumulations in the case that the multiple functions are
         applied to the same variable.
+
         Users have to override either of this method or :meth:`backward`.
         It is often simpler to implement :meth:`backward` and is recommended
         if you do not need to provide efficient gradient accumulation.
+
         Args:
             target_input_indexes (tuple of int): Indices of the input variables
                 w.r.t. which the gradients are required. It is guaranteed that
@@ -48,11 +51,14 @@ class FuncWithBackwardAccumulate(chainer.FunctionNode):
                 are computed by other computation paths. If there is no
                 gradient value existing for the variable, the corresponding
                 element is ``None``. See also the note below.
+
         Returns:
             Tuple of variables that represent the gradients w.r.t. specified
             input variables. Unlike :meth:`backward`, the length of the tuple
             **must** be same as that of ``target_input_indices``.
+
         .. note::
+
            When the same variable is passed to the multiple input arguments of
            a function, only the first position of ``grad_inputs`` corresponding
            to these input arguments may contain the gradient variable
@@ -60,6 +66,7 @@ class FuncWithBackwardAccumulate(chainer.FunctionNode):
            ``None``. This is an implementation-detail convention to avoid the
            complication of correctly accumulating gradients in such a case.
            This behavior might be changed in a future version.
+
         """
         assert isinstance(target_input_indexes, tuple)
         assert isinstance(grad_outputs, tuple)
@@ -67,7 +74,7 @@ class FuncWithBackwardAccumulate(chainer.FunctionNode):
 
         # The default implementation uses backward(). You can override this
         # method without using backward().
-        gxs = self._mock_backward(self, target_input_indexes, grad_outputs)
+        gxs = self._mock_backward(target_input_indexes, grad_outputs)
 
         len_gxs = len(gxs)
         if len_gxs == len(self.inputs):
@@ -148,7 +155,8 @@ class TestFunctionNode(unittest.TestCase):
         self.gy1 = cuda.to_gpu(self.gy1)
         self.gy2 = cuda.to_gpu(self.gy2)
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
-        self.f._mock_backward = mock.MagicMock(return_value=(self.gx1, self.gx2))
+        self.f._mock_backward = mock.MagicMock(
+            return_value=(self.gx1, self.gx2))
 
     def check_backward(self, gxs):
         flag_none = gxs[0] is None
