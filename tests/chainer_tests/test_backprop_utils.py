@@ -18,9 +18,68 @@ def make_array(start, shape, dtype):
     return a
 
 
+def make_legacy_backward_accumulate_method(backward):
+    def backward_accumulate(self, target_input_indexes, grad_outputs,
+                            grad_inputs):
+        """Computes gradients w.r.t.\\  specified inputs and accumulates them.
+        This method provides a way to fuse the backward computation and the
+        gradient accumulations in the case that the multiple functions are
+        applied to the same variable.
+        Users have to override either of this method or :meth:`backward`.
+        It is often simpler to implement :meth:`backward` and is recommended
+        if you do not need to provide efficient gradient accumulation.
+        Args:
+            target_input_indexes (tuple of int): Indices of the input variables
+                w.r.t. which the gradients are required. It is guaranteed that
+                this tuple contains at least one element.
+            grad_outputs (tuple of Variable): Gradients w.r.t. the output
+                variables. If the gradient w.r.t. an output variable is not
+                given, the corresponding element is ``None``.
+            grad_inputs (tuple of Variable): Gradients w.r.t. the input
+                variables specified by ``target_input_indexes``. These values
+                are computed by other computation paths. If there is no
+                gradient value existing for the variable, the corresponding
+                element is ``None``. See also the note below.
+        Returns:
+            Tuple of variables that represent the gradients w.r.t. specified
+            input variables. Unlike :meth:`backward`, the length of the tuple
+            **must** be same as that of ``target_input_indices``.
+        .. note::
+           When the same variable is passed to the multiple input arguments of
+           a function, only the first position of ``grad_inputs`` corresponding
+           to these input arguments may contain the gradient variable
+           corresponding to that input variable, and other entries are set to
+           ``None``. This is an implementation-detail convention to avoid the
+           complication of correctly accumulating gradients in such a case.
+           This behavior might be changed in a future version.
+        """
+        assert isinstance(target_input_indexes, tuple)
+        assert isinstance(grad_outputs, tuple)
+        assert isinstance(grad_inputs, tuple)
+
+        # The default implementation uses backward(). You can override this
+        # method without using backward().
+        gxs = backward(self, target_input_indexes, grad_outputs)
+
+        len_gxs = len(gxs)
+        if len_gxs == len(self.inputs):
+            gxs = tuple([gxs[i] for i in target_input_indexes])
+        elif len_gxs != len(target_input_indexes):
+            raise ValueError(
+                'number of gradients returned by %s (%s) is incorrect.'
+                % (self._impl_name, self.label))
+
+        return tuple([gx if g_input is None else
+                      g_input if gx is None else
+                      gx + g_input
+                      for gx, g_input in six.moves.zip(gxs, grad_inputs)])
+    return backward_accumulate
+
+
 @testing.parameterize(*testing.product({
-    'y_shape': [(4,), (0,), (2, 3), ()],
-    'x_shape': [(3,), (0,), (4, 1), ()],
+    'y_shape': [(4,) ],#, (0,), (2, 3), ()],
+    'x_shape': [(3,) ],#, (0,), (4, 1), ()],
+    'override': ['backward', 'backward_accumulate'],
 }))
 class TestFunctionNode(unittest.TestCase):
 
@@ -43,7 +102,13 @@ class TestFunctionNode(unittest.TestCase):
         f.check_type_forward = mock.MagicMock()
         f.forward_cpu = mock.MagicMock(return_value=(y1, y2))
         f.forward_gpu = mock.MagicMock()
-        f.backward = mock.MagicMock(return_value=(gx1, gx2))
+        if self.override == 'backward':
+            f.backward = mock.MagicMock(return_value=(gx1, gx2))
+        elif self.override == 'backward_accumulate':
+            f.backward_accumulate = make_legacy_backward_accumulate_method(
+                mock.MagicMock(return_value=(gx1, gx2)))
+        else:
+            assert False
         self.f = f
 
         self.x1 = make_array(0, x_shape, numpy.float32)
@@ -83,7 +148,6 @@ class TestFunctionNode(unittest.TestCase):
 
     def check_backward(self, gxs):
         flag_none = gxs[0] is None
-        self.f.backward_accumulate = chainer.FunctionNode.backward_accumulate
 
         x1 = chainer.Variable(self.x1)
         x2 = chainer.Variable(self.x2)
