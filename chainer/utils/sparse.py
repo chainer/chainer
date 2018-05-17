@@ -17,13 +17,6 @@ class CooMatrix(object):
         requires_grad (bool): If ``True``, gradient of this sparse matrix will
             be computed in back-propagation.
 
-    Attributes:
-        data (~chainer.Variable): The entries of the matrix.
-        row (numpy.ndarray or cupy.ndarray): The row indices of the matrix
-            entries.
-        col (numpy.ndarray or cupy.ndarray): The column indices of the matrix
-            entries.
-
     .. seealso::
         See :func:`~chainer.utils.to_coo` for how to construct a COO matrix
         from an array.
