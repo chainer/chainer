@@ -58,8 +58,7 @@ class CooMatrix(object):
 
 
 def to_coo(x, ldnz=None, requires_grad=False):
-    """Returns a single or a batch of matrices in COO format wrapped in a
-    :class:`~chainer.utils.CooMatrix`.
+    """Returns a single or a batch of matrices in COO format.
 
     Args:
         x (numpy.ndarray or cupy.ndarray): Input dense matrix. The ndim of
@@ -93,7 +92,6 @@ def to_coo(x, ldnz=None, requires_grad=False):
             array([1, 0], dtype=int32)
             >>> x.shape
             (2, 3)
-
     """
     xp = cuda.get_array_module(x)
     if x.ndim == 2:
