@@ -17,6 +17,19 @@ def _pure(grad):
 
 class GradTable(object):
 
+    """Dict of nodes to references of gradients
+
+    The gradients are stored as references to them in the backprop process. The
+    current implementation uses lists. Keep the lengths of lists <= 1 for the
+    strict accumulation of gradients. Leave them to accumulate gradients
+    lazily.
+
+    Args:
+        load_if_new (bool): read ``grad_var`` of node when the node has not
+            been added.
+
+    """
+
     def __init__(self, load_if_new=False):
         self.grads = {}
         self._load_if_new = load_if_new
@@ -61,7 +74,8 @@ def backprop_step(
         # inputs in the same function (e.g. an expression like f(x, x)), the
         # current implementation passes None as the current gradient w.r.t.
         # such an input except for the first one (i.e., it builds gxs like
-        # (gx, None) where gx is the current gradient w.r.t. x).
+        # (gx, None) where gx is the current gradient w.r.t. x). See also the
+        # docstring of ``FunctionNode.backward_accumulate``.
         grad_inputs_tuple = []
         for i in target_input_indexes:
             g_input = grad_inputs[func.inputs[i]]

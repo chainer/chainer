@@ -1035,18 +1035,6 @@ Actual: {0}'''.format(type(data))
                 hook.backward_preprocess(func, in_data, out_grad_data)
 
             # Collect the current input gradients.
-            #
-            # Note (Tokui, Kataoka): When the same variable is passed to
-            # multiple input slots (e.g. an expression like ``f(x, x)``), it
-            # makes the gradient accumulation complicated since the
-            # back-propagated gradients w.r.t. the first and second argument
-            # should be accumulated to the current gradient w.r.t. the same
-            # variable.  To solve this problem, the gradients are stored as
-            # references to them in the backprop process. The current
-            # implementation uses lists. Keep the lengths of lists <= 1 for the
-            # strict accumulation of gradients. Leave them to accumulate
-            # gradients lazily. See also the docstring of
-            # ``FunctionNode.backward_accumulate``.
             target_inputs = [inputs[i] for i in target_input_indexes]
             # Keep the order for the portability, rather than
             # in_grad = {x: grads.get_as_list(x) for x in set(target_inputs)}
