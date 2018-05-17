@@ -32,7 +32,8 @@ namespace indexer_detail {
 
 // IndexSource is either IndexIterator or NdimIndex.
 template <int8_t Ndim, typename IndexSource>
-XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImpl(IndexIterator<Ndim>& it, int8_t processed_dims, const IndexSource& index_source) {
+XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImplBase(
+        IndexIterator<Ndim>& it, int8_t processed_dims, const IndexSource& index_source) {
     assert(processed_dims + index_source.ndim() <= it.ndim());
     for (int8_t i = 0; i < index_source.ndim(); ++i) {
         it.index()[processed_dims + i] = index_source.index()[i];
@@ -40,16 +41,16 @@ XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImpl(IndexIterator<Ndim>& it,
     return processed_dims + index_source.ndim();
 }
 
-template <int8_t Ndim, typename FstIndexSource, typename SndIndexSource, typename... IndexSources>
+template <int8_t Ndim>
+XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImpl(IndexIterator<Ndim>& /*it*/, int8_t processed_dims) {
+    return processed_dims;
+}
+
+template <int8_t Ndim, typename IndexSource, typename... IndexSources>
 XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImpl(
-        IndexIterator<Ndim>& it,
-        int8_t processed_dims,
-        FstIndexSource&& fst_index_source,
-        SndIndexSource&& snd_index_source,
-        IndexSources&&... index_sources) {
-    processed_dims = CombineIteratorsImpl(it, processed_dims, fst_index_source);
-    return CombineIteratorsImpl(
-            it, processed_dims, std::forward<SndIndexSource>(snd_index_source), std::forward<IndexSources>(index_sources)...);
+        IndexIterator<Ndim>& it, int8_t processed_dims, IndexSource&& index_source, IndexSources&&... index_sources) {
+    processed_dims = CombineIteratorsImplBase(it, processed_dims, index_source);
+    return CombineIteratorsImpl(it, processed_dims, std::forward<IndexSources>(index_sources)...);
 }
 
 // Combine multiple sub-iterators to make a combined iterator.
