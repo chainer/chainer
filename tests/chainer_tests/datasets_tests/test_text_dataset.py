@@ -34,15 +34,15 @@ class TestTextDataset(unittest.TestCase):
 
     def test_len_noeol(self):
         # No linefeed at the end of the file.
-        ds = self._dataset(['ascii_noeol.txt'])
+        ds = self._dataset('ascii_noeol.txt', encoding=['ascii'])
         assert len(ds) == 3
 
     def test_len_unicode(self):
-        ds = self._dataset(['utf8_1.txt'])
+        ds = self._dataset(['utf8_1.txt'], encoding='utf-8')
         assert len(ds) == 3
 
     def test_len_multiple(self):
-        ds = self._dataset(['utf8_1.txt', 'utf8_2.txt'])
+        ds = self._dataset(['utf8_1.txt', 'utf8_2.txt'], encoding='utf-8')
         assert len(ds) == 3
 
     def test_get(self):
@@ -52,19 +52,19 @@ class TestTextDataset(unittest.TestCase):
         assert ds[2] == 'test\n'
 
     def test_get_unicode(self):
-        ds = self._dataset(['utf8_1.txt'])
+        ds = self._dataset(['utf8_1.txt'], encoding='utf-8')
         assert ds[0] == 'テスト1\n'
         assert ds[1] == 'テスト2\n'
         assert ds[2] == 'Test3\n'
 
     def test_get_crlf(self):
-        ds = self._dataset(['utf8_crlf.txt'])
+        ds = self._dataset(['utf8_crlf.txt'], encoding='utf-8')
         assert ds[0] == 'テスト1\n'
         assert ds[1] == 'テスト2\n'
         assert ds[2] == 'Test3\n'
 
     def test_get_multiple(self):
-        ds = self._dataset(['utf8_1.txt', 'utf8_2.txt'])
+        ds = self._dataset(['utf8_1.txt', 'utf8_2.txt'], encoding='utf-8')
         assert ds[0] == ('テスト1\n', 'Test1\n')
         assert ds[1] == ('テスト2\n', 'テスト2\n')
         assert ds[2] == ('Test3\n', 'テスト3\n')
@@ -93,7 +93,7 @@ class TestTextDataset(unittest.TestCase):
 
     def test_newline(self):
         # CRLF
-        ds = self._dataset(['utf8_crlf.txt'], newline='\r\n')
+        ds = self._dataset(['utf8_crlf.txt'], encoding='utf-8', newline='\r\n')
         assert ds[0] == 'テスト1\r\n'
         assert ds[1] == 'テスト2\r\n'
         assert ds[2] == 'Test3\r\n'
@@ -115,7 +115,7 @@ class TestTextDataset(unittest.TestCase):
         assert ds[1] == ('test\n', 'world test\n')
 
     def test_pickle_unpickle(self):
-        ds1 = self._dataset(['utf8_1.txt', 'utf8_2.txt'])
+        ds1 = self._dataset(['utf8_1.txt', 'utf8_2.txt'], encoding='utf-8')
         assert ds1[0] == ('テスト1\n', 'Test1\n')
         ds2 = pickle.loads(pickle.dumps(ds1))
         assert ds1[1] == ('テスト2\n', 'テスト2\n')
