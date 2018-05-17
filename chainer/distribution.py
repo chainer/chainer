@@ -7,9 +7,9 @@ class Distribution(object):
 
     `Distribution` is a bass class to treat probability distributions.
 
-    This class provides a means to perform following operations.
+    This class provides a mean to perform following operations.
     1. Sampling random points.
-    2. Evaluating a function about probability at given realization value.
+    2. Evaluating a function about probability at given realization values.
         (e.g., probability density function, probability mass function)
     3. Obtaining properties of distributions.
         (e.g., mean, variance)
@@ -254,7 +254,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def survival_function(self, x):
-        """Returns survival function for a input variable.
+        """Evaluates the survival function at a given input.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \

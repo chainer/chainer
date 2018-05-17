@@ -82,10 +82,12 @@ def cross_entropy(dist1, dist2):
     decoartor and define `entropy` in `dist1`.
 
     Args:
-        dist1(:class:`~chainer.Distribution`): Distribution to calculate KL
-            divergence :math:`p`.
-        dist2(:class:`~chainer.Distribution`): Distribution to calculate KL
-            divergence :math:`q`.
+        dist1(:class:`~chainer.Distribution`): Distribution to calculate cross
+            entropy :math:`p`. This is the first (left) operand of the cross
+            entropy.
+        dist2(:class:`~chainer.Distribution`): Distribution to calculate cross
+            entropy :math:`q`. This is the second (right) operand of the cross
+            entropy.
 
     Returns:
         ~chainer.Variable: Output variable representing cross entropy
