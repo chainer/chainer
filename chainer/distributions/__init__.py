@@ -21,6 +21,7 @@ from chainer.distributions.OneHotCategorical import OneHotCategorical  # NOQA
 from chainer.distributions.Pareto import Pareto  # NOQA
 from chainer.distributions.Poisson import Poisson  # NOQA
 from chainer.distributions.StudentT import StudentT  # NOQA
+from chainer.distributions.transformed_distribution import TransformedDistribution  # NOQA
 from chainer.distributions.Uniform import Uniform  # NOQA
 
 from chainer.distributions.KLDivergence import kl_divergence  # NOQA
