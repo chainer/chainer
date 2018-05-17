@@ -425,5 +425,4 @@ class TestBatchNormalizationWarning(unittest.TestCase):
                                      'but it should not be.')
 
 
-
 testing.run_module(__name__, __file__)
