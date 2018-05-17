@@ -104,8 +104,6 @@ private:
 template <>
 class Indexer<1> {
 public:
-    XCHAINER_HOST_DEVICE Indexer() = default;
-
     explicit Indexer(const Shape& shape) : total_size_{shape[0]} { assert(1 == shape.ndim()); }
 
     XCHAINER_HOST_DEVICE IndexIterator<1> It(int64_t start, int64_t step = 1) const { return IndexIterator<1>{total_size_, start, step}; }
@@ -140,15 +138,6 @@ public:
     XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim> It(int64_t start, int64_t step = 1) const {
         return IndexIterator<kDynamicNdim>{shape_, ndim_, total_size_, start, step};
     }
-
-    /*
-    template <int8_t NdimArg, typename... IndexIterators>
-    XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim> It(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
-        IndexIterator<kDynamicNdim> it = It(0);
-        indexer_detail::CombineIterators<kDynamicNdim>(it, first_iter, std::forward<IndexIterators>(iters)...);
-        return it;
-    }
-    */
 
     template <typename IndexSource, typename... IndexSources>
     XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim> At(IndexSource&& index_source, IndexSources&&... index_sources) {

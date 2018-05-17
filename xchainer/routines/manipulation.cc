@@ -159,7 +159,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
         }
 
         if (!can_reshape_without_copy) {
-            // Reshape without copy
+            // Copy is required.
             return a.Copy().Reshape(newshape);
         }
         assert(strides.size() == newshape.size());

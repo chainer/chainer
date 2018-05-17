@@ -169,7 +169,16 @@ TEST_P(ManipulationTest, ReshapeNoCopyZeroStrideAxis) {
 }
 
 TEST_P(ManipulationTest, ReshapeWithCopy) {
-    // TODO(niboshi): Write the test
+    using T = int32_t;
+    Shape input_shape{2, 3, 4};
+    Shape output_shape{2, 12};
+
+    Array a = testing::BuildArray(input_shape).WithLinearData<T>().WithPadding(1);
+    Array b = Reshape(a, output_shape);
+    ASSERT_EQ(output_shape, b.shape());
+    EXPECT_NE(a.data().get(), b.data().get()) << "Reshape must be done with copy";
+    Array e = testing::BuildArray(output_shape).WithLinearData<T>();
+    testing::ExpectEqual(e, b);
 }
 
 TEST_P(ManipulationTest, InvalidReshape) {

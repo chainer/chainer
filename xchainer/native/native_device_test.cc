@@ -5,8 +5,6 @@
 #include "xchainer/context.h"
 #include "xchainer/native/native_backend.h"
 
-#include "xchainer/testing/array.h"
-
 namespace xchainer {
 namespace native {
 namespace {
@@ -76,25 +74,6 @@ TEST(NativeDeviceTest, Synchronize) {
     NativeBackend backend{ctx};
     NativeDevice device{backend, 0};
     EXPECT_NO_THROW(device.Synchronize());
-}
-
-// TODO(hvy): Remove me
-TEST(NativeDeviceTest, Im2Col) {
-    Context ctx;
-    NativeBackend backend{ctx};
-    NativeDevice device{backend, 0};
-    ContextScope context_scope(ctx);
-
-    // Array x = testing::BuildArray({1, 1, 4, 1}).WithLinearData<float>();
-    // Array y = Im2Col(x, {2, 1}, {1, 1}, {0, 0}, false);
-
-    Array x = testing::BuildArray({1, 1, 7, 6}).WithLinearData<float>();
-    Array y = Im2Col(x, {3, 3}, {2, 2}, {2, 2}, false);
-
-    // Array x = testing::BuildArray({1, 1, 4, 3, 5}).WithLinearData<float>();
-    // Array y = Im2Col(x, {3, 3, 3}, {2, 2, 2}, {0, 0, 0}, false);
-
-    std::cout << y << std::endl;
 }
 
 }  // namespace

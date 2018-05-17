@@ -494,7 +494,7 @@ void NativeDevice::Linspace(double start, double stop, const Array& out) {
     });
 }
 
-// namespace {
+namespace {
 
 int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
     if (cover_all) {
@@ -574,7 +574,6 @@ Array Im2Col(
                 }
             }
         }
-
     });
 
     return out;
@@ -586,7 +585,7 @@ Array Im2Col(
 // It returns a tuple of:
 // 0. Permuted axes for transpose, moving axes to be reduced to either front or back of array axes.
 // 1. Non-reduced shape dimensions to be used in the output shape of TensorDot.
-std::tuple<Axes, Shape> GetRollAxes(const Shape& shape, const Axes& reduce_axes, bool reduced_axes_first) {
+std::tuple<Axes, Shape> GetTensorDotRollAxes(const Shape& shape, const Axes& reduce_axes, bool reduced_axes_first) {
     bool to_reduce[kMaxNdim]{};  // Initialized with false.
     Shape remain_dims;
     Axes roll_axes;
@@ -635,8 +634,8 @@ Array TensorDot(const Array& a, const Array& b, const Axes& a_axis, const Axes& 
     }
 
     // Compute necessary data for Dot and Reshape.
-    auto a_tup = GetRollAxes(a.shape(), a_axis, false);
-    auto b_tup = GetRollAxes(b.shape(), b_axis, true);
+    auto a_tup = GetTensorDotRollAxes(a.shape(), a_axis, false);
+    auto b_tup = GetTensorDotRollAxes(b.shape(), b_axis, true);
     const Axes& a_roll_axes = std::get<0>(a_tup);
     const Axes& b_roll_axes = std::get<0>(b_tup);
     const Shape& a_remain_dims = std::get<1>(a_tup);
@@ -657,7 +656,7 @@ Array TensorDot(const Array& a, const Array& b, const Axes& a_axis, const Axes& 
     return dot_out.Reshape(out_shape);
 }
 
-// }  // namespace
+}  // namespace
 
 Array NativeDevice::Convolution(
         const Array& x,

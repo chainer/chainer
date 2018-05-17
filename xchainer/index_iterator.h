@@ -11,8 +11,6 @@ namespace xchainer {
 template <int8_t kNdim = kDynamicNdim>
 class IndexIterator {
 public:
-    XCHAINER_HOST_DEVICE IndexIterator() = default;
-
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start, int64_t step)
         : shape_{shape}, total_size_{total_size}, raw_index_{0}, step_{step}, index_{} {
         assert(start >= 0);
@@ -37,6 +35,7 @@ public:
 
     XCHAINER_HOST_DEVICE const int64_t* index() const { return index_; }
 
+private:
     // Set raw_index_ and index_.
     // i may be out of bounds, but raw_index_ and index_ are updated anyway.
     XCHAINER_HOST_DEVICE void Set(int64_t i) {
@@ -48,7 +47,6 @@ public:
         }
     }
 
-private:
     const int64_t* shape_;
     int64_t total_size_{};
     int64_t raw_index_{};
@@ -60,8 +58,6 @@ private:
 template <>
 class IndexIterator<1> {
 public:
-    XCHAINER_HOST_DEVICE IndexIterator() = default;
-
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start, int64_t step)
         : IndexIterator<1>{total_size, start, step} {
         assert(shape[0] == total_size);
@@ -70,7 +66,7 @@ public:
 
     explicit XCHAINER_HOST_DEVICE IndexIterator(int64_t total_size, int64_t start, int64_t step)
         : total_size_{total_size}, raw_index_{start}, step_{step} {
-        // assert(start >= 0);
+        assert(start >= 0);
         assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
     }
 
@@ -89,11 +85,6 @@ public:
 
     XCHAINER_HOST_DEVICE const int64_t* index() const { return &raw_index_; }
 
-    XCHAINER_HOST_DEVICE void Set(int64_t i) {
-        assert(total_size_ > 0);
-        raw_index_ = i;
-    }
-
 private:
     int64_t total_size_{};
     int64_t raw_index_{};
@@ -104,8 +95,6 @@ private:
 template <>
 class IndexIterator<kDynamicNdim> {
 public:
-    XCHAINER_HOST_DEVICE IndexIterator() = default;
-
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int8_t ndim, int64_t total_size, int64_t start, int64_t step)
         : shape_{shape}, ndim_{ndim}, total_size_{total_size}, raw_index_{0}, step_{step}, index_{} {
         assert(start >= 0);
@@ -130,6 +119,7 @@ public:
 
     XCHAINER_HOST_DEVICE const int64_t* index() const { return index_; }
 
+private:
     // Set raw_index_ and index_.
     // i may be out of bounds, but raw_index_ and index_ are updated anyway.
     XCHAINER_HOST_DEVICE void Set(int64_t i) {
@@ -141,7 +131,6 @@ public:
         }
     }
 
-private:
     const int64_t* shape_;
     int8_t ndim_{};
     int64_t total_size_{};

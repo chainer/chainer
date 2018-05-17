@@ -30,8 +30,6 @@
 #include "xchainer/python/shape.h"
 #include "xchainer/python/strides.h"
 
-#include "xchainer/native/native_device.h"
-
 namespace xchainer {
 namespace python {
 namespace internal {
@@ -351,23 +349,6 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     m.attr("max") = m.attr("amax");
-
-    // TODO(hvy): Remove me.
-    m.def("im2col",
-          [](const ArrayBodyPtr& x, const py::tuple& ksize, const py::tuple& stride, const py::tuple& pad, bool cover_all) {
-              auto to_stack_vector = [](const py::tuple& tup) {
-                  StackVector<int64_t, kMaxNdim> sv;
-                  std::transform(tup.begin(), tup.end(), std::back_inserter(sv), [](auto& item) { return py::cast<int64_t>(item); });
-                  return sv;
-              };
-              return xchainer::native::Im2Col(Array{x}, to_stack_vector(ksize), to_stack_vector(stride), to_stack_vector(pad), cover_all)
-                      .move_body();
-          },
-          py::arg("x"),
-          py::arg("ksize"),
-          py::arg("stride"),
-          py::arg("pad"),
-          py::arg("cover_all") = false);
 }
 
 }  // namespace internal
