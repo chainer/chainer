@@ -499,9 +499,8 @@ namespace {
 int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
     if (cover_all) {
         return (in_dim + pad * 2 - kernel_size + stride - 1) / stride + 1;
-    } else {
-        return (in_dim + pad * 2 - kernel_size) / stride + 1;
     }
+    return (in_dim + pad * 2 - kernel_size) / stride + 1;
 }
 
 Array Im2Col(
@@ -590,7 +589,7 @@ std::tuple<Axes, Shape> GetTensorDotRollAxes(const Shape& shape, const Axes& red
     Shape remain_dims;
     Axes roll_axes;
     for (int8_t i = 0; i < reduce_axes.ndim(); ++i) {
-        to_reduce[reduce_axes[i]] = true;
+        gsl::at(to_reduce, reduce_axes[i]) = true;
     }
 
     // There are two steps:
@@ -601,14 +600,14 @@ std::tuple<Axes, Shape> GetTensorDotRollAxes(const Shape& shape, const Axes& red
         if ((step == 0) == reduced_axes_first) {
             // Step A.
             for (int8_t i = 0; i < shape.ndim(); ++i) {
-                if (to_reduce[i]) {
+                if (gsl::at(to_reduce, i)) {
                     roll_axes.emplace_back(i);
                 }
             }
         } else {
             // Step B.
             for (int8_t i = 0; i < shape.ndim(); ++i) {
-                if (!to_reduce[i]) {
+                if (!gsl::at(to_reduce, i)) {
                     roll_axes.emplace_back(i);
                     remain_dims.emplace_back(shape[i]);
                 }
