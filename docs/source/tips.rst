@@ -87,7 +87,6 @@ You need to cast the input appropriately before passing to the function (e.g., `
     F.concat([x, y])
 
 .. testoutput::
-   :options: -IGNORE_EXCEPTION_DETAIL +NORMALIZE_WHITESPACE
 
    Traceback (most recent call last):
    ...
