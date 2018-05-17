@@ -1,8 +1,9 @@
 #include "xchainer/scalar.h"
 
-#include <cstdlib>
 #include <sstream>
 #include <string>
+
+#include "xchainer/macro.h"
 
 namespace xchainer {
 
@@ -29,7 +30,7 @@ std::ostream& operator<<(std::ostream& os, Scalar value) {
             os << static_cast<double>(value);
             break;
         default:
-            std::abort();  // should never be reached
+            XCHAINER_NEVER_REACH();
     }
     return os;
 }

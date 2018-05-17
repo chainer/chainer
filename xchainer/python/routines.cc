@@ -1,7 +1,6 @@
 #include "xchainer/python/routines.h"
 
 #include <cstdint>
-#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -13,6 +12,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
 #include "xchainer/routines/linalg.h"
@@ -267,7 +267,7 @@ void InitXchainerRoutines(pybind11::module& m) {
                   case DtypeKind::kFloat:
                       return py::float_{static_cast<double>(s)};
                   default:
-                      std::abort();  // never reach
+                      XCHAINER_NEVER_REACH();
               }
           },
           py::arg("a"));

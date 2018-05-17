@@ -2,12 +2,12 @@
 
 #include <cassert>
 #include <cstdint>
-#include <cstdlib>
 #include <ostream>
 #include <string>
 
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 
 namespace xchainer {
 
@@ -51,7 +51,7 @@ public:
                 float64_ = v;
                 break;
             default:
-                std::abort();  // should never be reached
+                XCHAINER_NEVER_REACH();
         }
     }
 
@@ -100,7 +100,7 @@ public:
             case Dtype::kFloat64:
                 return -float64_;
             default:
-                std::abort();  // should never be reached
+                XCHAINER_NEVER_REACH();
         }
         return 0;
     }
@@ -155,7 +155,7 @@ private:
             case Dtype::kFloat64:
                 return float64_;
             default:
-                std::abort();  // should never be reached
+                XCHAINER_NEVER_REACH();
         }
         return T{};
     }
