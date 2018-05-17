@@ -25,28 +25,28 @@ class TextDataset(dataset_mixin.DatasetMixin):
         paths (str or list of str):
             Path to the text file(s).
             If it is a string, this dataset reads a line from the text file
-            and emits it as :type:`str`.
+            and emits it as :class:`str`.
             If it is a list of string, this dataset reads lines from each
-            text file and emits it as a tuple of :type:`str`. In this case,
+            text file and emits it as a tuple of :class:`str`. In this case,
             number of lines in all files must be the same.
         encoding (str or list of str):
             Name of the encoding used to decode the file.
             See the description in :func:`open` for the supported options and
             how it works.
             When reading from multiple text files, you can also pass a list of
-            :type:`str` to use different encoding for each file.
+            :class:`str` to use different encoding for each file.
         errors (str or list of str):
             String that specifies how decoding errors are to be handled.
             See the description in :func:`open` for the supported options and
             how it works.
             When reading from multiple text files, you can also pass a list of
-            :type:`str` to use different error handling policy for each file.
+            :class:`str` to use different error handling policy for each file.
         newline (str or list of str):
             Controls how universal newlines mode works.
             See the description in :func:`open` for the supported options and
             how it works.
             When reading from multiple text files, you can also pass a list of
-            :type:`str` to use different mode for each file.
+            :class:`str` to use different mode for each file.
         filter_func (callable):
             Function to filter each line of the text file.
             It should be a function that takes number of arguments equals to
