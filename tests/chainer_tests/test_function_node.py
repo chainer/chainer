@@ -101,38 +101,6 @@ class TestFunctionNode(unittest.TestCase):
         self.setup_gpu()
         self.check_forward(True)
 
-    def check_backward_accumulate(self, gxs):
-        x1 = chainer.Variable(self.x1)
-        x2 = chainer.Variable(self.x2)
-        self.f.inputs = (x1.node, x2.node)
-        gx1, gx2 = self.f._backward_accumulate(  # TODO(kataoka): fix
-            (0, 1), (self.gy1, self.gy2), gxs)
-        if gxs[0] is None:
-            numpy.testing.assert_array_equal(cuda.to_cpu(gx1.data),
-                                             cuda.to_cpu(self.gx1.data))
-            self.assertIsNone(gx2)
-        else:
-            numpy.testing.assert_array_equal(cuda.to_cpu(gx1.data),
-                                             cuda.to_cpu(self.gx1_accum.data))
-            numpy.testing.assert_array_equal(cuda.to_cpu(gx2.data),
-                                             cuda.to_cpu(self.gx2_orig.data))
-
-    def test_backward_accumulate_none_cpu(self):
-        self.check_backward_accumulate((None, None))
-
-    @attr.gpu
-    def test_backward_accumulate_none_gpu(self):
-        self.setup_gpu()
-        self.check_backward_accumulate((None, None))
-
-    def test_backward_accumulate_cpu(self):
-        self.check_backward_accumulate((self.gx1_orig, self.gx2_orig))
-
-    @attr.gpu
-    def test_backward_accumulate_gpu(self):
-        self.setup_gpu()
-        self.check_backward_accumulate((self.gx1_orig, self.gx2_orig))
-
     def check_check_type_forward(self):
         self.assertEqual(self.f.check_type_forward.call_count, 1)
         ts = self.f.check_type_forward.call_args[0][0]
