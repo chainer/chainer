@@ -4,6 +4,8 @@
 #include <memory>
 #include <tuple>
 
+#include <nonstd/optional.hpp>
+
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/device.h"
@@ -11,6 +13,7 @@
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/scalar.h"
+#include "xchainer/stack_vector.h"
 
 namespace xchainer {
 namespace native {
@@ -70,7 +73,15 @@ public:
 
     void Diagflat(const Array& v, int64_t k, const Array& out) override;
 
-    void Linspace(double start, double stop, const Array& out);
+    void Linspace(double start, double stop, const Array& out) override;
+
+    Array Convolution(
+            const Array& x,
+            const Array& w,
+            const nonstd::optional<Array>& b,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            bool cover_all) override;
 
     void Synchronize() override;
 };

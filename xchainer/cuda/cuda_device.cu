@@ -799,7 +799,7 @@ __global__ void SetVecInMat(
     for (auto vec_it = vec_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); vec_it; ++vec_it) {
         auto mat_row_it = mat_row_indexer.It(mat_row_start + vec_it.raw_index());
         auto mat_col_it = mat_col_indexer.It(mat_col_start + vec_it.raw_index());
-        auto mat_it = mat_indexer.It(mat_row_it, mat_col_it);
+        auto mat_it = mat_indexer.At(mat_row_it, mat_col_it);
         mat_iarray[mat_it] = vec_iarray[vec_it];
     }
 }
@@ -869,6 +869,17 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
         int64_t n = out.shape()[0];
         Elementwise<T>(LinspaceImpl<T>{n, start, stop}, out);
     });
+}
+
+Array CudaDevice::Convolution(
+        const Array& /*x*/,
+        const Array& /*w*/,
+        const nonstd::optional<Array>& /*b*/,
+        const StackVector<int64_t, kMaxNdim>& /*stride*/,
+        const StackVector<int64_t, kMaxNdim>& /*pad*/,
+        bool /*cover_all*/) {
+    // TODO(niboshi): Implement it
+    throw NotImplementedError{""};
 }
 
 void CudaDevice::Synchronize() {

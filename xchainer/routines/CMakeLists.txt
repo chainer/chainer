@@ -1,4 +1,5 @@
 add_library(xchainer_routines STATIC
+    connection.cc
     creation.cc
     indexing.cc
     linalg.cc
@@ -9,6 +10,7 @@ add_library(xchainer_routines STATIC
 )
 
 install(FILES
+    connection.h
     creation.h
     indexing.h
     linalg.h
@@ -21,6 +23,7 @@ install(FILES
 
 if(${ENABLE_TEST})
   add_executable(xchainer_routines_test
+      connection_test.cc
       creation_test.cc
       indexing_test.cc
       linalg_test.cc

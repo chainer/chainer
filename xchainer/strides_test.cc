@@ -66,14 +66,16 @@ TEST(StridesTest, Ctor) {
         CheckSpanEqual({48, 16, 4}, strides.span());
     }
     {  // Too long std::initializer_list
-        EXPECT_THROW(Strides({1, 2, 3, 4, 5, 6, 7, 8, 9}), DimensionError);
+        EXPECT_THROW(Strides({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}), DimensionError);
     }
     {  // Too long gsl::span
         const std::array<int64_t, kMaxNdim + 1> too_long{1};
         EXPECT_THROW(Strides{gsl::make_span(too_long)}, DimensionError);
     }
     {  // Too long iterators
-        const std::vector<int64_t> dims{1, 2, 3, 4, 5, 6, 7, 8, 9};
+        std::vector<int64_t> dims{};
+        dims.resize(kMaxNdim + 1);
+        std::iota(dims.begin(), dims.end(), int64_t{1});
         EXPECT_THROW(Strides({dims.begin(), dims.end()}), DimensionError);
     }
 }
