@@ -36,6 +36,10 @@ class NormalizeL2(function_node.FunctionNode):
 
     def __init__(self, eps=1e-5, axis=1):
         self.eps = eps
+        if isinstance(axis, int):
+            axis = axis,
+        if len(axis) not in (1, 2):
+            raise ValueError("Improper number of dimensions to norm.")
         self.axis = axis
 
     def check_type_forward(self, in_types):
@@ -50,7 +54,9 @@ class NormalizeL2(function_node.FunctionNode):
         self.retain_inputs((0,))
         x, = inputs
         xp = cuda.get_array_module(x)
-        norm = xp.linalg.norm(x, axis=self.axis, keepdims=True) + self.eps
+        # keep x.ndim >= 1 to avoid casting to self.eps' type
+        norm = xp.sqrt(xp.sum(
+            xp.square(x), axis=self.axis, keepdims=True)) + self.eps
         return x / norm,
 
     def backward(self, indexes, grad_outputs):

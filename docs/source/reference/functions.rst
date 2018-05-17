@@ -79,6 +79,7 @@ Array manipulations
    chainer.functions.get_item
    chainer.functions.hstack
    chainer.functions.im2col
+   chainer.functions.moveaxis
    chainer.functions.pad
    chainer.functions.pad_sequence
    chainer.functions.permutate
