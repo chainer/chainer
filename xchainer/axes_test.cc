@@ -67,6 +67,7 @@ TEST(AxesTest, Ctor) {
     }
     {  // Too long iterators
         std::vector<int8_t> dims{};
+        dims.reserve(kMaxNdim);
         for (int i = 0; i < kMaxNdim + 1; ++i) {
             dims.emplace_back(i % 3);
         }
