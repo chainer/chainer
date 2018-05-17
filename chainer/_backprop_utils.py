@@ -66,8 +66,8 @@ def backprop_step(
         func, target_input_indexes, grad_outputs, grad_inputs):
     assert isinstance(target_input_indexes, tuple)
     assert isinstance(grad_outputs, tuple)
-    if func.__class__.backward_accumulate is not \
-            chainer.FunctionNode.backward_accumulate:
+    if func.backward_accumulate.__code__ \
+            is not chainer.FunctionNode.backward_accumulate.__code__:
         # backward_accumulate is overridden
 
         # Note (Tokui): when the same variable is passed multiple times as
