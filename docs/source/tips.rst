@@ -48,6 +48,59 @@ If you want to install NumPy with pip, use `site.cfg <https://github.com/numpy/n
 For details of this problem, see `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
 
 
+How do I fix InvalidType error?
+-------------------------------
+
+Chainer raises an ``InvalidType`` exception when invalid inputs are given to :doc:`reference/functions`.
+If you got ``InvalidType``, generally you need to check if ``dtype`` and/or ``shape`` of inputs are valid for the function.
+
+Here are some examples of ``InvalidType`` errors:
+
+.. testcode::
+
+    import chainer.functions as F
+    import numpy as np
+
+    x = np.arange(10) - 5
+    F.relu(x)
+
+.. testoutput::
+
+   Traceback (most recent call last):
+   ...
+   chainer.utils.type_check.InvalidType:
+   Invalid operation is performed in: ReLU (Forward)
+
+   Expect: in_types[0].dtype.kind == f
+   Actual: i != f
+
+In this case, :class:`~numpy.dtype.kind` of ``in_types[0]`` (which means the first input to the function, ``x``) is expected to be ``f`` (floating-point), whereas the input was ``i`` (signed integer).
+You need to cast the input appropriately before passing to the function (e.g., ``x.asarray(np.float32)``).
+
+.. testcode::
+
+    import chainer.functions as F
+    import numpy as np
+
+    x = np.ones((4, 4))
+    y = np.ones((3, 3))
+    F.concat([x, y])
+
+.. testoutput::
+   :options: -IGNORE_EXCEPTION_DETAIL +NORMALIZE_WHITESPACE
+
+   Traceback (most recent call last):
+   ...
+   chainer.utils.type_check.InvalidType:
+   Invalid operation is performed in: Concat (Forward)
+
+   Expect: in_types[0].shape[0] == in_types[1].shape[0]
+   Actual: 4 != 3
+
+In this case, the function expects that ``x.shape[0]`` is equal to ``y.shape[0]``, but actually it was ``4`` and ``3``, respectively.
+
+See :doc:`guides/type_checks` for the detailed behavior of type checking system in Chainer.
+
 How do I accelerate my model using iDeep on Intel CPU?
 ------------------------------------------------------
 
