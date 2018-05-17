@@ -168,10 +168,7 @@ TEST_P(ArrayToDeviceCompatibleTest, ToDeviceNonContiguous) {
     Device& dst_dev = GetDestinationDevice();
     Device& default_device = GetDefaultDevice();
 
-    Array a = testing::BuildArray({2, 4})  //
-                      .WithLinearData<int32_t>()  //
-                      .WithPadding(1)  //
-                      .WithDevice(src_dev);
+    Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>().WithPadding(1).WithDevice(src_dev);
 
     // Transfer
     Array b = a.ToDevice(dst_dev);
