@@ -6,10 +6,13 @@ if(POLICY ${CMP0054})
     cmake_policy(SET ${CMP0054} NEW)
 endif()
 
+SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+
 # CUDA
 find_package(CUDA QUIET)
 if(${CUDA_FOUND})
     add_definitions(-DXCHAINER_ENABLE_CUDA=1)
+    find_package(CuDNN 7 REQUIRED)
 endif()
 
 # includes
