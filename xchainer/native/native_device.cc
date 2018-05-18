@@ -657,7 +657,7 @@ Array TensorDot(const Array& a, const Array& b, const Axes& a_axis, const Axes& 
 
 }  // namespace
 
-Array NativeDevice::Convolution(
+Array NativeDevice::Conv(
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,

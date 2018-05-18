@@ -141,7 +141,7 @@ public:
     // b: (out_channels)
     //
     // Returns an array of shape (batch_size, out_channels, out_1, out_2, ..., out_n).
-    virtual Array Convolution(
+    virtual Array Conv(
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,

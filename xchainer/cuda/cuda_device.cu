@@ -871,7 +871,7 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
     });
 }
 
-Array CudaDevice::Convolution(
+Array CudaDevice::Conv(
         const Array& /*x*/,
         const Array& /*w*/,
         const nonstd::optional<Array>& /*b*/,

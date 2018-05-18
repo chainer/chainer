@@ -11,14 +11,14 @@
 
 namespace xchainer {
 
-Array Convolution(
+Array Conv(
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    return x.device().Convolution(x, w, b, stride, pad, cover_all);
+    return x.device().Conv(x, w, b, stride, pad, cover_all);
 }
 
 }  // namespace xchainer

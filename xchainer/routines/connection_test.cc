@@ -32,7 +32,7 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(ConnectionTest, Convolution) {
+TEST_P(ConnectionTest, Conv) {
     if (GetParam() == "cuda") {
         // TODO(niboshi): Add CUDA implementation
         return;
@@ -58,7 +58,7 @@ TEST_P(ConnectionTest, Convolution) {
     Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
     Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
     Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
-    Array y = Convolution(x, w, b, stride, pad, cover_all);
+    Array y = Conv(x, w, b, stride, pad, cover_all);
 
     Array e = testing::BuildArray(out_shape).WithData<float>(
             {-2.00000e-01, -2.00000e-01, -2.00000e-01, 2.71198e+04,  2.67778e+04,  2.64358e+04,  2.35288e+04,  2.31868e+04,  2.28448e+04,
@@ -71,7 +71,7 @@ TEST_P(ConnectionTest, Convolution) {
     testing::ExpectEqual(e, y);
 }
 
-TEST_P(ConnectionTest, ConvolutionCoverAll) {
+TEST_P(ConnectionTest, ConvCoverAll) {
     if (GetParam() == "cuda") {
         // TODO(niboshi): Add CUDA implementation
         return;
@@ -97,7 +97,7 @@ TEST_P(ConnectionTest, ConvolutionCoverAll) {
     Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
     Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
     Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
-    Array y = Convolution(x, w, b, stride, pad, cover_all);
+    Array y = Conv(x, w, b, stride, pad, cover_all);
 
     Array e = testing::BuildArray(out_shape).WithData<float>(
             {-2.00000e-01, -2.00000e-01, -2.00000e-01, -2.00000e-01, 3.10168e+04,  3.06748e+04,  3.03328e+04,  2.08948e+04,  2.69128e+04,
@@ -112,11 +112,11 @@ TEST_P(ConnectionTest, ConvolutionCoverAll) {
     testing::ExpectEqual(e, y);
 }
 
-TEST_P(ConnectionTest, ConvolutionBackward) {
+TEST_P(ConnectionTest, ConvBackward) {
     // TODO(niboshi): Implement
 }
 
-TEST_P(ConnectionTest, ConvolutionDoubleBackward) {
+TEST_P(ConnectionTest, ConvDoubleBackward) {
     // TODO(niboshi): Implement
 }
 

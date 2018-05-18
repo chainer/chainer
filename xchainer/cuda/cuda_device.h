@@ -78,7 +78,7 @@ public:
 
     void Linspace(double start, double stop, const Array& out) override;
 
-    Array Convolution(
+    Array Conv(
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
