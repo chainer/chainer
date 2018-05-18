@@ -742,7 +742,7 @@ class TestGradV3Compat1(unittest.TestCase):
     def test_retain_grad(self):
         self.check(
             {'retain_grad': True},
-            [None, 1248., 248., 124., 24., 12., 2., None])
+            [None, 1248., 248., 124., 24., 12., 2., 1.])
 
 
 testing.run_module(__name__, __file__)

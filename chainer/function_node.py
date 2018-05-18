@@ -795,11 +795,11 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     # Backprop implementation. It edits grads which will only contain the
     # gradients w.r.t. the inputs.
     with chainer.using_config('enable_backprop', enable_double_backprop):
-        _backprop(outputs, inputs, grad_required, retain_grad, grads,
-                  loss_scale)
+        ret_dict = _backprop(
+            outputs, inputs, grad_required, retain_grad, grads, loss_scale)
 
     # Extract the gradients w.r.t. the inputs and return them.
-    ret = [grads.pop(x.node) for x in inputs]
+    ret = [ret_dict[x.node] for x in inputs]
     if set_grad:
         for x, gx in zip(inputs, ret):
             x.grad_var = gx
@@ -816,7 +816,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
             push_candidate(creator)
 
     input_nodes = set(x.node for x in inputs)
-    ret_grads = {}
+    ret_dict = {}
 
     while candidate_funcs:
         func = pop_candidate()
@@ -825,10 +825,16 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         ys = [y() for y in func.outputs]  # access via weak ref
         gys = tuple([grads.pop(y) for y in ys])
 
-        for y, gy in six.moves.zip(ys, gys):
-            if y is not None:
-                if y in input_nodes:
-                    ret_grads[y] = gy
+        for node, gy in six.moves.zip(ys, gys):
+            if node is not None:
+                if node in input_nodes:
+                    ret_dict[node] = gy
+
+                if retain_grad:
+                    y = node.get_variable_or_none()
+                    if y is not None:
+                        y.grad_var = gy
+                        y._loss_scale = loss_scale
 
         # Collect the gradients w.r.t. the inputs
         input_indexes = []
@@ -871,19 +877,14 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
             if not g:  # gradient == None
                 continue
 
-            if retain_grad:
-                v = node.get_variable_or_none()
-                if v is not None:
-                    # TODO(kataoka): fix?
-                    v.grad_var = _backprop_utils._reduce(g)
-                    v._loss_scale = loss_scale
-
             creator = node.creator_node
             if creator is not None:
                 push_candidate(creator)
 
-    for y, gy in ret_grads.items():
-        grads[y] = gy
+    for x in input_nodes:
+        if x not in ret_dict:
+            ret_dict[x] = grads.pop(x)
+    return ret_dict
 
 
 def _get_ordered_func_heap():
