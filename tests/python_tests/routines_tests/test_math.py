@@ -213,7 +213,8 @@ def test_truediv(xp, device, shape, numeric_dtype, is_module):
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_itruediv(xp, device, shape, numeric_dtype):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype)
+    # TODO(niboshi): Remove padding=False
+    lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype, padding=False)
     rhs = xp.arange(1, lhs.size + 1, dtype=numeric_dtype).reshape(shape)
     # TODO(beam2d): Fix after supporting correct dtype promotion.
     if xp is numpy and 'int' in numeric_dtype:
@@ -248,7 +249,8 @@ def test_truediv_scalar(scalar, device, shape, numeric_dtype):
 @pytest.mark.parametrize('scalar', [1, 2])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_itruediv_scalar(xp, scalar, device, shape, numeric_dtype):
-    lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype)
+    # TODO(niboshi): Remove padding=False
+    lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype, padding=False)
     rhs = scalar
     # TODO(hvy): Fix after supporting correct dtype promotion.
     if xp is numpy and 'int' in numeric_dtype:

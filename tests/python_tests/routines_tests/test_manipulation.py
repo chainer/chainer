@@ -152,7 +152,8 @@ _reshape_shape = [
 @pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
 @pytest.mark.parametrize('shape_type', [tuple, list])
 def test_reshape(is_module, xp, a_shape, b_shape, shape_type):
-    a = array_utils.create_dummy_ndarray(xp, a_shape, 'int64')
+    # TODO(niboshi): Remove padding=False
+    a = array_utils.create_dummy_ndarray(xp, a_shape, 'int64', padding=False)
     if is_module:
         b = xp.reshape(a, shape_type(b_shape))
     else:
@@ -169,7 +170,8 @@ def test_reshape(is_module, xp, a_shape, b_shape, shape_type):
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(TypeError, xchainer.XchainerError))
 @pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
 def test_reshape_args(is_module, xp, a_shape, b_shape):
-    a = array_utils.create_dummy_ndarray(xp, a_shape, 'int64')
+    # TODO(niboshi): Remove padding=False
+    a = array_utils.create_dummy_ndarray(xp, a_shape, 'int64', padding=False)
     if is_module:
         if len(b_shape) > 1:
             # Skipping tests where the 'order' argument is unintentionally given a shape value, since numpy won't raise any errors in

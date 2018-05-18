@@ -11,7 +11,7 @@ def total_size(shape):
 
 
 # TODO(beam2d): Think better way to make multiple different arrays
-def create_dummy_ndarray(xp, shape, dtype, device=None, pattern=1, padding=False):
+def create_dummy_ndarray(xp, shape, dtype, device=None, pattern=1, padding=True):
     dtype = xchainer.dtype(dtype).name
     size = total_size(shape)
     if pattern == 1:

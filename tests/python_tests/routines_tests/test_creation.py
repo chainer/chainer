@@ -105,7 +105,7 @@ def test_array_from_numpy_array(xp, shape, dtype, device):
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_array_from_numpy_non_contiguous_array(xp, shape, dtype, device):
-    a_np = array_utils.create_dummy_ndarray(numpy, shape, dtype).T
+    a_np = array_utils.create_dummy_ndarray(numpy, shape, dtype, padding=True)
     a_xp = xp.array(a_np)
 
     if xp is xchainer:
@@ -175,9 +175,10 @@ def test_array_from_xchainer_array(shape, dtype, copy, device):
         assert t is a
     else:
         assert t is not a
-        xchainer.testing.assert_array_equal_ex(a, t)
+        xchainer.testing.assert_array_equal_ex(a, t, strides_check=False)
         assert a.dtype == t.dtype
         assert a.device is t.device
+        assert a.is_contiguous
 
 
 def _check_array_from_xchainer_array_with_dtype(shape, src_dtype, dst_dtype_spec, copy, device=None):
@@ -272,13 +273,9 @@ def test_asarray_with_device(device):
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('transpose', [False, True])
-def test_ascontiguousarray_from_numpy_array(xp, shape, dtype, transpose):
-    # transpose (or identity) to make the input non-contiguous (or not)
-    def tr(x):
-        return x.T if transpose else x
-
-    obj = tr(array_utils.create_dummy_ndarray(numpy, shape, dtype))
+@pytest.mark.parametrize('padding', [False, True])
+def test_ascontiguousarray_from_numpy_array(xp, shape, dtype, padding):
+    obj = array_utils.create_dummy_ndarray(numpy, shape, dtype, padding=padding)
     a = xp.ascontiguousarray(obj)
     if xp is xchainer:
         assert a.is_contiguous
@@ -310,32 +307,25 @@ def test_ascontiguousarray_from_tuple_or_list(xp, device, obj, dtype_spec):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('transpose', [False, True])
-def test_ascontiguousarray_from_xchainer_array(device, shape, dtype, transpose):
-    def tr(x):
-        return x.T if transpose else x
-
-    np_arr = array_utils.create_dummy_ndarray(numpy, shape, dtype)
-    obj = tr(xchainer.array(np_arr))
+@pytest.mark.parametrize('padding', [False, True])
+def test_ascontiguousarray_from_xchainer_array(device, shape, dtype, padding):
+    np_arr = array_utils.create_dummy_ndarray(numpy, shape, dtype, padding=padding)
+    obj = xchainer.testing._fromnumpy(np_arr, keepstrides=True, device=device)
     a = xchainer.ascontiguousarray(obj)
-    if not transpose and shape != ():  # () will be reshaped to (1,)
+    if not padding and shape != ():  # () will be reshaped to (1,)
         assert a is obj
-    e = xchainer.ascontiguousarray(tr(np_arr))
-    xchainer.testing.assert_array_equal_ex(e, a)
+    e = xchainer.ascontiguousarray(np_arr)
+    xchainer.testing.assert_array_equal_ex(e, a, strides_check=False)
     assert a.is_contiguous
     assert e.dtype.name == a.dtype.name
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('transpose', [False, True])
+@pytest.mark.parametrize('padding', [False, True])
 @xchainer.testing.parametrize_dtype_specifier('dtype_spec')
-def test_ascontiguousarray_with_dtype(xp, device, shape, transpose, dtype_spec):
-    def tr(x):
-        return x.T if transpose else x
-
-    np_arr = array_utils.create_dummy_ndarray(numpy, shape, 'int32')
-    obj = tr(xp.array(np_arr))
+def test_ascontiguousarray_with_dtype(xp, device, shape, padding, dtype_spec):
+    obj = array_utils.create_dummy_ndarray(xp, shape, 'int32', padding=padding)
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = dtype_spec.name
     a = xp.ascontiguousarray(obj, dtype=dtype_spec)
@@ -345,13 +335,9 @@ def test_ascontiguousarray_with_dtype(xp, device, shape, transpose, dtype_spec):
 
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1'), 'native:0'])
-@pytest.mark.parametrize('transpose', [False, True])
-def test_ascontiguousarray_with_device(device, shape, transpose, dtype):
-    def tr(x):
-        return x.T if transpose else x
-
-    np_arr = array_utils.create_dummy_ndarray(numpy, shape, dtype)
-    obj = tr(xchainer.array(np_arr))
+@pytest.mark.parametrize('padding', [False, True])
+def test_ascontiguousarray_with_device(device, shape, padding, dtype):
+    obj = array_utils.create_dummy_ndarray(xchainer, shape, dtype, padding=padding)
     a = xchainer.ascontiguousarray(obj, device=device)
     b = xchainer.ascontiguousarray(obj)
     array_utils.check_device(a, device)
@@ -877,7 +863,7 @@ def test_linspace_invalid_num(xp, device):
 
 @pytest.mark.parametrize_device(['native:0'])
 def test_frombuffer_from_numpy_array(device):
-    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32')
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32', padding=False)
 
     a_xc = xchainer.frombuffer(obj, obj.dtype)
     a_np = numpy.frombuffer(obj, obj.dtype)
@@ -904,7 +890,7 @@ def test_frombuffer_from_numpy_array_with_cuda(device):
 
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.XchainerError))
 def test_frombuffer_from_numpy_array_with_noncontiguous(xp):
-    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32').T
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32', padding=True)
     return xp.frombuffer(obj, obj.dtype)
 
 
@@ -930,7 +916,7 @@ def test_frombuffer_from_device_buffer(device):
 
 @pytest.mark.parametrize('device', [None, 'native:1', xchainer.get_device('native:1')])
 def test_frombuffer_with_device(device):
-    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32')
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32', padding=False)
     a = xchainer.frombuffer(obj, obj.dtype, device=device)
     b = xchainer.frombuffer(obj, obj.dtype)
     xchainer.testing.assert_array_equal_ex(a, b)
