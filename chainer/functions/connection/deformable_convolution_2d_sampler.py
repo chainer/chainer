@@ -71,6 +71,17 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
 
     .. seealso:: :class:`DeformableConvolution2D`
 
+    .. admonition:: Example
+
+        >>> x = np.random.uniform(0, 1, (2, 3, 4, 7)).astype(np.float32)
+        >>> offset = np.random.uniform(
+        ...     0, 1, (2, 2 * 1 * 1, 2, 5)).astype(np.float32)
+        >>> W = np.random.uniform(0, 1, (4, 3, 3, 3)).astype(np.float32)
+        >>> b = np.random.uniform(0, 1, (4,)).astype(np.float32)
+        >>> y = F.deformable_convolution_2d_sampler(x, offset, W, b)
+        >>> y.shape
+        (2, 4, 2, 5)
+
     """
     sy, sx = _pair(stride)
     ph, pw = _pair(pad)
@@ -104,8 +115,8 @@ def _offset2grid(offset, kh, kw, sy, sx, ph, pw, h, w):
         xp.arange(0, sx * out_w, sx, dtype=numpy.float32), indexing='ij',
         copy=False
     )
-    filter_offset_x = xp.tile(xp.arange(kw), kh)
-    filter_offset_y = xp.repeat(xp.arange(kh), kw)
+    filter_offset_x = xp.tile(xp.arange(kw, dtype=numpy.float32), kh)
+    filter_offset_y = xp.repeat(xp.arange(kh, dtype=numpy.float32), kw)
     x_coord = (offset[:, :khkw] + xs[None, None] +
                filter_offset_x[None, :, None, None])
     y_coord = (offset[:, khkw:] + ys[None, None] +
