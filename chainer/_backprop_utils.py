@@ -61,6 +61,10 @@ class GradTable(object):
         else:
             return None
 
+    def assert_no_grads(self):
+        for gx in self.grads.values():
+            assert gx == []
+
 
 def backprop_step(
         func, target_input_indexes, grad_outputs, grad_inputs):

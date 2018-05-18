@@ -1009,6 +1009,7 @@ Actual: {0}'''.format(type(data))
                 seen_set.add(cand)
 
         add_cand(self.creator_node)
+        leaf_nodes = set()
 
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
@@ -1016,12 +1017,12 @@ Actual: {0}'''.format(type(data))
             target_input_indexes = tuple([
                 i for i, x in enumerate(inputs) if x.requires_grad
             ])
+            outputs = [y() for y in func.outputs]  # access via weak ref
+            out_grad = tuple([grads.pop(y) for y in outputs])
             if not target_input_indexes:
                 continue
-            outputs = [y() for y in func.outputs]  # access via weak ref
 
             in_data = tuple([x.data for x in inputs])
-            out_grad = tuple([grads.pop(y) for y in outputs])
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
             hooks = chainer.get_function_hooks()
@@ -1080,16 +1081,21 @@ Actual: {0}'''.format(type(data))
                     _check_grad_type(func, x, gx_elem.data)
 
                 if x.creator_node is None:  # leaf
-                    x_var = x.get_variable_or_none()
-                    if x_var is not None:
-                        x_var._grad_var = grads.pop(x)
-                        x_var._loss_scale = loss_scale
+                    leaf_nodes.add(x)
                 else:
                     add_cand(x.creator_node)
 
             del in_grad  # to reduce memory usage
             if initial_device is not None:
                 initial_device.use()
+
+        for x in leaf_nodes:
+            x_var = x.get_variable_or_none()
+            gx = grads.pop(x)
+            if x_var is not None:
+                x_var._grad_var = gx
+                x_var._loss_scale = loss_scale
+        grads.assert_no_grads()
 
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.
