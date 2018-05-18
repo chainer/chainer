@@ -9,7 +9,7 @@ class Distribution(object):
 
     This class provides a mean to perform following operations.
     1. Sampling random points.
-    2. Evaluating a function about probability at given realization values.
+    2. Evaluating a functions about probability at given realization values.
         (e.g., probability density function, probability mass function)
     3. Obtaining properties of distributions.
         (e.g., mean, variance)
@@ -17,20 +17,51 @@ class Distribution(object):
     Note that every method and property that computes them from
     `chainer.Variable` can basically be differentiated.
 
-    In this class, sampled random points and realization values given
-    in function about probability is called "sample". The shape of samples is
-    devided into three parts, `sample_shape`, `batch_shape`, and `event_shape`.
-    `sample_shape` is the part that is identical and independent. `batch_shape`
-    is the part that is not identical and independent. `event_shape` is the
-    part that is not identical and dependent.
+    In this class, sampled random points and realization values given in
+    function about probability is called "sample".  Sample consists of batches,
+    and each batch consists of independent events. Each event consists of
+    values, and each value in an event cannot be sampled independently in
+    general. Each event in a batch is independent while it is not sampled from
+    an identical distribution. And each batch in sample is sampled from an
+    identical distribution.
 
-    When initialization, it takes parameters as inputs. `batch_shape` and
-    `event_shape` is decided by the shape of the parameter when generating an
-    instance of a class.
+    Each part of the sample-batch-event hierarchy has its own shape, which is
+    called `sample_shape`, `batch_shape`, and `event_shape`, respectively.
+
+    On initialization, it takes distribution-specific parameters as inputs.
+    `batch_shape` and `event_shape` is decided by the shape of the parameter
+    when generating an instance of a class.
+
+    .. admonition:: Example
+
+        The following code is a example of sample-batch-event hierarchy on
+        using `MultivariateNormal` distribution. This make 2d normal
+        distributions. `dist` consists of 12(4 * 3) independent 2d normal
+        distributions. And on initialization, `batch_shape` and `event_shape`
+        is decided.
+
+        >>> import chainer
+        >>> import chainer.distributions as D
+        >>> import numpy as np
+        >>> d = 2
+        >>> shape = (4, 3)
+        >>> loc = np.random.normal(
+        ...     size=shape + (d,)).astype(np.float32)
+        >>> cov = np.random.normal(size=shape + (d, d)).astype(np.float32)
+        >>> cov = np.matmul(cov, np.rollaxis(cov, -1, -2))
+        >>> l = np.linalg.cholesky(cov)
+        >>> dist = D.MultivariateNormal(loc, l)
+        >>> dist.event_shape
+        (2,)
+        >>> dist.batch_shape
+        (4, 3)
+        >>> sample = dist.sample(sample_shape=(6, 5))
+        >>> sample.shape
+        (6, 5, 4, 3, 2)
 
     Every function about probability takes realization value whose shape is
-    `(sample_shape, batch_shape, event_shape)` and returns evaluated value
-    whose shape is `sample_shape`.
+    `(sample_shape, batch_shape, event_shape)` and returns an evaluated value
+    whose shape is `(sample_shape, batch_shape)`.
 
     """
 
@@ -40,7 +71,7 @@ class Distribution(object):
 
     @property
     def batch_shape(self):
-        """Returns the part of the sample shape that is not identical and independent.
+        """Returns the shape of a batch.
 
         Returns:
             tuple: The shape of a sample that is not identical and indipendent.
@@ -49,11 +80,11 @@ class Distribution(object):
         raise NotImplementedError
 
     def cdf(self, x):
-        """Evaluates the cumulative distribution function at a given input.
+        """Evaluates the cumulative distribution function at a given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): A data points in the domain of the
+            :class:`cupy.ndarray`): Data points in the domain of the
             distribution
 
         Returns:
@@ -84,7 +115,7 @@ class Distribution(object):
 
     @property
     def event_shape(self):
-        """Returns the part of the sample shape that is not identical and dependent.
+        """Returns the shape of an event.
 
         Returns:
             tuple: The shape of a sample that is not identical and indipendent.
@@ -93,11 +124,11 @@ class Distribution(object):
         raise NotImplementedError
 
     def icdf(self, x):
-        """Evaluates the inverse cumulative distribution function at a given input.
+        """Evaluates the inverse cumulative distribution function at a given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): A data points in the domain of the
+            :class:`cupy.ndarray`): Data points in the domain of the
             distribution
 
         Returns:
@@ -108,11 +139,11 @@ class Distribution(object):
         raise NotImplementedError
 
     def log_cdf(self, x):
-        """Evaluates the log of cumulative distribution function at a given input.
+        """Evaluates the log of cumulative distribution function at a given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): A data points in the domain of the
+            :class:`cupy.ndarray`): Data points in the domain of the
             distribution
 
         Returns:
@@ -123,11 +154,11 @@ class Distribution(object):
         raise NotImplementedError
 
     def log_prob(self, x):
-        """Evaluates the logarithm of probability at a given input.
+        """Evaluates the logarithm of probability at a given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): A data points in the domain of the
+            :class:`cupy.ndarray`): Data points in the domain of the
             distribution
 
         Returns:
@@ -137,11 +168,11 @@ class Distribution(object):
         raise NotImplementedError
 
     def log_survival_function(self, x):
-        """Evaluates the logarithm of survival function at a given input.
+        """Evaluates the logarithm of survival function at a given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): A data points in the domain of the
+            :class:`cupy.ndarray`): Data points in the domain of the
             distribution
 
         Returns:
@@ -172,11 +203,11 @@ class Distribution(object):
         raise NotImplementedError
 
     def perplexity(self, x):
-        """Evaluates the perplexity function at a given input.
+        """Evaluates the perplexity function at a given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): A data points in the domain of the
+            :class:`cupy.ndarray`): Data points in the domain of the
             distribution
 
         Returns:
@@ -186,11 +217,11 @@ class Distribution(object):
         raise NotImplementedError
 
     def prob(self, x):
-        """Evaluates probability at a given input.
+        """Evaluates probability at a given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): A data points in the domain of the
+            :class:`cupy.ndarray`): Data points in the domain of the
             distribution
 
         Returns:
@@ -201,6 +232,12 @@ class Distribution(object):
 
     def sample(self, sample_shape=()):
         """Samples random points from the distribution.
+
+        This function call `sample_n` and reshape a result of `sample_n` to
+        `(sample_shape, batch_shape, event_shape)`. On implementing sampling
+        codes in an inherited ditribution class, it is deprecated to override
+        this function. Instead to do this, it is preferable to override
+        `sample_n`.
 
         Args:
             sample_shape(:class:`tuple` of :class:`int`): Sampling shape.
@@ -219,11 +256,15 @@ class Distribution(object):
             for shape_ in sample_shape:
                 n *= shape_
             final_shape = sample_shape + final_shape
-        samples = self._sample_n(n)
+        samples = self.sample_n(n)
         return samples.reshape(final_shape)
 
-    def _sample_n(self, n):
+    def sample_n(self, n):
         """Samples n random points from the distribution.
+
+        This function returns sampled points whose shape is
+        `(n, batch_shape, event_shape)`. On implementing sampling codes in an
+        inherited ditribution class, it is preferable to override this method.
 
         Args:
             n(`int`): Sampling size.
@@ -254,11 +295,11 @@ class Distribution(object):
         raise NotImplementedError
 
     def survival_function(self, x):
-        """Evaluates the survival function at a given input.
+        """Evaluates the survival function at a given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): A data points in the domain of the
+            :class:`cupy.ndarray`): Data points in the domain of the
             distribution
 
         Returns:
@@ -276,3 +317,104 @@ class Distribution(object):
 
         """
         raise NotImplementedError
+
+
+_KLDIVERGENCE = {}
+
+
+def register_kl(Dist1, Dist2):
+    """Decorator to register KL divergence function.
+
+    This decorator registers a function which computes Kullback-Leibler
+    divergence. This function will be called by `kl_divergence` based on the
+    argument types.
+
+     Args:
+         Dist1(`type`): type of a class inherit from `~chainer.Distribution` to
+         calculate KL divergence.
+         Dist2(`type`): type of a class inherit from `~chainer.Distribution` to
+         calculate KL divergence.
+
+    The decorated functoion takes an instance of `Dist1` and `Dist2` and
+    returns KL divergence value.
+
+    .. admonition:: Example
+
+        This is a simple example to register KL divergence. A function to
+        calculate a KL divergence value between an instance of `Dist1` and
+        an instance of `Dist2` is registered.
+
+            from chainer import distributions
+            @distributions.register_kl(Dist1, Dist2)
+            def _kl_dist1_dist2(dist1, dist2):
+                return KL
+
+    """
+    def f(kl):
+        _KLDIVERGENCE[Dist1, Dist2] = kl
+    return f
+
+
+def kl_divergence(dist1, dist2):
+    """Computes Kullback-Leibler divergence.
+
+    For two continuous distributions :math:`p(x), q(x)`, it is expressed as
+
+    .. math::
+        D_{KL}(p||q) = \\int p(x) \\log \\frac{p(x)}{q(x)} dx
+
+    For two discrete distributions :math:`p(x), q(x)`, it is expressed as
+
+    .. math::
+        D_{KL}(p||q) = \\sum_x p(x) \\log \\frac{p(x)}{q(x)}
+
+    Args:
+        dist1(:class:`~chainer.Distribution`): Distribution to calculate KL
+            divergence :math:`p`. This is the first (left) operand of the KL
+            divergence.
+        dist2(:class:`~chainer.Distribution`): Distribution to calculate KL
+            divergence :math:`q`. This is the second (right) operand of the KL
+            divergence.
+
+    Returns:
+        ~chainer.Variable: Output variable representing kl divergence
+            :math:`D_{KL}(p||q)`.
+
+    Using `register_kl`, we can define behavior of `kl_divergence` for any two
+    distributions.
+
+    """
+    return _KLDIVERGENCE[type(dist1), type(dist2)](dist1, dist2)
+
+
+def cross_entropy(dist1, dist2):
+    """Computes Cross entropy.
+
+    For two continuous distributions :math:`p(x), q(x)`, it is expressed as
+
+    .. math::
+        H(p,q) = - \\int p(x) \\log q(x) dx
+
+    For two discrete distributions :math:`p(x), q(x)`, it is expressed as
+
+    .. math::
+        H(p,q) = - \\sum_x p(x) \\log q(x)
+
+    This function call `kl_divergence` and `entropy` of `dist1`. Therefore,
+    it is necessary to register KL divergence function with `register_kl`
+    decoartor and define `entropy` in `dist1`.
+
+    Args:
+        dist1(:class:`~chainer.Distribution`): Distribution to calculate cross
+            entropy :math:`p`. This is the first (left) operand of the cross
+            entropy.
+        dist2(:class:`~chainer.Distribution`): Distribution to calculate cross
+            entropy :math:`q`. This is the second (right) operand of the cross
+            entropy.
+
+    Returns:
+        ~chainer.Variable: Output variable representing cross entropy
+            :math:`H(p,q)`.
+
+    """
+    return dist1.entropy() + kl_divergence(dist1, dist2)
