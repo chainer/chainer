@@ -4,8 +4,8 @@ import numpy
 
 import chainer
 from chainer import cuda
-from chainer.functions import deformable_convolution_2d_sampler
 from chainer.functions import convolution_2d
+from chainer.functions import deformable_convolution_2d_sampler
 from chainer import utils
 
 from chainer import testing
