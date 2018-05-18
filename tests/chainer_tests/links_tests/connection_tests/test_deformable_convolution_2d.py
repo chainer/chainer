@@ -42,7 +42,7 @@ class TestDeformableConvolution2D(unittest.TestCase):
             in_channels = None
         self.link = links.DeformableConvolution2D(
             in_channels, out_channels, ksize, stride=stride, pad=pad,
-            nobias=self.nobias, offset_nobias=self.nobias)
+            offset_nobias=self.nobias, deform_nobias=self.nobias)
 
     def check_backward(self, x_data, y_grad):
         if self.nobias:
