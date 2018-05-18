@@ -10,8 +10,7 @@ from chainer.functions.array.spatial_transformer_sampler import\
 from chainer.functions.math.matmul import matmul
 
 
-def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0,
-                                      use_cudnn=True):
+def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
     """Two-dimensional deformable convolution function using computed offset.
 
     This is implementation of two-dimensional deformable convolution used in
@@ -55,10 +54,6 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0,
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
-        use_cudnn (bool): If ``True``, then this function uses cuDNN for
-            :obj:`spatial_transformer_sampler` if available.
-            Note that, cuDNN supports :obj:`spatial_transformer_sampler`
-            from version 5.0.0.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -78,7 +73,7 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0,
     grid = _offset2grid(offset, kh, kw, sy, sx, ph, pw, h, w)
     grid = grid.reshape(n, 2, kh * kw, out_h * out_w)
     x_pad = pad_func(x, ((0, 0), (0, 0), (ph, ph), (pw, pw)), 'constant')
-    x_st = spatial_transformer_sampler(x_pad, grid, use_cudnn)
+    x_st = spatial_transformer_sampler(x_pad, grid)
 
     x_st = x_st.transpose(0, 3, 1, 2).reshape(n * out_h * out_w, c * kh * kw)
     W = W.transpose(1, 2, 3, 0).reshape(c * kh * kw, out_c)
@@ -93,7 +88,7 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0,
 
 def _offset2grid(offset, kh, kw, sy, sx, ph, pw, h, w):
     n, khkw2, out_h, out_w = offset.shape
-    khkw = khkw2 / 2
+    khkw = int(khkw2 / 2)
     xp = cuda.get_array_module(offset)
 
     ys, xs = xp.meshgrid(
