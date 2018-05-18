@@ -735,4 +735,43 @@ class TestGradComplex(GradTestBase, unittest.TestCase):
         return [3 * dy1_dx + 2 * self.gy2, dy1_dx]
 
 
+class ExpPair(chainer.FunctionNode):
+
+    def forward(self, inputs):
+        x, = inputs
+        self.retain_outputs((0, 1))
+        return numpy.exp(x), numpy.exp(x)
+
+    def backward(self, target_input_indexes, grad_outputs):
+        return sum([
+            g * exp
+            for g, exp in zip(grad_outputs, self.get_retained_outputs())
+            if g is not None
+        ]),
+
+
+def exp_pair(x):
+    return ExpPair().apply((x,))
+
+
+@testing.parameterize(*testing.product({
+    'keep_y2': [False, True],
+}))
+class TestGradDelRetainedOutput(GradTestBase, unittest.TestCase):
+
+    x_names = 'x1',
+    y_names = 'y1',
+
+    def forward(self):
+        self.y1, y2 = exp_pair(self.x1)
+        if self.keep_y2:
+            self.y2 = y2
+
+    def expected_grad(self):
+        return [self.gy1 * self.y1]
+
+    def expected_double_grad(self):
+        return [self.gy1 * self.y1]
+
+
 testing.run_module(__name__, __file__)
