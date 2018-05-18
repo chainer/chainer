@@ -7,7 +7,7 @@ from chainer import variable
 
 
 class DeformableConvolution2D(link.Chain):
-    """Deformable Convolution 2D.
+    """Two-dimensional deformable convolutional layer.
 
     This link wraps the
     convolution layer for offset prediction and
