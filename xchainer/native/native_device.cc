@@ -677,14 +677,14 @@ Array NativeDevice::Conv(
     Axes axes;
     axes.resize(ndim + 1);
     std::iota(axes.begin(), axes.end(), 1);
-    Array y = TensorDot(col, w, axes, axes);
+    Array y = TensorDot(col, w, axes, axes);  // (batch_size, out_1, out_2, ..., out_n, out_channel)
 
     // Add bias, if given.
     if (b.has_value()) {
         y += *b;
     }
 
-    // Move the channel axis to the second
+    // Move the out channel axis to the second
     Axes roll_axes;
     roll_axes.resize(y.ndim());
     roll_axes[0] = 0;
@@ -693,6 +693,18 @@ Array NativeDevice::Conv(
     Array out = y.Transpose(roll_axes);
 
     return out;
+}
+
+Array NativeDevice::ConvTranspose(
+        const Array& x,
+        const Array& w,
+        const nonstd::optional<Array>& b,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) {
+    Array gcol = TensorDot(w, x, {0}, {1});
+    std::tuple<Axes, Shape> GetTensorDotRollAxes();
+    //(const Shape& shape, const Axes& reduce_axes, bool reduced_axes_first) {
 }
 
 void NativeDevice::Synchronize() {}
