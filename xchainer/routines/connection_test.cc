@@ -33,10 +33,6 @@ private:
 };
 
 TEST_P(ConnectionTest, Conv) {
-    if (GetParam() == "cuda") {
-        // TODO(niboshi): Add CUDA implementation
-        return;
-    }
     int64_t batch_size = 2;
     int64_t in_channels = 3;
     int64_t out_channels = 2;
@@ -74,7 +70,7 @@ TEST_P(ConnectionTest, Conv) {
 
 TEST_P(ConnectionTest, ConvCoverAll) {
     if (GetParam() == "cuda") {
-        // TODO(niboshi): Add CUDA implementation
+        // CuDNN convolution does not support cover_all
         return;
     }
     int64_t batch_size = 2;
