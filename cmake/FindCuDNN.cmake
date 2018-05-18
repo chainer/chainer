@@ -9,7 +9,8 @@
 #  CUDNN_LIBRARIES
 #  CUDNN_LIBRARY_DIRS
 #
-# Borrowed from https://github.com/pytorch/pytorch/blob/93f8d98027f29fc8190658fd52c2d5284e51875f/cmake/Modules/FindCuDNN.cmake
+# Borrowed from https://github.com/pytorch/pytorch/blob/93f8d98027f29fc8190658fd52c2d5284e51875f/cmake/Modules/FindCuDNN.cmake,
+# and some modifications are appiled.
 
 include(FindPackageHandleStandardArgs)
 
@@ -38,10 +39,7 @@ else($ENV{CUDNN_LIBRARY})
     PATH_SUFFIXES lib lib64 cuda/lib cuda/lib64 lib/x64)
 endif($ENV{CUDNN_LIBRARY})
 
-find_package_handle_standard_args(
-    CUDNN DEFAULT_MSG CUDNN_INCLUDE_DIR CUDNN_LIBRARY)
-
-if(CUDNN_FOUND)
+if(CUDNN_INCLUDE_DIR AND CUDNN_LIBRARY)
 	# get cuDNN version
   file(READ ${CUDNN_INCLUDE_DIR}/cudnn.h CUDNN_HEADER_CONTENTS)
 	string(REGEX MATCH "define CUDNN_MAJOR * +([0-9]+)"
@@ -68,3 +66,10 @@ if(CUDNN_FOUND)
   message(STATUS "Found cuDNN: v${CUDNN_VERSION}  (include: ${CUDNN_INCLUDE_DIR}, library: ${CUDNN_LIBRARY})")
   mark_as_advanced(CUDNN_ROOT_DIR CUDNN_LIBRARY CUDNN_INCLUDE_DIR)
 endif()
+
+find_package_handle_standard_args(
+    CuDNN
+    VERSION_VAR CUDNN_VERSION
+    REQUIRED_VARS CUDNN_INCLUDE_DIR CUDNN_LIBRARY
+    FAIL_MESSAGE "Failed to find cuDNN in path: ${CUDNN_ROOT_DIR} (Did you set CUDNN_ROOT_DIR properly?)"
+)
