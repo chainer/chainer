@@ -92,6 +92,7 @@ def test_transpose(is_module, xp, shape, dtype):
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('shape,axes', [
+    ((1,), 0),
     ((1,), (0,)),
     ((2,), (0,)),
     ((2, 3), (1, 0)),
@@ -113,16 +114,9 @@ def test_transpose_axes(is_module, xp, shape, axes, dtype):
 ])
 def test_transpose_invalid_axes(shape, axes):
     a = array_utils.create_dummy_ndarray(xchainer, shape, 'float32')
-
-    # Check either mismatched ndims or out-of-bounds axes.
-    if len(shape) != len(axes):
-        expected_err = xchainer.XchainerError
-    else:
-        expected_err = xchainer.DimensionError
-
-    with pytest.raises(expected_err):
+    with pytest.raises(xchainer.DimensionError):
         xchainer.transpose(a, axes)
-    with pytest.raises(expected_err):
+    with pytest.raises(xchainer.DimensionError):
         a.transpose(axes)
 
 

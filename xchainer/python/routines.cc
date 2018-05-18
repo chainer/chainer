@@ -277,6 +277,10 @@ void InitXchainerRoutines(pybind11::module& m) {
           },
           py::arg("a"),
           py::arg("axes") = nullptr);
+    m.def("transpose",
+          [](const ArrayBodyPtr& a, int8_t axes) { return Transpose(Array{a}, {axes}).move_body(); },
+          py::arg("a"),
+          py::arg("axes") = nullptr);
     m.def("reshape",
           [](const ArrayBodyPtr& a, py::tuple newshape) { return Reshape(Array{a}, ToShape(newshape)).move_body(); },
           py::arg("a"),
