@@ -35,11 +35,11 @@ class GradTable(object):
         self._load_if_new = load_if_new
 
     def __setitem__(self, node, grad):
+        assert node is not None
         self.grads[node] = _pure(grad)
 
     def get_as_list(self, node):
-        if node is None:
-            return []
+        assert node is not None
         grads = self.grads
         if node not in grads:
             if self._load_if_new and node.creator_node is None:
