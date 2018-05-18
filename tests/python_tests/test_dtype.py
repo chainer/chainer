@@ -1,3 +1,5 @@
+import math
+
 import numpy
 import pytest
 
@@ -78,3 +80,24 @@ def test_ne():
 
 def test_implicity_convertible():
     xchainer.zeros(shape=(2, 3), dtype='int32')
+
+
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+@pytest.mark.parametrize('value', [
+    -2,
+    1,
+    -1.5,
+    2.3,
+    True,
+    False,
+    numpy.array(1),
+    float('inf'),
+    float('nan'),
+])
+def test_type(dtype_spec, value):
+    expected = xchainer.Scalar(value, dtype_spec)
+    actual = xchainer.dtype(dtype_spec).type(value)
+    if math.isnan(expected):
+        assert math.isnan(actual)
+    else:
+        assert expected == actual
