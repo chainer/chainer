@@ -58,6 +58,14 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
     Returns:
         ~chainer.Variable: Output variable.
 
+    Deformable convolution adds 2D offsets to the regular grid sampling
+    locations in the standard convolution. It enables free form deformation of
+    the sampling grid.
+
+    See `Jifeng Dai, Haozhi Qi, Yuwen Xiong, Yi Li, Guodong Zhang, Han Hu, \
+        Yichen Wei. Deformable Convolutional Networks\
+        <https://arxiv.org/abs/1703.06211>`_
+
     If the bias vector is given, then it is added to all spatial locations of
     the output of convolution.
 

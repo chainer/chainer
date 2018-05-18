@@ -108,8 +108,8 @@ from chainer.functions.connection.convolution_2d import convolution_2d  # NOQA
 from chainer.functions.connection.convolution_nd import convolution_nd  # NOQA
 from chainer.functions.connection.deconvolution_2d import deconvolution_2d  # NOQA
 from chainer.functions.connection.deconvolution_nd import deconvolution_nd  # NOQA
-from chainer.functions.connection.depthwise_convolution_2d import depthwise_convolution_2d  # NOQA
 from chainer.functions.connection.deformable_convolution_2d_sampler import deformable_convolution_2d_sampler  # NOQA
+from chainer.functions.connection.depthwise_convolution_2d import depthwise_convolution_2d  # NOQA
 from chainer.functions.connection.dilated_convolution_2d import dilated_convolution_2d  # NOQA
 from chainer.functions.connection.embed_id import embed_id  # NOQA
 from chainer.functions.connection.linear import linear  # NOQA
