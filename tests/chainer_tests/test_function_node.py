@@ -703,4 +703,46 @@ class TestGradComplex(GradTestBase, unittest.TestCase):
         return [3 * dy1_dx + 2 * self.gy2, dy1_dx]
 
 
+class TestGradV3Compat1(unittest.TestCase):
+
+    def _var(self, val):
+        return chainer.Variable(numpy.array(val, numpy.float32))
+
+    def check(self, option, expected):
+        vs = []
+        v = self._var(0.5)
+        for _ in range(4):
+            vs.append(v)
+            v += v
+            vs.append(v)
+            v *= 1.
+        _, x1, _, x2, _, y1, _, y2 = vs
+        gx1 = self._var(1000.)
+        gx2 = self._var(100.)
+        gy1 = self._var(10.)
+        gy2 = self._var(1.)
+        grads = chainer.grad(
+            [y1, y2], [x1, x2], [gy1, gy2], [gx1, gx2], **option)
+        numpy.testing.assert_allclose(grads[0].array, 1248.)
+        numpy.testing.assert_allclose(grads[1].array, 124.)
+        for v, ans in zip(vs, expected):
+            if ans is None:
+                self.assertIsNone(v.grad)
+            else:
+                numpy.testing.assert_allclose(v.grad, ans)
+
+    def test_no_option(self):
+        self.check({}, [None] * 8)
+
+    def test_set_grad(self):
+        self.check(
+            {'set_grad': True},
+            [None, 1248., None, 124., None, None, None, None])
+
+    def test_retain_grad(self):
+        self.check(
+            {'retain_grad': True},
+            [None, 1248., 248., 124., 24., 12., 2., None])
+
+
 testing.run_module(__name__, __file__)
