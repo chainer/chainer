@@ -43,7 +43,8 @@ Context::~Context() {
 }
 
 native::NativeBackend& Context::GetNativeBackend() {
-    return static_cast<native::NativeBackend&>(GetBackend(native::NativeBackend::kDefaultName));
+    Backend& backend = GetBackend(native::NativeBackend::kDefaultName);
+    return static_cast<native::NativeBackend&>(backend);  // NOLINT
 }
 
 Backend& Context::GetBackend(const std::string& backend_name) {
