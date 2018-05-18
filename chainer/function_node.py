@@ -874,7 +874,8 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
             if retain_grad:
                 v = node.get_variable_or_none()
                 if v is not None:
-                    v.grad_var = g  # TODO(kataoka): bugfix?
+                    # TODO(kataoka): fix?
+                    v.grad_var = _backprop_utils._reduce(g)
                     v._loss_scale = loss_scale
 
             creator = node.creator_node
