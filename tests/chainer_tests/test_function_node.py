@@ -739,8 +739,9 @@ class ExpPair(chainer.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
+        xp = cuda.get_array_module(x)
         self.retain_outputs((0, 1))
-        return numpy.exp(x), numpy.exp(x)
+        return xp.exp(x), xp.exp(x)
 
     def backward(self, target_input_indexes, grad_outputs):
         return sum([
