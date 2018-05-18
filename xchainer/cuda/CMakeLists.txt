@@ -3,6 +3,7 @@ install(FILES
     cuda_backend.h
     cuda_device.h
     cuda_runtime.h
+    cudnn.h
     elementwise.cuh
     memory_pool.h
     reduce.cuh
@@ -14,9 +15,12 @@ CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     cuda_device.cu
     cuda_backend.cc
     cuda_runtime.cc
+    cudnn.cc
     memory_pool.cc)
 
 CUDA_ADD_CUBLAS_TO_TARGET(xchainer_cuda)
+
+target_link_libraries(xchainer_cuda ${CUDNN_LIBRARIES})
 
 if(${ENABLE_TEST})
     add_executable(xchainer_cuda_test
