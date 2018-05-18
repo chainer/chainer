@@ -24,7 +24,7 @@ TEST(ContextTest, GetBackend) {
 
 TEST(ContextTest, NativeBackend) {
     Context ctx;
-    native::NativeBackend& backend = ctx.native_backend();
+    native::NativeBackend& backend = ctx.GetNativeBackend();
     EXPECT_EQ(&ctx.GetBackend("native"), &backend);
 }
 
@@ -166,7 +166,7 @@ TEST(ContextTest, GetNativeBackendOnDefaultContext) {
     Context ctx;
     SetDefaultContext(&ctx);
     native::NativeBackend& backend = GetNativeBackend();
-    EXPECT_EQ(&ctx.native_backend(), &backend);
+    EXPECT_EQ(&ctx.GetNativeBackend(), &backend);
 }
 
 TEST(ContextTest, GetDeviceOnDefaultContext) {

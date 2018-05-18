@@ -215,7 +215,7 @@ Array Array::ToDevice(Device& dst_device) const {
 
 Array Array::ToNative() const {
     Context& context = device().backend().context();
-    Device& native_device = context.native_backend().GetDevice(0);
+    Device& native_device = context.GetNativeBackend().GetDevice(0);
     return ToDevice(native_device);
 }
 
