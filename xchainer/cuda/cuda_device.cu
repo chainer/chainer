@@ -17,6 +17,7 @@
 #include "xchainer/backend_util.h"
 #include "xchainer/cuda/cast.cuh"
 #include "xchainer/cuda/cublas.h"
+#include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/cuda/elementwise.cuh"
 #include "xchainer/cuda/reduce.cuh"
@@ -936,15 +937,152 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
     });
 }
 
+namespace {
+
+// def get_conv_outsize(size, k, s, p, cover_all=False, d=1):
+//     """Calculates output size of convolution.
+// 
+//     This function takes the size of input feature map, kernel, stride, and
+//     pooling of one particular dimension, then calculates the output feature
+//     map size of that dimension.
+// 
+//     .. seealso:: :func:`~chainer.utils.get_deconv_outsize`
+// 
+//     Args:
+//         size (int): The size of input feature map. It usually is the length of
+//             a side of feature map.
+//         k (int): The size of convolution kernel.
+//         s (int): The size of stride.
+//         p (int): The size of padding.
+//         cover_all (bool): Use ``cover_all`` option or not.
+//         d (int): The size of dilation.
+// 
+//     Returns:
+//         int: The expected output size of the convolution operation.
+// 
+//     """
+//     dk = k + (k - 1) * (d - 1)
+//     if cover_all:
+//         return (size + p * 2 - dk + s - 1) // s + 1
+//     else:
+//         return (size + p * 2 - dk) // s + 1
+
+// TODO(sonots): Use same codes of NativeDevice
+int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
+    if (cover_all) {
+        return (in_dim + pad * 2 - kernel_size + stride - 1) / stride + 1;
+    }
+    return (in_dim + pad * 2 - kernel_size) / stride + 1;
+}
+
+}  // namespace
+
 Array CudaDevice::Conv(
-        const Array& /*x*/,
-        const Array& /*w*/,
-        const nonstd::optional<Array>& /*b*/,
-        const StackVector<int64_t, kMaxNdim>& /*stride*/,
-        const StackVector<int64_t, kMaxNdim>& /*pad*/,
-        bool /*cover_all*/) {
-    // TODO(niboshi): Implement it
-    throw NotImplementedError{""};
+        const Array& x,
+        const Array& w,
+        const nonstd::optional<Array>& b,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    int8_t ndim = w.ndim() - 2;
+    assert(ndim > 0);
+
+    // out_c = W.shape[0]      # (c_O, _, k_1, k_2, ..., k_N)
+    int64_t out_c = w.shape()[0];
+    // ksize = W.shape[2:]
+    // Get the kernel size from the weight array as w.shape[2:]
+    StackVector<int64_t, kMaxNdim> ksize;
+    std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(ksize));
+    // n, c = x.shape[:2]      # (n, c_I, d_1, d_2, ..., d_N)
+    int64_t n = x.shape()[0];
+    int64_t c = x.shape()[1];
+    // dims = x.shape[2:]
+    StackVector<int64_t, kMaxNdim> dims;
+    std::copy_n(x.shape().begin() + 2, ndim, std::back_inserter(dims));
+    // stride = self.stride
+    // pad = self.pad
+    // ndim = self.ndim
+    // colon = slice(None)
+
+    // # Make empty array for result.
+    // outs = tuple(
+    //     conv.get_conv_outsize(d, k, s, p, cover_all=self.cover_all)
+    //     for (d, k, s, p) in zip(dims, ksize, stride, pad))
+    // assert all(out > 0 for out in outs), 'Output sizes should be positive.'
+    // y_shape = (n, out_c) + outs  # (n, c_O, out_1, out_2, ..., out_N)
+    // y = cuda.cupy.empty(y_shape, dtype=x.dtype)
+
+    // Create the output array.
+    StackVector<int64_t, kMaxNdim> out_dims;  // Number of patches along each axis
+    for (int8_t i = 0; i < ndim; ++i) {
+        out_dims.emplace_back(GetConvOutDim(x.shape()[i + 2], ksize[i], stride[i], pad[i], cover_all));
+        assert(out_dims.back() > 0);
+    }
+
+    int64_t batch_size = x.shape()[0];
+    int64_t channels = x.shape()[1];
+
+    Shape out_shape{batch_size, channels};
+    std::copy(ksize.begin(), ksize.end(), std::back_inserter(out_shape));
+    std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
+    Array out = Empty(out_shape, x.dtype(), *this);
+
+    // # Convert to C-contiguous arrays.
+    // x = cuda.cupy.ascontiguousarray(x)
+    // W = cuda.cupy.ascontiguousarray(W)
+    // if b is not None:
+    //     b = cuda.cupy.ascontiguousarray(b)
+    Array x_contig = AsContiguousArray(x);
+    Array w_contig = AsContiguousArray(w);
+    Array b_contig;
+    if (b) {
+        b_contig = AsContiguousArray(*b);
+    }
+
+    // # Get cuDNN handler and descriptors.
+    // handle = cudnn.get_handle()
+    // x_desc = cudnn.create_tensor_descriptor(x)
+    // y_desc = cudnn.create_tensor_descriptor(y)
+
+    // self.filter_desc = cudnn.create_filter_descriptor(W)
+    // self.conv_param = (pad, stride, x.dtype)
+    // self.conv_desc = cudnn.create_convolution_descriptor(*self.conv_param)
+    // if b is not None:
+    //     b_index = (None, colon) + (None,) * ndim
+    //     self.bias_desc = cudnn.create_tensor_descriptor(b[b_index])
+
+    // # Find cuDNN algorithm to be used.
+    // workspace_size = cuda.get_max_workspace_size()
+    // workspace = cuda.cupy.empty((workspace_size,), dtype='b')
+    // if configuration.config.autotune and _cudnn_version_ >= 5000:
+    //     algo = convolution_2d._get_algorithm_fwd(
+    //         x, W, y, self.conv_param, handle, x_desc, self.filter_desc,
+    //         self.conv_desc, y_desc, workspace)
+    // else:
+    //     algo = libcudnn.getConvolutionForwardAlgorithm(
+    //         handle, x_desc.value, self.filter_desc.value,
+    //         self.conv_desc.value, y_desc.value, _fwd_pref,
+    //         workspace_size)
+
+    // # cuDNN forward computation.
+    // oz_dtype = 'd' if x.dtype == 'd' else 'f'
+    // one = numpy.array(1, dtype=oz_dtype).ctypes
+    // zero = numpy.array(0, dtype=oz_dtype).ctypes
+    // libcudnn.convolutionForward(
+    //     handle, one.data, x_desc.value, x.data.ptr,
+    //     self.filter_desc.value, W.data.ptr, self.conv_desc.value,
+    //     algo, workspace.data.ptr, workspace_size, zero.data,
+    //     y_desc.value, y.data.ptr)
+
+    // # Add bias if given.
+    // # TODO(takagi) Support unshared bias
+    // if b is not None:
+    //     cudnn.add_tensor(
+    //         handle, one.data, self.bias_desc.value, b.data.ptr,
+    //         one.data, y_desc.value, y.data.ptr)
+
+    // return y,
+>>>>>>> CudaDevice: Convolution (wip)
 }
 
 Array CudaDevice::ConvTranspose(
