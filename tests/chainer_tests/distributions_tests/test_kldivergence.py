@@ -16,7 +16,7 @@ import numpy
 class TestKLDivergence(unittest.TestCase):
 
     def check_kl(self, dist1, dist2):
-        kl = distributions.kl_divergence(dist1, dist2).data
+        kl = chainer.kl_divergence(dist1, dist2).data
         if isinstance(kl, cuda.ndarray):
             kl = kl.get()
 

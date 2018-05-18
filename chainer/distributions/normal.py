@@ -1,7 +1,6 @@
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
-from chainer.distributions import kl_divergence
 from chainer.functions.array import broadcast
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
@@ -95,7 +94,7 @@ class Normal(distribution.Distribution):
                 - 0.5 * (x - broadcast.broadcast_to(self.loc, x.shape)) ** 2
                 / broadcast.broadcast_to(self.scale, x.shape) ** 2)
 
-    def _sample_n(self, n):
+    def sample_n(self, n):
         if self._is_gpu:
             eps = cuda.cupy.random.standard_normal(
                 (n,)+self.loc.shape, dtype=self.loc.dtype)
@@ -127,7 +126,7 @@ class Normal(distribution.Distribution):
         return self.scale ** 2
 
 
-@kl_divergence.register_kl(Normal, Normal)
+@distribution.register_kl(Normal, Normal)
 def _kl_normal_normal(dist1, dist2):
     return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
         + 0.5 * (dist1.scale ** 2 + (dist1.loc - dist2.loc) ** 2) \
