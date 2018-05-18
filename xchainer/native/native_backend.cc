@@ -8,6 +8,8 @@
 namespace xchainer {
 namespace native {
 
+constexpr const char* NativeBackend::kDefaultName;
+
 std::string NativeBackend::GetName() const { return kDefaultName; }
 
 // TODO(sonots): Returns number of CPU cores

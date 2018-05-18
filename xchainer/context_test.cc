@@ -16,18 +16,24 @@ namespace {
 
 TEST(ContextTest, Ctor) { EXPECT_NO_THROW(Context()); }
 
-TEST(Context, GetBackend) {
+TEST(ContextTest, GetBackend) {
     Context ctx;
     Backend& backend = ctx.GetBackend("native");
     EXPECT_EQ(&backend, &ctx.GetBackend("native"));
 }
 
-TEST(Context, BackendNotFound) {
+TEST(ContextTest, NativeBackend) {
+    Context ctx;
+    native::NativeBackend& backend = ctx.GetNativeBackend();
+    EXPECT_EQ(&ctx.GetBackend("native"), &backend);
+}
+
+TEST(ContextTest, BackendNotFound) {
     Context ctx;
     EXPECT_THROW(ctx.GetBackend("something_that_does_not_exist"), BackendError);
 }
 
-TEST(Context, GetDevice) {
+TEST(ContextTest, GetDevice) {
     Context ctx;
     Device& device = ctx.GetDevice({"native", 0});
     EXPECT_EQ(&device, &ctx.GetDevice({"native:0"}));
@@ -153,6 +159,14 @@ TEST(ContextTest, GetBackendOnDefaultContext) {
     Backend& backend = GetBackend("native");
     EXPECT_EQ(&ctx, &backend.context());
     EXPECT_EQ("native", backend.GetName());
+}
+
+TEST(ContextTest, GetNativeBackendOnDefaultContext) {
+    // xchainer::GetNativeBackend
+    Context ctx;
+    SetDefaultContext(&ctx);
+    native::NativeBackend& backend = GetNativeBackend();
+    EXPECT_EQ(&ctx.GetNativeBackend(), &backend);
 }
 
 TEST(ContextTest, GetDeviceOnDefaultContext) {

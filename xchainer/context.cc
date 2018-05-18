@@ -42,6 +42,11 @@ Context::~Context() {
     }
 }
 
+native::NativeBackend& Context::GetNativeBackend() {
+    Backend& backend = GetBackend(native::NativeBackend::kDefaultName);
+    return static_cast<native::NativeBackend&>(backend);  // NOLINT
+}
+
 Backend& Context::GetBackend(const std::string& backend_name) {
     {
         std::lock_guard<std::mutex> lock{mutex_};

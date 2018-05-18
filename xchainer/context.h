@@ -11,6 +11,9 @@
 #include "xchainer/device_id.h"
 
 namespace xchainer {
+namespace native {
+class NativeBackend;
+}
 
 class Context {
 public:
@@ -19,6 +22,9 @@ public:
     // Gets the backend specified by the name.
     // If the backend does not exist, this function automatically creates it.
     Backend& GetBackend(const std::string& backend_name);
+
+    // Gets the native backend.
+    native::NativeBackend& GetNativeBackend();
 
     // Gets the device specified by the device ID.
     // If the backend and/or device do not exist, this function automatically creates them.
@@ -53,6 +59,9 @@ inline Device& GetDevice(const DeviceId& device_id) { return GetDefaultContext()
 
 // Returns the specified backend on the default context.
 inline Backend& GetBackend(const std::string& backend_name) { return GetDefaultContext().GetBackend(backend_name); }
+
+// Returns the native backend on the default context.
+inline native::NativeBackend& GetNativeBackend() { return GetDefaultContext().GetNativeBackend(); }
 
 // Scope object that switches the default context by RAII.
 class ContextScope {
