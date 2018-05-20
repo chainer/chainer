@@ -79,6 +79,7 @@ Array manipulations
    chainer.functions.get_item
    chainer.functions.hstack
    chainer.functions.im2col
+   chainer.functions.moveaxis
    chainer.functions.pad
    chainer.functions.pad_sequence
    chainer.functions.permutate
@@ -227,6 +228,7 @@ Mathematical functions
    chainer.functions.sin
    chainer.functions.sinh
    chainer.functions.sign
+   chainer.functions.sparse_matmul
    chainer.functions.sqrt
    chainer.functions.square
    chainer.functions.squared_difference
