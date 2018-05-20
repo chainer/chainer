@@ -28,7 +28,6 @@ class Block(chainer.Chain):
                                         nobias=True)
             self.bn = L.BatchNormalization(out_channels)
 
-    @static_graph
     def __call__(self, x):
         h = self.conv(x)
         h = self.bn(h)
@@ -79,6 +78,7 @@ class VGG(chainer.Chain):
             self.bn_fc1 = L.BatchNormalization(512)
             self.fc2 = L.Linear(None, class_labels, nobias=True)
 
+    @static_graph
     def __call__(self, x):
         # 64 channel blocks:
         h = self.block1_1(x)
