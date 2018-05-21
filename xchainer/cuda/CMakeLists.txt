@@ -20,6 +20,7 @@ CUDA_ADD_LIBRARY(xchainer_cuda STATIC
 
 CUDA_ADD_CUBLAS_TO_TARGET(xchainer_cuda)
 
+include_directories(${CUDNN_INCLUDE_DIRS})
 target_link_libraries(xchainer_cuda ${CUDNN_LIBRARIES})
 
 if(${ENABLE_TEST})
