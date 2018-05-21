@@ -447,9 +447,10 @@ class Variable(object):
         * Floor Division: ``a // b`` (:meth:`__floordiv__`, \
                                       :meth:`__rfloordiv__`)
         * Exponentiation: ``a ** b`` (:meth:`__pow__`, :meth:`__rpow__`)
-        * Matirx Multiplication: ``a @ b`` (:meth:`__matmul__`, \
+        * Matrix Multiplication: ``a @ b`` (:meth:`__matmul__`, \
                                             :meth:`__rmatmul__`)
         * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
+        * Absolute value: ``abs(a)`` (:meth:`__abs__`)
 
     .. warning::
 
