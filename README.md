@@ -10,6 +10,12 @@ Build `build/xchainer/libxchainer.so` with the following commands.
 $ ( mkdir -p build && cd build && cmake .. && make )
 ```
 
+If you build xChainer with CUDA backend, xChainer currently requires CuDNN and you need to specify its path. For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run the following commands.
+
+```shell-session
+$ ( mkdir -p build && cd build && cmake -DCUDNN_ROOT_DIR=$HOME/.cudnn/active .. && make )
+```
+
 Install headers and the library with `make install`.
 To specify the installation path, pass `-DCMAKE_INSTALL_PREFIX=<...>` to `cmake`.
 
@@ -19,6 +25,12 @@ To install the `xchainer` Python package in `Release` mode, run the following at
 
 ```shell-session
 $ pip install .
+```
+
+Again, if you build xChainer with CUDA backend, xChainer currently requires CuDNN and you need to specify its path. For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run the following commands.
+
+```shell-session
+$ env CUDNN_ROOT_DIR=$HOME/.cudnn/active pip install .
 ```
 
 To build the Python binding as a C++ project, pass `-DBUILD_PYTHON=1` to `cmake`,
@@ -100,6 +112,12 @@ To build the `xchainer` Python package in `develop` mode, run the following at t
 
 ```shell-session
 $ pip install -e .
+```
+
+Again, if you build xChainer with CUDA backend, xChainer currently requires CuDNN and you need to specify its path. For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run the following commands.
+
+```shell-session
+$ env CUDNN_ROOT_DIR=$HOME/.cudnn/active pip install -e .
 ```
 
 Run tests with the following command at the repository root:
