@@ -191,5 +191,4 @@ def _init_array(initializer, default_value, size, dtype):
     if initializer is None:
         initializer = default_value
     initializer = initializers._get_initializer(initializer)
-    initializer.dtype = dtype
-    return initializers.generate_array(initializer, size, numpy)
+    return initializers.generate_array(initializer, size, numpy, dtype=dtype)
