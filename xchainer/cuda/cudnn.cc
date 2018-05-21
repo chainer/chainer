@@ -7,6 +7,7 @@
 #include "xchainer/array.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/stack_vector.h"
 
 namespace xchainer {
 namespace cuda {
@@ -62,13 +63,13 @@ cudnnDataType_t GetCudnnDataType(Dtype dtype) {
 
 void SetTensorNdDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnDataType_t cudnn_dtype) {
     int64_t item_size = arr.item_size();
-    std::vector<int> int_shape(arr.ndim());
-    std::vector<int> int_strides(arr.ndim());
-    for (int8_t i = 0; i < arr.ndim(); ++i) {
-        int_strides.emplace_back(arr.strides()[i] / item_size);
+    StackVector<int, kMaxNdim> int_shape;
+    StackVector<int, kMaxNdim> int_strides;
+    for (int64_t v : arr.strides()) {
+        int_strides.emplace_back(static_cast<int>(v / item_size));
     }
-    for (int8_t i = 0; i < arr.ndim(); ++i) {
-        int_shape.emplace_back(arr.shape()[i]);
+    for (int64_t v : arr.shape()) {
+        int_shape.emplace_back(static_cast<int>(v));
     }
     CheckCudnnError(cudnnSetTensorNdDescriptor(desc, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]));
 }
@@ -124,9 +125,9 @@ void SetFilterDescriptor(cudnnFilterDescriptor_t desc, const Array& arr, cudnnTe
         int w = static_cast<int>(arr.shape()[3]);
         CheckCudnnError(cudnnSetFilter4dDescriptor(desc, cudnn_dtype, format, n, c, h, w));
     } else {
-        std::vector<int> int_shape(arr.ndim());
-        for (int8_t i = 0; i < arr.ndim(); ++i) {
-            int_shape.emplace_back(arr.shape()[i]);
+        StackVector<int, kMaxNdim> int_shape;
+        for (int64_t v : arr.shape()) {
+            int_shape.emplace_back(static_cast<int>(v));
         }
         CheckCudnnError(cudnnSetFilterNdDescriptor(desc, cudnn_dtype, format, arr.ndim(), &int_shape[0]));
     }
@@ -158,8 +159,8 @@ void SetConvolutionDescriptor(
         throw DimensionError{"pad and dilation must be of same length"};
     }
 
-    std::vector<int> int_stride(ndim);
-    std::vector<int> int_pad(ndim);
+    StackVector<int, kMaxNdim> int_stride;
+    StackVector<int, kMaxNdim> int_pad;
     for (int64_t v : stride) {
         int_stride.emplace_back(static_cast<int>(v));
     }
@@ -192,9 +193,12 @@ void SetConvolutionDescriptor(
     //             <size_t>&c_dilation[0], mode, compute_type)
 
     if (ndim != 2) {
-        std::vector<int> int_dilation(ndim);
+        StackVector<int, kMaxNdim> int_dilation;
         if (!dilation) {
-            int_dilation.assign(ndim, 1);
+            // TODO(sonots): Use assign(ndim, 1) if it becomes available
+            for (decltype(ndim) i = 0; i < ndim; ++i) {
+                int_dilation.emplace_back(1);
+            }
         } else {
             for (int64_t v : *dilation) {
                 int_dilation.emplace_back(static_cast<int>(v));
@@ -316,18 +320,18 @@ std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
 //         max_workspace_size)
 //     workspace_size = max_workspace_size
 //     return algo, workspace_size
-std::pair<cudnnConvolutionFwdAlgo_t, size_t> GetConvolutionForwardAlgorithm(
-        cudnnHandle_t handle,
-        cudnnTensorDescriptor_t x_desc,
-        cudnnFilterDescriptor_t filter_desc,
-        cudnnConvolutionDescriptor_t conv_desc,
-        cudnnTensorDescriptor_t y_desc,
-        size_t max_workspace_size) {
-    cudnnConvolutionFwdAlgo_t algo{};
-    CheckCudnnError(cudnnGetConvolutionForwardAlgorithm(
-            handle, x_desc, filter_desc, conv_desc, y_desc, CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT, max_workspace_size, &algo));
-    return {algo, max_workspace_size};
-}
+// std::pair<cudnnConvolutionFwdAlgo_t, size_t> GetConvolutionForwardAlgorithm(
+//         cudnnHandle_t handle,
+//         cudnnTensorDescriptor_t x_desc,
+//         cudnnFilterDescriptor_t filter_desc,
+//         cudnnConvolutionDescriptor_t conv_desc,
+//         cudnnTensorDescriptor_t y_desc,
+//         size_t max_workspace_size) {
+//     cudnnConvolutionFwdAlgo_t algo{};
+//     CheckCudnnError(cudnnGetConvolutionForwardAlgorithm(
+//             handle, x_desc, filter_desc, conv_desc, y_desc, CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT, max_workspace_size, &algo));
+//     return {algo, max_workspace_size};
+// }
 
 // cpdef tuple _find_algorithm_fwd(
 //         core.ndarray x, core.ndarray W, core.ndarray y, tuple conv_param,
@@ -344,17 +348,17 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> GetConvolutionForwardAlgorithm(
 //     algo = (ret[0]['algo'], ret[0]['memory'])
 //     _algorithm_fwd[key] = algo
 //     return algo
+// TODO(sonots): cache the result with key (device_id, x.shape, w,shape, y,shape, pad, stride, x.dtype, max_workspace_size)
 std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
         cudnnHandle_t handle,
         const std::shared_ptr<cudnnTensorStruct>& x_desc,
         const Array& x,
-        const std::shared_ptr<cudnnFilterStruct>& w_desc,
+        const std::shared_ptr<cudnnFilterStruct>& filter_desc,
         const Array& w,
         const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
         const std::shared_ptr<cudnnTensorStruct>& y_desc,
         const Array& y,
         size_t max_workspace_size) {
-    // TODO(sonots): cache the result
     std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
 
     int requested_algo_count = 1;
@@ -365,7 +369,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
             handle,
             x_desc.get(),
             x.data().get(),
-            w_desc.get(),
+            filter_desc.get(),
             w.data().get(),
             conv_desc.get(),
             y_desc.get(),
