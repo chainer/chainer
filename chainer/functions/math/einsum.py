@@ -39,9 +39,6 @@ def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
                 "of Chainer. See also NumPy issues #10926, #9984."
             ))
         y = xp.sum(y, axis=tuple(range(sum_ndim)))
-    elif in_subscripts == out_subscript:
-        # Avoid cupy issue #1179
-        y, = inputs
     else:
         subscripts = '{}->{}'.format(
             in_subscripts,
