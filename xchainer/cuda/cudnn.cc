@@ -70,7 +70,7 @@ void SetTensorNdDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnn
     for (int8_t i = 0; i < arr.ndim(); ++i) {
         int_shape.emplace_back(arr.shape()[i]);
     }
-    cudnnSetTensorNdDescriptor(desc, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]);
+    CheckCudaError(cudnnSetTensorNdDescriptor(desc, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]));
 }
 
 // cpdef _create_tensor_descriptor(size_t desc, core.ndarray arr, int format):
@@ -94,7 +94,7 @@ void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTe
         int c = static_cast<int>(arr.shape()[1]);
         int h = static_cast<int>(arr.shape()[2]);
         int w = static_cast<int>(arr.shape()[3]);
-        cudnnSetTensor4dDescriptor(desc, format, cudnn_dtype, n, c, h, w);
+        CheckCudaError(cudnnSetTensor4dDescriptor(desc, format, cudnn_dtype, n, c, h, w));
     } else {
         SetTensorNdDescriptor(desc, arr, cudnn_dtype);
     }
@@ -122,13 +122,13 @@ void SetFilterDescriptor(cudnnFilterDescriptor_t desc, const Array& arr, cudnnTe
         int c = static_cast<int>(arr.shape()[1]);
         int h = static_cast<int>(arr.shape()[2]);
         int w = static_cast<int>(arr.shape()[3]);
-        cudnnSetFilter4dDescriptor(desc, cudnn_dtype, format, n, c, h, w);
+        CheckCudnnError(cudnnSetFilter4dDescriptor(desc, cudnn_dtype, format, n, c, h, w));
     } else {
         std::vector<int> int_shape(arr.ndim());
         for (int8_t i = 0; i < arr.ndim(); ++i) {
             int_shape.emplace_back(arr.shape()[i]);
         }
-        cudnnSetFilterNdDescriptor(desc, cudnn_dtype, format, arr.ndim(), &int_shape[0]);
+        CheckCudnnError(cudnnSetFilterNdDescriptor(desc, cudnn_dtype, format, arr.ndim(), &int_shape[0]));
     }
 }
 
@@ -142,8 +142,7 @@ void SetConvolutionDescriptor(
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
         int groups,
         Dtype dtype,
-        cudnnConvolutionMode_t mode,
-        bool use_tensor_core) {
+        cudnnConvolutionMode_t mode) {
     //     cdef int d0, d1, p0, p1, s0, s1
     //     cdef vector.vector[int] c_pad, c_stride, c_dilation
     //     ndim = len(pad)
@@ -201,7 +200,7 @@ void SetConvolutionDescriptor(
                 int_dilation.emplace_back(static_cast<int>(v));
             }
         }
-        cudnnSetConvolutionNdDescriptor(desc, ndim, &int_pad[0], &int_stride[0], &int_dilation[0], mode, compute_type);
+        CheckCudnnError(cudnnSetConvolutionNdDescriptor(desc, ndim, &int_pad[0], &int_stride[0], &int_dilation[0], mode, compute_type));
     }
 
     //     else:
@@ -233,7 +232,7 @@ void SetConvolutionDescriptor(
         int s0 = static_cast<int>(stride[0]);
         int s1 = static_cast<int>(stride[1]);
 
-        cudnnSetConvolution2dDescriptor(desc, p0, p1, s0, s1, d0, d1, mode, compute_type);
+        CheckCudnnError(cudnnSetConvolution2dDescriptor(desc, p0, p1, s0, s1, d0, d1, mode, compute_type));
     }
 
     //     if _cudnn_version >= 7000:
@@ -244,12 +243,8 @@ void SetConvolutionDescriptor(
     //             cudnn.setConvolutionGroupCount(desc, groups)
     //     elif groups > 1:
     //         raise ValueError('groups must be one when cuDNN < 7.0')
-    if (use_tensor_core) {
-        cudnnMathType_t math_type = CUDNN_TENSOR_OP_MATH;
-        cudnnSetConvolutionMathType(desc, math_type);
-    }
     if (groups > 1) {
-        cudnnSetConvolutionGroupCount(desc, groups);
+        CheckCudnnError(cudnnSetConvolutionGroupCount(desc, groups));
     }
 }
 
@@ -303,67 +298,31 @@ std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
         Dtype dtype,
         cudnnConvolutionMode_t mode,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
-        bool use_tensor_core,
         int groups) {
     cudnnConvolutionDescriptor_t desc{};
     CheckCudnnError(cudnnCreateConvolutionDescriptor(&desc));
     auto shared_desc = std::shared_ptr<cudnnConvolutionStruct>{
             desc, [](cudnnConvolutionDescriptor_t desc) { CheckCudnnError(cudnnDestroyConvolutionDescriptor(desc)); }};
-    SetConvolutionDescriptor(desc, pad, stride, dilation, groups, dtype, mode, use_tensor_core);
+    SetConvolutionDescriptor(desc, pad, stride, dilation, groups, dtype, mode);
     return shared_desc;
 }
 
 // cpdef tuple _get_algorithm_fwd(
 //         size_t handle, size_t x_desc, size_t filter_desc, size_t conv_desc,
 //         size_t y_desc, size_t max_workspace_size, bint use_tensor_core):
-std::pair<cudnnConvolutionFwdAlgo_t, size_t> GetAlgorithmFwd(
+//     algo = cudnn.getConvolutionForwardAlgorithm_v6(
+//         handle, x_desc, filter_desc, conv_desc, y_desc,
+//         cudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT,
+//         max_workspace_size)
+//     workspace_size = max_workspace_size
+//     return algo, workspace_size
+std::pair<cudnnConvolutionFwdAlgo_t, size_t> GetConvolutionForwardAlgorithm(
         cudnnHandle_t handle,
         cudnnTensorDescriptor_t x_desc,
         cudnnFilterDescriptor_t filter_desc,
         cudnnConvolutionDescriptor_t conv_desc,
         cudnnTensorDescriptor_t y_desc,
-        size_t max_workspace_size,
-        bool use_tensor_core) {
-    //     cdef int algo
-    //     cdef workspace_size
-    //     if use_tensor_core and _cudnn_version >= 7000:
-    //         ret = cudnn.getConvolutionForwardAlgorithm_v7(
-    //             handle, x_desc, filter_desc, conv_desc, y_desc, 10)
-    //         for i in range(len(ret)):
-    //             if ret[i]['memory'] <= max_workspace_size:
-    //                 break
-    //         else:
-    //             raise RuntimeError('No conv fwd algo available with workspace size'
-    //                                ' less equal {}'.format(max_workspace_size))
-    //         if i != 0:
-    //             msg = 'The best algo of conv fwd might not be selected due to '
-    //                   'lack of workspace size ({})'.format(max_workspace_size)
-    //             warnings.warn(msg)
-    //         algo = ret[i]['algo']
-    //         workspace_size = ret[i]['memory']
-    if (use_tensor_core) {
-        int requested_algo_count = 10;
-        std::vector<cudnnConvolutionFwdAlgoPerf_t> perf_results(requested_algo_count);
-        int returned_algo_count;
-        CheckCudnnError(cudnnGetConvolutionForwardAlgorithm_v7(
-                handle, x_desc, filter_desc, conv_desc, y_desc, requested_algo_count, &returned_algo_count, &perf_results[0]));
-        perf_results.resize(returned_algo_count);
-        for (auto perf_result : perf_results) {
-            if (perf_result.memory <= max_workspace_size) {
-                return {perf_result.algo, perf_result.memory};
-            }
-        }
-        throw XchainerError{"No conv fwd algo available with workspace size less equal ", max_workspace_size};
-    }
-
-    //     else:
-    //         algo = cudnn.getConvolutionForwardAlgorithm_v6(
-    //             handle, x_desc, filter_desc, conv_desc, y_desc,
-    //             cudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT,
-    //             max_workspace_size)
-    //         workspace_size = max_workspace_size
-    //     return algo, workspace_size
-
+        size_t max_workspace_size) {
     cudnnConvolutionFwdAlgo_t algo{};
     CheckCudnnError(cudnnGetConvolutionForwardAlgorithm(
             handle, x_desc, filter_desc, conv_desc, y_desc, CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT, max_workspace_size, &algo));
