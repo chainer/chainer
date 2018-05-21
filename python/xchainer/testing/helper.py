@@ -30,7 +30,8 @@ class _ResultsCheckFailure(Exception):
         self.msg = msg
         self.indices = tuple(indices)
         if condense_results_func is None:
-            condense_results_func = lambda np_r, xc_r: f'xchainer: {xc_r} numpy: {np_r}'
+            def condense_results_func(np_r, xc_r):
+                return f'xchainer: {xc_r} numpy: {np_r}'
         self.condense_results_func = condense_results_func
 
     def condense_results(self, numpy_result, xchainer_result):
