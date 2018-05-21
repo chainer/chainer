@@ -710,9 +710,9 @@ Array Col2Im(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& out_size) {
-    const int8_t batch_size = col.shape()[0];
-    const int8_t channels = col.shape()[1];
     // Cannot use const due to internal compiler error with gcc 5.4.0.
+    int8_t batch_size = col.shape()[0];
+    int8_t channels = col.shape()[1];
     auto ndim = static_cast<int8_t>(stride.size());
 
     Shape padded_shape{batch_size, channels};
@@ -721,23 +721,20 @@ Array Col2Im(
     }
     Array padded_out = Zeros(padded_shape, col.dtype(), col.device());
 
-    Shape kernel_size{col.shape().begin() + 2, col.shape().begin() + 2 + ndim};
-    Shape batch_channel_shape{batch_size, channels};
-    Shape in_image_shape{col.shape().begin() + 2 + ndim, col.shape().end()};
-
-    NdimIndex out_image_index{ndim};  // Indices over the output image
-
     // Write to the output array
     VisitDtype(col.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
-        Indexer<2> batch_channel_indexer{batch_channel_shape};
-        Indexer<> kernel_indexer{kernel_size};
-        Indexer<> in_image_dims_indexer{in_image_shape};
+        Indexer<2> batch_channel_indexer{Shape{batch_size, channels}};
+        Indexer<> kernel_indexer{Shape{col.shape().begin() + 2, col.shape().begin() + 2 + ndim}};
+        Indexer<> in_image_dims_indexer{Shape{col.shape().begin() + 2 + ndim, col.shape().end()}};
         Indexer<> col_indexer{col.shape()};
         Indexer<> padded_out_indexer{padded_shape};
         IndexableArray<const T> col_iarray{col};
         IndexableArray<T> padded_out_iarray{padded_out};
+
+        // Indices over the output image.
+        NdimIndex out_image_index{ndim};
 
         for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
             for (auto it_in_image_dims = in_image_dims_indexer.It(0); it_in_image_dims; ++it_in_image_dims) {
