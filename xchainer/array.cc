@@ -140,7 +140,7 @@ Array& Array::operator/=(Scalar rhs) { return internal::IDivide(*this, rhs); }
 
 const Array& Array::operator+=(const Array& rhs) const { return internal::IAdd(*this, rhs); }
 
-const Array& Array::operator+=(Shape rhs) const { return internal::IAdd(*this, rhs); }
+const Array& Array::operator+=(Scalar rhs) const { return internal::IAdd(*this, rhs); }
 
 const Array& Array::operator-=(const Array& rhs) const { return internal::ISubtract(*this, rhs); }
 
