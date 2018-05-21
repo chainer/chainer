@@ -1041,8 +1041,8 @@ Array CudaDevice::Conv(
 
     // # Get cuDNN handler and descriptors.
     cudnnHandle_t handle = cudnn_handle();
-    std::shared_ptr<cudnnTensorStruct> x_desc = internal::CreateTensorDescriptor(x);
-    std::shared_ptr<cudnnTensorStruct> y_desc = internal::CreateTensorDescriptor(y);
+    std::shared_ptr<cudnnTensorStruct> x_desc = CreateTensorDescriptor(x);
+    std::shared_ptr<cudnnTensorStruct> y_desc = CreateTensorDescriptor(y);
 
     return x;
 

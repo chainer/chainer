@@ -21,8 +21,6 @@ private:
 
 void CheckCudnnError(cudnnStatus_t status);
 
-namespace internal {
-
 std::shared_ptr<cudnnTensorStruct> CreateTensorDescriptor(const Array& arr, cudnnTensorFormat_t format = CUDNN_TENSOR_NCHW);
 std::shared_ptr<cudnnFilterStruct> CreateFilterDescriptor(const Array& arr, cudnnTensorFormat_t format = CUDNN_TENSOR_NCHW);
 std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
@@ -33,7 +31,14 @@ std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation = nonstd::nullopt,
         bool use_tensor_core = false,
         int groups = 1);
+std::pair<cudnnConvolutionFwdAlgo_t, size_t> GetAlgorithmFwd(
+        cudnnHandle_t handle,
+        cudnnTensorDescriptor_t x_desc,
+        cudnnFilterDescriptor_t filter_desc,
+        cudnnConvolutionDescriptor_t conv_desc,
+        cudnnTensorDescriptor_t y_desc,
+        size_t max_workspace_size,
+        bool use_tensor_core = false);
 
-}  // namespace internal
 }  // namespace cuda
 }  // namespace xchainer

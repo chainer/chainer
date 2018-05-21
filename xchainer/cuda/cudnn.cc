@@ -255,8 +255,6 @@ void SetConvolutionDescriptor(
 
 }  // namespace
 
-namespace internal {
-
 // def create_tensor_descriptor(arr, format=cudnn.CUDNN_TENSOR_NCHW):
 //    desc = Descriptor(cudnn.createTensorDescriptor(),
 //                      py_cudnn.destroyTensorDescriptor)
@@ -303,7 +301,7 @@ std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         Dtype dtype,
-        cudnnConvolutionMode_t mode = CUDNN_CROSS_CORRELATION,
+        cudnnConvolutionMode_t mode,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
         bool use_tensor_core,
         int groups) {
@@ -315,6 +313,62 @@ std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
     return shared_desc;
 }
 
-}  // namespace internal
+// cpdef tuple _get_algorithm_fwd(
+//         size_t handle, size_t x_desc, size_t filter_desc, size_t conv_desc,
+//         size_t y_desc, size_t max_workspace_size, bint use_tensor_core):
+std::pair<cudnnConvolutionFwdAlgo_t, size_t> GetAlgorithmFwd(
+        cudnnHandle_t handle,
+        cudnnTensorDescriptor_t x_desc,
+        cudnnFilterDescriptor_t filter_desc,
+        cudnnConvolutionDescriptor_t conv_desc,
+        cudnnTensorDescriptor_t y_desc,
+        size_t max_workspace_size,
+        bool use_tensor_core) {
+    //     cdef int algo
+    //     cdef workspace_size
+    //     if use_tensor_core and _cudnn_version >= 7000:
+    //         ret = cudnn.getConvolutionForwardAlgorithm_v7(
+    //             handle, x_desc, filter_desc, conv_desc, y_desc, 10)
+    //         for i in range(len(ret)):
+    //             if ret[i]['memory'] <= max_workspace_size:
+    //                 break
+    //         else:
+    //             raise RuntimeError('No conv fwd algo available with workspace size'
+    //                                ' less equal {}'.format(max_workspace_size))
+    //         if i != 0:
+    //             msg = 'The best algo of conv fwd might not be selected due to '
+    //                   'lack of workspace size ({})'.format(max_workspace_size)
+    //             warnings.warn(msg)
+    //         algo = ret[i]['algo']
+    //         workspace_size = ret[i]['memory']
+    if (use_tensor_core) {
+        int requested_algo_count = 10;
+        std::vector<cudnnConvolutionFwdAlgoPerf_t> perf_results(requested_algo_count);
+        int returned_algo_count;
+        CheckCudnnError(cudnnGetConvolutionForwardAlgorithm_v7(
+                handle, x_desc, filter_desc, conv_desc, y_desc, requested_algo_count, &returned_algo_count, &perf_results[0]));
+        perf_results.resize(returned_algo_count);
+        for (auto perf_result : perf_results) {
+            if (perf_result.memory <= max_workspace_size) {
+                return {perf_result.algo, perf_result.memory};
+            }
+        }
+        throw XchainerError{"No conv fwd algo available with workspace size less equal ", max_workspace_size};
+    }
+
+    //     else:
+    //         algo = cudnn.getConvolutionForwardAlgorithm_v6(
+    //             handle, x_desc, filter_desc, conv_desc, y_desc,
+    //             cudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT,
+    //             max_workspace_size)
+    //         workspace_size = max_workspace_size
+    //     return algo, workspace_size
+
+    cudnnConvolutionFwdAlgo_t algo{};
+    CheckCudnnError(cudnnGetConvolutionForwardAlgorithm(
+            handle, x_desc, filter_desc, conv_desc, y_desc, CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT, max_workspace_size, &algo));
+    return {algo, max_workspace_size};
+}
+
 }  // namespace cuda
 }  // namespace xchainer
