@@ -391,7 +391,7 @@ TEST_P(ArrayTest, IDivideScalar) {
     Array a = testing::BuildArray<float>({3, 1}, {1.f, 2.f, 3.f});
     Array e = testing::BuildArray<float>({3, 1}, {0.5f, 1.f, 1.5f});
     a /= Scalar{2.f};
-    testing::ExpectAllClose(e, a, 1e-3, 1e-3);
+    testing::ExpectEqual(e, a);
 }
 
 TEST_P(ArrayTest, Add) {
@@ -402,11 +402,32 @@ TEST_P(ArrayTest, Add) {
     testing::ExpectEqual(e, o);
 }
 
+TEST_P(ArrayTest, AddScalar) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Scalar b{2.f};
+    Array e = testing::BuildArray<float>({3, 1}, {3, 4, 5});
+    {
+        Array o = a + b;
+        testing::ExpectEqual(e, o);
+    }
+    {
+        Array o = b + a;
+        testing::ExpectEqual(e, o);
+    }
+}
+
 TEST_P(ArrayTest, Subtract) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array b = testing::BuildArray<float>({3, 1}, {4, 0, -2});
     Array e = testing::BuildArray<float>({3, 1}, {-3, 2, 5});
     Array o = a - b;
+    testing::ExpectEqual(e, o);
+}
+
+TEST_P(ArrayTest, SubtractScalar) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray<float>({3, 1}, {-0.5f, 0.5f, 1.5f});
+    Array o = a - Scalar{1.5f};
     testing::ExpectEqual(e, o);
 }
 
@@ -418,21 +439,33 @@ TEST_P(ArrayTest, Multiply) {
     testing::ExpectEqual(e, o);
 }
 
-// TODO(hvy): Also test CUDA using ArrayTest.
-TEST(ArrayNativeTest, MultiplyScalar) {
-    testing::ContextSession context_session;
-
+TEST_P(ArrayTest, MultiplyScalar) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Scalar b{2.f};
     Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
+    {
+        Array o = a * b;
+        testing::ExpectEqual(e, o);
+    }
+    {
+        Array o = b * a;
+        testing::ExpectEqual(e, o);
+    }
+}
 
-    {
-        Array o = a * Scalar{2.f};
-        testing::ExpectEqual(e, o);
-    }
-    {
-        Array o = Scalar{2.f} * a;
-        testing::ExpectEqual(e, o);
-    }
+TEST_P(ArrayTest, Divide) {
+    Array a = testing::BuildArray<float>({3, 1}, {1.f, 2.f, 3.f});
+    Array b = testing::BuildArray<float>({3, 1}, {0.5f, 0.5f, 2.f});
+    Array e = testing::BuildArray<float>({3, 1}, {2.f, 4.f, 1.5f});
+    Array o = a / b;
+    testing::ExpectEqual(e, o);
+}
+
+TEST_P(ArrayTest, DivideScalar) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray<float>({3, 1}, {0.5f, 1.f, 1.5f});
+    Array o = a / Scalar{2.f};
+    testing::ExpectEqual(e, o);
 }
 
 TEST_P(ArrayTest, ComputationalGraph) {

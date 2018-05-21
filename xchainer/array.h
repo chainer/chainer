@@ -245,6 +245,7 @@ private:
     std::shared_ptr<internal::ArrayBody> body_;
 };
 
+inline Array operator+(Scalar lhs, const Array& rhs) { return rhs + lhs; }
 inline Array operator*(Scalar lhs, const Array& rhs) { return rhs * lhs; }
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent = 0);
