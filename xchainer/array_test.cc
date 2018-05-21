@@ -456,7 +456,7 @@ TEST_P(ArrayTest, ComputationalGraph) {
         EXPECT_NE(c_op_node, nullptr);
         EXPECT_NE(o_op_node, nullptr);
         EXPECT_EQ(c_op_node->name(), "add");
-        EXPECT_EQ(o_op_node->name(), "mul");
+        EXPECT_EQ(o_op_node->name(), "multiply");
     }
 }
 

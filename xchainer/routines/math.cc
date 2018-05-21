@@ -39,8 +39,6 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
 
 void AddImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    CheckEqual(x1.dtype(), x2.dtype());
-
     auto backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
     internal::SetUpOpNodes("add_scalar", {x1}, out, {backward_function});
 
@@ -123,8 +121,6 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
 
 void SubtractImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    CheckEqual(x1.dtype(), x2.dtype());
-
     auto backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
     internal::SetUpOpNodes("subtract_scalar", {x1}, out, {backward_function});
 
@@ -211,8 +207,6 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
 
 void MultiplyImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    CheckEqual(x1.dtype(), x2.dtype());
-
     auto backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&) { return gout * other; };
     internal::SetUpOpNodes("multiply_scalar", {x1}, out, {backward_function});
 
@@ -303,8 +297,6 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
 
 void DivideImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    CheckEqual(x1.dtype(), x2.dtype());
-
     auto backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&) { return gout / other; };
     internal::SetUpOpNodes("divide_scalar", {x1}, out, {backward_function});
 
