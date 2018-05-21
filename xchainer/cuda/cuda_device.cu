@@ -17,8 +17,8 @@
 #include "xchainer/backend_util.h"
 #include "xchainer/cuda/cast.cuh"
 #include "xchainer/cuda/cublas.h"
-#include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/cuda_runtime.h"
+#include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/elementwise.cuh"
 #include "xchainer/cuda/reduce.cuh"
 #include "xchainer/device.h"
@@ -941,13 +941,13 @@ namespace {
 
 // def get_conv_outsize(size, k, s, p, cover_all=False, d=1):
 //     """Calculates output size of convolution.
-// 
+//
 //     This function takes the size of input feature map, kernel, stride, and
 //     pooling of one particular dimension, then calculates the output feature
 //     map size of that dimension.
-// 
+//
 //     .. seealso:: :func:`~chainer.utils.get_deconv_outsize`
-// 
+//
 //     Args:
 //         size (int): The size of input feature map. It usually is the length of
 //             a side of feature map.
@@ -956,10 +956,10 @@ namespace {
 //         p (int): The size of padding.
 //         cover_all (bool): Use ``cover_all`` option or not.
 //         d (int): The size of dilation.
-// 
+//
 //     Returns:
 //         int: The expected output size of the convolution operation.
-// 
+//
 //     """
 //     dk = k + (k - 1) * (d - 1)
 //     if cover_all:
@@ -1041,8 +1041,8 @@ Array CudaDevice::Conv(
 
     // # Get cuDNN handler and descriptors.
     cudnnHandle_t handle = cudnn_handle();
-    std::shared_ptr<cudnnTensorStruct> x_desc = CreateTensorDescriptor(x);
-    std::shared_ptr<cudnnTensorStruct> y_desc = CreateTensorDescriptor(y);
+    std::shared_ptr<cudnnTensorStruct> x_desc = internal::CreateTensorDescriptor(x);
+    std::shared_ptr<cudnnTensorStruct> y_desc = internal::CreateTensorDescriptor(y);
 
     return x;
 

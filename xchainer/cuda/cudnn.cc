@@ -62,8 +62,8 @@ cudnnDataType_t GetCudnnDataType(Dtype dtype) {
 
 void SetTensorNdDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnDataType_t cudnn_dtype) {
     int64_t item_size = arr.item_size();
-    std::vector<int> int_shape{arr.ndim()};
-    std::vector<int> int_strides{arr.ndim()};
+    std::vector<int> int_shape(arr.ndim());
+    std::vector<int> int_strides(arr.ndim());
     for (int8_t i = 0; i < arr.ndim(); ++i) {
         int_strides.emplace_back(arr.strides()[i] / item_size);
     }
@@ -124,7 +124,7 @@ void SetFilterDescriptor(cudnnFilterDescriptor_t desc, const Array& arr, cudnnTe
         int w = static_cast<int>(arr.shape()[3]);
         cudnnSetFilter4dDescriptor(desc, cudnn_dtype, format, n, c, h, w);
     } else {
-        std::vector<int> int_shape{arr.ndim()};
+        std::vector<int> int_shape(arr.ndim());
         for (int8_t i = 0; i < arr.ndim(); ++i) {
             int_shape.emplace_back(arr.shape()[i]);
         }
@@ -132,7 +132,130 @@ void SetFilterDescriptor(cudnnFilterDescriptor_t desc, const Array& arr, cudnnTe
     }
 }
 
+// cpdef _create_convolution_descriptor(
+//         size_t desc, tuple pad, tuple stride, tuple dilation, int groups,
+//         object dtype, int mode, bint use_tensor_core):
+void SetConvolutionDescriptor(
+        cudnnConvolutionDescriptor_t desc,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+        int groups,
+        Dtype dtype,
+        cudnnConvolutionMode_t mode,
+        bool use_tensor_core) {
+    //     cdef int d0, d1, p0, p1, s0, s1
+    //     cdef vector.vector[int] c_pad, c_stride, c_dilation
+    //     ndim = len(pad)
+    //     if ndim != len(stride):
+    //         raise ValueError('pad and stride must be of same length')
+    //
+
+    size_t ndim = pad.size();
+    if (ndim != stride.size()) {
+        throw DimensionError{"pad and stride must be of same length"};
+    }
+    if (dilation && ndim != dilation->size()) {
+        throw DimensionError{"pad and dilation must be of same length"};
+    }
+
+    std::vector<int> int_stride(ndim);
+    std::vector<int> int_pad(ndim);
+    for (int64_t v : stride) {
+        int_stride.emplace_back(static_cast<int>(v));
+    }
+    for (int64_t v : pad) {
+        int_pad.emplace_back(static_cast<int>(v));
+    }
+
+    //     compute_type = get_data_type(dtype)
+    //     # TODO(takagi) Temporarily use computing precision of FP32 for
+    //     #     storing precision of FP16.
+    //     if compute_type == cudnn.CUDNN_DATA_HALF:
+    //         compute_type = cudnn.CUDNN_DATA_FLOAT
+    //
+    cudnnDataType_t compute_type = GetCudnnDataType(dtype);
+
+    //     if ndim != 2:
+    //         c_pad = pad
+    //         c_stride = stride
+    //         if dilation is None:
+    //             c_dilation.assign(ndim, 1)
+    //         else:
+    //             c_dilation = dilation
+    //             if _cudnn_version < 6000:
+    //                 for i in c_dilation:
+    //                     if i != 1:
+    //                         raise ValueError(
+    //                             'dilation must be one when cuDNN < 6.0')
+    //         cudnn.setConvolutionNdDescriptor_v3(
+    //             desc, ndim, <size_t>&c_pad[0], <size_t>&c_stride[0],
+    //             <size_t>&c_dilation[0], mode, compute_type)
+
+    if (ndim != 2) {
+        std::vector<int> int_dilation(ndim);
+        if (!dilation) {
+            int_dilation.assign(ndim, 1);
+        } else {
+            for (int64_t v : *dilation) {
+                int_dilation.emplace_back(static_cast<int>(v));
+            }
+        }
+        cudnnSetConvolutionNdDescriptor(desc, ndim, &int_pad[0], &int_stride[0], &int_dilation[0], mode, compute_type);
+    }
+
+    //     else:
+    //         if dilation is None:
+    //             d0 = d1 = 1
+    //         else:
+    //             d0, d1 = dilation
+    //         p0, p1 = pad
+    //         s0, s1 = stride
+    //         if _cudnn_version < 6000 and (d0 != 1 or d1 != 1):
+    //             raise ValueError('dilation must be one when cuDNN < 6.0')
+    //         if _cudnn_version >= 5000:
+    //             cudnn.setConvolution2dDescriptor_v5(
+    //                 desc, p0, p1, s0, s1, d0, d1, mode, compute_type)
+    //         else:
+    //             cudnn.setConvolution2dDescriptor_v4(
+    //                 desc, p0, p1, s0, s1, 1, 1, mode)
+
+    else {
+        int d0 = 0, d1 = 0;
+        if (!dilation) {
+            d0 = d1 = 1;
+        } else {
+            d0 = static_cast<int>((*dilation)[0]);
+            d1 = static_cast<int>((*dilation)[1]);
+        }
+        int p0 = static_cast<int>(pad[0]);
+        int p1 = static_cast<int>(pad[1]);
+        int s0 = static_cast<int>(stride[0]);
+        int s1 = static_cast<int>(stride[1]);
+
+        cudnnSetConvolution2dDescriptor(desc, p0, p1, s0, s1, d0, d1, mode, compute_type);
+    }
+
+    //     if _cudnn_version >= 7000:
+    //         if use_tensor_core:
+    //             math_type = cudnn.CUDNN_TENSOR_OP_MATH
+    //             cudnn.setConvolutionMathType(desc, math_type)
+    //         if groups > 1:
+    //             cudnn.setConvolutionGroupCount(desc, groups)
+    //     elif groups > 1:
+    //         raise ValueError('groups must be one when cuDNN < 7.0')
+    if (use_tensor_core) {
+        cudnnMathType_t math_type = CUDNN_TENSOR_OP_MATH;
+        cudnnSetConvolutionMathType(desc, math_type);
+    }
+    if (groups > 1) {
+        cudnnSetConvolutionGroupCount(desc, groups);
+    }
+}
+
 }  // namespace
+
+namespace internal {
 
 // def create_tensor_descriptor(arr, format=cudnn.CUDNN_TENSOR_NCHW):
 //    desc = Descriptor(cudnn.createTensorDescriptor(),
@@ -164,6 +287,34 @@ std::shared_ptr<cudnnFilterStruct> CreateFilterDescriptor(const Array& arr, cudn
     return shared_desc;
 }
 
+// def create_convolution_descriptor(pad, stride, dtype,
+//                                   mode=cudnn.CUDNN_CROSS_CORRELATION,
+//                                   dilation=None,
+//                                   use_tensor_core=False,
+//                                   groups=1):
+//     desc = Descriptor(cudnn.createConvolutionDescriptor(),
+//                       py_cudnn.destroyConvolutionDescriptor)
+//     _create_convolution_descriptor(
+//         desc.value, pad, stride, dilation, groups,
+//         dtype, mode, use_tensor_core)
+//     return desc
 
+std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        Dtype dtype,
+        cudnnConvolutionMode_t mode = CUDNN_CROSS_CORRELATION,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+        bool use_tensor_core,
+        int groups) {
+    cudnnConvolutionDescriptor_t desc{};
+    CheckCudnnError(cudnnCreateConvolutionDescriptor(&desc));
+    auto shared_desc = std::shared_ptr<cudnnConvolutionStruct>{
+            desc, [](cudnnConvolutionDescriptor_t desc) { CheckCudnnError(cudnnDestroyConvolutionDescriptor(desc)); }};
+    SetConvolutionDescriptor(desc, pad, stride, dilation, groups, dtype, mode, use_tensor_core);
+    return shared_desc;
+}
+
+}  // namespace internal
 }  // namespace cuda
 }  // namespace xchainer
