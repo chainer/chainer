@@ -779,7 +779,7 @@ Array NativeDevice::ConvTranspose(
         }
     }
 
-    Array y = Col2Im(col, stride, pad, out_size_value);  // batch_size, out_channels, out_size...
+    Array y = Col2Im(col, stride, pad, out_size_value);  // shape: batch_size, out_channel, out_size...
 
     // Add bias, if given.
     if (b.has_value()) {
