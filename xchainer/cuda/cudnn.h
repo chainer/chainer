@@ -37,6 +37,16 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> GetConvolutionForwardAlgorithm(
         cudnnConvolutionDescriptor_t conv_desc,
         cudnnTensorDescriptor_t y_desc,
         size_t max_workspace_size);
+std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
+        cudnnHandle_t handle,
+        const std::shared_ptr<cudnnTensorStruct>& x_desc,
+        const Array& x,
+        const std::shared_ptr<cudnnFilterStruct>& w_desc,
+        const Array& w,
+        const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
+        const std::shared_ptr<cudnnTensorStruct>& y_desc,
+        const Array& y,
+        size_t max_workspace_size);
 
 }  // namespace cuda
 }  // namespace xchainer

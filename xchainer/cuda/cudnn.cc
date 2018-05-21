@@ -70,7 +70,7 @@ void SetTensorNdDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnn
     for (int8_t i = 0; i < arr.ndim(); ++i) {
         int_shape.emplace_back(arr.shape()[i]);
     }
-    CheckCudaError(cudnnSetTensorNdDescriptor(desc, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]));
+    CheckCudnnError(cudnnSetTensorNdDescriptor(desc, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]));
 }
 
 // cpdef _create_tensor_descriptor(size_t desc, core.ndarray arr, int format):
@@ -94,7 +94,7 @@ void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTe
         int c = static_cast<int>(arr.shape()[1]);
         int h = static_cast<int>(arr.shape()[2]);
         int w = static_cast<int>(arr.shape()[3]);
-        CheckCudaError(cudnnSetTensor4dDescriptor(desc, format, cudnn_dtype, n, c, h, w));
+        CheckCudnnError(cudnnSetTensor4dDescriptor(desc, format, cudnn_dtype, n, c, h, w));
     } else {
         SetTensorNdDescriptor(desc, arr, cudnn_dtype);
     }
@@ -327,6 +327,56 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> GetConvolutionForwardAlgorithm(
     CheckCudnnError(cudnnGetConvolutionForwardAlgorithm(
             handle, x_desc, filter_desc, conv_desc, y_desc, CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT, max_workspace_size, &algo));
     return {algo, max_workspace_size};
+}
+
+// cpdef tuple _find_algorithm_fwd(
+//         core.ndarray x, core.ndarray W, core.ndarray y, tuple conv_param,
+//         size_t handle, size_t x_desc, size_t filter_desc, size_t conv_desc,
+//         size_t y_desc, size_t max_workspace_size):
+//     key = (x.data.device.id, x.shape, W.shape, y.shape, conv_param,
+//            max_workspace_size)
+//     if key in _algorithm_fwd:
+//         return _algorithm_fwd[key]
+//     workspace = memory.alloc(max_workspace_size)
+//     ret = cudnn.findConvolutionForwardAlgorithmEx(
+//         handle, x_desc, x.data.ptr, filter_desc, W.data.ptr, conv_desc, y_desc,
+//         y.data.ptr, 1, workspace.ptr, max_workspace_size)
+//     algo = (ret[0]['algo'], ret[0]['memory'])
+//     _algorithm_fwd[key] = algo
+//     return algo
+std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
+        cudnnHandle_t handle,
+        const std::shared_ptr<cudnnTensorStruct>& x_desc,
+        const Array& x,
+        const std::shared_ptr<cudnnFilterStruct>& w_desc,
+        const Array& w,
+        const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
+        const std::shared_ptr<cudnnTensorStruct>& y_desc,
+        const Array& y,
+        size_t max_workspace_size) {
+    // TODO(sonots): cache the result
+    std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
+
+    int requested_algo_count = 1;
+    std::vector<cudnnConvolutionFwdAlgoPerf_t> perf_results(requested_algo_count);
+    int returned_algo_count;
+
+    CheckCudnnError(cudnnFindConvolutionForwardAlgorithmEx(
+            handle,
+            x_desc.get(),
+            x.data().get(),
+            w_desc.get(),
+            w.data().get(),
+            conv_desc.get(),
+            y_desc.get(),
+            y.data().get(),
+            requested_algo_count,
+            &returned_algo_count,
+            &perf_results[0],
+            workspace.get(),
+            max_workspace_size));
+
+    return {perf_results[0].algo, perf_results[0].memory};
 }
 
 }  // namespace cuda
