@@ -34,6 +34,7 @@ class _ResultsCheckFailure(Exception):
         self.condense_results_func = condense_results_func
 
     def condense_results(self, numpy_result, xchainer_result):
+        # Generates a condensed error message for a pair of lowest-level numpy and xchainer results.
         return self.condense_results_func(numpy_result, xchainer_result)
 
 
@@ -76,6 +77,7 @@ def _is_numpy_type(result):
 
 
 def _check_xchainer_numpy_result_array(check_result_func, xchainer_result, numpy_result, indices):
+    # Compares `xchainer_result` and `numpy_result` as arrays.
     is_xchainer_ignored = xchainer_result is _ignored_result
     is_numpy_ignored = numpy_result is _ignored_result
 
@@ -112,8 +114,9 @@ def _check_xchainer_numpy_result_array(check_result_func, xchainer_result, numpy
 
 
 def _check_xchainer_numpy_result_impl(check_result_func, xchainer_result, numpy_result, indices):
+    # This function raises _ResultsCheckFailure if any failure occurs.
+    # `indices` is a tuple of indices to reach both `xchainer_results` and `numpy_results` from top-level results.
     if isinstance(xchainer_result, tuple):
-        # TODO(niboshi): better error messages
         if not isinstance(numpy_result, tuple):
             raise _ResultsCheckFailure('Different result types', indices)
         assert len(xchainer_result) == len(numpy_result)
@@ -133,6 +136,7 @@ def _check_xchainer_numpy_result_impl(check_result_func, xchainer_result, numpy_
 
 
 def _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_result):
+    # Catch _ResultsCheckFailure and generate a comprehensible error message.
     try:
         _check_xchainer_numpy_result_impl(check_result_func, xchainer_result, numpy_result, indices=())
     except _ResultsCheckFailure as e:
