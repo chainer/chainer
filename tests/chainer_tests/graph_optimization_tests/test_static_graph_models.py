@@ -31,8 +31,8 @@ class StaticMLP(chainer.Chain):
 
     @static_graph(verbosity_level=0)
     def __call__(self, x):
-        return self.l1(x)
-        #return F.relu(self.l1(x))
+        #return self.l1(x)
+        return F.relu(self.l1(x))
 
 class DynamicMLP(chainer.Chain):
 
@@ -45,8 +45,8 @@ class DynamicMLP(chainer.Chain):
                 initial_bias=chainer.initializers.Normal(1, x_dtype))
 
     def __call__(self, x):
-        return self.l1(x)
-        #return F.relu(self.l1(x))
+        #return self.l1(x)
+        return F.relu(self.l1(x))
 
 
 class MLP(chainer.Chain):
@@ -70,18 +70,18 @@ class MLP(chainer.Chain):
 
     def dynamic_call(self, x):
         # Dynamic graph only.
-        #return F.relu(self.l1(x))
-        return self.l1(x)
+        return F.relu(self.l1(x))
+        #return self.l1(x)
 
     @static_graph(verbosity_level=0)
     def static_call(self, x):
         # Static graph.
-        #return F.relu(self.l1(x))
-        return self.l1(x)
+        return F.relu(self.l1(x))
+        #return self.l1(x)
 
 @testing.parameterize(*testing.product({
-    #'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'x_dtype': [numpy.float32],
+    'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    #'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
 }))
 class TestSimpleChain(unittest.TestCase):
@@ -136,7 +136,7 @@ class TestSimpleChain(unittest.TestCase):
         chainer.testing.assert_allclose(y_dyn.data, y_static.data)
 
     @attr.gpu
-    def tes_fixme_skipped_forward_gpu(self):
+    def test_skipped_forward_gpu(self):
         self.chain.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
@@ -156,8 +156,6 @@ class TestSimpleChain(unittest.TestCase):
         #y.grad = self.gy
         #y.backward()
         #chain.cleargrads()
-
-        #chainer.config.train = False
         with configuration.using_config('train', False):
             self.check_backward(self.x, self.gy, chain)
 

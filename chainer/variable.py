@@ -798,16 +798,6 @@ Actual: {0}'''.format(type(data))
 
     def cleargrad(self):
         """Clears the gradient array."""
-        if self.is_static:
-            # If self._grad_var.data already exists, fill with zeros.
-            # Otherwise, do same thing as non-static version.
-            self._grad_var.data.fill(0)
-            #if gv is not None:
-            #    if gv.data is not None:
-            #        #gv.unchain()
-            #        gv.data.fill(0)
-            return
-
         self._grad_var = None
 
     def zerograd(self):
@@ -1058,10 +1048,10 @@ Actual: {0}'''.format(type(data))
             out_grad = tuple([get_grad(y) for y in outputs])
             # Check if func was called as part of a static chain in the
             # forward pass.
-            if is_static_func(func):
+            #if is_static_func(func):
                 #check_func_backward_outputs(func, out_grad)
                 # Force retain_grad mode for any functions in a static chain.
-                assert retain_grad is True # fixme: remove check after debug.
+                #assert retain_grad is True # fixme: remove check after debug.
 
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
@@ -1191,8 +1181,7 @@ Actual: {0}'''.format(type(data))
                 if x.creator_node is not None:
                     add_cand(x.creator_node)
 
-            if not is_static_func(func):
-                del gxs  # to reduce memory usage
+            del gxs  # to reduce memory usage
             if initial_device is not None:
                 initial_device.use()
 

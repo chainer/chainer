@@ -14,19 +14,7 @@ import numpy as np
 
 #fixme: need to check the dtype of inputs when checking the type signature for static schedules.
 
-# todo: Add a debug mode (perhaps enabled by defaut) that checks that the parameter references
-# do not change from iteration to iteration. This is needed because some existing parts of Chainer,
-# such as the gradient_check.py change the references of the parameter arrays, which is not allowed!
-# Without any checks, this will lead to mysterious and dificult to detect errors. We should therefore
-# check for it and raise an exception if outside code attempts to change the refernce.
-# Implementation: before returning from the __call__(), get a list of all parmaeters. Then save
-# the references of each parameter to a dict or something. (or we can just save the id() of the
-# .data arrays? Then, in each subsequent call of the static chain, verify that the references
-# /ids have not changed. We can do this for the backward pass, too? how? That is, we can check both
-# the .data and .grad attributes of all parameters.
 
-# todo: make a more general version of this function that finds the id of each array.
-# It should also be modified to support cupy arrays.
 def _debug_print_stats(args):
     for arg in args:
         if isinstance(arg, np.ndarray) or isinstance(item, cuda.ndarray):
@@ -65,6 +53,7 @@ class ScheduleInfo(object):
     def _run_hooks(self):
         """Run hooks to set correct references.
 
+        This method is called from '__call__()'.
         Process the list of hooks which will modify the array references in
         the arguments list of the static function. This method must be
         called before executing the static function.
@@ -130,9 +119,6 @@ class ScheduleInfo(object):
                                                                 self.args,
                                                                 self.kwargs, self.hooks)
 
-
-# todo: rename to StaticSchedule. (the Function part makes it sound like
-# it refers to only 1 function iside the static schedule)
 class StaticScheduleFunction(chainer.function_node.FunctionNode):
     """A function that executes the static schedule of a Chain.
 
@@ -197,10 +183,13 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         # in params_list. This is needed so that we can restore any grad_var
         # that is set to None by outside code.
         self.grad_var_list = []
-        self.debug_grad_var_list = []
+        #self.debug_grad_var_list = []
         # Maps an array id (of a parameter) to its location.
         # id(array) -> (index_in_self.params_list, attribute_location)
         self.array_id_to_param_map = dict()
+        # Maps an array id (of an input variable) to its location.
+        # id(array) -> (index in fixme)
+        self.array_id_to_input_var_map = dict()
         # A list of tuples that specify the mappings from static schedule
         # arrays to parameter attributes.
         self.param_hooks = []
@@ -303,20 +292,17 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             (params_list_index, attribute_location) = param_attribute_location
             param = self.params_list[params_list_index]
             schedule_grad_var = self.grad_var_list[params_list_index]
-            was_grad_var = self.debug_grad_var_list[params_list_index]
-            #if was_grad_var:
+            #was_grad_var = self.debug_grad_var_list[params_list_index]
             if schedule_grad_var is not None:
                 if param.grad_var is None:
                     if self.verbosity_level >= 2:
-                        print('----------- USER CODE REMOVED GRAD VAR!------')
+                        print('Somebody removed grad_var.')
                     if schedule_grad_var.data is not None:
+                        if param.data.dtype != schedule_grad_var.data.dtype:
+                            raise RuntimeError('It is not allowed to change the parameter dtype in a static chain!')
                         schedule_grad_var.data.fill(0)
                         param.grad_var = schedule_grad_var
-            #print('curent reference count is: ', sys.getrefcount(self.params_list[params_list_index]))
-            # This is the original array that was used during the first
-            # iteration and at that time corresponded to the data
-            # attribute of the parameter.
-            #schedule_array = self.unique_arrays[unique_array_index]
+
             if attribute_location == 'data':
                 # This is the corresponding parameter array, which might
                 # have had its reference changed to a different array or set
@@ -389,7 +375,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         assert len(self.params_list) == 0
         assert len(self.array_id_to_param_map) == 0
 
-        # Check that all array references are actually unique.
+        # Verify that all array references are actually unique.
         unique_ids = set()
         for ar in self.unique_arrays:
             assert id(ar) not in unique_ids
@@ -405,10 +391,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                 print('For param: ', param)
                 print('adding its grad_var: ', grad_var)
             self.grad_var_list.append(grad_var)
-            if grad_var is None:
-                self.debug_grad_var_list.append(False)
-            else:
-                self.debug_grad_var_list.append(True)
             params_list_index = len(self.params_list) - 1
             if param.data is not None:
                 key = id(param.data)
@@ -424,16 +406,24 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         #print('self.array_id_to_param_map:\n', self.array_id_to_param_map)
 
         # Iterate over all arrays used in the schedule and check which ones
-        # correspond to parameter arrays.
+        # correspond to parameter arrays or input variables. When a match
+        # is found, create a corresponding hook function. This hook will
+        # run just before executing the schedule and set the array
+        # references used in the schedule to be consistant with the
+        # input variables and parameters.
         assert len(self.unique_arrays) > 0
         for unique_array_index, ar in enumerate(self.unique_arrays):
             if id(ar) in self.array_id_to_param_map:
                 param_attribute_location = self.array_id_to_param_map[id(ar)]
-                hook = (unique_array_index, param_attribute_location)
-                self.param_hooks.append(hook)
+                param_hook = (unique_array_index, param_attribute_location)
+                self.param_hooks.append(param_hook)
+
+            if id(ar) in fixme:
+                pass
 
         if self.verbosity_level >= 2:
             print('self.param_hooks: ', self.param_hooks)
+
 
 
         # todo: We can potentially reduce memory usage by freeing memory
@@ -447,11 +437,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         #    args = func_info.args
         #    kwargs = func_info.kwargs
         #    func_name = func_info.func_name
-
-
-
-
-
 
         self.schedule_built = True
 
@@ -620,10 +605,9 @@ class ScheduleManager(object):
                     print("Clearing schedule cache...")
                 self.schedules.clear()
                 self.in_use_count.clear()
-            # todo (vogel): Also check if minibatch size has changed and clear schedules.
 
         if chainer.config.train is False or chainer.config.enable_backprop is False:
-            key_str = 'test:' + ''.join(str(x.shape) for x in in_vars)
+            key_str = 'test:' + ''.join(str(x.shape) + str(x.dtype) for x in in_vars)
             # If the maximum number of in-use schedules in any iteration
             # during training mode was exactly 1, assume it should also
             # be 1 for test mode.
@@ -639,8 +623,7 @@ class ScheduleManager(object):
             return sched
 
         else:
-            key_str = 'train:' + ''.join(str(x.shape) for x in in_vars)
-            #print("key: \n", key_str)
+            key_str = 'train:' + ''.join(str(x.shape) + str(x.dtype) for x in in_vars)
             self._train_count += 1
 
             if key_str in self.schedules:
