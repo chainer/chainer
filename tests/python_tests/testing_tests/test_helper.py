@@ -14,127 +14,41 @@ class BarError(Exception):
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal(xp):
-    assert xp is numpy or xp is xchainer
+@pytest.mark.parametrize('np_result, xc_result', [
+    (1.0, 1.0),
+    (numpy.full((1,), 1.0, numpy.float32), xchainer.full((1,), 1.0, xchainer.float32)),
+])
+def test_numpy_xchainer_array_equal_both_return_nonarray(xp, np_result, xc_result):
     if xp is numpy:
-        return numpy.full((1,), 1.0, numpy.float32)
+        return np_result
     else:
-        return xchainer.full((1,), 1.0, xchainer.float32)
+        return xc_result
 
 
 @pytest.mark.xfail(strict=True)
 @xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_both_return_nothing(xp):
-    return None
-
-
-@pytest.mark.xfail(strict=True)
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_numpy_return_nothing(xp):
+@pytest.mark.parametrize('np_result, xc_result', [
+    (None, None),  # Both return None
+    (None, xchainer.full((1,), 1.0, xchainer.float32)),  # NumPy returns None
+    (numpy.full((1,), 1.0, numpy.float32), None),  # Xchainer returns None
+    (numpy.full((1,), 1.0, numpy.float32), xchainer.full((1,), 2.0, xchainer.float32)),  # Value mismatch
+    (1.0, xchainer.full((1,), 1.0, xchainer.float64)),  # NumPy returns non-array
+    (numpy.full((1,), 1.0, numpy.float64), 1.0),  # Xchainer returns non-array
+    (1.0, 1),  # Scalar type mismatch
+    (numpy.int64(1), numpy.int64(1)),  # Xchainer returns NumPy scalar
+    (numpy.full((1,), 1.0, numpy.float64), numpy.full((1,), 1.0, numpy.float64)),  # Both return NumPy array
+    (xchainer.full((1,), 1.0, xchainer.float64), xchainer.full((1,), 1.0, xchainer.float64)),  # Both return Xchainer array
+    (xchainer.full((1,), 1.0, xchainer.float64), numpy.full((1,), 1.0, numpy.float64)),  # Return arrays wrong way around
+    (numpy.full((1,), 1.0, numpy.float64), xchainer.full((1,), 1.0, xchainer.float32)),  # Dtype mismatch
+    (numpy.full((1,), 1.0, numpy.float64), xchainer.full((), 1.0, xchainer.float32)),  # Shape mismatch
+    (numpy.array([[0, 1, 2, 0], [0, 3, 4, 0], [0, 0, 0, 0]], numpy.float32)[0:2, 1:3],
+     xchainer.array(numpy.array([[0, 0, 0], [1, 2, 0], [3, 4, 0]], numpy.float32))[1:3, 0:2]),  # Strides mismatch
+])
+def test_numpy_xchainer_array_equal_fail_invalid_return(xp, np_result, xc_result):
     if xp is numpy:
-        return None
+        return np_result
     else:
-        return xchainer.full((1,), 1.0, xchainer.float32)
-
-
-@pytest.mark.xfail(strict=True)
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_xchainer_return_nothing(xp):
-    if xp is numpy:
-        return numpy.full((1,), 1.0, numpy.float32)
-    else:
-        return None
-
-
-@pytest.mark.xfail(strict=True)
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_mismatch_value(xp):
-    if xp is numpy:
-        return numpy.full((1,), 1.0, numpy.float32)
-    else:
-        return xchainer.full((1,), 2.0, xchainer.float32)
-
-
-@pytest.mark.xfail(strict=True)
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_both_return_nonarray(xp):
-    if xp is numpy:
-        return 1.0
-    else:
-        return 1.0
-
-
-@pytest.mark.xfail(strict=True)
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_numpy_return_nonarray(xp):
-    if xp is numpy:
-        return 1.0
-    else:
-        return xchainer.full((1,), 1.0, xchainer.float64)
-
-
-@pytest.mark.xfail(strict=True)
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_xchainer_return_nonarray(xp):
-    if xp is numpy:
-        return numpy.full((1,), 1.0, numpy.float64)
-    else:
-        return 1.0
-
-
-@pytest.mark.xfail(strict=True)
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_both_numpy(xp):
-    if xp is numpy:
-        return numpy.full((1,), 1.0, numpy.float64)
-    else:
-        return numpy.full((1,), 1.0, numpy.float64)
-
-
-@pytest.mark.xfail(strict=True)
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_both_xchainer(xp):
-    if xp is numpy:
-        return xchainer.full((1,), 1.0, xchainer.float64)
-    else:
-        return xchainer.full((1,), 1.0, xchainer.float64)
-
-
-@pytest.mark.xfail(strict=True)
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_wrong_way_around(xp):
-    if xp is numpy:
-        return xchainer.full((1,), 1.0, xchainer.float64)
-    else:
-        return numpy.full((1,), 1.0, numpy.float64)
-
-
-@pytest.mark.xfail(strict=True)
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_dtype_mismatch(xp):
-    if xp is numpy:
-        return numpy.full((1,), 1.0, numpy.float64)
-    else:
-        return xchainer.full((1,), 1.0, xchainer.float32)
-
-
-@pytest.mark.xfail(strict=True)
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_shape_mismatch(xp):
-    if xp is numpy:
-        return numpy.full((1,), 1.0, numpy.float64)
-    else:
-        return xchainer.full((), 1.0, xchainer.float32)
-
-
-# TODO(niboshi): Currently this test passes. Implement stride check and uncomment xfail.
-# @pytest.mark.xfail(strict=True)
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_numpy_xchainer_array_equal_fail_strides_mismatch(xp):
-    if xp is numpy:
-        return numpy.array([[0, 1, 2], [0, 3, 4], [0, 0, 0]], numpy.float32)[0:2, 1:3]
-    else:
-        return xchainer.array(numpy.array([[0, 0, 0], [1, 2, 0], [3, 4, 0]], numpy.float32))[1:3, 0:2]
+        return xc_result
 
 
 @pytest.mark.xfail(strict=True)

@@ -131,16 +131,21 @@ Array Reshape(const Array& a, const Shape& newshape) {
         // without copy.
         Shape reduced_shape{};
         Strides reduced_strides{};
-        if (in_shape.ndim() == 0) {
-            // Input shape is (). Treat as if it were (1).
+        if (in_shape.GetTotalSize() == 1) {
             reduced_shape.push_back(int64_t{1});
             reduced_strides.push_back(item_size);
         } else {
+            int8_t i = 0;
+            // Ignore preceding 1-length dimensions
+            while (i < in_shape.ndim() && in_shape[i] == 1) {
+                ++i;
+            }
             // Add the first pair
-            reduced_shape.emplace_back(in_shape[0]);
-            reduced_strides.emplace_back(in_strides[0]);
+            reduced_shape.emplace_back(in_shape[i]);
+            reduced_strides.emplace_back(in_strides[i]);
+            ++i;
             // Reduce the remaining
-            for (int8_t i = 1; i < in_shape.ndim(); ++i) {
+            for (; i < in_shape.ndim(); ++i) {
                 int64_t dim = in_shape[i];
                 int64_t st = in_strides[i];
                 assert(dim > 0);

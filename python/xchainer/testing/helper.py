@@ -25,6 +25,18 @@ def ignore():
     return _ignored_result
 
 
+class _ResultsCheckFailure(Exception):
+    def __init__(self, msg, indices, condense_results_func=None):
+        self.msg = msg
+        self.indices = tuple(indices)
+        if condense_results_func is None:
+            condense_results_func = lambda np_r, xc_r: f'xchainer: {xc_r} numpy: {np_r}'
+        self.condense_results_func = condense_results_func
+
+    def condense_results(self, numpy_result, xchainer_result):
+        return self.condense_results_func(numpy_result, xchainer_result)
+
+
 def _call_func(impl, args, kw):
     try:
         result = impl(*args, **kw)
@@ -59,30 +71,96 @@ numpy
         pytest.fail(msg)
 
 
-def _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_result):
+def _is_numpy_type(result):
+    return isinstance(result, (numpy.ndarray, numpy.generic))
+
+
+def _check_xchainer_numpy_result_array(check_result_func, xchainer_result, numpy_result, indices):
     is_xchainer_ignored = xchainer_result is _ignored_result
     is_numpy_ignored = numpy_result is _ignored_result
 
     if is_xchainer_ignored and is_numpy_ignored:
         return  # Ignore without failing.
 
-    assert is_xchainer_ignored is is_numpy_ignored, (
-        f'Ignore value mismatch. xchainer: {is_xchainer_ignored}, numpy: {is_numpy_ignored}.')
+    if is_xchainer_ignored is not is_numpy_ignored:
+        raise _ResultsCheckFailure('Ignore value mismatch', indices)
 
     is_xchainer_valid_type = isinstance(xchainer_result, xchainer.ndarray)
-    is_numpy_valid_type = isinstance(numpy_result, numpy.ndarray) or numpy.isscalar(numpy_result)
+    is_numpy_valid_type = _is_numpy_type(numpy_result)
 
-    assert is_xchainer_valid_type and is_numpy_valid_type, (
-        'Using decorator without returning ndarrays. If you want to explicitly ignore certain tests, '
-        f'return xchainer.testing.ignore() to avoid this error: xchainer: {xchainer_result}, numpy: {numpy_result}')
+    if not (is_xchainer_valid_type and is_numpy_valid_type):
+        raise _ResultsCheckFailure(
+            'Using decorator without returning ndarrays. '
+            'If you want to explicitly ignore certain tests, '
+            'return xchainer.testing.ignore() to avoid this error', indices)
 
-    assert xchainer_result.shape == numpy_result.shape, (
-        f'Shape mismatch: xchainer: {xchainer_result.shape}, numpy: {numpy_result.shape}')
+    if xchainer_result.shape != numpy_result.shape:
+        raise _ResultsCheckFailure(
+            'Shape mismatch', indices,
+            lambda np_r, xc_r: f'xchainer: {xc_r.shape}, numpy: {np_r.shape}')
 
-    assert xchainer_result.device is xchainer.get_default_device(), (
-        f'Xchainer bad device: default: {xchainer.get_default_device()}, xchainer: {xchainer_result.device}')
+    if xchainer_result.device is not xchainer.get_default_device():
+        raise _ResultsCheckFailure(
+            'Xchainer bad device', indices,
+            lambda np_r, xc_r: f'default: {xchainer.get_default_device()}, xchainer: {xc_r.device}')
 
-    check_result_func(xchainer_result, numpy_result)
+    try:
+        check_result_func(xchainer_result, numpy_result)
+    except AssertionError as e:
+        # Convert AssertionError to _ResultsCheckFailure
+        raise _ResultsCheckFailure(str(e), indices)
+
+
+def _check_xchainer_numpy_result_impl(check_result_func, xchainer_result, numpy_result, indices):
+    if isinstance(xchainer_result, tuple):
+        # TODO(niboshi): better error messages
+        if not isinstance(numpy_result, tuple):
+            raise _ResultsCheckFailure('Different result types', indices)
+        assert len(xchainer_result) == len(numpy_result)
+        for i, (xc_r, np_r) in enumerate(zip(xchainer_result, numpy_result)):
+            _check_xchainer_numpy_result_impl(check_result_func, xc_r, np_r, indices + (i,))
+
+    elif isinstance(xchainer_result, xchainer.ndarray):
+        _check_xchainer_numpy_result_array(check_result_func, xchainer_result, numpy_result, indices)
+
+    else:
+        if _is_numpy_type(xchainer_result):
+            raise _ResultsCheckFailure('xchainer result should not be a NumPy type', indices)
+        if type(xchainer_result) != type(numpy_result):
+            raise _ResultsCheckFailure('Type mismatch', indices)
+        if xchainer_result != numpy_result:
+            raise _ResultsCheckFailure('Not equal', indices)
+
+
+def _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_result):
+    try:
+        _check_xchainer_numpy_result_impl(check_result_func, xchainer_result, numpy_result, indices=())
+    except _ResultsCheckFailure as e:
+        indices = e.indices
+        xc_r = xchainer_result
+        np_r = numpy_result
+        i = 0
+        while len(indices[i:]) > 0:
+            xc_r = xc_r[indices[i]]
+            np_r = np_r[indices[i]]
+            i += 1
+
+        def make_message(e):
+            indices_str = ''.join(f'[{i}]' for i in indices)
+            s = ''
+            s += f'{e.msg}: {e.condense_results(np_r, xc_r)}\n\n'
+            if len(indices) > 0:
+                s += f'xchainer results{indices_str}: {type(xc_r)}\n'
+                s += f'{xc_r}\n\n'
+                s += f'numpy results{indices_str}: {type(np_r)}\n'
+                s += f'{np_r}\n\n'
+            s += f'xchainer results: {type(xchainer_result)}\n'
+            s += f'{xchainer_result}\n\n'
+            s += f'numpy results: {type(numpy_result)}\n'
+            s += f'{numpy_result}\n\n'
+            return s
+
+        assert False, make_message(e)
 
 
 def _make_decorator(check_result_func, name, accept_error):
@@ -102,6 +180,8 @@ def _make_decorator(check_result_func, name, accept_error):
                                             numpy_error, numpy_tb,
                                             accept_error=accept_error)
                 return
+            assert xchainer_result is not None and numpy_result is not None, (
+                f'Either or both of Xchainer and numpy returned None. xchainer: {xchainer_result}, numpy: {numpy_result}')
             _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_result)
         # Apply dummy parametrization on `name` (e.g. 'xp') to avoid pytest error when collecting test functions.
         return pytest.mark.parametrize(name, [None])(test_func)
