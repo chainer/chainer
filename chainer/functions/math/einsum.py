@@ -23,13 +23,34 @@ def _enumerate_axes(subscripts):
 def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
     check_controversial_sum, = argument.parse_kwargs(
         kwargs, ('check_controversial_sum', False))
-    if '@' in in_subscripts and '@' not in out_subscript:
+    sum_ellipsis = '@' in in_subscripts and '@' not in out_subscript
+    if sum_ellipsis:
         # einsum does not usually allow summing over '...'
         subscripts = '{}->...{}'.format(
             in_subscripts.replace('@', '...'),
             out_subscript
         )
+    else:
+        subscripts = '{}->{}'.format(
+            in_subscripts,
+            out_subscript
+        ).replace('@', '...')
+
+    # Use optimize option whenever it is critical in speed.
+    # Otherwise avoid bugs in numpy>=1.12,<1.15.
+    einsum_kwargs = {}
+    if len(inputs) >= 3:
+        einsum_kwargs['optimize'] = True
+    try:
+        y = xp.einsum(subscripts, *inputs, **einsum_kwargs)
+    except TypeError:
+        warnings.warn(UserWarning(
+            "{xp}.einsum does not support optimize option. "
+            "Use newer version of {xp} to speed up."
+            .format(xp=xp.__name__)))
         y = xp.einsum(subscripts, *inputs)
+
+    if sum_ellipsis:
         sum_ndim = y.ndim - len(out_subscript)
         if check_controversial_sum and sum_ndim > 0:
             warnings.warn(UserWarning(
@@ -39,12 +60,7 @@ def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
                 "of Chainer. See also NumPy issues #10926, #9984."
             ))
         y = xp.sum(y, axis=tuple(range(sum_ndim)))
-    else:
-        subscripts = '{}->{}'.format(
-            in_subscripts,
-            out_subscript
-        ).replace('@', '...')
-        y = xp.einsum(subscripts, *inputs)
+
     return utils.force_array(y, dtype)
 
 
