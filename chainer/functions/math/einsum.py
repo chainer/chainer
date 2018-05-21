@@ -3,6 +3,7 @@ import warnings
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
+from chainer.utils import argument
 from chainer.utils import type_check
 
 
@@ -19,8 +20,9 @@ def _enumerate_axes(subscripts):
             yield i, s
 
 
-def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs,
-            check_controversial_sum=False):
+def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
+    check_controversial_sum, = argument.parse_kwargs(
+        kwargs, ('check_controversial_sum', False))
     if '@' in in_subscripts and '@' not in out_subscript:
         # einsum does not usually allow summing over '...'
         subscripts = '{}->...{}'.format(
