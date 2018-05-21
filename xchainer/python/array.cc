@@ -30,6 +30,7 @@
 #include "xchainer/strides.h"
 
 #include "xchainer/python/array_index.h"
+#include "xchainer/python/axes.h"
 #include "xchainer/python/common.h"
 #include "xchainer/python/device.h"
 #include "xchainer/python/dtype.h"
@@ -205,7 +206,12 @@ void InitXchainerArray(pybind11::module& m) {
           },
           py::arg("indices"),
           py::arg("axis") = nullptr);
-    c.def("transpose", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); });
+    c.def("transpose",
+          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axes) {
+              return Array{self}.Transpose(ToAxes(axes)).move_body();
+          },
+          py::arg("axes") = nullptr);
+    c.def("transpose", [](const ArrayBodyPtr& self, py::args args) { return Array{self}.Transpose(ToAxes(args)).move_body(); });
     c.def("reshape", [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.Reshape(ToShape(shape)).move_body(); });
     c.def("reshape", [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {
         return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();

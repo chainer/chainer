@@ -2,6 +2,7 @@ add_library(_core.so MODULE
     core_module.cc
     array.cc
     array_index.cc
+    axes.cc
     backend.cc
     backward.cc
     check_backward.cc

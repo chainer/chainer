@@ -82,21 +82,48 @@ def test_asscalar_invalid(device, shape):
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
-def test_transpose(xp, shape, dtype):
+def test_transpose(is_module, xp, shape, dtype):
     array = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    return array.transpose()
+    if is_module:
+        return xp.transpose(array)
+    else:
+        return array.transpose()
+
+
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize('shape,axes', [
+    ((1,), 0),
+    ((1,), (0,)),
+    ((2,), (0,)),
+    ((2, 3), (1, 0)),
+    ((2, 3, 1), (2, 0, 1)),
+])
+def test_transpose_axes(is_module, xp, shape, axes, dtype):
+    array = array_utils.create_dummy_ndarray(xp, shape, dtype)
+    if is_module:
+        return xp.transpose(array, axes)
+    else:
+        return array.transpose(axes)
+
+
+@pytest.mark.parametrize('shape,axes', [
+    ((), (0,)),
+    ((1,), (1,)),
+    ((2, 3), (1,)),
+    ((2, 3), (1, 0, 2)),
+])
+def test_transpose_invalid_axes(shape, axes):
+    a = array_utils.create_dummy_ndarray(xchainer, shape, 'float32')
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.transpose(a, axes)
+    with pytest.raises(xchainer.DimensionError):
+        a.transpose(axes)
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 def test_T(xp, shape, dtype):
     array = array_utils.create_dummy_ndarray(xp, shape, dtype)
     return array.T
-
-
-@xchainer.testing.numpy_xchainer_array_equal()
-def test_module_transpose(xp, shape, dtype):
-    array = array_utils.create_dummy_ndarray(xp, shape, dtype)
-    return xp.transpose(array)
 
 
 _reshape_shape = [

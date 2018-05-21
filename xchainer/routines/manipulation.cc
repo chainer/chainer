@@ -68,7 +68,7 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
     Axes real_axes;
     if (axes.has_value()) {
         if (axes->ndim() != a.ndim()) {
-            throw XchainerError{"Axes do not match, input array dimensions: ", a.ndim(), " but axes: ", axes->ndim()};
+            throw DimensionError{"Axes do not match, input array dimensions: ", a.ndim(), " but axes: ", axes->ndim()};
         }
         real_axes = *axes;
     } else {
