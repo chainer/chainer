@@ -15,9 +15,9 @@
 namespace xchainer {
 namespace testing {
 
-inline void ExpectAllClose(const Array& expected, const Array& actual, double rtol, double atol, bool equal_nan = false) {
+inline void ExpectAllClose(const Array& expected, const Array& actual, double rtol = 1e-7, double atol = 0, bool equal_nan = false) {
     EXPECT_EQ(&expected.device(), &actual.device());
-    EXPECT_TRUE(AllClose(expected, actual, rtol, atol, equal_nan));
+    EXPECT_TRUE(AllClose(expected, actual, rtol, atol, equal_nan)) << "Expected: " << expected << "\nActual: " << actual;
 }
 
 inline void ExpectEqual(const Array& expected, const Array& actual) { ExpectAllClose(expected, actual, 0., 0., true); }

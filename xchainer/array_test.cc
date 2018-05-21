@@ -342,11 +342,25 @@ TEST_P(ArrayTest, IAdd) {
     testing::ExpectEqual(e, a);
 }
 
+TEST_P(ArrayTest, IAddScalar) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray<float>({3, 1}, {3, 4, 5});
+    a += Scalar{2.f};
+    testing::ExpectEqual(e, a);
+}
+
 TEST_P(ArrayTest, ISubtract) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
     Array b = testing::BuildArray<float>({3, 1}, {4, 0, -2});
     Array e = testing::BuildArray<float>({3, 1}, {-3, 2, 5});
     a -= b;
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(ArrayTest, ISubtractScalar) {
+    Array a = testing::BuildArray<float>({3, 1}, {1.f, 2.f, 3.f});
+    Array e = testing::BuildArray<float>({3, 1}, {0.5f, 1.5f, 2.5f});
+    a -= Scalar{0.5f};
     testing::ExpectEqual(e, a);
 }
 
@@ -356,6 +370,28 @@ TEST_P(ArrayTest, IMultiply) {
     Array e = testing::BuildArray<float>({3, 1}, {1, 4, 9});
     a *= b;
     testing::ExpectEqual(e, a);
+}
+
+TEST_P(ArrayTest, IMultiplyScalar) {
+    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
+    a *= Scalar{2.f};
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(ArrayTest, IDivide) {
+    Array a = testing::BuildArray<float>({3, 1}, {1.f, 2.f, 3.f});
+    Array b = testing::BuildArray<float>({3, 1}, {1.f, 0.5f, 2.f});
+    Array e = testing::BuildArray<float>({3, 1}, {1.f, 4.f, 1.5f});
+    a /= b;
+    testing::ExpectEqual(e, a);
+}
+
+TEST_P(ArrayTest, IDivideScalar) {
+    Array a = testing::BuildArray<float>({3, 1}, {1.f, 2.f, 3.f});
+    Array e = testing::BuildArray<float>({3, 1}, {0.5f, 1.f, 1.5f});
+    a /= Scalar{2.f};
+    testing::ExpectAllClose(e, a, 1e-3, 1e-3);
 }
 
 TEST_P(ArrayTest, Add) {

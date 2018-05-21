@@ -300,7 +300,7 @@ void DivideImpl(const Array& x1, Scalar x2, const Array& out) {
     auto backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&) { return gout / other; };
     internal::SetUpOpNodes("divide_scalar", {x1}, out, {backward_function});
 
-    x1.device().MultiplyAS(x1, x2, out);
+    x1.device().DivideAS(x1, x2, out);
 }
 
 template <typename ArrayType>
@@ -365,7 +365,7 @@ Array Divide(const Array& x1, Scalar x2) {
     return out;
 }
 
-Array Divide(Scalar x1, const Array& x2) { return Divide(x2, x1); }
+Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar/Array division is not yet supported."}; }
 
 namespace {
 
