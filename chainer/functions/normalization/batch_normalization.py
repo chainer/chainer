@@ -54,23 +54,31 @@ class BatchNormalization(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gamma, beta = inputs
 
-        if x.shape[0] == 1:
-            warnings.warn(
-                'A batch with no more than one sample has been given'
-                ' to F.batch_normalization. F.batch_normalization'
-                ' will always output a zero tensor for such batches.'
-                ' This could be caused by incorrect configuration in'
-                ' your code (such as running evaluation while'
-                ' chainer.config.train=True),'
-                ' but could also happen in the last batch of training'
-                ' if non-repeating iterator is used.',
-                UserWarning)
-
         xp = cuda.get_array_module(x)
         if self.running_mean is None:
             self.running_mean = xp.zeros_like(gamma)
             self.running_var = xp.zeros_like(gamma)
         self.mode = _BNMode(x, gamma)
+
+        if all(x.shape[i] == 1 for i in self.axis):
+            if 0 in self.axis:
+                warnings.warn(
+                    'A batch with no more than one sample has been given'
+                    ' to F.batch_normalization. F.batch_normalization'
+                    ' will always output a zero tensor for such batches.'
+                    ' This could be caused by incorrect configuration in'
+                    ' your code (such as running evaluation while'
+                    ' chainer.config.train=True),'
+                    ' but could also happen in the last batch of training'
+                    ' if non-repeating iterator is used.',
+                    UserWarning)
+            else:
+                warnings.warn(
+                    'F.batch_normalization received a batch with single'
+                    ' dimensions along all axes that are used for aggregating'
+                    ' statistics. F.batch_normalization'
+                    ' will always output a zero tensor for such batches.',
+                    UserWarning)
 
         # TODO(niboshi): Refactor calculation of expander and axis into a
         # function and call it just before they are used.
