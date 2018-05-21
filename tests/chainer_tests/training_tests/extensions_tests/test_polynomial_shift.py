@@ -16,6 +16,12 @@ from chainer.training import util
      'expect': [-2.0, -1.8973665961010275, -1.7888543819998317]},
     {'init': 2.0, 'rate': 0.5, 'max_count': 10, 'target': 1.8,
      'expect': [2.0, 1.8973665961010275, 1.8]},
+    {'init': 2.0, 'rate': -0.5, 'max_count': 10, 'target': 2.2,
+     'expect': [2.0, 2.1081851067789197, 2.2]},
+    {'init': 2.0, 'rate': -0.5, 'max_count': 10, 'target': None,
+     'expect': [2.0, 2.1081851067789197, 2.23606797749979]},
+    {'init': 0, 'rate': -0.5, 'max_count': 10, 'target': None,
+     'expect': [0.0, 0.0, 0.0]},
 )
 class TestPolynomialShift(unittest.TestCase):
 
