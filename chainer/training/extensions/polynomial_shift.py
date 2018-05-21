@@ -1,5 +1,7 @@
 from __future__ import division
 
+import numpy
+
 from chainer.training import extension
 
 
@@ -8,7 +10,7 @@ class PolynomialShift(extension.Extension):
     """Trainer extension to polynomially shift an optimizer attribute.
 
     This extension polynomially decreases the specified attribute of the
-    optimizer. The typical use case is an polynomial decay of the
+    optimizer. The typical use case is a polynomial decay of the
     learning rate at each iteration.
 
     For example, suppose that this extension is invoke at every iteration.
@@ -35,23 +37,35 @@ class PolynomialShift(extension.Extension):
     """
     invoke_before_training = True
 
-    def __init__(self, attr, param, init=None, target=None, optimizer=None):
+    def __init__(self, attr, rate, max_count, init=None, target=None,
+                 optimizer=None):
         self._attr = attr
-        if param[0] < 0:
-            raise ValueError('PolynomialShift does not support negative rate')
-        self._rate = param[0]
+        self._rate = rate
         self._init = init
         self._target = target
         self._optimizer = optimizer
         self._t = 0
-        self._max_iter = param[1]
+        self._max_count = max_count
+        self._last_value = None
 
-    def __call__(self, trainer):
-        optimizer = self._optimizer or trainer.updater.get_optimizer('main')
+    def initialize(self, trainer):
+        optimizer = self._get_optimizer(trainer)
+
+        # ensure that _init is set
         if self._init is None:
             self._init = getattr(optimizer, self._attr)
 
-        decay = max(1 - self._t / self._max_iter, 0)
+        if self._last_value is not None:  # resuming from a snapshot
+            self._update_value(optimizer, self._last_value)
+        else:
+            self._update_value(optimizer, self._init)
+
+    def __call__(self, trainer):
+        self._t += 1
+
+        optimizer = self._get_optimizer(trainer)
+
+        decay = max(1 - self._t / self._max_count, 0)
         value = self._init * decay ** self._rate
 
         if self._target is not None:
@@ -65,8 +79,17 @@ class PolynomialShift(extension.Extension):
                 if value / self._target < 1:
                     value = self._target
 
-        setattr(optimizer, self._attr, value)
-        self._t += 1
+        self._update_value(optimizer, value)
 
     def serialize(self, serializer):
         self._t = serializer('_t', self._t)
+        self._last_value = serializer('_last_value', self._last_value)
+        if isinstance(self._last_value, numpy.ndarray):
+            self._last_value = numpy.asscalar(self._last_value)
+
+    def _get_optimizer(self, trainer):
+        return self._optimizer or trainer.updater.get_optimizer('main')
+
+    def _update_value(self, optimizer, value):
+        setattr(optimizer, self._attr, value)
+        self._last_value = value
