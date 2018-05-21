@@ -85,6 +85,7 @@ The typical use case is to change the learning rate of the optimizer over time.
 
    chainer.training.extensions.ExponentialShift
    chainer.training.extensions.LinearShift
+   chainer.training.extensions.PolynomialShift
 
 Reporting
 ~~~~~~~~~
