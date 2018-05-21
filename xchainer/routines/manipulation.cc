@@ -37,6 +37,33 @@ Scalar AsScalar(const Array& a) {
     });
 }
 
+Array RollAxis(const Array& a, int8_t axis, int8_t start) {
+    // TODO(hvy): Optimize the implementation.
+    axis = internal::NormalizeAxis(axis, a.ndim());
+
+    // start can be a.ndim() so we cannot use NormalizeAxis here.
+    if (start < -a.ndim() || start > a.ndim()) {
+        throw DimensionError{"start arg out of bounds. start: ", start, ", ndim: ", a.ndim()};
+    }
+    if (start < 0) {
+        start += a.ndim();
+    }
+
+    Axes axes;
+    for (int8_t i = 0; i < a.ndim(); ++i) {
+        if (i == start) {
+            axes.emplace_back(axis);
+        }
+        if (i != axis) {
+            axes.emplace_back(i);
+        }
+    }
+    if (start == a.ndim()) {
+        axes.emplace_back(axis);
+    }
+    return Transpose(a, axes);
+}
+
 Array Transpose(const Array& a, const OptionalAxes& axes) {
     Axes real_axes;
     if (axes.has_value()) {

@@ -57,6 +57,24 @@ TEST_P(ManipulationTest, AsScalarInvalidMoreThanOneElements) {
     EXPECT_THROW(AsScalar(a), DimensionError);
 }
 
+TEST_P(ManipulationTest, RollAxis) {
+    Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
+    Array b = RollAxis(a, 1);
+
+    Array e = testing::BuildArray({3, 2, 4}).WithData<int32_t>(
+            {0, 1, 2, 3, 12, 13, 14, 15, 4, 5, 6, 7, 16, 17, 18, 19, 8, 9, 10, 11, 20, 21, 22, 23});
+    testing::ExpectEqual(e, b);
+}
+
+TEST_P(ManipulationTest, RollAxisWithStart) {
+    Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
+    Array b = RollAxis(a, -3, -1);
+
+    Array e = testing::BuildArray({3, 2, 4}).WithData<int32_t>(
+            {0, 1, 2, 3, 12, 13, 14, 15, 4, 5, 6, 7, 16, 17, 18, 19, 8, 9, 10, 11, 20, 21, 22, 23});
+    testing::ExpectEqual(e, b);
+}
+
 TEST_P(ManipulationTest, Transpose) {
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
     Array b = Transpose(a, {2, 0, 1});

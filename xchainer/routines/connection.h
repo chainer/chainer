@@ -17,12 +17,20 @@ namespace xchainer {
 // b: (out_channels)
 //
 // Returns an array of shape (batch_size, out_channels, out_1, out_2, ..., out_n).
-Array Convolution(
+Array Conv(
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all = false);
+
+Array ConvTranspose(
+        const Array& x,
+        const Array& w,
+        const nonstd::optional<Array>& b,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size = nonstd::nullopt);
 
 }  // namespace xchainer

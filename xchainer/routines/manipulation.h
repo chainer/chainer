@@ -15,6 +15,9 @@ namespace xchainer {
 // If the array is not single-element, DimensionError is thrown.
 Scalar AsScalar(const Array& a);
 
+// Returns a view where the specified axis is moved to start.
+Array RollAxis(const Array& a, int8_t axis, int8_t start = 0);
+
 // Returns a transposed view of the array.
 Array Transpose(const Array& a, const OptionalAxes& axes = nonstd::nullopt);
 
