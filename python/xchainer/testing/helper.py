@@ -78,14 +78,6 @@ def _is_numpy_type(result):
 
 def _check_xchainer_numpy_result_array(check_result_func, xchainer_result, numpy_result, indices):
     # Compares `xchainer_result` and `numpy_result` as arrays.
-    is_xchainer_ignored = xchainer_result is _ignored_result
-    is_numpy_ignored = numpy_result is _ignored_result
-
-    if is_xchainer_ignored and is_numpy_ignored:
-        return  # Ignore without failing.
-
-    if is_xchainer_ignored is not is_numpy_ignored:
-        raise _ResultsCheckFailure('Ignore value mismatch', indices)
 
     is_xchainer_valid_type = isinstance(xchainer_result, xchainer.ndarray)
     is_numpy_valid_type = _is_numpy_type(numpy_result)
@@ -116,6 +108,7 @@ def _check_xchainer_numpy_result_array(check_result_func, xchainer_result, numpy
 def _check_xchainer_numpy_result_impl(check_result_func, xchainer_result, numpy_result, indices):
     # This function raises _ResultsCheckFailure if any failure occurs.
     # `indices` is a tuple of indices to reach both `xchainer_results` and `numpy_results` from top-level results.
+
     if isinstance(xchainer_result, tuple):
         if not isinstance(numpy_result, tuple):
             raise _ResultsCheckFailure('Different result types', indices)
