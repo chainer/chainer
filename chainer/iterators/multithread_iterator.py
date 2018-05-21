@@ -61,7 +61,10 @@ class MultithreadIterator(iterator.Iterator):
         self._next = None
         self._previous_epoch_detail = None
 
-    def __del__(self):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
         self.finalize()
 
     def finalize(self):
