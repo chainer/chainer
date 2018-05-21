@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cublas_v2.h>
+#include <cudnn.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -103,10 +104,12 @@ public:
     void Synchronize() override;
 
     cublasHandle_t cublas_handle();
+    cudnnHandle_t cudnn_handle();
 
 private:
     MemoryPool memory_pool_;
     cublasHandle_t cublas_handle_{};
+    cudnnHandle_t cudnn_handle_{};
 };
 
 }  // namespace cuda
