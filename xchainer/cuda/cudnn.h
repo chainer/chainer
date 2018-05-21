@@ -20,7 +20,9 @@ private:
 };
 
 void CheckCudnnError(cudnnStatus_t status);
+
 std::shared_ptr<cudnnTensorStruct> CreateTensorDescriptor(const Array& arr, cudnnTensorFormat_t format = CUDNN_TENSOR_NCHW);
+std::shared_ptr<cudnnFilterStruct> CreateFilterDescriptor(const Array& arr, cudnnTensorFormat_t format = CUDNN_TENSOR_NCHW);
 
 }  // namespace cuda
 }  // namespace xchainer

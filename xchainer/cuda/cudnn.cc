@@ -100,6 +100,38 @@ void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTe
     }
 }
 
+// cpdef _create_filter_descriptor(
+//         size_t desc, core.ndarray arr, int format=cudnn.CUDNN_TENSOR_NCHW):
+//     cdef vector.vector[int] c_shape
+//     cdef Py_ssize_t s
+//     data_type = get_data_type(arr.dtype)
+//     if arr._shape.size() == 4:
+//         n, c, h, w = arr.shape
+//         cudnn.setFilter4dDescriptor_v4(
+//             desc, data_type, format, n, c, h, w)
+//     else:
+//         for s in arr._shape:
+//             c_shape.push_back(s)
+//         cudnn.setFilterNdDescriptor_v4(
+//             desc, data_type, format, arr.ndim, <size_t>&c_shape[0])
+
+void SetFilterDescriptor(cudnnFilterDescriptor_t desc, const Array& arr, cudnnTensorFormat_t format) {
+    cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
+    if (arr.shape().ndim() == 4) {
+        int n = static_cast<int>(arr.shape()[0]);
+        int c = static_cast<int>(arr.shape()[1]);
+        int h = static_cast<int>(arr.shape()[2]);
+        int w = static_cast<int>(arr.shape()[3]);
+        cudnnSetFilter4dDescriptor(desc, cudnn_dtype, format, n, c, h, w);
+    } else {
+        std::vector<int> int_shape{arr.ndim()};
+        for (int8_t i = 0; i < arr.ndim(); ++i) {
+            int_shape.emplace_back(arr.shape()[i]);
+        }
+        cudnnSetFilterNdDescriptor(desc, cudnn_dtype, format, arr.ndim(), &int_shape[0]);
+    }
+}
+
 }  // namespace
 
 // def create_tensor_descriptor(arr, format=cudnn.CUDNN_TENSOR_NCHW):
@@ -116,6 +148,22 @@ std::shared_ptr<cudnnTensorStruct> CreateTensorDescriptor(const Array& arr, cudn
     SetTensorDescriptor(desc, arr, format);
     return shared_desc;
 }
+
+// def create_filter_descriptor(arr, format=cudnn.CUDNN_TENSOR_NCHW):
+//     desc = Descriptor(cudnn.createFilterDescriptor(),
+//                       py_cudnn.destroyFilterDescriptor)
+//     _create_filter_descriptor(desc.value, arr, format)
+//     return desc
+
+std::shared_ptr<cudnnFilterStruct> CreateFilterDescriptor(const Array& arr, cudnnTensorFormat_t format) {
+    cudnnFilterDescriptor_t desc{};
+    CheckCudnnError(cudnnCreateFilterDescriptor(&desc));
+    auto shared_desc = std::shared_ptr<cudnnFilterStruct>{
+            desc, [](cudnnFilterDescriptor_t desc) { CheckCudnnError(cudnnDestroyFilterDescriptor(desc)); }};
+    SetFilterDescriptor(desc, arr, format);
+    return shared_desc;
+}
+
 
 }  // namespace cuda
 }  // namespace xchainer
