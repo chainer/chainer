@@ -1025,7 +1025,7 @@ Array CudaDevice::Conv(
     Shape out_shape{batch_size, channels};
     std::copy(ksize.begin(), ksize.end(), std::back_inserter(out_shape));
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
-    Array out = Empty(out_shape, x.dtype(), *this);
+    Array y = Empty(out_shape, x.dtype(), *this);
 
     // # Convert to C-contiguous arrays.
     // x = cuda.cupy.ascontiguousarray(x)
@@ -1040,9 +1040,11 @@ Array CudaDevice::Conv(
     }
 
     // # Get cuDNN handler and descriptors.
-    // handle = cudnn.get_handle()
-    // x_desc = cudnn.create_tensor_descriptor(x)
-    // y_desc = cudnn.create_tensor_descriptor(y)
+    cudnnHandle_t handle = cudnn_handle();
+    std::shared_ptr<cudnnTensorStruct> x_desc = CreateTensorDescriptor(x);
+    std::shared_ptr<cudnnTensorStruct> y_desc = CreateTensorDescriptor(y);
+
+    return x;
 
     // self.filter_desc = cudnn.create_filter_descriptor(W)
     // self.conv_param = (pad, stride, x.dtype)
