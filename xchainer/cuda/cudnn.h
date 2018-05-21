@@ -1,10 +1,13 @@
 #pragma once
 
-#include <cudnn.h>
-
 #include <memory>
 
+#include <cudnn.h>
+#include <nonstd/optional.hpp>
+
 #include "xchainer/array.h"
+#include "xchainer/cuda/cuda_device.h"
+#include "xchainer/device.h"
 #include "xchainer/error.h"
 
 namespace xchainer {
@@ -24,8 +27,8 @@ void CheckCudnnError(cudnnStatus_t status);
 std::shared_ptr<cudnnTensorStruct> CreateTensorDescriptor(const Array& arr, cudnnTensorFormat_t format = CUDNN_TENSOR_NCHW);
 std::shared_ptr<cudnnFilterStruct> CreateFilterDescriptor(const Array& arr, cudnnTensorFormat_t format = CUDNN_TENSOR_NCHW);
 std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
-        const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride,
         Dtype dtype,
         cudnnConvolutionMode_t mode = CUDNN_CROSS_CORRELATION,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation = nonstd::nullopt,
@@ -40,6 +43,16 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
         const std::shared_ptr<cudnnTensorStruct>& y_desc,
         const Array& y,
         size_t max_workspace_size);
+void ConvolutionForward(
+        CudaDevice& device,
+        const Array& x,
+        const Array& w,
+        const nonstd::optional<Array>& b,
+        Array& y,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation = nonstd::nullopt,
+        int groups = 1);
 
 }  // namespace cuda
 }  // namespace xchainer

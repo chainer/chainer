@@ -1,12 +1,16 @@
 #include "xchainer/cuda/cudnn.h"
 
-#include <cudnn.h>
-
 #include <memory>
 
+#include <cudnn.h>
+#include <nonstd/optional.hpp>
+
 #include "xchainer/array.h"
+#include "xchainer/cuda/cuda_device.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/routines/creation.h"
 #include "xchainer/stack_vector.h"
 
 namespace xchainer {
@@ -47,33 +51,6 @@ cudnnDataType_t GetCudnnDataType(Dtype dtype) {
     }
 }
 
-// cpdef _create_tensor_nd_descriptor(
-//        size_t desc, core.ndarray arr, int data_type=-1):
-//    cdef vector.vector[int] c_shape, c_strides
-//    cdef Py_ssize_t itemsize, s
-//    if data_type == -1:  # `-1` is used instead of `None`
-//        data_type = get_data_type(arr.dtype)
-//    itemsize = arr.itemsize
-//    for s in arr._strides:
-//        c_strides.push_back(s // itemsize)
-//    for s in arr._shape:
-//        c_shape.push_back(s)
-//    cudnn.setTensorNdDescriptor(
-//        desc, data_type, arr.ndim, <size_t>&c_shape[0], <size_t>&c_strides[0])
-
-void SetTensorNdDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnDataType_t cudnn_dtype) {
-    int64_t item_size = arr.item_size();
-    StackVector<int, kMaxNdim> int_shape;
-    StackVector<int, kMaxNdim> int_strides;
-    for (int64_t v : arr.strides()) {
-        int_strides.emplace_back(static_cast<int>(v / item_size));
-    }
-    for (int64_t v : arr.shape()) {
-        int_shape.emplace_back(static_cast<int>(v));
-    }
-    CheckCudnnError(cudnnSetTensorNdDescriptor(desc, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]));
-}
-
 // cpdef _create_tensor_descriptor(size_t desc, core.ndarray arr, int format):
 //    if not arr.flags.c_contiguous:
 //        raise ValueError('cupy.cudnn supports c-contiguous arrays only')
@@ -97,7 +74,29 @@ void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTe
         int w = static_cast<int>(arr.shape()[3]);
         CheckCudnnError(cudnnSetTensor4dDescriptor(desc, format, cudnn_dtype, n, c, h, w));
     } else {
-        SetTensorNdDescriptor(desc, arr, cudnn_dtype);
+        // cpdef _create_tensor_nd_descriptor(
+        //        size_t desc, core.ndarray arr, int data_type=-1):
+        //    cdef vector.vector[int] c_shape, c_strides
+        //    cdef Py_ssize_t itemsize, s
+        //    if data_type == -1:  # `-1` is used instead of `None`
+        //        data_type = get_data_type(arr.dtype)
+        //    itemsize = arr.itemsize
+        //    for s in arr._strides:
+        //        c_strides.push_back(s // itemsize)
+        //    for s in arr._shape:
+        //        c_shape.push_back(s)
+        //    cudnn.setTensorNdDescriptor(
+        //        desc, data_type, arr.ndim, <size_t>&c_shape[0], <size_t>&c_strides[0])
+        int64_t item_size = arr.item_size();
+        StackVector<int, kMaxNdim> int_shape;
+        StackVector<int, kMaxNdim> int_strides;
+        for (int64_t v : arr.strides()) {
+            int_strides.emplace_back(static_cast<int>(v / item_size));
+        }
+        for (int64_t v : arr.shape()) {
+            int_shape.emplace_back(static_cast<int>(v));
+        }
+        CheckCudnnError(cudnnSetTensorNdDescriptor(desc, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]));
     }
 }
 
@@ -138,8 +137,8 @@ void SetFilterDescriptor(cudnnFilterDescriptor_t desc, const Array& arr, cudnnTe
 //         object dtype, int mode, bint use_tensor_core):
 void SetConvolutionDescriptor(
         cudnnConvolutionDescriptor_t desc,
-        const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
         int groups,
         Dtype dtype,
@@ -297,8 +296,8 @@ std::shared_ptr<cudnnFilterStruct> CreateFilterDescriptor(const Array& arr, cudn
 //     return desc
 
 std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
-        const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride,
         Dtype dtype,
         cudnnConvolutionMode_t mode,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
@@ -381,6 +380,150 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
             max_workspace_size));
 
     return {perf_results[0].algo, perf_results[0].memory};
+}
+
+// def convolution_forward(
+//         core.ndarray x, core.ndarray W, core.ndarray b, core.ndarray y,
+//         tuple pad, tuple stride, tuple dilation, int groups, *,
+//         bint auto_tune, str tensor_core):
+// TODO(sonots): Support tensor core
+void ConvolutionForward(
+        CudaDevice& device,
+        const Array& x,
+        const Array& w,
+        const nonstd::optional<Array>& b,
+        Array& y,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+        int groups) {
+    // cdef int dev_id = x.data.device.id
+    // assert dev_id == W.data.device.id
+    // assert dev_id == y.data.device.id
+    assert(&device == &x.device());
+    assert(&device == &y.device());
+    assert(&device == &w.device());
+    assert(x.dtype() == Dtype::kFloat32 || x.dtype() == Dtype::kFloat64);
+    assert(y.dtype() == x.dtype());
+    assert(w.dtype() == Dtype::kFloat32 || w.dtype() == Dtype::kFloat64);
+
+    // cdef float float_zero = 0, float_one = 1
+    // cdef double double_zero = 0, double_one = 1
+    // cdef size_t zero, one
+    // if x.dtype == 'd':
+    //     zero = <size_t>&double_zero
+    //     one = <size_t>&double_one
+    // else:
+    //     zero = <size_t>&float_zero
+    //     one = <size_t>&float_one
+    auto zero = x.dtype() == Dtype::kFloat64 ? double{0} : float{0};
+    auto one = x.dtype() == Dtype::kFloat64 ? double{1} : float{1};
+
+    // cdef bint use_tensor_core = _should_use_tensor_core(tensor_core, x.dtype)
+    // cdef tuple conv_param = (pad, stride, x.dtype)
+    //
+    // # cuDNN 7 supports dilation only in *_FWD_ALGO_IMPLICIT_GEMM, but
+    // # it supports Tensor Cores only in *_FWD_ALGO_IMPLICIT_PRECOMP_GEMM.
+    // if use_tensor_core:
+    //     for i in dilation:
+    //         if i > 1:
+    //             use_tensor_core = False
+    //             break
+
+    // handle = get_handle()
+    // x = core.ascontiguousarray(x)
+    // W = core.ascontiguousarray(W)
+    cudnnHandle_t handle = device.cudnn_handle();
+    Array x_cont = AsContiguousArray(x);
+    Array w_cont = AsContiguousArray(w);
+    assert(y.IsContiguous());
+
+    // # TODO(okuta) check performance
+    // cdef size_t x_desc = cudnn.createTensorDescriptor()
+    // cdef size_t y_desc = cudnn.createTensorDescriptor()
+    // cdef size_t b_desc = cudnn.createTensorDescriptor()
+    // cdef size_t filter_desc = cudnn.createFilterDescriptor()
+    // cdef size_t conv_desc = cudnn.createConvolutionDescriptor()
+    //
+    // cdef int algo
+    // cdef size_t max_workspace_size = get_max_workspace_size()
+    // cdef size_t workspace_size = 0
+    // try:
+    //     _create_tensor_nd_descriptor(x_desc, x, -1)
+    //     _create_tensor_nd_descriptor(y_desc, y, -1)
+    //     _create_filter_descriptor(filter_desc, W, cudnn.CUDNN_TENSOR_NCHW)
+    //     _create_convolution_descriptor(
+    //         conv_desc, pad, stride, dilation, groups, x.dtype,
+    //         cudnn.CUDNN_CROSS_CORRELATION, use_tensor_core)
+    std::shared_ptr<cudnnTensorStruct> x_desc = CreateTensorDescriptor(x_cont);
+    std::shared_ptr<cudnnTensorStruct> y_desc = CreateTensorDescriptor(y);
+    std::shared_ptr<cudnnFilterStruct> filter_desc = CreateFilterDescriptor(w_cont, CUDNN_TENSOR_NCHW);
+    std::shared_ptr<cudnnConvolutionStruct> conv_desc =
+            CreateConvolutionDescriptor(pad, stride, x.dtype(), CUDNN_CROSS_CORRELATION, dilation, groups);
+    size_t max_workspace_size = device.max_workspace_size();
+
+    // if auto_tune and _cudnn_version >= 5000:
+    //     algo, workspace_size = _find_algorithm_fwd(
+    //         x, W, y, conv_param, handle, x_desc, filter_desc,
+    //         conv_desc, y_desc, max_workspace_size)
+    // else:
+    //     algo, workspace_size = _get_algorithm_fwd(
+    //         handle, x_desc, filter_desc, conv_desc, y_desc,
+    //         max_workspace_size, use_tensor_core)
+    // max_workspace_size = max(max_workspace_size, workspace_size)
+    // # TODO(okuta): allocate best size memory
+    // workspace = memory.alloc(max_workspace_size)
+
+    // auto tune
+    std::tuple<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size =
+            FindConvolutionForwardAlgorithm(handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size);
+    cudnnConvolutionFwdAlgo_t algo = std::get<0>(algo_workspace_size);
+    size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
+    std::shared_ptr<void> workspace = device.Allocate(workspace_size);
+
+    // cudnn.convolutionForward(
+    //     handle, one, x_desc, x.data.ptr, filter_desc, W.data.ptr,
+    //     conv_desc, algo, workspace.ptr, max_workspace_size, zero, y_desc,
+    //     y.data.ptr)
+    CheckCudnnError(cudnnConvolutionForward(
+            handle,
+            &one,
+            x_desc.get(),
+            x_cont.data().get(),
+            filter_desc.get(),
+            w_cont.data().get(),
+            conv_desc.get(),
+            algo,
+            workspace.get(),
+            workspace_size,
+            &zero,
+            y_desc.get(),
+            y.data().get()));
+
+    // if b is not None:
+    //     assert dev_id == b.data.device.id
+    //     ndim = x.ndim - 2
+    //     b = core.ascontiguousarray(b).reshape((1, -1) + (1,) * ndim)
+    //     _create_tensor_nd_descriptor(b_desc, b, -1)
+    //     cudnn.addTensor_v3(handle, one, b_desc,
+    //                        b.data.ptr, one, y_desc, y.data.ptr)
+    if (b) {
+        assert(&device == &b->device());
+        assert(b->dtype() == Dtype::kFloat32 || b->dtype() == Dtype::kFloat64);
+        int8_t ndim = x.ndim() - 2;
+        assert(ndim > 0);
+
+        Shape new_shape;
+        new_shape.emplace_back(1);
+        new_shape.emplace_back(b->GetTotalSize());
+        // TODO(sonots): Use assign(ndim, 1) if it becomes available
+        for (int8_t i = 0; i < ndim; ++i) {
+            new_shape.emplace_back(1);
+        }
+        Array b_cont = AsContiguousArray(*b).Reshape(new_shape);
+        std::shared_ptr<cudnnTensorStruct> b_desc = CreateTensorDescriptor(b_cont);
+        CheckCudnnError(cudnnAddTensor(handle, &one, b_desc.get(), b_cont.data().get(), &one, y_desc.get(), y.data().get()));
+    }
 }
 
 }  // namespace cuda
