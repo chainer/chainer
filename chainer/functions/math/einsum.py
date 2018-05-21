@@ -17,16 +17,7 @@ def _enumerate_axes(subscripts):
             yield i, s
 
 
-def _broadcast_to(xp, a, shape):
-    if hasattr(xp, 'broadcast_to'):
-        return xp.broadcast_to(a, shape)
-    else:
-        # numpy 1.9 doesn't support broadcast_to method
-        dummy = xp.empty(shape)
-        return xp.broadcast_arrays(a, dummy)[0]
-
-
-def _einsum(xp, in_subscripts, out_subscript, *inputs):
+def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs):
     if '@' in in_subscripts and '@' not in out_subscript:
         # numpy does not allow summing over '...'
         # See also numpy issue #10926.
@@ -46,7 +37,7 @@ def _einsum(xp, in_subscripts, out_subscript, *inputs):
             out_subscript
         ).replace('@', '...')
         y = xp.einsum(subscripts, *inputs)
-    return utils.force_array(y)
+    return utils.force_array(y, dtype)
 
 
 class DiagEinSum(function_node.FunctionNode):
@@ -78,49 +69,36 @@ class DiagEinSum(function_node.FunctionNode):
         self.retain_inputs(tuple(range(n_args)))
 
         xp = cuda.get_array_module(inputs[0])
+        dtype = xp.result_type(*[x.dtype for x in inputs])
 
-        ein_sub = []
-        subscript_dict = {}
-        diag_map = []
-        for axis, s in _enumerate_axes(self.out_sub):
-            if s == '@':
-                ein_sub.append('@')
-            else:
-                if s in subscript_dict:
-                    diag_map.append((axis, subscript_dict[s]))
+        out_set = set(self.out_sub)
+
+        # '@' is a single char, ',' is excluded.
+        io_set = out_set.intersection(set(self.in_subs))
+
+        if len(io_set) == len(self.out_sub):
+            y = _einsum(xp, dtype, self.in_subs, self.out_sub, *inputs)
+        else:
+            assert self.out_shape is not None
+            direct_sub = []
+            inverse_sub = []
+            expander = []
+            for c in sorted(out_set):
+                if c in io_set:
+                    direct_sub.append(c)
+                    expander.append(slice(None))
                 else:
-                    subscript_dict[s] = axis
-                    if s in self.in_subs:
-                        ein_sub.append(s)
-                    else:
-                        diag_map.append((axis, None))
-        y = _einsum(xp, self.in_subs, ''.join(ein_sub), *inputs)
+                    expander.append(None)
+                inverse_sub.append(c)
 
-        shape = list(y.shape)
-        final_ndim = y.ndim + len(diag_map)
-        for i, i0 in diag_map:
-            if i < 0:
-                i += final_ndim
-            if i0 is None:
-                # broadcast to new axis
-                assert self.out_shape is not None, \
-                    "Give out_shape to put new subscripts in the result"
-                shape.insert(i, self.out_shape[i])
-                y = _broadcast_to(xp, xp.expand_dims(y, axis=i), shape)
-            else:
-                # make diagonal
-                if i0 < 0:
-                    i0 += final_ndim
-                size = shape[i0]
-                shape.insert(i, size)
-                z = xp.zeros(shape, dtype=y.dtype)
-                indexer = (
-                    (slice(None),) * i0
-                    + (xp.arange(size),)
-                    + (slice(None),) * (i - i0 - 1))
-                z[indexer + (xp.arange(size), Ellipsis,)] = \
-                    y[indexer + (Ellipsis,)]
-                y = z
+            y = xp.zeros(self.out_shape, dtype)
+            diag_y = _einsum(
+                xp, dtype, self.out_sub, ''.join(inverse_sub), y)
+            # Make the view writeable as numpy PR #5410 for numpy<1.10.
+            diag_y.setflags(write=True)
+            diag_y[...] = _einsum(
+                xp, dtype, self.in_subs, ''.join(direct_sub), *inputs
+            )[expander]
         return y,
 
     def backward(self, indices, grad_outputs):
