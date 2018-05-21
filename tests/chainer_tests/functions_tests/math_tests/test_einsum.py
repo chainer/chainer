@@ -1,5 +1,6 @@
 import functools
 import unittest
+import warnings
 
 import numpy
 
@@ -212,6 +213,25 @@ class TestEinSumParseError(unittest.TestCase):
     def test_raise_parse_error(self):
         with self.assertRaises(ValueError):
             einsum.einsum(self.subscripts, *self.inputs)
+
+
+@testing.parameterize(
+    {'subscripts': '...->', 'shapes': ((2,),)},
+    {'subscripts': 'j...i->ij', 'shapes': ((2, 1, 3),)},
+    {'subscripts': 'i,...i->', 'shapes': ((2,), (3, 2))},
+)
+class TestEinSumWarnEllipsis(unittest.TestCase):
+
+    def setUp(self):
+        self.inputs = tuple([
+            numpy.zeros(shape, numpy.float32)
+            for shape in self.shapes
+        ])
+
+    def test_raise_invalid_type(self):
+        with warnings.catch_warnings(record=True) as ws:
+            einsum.einsum(self.subscripts, *self.inputs)
+            self.assertEqual(len(ws), 1)
 
 
 def diag_einsum(

@@ -1,3 +1,5 @@
+import warnings
+
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
@@ -17,16 +19,23 @@ def _enumerate_axes(subscripts):
             yield i, s
 
 
-def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs):
+def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs,
+            check_controversial_sum=False):
     if '@' in in_subscripts and '@' not in out_subscript:
-        # numpy does not allow summing over '...'
-        # See also numpy issue #10926.
+        # einsum does not usually allow summing over '...'
         subscripts = '{}->...{}'.format(
             in_subscripts.replace('@', '...'),
             out_subscript
         )
         y = xp.einsum(subscripts, *inputs)
         sum_ndim = y.ndim - len(out_subscript)
+        if check_controversial_sum and sum_ndim > 0:
+            warnings.warn(UserWarning(
+                "einsum should not support summing over Ellipsis, "
+                "while NumPy 1.14 sometimes accidentally supports it. "
+                "This feature will be deleted in a future version "
+                "of Chainer. See also NumPy issues #10926, #9984."
+            ))
         y = xp.sum(y, axis=tuple(range(sum_ndim)))
     elif in_subscripts == out_subscript:
         # Avoid cupy issue #1179
@@ -40,12 +49,11 @@ def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs):
     return utils.force_array(y, dtype)
 
 
-class DiagEinSum(function_node.FunctionNode):
+class EinSum(function_node.FunctionNode):
 
-    def __init__(self, in_subs, out_sub, out_shape=None):
+    def __init__(self, in_subs, out_sub):
         self.in_subs = in_subs
         self.out_sub = out_sub
-        self.out_shape = out_shape
 
     def check_type_forward(self, in_types):
         for in_type in in_types:
@@ -70,35 +78,8 @@ class DiagEinSum(function_node.FunctionNode):
 
         xp = cuda.get_array_module(inputs[0])
         dtype = xp.result_type(*[x.dtype for x in inputs])
-
-        out_set = set(self.out_sub)
-
-        # '@' is a single char, ',' is excluded.
-        io_set = out_set.intersection(set(self.in_subs))
-
-        if len(io_set) == len(self.out_sub):
-            y = _einsum(xp, dtype, self.in_subs, self.out_sub, *inputs)
-        else:
-            assert self.out_shape is not None
-            direct_sub = []
-            inverse_sub = []
-            expander = []
-            for c in sorted(out_set):
-                if c in io_set:
-                    direct_sub.append(c)
-                    expander.append(slice(None))
-                else:
-                    expander.append(None)
-                inverse_sub.append(c)
-
-            y = xp.zeros(self.out_shape, dtype)
-            diag_y = _einsum(
-                xp, dtype, self.out_sub, ''.join(inverse_sub), y)
-            # Make the view writeable as numpy PR #5410 for numpy<1.10.
-            diag_y.setflags(write=True)
-            diag_y[...] = _einsum(
-                xp, dtype, self.in_subs, ''.join(direct_sub), *inputs
-            )[expander]
+        y = _einsum(xp, dtype, self.in_subs, self.out_sub, *inputs,
+                    check_controversial_sum=True)
         return y,
 
     def backward(self, indices, grad_outputs):
@@ -123,10 +104,55 @@ class DiagEinSum(function_node.FunctionNode):
         )
 
 
+class DiagEinSum(EinSum):
+
+    def __init__(self, in_subs, out_sub, out_shape):
+        self.in_subs = in_subs
+        self.out_sub = out_sub
+        self.out_shape = out_shape
+
+    def forward(self, inputs):
+        n_args = len(inputs)
+        # TODO(kataoka): Do not retain inputs if n_args == 1
+        self.retain_inputs(tuple(range(n_args)))
+
+        xp = cuda.get_array_module(inputs[0])
+        dtype = xp.result_type(*[x.dtype for x in inputs])
+
+        out_set = set(self.out_sub)
+
+        # '@' is a single char, ',' is excluded.
+        io_set = out_set.intersection(set(self.in_subs))
+
+        if len(io_set) == len(self.out_sub):
+            y = _einsum(xp, dtype, self.in_subs, self.out_sub, *inputs)
+        else:
+            direct_sub = []
+            inverse_sub = []
+            expander = []
+            for c in sorted(out_set):
+                if c in io_set:
+                    direct_sub.append(c)
+                    expander.append(slice(None))
+                else:
+                    expander.append(None)
+                inverse_sub.append(c)
+
+            y = xp.zeros(self.out_shape, dtype)
+            diag_y = _einsum(
+                xp, dtype, self.out_sub, ''.join(inverse_sub), y)
+            # Make the view writeable as numpy PR #5410 for numpy<1.10.
+            diag_y.setflags(write=True)
+            diag_y[...] = _einsum(
+                xp, dtype, self.in_subs, ''.join(direct_sub), *inputs
+            )[expander]
+        return y,
+
+
 def einsum(*operands):
     input_subscripts, output_subscript, ioperands = \
         _parse_einsum_input(operands)
-    return DiagEinSum(
+    return EinSum(
         in_subs=input_subscripts,
         out_sub=output_subscript,
     ).apply(ioperands)[0]
