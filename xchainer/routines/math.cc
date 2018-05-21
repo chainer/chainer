@@ -81,6 +81,18 @@ Array Add(const Array& x1, const Array& x2) {
     return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
 }
 
+Array Add(const Array& x1, Scalar x2) {
+    Array out = EmptyLike(x1, x1.device());
+    x1.device().AddAS(x1, x2, out);
+
+    auto backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
+    internal::SetUpOpNodes("add_scalar", {x1}, out, {backward_function});
+
+    return out;
+}
+
+Array Add(Scalar x1, const Array& x2) { return Add(x2, x1); }
+
 namespace {
 
 void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
@@ -139,6 +151,18 @@ Array Subtract(const Array& x1, const Array& x2) {
     return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
 }
 
+Array Subtract(const Array& x1, Scalar x2) {
+    Array out = EmptyLike(x1, x1.device());
+    x1.device().SubtractAS(x1, x2, out);
+
+    auto backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
+    internal::SetUpOpNodes("subtract_scalar", {x1}, out, {backward_function});
+
+    return out;
+}
+
+Array Subtract(Scalar x1, const Array& x2) { return Subtract(x2, x1); }
+
 namespace {
 
 void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
@@ -152,7 +176,7 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     auto rhs_backward_function = [other = x1](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
         return gout * other.AsConstant(graph_ids_to_stop_gradient);
     };
-    internal::SetUpOpNodes("mul", {x1, x2}, out, {x1_backward_function, rhs_backward_function});
+    internal::SetUpOpNodes("multiply", {x1, x2}, out, {x1_backward_function, rhs_backward_function});
 
     x1.device().Multiply(x1, x2, out);
 }
@@ -206,7 +230,7 @@ Array Multiply(const Array& x1, Scalar x2) {
     x1.device().MultiplyAS(x1, x2, out);
 
     auto backward_function = [x2](const Array& gout, const std::vector<GraphId>&) { return gout * x2; };
-    internal::SetUpOpNodes("mul_scalar", {x1}, out, {backward_function});
+    internal::SetUpOpNodes("multiply_scalar", {x1}, out, {backward_function});
 
     return out;
 }
@@ -254,8 +278,10 @@ ArrayType& DivideAssignImpl(ArrayType& self, const Array& rhs) {
 namespace internal {
 
 Array& IDivide(Array& x1, const Array& x2) { return DivideAssignImpl(x1, x2); }
+// Array& IDivide(Array& x1, Scalar x2) { return DivideAssignImpl(x1, x2); }
 
 const Array& IDivide(const Array& x1, const Array& x2) { return DivideAssignImpl(x1, x2); }
+// const Array& IDivide(const Array& x1, Scalar x2) { return DivideAssignImpl(x1, x2); }
 
 }  // namespace internal
 
@@ -278,6 +304,18 @@ Array Divide(const Array& x1, const Array& x2) {
     }
     return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
 }
+
+Array Divide(const Array& x1, Scalar x2) {
+    Array out = EmptyLike(x1, x1.device());
+    x1.device().DivideAS(x1, x2, out);
+
+    auto backward_function = [x2](const Array& gout, const std::vector<GraphId>&) { return gout / x2; };
+    internal::SetUpOpNodes("divide_scalar", {x1}, out, {backward_function});
+
+    return out;
+}
+
+Array Divide(Scalar x1, const Array& x2) { return Divide(x2, x1); }
 
 namespace {
 

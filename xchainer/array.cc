@@ -124,29 +124,51 @@ Array Array::operator==(const Array& rhs) const { return Equal(*this, rhs); }
 
 Array& Array::operator+=(const Array& rhs) { return internal::IAdd(*this, rhs); }
 
-const Array& Array::operator+=(const Array& rhs) const { return internal::IAdd(*this, rhs); }
-
-Array Array::operator+(const Array& rhs) const { return xchainer::Add(*this, rhs); }
+Array& Array::operator+=(Scalar rhs) { return internal::IAdd(*this, rhs); }
 
 Array& Array::operator-=(const Array& rhs) { return internal::ISubtract(*this, rhs); }
 
-const Array& Array::operator-=(const Array& rhs) const { return internal::ISubtract(*this, rhs); }
-
-Array Array::operator-(const Array& rhs) const { return xchainer::Subtract(*this, rhs); }
+Array& Array::operator-=(Scalar rhs) { return internal::ISubtract(*this, rhs); }
 
 Array& Array::operator*=(const Array& rhs) { return internal::IMultiply(*this, rhs); }
 
-const Array& Array::operator*=(const Array& rhs) const { return internal::IMultiply(*this, rhs); }
-
-Array Array::operator*(Scalar rhs) const { return Multiply(*this, rhs); }
-
-Array Array::operator*(const Array& rhs) const { return Multiply(*this, rhs); }
+Array& Array::operator*=(Scalar rhs) { return internal::IMultiply(*this, rhs); }
 
 Array& Array::operator/=(const Array& rhs) { return internal::IDivide(*this, rhs); }
 
+Array& Array::operator/=(Scalar rhs) { return internal::IDivide(*this, rhs); }
+
+const Array& Array::operator+=(const Array& rhs) const { return internal::IAdd(*this, rhs); }
+
+const Array& Array::operator+=(Shape rhs) const { return internal::IAdd(*this, rhs); }
+
+const Array& Array::operator-=(const Array& rhs) const { return internal::ISubtract(*this, rhs); }
+
+const Array& Array::operator-=(Scalar rhs) const { return internal::ISubtract(*this, rhs); }
+
+const Array& Array::operator*=(const Array& rhs) const { return internal::IMultiply(*this, rhs); }
+
+const Array& Array::operator*=(Scalar rhs) const { return internal::IMultiply(*this, rhs); }
+
 const Array& Array::operator/=(const Array& rhs) const { return internal::IDivide(*this, rhs); }
 
+const Array& Array::operator/=(Scalar rhs) const { return internal::IDivide(*this, rhs); }
+
+Array Array::operator+(const Array& rhs) const { return xchainer::Add(*this, rhs); }
+
+Array Array::operator+(Scalar rhs) const { return xchainer::Add(*this, rhs); }
+
+Array Array::operator-(const Array& rhs) const { return xchainer::Subtract(*this, rhs); }
+
+Array Array::operator-(Scalar rhs) const { return xchainer::Subtract(*this, rhs); }
+
+Array Array::operator*(const Array& rhs) const { return Multiply(*this, rhs); }
+
+Array Array::operator*(Scalar rhs) const { return Multiply(*this, rhs); }
+
 Array Array::operator/(const Array& rhs) const { return xchainer::Divide(*this, rhs); }
+
+Array Array::operator/(Scalar rhs) const { return xchainer::Divide(*this, rhs); }
 
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal::At(*this, indices); }
 
