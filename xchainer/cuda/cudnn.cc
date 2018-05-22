@@ -45,7 +45,7 @@ cudnnDataType_t GetCudnnDataType(Dtype dtype) {
 
 void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTensorFormat_t format) {
     if (!arr.IsContiguous()) {
-        throw XchainerError{"XChainer cuDNN supports only c-contiguous arrays"};
+        throw XchainerError{"CuDNN supports only c-contiguous arrays"};
     }
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
     if (arr.shape().ndim() == 4) {
@@ -69,6 +69,9 @@ void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTe
 }
 
 void SetFilterDescriptor(cudnnFilterDescriptor_t desc, const Array& arr, cudnnTensorFormat_t format) {
+    if (!arr.IsContiguous()) {
+        throw XchainerError{"CuDNN supports only c-contiguous arrays"};
+    }
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
     if (arr.shape().ndim() == 4) {
         int n = static_cast<int>(arr.shape()[0]);
@@ -229,12 +232,22 @@ void ConvolutionForward(
     CudaDevice& device = *dynamic_cast<CudaDevice*>(&x.device());
     CudaBackend& backend = *dynamic_cast<CudaBackend*>(&device.backend());
 
-    assert(&x.device() == &device);
-    assert(&y.device() == &device);
-    assert(&w.device() == &device);
-    assert(x.dtype() == Dtype::kFloat32 || x.dtype() == Dtype::kFloat64);
-    assert(y.dtype() == x.dtype());
-    assert(w.dtype() == x.dtype());
+    if (&y.device() != &device) {
+        throw XchainerError{"The output array device: ", y.device().name(), " must be same with the input array device: ", x.device().name()};
+    }
+    if (&w.device() != &device) {
+        throw XchainerError{"The filter (kernel) array device: ", w.device().name(), " must be same with the input array device: ", x.device().name()};
+    }
+    // TODO(sonots): Support float16
+    if (x.dtype() != Dtype::kFloat32 && x.dtype() != Dtype::kFloat64) {
+        throw XchainerError{"XChainer cuDNN supports only float32 or float64 arrays, but the input array dtype is: ", x.dtype()};
+    }
+    if (y.dtype() != x.dtype()) {
+        throw XchainerError{"The output array dtype: ", y.dtype(), " must be same with the input array dtype: ", x.dtype()};
+    }
+    if (w.dtype() != x.dtype()) {
+        throw XchainerError{"The filter (kernel) array dtype: ", w.dtype(), " must be same with the input array dtype: ", x.dtype()};
+    }
 
     float float_zero = 0, float_one = 1;
     double double_zero = 0, double_one = 1;
@@ -283,8 +296,12 @@ void ConvolutionForward(
             y.data().get()));
 
     if (b) {
-        assert(&b->device() == &device);
-        assert(b->dtype() == x.dtype());
+        if (&b->device() != &device) {
+            throw XchainerError{"The bias array device: ", b->device().name(), " must be same with the input array device: ", x.device().name()};
+        }
+        if (b->dtype() != x.dtype()) {
+            throw XchainerError{"The bias array dtype: ", b->dtype(), " must be same with the input array dtype: ", x.dtype()};
+        }
 
         int8_t ndim = x.ndim() - 2;
         assert(ndim > 0);
