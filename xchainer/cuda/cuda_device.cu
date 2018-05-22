@@ -949,9 +949,6 @@ int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64
 
 }  // namespace
 
-// chainer/functions/connection/convolution_nd.py
-// def _forward_cudnn(self, x, W, b):
-
 Array CudaDevice::Conv(
         const Array& x,
         const Array& w,
@@ -966,13 +963,6 @@ Array CudaDevice::Conv(
     int8_t ndim = w.ndim() - 2;
     assert(ndim > 0);
 
-    // out_c = W.shape[0]      # (c_O, _, k_1, k_2, ..., k_N)
-    // ksize = W.shape[2:]
-    // n, c = x.shape[:2]      # (n, c_I, d_1, d_2, ..., d_N)
-    // dims = x.shape[2:]
-    // stride = self.stride
-    // pad = self.pad
-
     // w.shape = (out_channels, _, k_1, k_2, ..., k_N)
     int64_t out_channels = w.shape()[0];
     StackVector<int64_t, kMaxNdim> kernel_size;
@@ -980,16 +970,8 @@ Array CudaDevice::Conv(
     // x_shape = (batch_size, in_channels, d_1, d_2, ..., d_N)
     int64_t batch_size = x.shape()[0];
 
-    // # Make empty array for result.
-    // outs = tuple(
-    //     conv.get_conv_outsize(d, k, s, p, cover_all=self.cover_all)
-    //     for (d, k, s, p) in zip(dims, ksize, stride, pad))
-    // assert all(out > 0 for out in outs), 'Output sizes should be positive.'
-    // y_shape = (n, out_c) + outs  # (n, c_O, out_1, out_2, ..., out_N)
-    // y = cuda.cupy.empty(y_shape, dtype=x.dtype)
-
     // Create the output array.
-    StackVector<int64_t, kMaxNdim> out_dims;  // Number of patches along each axis
+    StackVector<int64_t, kMaxNdim> out_dims;
     for (int8_t i = 0; i < ndim; ++i) {
         out_dims.emplace_back(GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
         assert(out_dims.back() > 0);
@@ -999,15 +981,6 @@ Array CudaDevice::Conv(
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
     Array y = Empty(out_shape, x.dtype(), *this);
-
-    // dilation = (1,) * self.ndim
-    // groups = 1
-    // auto_tune = configuration.config.autotune
-    // tensor_core = configuration.config.use_cudnn_tensor_core
-    // cuda.cudnn.convolution_forward(
-    //     x, W, b, y, pad, stride, dilation, groups,
-    //     auto_tune=auto_tune, tensor_core=tensor_core)
-    // return y,
 
     ConvolutionForward(*this, x, w, b, y, pad, stride, nonstd::nullopt, 1);
 
