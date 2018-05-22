@@ -676,7 +676,7 @@ class _BNMode(object):
         if self.is_for_linear:
             return libcudnn.CUDNN_BATCHNORM_PER_ACTIVATION
 
-        if (not self.inference and _cudnn_version > 7000 and
+        if (not self.inference and _cudnn_version >= 7000 and
                 configuration.config.cudnn_fast_batch_normalization):
             return libcudnn.CUDNN_BATCHNORM_SPATIAL_PERSISTENT
         return libcudnn.CUDNN_BATCHNORM_SPATIAL
