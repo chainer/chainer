@@ -568,6 +568,9 @@ def check_backward(
         for i, gy_ in enumerate(y_grad):
             f.write('grad_outputs[{}]:\n'.format(i))
             f.write('{}\n'.format(gy_))
+        for i, d_ in enumerate(directions):
+            f.write('directions[{}]:\n'.format(i))
+            f.write('{}\n'.format(d_))
         f.write('gradients (numeric):  {}\n'.format(gx))
         f.write('gradients (backward): {}\n'.format(gx_accum))
         f.write('\n')
