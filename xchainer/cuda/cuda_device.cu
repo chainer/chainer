@@ -883,12 +883,12 @@ Array CudaDevice::Conv(
 }
 
 Array CudaDevice::ConvTranspose(
-        const Array& x,
-        const Array& w,
-        const nonstd::optional<Array>& b,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) {
+        const Array& /*x*/,
+        const Array& /*w*/,
+        const nonstd::optional<Array>& /*b*/,
+        const StackVector<int64_t, kMaxNdim>& /*stride*/,
+        const StackVector<int64_t, kMaxNdim>& /*pad*/,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& /*out_size*/) {
     // TODO(hvy): Implement it
     throw NotImplementedError{""};
 }
