@@ -44,8 +44,10 @@ _skip_if_many_zeros = _skip_if(
     [
         {'eps': 1e-5, 'nonzeros': None},
         {'eps': 1e-1, 'nonzeros': None},
-        {'eps': 1e-1, 'nonzeros': 0},
-        {'eps': 1e-1, 'nonzeros': 2},
+        {'eps': 1e-1, 'nonzeros': 0, 'truezero': True},
+        {'eps': 1e-1, 'nonzeros': 0, 'truezero': False},
+        {'eps': 1e-1, 'nonzeros': 2, 'truezero': True},
+        {'eps': 1e-1, 'nonzeros': 2, 'truezero': False},
     ],
 ]))
 class TestL2Normalization(unittest.TestCase):
@@ -55,7 +57,14 @@ class TestL2Normalization(unittest.TestCase):
         if self.nonzeros is not None:
             indices = numpy.array(self.x.nonzero()).T
             numpy.random.shuffle(indices)
-            self.x[tuple(indices[self.nonzeros:].T)] = 0
+            indices = tuple(indices[self.nonzeros:].T)
+            if self.truezero:
+                self.x[indices] = 0
+            else:
+                n_indices, = indices[0].shape
+                zero_scale = 10. ** numpy.random.randint(-40, -3)
+                self.x[indices] = numpy.random.uniform(
+                    -zero_scale, zero_scale, n_indices)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         self.ggx = numpy.random.uniform(
             -1, 1, self.shape).astype(numpy.float32)
