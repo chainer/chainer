@@ -14,8 +14,6 @@ class NormalizeL2(function_node.FunctionNode):
         self.eps = eps
         if isinstance(axis, int):
             axis = axis,
-        if len(axis) not in (1, 2):
-            raise ValueError("Improper number of dimensions to norm.")
         self.axis = axis
 
     def check_type_forward(self, in_types):
@@ -59,13 +57,14 @@ def normalize(x, eps=1e-5, axis=1):
     This function implements L2 normalization on a vector along the given axis.
     No reduction is done along the normalization axis.
 
-    In the case when :obj:`axis=1` and :math:`x` is a vector of dimension
-    :math:`(N, K)`, where :math:`N` and :math:`K` denote mini-batch size and
-    the dimension of the input variable, this function computes an output
-    vector :math:`y` by the following equation:
+    This function computes an output vector :math:`y` by the following
+    equation:
 
     .. math::
-       y_i = {x_i \\over \\| x_i \\|_2 + \\epsilon}
+       y_{i,j} = {x_{i,j} \\over \\| x_{i,*} \\|_2 + \\epsilon}
+
+    where :math:`j` is an index over the normalization axis and :math:`i` is an
+    index over the remaining axis.
 
     :obj:`eps` is used to avoid division by zero when norm of :math:`x` along
     the given axis is zero.
@@ -76,7 +75,7 @@ def normalize(x, eps=1e-5, axis=1):
         x (~chainer.Variable): Two dimensional output variable. The first
             dimension is assumed to be the mini-batch dimension.
         eps (float): Epsilon value for numerical stability.
-        axis (int): Axis along which to normalize.
+        axis (int or tuple of ints): Axis along which to normalize.
 
     Returns:
         ~chainer.Variable: The output variable which has the same shape
