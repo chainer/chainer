@@ -82,11 +82,7 @@ class BilinearFunction(function_node.FunctionNode):
         xp = cuda.get_array_module(*inputs)
         if xp is numpy:
             # optimize: y = numpy.einsum('ij,ik,jkl->il', e1, e2, W)
-            y = numpy.einsum(
-                'ij,ijl->il',
-                e1,
-                numpy.tensordot(e2, W, axes=(1, 1))  # 'ik,jkl->ijl'
-            )
+            y = numpy.tensordot(numpy.einsum('ij,ik->ijk', e1, e2), W, axes=2)
         else:
             i_len, j_len = e1.shape
             k_len = e2.shape[1]
