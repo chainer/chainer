@@ -1,6 +1,7 @@
 #include "xchainer/cuda/cudnn.h"
 
 #include <algorithm>
+#include <limits>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -47,6 +48,13 @@ void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTe
     if (!arr.IsContiguous()) {
         throw XchainerError{"CuDNN supports only c-contiguous arrays"};
     }
+    constexpr int int_max = std::numeric_limits<int>::max();
+    for (int8_t i = 0; i < arr.shape().ndim(); ++i) {
+        if (arr.shape()[i] > int_max) {
+            throw XchainerError{"The shape size: ", arr.shape()[i], " of dimension: ", i, " is larger than ", int_max};
+        }
+    }
+
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
     if (arr.shape().ndim() == 4) {
         int n = static_cast<int>(arr.shape()[0]);
@@ -55,12 +63,15 @@ void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTe
         int w = static_cast<int>(arr.shape()[3]);
         CheckCudnnError(cudnnSetTensor4dDescriptor(desc, format, cudnn_dtype, n, c, h, w));
     } else {
-        int64_t item_size = arr.item_size();
-        StackVector<int, kMaxNdim> int_shape;
         StackVector<int, kMaxNdim> int_strides;
-        for (int64_t v : arr.strides()) {
-            int_strides.emplace_back(static_cast<int>(v / item_size));
+        for (int8_t i = 0; i < arr.strides().ndim(); ++i) {
+            int64_t v = arr.strides()[i] / arr.item_size();
+            if (v > int_max) {
+                throw XchainerError{"The array stride: ", v, " (in number of items) of dimension: ", i, " is larger than ", int_max};
+            }
+            int_strides.emplace_back(static_cast<int>(v));
         }
+        StackVector<int, kMaxNdim> int_shape;
         for (int64_t v : arr.shape()) {
             int_shape.emplace_back(static_cast<int>(v));
         }
@@ -72,6 +83,13 @@ void SetFilterDescriptor(cudnnFilterDescriptor_t desc, const Array& arr, cudnnTe
     if (!arr.IsContiguous()) {
         throw XchainerError{"CuDNN supports only c-contiguous arrays"};
     }
+    constexpr int int_max = std::numeric_limits<int>::max();
+    for (int8_t i = 0; i < arr.shape().ndim(); ++i) {
+        if (arr.shape()[i] > int_max) {
+            throw XchainerError{"The shape size: ", arr.shape()[i], " of dimension: ", i, " is larger than ", int_max};
+        }
+    }
+
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
     if (arr.shape().ndim() == 4) {
         int n = static_cast<int>(arr.shape()[0]);
@@ -104,13 +122,27 @@ void SetConvolutionDescriptor(
         throw DimensionError{"pad and dilation must be of same length"};
     }
 
+    constexpr int int_max = std::numeric_limits<int>::max();
     StackVector<int, kMaxNdim> int_stride;
-    StackVector<int, kMaxNdim> int_pad;
-    for (int64_t v : stride) {
-        int_stride.emplace_back(static_cast<int>(v));
+    for (size_t i = 0; i < stride.size(); ++i) {
+        if (stride[i] > int_max) {
+            throw XchainerError{"The stride: ", stride[i], " of dimension: ", i, " is larger than ", int_max};
+        }
+        int_stride.emplace_back(static_cast<int>(stride[i]));
     }
-    for (int64_t v : pad) {
-        int_pad.emplace_back(static_cast<int>(v));
+    StackVector<int, kMaxNdim> int_pad;
+    for (size_t i = 0; i < pad.size(); ++i) {
+        if (pad[i] > int_max) {
+            throw XchainerError{"The pad: ", pad[i], " of dimension: ", i, " is larger than ", int_max};
+        }
+        int_pad.emplace_back(static_cast<int>(pad[i]));
+    }
+    if (dilation) {
+        for (size_t i = 0; i < dilation->size(); ++i) {
+            if ((*dilation)[i] > int_max) {
+                throw XchainerError{"The dilation, ", (*dilation)[i], " of dimension: ", i, " is larger than ", int_max};
+            }
+        }
     }
 
     cudnnDataType_t compute_type = GetCudnnDataType(dtype);
@@ -119,7 +151,7 @@ void SetConvolutionDescriptor(
         StackVector<int, kMaxNdim> int_dilation;
         if (!dilation) {
             // TODO(sonots): Use assign(ndim, 1) if it becomes available
-            for (decltype(ndim) i = 0; i < ndim; ++i) {
+            for (size_t i = 0; i < ndim; ++i) {
                 int_dilation.emplace_back(1);
             }
         } else {
@@ -233,10 +265,12 @@ void ConvolutionForward(
     CudaBackend& backend = *dynamic_cast<CudaBackend*>(&device.backend());
 
     if (&y.device() != &device) {
-        throw XchainerError{"The output array device: ", y.device().name(), " must be same with the input array device: ", x.device().name()};
+        throw XchainerError{
+                "The output array device: ", y.device().name(), " must be same with the input array device: ", x.device().name()};
     }
     if (&w.device() != &device) {
-        throw XchainerError{"The filter (kernel) array device: ", w.device().name(), " must be same with the input array device: ", x.device().name()};
+        throw XchainerError{
+                "The filter (kernel) array device: ", w.device().name(), " must be same with the input array device: ", x.device().name()};
     }
     // TODO(sonots): Support float16
     if (x.dtype() != Dtype::kFloat32 && x.dtype() != Dtype::kFloat64) {
@@ -297,7 +331,8 @@ void ConvolutionForward(
 
     if (b) {
         if (&b->device() != &device) {
-            throw XchainerError{"The bias array device: ", b->device().name(), " must be same with the input array device: ", x.device().name()};
+            throw XchainerError{
+                    "The bias array device: ", b->device().name(), " must be same with the input array device: ", x.device().name()};
         }
         if (b->dtype() != x.dtype()) {
             throw XchainerError{"The bias array dtype: ", b->dtype(), " must be same with the input array dtype: ", x.dtype()};
