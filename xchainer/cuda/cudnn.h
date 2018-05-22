@@ -24,25 +24,8 @@ private:
 
 void CheckCudnnError(cudnnStatus_t status);
 
-std::shared_ptr<cudnnTensorStruct> CreateTensorDescriptor(const Array& arr, cudnnTensorFormat_t format = CUDNN_TENSOR_NCHW);
-std::shared_ptr<cudnnFilterStruct> CreateFilterDescriptor(const Array& arr, cudnnTensorFormat_t format = CUDNN_TENSOR_NCHW);
-std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        Dtype dtype,
-        cudnnConvolutionMode_t mode = CUDNN_CROSS_CORRELATION,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation = nonstd::nullopt,
-        int groups = 1);
-std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
-        cudnnHandle_t handle,
-        const std::shared_ptr<cudnnTensorStruct>& x_desc,
-        const Array& x,
-        const std::shared_ptr<cudnnFilterStruct>& w_desc,
-        const Array& w,
-        const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
-        const std::shared_ptr<cudnnTensorStruct>& y_desc,
-        const Array& y,
-        size_t max_workspace_size);
+namespace internal {
+
 void ConvolutionForward(
         CudaDevice& device,
         const Array& x,
@@ -54,5 +37,6 @@ void ConvolutionForward(
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation = nonstd::nullopt,
         int groups = 1);
 
+}  // namespace internal
 }  // namespace cuda
 }  // namespace xchainer

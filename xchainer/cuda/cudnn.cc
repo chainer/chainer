@@ -142,9 +142,7 @@ void SetConvolutionDescriptor(
     }
 }
 
-}  // namespace
-
-std::shared_ptr<cudnnTensorStruct> CreateTensorDescriptor(const Array& arr, cudnnTensorFormat_t format) {
+std::shared_ptr<cudnnTensorStruct> CreateTensorDescriptor(const Array& arr, cudnnTensorFormat_t format = CUDNN_TENSOR_NCHW) {
     cudnnTensorDescriptor_t desc{};
     CheckCudnnError(cudnnCreateTensorDescriptor(&desc));
     auto shared_desc = std::shared_ptr<cudnnTensorStruct>{
@@ -153,7 +151,7 @@ std::shared_ptr<cudnnTensorStruct> CreateTensorDescriptor(const Array& arr, cudn
     return shared_desc;
 }
 
-std::shared_ptr<cudnnFilterStruct> CreateFilterDescriptor(const Array& arr, cudnnTensorFormat_t format) {
+std::shared_ptr<cudnnFilterStruct> CreateFilterDescriptor(const Array& arr, cudnnTensorFormat_t format = CUDNN_TENSOR_NCHW) {
     cudnnFilterDescriptor_t desc{};
     CheckCudnnError(cudnnCreateFilterDescriptor(&desc));
     auto shared_desc = std::shared_ptr<cudnnFilterStruct>{
@@ -166,9 +164,9 @@ std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride,
         Dtype dtype,
-        cudnnConvolutionMode_t mode,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
-        int groups) {
+        cudnnConvolutionMode_t mode = CUDNN_CROSS_CORRELATION,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation = nonstd::nullopt,
+        int groups = 1) {
     cudnnConvolutionDescriptor_t desc{};
     CheckCudnnError(cudnnCreateConvolutionDescriptor(&desc));
     auto shared_desc = std::shared_ptr<cudnnConvolutionStruct>{
@@ -210,6 +208,10 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
 
     return {perf_results[0].algo, perf_results[0].memory};
 }
+
+}  // namespace
+
+namespace internal {
 
 // TODO(sonots): Support tensor core
 void ConvolutionForward(
@@ -294,5 +296,6 @@ void ConvolutionForward(
     }
 }
 
+}  // namespace internal
 }  // namespace cuda
 }  // namespace xchainer
