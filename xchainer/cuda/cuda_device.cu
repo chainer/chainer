@@ -1011,9 +1011,7 @@ Array CudaDevice::Conv(
 
     ConvolutionForward(*this, x, w, b, y, pad, stride, nonstd::nullopt, 1);
 
-<<<<<<< da720f1f552e4ad65580a64c98f4175f0b1910db
-    // return y,
->>>>>>> CudaDevice: Convolution (wip)
+    return y;
 }
 
 Array CudaDevice::ConvTranspose(
@@ -1025,9 +1023,6 @@ Array CudaDevice::ConvTranspose(
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& /*out_size*/) {
     // TODO(hvy): Implement it
     throw NotImplementedError{""};
-=======
-    return y;
->>>>>>> ConvolutionForward
 }
 
 void CudaDevice::Synchronize() {
