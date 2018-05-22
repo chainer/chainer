@@ -937,18 +937,6 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
     });
 }
 
-namespace {
-
-// TODO(sonots): Share codes with NativeDevice
-int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
-    if (cover_all) {
-        return (in_dim + pad * 2 - kernel_size + stride - 1) / stride + 1;
-    }
-    return (in_dim + pad * 2 - kernel_size) / stride + 1;
-}
-
-}  // namespace
-
 Array CudaDevice::Conv(
         const Array& x,
         const Array& w,
@@ -973,7 +961,7 @@ Array CudaDevice::Conv(
     // Create the output array.
     StackVector<int64_t, kMaxNdim> out_dims;
     for (int8_t i = 0; i < ndim; ++i) {
-        out_dims.emplace_back(GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
+        out_dims.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
         assert(out_dims.back() > 0);
     }
 
