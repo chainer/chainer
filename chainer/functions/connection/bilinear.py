@@ -85,7 +85,7 @@ class BilinearFunction(function_node.FunctionNode):
             y = numpy.einsum(
                 'ij,ijl->il',
                 e1,
-                numpy.einsum('ik,jkl->ijl', e2, W)
+                numpy.tensordot(e2, W, axes=(1, 1))  # 'ik,jkl->ijl'
             )
         else:
             i_len, j_len = e1.shape
@@ -130,18 +130,12 @@ class BilinearFunctionGrad(function_node.FunctionNode):
         if xp is numpy:
             # optimize: gW = numpy.einsum('ij,ik,il->jkl', e1, e2, gy)
             gW = numpy.einsum('ij,ik->jki', e1, e2).dot(gy)
+
+            gy_W = numpy.tensordot(gy, W, axes=(1, 2))  # 'il,jkl->ijk'
             # optimize: ge1 = numpy.einsum('ik,jkl,il->ij', e2, W, gy)
-            ge1 = numpy.einsum(
-                'ik,ijk->ij',
-                e2,
-                numpy.einsum('jkl,il->ijk', W, gy)
-            )
+            ge1 = numpy.einsum('ik,ijk->ij', e2, gy_W)
             # optimize: ge2 = numpy.einsum('ij,jkl,il->ik', e1, W, gy)
-            ge2 = numpy.einsum(
-                'ij,ijk->ik',
-                e1,
-                numpy.einsum('jkl,il->ijk', W, gy)
-            )
+            ge2 = numpy.einsum('ij,ijk->ik', e1, gy_W)
         else:
             kern = cuda.reduce('T in0, T in1, T in2', 'T out',
                                'in0 * in1 * in2', 'a + b', 'out = a', 0,
