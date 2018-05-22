@@ -982,7 +982,7 @@ Array CudaDevice::Conv(
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
     Array y = Empty(out_shape, x.dtype(), *this);
 
-    internal::ConvolutionForward(*this, x, w, b, y, pad, stride, nonstd::nullopt, 1);
+    internal::ConvolutionForward(x, w, b, y, pad, stride, nonstd::nullopt, 1);
 
     return y;
 }

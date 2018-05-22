@@ -27,7 +27,6 @@ void CheckCudnnError(cudnnStatus_t status);
 namespace internal {
 
 void ConvolutionForward(
-        CudaDevice& device,
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,

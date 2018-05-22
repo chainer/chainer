@@ -215,7 +215,6 @@ namespace internal {
 
 // TODO(sonots): Support tensor core
 void ConvolutionForward(
-        CudaDevice& device,
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
@@ -224,12 +223,15 @@ void ConvolutionForward(
         const StackVector<int64_t, kMaxNdim>& stride,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
         int groups) {
-    assert(&device == &x.device());
-    assert(&device == &y.device());
-    assert(&device == &w.device());
+    CudaDevice& device = *dynamic_cast<CudaDevice*>(&x.device());
+    CudaBackend& backend = *dynamic_cast<CudaBackend*>(&device.backend());
+
+    assert(&x.device() == &device);
+    assert(&y.device() == &device);
+    assert(&w.device() == &device);
     assert(x.dtype() == Dtype::kFloat32 || x.dtype() == Dtype::kFloat64);
     assert(y.dtype() == x.dtype());
-    assert(w.dtype() == Dtype::kFloat32 || w.dtype() == Dtype::kFloat64);
+    assert(w.dtype() == x.dtype());
 
     float float_zero = 0, float_one = 1;
     double double_zero = 0, double_one = 1;
@@ -253,7 +255,7 @@ void ConvolutionForward(
     std::shared_ptr<cudnnFilterStruct> filter_desc = CreateFilterDescriptor(w_cont, CUDNN_TENSOR_NCHW);
     std::shared_ptr<cudnnConvolutionStruct> conv_desc =
             CreateConvolutionDescriptor(pad, stride, x.dtype(), CUDNN_CROSS_CORRELATION, dilation, groups);
-    size_t max_workspace_size = device.max_workspace_size();
+    size_t max_workspace_size = backend.max_workspace_size();
 
     // auto tune
     std::tuple<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size =
@@ -278,8 +280,9 @@ void ConvolutionForward(
             y.data().get()));
 
     if (b) {
-        assert(&device == &b->device());
-        assert(b->dtype() == Dtype::kFloat32 || b->dtype() == Dtype::kFloat64);
+        assert(&b->device() == &device);
+        assert(b->dtype() == x.dtype());
+
         int8_t ndim = x.ndim() - 2;
         assert(ndim > 0);
 
