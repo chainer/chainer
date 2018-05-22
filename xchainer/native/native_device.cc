@@ -23,6 +23,7 @@
 #include "xchainer/native/reduce.h"
 #include "xchainer/numeric_limits.h"
 #include "xchainer/reduction_kernel_arg.h"
+#include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/scalar.h"
@@ -534,13 +535,6 @@ void NativeDevice::Linspace(double start, double stop, const Array& out) {
 
 namespace {
 
-int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
-    if (cover_all) {
-        return (in_dim + pad * 2 - kernel_size + stride - 1) / stride + 1;
-    }
-    return (in_dim + pad * 2 - kernel_size) / stride + 1;
-}
-
 Array Im2Col(
         const Array& x,
         const StackVector<int64_t, kMaxNdim>& kernel_size,
@@ -569,7 +563,7 @@ Array Im2Col(
     // Create the output array.
     StackVector<int64_t, kMaxNdim> out_dims;  // Number of patches along each axis
     for (int8_t i = 0; i < ndim; ++i) {
-        out_dims.emplace_back(GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
+        out_dims.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
         assert(out_dims.back() > 0);
     }
 
