@@ -246,7 +246,9 @@ private:
 };
 
 inline Array operator+(Scalar lhs, const Array& rhs) { return rhs + lhs; }
+inline Array operator-(Scalar lhs, const Array& rhs) { return -rhs + lhs; }
 inline Array operator*(Scalar lhs, const Array& rhs) { return rhs * lhs; }
+// TODO(hvy): Implement Scalar / Array using e.g. multiplication with reciprocal.
 
 void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent = 0);
 

@@ -498,9 +498,17 @@ TEST_P(MathTest, SubtractInvalidBroadcast) {
 
 TEST_P(MathTest, SubtractScalar) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array e = testing::BuildArray<float>({3, 1}, {-1, 0, 1});
-    Array o = Subtract(a, Scalar{2.f});
-    testing::ExpectEqual(e, o);
+    Scalar b{2.f};
+    {
+        Array e = testing::BuildArray<float>({3, 1}, {-1, 0, 1});
+        Array o = Subtract(a, b);
+        testing::ExpectEqual(e, o);
+    }
+    {
+        Array e = testing::BuildArray<float>({3, 1}, {1, 0, -1});
+        Array o = Subtract(b, a);
+        testing::ExpectEqual(e, o);
+    }
 }
 
 TEST_P(MathTest, SubtractBackward) {
@@ -544,8 +552,8 @@ TEST_P(MathTest, SubtractScalarBackward) {
 
     // array - scalar
     CheckBackward([b](const std::vector<Array>& xs) -> std::vector<Array> { return {Subtract(xs[0], b)}; }, {a}, {go}, {eps});
-
-    // TODO(hvy): Also test scalar - array, when supported.
+    // scalar - array
+    CheckBackward([b](const std::vector<Array>& xs) -> std::vector<Array> { return {Subtract(b, xs[0])}; }, {a}, {go}, {eps});
 }
 
 TEST_P(MathTest, SubtractScalarDoubleBackward) {
@@ -567,8 +575,16 @@ TEST_P(MathTest, SubtractScalarDoubleBackward) {
             {go},
             {ggi},
             {eps, eps});
-
-    // TODO(hvy): Also test scalar - array, when supported.
+    // scalar - array
+    CheckDoubleBackwardComputation(
+            [b](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Subtract(b, xs[0]);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
 }
 
 TEST_P(MathTest, Multiply) {

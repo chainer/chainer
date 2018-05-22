@@ -190,7 +190,7 @@ Array Subtract(const Array& x1, Scalar x2) {
     return out;
 }
 
-Array Subtract(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar - Array subtraction is not yet supported."}; }
+Array Subtract(Scalar x1, const Array& x2) { return Add(-x2, x1); }
 
 namespace {
 

@@ -426,9 +426,17 @@ TEST_P(ArrayTest, Subtract) {
 
 TEST_P(ArrayTest, SubtractScalar) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array e = testing::BuildArray<float>({3, 1}, {-0.5f, 0.5f, 1.5f});
-    Array o = a - Scalar{1.5f};
-    testing::ExpectEqual(e, o);
+    Scalar b{1.5f};
+    {
+        Array e = testing::BuildArray<float>({3, 1}, {-0.5f, 0.5f, 1.5f});
+        Array o = a - b;
+        testing::ExpectEqual(e, o);
+    }
+    {
+        Array e = testing::BuildArray<float>({3, 1}, {0.5f, -0.5f, -1.5f});
+        Array o = b - a;
+        testing::ExpectEqual(e, o);
+    }
 }
 
 TEST_P(ArrayTest, Multiply) {
