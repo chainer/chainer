@@ -973,14 +973,12 @@ Array CudaDevice::Conv(
     // stride = self.stride
     // pad = self.pad
 
-    // w.shape = (channels, _, k_1, k_2, ..., k_N)
-    StackVector<int64_t, kMaxNdim> ksize;
-    std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(ksize));
-    // x.shape = (batch_size, channels, d_1, d_2, ..., d_N)
+    // w.shape = (out_channels, _, k_1, k_2, ..., k_N)
+    int64_t out_channels = w.shape()[0];
+    StackVector<int64_t, kMaxNdim> kernel_size;
+    std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(kernel_size));
+    // x_shape = (batch_size, in_channels, d_1, d_2, ..., d_N)
     int64_t batch_size = x.shape()[0];
-    int64_t channels = x.shape()[1];
-    StackVector<int64_t, kMaxNdim> dims;
-    std::copy_n(x.shape().begin() + 2, ndim, std::back_inserter(dims));
 
     // # Make empty array for result.
     // outs = tuple(
@@ -993,12 +991,12 @@ Array CudaDevice::Conv(
     // Create the output array.
     StackVector<int64_t, kMaxNdim> out_dims;  // Number of patches along each axis
     for (int8_t i = 0; i < ndim; ++i) {
-        out_dims.emplace_back(GetConvOutDim(x.shape()[i + 2], ksize[i], stride[i], pad[i], cover_all));
+        out_dims.emplace_back(GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
         assert(out_dims.back() > 0);
     }
 
-    // out_shape = (batch_size, channels, out_1, out_2, ..., out_N)
-    Shape out_shape{batch_size, channels};
+    // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
+    Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
     Array y = Empty(out_shape, x.dtype(), *this);
 
