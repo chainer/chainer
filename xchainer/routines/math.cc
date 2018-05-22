@@ -290,10 +290,9 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
         return gout / x2.AsConstant(graph_ids_to_stop_gradient);
     };
     auto x2_backward_function = [x1, x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
-        // TODO(niboshi): Use unary negate
         Array lhs_const = x1.AsConstant(graph_ids_to_stop_gradient);
         Array rhs_const = x2.AsConstant(graph_ids_to_stop_gradient);
-        return -1 * gout * lhs_const / (rhs_const * rhs_const);
+        return -gout * lhs_const / (rhs_const * rhs_const);
     };
     internal::SetUpOpNodes("divide", {x1, x2}, out, {x1_backward_function, x2_backward_function});
 
