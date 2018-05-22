@@ -416,8 +416,17 @@ void ConvolutionForward(
     // else:
     //     zero = <size_t>&float_zero
     //     one = <size_t>&float_one
-    auto zero = x.dtype() == Dtype::kFloat64 ? double{0} : float{0};
-    auto one = x.dtype() == Dtype::kFloat64 ? double{1} : float{1};
+    float float_zero = 0, float_one = 1;
+    double double_zero = 0, double_one = 1;
+    void* zero;
+    void* one;
+    if (x.dtype() == Dtype::kFloat64) {
+        zero = &double_zero;
+        one = &double_one;
+    } else {
+        zero = &float_zero;
+        one = &float_one;
+    }
 
     // cdef bint use_tensor_core = _should_use_tensor_core(tensor_core, x.dtype)
     // cdef tuple conv_param = (pad, stride, x.dtype)
@@ -487,7 +496,7 @@ void ConvolutionForward(
     //     y.data.ptr)
     CheckCudnnError(cudnnConvolutionForward(
             handle,
-            &one,
+            one,
             x_desc.get(),
             x_cont.data().get(),
             filter_desc.get(),
@@ -496,7 +505,7 @@ void ConvolutionForward(
             algo,
             workspace.get(),
             workspace_size,
-            &zero,
+            zero,
             y_desc.get(),
             y.data().get()));
 
@@ -522,7 +531,7 @@ void ConvolutionForward(
         }
         Array b_cont = AsContiguousArray(*b).Reshape(new_shape);
         std::shared_ptr<cudnnTensorStruct> b_desc = CreateTensorDescriptor(b_cont);
-        CheckCudnnError(cudnnAddTensor(handle, &one, b_desc.get(), b_cont.data().get(), &one, y_desc.get(), y.data().get()));
+        CheckCudnnError(cudnnAddTensor(handle, one, b_desc.get(), b_cont.data().get(), one, y_desc.get(), y.data().get()));
     }
 }
 
