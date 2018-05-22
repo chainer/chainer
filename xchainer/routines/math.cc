@@ -26,6 +26,50 @@ Array Negative(const Array& x) {
 
 namespace {
 
+// Called from Add, Subtract, Multiply, Divide, etc. to handle broadcasting.
+template <typename Impl>
+Array BroadcastBinary(Impl&& impl, const Array& x1, const Array& x2) {
+    auto func = [&impl](const Array& x1, const Array& x2) -> Array {
+        Array out = EmptyLike(x1, x1.device());
+        impl(x1, x2, out);
+        return out;
+    };
+
+    if (x1.shape() == x2.shape()) {
+        return func(x1, x2);
+    }
+    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
+    if (x1.shape() == result_shape) {
+        return func(x1, x2.BroadcastTo(result_shape));
+    }
+    if (x2.shape() == result_shape) {
+        return func(x1.BroadcastTo(result_shape), x2);
+    }
+    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
+}
+
+// Called from IAdd, ISubtract, IMultiply, IDivide, etc. to handle broadcasting.
+template <typename Impl>
+void BroadcastBinaryInPlace(Impl&& impl, const Array& x1, const Array& x2) {
+    if (x1.shape() == x2.shape()) {
+        impl(x1, x2, x1);
+    } else {
+        impl(x1, x2.BroadcastTo(x1.shape()), x1);
+    }
+}
+
+template <typename Impl, typename ArrayType>
+Array Binary(Impl&& impl, ArrayType& x1, Scalar x2) {
+    Array out = EmptyLike(x1, x1.device());
+    impl(x1, x2, out);
+    return out;
+}
+
+template <typename Impl, typename ArrayType>
+void BinaryInPlace(Impl&& impl, ArrayType& x1, Scalar x2) {
+    impl(x1, x2, x1);
+}
+
 void AddImpl(const Array& x1, const Array& x2, const Array& out) {
     // TODO(sonots): dtype conversion
     CheckEqual(x1.dtype(), x2.dtype());
@@ -42,75 +86,13 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
     x1.device().Add(x1, x2, out);
 }
 
-void AddImpl(const Array& x1, Scalar x2, const Array& out) {
+void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
     auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
     internal::SetUpOpNodes("add_scalar", {x1}, out, {x1_backward_function});
 
     x1.device().AddAS(x1, x2, out);
 }
-
-template <typename ArrayType>
-ArrayType& AddAssignImpl(ArrayType& x1, const Array& x2) {
-    auto func = [](ArrayType& x1, const Array& x2) -> ArrayType& {
-        AddImpl(x1, x2, x1);
-        return x1;
-    };
-
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Array x2_broadcasted = x2.BroadcastTo(x1.shape());
-    return func(x1, x2_broadcasted);
-}
-
-template <typename ArrayType>
-ArrayType& AddAssignImpl(ArrayType& x1, Scalar x2) {
-    AddImpl(x1, x2, x1);
-    return x1;
-}
-
-}  // namespace
-
-namespace internal {
-
-Array& IAdd(Array& x1, const Array& x2) { return AddAssignImpl(x1, x2); }
-Array& IAdd(Array& x1, Scalar x2) { return AddAssignImpl(x1, x2); }
-
-const Array& IAdd(const Array& x1, const Array& x2) { return AddAssignImpl(x1, x2); }
-const Array& IAdd(const Array& x1, Scalar x2) { return AddAssignImpl(x1, x2); }
-
-}  // namespace internal
-
-Array Add(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) -> Array {
-        Array out = EmptyLike(x1, x1.device());
-        AddImpl(x1, x2, out);
-        return out;
-    };
-
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
-    if (x1.shape() == result_shape) {
-        return func(x1, x2.BroadcastTo(result_shape));
-    }
-    if (x2.shape() == result_shape) {
-        return func(x1.BroadcastTo(result_shape), x2);
-    }
-    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
-}
-
-Array Add(const Array& x1, Scalar x2) {
-    Array out = EmptyLike(x1, x1.device());
-    AddImpl(x1, x2, out);
-    return out;
-}
-
-Array Add(Scalar x1, const Array& x2) { return Add(x2, x1); }
-
-namespace {
 
 void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     // TODO(niboshi): dtype conversion
@@ -124,75 +106,13 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     x1.device().Subtract(x1, x2, out);
 }
 
-void SubtractImpl(const Array& x1, Scalar x2, const Array& out) {
+void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
     auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
     internal::SetUpOpNodes("subtract_scalar", {x1}, out, {x1_backward_function});
 
     x1.device().SubtractAS(x1, x2, out);
 }
-
-template <typename ArrayType>
-ArrayType& SubtractAssignImpl(ArrayType& x1, const Array& x2) {
-    auto func = [](ArrayType& x1, const Array& x2) -> ArrayType& {
-        SubtractImpl(x1, x2, x1);
-        return x1;
-    };
-
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Array x2_broadcasted = x2.BroadcastTo(x1.shape());
-    return func(x1, x2_broadcasted);
-}
-
-template <typename ArrayType>
-ArrayType& SubtractAssignImpl(ArrayType& x1, Scalar x2) {
-    SubtractImpl(x1, x2, x1);
-    return x1;
-}
-
-}  // namespace
-
-namespace internal {
-
-Array& ISubtract(Array& x1, const Array& x2) { return SubtractAssignImpl(x1, x2); }
-Array& ISubtract(Array& x1, Scalar x2) { return SubtractAssignImpl(x1, x2); }
-
-const Array& ISubtract(const Array& x1, const Array& x2) { return SubtractAssignImpl(x1, x2); }
-const Array& ISubtract(const Array& x1, Scalar x2) { return SubtractAssignImpl(x1, x2); }
-
-}  // namespace internal
-
-Array Subtract(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) -> Array {
-        Array out = EmptyLike(x1, x1.device());
-        SubtractImpl(x1, x2, out);
-        return out;
-    };
-
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
-    if (x1.shape() == result_shape) {
-        return func(x1, x2.BroadcastTo(result_shape));
-    }
-    if (x2.shape() == result_shape) {
-        return func(x1.BroadcastTo(result_shape), x2);
-    }
-    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
-}
-
-Array Subtract(const Array& x1, Scalar x2) {
-    Array out = EmptyLike(x1, x1.device());
-    SubtractImpl(x1, x2, out);
-    return out;
-}
-
-Array Subtract(Scalar x1, const Array& x2) { return Add(-x2, x1); }
-
-namespace {
 
 void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     // TODO(sonots): dtype conversion
@@ -210,75 +130,13 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     x1.device().Multiply(x1, x2, out);
 }
 
-void MultiplyImpl(const Array& x1, Scalar x2, const Array& out) {
+void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
     auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&)->Array { return gout * other; };
     internal::SetUpOpNodes("multiply_scalar", {x1}, out, {x1_backward_function});
 
     x1.device().MultiplyAS(x1, x2, out);
 }
-
-template <typename ArrayType>
-ArrayType& MultiplyAssignImpl(ArrayType& x1, const Array& x2) {
-    auto func = [](ArrayType& x1, const Array& x2) -> ArrayType& {
-        MultiplyImpl(x1, x2, x1);
-        return x1;
-    };
-
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Array x2_broadcasted = x2.BroadcastTo(x1.shape());
-    return func(x1, x2_broadcasted);
-}
-
-template <typename ArrayType>
-ArrayType& MultiplyAssignImpl(ArrayType& x1, Scalar x2) {
-    MultiplyImpl(x1, x2, x1);
-    return x1;
-}
-
-}  // namespace
-
-namespace internal {
-
-Array& IMultiply(Array& x1, const Array& x2) { return MultiplyAssignImpl(x1, x2); }
-Array& IMultiply(Array& x1, Scalar x2) { return MultiplyAssignImpl(x1, x2); }
-
-const Array& IMultiply(const Array& x1, const Array& x2) { return MultiplyAssignImpl(x1, x2); }
-const Array& IMultiply(const Array& x1, Scalar x2) { return MultiplyAssignImpl(x1, x2); }
-
-}  // namespace internal
-
-Array Multiply(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) -> Array {
-        Array out = EmptyLike(x1, x1.device());
-        MultiplyImpl(x1, x2, out);
-        return out;
-    };
-
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
-    if (x1.shape() == result_shape) {
-        return func(x1, x2.BroadcastTo(result_shape));
-    }
-    if (x2.shape() == result_shape) {
-        return func(x1.BroadcastTo(result_shape), x2);
-    }
-    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
-}
-
-Array Multiply(const Array& x1, Scalar x2) {
-    Array out = EmptyLike(x1, x1.device());
-    MultiplyImpl(x1, x2, out);
-    return out;
-}
-
-Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
-
-namespace {
 
 void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     // TODO(niboshi): The behavior should be true division for integral dtypes. Currently it's rounding towards zero.
@@ -299,7 +157,7 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     x1.device().Divide(x1, x2, out);
 }
 
-void DivideImpl(const Array& x1, Scalar x2, const Array& out) {
+void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
     auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&)->Array { return gout / other; };
     internal::SetUpOpNodes("divide_scalar", {x1}, out, {x1_backward_function});
@@ -307,65 +165,49 @@ void DivideImpl(const Array& x1, Scalar x2, const Array& out) {
     x1.device().DivideAS(x1, x2, out);
 }
 
-template <typename ArrayType>
-ArrayType& DivideAssignImpl(ArrayType& x1, const Array& x2) {
-    auto func = [](ArrayType& x1, const Array& x2) -> ArrayType& {
-        DivideImpl(x1, x2, x1);
-        return x1;
-    };
-
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Array x2_broadcasted = x2.BroadcastTo(x1.shape());
-    return func(x1, x2_broadcasted);
-}
-
-template <typename ArrayType>
-ArrayType& DivideAssignImpl(ArrayType& x1, Scalar x2) {
-    DivideImpl(x1, x2, x1);
-    return x1;
-}
-
 }  // namespace
 
-namespace internal {
+#define XCHAINER_DEFINE_BINARY_OP(OpName, IOpName, Impl, ASImpl)                              \
+    namespace internal {                                                                      \
+    Array& IOpName(Array& x1, const Array& x2) {                                              \
+        BroadcastBinaryInPlace(&Impl, x1, x2);                                                \
+        return x1;                                                                            \
+    }                                                                                         \
+                                                                                              \
+    Array& IOpName(Array& x1, Scalar x2) {                                                    \
+        BinaryInPlace(&ASImpl, x1, x2);                                                       \
+        return x1;                                                                            \
+    }                                                                                         \
+                                                                                              \
+    const Array& IOpName(const Array& x1, const Array& x2) {                                  \
+        BroadcastBinaryInPlace(&Impl, x1, x2);                                                \
+        return x1;                                                                            \
+    }                                                                                         \
+                                                                                              \
+    const Array& IOpName(const Array& x1, Scalar x2) {                                        \
+        BinaryInPlace(&ASImpl, x1, x2);                                                       \
+        return x1;                                                                            \
+    }                                                                                         \
+    } /* namespace internal */                                                                \
+                                                                                              \
+    Array OpName(const Array& x1, const Array& x2) { return BroadcastBinary(&Impl, x1, x2); } \
+                                                                                              \
+    Array OpName(const Array& x1, Scalar x2) { return Binary(&ASImpl, x1, x2); }
 
-Array& IDivide(Array& x1, const Array& x2) { return DivideAssignImpl(x1, x2); }
-Array& IDivide(Array& x1, Scalar x2) { return DivideAssignImpl(x1, x2); }
+XCHAINER_DEFINE_BINARY_OP(Add, IAdd, AddImpl, AddASImpl);
+XCHAINER_DEFINE_BINARY_OP(Subtract, ISubtract, SubtractImpl, SubtractASImpl);
+XCHAINER_DEFINE_BINARY_OP(Multiply, IMultiply, MultiplyImpl, MultiplyASImpl);
+XCHAINER_DEFINE_BINARY_OP(Divide, IDivide, DivideImpl, DivideASImpl);
 
-const Array& IDivide(const Array& x1, const Array& x2) { return DivideAssignImpl(x1, x2); }
-const Array& IDivide(const Array& x1, Scalar x2) { return DivideAssignImpl(x1, x2); }
+Array Add(Scalar x1, const Array& x2) { return Add(x2, x1); }
 
-}  // namespace internal
+Array Subtract(Scalar x1, const Array& x2) { return Add(-x2, x1); }
 
-Array Divide(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) -> Array {
-        Array out = EmptyLike(x1, x1.device());
-        DivideImpl(x1, x2, out);
-        return out;
-    };
-
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
-    if (x1.shape() == result_shape) {
-        return func(x1, x2.BroadcastTo(result_shape));
-    }
-    if (x2.shape() == result_shape) {
-        return func(x1.BroadcastTo(result_shape), x2);
-    }
-    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
-}
-
-Array Divide(const Array& x1, Scalar x2) {
-    Array out = EmptyLike(x1, x1.device());
-    DivideImpl(x1, x2, out);
-    return out;
-}
+Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
 
 Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
+
+#undef XCHAINER_DEFINE_BINARY_OP
 
 namespace {
 
