@@ -9,6 +9,7 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/dtype.h"
+#include "xchainer/enum.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
@@ -30,17 +31,21 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
 
-    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
-    auto rhs_backward_function = x1_backward_function;
-    internal::SetUpOpNodes("add", {x1, x2}, out, {x1_backward_function, rhs_backward_function});
+    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
+        return gout.AsConstant(graph_ids_to_stop_gradient, CopyKind::kCopy);
+    };
+    auto x2_backward_function = [](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
+        return gout.AsConstant(graph_ids_to_stop_gradient, CopyKind::kCopy);
+    };
+    internal::SetUpOpNodes("add", {x1, x2}, out, {x1_backward_function, x2_backward_function});
 
     x1.device().Add(x1, x2, out);
 }
 
 void AddImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    auto backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
-    internal::SetUpOpNodes("add_scalar", {x1}, out, {backward_function});
+    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
+    internal::SetUpOpNodes("add_scalar", {x1}, out, {x1_backward_function});
 
     x1.device().AddAS(x1, x2, out);
 }
@@ -55,8 +60,8 @@ ArrayType& AddAssignImpl(ArrayType& x1, const Array& x2) {
     if (x1.shape() == x2.shape()) {
         return func(x1, x2);
     }
-    Array rhs_broadcasted = x2.BroadcastTo(x1.shape());
-    return func(x1, rhs_broadcasted);
+    Array x2_broadcasted = x2.BroadcastTo(x1.shape());
+    return func(x1, x2_broadcasted);
 }
 
 template <typename ArrayType>
@@ -78,7 +83,7 @@ const Array& IAdd(const Array& x1, Scalar x2) { return AddAssignImpl(x1, x2); }
 }  // namespace internal
 
 Array Add(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) {
+    auto func = [](const Array& x1, const Array& x2) -> Array {
         Array out = EmptyLike(x1, x1.device());
         AddImpl(x1, x2, out);
         return out;
@@ -112,8 +117,8 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
 
-    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
-    auto x2_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return -gout; };
+    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
+    auto x2_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return -gout; };
     internal::SetUpOpNodes("subtract", {x1, x2}, out, {x1_backward_function, x2_backward_function});
 
     x1.device().Subtract(x1, x2, out);
@@ -121,8 +126,8 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
 
 void SubtractImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    auto backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
-    internal::SetUpOpNodes("subtract_scalar", {x1}, out, {backward_function});
+    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
+    internal::SetUpOpNodes("subtract_scalar", {x1}, out, {x1_backward_function});
 
     x1.device().SubtractAS(x1, x2, out);
 }
@@ -137,8 +142,8 @@ ArrayType& SubtractAssignImpl(ArrayType& x1, const Array& x2) {
     if (x1.shape() == x2.shape()) {
         return func(x1, x2);
     }
-    Array rhs_broadcasted = x2.BroadcastTo(x1.shape());
-    return func(x1, rhs_broadcasted);
+    Array x2_broadcasted = x2.BroadcastTo(x1.shape());
+    return func(x1, x2_broadcasted);
 }
 
 template <typename ArrayType>
@@ -160,7 +165,7 @@ const Array& ISubtract(const Array& x1, Scalar x2) { return SubtractAssignImpl(x
 }  // namespace internal
 
 Array Subtract(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) {
+    auto func = [](const Array& x1, const Array& x2) -> Array {
         Array out = EmptyLike(x1, x1.device());
         SubtractImpl(x1, x2, out);
         return out;
@@ -185,7 +190,7 @@ Array Subtract(const Array& x1, Scalar x2) {
     return out;
 }
 
-Array Subtract(Scalar x1, const Array& x2) { return Subtract(x2, x1); }
+Array Subtract(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar - Array subtraction is not yet supported."}; }
 
 namespace {
 
@@ -194,21 +199,21 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
 
-    auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+    auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)->Array {
         return gout * other.AsConstant(graph_ids_to_stop_gradient);
     };
-    auto rhs_backward_function = [other = x1](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+    auto x2_backward_function = [other = x1](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)->Array {
         return gout * other.AsConstant(graph_ids_to_stop_gradient);
     };
-    internal::SetUpOpNodes("multiply", {x1, x2}, out, {x1_backward_function, rhs_backward_function});
+    internal::SetUpOpNodes("multiply", {x1, x2}, out, {x1_backward_function, x2_backward_function});
 
     x1.device().Multiply(x1, x2, out);
 }
 
 void MultiplyImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    auto backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&) { return gout * other; };
-    internal::SetUpOpNodes("multiply_scalar", {x1}, out, {backward_function});
+    auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&)->Array { return gout * other; };
+    internal::SetUpOpNodes("multiply_scalar", {x1}, out, {x1_backward_function});
 
     x1.device().MultiplyAS(x1, x2, out);
 }
@@ -223,8 +228,8 @@ ArrayType& MultiplyAssignImpl(ArrayType& x1, const Array& x2) {
     if (x1.shape() == x2.shape()) {
         return func(x1, x2);
     }
-    Array rhs_broadcasted = x2.BroadcastTo(x1.shape());
-    return func(x1, rhs_broadcasted);
+    Array x2_broadcasted = x2.BroadcastTo(x1.shape());
+    return func(x1, x2_broadcasted);
 }
 
 template <typename ArrayType>
@@ -246,7 +251,7 @@ const Array& IMultiply(const Array& x1, Scalar x2) { return MultiplyAssignImpl(x
 }  // namespace internal
 
 Array Multiply(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) {
+    auto func = [](const Array& x1, const Array& x2) -> Array {
         Array out = EmptyLike(x1, x1.device());
         MultiplyImpl(x1, x2, out);
         return out;
@@ -281,24 +286,24 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
 
-    auto lhs_backward_function = [x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
+    auto x1_backward_function = [x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
         return gout / x2.AsConstant(graph_ids_to_stop_gradient);
     };
-    auto rhs_backward_function = [x1, x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
+    auto x2_backward_function = [x1, x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
         // TODO(niboshi): Use unary negate
         Array lhs_const = x1.AsConstant(graph_ids_to_stop_gradient);
         Array rhs_const = x2.AsConstant(graph_ids_to_stop_gradient);
         return -1 * gout * lhs_const / (rhs_const * rhs_const);
     };
-    internal::SetUpOpNodes("divide", {x1, x2}, out, {lhs_backward_function, rhs_backward_function});
+    internal::SetUpOpNodes("divide", {x1, x2}, out, {x1_backward_function, x2_backward_function});
 
     x1.device().Divide(x1, x2, out);
 }
 
 void DivideImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    auto backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&) { return gout / other; };
-    internal::SetUpOpNodes("divide_scalar", {x1}, out, {backward_function});
+    auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&)->Array { return gout / other; };
+    internal::SetUpOpNodes("divide_scalar", {x1}, out, {x1_backward_function});
 
     x1.device().DivideAS(x1, x2, out);
 }
@@ -313,8 +318,8 @@ ArrayType& DivideAssignImpl(ArrayType& x1, const Array& x2) {
     if (x1.shape() == x2.shape()) {
         return func(x1, x2);
     }
-    Array rhs_broadcasted = x2.BroadcastTo(x1.shape());
-    return func(x1, rhs_broadcasted);
+    Array x2_broadcasted = x2.BroadcastTo(x1.shape());
+    return func(x1, x2_broadcasted);
 }
 
 template <typename ArrayType>
@@ -336,7 +341,7 @@ const Array& IDivide(const Array& x1, Scalar x2) { return DivideAssignImpl(x1, x
 }  // namespace internal
 
 Array Divide(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) {
+    auto func = [](const Array& x1, const Array& x2) -> Array {
         Array out = EmptyLike(x1, x1.device());
         DivideImpl(x1, x2, out);
         return out;
@@ -357,15 +362,11 @@ Array Divide(const Array& x1, const Array& x2) {
 
 Array Divide(const Array& x1, Scalar x2) {
     Array out = EmptyLike(x1, x1.device());
-    x1.device().DivideAS(x1, x2, out);
-
-    auto backward_function = [x2](const Array& gout, const std::vector<GraphId>&) { return gout / x2; };
-    internal::SetUpOpNodes("divide_scalar", {x1}, out, {backward_function});
-
+    DivideImpl(x1, x2, out);
     return out;
 }
 
-Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar/Array division is not yet supported."}; }
+Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
 
 namespace {
 

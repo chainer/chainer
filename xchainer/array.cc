@@ -66,7 +66,7 @@ void SetUpOpNodes(
 
     for (size_t i = 0; i < inputs.size(); ++i) {  // For each input
         for (const std::shared_ptr<ArrayNode>& node : inputs[i].get().nodes()) {  // For each graph, create an edge
-            if (find(graph_ids_to_stop_gradients.begin(), graph_ids_to_stop_gradients.end(), node->graph_id()) ==
+            if (std::find(graph_ids_to_stop_gradients.begin(), graph_ids_to_stop_gradients.end(), node->graph_id()) ==
                 graph_ids_to_stop_gradients.end()) {
                 create_edge(node, backward_functions[i]);
             }

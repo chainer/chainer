@@ -366,6 +366,82 @@ TEST_P(MathTest, AddScalar) {
     }
 }
 
+TEST_P(MathTest, AddBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
+    Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Add(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
+}
+
+TEST_P(MathTest, AddDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
+    Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(4);
+    Array eps = Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Add(xs[0], xs[1]);
+                return {y * y};  // to make it nonlinear
+            },
+            {a, b},
+            {go},
+            {ggi, ggi},
+            {eps, eps, eps});
+}
+
+TEST_P(MathTest, AddScalarBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar b{T{2.0}};
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1);
+
+    // array + scalar
+    CheckBackward([b](const std::vector<Array>& xs) -> std::vector<Array> { return {Add(xs[0], b)}; }, {a}, {go}, {eps});
+    // scalar + array
+    CheckBackward([b](const std::vector<Array>& xs) -> std::vector<Array> { return {Add(b, xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, AddScalarDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar b{T{2.0}};
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1);
+
+    // array + scalar
+    CheckDoubleBackwardComputation(
+            [b](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Add(xs[0], b);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+    // scalar + array
+    CheckDoubleBackwardComputation(
+            [b](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Add(b, xs[0]);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+}
+
 TEST_P(MathTest, Subtract) {
     Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3}).WithPadding(1);
     Array b = testing::BuildArray<float>({3, 1}, {4, 0, -2}).WithPadding(2);
@@ -425,6 +501,74 @@ TEST_P(MathTest, SubtractScalar) {
     Array e = testing::BuildArray<float>({3, 1}, {-1, 0, 1});
     Array o = Subtract(a, Scalar{2.f});
     testing::ExpectEqual(e, o);
+}
+
+TEST_P(MathTest, SubtractBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
+    Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Subtract(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
+}
+
+TEST_P(MathTest, SubtractDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
+    Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(4);
+    Array eps = Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Subtract(xs[0], xs[1]);
+                return {y * y};  // to make it nonlinear
+            },
+            {a, b},
+            {go},
+            {ggi, ggi},
+            {eps, eps, eps});
+}
+
+TEST_P(MathTest, SubtractScalarBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar b{T{2.0}};
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1);
+
+    // array - scalar
+    CheckBackward([b](const std::vector<Array>& xs) -> std::vector<Array> { return {Subtract(xs[0], b)}; }, {a}, {go}, {eps});
+
+    // TODO(hvy): Also test scalar - array, when supported.
+}
+
+TEST_P(MathTest, SubtractScalarDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar b{T{2.0}};
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1);
+
+    // array - scalar
+    CheckDoubleBackwardComputation(
+            [b](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Subtract(xs[0], b);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+
+    // TODO(hvy): Also test scalar - array, when supported.
 }
 
 TEST_P(MathTest, Multiply) {
@@ -493,6 +637,37 @@ TEST_P(MathTest, MultiplyScalar) {
         Array o = Multiply(b, a);
         testing::ExpectEqual(e, o);
     }
+}
+
+TEST_P(MathTest, MultiplyBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
+    Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3);
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Multiply(xs[0], xs[1])}; }, {a, b}, {go}, {eps, eps});
+}
+
+TEST_P(MathTest, MultiplyDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(-2).WithPadding(1)).RequireGrad();
+    Array b = (*testing::BuildArray(shape).WithData<T>({-6, -4, -2, 2, 4, 6}).WithPadding(2)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(3)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(4);
+    Array eps = Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Multiply(xs[0], xs[1]);
+                return {y * y};  // to make it nonlinear
+            },
+            {a, b},
+            {go},
+            {ggi, ggi},
+            {eps, eps, eps});
 }
 
 TEST_P(MathTest, MultiplyScalarBackward) {
@@ -593,7 +768,6 @@ TEST_P(MathTest, DivideScalar) {
     testing::ExpectEqual(e, o);
 }
 
-
 TEST_P(MathTest, DivideBackward) {
     using T = double;
     Shape shape{2, 3};
@@ -620,6 +794,43 @@ TEST_P(MathTest, DivideDoubleBackward) {
             {go},
             {ggi, ggi},
             {eps, eps, eps});
+}
+
+TEST_P(MathTest, DivideScalarBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar s{T{2.0}};
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1);
+
+    // array / scalar
+    CheckBackward([s](const std::vector<Array>& xs) -> std::vector<Array> { return {Divide(xs[0], s)}; }, {a}, {go}, {eps});
+
+    // TODO(hvy): Also test scalar / array, when supported.
+}
+
+TEST_P(MathTest, DivideScalarDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>().WithPadding(1)).RequireGrad();
+    Scalar s{T{2.0}};
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-1);
+
+    // array * scalar
+    CheckDoubleBackwardComputation(
+            [s](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Divide(xs[0], s);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+
+    // TODO(hvy): Also test scalar / array, when supported.
 }
 
 TEST_P(MathTest, ChainedMath) {
