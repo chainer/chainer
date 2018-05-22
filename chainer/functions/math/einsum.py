@@ -44,21 +44,22 @@ def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
     try:
         y = xp.einsum(subscripts, *inputs, **einsum_kwargs)
     except TypeError:
-        warnings.warn(UserWarning(
+        warnings.warn(
             "{xp}.einsum does not support optimize option. "
             "Use newer version of {xp} to speed up."
-            .format(xp=xp.__name__)))
+            .format(xp=xp.__name__),
+        )
         y = xp.einsum(subscripts, *inputs)
 
     if sum_ellipsis:
         sum_ndim = y.ndim - len(out_subscript)
         if check_undefined_ellipsis_sum and sum_ndim > 0:
-            warnings.warn(UserWarning(
+            warnings.warn(
                 "einsum should not support summing over Ellipsis, "
                 "while NumPy 1.14 sometimes accidentally supports it. "
                 "This feature will be deleted in a future version "
-                "of Chainer. See also NumPy issues #10926, #9984."
-            ))
+                "of Chainer. See also NumPy issues #10926, #9984.",
+            )
         y = xp.sum(y, axis=tuple(range(sum_ndim)))
 
     return utils.force_array(y, dtype)
