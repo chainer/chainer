@@ -21,8 +21,8 @@ def _enumerate_axes(subscripts):
 
 
 def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
-    check_controversial_sum, = argument.parse_kwargs(
-        kwargs, ('check_controversial_sum', False))
+    check_undefined_ellipsis_sum, = argument.parse_kwargs(
+        kwargs, ('check_undefined_ellipsis_sum', False))
     sum_ellipsis = '@' in in_subscripts and '@' not in out_subscript
     if sum_ellipsis:
         # einsum does not usually allow summing over '...'
@@ -52,7 +52,7 @@ def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
 
     if sum_ellipsis:
         sum_ndim = y.ndim - len(out_subscript)
-        if check_controversial_sum and sum_ndim > 0:
+        if check_undefined_ellipsis_sum and sum_ndim > 0:
             warnings.warn(UserWarning(
                 "einsum should not support summing over Ellipsis, "
                 "while NumPy 1.14 sometimes accidentally supports it. "
@@ -94,7 +94,7 @@ class EinSum(function_node.FunctionNode):
         xp = cuda.get_array_module(inputs[0])
         dtype = xp.result_type(*[x.dtype for x in inputs])
         y = _einsum(xp, dtype, self.in_subs, self.out_sub, *inputs,
-                    check_controversial_sum=True)
+                    check_undefined_ellipsis_sum=True)
         return y,
 
     def backward(self, indices, grad_outputs):

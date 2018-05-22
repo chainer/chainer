@@ -220,7 +220,7 @@ class TestEinSumParseError(unittest.TestCase):
     {'subscripts': 'j...i->ij', 'shapes': ((2, 1, 3),)},
     {'subscripts': 'i,...i->', 'shapes': ((2,), (3, 2))},
 )
-class TestEinSumWarnEllipsis(unittest.TestCase):
+class TestEinSumUndefinedSemantics(unittest.TestCase):
 
     def setUp(self):
         self.inputs = tuple([
@@ -228,7 +228,7 @@ class TestEinSumWarnEllipsis(unittest.TestCase):
             for shape in self.shapes
         ])
 
-    def test_raise_invalid_type(self):
+    def test_warn(self):
         with warnings.catch_warnings(record=True) as ws:
             einsum.einsum(self.subscripts, *self.inputs)
             self.assertEqual(len(ws), 1)
