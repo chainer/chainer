@@ -157,7 +157,8 @@ class DiagEinSum(EinSum):
             diag_y = _einsum(
                 xp, dtype, self.out_sub, ''.join(inverse_sub), y)
             # Make the view writeable as numpy PR #5410 for numpy<1.10.
-            diag_y.setflags(write=True)
+            if xp is not cuda.cupy:  # no setflags in cupy
+                diag_y.setflags(write=True)
             diag_y[...] = _einsum(
                 xp, dtype, self.in_subs, ''.join(direct_sub), *inputs
             )[expander]
