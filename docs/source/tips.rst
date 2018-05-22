@@ -75,7 +75,7 @@ Here are some examples of ``InvalidType`` errors:
    Actual: i != f
 
 In this case, :class:`~numpy.dtype.kind` of ``in_types[0]`` (which means the first input to the function, ``x``) is expected to be ``f`` (floating-point), whereas the input was ``i`` (signed integer).
-You need to cast the input appropriately before passing to the function (e.g., ``x.asarray(np.float32)``).
+You need to cast the input appropriately before passing to the function (e.g., ``x.astype(np.float32)``).
 
 .. testcode::
 
