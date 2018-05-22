@@ -167,34 +167,34 @@ void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
 
 }  // namespace
 
-#define XCHAINER_DEFINE_BINARY_OP(IOpName, OpName, Impl, ASImpl)                              \
-    namespace internal {                                                                      \
-                                                                                              \
-    Array& IOpName(Array& x1, const Array& x2) {                                              \
-        BroadcastBinaryInPlace(&Impl, x1, x2);                                                \
-        return x1;                                                                            \
-    }                                                                                         \
-                                                                                              \
-    Array& IOpName(Array& x1, Scalar x2) {                                                    \
-        BinaryInPlace(&ASImpl, x1, x2);                                                       \
-        return x1;                                                                            \
-    }                                                                                         \
-                                                                                              \
-    const Array& IOpName(const Array& x1, const Array& x2) {                                  \
-        BroadcastBinaryInPlace(&Impl, x1, x2);                                                \
-        return x1;                                                                            \
-    }                                                                                         \
-                                                                                              \
-    const Array& IOpName(const Array& x1, Scalar x2) {                                        \
-        BinaryInPlace(&ASImpl, x1, x2);                                                       \
-        return x1;                                                                            \
-    }                                                                                         \
-                                                                                              \
-    } /* namespace internal */                                                                \
-                                                                                              \
-    Array OpName(const Array& x1, const Array& x2) { return BroadcastBinary(&Impl, x1, x2); } \
-                                                                                              \
-    Array OpName(const Array& x1, Scalar x2) { return Binary(&ASImpl, x1, x2); }
+#define XCHAINER_DEFINE_BINARY_OP(IOpName, OpName, Impl, ASImpl)                                \
+    namespace internal {                                                                        \
+                                                                                                \
+    Array& IOpName(Array& x1, const Array& x2) {                                                \
+        BroadcastBinaryInPlace(&(Impl), x1, x2);                                                \
+        return x1;                                                                              \
+    }                                                                                           \
+                                                                                                \
+    Array& IOpName(Array& x1, Scalar x2) {                                                      \
+        BinaryInPlace(&(ASImpl), x1, x2);                                                       \
+        return x1;                                                                              \
+    }                                                                                           \
+                                                                                                \
+    const Array& IOpName(const Array& x1, const Array& x2) {                                    \
+        BroadcastBinaryInPlace(&(Impl), x1, x2);                                                \
+        return x1;                                                                              \
+    }                                                                                           \
+                                                                                                \
+    const Array& IOpName(const Array& x1, Scalar x2) {                                          \
+        BinaryInPlace(&(ASImpl), x1, x2);                                                       \
+        return x1;                                                                              \
+    }                                                                                           \
+                                                                                                \
+    } /* namespace internal */                                                                  \
+                                                                                                \
+    Array OpName(const Array& x1, const Array& x2) { return BroadcastBinary(&(Impl), x1, x2); } \
+                                                                                                \
+    Array OpName(const Array& x1, Scalar x2) { return Binary(&(ASImpl), x1, x2); }
 
 XCHAINER_DEFINE_BINARY_OP(IAdd, Add, AddImpl, AddASImpl);
 XCHAINER_DEFINE_BINARY_OP(ISubtract, Subtract, SubtractImpl, SubtractASImpl);
