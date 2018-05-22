@@ -167,8 +167,9 @@ void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
 
 }  // namespace
 
-#define XCHAINER_DEFINE_BINARY_OP(OpName, IOpName, Impl, ASImpl)                              \
+#define XCHAINER_DEFINE_BINARY_OP(IOpName, OpName, Impl, ASImpl)                              \
     namespace internal {                                                                      \
+                                                                                              \
     Array& IOpName(Array& x1, const Array& x2) {                                              \
         BroadcastBinaryInPlace(&Impl, x1, x2);                                                \
         return x1;                                                                            \
@@ -188,16 +189,19 @@ void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
         BinaryInPlace(&ASImpl, x1, x2);                                                       \
         return x1;                                                                            \
     }                                                                                         \
+                                                                                              \
     } /* namespace internal */                                                                \
                                                                                               \
     Array OpName(const Array& x1, const Array& x2) { return BroadcastBinary(&Impl, x1, x2); } \
                                                                                               \
     Array OpName(const Array& x1, Scalar x2) { return Binary(&ASImpl, x1, x2); }
 
-XCHAINER_DEFINE_BINARY_OP(Add, IAdd, AddImpl, AddASImpl);
-XCHAINER_DEFINE_BINARY_OP(Subtract, ISubtract, SubtractImpl, SubtractASImpl);
-XCHAINER_DEFINE_BINARY_OP(Multiply, IMultiply, MultiplyImpl, MultiplyASImpl);
-XCHAINER_DEFINE_BINARY_OP(Divide, IDivide, DivideImpl, DivideASImpl);
+XCHAINER_DEFINE_BINARY_OP(IAdd, Add, AddImpl, AddASImpl);
+XCHAINER_DEFINE_BINARY_OP(ISubtract, Subtract, SubtractImpl, SubtractASImpl);
+XCHAINER_DEFINE_BINARY_OP(IMultiply, Multiply, MultiplyImpl, MultiplyASImpl);
+XCHAINER_DEFINE_BINARY_OP(IDivide, Divide, DivideImpl, DivideASImpl);
+
+#undef XCHAINER_DEFINE_BINARY_OP
 
 Array Add(Scalar x1, const Array& x2) { return Add(x2, x1); }
 
@@ -206,8 +210,6 @@ Array Subtract(Scalar x1, const Array& x2) { return Add(-x2, x1); }
 Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
 
 Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
-
-#undef XCHAINER_DEFINE_BINARY_OP
 
 namespace {
 
