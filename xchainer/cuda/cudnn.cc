@@ -1,6 +1,9 @@
 #include "xchainer/cuda/cudnn.h"
 
+#include <algorithm>
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include <cudnn.h>
 #include <nonstd/optional.hpp>
@@ -258,7 +261,7 @@ void ConvolutionForward(
     size_t max_workspace_size = backend.max_workspace_size();
 
     // auto tune
-    std::tuple<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size =
+    std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size =
             FindConvolutionForwardAlgorithm(handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size);
     cudnnConvolutionFwdAlgo_t algo = std::get<0>(algo_workspace_size);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
