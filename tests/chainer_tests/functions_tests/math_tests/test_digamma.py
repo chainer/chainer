@@ -6,7 +6,6 @@ import chainer
 from chainer.backends import cuda
 import chainer.functions as F
 from chainer import testing
-from chainer.testing import attr
 
 
 def _digamma_cpu(x, dtype):
@@ -63,10 +62,6 @@ class TestDiGammaExceptions(unittest.TestCase):
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
 
 
 testing.run_module(__name__, __file__)
