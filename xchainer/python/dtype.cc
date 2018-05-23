@@ -3,6 +3,7 @@
 #include <string>
 
 #include "xchainer/dtype.h"
+#include "xchainer/scalar.h"
 
 #include "xchainer/python/common.h"
 
@@ -127,6 +128,10 @@ void InitXchainerDtype(pybind11::module& m) {
         (void)other;  // unused
         return true;
     });
+    // TODO(sonots): NumPy returns scalar object such as numpy.float32 by `type` and `type()` calls its constructor. Align with it.
+    e.def("type", [](Dtype self, bool value) { return Scalar{value, self}; });
+    e.def("type", [](Dtype self, int64_t value) { return Scalar{value, self}; });
+    e.def("type", [](Dtype self, double value) { return Scalar{value, self}; });
 }
 
 }  // namespace internal
