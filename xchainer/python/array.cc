@@ -63,7 +63,7 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     return xchainer::internal::FromHostData(shape, dtype, data, strides, device).move_body();
 }
 
-ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& device, bool reuse_numpy_strides = false) {
+ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& device) {
     // object is xchainer.ndarray
     if (py::isinstance<ArrayBody>(object)) {
         Array a = Array{py::cast<ArrayBodyPtr>(object)};
@@ -82,31 +82,15 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, Device& d
         return a.Copy().move_body();
     }
 
-    py::array np_array{};
-
-    // object is numpy.ndarray
-    if (py::isinstance<py::array>(object)) {
-        np_array = py::cast<py::array>(object);
-        if (!reuse_numpy_strides) {
-            // Adjust strides using numpy.array()
-            // TODO(niboshi): Remove dependency on numpy
-            py::object array_func = py::module::import("numpy").attr("array");
-            if (dtype.is_none()) {
-                np_array = array_func(np_array, py::arg("copy") = true);
-            } else {
-                np_array = array_func(np_array, py::arg("dtype") = GetDtypeName(internal::GetDtype(dtype)), py::arg("copy") = false);
-            }
-        }
-    } else {
-        // otherwise; convert object to NumPy array using numpy.array()
-        // TODO(sonots): Remove dependency on numpy
-        py::object array_func = py::module::import("numpy").attr("array");
-        if (dtype.is_none()) {
-            np_array = array_func(object, py::arg("copy") = false);
-        } else {
-            np_array = array_func(object, py::arg("dtype") = GetDtypeName(internal::GetDtype(dtype)), py::arg("copy") = false);
-        }
+    // Convert object to NumPy array using numpy.array()
+    // TODO(sonots): Remove dependency on numpy
+    py::object array_func = py::module::import("numpy").attr("array");
+    py::object dtype_name = py::none();
+    if (!dtype.is_none()) {
+        dtype_name = py::str{GetDtypeName(internal::GetDtype(dtype))};
     }
+    py::array np_array = array_func(object, py::arg("copy") = copy, py::arg("dtype") = dtype_name);
+
     // Convert NumPy array to Xchainer array
     return MakeArrayFromNumpyArray(np_array, device);
 }
@@ -141,8 +125,8 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
 
 }  // namespace
 
-ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device, bool reuse_numpy_strides) {
-    return MakeArray(object, dtype, copy, internal::GetDevice(device), reuse_numpy_strides);
+ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device) {
+    return MakeArray(object, dtype, copy, internal::GetDevice(device));
 }
 
 void InitXchainerArray(pybind11::module& m) {

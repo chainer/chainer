@@ -285,6 +285,30 @@ def test_ascontiguousarray_from_numpy_array(xp, shape, dtype, transpose):
     return a
 
 
+@xchainer.testing.numpy_xchainer_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('obj', _array_params(_array_params_list))
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec', additional_args=(None, Unspecified))
+def test_ascontiguousarray_from_tuple_or_list(xp, device, obj, dtype_spec):
+    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
+        dtype_spec = dtype_spec.name
+    # Skip nan/inf -> integer conversion that would cause a cast error.
+    # TODO(niboshi): Write as xchainer.dtype(dtype_spec).kind. xchainer.dtype.kind is not defined yet.
+    if (not _is_all_finite(obj)
+            and dtype_spec not in (None, Unspecified)
+            and numpy.dtype(xchainer.dtype(dtype_spec).name).kind not in ('f', 'c')):
+        return xchainer.testing.ignore()
+
+    if dtype_spec is Unspecified:
+        a = xp.ascontiguousarray(obj)
+    else:
+        a = xp.ascontiguousarray(obj, dtype=dtype_spec)
+
+    if xp is xchainer:
+        assert a.is_contiguous
+    return a
+
+
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('transpose', [False, True])
 def test_ascontiguousarray_from_xchainer_array(device, shape, dtype, transpose):
