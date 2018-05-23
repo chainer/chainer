@@ -1,12 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 
 #include <cudnn.h>
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
-#include "xchainer/cuda/cuda_device.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 
@@ -25,6 +25,34 @@ private:
 void CheckCudnnError(cudnnStatus_t status);
 
 namespace internal {
+
+struct ConvAlgoCacheKey {
+    Shape x_shape;
+    Shape w_shape;
+    Shape y_shape;
+    StackVector<int64_t, kMaxNdim> pad;
+    StackVector<int64_t, kMaxNdim> stride;
+    Dtype dtype;
+    size_t max_workspace_size;
+
+    bool operator==(const ConvAlgoCacheKey& other) const {
+        return x_shape == other.x_shape && w_shape == other.w_shape && y_shape == other.y_shape && pad == other.pad &&
+               stride == other.stride && dtype == other.dtype && max_workspace_size == other.max_workspace_size;
+    }
+
+    bool operator!=(const ConvAlgoCacheKey& other) const { return !operator==(other); }
+};
+
+struct ConvAlgoCacheKeyHash {
+    typedef std::size_t result_type;
+
+    std::size_t operator()(const ConvAlgoCacheKey& key) const {
+        std::string bytes(reinterpret_cast<const char*>(&key), sizeof(ConvAlgoCacheKey));
+        return std::hash<std::string>()(bytes);
+    }
+};
+
+using ConvAlgoMap = std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
 
 void ConvolutionForward(
         const Array& x,

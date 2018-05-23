@@ -11,6 +11,7 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/cuda/cuda_backend.h"
+#include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/memory_pool.h"
 #include "xchainer/device.h"
 #include "xchainer/scalar.h"
@@ -105,9 +106,11 @@ public:
 
     cublasHandle_t cublas_handle();
     cudnnHandle_t cudnn_handle();
+    internal::ConvAlgoMap& conv_fwd_algo_map() { return conv_fwd_algo_map_; }
 
 private:
     MemoryPool memory_pool_;
+    internal::ConvAlgoMap conv_fwd_algo_map_{};
     cublasHandle_t cublas_handle_{};
     cudnnHandle_t cudnn_handle_{};
 };
