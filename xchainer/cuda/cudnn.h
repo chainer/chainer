@@ -1,7 +1,9 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <utility>
 
 #include <cudnn.h>
 #include <nonstd/optional.hpp>
@@ -52,7 +54,7 @@ struct ConvAlgoCacheKeyHash {
     }
 };
 
-using ConvAlgoMap = std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
+using ConvAlgoCacheMap = std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
 
 void ConvolutionForward(
         const Array& x,
@@ -61,8 +63,9 @@ void ConvolutionForward(
         Array& y,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation = nonstd::nullopt,
-        int groups = 1);
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+        int groups,
+        ConvAlgoCacheMap& conv_fwd_algo_cache_map);
 
 }  // namespace internal
 }  // namespace cuda

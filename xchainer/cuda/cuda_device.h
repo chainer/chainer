@@ -106,13 +106,12 @@ public:
 
     cublasHandle_t cublas_handle();
     cudnnHandle_t cudnn_handle();
-    internal::ConvAlgoMap& conv_fwd_algo_map() { return conv_fwd_algo_map_; }
 
 private:
     MemoryPool memory_pool_;
-    internal::ConvAlgoMap conv_fwd_algo_map_{};
     cublasHandle_t cublas_handle_{};
     cudnnHandle_t cudnn_handle_{};
+    internal::ConvAlgoCacheMap conv_fwd_algo_cache_map_{};
 };
 
 }  // namespace cuda

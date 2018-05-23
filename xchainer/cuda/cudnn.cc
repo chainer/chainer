@@ -207,16 +207,8 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
         const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
         const std::shared_ptr<cudnnTensorStruct>& y_desc,
         const Array& y,
-        size_t max_workspace_size,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride) {
-    CudaDevice& device = *dynamic_cast<CudaDevice*>(&x.device());
-    auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
-    if (device.conv_fwd_algo_map().count(key) > 0) {
-        return device.conv_fwd_algo_map()[key];
-    }
-
-    std::shared_ptr<void> workspace = device.Allocate(max_workspace_size);
+        size_t max_workspace_size) {
+    std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
 
     int requested_algo_count = 1;
     std::vector<cudnnConvolutionFwdAlgoPerf_t> perf_results(requested_algo_count);
@@ -237,9 +229,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
             workspace.get(),
             max_workspace_size));
 
-    std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_memory = {perf_results[0].algo, perf_results[0].memory};
-    device.conv_fwd_algo_map()[key] = algo_memory;
-    return algo_memory;
+    return {perf_results[0].algo, perf_results[0].memory};
 }
 
 }  // namespace
@@ -255,7 +245,8 @@ void ConvolutionForward(
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
-        int groups) {
+        int groups,
+        internal::ConvAlgoCacheMap& conv_fwd_algo_cache_map) {
     CudaDevice& device = *dynamic_cast<CudaDevice*>(&x.device());
     CudaBackend& backend = *dynamic_cast<CudaBackend*>(&device.backend());
 
@@ -311,8 +302,16 @@ void ConvolutionForward(
     size_t max_workspace_size = backend.GetMaxWorkspaceSize();
 
     // auto tune
-    std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size = FindConvolutionForwardAlgorithm(
-            handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
+    auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
+    std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size{};
+    if (conv_fwd_algo_cache_map.count(key)) {
+        algo_workspace_size = conv_fwd_algo_cache_map[key];
+    } else {
+        algo_workspace_size =
+                FindConvolutionForwardAlgorithm(handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size);
+        conv_fwd_algo_cache_map[key] = algo_workspace_size;
+    }
+
     cudnnConvolutionFwdAlgo_t algo = std::get<0>(algo_workspace_size);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
