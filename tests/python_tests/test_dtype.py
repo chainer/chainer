@@ -8,14 +8,14 @@ import xchainer.testing
 
 
 _dtypes_data = [
-    ('bool_', 'bool', '?', 1),
-    ('int8', 'int8', 'b', 1),
-    ('int16', 'int16', 'h', 2),
-    ('int32', 'int32', 'i', 4),
-    ('int64', 'int64', 'q', 8),
-    ('uint8', 'uint8', 'B', 1),
-    ('float32', 'float32', 'f', 4),
-    ('float64', 'float64', 'd', 8),
+    ('bool_', 'bool'),
+    ('int8', 'int8'),
+    ('int16', 'int16'),
+    ('int32', 'int32'),
+    ('int64', 'int64'),
+    ('uint8', 'uint8'),
+    ('float32', 'float32'),
+    ('float64', 'float64'),
 ]
 
 
@@ -44,18 +44,24 @@ def test_dtypes_covered(dtype):
     assert any(tup[0] == dtype for tup in _dtypes_data), 'Not all dtypes are covered in _dtypes_data in dtypes test.'
 
 
-@pytest.mark.parametrize("dtype_symbol,name,char,itemsize", _dtypes_data)
-def test_dtypes(dtype_symbol, name, char, itemsize):
+@pytest.mark.parametrize('dtype_symbol,name', _dtypes_data)
+def test_dtypes(dtype_symbol, name):
     dtype = getattr(xchainer, dtype_symbol)
+    numpy_dtype = numpy.dtype(name)
     assert isinstance(dtype, xchainer.dtype)
     assert dtype.name == name
-    assert dtype.char == char
-    assert dtype.itemsize == itemsize
+    assert dtype.name == numpy_dtype.name
+    assert dtype.char == numpy_dtype.char
+    assert dtype.itemsize == numpy_dtype.itemsize
+    assert dtype.kind == numpy_dtype.kind
+    assert dtype.byteorder == numpy_dtype.byteorder
+    assert dtype.str == numpy_dtype.str
+    assert dtype.num == numpy_dtype.num
     assert xchainer.dtype(name) == dtype
-    assert xchainer.dtype(char) == dtype
+    assert xchainer.dtype(dtype.char) == dtype
     assert xchainer.dtype(dtype) == dtype
     # From NumPy dtypes
-    assert xchainer.dtype(numpy.dtype(dtype_symbol)) == dtype
+    assert xchainer.dtype(numpy_dtype) == dtype
 
 
 def test_eq():

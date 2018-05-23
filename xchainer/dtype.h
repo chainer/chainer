@@ -79,7 +79,7 @@ XCHAINER_DEFINE_PRIMITIVE_TYPE("bool", '?', Dtype::kBool, DtypeKind::kBool, bool
 XCHAINER_DEFINE_PRIMITIVE_TYPE("int8", 'b', Dtype::kInt8, DtypeKind::kInt, int8_t);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("int16", 'h', Dtype::kInt16, DtypeKind::kInt, int16_t);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("int32", 'i', Dtype::kInt32, DtypeKind::kInt, int32_t);
-XCHAINER_DEFINE_PRIMITIVE_TYPE("int64", 'q', Dtype::kInt64, DtypeKind::kInt, int64_t);
+XCHAINER_DEFINE_PRIMITIVE_TYPE("int64", 'l', Dtype::kInt64, DtypeKind::kInt, int64_t);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("uint8", 'B', Dtype::kUInt8, DtypeKind::kUInt, uint8_t);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("float32", 'f', Dtype::kFloat32, DtypeKind::kFloat, float);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("float64", 'd', Dtype::kFloat64, DtypeKind::kFloat, double);

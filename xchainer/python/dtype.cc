@@ -108,6 +108,12 @@ Dtype GetDtype(py::handle handle) {
     throw py::type_error{"Dtype not understood: " + py::cast<std::string>(py::repr(handle))};
 }
 
+namespace {
+
+py::str GetKindStr(Dtype dtype) { return py::dtype{GetDtypeName(dtype)}.attr("kind"); }
+
+}  // namespace
+
 void InitXchainerDtype(pybind11::module& m) {
     py::enum_<Dtype> e{m, "dtype"};
     for (Dtype dtype : GetAllDtypes()) {
@@ -118,6 +124,31 @@ void InitXchainerDtype(pybind11::module& m) {
     e.def_property_readonly("char", [](Dtype dtype) { return std::string(1, GetCharCode(dtype)); });
     e.def_property_readonly("itemsize", &GetItemSize);
     e.def_property_readonly("name", &GetDtypeName);
+    e.def_property_readonly("kind", &GetKindStr);
+    e.def_property_readonly("num", [](Dtype self) -> py::object { return py::dtype{GetDtypeName(self)}.attr("num"); });
+    e.def_property_readonly("byteorder", [](Dtype self) -> py::str {
+        if (GetItemSize(self) == 1) {
+            return "|";  // "not applicable"
+        }
+        return "=";  // "native"
+    });
+    e.def_property_readonly("str", [](Dtype self) -> py::str {
+        std::string s{};
+        int64_t itemsize = GetItemSize(self);
+        if (itemsize == 1) {
+            s += "|";  // "not applicable"
+        } else {
+            static const int16_t kNum16 = 0xff00;
+            if (reinterpret_cast<const int8_t*>(&kNum16)[0] == 0x00) {
+                s += "<";  // little endian
+            } else {
+                s += ">";  // big endian
+            }
+        }
+        s += py::cast<std::string>(GetKindStr(self));
+        s += std::to_string(itemsize);
+        return s;
+    });
     e.def("__eq__", [](Dtype self, py::handle other) {
         (void)self;  // unused
         (void)other;  // unused
