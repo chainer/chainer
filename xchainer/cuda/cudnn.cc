@@ -298,7 +298,7 @@ void ConvolutionForward(
     std::shared_ptr<cudnnFilterStruct> filter_desc = CreateFilterDescriptor(w_cont, CUDNN_TENSOR_NCHW);
     std::shared_ptr<cudnnConvolutionStruct> conv_desc =
             CreateConvolutionDescriptor(pad, stride, x.dtype(), CUDNN_CROSS_CORRELATION, dilation, groups);
-    size_t max_workspace_size = backend.max_workspace_size();
+    size_t max_workspace_size = backend.GetMaxWorkspaceSize();
 
     // auto tune
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size =

@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include <nonstd/optional.hpp>
+
 #include "xchainer/backend.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
@@ -13,6 +15,8 @@ namespace cuda {
 class CudaBackend : public Backend {
 public:
     static constexpr const char* kDefaultName = "cuda";
+    static constexpr const size_t kDefaultMaxWorkspaceSize = 8 * 1024 * 1024;
+    static constexpr const char* kMaxWorkspaceSizeEnvName = "XCHAINER_CUDA_MAX_WORKSPACE_SIZE";
 
     using Backend::Backend;
 
@@ -22,12 +26,15 @@ public:
 
     bool SupportsTransfer(Device& src_device, Device& dst_device) override;
 
-    void SetMaxWorkspaceSize(size_t max_workspace_size) { max_workspace_size_ = max_workspace_size; }
-    size_t max_workspace_size() { return max_workspace_size_; }
+    // Sets the workspace size for cuDNN.
+    void SetMaxWorkspaceSize(size_t max_workspace_size);
+
+    // Gets the workspace size for cuDNN.
+    size_t GetMaxWorkspaceSize();
 
 private:
     std::unique_ptr<Device> CreateDevice(int index) override;
-    size_t max_workspace_size_ = 8 * 1024 * 1024;
+    nonstd::optional<size_t> max_workspace_size_{};
 };
 
 }  // namespace cuda
