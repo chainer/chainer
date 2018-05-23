@@ -6,7 +6,6 @@ import chainer
 from chainer.backends import cuda
 import chainer.functions as F
 from chainer import testing
-from chainer.testing import attr
 
 
 def _lgamma_cpu(x, dtype):
@@ -63,16 +62,6 @@ class TestLGammaExceptions(unittest.TestCase):
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
-
-    def check_backward(self, x_data):
-        x = chainer.Variable(x_data)
-        y = self.func(x)
-        with self.assertRaises(ImportError):
-            y.backward()
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x))
 
 
 testing.run_module(__name__, __file__)

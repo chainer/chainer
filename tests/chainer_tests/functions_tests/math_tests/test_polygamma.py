@@ -99,9 +99,5 @@ class TestPolyGammaExceptions(unittest.TestCase):
     def test_polygamma_forward_cpu(self):
         self.check_forward(self.n, self.x)
 
-    @attr.gpu
-    def test_polygamma_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.n), cuda.to_gpu(self.x))
-
 
 testing.run_module(__name__, __file__)

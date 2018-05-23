@@ -6,6 +6,7 @@ from chainer.utils import type_check
 
 
 _lgamma_cpu = None
+_lgamma_kernel = None
 
 
 class LGamma(function_node.FunctionNode):
@@ -18,7 +19,7 @@ class LGamma(function_node.FunctionNode):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
 
-    def forward_cpu(self, z):
+    def forward_cpu(self, x):
         global _lgamma_cpu
         if _lgamma_cpu is None:
             try:
@@ -28,22 +29,25 @@ class LGamma(function_node.FunctionNode):
                 raise ImportError("SciPy is not available. Forward computation"
                                   " of lgamma can not be done.")
         self.retain_inputs((0,))
-        return utils.force_array(_lgamma_cpu(z[0]), dtype=z[0].dtype),
+        return utils.force_array(_lgamma_cpu(x[0]), dtype=x[0].dtype),
 
     def forward_gpu(self, x):
+        global _lgamma_kernel
         self.retain_inputs((0,))
-        return cuda.elementwise(
-            'T x', 'T y',
-            'y = lgammaf(x)',
-            'elementwise_lgammaf',
-        )(x[0]),
+        if _lgamma_kernel is None:
+            _lgamma_kernel = cuda.elementwise(
+                'T x', 'T y',
+                'y = lgamma(x)',
+                'elementwise_lgamma',
+            )
+        return _lgamma_kernel(x[0]),
 
     def backward(self, indexes, gy):
         z = self.get_retained_inputs()[0]
         return chainer.functions.digamma(z) * gy[0],
 
 
-def lgamma(z):
+def lgamma(x):
     """logarithm of gamma function.
 
     .. note::
@@ -51,10 +55,10 @@ def lgamma(z):
        `SciPy <https://www.scipy.org/>`_ is not available.
 
     Args:
-        z (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return LGamma().apply((z,))[0]
+    return LGamma().apply((x,))[0]
