@@ -97,6 +97,8 @@ def test_implicity_convertible():
 def test_type(dtype_spec, value):
     expected = xchainer.Scalar(value, dtype_spec)
     actual = xchainer.dtype(dtype_spec).type(value)
+    assert isinstance(actual, xchainer.Scalar)
+    assert actual.dtype == xchainer.dtype(dtype_spec)
     if math.isnan(expected):
         assert math.isnan(actual)
     else:
