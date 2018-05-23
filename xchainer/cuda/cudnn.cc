@@ -326,10 +326,9 @@ void ConvolutionForward(
         int8_t ndim = x.ndim() - 2;
         assert(ndim > 0);
 
-        Shape new_shape;
+        Shape new_shape{};
         new_shape.emplace_back(1);
         new_shape.emplace_back(b->GetTotalSize());
-        // TODO(sonots): Use assign(ndim, 1) if it becomes available
         for (int8_t i = 0; i < ndim; ++i) {
             new_shape.emplace_back(1);
         }
