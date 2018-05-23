@@ -44,37 +44,68 @@ cudnnDataType_t GetCudnnDataType(Dtype dtype) {
     }
 }
 
+template <typename T, typename U, typename... ErrorArgs>
+T narrow(U u, const ErrorArgs&... error_args) {
+    T t = static_cast<T>(u);
+    if (static_cast<U>(t) != u) {
+        throw XchainerError{error_args...};
+    }
+    return t;
+}
+
+StackVector<int, kMaxNdim> GetIntShape(const Shape& shape) {
+    StackVector<int, kMaxNdim> int_shape;
+    for (int8_t i = 0; i < shape.ndim(); ++i) {
+        int_shape.emplace_back(narrow<int>(shape[i], "Casting the shape size: ", shape[i], " at dimension: ", i, " to int failed."));
+    }
+    return int_shape;
+}
+
+StackVector<int, kMaxNdim> GetIntStride(const StackVector<int64_t, kMaxNdim>& stride) {
+    StackVector<int, kMaxNdim> int_stride;
+    for (size_t i = 0; i < stride.size(); ++i) {
+        int_stride.emplace_back(narrow<int>(stride[i], "Casting the stride: ", stride[i], " at dimension: ", i, " to int failed."));
+    }
+    return int_stride;
+}
+
+StackVector<int, kMaxNdim> GetIntPad(const StackVector<int64_t, kMaxNdim>& pad) {
+    StackVector<int, kMaxNdim> int_pad;
+    for (size_t i = 0; i < pad.size(); ++i) {
+        int_pad.emplace_back(narrow<int>(pad[i], "Casting the pad: ", pad[i], " at dimension: ", i, " to int failed."));
+    }
+    return int_pad;
+}
+
+StackVector<int, kMaxNdim> GetIntDilation(const StackVector<int64_t, kMaxNdim>& dilation) {
+    StackVector<int, kMaxNdim> int_dilation;
+    for (size_t i = 0; i < dilation.size(); ++i) {
+        int_dilation.emplace_back(narrow<int>(dilation[i], "Casting the dilation: ", dilation[i], " at dimension: ", i, " to int failed."));
+    }
+    return int_dilation;
+}
+
+StackVector<int, kMaxNdim> GetIntArrayStrides(const Strides& strides, int64_t item_size) {
+    StackVector<int, kMaxNdim> int_strides;
+    for (int8_t i = 0; i < strides.ndim(); ++i) {
+        int64_t v = strides[i] / item_size;
+        int_strides.emplace_back(
+                narrow<int>(v, "Casting the array stride: ", v, " (in number of items) at dimension: ", i, " to int failed."));
+    }
+    return int_strides;
+}
+
 void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTensorFormat_t format) {
     if (!arr.IsContiguous()) {
         throw XchainerError{"CuDNN supports only c-contiguous arrays"};
     }
-    constexpr int int_max = std::numeric_limits<int>::max();
-    for (int8_t i = 0; i < arr.shape().ndim(); ++i) {
-        if (arr.shape()[i] > int_max) {
-            throw XchainerError{"The shape size: ", arr.shape()[i], " of dimension: ", i, " is larger than ", int_max};
-        }
-    }
-
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
     if (arr.shape().ndim() == 4) {
-        int n = static_cast<int>(arr.shape()[0]);
-        int c = static_cast<int>(arr.shape()[1]);
-        int h = static_cast<int>(arr.shape()[2]);
-        int w = static_cast<int>(arr.shape()[3]);
-        CheckCudnnError(cudnnSetTensor4dDescriptor(desc, format, cudnn_dtype, n, c, h, w));
+        StackVector<int, kMaxNdim> nchw = GetIntShape(arr.shape());
+        CheckCudnnError(cudnnSetTensor4dDescriptor(desc, format, cudnn_dtype, nchw[0], nchw[1], nchw[2], nchw[3]));
     } else {
-        StackVector<int, kMaxNdim> int_strides;
-        for (int8_t i = 0; i < arr.strides().ndim(); ++i) {
-            int64_t v = arr.strides()[i] / arr.item_size();
-            if (v > int_max) {
-                throw XchainerError{"The array stride: ", v, " (in number of items) of dimension: ", i, " is larger than ", int_max};
-            }
-            int_strides.emplace_back(static_cast<int>(v));
-        }
-        StackVector<int, kMaxNdim> int_shape;
-        for (int64_t v : arr.shape()) {
-            int_shape.emplace_back(static_cast<int>(v));
-        }
+        StackVector<int, kMaxNdim> int_strides = GetIntArrayStrides(arr.strides(), arr.item_size());
+        StackVector<int, kMaxNdim> int_shape = GetIntShape(arr.shape());
         CheckCudnnError(cudnnSetTensorNdDescriptor(desc, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]));
     }
 }
@@ -83,25 +114,12 @@ void SetFilterDescriptor(cudnnFilterDescriptor_t desc, const Array& arr, cudnnTe
     if (!arr.IsContiguous()) {
         throw XchainerError{"CuDNN supports only c-contiguous arrays"};
     }
-    constexpr int int_max = std::numeric_limits<int>::max();
-    for (int8_t i = 0; i < arr.shape().ndim(); ++i) {
-        if (arr.shape()[i] > int_max) {
-            throw XchainerError{"The shape size: ", arr.shape()[i], " of dimension: ", i, " is larger than ", int_max};
-        }
-    }
-
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
     if (arr.shape().ndim() == 4) {
-        int n = static_cast<int>(arr.shape()[0]);
-        int c = static_cast<int>(arr.shape()[1]);
-        int h = static_cast<int>(arr.shape()[2]);
-        int w = static_cast<int>(arr.shape()[3]);
-        CheckCudnnError(cudnnSetFilter4dDescriptor(desc, cudnn_dtype, format, n, c, h, w));
+        StackVector<int, kMaxNdim> nchw = GetIntShape(arr.shape());
+        CheckCudnnError(cudnnSetFilter4dDescriptor(desc, cudnn_dtype, format, nchw[0], nchw[1], nchw[2], nchw[3]));
     } else {
-        StackVector<int, kMaxNdim> int_shape;
-        for (int64_t v : arr.shape()) {
-            int_shape.emplace_back(static_cast<int>(v));
-        }
+        StackVector<int, kMaxNdim> int_shape = GetIntShape(arr.shape());
         CheckCudnnError(cudnnSetFilterNdDescriptor(desc, cudnn_dtype, format, arr.ndim(), &int_shape[0]));
     }
 }
@@ -122,58 +140,25 @@ void SetConvolutionDescriptor(
         throw DimensionError{"pad and dilation must be of same length"};
     }
 
-    constexpr int int_max = std::numeric_limits<int>::max();
-    StackVector<int, kMaxNdim> int_stride;
-    for (size_t i = 0; i < stride.size(); ++i) {
-        if (stride[i] > int_max) {
-            throw XchainerError{"The stride: ", stride[i], " of dimension: ", i, " is larger than ", int_max};
+    StackVector<int, kMaxNdim> int_stride = GetIntStride(stride);
+    StackVector<int, kMaxNdim> int_pad = GetIntPad(pad);
+    StackVector<int, kMaxNdim> int_dilation{};
+    if (!dilation) {
+        // TODO(sonots): Use assign(ndim, 1) if it becomes available
+        for (size_t i = 0; i < ndim; ++i) {
+            int_dilation.emplace_back(1);
         }
-        int_stride.emplace_back(static_cast<int>(stride[i]));
-    }
-    StackVector<int, kMaxNdim> int_pad;
-    for (size_t i = 0; i < pad.size(); ++i) {
-        if (pad[i] > int_max) {
-            throw XchainerError{"The pad: ", pad[i], " of dimension: ", i, " is larger than ", int_max};
-        }
-        int_pad.emplace_back(static_cast<int>(pad[i]));
-    }
-    if (dilation) {
-        for (size_t i = 0; i < dilation->size(); ++i) {
-            if ((*dilation)[i] > int_max) {
-                throw XchainerError{"The dilation, ", (*dilation)[i], " of dimension: ", i, " is larger than ", int_max};
-            }
-        }
+    } else {
+        int_dilation = GetIntDilation(*dilation);
     }
 
     cudnnDataType_t compute_type = GetCudnnDataType(dtype);
 
-    if (ndim != 2) {
-        StackVector<int, kMaxNdim> int_dilation;
-        if (!dilation) {
-            // TODO(sonots): Use assign(ndim, 1) if it becomes available
-            for (size_t i = 0; i < ndim; ++i) {
-                int_dilation.emplace_back(1);
-            }
-        } else {
-            for (int64_t v : *dilation) {
-                int_dilation.emplace_back(static_cast<int>(v));
-            }
-        }
-        CheckCudnnError(cudnnSetConvolutionNdDescriptor(desc, ndim, &int_pad[0], &int_stride[0], &int_dilation[0], mode, compute_type));
+    if (ndim == 2) {
+        CheckCudnnError(cudnnSetConvolution2dDescriptor(
+                desc, int_pad[0], int_pad[1], int_stride[0], int_stride[1], int_dilation[0], int_dilation[1], mode, compute_type));
     } else {
-        int d0 = 0, d1 = 0;
-        if (!dilation) {
-            d0 = d1 = 1;
-        } else {
-            d0 = static_cast<int>((*dilation)[0]);
-            d1 = static_cast<int>((*dilation)[1]);
-        }
-        int p0 = static_cast<int>(pad[0]);
-        int p1 = static_cast<int>(pad[1]);
-        int s0 = static_cast<int>(stride[0]);
-        int s1 = static_cast<int>(stride[1]);
-
-        CheckCudnnError(cudnnSetConvolution2dDescriptor(desc, p0, p1, s0, s1, d0, d1, mode, compute_type));
+        CheckCudnnError(cudnnSetConvolutionNdDescriptor(desc, ndim, &int_pad[0], &int_stride[0], &int_dilation[0], mode, compute_type));
     }
     if (groups > 1) {
         CheckCudnnError(cudnnSetConvolutionGroupCount(desc, groups));
@@ -272,6 +257,11 @@ void ConvolutionForward(
         throw XchainerError{
                 "The filter (kernel) array device: ", w.device().name(), " must be same with the input array device: ", x.device().name()};
     }
+    if (b && &b->device() != &device) {
+        throw XchainerError{
+                "The bias array device: ", b->device().name(), " must be same with the input array device: ", x.device().name()};
+    }
+
     // TODO(sonots): Support float16
     if (x.dtype() != Dtype::kFloat32 && x.dtype() != Dtype::kFloat64) {
         throw XchainerError{"XChainer cuDNN supports only float32 or float64 arrays, but the input array dtype is: ", x.dtype()};
@@ -281,6 +271,9 @@ void ConvolutionForward(
     }
     if (w.dtype() != x.dtype()) {
         throw XchainerError{"The filter (kernel) array dtype: ", w.dtype(), " must be same with the input array dtype: ", x.dtype()};
+    }
+    if (b && b->dtype() != x.dtype()) {
+        throw XchainerError{"The bias array dtype: ", b->dtype(), " must be same with the input array dtype: ", x.dtype()};
     }
 
     float float_zero = 0, float_one = 1;
@@ -330,14 +323,6 @@ void ConvolutionForward(
             y.data().get()));
 
     if (b) {
-        if (&b->device() != &device) {
-            throw XchainerError{
-                    "The bias array device: ", b->device().name(), " must be same with the input array device: ", x.device().name()};
-        }
-        if (b->dtype() != x.dtype()) {
-            throw XchainerError{"The bias array dtype: ", b->dtype(), " must be same with the input array dtype: ", x.dtype()};
-        }
-
         int8_t ndim = x.ndim() - 2;
         assert(ndim > 0);
 
