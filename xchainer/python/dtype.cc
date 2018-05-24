@@ -115,9 +115,40 @@ void InitXchainerDtype(pybind11::module& m) {
     }
     e.export_values();
     e.def(py::init(&internal::GetDtype));
-    e.def_property_readonly("char", [](Dtype dtype) { return std::string(1, GetCharCode(dtype)); });
+    e.def_property_readonly("char", [](Dtype self) -> py::str {
+        char c = GetCharCode(self);
+        return py::str{&c, 1};
+    });
     e.def_property_readonly("itemsize", &GetItemSize);
     e.def_property_readonly("name", &GetDtypeName);
+    e.def_property_readonly("kind", [](Dtype self) -> py::str {
+        char c = GetDtypeKindChar(GetKind(self));
+        return py::str{&c, 1};
+    });
+    e.def_property_readonly("num", [](Dtype self) -> py::object { return py::dtype{GetDtypeName(self)}.attr("num"); });
+    e.def_property_readonly("byteorder", [](Dtype self) -> py::str {
+        if (GetItemSize(self) == 1) {
+            return "|";  // "not applicable"
+        }
+        return "=";  // "native"
+    });
+    e.def_property_readonly("str", [](Dtype self) -> py::str {
+        std::string s{};
+        int64_t itemsize = GetItemSize(self);
+        if (itemsize == 1) {
+            s += "|";  // "not applicable"
+        } else {
+            static const uint16_t kNum16 = 0xff00U;
+            if (reinterpret_cast<const uint8_t*>(&kNum16)[0] == 0x00U) {  // NOLINT: reinterpret_cast
+                s += "<";  // little endian
+            } else {
+                s += ">";  // big endian
+            }
+        }
+        s += GetDtypeKindChar(GetKind(self));
+        s += std::to_string(itemsize);
+        return s;
+    });
     e.def("__eq__", [](Dtype self, py::handle other) {
         (void)self;  // unused
         (void)other;  // unused

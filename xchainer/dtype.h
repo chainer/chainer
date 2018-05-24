@@ -58,6 +58,22 @@ enum class DtypeKind {
     kFloat,
 };
 
+// Gets the single character identifier compatible to NumPy's dtype kind
+inline char GetDtypeKindChar(DtypeKind kind) {
+    switch (kind) {
+        case DtypeKind::kBool:
+            return 'b';
+        case DtypeKind::kInt:
+            return 'i';
+        case DtypeKind::kUInt:
+            return 'u';
+        case DtypeKind::kFloat:
+            return 'f';
+        default:
+            throw DtypeError{"invalid dtype kind"};
+    }
+}
+
 // Tag type used for dynamic dispatching with dtype value.
 //
 // This class template is used to resolve mapping from runtime dtype values to compile-time primitive types.
@@ -75,11 +91,13 @@ struct PrimitiveType;
         static const char* GetName() { return name; }              \
     }
 
+// TODO(niboshi): Char codes are mapped according to current development environment. They should be remapped depending on the executing
+// environment, as in NumPy.
 XCHAINER_DEFINE_PRIMITIVE_TYPE("bool", '?', Dtype::kBool, DtypeKind::kBool, bool);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("int8", 'b', Dtype::kInt8, DtypeKind::kInt, int8_t);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("int16", 'h', Dtype::kInt16, DtypeKind::kInt, int16_t);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("int32", 'i', Dtype::kInt32, DtypeKind::kInt, int32_t);
-XCHAINER_DEFINE_PRIMITIVE_TYPE("int64", 'q', Dtype::kInt64, DtypeKind::kInt, int64_t);
+XCHAINER_DEFINE_PRIMITIVE_TYPE("int64", 'l', Dtype::kInt64, DtypeKind::kInt, int64_t);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("uint8", 'B', Dtype::kUInt8, DtypeKind::kUInt, uint8_t);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("float32", 'f', Dtype::kFloat32, DtypeKind::kFloat, float);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("float64", 'd', Dtype::kFloat64, DtypeKind::kFloat, double);
