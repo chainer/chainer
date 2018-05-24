@@ -1,33 +1,39 @@
-import unittest
-
 from chainer import distributions
 from chainer import testing
 import numpy
 
 
-def params_init(shape):
-    loc = numpy.random.uniform(-1, 1, shape).astype(numpy.float32)
-    scale = numpy.exp(numpy.random.uniform(-1, 1, shape)).astype(numpy.float32)
-    params = {"loc": loc, "scale": scale}
-    sp_params = {"loc": loc, "scale": scale}
-    return params, sp_params
+@testing.with_requires('scipy')
+@testing.parameterize(*testing.product({
+    'shape': [(3, 2), (1,)],
+    'is_variable': [True, False],
+    'sample_shape': [(3, 2), ()],
+}))
+@testing.fix_random()
+class TestNormal(testing.distribution_unittest):
 
+    def setUp(self):
+        super().setUp()
+        from scipy import stats
+        self.dist = distributions.Normal
+        self.scipy_dist = stats.norm
 
-def sample_for_test(shape):
-    smp = numpy.random.normal(size=shape).astype(numpy.float32)
-    return smp
+        self.test_targets = set([
+            "batch_shape", "cdf", "entropy", "event_shape", "icdf", "log_cdf",
+            "log_prob", "log_survival", "mean", "prob", "sample", "stddev",
+            "support", "survival", "variance"])
 
+    def params_init(self):
+        loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        scale = numpy.exp(
+            numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
+        self.params = {"loc": loc, "scale": scale}
+        self.scipy_params = {"loc": loc, "scale": scale}
 
-tests = set(["batch_shape", "cdf", "entropy", "event_shape", "icdf",
-             "log_cdf", "log_prob", "log_survival", "mean", "prob",
-             "sample", "stddev", "support", "survival", "variance"])
-
-
-@testing.distribution_unittest(distributions.Normal, 'norm',
-                               params_init, sample_for_test,
-                               tests=tests)
-class TestNormal(unittest.TestCase):
-    pass
+    def sample_for_test(self):
+        smp = numpy.random.normal(
+            size=self.sample_shape + self.shape).astype(numpy.float32)
+        return smp
 
 
 testing.run_module(__name__, __file__)
