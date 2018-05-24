@@ -2,7 +2,7 @@ import unittest
 
 import chainer
 from chainer.backends import cuda
-from chainer import testing
+from chainer.testing import array
 from chainer.testing import attr
 import numpy
 
@@ -69,7 +69,7 @@ class distribution_unittest(unittest.TestCase):
         else:
             cdf1 = self.cpu_dist.cdf(smp).data
         cdf2 = self.scipy_dist.cdf(smp, **self.scipy_params)
-        testing.assert_allclose(cdf1, cdf2)
+        array.assert_allclose(cdf1, cdf2)
 
     @skip_not_in_test_target('cdf')
     def test_cdf_cpu(self):
@@ -94,7 +94,7 @@ class distribution_unittest(unittest.TestCase):
             ent2 = numpy.stack(ent2).reshape(self.shape)
         else:
             ent2 = self.scipy_dist.entropy(**self.scipy_params)
-        testing.assert_allclose(ent1, ent2)
+        array.assert_allclose(ent1, ent2)
 
     @skip_not_in_test_target('entropy')
     def test_entropy_cpu(self):
@@ -123,7 +123,7 @@ class distribution_unittest(unittest.TestCase):
         else:
             icdf1 = self.cpu_dist.icdf(smp).data
         icdf2 = self.scipy_dist.ppf(smp, **self.scipy_params)
-        testing.assert_allclose(icdf1, icdf2)
+        array.assert_allclose(icdf1, icdf2)
 
     @skip_not_in_test_target('icdf')
     def test_icdf_cpu(self):
@@ -141,7 +141,7 @@ class distribution_unittest(unittest.TestCase):
         else:
             log_cdf1 = self.cpu_dist.log_cdf(smp).data
         log_cdf2 = self.scipy_dist.logcdf(smp, **self.scipy_params)
-        testing.assert_allclose(log_cdf1, log_cdf2)
+        array.assert_allclose(log_cdf1, log_cdf2)
 
     @skip_not_in_test_target('log_cdf')
     def test_log_cdf_cpu(self):
@@ -183,7 +183,7 @@ class distribution_unittest(unittest.TestCase):
             log_prob2 = log_prob2.reshape(self.smp_shape + self.shape)
         else:
             log_prob2 = scipy_prob(smp, **self.scipy_params)
-        testing.assert_allclose(log_prob1, log_prob2)
+        array.assert_allclose(log_prob1, log_prob2)
 
     @skip_not_in_test_target('log_prob')
     def test_log_prob_cpu(self):
@@ -202,7 +202,7 @@ class distribution_unittest(unittest.TestCase):
         else:
             log_survival1 = self.cpu_dist.log_survival_function(smp).data
         log_survival2 = self.scipy_dist.logsf(smp, **self.scipy_params)
-        testing.assert_allclose(log_survival1, log_survival2)
+        array.assert_allclose(log_survival1, log_survival2)
 
     @skip_not_in_test_target('log_survival')
     def test_log_survival_cpu(self):
@@ -229,7 +229,7 @@ class distribution_unittest(unittest.TestCase):
                 self.shape + self.cpu_dist.event_shape)
         else:
             mean2 = self.scipy_dist.mean(**self.scipy_params)
-        testing.assert_allclose(mean1, mean2)
+        array.assert_allclose(mean1, mean2)
 
     @skip_not_in_test_target('mean')
     def test_mean_cpu(self):
@@ -250,7 +250,7 @@ class distribution_unittest(unittest.TestCase):
             prob2 = self.scipy_dist.pdf(smp, **self.scipy_params)
         else:
             prob2 = self.scipy_dist.pmf(smp, **self.scipy_params)
-        testing.assert_allclose(prob1, prob2)
+        array.assert_allclose(prob1, prob2)
 
     @skip_not_in_test_target('prob')
     def test_prob_cpu(self):
@@ -285,9 +285,9 @@ class distribution_unittest(unittest.TestCase):
             smp2 = self.scipy_dist.rvs(
                 size=(100000,) + self.sample_shape + self.shape,
                 **self.scipy_params)
-        testing.assert_allclose(smp1.mean(axis=0), smp2.mean(axis=0),
+        array.assert_allclose(smp1.mean(axis=0), smp2.mean(axis=0),
                                 atol=3e-2, rtol=3e-2)
-        testing.assert_allclose(smp1.std(axis=0), smp2.std(axis=0),
+        array.assert_allclose(smp1.std(axis=0), smp2.std(axis=0),
                                 atol=3e-2, rtol=3e-2)
 
     @skip_not_in_test_target('sample')
@@ -305,7 +305,7 @@ class distribution_unittest(unittest.TestCase):
         else:
             stddev1 = self.cpu_dist.stddev.data
         stddev2 = self.scipy_dist.std(**self.scipy_params)
-        testing.assert_allclose(stddev1, stddev2)
+        array.assert_allclose(stddev1, stddev2)
 
     @skip_not_in_test_target('stddev')
     def test_stddev_cpu(self):
@@ -333,7 +333,7 @@ class distribution_unittest(unittest.TestCase):
         else:
             survival1 = self.cpu_dist.survival_function(smp).data
         survival2 = self.scipy_dist.sf(smp, **self.scipy_params)
-        testing.assert_allclose(survival1, survival2)
+        array.assert_allclose(survival1, survival2)
 
     @skip_not_in_test_target('survival')
     def test_survival_cpu(self):
@@ -360,7 +360,7 @@ class distribution_unittest(unittest.TestCase):
                 self.shape + self.cpu_dist.event_shape)
         else:
             variance2 = self.scipy_dist.var(**self.scipy_params)
-        testing.assert_allclose(variance1, variance2)
+        array.assert_allclose(variance1, variance2)
 
     @skip_not_in_test_target('variance')
     def test_variance_cpu(self):
