@@ -3,13 +3,13 @@ from chainer import testing
 import numpy
 
 
-@testing.with_requires('scipy')
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), (1,)],
     'is_variable': [True, False],
     'sample_shape': [(3, 2), ()],
 }))
 @testing.fix_random()
+@testing.with_requires('scipy')
 class TestNormal(testing.distribution_unittest):
 
     def setUp(self):
