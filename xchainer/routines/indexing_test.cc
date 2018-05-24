@@ -75,7 +75,7 @@ TEST_P(IndexingTest, AtBackward) {
                 std::vector<ArrayIndex> indices{1, NewAxis{}, Slice{1, 3}};
                 return {internal::At(xs[0], indices)};
             },
-            {(*testing::BuildArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
+            {(*testing::BuildArray({2, 3}).WithData<float>({1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
             {Ones({1, 2}, Dtype::kFloat32)},
             {Full({2, 3}, 1e-3f)});
 }
@@ -87,7 +87,7 @@ TEST_P(IndexingTest, AtDoubleBackward) {
                 auto y = internal::At(xs[0], indices);
                 return {y * y};  // to make it nonlinear
             },
-            {(*testing::BuildArray({2, 3}, {1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
+            {(*testing::BuildArray({2, 3}).WithData<float>({1.f, -1.f, 2.f, -2.f, 3.f, -3.f})).RequireGrad()},
             {Ones({1, 2}, Dtype::kFloat32).RequireGrad()},
             {Ones({2, 3}, Dtype::kFloat32)},
             {Full({2, 3}, 1e-3f), Full({1, 2}, 1e-3f)});

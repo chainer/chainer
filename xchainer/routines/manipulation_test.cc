@@ -40,7 +40,7 @@ private:
 TEST_P(ManipulationTest, AsScalar) {
     using T = float;
     T value = 2.0f;
-    Array a = testing::BuildArray<T>({1, 1, 1}, {value}).WithPadding(1);
+    Array a = testing::BuildArray({1, 1, 1}).WithData<T>({value}).WithPadding(1);
     Scalar s = AsScalar(a);
 
     ASSERT_EQ(s.dtype(), TypeToDtype<T>);
@@ -48,12 +48,12 @@ TEST_P(ManipulationTest, AsScalar) {
 }
 
 TEST_P(ManipulationTest, AsScalarInvalidZeroElement) {
-    Array a = testing::BuildArray<float>({0}, {});
+    Array a = testing::BuildArray({0}).WithData<float>({});
     EXPECT_THROW(AsScalar(a), DimensionError);
 }
 
 TEST_P(ManipulationTest, AsScalarInvalidMoreThanOneElements) {
-    Array a = testing::BuildArray<float>({2}, {1.0f, 2.0f});
+    Array a = testing::BuildArray({2}).WithData<float>({1.0f, 2.0f});
     EXPECT_THROW(AsScalar(a), DimensionError);
 }
 
@@ -231,7 +231,7 @@ TEST_P(ManipulationTest, SqueezeAllAxes) {
 
     Array a = testing::BuildArray({1, 1, 1}).WithLinearData<T>();
     Array b = Squeeze(a);
-    Array e = testing::BuildArray<T>({}, std::vector<T>(1, 0));
+    Array e = testing::BuildArray({}).WithData<T>({0});
     testing::ExpectEqual(e, b);
 }
 
@@ -331,11 +331,11 @@ TEST_P(ManipulationTest, BroadcastTo) {
     EXPECT_EQ(a.data().get(), b.data().get()) << "BroadcastTo must be done without copying data";
     ASSERT_EQ(0, b.strides()[1]) << "Stride of broadcasted dimension must be 0";
 
-    std::vector<int64_t> output_data;
+    std::vector<T> output_data;
     for (int i = 0; i < 3; ++i) {
         output_data.insert(output_data.end(), {1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6});
     }
-    Array e = testing::BuildArray(output_shape).WithData<T>(output_data.begin(), output_data.end());
+    Array e = testing::BuildArray(output_shape).WithData<T>(output_data);
     testing::ExpectEqual(e, b);
 }
 

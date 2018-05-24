@@ -28,39 +28,39 @@ public:
     template <typename T>
     void CheckAllClose(
             const Shape& shape,
-            std::initializer_list<T> adata,
-            std::initializer_list<T> bdata,
+            const std::vector<T>& adata,
+            const std::vector<T>& bdata,
             double rtol,
             double atol,
             bool equal_nan = false) {
-        Array a = testing::BuildArray<T>(shape, adata);
-        Array b = testing::BuildArray<T>(shape, bdata);
+        Array a = testing::BuildArray(shape).WithData(adata);
+        Array b = testing::BuildArray(shape).WithData(bdata);
         EXPECT_TRUE(AllClose(a, b, rtol, atol, equal_nan));
     }
 
     template <typename T>
     void CheckNotAllClose(
             const Shape& shape,
-            std::initializer_list<T> adata,
-            std::initializer_list<T> bdata,
+            const std::vector<T>& adata,
+            const std::vector<T>& bdata,
             double rtol,
             double atol,
             bool equal_nan = false) {
-        Array a = testing::BuildArray<T>(shape, adata);
-        Array b = testing::BuildArray<T>(shape, bdata);
+        Array a = testing::BuildArray(shape).WithData(adata);
+        Array b = testing::BuildArray(shape).WithData(bdata);
         EXPECT_FALSE(AllClose(a, b, rtol, atol, equal_nan));
     }
 
     template <typename T, typename U>
     void CheckAllCloseThrow(
             const Shape& shape,
-            std::initializer_list<T> adata,
-            std::initializer_list<U> bdata,
+            const std::vector<T>& adata,
+            const std::vector<U>& bdata,
             double rtol,
             double atol,
             bool equal_nan = false) {
-        Array a = testing::BuildArray<T>(shape, adata);
-        Array b = testing::BuildArray<U>(shape, bdata);
+        Array a = testing::BuildArray(shape).WithData<T>(adata);
+        Array b = testing::BuildArray(shape).WithData<U>(bdata);
         EXPECT_THROW(AllClose(a, b, rtol, atol, equal_nan), DtypeError);
     }
 

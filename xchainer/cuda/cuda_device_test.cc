@@ -129,11 +129,11 @@ TEST(CudaDeviceTest, FromHostMemory) {
 TEST(CudaDeviceTest, DotNonContiguousOut) {
     testing::DeviceSession session{{"cuda", 0}};
     Array a = testing::BuildArray({2, 3}).WithLinearData(1.f);
-    Array b = testing::BuildArray<float>({3, 2}, {1.f, 2.f, -1.f, -3.f, 2.f, 4.f});
-    Array c = testing::BuildArray({2, 2}).WithData({0.f, 0.f, 0.f, 0.f}).WithPadding(1);
+    Array b = testing::BuildArray({3, 2}).WithData<float>({1.f, 2.f, -1.f, -3.f, 2.f, 4.f});
+    Array c = testing::BuildArray({2, 2}).WithData<float>({0.f, 0.f, 0.f, 0.f}).WithPadding(1);
     a.device().Dot(a, b, c);
 
-    Array e = testing::BuildArray<float>({2, 2}, {5.f, 8.f, 11.f, 17.f});
+    Array e = testing::BuildArray({2, 2}).WithData<float>({5.f, 8.f, 11.f, 17.f});
     testing::ExpectEqual(e, c);
 }
 

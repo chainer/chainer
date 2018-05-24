@@ -73,7 +73,7 @@ TEST_P(ArrayTest, DefaultCtor) {
 }
 
 TEST_P(ArrayTest, CopyCtor) {
-    Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
+    Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
     Array b = a;  // NOLINT
 
     // A copy-constructed instance must share the same body.
@@ -85,7 +85,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
 
     // A view must not be affected by move
     {
-        Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+        Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
         Array b = a.MakeView();
         Array c = std::move(a);
         testing::ExpectEqual(b, c);
@@ -93,7 +93,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
 
     // A copy must not be affected by move
     {
-        Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+        Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
         Array b = a.Copy();
         Array c = std::move(a);
         testing::ExpectEqualCopy(b, c);
@@ -101,7 +101,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
 
     // Array body must be transferred by move
     {
-        Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+        Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
         auto body = a.body();
         Array c = std::move(a);
         EXPECT_EQ(body, c.body());
@@ -109,7 +109,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
 }
 
 TEST_P(ArrayTest, ArrayBodyCtor) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     auto body = a.body();
     Array b{body};
     EXPECT_EQ(body, b.body());
@@ -124,15 +124,15 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
 
 TEST_P(ArrayTest, CopyAssignment) {
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, true, true});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});
         Array b;
         b = a;
 
         EXPECT_EQ(a.body().get(), b.body().get());
     }
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, true, true});
-        Array b = testing::BuildArray<float>({1}, {1.0f});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});
+        Array b = testing::BuildArray({1}).WithData<float>({1.0f});
         b = a;
 
         EXPECT_EQ(a.body().get(), b.body().get());
@@ -141,7 +141,7 @@ TEST_P(ArrayTest, CopyAssignment) {
 
 TEST_P(ArrayTest, MoveAssignment) {
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, true, true});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});
         Array b;
         std::shared_ptr<xchainer::internal::ArrayBody> body = a.body();
         b = std::move(a);
@@ -149,8 +149,8 @@ TEST_P(ArrayTest, MoveAssignment) {
         EXPECT_EQ(body.get(), b.body().get());
     }
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, true, true});
-        Array b = testing::BuildArray<float>({1}, {1.0f});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});
+        Array b = testing::BuildArray({1}).WithData<float>({1.0f});
         std::shared_ptr<xchainer::internal::ArrayBody> body = a.body();
         b = std::move(a);
 
@@ -161,7 +161,7 @@ TEST_P(ArrayTest, MoveAssignment) {
 TEST_P(ArrayTest, SetRequiresGrad) {
     // Default graph
     {
-        Array x = testing::BuildArray<bool>({1}, {true});
+        Array x = testing::BuildArray({1}).WithData<bool>({true});
         ASSERT_FALSE(x.IsGradRequired());
         x.RequireGrad();
         ASSERT_TRUE(x.IsGradRequired());
@@ -170,7 +170,7 @@ TEST_P(ArrayTest, SetRequiresGrad) {
     // User-specified graph
     {
         GraphId graph_id = "graph_1";
-        Array x = testing::BuildArray<bool>({1}, {true});
+        Array x = testing::BuildArray({1}).WithData<bool>({true});
         ASSERT_FALSE(x.IsGradRequired(graph_id));
         x.RequireGrad(graph_id);
         ASSERT_TRUE(x.IsGradRequired(graph_id));
@@ -178,12 +178,12 @@ TEST_P(ArrayTest, SetRequiresGrad) {
 }
 
 TEST_P(ArrayTest, Grad) {
+    using T = float;
     GraphId graph_id = "graph_1";
     Shape shape{2, 3};
-    using T = float;
 
-    Array x = testing::BuildArray<T>(shape, {5, 3, 2, 1, 4, 6});
-    Array g = testing::BuildArray<T>(shape, {8, 4, 6, 3, 2, 1});
+    Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
+    Array g = testing::BuildArray(shape).WithData<T>({8, 4, 6, 3, 2, 1});
 
     x.RequireGrad(graph_id);
     g.RequireGrad(graph_id);
@@ -335,77 +335,77 @@ TEST_P(ArrayTest, Equality) {
 }
 
 TEST_P(ArrayTest, IAdd) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array b = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({2, 4, 6});
     a += b;
     testing::ExpectEqual(e, a);
 }
 
 TEST_P(ArrayTest, IAddScalar) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array e = testing::BuildArray<float>({3, 1}, {3, 4, 5});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({3, 4, 5});
     a += Scalar{2.f};
     testing::ExpectEqual(e, a);
 }
 
 TEST_P(ArrayTest, ISubtract) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array b = testing::BuildArray<float>({3, 1}, {4, 0, -2});
-    Array e = testing::BuildArray<float>({3, 1}, {-3, 2, 5});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array b = testing::BuildArray({3, 1}).WithData<float>({4, 0, -2});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({-3, 2, 5});
     a -= b;
     testing::ExpectEqual(e, a);
 }
 
 TEST_P(ArrayTest, ISubtractScalar) {
-    Array a = testing::BuildArray<float>({3, 1}, {1.f, 2.f, 3.f});
-    Array e = testing::BuildArray<float>({3, 1}, {0.5f, 1.5f, 2.5f});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1.f, 2.f, 3.f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({0.5f, 1.5f, 2.5f});
     a -= Scalar{0.5f};
     testing::ExpectEqual(e, a);
 }
 
 TEST_P(ArrayTest, IMultiply) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array e = testing::BuildArray<float>({3, 1}, {1, 4, 9});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array b = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({1, 4, 9});
     a *= b;
     testing::ExpectEqual(e, a);
 }
 
 TEST_P(ArrayTest, IMultiplyScalar) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({2, 4, 6});
     a *= Scalar{2.f};
     testing::ExpectEqual(e, a);
 }
 
 TEST_P(ArrayTest, IDivide) {
-    Array a = testing::BuildArray<float>({3, 1}, {1.f, 2.f, 3.f});
-    Array b = testing::BuildArray<float>({3, 1}, {1.f, 0.5f, 2.f});
-    Array e = testing::BuildArray<float>({3, 1}, {1.f, 4.f, 1.5f});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1.f, 2.f, 3.f});
+    Array b = testing::BuildArray({3, 1}).WithData<float>({1.f, 0.5f, 2.f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({1.f, 4.f, 1.5f});
     a /= b;
     testing::ExpectEqual(e, a);
 }
 
 TEST_P(ArrayTest, IDivideScalar) {
-    Array a = testing::BuildArray<float>({3, 1}, {1.f, 2.f, 3.f});
-    Array e = testing::BuildArray<float>({3, 1}, {0.5f, 1.f, 1.5f});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1.f, 2.f, 3.f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({0.5f, 1.f, 1.5f});
     a /= Scalar{2.f};
     testing::ExpectEqual(e, a);
 }
 
 TEST_P(ArrayTest, Add) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array b = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({2, 4, 6});
     Array o = a + b;
     testing::ExpectEqual(e, o);
 }
 
 TEST_P(ArrayTest, AddScalar) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Scalar b{2.f};
-    Array e = testing::BuildArray<float>({3, 1}, {3, 4, 5});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({3, 4, 5});
     {
         Array o = a + b;
         testing::ExpectEqual(e, o);
@@ -417,40 +417,40 @@ TEST_P(ArrayTest, AddScalar) {
 }
 
 TEST_P(ArrayTest, Subtract) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array b = testing::BuildArray<float>({3, 1}, {4, 0, -2});
-    Array e = testing::BuildArray<float>({3, 1}, {-3, 2, 5});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array b = testing::BuildArray({3, 1}).WithData<float>({4, 0, -2});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({-3, 2, 5});
     Array o = a - b;
     testing::ExpectEqual(e, o);
 }
 
 TEST_P(ArrayTest, SubtractScalar) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Scalar b{1.5f};
     {
-        Array e = testing::BuildArray<float>({3, 1}, {-0.5f, 0.5f, 1.5f});
+        Array e = testing::BuildArray({3, 1}).WithData<float>({-0.5f, 0.5f, 1.5f});
         Array o = a - b;
         testing::ExpectEqual(e, o);
     }
     {
-        Array e = testing::BuildArray<float>({3, 1}, {0.5f, -0.5f, -1.5f});
+        Array e = testing::BuildArray({3, 1}).WithData<float>({0.5f, -0.5f, -1.5f});
         Array o = b - a;
         testing::ExpectEqual(e, o);
     }
 }
 
 TEST_P(ArrayTest, Multiply) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array b = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array e = testing::BuildArray<float>({3, 1}, {1, 4, 9});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array b = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({1, 4, 9});
     Array o = a * b;
     testing::ExpectEqual(e, o);
 }
 
 TEST_P(ArrayTest, MultiplyScalar) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Scalar b{2.f};
-    Array e = testing::BuildArray<float>({3, 1}, {2, 4, 6});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({2, 4, 6});
     {
         Array o = a * b;
         testing::ExpectEqual(e, o);
@@ -462,16 +462,16 @@ TEST_P(ArrayTest, MultiplyScalar) {
 }
 
 TEST_P(ArrayTest, Divide) {
-    Array a = testing::BuildArray<float>({3, 1}, {1.f, 2.f, 3.f});
-    Array b = testing::BuildArray<float>({3, 1}, {0.5f, 0.5f, 2.f});
-    Array e = testing::BuildArray<float>({3, 1}, {2.f, 4.f, 1.5f});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1.f, 2.f, 3.f});
+    Array b = testing::BuildArray({3, 1}).WithData<float>({0.5f, 0.5f, 2.f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({2.f, 4.f, 1.5f});
     Array o = a / b;
     testing::ExpectEqual(e, o);
 }
 
 TEST_P(ArrayTest, DivideScalar) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
-    Array e = testing::BuildArray<float>({3, 1}, {0.5f, 1.f, 1.5f});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({0.5f, 1.f, 1.5f});
     Array o = a / Scalar{2.f};
     testing::ExpectEqual(e, o);
 }
@@ -479,8 +479,8 @@ TEST_P(ArrayTest, DivideScalar) {
 TEST_P(ArrayTest, ComputationalGraph) {
     // c = a + b
     // o = a * c
-    Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-    Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
+    Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+    Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
 
     GraphId graph_id = "graph_1";
     a.RequireGrad(graph_id);
@@ -540,31 +540,31 @@ TEST_P(ArrayTest, ComputationalGraph) {
 TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
     GraphId graph_id = "graph_1";
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+        Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
         a.RequireGrad(graph_id);
         b.RequireGrad(graph_id);
         EXPECT_THROW({ a += b; }, XchainerError);
     }
 
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+        Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
         a.RequireGrad(graph_id);
         b.RequireGrad(graph_id);
         EXPECT_THROW({ a *= b; }, XchainerError);
     }
 
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+        Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
         a.RequireGrad(graph_id);
         EXPECT_THROW({ a *= b; }, XchainerError);
     }
 
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-        Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+        Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
         b.RequireGrad(graph_id);
         EXPECT_THROW({ a *= b; }, XchainerError);
     }
@@ -583,13 +583,13 @@ TEST_P(ArrayTest, Transpose) {
 
 TEST_P(ArrayTest, Copy) {
     using T = int32_t;
-    Array a = testing::BuildArray<T>({3, 1}, {1, 2, 3});
+    Array a = testing::BuildArray({3, 1}).WithData<T>({1, 2, 3});
     Array o = a.Copy();
     testing::ExpectEqualCopy(a, o);
 }
 
 TEST_P(ArrayTest, MakeView) {
-    Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
+    Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
     Array o = a.MakeView();
     testing::ExpectEqualView(a, o);
 }
@@ -597,7 +597,7 @@ TEST_P(ArrayTest, MakeView) {
 TEST_P(ArrayTest, AsConstantCopy) {
     // Stop gradients on all graphs
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
         a.RequireGrad("graph_1");
         a.RequireGrad("graph_2");
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
@@ -616,7 +616,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
 
     // Stop gradients on graphs
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
         a.RequireGrad("graph_1");
         a.RequireGrad("graph_2");
         a.RequireGrad("graph_3");
@@ -639,7 +639,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
 
     // Non-contiguous
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false}).WithPadding(4);
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false}).WithPadding(4);
         Array b = a.AsConstant(CopyKind::kCopy);
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualCopy(a, b);
@@ -649,7 +649,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
 TEST_P(ArrayTest, AsConstantView) {
     // Stop gradients on all graphs
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
         a.RequireGrad("graph_1");
         a.RequireGrad("graph_2");
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
@@ -666,7 +666,7 @@ TEST_P(ArrayTest, AsConstantView) {
 
     // Stop gradients on some graphs
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
         a.RequireGrad("graph_1");
         a.RequireGrad("graph_2");
         a.RequireGrad("graph_3");
@@ -686,7 +686,7 @@ TEST_P(ArrayTest, AsConstantView) {
     }
     // Non-contiguous
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false}).WithPadding(4);
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false}).WithPadding(4);
         Array b = a.AsConstant(CopyKind::kView);
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualView(a, b);
@@ -694,36 +694,36 @@ TEST_P(ArrayTest, AsConstantView) {
 }
 
 TEST_P(ArrayTest, AsTypeFloatToDouble) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array o = a.AsType(Dtype::kFloat64);
-    Array e = testing::BuildArray<double>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray({3, 1}).WithData<double>({1, 2, 3});
     testing::ExpectEqualCopy(e, o);
 }
 
 TEST_P(ArrayTest, AsTypeFloatToInt) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array o = a.AsType(Dtype::kInt32);
-    Array e = testing::BuildArray<int32_t>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray({3, 1}).WithData<int32_t>({1, 2, 3});
     testing::ExpectEqualCopy(e, o);
 }
 
 TEST_P(ArrayTest, AsTypeBoolToFloat) {
-    Array a = testing::BuildArray<bool>({3, 1}, {true, false, true});
+    Array a = testing::BuildArray({3, 1}).WithData<bool>({true, false, true});
     Array o = a.AsType(Dtype::kFloat32);
-    Array e = testing::BuildArray<float>({3, 1}, {1.0, 0.0, 1.0});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({1.0, 0.0, 1.0});
     testing::ExpectEqualCopy(e, o);
 }
 
 TEST_P(ArrayTest, AsTypeCopyFalse) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array o = a.AsType(Dtype::kFloat32, false);
     EXPECT_EQ(a.body(), o.body()) << "Bodies must be same in order for the reference to be preserved in Python";
 }
 
 TEST_P(ArrayTest, AsTypeCopyFalseButDifferentType) {
-    Array a = testing::BuildArray<float>({3, 1}, {1, 2, 3});
+    Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array o = a.AsType(Dtype::kFloat64, false);
-    Array e = testing::BuildArray<double>({3, 1}, {1, 2, 3});
+    Array e = testing::BuildArray({3, 1}).WithData<double>({1, 2, 3});
     testing::ExpectEqualCopy(e, o);
 }
 
@@ -799,8 +799,8 @@ TEST_P(ArrayTest, ToNative) {
 }
 
 TEST_P(ArrayTest, AddBackward) {
-    Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-    Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
+    Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+    Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
 
     a.RequireGrad();
     b.RequireGrad();
@@ -808,7 +808,7 @@ TEST_P(ArrayTest, AddBackward) {
     Array o = a + b;
 
     auto op_node = internal::GetArrayNode(o)->next_node();
-    Array go = testing::BuildArray<bool>({4, 1}, {true, true, true, true});
+    Array go = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});
     Array ga = op_node->backward_functions()[0](go, {kDefaultGraphId});
     Array gb = op_node->backward_functions()[1](go, {kDefaultGraphId});
 
@@ -817,8 +817,8 @@ TEST_P(ArrayTest, AddBackward) {
 }
 
 TEST_P(ArrayTest, MultiplyBackward) {
-    Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-    Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
+    Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+    Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
 
     a.RequireGrad();
     b.RequireGrad();
@@ -826,7 +826,7 @@ TEST_P(ArrayTest, MultiplyBackward) {
     Array o = a * b;
 
     auto op_node = internal::GetArrayNode(o)->next_node();
-    Array go = testing::BuildArray<bool>({4, 1}, {true, true, true, true});
+    Array go = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});
     Array ga = op_node->backward_functions()[0](go, {kDefaultGraphId});
     Array gb = op_node->backward_functions()[1](go, {kDefaultGraphId});
 
@@ -839,8 +839,8 @@ TEST_P(ArrayTest, MultiplyBackward) {
 
 TEST_P(ArrayTest, MultiplyBackwardCapture) {
     Array y = [this]() {
-        Array x1 = testing::BuildArray<float>({1}, {2.0f});
-        Array x2 = testing::BuildArray<float>({1}, {3.0f});
+        Array x1 = testing::BuildArray({1}).WithData<float>({2.0f});
+        Array x2 = testing::BuildArray({1}).WithData<float>({3.0f});
         x1.RequireGrad();
         x2.RequireGrad();
         return x1 * x2;
@@ -848,15 +848,15 @@ TEST_P(ArrayTest, MultiplyBackwardCapture) {
     auto op_node = internal::GetArrayNode(y)->next_node();
     auto lhs_func = op_node->backward_functions()[0];
     auto rhs_func = op_node->backward_functions()[1];
-    Array gy = testing::BuildArray<float>({1}, {1.0f});
+    Array gy = testing::BuildArray({1}).WithData<float>({1.0f});
 
     Array gx1 = lhs_func(gy, {kDefaultGraphId});
-    Array e1 = testing::BuildArray<float>({1}, {3.0f});
+    Array e1 = testing::BuildArray({1}).WithData<float>({3.0f});
     testing::ExpectEqual(e1, gx1);
     EXPECT_FALSE(gx1.IsGradRequired());
 
     Array gx2 = rhs_func(gy, {kDefaultGraphId});
-    Array e2 = testing::BuildArray<float>({1}, {2.0f});
+    Array e2 = testing::BuildArray({1}).WithData<float>({2.0f});
     testing::ExpectEqual(e2, gx2);
     EXPECT_FALSE(gx2.IsGradRequired());
 }
@@ -865,14 +865,14 @@ TEST_P(ArrayTest, MultiplyBackwardMultipleGraphs) {
     GraphId graph_id1 = "graph_1";
     GraphId graph_id2 = "graph_2";
 
-    Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
-    Array b = testing::BuildArray<bool>({4, 1}, {true, false, true, false});
+    Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+    Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
 
     a.RequireGrad(graph_id1);
     b.RequireGrad(graph_id2);
 
     Array o = a * b;
-    Array go = testing::BuildArray<bool>({4, 1}, {true, true, true, true});
+    Array go = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});
 
     auto op_node1 = internal::GetArrayNode(o, graph_id1)->next_node();
     Array ga = op_node1->backward_functions()[0](go, {graph_id1});
@@ -888,7 +888,7 @@ TEST_P(ArrayTest, MultiplyBackwardMultipleGraphs) {
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
-    Array a = testing::BuildArray<float>({1}, {2.0f});
+    Array a = testing::BuildArray({1}).WithData<float>({2.0f});
 
     EXPECT_FALSE(a.IsGradRequired());
 
@@ -901,7 +901,7 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
 TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
     GraphId graph_id = "graph_1";
 
-    Array a = testing::BuildArray<float>({1}, {2.0f});
+    Array a = testing::BuildArray({1}).WithData<float>({2.0f});
 
     ASSERT_FALSE(a.IsGradRequired(graph_id));
 
@@ -912,21 +912,21 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsCtor) {
-    Array a = (*testing::BuildArray<float>({1}, {2.0f})).RequireGrad();
+    Array a = (*testing::BuildArray({1}).WithData<float>({2.0f})).RequireGrad();
 
     EXPECT_TRUE(a.IsGradRequired());
     EXPECT_THROW(a.RequireGrad(), XchainerError);
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsRequireGrad) {
-    Array a = testing::BuildArray<float>({1}, {2.0f});
+    Array a = testing::BuildArray({1}).WithData<float>({2.0f});
 
     EXPECT_THROW(a.RequireGrad().RequireGrad(), XchainerError);
 }
 
 TEST_P(ArrayTest, MultipleGraphsForward) {
-    Array a = testing::BuildArray<float>({1}, {2.0f});
-    Array b = testing::BuildArray<float>({1}, {2.0f});
+    Array a = testing::BuildArray({1}).WithData<float>({2.0f});
+    Array b = testing::BuildArray({1}).WithData<float>({2.0f});
 
     GraphId graph_id_1 = "graph_1";
     GraphId graph_id_2 = "graph_2";
@@ -1022,7 +1022,7 @@ TEST(ArraySqueezeTest, SqueezeAllAxes) {
 
     Array a = testing::BuildArray({1, 1, 1}).WithLinearData<T>();
     Array b = a.Squeeze();
-    Array e = testing::BuildArray<T>({}, std::vector<T>(1, 0));
+    Array e = testing::BuildArray({}).WithData<T>(std::vector<T>(1, 0));
     testing::ExpectEqual(e, b);
 }
 
@@ -1041,11 +1041,11 @@ TEST(ArrayBroadcastToTest, BroadcastTo) {
     EXPECT_EQ(a.data().get(), b.data().get()) << "BroadcastTo must be done without copying data";
     ASSERT_EQ(0, b.strides()[1]) << "Stride of broadcasted dimension must be 0";
 
-    std::vector<int64_t> output_data;
+    std::vector<T> output_data;
     for (int i = 0; i < 3; ++i) {
         output_data.insert(output_data.end(), {1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6});
     }
-    Array e = testing::BuildArray(output_shape).WithData<T>(output_data.begin(), output_data.end());
+    Array e = testing::BuildArray(output_shape).WithData<T>(output_data);
     testing::ExpectEqual(e, b);
 }
 
@@ -1076,7 +1076,7 @@ TEST(ArraySumTest, Sum) {
     Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum(Axes{2, 1, -1});
     EXPECT_EQ(Shape{2}, b.shape());
-    Array e = testing::BuildArray(Shape{2}).WithData<T>({630.0f, 1926.0f});
+    Array e = testing::BuildArray({2}).WithData<T>({630.0f, 1926.0f});
     testing::ExpectEqual(e, b);
 }
 
@@ -1087,7 +1087,7 @@ TEST(ArraySumTest, SumAllAxes) {
     Array a = testing::BuildArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
     Array b = a.Sum();
     EXPECT_EQ(Shape{}, b.shape());
-    Array e = testing::BuildArray(Shape{}).WithData<T>({153.0f});
+    Array e = testing::BuildArray({}).WithData<T>({153.0f});
     testing::ExpectEqual(e, b);
 }
 
@@ -1100,7 +1100,7 @@ TEST(ArraySumTest, SumKeepDims) {
     EXPECT_EQ(Shape({2, 1, 2, 1}), b.shape());
     EXPECT_EQ(0, b.strides()[1]);
     EXPECT_EQ(0, b.strides()[3]);
-    Array e = testing::BuildArray(Shape{2, 1, 2, 1}).WithData<T>({114.0f, 162.0f, 402.0f, 450.0f});
+    Array e = testing::BuildArray({2, 1, 2, 1}).WithData<T>({114.0f, 162.0f, 402.0f, 450.0f});
     testing::ExpectEqual(e, b);
 }
 
@@ -1109,7 +1109,7 @@ TEST(ArrayMaxTest, Max) {
     Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<float>().WithPadding(1);
     Array b = a.Max(Axes{2, 0, -1});
     EXPECT_EQ(Shape{3}, b.shape());
-    Array e = testing::BuildArray<float>({3}, {47.f, 59.f, 71.f});
+    Array e = testing::BuildArray({3}).WithData<float>({47.f, 59.f, 71.f});
     testing::ExpectEqual(e, b);
 }
 
@@ -1118,7 +1118,7 @@ TEST(ArrayMaxTest, MaxAllAxes) {
     Array a = testing::BuildArray({2, 3, 3}).WithLinearData<float>().WithPadding(1);
     Array b = a.Max();
     EXPECT_EQ(Shape{}, b.shape());
-    Array e = testing::BuildArray<float>({}, {17.f});
+    Array e = testing::BuildArray({}).WithData<float>({17.f});
     testing::ExpectEqual(e, b);
 }
 
@@ -1129,7 +1129,7 @@ TEST(ArrayMaxTest, MaxKeepDims) {
     EXPECT_EQ(Shape({2, 1, 2, 1}), b.shape());
     EXPECT_EQ(0, b.strides()[1]);
     EXPECT_EQ(0, b.strides()[3]);
-    Array e = testing::BuildArray<float>({2, 1, 2, 1}, {19.f, 23.f, 43.f, 47.f});
+    Array e = testing::BuildArray({2, 1, 2, 1}).WithData<float>({19.f, 23.f, 43.f, 47.f});
     testing::ExpectEqual(e, b);
 }
 
@@ -1138,9 +1138,9 @@ TEST(ArrayDotTest, Dot) {
     testing::ContextSession context_session{};
 
     Array a = testing::BuildArray({2, 3}).WithLinearData(1.f).WithPadding(1);
-    Array b = testing::BuildArray<T>({3, 2}, {1.f, 2.f, -1.f, -3.f, 2.f, 4.f}).WithPadding(2);
+    Array b = testing::BuildArray({3, 2}).WithData<T>({1.f, 2.f, -1.f, -3.f, 2.f, 4.f}).WithPadding(2);
     Array c = a.Dot(b);
-    Array e = testing::BuildArray<T>({2, 2}, {5.f, 8.f, 11.f, 17.f});
+    Array e = testing::BuildArray({2, 2}).WithData<T>({5.f, 8.f, 11.f, 17.f});
     testing::ExpectEqual(e, c);
 }
 
