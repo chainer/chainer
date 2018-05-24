@@ -286,9 +286,9 @@ class distribution_unittest(unittest.TestCase):
                 size=(100000,) + self.sample_shape + self.shape,
                 **self.scipy_params)
         array.assert_allclose(smp1.mean(axis=0), smp2.mean(axis=0),
-                                atol=3e-2, rtol=3e-2)
+                              atol=3e-2, rtol=3e-2)
         array.assert_allclose(smp1.std(axis=0), smp2.std(axis=0),
-                                atol=3e-2, rtol=3e-2)
+                              atol=3e-2, rtol=3e-2)
 
     @skip_not_in_test_target('sample')
     def test_sample_cpu(self):
