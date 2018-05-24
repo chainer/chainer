@@ -13,7 +13,7 @@ import numpy
 class TestNormal(testing.distribution_unittest):
 
     def setUp(self):
-        super().setUp()
+        testing.distribution_unittest.setUp(self)
         from scipy import stats
         self.dist = distributions.Normal
         self.scipy_dist = stats.norm
