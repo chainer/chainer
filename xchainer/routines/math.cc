@@ -49,25 +49,29 @@ Array BroadcastBinary(Impl&& impl, const Array& x1, const Array& x2) {
 }
 
 // Called from IAdd, ISubtract, IMultiply, IDivide, etc. to handle broadcasting.
-template <typename Impl>
-void BroadcastBinaryInPlace(Impl&& impl, const Array& x1, const Array& x2) {
+template <typename Impl, typename ArrayType>
+ArrayType& BroadcastBinaryInPlace(Impl&& impl, ArrayType& x1, const Array& x2) {
+    static_assert(std::is_same<Array, typename std::remove_const<ArrayType>::type>::value, "Requires Array or const Array.");
     if (x1.shape() == x2.shape()) {
         impl(x1, x2, x1);
     } else {
         impl(x1, x2.BroadcastTo(x1.shape()), x1);
     }
+    return x1;
 }
 
-template <typename Impl, typename ArrayType>
-Array Binary(Impl&& impl, ArrayType& x1, Scalar x2) {
+template <typename Impl>
+Array Binary(Impl&& impl, const Array& x1, Scalar x2) {
     Array out = EmptyLike(x1, x1.device());
     impl(x1, x2, out);
     return out;
 }
 
 template <typename Impl, typename ArrayType>
-void BinaryInPlace(Impl&& impl, ArrayType& x1, Scalar x2) {
+ArrayType& BinaryInPlace(Impl&& impl, ArrayType& x1, Scalar x2) {
+    static_assert(std::is_same<Array, typename std::remove_const<ArrayType>::type>::value, "Requires Array or const Array.");
     impl(x1, x2, x1);
+    return x1;
 }
 
 void AddImpl(const Array& x1, const Array& x2, const Array& out) {
@@ -94,6 +98,28 @@ void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
     x1.device().AddAS(x1, x2, out);
 }
 
+}  // namespace
+
+namespace internal {
+
+Array& IAdd(Array& x1, const Array& x2) { return BroadcastBinaryInPlace(&(AddImpl), x1, x2); }
+
+Array& IAdd(Array& x1, Scalar x2) { return BinaryInPlace(&(AddASImpl), x1, x2); }
+
+const Array& IAdd(const Array& x1, const Array& x2) { return BroadcastBinaryInPlace(&(AddImpl), x1, x2); }
+
+const Array& IAdd(const Array& x1, Scalar x2) { return BinaryInPlace(&(AddASImpl), x1, x2); }
+
+}  // namespace internal
+
+Array Add(const Array& x1, const Array& x2) { return BroadcastBinary(&(AddImpl), x1, x2); }
+
+Array Add(const Array& x1, Scalar x2) { return Binary(&(AddASImpl), x1, x2); }
+
+Array Add(Scalar x1, const Array& x2) { return Add(x2, x1); }
+
+namespace {
+
 void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     // TODO(niboshi): dtype conversion
     CheckEqual(x1.dtype(), x2.dtype());
@@ -113,6 +139,28 @@ void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
 
     x1.device().SubtractAS(x1, x2, out);
 }
+
+}  // namespace
+
+namespace internal {
+
+Array& ISubtract(Array& x1, const Array& x2) { return BroadcastBinaryInPlace(&(SubtractImpl), x1, x2); }
+
+Array& ISubtract(Array& x1, Scalar x2) { return BinaryInPlace(&(SubtractASImpl), x1, x2); }
+
+const Array& ISubtract(const Array& x1, const Array& x2) { return BroadcastBinaryInPlace(&(SubtractImpl), x1, x2); }
+
+const Array& ISubtract(const Array& x1, Scalar x2) { return BinaryInPlace(&(SubtractASImpl), x1, x2); }
+
+}  // namespace internal
+
+Array Subtract(const Array& x1, const Array& x2) { return BroadcastBinary(&(SubtractImpl), x1, x2); }
+
+Array Subtract(const Array& x1, Scalar x2) { return Binary(&(SubtractASImpl), x1, x2); }
+
+Array Subtract(Scalar x1, const Array& x2) { return Add(-x2, x1); }
+
+namespace {
 
 void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     // TODO(sonots): dtype conversion
@@ -137,6 +185,28 @@ void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
 
     x1.device().MultiplyAS(x1, x2, out);
 }
+
+}  // namespace
+
+namespace internal {
+
+Array& IMultiply(Array& x1, const Array& x2) { return BroadcastBinaryInPlace(&(MultiplyImpl), x1, x2); }
+
+Array& IMultiply(Array& x1, Scalar x2) { return BinaryInPlace(&(MultiplyASImpl), x1, x2); }
+
+const Array& IMultiply(const Array& x1, const Array& x2) { return BroadcastBinaryInPlace(&(MultiplyImpl), x1, x2); }
+
+const Array& IMultiply(const Array& x1, Scalar x2) { return BinaryInPlace(&(MultiplyASImpl), x1, x2); }
+
+}  // namespace internal
+
+Array Multiply(const Array& x1, const Array& x2) { return BroadcastBinary(&(MultiplyImpl), x1, x2); }
+
+Array Multiply(const Array& x1, Scalar x2) { return Binary(&(MultiplyASImpl), x1, x2); }
+
+Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
+
+namespace {
 
 void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     // TODO(niboshi): The behavior should be true division for integral dtypes. Currently it's rounding towards zero.
@@ -167,47 +237,21 @@ void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
 
 }  // namespace
 
-#define XCHAINER_DEFINE_BINARY_OP(IOpName, OpName, Impl, ASImpl)                                \
-    namespace internal {                                                                        \
-                                                                                                \
-    Array& IOpName(Array& x1, const Array& x2) {                                                \
-        BroadcastBinaryInPlace(&(Impl), x1, x2);                                                \
-        return x1;                                                                              \
-    }                                                                                           \
-                                                                                                \
-    Array& IOpName(Array& x1, Scalar x2) {                                                      \
-        BinaryInPlace(&(ASImpl), x1, x2);                                                       \
-        return x1;                                                                              \
-    }                                                                                           \
-                                                                                                \
-    const Array& IOpName(const Array& x1, const Array& x2) {                                    \
-        BroadcastBinaryInPlace(&(Impl), x1, x2);                                                \
-        return x1;                                                                              \
-    }                                                                                           \
-                                                                                                \
-    const Array& IOpName(const Array& x1, Scalar x2) {                                          \
-        BinaryInPlace(&(ASImpl), x1, x2);                                                       \
-        return x1;                                                                              \
-    }                                                                                           \
-                                                                                                \
-    } /* namespace internal */                                                                  \
-                                                                                                \
-    Array OpName(const Array& x1, const Array& x2) { return BroadcastBinary(&(Impl), x1, x2); } \
-                                                                                                \
-    Array OpName(const Array& x1, Scalar x2) { return Binary(&(ASImpl), x1, x2); }
+namespace internal {
 
-XCHAINER_DEFINE_BINARY_OP(IAdd, Add, AddImpl, AddASImpl);
-XCHAINER_DEFINE_BINARY_OP(ISubtract, Subtract, SubtractImpl, SubtractASImpl);
-XCHAINER_DEFINE_BINARY_OP(IMultiply, Multiply, MultiplyImpl, MultiplyASImpl);
-XCHAINER_DEFINE_BINARY_OP(IDivide, Divide, DivideImpl, DivideASImpl);
+Array& IDivide(Array& x1, const Array& x2) { return BroadcastBinaryInPlace(&(DivideImpl), x1, x2); }
 
-#undef XCHAINER_DEFINE_BINARY_OP
+Array& IDivide(Array& x1, Scalar x2) { return BinaryInPlace(&(DivideASImpl), x1, x2); }
 
-Array Add(Scalar x1, const Array& x2) { return Add(x2, x1); }
+const Array& IDivide(const Array& x1, const Array& x2) { return BroadcastBinaryInPlace(&(DivideImpl), x1, x2); }
 
-Array Subtract(Scalar x1, const Array& x2) { return Add(-x2, x1); }
+const Array& IDivide(const Array& x1, Scalar x2) { return BinaryInPlace(&(DivideASImpl), x1, x2); }
 
-Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
+}  // namespace internal
+
+Array Divide(const Array& x1, const Array& x2) { return BroadcastBinary(&(DivideImpl), x1, x2); }
+
+Array Divide(const Array& x1, Scalar x2) { return Binary(&(DivideASImpl), x1, x2); }
 
 Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
 
