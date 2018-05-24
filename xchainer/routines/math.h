@@ -14,26 +14,30 @@ Array Negative(const Array& x);
 
 namespace internal {
 
-Array& IAdd(Array& x1, const Array& x2);
-const Array& IAdd(const Array& x1, const Array& x2);
+void IAdd(const Array& x1, const Array& x2);
+void IAdd(const Array& x1, Scalar x2);
 
 }  // namespace internal
 
 Array Add(const Array& x1, const Array& x2);
+Array Add(const Array& x1, Scalar x2);
+Array Add(Scalar x1, const Array& x2);
 
 namespace internal {
 
-Array& ISubtract(Array& x1, const Array& x2);
-const Array& ISubtract(const Array& x1, const Array& x2);
+void ISubtract(const Array& x1, const Array& x2);
+void ISubtract(const Array& x1, Scalar x2);
 
 }  // namespace internal
 
 Array Subtract(const Array& x1, const Array& x2);
+Array Subtract(const Array& x1, Scalar x2);
+Array Subtract(Scalar x1, const Array& x2);
 
 namespace internal {
 
-Array& IMultiply(Array& x1, const Array& x2);
-const Array& IMultiply(const Array& x1, const Array& x2);
+void IMultiply(const Array& x1, const Array& x2);
+void IMultiply(const Array& x1, Scalar x2);
 
 }  // namespace internal
 
@@ -43,12 +47,14 @@ Array Multiply(Scalar x1, const Array& x2);
 
 namespace internal {
 
-Array& IDivide(Array& x1, const Array& x2);
-const Array& IDivide(const Array& x1, const Array& x2);
+void IDivide(const Array& x1, const Array& x2);
+void IDivide(const Array& x1, Scalar x2);
 
 }  // namespace internal
 
 Array Divide(const Array& x1, const Array& x2);
+Array Divide(const Array& x1, Scalar x2);
+Array Divide(Scalar x1, const Array& x2);
 
 Array Sum(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 // TODO(niboshi): Move to statistics routines

@@ -9,6 +9,7 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/dtype.h"
+#include "xchainer/enum.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
@@ -25,46 +26,12 @@ Array Negative(const Array& x) {
 
 namespace {
 
-void AddImpl(const Array& x1, const Array& x2, const Array& out) {
-    // TODO(sonots): dtype conversion
-    CheckEqual(x1.dtype(), x2.dtype());
-    CheckEqual(x1.shape(), x2.shape());
-
-    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
-    auto rhs_backward_function = x1_backward_function;
-    internal::SetUpOpNodes("add", {x1, x2}, out, {x1_backward_function, rhs_backward_function});
-
-    x1.device().Add(x1, x2, out);
-}
-
-template <typename ArrayType>
-ArrayType& AddAssignImpl(ArrayType& self, const Array& x2) {
-    auto func = [](ArrayType& x1, const Array& x2) -> ArrayType& {
-        AddImpl(x1, x2, x1);
-        return x1;
-    };
-
-    if (self.shape() == x2.shape()) {
-        return func(self, x2);
-    }
-    Array rhs_broadcasted = x2.BroadcastTo(self.shape());
-    return func(self, rhs_broadcasted);
-}
-
-}  // namespace
-
-namespace internal {
-
-Array& IAdd(Array& x1, const Array& x2) { return AddAssignImpl(x1, x2); }
-
-const Array& IAdd(const Array& x1, const Array& x2) { return AddAssignImpl(x1, x2); }
-
-}  // namespace internal
-
-Array Add(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) {
+// Called from Add, Subtract, Multiply, Divide, etc. to handle broadcasting.
+template <typename Impl>
+Array BroadcastBinary(Impl&& impl, const Array& x1, const Array& x2) {
+    auto func = [&impl](const Array& x1, const Array& x2) -> Array {
         Array out = EmptyLike(x1, x1.device());
-        AddImpl(x1, x2, out);
+        impl(x1, x2, out);
         return out;
     };
 
@@ -80,6 +47,68 @@ Array Add(const Array& x1, const Array& x2) {
     }
     return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
 }
+
+// Called from IAdd, ISubtract, IMultiply, IDivide, etc. to handle broadcasting.
+template <typename Impl>
+void BroadcastBinaryInPlace(Impl&& impl, const Array& x1, const Array& x2) {
+    if (x1.shape() == x2.shape()) {
+        impl(x1, x2, x1);
+    } else {
+        impl(x1, x2.BroadcastTo(x1.shape()), x1);
+    }
+}
+
+template <typename Impl>
+Array Binary(Impl&& impl, const Array& x1, Scalar x2) {
+    Array out = EmptyLike(x1, x1.device());
+    impl(x1, x2, out);
+    return out;
+}
+
+template <typename Impl>
+void BinaryInPlace(Impl&& impl, const Array& x1, Scalar x2) {
+    impl(x1, x2, x1);
+}
+
+void AddImpl(const Array& x1, const Array& x2, const Array& out) {
+    // TODO(sonots): dtype conversion
+    CheckEqual(x1.dtype(), x2.dtype());
+    CheckEqual(x1.shape(), x2.shape());
+
+    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
+        return gout.AsConstant(graph_ids_to_stop_gradient, CopyKind::kCopy);
+    };
+    auto x2_backward_function = [](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
+        return gout.AsConstant(graph_ids_to_stop_gradient, CopyKind::kCopy);
+    };
+    internal::SetUpOpNodes("add", {x1, x2}, out, {x1_backward_function, x2_backward_function});
+
+    x1.device().Add(x1, x2, out);
+}
+
+void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
+    // TODO(hvy): dtype conversion
+    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
+    internal::SetUpOpNodes("add_scalar", {x1}, out, {x1_backward_function});
+
+    x1.device().AddAS(x1, x2, out);
+}
+
+}  // namespace
+
+namespace internal {
+
+void IAdd(const Array& x1, const Array& x2) { BroadcastBinaryInPlace(&AddImpl, x1, x2); }
+
+void IAdd(const Array& x1, Scalar x2) { BinaryInPlace(&AddASImpl, x1, x2); }
+
+}  // namespace internal
+
+Array Add(const Array& x1, const Array& x2) { return BroadcastBinary(&AddImpl, x1, x2); }
+
+Array Add(const Array& x1, Scalar x2) { return Binary(&AddASImpl, x1, x2); }
+
+Array Add(Scalar x1, const Array& x2) { return Add(x2, x1); }
 
 namespace {
 
@@ -95,49 +124,29 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     x1.device().Subtract(x1, x2, out);
 }
 
-template <typename ArrayType>
-ArrayType& SubtractAssignImpl(ArrayType& self, const Array& x2) {
-    auto func = [](ArrayType& x1, const Array& x2) -> ArrayType& {
-        SubtractImpl(x1, x2, x1);
-        return x1;
-    };
+void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
+    // TODO(hvy): dtype conversion
+    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
+    internal::SetUpOpNodes("subtract_scalar", {x1}, out, {x1_backward_function});
 
-    if (self.shape() == x2.shape()) {
-        return func(self, x2);
-    }
-    Array rhs_broadcasted = x2.BroadcastTo(self.shape());
-    return func(self, rhs_broadcasted);
+    x1.device().SubtractAS(x1, x2, out);
 }
 
 }  // namespace
 
 namespace internal {
 
-Array& ISubtract(Array& x1, const Array& x2) { return SubtractAssignImpl(x1, x2); }
+void ISubtract(const Array& x1, const Array& x2) { BroadcastBinaryInPlace(&SubtractImpl, x1, x2); }
 
-const Array& ISubtract(const Array& x1, const Array& x2) { return SubtractAssignImpl(x1, x2); }
+void ISubtract(const Array& x1, Scalar x2) { BinaryInPlace(&SubtractASImpl, x1, x2); }
 
 }  // namespace internal
 
-Array Subtract(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) {
-        Array out = EmptyLike(x1, x1.device());
-        SubtractImpl(x1, x2, out);
-        return out;
-    };
+Array Subtract(const Array& x1, const Array& x2) { return BroadcastBinary(&SubtractImpl, x1, x2); }
 
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
-    if (x1.shape() == result_shape) {
-        return func(x1, x2.BroadcastTo(result_shape));
-    }
-    if (x2.shape() == result_shape) {
-        return func(x1.BroadcastTo(result_shape), x2);
-    }
-    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
-}
+Array Subtract(const Array& x1, Scalar x2) { return Binary(&SubtractASImpl, x1, x2); }
+
+Array Subtract(Scalar x1, const Array& x2) { return Add(-x2, x1); }
 
 namespace {
 
@@ -146,138 +155,85 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
 
-    auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+    auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)->Array {
         return gout * other.AsConstant(graph_ids_to_stop_gradient);
     };
-    auto rhs_backward_function = [other = x1](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
+    auto x2_backward_function = [other = x1](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)->Array {
         return gout * other.AsConstant(graph_ids_to_stop_gradient);
     };
-    internal::SetUpOpNodes("mul", {x1, x2}, out, {x1_backward_function, rhs_backward_function});
+    internal::SetUpOpNodes("multiply", {x1, x2}, out, {x1_backward_function, x2_backward_function});
 
     x1.device().Multiply(x1, x2, out);
 }
 
-template <typename ArrayType>
-ArrayType& MultiplyAssignImpl(ArrayType& self, const Array& x2) {
-    auto func = [](ArrayType& x1, const Array& x2) -> ArrayType& {
-        MultiplyImpl(x1, x2, x1);
-        return x1;
-    };
+void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
+    // TODO(hvy): dtype conversion
+    auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&)->Array { return gout * other; };
+    internal::SetUpOpNodes("multiply_scalar", {x1}, out, {x1_backward_function});
 
-    if (self.shape() == x2.shape()) {
-        return func(self, x2);
-    }
-    Array rhs_broadcasted = x2.BroadcastTo(self.shape());
-    return func(self, rhs_broadcasted);
+    x1.device().MultiplyAS(x1, x2, out);
 }
 
 }  // namespace
 
 namespace internal {
 
-Array& IMultiply(Array& x1, const Array& x2) { return MultiplyAssignImpl(x1, x2); }
+void IMultiply(const Array& x1, const Array& x2) { BroadcastBinaryInPlace(&MultiplyImpl, x1, x2); }
 
-const Array& IMultiply(const Array& x1, const Array& x2) { return MultiplyAssignImpl(x1, x2); }
+void IMultiply(const Array& x1, Scalar x2) { BinaryInPlace(&MultiplyASImpl, x1, x2); }
 
 }  // namespace internal
 
-Array Multiply(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) {
-        Array out = EmptyLike(x1, x1.device());
-        MultiplyImpl(x1, x2, out);
-        return out;
-    };
+Array Multiply(const Array& x1, const Array& x2) { return BroadcastBinary(&MultiplyImpl, x1, x2); }
 
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
-    if (x1.shape() == result_shape) {
-        return func(x1, x2.BroadcastTo(result_shape));
-    }
-    if (x2.shape() == result_shape) {
-        return func(x1.BroadcastTo(result_shape), x2);
-    }
-    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
-}
-
-Array Multiply(const Array& x1, Scalar x2) {
-    Array out = EmptyLike(x1, x1.device());
-    x1.device().MultiplyAS(x1, x2, out);
-
-    auto backward_function = [x2](const Array& gout, const std::vector<GraphId>&) { return gout * x2; };
-    internal::SetUpOpNodes("mul_scalar", {x1}, out, {backward_function});
-
-    return out;
-}
+Array Multiply(const Array& x1, Scalar x2) { return Binary(&MultiplyASImpl, x1, x2); }
 
 Array Multiply(Scalar x1, const Array& x2) { return Multiply(x2, x1); }
 
 namespace {
 
-void DivideImpl(const Array& lhs, const Array& rhs, const Array& out) {
+void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     // TODO(niboshi): The behavior should be true division for integral dtypes. Currently it's rounding towards zero.
     // TODO(niboshi): dtype conversion
-    CheckEqual(lhs.dtype(), rhs.dtype());
-    CheckEqual(lhs.shape(), rhs.shape());
+    CheckEqual(x1.dtype(), x2.dtype());
+    CheckEqual(x1.shape(), x2.shape());
 
-    auto lhs_backward_function = [rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
-        return gout / rhs.AsConstant(graph_ids_to_stop_gradient);
+    auto x1_backward_function = [x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
+        return gout / x2.AsConstant(graph_ids_to_stop_gradient);
     };
-    auto rhs_backward_function = [lhs, rhs](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
-        // TODO(niboshi): Use unary negate
-        Array lhs_const = lhs.AsConstant(graph_ids_to_stop_gradient);
-        Array rhs_const = rhs.AsConstant(graph_ids_to_stop_gradient);
-        return -1 * gout * lhs_const / (rhs_const * rhs_const);
+    auto x2_backward_function = [x1, x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
+        Array lhs_const = x1.AsConstant(graph_ids_to_stop_gradient);
+        Array rhs_const = x2.AsConstant(graph_ids_to_stop_gradient);
+        return -gout * lhs_const / (rhs_const * rhs_const);
     };
-    internal::SetUpOpNodes("divide", {lhs, rhs}, out, {lhs_backward_function, rhs_backward_function});
+    internal::SetUpOpNodes("divide", {x1, x2}, out, {x1_backward_function, x2_backward_function});
 
-    lhs.device().Divide(lhs, rhs, out);
+    x1.device().Divide(x1, x2, out);
 }
 
-template <typename ArrayType>
-ArrayType& DivideAssignImpl(ArrayType& self, const Array& rhs) {
-    auto func = [](ArrayType& lhs, const Array& rhs) -> ArrayType& {
-        DivideImpl(lhs, rhs, lhs);
-        return lhs;
-    };
+void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
+    // TODO(hvy): dtype conversion
+    auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&)->Array { return gout / other; };
+    internal::SetUpOpNodes("divide_scalar", {x1}, out, {x1_backward_function});
 
-    if (self.shape() == rhs.shape()) {
-        return func(self, rhs);
-    }
-    Array rhs_broadcasted = rhs.BroadcastTo(self.shape());
-    return func(self, rhs_broadcasted);
+    x1.device().DivideAS(x1, x2, out);
 }
 
 }  // namespace
 
 namespace internal {
 
-Array& IDivide(Array& x1, const Array& x2) { return DivideAssignImpl(x1, x2); }
+void IDivide(const Array& x1, const Array& x2) { BroadcastBinaryInPlace(&DivideImpl, x1, x2); }
 
-const Array& IDivide(const Array& x1, const Array& x2) { return DivideAssignImpl(x1, x2); }
+void IDivide(const Array& x1, Scalar x2) { BinaryInPlace(&DivideASImpl, x1, x2); }
 
 }  // namespace internal
 
-Array Divide(const Array& x1, const Array& x2) {
-    auto func = [](const Array& x1, const Array& x2) {
-        Array out = EmptyLike(x1, x1.device());
-        DivideImpl(x1, x2, out);
-        return out;
-    };
+Array Divide(const Array& x1, const Array& x2) { return BroadcastBinary(&DivideImpl, x1, x2); }
 
-    if (x1.shape() == x2.shape()) {
-        return func(x1, x2);
-    }
-    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
-    if (x1.shape() == result_shape) {
-        return func(x1, x2.BroadcastTo(result_shape));
-    }
-    if (x2.shape() == result_shape) {
-        return func(x1.BroadcastTo(result_shape), x2);
-    }
-    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
-}
+Array Divide(const Array& x1, Scalar x2) { return Binary(&DivideASImpl, x1, x2); }
+
+Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
 
 namespace {
 
