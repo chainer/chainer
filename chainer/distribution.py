@@ -5,11 +5,11 @@ class Distribution(object):
 
     """Interface of Distribution
 
-    `Distribution` is a bass class to treat probability distributions.
+    `Distribution` is a bass class for dealing with probability distributions.
 
-    This class provides a mean to perform following operations.
+    This class provides the following capabilities.
     1. Sampling random points.
-    2. Evaluating a functions about probability at given realization values.
+    2. Evaluating a probability-related function at a given realization value.
         (e.g., probability density function, probability mass function)
     3. Obtaining properties of distributions.
         (e.g., mean, variance)
@@ -18,9 +18,9 @@ class Distribution(object):
     `chainer.Variable` can basically be differentiated.
 
     In this class, sampled random points and realization values given in
-    function about probability is called "sample".  Sample consists of batches,
-    and each batch consists of independent events. Each event consists of
-    values, and each value in an event cannot be sampled independently in
+    probability-related function is called "sample".  Sample consists of
+    batches, and each batch consists of independent events. Each event consists
+    of values, and each value in an event cannot be sampled independently in
     general. Each event in a batch is independent while it is not sampled from
     an identical distribution. And each batch in sample is sampled from an
     identical distribution.
@@ -59,7 +59,7 @@ class Distribution(object):
         >>> sample.shape
         (6, 5, 4, 3, 2)
 
-    Every function about probability takes realization value whose shape is
+    Every probability-related function takes realization value whose shape is
     the concatenation of `sample_shape`, `batch_shape`, and `event_shape` and
     returns an evaluated value whose shape is the concatenation of
     `sample_shape`, and `batch_shape`.
@@ -81,7 +81,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def cdf(self, x):
-        """Evaluates the cumulative distribution function at a given points.
+        """Evaluates the cumulative distribution function at the given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -125,7 +125,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def icdf(self, x):
-        """Evaluates the inverse cumulative distribution function at a given points.
+        """Evaluates the inverse cumulative distribution function at the given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -140,7 +140,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def log_cdf(self, x):
-        """Evaluates the log of cumulative distribution function at a given points.
+        """Evaluates the log of cumulative distribution function at the given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -155,7 +155,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def log_prob(self, x):
-        """Evaluates the logarithm of probability at a given points.
+        """Evaluates the logarithm of probability at the given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -169,7 +169,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def log_survival_function(self, x):
-        """Evaluates the logarithm of survival function at a given points.
+        """Evaluates the logarithm of survival function at the given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -204,7 +204,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def perplexity(self, x):
-        """Evaluates the perplexity function at a given points.
+        """Evaluates the perplexity function at the given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -218,7 +218,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def prob(self, x):
-        """Evaluates probability at a given points.
+        """Evaluates probability at the given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -236,8 +236,8 @@ class Distribution(object):
 
         This function call `sample_n` and reshape a result of `sample_n` to
         `sample_shape + batch_shape + event_shape`. On implementing sampling
-        codes in an inherited ditribution class, it is deprecated to override
-        this function. Instead to do this, it is preferable to override
+        code in an inherited ditribution class, it is deprecated to override
+        this function. Instead of doing this, it is preferable to override
         `sample_n`.
 
         Args:
@@ -264,9 +264,8 @@ class Distribution(object):
         """Samples n random points from the distribution.
 
         This function returns sampled points whose shape is
-        `(n,) + batch_shape + event_shape`. On implementing sampling codes in
-        an inherited ditribution class, it is preferable to override this
-        method.
+        `(n,) + batch_shape + event_shape`. When implementing sampling code in
+        a subclass, it is recommended to override this method.
 
         Args:
             n(`int`): Sampling size.
@@ -297,7 +296,7 @@ class Distribution(object):
         raise NotImplementedError
 
     def survival_function(self, x):
-        """Evaluates the survival function at a given points.
+        """Evaluates the survival function at the given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
