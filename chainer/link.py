@@ -202,8 +202,8 @@ class Link(object):
             forward = self.forward
         except AttributeError:
             raise TypeError(
-                    '{} object does not have neither \'__call__\' nor '
-                    '\'forward\' method.'.format(self))
+                    '{} object does not have neither a method which overrides
+                    '\'Link.__call__\' nor a \'forward\' method.'.format(self))
         return forward(*args, **kwargs)
 
     def __setattr__(self, name, value):
