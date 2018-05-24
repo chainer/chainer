@@ -60,8 +60,9 @@ class Distribution(object):
         (6, 5, 4, 3, 2)
 
     Every function about probability takes realization value whose shape is
-    `(sample_shape, batch_shape, event_shape)` and returns an evaluated value
-    whose shape is `(sample_shape, batch_shape)`.
+    the concatenation of `sample_shape`, `batch_shape`, and `event_shape` and
+    returns an evaluated value whose shape is the concatenation of
+    `sample_shape`, and `batch_shape`.
 
     """
 
@@ -234,7 +235,7 @@ class Distribution(object):
         """Samples random points from the distribution.
 
         This function call `sample_n` and reshape a result of `sample_n` to
-        `(sample_shape, batch_shape, event_shape)`. On implementing sampling
+        `sample_shape + batch_shape + event_shape`. On implementing sampling
         codes in an inherited ditribution class, it is deprecated to override
         this function. Instead to do this, it is preferable to override
         `sample_n`.
@@ -263,8 +264,9 @@ class Distribution(object):
         """Samples n random points from the distribution.
 
         This function returns sampled points whose shape is
-        `(n, batch_shape, event_shape)`. On implementing sampling codes in an
-        inherited ditribution class, it is preferable to override this method.
+        `(n,) + batch_shape + event_shape`. On implementing sampling codes in
+        an inherited ditribution class, it is preferable to override this
+        method.
 
         Args:
             n(`int`): Sampling size.
