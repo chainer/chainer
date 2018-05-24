@@ -58,6 +58,22 @@ enum class DtypeKind {
     kFloat,
 };
 
+// Gets the single character identifier compatible to NumPy's dtype kind
+inline char GetDtypeKindChar(DtypeKind kind) {
+    switch (kind) {
+        case DtypeKind::kBool:
+            return 'b';
+        case DtypeKind::kInt:
+            return 'i';
+        case DtypeKind::kUInt:
+            return 'u';
+        case DtypeKind::kFloat:
+            return 'f';
+        default:
+            throw DtypeError{"invalid dtype kind"};
+    }
+}
+
 // Tag type used for dynamic dispatching with dtype value.
 //
 // This class template is used to resolve mapping from runtime dtype values to compile-time primitive types.

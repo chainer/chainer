@@ -108,12 +108,6 @@ Dtype GetDtype(py::handle handle) {
     throw py::type_error{"Dtype not understood: " + py::cast<std::string>(py::repr(handle))};
 }
 
-namespace {
-
-py::str GetKindStr(Dtype dtype) { return py::dtype{GetDtypeName(dtype)}.attr("kind"); }
-
-}  // namespace
-
 void InitXchainerDtype(pybind11::module& m) {
     py::enum_<Dtype> e{m, "dtype"};
     for (Dtype dtype : GetAllDtypes()) {
@@ -124,7 +118,10 @@ void InitXchainerDtype(pybind11::module& m) {
     e.def_property_readonly("char", [](Dtype dtype) { return std::string(1, GetCharCode(dtype)); });
     e.def_property_readonly("itemsize", &GetItemSize);
     e.def_property_readonly("name", &GetDtypeName);
-    e.def_property_readonly("kind", &GetKindStr);
+    e.def_property_readonly("kind", [](Dtype self) -> py::str {
+        char c = GetDtypeKindChar(GetKind(self));
+        return py::str{&c, 1};
+    });
     e.def_property_readonly("num", [](Dtype self) -> py::object { return py::dtype{GetDtypeName(self)}.attr("num"); });
     e.def_property_readonly("byteorder", [](Dtype self) -> py::str {
         if (GetItemSize(self) == 1) {
@@ -145,7 +142,7 @@ void InitXchainerDtype(pybind11::module& m) {
                 s += ">";  // big endian
             }
         }
-        s += py::cast<std::string>(GetKindStr(self));
+        s += GetDtypeKindChar(GetKind(self));
         s += std::to_string(itemsize);
         return s;
     });
