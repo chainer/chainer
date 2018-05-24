@@ -24,6 +24,7 @@ Chainer -- A flexible framework of neural networks
    compatibility
    contribution
    tips
+   performance
    upgrade
    comparison
    license
