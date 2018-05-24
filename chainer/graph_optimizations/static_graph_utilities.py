@@ -166,19 +166,11 @@ def static_schedule_func(*dec_args, **dec_kwargs):
     def wrap(func):
         def wrapped_func(*args, **kwargs):
             # Save arguments, function, and results pointers/references to the schedule list:
-            # fixme: this function is not used anymore. remove it.
-            def no_arg_func():
-                #print('Old---In no_arg_func: Calling: ', func)
-                #_debug_print_stats(args)
+            if not delay_call:
                 ret = func(*args, **kwargs)
                 if ret is not None:
                     # todo: We can allow it to return tuple of arrays in the future.
                     raise RuntimeError("This function is not supposed to return anything: ", func)
-
-            # no_arg_func() requires no arguments to call since the arguments of the decorated function
-            # are captured by the closure.
-            if not delay_call:
-                no_arg_func()
 
             # If trace mode is on, add to schedule.
             schedule_function = chainer.config.schedule_func
@@ -200,53 +192,6 @@ def static_schedule_func(*dec_args, **dec_kwargs):
         return wrap(callable_arg)
     else:
         return wrap
-
-
-# fixme: remove this old version
-def static_forward_optimizations_old(func, in_data, outputs):
-    """Perform checks needed for creation of a static schedule.
-
-    Check if `func` supports static graph optimizations. If not, try
-    to automatically wrap it to be compatible.
-
-    This function should be called from the ``FunctionNode`` apply() method
-    just after func.forward() is called.
-
-    Args:
-        func (instance of FunctionNode):
-        in_data (tuple of ndarray): input arrays to func
-        outputs (tuple of ndarray): outputs of func.
-
-    """
-
-    schedule_function = chainer.config.schedule_func
-    if schedule_function is not None:
-        if not func._supports_static_optimizations:
-            if schedule_function.verbosity_level >= 2:
-                print("Adding automatic static graph support to function: ",
-                    func)
-            # func does not already support static optimizations, so wrap it.
-            @static_schedule_func(delay_call=True, func_name=str(func))
-            def generic_static_forward(func, in_data, out_data):
-                """
-                    todo
-                in_arrs: tuple of input arrays
-                out_arrs: tuple of output arrays
-                func: compatible with out_arrs = func(in_arrs)
-                """
-                temp_out_data = func.forward(in_data)
-                # todo: Note that instead of copying the data from
-                # temp_out_data into the static arrays in out_data,
-                # we could simply return temp_out_data and then
-                # track where it is used again later (by tracking)
-                # its reference id(temp_out_data). This would
-                # recue copy overhead and save memory but
-                # would also introduce additional Python code
-                # overhead in the static schedule.
-                for ind, static_ar in enumerate(out_data):
-                    static_ar[...] = temp_out_data[ind]
-
-            generic_static_forward(func, in_data, outputs)
 
 
 def static_forward_optimizations(func, in_data, outputs):
