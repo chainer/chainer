@@ -91,6 +91,8 @@ struct PrimitiveType;
         static const char* GetName() { return name; }              \
     }
 
+// TODO(niboshi): Char codes are mapped according to current development environment. They should be remapped depending on the executing
+// environment, as in NumPy.
 XCHAINER_DEFINE_PRIMITIVE_TYPE("bool", '?', Dtype::kBool, DtypeKind::kBool, bool);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("int8", 'b', Dtype::kInt8, DtypeKind::kInt, int8_t);
 XCHAINER_DEFINE_PRIMITIVE_TYPE("int16", 'h', Dtype::kInt16, DtypeKind::kInt, int16_t);
