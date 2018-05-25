@@ -249,8 +249,8 @@ void ConvolutionForward(
     assert(&w.device() == &x.device());
     assert(w.dtype() == w.dtype());
 
-    CudaDevice& device = *dynamic_cast<CudaDevice*>(&x.device());
-    CudaBackend& backend = *dynamic_cast<CudaBackend*>(&device.backend());
+    CudaDevice& device = *static_cast<CudaDevice*>(&x.device());
+    CudaBackend& backend = *static_cast<CudaBackend*>(&device.backend());
 
     float float_zero = 0, float_one = 1;
     double double_zero = 0, double_one = 1;
