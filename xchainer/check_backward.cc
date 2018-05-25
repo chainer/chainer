@@ -292,8 +292,7 @@ void CheckDoubleBackwardComputation(
     }
 
     std::ostringstream failure_os;
-    const int n_backward_grads = backward_grads.size();
-    for (size_t i = 0; i < n_backward_grads; ++i) {
+    for (size_t i = 0; i < backward_grads.size(); ++i) {
         if (!backward_grads[i].has_value()) {
             failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
                        << "Graph name: " << graph_id << "\n"
