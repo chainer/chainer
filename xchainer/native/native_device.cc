@@ -824,6 +824,20 @@ Array NativeDevice::ConvTranspose(
     return y;
 }
 
+Array NativeDevice::BatchNormalization(
+        const Array& /*x*/,
+        const Array& /*gamma*/,
+        const Array& /*beta*/,
+        const Array& /*running_mean*/,
+        const Array& /*running_var*/,
+        float /*eps*/,
+        float /*decay*/,
+        const OptionalAxes& /*axes*/,
+        const Array& /*out*/) {
+    // TODO(hvy): Implement it
+    throw NotImplementedError{""};
+}
+
 void NativeDevice::Synchronize() {}
 
 }  // namespace native

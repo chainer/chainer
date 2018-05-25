@@ -97,6 +97,17 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) override;
 
+    Array BatchNormalization(
+            const Array& x,
+            const Array& gamma,
+            const Array& beta,
+            const Array& running_mean,
+            const Array& running_var,
+            float eps,
+            float decay,
+            const OptionalAxes& axes,
+            const Array& out) override;
+
     void Synchronize() override;
 };
 
