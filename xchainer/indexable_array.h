@@ -11,6 +11,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/backend_util.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/indexer.h"
@@ -30,7 +31,7 @@ static std::tuple<const uint8_t*, const uint8_t*> GetDataRange(const Array& a) {
     std::tuple<int64_t, int64_t> range = xchainer::GetDataRange(a.shape(), a.strides(), a.item_size());
     int64_t lower = std::get<0>(range);
     int64_t upper = std::get<1>(range);
-    auto base = reinterpret_cast<const uint8_t*>(a.raw_data()) + a.offset();  // NOLINT: reinterpret_cast
+    const uint8_t* base = internal::GetRawOffsetData<const uint8_t>(a);
     return std::tuple<const uint8_t*, const uint8_t*>{base + lower, base + upper};
 }
 #endif
@@ -44,8 +45,7 @@ public:
 
     IndexableArray(T* data, const Strides& strides) : data_{data} { std::copy(strides.begin(), strides.end(), strides_); }
 
-    IndexableArray(const Array& array, const Strides& strides)
-        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()), strides} {
+    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
         assert(TypeToDtype<T> == array.dtype());
 
 #ifndef NDEBUG
@@ -104,8 +104,7 @@ public:
 
     IndexableArray(T* data, const Strides& strides) : data_{data}, stride_{strides[0]} { assert(1 == strides.ndim()); }
 
-    IndexableArray(const Array& array, const Strides& strides)
-        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()), strides} {
+    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
         assert(TypeToDtype<T> == array.dtype());
 
 #ifndef NDEBUG
@@ -154,8 +153,7 @@ public:
         std::copy(strides.begin(), strides.end(), strides_);
     }
 
-    IndexableArray(const Array& array, const Strides& strides)
-        : IndexableArray{reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset()), strides} {
+    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
         assert(TypeToDtype<T> == array.dtype());
 
 #ifndef NDEBUG

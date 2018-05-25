@@ -12,6 +12,7 @@
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"
 #include "xchainer/axes.h"
+#include "xchainer/backend_util.h"
 #include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/context.h"
@@ -131,7 +132,7 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
 
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
     Array array = Array{self}.ToNative();
-    return py::array{py::buffer_info{reinterpret_cast<uint8_t*>(array.raw_data()) + array.offset(),  // NOLINT: reinterpret_cast
+    return py::array{py::buffer_info{xchainer::internal::GetRawOffsetData<void>(array),
                                      array.item_size(),
                                      std::string(1, GetCharCode(array.dtype())),
                                      array.ndim(),
