@@ -216,7 +216,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
     std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
 
     int requested_algo_count = 1;
-    std::vector<cudnnConvolutionFwdAlgoPerf_t> perf_results(requested_algo_count);
+    cudnnConvolutionFwdAlgoPerf_t perf_results[1]{};
     int returned_algo_count;
 
     CheckCudnnError(cudnnFindConvolutionForwardAlgorithmEx(
@@ -230,7 +230,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
             xchainer::internal::GetRawOffsetData<void>(y),
             requested_algo_count,
             &returned_algo_count,
-            &perf_results[0],
+            perf_results,
             workspace.get(),
             max_workspace_size));
 
