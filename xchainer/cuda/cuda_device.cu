@@ -29,6 +29,7 @@
 #include "xchainer/native/native_device.h"
 #include "xchainer/numeric_limits.h"
 #include "xchainer/reduction_kernel_arg.h"
+#include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"

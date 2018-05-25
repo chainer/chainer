@@ -11,6 +11,17 @@
 
 namespace xchainer {
 
+namespace internal {
+
+int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
+    if (cover_all) {
+        return (in_dim + pad * 2 - kernel_size + stride - 1) / stride + 1;
+    }
+    return (in_dim + pad * 2 - kernel_size) / stride + 1;
+}
+
+}  // namespace internal
+
 Array Conv(
         const Array& x,
         const Array& w,
