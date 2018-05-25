@@ -38,6 +38,7 @@ Configuration Keys
    Debug mode flag.
 
    If it is ``True``, Chainer runs in the debug mode.
+   Enabling debug mode may introduce some performance overhead.
    See :ref:`debug` for more information of the debug mode.
 
    You can change the default value to ``True`` by setting ``CHAINER_DEBUG`` environment variable to ``1``.
