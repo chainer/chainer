@@ -18,12 +18,12 @@ class Distribution(object):
     `chainer.Variable` can basically be differentiated.
 
     In this class, sampled random points and realization values given in
-    probability-related function is called "sample".  Sample consists of
-    batches, and each batch consists of independent events. Each event consists
-    of values, and each value in an event cannot be sampled independently in
-    general. Each event in a batch is independent while it is not sampled from
-    an identical distribution. And each batch in sample is sampled from an
-    identical distribution.
+    probability-related function is called *sample*.  Sample consists of
+    *batches*, and each batch consists of independent *events*. Each event
+    consists of values, and each value in an event cannot be sampled
+    independently in general. Each event in a batch is independent while it is
+    not sampled from an identical distribution. And each batch in sample is
+    sampled from an identical distribution.
 
     Each part of the sample-batch-event hierarchy has its own shape, which is
     called `sample_shape`, `batch_shape`, and `event_shape`, respectively.
@@ -34,8 +34,8 @@ class Distribution(object):
 
     .. admonition:: Example
 
-        The following code is a example of sample-batch-event hierarchy on
-        using `MultivariateNormal` distribution. This make 2d normal
+        The following code is an example of sample-batch-event hierarchy on
+        using `MultivariateNormal` distribution. This makes 2d normal
         distributions. `dist` consists of 12(4 * 3) independent 2d normal
         distributions. And on initialization, `batch_shape` and `event_shape`
         is decided.
@@ -119,7 +119,7 @@ class Distribution(object):
         """Returns the shape of an event.
 
         Returns:
-            tuple: The shape of a sample that is not identical and indipendent.
+            tuple: The shape of a sample that is not identical and independent.
 
         """
         raise NotImplementedError
@@ -234,11 +234,11 @@ class Distribution(object):
     def sample(self, sample_shape=()):
         """Samples random points from the distribution.
 
-        This function call `sample_n` and reshape a result of `sample_n` to
+        This function calls `sample_n` and reshapes a result of `sample_n` to
         `sample_shape + batch_shape + event_shape`. On implementing sampling
-        code in an inherited ditribution class, it is deprecated to override
-        this function. Instead of doing this, it is preferable to override
-        `sample_n`.
+        code in an inherited ditribution class, it is not recommended to
+        override this function. Instead of doing this, it is preferable to
+        override `sample_n`.
 
         Args:
             sample_shape(:class:`tuple` of :class:`int`): Sampling shape.
