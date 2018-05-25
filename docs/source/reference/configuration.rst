@@ -64,8 +64,14 @@ Configuration Keys
    If it is ``True``, Chainer runs in training mode.
    Otherwise, it runs in the testing (evaluation) mode.
 
-   This configuration alters the behavior of e.g. :func:`chainer.functions.dropout` and :func:`chainer.functions.batch_normalization`.
-   It does not reduce memory consumption or affect the creation of computational graphs required in order to compute gradients.
+   This configuration is used by Functions and Links that need to behave differently between training phase and evaluation (inference) phase.
+   One example is :class:`chainer.links.BatchNormalization` updates statistics using input data only when ``train`` is set to ``True``.
+   The other example is :func:`chainer.functions.dropout`, which does nothing when ``train`` is set to ``False``.
+
+   Generally, you are responsible to change the configuration to ``False`` during evaluation.
+   If you are using :class:`~chainer.training.Trainer` with :class:`~chainer.training.extensions.Evaluator` extension, ``train`` configuration will automatically be switched to ``False`` during evaluation in the training loop.
+
+   Note that this parameter does not reduce memory consumption or affect the creation of computational graphs required in order to compute gradients.
 
 * ``type_check`` (default: ``True``)
    Type checking mode flag.
