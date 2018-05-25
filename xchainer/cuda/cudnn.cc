@@ -204,7 +204,15 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
         const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
         const std::shared_ptr<cudnnTensorStruct>& y_desc,
         const Array& y,
-        size_t max_workspace_size) {
+        size_t max_workspace_size,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        internal::ConvAlgoCacheMap& conv_fwd_algo_cache_map) {
+    auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
+    if (conv_fwd_algo_cache_map.count(key)) {
+        return conv_fwd_algo_cache_map[key];
+    }
+
     std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
 
     int requested_algo_count = 1;
@@ -226,7 +234,9 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
             workspace.get(),
             max_workspace_size));
 
-    return {perf_results[0].algo, perf_results[0].memory};
+    std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_memory = {perf_results[0].algo, perf_results[0].memory};
+    conv_fwd_algo_cache_map[key] = algo_memory;
+    return algo_memory;
 }
 
 }  // namespace
@@ -279,15 +289,8 @@ void ConvolutionForward(
     size_t max_workspace_size = backend.GetMaxWorkspaceSize();
 
     // auto tune
-    auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
-    std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size{};
-    if (conv_fwd_algo_cache_map.count(key)) {
-        algo_workspace_size = conv_fwd_algo_cache_map[key];
-    } else {
-        algo_workspace_size =
-                FindConvolutionForwardAlgorithm(handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size);
-        conv_fwd_algo_cache_map[key] = algo_workspace_size;
-    }
+    std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size = FindConvolutionForwardAlgorithm(
+            handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride, conv_fwd_algo_cache_map);
 
     cudnnConvolutionFwdAlgo_t algo = std::get<0>(algo_workspace_size);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
@@ -323,7 +326,14 @@ void ConvolutionForward(
         }
         Array b_cont = AsContiguousArray(*b).Reshape(new_shape);
         std::shared_ptr<cudnnTensorStruct> b_desc = CreateTensorDescriptor(b_cont);
-        CheckCudnnError(cudnnAddTensor(handle, one, b_desc.get(), xchainer::internal::GetRawOffsetData<void>(b_cont), one, y_desc.get(), xchainer::internal::GetRawOffsetData<void>(y)));
+        CheckCudnnError(cudnnAddTensor(
+                handle,
+                one,
+                b_desc.get(),
+                xchainer::internal::GetRawOffsetData<void>(b_cont),
+                one,
+                y_desc.get(),
+                xchainer::internal::GetRawOffsetData<void>(y)));
     }
 }
 
