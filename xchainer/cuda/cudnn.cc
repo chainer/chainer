@@ -196,9 +196,43 @@ std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
     return shared_desc;
 }
 
+// Reference: boost::hash_combine
+//
+// Copyright 2005-2014 Daniel James.
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+void hash_combine(std::size_t& seed, std::size_t hash_value) { seed ^= hash_value + 0x9e3779b9 + (seed << 6) + (seed >> 2); }
+
 }  // namespace
 
 namespace internal {
+
+std::size_t ConvAlgoCacheKeyHash::operator()(const ConvAlgoCacheKey& key) const {
+    std::size_t seed = 0;
+    hash_combine(seed, std::hash<int8_t>()(key.x_shape.ndim()));
+    for (int64_t v : key.x_shape) {
+        hash_combine(seed, std::hash<int64_t>()(v));
+    }
+    hash_combine(seed, std::hash<int8_t>()(key.w_shape.ndim()));
+    for (int64_t v : key.w_shape) {
+        hash_combine(seed, std::hash<int64_t>()(v));
+    }
+    hash_combine(seed, std::hash<int8_t>()(key.y_shape.ndim()));
+    for (int64_t v : key.y_shape) {
+        hash_combine(seed, std::hash<int64_t>()(v));
+    }
+    hash_combine(seed, std::hash<int8_t>()(gsl::narrow<int8_t>(key.pad.size())));
+    for (int64_t v : key.pad) {
+        hash_combine(seed, std::hash<int64_t>()(v));
+    }
+    hash_combine(seed, std::hash<int8_t>()(gsl::narrow<int8_t>(key.stride.size())));
+    for (int64_t v : key.stride) {
+        hash_combine(seed, std::hash<int64_t>()(v));
+    }
+    hash_combine(seed, std::hash<int>()(static_cast<int>(key.dtype)));
+    hash_combine(seed, std::hash<size_t>()(key.max_workspace_size));
+    return seed;
+}
 
 Cudnn::~Cudnn() {
     if (handle_) {
