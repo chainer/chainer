@@ -15,6 +15,7 @@ install(FILES
     array_repr.h
     axes.h
     backend.h
+    backend_util.h
     backward.h
     constant.h
     context.h

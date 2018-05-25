@@ -14,6 +14,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/backend_util.h"
 #include "xchainer/cuda/cast.cuh"
 #include "xchainer/cuda/cublas.h"
 #include "xchainer/cuda/cuda_runtime.h"
@@ -517,12 +518,6 @@ struct GemmInputLayout {
     }
 };
 
-template <typename T>
-T* GetOffsetData(const Array& a) {
-    uint8_t* offset_ptr = static_cast<uint8_t*>(a.raw_data()) + a.offset();
-    return reinterpret_cast<T*>(offset_ptr);  // NOLINT: reinterpret_cast
-}
-
 }  // namespace
 
 void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
@@ -565,9 +560,9 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
 
         const T one = 1;
         const T zero = 0;
-        const T* a_ptr = GetOffsetData<const T>(a_config);
-        const T* b_ptr = GetOffsetData<const T>(b_config);
-        T* out_ptr = GetOffsetData<T>(out_contiguous);
+        const T* a_ptr = xchainer::internal::GetRawOffsetData<const T>(a_config);
+        const T* b_ptr = xchainer::internal::GetRawOffsetData<const T>(b_config);
+        T* out_ptr = xchainer::internal::GetRawOffsetData<T>(out_contiguous);
         Gemm<T>{}(
                 cublas_handle(), b_layout.trans, a_layout.trans, n, m, k, &one, b_ptr, b_layout.ld, a_ptr, a_layout.ld, &zero, out_ptr, n);
     };
