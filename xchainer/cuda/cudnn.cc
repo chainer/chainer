@@ -238,7 +238,7 @@ void ConvolutionForward(
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
-        Array& y,
+        const Array& y,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
