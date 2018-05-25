@@ -43,28 +43,14 @@ CudaDevice::~CudaDevice() {
         cudaSetDevice(index());
         cublasDestroy(cublas_handle_);
     }
-    if (cudnn_handle_) {
-        cudaSetDevice(index());
-        cudnnDestroy(cudnn_handle_);
-    }
 }
 
 cublasHandle_t CudaDevice::cublas_handle() {
-    // TODO(sonots): Thread-safe. Another handle has to be created for another thread.
     if (!cublas_handle_) {
         CheckCudaError(cudaSetDevice(index()));
         CheckCublasError(cublasCreate(&cublas_handle_));
     }
     return cublas_handle_;
-}
-
-cudnnHandle_t CudaDevice::cudnn_handle() {
-    // TODO(sonots): Thread-safe. Another handle has to be created for another thread.
-    if (!cudnn_handle_) {
-        CheckCudaError(cudaSetDevice(index()));
-        CheckCudnnError(cudnnCreate(&cudnn_handle_));
-    }
-    return cudnn_handle_;
 }
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
@@ -995,7 +981,7 @@ Array CudaDevice::Conv(
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
     Array y = Empty(out_shape, x.dtype(), *this);
 
-    internal::ConvolutionForward(x, w, b, y, pad, stride, nonstd::nullopt, 1, conv_fwd_algo_cache_map_);
+    cudnn_.ConvolutionForward(x, w, b, y, pad, stride, nonstd::nullopt, 1);
 
     return y;
 }

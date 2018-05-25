@@ -22,7 +22,7 @@ namespace cuda {
 
 class CudaDevice : public Device {
 public:
-    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
+    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_{index} {}
     ~CudaDevice() override;
 
     std::shared_ptr<void> Allocate(size_t bytesize) override;
@@ -105,13 +105,13 @@ public:
     void Synchronize() override;
 
     cublasHandle_t cublas_handle();
-    cudnnHandle_t cudnn_handle();
 
 private:
     MemoryPool memory_pool_;
+    // TODO(sonots): Create a cudnn instance (including handle) for each thread.
+    internal::Cudnn cudnn_;
+    // TODO(sonots): Create a cublas handle for each thread.
     cublasHandle_t cublas_handle_{};
-    cudnnHandle_t cudnn_handle_{};
-    internal::ConvAlgoCacheMap conv_fwd_algo_cache_map_{};
 };
 
 }  // namespace cuda

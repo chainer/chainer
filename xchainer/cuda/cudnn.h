@@ -56,16 +56,40 @@ struct ConvAlgoCacheKeyHash {
 
 using ConvAlgoCacheMap = std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
 
-void ConvolutionForward(
-        const Array& x,
-        const Array& w,
-        const nonstd::optional<Array>& b,
-        const Array& y,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
-        int groups,
-        ConvAlgoCacheMap& conv_fwd_algo_cache_map);
+class Cudnn {
+public:
+    explicit Cudnn(int device_index) : device_index_{device_index} {}
+    ~Cudnn();
+
+    void ConvolutionForward(
+            const Array& x,
+            const Array& w,
+            const nonstd::optional<Array>& b,
+            const Array& y,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+            int groups);
+
+    cudnnHandle_t handle();
+
+private:
+    std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
+            const std::shared_ptr<cudnnTensorStruct>& x_desc,
+            const Array& x,
+            const std::shared_ptr<cudnnFilterStruct>& filter_desc,
+            const Array& w,
+            const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
+            const std::shared_ptr<cudnnTensorStruct>& y_desc,
+            const Array& y,
+            size_t max_workspace_size,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& stride);
+
+    int device_index_;
+    cudnnHandle_t handle_{};
+    ConvAlgoCacheMap conv_fwd_algo_cache_map_{};
+};
 
 }  // namespace internal
 }  // namespace cuda
