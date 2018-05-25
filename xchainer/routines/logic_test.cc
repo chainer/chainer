@@ -56,9 +56,9 @@ TEST_P(LogicTest, Equal) {
     std::transform(data.begin(), data.end(), std::back_inserter(b_data), [](const auto& param) { return param.b; });
     std::transform(data.begin(), data.end(), std::back_inserter(e_data), [](const auto& param) { return param.e; });
     Shape shape{static_cast<int64_t>(data.size())};
-    Array a = testing::BuildArray(shape).WithData<T>(a_data.begin(), a_data.end());
-    Array b = testing::BuildArray(shape).WithData<T>(b_data.begin(), b_data.end());
-    Array e = testing::BuildArray(shape).WithData<bool>(e_data.begin(), e_data.end());
+    Array a = testing::BuildArray(shape).WithData<T>(a_data);
+    Array b = testing::BuildArray(shape).WithData<T>(b_data);
+    Array e = testing::BuildArray(shape).WithData<bool>(e_data);
     Array c = Equal(a, b);
 
     ASSERT_EQ(c.dtype(), Dtype::kBool);

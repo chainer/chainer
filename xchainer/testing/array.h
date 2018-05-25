@@ -1,10 +1,9 @@
 #pragma once
 
 #include <algorithm>
-#include <array>
 #include <cassert>
+#include <cstdint>
 #include <functional>
-#include <initializer_list>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -12,6 +11,7 @@
 #include "xchainer/array.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/error.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
@@ -24,9 +24,20 @@ class ArrayBuilder {
 public:
     explicit ArrayBuilder(const Shape& shape) : shape_(shape), device_(std::ref(GetDefaultDevice())) {}
 
-    operator Array() const { return array(); }
+    operator Array() const { return Build(); }
 
-    Array operator*() const { return array(); }
+    Array operator*() const { return Build(); }
+
+    Array Build() const {
+        assert(create_array_ != nullptr);
+        return create_array_(*this);
+    }
+
+    template <typename T>
+    ArrayBuilder& WithData(const std::vector<T>& data) {
+        assert(static_cast<size_t>(shape_.GetTotalSize()) == data.size());
+        return WithData<T>(data.begin(), data.end());
+    }
 
     template <typename T, typename InputIter>
     ArrayBuilder& WithData(InputIter first, InputIter last) {
@@ -75,18 +86,6 @@ public:
         return *this;
     }
 
-    template <typename T, size_t N>
-    ArrayBuilder& WithData(const std::array<T, N>& data) {
-        assert(static_cast<size_t>(shape_.GetTotalSize()) == N);
-        return WithData<T>(data.begin(), data.end());
-    }
-
-    template <typename T>
-    ArrayBuilder& WithData(std::initializer_list<T> data) {
-        assert(static_cast<size_t>(shape_.GetTotalSize()) == data.size());
-        return WithData<T>(data.begin(), data.end());
-    }
-
     template <typename T>
     ArrayBuilder& WithLinearData(T start = T{0}, T step = T{1}) {
         int64_t total_size = shape_.GetTotalSize();
@@ -113,14 +112,9 @@ public:
         return *this;
     }
 
-    Array WithDevice(Device& device) {
+    ArrayBuilder& WithDevice(Device& device) {
         device_ = device;
         return *this;
-    }
-
-    Array array() const {
-        assert(create_array_ != nullptr);
-        return create_array_(*this);
     }
 
 private:
@@ -158,24 +152,6 @@ private:
 };
 
 inline ArrayBuilder BuildArray(const Shape& shape) { return ArrayBuilder{shape}; }
-
-template <typename T, size_t N>
-ArrayBuilder BuildArray(const Shape& shape, const std::array<T, N>& data) {
-    return ArrayBuilder{shape}.WithData<T>(data.begin(), data.end());
-}
-
-template <typename T>
-ArrayBuilder BuildArray(const Shape& shape, std::initializer_list<T> data) {
-    return ArrayBuilder{shape}.WithData<T>(data.begin(), data.end());
-}
-
-template <typename T>
-Array BuildArray(const Shape& shape, const std::vector<T>& data) {
-    assert(static_cast<size_t>(shape.GetTotalSize()) == data.size());
-    auto a = std::make_unique<T[]>(data.size());
-    std::copy(data.begin(), data.end(), a.get());
-    return internal::FromContiguousHostData(shape, TypeToDtype<T>, std::move(a));
-}
 
 }  // namespace testing
 }  // namespace xchainer

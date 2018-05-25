@@ -544,24 +544,24 @@ TEST_P(CreationTest, InvalidTooLongBooleanArange) { EXPECT_THROW(Arange(0, 3, 1,
 
 TEST_P(CreationTest, Copy) {
     {
-        Array a = testing::BuildArray<bool>({4, 1}, {true, true, false, false});
+        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
         Array o = Copy(a);
         testing::ExpectEqualCopy(a, o);
     }
     {
-        Array a = testing::BuildArray<int8_t>({3, 1}, {1, 2, 3});
+        Array a = testing::BuildArray({3, 1}).WithData<int8_t>({1, 2, 3});
         Array o = Copy(a);
         testing::ExpectEqualCopy(a, o);
     }
     {
-        Array a = testing::BuildArray<float>({3, 1}, {1.0f, 2.0f, 3.0f});
+        Array a = testing::BuildArray({3, 1}).WithData<float>({1.0f, 2.0f, 3.0f});
         Array o = Copy(a);
         testing::ExpectEqualCopy(a, o);
     }
 
     // with padding
     {
-        Array a = testing::BuildArray<float>({3, 1}, {1.0f, 2.0f, 3.0f}).WithPadding(1);
+        Array a = testing::BuildArray({3, 1}).WithData<float>({1.0f, 2.0f, 3.0f}).WithPadding(1);
         Array o = Copy(a);
         testing::ExpectEqualCopy(a, o);
     }
@@ -569,7 +569,7 @@ TEST_P(CreationTest, Copy) {
 
 TEST_P(CreationTest, Identity) {
     Array o = Identity(3, Dtype::kFloat32);
-    Array e = testing::BuildArray<float>({3, 3}, {1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
+    Array e = testing::BuildArray({3, 3}).WithData<float>({1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
     testing::ExpectEqual(e, o);
 }
 
@@ -578,12 +578,12 @@ TEST_P(CreationTest, IdentityInvalidN) { EXPECT_THROW(Identity(-1, Dtype::kFloat
 TEST_P(CreationTest, Eye) {
     {
         Array o = Eye(2, 3, 1, Dtype::kFloat32);
-        Array e = testing::BuildArray<float>({2, 3}, {0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
+        Array e = testing::BuildArray({2, 3}).WithData<float>({0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
         testing::ExpectEqual(e, o);
     }
     {
         Array o = Eye(3, 2, -2, Dtype::kFloat32);
-        Array e = testing::BuildArray<float>({3, 2}, {0.f, 0.f, 0.f, 0.f, 1.f, 0.f});
+        Array e = testing::BuildArray({3, 2}).WithData<float>({0.f, 0.f, 0.f, 0.f, 1.f, 0.f});
         testing::ExpectEqual(e, o);
     }
 }
@@ -646,19 +646,21 @@ TEST_P(CreationTest, DiagVecToMat) {
     {
         Array v = Arange(1, 3, Dtype::kFloat32);
         Array o = Diag(v);
-        Array e = testing::BuildArray<float>({2, 2}, {1.f, 0.f, 0.f, 2.f});
+        Array e = testing::BuildArray({2, 2}).WithData<float>({1.f, 0.f, 0.f, 2.f});
         testing::ExpectEqual(e, o);
     }
     {
         Array v = Arange(1, 4, Dtype::kFloat32);
         Array o = Diag(v, 1);
-        Array e = testing::BuildArray<float>({4, 4}, {0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 3.f, 0.f, 0.f, 0.f, 0.f});
+        Array e = testing::BuildArray({4, 4}).WithData<float>(
+                {0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 3.f, 0.f, 0.f, 0.f, 0.f});
         testing::ExpectEqual(e, o);
     }
     {
         Array v = Arange(1, 3, Dtype::kFloat32);
         Array o = Diag(v, -2);
-        Array e = testing::BuildArray<float>({4, 4}, {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f});
+        Array e = testing::BuildArray({4, 4}).WithData<float>(
+                {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f});
         testing::ExpectEqual(e, o);
     }
 }
@@ -667,21 +669,21 @@ TEST_P(CreationTest, DiagMatToVec) {
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
         Array o = Diag(v);
-        Array e = testing::BuildArray<float>({2}, {0.f, 4.f});
+        Array e = testing::BuildArray({2}).WithData<float>({0.f, 4.f});
         testing::ExpectEqual(e, o);
         EXPECT_EQ(v.data().get(), o.data().get());
     }
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
         Array o = Diag(v, 1);
-        Array e = testing::BuildArray<float>({2}, {1.f, 5.f});
+        Array e = testing::BuildArray({2}).WithData<float>({1.f, 5.f});
         testing::ExpectEqual(e, o);
         EXPECT_EQ(v.data().get(), o.data().get());
     }
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
         Array o = Diag(v, -1);
-        Array e = testing::BuildArray<float>({1}, {3.f});
+        Array e = testing::BuildArray({1}).WithData<float>({3.f});
         testing::ExpectEqual(e, o);
         EXPECT_EQ(v.data().get(), o.data().get());
     }
@@ -726,9 +728,9 @@ TEST_P(CreationTest, DiagVecToMatDoubleBackward) {
 
 TEST_P(CreationTest, DiagMatToVecDoubleBackward) {
     using T = double;
-    Array v = (*testing::BuildArray(Shape{4, 4}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
-    Array go = (*testing::BuildArray(Shape{3}).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
-    Array ggv = testing::BuildArray(Shape{4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array v = (*testing::BuildArray({4, 4}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray({3}).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggv = testing::BuildArray({4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
     Array eps_v = Full(Shape{4, 4}, 1e-3);
     Array eps_go = Full(Shape{3}, 1e-3);
 
@@ -747,20 +749,20 @@ TEST_P(CreationTest, Diagflat) {
     {
         Array v = Arange(1, 3, Dtype::kFloat32);
         Array o = Diagflat(v);
-        Array e = testing::BuildArray<float>({2, 2}, {1.f, 0.f, 0.f, 2.f});
+        Array e = testing::BuildArray({2, 2}).WithData<float>({1.f, 0.f, 0.f, 2.f});
         testing::ExpectEqual(e, o);
     }
     {
         Array v = Arange(1, 5, Dtype::kFloat32).Reshape({2, 2});
         Array o = Diagflat(v, 1);
-        Array e = testing::BuildArray<float>({5, 5}, {0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 0.f,
-                                                      3.f, 0.f, 0.f, 0.f, 0.f, 0.f, 4.f, 0.f, 0.f, 0.f, 0.f, 0.f});
+        Array e = testing::BuildArray({5, 5}).WithData<float>({0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 0.f,
+                                                               3.f, 0.f, 0.f, 0.f, 0.f, 0.f, 4.f, 0.f, 0.f, 0.f, 0.f, 0.f});
         testing::ExpectEqual(e, o);
     }
     {
         Array v = Arange(1, 3, Dtype::kFloat32).Reshape({1, 2});
         Array o = Diagflat(v, -1);
-        Array e = testing::BuildArray<float>({3, 3}, {0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 2.f, 0.f});
+        Array e = testing::BuildArray({3, 3}).WithData<float>({0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 2.f, 0.f});
         testing::ExpectEqual(e, o);
     }
 }
@@ -795,13 +797,13 @@ TEST_P(CreationTest, DiagflatDoubleBackward) {
 
 TEST_P(CreationTest, Linspace) {
     Array o = Linspace(3.0, 10.0, 4, true, Dtype::kInt32);
-    Array e = testing::BuildArray<int32_t>({4}, {3, 5, 7, 10});
+    Array e = testing::BuildArray({4}).WithData<int32_t>({3, 5, 7, 10});
     testing::ExpectEqual(e, o);
 }
 
 TEST_P(CreationTest, LinspaceEndPointFalse) {
     Array o = Linspace(3.0, 10.0, 4, false, Dtype::kInt32);
-    Array e = testing::BuildArray<int32_t>({4}, {3, 4, 6, 8});
+    Array e = testing::BuildArray({4}).WithData<int32_t>({3, 4, 6, 8});
     testing::ExpectEqual(e, o);
 }
 

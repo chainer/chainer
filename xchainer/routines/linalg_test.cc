@@ -33,15 +33,15 @@ private:
 
 TEST_P(LinalgTest, Dot) {
     Array a = testing::BuildArray({2, 3}).WithLinearData(1.f).WithPadding(1);
-    Array b = testing::BuildArray<float>({3, 2}, {1.f, 2.f, -1.f, -3.f, 2.f, 4.f}).WithPadding(2);
+    Array b = testing::BuildArray({3, 2}).WithData<float>({1.f, 2.f, -1.f, -3.f, 2.f, 4.f}).WithPadding(2);
     Array c = Dot(a, b);
-    Array e = testing::BuildArray<float>({2, 2}, {5.f, 8.f, 11.f, 17.f});
+    Array e = testing::BuildArray({2, 2}).WithData<float>({5.f, 8.f, 11.f, 17.f});
     testing::ExpectEqual(e, c);
 }
 
 TEST_P(LinalgTest, DotZeroDim) {
     Array a = testing::BuildArray({2, 3}).WithLinearData<float>(1.f);
-    Array b = testing::BuildArray<float>({}, {2.f});
+    Array b = testing::BuildArray({}).WithData<float>({2.f});
     Array c = Dot(a, b);
     Array e = testing::BuildArray({2, 3}).WithLinearData(2.f, 2.f);
     testing::ExpectEqual(e, c);
@@ -51,7 +51,7 @@ TEST_P(LinalgTest, DotVecVec) {
     Array a = testing::BuildArray({3}).WithLinearData(1.f);
     Array b = testing::BuildArray({3}).WithLinearData(1.f, 2.f);
     Array c = Dot(a, b);
-    Array e = testing::BuildArray<float>({}, {22.f});
+    Array e = testing::BuildArray({}).WithData<float>({22.f});
     testing::ExpectEqual(e, c);
 }
 
@@ -59,7 +59,7 @@ TEST_P(LinalgTest, DotMatVec) {
     Array a = testing::BuildArray({2, 3}).WithLinearData(1.f);
     Array b = testing::BuildArray({3}).WithLinearData(1.f, 2.f);
     Array c = Dot(a, b);
-    Array e = testing::BuildArray<float>({2}, {22.f, 49.f});
+    Array e = testing::BuildArray({2}).WithData<float>({22.f, 49.f});
     testing::ExpectEqual(e, c);
 }
 
@@ -79,7 +79,7 @@ TEST_P(LinalgTest, DotAlongZeroLengthAxis) {
 
 TEST_P(LinalgTest, DotBackward) {
     Array a = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
-    Array b = (*testing::BuildArray<float>({3, 2}, {1.f, 2.f, -1.f, -3.f, 2.f, 4.f})).RequireGrad();
+    Array b = (*testing::BuildArray({3, 2}).WithData<float>({1.f, 2.f, -1.f, -3.f, 2.f, 4.f})).RequireGrad();
 
     Array go = testing::BuildArray({2, 2}).WithLinearData(-0.1f, 0.1f).WithPadding(1);
     Array a_eps = Full(a.shape(), 1e-1f);
@@ -90,9 +90,9 @@ TEST_P(LinalgTest, DotBackward) {
 
 TEST_P(LinalgTest, DotMatVecBackward) {
     Array a = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
-    Array b = (*testing::BuildArray<float>({3}, {1.f, 2.f, -1.f})).RequireGrad();
+    Array b = (*testing::BuildArray({3}).WithData<float>({1.f, 2.f, -1.f})).RequireGrad();
 
-    Array go = testing::BuildArray<float>({2}, {-0.1f, 0.1f}).WithPadding(1);
+    Array go = testing::BuildArray({2}).WithData<float>({-0.1f, 0.1f}).WithPadding(1);
     Array a_eps = Full(a.shape(), 1e-1f);
     Array b_eps = Full(b.shape(), 1e-1f);
 
@@ -101,7 +101,7 @@ TEST_P(LinalgTest, DotMatVecBackward) {
 
 TEST_P(LinalgTest, DotDoubleBackward) {
     Array a = (*testing::BuildArray({2, 3}).WithLinearData(1.f)).RequireGrad();
-    Array b = (*testing::BuildArray<float>({3, 2}, {1.f, 2.f, -1.f, -3.f, 2.f, 4.f})).RequireGrad();
+    Array b = (*testing::BuildArray({3, 2}).WithData<float>({1.f, 2.f, -1.f, -3.f, 2.f, 4.f})).RequireGrad();
     Array go = (*testing::BuildArray({2, 2}).WithLinearData(-0.1f, 0.1f).WithPadding(1)).RequireGrad();
 
     Array gga = testing::BuildArray(a.shape()).WithLinearData(-0.3f, 0.1f).WithPadding(1);

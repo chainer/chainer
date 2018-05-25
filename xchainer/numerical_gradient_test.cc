@@ -68,24 +68,24 @@ private:
 };
 
 TEST_P(NumericalGradientTest, NumericalGradientAdd) {
-    using Data = std::array<float, 6>;
+    using T = float;
     Shape shape{2, 3};
-    Data data1{1.f, 2.f, -3.f, 4.f, 0.5f, 3.f};
-    Data data2{0.f, 1.3f, 2.f, 3.f, -0.5f, 3.f};
-    Data eps1{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
-    Data eps2{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
-    Data grad_output_data{1.f, -2.f, 3.f, 0.f, 3.2f, -1.f};
+    std::vector<T> data1{1.f, 2.f, -3.f, 4.f, 0.5f, 3.f};
+    std::vector<T> data2{0.f, 1.3f, 2.f, 3.f, -0.5f, 3.f};
+    std::vector<T> eps1{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
+    std::vector<T> eps2{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
+    std::vector<T> grad_output_data{1.f, -2.f, 3.f, 0.f, 3.2f, -1.f};
 
     Arrays inputs = {
-            testing::BuildArray(shape, data1),
-            testing::BuildArray(shape, data2),
+            testing::BuildArray(shape).WithData(data1),
+            testing::BuildArray(shape).WithData(data2),
     };
     Arrays eps = {
-            testing::BuildArray(shape, eps1),
-            testing::BuildArray(shape, eps2),
+            testing::BuildArray(shape).WithData(eps1),
+            testing::BuildArray(shape).WithData(eps2),
     };
     Arrays grad_outputs = {
-            testing::BuildArray(shape, grad_output_data),
+            testing::BuildArray(shape).WithData(grad_output_data),
     };
 
     // Forward function
@@ -99,24 +99,24 @@ TEST_P(NumericalGradientTest, NumericalGradientAdd) {
 }
 
 TEST_P(NumericalGradientTest, NumericalGradientMul) {
-    using Data = std::array<float, 6>;
+    using T = float;
     Shape shape{2, 3};
-    Data data1{1.f, 2.f, 3.f, 4.f, -2.f, -3.f};
-    Data data2{0.f, 1.f, 2.f, 3.f, 2.f, 3.f};
-    Data eps1{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
-    Data eps2{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
-    Data grad_output_data{1.f, -2.f, 3.f, 0.f, 2.2f, 1.f};
+    std::vector<T> data1{1.f, 2.f, 3.f, 4.f, -2.f, -3.f};
+    std::vector<T> data2{0.f, 1.f, 2.f, 3.f, 2.f, 3.f};
+    std::vector<T> eps1{1e-3f, -1e-3f, 1e-3f, 1e-3f, -1e-3f, 1e-3f};
+    std::vector<T> eps2{1e-3f, 1e-3f, -1e-3f, 1e-3f, 1e-3f, 1e-3f};
+    std::vector<T> grad_output_data{1.f, -2.f, 3.f, 0.f, 2.2f, 1.f};
 
     Arrays inputs = {
-            testing::BuildArray(shape, data1),
-            testing::BuildArray(shape, data2),
+            testing::BuildArray(shape).WithData(data1),
+            testing::BuildArray(shape).WithData(data2),
     };
     Arrays eps = {
-            testing::BuildArray(shape, eps1),
-            testing::BuildArray(shape, eps2),
+            testing::BuildArray(shape).WithData(eps1),
+            testing::BuildArray(shape).WithData(eps2),
     };
     Arrays grad_outputs = {
-            testing::BuildArray(shape, grad_output_data),
+            testing::BuildArray(shape).WithData(grad_output_data),
     };
 
     // Forward function
