@@ -10,6 +10,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/backend_util.h"
 #include "xchainer/cuda/cuda_device.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -213,12 +214,12 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
     CheckCudnnError(cudnnFindConvolutionForwardAlgorithmEx(
             handle,
             x_desc.get(),
-            x.data().get(),
+            xchainer::internal::GetRawOffsetData<void>(x),
             filter_desc.get(),
-            w.data().get(),
+            xchainer::internal::GetRawOffsetData<void>(w),
             conv_desc.get(),
             y_desc.get(),
-            y.data().get(),
+            xchainer::internal::GetRawOffsetData<void>(y),
             requested_algo_count,
             &returned_algo_count,
             &perf_results[0],
@@ -316,16 +317,16 @@ void ConvolutionForward(
             handle,
             one,
             x_desc.get(),
-            x_cont.data().get(),
+            xchainer::internal::GetRawOffsetData<void>(x_cont),
             filter_desc.get(),
-            w_cont.data().get(),
+            xchainer::internal::GetRawOffsetData<void>(w_cont),
             conv_desc.get(),
             algo,
             workspace.get(),
             workspace_size,
             zero,
             y_desc.get(),
-            y.data().get()));
+            xchainer::internal::GetRawOffsetData<void>(y)));
 
     if (b) {
         int8_t ndim = x.ndim() - 2;
@@ -339,7 +340,7 @@ void ConvolutionForward(
         }
         Array b_cont = AsContiguousArray(*b).Reshape(new_shape);
         std::shared_ptr<cudnnTensorStruct> b_desc = CreateTensorDescriptor(b_cont);
-        CheckCudnnError(cudnnAddTensor(handle, one, b_desc.get(), b_cont.data().get(), one, y_desc.get(), y.data().get()));
+        CheckCudnnError(cudnnAddTensor(handle, one, b_desc.get(), xchainer::internal::GetRawOffsetData<void>(b_cont), one, y_desc.get(), xchainer::internal::GetRawOffsetData<void>(y)));
     }
 }
 
