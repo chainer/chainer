@@ -950,6 +950,29 @@ Array CudaDevice::Conv(
         throw XchainerError{"CUDA convolution does not support cover_all"};
     }
 
+    // TODO(sonots): Support float16
+    if (x.dtype() != Dtype::kFloat32 && x.dtype() != Dtype::kFloat64) {
+        throw XchainerError{"XChainer cuDNN supports only float32 or float64 arrays, but the input array dtype is: ", x.dtype()};
+    }
+
+    if (w.dtype() != x.dtype()) {
+        throw XchainerError{"The filter (kernel) array dtype: ", w.dtype(), " must be same with the input array dtype: ", x.dtype()};
+    }
+    if (&w.device() != &x.device()) {
+        throw XchainerError{
+                "The filter (kernel) array device: ", w.device().name(), " must be same with the input array device: ", x.device().name()};
+    }
+
+    if (b) {
+        if (b->dtype() != x.dtype()) {
+            throw XchainerError{"The bias array dtype: ", b->dtype(), " must be same with the input array dtype: ", x.dtype()};
+        }
+        if (&b->device() != &x.device()) {
+            throw XchainerError{
+                    "The bias array device: ", b->device().name(), " must be same with the input array device: ", x.device().name()};
+        }
+    }
+
     int8_t ndim = w.ndim() - 2;
     assert(ndim > 0);
 

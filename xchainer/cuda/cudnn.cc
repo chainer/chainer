@@ -244,35 +244,13 @@ void ConvolutionForward(
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
         int groups,
         internal::ConvAlgoCacheMap& conv_fwd_algo_cache_map) {
+    assert(&y.device() == &x.device());
+    assert(y.dtype() == x.dtype());
+    assert(&w.device() == &x.device());
+    assert(w.dtype() == w.dtype());
+
     CudaDevice& device = *dynamic_cast<CudaDevice*>(&x.device());
     CudaBackend& backend = *dynamic_cast<CudaBackend*>(&device.backend());
-
-    if (&y.device() != &device) {
-        throw XchainerError{
-                "The output array device: ", y.device().name(), " must be same with the input array device: ", x.device().name()};
-    }
-    if (&w.device() != &device) {
-        throw XchainerError{
-                "The filter (kernel) array device: ", w.device().name(), " must be same with the input array device: ", x.device().name()};
-    }
-    if (b && &b->device() != &device) {
-        throw XchainerError{
-                "The bias array device: ", b->device().name(), " must be same with the input array device: ", x.device().name()};
-    }
-
-    // TODO(sonots): Support float16
-    if (x.dtype() != Dtype::kFloat32 && x.dtype() != Dtype::kFloat64) {
-        throw XchainerError{"XChainer cuDNN supports only float32 or float64 arrays, but the input array dtype is: ", x.dtype()};
-    }
-    if (y.dtype() != x.dtype()) {
-        throw XchainerError{"The output array dtype: ", y.dtype(), " must be same with the input array dtype: ", x.dtype()};
-    }
-    if (w.dtype() != x.dtype()) {
-        throw XchainerError{"The filter (kernel) array dtype: ", w.dtype(), " must be same with the input array dtype: ", x.dtype()};
-    }
-    if (b && b->dtype() != x.dtype()) {
-        throw XchainerError{"The bias array dtype: ", b->dtype(), " must be same with the input array dtype: ", x.dtype()};
-    }
 
     float float_zero = 0, float_one = 1;
     double double_zero = 0, double_one = 1;
@@ -329,6 +307,9 @@ void ConvolutionForward(
             xchainer::internal::GetRawOffsetData<void>(y)));
 
     if (b) {
+        assert(&b->device() == &x.device());
+        assert(b->dtype() == x.dtype());
+
         int8_t ndim = x.ndim() - 2;
         assert(ndim > 0);
 
