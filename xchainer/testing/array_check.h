@@ -47,8 +47,8 @@ inline void ExpectEqualView(const Array& expected, const Array& actual) {
     ExpectEqual(expected, actual);
 }
 
-template <typename T>
-void ExpectDataEqual(const T* expected_data, const Array& actual) {
+template <typename T, typename Container>
+void ExpectDataEqual(Container&& expected_data, const Array& actual) {
     Array native_actual = actual.ToNative();
     IndexableArray<const T> actual_iarray{native_actual};
     Indexer<> indexer{actual.shape()};
