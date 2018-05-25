@@ -96,9 +96,7 @@ StackVector<int, kMaxNdim> GetIntArrayStrides(const Strides& strides, int64_t it
 }
 
 void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTensorFormat_t format) {
-    if (!arr.IsContiguous()) {
-        throw XchainerError{"CuDNN supports only c-contiguous arrays"};
-    }
+    assert(arr.IsContiguous());
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
     if (arr.shape().ndim() == 4) {
         StackVector<int, kMaxNdim> nchw = GetIntShape(arr.shape());
@@ -111,9 +109,7 @@ void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTe
 }
 
 void SetFilterDescriptor(cudnnFilterDescriptor_t desc, const Array& arr, cudnnTensorFormat_t format) {
-    if (!arr.IsContiguous()) {
-        throw XchainerError{"CuDNN supports only c-contiguous arrays"};
-    }
+    assert(arr.IsContiguous());
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
     if (arr.shape().ndim() == 4) {
         StackVector<int, kMaxNdim> nchw = GetIntShape(arr.shape());
