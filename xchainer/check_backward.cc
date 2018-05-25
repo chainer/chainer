@@ -150,29 +150,29 @@ void CheckBackwardComputation(
     if (backward_grads.size() != inputs.size()) {
         throw GradientCheckError{"Number of input gradients does not match the input arrays."};
     }
-    for (int i = 0; i < inputs.size(); ++i) {
+    for (size_t i = 0; i < inputs.size(); ++i) {
         if (!backward_grads[i].has_value()) {
             continue;
         }
-        const Array& grad_bwd = *backward_grads[i];
-        if (grad_bwd.shape() != inputs[i].shape()) {
+        const Array& backward_grad = *backward_grads[i];
+        if (backward_grad.shape() != inputs[i].shape()) {
             throw GradientCheckError{"Shape of input gradient ",
                                      i,
                                      " of ",
                                      inputs.size(),
                                      " ",
-                                     grad_bwd.shape(),
+                                     backward_grad.shape(),
                                      " does not match the corresponding input shape ",
                                      inputs[i].shape(),
                                      "."};
         }
-        if (grad_bwd.dtype() != inputs[i].dtype()) {
+        if (backward_grad.dtype() != inputs[i].dtype()) {
             throw GradientCheckError{"Dtype of input gradient ",
                                      i,
                                      " of ",
                                      inputs.size(),
                                      " ",
-                                     GetDtypeName(grad_bwd.dtype()),
+                                     GetDtypeName(backward_grad.dtype()),
                                      " does not match the corresponding input dtype ",
                                      GetDtypeName(inputs[i].dtype()),
                                      "."};
@@ -184,21 +184,21 @@ void CheckBackwardComputation(
 
     // If you're trapped in any of these asserts, numerical gradiends must be implemented incorrectly.
     assert(numerical_grads.size() == inputs.size());
-    for (int i = 0; i < inputs.size(); ++i) {
+    for (size_t i = 0; i < inputs.size(); ++i) {
         assert(numerical_grads[i].shape() == inputs[i].shape());
         assert(numerical_grads[i].dtype() == inputs[i].dtype());
     }
 
     // Check consistency between backward gradients and numeric gradients.
     std::ostringstream failure_os;
-    for (int i = 0; i < inputs.size(); ++i) {
+    for (size_t i = 0; i < inputs.size(); ++i) {
         if (!backward_grads[i].has_value()) {
             continue;
         }
 
-        const Array& bwd_grad = *backward_grads[i];
-        const Array& num_grad = numerical_grads[i];
-        if (!AllClose(bwd_grad, num_grad, atol, rtol)) {
+        const Array& backward_grad = *backward_grads[i];
+        const Array& numerical_grad = numerical_grads[i];
+        if (!AllClose(backward_grad, numerical_grad, atol, rtol)) {
             failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
                        << "Graph name: " << graph_id << "\n"
                        << "Atol: " << atol << "\n"
@@ -206,11 +206,11 @@ void CheckBackwardComputation(
                        << "Eps (perturbation):\n"
                        << eps[i] << "\n"
                        << "Error:\n"
-                       << bwd_grad - num_grad << "\n"  // TODO(niboshi): Use abs
+                       << backward_grad - numerical_grad << "\n"  // TODO(niboshi): Use abs
                        << "Backward gradients:\n"
-                       << bwd_grad << "\n"
+                       << backward_grad << "\n"
                        << "Numerical gradients:\n"
-                       << num_grad;
+                       << numerical_grad;
         }
     }
 
@@ -293,7 +293,7 @@ void CheckDoubleBackwardComputation(
 
     std::ostringstream failure_os;
     const int n_backward_grads = backward_grads.size();
-    for (int i = 0; i < n_backward_grads; ++i) {
+    for (size_t i = 0; i < n_backward_grads; ++i) {
         if (!backward_grads[i].has_value()) {
             failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
                        << "Graph name: " << graph_id << "\n"
