@@ -252,10 +252,12 @@ void ConvolutionForward(
     CudaDevice& device = *static_cast<CudaDevice*>(&x.device());
     CudaBackend& backend = *static_cast<CudaBackend*>(&device.backend());
 
-    float float_zero = 0, float_one = 1;
-    double double_zero = 0, double_one = 1;
-    void* zero;
-    void* one;
+    static const float float_zero = 0;
+    static const float float_one = 1;
+    static const double double_zero = 0;
+    static const double double_one = 1;
+    const void* zero{};
+    const void* one{};
     if (x.dtype() == Dtype::kFloat64) {
         zero = &double_zero;
         one = &double_one;
