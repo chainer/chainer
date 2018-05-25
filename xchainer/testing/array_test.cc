@@ -1,10 +1,8 @@
 #include "xchainer/testing/array.h"
 
-#include <array>
 #include <cassert>
+#include <cstdint>
 #include <functional>
-#include <memory>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -12,8 +10,10 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/device.h"
+#include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/shape.h"
+#include "xchainer/strides.h"
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
 
