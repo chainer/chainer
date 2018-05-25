@@ -16,8 +16,8 @@ namespace xchainer {
 namespace cuda {
 
 constexpr const char* CudaBackend::kDefaultName;
-constexpr const size_t CudaBackend::kDefaultMaxWorkspaceSize;
-constexpr const char* CudaBackend::kMaxWorkspaceSizeEnvName;
+constexpr const size_t CudaBackend::kCudnnDefaultMaxWorkspaceSize;
+constexpr const char* CudaBackend::kCudnnMaxWorkspaceSizeEnvName;
 
 std::string CudaBackend::GetName() const { return kDefaultName; }
 
@@ -49,19 +49,19 @@ bool CudaBackend::SupportsTransfer(Device& src_device, Device& dst_device) {
     return false;
 }
 
-void CudaBackend::SetMaxWorkspaceSize(size_t max_workspace_size) { max_workspace_size_ = max_workspace_size; }
+void CudaBackend::SetCudnnMaxWorkspaceSize(size_t max_workspace_size) { cudnn_max_workspace_size_ = max_workspace_size; }
 
-size_t CudaBackend::GetMaxWorkspaceSize() {
-    if (max_workspace_size_) {
-        return *max_workspace_size_;
+size_t CudaBackend::GetCudnnMaxWorkspaceSize() {
+    if (cudnn_max_workspace_size_) {
+        return *cudnn_max_workspace_size_;
     }
-    const char* env = std::getenv(kMaxWorkspaceSizeEnvName);
+    const char* env = std::getenv(kCudnnMaxWorkspaceSizeEnvName);
     if (env == nullptr) {
-        max_workspace_size_ = kDefaultMaxWorkspaceSize;
+        cudnn_max_workspace_size_ = kCudnnDefaultMaxWorkspaceSize;
     } else {
-        max_workspace_size_ = std::stoul(env);
+        cudnn_max_workspace_size_ = std::stoul(env);
     }
-    return *max_workspace_size_;
+    return *cudnn_max_workspace_size_;
 }
 
 }  // namespace cuda

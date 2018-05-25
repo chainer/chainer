@@ -334,29 +334,29 @@ private:
     nonstd::optional<std::string> old_value_{};
 };
 
-TEST(CudaBackendTest, GetMaxWorkspaceSize) {
+TEST(CudaBackendTest, GetCudnnMaxWorkspaceSize) {
     Context ctx;
     {
         CudaBackend backend{ctx};
-        EXPECT_EQ(CudaBackend::kDefaultMaxWorkspaceSize, backend.GetMaxWorkspaceSize());
+        EXPECT_EQ(CudaBackend::kCudnnDefaultMaxWorkspaceSize, backend.GetCudnnMaxWorkspaceSize());
     }
     {
         CudaBackend backend{ctx};
-        backend.SetMaxWorkspaceSize(10);
-        EXPECT_EQ(size_t{10}, backend.GetMaxWorkspaceSize());
-        backend.SetMaxWorkspaceSize(0);
-        EXPECT_EQ(size_t{0}, backend.GetMaxWorkspaceSize());
+        backend.SetCudnnMaxWorkspaceSize(10);
+        EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
+        backend.SetCudnnMaxWorkspaceSize(0);
+        EXPECT_EQ(size_t{0}, backend.GetCudnnMaxWorkspaceSize());
     }
     {
         CudaBackend backend{ctx};
         {
-            EnvScope scope{CudaBackend::kMaxWorkspaceSizeEnvName, "10"};
-            EXPECT_EQ(size_t{10}, backend.GetMaxWorkspaceSize());
+            EnvScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvName, "10"};
+            EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
         }
         {
             // env is cached on the first access, so not reflected.
-            EnvScope scope{CudaBackend::kMaxWorkspaceSizeEnvName, "0"};
-            EXPECT_EQ(size_t{10}, backend.GetMaxWorkspaceSize());
+            EnvScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvName, "0"};
+            EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
         }
     }
 }
