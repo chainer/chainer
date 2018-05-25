@@ -100,7 +100,7 @@ TEST_P(TestingArrayTest, BuildArrayMultiDimensional) {
     ExpectArrayAttr(shape, dtype, strides, data, device(), a);
 }
 
-TEST_P(TestingArrayTest, BuildArrayMultiDimensionalIterators) {
+TEST_P(TestingArrayTest, BuildArrayMultiDimensionalFromDataIterators) {
     using T = float;
     Shape shape{1, 2, 3};
     Dtype dtype = TypeToDtype<T>;
