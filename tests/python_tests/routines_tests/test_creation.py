@@ -11,7 +11,7 @@ import xchainer.testing
 from tests import array_utils
 
 
-_array_params_nonfloat_list = [
+_array_params_list = [
     -2,
     1,
     -1.5,
@@ -19,16 +19,9 @@ _array_params_nonfloat_list = [
     True,
     False,
     numpy.array(1),
-]
-
-
-_array_params_float_list = [
     float('inf'),
     float('nan'),
 ]
-
-
-_array_params_list = _array_params_nonfloat_list + _array_params_float_list
 
 
 def _array_params(list):
@@ -42,31 +35,36 @@ def _array_params(list):
     ]
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize('obj', _array_params(_array_params_list))
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_array_from_python_tuple_or_list(xp, obj, device):
-    return xp.array(obj)
+# Traverses the entries in `obj` recursively and returns `True` if all of the entries are finite numbers.
+def _is_all_finite(obj):
+    if isinstance(obj, (tuple, list)):
+        return all(_is_all_finite(o) for o in obj)
+    else:
+        return numpy.isfinite(obj)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('obj', _array_params(_array_params_nonfloat_list))
-@xchainer.testing.parametrize_dtype_specifier('dtype_spec', dtypes=xchainer.testing.nonfloat_dtypes, additional_args=(None,))
-def test_array_from_python_tuple_or_list_with_nonfloat_dtype(xp, obj, dtype_spec, device):
-    if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
-        dtype_spec = dtype_spec.name
-    return xp.array(obj, dtype_spec)
+# A special parameter object used to represent an unspecified argument.
+class Unspecified:
+    pass
 
 
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('obj', _array_params(_array_params_list))
-@xchainer.testing.parametrize_dtype_specifier('dtype_spec', dtypes=xchainer.testing.float_dtypes, additional_args=(None,))
-def test_array_from_python_tuple_or_list_with_float_dtype(xp, obj, dtype_spec, device):
+@xchainer.testing.parametrize_dtype_specifier('dtype_spec', additional_args=(None, Unspecified))
+def test_array_from_tuple_or_list(xp, obj, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, xchainer.dtype):
         dtype_spec = dtype_spec.name
-    return xp.array(obj, dtype_spec)
+    # Skip nan/inf -> integer conversion that would cause a cast error.
+    # TODO(niboshi): Write as xchainer.dtype(dtype_spec).kind. xchainer.dtype.kind is not defined yet.
+    if (not _is_all_finite(obj)
+            and dtype_spec not in (None, Unspecified)
+            and numpy.dtype(xchainer.dtype(dtype_spec).name).kind not in ('f', 'c')):
+        return xchainer.testing.ignore()
+    if dtype_spec is Unspecified:
+        return xp.array(obj)
+    else:
+        return xp.array(obj, dtype_spec)
 
 
 @pytest.mark.parametrize('obj', _array_params(_array_params_list))
