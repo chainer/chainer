@@ -142,26 +142,49 @@ Changing Configuration
 ----------------------
 
 If you want to share a setting within the process, set an attribute to the global configuration.
-
-.. doctest::
-
-  >>> chainer.global_config.user_my_setting = 123
-
 This value is automatically extracted by referring to the local config.
 
 .. doctest::
 
-  >>> chainer.config.user_my_setting
-  123
+  >>> chainer.global_config.train
+  True
+  >>> chainer.config.train
+  True
+
+  >>> chainer.global_config.train = False
+
+  >>> chainer.global_config.train
+  False
+  >>> chainer.config.train
+  False
+
+.. doctest::
+  :hide:
+
+  >>> chainer.global_config.train = True
 
 If you set an attribute to the local configuration, the value is only visible to the current thread.
 
 .. doctest::
 
-  >>> chainer.config.user_my_setting = 123
+  >>> chainer.global_config.train
+  True
+  >>> chainer.config.train
+  True
 
-We often want to temporarily modify the configuration for the current thread.
-It can be done by using :func:`using_config`.
+  >>> chainer.config.train = False
+
+  >>> chainer.global_config.train
+  True
+  >>> chainer.config.train
+  False
+
+.. doctest::
+  :hide:
+
+  >>> chainer.config.train = True
+
+If you want to temporarily modify the configuration for the specific scope, you can use :func:`using_config`.
 For example, if you only want to enable debug mode in a fragment of code, write as follows.
 
 .. doctest::
@@ -169,13 +192,13 @@ For example, if you only want to enable debug mode in a fragment of code, write 
   >>> with chainer.using_config('debug', True):
   ...     pass  # code running in the debug mode
 
-We often want to switch to the test mode for an evaluation.
-This is also done in the same way.
+If you want to switch to the test mode for an evaluation, you can do that in the same way.
 
 .. doctest::
 
+  >>> # Do training here
   >>> with chainer.using_config('train', False):
-  ...     pass  # code running in the test mode
+  ...     pass  # Perform evaluation here
 
 Note that :class:`~chainer.training.extensions.Evaluator` automatically switches to the test mode, and thus you do not need to manually switch in the loss function for the evaluation.
 
