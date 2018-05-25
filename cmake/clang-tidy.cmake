@@ -3,7 +3,7 @@ option(ENABLE_CLANG_TIDY "Enable clang-tidy rules" ON)
 if(ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY "clang-tidy")
     if(NOT CLANG_TIDY)
-        message(SEND_ERROR "clang-tidy not found.")
+        message(AUTHOR_WARNING "clang-tidy not found.")
     else()
         message(STATUS "Configuring clang-tidy")
 
