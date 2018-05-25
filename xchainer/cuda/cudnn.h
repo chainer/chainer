@@ -46,7 +46,7 @@ struct ConvAlgoCacheKey {
 };
 
 struct ConvAlgoCacheKeyHash {
-    typedef std::size_t result_type;
+    using result_type = std::size_t;
 
     std::size_t operator()(const ConvAlgoCacheKey& key) const {
         std::string bytes(reinterpret_cast<const char*>(&key), sizeof(ConvAlgoCacheKey));
