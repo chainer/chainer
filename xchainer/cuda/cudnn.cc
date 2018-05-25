@@ -217,7 +217,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
 
     int requested_algo_count = 1;
     cudnnConvolutionFwdAlgoPerf_t perf_results[1]{};
-    int returned_algo_count;
+    int returned_algo_count{};
 
     CheckCudnnError(cudnnFindConvolutionForwardAlgorithmEx(
             handle,
