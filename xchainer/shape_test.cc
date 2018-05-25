@@ -1,5 +1,6 @@
 #include "xchainer/shape.h"
 
+#include <numeric>
 #include <tuple>
 #include <vector>
 
