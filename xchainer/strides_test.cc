@@ -1,5 +1,6 @@
 #include "xchainer/strides.h"
 
+#include <numeric>
 #include <vector>
 
 #include <gtest/gtest.h>

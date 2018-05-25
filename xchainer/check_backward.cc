@@ -105,10 +105,8 @@ void CheckDoubleBackpropOption(
         for (size_t i = 0; i < grads.size(); ++i) {
             if (grads[i]) {
                 if (grads[i]->IsGradRequired(graph_id)) {
-                    failure_os << "Check disable double backprop failure on gradient " << i << " (Total gradients: " << grads.size()
-                               << ")\n"
-                               << "Graph name: " << graph_id << "\n"
-                               << "IsGradRequired: true\n";
+                    failure_os << "Gradient " << i << " / " << grads.size() << " is connected to the graph '" << graph_id
+                               << "' even when double-backprop is disabled.";
                 }
             }
         }
@@ -123,9 +121,8 @@ void CheckDoubleBackpropOption(
         for (size_t i = 0; i < grads.size(); ++i) {
             if (grads[i]) {
                 if (!grads[i]->IsGradRequired(graph_id)) {
-                    failure_os << "Check enable double backprop failure on gradient " << i << " (Total gradients: " << grads.size() << ")\n"
-                               << "Graph name: " << graph_id << "\n"
-                               << "IsGradRequired: false\n";
+                    failure_os << "Gradient " << i << " / " << grads.size() << " is not connected to the graph '" << graph_id
+                               << "' even when double-backprop is enabled.";
                 }
             }
         }
@@ -147,28 +144,73 @@ void CheckBackwardComputation(
         double rtol,
         const GraphId& graph_id) {
     std::vector<Array> inputs_copy{inputs};
-    const std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps, graph_id);
+
+    // Compute backward gradients
     const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_copy, grad_outputs, graph_id);
-    if (backward_grads.size() != numerical_grads.size()) {
-        throw GradientCheckError{"Number of gradient arrays mismatched between backprop and numerical grad"};
+    if (backward_grads.size() != inputs.size()) {
+        throw GradientCheckError{"Number of input gradients does not match the input arrays."};
+    }
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        if (!backward_grads[i].has_value()) {
+            continue;
+        }
+        const Array& backward_grad = *backward_grads[i];
+        if (backward_grad.shape() != inputs[i].shape()) {
+            throw GradientCheckError{"Shape of input gradient ",
+                                     i,
+                                     " of ",
+                                     inputs.size(),
+                                     " ",
+                                     backward_grad.shape(),
+                                     " does not match the corresponding input shape ",
+                                     inputs[i].shape(),
+                                     "."};
+        }
+        if (backward_grad.dtype() != inputs[i].dtype()) {
+            throw GradientCheckError{"Dtype of input gradient ",
+                                     i,
+                                     " of ",
+                                     inputs.size(),
+                                     " ",
+                                     GetDtypeName(backward_grad.dtype()),
+                                     " does not match the corresponding input dtype ",
+                                     GetDtypeName(inputs[i].dtype()),
+                                     "."};
+        }
     }
 
+    // Compute numerical gradients
+    const std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps, graph_id);
+
+    // If you're trapped in any of these asserts, numerical gradiends must be implemented incorrectly.
+    assert(numerical_grads.size() == inputs.size());
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        assert(numerical_grads[i].shape() == inputs[i].shape());
+        assert(numerical_grads[i].dtype() == inputs[i].dtype());
+    }
+
+    // Check consistency between backward gradients and numeric gradients.
     std::ostringstream failure_os;
-    const int nin = backward_grads.size();
-    for (int i = 0; i < nin; ++i) {
-        if (backward_grads[i]) {  // All inputs do not necessarily require gradients
-            if (!AllClose(*backward_grads[i], numerical_grads[i], atol, rtol)) {
-                failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
-                           << "Graph name: " << graph_id << "\n"
-                           << "Atol: " << atol << "\n"
-                           << "Rtol: " << rtol << "\n"
-                           << "Eps (perturbation):\n"
-                           << eps[i] << "\n"
-                           << "Backward gradients:\n"
-                           << *backward_grads[i] << "\n"
-                           << "Numerical gradients:\n"
-                           << numerical_grads[i];
-            }
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        if (!backward_grads[i].has_value()) {
+            continue;
+        }
+
+        const Array& backward_grad = *backward_grads[i];
+        const Array& numerical_grad = numerical_grads[i];
+        if (!AllClose(backward_grad, numerical_grad, atol, rtol)) {
+            failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
+                       << "Graph name: " << graph_id << "\n"
+                       << "Atol: " << atol << "\n"
+                       << "Rtol: " << rtol << "\n"
+                       << "Eps (perturbation):\n"
+                       << eps[i] << "\n"
+                       << "Error:\n"
+                       << backward_grad - numerical_grad << "\n"  // TODO(niboshi): Use abs
+                       << "Backward gradients:\n"
+                       << backward_grad << "\n"
+                       << "Numerical gradients:\n"
+                       << numerical_grad;
         }
     }
 
@@ -250,8 +292,7 @@ void CheckDoubleBackwardComputation(
     }
 
     std::ostringstream failure_os;
-    const int n_backward_grads = backward_grads.size();
-    for (int i = 0; i < n_backward_grads; ++i) {
+    for (size_t i = 0; i < backward_grads.size(); ++i) {
         if (!backward_grads[i].has_value()) {
             failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
                        << "Graph name: " << graph_id << "\n"
