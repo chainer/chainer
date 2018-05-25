@@ -50,6 +50,7 @@ CudaDevice::~CudaDevice() {
 }
 
 cublasHandle_t CudaDevice::cublas_handle() {
+    // TODO(sonots): Thread-safe. Another handle has to be created for another thread.
     if (!cublas_handle_) {
         CheckCudaError(cudaSetDevice(index()));
         CheckCublasError(cublasCreate(&cublas_handle_));
@@ -58,6 +59,7 @@ cublasHandle_t CudaDevice::cublas_handle() {
 }
 
 cudnnHandle_t CudaDevice::cudnn_handle() {
+    // TODO(sonots): Thread-safe. Another handle has to be created for another thread.
     if (!cudnn_handle_) {
         CheckCudaError(cudaSetDevice(index()));
         CheckCudnnError(cudnnCreate(&cudnn_handle_));
