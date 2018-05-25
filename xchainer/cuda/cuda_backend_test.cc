@@ -313,22 +313,25 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceTo) {
 
 class EnvScope {
 public:
-    EnvScope(const char* name, const char* value) : name_(name) {
-        old_value_ = getenv(name_);
-        setenv(name_, value, 1);
+    EnvScope(const std::string& name, const std::string& value) : name_(name) {
+        const char* old_value = getenv(name_.c_str());
+        if (old_value) {
+            old_value_ = std::string(old_value);
+        }
+        setenv(name_.c_str(), value.c_str(), 1);
     }
 
     ~EnvScope() {
         if (old_value_) {
-            setenv(name_, old_value_, 1);
+            setenv(name_.c_str(), old_value_->c_str(), 1);
         } else {
-            unsetenv(name_);
+            unsetenv(name_.c_str());
         }
     }
 
 private:
-    const char* name_{};
-    char* old_value_{};
+    const std::string name_{};
+    nonstd::optional<std::string> old_value_{};
 };
 
 TEST(CudaBackendTest, GetMaxWorkspaceSize) {
