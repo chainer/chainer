@@ -39,7 +39,6 @@ If you are using Chainer v4 or later, you can check version configuration by:
 Generally, Chainer team is maintaining the API between minor updates (e.g., v4.0 to v4.1) so that users can upgrade Chainer without modifying the code (see :doc:`compatibility` for our policy).
 As for major updates, please refer to the :doc:`upgrade` to understand what should be done for migration.
 
-
 Enable Hardware Accelerations
 -----------------------------
 
@@ -56,7 +55,7 @@ When using GPU, also make sure to install cuDNN, which is a library to accelerat
 
 .. note::
 
-    If you wish, you can manually enable/disable use of cuDNN using ``chainer.config.use_cudnn`` configuration option.
+    If you wish, you can manually disable use of cuDNN using ``chainer.config.use_cudnn`` configuration option.
     See :doc:`reference/configuration` for details.
 
 Using CPU
@@ -78,11 +77,10 @@ See `Numpy/Scipy with Intel® MKL and Intel® Compilers <https://software.intel.
     Use of iDeep and MKL-linked NumPy are orthogonal.
     You can use both of them at once to maximize the performance.
 
-
 Migrate Data Preprocessing Code from NumPy to CuPy
 --------------------------------------------------
 
-If you are preprocessing your dataset or running data augmentation using NumPy, you may be able to use CuPy as a substitution.
+If you are preprocessing your dataset or running data augmentation using NumPy, you may be able to use CuPy as a substitution to improve performance.
 
 .. note::
 
@@ -92,7 +90,7 @@ Avoid Data Transfer
 -------------------
 
 If you are using GPU, be aware of data transfer between CPU and GPU.
-For example, ``print``\ing :class:`chainer.Variable` on GPU (e.g., for debugging) will cause memory transfer from GPU to CPU, which will 
+For example, ``print``\ing :class:`chainer.Variable` on GPU (e.g., for debugging) will cause memory transfer from GPU to CPU, which will incur synchronization overhead.
 
 You can use `NVIDIA Visual Profiler <https://docs.nvidia.com/cuda/profiler-users-guide/>`__ to diagnose this kind of issue.
 
@@ -133,12 +131,12 @@ See :doc:`reference/configuration` for detailed descriptions.
 
 .. note::
 
-    Auto-tuning feature always uses the maximum workspace size.
+    Auto-tuner always use the maximum workspace size.
 
 Fine-Tune Configuration
 -----------------------
 
-There are some configuration values that affect performance.
+There are some Chainer configuration values that affect performance.
 Although the default values work well in most cases, you can adjust the following configurations for better performance.
 
 * ``enable_backprop``
@@ -147,8 +145,10 @@ Although the default values work well in most cases, you can adjust the followin
 
 * ``type_check``
 
-  Set this configuration to ``False`` to improve performance by letting Chainer skip checking the integrity of input data and functions.
-  It is recommended to turn off this option only for well-tested code and input data.
+  By default, Chainer checks the integrity between input data and functions.
+  This makes possible to display friendly message when, for example, data with invalid dtype or shape is given to a function.
+  By setting this configuration to ``False``, you can let Chainer skip such check to improve performance.
+  It is recommended to turn off the check only for well-tested code and input data.
 
 See :doc:`reference/configuration` for detailed descriptions.
 
@@ -162,7 +162,7 @@ Use Multiple GPUs
 
 You can utilize multiple GPUs to make the training process faster.
 
-For data parallelism, you can use :class:`chainer.training.updaters.ParallelUpdater` instead of :class:`chainer.training.updaters.StandardUpdater`.
+For data parallelism, you can use :class:`chainer.training.updaters.ParallelUpdater` or :class:`chainer.training.updaters.MultiprocessParallelUpdater` instead of :class:`chainer.training.updaters.StandardUpdater`.
 For model parallelism, you need to manually transfer each :class:`chainer.Link` in your model to each device.
 
 See :doc:`guides/gpu` for the working examples of each case.
