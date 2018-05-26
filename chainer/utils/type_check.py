@@ -503,8 +503,8 @@ Invalid operation is performed in: {0} (Forward)
         self.actual = actual
 
 
-def args(in_types, names):
-    """Assigns the user friendly name for the input type.
+def argname(in_types, names):
+    """Assigns user friendly names for the input types.
 
     This function also asserts that lenghts of in_types and names are the
     same.
