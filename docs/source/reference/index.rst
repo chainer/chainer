@@ -20,5 +20,6 @@ Reference
    configuration
    debug
    graph
+   static_graph
    caffe
    check

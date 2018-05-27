@@ -2,12 +2,7 @@ import contextlib
 
 import chainer
 
-from scipy import stats # fixme: remove after debug
-import numpy as np # fixme: remove after debug
-
-# These function are intended to by called from chainer.FunctionNode and
-# chainer.Variable. They should not be directly called from user code.
-
+# These function are intended to by called from chainer.FunctionNode.
 
 def is_static_func(func):
     """Check if the function node is included in a static schedule.
@@ -17,62 +12,6 @@ def is_static_func(func):
             schedule. Otherwise, return False.
     """
     return hasattr(func, 'schedule_func')
-
-
-def get_static_schedule(func):
-    """Get the forward static schedule that contains the supplied function node.
-
-    If the supplied function node is contained in a static schedule, return
-    the static schedule. Otherwise, return ``None``. Note in order for
-    ``func`` to be contained in a static schedule, ``func`` must have already
-    been called in the forward pass from a ``@static_graph``-decorated
-    chain.
-
-    Args:
-        func (FunctionNode): The supplied function node.
-
-    Returns:
-        StaticScheduleFunction or None: Depending on whether or not the
-        supplied function is contained in a static schedule.
-    """
-    return getattr(func, 'schedule_func', None)
-
-
-def is_trace_mode():
-    """Check if trace mode is on.
-
-    If this function is called by the define-by-run code of a @static_graph
-    decorated ``__call__()`` of a chain, return True.
-
-    Returns:
-        bool: True if trace mode is on. Otherwise, return False.
-    """
-    return chainer.config.schedule_func is not None
-
-
-def mark_static_vars(input_vars):
-    """Mark variables as static if inside a static chain.
-
-    If trace mode is currently on, set the ``is_static`` attribute of
-    each variable in ``input_vars`` to True.
-    This is needed since cleargrads() sets the `grad` members of
-    the parameters to `None`. Since the static subgraph optimizations
-    currently assumes that all parameters in a static chain are allocated
-    statically, setting the `grad` members to `None` would break the
-    functionality and so this function is used to mark parameters in
-    a static chain as being "static" and modifying `cleargrads()` to
-    check only set non-static parmaeters' `grad` members to `None`.
-
-    Args:
-        input_vars (list of variable): The supplied list of variables
-            (including parameters).
-
-    """
-    if is_trace_mode():
-        for var in input_vars:
-            var.is_static = True
-
-
 
 def static_schedule_func(*dec_args, **dec_kwargs):
     """Decorator to mark a function for inclusion in the forward schedule.

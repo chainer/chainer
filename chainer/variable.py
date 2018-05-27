@@ -14,7 +14,6 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
-from chainer.graph_optimizations.static_graph_utilities import is_static_func
 
 
 def _check_grad_type(func, x, gx):
@@ -488,7 +487,6 @@ Actual: {0}'''.format(type(data))
         self._requires_grad = requires_grad
         self._node = VariableNode(self, name)
         self._grad_var = None if grad is None else Variable(grad)
-        self.is_static = False
         self._loss_scale = None
 
     def __copy__(self):
@@ -1046,12 +1044,6 @@ Actual: {0}'''.format(type(data))
                     grad = chainer.functions.add(*grad)
                     set_grad(y, grad)
             out_grad = tuple([get_grad(y) for y in outputs])
-            # Check if func was called as part of a static chain in the
-            # forward pass.
-            #if is_static_func(func):
-                #check_func_backward_outputs(func, out_grad)
-                # Force retain_grad mode for any functions in a static chain.
-                #assert retain_grad is True # fixme: remove check after debug.
 
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])

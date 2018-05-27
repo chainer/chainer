@@ -58,7 +58,7 @@ class RNNForLMUnrolled(chainer.Chain):
             self.rnn = RNNForLMSlice(n_vocab, n_units)
 
     #@static_graph(enable_double_backprop=True, verbosity_level=2)
-    @static_graph(enable_double_backprop=False, verbosity_level=0, force_test_define_by_run=True)
+    @static_graph(enable_double_backprop=False, verbosity_level=1, force_test_define_by_run=True)
     def __call__(self, words):
         """
 

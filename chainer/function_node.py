@@ -16,8 +16,6 @@ from chainer.utils import experimental
 from chainer.utils import type_check
 from chainer import variable
 from chainer.graph_optimizations.static_graph_utilities import static_forward_optimizations
-from chainer.graph_optimizations.static_graph_utilities import mark_static_vars
-from chainer.graph_optimizations.static_graph_utilities import is_static_func
 
 class FunctionNode(object):
 
@@ -226,8 +224,6 @@ Use apply() method instead.\
 
         """
         input_vars = [chainer.as_variable(x) for x in inputs]
-
-        mark_static_vars(input_vars)
 
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
@@ -926,9 +922,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         for y_ref in func.outputs:
             y = y_ref()
             if y is not None and y in grads and y not in input_nodes:
-                if not is_static_func(func):
-                    # todo (vogel): make sure this is necessary.
-                    del grads[y]
+                del grads[y]
 
         # Update grads
         selected_inputs = set()
