@@ -169,8 +169,8 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             main = devices.pop('main')
             devices = list(six.itervalues(devices))
             devices = [main] + devices
-        elif isinstance(devices, list):
-            pass
+        elif isinstance(devices, (list, tuple)):
+            devices = list(devices)
         else:
             raise ValueError(
                 'devices argument should be either dict or list, '
