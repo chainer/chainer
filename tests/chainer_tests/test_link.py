@@ -1786,7 +1786,7 @@ class TestCallMethod(unittest.TestCase):
         model.mock.assert_called_with(0)
 
     def test_no_call_no_forward(self):
-        with self.assertRaisesRegex(TypeError, 'neither'):
+        with self.assertRaises(TypeError):
             self.model(0)
 
 
