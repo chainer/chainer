@@ -154,10 +154,6 @@ TEST_P(ConnectionTest, ConvDoubleBackward) {
 }
 
 TEST_P(ConnectionTest, ConvTranspose) {
-    if (GetParam() == "cuda") {
-        // TODO(hvy): Add CUDA implementation
-        return;
-    }
     int64_t batch_size = 2;
     int64_t in_channels = 3;
     int64_t out_channels = 2;

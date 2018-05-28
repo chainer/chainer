@@ -729,13 +729,6 @@ Array NativeDevice::Conv(
 
 namespace {
 
-int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all = false) {
-    if (cover_all) {
-        return stride * (in_dim - 1) + kernel_size - stride + 1 - 2 * pad;
-    }
-    return stride * (in_dim - 1) + kernel_size - 2 * pad;
-}
-
 Array Col2Im(
         const Array& col,
         const StackVector<int64_t, kMaxNdim>& stride,
@@ -806,7 +799,7 @@ Array NativeDevice::ConvTranspose(
         out_size_value = *out_size;
     } else {
         for (size_t i = 0; i < stride.size(); ++i) {
-            out_size_value.emplace_back(GetConvTransposeOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i]));
+            out_size_value.emplace_back(internal::GetConvTransposeOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i]));
         }
     }
 
