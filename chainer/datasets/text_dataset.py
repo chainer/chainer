@@ -135,7 +135,8 @@ class TextDataset(dataset_mixin.DatasetMixin):
                 errors=errors,
                 newline=newline,
             ) for path, encoding, errors, newline in
-                zip(self._paths, self._encoding, self._errors, self._newline)
+            six.moves.zip(self._paths, self._encoding, self._errors,
+                          self._newline)
         ]
 
     def get_example(self, idx):
