@@ -22,6 +22,6 @@ From the left side: input, output, ground_truth
 # Using other datasets
 - Gather image pairs (e.g. label + photo). Several hundred pairs are required for good results.
 - Create a copy of `facade_dataset.py` for your dataset. The function get_example should be written so that it returns the i-th image pair a tuple of numpy arrays i.e. `(input, output)`.
-- It maybe necessary to update the loss function in `updater.py`.
+- It may be necessary to update the loss function in `updater.py`.
 - Likewise, make a copy of `facade_visualizer.py` and modify to visualize the dataset.
 - In `train_facade.py` change `in_ch` and `out_ch` to the correct input and output channels for your data.
