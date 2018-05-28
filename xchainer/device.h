@@ -8,7 +8,10 @@
 
 #include "xchainer/axes.h"
 #include "xchainer/backend.h"
+#include "xchainer/constant.h"
 #include "xchainer/scalar.h"
+#include "xchainer/shape.h"
+#include "xchainer/stack_vector.h"
 
 namespace xchainer {
 
@@ -157,6 +160,15 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all) = 0;
 
+    virtual Array ConvGradWeight(
+            Dtype w_dtype,
+            const Shape& w_shape,
+            const Array& x,
+            const Array& gy,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            bool cover_all) = 0;
+
     // Computes the n-dimensional transposed convolution.
     //
     // x: (batch_size, in_channels, in_1, in_2, ..., in_n)
@@ -170,7 +182,7 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) = 0;
+            const StackVector<int64_t, kMaxNdim>& out_size) = 0;
 
     virtual void Synchronize() = 0;
 
