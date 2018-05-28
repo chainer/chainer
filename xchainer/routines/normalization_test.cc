@@ -37,7 +37,6 @@ TEST_P(NormalizationTest, BatchNormalization) {
 
     Shape x_shape{3, 1, 4, 4};
     Shape reduced{1, 4, 4};
-    Axes axis{0};
     float eps = 2e-5f;
     float decay = 0.9f;
 
@@ -46,7 +45,7 @@ TEST_P(NormalizationTest, BatchNormalization) {
     Array beta = testing::BuildArray(reduced).WithLinearData<T>();
     Array running_mean = testing::BuildArray(reduced).WithLinearData<T>();
     Array running_var = testing::BuildArray(reduced).WithLinearData<T>();
-    Array out = BatchNormalization(a, gamma, beta, running_mean, running_var, eps, decay, axis);
+    Array out = BatchNormalization(a, gamma, beta, running_mean, running_var, eps, decay);
 
     Array e_out = testing::BuildArray(x_shape).WithData<float>(
             {0.,        -0.2247448, -0.4494896, -0.6742344, -0.8989792, -1.123724, -1.3484688, -1.5732136, -1.7979584, -2.0227032,
@@ -89,6 +88,41 @@ TEST_P(NormalizationTest, BatchNormalization) {
                                                                         38.2,
                                                                         39.100002});  // Computed with Chainer.
     testing::ExpectEqual(e_out, out);
+    testing::ExpectAllClose(e_running_mean, running_mean, 1e-5f, 1e-5f);
+    testing::ExpectAllClose(e_running_var, running_var, 1e-5f, 1e-5f);
+}
+
+TEST_P(NormalizationTest, BatchNormalizationWithAxis) {
+    if (GetParam() == "cuda") {
+        // TODO(hvy): Add CUDA implementation
+        return;
+    }
+    using T = float;
+
+    Shape x_shape{3, 1, 4, 4};
+    Shape reduced{4};
+    Axes axis{0, 1, 2};
+    float eps = 2e-5f;
+    float decay = 0.9f;
+
+    Array a = testing::BuildArray(x_shape).WithLinearData<T>();
+    Array gamma = testing::BuildArray(reduced).WithLinearData<T>();
+    Array beta = testing::BuildArray(reduced).WithLinearData<T>();
+    Array running_mean = testing::BuildArray(reduced).WithLinearData<T>();
+    Array running_var = testing::BuildArray(reduced).WithLinearData<T>();
+    Array out = BatchNormalization(a, gamma, beta, running_mean, running_var, eps, decay, axis);
+
+    Array e_out = testing::BuildArray(x_shape).WithData<float>(
+            {0.,         -0.5932549,  -1.1865098, -1.7797647, 0.,        -0.30357218, -0.60714436, -0.91071653, 0.,        -0.01388955,
+             -0.0277791, -0.04166865, 0.,         0.2757932,  0.5515864, 0.8273797,   0.,          0.56547594,  1.1309519, 1.6964278,
+             0.,         0.8551586,   1.7103173,  2.565476,   0.,        1.1448413,   2.2896826,   3.434524,    0.,        1.434524,
+             2.869048,   4.303572,    0.,         1.7242068,  3.4484136, 5.1726203,   0.,          2.0138896,   4.027779,  6.041669,
+             0.,         2.3035722,   4.6071444,  6.9107165,  0.,        2.593255,    5.18651,     7.7797647});  // Computed with Chainer.
+
+    Array e_running_mean = testing::BuildArray(reduced).WithData<float>({2.2, 3.1999998, 4.2, 5.2});  // Computed with Chainer.
+
+    Array e_running_var = testing::BuildArray(reduced).WithData<float>({20.800001, 21.7, 22.6, 23.5});  // Computed with Chainer.
+    testing::ExpectAllClose(e_out, out, 1e-5f, 1e-5f);
     testing::ExpectAllClose(e_running_mean, running_mean, 1e-5f, 1e-5f);
     testing::ExpectAllClose(e_running_var, running_var, 1e-5f, 1e-5f);
 }

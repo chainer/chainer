@@ -9,6 +9,9 @@
 
 namespace xchainer {
 
+// Returns the batch normalized x, normalized along the given axis.
+// If axis is omitted, the first dimensions is treated as the batch axis and will be reduced during normalization.
+// Running mean and running variance that are passed as arguments will be updated in-place.
 Array BatchNormalization(
         const Array& x,
         const Array& gamma,
