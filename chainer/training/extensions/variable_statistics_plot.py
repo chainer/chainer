@@ -1,25 +1,33 @@
 from __future__ import division
 import os
-import six
 import warnings
 
 import numpy
+import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
 
 
 try:
     import matplotlib
-    _plot_color = matplotlib.colors.to_rgba('#1f77b4')  # C0 color
-    _plot_color_trans = _plot_color[:3] + (0.2,)  # apply alpha
-    _plot_common_kwargs = {
-        'alpha': 0.2, 'linewidth': 0, 'color': _plot_color_trans}
     _available = True
 except ImportError:
     _available = False
+
+
+if _available:
+    if hasattr(matplotlib.colors, 'to_rgba'):
+        _to_rgba = matplotlib.colors.to_rgba
+    else:
+        # For matplotlib 1.x
+        _to_rgba = matplotlib.colors.ColorConverter().to_rgba
+    _plot_color = _to_rgba('#1f77b4')  # C0 color
+    _plot_color_trans = _plot_color[:3] + (0.2,)  # apply alpha
+    _plot_common_kwargs = {
+        'alpha': 0.2, 'linewidth': 0, 'color': _plot_color_trans}
 
 
 def _check_available():
@@ -112,14 +120,14 @@ class Statistician(object):
 
 class VariableStatisticsPlot(extension.Extension):
 
-    """Trainer extension to plot statistics for :class:`Variable`s.
+    """Trainer extension to plot statistics for :class:`Variable`\s.
 
     This extension collects statistics for a single :class:`Variable`, a list
-    of :class:`Variables`s or similarly a single or a list of
-    :class:`Link`s containing one or more :class:`Variable`s. In case multiple
-    :class:`Variable`s are found, the means are computed. The collected
-    statistics are plotted and saved as an image in the directory specified by
-    the :class:`Trainer`.
+    of :class:`Variable`\s or similarly a single or a list of
+    :class:`Link`\s containing one or more :class:`Variable`\s. In case
+    multiple :class:`Variable`\s are found, the means are computed. The
+    collected statistics are plotted and saved as an image in the directory
+    specified by the :class:`Trainer`.
 
     Statistics include mean, standard deviation and percentiles.
 

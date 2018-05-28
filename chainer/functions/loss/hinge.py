@@ -176,11 +176,11 @@ def hinge(x, t, norm='L1', reduce='mean'):
         is 3.
 
         >>> x = np.array([[-2.0, 3.0, 0.5],
-        ...               [5.0, 2.0, -0.5]]).astype('f')
+        ...               [5.0, 2.0, -0.5]]).astype(np.float32)
         >>> x
         array([[-2. ,  3. ,  0.5],
                [ 5. ,  2. , -0.5]], dtype=float32)
-        >>> t = np.array([1, 0]).astype('i')
+        >>> t = np.array([1, 0]).astype(np.int32)
         >>> t
         array([1, 0], dtype=int32)
         >>> F.hinge(x, t)

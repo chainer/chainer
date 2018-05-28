@@ -145,11 +145,12 @@ def sigmoid_cross_entropy(x, t, normalize=True, reduce='mean'):
 
     .. admonition:: Example
 
-        >>> x = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).astype('f')
+        >>> x = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).\
+astype(np.float32)
         >>> x
         array([[-2. ,  3. ,  0.5],
                [ 5. ,  2. , -0.5]], dtype=float32)
-        >>> t = np.array([[0, 1, 0], [1, 1, -1]]).astype('i')
+        >>> t = np.array([[0, 1, 0], [1, 1, -1]]).astype(np.int32)
         >>> t
         array([[ 0,  1,  0],
                [ 1,  1, -1]], dtype=int32)

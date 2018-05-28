@@ -80,7 +80,7 @@ def squeeze(x, axis=None):
 
     .. admonition:: Example
 
-        >>> x = np.array([[[[0, 1, 2]]], [[[3, 4, 5]]]], 'f')
+        >>> x = np.array([[[[0, 1, 2]]], [[[3, 4, 5]]]], np.float32)
         >>> x.shape
         (2, 1, 1, 3)
         >>> y = F.squeeze(x)

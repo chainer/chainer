@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -77,6 +77,17 @@ class TestMeanAbsoluteError(unittest.TestCase):
                                    cuda.to_gpu(self.gy),
                                    cuda.to_gpu(self.ggx0),
                                    cuda.to_gpu(self.ggx1))
+
+    # test for #4669
+    @attr.multi_gpu(2)
+    def test_backward_non_default_gpu(self):
+        x0 = chainer.Variable(cuda.to_gpu(self.x0, 1))
+        x1 = chainer.Variable(cuda.to_gpu(self.x1, 1))
+        gy = cuda.to_gpu(self.gy, 1)
+        with cuda.get_device_from_id(0):
+            y = functions.mean_absolute_error(x0, x1)
+            y.grad = gy
+            y.backward()
 
 
 testing.run_module(__name__, __file__)

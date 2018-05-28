@@ -32,9 +32,9 @@ def crf1d(cost, xs, ys, reduce='mean'):
        lengths and transpose the sequences.
        For example, you have three input sequences:
 
-       >>> a1 = a2 = a3 = a4 = np.random.uniform(-1, 1, 3).astype('f')
-       >>> b1 = b2 = b3 = np.random.uniform(-1, 1, 3).astype('f')
-       >>> c1 = c2 = np.random.uniform(-1, 1, 3).astype('f')
+       >>> a1 = a2 = a3 = a4 = np.random.uniform(-1, 1, 3).astype(np.float32)
+       >>> b1 = b2 = b3 = np.random.uniform(-1, 1, 3).astype(np.float32)
+       >>> c1 = c2 = np.random.uniform(-1, 1, 3).astype(np.float32)
 
        >>> a = [a1, a2, a3, a4]
        >>> b = [b1, b2, b3]
@@ -56,8 +56,8 @@ def crf1d(cost, xs, ys, reduce='mean'):
        And then, call the function:
 
        >>> cost = chainer.Variable(
-       ...     np.random.uniform(-1, 1, (3, 3)).astype('f'))
-       >>> ys = [np.zeros(x.shape[0:1], dtype='i') for x in xs]
+       ...     np.random.uniform(-1, 1, (3, 3)).astype(np.float32))
+       >>> ys = [np.zeros(x.shape[0:1], dtype=np.int32) for x in xs]
        >>> loss = F.crf1d(cost, xs, ys)
 
        It calculates mean of the negative log-likelihood of the three
@@ -96,7 +96,7 @@ def crf1d(cost, xs, ys, reduce='mean'):
 
         See detail in the original paper: `Conditional Random Fields:
         Probabilistic Models for Segmenting and Labeling Sequence Data
-        <http://repository.upenn.edu/cis_papers/159/>`_.
+        <https://repository.upenn.edu/cis_papers/159/>`_.
 
     """
     if reduce not in ('mean', 'no'):

@@ -253,10 +253,10 @@ def slstm(c_prev1, c_prev2, x1, x2):
         Most typical preparation of ``x1``, ``x2`` is:
 
         >>> n_units = 100
-        >>> h1 = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> h2 = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> c1 = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> c2 = chainer.Variable(np.zeros((1, n_units), 'f'))
+        >>> h1 = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> h2 = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> c1 = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> c2 = chainer.Variable(np.zeros((1, n_units), np.float32))
         >>> model1 = chainer.Chain()
         >>> with model1.init_scope():
         ...   model1.w = L.Linear(n_units, 4 * n_units)

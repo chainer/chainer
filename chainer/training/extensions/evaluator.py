@@ -53,7 +53,7 @@ class Evaluator(extension.Extension):
             just a link object, the link is registered by the name ``'main'``.
         converter: Converter function to build input arrays.
             :func:`~chainer.dataset.concat_examples` is used by default.
-        device: Device to which the training data is sent. Negative value
+        device: Device to which the validation data is sent. Negative value
             indicates the host memory (CPU).
         eval_hook: Function to prepare for each evaluation process. It is
             called at the beginning of the evaluation. The evaluator extension
@@ -63,7 +63,7 @@ class Evaluator(extension.Extension):
 
     Attributes:
         converter: Converter function.
-        device: Device to which the training data is sent.
+        device: Device to which the validation data is sent.
         eval_hook: Function to prepare for each evaluation process.
         eval_func: Evaluation function called at each iteration.
 

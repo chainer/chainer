@@ -55,7 +55,7 @@ class FunctionHook(object):
         ...     return F.exp(self.l(x1))
         >>> model1 = Model()
         >>> model2 = Model()
-        >>> x = chainer.Variable(np.zeros((1, 10), 'f'))
+        >>> x = chainer.Variable(np.zeros((1, 10), np.float32))
         >>> with chainer.function_hooks.TimerHook() as m:
         ...   _ = model1(x)
         ...   y = model2(x)

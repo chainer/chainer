@@ -1,7 +1,8 @@
 import numpy
 
 from chainer.backends import cuda
-from chainer import function
+from chainer import function_node
+import chainer.functions
 from chainer.utils import type_check
 from chainer import variable
 
@@ -21,7 +22,7 @@ def _matmul(a, b, xp):
         return xp.matmul(a, b)
 
 
-class SimplifiedDropconnect(function.Function):
+class SimplifiedDropconnect(function_node.FunctionNode):
 
     """Linear unit regularized by simplified dropconnect."""
 
@@ -60,6 +61,7 @@ class SimplifiedDropconnect(function.Function):
                 type_check.expect(self.mask.shape == w_type.shape)
 
     def forward(self, inputs):
+        self.retain_inputs((0, 1))
         scale = inputs[1].dtype.type(1. / (1 - self.ratio))
         xp = cuda.get_array_module(*inputs)
 
@@ -89,26 +91,45 @@ class SimplifiedDropconnect(function.Function):
             y += b
         return y,
 
-    def backward(self, inputs, grad_outputs):
+    def backward(self, indexes, grad_outputs):
+        inputs = self.get_retained_inputs()
+        ret = []
+
         scale = inputs[1].dtype.type(1. / (1 - self.ratio))
         x = _as_mat(inputs[0])
-        W = inputs[1] * scale * self.mask
-        gy = grad_outputs[0]
-        xp = cuda.get_array_module(*inputs)
 
-        # ij,(i)jk->ik
-        gx = _matmul(gy[:, None, :], W, xp).reshape(inputs[0].shape)
-        gx = gx.astype(x.dtype, copy=False)
-
-        # ij,ik,ijk->jk
-        gW = (gy[:, :, None] * x[:, None, :] * self.mask).sum(0) * scale
-        gW = gW.astype(W.dtype, copy=False)
-
-        if len(inputs) == 3:
-            gb = gy.sum(0)
-            return gx, gW, gb
+        W = inputs[1]
+        if self.use_batchwise_mask:
+            W = chainer.functions.broadcast_to(
+                W, self.mask.shape) * scale * self.mask
         else:
-            return gx, gW
+            W = chainer.functions.broadcast_to(
+                W * scale * self.mask, (x.shape[0],) + self.mask.shape)
+        gy = grad_outputs[0]
+
+        if 0 in indexes:
+            # ij,(i)jk->ik
+            gx = chainer.functions.matmul(
+                gy[:, None, :], W).reshape(inputs[0].shape)
+            gx = chainer.functions.cast(gx, x.dtype)
+            ret.append(gx)
+
+        if 1 in indexes:
+            # ij,ik,ijk->jk
+            gy2 = gy[:, :, None]
+            x2 = x[:, None, :]
+            shape = (gy2.shape[0], gy2.shape[1], x2.shape[2])
+            gy2 = chainer.functions.broadcast_to(gy2, shape)
+            x2 = chainer.functions.broadcast_to(x2, shape)
+            gW = chainer.functions.sum(gy2 * x2 * self.mask, axis=0) * scale
+            gW = chainer.functions.cast(gW, W.dtype)
+            ret.append(gW)
+
+        if 2 in indexes:
+            gb = chainer.functions.sum(gy, axis=0)
+            ret.append(gb)
+
+        return ret
 
 
 def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None,
@@ -165,11 +186,13 @@ def simplified_dropconnect(x, W, b=None, ratio=.5, train=True, mask=None,
         Li, W., Matthew Z., Sixin Z., Yann L., Rob F. (2013).
         Regularization of Neural Network using DropConnect.
         International Conference on Machine Learning.
-        `URL <http://cs.nyu.edu/~wanli/dropc/>`_
+        `URL <https://cs.nyu.edu/~wanli/dropc/>`_
     """
     if not train:
         ratio = 0
     if b is None:
-        return SimplifiedDropconnect(ratio, mask, use_batchwise_mask)(x, W)
+        return SimplifiedDropconnect(
+            ratio, mask, use_batchwise_mask).apply((x, W))[0]
     else:
-        return SimplifiedDropconnect(ratio, mask, use_batchwise_mask)(x, W, b)
+        return SimplifiedDropconnect(
+            ratio, mask, use_batchwise_mask).apply((x, W, b))[0]

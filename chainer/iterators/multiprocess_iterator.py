@@ -11,6 +11,7 @@ import numpy
 import six
 
 from chainer.dataset import iterator
+from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
 _response_time = 1.
@@ -42,12 +43,20 @@ class MultiprocessIterator(iterator.Iterator):
             Otherwise, it stops iteration at the end of the first epoch.
         shuffle (bool): If ``True``, the order of examples is shuffled at the
             beginning of each epoch. Otherwise, examples are extracted in the
-            order of indexes.
+            order of indexes. If ``None`` and no ``order_sampler`` is given,
+            the behavior is the same as the case with ``shuffle=True``.
         n_processes (int): Number of worker processes. The number of CPUs is
             used by default.
         n_prefetch (int): Number of prefetch batches.
         shared_mem (int): The size of using shared memory per data.
             If ``None``, size is adjusted automatically.
+        order_sampler (callable): A callable that generates the order
+            of the indices to sample in the next epoch when a epoch finishes.
+            This function should take two arguements: the current order
+            and the current position of the iterator.
+            This should return the next order. The size of the order
+            should remain constant.
+            This option cannot be used when ``shuffle`` is not ``None``.
 
     """
 
@@ -56,8 +65,9 @@ class MultiprocessIterator(iterator.Iterator):
     _comm = None
     _thread = None
 
-    def __init__(self, dataset, batch_size, repeat=True, shuffle=True,
-                 n_processes=None, n_prefetch=1, shared_mem=None):
+    def __init__(self, dataset, batch_size, repeat=True, shuffle=None,
+                 n_processes=None, n_prefetch=1, shared_mem=None,
+                 order_sampler=None):
         self.dataset = dataset
         self.batch_size = batch_size
         self.repeat = repeat
@@ -67,12 +77,27 @@ class MultiprocessIterator(iterator.Iterator):
         self.n_prefetch = max(n_prefetch, 1)
         self.shared_mem = shared_mem
 
+        if self.shuffle is not None:
+            if order_sampler is not None:
+                raise ValueError('`shuffle` is not `None` and a custom '
+                                 '`order_sampler` is set. Please set '
+                                 '`shuffle` to `None` to use the custom '
+                                 'order sampler.')
+            else:
+                if self.shuffle:
+                    order_sampler = ShuffleOrderSampler()
+        else:
+            if order_sampler is None:
+                order_sampler = ShuffleOrderSampler()
+        self.order_sampler = order_sampler
+
         self._comm = _Communicator(self.n_prefetch)
         self.reset()
 
         self._prefetch_loop = _PrefetchLoop(
-            self.dataset, self.batch_size, self.repeat, self.shuffle,
-            self.n_processes, self.n_prefetch, self.shared_mem, self._comm,
+            self.dataset, self.batch_size, self.repeat,
+            self.n_processes, self.n_prefetch, self.shared_mem,
+            self._comm, self.order_sampler,
             self._interruption_testing)
         # defer launching prefetch thread until creating the worker pool,
         # not to leave a background thread in forked processes.
@@ -116,10 +141,17 @@ class MultiprocessIterator(iterator.Iterator):
 
     finalize = __del__
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.finalize()
+
     def __copy__(self):
         other = MultiprocessIterator(
-            self.dataset, self.batch_size, self.repeat, self.shuffle,
-            self.n_processes, self.n_prefetch, self.shared_mem)
+            self.dataset, self.batch_size, self.repeat, shuffle=None,
+            n_processes=self.n_processes, n_prefetch=self.n_prefetch,
+            shared_mem=self.shared_mem, order_sampler=self.order_sampler)
 
         other.current_position = self.current_position
         other.epoch = self.epoch
@@ -132,7 +164,7 @@ class MultiprocessIterator(iterator.Iterator):
 
     @property
     def epoch_detail(self):
-        return self.epoch + self.current_position / len(self.dataset)
+        return self.epoch + self.current_position / self._epoch_size
 
     @property
     def previous_epoch_detail(self):
@@ -155,7 +187,7 @@ class MultiprocessIterator(iterator.Iterator):
         except KeyError:
             # guess previous_epoch_detail for older version
             self._previous_epoch_detail = self.epoch + \
-                (self.current_position - self.batch_size) / len(self.dataset)
+                (self.current_position - self.batch_size) / self._epoch_size
             if self.epoch_detail > 0:
                 self._previous_epoch_detail = max(
                     self._previous_epoch_detail, 0.)
@@ -173,12 +205,20 @@ class MultiprocessIterator(iterator.Iterator):
         self.is_new_epoch = False
         # use -1 instead of None internally.
         self._previous_epoch_detail = -1.
-        if self.shuffle:
-            self._order = numpy.random.permutation(len(self.dataset))
+        if self.order_sampler:
+            self._order = self.order_sampler(
+                numpy.arange(len(self.dataset)), 0)
         else:
             self._order = None
 
         self._set_prefetch_state()
+
+    @property
+    def _epoch_size(self):
+        if self._order is None:
+            return len(self.dataset)
+        else:
+            return len(self._order)
 
     def _set_prefetch_state(self):
         prefetch_state = _PrefetchState(
@@ -259,27 +299,20 @@ class _Communicator(object):
 
 class _PrefetchLoop(object):
 
-    def __init__(self, dataset, batch_size, repeat, shuffle,
+    def __init__(self, dataset, batch_size, repeat,
                  n_processes, n_prefetch, mem_size, comm,
+                 order_sampler,
                  _interruption_testing):
         self.dataset = dataset
         self.batch_size = batch_size
         self.repeat = repeat
-        self.shuffle = shuffle
         self.n_processes = n_processes
         self.mem_size = mem_size
         self.comm = comm
+        self.order_sampler = order_sampler
 
         self._allocate_shared_memory()
         self._pool = None
-
-        # Use a distinct RandomState in the thread
-        # for deterministic random number generation.
-        # To support 32-bit platform and numpy < 1.11,
-        # the seed is taken in a verbose manner.
-        seed = numpy.asscalar(
-            numpy.random.randint(-(1 << 31), 1 << 31, 1).astype('uint32'))
-        self._random = numpy.random.RandomState(seed)
 
         self._interruption_testing = _interruption_testing
 
@@ -359,9 +392,9 @@ class _PrefetchLoop(object):
         return True
 
     def _proceed(self):
-        n = len(self.dataset)
         (pos, epoch, is_new_epoch,
             previous_epoch_detail, order) = self.prefetch_state
+        n = len(order) if order is not None else len(self.dataset)
 
         if pos < self.batch_size and epoch > 0 and not self.repeat:
             return None  # stop iteration
@@ -386,7 +419,11 @@ class _PrefetchLoop(object):
             else:
                 indices = order[pos:n]
                 if self.repeat:
-                    order = self._random.permutation(n)
+                    new_order = self.order_sampler(order, pos)
+                    if len(new_order) != n:
+                        raise ValueError('The size of order does not match '
+                                         'the size of the previous order.')
+                    order = new_order
                     indices = \
                         numpy.concatenate((indices, order[:new_pos]))
             epoch += 1

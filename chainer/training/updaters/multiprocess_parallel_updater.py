@@ -38,6 +38,8 @@ class _Worker(multiprocessing.Process):
         self.model.to_gpu(self.device)
         self.reporter = reporter.Reporter()
         self.reporter.add_observer('main', self.model)
+        self.reporter.add_observers('main',
+                                    self.model.namedlinks(skipself=True))
 
     def run(self):
         dev = cuda.Device(self.device)
@@ -122,6 +124,18 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
                 'requires NCCL.\n'
                 'Please reinstall chainer after you install NCCL.\n'
                 '(see https://github.com/chainer/chainer#installation).')
+        try:
+            cuda.cupy.cuda.driver.ctxGetCurrent()
+            _cuda_initialized = True
+        except cuda.cupy.cuda.driver.CUDADriverError:
+            # The context is not initialized, it will be fine.
+            _cuda_initialized = False
+        if _cuda_initialized:
+            raise ValueError(
+                'The CUDA context has been already initialized. '
+                'MultiprocessParallelUpdater assumes the context is '
+                'uninitialized. Please do not call CUDA API before '
+                'MultiprocessParallelUpdater creates processes.')
 
         assert len(iterators) == len(devices)
         for iterator in iterators[1:]:
