@@ -14,9 +14,11 @@ def _extract_gates(x):
     r = x.reshape((x.shape[0], x.shape[1] // 4, 4) + x.shape[2:])
     return (r[:, :, i] for i in six.moves.range(4))
 
+
 def _sigmoid(x, xp=numpy):
     half = x.dtype.type(0.5)
     return xp.tanh(x * half) * half + half
+
 
 def _grad_sigmoid(x):
     return x * (1 - x)
@@ -67,8 +69,6 @@ class SLSTM(function_node.FunctionNode):
         type_check.argname(in_types, ('c_prev1', 'c_prev2', 'x1', 'x2'))
         c1_type, c2_type, x1_type, x2_type = in_types
 
-        print("hoge:c1_type.shape[0]={} x1_type.shape[0]={}".format(c1_type.shape[0], x1_type.shape[0]))
-        print("hoge:x2_type.shape[1]={} c2_type.shape[1]={}".format(x2_type.shape[1], c2_type.shape[1]))
         type_check.expect(
             c1_type.dtype.kind == 'f',
             c2_type.dtype == c1_type.dtype,
@@ -94,12 +94,9 @@ class SLSTM(function_node.FunctionNode):
             type_check.expect(x2_type.shape[i] == c2_type.shape[i])
             type_check.expect(x1_type.shape[i] == x2_type.shape[i])
 
-    def forward_cpu(self, inputs):
-        print("STSTM:forward start")
-        self.retain_inputs((0, 1 ,2, 3))
+    def forward(self, inputs):
+        self.retain_inputs((0, 1, 2, 3))
         c_prev1, c_prev2, x1, x2 = inputs
-#        a1, i1, f1, o1 = _extract_gates(Variable(x1))
-#        a2, i2, f2, o2 = _extract_gates(Variable(x2))
         a1, i1, f1, o1 = _extract_gates(x1)
         a2, i2, f2, o2 = _extract_gates(x2)
 
@@ -130,38 +127,15 @@ class SLSTM(function_node.FunctionNode):
                 'slstm_fwd', preamble=_preamble)(
                     c_prev1, a1, i1, f1, o1, c_prev2, a2, i2, f2, o2)
         self.retain_outputs((0,))
-        print("STSTM:forward end")
         return c, h
 
     def backward(self, indexes, grads):
-        print("STSTM:backward start")
-#        c_prev1, c_prev2, x1, x2 = self.get_retained_inputs()
-#        grad_inputs = (
-#            self.get_retained_inputs() + self.get_retained_outputs() + retained_values + grads)
-#        inputs_data = (c_prev1.data,c_prev2.data,x1.data,x2.data)
         grad_inputs = (
-            self.get_retained_inputs() +
-                self.get_retained_outputs() + grads)
-#        print(grads_outputs)
-#        grad_inputs = (
-#            retained_values + grads_outputs)
-#        grad_inputs = (
-#            self.get_retained_outputs() + grads)
-
-        # () self.get_ratained_inputs: Variable c_prev1,c_prev2,x1,x2
-        # apply grad_inputs : numpy c_next,h,self.a1,...
-        print("STSTM:backward end")
-#        return SLSTMGrad(()).apply(grad_inputs)
+            self.get_retained_inputs() + self.get_retained_outputs() + grads)
         return SLSTMGrad()(*grad_inputs)
-#        return SLSTMGrad(inputs_data).apply(grad_inputs)
+
 
 class SLSTMGrad(function.Function):
-
-#    def __init__(self, inputs):
-#        super(SLSTMGrad, self).__init__()
-
-        # inputs_data
-#        self.c_prev1, self.c_prev2, self.x1, self.x2 = inputs
 
     def forward(self, inputs):
         print("STSTMGrad:forward start")
@@ -176,7 +150,7 @@ class SLSTMGrad(function.Function):
         gx2 = xp.empty_like(x2)
         ga1, gi1, gf1, go1 = _extract_gates(gx1)
         ga2, gi2, gf2, go2 = _extract_gates(gx2)
-        
+
         if gc is None:
             gc = 0
         if gh is None:
@@ -186,7 +160,7 @@ class SLSTMGrad(function.Function):
         a2, i2, f2, o2 = _extract_gates(x2)
         if xp is numpy:
             if intel64.should_use_ideep('>=auto'):
-                xp = intel64.ideep.get_array_module(x)
+                xp = intel64.ideep.get_array_module(x1)
             tanh_a1 = xp.tanh(a1)
             sig_i1 = _sigmoid(i1, xp)
             sig_f1 = _sigmoid(f1, xp)
@@ -237,16 +211,10 @@ class SLSTMGrad(function.Function):
                 'lstm_bwd', preamble=_preamble)(
                     c_prev1, a1, i1, f1, o1,
                     c_prev2, a2, i2, f2, o2,
-                    c, gc, gh,
+                    c_next, gc, gh,
                     gc_prev1, ga1, gi1, gf1, go1,
                     gc_prev2, ga2, gi2, gf2, go2)
 
-#        print("gc_prev1={}".format(gc_prev1))
-#        print("gc_prev2={}".format(gc_prev2))
-#        print("gx1={}".format(gx1))
-#        print("gx2={}".format(gx2))
-        print("STSTMGrad:forward end")
-        print("{} {} {} {}".format(gc_prev1.shape,gc_prev2.shape,gx1.shape,gx2.shape))
         return gc_prev1, gc_prev2, gx1, gx2
 
     def backward(self, inputs, grads):
@@ -259,15 +227,11 @@ class SLSTMGrad(function.Function):
 
         c_prev1, c_prev2, x1, x2, c, gc, gh = inputs
         ggc_prev1, ggc_prev2, ggx1, ggx2 = grads
-        batch = len(x1)
 
-
-#        print("gc={}".format(gc))
-        # input
         if gc is None:
             gc = xp.zeros_like(c)
         if gh is None:
-            gh = xp.zeros_like(c[:batch])
+            gh = xp.zeros_like(c)
         if ggc_prev1 is None:
             ggc_prev1 = xp.zeros_like(c_prev1)
         if ggc_prev2 is None:
@@ -281,22 +245,6 @@ class SLSTMGrad(function.Function):
         ggc = xp.empty_like(ggc_prev1)
         ggh = xp.empty_like(gh)
 
-        gc_prev1[batch:] = 0
-        gc_prev2[batch:] = 0
-        gc_next[batch:] = 0
-        ggc[batch:] = ggc_prev1[batch:]
-        ggh[batch:] = 0
-
-        # input
-        c_prev1 = c_prev1[:batch]
-        c_prev2 = c_prev2[:batch]
-        c = c[:batch]
-        gc = gc[:batch]
-        ggc_prev1 = ggc_prev1[:batch]
-        ggc_prev2 = ggc_prev2[:batch]
-        ggx1 = ggx1[:batch]
-        ggx2 = ggx2[:batch]
-
         a1, i1, f1, o1 = _extract_gates(x1)
         a2, i2, f2, o2 = _extract_gates(x2)
         gga1, ggi1, ggf1, ggo1 = _extract_gates(ggx1)
@@ -306,27 +254,27 @@ class SLSTMGrad(function.Function):
 
         o = o1 + o2
 
-        gc_prev1[:batch], ga1[:], gi1[:], gf1[:], go1[:], \
-        gc_prev2[:batch], ga2[:], gi2[:], gf2[:], go2[:], \
-        gc_next[:batch], ggc[:batch], ggh[:batch] \
+        gc_prev1[:], ga1[:], gi1[:], gf1[:], go1[:], \
+            gc_prev2[:], ga2[:], gi2[:], gf2[:], go2[:], \
+            gc_next[:], ggc[:], ggh[:] \
             = slstm_grad_grad(c_prev1, a1, i1, f1,
-                    c_prev2, a2, i2, f2, o, c, gc, gh,
-                    ggc_prev1, gga1, ggi1, ggf1, ggo1,
-                    ggc_prev2, gga2, ggi2, ggf2, ggo2)
-        print("STSTMGrad:backward end")
+                              c_prev2, a2, i2, f2, o, c, gc, gh,
+                              ggc_prev1, gga1, ggi1, ggf1, ggo1,
+                              ggc_prev2, gga2, ggi2, ggf2, ggo2)
         return gc_prev1, gc_prev2, gx1, gx2, gc_next, ggc, ggh
+
 
 def _cupy_sigmoid(x):
     half = x.dtype.type(0.5)
     return cuda.fusion.tanh(x * half) * half + half
 
+
 @cuda.fuse()
 def slstm_grad_grad(c_prev1, a1, i1, f1,
-        c_prev2, a2, i2, f2, 
-        o, c, gc, gh,
-        ggc_prev1, gga1, ggi1, ggf1, ggo1,
-        ggc_prev2, gga2, ggi2, ggf2, ggo2):
-    print("slstm_grad_grad")
+                    c_prev2, a2, i2, f2,
+                    o, c, gc, gh,
+                    ggc_prev1, gga1, ggi1, ggf1, ggo1,
+                    ggc_prev2, gga2, ggi2, ggf2, ggo2):
     sig_o = _cupy_sigmoid(o)
     gsig_o = _grad_sigmoid(sig_o)
     ggsig_o = _grad_grad_sigmoid(sig_o)
@@ -354,23 +302,20 @@ def slstm_grad_grad(c_prev1, a1, i1, f1,
 
     gc_bar = gh * sig_o * gtanh_c + gc
 
-#    print("HOGE:ggf1={}".format(ggf1))
-#    print("HOGE:gc_bar={}".format(gc_bar))
-#    print("HOGE:gsig_f1={}".format(gsig_f1))
     gc_prev1 = ggf1 * gc_bar * gsig_f1
     gc_prev2 = ggf2 * gc_bar * gsig_f2
     ga1 = (gga1 * sig_i1 * ggtanh_a1 +
-          ggi1 * gtanh_a1 * gsig_i1) * gc_bar
+           ggi1 * gtanh_a1 * gsig_i1) * gc_bar
     ga2 = (gga2 * sig_i2 * ggtanh_a2 +
-          ggi2 * gtanh_a2 * gsig_i2) * gc_bar
+           ggi2 * gtanh_a2 * gsig_i2) * gc_bar
     gi1 = (gga1 * gtanh_a1 * gsig_i1 +
-          ggi1 * tanh_a1 * ggsig_i1) * gc_bar
+           ggi1 * tanh_a1 * ggsig_i1) * gc_bar
     gi2 = (gga2 * gtanh_a2 * gsig_i2 +
-          ggi2 * tanh_a2 * ggsig_i2) * gc_bar
+           ggi2 * tanh_a2 * ggsig_i2) * gc_bar
     gf1 = (ggc_prev1 * (gh * sig_o * gtanh_c + gc) * gsig_f1 +
-          ggf1 * gc_bar * c_prev1 * ggsig_f1)
+           ggf1 * gc_bar * c_prev1 * ggsig_f1)
     gf2 = (ggc_prev2 * (gh * sig_o * gtanh_c + gc) * gsig_f2 +
-          ggf2 * gc_bar * c_prev2 * ggsig_f2)
+           ggf2 * gc_bar * c_prev2 * ggsig_f2)
 
     ggc = (
         ggc_prev1 * sig_f1 +
@@ -387,10 +332,8 @@ def slstm_grad_grad(c_prev1, a1, i1, f1,
     dgc_dc = gh * sig_o * ggtanh_c
     gc_next = ggc * dgc_dc + (ggo1 + ggo2) * gh * gtanh_c * gsig_o
     ggh = ggc * sig_o * gtanh_c + (ggo1 + ggo2) * tanh_c * gsig_o
-    print("slstm_grad_grad End")
-#    print(gc_prev1, ga1, gi1, gf1, go1, gc_prev2, ga2, gi2, gf2, go2, gc_next, ggc, ggh)
-#    return gc_prev1, ga1, gi1, gf1, go1, gc_prev2, ga2, gi2, gf2, go2
-    return gc_prev1, ga1, gi1, gf1, go1, gc_prev2, ga2, gi2, gf2, go2, gc_next, ggc, ggh
+    return gc_prev1, ga1, gi1, gf1, go1, gc_prev2, ga2, gi2, gf2, go2, \
+        gc_next, ggc, ggh
 
 
 def slstm(c_prev1, c_prev2, x1, x2):
