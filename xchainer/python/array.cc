@@ -230,17 +230,26 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("axis") = nullptr);
     c.def("squeeze", [](const ArrayBodyPtr& self, int8_t axis) { return Array{self}.Squeeze(Axes{axis}).move_body(); }, py::arg("axis"));
     c.def("__eq__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} == Array{rhs}).move_body(); });
+    c.def("__neg__", [](const ArrayBodyPtr& self) { return (-Array{self}).move_body(); });
     c.def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).move_body(); });
+    c.def("__iadd__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} += rhs).move_body(); });
     c.def("__isub__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} -= Array{rhs}).move_body(); });
+    c.def("__isub__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} -= rhs).move_body(); });
     c.def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).move_body(); });
+    c.def("__imul__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} *= rhs).move_body(); });
     c.def("__itruediv__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} /= Array{rhs}).move_body(); });
+    c.def("__itruediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} /= rhs).move_body(); });
     c.def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).move_body(); });
+    c.def("__add__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} + rhs).move_body(); });
+    c.def("__radd__", [](const ArrayBodyPtr& self, Scalar lhs) { return (lhs + Array{self}).move_body(); });
     c.def("__sub__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} - Array{rhs}).move_body(); });
+    c.def("__sub__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} - rhs).move_body(); });
+    c.def("__rsub__", [](const ArrayBodyPtr& self, Scalar lhs) { return (lhs - Array{self}).move_body(); });
     c.def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); });
     c.def("__mul__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} * rhs).move_body(); });
     c.def("__rmul__", [](const ArrayBodyPtr& self, Scalar lhs) { return (lhs * Array{self}).move_body(); });
-    c.def("__neg__", [](const ArrayBodyPtr& self) { return (-Array{self}).move_body(); });
     c.def("__truediv__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} / Array{rhs}).move_body(); });
+    c.def("__truediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} / rhs).move_body(); });
     c.def("sum",
           [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return Array{self}.Sum(Axes{axis}, keepdims).move_body(); },
           py::arg("axis"),
