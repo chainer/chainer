@@ -752,7 +752,7 @@ Array NativeDevice::ConvGradWeight(
         col_axes.emplace_back(int64_t{2 + ndim + i});
     }
     return TensorDot(gy, col, out_axes, col_axes).AsType(w_dtype, false);
-};
+}
 
 namespace {
 

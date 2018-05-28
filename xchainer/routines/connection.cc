@@ -1,6 +1,7 @@
 #include "xchainer/routines/connection.h"
 
 #include <cstdint>
+#include <vector>
 
 #include <nonstd/optional.hpp>
 
