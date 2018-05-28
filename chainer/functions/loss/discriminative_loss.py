@@ -1,5 +1,14 @@
 from chainer.backends import cuda
-import chainer.functions as F
+from chainer.functions.array.broadcast import broadcast_to
+from chainer.functions.array.concat import concat
+from chainer.functions.array.expand_dims import expand_dims
+from chainer.functions.array.reshape import reshape
+from chainer.functions.array.stack import stack
+from chainer.functions.array.transpose import transpose
+from chainer.functions.math.average import average
+from chainer.functions.math.basic_math import absolute
+from chainer.functions.math.maximum import maximum
+from chainer.functions.math.sum import sum
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
@@ -59,7 +68,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         elif norm == 2:
             self.norm = self._l2_norm
         else:
-            raise Exception("Norm can only be 1 or 2")
+            raise ValueError("Norm can only be 1 or 2")
 
     def _l1_norm(self, x, axis):
         """Function to calculate L1 Norm by given axes
@@ -71,7 +80,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         Returns:
             nd-array : Norm applied to given axes
         """
-        return F.sum(F.absolute(x), axis=axis)
+        return sum(absolute(x), axis=axis)
 
     def _l2_norm(self, x, axis):
         """Function to calculate L2 Norm by given axes
@@ -83,7 +92,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         Returns:
             nd-array : Norm applied to given axes
         """
-        return F.sum(x ** 2, axis=axis)
+        return sum(x ** 2, axis=axis)
 
     def _variance_term(self, pred, gt, means, delta_v, gt_idx):
         """Function to calculate variance term
@@ -102,28 +111,28 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         n_instances = gt.shape[1]
 
         # Prepare each item with same size by broadcasting missing axes
-        p = F.expand_dims(pred, axis=1)
-        g = F.expand_dims(gt, axis=2)
-        m = F.expand_dims(means, axis=3)
+        p = expand_dims(pred, axis=1)
+        g = expand_dims(gt, axis=2)
+        m = expand_dims(means, axis=3)
 
-        p = F.broadcast_to(p, (bs, n_instances, n_filters, n_loc))
-        g = F.broadcast_to(g, (bs, n_instances, n_filters, n_loc))
-        m = F.broadcast_to(m, (bs, n_instances, n_filters, n_loc))
+        p = broadcast_to(p, (bs, n_instances, n_filters, n_loc))
+        g = broadcast_to(g, (bs, n_instances, n_filters, n_loc))
+        m = broadcast_to(m, (bs, n_instances, n_filters, n_loc))
 
-        m = F.cast(m, p.dtype)
-        g = F.cast(g, p.dtype)
+        m = cast(m, p.dtype)
+        g = cast(g, p.dtype)
 
         module = cuda.get_array_module(p)
         dv = module.asarray(delta_v, p.dtype)
 
         _var = self.norm((p - m), 2)
-        _var = F.maximum(module.asarray(0.0, p.dtype),
+        _var = maximum(module.asarray(0.0, p.dtype),
                          _var - dv) ** 2  # Suppress inlier distance
         _var = _var * g[:, :, 0, :]
 
         var_term = 0.0
         for i in range(bs):
-            var_term += F.sum(_var[i, gt_idx[i]]) / F.sum(g[i, gt_idx[i], 0])
+            var_term += sum(_var[i, gt_idx[i]]) / sum(g[i, gt_idx[i], 0])
         var_term /= bs
 
         return var_term
@@ -141,7 +150,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """
 
         bs, n_instances, n_filters = means.shape
-        m = F.cast(means, means.dtype)
+        m = cast(means, means.dtype)
 
         module = cuda.get_array_module(means)
         dd = module.asarray(delta_d, means.dtype)
@@ -155,15 +164,15 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             nobj = n_objects[i]
 
             # Prepare means
-            m_i = F.expand_dims(m[i, :nobj, :], 1)
-            m_1 = F.broadcast_to(m_i, (nobj, nobj, n_filters))
-            m_2 = F.transpose(m_1, axes=(1, 0, 2))
+            m_i = expand_dims(m[i, :nobj, :], 1)
+            m_1 = broadcast_to(m_i, (nobj, nobj, n_filters))
+            m_2 = transpose(m_1, axes=(1, 0, 2))
 
             nrm = self.norm(m_1 - m_2, axis=2)
             margin = 2.0 * dd * (1.0 - module.eye(nobj, dtype=means.dtype))
 
-            _dist_term_sample = F.sum(
-                F.maximum(module.asarray(0.0, means.dtype), margin - nrm) ** 2)
+            _dist_term_sample = sum(
+                maximum(module.asarray(0.0, means.dtype), margin - nrm) ** 2)
             _dist_term_sample /= nobj * (nobj - 1)
             dist_term += _dist_term_sample
 
@@ -183,11 +192,11 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """
 
         bs, n_instances, n_filters = means.shape
-        m = F.cast(means, means.dtype)
+        m = cast(means, means.dtype)
 
         reg_term = 0.0
         for i in range(bs):
-            reg_term += F.mean(self.norm(m[i, : n_objects[i], :], 1))
+            reg_term += average(self.norm(m[i, : n_objects[i], :], 1))
         reg_term /= bs
 
         return reg_term
@@ -212,13 +221,13 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         n_loc = pred.shape[2]
 
         # Expand prediction and broadcast instances to 3rd axis
-        p = F.reshape(pred, (bs, n_filters, 1, n_loc))
-        p = F.broadcast_to(p, (bs, n_filters, n_instances, n_loc))
+        p = reshape(pred, (bs, n_filters, 1, n_loc))
+        p = broadcast_to(p, (bs, n_filters, n_instances, n_loc))
 
         # Expand ground truth to match the size but do not broadcast
-        g = F.reshape(gt, (bs, 1, n_instances, n_loc))
+        g = reshape(gt, (bs, 1, n_instances, n_loc))
 
-        p = p * F.cast(g, p.dtype)
+        p = p * cast(g, p.dtype)
         module = cuda.get_array_module(p)
 
         means = []
@@ -227,8 +236,8 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             p_item = p[i, :, gt_idx[i]]
             g_item = g[i, :, gt_idx[i]]
 
-            p_sum = F.sum(p_item, axis=2)
-            g_sum = F.cast(F.sum(g_item, axis=2), p_sum.dtype)
+            p_sum = sum(p_item, axis=2)
+            g_sum = cast(sum(g_item, axis=2), p_sum.dtype)
             _mean_sample = p_sum / g_sum
 
             n_fill_objects = max_n_objects - n_objects[i]
@@ -237,11 +246,11 @@ class DiscriminativeMarginBasedClusteringLoss(object):
                 _fill_sample = module.zeros(
                     (module.asnumpy(n_fill_objects), n_filters),
                     dtype=_mean_sample.dtype)
-                _mean_sample = F.concat((_mean_sample, _fill_sample), axis=0)
+                _mean_sample = concat((_mean_sample, _fill_sample), axis=0)
 
             means.append(_mean_sample)
 
-        means = F.stack(means)
+        means = stack(means)
         return means
 
     def _prepare_inputs(self, prediction, labels):
@@ -259,15 +268,23 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         p_shape = prediction.shape
         l_shape = labels.shape
 
-        prediction = F.reshape(prediction, shape=(
+        prediction = reshape(prediction, shape=(
             p_shape[0], p_shape[1], p_shape[2] * p_shape[3]))
-        labels = F.reshape(labels, shape=(
+        labels = reshape(labels, shape=(
             l_shape[0], l_shape[1], l_shape[2] * l_shape[3]))
 
         return prediction, labels
 
-    def apply(self, *x):
-        """Initial apply function
+    def __call__(self, *args):
+        """Applies discriminative margin based clustering loss
+
+        Steps are:
+            - Reshape inputs to prepare for loss calculation
+            - Calculate means
+            - Calculate variance term
+            - Calculate distance term
+            - Calculate regularization term
+            - Add weights to all and return loss value
 
         Args:
             x (tuple) : Contains several inputs
@@ -279,9 +296,11 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             float : Loss value
         """
 
+        assert(len(args) == 4)
+
         # Inputs
-        prediction, labels = self._prepare_inputs(x[0], x[1])
-        n_objects, gt_idx = x[2:4]
+        prediction, labels = self._prepare_inputs(args[0], args[1])
+        n_objects, gt_idx = args[2:4]
 
         # Calculate cluster means
         c_means = self._means(prediction, labels, n_objects,
@@ -295,9 +314,6 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         return self.alpha * l_var + self.beta * l_dist + self.gamma * l_reg
 
-    def __call__(self, *args):
-        return self.apply(*args)
-
 
 def discriminative_margin_based_clustering_loss(
         x, delta_v, delta_d, max_n_clusters,
@@ -308,7 +324,7 @@ def discriminative_margin_based_clustering_loss(
     https://arxiv.org/pdf/1802.05591.pdf
 
     In segmentation, one of the biggest problem is having noise at the output
-    of trained network.
+    of a trained network.
     For cross-entropy based approaches, if the pixel value is wrong,
     the loss value will be same independent from wrong pixel's location.
     However, for segmentation, even though network gives wrong pixel output,
@@ -329,10 +345,16 @@ def discriminative_margin_based_clustering_loss(
 
     Args:
         x (tuple) : Contains several inputs
-                - x[0] = segmentation prediction output
-                - x[1] = segmentation ground truth
-                - x[2] = number of objects in ground truth
-                - x[3] = indexes of non-zero ground truths
+                - x[0] = segmentation prediction output     (n, i, w, h)
+                - x[1] = segmentation ground truth          (n, i, w, h)
+                - x[2] = number of objects in ground truth  (n,)
+                - x[3] = indexes of non-zero ground truths  (n, variable)
+        where,
+            - n is batch size
+            - i is total instance count
+            - w is width of the image
+            - h is height of the image
+            - variable is variable length depending on list size
         delta_v (float): Minimum distance to start penalizing variance
         delta_d (float): Maximum distance to stop penalizing distance
         max_n_clusters (int): Maximum possible number of clusters.
