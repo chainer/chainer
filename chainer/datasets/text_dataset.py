@@ -114,9 +114,6 @@ class TextDataset(dataset_mixin.DatasetMixin):
         self._lines = lines
         self._lock = threading.Lock()
 
-    def __del__(self):
-        self._close()
-
     def __getstate__(self):
         state = self.__dict__.copy()
         del state['_fps']
@@ -124,7 +121,6 @@ class TextDataset(dataset_mixin.DatasetMixin):
         return state
 
     def __setstate__(self, state):
-        self._close()
         self.__dict__ = state
         self._open()
         self._lock = threading.Lock()
@@ -133,8 +129,6 @@ class TextDataset(dataset_mixin.DatasetMixin):
         return len(self._lines)
 
     def _open(self):
-        if self._fps is not None:
-            return
         self._fps = [
             io.open(
                 path,
@@ -145,16 +139,6 @@ class TextDataset(dataset_mixin.DatasetMixin):
             ) for path, encoding, errors, newline in
                 zip(self._paths, self._encoding, self._errors, self._newline)
         ]
-
-    def _close(self):
-        if self._fps is None:
-            return
-        for fp in self._fps:
-            try:
-                fp.close()
-            except Exception:
-                pass  # ignore errors
-        self._fps = None
 
     def get_example(self, idx):
         if idx < 0 or len(self._lines) <= idx:
