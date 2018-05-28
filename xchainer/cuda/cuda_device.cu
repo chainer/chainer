@@ -1041,7 +1041,7 @@ Array CudaDevice::ConvTranspose(
     Shape out_shape{batch_size, out_channels};
     if (out_size) {
         std::copy_n(out_size->begin(), ndim, std::back_inserter(out_shape));
-    } else  {
+    } else {
         for (int8_t i = 0; i < ndim; ++i) {
             out_shape.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i], false));
             assert(out_shape.back() > 0);

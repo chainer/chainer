@@ -194,6 +194,41 @@ std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
     return shared_desc;
 }
 
+void AddBias(cudnnHandle_t handle, const std::shared_ptr<cudnnTensorStruct>& y_desc, const Array& y, const Array& b) {
+    assert(&b.device() == &y.device());
+    assert(b.dtype() == y.dtype());
+
+    int8_t ndim = y.ndim() - 2;
+    assert(ndim > 0);
+
+    static const float float_one = 1;
+    static const double double_one = 1;
+    const void* one{};
+    if (y.dtype() == Dtype::kFloat64) {
+        one = &double_one;
+    } else {
+        one = &float_one;
+    }
+
+    Shape new_shape{};
+    new_shape.emplace_back(1);
+    new_shape.emplace_back(b.GetTotalSize());
+    for (int8_t i = 0; i < ndim; ++i) {
+        new_shape.emplace_back(1);
+    }
+    Array b_cont = AsContiguousArray(b).Reshape(new_shape);
+
+    std::shared_ptr<cudnnTensorStruct> b_desc = CreateTensorDescriptor(b_cont);
+    CheckCudnnError(cudnnAddTensor(
+            handle,
+            one,
+            b_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(b_cont),
+            one,
+            y_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(y)));
+}
+
 }  // namespace
 
 namespace internal {
@@ -404,28 +439,7 @@ void CudnnContext::ConvolutionForward(
             xchainer::internal::GetRawOffsetData<void>(y)));
 
     if (b) {
-        assert(&b->device() == &x.device());
-        assert(b->dtype() == x.dtype());
-
-        int8_t ndim = x.ndim() - 2;
-        assert(ndim > 0);
-
-        Shape new_shape{};
-        new_shape.emplace_back(1);
-        new_shape.emplace_back(b->GetTotalSize());
-        for (int8_t i = 0; i < ndim; ++i) {
-            new_shape.emplace_back(1);
-        }
-        Array b_cont = AsContiguousArray(*b).Reshape(new_shape);
-        std::shared_ptr<cudnnTensorStruct> b_desc = CreateTensorDescriptor(b_cont);
-        CheckCudnnError(cudnnAddTensor(
-                handle(),
-                one,
-                b_desc.get(),
-                xchainer::internal::GetRawOffsetData<void>(b_cont),
-                one,
-                y_desc.get(),
-                xchainer::internal::GetRawOffsetData<void>(y)));
+        AddBias(handle(), y_desc, y, *b);
     }
 }
 
@@ -572,28 +586,7 @@ void Cudnn::ConvolutionBackwardData(
     //                        y.data.ptr)
     // TODO(sonots): Share codes with Forward
     if (b) {
-        assert(&b->device() == &x.device());
-        assert(b->dtype() == x.dtype());
-
-        int8_t ndim = x.ndim() - 2;
-        assert(ndim > 0);
-
-        Shape new_shape{};
-        new_shape.emplace_back(1);
-        new_shape.emplace_back(b->GetTotalSize());
-        for (int8_t i = 0; i < ndim; ++i) {
-            new_shape.emplace_back(1);
-        }
-        Array b_cont = AsContiguousArray(*b).Reshape(new_shape);
-        std::shared_ptr<cudnnTensorStruct> b_desc = CreateTensorDescriptor(b_cont);
-        CheckCudnnError(cudnnAddTensor(
-                handle(),
-                one,
-                b_desc.get(),
-                xchainer::internal::GetRawOffsetData<void>(b_cont),
-                one,
-                y_desc.get(),
-                xchainer::internal::GetRawOffsetData<void>(y)));
+        AddBias(handle(), y_desc, y, *b);
     }
 }
 
