@@ -56,8 +56,6 @@ class TextDataset(dataset_mixin.DatasetMixin):
 
     """
 
-    _fps = None
-
     def __init__(
             self, paths, encoding=None, errors=None, newline=None,
             filter_func=None):
