@@ -48,7 +48,7 @@ class TestAverage(unittest.TestCase):
         while True:
             self.w = numpy.random.uniform(-2, 2, w_shape).astype(self.dtype)
             w_sum_eps = 0.2 if self.dtype == numpy.float16 else 5e-2
-            if self.w.sum() > w_sum_eps:
+            if abs(self.w.sum()) > w_sum_eps:
                 break
 
         if self.dtype == numpy.float16:
