@@ -1690,17 +1690,25 @@ class TestCallMethod(unittest.TestCase):
     def test_has_call_and_forward(self):
         self.model.__call__ = mock.MagicMock()
         self.model.forward = mock.MagicMock()
-        self.model(0)  # model.__call__ is called
-        self.model.__call__.assert_called_with(0)
-        self.model.forward.assert_not_called()
+        self.model(0)  # Link.__call__ is called
+        self.model.forward.assert_called_with(0)
+        self.model.__call__.assert_not_called()
 
     def test_has_call_no_forward(self):
-        self.model.__call__ = mock.MagicMock()
-        self.model(0)  # model.__call__ is called
-        self.model.__call__.assert_called_with(0)
+        class Model(chainer.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+                self.mock = mock.MagicMock()
+
+            def __call__(self, x):
+                self.mock(x)
+
+        model = Model()
+        model(0)  # model.__call__ is called
+        model.mock.assert_called_with(0)
 
     def test_no_call_no_forward(self):
-        with self.assertRaisesRegexp(TypeError, 'neither'):
+        with self.assertRaisesRegex(TypeError, 'neither'):
             self.model(0)
 
 
