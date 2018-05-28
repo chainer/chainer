@@ -69,6 +69,14 @@ class TestTextDataset(unittest.TestCase):
         assert ds[1] == ('テスト2\n', 'テスト2\n')
         assert ds[2] == ('Test3\n', 'テスト3\n')
 
+    def test_get_blank(self):
+        # File with blank (empty) line.
+        ds = self._dataset(['ascii_blank_line.txt'], encoding='ascii')
+        assert ds[0] == 'hello\n'
+        assert ds[1] == 'world\n'
+        assert ds[2] == '\n'
+        assert ds[3] == 'test\n'
+
     def test_encoding(self):
         # UTF-8 with BOM
         ds = self._dataset(['utf8sig.txt'], encoding='utf-8-sig')
