@@ -1,28 +1,29 @@
 import chainer
 import chainer.functions as F
 import chainer.links as L
+import numpy as np
+import model
+
 
 n_in = 784
 n_units = 100
 n_out = 10
 
-# Network definition
-class MLP(chainer.Chain):
-
-    def __init__(self, n_in, n_units, n_out):
-        super(MLP, self).__init__()
-        with self.init_scope():
-            # the size of the inputs to each layer will be inferred
-            self.l1 = L.Linear(n_in, n_units)  # n_in -> n_units
-            self.l2 = L.Linear(n_units, n_units)  # n_units -> n_units
-            self.l3 = L.Linear(n_units, n_out)  # n_units -> n_out
-
-    def __call__(self, x):
-        h1 = F.relu(self.l1(x))
-        h2 = F.relu(self.l2(h1))
-        return self.l3(h2)
-
 # Create model object first
-model = MLP(n_in, n_units, n_out)
+model1 = model.MLP(n_in, n_units, n_out)
 
-chainer.serializers.load_npz('model.npz', model)
+chainer.serializers.load_npz('model.npz', model1)
+
+print('model.npz loaded!')
+
+model2 = model.MLP(n_in, n_units, n_out)
+
+chainer.serializers.load_hdf5('model.h5', model2)
+
+print('model.h5 loaded!')
+
+model2_params = {name: param for name, param in model2.namedparams()}
+for name, npz_param in model1.namedparams():
+    h5_param = model2_params[name]
+    np.testing.assert_array_equal(npz_param.array, h5_param.array)
+    print(name, npz_param.shape)

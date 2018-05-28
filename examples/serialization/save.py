@@ -1,28 +1,42 @@
 import chainer
 import chainer.functions as F
 import chainer.links as L
+import h5py
+import numpy as np
+
+import model
 
 n_in = 784
 n_units = 100
 n_out = 10
 
-# Network definition
-class MLP(chainer.Chain):
-
-    def __init__(self, n_in, n_units, n_out):
-        super(MLP, self).__init__()
-        with self.init_scope():
-            # the size of the inputs to each layer will be inferred
-            self.l1 = L.Linear(n_in, n_units)  # n_in -> n_units
-            self.l2 = L.Linear(n_units, n_units)  # n_units -> n_units
-            self.l3 = L.Linear(n_units, n_out)  # n_units -> n_out
-
-    def __call__(self, x):
-        h1 = F.relu(self.l1(x))
-        h2 = F.relu(self.l2(h1))
-        return self.l3(h2)
-
-model = MLP(n_in, n_units, n_out)
+model = model.MLP(n_in, n_units, n_out)
 
 # Save the model as a NPZ file
 chainer.serializers.save_npz('model.npz', model)
+
+print('model.npz saved!\n')
+
+print('--- The list of saved params in model.npz ---')
+saved_params = np.load('model.npz')
+for param_key, param in saved_params.items():
+    print(param_key, '\t:', param.shape)
+print('---------------------------------------------\n')
+
+# Save the model as a HDF5 archive
+chainer.serializers.save_hdf5('model.h5', model)
+
+print('model.h5 saved!')
+
+print('--- The list of saved params in model.h5 ---')
+f = h5py.File('model.h5', 'r')
+for param_key, param in f.items():
+    print('{}:'.format(param_key), end='')
+    if isinstance(param, h5py.Dataset):
+        print(' {}'.format(param.shape))
+    else:
+        print('')
+    if isinstance(param, h5py.Group):
+        for child_key, child in param.items():
+            print('  {}:{}'.format(child_key, child.shape))
+print('---------------------------------------------\n')
