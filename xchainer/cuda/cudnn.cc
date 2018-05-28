@@ -277,7 +277,6 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwar
     return algo_memory;
 }
 
-
 #if 0
 cpdef tuple _find_algorithm_bwd_data(
         core.ndarray W, core.ndarray x, core.ndarray y, tuple conv_param,
@@ -337,7 +336,6 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> Cudnn::FindConvolutionBackwardD
     conv_bwd_data_algo_cache_map_[key] = algo_memory;
     return algo_memory;
 }
-
 
 // TODO(sonots): Support tensor core
 void CudnnContext::ConvolutionForward(
@@ -535,9 +533,8 @@ void Cudnn::ConvolutionBackwardData(
     //         handle, filter_desc, x_desc, conv_desc, y_desc,
     //         max_workspace_size, use_tensor_core)
     // auto tune
-    std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_workspace_size =
-            FindConvolutionBackwardDataAlgorithm(filter_desc, w_cont, x_desc, x_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
-
+    std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_workspace_size = FindConvolutionBackwardDataAlgorithm(
+            filter_desc, w_cont, x_desc, x_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
 
     // max_workspace_size = max(max_workspace_size, workspace_size)
     // # TODO(okuta): allocate best size memory
@@ -573,6 +570,7 @@ void Cudnn::ConvolutionBackwardData(
     //     _create_tensor_nd_descriptor(b_desc, b, -1)
     //     cudnn.addTensor_v3(handle, one, b_desc, b.data.ptr, one, y_desc,
     //                        y.data.ptr)
+    // TODO(sonots): Share codes with Forward
     if (b) {
         assert(&b->device() == &x.device());
         assert(b->dtype() == x.dtype());
