@@ -98,6 +98,22 @@ void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
 
 namespace internal {
 
+Shape GetReductionOutputShape(const Array& a, const Axes& sorted_axis, bool keepdims) {
+    Shape out_shape;
+    int8_t i_axis = 0;
+    for (int8_t i = 0; i < a.ndim(); ++i) {
+        if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
+            ++i_axis;
+            if (keepdims) {
+                out_shape.emplace_back(int64_t{1});
+            }
+        } else {
+            out_shape.emplace_back(a.shape()[i]);
+        }
+    }
+    return out_shape;
+}
+
 void IAdd(const Array& x1, const Array& x2) { BroadcastBinaryInPlace(&AddImpl, x1, x2); }
 
 void IAdd(const Array& x1, Scalar x2) { BinaryInPlace(&AddASImpl, x1, x2); }
@@ -237,24 +253,8 @@ Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Sc
 
 namespace {
 
-Shape GetReductionOutputShape(const Array& a, const Axes& sorted_axis, bool keepdims) {
-    Shape out_shape;
-    int8_t i_axis = 0;
-    for (int8_t i = 0; i < a.ndim(); ++i) {
-        if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
-            ++i_axis;
-            if (keepdims) {
-                out_shape.emplace_back(int64_t{1});
-            }
-        } else {
-            out_shape.emplace_back(a.shape()[i]);
-        }
-    }
-    return out_shape;
-}
-
 Array AllocateReductionOutput(const Array& a, const Axes& sorted_axis, bool keepdims) {
-    Shape out_shape = GetReductionOutputShape(a, sorted_axis, keepdims);
+    Shape out_shape = internal::GetReductionOutputShape(a, sorted_axis, keepdims);
 
     if (!keepdims) {
         return Empty(out_shape, a.dtype(), a.device());
@@ -310,7 +310,7 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
         // Add broadcastable dimensions to out and gout
         // for each one that was reduced in the forward operation
-        Shape shape = GetReductionOutputShape(a, sorted_axis, true);
+        Shape shape = internal::GetReductionOutputShape(a, sorted_axis, true);
         Array reshaped_gout = gout.Reshape(shape);
         Array reshaped_out = out.AsConstant(CopyKind::kView).Reshape(shape);
 

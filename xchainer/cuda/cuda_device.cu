@@ -946,7 +946,7 @@ Array CudaDevice::ConvTranspose(
     throw NotImplementedError{""};
 }
 
-Array CudaDevice::BatchNormalization(
+void CudaDevice::BatchNormalization(
         const Array& /*x*/,
         const Array& /*gamma*/,
         const Array& /*beta*/,
@@ -954,7 +954,7 @@ Array CudaDevice::BatchNormalization(
         const Array& /*running_var*/,
         float /*eps*/,
         float /*decay*/,
-        const OptionalAxes& /*axes*/,
+        const Axes& /*axis*/,
         const Array& /*out*/) {
     // TODO(hvy): Implement it
     throw NotImplementedError{""};

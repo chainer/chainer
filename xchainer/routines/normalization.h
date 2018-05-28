@@ -1,5 +1,7 @@
 #pragma once
 
+#include <nonstd/optional.hpp>
+
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/constant.h"
@@ -15,6 +17,6 @@ Array BatchNormalization(
         const Array& running_var,
         float eps,
         float decay,
-        const OptionalAxes& axes);
+        const OptionalAxes& axis = nonstd::nullopt);
 
 }  // namespace xchainer

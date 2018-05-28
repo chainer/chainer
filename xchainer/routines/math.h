@@ -7,12 +7,16 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/scalar.h"
+#include "xchainer/shape.h"
 
 namespace xchainer {
 
 Array Negative(const Array& x);
 
 namespace internal {
+
+// TODO(hvy): Consider moving this definition to a currently non-existent reduction utility.
+Shape GetReductionOutputShape(const Array& a, const Axes& sorted_axis, bool keepdims = false);
 
 void IAdd(const Array& x1, const Array& x2);
 void IAdd(const Array& x1, Scalar x2);

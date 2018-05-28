@@ -172,7 +172,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) = 0;
 
-    virtual Array BatchNormalization(
+    virtual void BatchNormalization(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -180,7 +180,7 @@ public:
             const Array& running_var,
             float eps,
             float decay,
-            const OptionalAxes& axes,
+            const Axes& axis,
             const Array& out) = 0;
 
     virtual void Synchronize() = 0;
