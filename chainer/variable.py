@@ -447,9 +447,10 @@ class Variable(object):
         * Floor Division: ``a // b`` (:meth:`__floordiv__`, \
                                       :meth:`__rfloordiv__`)
         * Exponentiation: ``a ** b`` (:meth:`__pow__`, :meth:`__rpow__`)
-        * Matirx Multiplication: ``a @ b`` (:meth:`__matmul__`, \
+        * Matrix Multiplication: ``a @ b`` (:meth:`__matmul__`, \
                                             :meth:`__rmatmul__`)
         * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
+        * Absolute value: ``abs(a)`` (:meth:`__abs__`)
 
     .. warning::
 
@@ -779,9 +780,11 @@ Actual: {0}'''.format(type(data))
             if isinstance(data, cuda.ndarray):
                 # cupy.ndarray to numpy.ndarray
                 data = data.get()
-            if (isinstance(data, numpy.ndarray) and
-                    intel64.inputs_all_ready((data,))):
-                # numpy.ndarray to ideep.mdarray
+            if (isinstance(data, numpy.ndarray) and data.ndim in (1, 2, 4)):
+                # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
+                # Currently iDeep only supports (1, 2, 4)-dim arrays.
+                # Note that array returned from `ideep.array` may not be an
+                # iDeep mdarray, e.g., when the dtype is not float32.
                 data = intel64.ideep.array(
                     data, itype=intel64.ideep.wgt_array)
             self._data = [data]
@@ -1051,7 +1054,7 @@ Actual: {0}'''.format(type(data))
                 hooks.update(func.local_function_hooks)
             hooks = hooks.values()  # avoid six for performance
 
-            cuda.get_device_from_array(*in_data).use()
+            cuda.get_device_from_array(*(in_data + out_grad_data)).use()
             for hook in hooks:
                 hook.backward_preprocess(func, in_data, out_grad_data)
 
@@ -1096,9 +1099,23 @@ Actual: {0}'''.format(type(data))
                 hook.backward_postprocess(func, in_data, out_grad_data)
 
             if is_debug:
-                for gx in gxs:
-                    if gx is None:
-                        continue
+                # gxs can be a tuple of tuples of variables (in case of
+                # lazy-grad-sum).
+                # iter_gxs expands it as a sequence of variables.
+                # It also ignores None entries.
+                def iter_gxs(gxs):
+                    for gx in gxs:
+                        if gx is None:
+                            continue
+                        elif isinstance(gx, tuple):
+                            for gx_ in iter_gxs(gx):
+                                yield gx_
+                        elif isinstance(gx, Variable):
+                            yield gx
+                        else:
+                            assert False
+
+                for gx in iter_gxs(gxs):
                     gx_data = gx.data
                     if gx_data.dtype.kind == 'f':
                         cuda.get_device_from_array(gx_data).use()
