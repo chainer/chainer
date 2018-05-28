@@ -1002,6 +1002,30 @@ Array CudaDevice::ConvTranspose(
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& /*out_size*/) {
     // TODO(hvy): Implement it
     throw NotImplementedError{""};
+
+    // def _forward_cudnn(self, x, W, b):
+    //     c = W.shape[1]          # W: C_I, C_O, k_1, k_2, ..., k_N
+    //     n, in_c = x.shape[:2]   # x: n, C_I, d_1, d_2, ..., d_N
+
+    //     # Make empty array for output.
+    //     y_shape = (n, c) + self.outs  # (n, c_O, out_1, out_2, ..., out_N)
+    //     y = cuda.cupy.empty(y_shape, dtype=x.dtype)
+
+    //     pad = self.pad
+    //     stride = self.stride
+    //     dilation = (1,) * self.ndim
+    //     groups = 1
+    //     deterministic = configuration.config.cudnn_deterministic
+    //     auto_tune = configuration.config.autotune
+    //     tensor_core = configuration.config.use_cudnn_tensor_core
+
+    //     cuda.cudnn.convolution_backward_data(
+    //         W, x, b, y, pad, stride, dilation, groups,
+    //         deterministic=deterministic, auto_tune=auto_tune,
+    //         tensor_core=tensor_core)
+
+    //     return y,
+
 }
 
 void CudaDevice::Synchronize() {
