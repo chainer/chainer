@@ -139,10 +139,11 @@ class TextDataset(dataset_mixin.DatasetMixin):
             io.open(
                 path,
                 mode='rt',
-                encoding=self._encoding[i],
-                errors=self._errors[i],
-                newline=self._newline[i]
-            ) for i, path in enumerate(self._paths)
+                encoding=encoding,
+                errors=errors,
+                newline=newline,
+            ) for path, encoding, errors, newline in
+                zip(self._paths, self._encoding, self._errors, self._newline)
         ]
 
     def _close(self):
