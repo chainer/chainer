@@ -30,6 +30,7 @@ namespace {
 template <typename Impl>
 Array BroadcastBinary(Impl&& impl, const Array& x1, const Array& x2) {
     auto func = [&impl](const Array& x1, const Array& x2) -> Array {
+        // TODO(hvy): Use type promotion for output.
         Array out = EmptyLike(x1, x1.device());
         impl(x1, x2, out);
         return out;
@@ -60,6 +61,7 @@ void BroadcastBinaryInPlace(Impl&& impl, const Array& x1, const Array& x2) {
 
 template <typename Impl>
 Array Binary(Impl&& impl, const Array& x1, Scalar x2) {
+    // TODO(hvy): Use type promotion for output.
     Array out = EmptyLike(x1, x1.device());
     impl(x1, x2, out);
     return out;

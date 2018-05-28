@@ -224,6 +224,7 @@ def test_itruediv(xp, device, shape, numeric_dtype):
     return lhs
 
 
+# TODO(hvy): Support and test zero division and mixed dtypes (dtype kinds).
 # TODO(hvy): Support and test xchainer.Scalar / xchainer.ndarray.
 @pytest.mark.parametrize('scalar', [1, 2])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
