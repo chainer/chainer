@@ -10,13 +10,6 @@ from chainer import testing
 from chainer.testing import attr
 
 
-def _batch_normalization(expander, gamma, beta, x, mean, var):
-    mean = mean[expander]
-    std = numpy.sqrt(var)[expander]
-    y_expect = (gamma[expander] * (x - mean) / std + beta[expander])
-    return y_expect
-
-
 @testing.parameterize(*(testing.product({
     'batchsize': [1, 5],
     'size': [10, 20],
@@ -44,6 +37,13 @@ class TestLayerNormalization(unittest.TestCase):
             self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
+        mean = numpy.mean(x, axis=1, keepdims=True)
+        var = numpy.mean(numpy.square(x - mean), axis=1, keepdims=True)
+        std = numpy.sqrt(var + self.eps)
+        self.y_expected = (
+            numpy.expand_dims(gamma, axis=0) * (x - mean) / std
+            + numpy.expand_dims(beta, axis=0))
+
     def check_forward(self, args):
         x_data = args[0]
 
@@ -54,11 +54,8 @@ class TestLayerNormalization(unittest.TestCase):
         y = func(x_data)
         self.assertEqual(y.data.dtype, self.dtype)
 
-        unbatched_concat_y = chainer.functions.concat(
-            [func(one_x[None, ]) for one_x in x_data], axis=0)
-
         testing.assert_allclose(
-            y.data, unbatched_concat_y.data, **self.check_forward_options)
+            y.data, self.y_expected, **self.check_forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.args)
