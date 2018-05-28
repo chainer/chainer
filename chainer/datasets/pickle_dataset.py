@@ -23,7 +23,7 @@ class PickleDataset(dataset_mixin.DatasetMixin):
 
     def __init__(self, reader):
         if not reader.seekable():
-            raise ValueError('reader must spport random access')
+            raise ValueError('reader must support random access')
 
         self.reader = reader
         self.positions = []
