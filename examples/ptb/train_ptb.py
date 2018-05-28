@@ -12,6 +12,7 @@ import numpy as np
 
 import chainer
 import chainer.functions as F
+from chainer import graph_summary
 import chainer.links as L
 from chainer import training
 from chainer.training import extensions
@@ -35,7 +36,7 @@ class RNNForLM(chainer.Chain):
         self.l1.reset_state()
         self.l2.reset_state()
 
-    def __call__(self, x):
+    def __call_link__(self, x):
         h0 = self.embed(x)
         h1 = self.l1(F.dropout(h0))
         h2 = self.l2(F.dropout(h1))
@@ -154,6 +155,7 @@ class BPTTUpdater(training.updaters.StandardUpdater):
 
             # Compute the loss at this time step and accumulate it
             loss += optimizer.target(chainer.Variable(x), chainer.Variable(t))
+            graph_summary.current().set_tag(loss, 'loss')
 
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
@@ -224,7 +226,8 @@ def main():
     optimizer.add_hook(chainer.optimizer_hooks.GradientClipping(args.gradclip))
 
     # Set up a trainer
-    updater = BPTTUpdater(train_iter, optimizer, args.bproplen, args.gpu)
+    updater = training.StandardUpdater(train_iter, optimizer)
+    #updater = BPTTUpdater(train_iter, optimizer, args.bproplen, args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     eval_model = model.copy()  # Model with shared params and distinct states
@@ -248,6 +251,11 @@ def main():
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
 
+    graph = graph_summary.Graph('root_graph')
+    trainer.extend(graph_summary.GraphSummary(graph, ['main/loss']))
+
+    print("Starting graph server")
+    graph_summary.run_server(graph, async=True)
     trainer.run()
 
     # Evaluate the final model
@@ -262,4 +270,10 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        import pdb
+        pdb.post_mortem()

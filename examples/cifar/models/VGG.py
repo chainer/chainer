@@ -1,6 +1,7 @@
 import chainer
 import chainer.functions as F
 import chainer.links as L
+from chainer import graph_summary
 
 
 class Block(chainer.Chain):
@@ -28,9 +29,12 @@ class Block(chainer.Chain):
             self.bn = L.BatchNormalization(out_channels)
 
     def __call__(self, x):
-        h = self.conv(x)
-        h = self.bn(h)
-        return F.relu(h)
+        with graph_summary.graph([x], self.name) as g:
+            h = self.conv(x)
+            h = self.bn(h)
+            y = F.relu(h)
+            g.set_output([y])
+        return y
 
 
 class VGG(chainer.Chain):
@@ -78,41 +82,56 @@ class VGG(chainer.Chain):
             self.fc2 = L.Linear(None, class_labels, nobias=True)
 
     def __call__(self, x):
+        import threading
+        current_thread = threading.current_thread()
+        outer_context = current_thread.__dict__['graph_context']
+        assert len(outer_context.subgraph_map) == 0
+
         # 64 channel blocks:
-        h = self.block1_1(x)
-        h = F.dropout(h, ratio=0.3)
-        h = self.block1_2(h)
-        h = F.max_pooling_2d(h, ksize=2, stride=2)
+        with graph_summary.graph([x], 'vgg_block1') as g:
+            h = self.block1_1(x)
+            h = F.dropout(h, ratio=0.3)
+            h = self.block1_2(h)
+            h = F.max_pooling_2d(h, ksize=2, stride=2)
+            g.set_output([h])
 
         # 128 channel blocks:
-        h = self.block2_1(h)
-        h = F.dropout(h, ratio=0.4)
-        h = self.block2_2(h)
-        h = F.max_pooling_2d(h, ksize=2, stride=2)
+        with graph_summary.graph([h], 'vgg_block2') as g:
+            h = self.block2_1(h)
+            h = F.dropout(h, ratio=0.4)
+            h = self.block2_2(h)
+            h = F.max_pooling_2d(h, ksize=2, stride=2)
+            g.set_output([h])
 
         # 256 channel blocks:
-        h = self.block3_1(h)
-        h = F.dropout(h, ratio=0.4)
-        h = self.block3_2(h)
-        h = F.dropout(h, ratio=0.4)
-        h = self.block3_3(h)
-        h = F.max_pooling_2d(h, ksize=2, stride=2)
+        with graph_summary.graph([h], 'vgg_block3') as g:
+            h = self.block3_1(h)
+            h = F.dropout(h, ratio=0.4)
+            h = self.block3_2(h)
+            h = F.dropout(h, ratio=0.4)
+            h = self.block3_3(h)
+            h = F.max_pooling_2d(h, ksize=2, stride=2)
+            g.set_output([h])
 
         # 512 channel blocks:
-        h = self.block4_1(h)
-        h = F.dropout(h, ratio=0.4)
-        h = self.block4_2(h)
-        h = F.dropout(h, ratio=0.4)
-        h = self.block4_3(h)
-        h = F.max_pooling_2d(h, ksize=2, stride=2)
+        with graph_summary.graph([h], 'vgg_block4') as g:
+            h = self.block4_1(h)
+            h = F.dropout(h, ratio=0.4)
+            h = self.block4_2(h)
+            h = F.dropout(h, ratio=0.4)
+            h = self.block4_3(h)
+            h = F.max_pooling_2d(h, ksize=2, stride=2)
+            g.set_output([h])
 
         # 512 channel blocks:
-        h = self.block5_1(h)
-        h = F.dropout(h, ratio=0.4)
-        h = self.block5_2(h)
-        h = F.dropout(h, ratio=0.4)
-        h = self.block5_3(h)
-        h = F.max_pooling_2d(h, ksize=2, stride=2)
+        with graph_summary.graph([h], 'vgg_block5') as g:
+            h = self.block5_1(h)
+            h = F.dropout(h, ratio=0.4)
+            h = self.block5_2(h)
+            h = F.dropout(h, ratio=0.4)
+            h = self.block5_3(h)
+            h = F.max_pooling_2d(h, ksize=2, stride=2)
+            g.set_output([h])
 
         h = F.dropout(h, ratio=0.5)
         h = self.fc1(h)

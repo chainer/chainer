@@ -142,6 +142,20 @@ class Link(object):
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
 
+    def __call__(self, *inputs):
+        from chainer._graph_summary._core import graph
+
+        tag = self.name
+        if tag is None:
+            tag = self.__class__.__name__.lower()
+        states = self.get_state()
+        graph_inputs = [_ if _ is None or isinstance(_, variable.Variable) else variable.Variable(_) for _ in inputs]
+        graph_states = [_ if _ is None or isinstance(_, variable.Variable) else variable.Variable(_) for _ in states]
+        with graph(graph_inputs + graph_states, tag) as g:
+            y = self.__call_link__(*graph_inputs)
+            g.set_output((y,) + self.get_state())
+            return y
+
     @property
     def xp(self):
         """Array module for this link.
@@ -701,6 +715,9 @@ Assign a Parameter object directly to an attribute within a \
                 continue
             size += param.size
         return size
+
+    def get_state(self):
+        return ()
 
 
 class Chain(Link):
