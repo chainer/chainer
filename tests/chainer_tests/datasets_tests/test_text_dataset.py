@@ -22,7 +22,7 @@ class TestTextDataset(unittest.TestCase):
             return '{}{}{}'.format(self.root, os.sep, p)
 
         if isinstance(path, six.string_types):
-            path = [_absolute(path)]
+            path = _absolute(path)
         else:
             path = [_absolute(p) for p in path]
 
