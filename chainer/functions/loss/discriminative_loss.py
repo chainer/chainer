@@ -1,6 +1,7 @@
 from chainer.backends import cuda
 from chainer.functions.array.broadcast import broadcast_to
 from chainer.functions.array.concat import concat
+from chainer.functions.array.cast import cast
 from chainer.functions.array.expand_dims import expand_dims
 from chainer.functions.array.reshape import reshape
 from chainer.functions.array.stack import stack
@@ -127,7 +128,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         _var = self.norm((p - m), 2)
         _var = maximum(module.asarray(0.0, p.dtype),
-                         _var - dv) ** 2  # Suppress inlier distance
+                       _var - dv) ** 2  # Suppress inlier distance
         _var = _var * g[:, :, 0, :]
 
         var_term = 0.0
