@@ -307,7 +307,7 @@ def _filter_list(lst, ignore_list):
 def check_backward(
         func, x_data, y_grad, params=(),
         eps=1e-3, atol=1e-5, rtol=1e-4, no_grads=None, dtype=None,
-        detect_nondifferentiable=False):
+        detect_nondifferentiable=False, allow_no_grads=None):
     """Test backward procedure of a given function.
 
     This function automatically checks the backward-process of a given function
@@ -433,10 +433,25 @@ def check_backward(
             If ``True``, check for non-differentiable inputs is enabled.
             If ``func`` is non-differentiable at ``x_data``, ``check_backward``
             raises :class:`~chainer.gradient_check.NondifferentiableError`.
+        allow_no_grads (bool):
+            If ``True``, regard ``None`` outputs as zeros.
+            If ``False``, check ``None`` appears exactly in the possitions
+            specified by ``no_grads``, which is the behavior before v5.
 
     .. seealso::
        :func:`numerical_grad`
     """
+    if allow_no_grads is None:
+        if no_grads is None:
+            allow_no_grads = True  # new check
+        else:
+            warnings.warn(
+                'no_grads argument of gradient_check.check_backward is'
+                ' deprecated unless allow_no_grads argument is passed.'
+                ' Set allow_no_grads=False if the strict check is needed.',
+                DeprecationWarning)
+            allow_no_grads = False
+
     if dtype is not None and numpy.dtype(dtype).kind != 'f':
         raise ValueError('`dtype` is allowed only float type')
 
@@ -480,7 +495,7 @@ def check_backward(
                 raise RuntimeError(
                     'gradient of int variable must be None')
         else:
-            if x.grad is None:
+            if x.grad is None and not allow_no_grads:
                 raise RuntimeError(
                     'gradients of some arguments are not calculated')
 
@@ -551,7 +566,8 @@ def check_backward(
         center_outputs=y0_data)
     gx_accum = 0
     for g, direction in six.moves.zip(grads, directions):
-        gx_accum += (g.astype('d') * direction).sum()
+        if g is not None:
+            gx_accum += (g.astype('d') * direction).sum()
 
     try:
         testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)

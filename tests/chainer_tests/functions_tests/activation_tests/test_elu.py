@@ -68,8 +68,7 @@ class TestELU(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad):
         def f(x):
-            y = functions.elu(x, alpha=self.alpha)
-            return y * y
+            return functions.elu(x, alpha=self.alpha)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
