@@ -50,7 +50,8 @@ struct ConvAlgoCacheKeyHash {
     std::size_t operator()(const ConvAlgoCacheKey& key) const;
 };
 
-using ConvAlgoCacheMap = std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
+using ConvFwdAlgoCacheMap = std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
+using ConvBwdDataAlgoCacheMap = std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionBwdDataAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
 
 class CudnnContext {
 public:
@@ -60,6 +61,15 @@ public:
     void ConvolutionForward(
             const Array& x,
             const Array& w,
+            const nonstd::optional<Array>& b,
+            const Array& y,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+            int groups);
+    void ConvolutionBackwardData(
+            const Array& w,
+            const Array& x,
             const nonstd::optional<Array>& b,
             const Array& y,
             const StackVector<int64_t, kMaxNdim>& pad,
@@ -81,10 +91,22 @@ private:
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
+    std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> FindConvolutionBackwardDataAlgorithm(
+            const std::shared_ptr<cudnnFilterStruct>& filter_desc,
+            const Array& w,
+            const std::shared_ptr<cudnnTensorStruct>& x_desc,
+            const Array& x,
+            const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
+            const std::shared_ptr<cudnnTensorStruct>& y_desc,
+            const Array& y,
+            size_t max_workspace_size,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& stride);
 
     int device_index_;
     cudnnHandle_t handle_{};
-    ConvAlgoCacheMap conv_fwd_algo_cache_map_{};
+    ConvFwdAlgoCacheMap conv_fwd_algo_cache_map_{};
+    ConvBwdDataAlgoCacheMap conv_bwd_data_algo_cache_map_{};
 };
 
 }  // namespace internal

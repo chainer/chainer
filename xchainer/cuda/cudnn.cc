@@ -307,7 +307,7 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> Cudnn::FindConvolutionBackwardD
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride) {
-    auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, y.dtype(), max_workspace_size};
+    auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
     if (conv_bwd_data_algo_cache_map_.count(key)) {
         return conv_bwd_data_algo_cache_map_[key];
     }
@@ -431,104 +431,173 @@ void CudnnContext::ConvolutionForward(
     }
 }
 
-void Cudnn::ConvolutionBackwardData() {
-#if 0
-    def convolution_backward_data(
-        core.ndarray W, core.ndarray x, core.ndarray b, core.ndarray y,
-        tuple pad, tuple stride, tuple dilation, int groups, *,
-        bint deterministic, bint auto_tune, str tensor_core):
-    cdef int dev_id = W.data.device.id
-    assert dev_id == x.data.device.id
-    assert dev_id == y.data.device.id
+//    def convolution_backward_data(
+//        core.ndarray W, core.ndarray x, core.ndarray b, core.ndarray y,
+//        tuple pad, tuple stride, tuple dilation, int groups, *,
+//        bint deterministic, bint auto_tune, str tensor_core):
+//    cdef int dev_id = W.data.device.id
+//    assert dev_id == x.data.device.id
+//    assert dev_id == y.data.device.id
+void Cudnn::ConvolutionBackwardData(
+        const Array& w,
+        const Array& x,
+        const nonstd::optional<Array>& b,
+        const Array& y,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+        int groups) {
+    assert(&y.device() == &x.device());
+    assert(y.dtype() == x.dtype());
+    assert(&w.device() == &x.device());
+    assert(w.dtype() == x.dtype());
 
-    cdef float float_zero = 0, float_one = 1
-    cdef double double_zero = 0, double_one = 1
-    cdef size_t zero, one
-    if x.dtype == 'd':
-        zero = <size_t>&double_zero
-        one = <size_t>&double_one
-    else:
-        zero = <size_t>&float_zero
-        one = <size_t>&float_one
+    CudaDevice& device = *static_cast<CudaDevice*>(&x.device());
+    CudaBackend& backend = *static_cast<CudaBackend*>(&device.backend());
 
-    cdef bint use_tensor_core = _should_use_tensor_core(tensor_core, x.dtype)
-    cdef tuple conv_param = (pad, stride, x.dtype)
+    // cdef float float_zero = 0, float_one = 1
+    // cdef double double_zero = 0, double_one = 1
+    // cdef size_t zero, one
+    // if x.dtype == 'd':
+    //     zero = <size_t>&double_zero
+    //     one = <size_t>&double_one
+    // else:
+    //     zero = <size_t>&float_zero
+    //     one = <size_t>&float_one
 
-    # cuDNN 7 supports dilation only in *_FWD_ALGO_IMPLICIT_GEMM, but
-    # it supports Tensor Cores only in *_FWD_ALGO_IMPLICIT_PRECOMP_GEMM.
-    if use_tensor_core:
-        for i in dilation:
-            if i > 1:
-                use_tensor_core = False
-                break
+    static const float float_zero = 0;
+    static const float float_one = 1;
+    static const double double_zero = 0;
+    static const double double_one = 1;
+    const void* zero{};
+    const void* one{};
+    if (x.dtype() == Dtype::kFloat64) {
+        zero = &double_zero;
+        one = &double_one;
+    } else {
+        zero = &float_zero;
+        one = &float_one;
+    }
 
-    handle = get_handle()
-    x = core.ascontiguousarray(x)
-    W = core.ascontiguousarray(W)
+    // cdef bint use_tensor_core = _should_use_tensor_core(tensor_core, x.dtype)
+    // cdef tuple conv_param = (pad, stride, x.dtype)
 
-    # TODO(okuta) check performance
-    cdef size_t x_desc = cudnn.createTensorDescriptor()
-    cdef size_t y_desc = cudnn.createTensorDescriptor()
-    cdef size_t b_desc = cudnn.createTensorDescriptor()
-    cdef size_t filter_desc = cudnn.createFilterDescriptor()
-    cdef size_t conv_desc = cudnn.createConvolutionDescriptor()
-    cdef int algo
-    cdef size_t max_workspace_size = get_max_workspace_size()
-    cdef size_t workspace_size = 0
-    try:
-        _create_tensor_nd_descriptor(x_desc, x, -1)
-        _create_tensor_nd_descriptor(y_desc, y, -1)
-        _create_filter_descriptor(filter_desc, W, cudnn.CUDNN_TENSOR_NCHW)
-        _create_convolution_descriptor(
-            conv_desc, pad, stride, dilation, groups, x.dtype,
-            cudnn.CUDNN_CROSS_CORRELATION, use_tensor_core)
+    // # cuDNN 7 supports dilation only in *_FWD_ALGO_IMPLICIT_GEMM, but
+    // # it supports Tensor Cores only in *_FWD_ALGO_IMPLICIT_PRECOMP_GEMM.
+    // if use_tensor_core:
+    //     for i in dilation:
+    //         if i > 1:
+    //             use_tensor_core = False
+    //             break
 
-        if deterministic:
-            algo = cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
-            workspace_size = cudnn.getConvolutionBackwardDataWorkspaceSize(
-                handle, filter_desc, x_desc, conv_desc, y_desc, algo)
-            # TODO(okuta): check workspace size
-        elif auto_tune and _cudnn_version >= 5000:
-            algo, workspace_size = _find_algorithm_bwd_data(
-                W, x, y, conv_param, handle, filter_desc, x_desc,
-                conv_desc, y_desc, max_workspace_size)
-        else:
-            algo, workspace_size = _get_algorithm_bwd_data(
-                handle, filter_desc, x_desc, conv_desc, y_desc,
-                max_workspace_size, use_tensor_core)
+    // handle = get_handle()
+    // x = core.ascontiguousarray(x)
+    // W = core.ascontiguousarray(W)
 
-        max_workspace_size = max(max_workspace_size, workspace_size)
-        # TODO(okuta): allocate best size memory
-        workspace = memory.alloc(max_workspace_size)
+    Array x_cont = AsContiguousArray(x);
+    Array w_cont = AsContiguousArray(w);
+    assert(y.IsContiguous());
 
-        cudnn.convolutionBackwardData_v3(
-            handle, one, filter_desc, W.data.ptr, x_desc, x.data.ptr,
-            conv_desc, algo, workspace.ptr, max_workspace_size, zero, y_desc,
-            y.data.ptr)
+    // # TODO(okuta) check performance
+    // cdef size_t x_desc = cudnn.createTensorDescriptor()
+    // cdef size_t y_desc = cudnn.createTensorDescriptor()
+    // cdef size_t b_desc = cudnn.createTensorDescriptor()
+    // cdef size_t filter_desc = cudnn.createFilterDescriptor()
+    // cdef size_t conv_desc = cudnn.createConvolutionDescriptor()
+    // cdef int algo
+    // cdef size_t max_workspace_size = get_max_workspace_size()
+    // cdef size_t workspace_size = 0
+    // try:
+    //     _create_tensor_nd_descriptor(x_desc, x, -1)
+    //     _create_tensor_nd_descriptor(y_desc, y, -1)
+    //     _create_filter_descriptor(filter_desc, W, cudnn.CUDNN_TENSOR_NCHW)
+    //     _create_convolution_descriptor(
+    //         conv_desc, pad, stride, dilation, groups, x.dtype,
+    //         cudnn.CUDNN_CROSS_CORRELATION, use_tensor_core)
+    std::shared_ptr<cudnnTensorStruct> x_desc = CreateTensorDescriptor(x_cont);
+    std::shared_ptr<cudnnTensorStruct> y_desc = CreateTensorDescriptor(y);
+    std::shared_ptr<cudnnFilterStruct> filter_desc = CreateFilterDescriptor(w_cont, CUDNN_TENSOR_NCHW);
+    std::shared_ptr<cudnnConvolutionStruct> conv_desc =
+            CreateConvolutionDescriptor(pad, stride, x.dtype(), CUDNN_CROSS_CORRELATION, dilation, groups);
+    size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
-        if b is not None:
-            assert dev_id == b.data.device.id
-            ndim = x.ndim - 2
-            b = core.ascontiguousarray(b).reshape((1, -1) + (1,) * ndim)
-            _create_tensor_nd_descriptor(b_desc, b, -1)
-            cudnn.addTensor_v3(handle, one, b_desc, b.data.ptr, one, y_desc,
-                               y.data.ptr)
-#endif
+    // if deterministic:
+    //     algo = cudnn.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1
+    //     workspace_size = cudnn.getConvolutionBackwardDataWorkspaceSize(
+    //         handle, filter_desc, x_desc, conv_desc, y_desc, algo)
+    //     # TODO(okuta): check workspace size
+    // elif auto_tune and _cudnn_version >= 5000:
+    //     algo, workspace_size = _find_algorithm_bwd_data(
+    //         W, x, y, conv_param, handle, filter_desc, x_desc,
+    //         conv_desc, y_desc, max_workspace_size)
+    // else:
+    //     algo, workspace_size = _get_algorithm_bwd_data(
+    //         handle, filter_desc, x_desc, conv_desc, y_desc,
+    //         max_workspace_size, use_tensor_core)
+    // auto tune
+    std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_workspace_size =
+            FindConvolutionBackwardDataAlgorithm(filter_desc, w_cont, x_desc, x_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
 
+
+    // max_workspace_size = max(max_workspace_size, workspace_size)
+    // # TODO(okuta): allocate best size memory
+    // workspace = memory.alloc(max_workspace_size)
+
+    cudnnConvolutionBwdDataAlgo_t algo = std::get<0>(algo_workspace_size);
+    size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
+    std::shared_ptr<void> workspace = device.Allocate(workspace_size);
+
+    // cudnn.convolutionBackwardData_v3(
+    //     handle, one, filter_desc, W.data.ptr, x_desc, x.data.ptr,
+    //     conv_desc, algo, workspace.ptr, max_workspace_size, zero, y_desc,
+    //     y.data.ptr)
+    CheckCudnnError(cudnnConvolutionBackwardData(
+            handle(),
+            one,
+            filter_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(w_cont),
+            x_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(x_cont),
+            conv_desc.get(),
+            algo,
+            workspace.get(),
+            workspace_size,
+            zero,
+            y_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(y)));
+
+    // if b is not None:
+    //     assert dev_id == b.data.device.id
+    //     ndim = x.ndim - 2
+    //     b = core.ascontiguousarray(b).reshape((1, -1) + (1,) * ndim)
+    //     _create_tensor_nd_descriptor(b_desc, b, -1)
+    //     cudnn.addTensor_v3(handle, one, b_desc, b.data.ptr, one, y_desc,
+    //                        y.data.ptr)
+    if (b) {
+        assert(&b->device() == &x.device());
+        assert(b->dtype() == x.dtype());
+
+        int8_t ndim = x.ndim() - 2;
+        assert(ndim > 0);
+
+        Shape new_shape{};
+        new_shape.emplace_back(1);
+        new_shape.emplace_back(b->GetTotalSize());
+        for (int8_t i = 0; i < ndim; ++i) {
+            new_shape.emplace_back(1);
+        }
+        Array b_cont = AsContiguousArray(*b).Reshape(new_shape);
+        std::shared_ptr<cudnnTensorStruct> b_desc = CreateTensorDescriptor(b_cont);
+        CheckCudnnError(cudnnAddTensor(
+                handle(),
+                one,
+                b_desc.get(),
+                xchainer::internal::GetRawOffsetData<void>(b_cont),
+                one,
+                y_desc.get(),
+                xchainer::internal::GetRawOffsetData<void>(y)));
+    }
 }
-
-// cpdef size_t getConvolutionBackwardDataWorkspaceSize(
-//         size_t handle, size_t filterDesc, size_t diffDesc, size_t convDesc,
-//         size_t gradDesc, int algo) except *:
-//     cdef size_t sizeInBytes
-//     status = cudnnGetConvolutionBackwardDataWorkspaceSize(
-//         <Handle>handle, <FilterDescriptor>filterDesc,
-//         <TensorDescriptor>diffDesc,
-//         <ConvolutionDescriptor>convDesc, <TensorDescriptor>gradDesc,
-//         <ConvolutionBwdDataAlgo>algo, &sizeInBytes)
-//     check_status(status)
-//     return sizeInBytes
-
 
 }  // namespace internal
 }  // namespace cuda
