@@ -277,6 +277,68 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwar
     return algo_memory;
 }
 
+
+#if 0
+cpdef tuple _find_algorithm_bwd_data(
+        core.ndarray W, core.ndarray x, core.ndarray y, tuple conv_param,
+        size_t handle, size_t filter_desc, size_t x_desc, size_t conv_desc,
+        size_t y_desc, size_t max_workspace_size):
+    key = (x.data.device.id, W.shape, x.shape, y.shape, conv_param,
+           max_workspace_size)
+    if key in _algorithm_bwd_data:
+        return _algorithm_bwd_data[key]
+    workspace = memory.alloc(max_workspace_size)
+    ret = cudnn.findConvolutionBackwardDataAlgorithmEx(
+        handle, filter_desc, W.data.ptr, x_desc, x.data.ptr,
+        conv_desc, y_desc, y.data.ptr, 1, workspace.ptr, max_workspace_size)
+    algo = (ret[0]['algo'], ret[0]['memory'])
+    _algorithm_bwd_data[key] = algo
+    return algo
+#endif
+
+std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> Cudnn::FindConvolutionBackwardDataAlgorithm(
+        const std::shared_ptr<cudnnFilterStruct>& filter_desc,
+        const Array& w,
+        const std::shared_ptr<cudnnTensorStruct>& x_desc,
+        const Array& x,
+        const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
+        const std::shared_ptr<cudnnTensorStruct>& y_desc,
+        const Array& y,
+        size_t max_workspace_size,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride) {
+    auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, y.dtype(), max_workspace_size};
+    if (conv_bwd_data_algo_cache_map_.count(key)) {
+        return conv_bwd_data_algo_cache_map_[key];
+    }
+
+    std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
+
+    int requested_algo_count = 1;
+    cudnnConvolutionBwdDataAlgoPerf_t perf_results[1]{};
+    int returned_algo_count{};
+
+    CheckCudnnError(cudnnFindConvolutionBackwardDataAlgorithmEx(
+            handle(),
+            filter_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(w),
+            x_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(x),
+            conv_desc.get(),
+            y_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(y),
+            requested_algo_count,
+            &returned_algo_count,
+            perf_results,
+            workspace.get(),
+            max_workspace_size));
+
+    std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_memory = {perf_results[0].algo, perf_results[0].memory};
+    conv_bwd_data_algo_cache_map_[key] = algo_memory;
+    return algo_memory;
+}
+
+
 // TODO(sonots): Support tensor core
 void CudnnContext::ConvolutionForward(
         const Array& x,
@@ -368,24 +430,6 @@ void CudnnContext::ConvolutionForward(
                 xchainer::internal::GetRawOffsetData<void>(y)));
     }
 }
-
-#if 0
-cpdef tuple _find_algorithm_bwd_data(
-        core.ndarray W, core.ndarray x, core.ndarray y, tuple conv_param,
-        size_t handle, size_t filter_desc, size_t x_desc, size_t conv_desc,
-        size_t y_desc, size_t max_workspace_size):
-    key = (x.data.device.id, W.shape, x.shape, y.shape, conv_param,
-           max_workspace_size)
-    if key in _algorithm_bwd_data:
-        return _algorithm_bwd_data[key]
-    workspace = memory.alloc(max_workspace_size)
-    ret = cudnn.findConvolutionBackwardDataAlgorithmEx(
-        handle, filter_desc, W.data.ptr, x_desc, x.data.ptr,
-        conv_desc, y_desc, y.data.ptr, 1, workspace.ptr, max_workspace_size)
-    algo = (ret[0]['algo'], ret[0]['memory'])
-    _algorithm_bwd_data[key] = algo
-    return algo
-#endif
 
 void Cudnn::ConvolutionBackwardData() {
 #if 0
