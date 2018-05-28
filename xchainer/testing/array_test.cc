@@ -61,10 +61,18 @@ TEST_P(TestingArrayTest, BuildArrayBuildMethods) {
     std::vector<T> data{1, 2, 3, 4, 5, 6};
     Strides strides{3 * sizeof(T), sizeof(T)};
 
-    auto builder = BuildArray(shape).WithData<T>(data);
-    { ExpectArrayAttr(shape, dtype, strides, data, device(), builder.Build()); }
-    { ExpectArrayAttr(shape, dtype, strides, data, device(), *builder); }
-    { ExpectArrayAttr(shape, dtype, strides, data, device(), static_cast<Array>(builder)); }
+    {
+        Array a = BuildArray(shape).WithData<T>(data).Build();
+        ExpectArrayAttr(shape, dtype, strides, data, device(), a);
+    }
+    {
+        Array a = *BuildArray(shape).WithData<T>(data);
+        ExpectArrayAttr(shape, dtype, strides, data, device(), a);
+    }
+    {
+        Array a = static_cast<Array>(BuildArray(shape).WithData<T>(data));
+        ExpectArrayAttr(shape, dtype, strides, data, device(), a);
+    }
 }
 
 TEST_P(TestingArrayTest, BuildArrayZeroDimensional) {
