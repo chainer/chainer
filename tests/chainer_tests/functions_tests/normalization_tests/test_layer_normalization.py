@@ -21,6 +21,7 @@ def _batch_normalization(expander, gamma, beta, x, mean, var):
     'batchsize': [1, 5],
     'size': [10, 20],
     'dtype': [numpy.float32],
+    'eps': [1e-5, 1e-1],
 })))
 class TestLayerNormalization(unittest.TestCase):
 
@@ -48,7 +49,7 @@ class TestLayerNormalization(unittest.TestCase):
 
         def func(x):
             args_ = x, args[1], args[2]
-            return functions.layer_normalization(*args_)
+            return functions.layer_normalization(*args_, eps=self.eps)
 
         y = func(x_data)
         self.assertEqual(y.data.dtype, self.dtype)
@@ -68,7 +69,7 @@ class TestLayerNormalization(unittest.TestCase):
 
     def check_backward(self, args, y_grad):
         def func(*args_):
-            return functions.layer_normalization(*args_)
+            return functions.layer_normalization(*args_, self.eps)
 
         gradient_check.check_backward(
             func, args, y_grad,
@@ -85,7 +86,7 @@ class TestLayerNormalization(unittest.TestCase):
 
     def check_double_backward(self, args, y_grad, x_grad_grad):
         def func(*args_):
-            y = functions.layer_normalization(*args_)
+            y = functions.layer_normalization(*args_, self.eps)
             return y * y
 
         gradient_check.check_double_backward(
