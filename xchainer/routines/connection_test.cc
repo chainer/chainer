@@ -215,7 +215,7 @@ TEST_P(ConnectionTest, ConvTranspose) {
 
 TEST_P(ConnectionTest, ConvTransposeOutSize) {
     if (GetParam() == "cuda") {
-        // TODO(hvy): Add CUDA implementation
+        // CUDA Convolution does not support out_size
         return;
     }
     int64_t batch_size = 2;

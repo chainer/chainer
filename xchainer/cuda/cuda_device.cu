@@ -1004,6 +1004,9 @@ Array CudaDevice::ConvTranspose(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) {
+    if (out_size) {
+        throw XchainerError{"CUDA convolution transpose does not support out_size"};
+    }
     // def _forward_cudnn(self, x, W, b):
     //     c = W.shape[1]          # W: C_I, C_O, k_1, k_2, ..., k_N
     //     n, in_c = x.shape[:2]   # x: n, C_I, d_1, d_2, ..., d_N
@@ -1039,13 +1042,9 @@ Array CudaDevice::ConvTranspose(
 
     // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
     Shape out_shape{batch_size, out_channels};
-    if (out_size) {
-        std::copy_n(out_size->begin(), ndim, std::back_inserter(out_shape));
-    } else {
-        for (int8_t i = 0; i < ndim; ++i) {
-            out_shape.emplace_back(xchainer::internal::GetConvTransposeOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i]));
-            assert(out_shape.back() > 0);
-        }
+    for (int8_t i = 0; i < ndim; ++i) {
+        out_shape.emplace_back(xchainer::internal::GetConvTransposeOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i]));
+        assert(out_shape.back() > 0);
     }
     Array y = Empty(out_shape, x.dtype(), *this);
 
