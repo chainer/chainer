@@ -20,6 +20,9 @@ class ReLU(function_node.FunctionNode):
     _use_cudnn = False
     _use_ideep = False
 
+    def __init__(self, inplace):
+        self.inplace = inplace
+
     def check_type_forward(self, in_types):
         type_check.expect(
             in_types.size() == 1,
@@ -47,7 +50,20 @@ class ReLU(function_node.FunctionNode):
 
     def forward_gpu(self, inputs):
         x, = inputs
-        if chainer.should_use_cudnn('==always') and x.flags.c_contiguous:
+        if self.inplace:
+            inplace_relu = cuda.cupy.ElementwiseKernel(
+                'T x', 'raw T y',
+                '''
+                if (x > 0) {
+                    y[i] = x;
+                } else {
+                    y[i] = 0;
+                }
+                ''', name='inplace_relu')
+            inplace_relu(x, x)
+            self.retain_inputs((0,))
+            return x,
+        elif chainer.should_use_cudnn('==always') and x.flags.c_contiguous:
             # cupy.activation_backward requires the input.
             # So, we retain it for backward computation.
             self.retain_inputs((0,))
@@ -55,21 +71,25 @@ class ReLU(function_node.FunctionNode):
             y = cudnn.activation_forward(x, _mode)
         else:
             y = cuda.cupy.maximum(x, 0)
-        self.retain_outputs((0,))
+        if not self.inplace:
+            self.retain_outputs((0,))
         return y,
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
-        y, = self.get_retained_outputs()
-        if self._use_ideep:
-            # iDeep implementation
-            x, = self.get_retained_inputs()
-            return ReLUGradIdeep(x, y).apply((gy,))
-        if chainer.should_use_cudnn('==always') and self._use_cudnn:
-            # cuDNN implementation
-            x, = self.get_retained_inputs()
-            return ReLUGradCudnn(x, y).apply((gy,))
-        # Generic implementation
+        if self.inplace:
+            y, = self.get_retained_inputs()
+        else:
+            y, = self.get_retained_outputs()
+            if self._use_ideep:
+                # iDeep implementation
+                x, = self.get_retained_inputs()
+                return ReLUGradIdeep(x, y).apply((gy,))
+            if chainer.should_use_cudnn('==always') and self._use_cudnn:
+                # cuDNN implementation
+                x, = self.get_retained_inputs()
+                return ReLUGradCudnn(x, y).apply((gy,))
+            # Generic implementation
         return ReLUGrad2(y).apply((gy,))
 
 
@@ -149,7 +169,7 @@ class ReLUGradIdeep(ReLUGrad3Base):
         return ggx,
 
 
-def relu(x):
+def relu(x, inplace=False):
     """Rectified Linear Unit function.
 
     .. math:: f(x)=\\max(0, x).
@@ -175,5 +195,5 @@ def relu(x):
         (3, 2)
 
     """
-    y, = ReLU().apply((x,))
+    y, = ReLU(inplace).apply((x,))
     return y
