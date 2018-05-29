@@ -84,6 +84,9 @@ class TestReLU(unittest.TestCase):
             inputs = _to_noncontiguous(inputs)
             grad_outputs = _to_noncontiguous(grad_outputs)
 
+        def relu(x):
+            return functions.relu(x, self.inplace)
+
         with backend_config:
             gradient_check.check_backward(
                 functions.relu, inputs, grad_outputs, dtype=numpy.float64,
@@ -104,7 +107,7 @@ class TestReLU(unittest.TestCase):
             grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
 
         def f(x):
-            x = functions.relu(x, self.inplace)
+            x = functions.relu(x, False)
             return x * x
 
         x, = inputs

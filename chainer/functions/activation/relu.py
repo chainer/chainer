@@ -38,6 +38,7 @@ class ReLU(function_node.FunctionNode):
 
         x, = inputs
         self.retain_outputs((0,))
+        self.inplace = False  # CPU implementation does not have inplace mode
         return utils.force_array(numpy.maximum(x, 0, dtype=x.dtype)),
 
     def forward_ideep(self, inputs):
@@ -52,14 +53,7 @@ class ReLU(function_node.FunctionNode):
         x, = inputs
         if self.inplace:
             inplace_relu = cuda.cupy.ElementwiseKernel(
-                'T x', 'raw T y',
-                '''
-                if (x > 0) {
-                    y[i] = x;
-                } else {
-                    y[i] = 0;
-                }
-                ''', name='inplace_relu')
+                'T x', 'T y', 'y = x > 0 ? x : (T)0', name='inplace_relu')
             inplace_relu(x, x)
             self.retain_inputs((0,))
             return x,
@@ -74,22 +68,16 @@ class ReLU(function_node.FunctionNode):
         self.retain_outputs((0,))
         return y,
 
-    def backward_cpu(self, indexes, grad_outputs):
-        gy, = grad_outputs
-        y, = self.get_retained_outputs()
-        if self._use_ideep:
-            # iDeep implementation
-            x, = self.get_retained_inputs()
-            return ReLUGradIdeep(x, y).apply((gy,))
-        # Generic implementation
-        return ReLUGrad2(y).apply((gy,))
-
-    def backward_gpu(self, indexes, grad_outputs):
+    def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
         if self.inplace:
             y, = self.get_retained_inputs()
         else:
             y, = self.get_retained_outputs()
+            if self._use_ideep:
+                # iDeep implementation
+                x, = self.get_retained_inputs()
+                return ReLUGradIdeep(x, y).apply((gy,))
             if chainer.should_use_cudnn('==always') and self._use_cudnn:
                 # cuDNN implementation
                 x, = self.get_retained_inputs()
@@ -183,6 +171,9 @@ def relu(x, inplace=False):
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
+        inplace (bool): If True, the input array is replaced by the result of
+            ReLU. This mode does not support double backprop currently.
+            The default is False.
 
     Returns:
         ~chainer.Variable: Output variable. A
