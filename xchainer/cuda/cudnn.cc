@@ -88,6 +88,7 @@ StackVector<int, kMaxNdim> GetIntDilation(const StackVector<int64_t, kMaxNdim>& 
     return int_dilation;
 }
 
+// Returns strides divided by item_size
 StackVector<int, kMaxNdim> GetIntArrayStrides(const Strides& strides, int64_t item_size) {
     StackVector<int, kMaxNdim> int_strides;
     for (int8_t i = 0; i < strides.ndim(); ++i) {
@@ -105,7 +106,7 @@ void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTe
         StackVector<int, kMaxNdim> nchw = GetIntShape(arr.shape());
         CheckCudnnError(cudnnSetTensor4dDescriptor(desc, format, cudnn_dtype, nchw[0], nchw[1], nchw[2], nchw[3]));
     } else {
-        StackVector<int, kMaxNdim> int_strides = GetIntArrayStrides(arr.strides(), arr.item_size());
+        StackVector<int, kMaxNdim> int_strides = GetIntArrayStrides(arr.strides(), arr.item_size());  // strides divided by item_size
         StackVector<int, kMaxNdim> int_shape = GetIntShape(arr.shape());
         CheckCudnnError(cudnnSetTensorNdDescriptor(desc, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]));
     }
