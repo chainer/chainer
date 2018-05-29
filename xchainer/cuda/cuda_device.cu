@@ -958,8 +958,16 @@ Array CudaDevice::Conv(
         CheckDevicesCompatible(x, w);
     }
 
-    int8_t ndim = w.ndim() - 2;
-    assert(ndim > 0);
+    int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
+    if (ndim <= 0) {
+        throw DimensionError{"Number of spacial dimensions must be greater than 0"};
+    }
+    if (ndim != stride.size()) {
+        throw DimensionError{"Number of dimensions of stride does not match the number of spacial dimensions"};
+    }
+    if (ndim != pad.size()) {
+        throw DimensionError{"Number of dimensions of pad does not match the number of spacial dimensions"};
+    }
 
     // w.shape = (out_channels, _, k_1, k_2, ..., k_N)
     int64_t out_channels = w.shape()[0];

@@ -132,12 +132,8 @@ void SetConvolutionDescriptor(
         Dtype dtype,
         cudnnConvolutionMode_t mode) {
     size_t ndim = pad.size();
-    if (ndim != stride.size()) {
-        throw DimensionError{"pad and stride must be of same length"};
-    }
-    if (dilation && ndim != dilation->size()) {
-        throw DimensionError{"pad and dilation must be of same length"};
-    }
+    assert(ndim == stride.size());
+    assert(!dilation || ndim == dilation->size());
 
     StackVector<int, kMaxNdim> int_stride = GetIntStride(stride);
     StackVector<int, kMaxNdim> int_pad = GetIntPad(pad);
