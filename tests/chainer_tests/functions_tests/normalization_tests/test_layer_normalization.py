@@ -65,7 +65,7 @@ class TestLayerNormalization(unittest.TestCase):
 
     def check_backward(self, args, y_grad):
         def func(*args_):
-            return functions.layer_normalization(*args_, self.eps)
+            return functions.layer_normalization(*args_, eps=self.eps)
 
         gradient_check.check_backward(
             func, args, y_grad,
@@ -82,7 +82,7 @@ class TestLayerNormalization(unittest.TestCase):
 
     def check_double_backward(self, args, y_grad, x_grad_grad):
         def func(*args_):
-            y = functions.layer_normalization(*args_, self.eps)
+            y = functions.layer_normalization(*args_, eps=self.eps)
             return y * y
 
         gradient_check.check_double_backward(
