@@ -38,7 +38,6 @@ from chainer.functions.array.flipud import flipud  # NOQA
 from chainer.functions.array.get_item import get_item  # NOQA
 from chainer.functions.array.hstack import hstack  # NOQA
 from chainer.functions.array.im2col import im2col  # NOQA
-from chainer.functions.array.im2col import Im2Col  # NOQA
 from chainer.functions.array.moveaxis import moveaxis  # NOQA
 from chainer.functions.array.pad import pad  # NOQA
 from chainer.functions.array.pad_sequence import pad_sequence  # NOQA
