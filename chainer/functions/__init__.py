@@ -131,7 +131,6 @@ from chainer.functions.math.fft import ifft  # NOQA
 from chainer.functions.math.fix import fix  # NOQA
 from chainer.functions.math.floor import floor  # NOQA
 from chainer.functions.math.fmod import fmod  # NOQA
-from chainer.functions.math.fmod import Fmod  # NOQA
 from chainer.functions.math.hyperbolic import cosh  # NOQA
 from chainer.functions.math.hyperbolic import sinh  # NOQA
 from chainer.functions.math.identity import identity  # NOQA
