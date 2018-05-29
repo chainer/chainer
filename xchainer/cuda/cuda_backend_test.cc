@@ -350,12 +350,12 @@ TEST(CudaBackendTest, GetCudnnMaxWorkspaceSize) {
     {
         CudaBackend backend{ctx};
         {
-            EnvScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvName, "10"};
+            EnvScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "10"};
             EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
         }
         {
             // env is cached on the first access, so not reflected.
-            EnvScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvName, "0"};
+            EnvScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "0"};
             EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
         }
     }

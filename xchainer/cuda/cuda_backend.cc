@@ -17,7 +17,7 @@ namespace cuda {
 
 constexpr const char* CudaBackend::kDefaultName;
 constexpr const size_t CudaBackend::kCudnnDefaultMaxWorkspaceSize;
-constexpr const char* CudaBackend::kCudnnMaxWorkspaceSizeEnvName;
+constexpr const char* CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName;
 
 std::string CudaBackend::GetName() const { return kDefaultName; }
 
@@ -55,7 +55,7 @@ size_t CudaBackend::GetCudnnMaxWorkspaceSize() {
     if (cudnn_max_workspace_size_) {
         return *cudnn_max_workspace_size_;
     }
-    const char* env = std::getenv(kCudnnMaxWorkspaceSizeEnvName);
+    const char* env = std::getenv(kCudnnMaxWorkspaceSizeEnvVarName);
     if (env == nullptr) {
         cudnn_max_workspace_size_ = kCudnnDefaultMaxWorkspaceSize;
     } else {
