@@ -3,11 +3,10 @@ import unittest
 import numpy
 
 import chainer
-from chainer import testing
-from chainer.testing import attr
-from chainer import functions
 from chainer.backends import cuda
-
+from chainer import testing
+from chainer import functions
+from chainer.testing import attr
 
 @testing.parameterize(*(testing.product({
     'delta_v': [0.5],
