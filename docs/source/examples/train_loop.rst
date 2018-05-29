@@ -143,7 +143,7 @@ The main steps are twofold:
                     self.l2 = L.Linear(n_mid_units, n_mid_units)
                     self.l3 = L.Linear(n_mid_units, n_out)
 
-            def __call__(self, x):
+            def forward(self, x):
                 h = F.relu(self.l1(x))
                 h = F.relu(self.l2(h))
                 return self.l3(h)
@@ -181,7 +181,7 @@ You can easily try out other optimizers as well. Please test and observe the res
                 self.l2 = L.Linear(n_mid_units, n_mid_units)
                 self.l3 = L.Linear(n_mid_units, n_out)
 
-        def __call__(self, x):
+        def forward(self, x):
             h = F.relu(self.l1(x))
             h = F.relu(self.l2(h))
             return self.l3(h)

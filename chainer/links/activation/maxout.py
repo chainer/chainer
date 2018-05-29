@@ -80,7 +80,7 @@ class Maxout(link.Chain):
         self.out_size = out_size
         self.pool_size = pool_size
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies the maxout layer.
 
         Args:
