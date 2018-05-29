@@ -312,7 +312,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwar
     return algo_memory;
 }
 
-std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> Cudnn::FindConvolutionBackwardDataAlgorithm(
+std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnContext::FindConvolutionBackwardDataAlgorithm(
         const std::shared_ptr<cudnnFilterStruct>& filter_desc,
         const Array& w,
         const std::shared_ptr<cudnnTensorStruct>& x_desc,
@@ -424,7 +424,7 @@ void CudnnContext::ConvolutionForward(
     }
 }
 
-void Cudnn::ConvolutionBackwardData(
+void CudnnContext::ConvolutionBackwardData(
         const Array& w,
         const Array& x,
         const nonstd::optional<Array>& b,
