@@ -71,25 +71,30 @@ class ReLU(function_node.FunctionNode):
             y = cudnn.activation_forward(x, _mode)
         else:
             y = cuda.cupy.maximum(x, 0)
-        if not self.inplace:
-            self.retain_outputs((0,))
+        self.retain_outputs((0,))
         return y,
 
-    def backward(self, indexes, grad_outputs):
+    def backward_cpu(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        y, = self.get_retained_outputs()
+        if self._use_ideep:
+            # iDeep implementation
+            x, = self.get_retained_inputs()
+            return ReLUGradIdeep(x, y).apply((gy,))
+        # Generic implementation
+        return ReLUGrad2(y).apply((gy,))
+
+    def backward_gpu(self, indexes, grad_outputs):
         gy, = grad_outputs
         if self.inplace:
             y, = self.get_retained_inputs()
         else:
             y, = self.get_retained_outputs()
-            if self._use_ideep:
-                # iDeep implementation
-                x, = self.get_retained_inputs()
-                return ReLUGradIdeep(x, y).apply((gy,))
             if chainer.should_use_cudnn('==always') and self._use_cudnn:
                 # cuDNN implementation
                 x, = self.get_retained_inputs()
                 return ReLUGradCudnn(x, y).apply((gy,))
-            # Generic implementation
+        # Generic implementation
         return ReLUGrad2(y).apply((gy,))
 
 
