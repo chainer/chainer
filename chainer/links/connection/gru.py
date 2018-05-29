@@ -105,7 +105,7 @@ class StatelessGRU(GRUBase):
 
     """
 
-    def __call__(self, h, x):
+    def forward(self, h, x):
         r = sigmoid.sigmoid(self.W_r(x) + self.U_r(h))
         z = sigmoid.sigmoid(self.W_z(x) + self.U_z(h))
         h_bar = tanh.tanh(self.W(x) + self.U(r * h))
@@ -223,7 +223,7 @@ class StatefulGRU(GRUBase):
     def reset_state(self):
         self.h = None
 
-    def __call__(self, x):
+    def forward(self, x):
         z = self.W_z(x)
         h_bar = self.W(x)
         if self.h is not None:
@@ -261,15 +261,15 @@ class GRU(StatefulGRU):
 
     """
 
-    def __call__(self, *args):
-        """__call__(self, x)
+    def forward(self, *args):
+        """forward(self, x)
 
         Does forward propagation.
 
         """
 
         n_args = len(args)
-        msg = ("Invalid argument. The length of GRU.__call__ must be 1. "
+        msg = ("Invalid argument. The length of GRU.forward must be 1. "
                "But %d is given. " % n_args)
 
         if n_args == 0 or n_args >= 3:
@@ -281,4 +281,4 @@ class GRU(StatefulGRU):
                     "Use chainer.links.StatelessGRU instead.")
             raise ValueError(msg)
 
-        return super(GRU, self).__call__(args[0])
+        return super(GRU, self).forward(args[0])

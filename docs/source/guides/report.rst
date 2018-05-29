@@ -81,7 +81,7 @@ See the following example:
     ...         with self.init_scope():
     ...             self.predictor = predictor
     ...
-    ...     def __call__(self, x, t):
+    ...     def forward(self, x, t):
     ...         y = self.predictor(x)
     ...         loss = F.softmax_cross_entropy(y, t)
     ...         accuracy = F.accuracy(y, t)
@@ -124,7 +124,7 @@ See the following example:
     ...             self.l2 = L.Linear(None, n_units)  # n_units -> n_units
     ...             self.l3 = L.Linear(None, n_out)    # n_units -> n_out
     ...
-    ...     def __call__(self, x):
+    ...     def forward(self, x):
     ...         h1 = F.relu(self.l1(x))
     ...         h2 = F.relu(self.l2(h1))
     ...         y = self.l3(h2)
