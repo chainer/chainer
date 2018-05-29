@@ -13,6 +13,7 @@
 #include "xchainer/backend_util.h"
 #include "xchainer/cuda/cuda_device.h"
 #include "xchainer/cuda/cuda_runtime.h"
+#include "xchainer/cuda/hash_combine.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
@@ -202,28 +203,28 @@ namespace internal {
 
 std::size_t ConvAlgoCacheKeyHash::operator()(const ConvAlgoCacheKey& key) const {
     std::size_t seed = 0;
-    hash_combine(seed, std::hash<int8_t>()(key.x_shape.ndim()));
+    HashCombine(seed, std::hash<int8_t>()(key.x_shape.ndim()));
     for (int64_t v : key.x_shape) {
-        hash_combine(seed, std::hash<int64_t>()(v));
+        HashCombine(seed, std::hash<int64_t>()(v));
     }
-    hash_combine(seed, std::hash<int8_t>()(key.w_shape.ndim()));
+    HashCombine(seed, std::hash<int8_t>()(key.w_shape.ndim()));
     for (int64_t v : key.w_shape) {
-        hash_combine(seed, std::hash<int64_t>()(v));
+        HashCombine(seed, std::hash<int64_t>()(v));
     }
-    hash_combine(seed, std::hash<int8_t>()(key.y_shape.ndim()));
+    HashCombine(seed, std::hash<int8_t>()(key.y_shape.ndim()));
     for (int64_t v : key.y_shape) {
-        hash_combine(seed, std::hash<int64_t>()(v));
+        HashCombine(seed, std::hash<int64_t>()(v));
     }
-    hash_combine(seed, std::hash<int8_t>()(gsl::narrow<int8_t>(key.pad.size())));
+    HashCombine(seed, std::hash<int8_t>()(gsl::narrow<int8_t>(key.pad.size())));
     for (int64_t v : key.pad) {
-        hash_combine(seed, std::hash<int64_t>()(v));
+        HashCombine(seed, std::hash<int64_t>()(v));
     }
-    hash_combine(seed, std::hash<int8_t>()(gsl::narrow<int8_t>(key.stride.size())));
+    HashCombine(seed, std::hash<int8_t>()(gsl::narrow<int8_t>(key.stride.size())));
     for (int64_t v : key.stride) {
-        hash_combine(seed, std::hash<int64_t>()(v));
+        HashCombine(seed, std::hash<int64_t>()(v));
     }
-    hash_combine(seed, std::hash<std::underlying_type<Dtype>::type>()(static_cast<std::underlying_type<Dtype>::type>(key.dtype)));
-    hash_combine(seed, std::hash<size_t>()(key.max_workspace_size));
+    HashCombine(seed, std::hash<std::underlying_type<Dtype>::type>()(static_cast<std::underlying_type<Dtype>::type>(key.dtype)));
+    HashCombine(seed, std::hash<size_t>()(key.max_workspace_size));
     return seed;
 }
 
