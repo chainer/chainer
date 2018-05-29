@@ -234,22 +234,17 @@ std::size_t ConvAlgoCacheKeyHash::operator()(const ConvAlgoCacheKey& key) const 
     return seed;
 }
 
-Cudnn::~Cudnn() {
-    if (handle_) {
-        cudaSetDevice(device_index_);
-        cudnnDestroy(handle_);
-    }
+CudnnContext::CudnnContext(int device_index) : device_index_{device_index} {
+    CheckCudaError(cudaSetDevice(device_index_));
+    CheckCudnnError(cudnnCreate(&handle_));
 }
 
-cudnnHandle_t Cudnn::handle() {
-    if (!handle_) {
-        CheckCudaError(cudaSetDevice(device_index_));
-        CheckCudnnError(cudnnCreate(&handle_));
-    }
-    return handle_;
+CudnnContext::~CudnnContext() {
+    cudaSetDevice(device_index_);
+    cudnnDestroy(handle_);
 }
 
-std::pair<cudnnConvolutionFwdAlgo_t, size_t> Cudnn::FindConvolutionForwardAlgorithm(
+std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwardAlgorithm(
         const std::shared_ptr<cudnnTensorStruct>& x_desc,
         const Array& x,
         const std::shared_ptr<cudnnFilterStruct>& filter_desc,
@@ -291,7 +286,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> Cudnn::FindConvolutionForwardAlgori
 }
 
 // TODO(sonots): Support tensor core
-void Cudnn::ConvolutionForward(
+void CudnnContext::ConvolutionForward(
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,

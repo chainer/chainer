@@ -23,7 +23,7 @@ namespace cuda {
 // TODO(sonots): Support thread-safety
 class CudaDevice : public Device {
 public:
-    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_{index} {}
+    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_context_{index} {}
     ~CudaDevice() override;
 
     std::shared_ptr<void> Allocate(size_t bytesize) override;
@@ -109,7 +109,7 @@ public:
 
 private:
     MemoryPool memory_pool_;
-    internal::Cudnn cudnn_;
+    internal::CudnnContext cudnn_context_;
     cublasHandle_t cublas_handle_{};
 };
 

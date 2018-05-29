@@ -52,10 +52,10 @@ struct ConvAlgoCacheKeyHash {
 
 using ConvAlgoCacheMap = std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
 
-class Cudnn {
+class CudnnContext {
 public:
-    explicit Cudnn(int device_index) : device_index_{device_index} {}
-    ~Cudnn();
+    explicit CudnnContext(int device_index);
+    ~CudnnContext();
 
     void ConvolutionForward(
             const Array& x,
@@ -67,7 +67,7 @@ public:
             const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
             int groups);
 
-    cudnnHandle_t handle();
+    cudnnHandle_t handle() { return handle_; }
 
 private:
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
