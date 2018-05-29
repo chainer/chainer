@@ -1,6 +1,4 @@
 import chainer
-import chainer.functions as F
-import chainer.links as L
 import h5py
 import numpy as np
 
