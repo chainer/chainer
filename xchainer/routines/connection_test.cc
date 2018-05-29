@@ -32,11 +32,7 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(ConnectionTest, Conv) {
-    if (GetParam() == "cuda") {
-        // TODO(niboshi): Add CUDA implementation
-        return;
-    }
+TEST_P(ConnectionTest, Conv2d) {
     int64_t batch_size = 2;
     int64_t in_channels = 3;
     int64_t out_channels = 2;
@@ -72,9 +68,40 @@ TEST_P(ConnectionTest, Conv) {
     testing::ExpectEqual(e, y);
 }
 
+TEST_P(ConnectionTest, ConvNd) {
+    int64_t batch_size = 2;
+    int64_t in_channels = 3;
+    int64_t out_channels = 2;
+    Shape in_dims{2, 3, 4};
+    StackVector<int64_t, kMaxNdim> kernel_size{2, 3, 4};
+    StackVector<int64_t, kMaxNdim> stride{3, 2, 1};
+    StackVector<int64_t, kMaxNdim> pad{2, 0, 1};
+    Shape out_dims{2, 1, 3};
+
+    Shape x_shape{batch_size, in_channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+    Shape w_shape{out_channels, in_channels};
+    std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(w_shape));
+    Shape b_shape{out_channels};
+    Shape out_shape{batch_size, out_channels};
+    std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
+
+    Array x = testing::BuildArray(x_shape).WithLinearData<double>(-x_shape.GetTotalSize() / 2, 1.0).WithPadding(1);
+    Array w = testing::BuildArray(w_shape).WithLinearData<double>(-w_shape.GetTotalSize() / 2, 1.0);
+    Array b = testing::BuildArray(b_shape).WithData<double>({-0.2, 1.3});
+    Array y = Conv(x, w, b, stride, pad, false);
+
+    Array e = testing::BuildArray(out_shape).WithData<double>(
+            {-2.00000e-01, -2.00000e-01, -2.00000e-01, 4.58278e+04,  6.09178e+04,  4.55038e+04,  1.30000e+00,  1.30000e+00,  1.30000e+00,
+             -1.44347e+04, -1.81367e+04, -1.28147e+04, -2.00000e-01, -2.00000e-01, -2.00000e-01, -3.58202e+04, -4.92422e+04, -3.80882e+04,
+             1.30000e+00,  1.30000e+00,  1.30000e+00,  4.38853e+04,  5.83273e+04,  4.35613e+04});  // Computed with Chainer.
+
+    testing::ExpectEqual(e, y);
+}
+
 TEST_P(ConnectionTest, ConvCoverAll) {
     if (GetParam() == "cuda") {
-        // TODO(niboshi): Add CUDA implementation
+        // CuDNN convolution does not support cover_all
         return;
     }
     int64_t batch_size = 2;

@@ -1,5 +1,7 @@
 #include "xchainer/cuda/cuda_backend.h"
 
+#include <stdlib.h>
+
 #include <tuple>
 
 #include <cuda_runtime.h>
@@ -307,6 +309,56 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceTo) {
         EXPECT_NE(a.data().get(), b.data().get()) << "Array::ToDevice() must not return alias when transferring to a different device.";
     }
     ExpectArraysEqual(a, b);
+}
+
+class EnvVarScope {
+public:
+    EnvVarScope(const std::string& name, const std::string& value) : name_(name) {
+        const char* old_value = getenv(name_.c_str());
+        if (old_value) {
+            old_value_ = std::string(old_value);
+        }
+        setenv(name_.c_str(), value.c_str(), 1);
+    }
+
+    ~EnvVarScope() {
+        if (old_value_) {
+            setenv(name_.c_str(), old_value_->c_str(), 1);
+        } else {
+            unsetenv(name_.c_str());
+        }
+    }
+
+private:
+    const std::string name_{};
+    nonstd::optional<std::string> old_value_{};
+};
+
+TEST(CudaBackendTest, GetCudnnMaxWorkspaceSize) {
+    Context ctx;
+    {
+        CudaBackend backend{ctx};
+        EXPECT_EQ(CudaBackend::kCudnnDefaultMaxWorkspaceSize, backend.GetCudnnMaxWorkspaceSize());
+    }
+    {
+        CudaBackend backend{ctx};
+        backend.SetCudnnMaxWorkspaceSize(10);
+        EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
+        backend.SetCudnnMaxWorkspaceSize(0);
+        EXPECT_EQ(size_t{0}, backend.GetCudnnMaxWorkspaceSize());
+    }
+    {
+        CudaBackend backend{ctx};
+        {
+            EnvVarScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "10"};
+            EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
+        }
+        {
+            // env is cached on the first access, so not reflected.
+            EnvVarScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "0"};
+            EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
+        }
+    }
 }
 
 }  // namespace

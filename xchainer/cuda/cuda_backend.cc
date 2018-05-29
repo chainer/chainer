@@ -2,6 +2,7 @@
 
 #include <cuda_runtime.h>
 
+#include <cstdlib>
 #include <stdexcept>
 #include <string>
 
@@ -13,6 +14,10 @@
 
 namespace xchainer {
 namespace cuda {
+
+constexpr const char* CudaBackend::kDefaultName;
+constexpr const size_t CudaBackend::kCudnnDefaultMaxWorkspaceSize;
+constexpr const char* CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName;
 
 std::string CudaBackend::GetName() const { return kDefaultName; }
 
@@ -42,6 +47,21 @@ bool CudaBackend::SupportsTransfer(Device& src_device, Device& dst_device) {
         return &src_backend == this || nullptr != dynamic_cast<native::NativeBackend*>(&src_backend);
     }
     return false;
+}
+
+void CudaBackend::SetCudnnMaxWorkspaceSize(size_t max_workspace_size) { cudnn_max_workspace_size_ = max_workspace_size; }
+
+size_t CudaBackend::GetCudnnMaxWorkspaceSize() {
+    if (cudnn_max_workspace_size_) {
+        return *cudnn_max_workspace_size_;
+    }
+    const char* env = std::getenv(kCudnnMaxWorkspaceSizeEnvVarName);
+    if (env == nullptr) {
+        cudnn_max_workspace_size_ = kCudnnDefaultMaxWorkspaceSize;
+    } else {
+        cudnn_max_workspace_size_ = std::stoul(env);
+    }
+    return *cudnn_max_workspace_size_;
 }
 
 }  // namespace cuda
