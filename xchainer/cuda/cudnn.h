@@ -103,6 +103,7 @@ private:
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
+    void AddBias(const std::shared_ptr<cudnnTensorStruct>& y_desc, const Array& y, const Array& b);
 
     int device_index_;
     cudnnHandle_t handle_{};

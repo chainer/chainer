@@ -194,7 +194,11 @@ std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
     return shared_desc;
 }
 
-void AddBias(cudnnHandle_t handle, const std::shared_ptr<cudnnTensorStruct>& y_desc, const Array& y, const Array& b) {
+}  // namespace
+
+namespace internal {
+
+void CudnnContext::AddBias(const std::shared_ptr<cudnnTensorStruct>& y_desc, const Array& y, const Array& b) {
     assert(&b.device() == &y.device());
     assert(b.dtype() == y.dtype());
 
@@ -220,7 +224,7 @@ void AddBias(cudnnHandle_t handle, const std::shared_ptr<cudnnTensorStruct>& y_d
 
     std::shared_ptr<cudnnTensorStruct> b_desc = CreateTensorDescriptor(b_cont);
     CheckCudnnError(cudnnAddTensor(
-            handle,
+            handle(),
             one,
             b_desc.get(),
             xchainer::internal::GetRawOffsetData<void>(b_cont),
@@ -228,10 +232,6 @@ void AddBias(cudnnHandle_t handle, const std::shared_ptr<cudnnTensorStruct>& y_d
             y_desc.get(),
             xchainer::internal::GetRawOffsetData<void>(y)));
 }
-
-}  // namespace
-
-namespace internal {
 
 std::size_t ConvAlgoCacheKeyHash::operator()(const ConvAlgoCacheKey& key) const {
     std::size_t seed = 0;
@@ -420,7 +420,7 @@ void CudnnContext::ConvolutionForward(
             xchainer::internal::GetRawOffsetData<void>(y)));
 
     if (b) {
-        AddBias(handle(), y_desc, y, *b);
+        AddBias(y_desc, y, *b);
     }
 }
 
@@ -490,7 +490,7 @@ void Cudnn::ConvolutionBackwardData(
             xchainer::internal::GetRawOffsetData<void>(y)));
 
     if (b) {
-        AddBias(handle(), y_desc, y, *b);
+        AddBias(y_desc, y, *b);
     }
 }
 
