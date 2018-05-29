@@ -20,6 +20,13 @@ int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64
     return (in_dim + pad * 2 - kernel_size) / stride + 1;
 }
 
+int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
+    if (cover_all) {
+        return stride * (in_dim - 1) + kernel_size - stride + 1 - 2 * pad;
+    }
+    return stride * (in_dim - 1) + kernel_size - 2 * pad;
+}
+
 }  // namespace internal
 
 Array Conv(

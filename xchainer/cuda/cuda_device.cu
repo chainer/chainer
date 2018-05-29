@@ -925,17 +925,9 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
     });
 }
 
-Array CudaDevice::Conv(
-        const Array& x,
-        const Array& w,
-        const nonstd::optional<Array>& b,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
-    if (cover_all) {
-        throw XchainerError{"CUDA convolution does not support cover_all"};
-    }
+namespace {
 
+void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array>& b) {
     // TODO(sonots): Support float16
     if (x.dtype() != Dtype::kFloat32 && x.dtype() != Dtype::kFloat64) {
         throw XchainerError{"XChainer cuDNN supports only float32 or float64 arrays, but the input array dtype is: ", x.dtype()};
@@ -947,17 +939,13 @@ Array CudaDevice::Conv(
                             x.dtype(),
                             " are same"};
     }
-
-    if (b) {
-        if (b->dtype() != x.dtype()) {
-            throw XchainerError{
-                    "XChainer cuDNN requires the bias array dtype: ", b->dtype(), " and the input array dtype: ", x.dtype(), " are same"};
-        }
-        CheckDevicesCompatible(x, w, *b);
-    } else {
-        CheckDevicesCompatible(x, w);
+    if (b && b->dtype() != x.dtype()) {
+        throw XchainerError{
+                "XChainer cuDNN requires the bias array dtype: ", b->dtype(), " and the input array dtype: ", x.dtype(), " are same"};
     }
+}
 
+void ConvCheckNdim(const Array& w, const StackVector<int64_t, kMaxNdim>& stride, const StackVector<int64_t, kMaxNdim>& pad) {
     int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
     if (ndim <= 0) {
         throw DimensionError{"Number of spacial dimensions must be greater than 0"};
@@ -968,24 +956,41 @@ Array CudaDevice::Conv(
     if (static_cast<size_t>(ndim) != pad.size()) {
         throw DimensionError{"Number of dimensions of pad does not match the number of spacial dimensions"};
     }
+}
+
+}  // namespace
+
+Array CudaDevice::Conv(
+        const Array& x,
+        const Array& w,
+        const nonstd::optional<Array>& b,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    if (cover_all) {
+        throw XchainerError{"CUDA convolution does not support cover_all"};
+    }
+    if (b) {
+        CheckDevicesCompatible(x, w, *b);
+    } else {
+        CheckDevicesCompatible(x, w);
+    }
+    ConvCheckDtype(x, w, b);
+    ConvCheckNdim(w, stride, pad);
+
+    int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
 
     // w.shape = (out_channels, _, k_1, k_2, ..., k_N)
     int64_t out_channels = w.shape()[0];
-    StackVector<int64_t, kMaxNdim> kernel_size;
-    std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(kernel_size));
     // x_shape = (batch_size, in_channels, d_1, d_2, ..., d_N)
     int64_t batch_size = x.shape()[0];
 
-    // Create the output array.
-    StackVector<int64_t, kMaxNdim> out_dims;
-    for (int8_t i = 0; i < ndim; ++i) {
-        out_dims.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
-        assert(out_dims.back() > 0);
-    }
-
     // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
     Shape out_shape{batch_size, out_channels};
-    std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
+    for (int8_t i = 0; i < ndim; ++i) {
+        out_shape.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i], cover_all));
+        assert(out_shape.back() > 0);
+    }
     Array y = Empty(out_shape, x.dtype(), *this);
 
     cudnn_context_.ConvolutionForward(x, w, b, y, pad, stride, nonstd::nullopt, 1);
@@ -994,14 +999,41 @@ Array CudaDevice::Conv(
 }
 
 Array CudaDevice::ConvTranspose(
-        const Array& /*x*/,
-        const Array& /*w*/,
-        const nonstd::optional<Array>& /*b*/,
-        const StackVector<int64_t, kMaxNdim>& /*stride*/,
-        const StackVector<int64_t, kMaxNdim>& /*pad*/,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& /*out_size*/) {
-    // TODO(hvy): Implement it
-    throw NotImplementedError{""};
+        const Array& x,
+        const Array& w,
+        const nonstd::optional<Array>& b,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) {
+    if (out_size) {
+        throw XchainerError{"CUDA convolution transpose does not support out_size"};
+    }
+    if (b) {
+        CheckDevicesCompatible(x, w, *b);
+    } else {
+        CheckDevicesCompatible(x, w);
+    }
+    ConvCheckDtype(x, w, b);
+    ConvCheckNdim(w, stride, pad);
+
+    int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
+
+    // w.shape = (in_channels, out_channels, k_1, k_2, ..., k_N)
+    int64_t out_channels = w.shape()[1];
+    // x_shape = (batch_size, in_channels, d_1, d_2, ..., d_N)
+    int64_t batch_size = x.shape()[0];
+
+    // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
+    Shape out_shape{batch_size, out_channels};
+    for (int8_t i = 0; i < ndim; ++i) {
+        out_shape.emplace_back(xchainer::internal::GetConvTransposeOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i]));
+        assert(out_shape.back() > 0);
+    }
+    Array y = Empty(out_shape, x.dtype(), *this);
+
+    cudnn_context_.ConvolutionBackwardData(w, x, b, y, pad, stride, nonstd::nullopt, 1);
+
+    return y;
 }
 
 void CudaDevice::Synchronize() {
