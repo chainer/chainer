@@ -962,10 +962,10 @@ Array CudaDevice::Conv(
     if (ndim <= 0) {
         throw DimensionError{"Number of spacial dimensions must be greater than 0"};
     }
-    if (ndim != stride.size()) {
+    if (static_cast<size_t>(ndim) != stride.size()) {
         throw DimensionError{"Number of dimensions of stride does not match the number of spacial dimensions"};
     }
-    if (ndim != pad.size()) {
+    if (static_cast<size_t>(ndim) != pad.size()) {
         throw DimensionError{"Number of dimensions of pad does not match the number of spacial dimensions"};
     }
 
