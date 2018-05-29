@@ -446,13 +446,20 @@ class TestLoadNpz(unittest.TestCase):
 
 
 class TestPickle(unittest.TestCase):
-    def test_pickle(self):
+    def setUp(self):
         obj = ['data', object()]
-
         file = six.BytesIO()
         l = link.Chain()
         l.add_persistent('obj', obj)
         npz.save_npz(file, l)
+
+        self.file = file
+        self.l = l
+
+    @testing.with_requires('numpy>=1.10')
+    def test_pickle(self):
+        file = self.file
+        l = self.l
 
         # Should success if `allow_pickle=True`.
         file.seek(0)
@@ -460,14 +467,26 @@ class TestPickle(unittest.TestCase):
         npz.load_npz(file, l, allow_pickle=True)
         assert l.obj[0] == 'data'
 
-        # Should raise an error if `allow_pickle=False` (default).
+        # Should raise an error if `allow_pickle=None` (default).
         file.seek(0)
         with self.assertRaises(ValueError):
             npz.load_npz(file, l)
 
+        # Should raise an error if `allow_pickle=False`.
         file.seek(0)
         with self.assertRaises(ValueError):
             npz.load_npz(file, l, allow_pickle=False)
+
+    @testing.with_requires('numpy<1.10')
+    def test_pickle_(self):
+        file = self.file
+        l = self.l
+
+        # Should success.
+        file.seek(0)
+        l.obj[0] = 'overwritten'
+        npz.load_npz(file, l)
+        assert l.obj[0] == 'data'
 
 
 @testing.parameterize(*testing.product({
