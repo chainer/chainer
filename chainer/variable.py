@@ -1044,7 +1044,6 @@ Actual: {0}'''.format(type(data))
                     grad = chainer.functions.add(*grad)
                     set_grad(y, grad)
             out_grad = tuple([get_grad(y) for y in outputs])
-
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
             hooks = chainer.get_function_hooks()
@@ -1089,7 +1088,6 @@ Actual: {0}'''.format(type(data))
                     gx = None
                 in_grad.append(gx)
             in_grad = tuple(in_grad)
-
 
             gxs = func.backward_accumulate(
                 target_input_indexes, out_grad, in_grad)

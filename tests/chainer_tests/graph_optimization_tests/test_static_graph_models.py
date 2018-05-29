@@ -1,22 +1,18 @@
-import os
-import tempfile
 import unittest
 
 import numpy
 
 import chainer
 from chainer import configuration
-import chainer.functions as F
-import chainer.links as L
-from chainer.graph_optimizations.static_graph import static_graph
 from chainer import cuda
+import chainer.functions as F
 from chainer import gradient_check
+from chainer.graph_optimizations.static_graph import static_graph
+import chainer.links as L
 from chainer import links
-from chainer.serializers import npz
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
-from chainer.utils import type_check
 
 
 class StaticMLP(chainer.Chain):
@@ -31,8 +27,8 @@ class StaticMLP(chainer.Chain):
 
     @static_graph(verbosity_level=2)
     def __call__(self, x):
-        #return self.l1(x)
         return F.relu(self.l1(x))
+
 
 class DynamicMLP(chainer.Chain):
 
@@ -45,7 +41,6 @@ class DynamicMLP(chainer.Chain):
                 initial_bias=chainer.initializers.Normal(1, x_dtype))
 
     def __call__(self, x):
-        #return self.l1(x)
         return F.relu(self.l1(x))
 
 
@@ -54,13 +49,13 @@ class MLP(chainer.Chain):
     def __init__(self, in_size, n_out, W_dtype, x_dtype):
         super(MLP, self).__init__()
         with self.init_scope():
-            #self.l1 = L.Linear(None, n_out)
-            self.l1 = links.Linear(
-            in_size, n_out,
-            initialW=chainer.initializers.Normal(1, W_dtype),
-            initial_bias=chainer.initializers.Normal(1, x_dtype))
+            initialW = chainer.initializers.Normal(1, W_dtype)
+            initial_bias = chainer.initializers.Normal(1, x_dtype)
+            self.l1 = links.Linear(in_size,
+                                   n_out,
+                                   initialW=initialW,
+                                   initial_bias=initial_bias)
         self.mode = 'static'
-        #self.mode = 'dynamic'
 
     def __call__(self, x):
         if self.mode == 'static':
@@ -71,13 +66,12 @@ class MLP(chainer.Chain):
     def dynamic_call(self, x):
         # Dynamic graph only.
         return F.relu(self.l1(x))
-        #return self.l1(x)
 
     @static_graph(verbosity_level=2)
     def static_call(self, x):
         # Static graph.
         return F.relu(self.l1(x))
-        #return self.l1(x)
+
 
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -89,30 +83,33 @@ class TestSimpleChain(unittest.TestCase):
         self.batch_size = 4
         self.in_units = 5
         self.out_units = 6
-        self.x = numpy.random.uniform(size=(self.batch_size, self.in_units)).astype(self.x_dtype)
-        self.gy = numpy.random.uniform(size=(self.batch_size, self.out_units)).astype(self.x_dtype)
-        #print('x: ', self.x)
-        self.chain = MLP(self.in_units, self.out_units, self.W_dtype, self.x_dtype)
-        #W = self.chain.l1.W.data
-        #b = self.chain.l1.b.data
+        x_size = (self.batch_size, self.in_units)
+        self.x = numpy.random.uniform(size=x_size).astype(self.x_dtype)
+        gy_size = (self.batch_size, self.out_units)
+        self.gy = numpy.random.uniform(size=gy_size).astype(self.x_dtype)
+        self.chain = MLP(self.in_units,
+                         self.out_units,
+                         self.W_dtype,
+                         self.x_dtype)
         self.chain.l1.cleargrads()
         self.check_forward_options = {}
         self.check_backward_options = {'atol': 1e-2, 'rtol': 5e-2}
-        self.dynamic_chain = DynamicMLP(self.in_units, self.out_units, self.W_dtype, self.x_dtype)
-        self.static_chain = StaticMLP(self.in_units, self.out_units, self.W_dtype, self.x_dtype)
+        self.dynamic_chain = DynamicMLP(self.in_units,
+                                        self.out_units,
+                                        self.W_dtype,
+                                        self.x_dtype)
+        self.static_chain = StaticMLP(self.in_units,
+                                      self.out_units,
+                                      self.W_dtype,
+                                      self.x_dtype)
 
     def check_forward(self, x):
         y_dyn = self.chain.dynamic_call(x)
         with chainer.using_config('enable_backprop', False):
             y_static = self.chain.static_call(x)
-            #schedule_manager = self.chain.schedule_manager
-            #print("check_forward():schedule_manager: ", schedule_manager)
             y_static = self.chain.static_call(x)
             y_static = self.chain.static_call(x)
-        #print('y_dyn \n', y_dyn)
-        #print('y_static \n', y_static)
         chainer.testing.assert_allclose(y_dyn.data, y_static.data)
-        #self.assertTrue(True)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -120,41 +117,30 @@ class TestSimpleChain(unittest.TestCase):
     def test_forward_cpu2(self):
         y_dyn = self.chain.dynamic_call(self.x)
         x2 = 2*self.x
+        # todo: add a new config so that we can still use 'train'
         with configuration.using_config('train', False):
-        #with chainer.using_config('enable_backprop', True):
             y_static1 = self.chain.static_call(x2)
             y_static1.grad = y_static1.data.copy()
             y_static1.backward()
 
             schedule_manager = self.chain.schedule_manager
             print("sched 1: ", schedule_manager)
-            #y_static = self.chain.static_call(x2)
             y_static = self.chain.static_call(self.x)
-        # print('y_dyn \n', y_dyn)
-        # print('y_static \n', y_static)
         chainer.testing.assert_allclose(y_dyn.data, y_static.data)
 
     @attr.gpu
-    def tesfixme_skipped_forward_gpu(self):
+    def test_forward_gpu(self):
         self.chain.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad, chain):
-
         gradient_check.check_backward(
             chain, x_data, y_grad, (chain.l1.W, chain.l1.b),
             dtype='f', **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
-        #chain = self.chain
-        #chain = self.dynamic_chain
         chain = self.static_chain
-
-        #y = chain(self.x)
-        #y.grad = self.gy
-        #y.backward()
-        #chain.cleargrads()
         with configuration.using_config('train', False):
             self.check_backward(self.x, self.gy, chain)
 
@@ -200,8 +186,6 @@ class MNISTDynamicMLP(chainer.Chain):
         return self.l3(h2)
 
 
-
-
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
@@ -213,12 +197,14 @@ class TestMultiLayerChain(unittest.TestCase):
         self.in_units = 5
         self.out_units = 6
         self.hidden_units = 5
-        self.x = numpy.random.uniform(size=(self.batch_size, self.in_units)).astype(self.x_dtype)
-        self.gy = numpy.random.uniform(size=(self.batch_size, self.out_units)).astype(self.x_dtype)
-        #print('x: ', self.x)
-        self.chain = MLP(self.in_units, self.out_units, self.W_dtype, self.x_dtype)
-        #W = self.chain.l1.W.data
-        #b = self.chain.l1.b.data
+        x_size = (self.batch_size, self.in_units)
+        self.x = numpy.random.uniform(size=x_size).astype(self.x_dtype)
+        gy_size = (self.batch_size, self.out_units)
+        self.gy = numpy.random.uniform(size=gy_size).astype(self.x_dtype)
+        self.chain = MLP(self.in_units,
+                         self.out_units,
+                         self.W_dtype,
+                         self.x_dtype)
         self.chain.l1.cleargrads()
         self.check_forward_options = {}
         self.check_backward_options = {'atol': 1e-2, 'rtol': 5e-2}
@@ -249,7 +235,7 @@ class TestMultiLayerChain(unittest.TestCase):
         dyn_W1_grad = self.dynamic_chain.l1.W.grad
         print('static_W1_grad: ', static_W1_grad)
         print('dyn_W1_grad: ', dyn_W1_grad)
-        chainer.testing.assert_allclose(static_W1_grad, dyn_W1_grad) # fixme: only this one fails.
+        chainer.testing.assert_allclose(static_W1_grad, dyn_W1_grad)
         static_W2_grad = self.static_chain.l2.W.grad
         dyn_W2_grad = self.dynamic_chain.l2.W.grad
         chainer.testing.assert_allclose(static_W2_grad, dyn_W2_grad)
@@ -266,14 +252,9 @@ class TestMultiLayerChain(unittest.TestCase):
         dyn_b3_grad = self.dynamic_chain.l3.b.grad
         chainer.testing.assert_allclose(static_b3_grad, dyn_b3_grad)
 
-
-
-
-
     def test_backward_custom_cpu(self):
         # Verify the both the Dynamic and Static networks produce the same
         # results on forward and backward passes.
-
         print('debug: Original input variable array: ', self.x)
         x_var_dyn = chainer.Variable(self.x)
         y_dyn = self.dynamic_chain(x_var_dyn)
@@ -292,10 +273,6 @@ class TestMultiLayerChain(unittest.TestCase):
         x_var_static.grad_var = None
         self.static_chain.l1.W.data = self.dynamic_chain.l1.W.data.copy()
         self.static_chain.l1.b.data = self.dynamic_chain.l1.b.data.copy()
-
-        #self.static_chain.l1.W.data[...] = self.dynamic_chain.l1.W.data
-        #self.static_chain.l1.b.data[...] = self.dynamic_chain.l1.b.data
-
         self.static_chain.l2.W.data[...] = self.dynamic_chain.l2.W.data
         self.static_chain.l2.b.data[...] = self.dynamic_chain.l2.b.data
         self.static_chain.l3.W.data[...] = self.dynamic_chain.l3.W.data
@@ -304,13 +281,11 @@ class TestMultiLayerChain(unittest.TestCase):
         # Do forward pass and verify that the outputs match the dynamic
         # chain.
         # Use a different input variable for this pass.
-        new_x_data = numpy.random.uniform(size=(self.batch_size, self.in_units)).astype(self.x_dtype)
+        x_size = (self.batch_size, self.in_units)
+        new_x_data = numpy.random.uniform(size=x_size).astype(self.x_dtype)
         print('debug: 2nd iteration input variable array: ', new_x_data)
         x_var_dyn = chainer.Variable(new_x_data)
         x_var_static = chainer.Variable(new_x_data.copy())
-        #x_var_static.data = new_x_data.copy()
-
-
         y_static = self.static_chain(x_var_static)
         assert y_static.data is not None
         y_dyn = self.dynamic_chain(x_var_dyn)
@@ -318,44 +293,44 @@ class TestMultiLayerChain(unittest.TestCase):
         chainer.testing.assert_allclose(y_dyn.data, y_static.data)
 
         # Use a different gy for the backward pass:
-        new_y_data = numpy.random.uniform(size=(self.batch_size, self.out_units)).astype(self.x_dtype)
+        y_size = (self.batch_size, self.out_units)
+        new_y_data = numpy.random.uniform(size=y_size).astype(self.x_dtype)
         print('debug: 2nd iteration gy variable array: ', new_y_data)
 
         x_var_static.grad = None
-        #_clear_grads(self.static_chain.params())
         self.static_chain.cleargrads()
 
         y_static.grad = new_y_data
         y_static.backward()
 
         x_var_dyn.grad = None
-        #_clear_grads(self.dynamic_chain.params())
         self.dynamic_chain.cleargrads()
 
         y_dyn.grad = new_y_data.copy()
         y_dyn.backward()
-        #self.dynamic_chain.cleargrads()
         assert x_var_dyn.grad is not None
         assert x_var_static.grad is not None
         chainer.testing.assert_allclose(x_var_dyn.grad, x_var_static.grad)
 
         self.check_network_params_are_equal()
 
-        noise1 = 0.1*numpy.random.uniform(size=(self.batch_size, self.in_units)).astype(self.x_dtype)
+        n_size = (self.batch_size, self.in_units)
+        noise1 = 0.1*numpy.random.uniform(size=n_size).astype(self.x_dtype)
         x_pass1 = new_x_data + noise1
 
         # Modify l2.W's data:
-        new_l2_W_data = 0.1*numpy.random.uniform(size=self.static_chain.l2.W.data.shape).astype(self.x_dtype)
+        l2s = self.static_chain.l2.W.data.shape
+        new_l2_W_data = 0.1*numpy.random.uniform(size=l2s).astype(self.x_dtype)
         self.static_chain.l2.W.data = new_l2_W_data
         self.dynamic_chain.l2.W.data = new_l2_W_data
 
-        new_y_data = numpy.random.uniform(size=(self.batch_size, self.out_units)).astype(self.x_dtype)
+        ns = (self.batch_size, self.out_units)
+        new_y_data = numpy.random.uniform(size=ns).astype(self.x_dtype)
 
         x_var_static.data = x_pass1
         y_static = self.static_chain(x_var_static)
         assert y_static.data is not None
         y_static.grad = new_y_data
-        #_clear_grads(self.static_chain.params())
         self.static_chain.cleargrads()
         y_static.backward()
 
@@ -363,7 +338,6 @@ class TestMultiLayerChain(unittest.TestCase):
         y_dyn = self.dynamic_chain(x_var_dyn)
         assert y_dyn.data is not None
         y_dyn.grad = new_y_data.copy()
-        #_clear_grads(self.dynamic_chain.params())
         self.dynamic_chain.cleargrads()
         y_dyn.backward()
         chainer.testing.assert_allclose(y_dyn.data, y_static.data)
@@ -372,9 +346,6 @@ class TestMultiLayerChain(unittest.TestCase):
         assert x_var_dyn.grad is not None
         assert x_var_static.grad is not None
         chainer.testing.assert_allclose(x_var_dyn.grad, x_var_static.grad)
-
-
-
 
 
 testing.run_module(__name__, __file__)

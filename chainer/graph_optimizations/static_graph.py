@@ -7,10 +7,14 @@ import chainer.function_node
 import numpy as np
 
 
+def _is_xp(x):
+    return isinstance(x, np.ndarray) or isinstance(x, cuda.ndarray)
+
+
 # todo: remove this since no longer used?
 def _debug_print_stats(args):
     for arg in args:
-        if isinstance(arg, np.ndarray) or isinstance(arg, cuda.ndarray):
+        if _is_xp(arg):
             print('id of array: ', id(arg))
         elif isinstance(arg, (list, tuple)):
             _debug_print_stats(arg)
@@ -223,7 +227,8 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         # Maps an array id (of a parameter) to its location.
         # id(array) -> (index_in_self.params_list, attribute_location)
         self.array_id_to_param_map = dict()
-        # Maps an array id (of an input variable for forward()) to its positional index.
+        # Maps an array id (of an input variable for forward()) to its
+        # positional index.
         # id(array) -> (index in inputs argument of forward())
         self.array_id_to_input_var_map = dict()
         # maps a Parameter id to the parameter's index in self.params_list
@@ -273,7 +278,8 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             is_generic_static_forward = kwargs['is_generic_static_forward']
 
         # A list of hooks (each is a tuple) that will be used to set
-        # correct array references in 'args' before executing the static schedule
+        # correct array references in 'args' before executing the static
+        # schedule
         # function 'func'
         # See ScheduleInfo._run_hooks() for details.
         hooks = []
@@ -286,14 +292,18 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             for arg_index, item in enumerate(args):
                 if isinstance(item, list):
                     for sub_index, sub_item in enumerate(item):
-                        if isinstance(sub_item, np.ndarray) or isinstance(sub_item, cuda.ndarray):
-                            if id(sub_item) not in self.array_id_to_unique_index:
+                        if _is_xp(sub_item):
+                            # Use temp shorter variable name to avoid
+                            # exceeding 80 char line limit.
+                            id_2_ind = self.array_id_to_unique_index
+                            if id(sub_item) not in \
+                                    id_2_ind:
                                 self.unique_arrays.append(sub_item)
-                                unique_list_index = len(self.unique_arrays) - 1
-                                self.array_id_to_unique_index[id(sub_item)] = unique_list_index
+                                unique_ind = len(self.unique_arrays) - 1
+                                id_2_ind[id(sub_item)] = unique_ind
                             else:
-                                unique_list_index = self.array_id_to_unique_index[id(sub_item)]
-                            hooks.append((arg_index, sub_index, unique_list_index))
+                                unique_ind = id_2_ind[id(sub_item)]
+                            hooks.append((arg_index, sub_index, unique_ind))
                             # Now that the hook has been added, we can delete
                             # array reference from 'args'. This is safe because
                             # unique_arrays contians the master reference.
@@ -303,15 +313,18 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         # Iterate over args, appending each unique ndarray onto unique_arrays.
         else:
             # Use normal arg format:
-            # arg[i] is either an array or another type that we don't care about.
+            # arg[i] is either an array or another type that we don't care
+            # about.
             for arg_index, item in enumerate(args):
-                if isinstance(item, np.ndarray) or isinstance(item, cuda.ndarray):
+                if _is_xp(item):
                     if id(item) not in self.array_id_to_unique_index:
                         self.unique_arrays.append(item)
                         unique_list_index = len(self.unique_arrays) - 1
-                        self.array_id_to_unique_index[id(item)] = unique_list_index
+                        self.array_id_to_unique_index[id(item)] = \
+                            unique_list_index
                     else:
-                        unique_list_index = self.array_id_to_unique_index[id(item)]
+                        unique_list_index = \
+                            self.array_id_to_unique_index[id(item)]
                     hooks.append((arg_index, unique_list_index))
                     # Now that the hook has been added, we can delete
                     # array reference from 'args'. This is safe because
@@ -320,13 +333,14 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
         if self.verbosity_level >= 2:
             print('Adding function to static schedule: ', func)
-
-
-        self.schedule_info_list.append(ScheduleInfo(func, args, kwargs, hooks, self.unique_arrays, func_name=func_name))
+        self.schedule_info_list.append(ScheduleInfo(func, args, kwargs,
+                                                    hooks, self.unique_arrays,
+                                                    func_name=func_name))
 
     def __repr__(self):
         out = "StaticSchedule:\n"
-        out += "Length of unique_arrays: " + str(len(self.unique_arrays)) + "\n"
+        out += "Length of unique_arrays: " + \
+               str(len(self.unique_arrays)) + "\n"
         for x in self.schedule_info_list:
             out += str(x)
 
@@ -335,8 +349,9 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
     def debug_print_ref_counts(self):
         print('reference counts in unique_arrays:')
         for ind in range(len(self.unique_arrays)):
-            print('index {0}; reference count {1}'.format(ind, sys.getrefcount(self.unique_arrays[ind])))
-
+            print('index: ', ind)
+            print('reference count: ',
+                  sys.getrefcount(self.unique_arrays[ind]))
 
     def _run_param_hooks(self):
         """Run parameter reference updater hooks.
@@ -347,7 +362,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
         """
         for hook in self.param_hooks:
-            #print('running parameter hook: ', hook)
             (unique_array_index, param_attribute_location) = hook
             (params_list_index, attribute_location) = param_attribute_location
             param = self.params_list[params_list_index]
@@ -358,7 +372,9 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                         print('Somebody removed grad_var.')
                     if schedule_grad_var.data is not None:
                         if param.data.dtype != schedule_grad_var.data.dtype:
-                            raise RuntimeError('It is not allowed to change the parameter dtype in a static chain!')
+                            raise RuntimeError('It is not allowed to change '
+                                               'the parameter dtype in a '
+                                               'static chain!')
                         param.grad_var = schedule_grad_var
 
             if attribute_location == 'data':
@@ -367,48 +383,69 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                 # to None.
                 possibly_modified_parameter_array = \
                     self.params_list[params_list_index].data
-                if self.unique_arrays[unique_array_index] is not possibly_modified_parameter_array:
+                if self.unique_arrays[unique_array_index] is not \
+                        possibly_modified_parameter_array:
                     if self.verbosity_level >= 2:
-                        print('The parameter data attribute has changed: ', self.params_list[params_list_index])
-                    if self.unique_arrays[unique_array_index] is not None and possibly_modified_parameter_array is not None:
+                        print('The parameter data attribute has changed: ',
+                              self.params_list[params_list_index])
+                    if (self.unique_arrays[unique_array_index] is not None and
+                            possibly_modified_parameter_array is not None):
                         # Set the schedule's array to refer to the 'data'
                         # attribute of the parameter.
                         if self.verbosity_level >= 2:
-                            print('Setting schedule array equal to data attribute reference.')
-                        if self.unique_arrays[unique_array_index].dtype != possibly_modified_parameter_array.dtype:
-                            raise RuntimeError('It is not allowed to change the parameter dtype in a static chain!')
-                        self.unique_arrays[unique_array_index] = possibly_modified_parameter_array
-                    elif self.unique_arrays[unique_array_index] is not None and possibly_modified_parameter_array is None:
+                            print('Setting schedule array equal to data '
+                                  'attribute reference.')
+                        if (self.unique_arrays[unique_array_index].dtype !=
+                                possibly_modified_parameter_array.dtype):
+                            raise RuntimeError('It is not allowed to change '
+                                               'the parameter dtype in a '
+                                               'static chain!')
+                        self.unique_arrays[unique_array_index] = \
+                            possibly_modified_parameter_array
+                    elif self.unique_arrays[unique_array_index] is not None \
+                            and possibly_modified_parameter_array is None:
                         # The data attribute was set to None by outside code.
                         if self.verbosity_level >= 2:
-                            print('Zero-ing and updating parameter data attribute reference.')
-                        self.params_list[params_list_index].data = self.unique_arrays[unique_array_index]
+                            print('Zero-ing and updating parameter data '
+                                  'attribute reference.')
+                        self.params_list[params_list_index].data = \
+                            self.unique_arrays[unique_array_index]
             elif attribute_location == 'grad':
                 # This is the corresponding parameter array, which might
                 # have had its reference changed to a different array or set
                 # to None.
                 possibly_modified_parameter_array = \
                     self.params_list[params_list_index].grad
-                if self.unique_arrays[unique_array_index] is not possibly_modified_parameter_array:
+                if self.unique_arrays[unique_array_index] is not \
+                        possibly_modified_parameter_array:
                     if self.verbosity_level >= 2:
-                        print('The parameter grad attribute has changed: ', self.params_list[params_list_index])
-                    if self.unique_arrays[unique_array_index] is not None and possibly_modified_parameter_array is not None:
+                        print('The parameter grad attribute has changed: ',
+                              self.params_list[params_list_index])
+                    if self.unique_arrays[unique_array_index] is not None and \
+                            possibly_modified_parameter_array is not None:
                         # Set the schedule's array to refer to the 'grad'
                         # attribute of the parameter.
                         if self.verbosity_level >= 2:
-                            print('Setting schedule array equal to grad attribute reference.')
-                        if self.unique_arrays[unique_array_index].dtype != possibly_modified_parameter_array:
-                            raise RuntimeError('It is not allowed to change the parameter dtype in a static chain!')
-                        self.unique_arrays[unique_array_index] = possibly_modified_parameter_array
-                    elif self.unique_arrays[unique_array_index] is not None and possibly_modified_parameter_array is None:
+                            print('Setting schedule array equal to grad '
+                                  'attribute reference.')
+                        if self.unique_arrays[unique_array_index].dtype != \
+                                possibly_modified_parameter_array:
+                            raise RuntimeError('It is not allowed to change '
+                                               'the parameter dtype in a '
+                                               'static chain!')
+                        self.unique_arrays[unique_array_index] = \
+                            possibly_modified_parameter_array
+                    elif self.unique_arrays[unique_array_index] is not None \
+                            and possibly_modified_parameter_array is None:
                         # The grad attribute was set to None by outside code.
                         if self.verbosity_level >= 2:
-                            print('Zero-ing and updating parameter grad attribute reference.')
-                        self.params_list[params_list_index].grad = self.unique_arrays[unique_array_index]
-
+                            print('Zero-ing and updating parameter grad '
+                                  'attribute reference.')
+                        self.params_list[params_list_index].grad = \
+                            self.unique_arrays[unique_array_index]
 
     def _run_in_var_hooks(self, input_var_arrays):
-        """
+        """Run hooks to update variable array references.
 
         Args:
             input_var_arrays (tuple of ndarray): The 'data' array attributes
@@ -417,36 +454,42 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         for hook in self.in_var_hooks:
             (unique_array_index, in_var_ind) = hook
             if self.verbosity_level >= 2:
-                print('input var hook: (unique_array_index={0}, in_var_ind={1})'.format(unique_array_index, in_var_ind))
-                print('_run_in_var_hooks(): Using this input variable array for forward pass: ', input_var_arrays[in_var_ind])
-            self.unique_arrays[unique_array_index] = input_var_arrays[in_var_ind]
+                print('input var hook:')
+                print('unique_array_index: ', unique_array_index)
+                print('in_var_ind: ', in_var_ind)
+                print('_run_in_var_hooks(): Using this input variable array '
+                      'for forward pass: ', input_var_arrays[in_var_ind])
+            self.unique_arrays[unique_array_index] = \
+                input_var_arrays[in_var_ind]
 
     def set_out_variables(self, out_vars):
-        """
+        """Set output variables.
 
-
+        Args:
+            out_vars (list of Variable): The (flattened) list of output
+                variables obtained by performing a defein-by-run
+                forward pass (or corresponding backward pass) on the
+                local sub-graph corresponding to the static chain.
         """
         self._out_vars = out_vars
 
     def build_schedule(self, chain, in_vars):
-        """Build the static chedule
+        """Build the static schedule.
 
-        Perform processing on the functions and arguments that were
+        Perform one-time post-processing on the functions and arguments
+        that were
         previously supplied in 'append_function()' to create the static
         schedule.
 
         This method must be called after the final call of 'append_function()'
         and before calling 'forward()' for the first time.
 
-        Details:
-
-        (todo)
-
-
         Args:
             chain: The static chain that uses this scheudle.
             in_vars (list of Variable): The input variables to this static
-                schedule.
+                schedule. This are the input variables (each having no
+                creator) of the local sub-graph corresponding to the
+                static chain.
         """
         self.chain = chain
         self._in_vars = in_vars
@@ -456,7 +499,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         for ar in self.unique_arrays:
             assert id(ar) not in unique_ids
             unique_ids.add(id(ar))
-            #print('unique array id:\n', id(ar))
 
         for param in chain.params():
             param_key = id(param)
@@ -505,7 +547,8 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                 in_var_hook = (unique_array_index, in_var_ind)
                 self.in_var_hooks.append(in_var_hook)
                 if self.verbosity_level >= 2:
-                    print('build_schedule(): Adding input variable hook: ', in_var_hook)
+                    print('build_schedule(): Adding input variable hook: ',
+                          in_var_hook)
                     print('For input variable: ', ar)
 
         if self.verbosity_level >= 2:
@@ -525,12 +568,16 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             print('Calling StaticScheduleFunction.forward()...')
             print('with input variable arrays: ', inputs)
 
-        # Note: This method will be invoked every iteration starting from the second
-        # iteration. That is because the corresponding define-by-run code runs instead
+        # Note: This method will be invoked every iteration starting
+        # from the second
+        # iteration. That is because the corresponding define-by-run c
+        # ode runs instead
         # during the first iteration.
-        # Copy any external input arrays into the statically-allocated arrays:
+        # Copy any external input arrays into the statically-allocated
+        # arrays:
         if not self.schedule_built:
-            raise RuntimeError('forward() was called before build_schedule()!')
+            raise RuntimeError('forward() was called before '
+                               'build_schedule()!')
         self._run_param_hooks()
         self._run_in_var_hooks(inputs)
 
@@ -540,7 +587,13 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         for x in self.schedule_info_list:
             x()
 
-        return tuple([None if y is None else None if y.data is None else y.data.copy() for y in self._out_vars])
+        ret = []
+        for y in self._out_vars:
+            if y is None or y.data is None:
+                ret.append(None)
+            else:
+                ret.append(y.data.copy())
+        return tuple(ret)
 
     def backward(self, target_input_indexes, grad_outputs):
         if self.verbosity_level >= 2:
@@ -559,27 +612,34 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                 # Replace each input variable with a new variable having
                 # the same data.
                 new_grad_outputs.append(chainer.Variable(var.data))
-            with chainer.using_config('schedule_func', self._backward_schedule_func):
+            with chainer.using_config('schedule_func',
+                                      self._backward_schedule_func):
                 with chainer.using_config('enable_backprop', True):
                     for ind, var in enumerate(new_grad_outputs):
-                        self._out_vars[ind].grad = new_grad_outputs[ind].data # fixme: is this needed?
+                        # todo: possibly don't need the following:
+                        self._out_vars[ind].grad = new_grad_outputs[ind].data
 
                     inputs = [param for param in self.chain.params()]
                     for var in self._in_vars:
                         inputs.append(var)
-                    temp_out = chainer.grad(self._out_vars, inputs,
-                             grad_outputs=new_grad_outputs,
-                             set_grad=True,
-                                        enable_double_backprop=self.enable_double_backprop)
+                    # Need shorter var to avoid "line too long error"
+                    ugh = self.enable_double_backprop
+                    chainer.grad(self._out_vars,
+                                 inputs,
+                                 grad_outputs=new_grad_outputs,
+                                 set_grad=True,
+                                 enable_double_backprop=ugh)
 
             # Note: var.grad_var is allowed to be None below:
             backward_out_vars = [var.grad_var for var in self._in_vars]
             self._backward_schedule_func.set_out_variables(backward_out_vars)
             for n in range(len(self._in_vars)):
                 self._in_vars[n] = None
-            self._backward_schedule_func.build_schedule(self.chain, new_grad_outputs)
+            self._backward_schedule_func.build_schedule(self.chain,
+                                                        new_grad_outputs)
 
         return self._backward_schedule_func.apply(grad_outputs)
+
 
 class ScheduleManager(object):
 
@@ -631,7 +691,8 @@ class ScheduleManager(object):
         iteration has finished.
 
         Args:
-            in_vars (tuple of :class:`~chainer.Variable`): The input variables to the chain.
+            in_vars (tuple of :class:`~chainer.Variable`): The input
+                variables to the chain.
 
         Returns:
             An instance of ``StaticScheduleFunction``.
@@ -647,8 +708,10 @@ class ScheduleManager(object):
                 self.schedules.clear()
                 self.in_use_count.clear()
 
-        if chainer.config.train is False or chainer.config.enable_backprop is False:
-            key_str = 'test:' + ''.join(str(x.shape) + str(x.dtype) for x in in_vars)
+        if (chainer.config.train is False or
+                chainer.config.enable_backprop is False):
+            key_str = 'test:' + \
+                      ''.join(str(x.shape) + str(x.dtype) for x in in_vars)
             # If the maximum number of in-use schedules in any iteration
             # during training mode was exactly 1, assume it should also
             # be 1 for test mode.
@@ -656,30 +719,40 @@ class ScheduleManager(object):
                 sched_list = self.schedules[key_str]
                 sched = sched_list[0]
             else:
+                # avoid "line too long":
+                vb = self._verbosity_level
+                edb = enable_double_backprop
                 sched = StaticScheduleFunction(self,
-                                               verbosity_level=self._verbosity_level,
-                                               enable_double_backprop=enable_double_backprop)
+                                               verbosity_level=vb,
+                                               enable_double_backprop=edb)
                 self.schedules[key_str] = [sched]
             return sched
         else:
-            key_str = 'train:' + ''.join(str(x.shape) + str(x.dtype) for x in in_vars)
+            key_str = 'train:' + \
+                      ''.join(str(x.shape) + str(x.dtype) for x in in_vars)
             self._train_count += 1
 
             if key_str in self.schedules:
                 sched_list = self.schedules[key_str]
                 available_index = self.in_use_count[key_str]
                 if available_index >= len(sched_list):
+                    # avoid "line too long":
+                    vb = self._verbosity_level
+                    edb = enable_double_backprop
                     sched = StaticScheduleFunction(self,
-                                                   verbosity_level=self._verbosity_level,
-                                                   enable_double_backprop=enable_double_backprop)
+                                                   verbosity_level=vb,
+                                                   enable_double_backprop=edb)
                     sched_list.append(sched)
 
                 sched = sched_list[available_index]
                 self.in_use_count[key_str] = available_index + 1
             else:
+                # avoid "line too long":
+                vb = self._verbosity_level
+                edb = enable_double_backprop
                 sched = StaticScheduleFunction(self,
-                                               verbosity_level=self._verbosity_level,
-                                               enable_double_backprop=enable_double_backprop)
+                                               verbosity_level=vb,
+                                               enable_double_backprop=edb)
                 self.schedules[key_str] = [sched]
                 self.in_use_count[key_str] = 1
 
@@ -697,8 +770,10 @@ class ScheduleManager(object):
         training mode, then this method will be called automatically.
 
         fixme: what about: enable_backprop? If it is off, then we still want
-        a static schedule to be generated, but loss.backward() cannot be called!
-        Therefore, if backprop is disabled, there should be a way to manually
+        a static schedule to be generated, but loss.backward() cannot
+        be called!
+        Therefore, if backprop is disabled, there should be a way
+        to manually
         inform Chainer that the forward pass has completed.
 
         """
@@ -711,7 +786,7 @@ class ScheduleManager(object):
                 self._max_in_use_train = self._train_count
                 if self._verbosity_level >= 2:
                     print("Maximum in-use schedules per training iteration: ",
-                        self._max_in_use_train)
+                          self._max_in_use_train)
             self._train_count = 0
 
     def __repr__(self):
@@ -719,10 +794,12 @@ class ScheduleManager(object):
         for key_str in self.schedules:
             out += "key string: " + key_str
             sched_list = self.schedules[key_str]
-            out += " -> schedule list of length: " + str(len(sched_list)) + '\n'
+            out += " -> schedule list of length: " + \
+                   str(len(sched_list)) + '\n'
             for sched in sched_list:
                 out += str(sched)
         return out
+
 
 def static_graph(*args, **kwargs):
     """Decorator to mark a Chain's ``__call__()`` as a static sub-graph.
@@ -744,16 +821,19 @@ def static_graph(*args, **kwargs):
     in significant runtime performance improvements.
 
     This feature is intended to provide the following benefits:
-    - Define-by-run is still used. There is no change to the way that users define the model except that
+    - Define-by-run is still used. There is no change to the way
+    that users define the model except that
     this decorator is used to explicitly mark the chains corresponding
     to the largest static sub-graphs in the network.
     - Since the define-by-run code is executed during the first iteration, it
     still supports easy debugging.
     - Since an optimized static schedule is executed starting from the second
-    iteration, it can potentially provide the speed of a static graph framework.
+    iteration, it can potentially provide the speed of a static
+    graph framework.
 
     A static schedule
-    representation can potentially be further optimized to reduce memory and/or perform
+    representation can potentially be further optimized to reduce memory
+    and/or perform
     operations such as kernel fusion and export of computations to non-Python
     platforms. Such advanced operations are not currently implemented, however.
 
@@ -791,7 +871,8 @@ def static_graph(*args, **kwargs):
     the same forward pass.
 
     In order to ensure that a static chain works correctly with models
-    such as the RNN just described and without other modifications to existing code,
+    such as the RNN just described and without other modifications
+    to existing code,
     we chose to make
     the behavior of a static chain depend on the training mode flag,
     `chainer.config.train`. If the it is `True`, then a static chain that is
@@ -847,7 +928,8 @@ def static_graph(*args, **kwargs):
         performance) that are not yet implemented. When using statc graph
         optimizations, all intermediate activations are currently allocated
         statically even if they are not needed for backpropagation,
-        which can result in higher memory usage than the corresponding define-by-
+        which can result in higher memory usage than the
+        corresponding define-by-
         run code. Also, there is the potential to perform kernel/function
         fusion to further increase performance. Exporting of static graph
         to C/C++ and/or an intermediate level graph representations is also
@@ -899,7 +981,8 @@ def static_graph(*args, **kwargs):
         Wrapped ``__call__()`` method with static chain support.
     """
     force_test_define_by_run = False
-    minimize_cache_size = False # todo: enable after debug
+    # todo: enable eventually
+    minimize_cache_size = False
     verbosity_level = 0
     enable_double_backprop = False
     zero_args = False
@@ -950,27 +1033,34 @@ def static_graph(*args, **kwargs):
                     verbosity_level=verbosity_level)
 
             schedule_manager = chain.schedule_manager
-            chain.static_schedule = schedule_manager.get_schedule(flat_vars,
-                                                                  enable_double_backprop=enable_double_backprop)
+            # To prevent "line too long" error
+            edb = enable_double_backprop
+            chain.static_schedule = \
+                schedule_manager.get_schedule(flat_vars,
+                                              enable_double_backprop=edb)
 
             if verbosity_level >= 2:
                 print('Current schedule manager info: ', schedule_manager)
             if not chain.static_schedule.is_empty():
                 # Call the static schedule code.
                 if verbosity_level >= 2:
-                    print('This is the 2nd or greater iteration. Calling the existing static schedule...')
-                    chain.static_schedule.debug_print_ref_counts() # fixme: debug
+                    print('This is the 2nd or greater iteration. Calling '
+                          'the existing static schedule...')
+                    chain.static_schedule.debug_print_ref_counts()
                 out_vars_flat = chain.static_schedule.apply(flat_vars)
-                out_vars = _unflatten_args(out_vars_flat, chain._out_vars_unflatten_inds)
+                out_vars = _unflatten_args(out_vars_flat,
+                                           chain._out_vars_unflatten_inds)
             else:
                 # This is the first iteration. Calling the define-by-run code.
                 assert isinstance(chain, chainer.Chain)
                 if verbosity_level >= 2:
-                    print('This is the first iteration. Calling the define-by-run code.: ', func)
+                    print('This is the first iteration. Calling the '
+                          'define-by-run code.: ', func)
                 # First check that this chain is not called from inside another
                 # static chain because it is not allowed.
                 if chainer.config.schedule_func is not None:
-                    raise RuntimeError("Not allowed to nest static chains: ", chain)
+                    raise RuntimeError("Not allowed to nest static chains: ",
+                                       chain)
 
                 new_args = []
                 new_args.append(chain)
@@ -979,22 +1069,24 @@ def static_graph(*args, **kwargs):
                     # Replace each input variable with a new variable having
                     # the same data. This is needed so that the chain-local
                     # computation graph will be rooted at the input variables.
-                    assert var.grad is None # fixme: remove check?
                     new_flat_vars.append(chainer.Variable(var.data))
 
-                unflat_in_args = _unflatten_args_as_list(new_flat_vars, in_unflatten_inds)
+                unflat_in_args = _unflatten_args_as_list(new_flat_vars,
+                                                         in_unflatten_inds)
 
                 for item in unflat_in_args:
                     new_args.append(item)
 
                 inner_args = tuple(new_args)
 
-                with chainer.using_config('schedule_func', chain.static_schedule):
+                with chainer.using_config('schedule_func',
+                                          chain.static_schedule):
                     # Execute the chain's call() method. As the define-by-run
                     # code executes, the static schedule is constructed.
                     out_vars = func(*inner_args, **inner_kwargs)
 
-                out_vars_flat_dbr, chain._out_vars_unflatten_inds, __ = _flatten_args(out_vars)
+                out_vars_flat_dbr, chain._out_vars_unflatten_inds, __ = \
+                    _flatten_args(out_vars)
                 sched_out_vars = [var for var in out_vars_flat_dbr]
                 chain.static_schedule.set_out_variables(sched_out_vars)
 
@@ -1007,7 +1099,8 @@ def static_graph(*args, **kwargs):
                 # computational graph.
                 out_vars_flat = chain.static_schedule.apply(flat_vars)
 
-                out_vars = _unflatten_args(out_vars_flat, chain._out_vars_unflatten_inds)
+                out_vars = _unflatten_args(out_vars_flat,
+                                           chain._out_vars_unflatten_inds)
 
                 if verbosity_level >= 2:
                     print('Returing from 1st call of the static chain.')
@@ -1020,27 +1113,6 @@ def static_graph(*args, **kwargs):
         return wrap(callable_arg)
     else:
         return wrap
-
-# fixme: remove unused function
-def _copy_vars_no_creators(var_tuple):
-    """Return a tuple containing new variables using existing data arrays.
-
-    Return a tuple of variables having the same shape, type, and data arrays
-    as `var_tuple`. These new variables are initialized using the data array
-    of the variables in `var_tuple`. Therefore, the new variables will not
-    have a `creator`.
-
-    Args:
-        var_tuple (tuple of Variable): Input tuple of variables.
-
-    Returns:
-        a tuple of variables having the same data as those of the input
-        tuple.
-    """
-    out_vars = []
-    for var in var_tuple:
-        out_vars.append(chainer.Variable(var.data))
-    return tuple(out_vars)
 
 
 def _flatten_args(xs):
@@ -1071,7 +1143,6 @@ def _flatten_args(xs):
     i = 0
     if not isinstance(xs, (list, tuple)):
         inds.append(('s', ))
-        #return [xs], inds, 0
         return (xs,), inds, 0
     for x in xs:
         if isinstance(x, (list, tuple)):
@@ -1086,7 +1157,7 @@ def _flatten_args(xs):
     return tuple(ys), inds, i
 
 
-# fixme: this only outputs tuples of tuples. Any list in the original input
+# todo: this only outputs tuples of tuples. Any list in the original input
 # will be converted to a tuple, changing the types of the input arguments
 # to the static chain.
 def _unflatten_args(xs, inds):
@@ -1103,6 +1174,7 @@ def _unflatten_args(xs, inds):
             y = xs[i]
         ys.append(y)
     return tuple(ys)
+
 
 def _unflatten_args_as_list(xs, inds):
     ys = []

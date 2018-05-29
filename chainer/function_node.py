@@ -1,6 +1,5 @@
 import collections
 import heapq
-import threading
 import traceback
 import weakref
 
@@ -12,10 +11,12 @@ from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_hook
+from chainer.graph_optimizations.static_graph_utilities \
+    import static_forward_optimizations
 from chainer.utils import experimental
 from chainer.utils import type_check
 from chainer import variable
-from chainer.graph_optimizations.static_graph_utilities import static_forward_optimizations
+
 
 class FunctionNode(object):
 
@@ -224,7 +225,6 @@ Use apply() method instead.\
 
         """
         input_vars = [chainer.as_variable(x) for x in inputs]
-
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
@@ -259,7 +259,6 @@ Use apply() method instead.\
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             outputs = self.forward(in_data)
-            #static_forward_optimizations_old(self, in_data, list(outputs))
             static_forward_optimizations(self, in_data, outputs)
 
         # Check for output array types
