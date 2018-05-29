@@ -85,7 +85,7 @@ class GoogLeNet(link.Chain):
 
     Attributes:
         ~GoogLeNet.available_layers (list of str): The list of available layer
-            names used by ``forward`` and ``extract`` methods.
+            names used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -183,8 +183,8 @@ class GoogLeNet(link.Chain):
         _transfer_googlenet(caffemodel, chainermodel)
         npz.save_npz(path_npz, chainermodel, compression=False)
 
-    def forward(self, x, layers=None, **kwargs):
-        """forward(self, x, layers=['prob'])
+    def __call__(self, x, layers=None, **kwargs):
+        """__call__(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
 
@@ -246,11 +246,11 @@ class GoogLeNet(link.Chain):
 
         Extracts all the feature maps of given images.
 
-        The difference of directly executing ``forward`` is that
+        The difference of directly executing ``__call__`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
-        ``prepare`` and ``forward`` functions.
+        ``prepare`` and ``__call__`` functions.
 
         .. warning::
 
@@ -346,7 +346,7 @@ class GoogLeNet(link.Chain):
 def prepare(image, size=(224, 224)):
     """Converts the given image to the numpy array for GoogLeNet.
 
-    Note that you have to call this method before ``forward``
+    Note that you have to call this method before ``__call__``
     because the pre-trained GoogLeNet model requires to resize the given
     image, covert the RGB to the BGR, subtract the mean,
     and permute the dimensions before calling.

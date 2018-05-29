@@ -79,7 +79,7 @@ class DeconvolutionND(link.Link):
                 initial_bias = initializers._get_initializer(initial_bias)
                 self.b = variable.Parameter(initial_bias, out_channels)
 
-    def forward(self, x):
+    def __call__(self, x):
         return deconvolution_nd.deconvolution_nd(
             x, self.W, b=self.b, stride=self.stride, pad=self.pad,
             outsize=self.outsize, dilate=self.dilate, groups=self.groups)

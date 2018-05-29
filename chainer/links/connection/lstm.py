@@ -117,7 +117,7 @@ class StatelessLSTM(LSTMBase):
 
     """
 
-    def forward(self, c, h, x):
+    def __call__(self, c, h, x):
         """Returns new cell state and updated output of LSTM.
 
         Args:
@@ -289,7 +289,7 @@ class LSTM(LSTMBase):
         """
         self.c = self.h = None
 
-    def forward(self, x):
+    def __call__(self, x):
         """Updates the internal state and returns the LSTM outputs.
 
         Args:

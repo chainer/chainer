@@ -87,7 +87,7 @@ class LocalConvolution2D(link.Link):
         if not self.nobias:
             self.b.initialize(bias_shape)
 
-    def forward(self, x):
+    def __call__(self, x):
         """Applies the local convolution layer.
 
         Args:

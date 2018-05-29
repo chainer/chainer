@@ -176,7 +176,7 @@ class Deconvolution2D(link.Link):
         W_shape = (in_channels, int(self.out_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)
 
-    def forward(self, x):
+    def __call__(self, x):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(

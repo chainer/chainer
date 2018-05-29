@@ -74,7 +74,7 @@ class Classifier(link.Chain):
         with self.init_scope():
             self.predictor = predictor
 
-    def forward(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         """Computes the loss value for an input and label pair.
 
         It also computes accuracy and stores it to the attribute.

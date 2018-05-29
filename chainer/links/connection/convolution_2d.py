@@ -154,7 +154,7 @@ class Convolution2D(link.Link):
         W_shape = (self.out_channels, int(in_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)
 
-    def forward(self, x):
+    def __call__(self, x):
         """Applies the convolution layer.
 
         Args:

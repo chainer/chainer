@@ -124,8 +124,8 @@ class NStepRNNBase(link.ChainList):
         """
         return NotImplementedError
 
-    def forward(self, hx, xs, **kwargs):
-        """forward(self, hx, xs)
+    def __call__(self, hx, xs, **kwargs):
+        """__call__(self, hx, xs)
 
         Calculate all hidden states and cell states.
 

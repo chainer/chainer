@@ -68,7 +68,7 @@ class LayerNormalization(link.Link):
         self.gamma.initialize(size)
         self.beta.initialize(size)
 
-    def forward(self, x):
+    def __call__(self, x):
         """Apply layer normalization to given input.
 
         Args:

@@ -178,8 +178,8 @@ class BatchNormalization(link.Link):
         if hasattr(self, 'beta'):
             self.beta.initialize(shape)
 
-    def forward(self, x, **kwargs):
-        """forward(self, x, finetune=False)
+    def __call__(self, x, **kwargs):
+        """__call__(self, x, finetune=False)
 
         Invokes the forward propagation of BatchNormalization.
 

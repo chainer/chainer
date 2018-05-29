@@ -454,7 +454,7 @@ It can be defined as follows:
            with self.init_scope():
                self.W = chainer.Parameter(initializers.Normal(scale=1.), shape)
 
-       def forward(self, x):
+       def __call__(self, x):
            return self.W * x
 
 For another example, assume we want to define a simple linear layer.
@@ -496,7 +496,7 @@ In order to make a convenient module, let's wrap it into a link:
                    (out_size, in_size))
                self.b = chainer.Parameter(0, (out_size,))
 
-       def forward(self, x):
+       def __call__(self, x):
            return linear(x, self.W, self.b)
 
 This link hides the parameters of the linear layer.

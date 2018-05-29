@@ -84,7 +84,7 @@ class MLPConvolution2D(link.ChainList):
         super(MLPConvolution2D, self).__init__(*convs)
         self.activation = activation
 
-    def forward(self, x):
+    def __call__(self, x):
         """Computes the output of the mlpconv layer.
 
         Args:
