@@ -106,14 +106,21 @@ Array ConvTranspose(
         const StackVector<int64_t, kMaxNdim>& pad,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) {
     int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    Shape in_dims{x.shape().begin() + 2, x.shape().end()};
+    Shape kernel_size{w.shape().begin() + 2, w.shape().end()};
+
+    bool cover_all = false;
+    bool cover_all_determined = false;
 
     // Compute out_size if not specified
     StackVector<int64_t, kMaxNdim> real_out_size;
     if (out_size.has_value()) {
         real_out_size = *out_size;
     } else {
+        cover_all = false;
+        cover_all_determined = true;
         for (int8_t i = 0; i < ndim; ++i) {
-            real_out_size.emplace_back(internal::GetConvTransposeOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i], false));
+            real_out_size.emplace_back(internal::GetConvTransposeOutDim(in_dims[i], kernel_size[i], stride[i], pad[i], cover_all));
         }
     }
 
@@ -121,12 +128,22 @@ Array ConvTranspose(
     Array out = x.device().ConvTranspose(x, w, b, stride, pad, real_out_size);
 
     // Detect cover_all
-    bool cover_all = false;
-    for (int8_t i = 0; i < x.ndim(); ++i) {
-        int64_t xdim = x.shape()[i];
-        if (xdim != internal::GetConvOutDim(xdim, real_out_size[i], w.shape()[i + 2], stride[i], pad[i])) {
-            cover_all = true;
-            break;
+    // TODO(niboshi): This logic is only required if x belongs to some graph.
+    if (!cover_all_determined) {
+        for (int8_t i = 0; i < ndim; ++i) {
+            int64_t in_dim = in_dims[i];
+            if (in_dim != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], false)) {
+                cover_all = true;
+                break;
+            }
+        }
+        cover_all_determined = true;
+
+        // Check detected cover_all is consistent
+        for (int8_t i = 0; i < ndim; ++i) {
+            if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], cover_all)) {
+                throw XchainerError{"Output dims ", Shape{real_out_size.begin(), real_out_size.end()}, " is incosistent."};
+            }
         }
     }
 
