@@ -858,6 +858,11 @@ Array ExpandDims(const Array& a, const Axes& axes) {
             a.offset());
 }
 
+Array Broadcast(const Array& a, const Shape& shape) {
+    return xchainer::internal::MakeArray(
+            shape, internal::BroadcastStrides(a.strides(), a.shape(), shape), a.dtype(), a.device(), a.data(), a.offset());
+}
+
 }  // namespace
 
 void NativeDevice::BatchNormalization(
@@ -889,10 +894,10 @@ void NativeDevice::BatchNormalization(
         Elementwise<const T, const T, const T, const T, const T, T>(
                 Impl{static_cast<T>(eps)},
                 x,
-                x_mean.BroadcastTo(out.shape()),
-                x_var.BroadcastTo(out.shape()),
-                ExpandDims(gamma, axis).BroadcastTo(out.shape()),
-                ExpandDims(beta, axis).BroadcastTo(out.shape()),
+                Broadcast(x_mean, out.shape()),
+                Broadcast(x_var, out.shape()),
+                Broadcast(ExpandDims(gamma, axis), out.shape()),
+                Broadcast(ExpandDims(beta, axis), out.shape()),
                 out);
     });
 
