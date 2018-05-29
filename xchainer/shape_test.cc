@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <gsl/gsl>
 
+#include "xchainer/axes.h"
 #include "xchainer/dtype.h"
 #include "xchainer/strides.h"
 
@@ -232,6 +233,82 @@ TEST(ShapeTest, IsContiguous) {
     }
 }
 
+TEST(ShapeTest, IsValidReductionShape) {
+    {
+        Shape in_shape{};
+        Shape out_shape{};
+        Axes axes{};
+        bool allow_keepdims = true;
+        EXPECT_TRUE(internal::IsValidReductionShape(in_shape, axes, out_shape, allow_keepdims));
+    }
+    {
+        Shape in_shape{};
+        Shape out_shape{};
+        Axes axes{};
+        bool allow_keepdims = false;
+        EXPECT_TRUE(internal::IsValidReductionShape(in_shape, axes, out_shape, allow_keepdims));
+    }
+    {
+        Shape in_shape{2, 3, 4};
+        Shape out_shape{2};
+        Axes axes{1, 2};
+        bool allow_keepdims = false;
+        EXPECT_TRUE(internal::IsValidReductionShape(in_shape, axes, out_shape, allow_keepdims));
+    }
+    {
+        Shape in_shape{2, 3, 4};
+        Shape out_shape{2};
+        Axes axes{1, 2};
+        bool allow_keepdims = false;
+        EXPECT_TRUE(internal::IsValidReductionShape(in_shape, axes, out_shape, allow_keepdims));
+    }
+    {
+        Shape in_shape{2, 3, 4};
+        Shape out_shape{2, 1, 1};
+        Axes axes{1, 2};
+        bool allow_keepdims = true;
+        EXPECT_TRUE(internal::IsValidReductionShape(in_shape, axes, out_shape, allow_keepdims));
+    }
+}
+
+TEST(ShapeTest, IsValidReductionShapeInvalid) {
+    {
+        Shape in_shape{1};
+        Shape out_shape{};
+        Axes axes{};
+        bool allow_keepdims = true;
+        EXPECT_FALSE(internal::IsValidReductionShape(in_shape, axes, out_shape, allow_keepdims));
+    }
+    {
+        Shape in_shape{1};
+        Shape out_shape{};
+        Axes axes{};
+        bool allow_keepdims = false;
+        EXPECT_FALSE(internal::IsValidReductionShape(in_shape, axes, out_shape, allow_keepdims));
+    }
+    {
+        Shape in_shape{1};
+        Shape out_shape{1, 2};
+        Axes axes{1};
+        bool allow_keepdims = true;
+        EXPECT_FALSE(internal::IsValidReductionShape(in_shape, axes, out_shape, allow_keepdims));
+    }
+    {
+        Shape in_shape{1};
+        Shape out_shape{1, 2};
+        Axes axes{1};
+        bool allow_keepdims = false;
+        EXPECT_FALSE(internal::IsValidReductionShape(in_shape, axes, out_shape, allow_keepdims));
+    }
+    {
+        Shape in_shape{2, 3, 4};
+        Shape out_shape{2, 1, 1};
+        Axes axes{1, 2};
+        bool allow_keepdims = false;
+        EXPECT_FALSE(internal::IsValidReductionShape(in_shape, axes, out_shape, allow_keepdims));
+    }
+}
+
 class BroadcastShapesCorrectTest : public ::testing::TestWithParam<std::tuple<Shape, Shape, Shape>> {
 public:
     const Shape& shape0() const { return std::get<0>(GetParam()); }
@@ -259,6 +336,32 @@ TEST(BroadcastShapesInvalidTest, Check) {
     EXPECT_THROW(internal::BroadcastShapes({2, 3}, {2, 3, 1}), DimensionError);
     EXPECT_THROW(internal::BroadcastShapes({3, 2, 1, 3}, {3, 2, 3}), DimensionError);
 }
+
+class ReduceShapesCorrectTest : public ::testing::TestWithParam<std::tuple<Shape, Axes, bool, Shape>> {
+public:
+    const Shape& shape() const { return std::get<0>(GetParam()); }
+    const Axes& axes() const { return std::get<1>(GetParam()); }
+    bool keepdims() const { return std::get<2>(GetParam()); }
+    const Shape& expected() const { return std::get<3>(GetParam()); }
+};
+
+TEST_P(ReduceShapesCorrectTest, Check) {
+    Shape result = internal::ReduceShape(shape(), axes(), keepdims());
+    EXPECT_EQ(expected(), result);
+}
+
+INSTANTIATE_TEST_CASE_P(
+        Cases,
+        ReduceShapesCorrectTest,
+        ::testing::Values(
+                std::make_tuple(Shape{}, Axes{}, true, Shape{}),
+                std::make_tuple(Shape{}, Axes{}, false, Shape{}),
+                std::make_tuple(Shape{2, 3}, Axes{}, true, Shape{2, 3}),
+                std::make_tuple(Shape{2, 3}, Axes{}, false, Shape{2, 3}),
+                std::make_tuple(Shape{2, 3}, Axes{1}, true, Shape{2, 1}),
+                std::make_tuple(Shape{2, 3}, Axes{1}, false, Shape{2}),
+                std::make_tuple(Shape{2, 3, 4}, Axes{0, 2}, true, Shape{1, 3, 1}),
+                std::make_tuple(Shape{2, 3, 4}, Axes{0, 2}, false, Shape{3})));
 
 TEST(TransposeShapeTest, Normal) {
     Shape actual = internal::TransposeShape(Shape{2, 3, 4, 5}, {2, 0, 3, 1});

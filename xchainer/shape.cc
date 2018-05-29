@@ -10,7 +10,6 @@
 #include "xchainer/strides.h"
 
 namespace xchainer {
-
 namespace internal {
 
 bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size) {
@@ -65,6 +64,7 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
 }
 
 Shape ReduceShape(const Shape& in_shape, const Axes& axes, bool keepdims) {
+    assert(in_shape.ndim() >= axes.ndim());
     Shape out_shape;
     auto axes_size = static_cast<int8_t>(axes.size());
     int8_t i_axis = 0;
