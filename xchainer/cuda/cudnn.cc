@@ -47,6 +47,22 @@ cudnnDataType_t GetCudnnDataType(Dtype dtype) {
     }
 }
 
+// Returns a pointer to a value of given type, allocated on the static storage.
+template <int kValue>
+const void* GetValuePtr(Dtype dtype) {
+    static const float kFloat32Value = kValue;
+    static const double kFloat64Value = kValue;
+
+    switch (dtype) {
+        case Dtype::kFloat64:
+            return &kFloat64Value;
+        case Dtype::kFloat32:
+            return &kFloat32Value;
+        default:
+            XCHAINER_NEVER_REACH();
+    }
+}
+
 template <typename T, typename U, typename... ErrorArgs>
 T narrow(U u, const ErrorArgs&... error_args) {
     T t = static_cast<T>(u);
@@ -205,15 +221,6 @@ void CudnnContext::AddBias(const std::shared_ptr<cudnnTensorStruct>& y_desc, con
     int8_t ndim = y.ndim() - 2;  // Number of spacial dimensions
     assert(ndim > 0);
 
-    static const float kFloatOne = 1;
-    static const double kDoubleOne = 1;
-    const void* one{};
-    if (y.dtype() == Dtype::kFloat64) {
-        one = &kDoubleOne;
-    } else {
-        one = &kFloatOne;
-    }
-
     Shape new_shape{};
     new_shape.emplace_back(1);
     new_shape.emplace_back(b.GetTotalSize());
@@ -225,10 +232,10 @@ void CudnnContext::AddBias(const std::shared_ptr<cudnnTensorStruct>& y_desc, con
     std::shared_ptr<cudnnTensorStruct> b_desc = CreateTensorDescriptor(b_cont);
     CheckCudnnError(cudnnAddTensor(
             handle(),
-            one,
+            GetValuePtr<1>(y.dtype()),
             b_desc.get(),
             xchainer::internal::GetRawOffsetData<void>(b_cont),
-            one,
+            GetValuePtr<1>(y.dtype()),
             y_desc.get(),
             xchainer::internal::GetRawOffsetData<void>(y)));
 }
@@ -307,9 +314,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwar
             max_workspace_size));
     assert(returned_algo_count == 1);
 
-    std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_memory = {perf_result.algo, perf_result.memory};
-    conv_fwd_algo_cache_map_[key] = algo_memory;
-    return algo_memory;
+    return conv_fwd_algo_cache_map_[key] = {perf_result.algo, perf_result.memory};
 }
 
 std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnContext::FindConvolutionBackwardDataAlgorithm(
@@ -347,10 +352,49 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnContext::FindConvolutionBa
             &perf_result,
             workspace.get(),
             max_workspace_size));
+    assert(returned_algo_count == 1);
 
-    std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_memory = {perf_result.algo, perf_result.memory};
-    conv_bwd_data_algo_cache_map_[key] = algo_memory;
-    return algo_memory;
+    return conv_bwd_data_algo_cache_map_[key] = {perf_result.algo, perf_result.memory};
+}
+
+std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudnnContext::FindConvolutionBackwardFilterAlgorithm(
+        const std::shared_ptr<cudnnTensorStruct>& x_desc,
+        const Array& x,
+        const std::shared_ptr<cudnnTensorStruct>& gy_desc,
+        const Array& gy,
+        const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
+        const std::shared_ptr<cudnnFilterStruct>& gw_desc,
+        const Array& gw,
+        size_t max_workspace_size,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride) {
+    auto key = internal::ConvAlgoCacheKey{x.shape(), gw.shape(), gy.shape(), pad, stride, x.dtype(), max_workspace_size};
+    if (conv_bwd_filter_algo_cache_map_.count(key)) {
+        return conv_bwd_filter_algo_cache_map_[key];
+    }
+
+    std::shared_ptr<void> workspace = x.device().Allocate(max_workspace_size);
+
+    cudnnConvolutionBwdFilterAlgoPerf_t perf_result{};
+    int returned_algo_count{};
+
+    CheckCudnnError(cudnnFindConvolutionBackwardFilterAlgorithmEx(
+            handle(),
+            x_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(x),
+            gy_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(gy),
+            conv_desc.get(),
+            gw_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(gw),
+            1,  // requested algo count,
+            &returned_algo_count,
+            &perf_result,
+            workspace.get(),
+            max_workspace_size));
+    assert(returned_algo_count == 1);
+
+    return conv_bwd_filter_algo_cache_map_[key] = {perf_result.algo, perf_result.memory};
 }
 
 // TODO(sonots): Support tensor core
@@ -370,20 +414,6 @@ void CudnnContext::ConvolutionForward(
 
     CudaDevice& device = static_cast<CudaDevice&>(x.device());
     CudaBackend& backend = static_cast<CudaBackend&>(device.backend());
-
-    static const float kFloatZero = 0;
-    static const float kFloatOne = 1;
-    static const double kDoubleZero = 0;
-    static const double kDoubleOne = 1;
-    const void* zero{};
-    const void* one{};
-    if (x.dtype() == Dtype::kFloat64) {
-        zero = &kDoubleZero;
-        one = &kDoubleOne;
-    } else {
-        zero = &kFloatZero;
-        one = &kFloatOne;
-    }
 
     Array x_cont = AsContiguousArray(x);
     Array w_cont = AsContiguousArray(w);
@@ -406,7 +436,7 @@ void CudnnContext::ConvolutionForward(
 
     CheckCudnnError(cudnnConvolutionForward(
             handle(),
-            one,
+            GetValuePtr<1>(x.dtype()),
             x_desc.get(),
             xchainer::internal::GetRawOffsetData<void>(x_cont),
             filter_desc.get(),
@@ -415,7 +445,7 @@ void CudnnContext::ConvolutionForward(
             algo,
             workspace.get(),
             workspace_size,
-            zero,
+            GetValuePtr<0>(x.dtype()),
             y_desc.get(),
             xchainer::internal::GetRawOffsetData<void>(y)));
 
@@ -441,20 +471,6 @@ void CudnnContext::ConvolutionBackwardData(
     CudaDevice& device = static_cast<CudaDevice&>(x.device());
     CudaBackend& backend = static_cast<CudaBackend&>(device.backend());
 
-    static const float kFloatZero = 0;
-    static const float kFloatOne = 1;
-    static const double kDoubleZero = 0;
-    static const double kDoubleOne = 1;
-    const void* zero{};
-    const void* one{};
-    if (x.dtype() == Dtype::kFloat64) {
-        zero = &kDoubleZero;
-        one = &kDoubleOne;
-    } else {
-        zero = &kFloatZero;
-        one = &kFloatOne;
-    }
-
     Array x_cont = AsContiguousArray(x);
     Array w_cont = AsContiguousArray(w);
     assert(y.IsContiguous());
@@ -476,7 +492,7 @@ void CudnnContext::ConvolutionBackwardData(
 
     CheckCudnnError(cudnnConvolutionBackwardData(
             handle(),
-            one,
+            GetValuePtr<1>(x.dtype()),
             filter_desc.get(),
             xchainer::internal::GetRawOffsetData<void>(w_cont),
             x_desc.get(),
@@ -485,13 +501,64 @@ void CudnnContext::ConvolutionBackwardData(
             algo,
             workspace.get(),
             workspace_size,
-            zero,
+            GetValuePtr<0>(x.dtype()),
             y_desc.get(),
             xchainer::internal::GetRawOffsetData<void>(y)));
 
     if (b) {
         AddBias(y_desc, y, *b);
     }
+}
+
+void CudnnContext::ConvolutionBackwardFilter(
+        const Array& x,
+        const Array& gy,
+        const Array& gw,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+        int groups) {
+    assert(&x.device() == &gy.device());
+    assert(&x.device() == &gw.device());
+    assert(x.dtype() == gy.dtype());
+    assert(x.dtype() == gw.dtype());
+
+    CudaDevice& device = static_cast<CudaDevice&>(x.device());
+    CudaBackend& backend = static_cast<CudaBackend&>(device.backend());
+
+    Array x_cont = AsContiguousArray(x);
+    Array gy_cont = AsContiguousArray(gy);
+    Array gw_cont = AsContiguousArray(gw);
+
+    std::shared_ptr<cudnnTensorStruct> x_desc = CreateTensorDescriptor(x_cont);
+    std::shared_ptr<cudnnTensorStruct> gy_desc = CreateTensorDescriptor(gy_cont);
+    std::shared_ptr<cudnnFilterStruct> gw_desc = CreateFilterDescriptor(gw_cont, CUDNN_TENSOR_NCHW);
+    std::shared_ptr<cudnnConvolutionStruct> conv_desc =
+            CreateConvolutionDescriptor(pad, stride, x.dtype(), CUDNN_CROSS_CORRELATION, dilation, groups);
+    size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
+
+    // auto tune
+    std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> algo_workspace_size =
+            FindConvolutionBackwardFilterAlgorithm(x_desc, x, gy_desc, gy, conv_desc, gw_desc, gw, max_workspace_size, pad, stride);
+
+    cudnnConvolutionBwdFilterAlgo_t algo = std::get<0>(algo_workspace_size);
+    size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
+    std::shared_ptr<void> workspace = device.Allocate(workspace_size);
+
+    CheckCudnnError(cudnnConvolutionBackwardFilter(
+            handle(),
+            GetValuePtr<1>(x.dtype()),
+            x_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(x_cont),
+            gy_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(gy_cont),
+            conv_desc.get(),
+            algo,
+            workspace.get(),
+            workspace_size,
+            GetValuePtr<0>(x.dtype()),
+            gw_desc.get(),
+            xchainer::internal::GetRawOffsetData<void>(gw)));
 }
 
 }  // namespace internal

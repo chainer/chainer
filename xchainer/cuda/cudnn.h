@@ -53,6 +53,8 @@ struct ConvAlgoCacheKeyHash {
 using ConvFwdAlgoCacheMap = std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
 using ConvBwdDataAlgoCacheMap =
         std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionBwdDataAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
+using ConvBwdFilterAlgoCacheMap =
+        std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
 
 class CudnnContext {
 public:
@@ -73,6 +75,14 @@ public:
             const Array& x,
             const nonstd::optional<Array>& b,
             const Array& y,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+            int groups);
+    void ConvolutionBackwardFilter(
+            const Array& x,
+            const Array& gy,
+            const Array& gw,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride,
             const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
@@ -103,12 +113,24 @@ private:
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
+    std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> FindConvolutionBackwardFilterAlgorithm(
+            const std::shared_ptr<cudnnTensorStruct>& x_desc,
+            const Array& x,
+            const std::shared_ptr<cudnnTensorStruct>& gy_desc,
+            const Array& gy,
+            const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
+            const std::shared_ptr<cudnnFilterStruct>& gw_desc,
+            const Array& gw,
+            size_t max_workspace_size,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& stride);
     void AddBias(const std::shared_ptr<cudnnTensorStruct>& y_desc, const Array& y, const Array& b);
 
     int device_index_;
     cudnnHandle_t handle_{};
     ConvFwdAlgoCacheMap conv_fwd_algo_cache_map_{};
     ConvBwdDataAlgoCacheMap conv_bwd_data_algo_cache_map_{};
+    ConvBwdFilterAlgoCacheMap conv_bwd_filter_algo_cache_map_{};
 };
 
 }  // namespace internal

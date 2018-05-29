@@ -945,8 +945,8 @@ void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array
     }
 }
 
-void ConvCheckNdim(const Array& w, const StackVector<int64_t, kMaxNdim>& stride, const StackVector<int64_t, kMaxNdim>& pad) {
-    int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
+void ConvCheckNdim(int8_t w_ndim, const StackVector<int64_t, kMaxNdim>& stride, const StackVector<int64_t, kMaxNdim>& pad) {
+    int8_t ndim = w_ndim - 2;  // Number of spacial dimensions
     if (ndim <= 0) {
         throw DimensionError{"Number of spacial dimensions must be greater than 0"};
     }
@@ -976,7 +976,7 @@ Array CudaDevice::Conv(
         CheckDevicesCompatible(x, w);
     }
     ConvCheckDtype(x, w, b);
-    ConvCheckNdim(w, stride, pad);
+    ConvCheckNdim(w.ndim(), stride, pad);
 
     int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
 
@@ -999,15 +999,24 @@ Array CudaDevice::Conv(
 }
 
 Array CudaDevice::ConvGradWeight(
-        Dtype /*w_dtype*/,
-        const Shape& /*w_shape*/,
-        const Array& /*x*/,
-        const Array& /*gy*/,
-        const StackVector<int64_t, kMaxNdim>& /*stride*/,
-        const StackVector<int64_t, kMaxNdim>& /*pad*/,
-        bool /*cover_all*/) {
-    // TODO(niboshi): Implement it
-    throw NotImplementedError{""};
+        Dtype w_dtype,
+        const Shape& w_shape,
+        const Array& x,
+        const Array& gy,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    if (cover_all) {
+        throw XchainerError{"CUDA convolution does not support cover_all"};
+    }
+
+    CheckDevicesCompatible(x, gy);
+    ConvCheckNdim(w_shape.ndim(), stride, pad);
+
+    Array gw = Empty(w_shape, w_dtype, *this);
+    cudnn_context_.ConvolutionBackwardFilter(x, gy, gw, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/);
+
+    return gw;
 }
 
 Array CudaDevice::ConvTranspose(
@@ -1023,7 +1032,7 @@ Array CudaDevice::ConvTranspose(
         CheckDevicesCompatible(x, w);
     }
     ConvCheckDtype(x, w, b);
-    ConvCheckNdim(w, stride, pad);
+    ConvCheckNdim(w.ndim(), stride, pad);
 
     int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
 
@@ -1048,7 +1057,7 @@ Array CudaDevice::ConvTranspose(
 
     Array y = Empty(out_shape, x.dtype(), *this);
 
-    cudnn_context_.ConvolutionBackwardData(w, x, b, y, pad, stride, nonstd::nullopt, 1);
+    cudnn_context_.ConvolutionBackwardData(w, x, b, y, pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/);
 
     return y;
 }
