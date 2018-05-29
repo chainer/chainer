@@ -8,8 +8,21 @@ from chainer.training import extension
 from chainer.training import trigger as trigger_module
 
 
+_default_statistics = {
+    'mean': lambda x: cuda.get_array_module(x).mean(x),
+    'std': lambda x: cuda.get_array_module(x).std(x),
+    'min': lambda x: cuda.get_array_module(x).min(x),
+    'max': lambda x: cuda.get_array_module(x).max(x),
+    'zeros': lambda x: cuda.get_array_module(x).count_nonzero(x == 0),
+    'percentile': lambda x: cuda.get_array_module(x).percentile(
+        x, (0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87))
+}
+
+
 class ParameterStatistics(extension.Extension):
-    """Trainer extension to report parameter statistics.
+    """__init__(self, links, statistics=_default_statistics, report_params=True, report_grads=True, prefix=None, trigger=(1, 'epoch'), skip_nan_params=False)
+
+    Trainer extension to report parameter statistics.
 
     Statistics are collected and reported for a given :class:`~chainer.Link`
     or an iterable of :class:`~chainer.Link`\\ s. If a link contains child
@@ -44,7 +57,7 @@ class ParameterStatistics(extension.Extension):
             parameters including NaNs and a single NaN value is immediately
             reported instead. Otherwise, this extension will simply try to
             compute the statistics without performing any checks for NaNs.
-    """
+    """  # NOQA
     default_name = 'parameter_statistics'
     priority = extension.PRIORITY_WRITER
 
@@ -52,17 +65,9 @@ class ParameterStatistics(extension.Extension):
     report_key_template = ('{prefix}{link_name}{param_name}/{attr_name}/'
                            '{function_name}')
 
-    default_statistics = {
-        'mean': lambda x: cuda.get_array_module(x).mean(x),
-        'std': lambda x: cuda.get_array_module(x).std(x),
-        'min': lambda x: cuda.get_array_module(x).min(x),
-        'max': lambda x: cuda.get_array_module(x).max(x),
-        'zeros': lambda x: cuda.get_array_module(x).count_nonzero(x == 0),
-        'percentile': lambda x: cuda.get_array_module(x).percentile(
-            x, (0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87))
-    }
+    default_statistics = _default_statistics
 
-    def __init__(self, links, statistics=default_statistics,
+    def __init__(self, links, statistics=None,
                  report_params=True, report_grads=True, prefix=None,
                  trigger=(1, 'epoch'), skip_nan_params=False):
 
@@ -71,8 +76,8 @@ class ParameterStatistics(extension.Extension):
         self._links = links
 
         if statistics is None:
-            statistics = {}
-        self._statistics = statistics
+            statistics = self.default_statistics
+        self._statistics = dict(statistics)
 
         attrs = []
         if report_params:

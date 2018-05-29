@@ -53,7 +53,9 @@ class DotNode(object):
 
 class ComputationalGraph(object):
 
-    """Class that represents computational graph.
+    """__init__(self, nodes, edges, variable_style=_var_style, function_style=_func_style, rankdir='TB', remove_variable=False, show_name=True)
+
+    Class that represents computational graph.
 
     .. note::
 
@@ -80,14 +82,22 @@ class ComputationalGraph(object):
         changed from v1.23.0, so that it ouputs the richest representation of
         a graph as default, namely, styles are set and names of functions and
         variables are shown. To reproduce the same result as previous versions
-        (<= v1.22.0), please specify `variable_style=None`,
-        `function_style=None`, and `show_name=False` explicitly.
+        (<= v1.22.0), please specify `variable_style={}`,
+        `function_style={}`, and `show_name=False` explicitly.
 
-    """
+        Specifying ``None`` to ``variable_style`` and ``function_style`` is
+        no longer supported in Chainer v5.
 
-    def __init__(self, nodes, edges, variable_style=_var_style,
-                 function_style=_func_style, rankdir='TB',
+    """  # NOQA
+
+    def __init__(self, nodes, edges, variable_style=None,
+                 function_style=None, rankdir='TB',
                  remove_variable=False, show_name=True):
+        if variable_style is None:
+            variable_style = dict(_var_style)
+        if function_style is None:
+            function_style = dict(_func_style)
+
         self.nodes = nodes
         self.edges = edges
         self.variable_style = variable_style
@@ -191,8 +201,8 @@ def _skip_variable(nodes, edges):
 
 
 def build_computational_graph(
-        outputs, remove_split=True, variable_style=_var_style,
-        function_style=_func_style, rankdir='TB', remove_variable=False,
+        outputs, remove_split=True, variable_style=None,
+        function_style=None, rankdir='TB', remove_variable=False,
         show_name=True):
     """Builds a graph of functions and variables backward-reachable from outputs.
 
@@ -246,8 +256,11 @@ def build_computational_graph(
         changed from v1.23.0, so that it ouputs the richest representation of
         a graph as default, namely, styles are set and names of functions and
         variables are shown. To reproduce the same result as previous versions
-        (<= v1.22.0), please specify `variable_style=None`,
-        `function_style=None`, and `show_name=False` explicitly.
+        (<= v1.22.0), please specify `variable_style={}`,
+        `function_style={}`, and `show_name=False` explicitly.
+
+        Specifying ``None`` to ``variable_style`` and ``function_style`` is
+        no longer supported in Chainer v5.
 
     """
     if not remove_split:
