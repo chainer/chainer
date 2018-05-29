@@ -927,14 +927,6 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
 
 namespace {
 
-void ConvCheckDevice(const Array& x, const Array& w, const nonstd::optional<Array>& b) {
-    if (b) {
-        CheckDevicesCompatible(x, w, *b);
-    } else {
-        CheckDevicesCompatible(x, w);
-    }
-}
-
 void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array>& b) {
     // TODO(sonots): Support float16
     if (x.dtype() != Dtype::kFloat32 && x.dtype() != Dtype::kFloat64) {
@@ -978,7 +970,11 @@ Array CudaDevice::Conv(
     if (cover_all) {
         throw XchainerError{"CUDA convolution does not support cover_all"};
     }
-    ConvCheckDevice(x, w, b);
+    if (b) {
+        CheckDevicesCompatible(x, w, *b);
+    } else {
+        CheckDevicesCompatible(x, w);
+    }
     ConvCheckDtype(x, w, b);
     ConvCheckNdim(w, stride, pad);
 
@@ -1012,7 +1008,11 @@ Array CudaDevice::ConvTranspose(
     if (out_size) {
         throw XchainerError{"CUDA convolution transpose does not support out_size"};
     }
-    ConvCheckDevice(x, w, b);
+    if (b) {
+        CheckDevicesCompatible(x, w, *b);
+    } else {
+        CheckDevicesCompatible(x, w);
+    }
     ConvCheckDtype(x, w, b);
     ConvCheckNdim(w, stride, pad);
 
