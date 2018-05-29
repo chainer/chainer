@@ -330,8 +330,7 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> Cudnn::FindConvolutionBackwardD
 
     std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
 
-    int requested_algo_count = 1;
-    cudnnConvolutionBwdDataAlgoPerf_t perf_results[1]{};
+    cudnnConvolutionBwdDataAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
     CheckCudnnError(cudnnFindConvolutionBackwardDataAlgorithmEx(
@@ -343,13 +342,13 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> Cudnn::FindConvolutionBackwardD
             conv_desc.get(),
             y_desc.get(),
             xchainer::internal::GetRawOffsetData<void>(y),
-            requested_algo_count,
+            1,  // requested algo count,
             &returned_algo_count,
-            perf_results,
+            &perf_result,
             workspace.get(),
             max_workspace_size));
 
-    std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_memory = {perf_results[0].algo, perf_results[0].memory};
+    std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_memory = {perf_result.algo, perf_result.memory};
     conv_bwd_data_algo_cache_map_[key] = algo_memory;
     return algo_memory;
 }
