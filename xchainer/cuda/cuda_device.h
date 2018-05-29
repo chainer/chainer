@@ -20,6 +20,7 @@
 namespace xchainer {
 namespace cuda {
 
+// TODO(sonots): Support thread-safety
 class CudaDevice : public Device {
 public:
     CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_{index} {}
@@ -108,9 +109,7 @@ public:
 
 private:
     MemoryPool memory_pool_;
-    // TODO(sonots): Create a cudnn instance (including handle) for each thread.
     internal::Cudnn cudnn_;
-    // TODO(sonots): Create a cublas handle for each thread.
     cublasHandle_t cublas_handle_{};
 };
 
