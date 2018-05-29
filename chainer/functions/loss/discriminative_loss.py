@@ -244,10 +244,10 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             n_fill_objects = max_n_objects - n_objects[i]
 
             if n_fill_objects != 0:
-                _fill_sample = module.zeros(
-                    (module.asnumpy(n_fill_objects), n_filters),
-                    dtype=_mean_sample.dtype)
-                _mean_sample = concat((_mean_sample, _fill_sample), axis=0)
+                _fill_sample = module.zeros((n_fill_objects, n_filters),
+                                            dtype=_mean_sample.dtype)
+                _mean_sample = concat((_mean_sample, _fill_sample),
+                                      axis=0)
 
             means.append(_mean_sample)
 
@@ -276,7 +276,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         return prediction, labels
 
-    def __call__(self, *args):
+    def __call__(self, args):
         """Applies discriminative margin based clustering loss
 
         Steps are:
@@ -370,4 +370,4 @@ def discriminative_margin_based_clustering_loss(
                (gamma * regularizer_loss)
     """
     return DiscriminativeMarginBasedClusteringLoss(
-        delta_v, delta_d, max_n_clusters, norm, alpha, beta, gamma).apply(x)
+        delta_v, delta_d, max_n_clusters, norm, alpha, beta, gamma)(x)
