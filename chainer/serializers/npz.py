@@ -149,14 +149,14 @@ class NpzDeserializer(serializer.Deserializer):
         elif isinstance(value, numpy.ndarray):
             numpy.copyto(value, dataset)
         elif isinstance(value, cuda.ndarray):
-            value.set(numpy.asarray(dataset))
+            value.set(numpy.asarray(dataset, dtype=value.dtype))
         else:
             value = type(value)(numpy.asarray(dataset))
         return value
 
 
-def load_npz(file, obj, path='', strict=True, **kwargs):
-    """load_npz(file, obj, path='', strict=True, *, allow_pickle=None)
+def load_npz(file, obj, path='', strict=True, ignore_names=None, **kwargs):
+    """load_npz(file, obj, path='', strict=True, ignore_names=None, *, allow_pickle=None)
 
     Loads an object from the file in NPZ format.
 
@@ -172,6 +172,13 @@ def load_npz(file, obj, path='', strict=True, **kwargs):
         strict (bool): If ``True``, the deserializer raises an error when an
             expected value is not found in the given NPZ file. Otherwise,
             it ignores the value and skip deserialization.
+        ignore_names (string, callable or list of them):
+            If callable, it is a function that takes a name of a parameter
+            and a persistent and returns ``True`` when it needs to be skipped.
+            If string, this is a name of a parameter or persistent that are
+            going to be skipped.
+            This can also be a list of callables and strings that behave as
+            described above.
         allow_pickle (bool): If ``True``, the deserializer allows loading
             pickled object arrays. The default is ``False`` for security
             reasons (see :func:`numpy.load` for details).
@@ -183,7 +190,7 @@ def load_npz(file, obj, path='', strict=True, **kwargs):
     .. seealso::
         :func:`chainer.serializers.save_npz`
 
-    """
+    """  # NOQA
     allow_pickle, = argument.parse_kwargs(kwargs, ('allow_pickle', None))
 
     if numpy.lib.NumpyVersion(numpy.__version__) >= '1.10.0':
@@ -197,5 +204,6 @@ def load_npz(file, obj, path='', strict=True, **kwargs):
         load_kwargs = {}
 
     with numpy.load(file, **load_kwargs) as f:
-        d = NpzDeserializer(f, path=path, strict=strict)
+        d = NpzDeserializer(
+            f, path=path, strict=strict, ignore_names=ignore_names)
         d.load(obj)

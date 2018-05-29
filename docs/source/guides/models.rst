@@ -27,7 +27,7 @@ More Pythonic way is combining the links and procedures into a class:
    ...         self.l1 = L.Linear(4, 3)
    ...         self.l2 = L.Linear(3, 2)
    ...
-   ...     def forward(self, x):
+   ...     def __call__(self, x):
    ...         h = self.l1(x)
    ...         return self.l2(h)
 
@@ -44,7 +44,7 @@ Then, what we have to do here is just define the above class as a subclass of Ch
    ...             self.l1 = L.Linear(4, 3)
    ...             self.l2 = L.Linear(3, 2)
    ...
-   ...     def __call__(self, x):
+   ...     def forward(self, x):
    ...         h = self.l1(x)
    ...         return self.l2(h)
 
@@ -78,7 +78,7 @@ Another way to define a chain is using the :class:`ChainList` class, which behav
    ...             L.Linear(3, 2),
    ...         )
    ...
-   ...     def __call__(self, x):
+   ...     def forward(self, x):
    ...         h = self[0](x)
    ...         return self[1](h)
 

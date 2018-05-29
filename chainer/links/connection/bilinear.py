@@ -89,7 +89,7 @@ class Bilinear(link.Link):
                 self.V2 = variable.Parameter(initialV2, V2_shape)
                 self.b = variable.Parameter(initialb, b_shape)
 
-    def __call__(self, e1, e2):
+    def forward(self, e1, e2):
         """Applies the bilinear function to inputs and the internal parameters.
 
         Args:

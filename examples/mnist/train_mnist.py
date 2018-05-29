@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-
-from __future__ import print_function
-
 import argparse
 
 import chainer
@@ -22,7 +19,7 @@ class MLP(chainer.Chain):
             self.l2 = L.Linear(None, n_units)  # n_units -> n_units
             self.l3 = L.Linear(None, n_out)  # n_units -> n_out
 
-    def __call__(self, x):
+    def forward(self, x):
         h1 = F.relu(self.l1(x))
         h2 = F.relu(self.l2(h1))
         return self.l3(h2)
