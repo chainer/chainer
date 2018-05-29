@@ -46,7 +46,7 @@ class TestParameterStatisticsBase(object):
 
     def create_extension(self, skip_statistics=False):
         kwargs = {
-            'statistics': self.statistics if not skip_statistics else None,
+            'statistics': self.statistics if not skip_statistics else {},
             'report_params': self.report_params,
             'report_grads': self.report_grads,
             'prefix': self.prefix,
