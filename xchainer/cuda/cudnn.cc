@@ -309,18 +309,18 @@ void Cudnn::ConvolutionForward(
     CudaDevice& device = *static_cast<CudaDevice*>(&x.device());
     CudaBackend& backend = *static_cast<CudaBackend*>(&device.backend());
 
-    static const float float_zero = 0;
-    static const float float_one = 1;
-    static const double double_zero = 0;
-    static const double double_one = 1;
+    static const float kFloatZero = 0;
+    static const float kFloatOne = 1;
+    static const double kDoubleZero = 0;
+    static const double kDoubleOne = 1;
     const void* zero{};
     const void* one{};
     if (x.dtype() == Dtype::kFloat64) {
-        zero = &double_zero;
-        one = &double_one;
+        zero = &kDoubleZero;
+        one = &kDoubleOne;
     } else {
-        zero = &float_zero;
-        one = &float_one;
+        zero = &kFloatZero;
+        one = &kFloatOne;
     }
 
     Array x_cont = AsContiguousArray(x);
