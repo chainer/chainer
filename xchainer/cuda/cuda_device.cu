@@ -1031,7 +1031,7 @@ Array CudaDevice::ConvTranspose(
     }
     Array y = Empty(out_shape, x.dtype(), *this);
 
-    cudnn_.ConvolutionBackwardData(w, x, b, y, pad, stride, nonstd::nullopt, 1);
+    cudnn_context_.ConvolutionBackwardData(w, x, b, y, pad, stride, nonstd::nullopt, 1);
 
     return y;
 }
