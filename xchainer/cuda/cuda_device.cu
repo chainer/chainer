@@ -949,7 +949,20 @@ void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array
     }
     if (b && b->dtype() != x.dtype()) {
         throw XchainerError{
-            "XChainer cuDNN requires the bias array dtype: ", b->dtype(), " and the input array dtype: ", x.dtype(), " are same"};
+                "XChainer cuDNN requires the bias array dtype: ", b->dtype(), " and the input array dtype: ", x.dtype(), " are same"};
+    }
+}
+
+void ConvCheckNdim(const Array& w, const StackVector<int64_t, kMaxNdim>& stride, const StackVector<int64_t, kMaxNdim>& pad) {
+    int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
+    if (ndim <= 0) {
+        throw DimensionError{"Number of spacial dimensions must be greater than 0"};
+    }
+    if (static_cast<size_t>(ndim) != stride.size()) {
+        throw DimensionError{"Number of dimensions of stride does not match the number of spacial dimensions"};
+    }
+    if (static_cast<size_t>(ndim) != pad.size()) {
+        throw DimensionError{"Number of dimensions of pad does not match the number of spacial dimensions"};
     }
 }
 
@@ -967,17 +980,9 @@ Array CudaDevice::Conv(
     }
     ConvCheckDevice(x, w, b);
     ConvCheckDtype(x, w, b);
+    ConvCheckNdim(w, stride, pad);
 
     int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
-    if (ndim <= 0) {
-        throw DimensionError{"Number of spacial dimensions must be greater than 0"};
-    }
-    if (static_cast<size_t>(ndim) != stride.size()) {
-        throw DimensionError{"Number of dimensions of stride does not match the number of spacial dimensions"};
-    }
-    if (static_cast<size_t>(ndim) != pad.size()) {
-        throw DimensionError{"Number of dimensions of pad does not match the number of spacial dimensions"};
-    }
 
     // w.shape = (out_channels, _, k_1, k_2, ..., k_N)
     int64_t out_channels = w.shape()[0];
@@ -1009,9 +1014,9 @@ Array CudaDevice::ConvTranspose(
     }
     ConvCheckDevice(x, w, b);
     ConvCheckDtype(x, w, b);
+    ConvCheckNdim(w, stride, pad);
 
     int8_t ndim = w.ndim() - 2;
-    assert(ndim > 0);
 
     // w.shape = (in_channels, out_channels, k_1, k_2, ..., k_N)
     int64_t out_channels = w.shape()[1];
