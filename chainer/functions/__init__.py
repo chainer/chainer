@@ -307,6 +307,7 @@ from chainer.functions.pooling.unpooling_nd import UnpoolingND  # NOQA
 from chainer.functions.pooling.upsampling_2d import Upsampling2D  # NOQA
 from chainer.functions.pooling.upsampling_2d import upsampling_2d  # NOQA
 
+from chainer.functions.theano.theano_function import theano_function  # NOQA
 from chainer.functions.theano.theano_function import TheanoFunction  # NOQA
 
 from chainer.functions.util.forget import forget  # NOQA

@@ -293,6 +293,17 @@ Utility functions
 
    chainer.functions.forget
 
+
+Interoperability functions
+--------------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.functions.theano_function
+
+
 Function base
 -------------
 
