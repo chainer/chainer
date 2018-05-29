@@ -156,7 +156,7 @@ class NpzDeserializer(serializer.Deserializer):
 
 
 def load_npz(file, obj, path='', strict=True, **kwargs):
-    """load_npz(file, obj, path='', strict=True, *, allow_pickle=False)
+    """load_npz(file, obj, path='', strict=True, *, allow_pickle=None)
 
     Loads an object from the file in NPZ format.
 
@@ -176,12 +176,26 @@ def load_npz(file, obj, path='', strict=True, **kwargs):
             pickled object arrays. The default is ``False`` for security
             reasons (see :func:`numpy.load` for details).
 
+    .. note::
+        If you are using NumPy 1.9, ``allow_pickle`` option cannot be specified
+        and load of pickled object arrays is **always allowed**.
+
     .. seealso::
         :func:`chainer.serializers.save_npz`
 
     """
-    allow_pickle, = argument.parse_kwargs(kwargs, ('allow_pickle', False))
+    allow_pickle, = argument.parse_kwargs(kwargs, ('allow_pickle', None))
 
-    with numpy.load(file, allow_pickle=allow_pickle) as f:
+    if numpy.lib.NumpyVersion(numpy.__version__) >= '1.10.0':
+        if allow_pickle is None:
+            allow_pickle = False
+        load_kwargs = {'allow_pickle': allow_pickle}
+    else:
+        if allow_pickle is not None:
+            raise ValueError(
+                'NumPy 1.10 or later is required to use allow_pickle option')
+        load_kwargs = {}
+
+    with numpy.load(file, **load_kwargs) as f:
         d = NpzDeserializer(f, path=path, strict=strict)
         d.load(obj)
