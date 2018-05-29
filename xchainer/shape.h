@@ -80,9 +80,11 @@ namespace internal {
 
 bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size);
 
+bool IsValidReductionShape(const Shape& in_shape, const Axes& axes, const Shape& out_shape, bool allow_keepdims);
+
 Shape BroadcastShapes(const Shape& shape0, const Shape& shape1);
 
-bool IsValidReductionShape(const Shape& in_shape, const Axes& axis, const Shape& out_shape, bool allow_keepdims);
+Shape ReduceShape(const Shape& in_shape, const Axes& axes, bool keepdims);
 
 Shape TransposeShape(const Shape& shape, const Axes& axes);
 

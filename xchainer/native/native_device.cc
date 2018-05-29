@@ -867,7 +867,7 @@ void NativeDevice::BatchNormalization(
         const Array& out) {
     Dtype dtype = out.dtype();
     Shape reduced =
-            internal::GetReductionOutputShape(x, axis, false);  // Not keeping reduced axes to simplify the update of the running values.
+            internal::ReduceShape(x.shape(), axis, false);  // Not keeping reduced axes to simplify the update of the running values.
     Array x_mean = Empty(reduced, dtype, *this);
     Mean(x, axis, x_mean);
     Array x_var = Empty(reduced, dtype, *this);

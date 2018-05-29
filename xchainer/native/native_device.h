@@ -97,7 +97,6 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) override;
 
-    // TODO(hvy): Currently, axes need to be the leading axes in x, e.g. Axes{0} or Axes{0, 1, 2}. Support any axes.
     void BatchNormalization(
             const Array& x,
             const Array& gamma,

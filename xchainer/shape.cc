@@ -32,6 +32,11 @@ bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size)
     return true;
 }
 
+bool IsValidReductionShape(const Shape& in_shape, const Axes& axis, const Shape& out_shape, bool allow_keepdims) {
+    return out_shape.ndim() == in_shape.ndim() - static_cast<int64_t>(axis.size()) ||
+           (allow_keepdims && out_shape.ndim() == in_shape.ndim());
+}
+
 Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
     if (shape0.size() < shape1.size()) {
         return BroadcastShapes(shape1, shape0);
@@ -59,9 +64,21 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
     return new_shape;
 }
 
-bool IsValidReductionShape(const Shape& in_shape, const Axes& axis, const Shape& out_shape, bool allow_keepdims) {
-    return out_shape.ndim() == in_shape.ndim() - static_cast<int64_t>(axis.size()) ||
-           (allow_keepdims && out_shape.ndim() == in_shape.ndim());
+Shape ReduceShape(const Shape& in_shape, const Axes& axes, bool keepdims) {
+    Shape out_shape;
+    auto axes_size = static_cast<int8_t>(axes.size());
+    int8_t i_axis = 0;
+    for (int8_t i = 0; i < in_shape.ndim(); ++i) {
+        if (i_axis < axes_size && i == axes[i_axis]) {
+            ++i_axis;
+            if (keepdims) {
+                out_shape.emplace_back(int64_t{1});
+            }
+        } else {
+            out_shape.emplace_back(in_shape[i]);
+        }
+    }
+    return out_shape;
 }
 
 Shape TransposeShape(const Shape& shape, const Axes& axes) {

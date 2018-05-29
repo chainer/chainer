@@ -50,6 +50,22 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
     return MakeArray(shape, strides, dtype, device, data);
 }
 
+Array Reduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepdims, Device& device) {
+    Shape out_shape = ReduceShape(shape, axes, keepdims);
+
+    if (!keepdims) {
+        return Empty(out_shape, dtype, device);
+    }
+
+    // Set reduced strides of the output array to 0
+    Strides contiguous_strides{out_shape, dtype};
+    Strides out_strides = contiguous_strides;
+    for (int8_t axis : axes) {
+        out_strides[axis] = 0;
+    }
+    return internal::Empty(out_shape, dtype, out_strides, device);
+}
+
 }  // namespace internal
 
 Array FromData(

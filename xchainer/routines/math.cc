@@ -14,6 +14,7 @@
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/scalar.h"
+#include "xchainer/shape.h"
 
 namespace xchainer {
 
@@ -97,22 +98,6 @@ void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
 }  // namespace
 
 namespace internal {
-
-Shape GetReductionOutputShape(const Array& a, const Axes& sorted_axis, bool keepdims) {
-    Shape out_shape;
-    int8_t i_axis = 0;
-    for (int8_t i = 0; i < a.ndim(); ++i) {
-        if (i_axis < static_cast<int8_t>(sorted_axis.size()) && i == sorted_axis[i_axis]) {
-            ++i_axis;
-            if (keepdims) {
-                out_shape.emplace_back(int64_t{1});
-            }
-        } else {
-            out_shape.emplace_back(a.shape()[i]);
-        }
-    }
-    return out_shape;
-}
 
 void IAdd(const Array& x1, const Array& x2) { BroadcastBinaryInPlace(&AddImpl, x1, x2); }
 
@@ -251,29 +236,9 @@ Array Divide(const Array& x1, Scalar x2) { return Binary(&DivideASImpl, x1, x2);
 
 Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
 
-namespace {
-
-Array AllocateReductionOutput(const Array& a, const Axes& sorted_axis, bool keepdims) {
-    Shape out_shape = internal::GetReductionOutputShape(a, sorted_axis, keepdims);
-
-    if (!keepdims) {
-        return Empty(out_shape, a.dtype(), a.device());
-    }
-
-    // Set reduced strides of the output array to 0
-    Strides contiguous_strides{out_shape, a.dtype()};
-    Strides out_strides = contiguous_strides;
-    for (int8_t i_axis : sorted_axis) {
-        out_strides[i_axis] = 0;
-    }
-    return internal::Empty(out_shape, a.dtype(), out_strides, a.device());
-}
-
-}  // namespace
-
 Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-    Array out = AllocateReductionOutput(a, sorted_axis, keepdims);
+    Array out = internal::Reduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
     a.device().Sum(a, sorted_axis, out);
 
     auto backward_function = [ sorted_axis, in_shape = a.shape(), keepdims ](const Array& gout, const std::vector<GraphId>&) {
@@ -295,7 +260,7 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
 Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-    Array out = AllocateReductionOutput(a, sorted_axis, keepdims);
+    Array out = internal::Reduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
 
     for (int8_t i : sorted_axis) {
         if (a.shape()[i] == 0) {
@@ -310,7 +275,7 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
         // Add broadcastable dimensions to out and gout
         // for each one that was reduced in the forward operation
-        Shape shape = internal::GetReductionOutputShape(a, sorted_axis, true);
+        Shape shape = internal::ReduceShape(a.shape(), sorted_axis, true);
         Array reshaped_gout = gout.Reshape(shape);
         Array reshaped_out = out.AsConstant(CopyKind::kView).Reshape(shape);
 
