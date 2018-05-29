@@ -223,7 +223,7 @@ std::size_t ConvAlgoCacheKeyHash::operator()(const ConvAlgoCacheKey& key) const 
     for (int64_t v : key.stride) {
         HashCombine(seed, std::hash<int64_t>()(v));
     }
-    HashCombine(seed, std::hash<std::underlying_type<Dtype>::type>()(static_cast<std::underlying_type<Dtype>::type>(key.dtype)));
+    HashCombine(seed, std::hash<std::underlying_type_t<Dtype>>()(static_cast<std::underlying_type_t<Dtype>>(key.dtype)));
     HashCombine(seed, std::hash<size_t>()(key.max_workspace_size));
     return seed;
 }
