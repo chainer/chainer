@@ -1,3 +1,4 @@
+import chainer
 from chainer.backends import cuda
 from chainer.functions.array.broadcast import broadcast_to
 from chainer.functions.array.cast import cast
@@ -297,6 +298,9 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             float : Loss value
         """
 
+        buffer = chainer.config.type_check
+        chainer.config.type_check = False
+
         assert(len(args) == 4)
 
         # Inputs
@@ -313,6 +317,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         l_dist = self._distance_term(c_means, self.delta_d, n_objects)
         l_reg = self._regularization_term(c_means, n_objects)
 
+        chainer.config.type_check = buffer
         return self.alpha * l_var + self.beta * l_dist + self.gamma * l_reg
 
 
