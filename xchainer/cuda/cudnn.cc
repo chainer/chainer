@@ -198,7 +198,7 @@ void AddBias(cudnnHandle_t handle, const std::shared_ptr<cudnnTensorStruct>& y_d
     assert(&b.device() == &y.device());
     assert(b.dtype() == y.dtype());
 
-    int8_t ndim = y.ndim() - 2;
+    int8_t ndim = y.ndim() - 2;  // Number of spacial dimensions
     assert(ndim > 0);
 
     static const float kFloatOne = 1;

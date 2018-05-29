@@ -1016,7 +1016,7 @@ Array CudaDevice::ConvTranspose(
     ConvCheckDtype(x, w, b);
     ConvCheckNdim(w, stride, pad);
 
-    int8_t ndim = w.ndim() - 2;
+    int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
 
     // w.shape = (in_channels, out_channels, k_1, k_2, ..., k_N)
     int64_t out_channels = w.shape()[1];
