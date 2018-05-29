@@ -46,62 +46,65 @@ std::ostream& operator<<(std::ostream& os, const Strides& strides) {
 
 namespace internal {
 
-Strides ExpandStrides(const Strides& in_strides, const Axes& axes) {
-    assert(in_strides.ndim() >= axes.ndim());
-    Strides out_strides;
-    int8_t out_ndim = in_strides.ndim() + axes.ndim();
+Strides ExpandStrides(const Strides& strides, const Axes& axes) {
+    assert(strides.ndim() >= axes.ndim());
+    Strides expanded;
+    int8_t out_ndim = strides.ndim() + axes.ndim();
     int8_t i_axis = 0;
-    int8_t i_in_stride = 0;
+    int8_t i_stride = 0;
     for (int8_t i = 0; i < out_ndim; ++i) {
         if (i_axis < axes.ndim() && i == axes[i_axis]) {
-            out_strides.emplace_back(int64_t{1});
+            expanded.emplace_back(int64_t{1});
             ++i_axis;
         } else {
-            out_strides.emplace_back(in_strides[i_in_stride]);
-            ++i_in_stride;
+            expanded.emplace_back(strides[i_stride]);
+            ++i_stride;
         }
     }
     assert(i_axis == axes.ndim());
-    assert(i_in_stride == in_strides.ndim());
-    assert(out_strides.ndim() == in_strides.ndim() + axes.ndim());
-    return out_strides;
+    assert(i_stride == strides.ndim());
+    assert(expanded.ndim() == strides.ndim() + axes.ndim());
+    return expanded;
 }
 
-Strides BroadcastStrides(const Strides& in_strides, const Shape& in_shape, const Shape& out_shape) {
-    Strides out_strides;
-    out_strides.resize(out_shape.ndim());
-
+Strides BroadcastStrides(const Strides& strides, const Shape& in_shape, const Shape& out_shape) {
+    assert(strides.ndim() == in_shape.ndim());
+    assert(strides.ndim() <= out_shape.ndim());
+    Strides broadcasted;
+    broadcasted.resize(out_shape.ndim());
     int8_t i_in = in_shape.ndim() - 1;
     for (int8_t i_out = out_shape.ndim() - 1; i_out >= 0; --i_out) {
         int64_t out_dim = out_shape[i_out];
+
         // If this dimension is to be broadcasted, nonbroadcast_stride is unset.
         // Otherwise, it holds the new stride.
         nonstd::optional<int64_t> nonbroadcast_stride{};
+
         if (i_in >= 0) {
             int64_t in_dim = in_shape[i_in];
-            int64_t in_stride = in_strides[i_in];
-            --i_in;
             if (in_dim == 1) {
                 // do nothing; broadcast
             } else if (in_dim == out_dim) {
-                nonbroadcast_stride = in_stride;
+                nonbroadcast_stride = strides[i_in];
             } else {
                 throw DimensionError{"Invalid broadcast from ", in_shape, " to ", out_shape};
             }
+            --i_in;
         } else {
             // do nothing; broadcast
         }
 
         if (nonbroadcast_stride.has_value()) {
             // non-broadcast dimension
-            out_strides[i_out] = nonbroadcast_stride.value();
+            broadcasted[i_out] = nonbroadcast_stride.value();
         } else {
             // broadcast dimension
-            out_strides[i_out] = int64_t{0};
+            broadcasted[i_out] = int64_t{0};
         }
     }
-    assert(out_strides.ndim() == out_shape.ndim());
-    return out_strides;
+    assert(i_in == -1);
+    assert(broadcasted.ndim() == out_shape.ndim());
+    return broadcasted;
 }
 
 }  // namespace internal

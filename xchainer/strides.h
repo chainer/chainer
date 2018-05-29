@@ -79,9 +79,9 @@ public:
 
 namespace internal {
 
-Strides ExpandStrides(const Strides& in_strides, const Axes& axes);
+Strides ExpandStrides(const Strides& strides, const Axes& axes);
 
-Strides BroadcastStrides(const Strides& in_strides, const Shape& in_shape, const Shape& out_shape);
+Strides BroadcastStrides(const Strides& strides, const Shape& in_shape, const Shape& out_shape);
 
 }  // namespace internal
 
