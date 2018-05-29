@@ -324,10 +324,14 @@ void InitXchainerRoutines(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} + Array{x2}).move_body(); },
           py::arg("x1"),
           py::arg("x2"));
+    m.def("add", [](const ArrayBodyPtr& x1, Scalar x2) { return Add(Array{x1}, x2).move_body(); }, py::arg("x1"), py::arg("x2"));
+    m.def("add", [](Scalar x1, const ArrayBodyPtr& x2) { return Add(x1, Array{x2}).move_body(); }, py::arg("x1"), py::arg("x2"));
     m.def("subtract",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} - Array{x2}).move_body(); },
           py::arg("x1"),
           py::arg("x2"));
+    m.def("subtract", [](const ArrayBodyPtr& x1, Scalar x2) { return Subtract(Array{x1}, x2).move_body(); }, py::arg("x1"), py::arg("x2"));
+    m.def("subtract", [](Scalar x1, const ArrayBodyPtr& x2) { return Subtract(x1, Array{x2}).move_body(); }, py::arg("x1"), py::arg("x2"));
     m.def("multiply",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} * Array{x2}).move_body(); },
           py::arg("x1"),
@@ -338,6 +342,8 @@ void InitXchainerRoutines(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} / Array{x2}).move_body(); },
           py::arg("x1"),
           py::arg("x2"));
+    m.def("divide", [](const ArrayBodyPtr& x1, Scalar x2) { return Divide(Array{x1}, x2).move_body(); }, py::arg("x1"), py::arg("x2"));
+    m.def("divide", [](Scalar x1, const ArrayBodyPtr& x2) { return Divide(x1, Array{x2}).move_body(); }, py::arg("x1"), py::arg("x2"));
     m.def("sum",
           [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return Sum(Array{a}, Axes{axis}, keepdims).move_body(); },
           py::arg("a"),

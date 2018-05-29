@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cublas_v2.h>
+#include <cudnn.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -10,6 +11,7 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/cuda/cuda_backend.h"
+#include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/memory_pool.h"
 #include "xchainer/device.h"
 #include "xchainer/scalar.h"
@@ -18,9 +20,10 @@
 namespace xchainer {
 namespace cuda {
 
+// TODO(sonots): Support thread-safety
 class CudaDevice : public Device {
 public:
-    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
+    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_context_{index} {}
     ~CudaDevice() override;
 
     std::shared_ptr<void> Allocate(size_t bytesize) override;
@@ -115,6 +118,7 @@ public:
 
 private:
     MemoryPool memory_pool_;
+    internal::CudnnContext cudnn_context_;
     cublasHandle_t cublas_handle_{};
 };
 

@@ -18,6 +18,7 @@
 #include "xchainer/cuda/cast.cuh"
 #include "xchainer/cuda/cublas.h"
 #include "xchainer/cuda/cuda_runtime.h"
+#include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/elementwise.cuh"
 #include "xchainer/cuda/reduce.cuh"
 #include "xchainer/device.h"
@@ -212,7 +213,7 @@ struct SumImpl {
 }  // namespace
 
 void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
-    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
@@ -243,7 +244,7 @@ struct AMaxImpl {
 }  // namespace
 
 void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
-    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
@@ -717,13 +718,13 @@ void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const A
         IndexableArray<const T> a_iarray{a};
         Axes a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
         a_iarray.Permute(a_perm);
-        Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
+        Shape a_shape = xchainer::internal::TransposeShape(a.shape(), a_perm);
         Indexer<> a_indexer{a_shape};
 
         IndexableArray<T> out_iarray{out};
         Axes out_perm = MakeRollingPermutation(axis, axis + indices.ndim(), out.ndim());
         out_iarray.Permute(out_perm);
-        Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
+        Shape out_shape = xchainer::internal::TransposeShape(out.shape(), out_perm);
         Indexer<> out_indexer{out_shape};
 
         IndexableArray<const int64_t> indices_iarray{indices};
@@ -763,19 +764,19 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
         IndexableArray<const T> a_iarray{a};
         Axes a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
         a_iarray.Permute(a_perm);
-        Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
+        Shape a_shape = xchainer::internal::TransposeShape(a.shape(), a_perm);
         Indexer<> a_indexer{a_shape};
 
         IndexableArray<const T> b_iarray{b};
         Axes b_perm = MakeRollingPermutation(axis, axis + indices.ndim(), b.ndim());
         b_iarray.Permute(b_perm);
-        Shape b_shape = internal::TransposeShape(b.shape(), b_perm);
+        Shape b_shape = xchainer::internal::TransposeShape(b.shape(), b_perm);
         Indexer<> b_indexer{b_shape};
 
         IndexableArray<T> out_iarray{out};
         Axes out_perm = MakeRollingPermutation(axis, axis + 1, out.ndim());
         out_iarray.Permute(out_perm);
-        Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
+        Shape out_shape = xchainer::internal::TransposeShape(out.shape(), out_perm);
         Indexer<> out_indexer{out_shape};
 
         IndexableArray<const int64_t> indices_iarray{indices};
@@ -924,15 +925,77 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
     });
 }
 
+namespace {
+
+void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array>& b) {
+    // TODO(sonots): Support float16
+    if (x.dtype() != Dtype::kFloat32 && x.dtype() != Dtype::kFloat64) {
+        throw XchainerError{"XChainer cuDNN supports only float32 or float64 arrays, but the input array dtype is: ", x.dtype()};
+    }
+    if (w.dtype() != x.dtype()) {
+        throw XchainerError{"XChainer cuDNN requires the filter (kernel) array dtype: ",
+                            w.dtype(),
+                            " and the input array dtype: ",
+                            x.dtype(),
+                            " are same"};
+    }
+    if (b && b->dtype() != x.dtype()) {
+        throw XchainerError{
+                "XChainer cuDNN requires the bias array dtype: ", b->dtype(), " and the input array dtype: ", x.dtype(), " are same"};
+    }
+}
+
+void ConvCheckNdim(const Array& w, const StackVector<int64_t, kMaxNdim>& stride, const StackVector<int64_t, kMaxNdim>& pad) {
+    int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
+    if (ndim <= 0) {
+        throw DimensionError{"Number of spacial dimensions must be greater than 0"};
+    }
+    if (static_cast<size_t>(ndim) != stride.size()) {
+        throw DimensionError{"Number of dimensions of stride does not match the number of spacial dimensions"};
+    }
+    if (static_cast<size_t>(ndim) != pad.size()) {
+        throw DimensionError{"Number of dimensions of pad does not match the number of spacial dimensions"};
+    }
+}
+
+}  // namespace
+
 Array CudaDevice::Conv(
-        const Array& /*x*/,
-        const Array& /*w*/,
-        const nonstd::optional<Array>& /*b*/,
-        const StackVector<int64_t, kMaxNdim>& /*stride*/,
-        const StackVector<int64_t, kMaxNdim>& /*pad*/,
-        bool /*cover_all*/) {
-    // TODO(niboshi): Implement it
-    throw NotImplementedError{""};
+        const Array& x,
+        const Array& w,
+        const nonstd::optional<Array>& b,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    if (cover_all) {
+        throw XchainerError{"CUDA convolution does not support cover_all"};
+    }
+    if (b) {
+        CheckDevicesCompatible(x, w, *b);
+    } else {
+        CheckDevicesCompatible(x, w);
+    }
+    ConvCheckDtype(x, w, b);
+    ConvCheckNdim(w, stride, pad);
+
+    int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
+
+    // w.shape = (out_channels, _, k_1, k_2, ..., k_N)
+    int64_t out_channels = w.shape()[0];
+    // x_shape = (batch_size, in_channels, d_1, d_2, ..., d_N)
+    int64_t batch_size = x.shape()[0];
+
+    // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
+    Shape out_shape{batch_size, out_channels};
+    for (int8_t i = 0; i < ndim; ++i) {
+        out_shape.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i], cover_all));
+        assert(out_shape.back() > 0);
+    }
+    Array y = Empty(out_shape, x.dtype(), *this);
+
+    cudnn_context_.ConvolutionForward(x, w, b, y, pad, stride, nonstd::nullopt, 1);
+
+    return y;
 }
 
 Array CudaDevice::ConvGradWeight(
@@ -948,14 +1011,41 @@ Array CudaDevice::ConvGradWeight(
 }
 
 Array CudaDevice::ConvTranspose(
-        const Array& /*x*/,
-        const Array& /*w*/,
-        const nonstd::optional<Array>& /*b*/,
-        const StackVector<int64_t, kMaxNdim>& /*stride*/,
-        const StackVector<int64_t, kMaxNdim>& /*pad*/,
-        const StackVector<int64_t, kMaxNdim>& /*out_size*/) {
-    // TODO(hvy): Implement it
-    throw NotImplementedError{""};
+        const Array& x,
+        const Array& w,
+        const nonstd::optional<Array>& b,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& out_size) {
+    if (out_size) {
+        throw XchainerError{"CUDA convolution transpose does not support out_size"};
+    }
+    if (b) {
+        CheckDevicesCompatible(x, w, *b);
+    } else {
+        CheckDevicesCompatible(x, w);
+    }
+    ConvCheckDtype(x, w, b);
+    ConvCheckNdim(w, stride, pad);
+
+    int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
+
+    // w.shape = (in_channels, out_channels, k_1, k_2, ..., k_N)
+    int64_t out_channels = w.shape()[1];
+    // x_shape = (batch_size, in_channels, d_1, d_2, ..., d_N)
+    int64_t batch_size = x.shape()[0];
+
+    // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
+    Shape out_shape{batch_size, out_channels};
+    for (int8_t i = 0; i < ndim; ++i) {
+        out_shape.emplace_back(xchainer::internal::GetConvTransposeOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i]));
+        assert(out_shape.back() > 0);
+    }
+    Array y = Empty(out_shape, x.dtype(), *this);
+
+    cudnn_context_.ConvolutionBackwardData(w, x, b, y, pad, stride, nonstd::nullopt, 1);
+
+    return y;
 }
 
 void CudaDevice::Synchronize() {
