@@ -273,6 +273,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwar
             &perf_result,
             workspace.get(),
             max_workspace_size));
+    assert(returned_algo_count == 1);
 
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_memory = {perf_result.algo, perf_result.memory};
     conv_fwd_algo_cache_map_[key] = algo_memory;
