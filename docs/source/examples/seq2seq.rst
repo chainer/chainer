@@ -292,7 +292,7 @@ depicted in the above figure.
    :caption: seq2seq.py
 
 * In ``Seq2seq``, three functions are defined: the constructor ``__init__``,
-  the function call ``forward``, and the function for translation ``translate``.
+  the function call ``__call__``, and the function for translation ``translate``.
 
 .. literalinclude:: ../../../examples/seq2seq/seq2seq.py
    :language: python
@@ -312,7 +312,7 @@ depicted in the above figure.
 
 .. literalinclude:: ../../../examples/seq2seq/seq2seq.py
    :language: python
-   :pyobject: Seq2seq.forward
+   :pyobject: Seq2seq.__call__
    :caption: seq2seq.py
 
 * The ``__call__`` method takes sequences of source language's word IDs ``xs``
