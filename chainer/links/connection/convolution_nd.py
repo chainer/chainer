@@ -80,7 +80,7 @@ class ConvolutionND(link.Link):
         W_shape = (self.out_channels, in_channels) + self.ksize
         self.W.initialize(W_shape)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies N-dimensional convolution layer.
 
         Args:

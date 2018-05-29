@@ -22,7 +22,7 @@ class CRF(chainer.Chain):
             self.feature = L.EmbedID(n_vocab, n_pos)
             self.crf = L.CRF1d(n_pos)
 
-    def __call__(self, xs, ys):
+    def forward(self, xs, ys):
         # Before making a transpose, you need to sort two lists in descending
         # order of length.
         inds = numpy.argsort([-len(x) for x in xs]).astype(numpy.int32)

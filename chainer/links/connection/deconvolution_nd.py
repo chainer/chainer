@@ -78,7 +78,7 @@ class DeconvolutionND(link.Link):
         W_shape = (in_channels, self.out_channels) + self.ksize
         self.W.initialize(W_shape)
 
-    def __call__(self, x):
+    def forward(self, x):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return deconvolution_nd.deconvolution_nd(

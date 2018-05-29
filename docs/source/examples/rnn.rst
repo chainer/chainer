@@ -72,7 +72,7 @@ Based on this LSTM link, let's write our recurrent network as a new chain:
        def reset_state(self):
            self.mid.reset_state()
 
-       def __call__(self, cur_word):
+       def forward(self, cur_word):
            # Given the current word ID, predict the next word.
            x = self.embed(cur_word)
            h = self.mid(x)
