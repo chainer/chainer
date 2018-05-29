@@ -1017,9 +1017,6 @@ Array CudaDevice::ConvTranspose(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& out_size) {
-    if (out_size) {
-        throw XchainerError{"CUDA convolution transpose does not support out_size"};
-    }
     if (b) {
         CheckDevicesCompatible(x, w, *b);
     } else {
@@ -1030,17 +1027,25 @@ Array CudaDevice::ConvTranspose(
 
     int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
 
+    if (x.ndim() != ndim + 2) {
+        throw DimensionError{
+                "Number of dimensions of input array ", x.ndim(), " is inconsistent with that of weight array ", w.ndim(), "."};
+    }
+
+    if (out_size.size() != static_cast<size_t>(ndim)) {
+        throw DimensionError{"Number of dimensions of out size ", out_size.size(), " is does not match the spacial dimension ", ndim, "."};
+    }
+
     // w.shape = (in_channels, out_channels, k_1, k_2, ..., k_N)
     int64_t out_channels = w.shape()[1];
     // x_shape = (batch_size, in_channels, d_1, d_2, ..., d_N)
     int64_t batch_size = x.shape()[0];
 
     // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
+    // (Note that cover_all is not supported in cuDNN implementation.)
     Shape out_shape{batch_size, out_channels};
-    for (int8_t i = 0; i < ndim; ++i) {
-        out_shape.emplace_back(xchainer::internal::GetConvTransposeOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i]));
-        assert(out_shape.back() > 0);
-    }
+    std::copy(out_size.begin(), out_size.end(), std::back_inserter(out_shape));
+
     Array y = Empty(out_shape, x.dtype(), *this);
 
     cudnn_context_.ConvolutionBackwardData(w, x, b, y, pad, stride, nonstd::nullopt, 1);
