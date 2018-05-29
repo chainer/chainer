@@ -50,13 +50,17 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
                            [0, 3, 4], [0, 1, 2, 3],
                            [0, 1, 2, 3, 4]]
         self.y = numpy.asarray(self.result)
-        chainer.config.type_check = False
 
     def get_result(self, x_data):
-        return functions.discriminative_margin_based_clustering_loss(
+        buffer = chainer.config.type_check
+        chainer.config.type_check = False
+
+        out = functions.discriminative_margin_based_clustering_loss(
             x_data, self.delta_v, self.delta_d,
             self.max_n_clusters, self.norm, self.alpha,
             self.beta, self.gamma)
+        chainer.config.type_check = buffer
+        return out
 
     def check_forward_cpu(self, x_data, t_data):
         t = chainer.Variable(t_data)
@@ -68,7 +72,6 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
         out = self.get_result(x_data)
         out.to_cpu()
         t.to_cpu()
-
         assert (out.data == t.data)
 
     def test_forward_cpu(self):
