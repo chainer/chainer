@@ -438,8 +438,8 @@ void Cudnn::ConvolutionBackwardData(
     assert(&w.device() == &x.device());
     assert(w.dtype() == x.dtype());
 
-    CudaDevice& device = *static_cast<CudaDevice*>(&x.device());
-    CudaBackend& backend = *static_cast<CudaBackend*>(&device.backend());
+    CudaDevice& device = static_cast<CudaDevice&>(x.device());
+    CudaBackend& backend = static_cast<CudaBackend&>(device.backend());
 
     static const float kFloatZero = 0;
     static const float kFloatOne = 1;
