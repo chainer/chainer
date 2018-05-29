@@ -311,9 +311,9 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceTo) {
     ExpectArraysEqual(a, b);
 }
 
-class EnvScope {
+class EnvVarScope {
 public:
-    EnvScope(const std::string& name, const std::string& value) : name_(name) {
+    EnvVarScope(const std::string& name, const std::string& value) : name_(name) {
         const char* old_value = getenv(name_.c_str());
         if (old_value) {
             old_value_ = std::string(old_value);
@@ -321,7 +321,7 @@ public:
         setenv(name_.c_str(), value.c_str(), 1);
     }
 
-    ~EnvScope() {
+    ~EnvVarScope() {
         if (old_value_) {
             setenv(name_.c_str(), old_value_->c_str(), 1);
         } else {
@@ -350,12 +350,12 @@ TEST(CudaBackendTest, GetCudnnMaxWorkspaceSize) {
     {
         CudaBackend backend{ctx};
         {
-            EnvScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "10"};
+            EnvVarScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "10"};
             EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
         }
         {
             // env is cached on the first access, so not reflected.
-            EnvScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "0"};
+            EnvVarScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "0"};
             EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
         }
     }
