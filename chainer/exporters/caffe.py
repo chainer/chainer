@@ -373,7 +373,7 @@ def export(model, args, directory=None,
     """(Experimental) Export a computational graph as Caffe format.
 
     Args:
-        model (~chainer.Chain): The model object you want to export in ONNX
+        model (~chainer.Chain): The model object you want to export in Caffe
             format. It should have :meth:`__call__` method because the second
             argment ``args`` is directly given to the model by the ``()``
             accessor.
