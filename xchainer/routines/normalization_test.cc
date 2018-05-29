@@ -87,6 +87,7 @@ TEST_P(NormalizationTest, BatchNormalization) {
                                                                         37.300003,
                                                                         38.2,
                                                                         39.100002});  // Computed with Chainer.
+
     testing::ExpectEqual(e_out, out);
     testing::ExpectAllClose(e_running_mean, running_mean, 1e-5f, 1e-5f);
     testing::ExpectAllClose(e_running_var, running_var, 1e-5f, 1e-5f);
@@ -99,9 +100,9 @@ TEST_P(NormalizationTest, BatchNormalizationWithAxis) {
     }
     using T = float;
 
-    Shape x_shape{3, 1, 4, 4};
-    Shape reduced{4};
-    Axes axis{0, 1, 2};
+    Shape x_shape{3, 4, 2, 1};
+    Shape reduced{3, 1};
+    Axes axis{1, 2};
     float eps = 2e-5f;
     float decay = 0.9f;
 
@@ -113,15 +114,14 @@ TEST_P(NormalizationTest, BatchNormalizationWithAxis) {
     Array out = BatchNormalization(a, gamma, beta, running_mean, running_var, eps, decay, axis);
 
     Array e_out = testing::BuildArray(x_shape).WithData<float>(
-            {0.,         -0.5932549,  -1.1865098, -1.7797647, 0.,        -0.30357218, -0.60714436, -0.91071653, 0.,        -0.01388955,
-             -0.0277791, -0.04166865, 0.,         0.2757932,  0.5515864, 0.8273797,   0.,          0.56547594,  1.1309519, 1.6964278,
-             0.,         0.8551586,   1.7103173,  2.565476,   0.,        1.1448413,   2.2896826,   3.434524,    0.,        1.434524,
-             2.869048,   4.303572,    0.,         1.7242068,  3.4484136, 5.1726203,   0.,          2.0138896,   4.027779,  6.041669,
-             0.,         2.3035722,   4.6071444,  6.9107165,  0.,        2.593255,    5.18651,     7.7797647});  // Computed with Chainer.
+            {0.,         0.,          0.,         0.,        0.,        0.,        0.,        0.,
+             -0.5275223, -0.09108734, 0.34534758, 0.7817825, 1.2182175, 1.6546524, 2.0910873, 2.5275223,
+             -1.0550447, -0.18217468, 0.69069517, 1.563565,  2.436435,  3.3093047, 4.1821747, 5.0550447});  // Computed with Chainer.
 
-    Array e_running_mean = testing::BuildArray(reduced).WithData<float>({2.2, 3.1999998, 4.2, 5.2});  // Computed with Chainer.
+    Array e_running_mean = testing::BuildArray(reduced).WithData<float>({0.35, 2.05, 3.75});  // Computed with Chainer.
 
-    Array e_running_var = testing::BuildArray(reduced).WithData<float>({20.800001, 21.7, 22.6, 23.5});  // Computed with Chainer.
+    Array e_running_var = testing::BuildArray(reduced).WithData<float>({0.6, 1.5, 2.4});  // Computed with Chainer.
+
     testing::ExpectAllClose(e_out, out, 1e-5f, 1e-5f);
     testing::ExpectAllClose(e_running_mean, running_mean, 1e-5f, 1e-5f);
     testing::ExpectAllClose(e_running_var, running_var, 1e-5f, 1e-5f);

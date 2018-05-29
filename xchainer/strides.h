@@ -11,6 +11,7 @@
 
 #include <gsl/gsl>
 
+#include "xchainer/axes.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
@@ -75,6 +76,12 @@ public:
     // span
     gsl::span<const int64_t> span() const { return {*this}; }
 };
+
+namespace internal {
+
+Strides ExpandStrides(const Strides& in_strides, const Axes& axes);
+
+}  // namespace internal
 
 std::ostream& operator<<(std::ostream&, const Strides&);
 

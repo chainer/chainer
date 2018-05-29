@@ -8,6 +8,7 @@
 
 #include <gsl/gsl>
 
+#include "xchainer/axes.h"
 #include "xchainer/error.h"
 #include "xchainer/shape.h"
 
@@ -41,6 +42,31 @@ std::ostream& operator<<(std::ostream& os, const Strides& strides) {
     // same as Python tuples with trailing comma in case of length 1
     return os << (strides.ndim() == 1 ? ",)" : ")");
 }
+
+namespace internal {
+
+Strides ExpandStrides(const Strides& in_strides, const Axes& axes) {
+    assert(in_strides.ndim() >= axes.ndim());
+    Strides out_strides;
+    int8_t out_ndim = in_strides.ndim() + axes.ndim();
+    int8_t i_axis = 0;
+    int8_t i_in_stride = 0;
+    for (int8_t i = 0; i < out_ndim; ++i) {
+        if (i_axis < axes.ndim() && i == axes[i_axis]) {
+            out_strides.emplace_back(int64_t{1});
+            ++i_axis;
+        } else {
+            out_strides.emplace_back(in_strides[i_in_stride]);
+            ++i_in_stride;
+        }
+    }
+    assert(i_axis == axes.ndim());
+    assert(i_in_stride == in_strides.ndim());
+    assert(out_strides.ndim() == in_strides.ndim() + axes.ndim());
+    return out_strides;
+}
+
+}  // namespace internal
 
 void CheckEqual(const Strides& lhs, const Strides& rhs) {
     if (lhs != rhs) {

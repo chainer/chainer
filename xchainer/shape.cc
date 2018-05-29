@@ -36,6 +36,10 @@ bool IsValidReductionShape(const Shape& in_shape, const Axes& axis, const Shape&
            (allow_keepdims && out_shape.ndim() == in_shape.ndim());
 }
 
+int64_t CountReduceItems(const Shape& in_shape, const Axes& axis) {
+    return std::accumulate(axis.begin(), axis.end(), 1, [&in_shape](int64_t count, int8_t i) { return count * in_shape[i]; });
+}
+
 Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
     if (shape0.size() < shape1.size()) {
         return BroadcastShapes(shape1, shape0);
@@ -66,10 +70,9 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
 Shape ReduceShape(const Shape& in_shape, const Axes& axes, bool keepdims) {
     assert(in_shape.ndim() >= axes.ndim());
     Shape out_shape;
-    auto axes_size = static_cast<int8_t>(axes.size());
     int8_t i_axis = 0;
     for (int8_t i = 0; i < in_shape.ndim(); ++i) {
-        if (i_axis < axes_size && i == axes[i_axis]) {
+        if (i_axis < axes.ndim() && i == axes[i_axis]) {
             ++i_axis;
             if (keepdims) {
                 out_shape.emplace_back(int64_t{1});
@@ -78,6 +81,27 @@ Shape ReduceShape(const Shape& in_shape, const Axes& axes, bool keepdims) {
             out_shape.emplace_back(in_shape[i]);
         }
     }
+    return out_shape;
+}
+
+Shape ExpandShape(const Shape& in_shape, const Axes& axes) {
+    assert(in_shape.ndim() >= axes.ndim());
+    Shape out_shape;
+    int8_t out_ndim = in_shape.ndim() + axes.ndim();
+    int8_t i_axis = 0;
+    int8_t i_in_shape = 0;
+    for (int8_t i = 0; i < out_ndim; ++i) {
+        if (i_axis < axes.ndim() && i == axes[i_axis]) {
+            out_shape.emplace_back(int64_t{1});
+            ++i_axis;
+        } else {
+            out_shape.emplace_back(in_shape[i_in_shape]);
+            ++i_in_shape;
+        }
+    }
+    assert(i_axis == axes.ndim());
+    assert(i_in_shape == in_shape.ndim());
+    assert(out_shape.ndim() == in_shape.ndim() + axes.ndim());
     return out_shape;
 }
 

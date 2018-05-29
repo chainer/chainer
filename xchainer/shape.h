@@ -82,9 +82,13 @@ bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size)
 
 bool IsValidReductionShape(const Shape& in_shape, const Axes& axes, const Shape& out_shape, bool allow_keepdims);
 
+int64_t CountReduceItems(const Shape& in_shape, const Axes& axis);
+
 Shape BroadcastShapes(const Shape& shape0, const Shape& shape1);
 
 Shape ReduceShape(const Shape& in_shape, const Axes& axes, bool keepdims);
+
+Shape ExpandShape(const Shape& in_shape, const Axes& axes);
 
 Shape TransposeShape(const Shape& shape, const Axes& axes);
 

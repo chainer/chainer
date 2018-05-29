@@ -827,15 +827,10 @@ Array NativeDevice::ConvTranspose(
 
 namespace {
 
-// TODO(hvy): Consider moving this definition to a currently non-existent reduction utility.
-inline int64_t CountReduceItems(const Array& a, const Axes& axis) {
-    return std::accumulate(axis.begin(), axis.end(), 1, [&a](int64_t count, int8_t i) { return count * a.shape()[i]; });
-}
-
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
     device.Sum(a, axis, out);
-    device.DivideAS(out, CountReduceItems(a, axis), out);
+    device.DivideAS(out, internal::CountReduceItems(a.shape(), axis), out);
 }
 
 void Var(const Array& a, const Array& mean, const Axes& axis, const Array& out) {
@@ -853,6 +848,16 @@ void Var(const Array& a, const Array& mean, const Axes& axis, const Array& out) 
     Mean(out_pre_reduction, axis, out);
 }
 
+Array ExpandDims(const Array& a, const Axes& axes) {
+    return xchainer::internal::MakeArray(
+            internal::ExpandShape(a.shape(), axes),
+            internal::ExpandStrides(a.strides(), axes),
+            a.dtype(),
+            a.device(),
+            a.data(),
+            a.offset());
+}
+
 }  // namespace
 
 void NativeDevice::BatchNormalization(
@@ -866,14 +871,14 @@ void NativeDevice::BatchNormalization(
         const Axes& axis,
         const Array& out) {
     Dtype dtype = out.dtype();
-    Shape reduced =
-            internal::ReduceShape(x.shape(), axis, false);  // Not keeping reduced axes to simplify the update of the running values.
-    Array x_mean = Empty(reduced, dtype, *this);
+
+    Array x_mean = internal::Reduced(x.shape(), dtype, axis, true, *this);
     Mean(x, axis, x_mean);
-    Array x_var = Empty(reduced, dtype, *this);
+
+    Array x_var = internal::Reduced(x.shape(), dtype, axis, true, *this);
     Var(x, x_mean, axis, x_var);
 
-    VisitDtype(dtype, [&x, &x_mean, &x_var, &gamma, &beta, &out, eps](auto pt) {
+    VisitDtype(dtype, [&x, &x_mean, &x_var, &gamma, &beta, eps, &axis, &out](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
             void operator()(int64_t /*i*/, T x, T x_mean, T x_var, T gamma, T beta, T& out) {
@@ -886,15 +891,14 @@ void NativeDevice::BatchNormalization(
                 x,
                 x_mean.BroadcastTo(out.shape()),
                 x_var.BroadcastTo(out.shape()),
-                gamma.BroadcastTo(out.shape()),
-                beta.BroadcastTo(out.shape()),
+                ExpandDims(gamma, axis).BroadcastTo(out.shape()),
+                ExpandDims(beta, axis).BroadcastTo(out.shape()),
                 out);
     });
 
     // Update the running mean and variance in-place using an unbiased estimate.
-    // The previously computed mean and variance should have the same shape as their corresponding running values.
     auto n = static_cast<float>(x.GetTotalSize() / gamma.GetTotalSize());
-    VisitDtype(dtype, [&x_mean, &x_var, &running_mean, &running_var, decay, n](auto pt) {
+    VisitDtype(dtype, [&x_mean, &x_var, &running_mean, &running_var, decay, &axis, n](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
             void operator()(int64_t /*i*/, T mean, T var, T& running_mean, T& running_var) {
@@ -908,7 +912,11 @@ void NativeDevice::BatchNormalization(
             T one{1};
         };
         Elementwise<const T, const T, T, T>(
-                Impl{static_cast<T>(decay), static_cast<T>(n / std::max(n - 1.f, 1.f))}, x_mean, x_var, running_mean, running_var);
+                Impl{static_cast<T>(decay), static_cast<T>(n / std::max(n - 1.f, 1.f))},
+                x_mean,
+                x_var,
+                ExpandDims(running_mean, axis),
+                ExpandDims(running_var, axis));
     });
 }
 
