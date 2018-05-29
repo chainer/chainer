@@ -203,14 +203,14 @@ void CheckBackwardComputation(
                        << "Graph name: " << graph_id << "\n"
                        << "Atol: " << atol << "\n"
                        << "Rtol: " << rtol << "\n"
-                       << "Eps (perturbation):\n"
-                       << eps[i] << "\n"
                        << "Error:\n"
                        << backward_grad - numerical_grad << "\n"  // TODO(niboshi): Use abs
                        << "Backward gradients:\n"
                        << backward_grad << "\n"
                        << "Numerical gradients:\n"
-                       << numerical_grad;
+                       << numerical_grad << "\n"
+                       << "Eps (perturbation in numerical gradients):\n"
+                       << eps[i];
         }
     }
 
@@ -244,77 +244,127 @@ void CheckDoubleBackwardComputation(
         double atol,
         double rtol,
         const GraphId& graph_id) {
+    const std::size_t nin = inputs.size();
+    const std::size_t nout = grad_outputs.size();
+
+    if (grad_grad_inputs.size() != nin) {
+        throw XchainerError{"Number of input arrays and grad_grad_input arrays do not match."};
+    }
+
     // LIMITATION: All inputs must require gradients unlike CheckBackwardComputation
-    for (const auto& input : inputs) {
-        if (!input.IsGradRequired(graph_id)) {
-            throw GradientCheckError{"All inputs must require gradients"};
+
+    // Check all the input arrays require gradients
+    for (size_t i = 0; i < nin; ++i) {
+        if (!inputs[i].IsGradRequired(graph_id)) {
+            throw XchainerError{"Input array ", i, " / ", nin, " is constant w.r.t. the graph '", graph_id, "'."};
         }
     }
 
-    const std::size_t nin = inputs.size();
-    const std::size_t n_grad_outputs = grad_outputs.size();
+    // Check all the output gradient arrays require gradients
+    for (size_t i = 0; i < nout; ++i) {
+        if (!grad_outputs[i].IsGradRequired(graph_id)) {
+            throw XchainerError{"Output gradient array ", i, " / ", nout, " is constant w.r.t. the graph '", graph_id, "'."};
+        }
+    }
 
-    // Just merge inputs and grad_outputs into inputs_and_grad_outputs to pass into below `first_order_grad_func`.
-    // Since move assignment operator of Array is deleted, we can not use std::vector::insert. Instead use reserve, and std::copy
-    std::vector<Array> inputs_and_grad_outputs;
-    inputs_and_grad_outputs.reserve(nin + n_grad_outputs);
-    std::copy(inputs.begin(), inputs.end(), std::back_inserter(inputs_and_grad_outputs));
-    std::copy(grad_outputs.begin(), grad_outputs.end(), std::back_inserter(inputs_and_grad_outputs));
+    // The "forward" function to return the first order gradients
 
-    auto first_order_grad_func = [&func, nin, n_grad_outputs, &graph_id](const std::vector<Array>& inputs_and_grad_outputs) {
+    auto first_order_grad_func = [&func, nin, nout, &graph_id](const std::vector<Array>& inputs_and_grad_outputs) {
         // Just revert (split) inputs_and_grad_outputs into inputs and grad_outputs
         std::vector<Array> inputs{inputs_and_grad_outputs.begin(), inputs_and_grad_outputs.begin() + nin};
         std::vector<Array> grad_outputs{inputs_and_grad_outputs.begin() + nin, inputs_and_grad_outputs.end()};
 
+        // Compute first order gradients
         std::vector<nonstd::optional<Array>> optional_backward_grads = BackwardGradients(func, inputs, grad_outputs, graph_id);
 
-        // Just convert std::vector<nonstd::optional<Array>> to std::vector<Array> so that CalculateNumericalGradient can accept
+        // Check all the first order gradients are computed
+        if (optional_backward_grads.size() != nin) {
+            throw GradientCheckError{"Number of first-order input gradients arrays ",
+                                     optional_backward_grads.size(),
+                                     " do not match the number of input arrays ",
+                                     nin,
+                                     "."};
+        }
+
+        for (size_t i = 0; i < nin; ++i) {
+            const nonstd::optional<Array>& opt_backward_grad = optional_backward_grads[i];
+            if (!opt_backward_grad.has_value()) {
+                throw GradientCheckError{"First-order input gradient ", i, " / ", nin, " do not exist."};
+            }
+        }
+
+        // Check all the first order gradients are differentiable
+        for (size_t i = 0; i < nin; ++i) {
+            if (!optional_backward_grads[i]->IsGradRequired(graph_id)) {
+                throw GradientCheckError{"Input gradient ", i, " is not differentiable w.r.t. the graph '", graph_id, "'."};
+            }
+        }
+
+        // Convert to std::vector<Array>
         std::vector<Array> backward_grads;
         std::transform(
                 optional_backward_grads.begin(),
                 optional_backward_grads.end(),
                 std::back_inserter(backward_grads),
-                [](const nonstd::optional<Array>& optional_backward_grad) {
-                    if (!optional_backward_grad.has_value()) {
-                        throw GradientCheckError{"All gradients must exist"};
-                    }
-                    return *optional_backward_grad;
-                });
+                [](const nonstd::optional<Array>& optional_backward_grad) { return *optional_backward_grad; });
+
+        assert(backward_grads.size() == nin);
         return backward_grads;
     };
 
+    // Prepare for computing numerical and backward gradients.
+    // Merge inputs and grad_outputs into inputs_and_grad_outputs.
+    std::vector<Array> inputs_and_grad_outputs;
+    inputs_and_grad_outputs.reserve(nin + nout);
+    std::copy(inputs.begin(), inputs.end(), std::back_inserter(inputs_and_grad_outputs));
+    std::copy(grad_outputs.begin(), grad_outputs.end(), std::back_inserter(inputs_and_grad_outputs));
+
+    // Compute second order numerial gradients w.r.t. the first-order gradients.
     const std::vector<Array> numerical_grads =
             CalculateNumericalGradient(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, eps, graph_id);
+    assert(numerical_grads.size() == nin + nout);
+
+    // Compute second order backward gradients w.r.t. the first-order gradients.
     const std::vector<nonstd::optional<Array>> backward_grads =
             BackwardGradients(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, graph_id);
-    if (backward_grads.size() != numerical_grads.size()) {
-        throw GradientCheckError{"Number of gradient arrays mismatched between backprop and numerical grad"};
-    }
+    assert(backward_grads.size() == nin + nout);
 
     std::ostringstream failure_os;
+    bool has_error = false;
+
+    // Check if all the second order gradients exist
     for (size_t i = 0; i < backward_grads.size(); ++i) {
         if (!backward_grads[i].has_value()) {
-            failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
-                       << "Graph name: " << graph_id << "\n"
-                       << "Missing gradients. Maybe the given function was not twice differentiable.";
-        } else if (!AllClose(*backward_grads[i], numerical_grads[i], atol, rtol)) {
+            failure_os << "Second order gradient w.r.t. the input gradient " << i << " (Total inputs: " << inputs.size()
+                       << ", outputs: " << nout << ") is missing on the graph '" << graph_id << "'. "
+                       << "Maybe you need additional nonlinearity in the target function.";
+            has_error = true;
+        }
+    }
+    if (has_error) {
+        throw GradientCheckError{failure_os.str()};
+    }
+
+    // Check numerical consistency between numerical and backward gradients.
+    for (size_t i = 0; i < backward_grads.size(); ++i) {
+        if (!AllClose(*backward_grads[i], numerical_grads[i], atol, rtol)) {
             failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
                        << "Graph name: " << graph_id << "\n"
                        << "Atol: " << atol << "\n"
                        << "Rtol: " << rtol << "\n"
-                       << "Eps (perturbation):\n"
-                       << eps[i] << "\n"
+                       << "Error:\n"
+                       << *backward_grads[i] - numerical_grads[i] << "\n"  // TODO(niboshi): Use abs
                        << "Backward gradients:\n"
                        << *backward_grads[i] << "\n"
                        << "Numerical gradients:\n"
-                       << numerical_grads[i];
+                       << numerical_grads[i] << "\n"
+                       << "Eps (perturbation in numerical gradients):\n"
+                       << eps[i];
+            has_error = true;
         }
     }
-
-    // Do nothing if all backward-numerical gradient pairs were close, else generate a nonfatal failure
-    std::string failure_message = failure_os.str();
-    if (!failure_message.empty()) {
-        throw GradientCheckError{failure_message};
+    if (has_error) {
+        throw GradientCheckError{failure_os.str()};
     }
 }
 
