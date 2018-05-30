@@ -21,6 +21,7 @@ from chainer import training  # NOQA
 
 # import class and function
 # These functions from backends.cuda are kept for backward compatibility
+from chainer._runtime_info import print_runtime_info  # NOQA
 from chainer.backends.cuda import should_use_cudnn  # NOQA
 from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
@@ -48,6 +49,7 @@ from chainer.reporter import report  # NOQA
 from chainer.reporter import report_scope  # NOQA
 from chainer.reporter import Reporter  # NOQA
 from chainer.reporter import Summary  # NOQA
+from chainer.sequential import Sequential  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA

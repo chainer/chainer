@@ -59,5 +59,9 @@ class TestParameterize(unittest.TestCase):
         y = self.callable(1)
         self.assertEqual(y, 1)
 
+    def test_skip(self):
+        # Skipping the test case should not report error.
+        self.skipTest('skip')
+
 
 testing.run_module(__name__, __file__)
