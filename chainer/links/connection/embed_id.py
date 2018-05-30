@@ -57,7 +57,7 @@ class EmbedID(link.Link):
                 initialW = normal.Normal(1.0)
             self.W = variable.Parameter(initialW, (in_size, out_size))
 
-    def forward(self, x):
+    def __call__(self, x):
         """Extracts the word embedding of given IDs.
 
         Args:

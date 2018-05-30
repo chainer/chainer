@@ -26,7 +26,7 @@ class MGUBase(link.Chain):
 
 class StatelessMGU(MGUBase):
 
-    forward = MGUBase._call_mgu
+    __call__ = MGUBase._call_mgu
 
 
 class StatefulMGU(MGUBase):
@@ -58,7 +58,7 @@ class StatefulMGU(MGUBase):
     def reset_state(self):
         self.h = None
 
-    def forward(self, x):
+    def __call__(self, x):
         if self.h is None:
             n_batch = x.shape[0]
             h_data = self.xp.zeros(

@@ -20,7 +20,7 @@ class VAE(chainer.Chain):
             self.ld1 = L.Linear(n_latent, n_h)
             self.ld2 = L.Linear(n_h, n_in)
 
-    def forward(self, x, sigmoid=True):
+    def __call__(self, x, sigmoid=True):
         """AutoEncoder"""
         return self.decode(self.encode(x)[0], sigmoid)
 
