@@ -837,11 +837,6 @@ Array ExpandDims(const Array& a, const Axes& axes) {
             a.offset());
 }
 
-Array Broadcast(const Array& a, const Shape& shape) {
-    return xchainer::internal::MakeArray(
-            shape, internal::GetStridesAfterBroadcast(a.strides(), a.shape(), shape), a.dtype(), a.device(), a.data(), a.offset());
-}
-
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
     device.Sum(a, axis, out);
@@ -858,7 +853,7 @@ void Var(const Array& a, const Array& mean, const Axes& axis, const Array& out) 
                 out = diff * diff;
             }
         };
-        Elementwise<const T, const T, T>(Impl{}, a, Broadcast(mean, a.shape()), out_pre_reduction);
+        Elementwise<const T, const T, T>(Impl{}, a, mean.BroadcastTo(a.shape()), out_pre_reduction);
     });
     Mean(out_pre_reduction, axis, out);
 }
@@ -883,29 +878,28 @@ void NativeDevice::BatchNormalization(
     Array x_var = internal::EmptyReduced(x.shape(), dtype, axis, true, *this);
     Var(x, x_mean, axis, x_var);
 
-    VisitDtype(dtype, [&x, &x_mean, &x_var, &gamma, &beta, eps, &axis, &out](auto pt) {
+    int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
+    VisitFloatingPointDtype(dtype, [&x, &x_mean, &x_var, &running_mean, &running_var, &gamma, &beta, eps, decay, &axis, &out, n](auto pt) {
         using T = typename decltype(pt)::type;
-        struct Impl {
+
+        // Compute the batch normalization.
+        struct BatchNormalizationImpl {
             void operator()(int64_t /*i*/, T x, T x_mean, T x_var, T gamma, T beta, T& out) {
                 out = (x - x_mean) / std::sqrt(x_var + eps) * gamma + beta;
             }
             T eps;
         };
         Elementwise<const T, const T, const T, const T, const T, T>(
-                Impl{static_cast<T>(eps)},
+                BatchNormalizationImpl{static_cast<T>(eps)},
                 x,
-                Broadcast(x_mean, out.shape()),
-                Broadcast(x_var, out.shape()),
-                Broadcast(ExpandDims(gamma, axis), out.shape()),
-                Broadcast(ExpandDims(beta, axis), out.shape()),
+                x_mean.BroadcastTo(out.shape()),
+                x_var.BroadcastTo(out.shape()),
+                ExpandDims(gamma, axis).BroadcastTo(out.shape()),
+                ExpandDims(beta, axis).BroadcastTo(out.shape()),
                 out);
-    });
 
-    // Update the running mean and variance in-place using an unbiased estimate.
-    int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
-    VisitFloatingPointDtype(dtype, [&x_mean, &x_var, &running_mean, &running_var, decay, &axis, n](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
+        // Update the running mean and variance in-place using an unbiased estimate.
+        struct UpdateStatsImpl {
             void operator()(int64_t /*i*/, T mean, T var, T& running_mean, T& running_var) {
                 running_mean *= decay;
                 running_mean += (T{1} - decay) * mean;
@@ -916,7 +910,7 @@ void NativeDevice::BatchNormalization(
             T adjust;
         };
         Elementwise<const T, const T, T, T>(
-                Impl{static_cast<T>(decay), static_cast<T>(n) / std::max(n - 1, int64_t{1})},
+                UpdateStatsImpl{static_cast<T>(decay), static_cast<T>(n) / std::max(n - 1, int64_t{1})},
                 x_mean,
                 x_var,
                 ExpandDims(running_mean, axis),

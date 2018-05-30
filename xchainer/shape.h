@@ -82,6 +82,9 @@ bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size)
 
 // Returns true if a reduction can take place under the given conditions, only considering the number of dimensions.
 // Otherwise, returns false.
+//
+// TODO(hvy): Check the dimension lengths too and reconsider the interface. E.g. return void and assert inside the function if only used for
+// assertions.
 bool IsValidReductionShape(const Shape& in_shape, const Axes& axes, const Shape& out_shape, bool allow_keepdims);
 
 int64_t CountItemsAlongAxes(const Shape& shape, const Axes& axes);
