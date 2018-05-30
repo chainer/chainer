@@ -93,7 +93,7 @@ public:
 private:
     class TensorDescriptor {
     public:
-        TensorDescriptor(const Array& arr);
+        explicit TensorDescriptor(const Array& arr);
         ~TensorDescriptor();
 
         cudnnTensorDescriptor_t descriptor() const { return desc_; }
@@ -106,7 +106,7 @@ private:
 
     class FilterDescriptor {
     public:
-        FilterDescriptor(const Array& w);
+        explicit FilterDescriptor(const Array& w);
         ~FilterDescriptor();
 
         cudnnFilterDescriptor_t descriptor() const { return desc_; }
@@ -119,7 +119,7 @@ private:
 
     class ConvolutionDescriptor {
     public:
-        ConvolutionDescriptor(
+        explicit ConvolutionDescriptor(
                 Dtype dtype,
                 const StackVector<int64_t, kMaxNdim>& pad,
                 const StackVector<int64_t, kMaxNdim>& stride,
