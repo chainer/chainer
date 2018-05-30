@@ -827,6 +827,21 @@ Array NativeDevice::ConvTranspose(
 
 namespace {
 
+Array ExpandDims(const Array& a, const Axes& axes) {
+    return xchainer::internal::MakeArray(
+            internal::ExpandShape(a.shape(), axes),
+            internal::GetStridesWithNewAxes(a.strides(), axes),
+            a.dtype(),
+            a.device(),
+            a.data(),
+            a.offset());
+}
+
+Array Broadcast(const Array& a, const Shape& shape) {
+    return xchainer::internal::MakeArray(
+            shape, internal::GetStridesAfterBroadcast(a.strides(), a.shape(), shape), a.dtype(), a.device(), a.data(), a.offset());
+}
+
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
     device.Sum(a, axis, out);
@@ -843,24 +858,9 @@ void Var(const Array& a, const Array& mean, const Axes& axis, const Array& out) 
                 out = diff * diff;
             }
         };
-        Elementwise<const T, const T, T>(Impl{}, a, mean.BroadcastTo(a.shape()), out_pre_reduction);
+        Elementwise<const T, const T, T>(Impl{}, a, Broadcast(mean, a.shape()), out_pre_reduction);
     });
     Mean(out_pre_reduction, axis, out);
-}
-
-Array ExpandDims(const Array& a, const Axes& axes) {
-    return xchainer::internal::MakeArray(
-            internal::ExpandShape(a.shape(), axes),
-            internal::GetStridesWithNewAxes(a.strides(), axes),
-            a.dtype(),
-            a.device(),
-            a.data(),
-            a.offset());
-}
-
-Array Broadcast(const Array& a, const Shape& shape) {
-    return xchainer::internal::MakeArray(
-            shape, internal::GetStridesAfterBroadcast(a.strides(), a.shape(), shape), a.dtype(), a.device(), a.data(), a.offset());
 }
 
 }  // namespace
