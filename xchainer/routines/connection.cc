@@ -117,7 +117,6 @@ Array ConvTranspose(
     if (out_size.has_value()) {
         real_out_size = *out_size;
     } else {
-        cover_all = false;
         cover_all_determined = true;
         for (int8_t i = 0; i < ndim; ++i) {
             real_out_size.emplace_back(internal::GetConvTransposeOutDim(in_dims[i], kernel_size[i], stride[i], pad[i], cover_all));
@@ -131,8 +130,7 @@ Array ConvTranspose(
     // TODO(niboshi): This logic is only required if x belongs to some graph.
     if (!cover_all_determined) {
         for (int8_t i = 0; i < ndim; ++i) {
-            int64_t in_dim = in_dims[i];
-            if (in_dim != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], false)) {
+            if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], false)) {
                 cover_all = true;
                 break;
             }
