@@ -1,5 +1,6 @@
 #include "xchainer/python/routines.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -8,11 +9,13 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/macro.h"
+#include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
 #include "xchainer/routines/linalg.h"
@@ -64,6 +67,26 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
     std::shared_ptr<void> data{info.ptr, [](void*) {}};
 
     return xchainer::FromData(shape, internal::GetDtype(dtype), data, nonstd::nullopt, offset, internal::GetDevice(device)).move_body();
+}
+
+// Returns a StackVector with the given size.
+// If the given handle is a scalar, the retured StackVector is filled with that value.
+// Else if the handle is a tuple, the tuple is converted to a StackVector. In this case, the tuple must have the same length as the given
+// size.
+//
+// Used by Conv to convert stride and padding.
+// Only py::int_ and py::tuple as py::handle is supported.
+template <typename T, int8_t Ndim>
+StackVector<T, Ndim> GetFilledStackVector(py::handle handle, size_t size) {
+    StackVector<T, Ndim> out;
+    if (py::isinstance<py::int_>(handle)) {
+        std::fill_n(std::back_inserter(out), size, py::cast<T>(handle));
+    } else if (py::tuple::check_(handle)) {
+        py::tuple tup = py::cast<py::tuple>(handle);
+        std::transform(tup.begin(), tup.end(), std::back_inserter(out), [](auto& item) { return py::cast<T>(item); });
+    }
+    assert(out.size() == size);
+    return out;
 }
 
 }  // namespace
@@ -403,6 +426,32 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     m.attr("max") = m.attr("amax");
+
+    // connection routines
+    m.def("conv",
+          [](const ArrayBodyPtr& x,
+             const ArrayBodyPtr& w,
+             const nonstd::optional<ArrayBodyPtr>& b,
+             py::handle stride,
+             py::handle pad,
+             bool cover_all) {
+              // Create an Array from x to compute the image dimensions and the expected number of stride and padding elements.
+              Array x_array{x};
+              int8_t ndim = x_array.ndim() - 2;
+              return Conv(x_array,
+                          Array{w},
+                          b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
+                          GetFilledStackVector<int64_t, kMaxNdim>(stride, ndim),
+                          GetFilledStackVector<int64_t, kMaxNdim>(pad, ndim),
+                          cover_all)
+                      .move_body();
+          },
+          py::arg("x"),
+          py::arg("w"),
+          py::arg("b") = nullptr,
+          py::arg("stride") = 1,
+          py::arg("pad") = 0,
+          py::arg("cover_all") = false);
 }
 
 }  // namespace internal
