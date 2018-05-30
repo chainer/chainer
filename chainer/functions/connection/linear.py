@@ -4,8 +4,9 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
+from chainer.graph_optimizations.static_graph_utilities \
+    import static_schedule_func
 from chainer.utils import type_check
-from chainer.graph_optimizations.static_graph_utilities import static_schedule_func
 
 
 class LinearFunction(function_node.FunctionNode):
@@ -54,7 +55,6 @@ class LinearFunction(function_node.FunctionNode):
     def static_add_bias(self, y, bias):
         y += bias
 
-    # fixme: either re-implement static graph here or revert to default.
     def forward(self, inputs):
         self._config_use_ideep = chainer.config.use_ideep
         if (intel64.should_use_ideep('>=auto')
@@ -89,16 +89,10 @@ class LinearFunction(function_node.FunctionNode):
         # other than `None`. The reason is to prevent dynamic allocation
         # of output arrays during execution of the static schedule
         # because it would break the model.
-
         self.static_linear_no_bias(x, W, y, xp, x.dtype == W.dtype)
         if len(inputs) == 3:
-            bias = inputs[2]
-            self.static_add_bias(y, bias)
+            self.static_add_bias(y, b)
 
-
-        #y = x.dot(W.T).astype(x.dtype, copy=False)
-        #if b is not None:
-        #    y += b
         self.retain_inputs((0, 1))  # b is not retained
         return y,
 
