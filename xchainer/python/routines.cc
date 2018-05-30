@@ -1,6 +1,5 @@
 #include "xchainer/python/routines.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -24,6 +23,7 @@
 #include "xchainer/routines/math.h"
 #include "xchainer/routines/sorting.h"
 #include "xchainer/scalar.h"
+#include "xchainer/stack_vector.h"
 
 #include "xchainer/python/array.h"
 #include "xchainer/python/array_index.h"
@@ -31,6 +31,7 @@
 #include "xchainer/python/device.h"
 #include "xchainer/python/dtype.h"
 #include "xchainer/python/shape.h"
+#include "xchainer/python/stack_vector.h"
 #include "xchainer/python/strides.h"
 
 namespace xchainer {
@@ -67,26 +68,6 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
     std::shared_ptr<void> data{info.ptr, [](void*) {}};
 
     return xchainer::FromData(shape, internal::GetDtype(dtype), data, nonstd::nullopt, offset, internal::GetDevice(device)).move_body();
-}
-
-// Returns a StackVector with the given size.
-// If the given handle is a scalar, the retured StackVector is filled with that value.
-// Else if the handle is a tuple, the tuple is converted to a StackVector. In this case, the tuple must have the same length as the given
-// size.
-//
-// Used by Conv to convert stride and padding.
-// Only py::int_ and py::tuple as py::handle is supported.
-template <typename T, int8_t Ndim>
-StackVector<T, Ndim> GetFilledStackVector(py::handle handle, size_t size) {
-    StackVector<T, Ndim> out;
-    if (py::isinstance<py::int_>(handle)) {
-        std::fill_n(std::back_inserter(out), size, py::cast<T>(handle));
-    } else if (py::tuple::check_(handle)) {
-        py::tuple tup = py::cast<py::tuple>(handle);
-        std::transform(tup.begin(), tup.end(), std::back_inserter(out), [](auto& item) { return py::cast<T>(item); });
-    }
-    assert(out.size() == size);
-    return out;
 }
 
 }  // namespace
@@ -441,8 +422,8 @@ void InitXchainerRoutines(pybind11::module& m) {
               return Conv(x_array,
                           Array{w},
                           b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
-                          GetFilledStackVector<int64_t, kMaxNdim>(stride, ndim),
-                          GetFilledStackVector<int64_t, kMaxNdim>(pad, ndim),
+                          ToStackVector<int64_t, kMaxNdim>(stride, ndim),
+                          ToStackVector<int64_t, kMaxNdim>(pad, ndim),
                           cover_all)
                       .move_body();
           },

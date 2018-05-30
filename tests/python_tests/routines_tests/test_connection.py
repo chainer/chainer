@@ -40,9 +40,9 @@ def test_conv(device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_d
         # cuDNN does not support 1 dimensional convolution and throws CUDNN_STATUS_NOT_SUPPORTED.
         return
 
-    def args(xp):
+    def create_args(xp):
         return _create_conv_args(xp, device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_dtype)
-    xchainer.testing.assert_allclose(xchainer.conv(*args(xchainer)), chainer.functions.convolution_nd(*args(numpy)).data)
+    xchainer.testing.assert_allclose(xchainer.conv(*create_args(xchainer)), chainer.functions.convolution_nd(*create_args(numpy)).data)
 
 
 @pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad', [
