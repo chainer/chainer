@@ -31,13 +31,13 @@ bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size)
     return true;
 }
 
-bool IsValidReductionShape(const Shape& in_shape, const Axes& axis, const Shape& out_shape, bool allow_keepdims) {
-    return out_shape.ndim() == in_shape.ndim() - static_cast<int64_t>(axis.size()) ||
+bool IsValidReductionShape(const Shape& in_shape, const Axes& axes, const Shape& out_shape, bool allow_keepdims) {
+    return out_shape.ndim() == in_shape.ndim() - static_cast<int64_t>(axes.size()) ||
            (allow_keepdims && out_shape.ndim() == in_shape.ndim());
 }
 
-int64_t CountReduceItems(const Shape& shape, const Axes& axis) {
-    return std::accumulate(axis.begin(), axis.end(), 1, [&shape](int64_t count, int8_t i) { return count * shape[i]; });
+int64_t CountItemsAlongAxes(const Shape& shape, const Axes& axes) {
+    return std::accumulate(axes.begin(), axes.end(), 1, [&shape](int64_t count, int8_t i) { return count * shape[i]; });
 }
 
 Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {

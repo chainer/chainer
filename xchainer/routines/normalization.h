@@ -5,6 +5,7 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/constant.h"
+#include "xchainer/scalar.h"
 #include "xchainer/stack_vector.h"
 
 namespace xchainer {
@@ -18,8 +19,8 @@ Array BatchNormalization(
         const Array& beta,
         const Array& running_mean,
         const Array& running_var,
-        float eps,
-        float decay,
+        Scalar eps = 2e-5,
+        Scalar decay = 0.9,
         const OptionalAxes& axis = nonstd::nullopt);
 
 }  // namespace xchainer

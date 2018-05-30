@@ -32,7 +32,7 @@ Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_
 Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device = GetDefaultDevice());
 
 // Creates an empty array with reduced shape.
-Array Reduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepdims, Device& device = GetDefaultDevice());
+Array EmptyReduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepdims, Device& device = GetDefaultDevice());
 
 }  // namespace internal
 

@@ -238,7 +238,7 @@ Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Sc
 
 Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-    Array out = internal::Reduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
+    Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
     a.device().Sum(a, sorted_axis, out);
 
     auto backward_function = [ sorted_axis, in_shape = a.shape(), keepdims ](const Array& gout, const std::vector<GraphId>&) {
@@ -260,7 +260,7 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
 Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-    Array out = internal::Reduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
+    Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
 
     for (int8_t i : sorted_axis) {
         if (a.shape()[i] == 0) {

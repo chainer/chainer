@@ -7,6 +7,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
@@ -37,8 +38,8 @@ TEST_P(NormalizationTest, BatchNormalization) {
 
     Shape x_shape{3, 1, 4, 4};
     Shape reduced{1, 4, 4};
-    float eps = 2e-5f;
-    float decay = 0.9f;
+    Scalar eps{2e-5f};
+    Scalar decay{0.9f};
 
     Array a = testing::BuildArray(x_shape).WithLinearData<T>();
     Array gamma = testing::BuildArray(reduced).WithLinearData<T>();
@@ -103,8 +104,8 @@ TEST_P(NormalizationTest, BatchNormalizationWithAxis) {
     Shape x_shape{3, 4, 2, 1};
     Shape reduced{3, 1};
     Axes axis{1, 2};
-    float eps = 2e-5f;
-    float decay = 0.9f;
+    Scalar eps{2e-5f};
+    Scalar decay{0.9f};
 
     Array a = testing::BuildArray(x_shape).WithLinearData<T>();
     Array gamma = testing::BuildArray(reduced).WithLinearData<T>();

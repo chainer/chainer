@@ -5,6 +5,7 @@
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"
 
@@ -16,14 +17,16 @@ Array BatchNormalization(
         const Array& beta,
         const Array& running_mean,
         const Array& running_var,
-        float eps,
-        float decay,
+        Scalar eps,
+        Scalar decay,
         const OptionalAxes& axis) {
     Dtype dtype = x.dtype();
     CheckEqual(dtype, gamma.dtype());
     CheckEqual(dtype, beta.dtype());
     CheckEqual(dtype, running_mean.dtype());
     CheckEqual(dtype, running_var.dtype());
+    CheckEqual(dtype, eps.dtype());
+    CheckEqual(dtype, decay.dtype());
 
     Shape reduced = gamma.shape();
     CheckEqual(reduced, beta.shape());

@@ -260,7 +260,12 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
     }
 
     Array out = internal::MakeArray(
-            shape, internal::BroadcastStrides(in_strides, in_shape, shape), array.dtype(), array.device(), array.data(), array.offset());
+            shape,
+            internal::GetStridesAfterBroadcast(in_strides, in_shape, shape),
+            array.dtype(),
+            array.device(),
+            array.data(),
+            array.offset());
 
     auto backward_function = [in_shape](const Array& gout, const std::vector<GraphId>&) {
         if (gout.shape() == in_shape) {

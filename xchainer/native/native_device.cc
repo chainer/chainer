@@ -830,7 +830,7 @@ namespace {
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
     device.Sum(a, axis, out);
-    device.DivideAS(out, internal::CountReduceItems(a.shape(), axis), out);
+    device.DivideAS(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
 void Var(const Array& a, const Array& mean, const Axes& axis, const Array& out) {
@@ -851,7 +851,7 @@ void Var(const Array& a, const Array& mean, const Axes& axis, const Array& out) 
 Array ExpandDims(const Array& a, const Axes& axes) {
     return xchainer::internal::MakeArray(
             internal::ExpandShape(a.shape(), axes),
-            internal::ExpandStrides(a.strides(), axes),
+            internal::GetStridesWithNewAxes(a.strides(), axes),
             a.dtype(),
             a.device(),
             a.data(),
@@ -860,7 +860,7 @@ Array ExpandDims(const Array& a, const Axes& axes) {
 
 Array Broadcast(const Array& a, const Shape& shape) {
     return xchainer::internal::MakeArray(
-            shape, internal::BroadcastStrides(a.strides(), a.shape(), shape), a.dtype(), a.device(), a.data(), a.offset());
+            shape, internal::GetStridesAfterBroadcast(a.strides(), a.shape(), shape), a.dtype(), a.device(), a.data(), a.offset());
 }
 
 }  // namespace
@@ -871,16 +871,16 @@ void NativeDevice::BatchNormalization(
         const Array& beta,
         const Array& running_mean,
         const Array& running_var,
-        float eps,
-        float decay,
+        Scalar eps,
+        Scalar decay,
         const Axes& axis,
         const Array& out) {
     Dtype dtype = out.dtype();
 
-    Array x_mean = internal::Reduced(x.shape(), dtype, axis, true, *this);
+    Array x_mean = internal::EmptyReduced(x.shape(), dtype, axis, true, *this);
     Mean(x, axis, x_mean);
 
-    Array x_var = internal::Reduced(x.shape(), dtype, axis, true, *this);
+    Array x_var = internal::EmptyReduced(x.shape(), dtype, axis, true, *this);
     Var(x, x_mean, axis, x_var);
 
     VisitDtype(dtype, [&x, &x_mean, &x_var, &gamma, &beta, eps, &axis, &out](auto pt) {
@@ -902,22 +902,21 @@ void NativeDevice::BatchNormalization(
     });
 
     // Update the running mean and variance in-place using an unbiased estimate.
-    auto n = static_cast<float>(x.GetTotalSize() / gamma.GetTotalSize());
-    VisitDtype(dtype, [&x_mean, &x_var, &running_mean, &running_var, decay, &axis, n](auto pt) {
+    int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
+    VisitFloatingPointDtype(dtype, [&x_mean, &x_var, &running_mean, &running_var, decay, &axis, n](auto pt) {
         using T = typename decltype(pt)::type;
         struct Impl {
             void operator()(int64_t /*i*/, T mean, T var, T& running_mean, T& running_var) {
                 running_mean *= decay;
-                running_mean += (one - decay) * mean;
+                running_mean += (T{1} - decay) * mean;
                 running_var *= decay;
-                running_var += (one - decay) * adjust * var;
+                running_var += (T{1} - decay) * adjust * var;
             }
             T decay;
             T adjust;
-            T one{1};
         };
         Elementwise<const T, const T, T, T>(
-                Impl{static_cast<T>(decay), static_cast<T>(n / std::max(n - 1.f, 1.f))},
+                Impl{static_cast<T>(decay), static_cast<T>(n) / std::max(n - 1, int64_t{1})},
                 x_mean,
                 x_var,
                 ExpandDims(running_mean, axis),

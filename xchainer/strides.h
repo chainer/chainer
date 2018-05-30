@@ -79,9 +79,11 @@ public:
 
 namespace internal {
 
-Strides ExpandStrides(const Strides& strides, const Axes& axes);
+// Returns a set of strides with additional axes, with strides 0.
+Strides GetStridesWithNewAxes(const Strides& strides, const Axes& axes);
 
-Strides BroadcastStrides(const Strides& strides, const Shape& in_shape, const Shape& out_shape);
+// Returns a set of broadcasted strides where new strides are 0.
+Strides GetStridesAfterBroadcast(const Strides& strides, const Shape& in_shape, const Shape& out_shape);
 
 }  // namespace internal
 

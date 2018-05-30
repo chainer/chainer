@@ -46,7 +46,7 @@ std::ostream& operator<<(std::ostream& os, const Strides& strides) {
 
 namespace internal {
 
-Strides ExpandStrides(const Strides& strides, const Axes& axes) {
+Strides GetStridesWithNewAxes(const Strides& strides, const Axes& axes) {
     assert(strides.ndim() >= axes.ndim());
     Strides expanded;
     int8_t out_ndim = strides.ndim() + axes.ndim();
@@ -67,7 +67,7 @@ Strides ExpandStrides(const Strides& strides, const Axes& axes) {
     return expanded;
 }
 
-Strides BroadcastStrides(const Strides& strides, const Shape& in_shape, const Shape& out_shape) {
+Strides GetStridesAfterBroadcast(const Strides& strides, const Shape& in_shape, const Shape& out_shape) {
     assert(strides.ndim() == in_shape.ndim());
     assert(strides.ndim() <= out_shape.ndim());
     Strides broadcasted;

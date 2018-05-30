@@ -103,8 +103,8 @@ public:
             const Array& beta,
             const Array& running_mean,
             const Array& running_var,
-            float eps,
-            float decay,
+            Scalar eps,
+            Scalar decay,
             const Axes& axis,
             const Array& out) override;
 

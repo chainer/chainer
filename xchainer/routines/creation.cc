@@ -50,7 +50,7 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
     return MakeArray(shape, strides, dtype, device, data);
 }
 
-Array Reduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepdims, Device& device) {
+Array EmptyReduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepdims, Device& device) {
     Shape out_shape = ReduceShape(shape, axes, keepdims);
     if (!keepdims) {
         return Empty(out_shape, dtype, device);
