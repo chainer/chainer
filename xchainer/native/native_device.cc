@@ -30,6 +30,7 @@
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/slice.h"
+#include "xchainer/strides.h"
 
 namespace xchainer {
 namespace native {
@@ -828,13 +829,27 @@ Array NativeDevice::ConvTranspose(
 namespace {
 
 Array ExpandDims(const Array& a, const Axes& axes) {
+    // Compute the new set of strides with the new axes.
+    int8_t expanded_ndim = a.ndim() + axes.ndim();
+    int8_t i_axis = 0;
+    int8_t i_stride = 0;
+    const Strides& strides = a.strides();
+    Strides expanded_strides;
+    for (int8_t i = 0; i < expanded_ndim; ++i) {
+        if (i_axis < axes.ndim() && i == axes[i_axis]) {
+            expanded_strides.emplace_back(int64_t{1});
+            ++i_axis;
+        } else {
+            expanded_strides.emplace_back(strides[i_stride]);
+            ++i_stride;
+        }
+    }
+    assert(i_axis == axes.ndim());
+    assert(i_stride == strides.ndim());
+    assert(expanded_strides.ndim() == a.ndim() + axes.ndim());
+
     return xchainer::internal::MakeArray(
-            internal::ExpandShape(a.shape(), axes),
-            internal::GetStridesWithNewAxes(a.strides(), axes),
-            a.dtype(),
-            a.device(),
-            a.data(),
-            a.offset());
+            internal::ExpandShape(a.shape(), axes), expanded_strides, a.dtype(), a.device(), a.data(), a.offset());
 }
 
 void Mean(const Array& a, const Axes& axis, const Array& out) {
