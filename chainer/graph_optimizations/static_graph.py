@@ -24,21 +24,23 @@ def _debug_print_stats(args):
 
 class ScheduleInfo(object):
 
+    """A callable wrapper for a function in the static schedule.
+
+    Args:
+        func (FunctionNode): A function in the static schedule.
+        args: Arguments to 'func'.
+        kwargs: Keyword arguments to 'func'.
+        hooks (list of tuples): A list of hooks that instruct how to
+            update the ndarray references in 'args' so that they
+            refer to the correct master array in 'unique_arrays'.
+        unique_arrays (list of ndarray): The master list of all unique
+            ndarrays that appear in the static schedule.
+        func_name (str): An optional name of the static function.
+    """
+
     def __init__(self, func, args, kwargs, hooks, unique_arrays,
                  func_name=None):
-        """A callable wrapper for a function in the static schedule.
 
-        Args:
-            func (FunctionNode): A function in the static schedule.
-            args: Arguments to 'func'.
-            kwargs: Keyword arguments to 'func'.
-            hooks (list of tuples): A list of hooks that instruct how to
-                update the ndarray references in 'args' so that they
-                refer to the correct master array in 'unique_arrays'.
-            unique_arrays (list of ndarray): The master list of all unique
-                ndarrays that appear in the static schedule.
-            func_name (str): An optional name of the static function.
-        """
         self.func = func
         self.args = args
         self.kwargs = kwargs
@@ -144,6 +146,7 @@ class ScheduleInfo(object):
 
 
 class StaticScheduleFunction(chainer.function_node.FunctionNode):
+
     """A function that executes the static schedule of a Chain.
 
     An instance of this class executes the static schedule of computations
