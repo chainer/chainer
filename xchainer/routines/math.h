@@ -7,7 +7,6 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/scalar.h"
-#include "xchainer/shape.h"
 
 namespace xchainer {
 

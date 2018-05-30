@@ -7,9 +7,7 @@
 #include <tuple>
 
 #include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
-#include "xchainer/axes.h"
 #include "xchainer/error.h"
 #include "xchainer/shape.h"
 
