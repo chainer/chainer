@@ -20,8 +20,6 @@ namespace native {
 
 class NativeDevice : public Device {
 public:
-    NativeDevice(NativeBackend& backend, int index) : Device(backend, index) {}
-
     std::shared_ptr<void> Allocate(size_t bytesize) override;
 
     void MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) override;
@@ -118,6 +116,12 @@ public:
             const Array& out) override;
 
     void Synchronize() override;
+
+protected:
+    NativeDevice(NativeBackend& backend, int index) : Device(backend, index) {}
+
+private:
+    friend NativeDevice* xchainer::native::internal::CreateDevice(NativeBackend&, int);
 };
 
 }  // namespace native

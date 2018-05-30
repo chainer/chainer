@@ -122,15 +122,13 @@ TEST(ContextTest, ContextScopeResetDevice) {
     Context ctx2;
     {
         ContextScope ctx_scope1{ctx1};
-        native::NativeBackend backend1{ctx1};
-        native::NativeDevice device1{backend1, 0};
+        Device& device1 = ctx1.GetDevice({"native", 0});
         DeviceScope dev_scope1{device1};
 
         {
             ContextScope ctx_scope2{ctx2};
             ASSERT_NE(&device1, &GetDefaultDevice());
-            native::NativeBackend backend2{ctx2};
-            native::NativeDevice device2{backend2, 0};
+            Device& device2 = ctx2.GetDevice({"native", 0});
             SetDefaultDevice(&device2);
         }
 

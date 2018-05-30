@@ -39,8 +39,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
     // Fallback to default device which is CPU
     {
         Context& ctx = GetDefaultContext();
-        native::NativeBackend native_backend{ctx};
-        native::NativeDevice cpu_device{native_backend, 0};
+        auto& cpu_device = static_cast<native::NativeDevice&>(ctx.GetDevice({"native", 0}));
         auto scope = std::make_unique<DeviceScope>(cpu_device);
         Array array = create_array_func();
         EXPECT_EQ(&cpu_device, &array.device());
@@ -49,8 +48,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
     // Fallback to default device which is GPU
     {
         Context& ctx = GetDefaultContext();
-        cuda::CudaBackend cuda_backend{ctx};
-        cuda::CudaDevice cuda_device{cuda_backend, 0};
+        auto& cuda_device = static_cast<cuda::CudaDevice&>(ctx.GetDevice({"cuda", 0}));
         auto scope = std::make_unique<DeviceScope>(cuda_device);
         Array array = create_array_func();
         EXPECT_EQ(&cuda_device, &array.device());
@@ -61,8 +59,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
 // Check that Arrays are created on the specified device, if specified, without taking into account the default device
 void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_array_func) {
     Context& ctx = GetDefaultContext();
-    native::NativeBackend native_backend{ctx};
-    native::NativeDevice cpu_device{native_backend, 0};
+    auto& cpu_device = static_cast<native::NativeDevice&>(ctx.GetDevice({"native", 0}));
 
     // Explicitly create on CPU
     {
@@ -75,8 +72,7 @@ void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_arra
         EXPECT_EQ(&cpu_device, &array.device());
     }
 #ifdef XCHAINER_ENABLE_CUDA
-    cuda::CudaBackend cuda_backend{ctx};
-    cuda::CudaDevice cuda_device{cuda_backend, 0};
+    auto& cuda_device = static_cast<cuda::CudaDevice&>(ctx.GetDevice({"cuda", 0}));
 
     {
         auto scope = std::make_unique<DeviceScope>(cuda_device);
@@ -152,8 +148,7 @@ TEST_F(ArrayDeviceTest, EmptyLike) {
         return EmptyLike(array_orig);
     });
     CheckDeviceExplicit([&](Device& device) {
-        native::NativeBackend native_backend{device.context()};
-        native::NativeDevice cpu_device{native_backend, 0};
+        Device& cpu_device = device.context().GetDevice({"native", 0});
         Array array_orig = Empty(shape, dtype, cpu_device);
         return EmptyLike(array_orig, device);
     });
@@ -169,8 +164,7 @@ TEST_F(ArrayDeviceTest, FullLike) {
         return FullLike(array_orig, scalar);
     });
     CheckDeviceExplicit([&](Device& device) {
-        native::NativeBackend native_backend{device.context()};
-        native::NativeDevice cpu_device{native_backend, 0};
+        Device& cpu_device = device.context().GetDevice({"native", 0});
         Array array_orig = Empty(shape, dtype, cpu_device);
         return FullLike(array_orig, scalar, device);
     });
@@ -185,8 +179,7 @@ TEST_F(ArrayDeviceTest, ZerosLike) {
         return ZerosLike(array_orig);
     });
     CheckDeviceExplicit([&](Device& device) {
-        native::NativeBackend native_backend{device.context()};
-        native::NativeDevice cpu_device{native_backend, 0};
+        Device& cpu_device = device.context().GetDevice({"native", 0});
         Array array_orig = Empty(shape, dtype, cpu_device);
         return ZerosLike(array_orig, device);
     });
@@ -201,8 +194,7 @@ TEST_F(ArrayDeviceTest, OnesLike) {
         return OnesLike(array_orig);
     });
     CheckDeviceExplicit([&](Device& device) {
-        native::NativeBackend native_backend{device.context()};
-        native::NativeDevice cpu_device{native_backend, 0};
+        Device& cpu_device = device.context().GetDevice({"native", 0});
         Array array_orig = Empty(shape, dtype, cpu_device);
         return OnesLike(array_orig, device);
     });
@@ -213,9 +205,8 @@ TEST_F(ArrayDeviceTest, CheckDevicesCompatibleBasicArithmetics) {
     Dtype dtype = Dtype::kFloat32;
 
     Context& ctx = GetDefaultContext();
-    native::NativeBackend native_backend{ctx};
-    native::NativeDevice cpu_device_0{native_backend, 0};
-    native::NativeDevice cpu_device_1{native_backend, 1};
+    Device& cpu_device_0 = ctx.GetDevice({"native", 0});
+    Device& cpu_device_1 = ctx.GetDevice({"native", 1});
 
     Array a_device_0 = Empty(shape, dtype, cpu_device_0);
     Array b_device_0 = Empty(shape, dtype, cpu_device_0);

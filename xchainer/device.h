@@ -21,8 +21,12 @@ class Array;
 // Note that these member functions may be called from the framework or user code.
 class Device {
 public:
-    Device(Backend& backend, int index) : backend_{backend}, index_{index} {}
     virtual ~Device() = default;
+
+    Device(const Device&) = delete;
+    Device(Device&&) = delete;
+    Device& operator=(const Device&) = delete;
+    Device& operator=(Device&&) = delete;
 
     // Allocates a memory chunk on this device.
     virtual std::shared_ptr<void> Allocate(size_t bytesize) = 0;
@@ -205,6 +209,8 @@ public:
     int index() const { return index_; }
 
 protected:
+    Device(Backend& backend, int index) : backend_{backend}, index_{index} {}
+
     // Throws an exception if array devices are incompatible, else does nothing.
     template <typename... Arrays>
     void CheckDevicesCompatible(const Array& first, const Arrays&... rest) {

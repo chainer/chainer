@@ -12,6 +12,19 @@
 namespace xchainer {
 namespace cuda {
 
+class CudaDevice;
+class CudaBackend;
+
+namespace internal {
+
+// Creates a device instance.
+// This function is meant to be used from the backend class. Never use it for other purpose.
+// This is defined in internal namespace in order to make it a friend of CudaDevice
+// class.
+CudaDevice* CreateDevice(CudaBackend& backend, int index);
+
+}  // namespace internal
+
 class CudaBackend : public Backend {
 public:
     static constexpr const char* kDefaultName = "cuda";

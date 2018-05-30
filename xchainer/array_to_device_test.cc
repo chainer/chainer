@@ -51,6 +51,14 @@ private:
 // Instantiate the global test configuration
 TestConfig g_config;
 
+class TestBackend;
+
+// Test device class
+class TestDevice : public native::NativeDevice {
+public:
+    TestDevice(TestBackend& backend, int index);
+};
+
 // Test backend class
 class TestBackend : public native::NativeBackend {
 public:
@@ -70,12 +78,15 @@ public:
 
     std::unique_ptr<Device> CreateDevice(int index) override {
         assert(index == 0);
-        return std::make_unique<native::NativeDevice>(*this, index);
+        return std::make_unique<TestDevice>(*this, index);
     }
 
 private:
     int num_;
 };
+
+// TestDevice ctor
+TestDevice::TestDevice(TestBackend& backend, int index) : native::NativeDevice{backend, index} {}
 
 // Test fixture for compatible transfer
 class ArrayToDeviceCompatibleTest : public ::testing::TestWithParam<::testing::tuple<int, int, int>> {
