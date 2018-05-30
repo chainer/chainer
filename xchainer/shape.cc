@@ -37,7 +37,7 @@ bool IsValidReductionShape(const Shape& in_shape, const Axes& axes, const Shape&
 }
 
 int64_t CountItemsAlongAxes(const Shape& shape, const Axes& axes) {
-    return std::accumulate(axes.begin(), axes.end(), 1, [&shape](int64_t count, int8_t i) { return count * shape[i]; });
+    return std::accumulate(axes.begin(), axes.end(), int64_t{1}, [&shape](int64_t count, int8_t i) { return count * shape[i]; });
 }
 
 Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
