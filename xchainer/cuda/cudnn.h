@@ -91,40 +91,84 @@ public:
     cudnnHandle_t handle() { return handle_; }
 
 private:
+    class TensorDescriptor {
+    public:
+        TensorDescriptor(const Array& arr);
+        ~TensorDescriptor();
+
+        cudnnTensorDescriptor_t descriptor() const { return desc_; }
+        cudnnTensorDescriptor_t operator*() const { return desc_; }
+
+    private:
+        TensorDescriptor();
+        cudnnTensorDescriptor_t desc_{};
+    };
+
+    class FilterDescriptor {
+    public:
+        FilterDescriptor(const Array& w);
+        ~FilterDescriptor();
+
+        cudnnFilterDescriptor_t descriptor() const { return desc_; }
+        cudnnFilterDescriptor_t operator*() const { return desc_; }
+
+    private:
+        FilterDescriptor();
+        cudnnFilterDescriptor_t desc_{};
+    };
+
+    class ConvolutionDescriptor {
+    public:
+        ConvolutionDescriptor(
+                Dtype dtype,
+                const StackVector<int64_t, kMaxNdim>& pad,
+                const StackVector<int64_t, kMaxNdim>& stride,
+                const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+                int groups);
+        ~ConvolutionDescriptor();
+
+        cudnnConvolutionDescriptor_t descriptor() const { return desc_; }
+        cudnnConvolutionDescriptor_t operator*() const { return desc_; }
+
+    private:
+        ConvolutionDescriptor();
+        cudnnConvolutionDescriptor_t desc_{};
+    };
+
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
-            const std::shared_ptr<cudnnTensorStruct>& x_desc,
+            const TensorDescriptor& x_desc,
             const Array& x,
-            const std::shared_ptr<cudnnFilterStruct>& filter_desc,
+            const FilterDescriptor& filter_desc,
             const Array& w,
-            const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
-            const std::shared_ptr<cudnnTensorStruct>& y_desc,
+            const ConvolutionDescriptor& conv_desc,
+            const TensorDescriptor& y_desc,
             const Array& y,
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
     std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> FindConvolutionBackwardDataAlgorithm(
-            const std::shared_ptr<cudnnFilterStruct>& filter_desc,
+            const FilterDescriptor& filter_desc,
             const Array& w,
-            const std::shared_ptr<cudnnTensorStruct>& x_desc,
+            const TensorDescriptor& x_desc,
             const Array& x,
-            const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
-            const std::shared_ptr<cudnnTensorStruct>& y_desc,
+            const ConvolutionDescriptor& conv_desc,
+            const TensorDescriptor& y_desc,
             const Array& y,
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
     std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> FindConvolutionBackwardFilterAlgorithm(
-            const std::shared_ptr<cudnnTensorStruct>& x_desc,
+            const TensorDescriptor& x_desc,
             const Array& x,
-            const std::shared_ptr<cudnnTensorStruct>& gy_desc,
+            const TensorDescriptor& gy_desc,
             const Array& gy,
-            const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
-            const std::shared_ptr<cudnnFilterStruct>& gw_desc,
+            const ConvolutionDescriptor& conv_desc,
+            const FilterDescriptor& gw_desc,
             const Array& gw,
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
-    void AddBias(const std::shared_ptr<cudnnTensorStruct>& y_desc, const Array& y, const Array& b);
+    void AddBias(const TensorDescriptor& y_desc, const Array& y, const Array& b);
 
     int device_index_;
     cudnnHandle_t handle_{};
