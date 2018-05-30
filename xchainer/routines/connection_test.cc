@@ -3,11 +3,13 @@
 #include <algorithm>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/check_backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/device_id.h"
 #include "xchainer/shape.h"
@@ -146,11 +148,203 @@ TEST_P(ConnectionTest, ConvCoverAll) {
 }
 
 TEST_P(ConnectionTest, ConvBackward) {
-    // TODO(niboshi): Implement
+    if (GetParam() == "cuda") {
+        // TODO(niboshi): Add CUDA implementation
+        return;
+    }
+    int64_t batch_size = 2;
+    int64_t in_channels = 3;
+    int64_t out_channels = 2;
+    Shape in_dims{10, 7};
+    StackVector<int64_t, kMaxNdim> kernel_size{2, 3};
+    StackVector<int64_t, kMaxNdim> stride{3, 2};
+    StackVector<int64_t, kMaxNdim> pad{2, 0};
+    bool cover_all = false;
+    Shape out_dims{5, 3};
+
+    Shape x_shape{batch_size, in_channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+    Shape w_shape{out_channels, in_channels};
+    std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(w_shape));
+    Shape b_shape{out_channels};
+    Shape out_shape{batch_size, out_channels};
+    std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
+
+    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1)).RequireGrad();
+    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f)).RequireGrad();
+    Array b = (*testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f})).RequireGrad();
+
+    Array go = testing::BuildArray(out_shape).WithLinearData(-0.1f, 0.1f).WithPadding(1);
+
+    Array x_eps = Full(x.shape(), 1e0f);
+    Array w_eps = Full(w.shape(), 1e0f);
+    Array b_eps = Full(b.shape(), 1e0f);
+
+    CheckBackward(
+            [&](const std::vector<Array>& xs) -> std::vector<Array> {
+                const Array& xx = xs[0];
+                const Array& ww = xs[1];
+                const Array& bb = xs[2];
+                return {Conv(xx, ww, bb, stride, pad, cover_all)};
+            },
+            {x, w, b},
+            {go},
+            {x_eps, w_eps, b_eps},
+            1e-6,
+            1e-3);
+}
+
+TEST_P(ConnectionTest, ConvCoverAllBackward) {
+    if (GetParam() == "cuda") {
+        // TODO(niboshi): Add CUDA implementation
+        return;
+    }
+    int64_t batch_size = 2;
+    int64_t in_channels = 3;
+    int64_t out_channels = 2;
+    Shape in_dims{10, 8};
+    StackVector<int64_t, kMaxNdim> kernel_size{2, 3};
+    StackVector<int64_t, kMaxNdim> stride{3, 2};
+    StackVector<int64_t, kMaxNdim> pad{2, 0};
+    bool cover_all = true;
+    Shape out_dims{5, 4};
+
+    Shape x_shape{batch_size, in_channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+    Shape w_shape{out_channels, in_channels};
+    std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(w_shape));
+    Shape b_shape{out_channels};
+    Shape out_shape{batch_size, out_channels};
+    std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
+
+    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1)).RequireGrad();
+    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f)).RequireGrad();
+    Array b = (*testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f})).RequireGrad();
+
+    Array go = testing::BuildArray(out_shape).WithLinearData(-0.1f, 0.1f).WithPadding(1);
+
+    Array x_eps = Full(x.shape(), 1e0f);
+    Array w_eps = Full(w.shape(), 1e0f);
+    Array b_eps = Full(b.shape(), 1e0f);
+
+    CheckBackward(
+            [&](const std::vector<Array>& xs) -> std::vector<Array> {
+                const Array& xx = xs[0];
+                const Array& ww = xs[1];
+                const Array& bb = xs[2];
+                return {Conv(xx, ww, bb, stride, pad, cover_all)};
+            },
+            {x, w, b},
+            {go},
+            {x_eps, w_eps, b_eps},
+            1e-6,
+            1e-3);
 }
 
 TEST_P(ConnectionTest, ConvDoubleBackward) {
-    // TODO(niboshi): Implement
+    if (GetParam() == "cuda") {
+        // TODO(niboshi): Add CUDA implementation
+        return;
+    }
+    int64_t batch_size = 2;
+    int64_t in_channels = 3;
+    int64_t out_channels = 2;
+    Shape in_dims{10, 7};
+    StackVector<int64_t, kMaxNdim> kernel_size{2, 3};
+    StackVector<int64_t, kMaxNdim> stride{3, 2};
+    StackVector<int64_t, kMaxNdim> pad{2, 0};
+    bool cover_all = false;
+    Shape out_dims{5, 3};
+
+    Shape x_shape{batch_size, in_channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+    Shape w_shape{out_channels, in_channels};
+    std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(w_shape));
+    Shape b_shape{out_channels};
+    Shape out_shape{batch_size, out_channels};
+    std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
+
+    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1)).RequireGrad();
+    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f)).RequireGrad();
+    Array b = (*testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f})).RequireGrad();
+
+    Array go = (*testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1)).RequireGrad();
+    Array ggx = testing::BuildArray(x_shape).WithLinearData(0.4f, -0.2f).WithPadding(1);
+    Array ggw = testing::BuildArray(w_shape).WithLinearData(-0.5f, 0.3f).WithPadding(1);
+    Array ggb = testing::BuildArray(b_shape).WithLinearData(-0.6f, -0.4f).WithPadding(1);
+
+    Array x_eps = Full(x.shape(), 1e3f);
+    Array w_eps = Full(w.shape(), 1e3f);
+    Array b_eps = Full(b.shape(), 1e3f);
+    Array go_eps = Full(out_shape, 1e3f);
+
+    CheckDoubleBackwardComputation(
+            [&](const std::vector<Array>& xs) -> std::vector<Array> {
+                const Array& xx = xs[0];
+                const Array& ww = xs[1];
+                const Array& bb = xs[2];
+                Array y = Conv(xx, ww, bb, stride, pad, cover_all);
+                return {y * y};
+            },
+            {x, w, b},
+            {go},
+            {ggx, ggw, ggb},
+            {x_eps, w_eps, b_eps, go_eps},
+            1e-2,
+            1e-3);
+}
+
+TEST_P(ConnectionTest, ConvCoverAllDoubleBackward) {
+    if (GetParam() == "cuda") {
+        // TODO(niboshi): Add CUDA implementation
+        return;
+    }
+    int64_t batch_size = 2;
+    int64_t in_channels = 3;
+    int64_t out_channels = 2;
+    Shape in_dims{10, 8};
+    StackVector<int64_t, kMaxNdim> kernel_size{2, 3};
+    StackVector<int64_t, kMaxNdim> stride{3, 2};
+    StackVector<int64_t, kMaxNdim> pad{2, 0};
+    bool cover_all = true;
+    Shape out_dims{5, 4};
+
+    Shape x_shape{batch_size, in_channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+    Shape w_shape{out_channels, in_channels};
+    std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(w_shape));
+    Shape b_shape{out_channels};
+    Shape out_shape{batch_size, out_channels};
+    std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
+
+    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1)).RequireGrad();
+    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f)).RequireGrad();
+    Array b = (*testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f})).RequireGrad();
+
+    Array go = (*testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1)).RequireGrad();
+    Array ggx = testing::BuildArray(x_shape).WithLinearData(0.4f, -0.2f).WithPadding(1);
+    Array ggw = testing::BuildArray(w_shape).WithLinearData(-0.5f, 0.3f).WithPadding(1);
+    Array ggb = testing::BuildArray(b_shape).WithLinearData(-0.6f, -0.4f).WithPadding(1);
+
+    Array x_eps = Full(x.shape(), 1e3f);
+    Array w_eps = Full(w.shape(), 1e3f);
+    Array b_eps = Full(b.shape(), 1e3f);
+    Array go_eps = Full(out_shape, 1e3f);
+
+    CheckDoubleBackwardComputation(
+            [&](const std::vector<Array>& xs) -> std::vector<Array> {
+                const Array& xx = xs[0];
+                const Array& ww = xs[1];
+                const Array& bb = xs[2];
+                Array y = Conv(xx, ww, bb, stride, pad, cover_all);
+                return {y * y};
+            },
+            {x, w, b},
+            {go},
+            {ggx, ggw, ggb},
+            {x_eps, w_eps, b_eps, go_eps},
+            1e-2,
+            1e-3);
 }
 
 TEST_P(ConnectionTest, ConvTranspose) {
@@ -282,11 +476,101 @@ TEST_P(ConnectionTest, ConvTransposeOutSize) {
 }
 
 TEST_P(ConnectionTest, ConvTransposeBackward) {
-    // TODO(hvy): Implement
+    if (GetParam() == "cuda") {
+        // TODO(niboshi): Add CUDA implementation
+        return;
+    }
+    int64_t batch_size = 2;
+    int64_t in_channels = 3;
+    int64_t out_channels = 2;
+    Shape in_dims{5, 3};
+    StackVector<int64_t, kMaxNdim> kernel_size{2, 3};
+    StackVector<int64_t, kMaxNdim> stride{3, 2};
+    StackVector<int64_t, kMaxNdim> pad{2, 0};
+    Shape out_dims{10, 7};
+
+    Shape x_shape{batch_size, in_channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+    Shape w_shape{in_channels, out_channels};
+    std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(w_shape));
+    Shape b_shape{out_channels};
+    Shape out_shape{batch_size, out_channels};
+    std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
+
+    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
+    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
+    Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
+
+    Array go = testing::BuildArray(out_shape).WithLinearData(-0.1f, 0.1f).WithPadding(1);
+
+    Array x_eps = Full(x.shape(), 1e0f);
+    Array w_eps = Full(w.shape(), 1e0f);
+    Array b_eps = Full(b.shape(), 1e0f);
+
+    CheckBackward(
+            [&](const std::vector<Array>& xs) -> std::vector<Array> {
+                const Array& xx = xs[0];
+                const Array& ww = xs[1];
+                const Array& bb = xs[2];
+                return {ConvTranspose(xx, ww, bb, stride, pad, out_dims)};
+            },
+            {x, w, b},
+            {go},
+            {x_eps, w_eps, b_eps},
+            1e-6,
+            1e-3);
 }
 
 TEST_P(ConnectionTest, ConvTransposeDoubleBackward) {
-    // TODO(hvy): Implement
+    if (GetParam() == "cuda") {
+        // TODO(niboshi): Add CUDA implementation
+        return;
+    }
+    int64_t batch_size = 2;
+    int64_t in_channels = 3;
+    int64_t out_channels = 2;
+    Shape in_dims{5, 3};
+    StackVector<int64_t, kMaxNdim> kernel_size{2, 3};
+    StackVector<int64_t, kMaxNdim> stride{3, 2};
+    StackVector<int64_t, kMaxNdim> pad{2, 0};
+    Shape out_dims{10, 7};
+
+    Shape x_shape{batch_size, in_channels};
+    std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
+    Shape w_shape{in_channels, out_channels};
+    std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(w_shape));
+    Shape b_shape{out_channels};
+    Shape out_shape{batch_size, out_channels};
+    std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
+
+    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1)).RequireGrad();
+    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f)).RequireGrad();
+    Array b = (*testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f})).RequireGrad();
+
+    Array go = (*testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1)).RequireGrad();
+    Array ggx = testing::BuildArray(x_shape).WithLinearData(0.4f, -0.2f).WithPadding(1);
+    Array ggw = testing::BuildArray(w_shape).WithLinearData(-0.5f, 0.3f).WithPadding(1);
+    Array ggb = testing::BuildArray(b_shape).WithLinearData(-0.6f, -0.4f).WithPadding(1);
+
+    Array x_eps = Full(x.shape(), 1e3f);
+    Array w_eps = Full(w.shape(), 1e3f);
+    Array b_eps = Full(b.shape(), 1e3f);
+    Array go_eps = Full(out_shape, 1e3f);
+
+    CheckDoubleBackwardComputation(
+            [&](const std::vector<Array>& xs) -> std::vector<Array> {
+                const Array& xx = xs[0];
+                const Array& ww = xs[1];
+                const Array& bb = xs[2];
+                Array y = ConvTranspose(xx, ww, bb, stride, pad, out_dims);
+                return {y * y};
+            },
+            {x, w, b},
+            {go},
+            {ggx, ggw, ggb},
+            {x_eps, w_eps, b_eps, go_eps},
+            1e-2,
+            1e-3);
 }
 
 INSTANTIATE_TEST_CASE_P(

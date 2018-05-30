@@ -696,24 +696,24 @@ Array NativeDevice::Conv(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    int8_t ndim = w.ndim() - 2;
+    int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
 
     // Compute the kernel size from the weight array.
     StackVector<int64_t, kMaxNdim> kernel_size;
     std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(kernel_size));
 
     // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-    Array col = Im2Col(x, kernel_size, stride, pad, cover_all);
+    Array col = Im2Col(x.AsConstant(), kernel_size, stride, pad, cover_all);
 
     // Compute the tensor dot product of col and w, reducing (channel, k_1, k_2, ..., k_n).
     Axes axes;
     axes.resize(ndim + 1);
     std::iota(axes.begin(), axes.end(), 1);
-    Array y = TensorDot(col, w, axes, axes);  // (batch_size, out_1, out_2, ..., out_n, out_channel)
+    Array y = TensorDot(col, w.AsConstant(), axes, axes);  // (batch_size, out_1, out_2, ..., out_n, out_channel)
 
     // Add bias, if given.
     if (b.has_value()) {
-        y += *b;
+        y += b->AsConstant();
     }
 
     // Move the out channel axis to the second
@@ -725,6 +725,33 @@ Array NativeDevice::Conv(
     Array out = y.Transpose(roll_axes);
 
     return out;
+}
+
+Array NativeDevice::ConvGradWeight(
+        Dtype w_dtype,
+        const Shape& w_shape,
+        const Array& x,
+        const Array& gy,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    assert(x.ndim() == w_shape.ndim());
+    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+
+    // Compute the kernel size
+    StackVector<int64_t, kMaxNdim> kernel_size{w_shape.begin() + 2, w_shape.end()};
+
+    // Im2Col
+    Array col = Im2Col(x.AsConstant(), kernel_size, stride, pad, cover_all);
+
+    // TensorDot
+    Axes out_axes{0};
+    Axes col_axes{0};
+    for (int8_t i = 0; i < ndim; ++i) {
+        out_axes.emplace_back(int64_t{2 + i});
+        col_axes.emplace_back(int64_t{2 + ndim + i});
+    }
+    return TensorDot(gy.AsConstant(), col, out_axes, col_axes).AsType(w_dtype, false);
 }
 
 namespace {
@@ -790,28 +817,19 @@ Array NativeDevice::ConvTranspose(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) {
-    Array col = TensorDot(w, x, {0}, {1});  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
+        const StackVector<int64_t, kMaxNdim>& out_size) {
+    Array col = TensorDot(w.AsConstant(), x.AsConstant(), {0}, {1});  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
     col = RollAxis(col, x.ndim() - 1);  // batch axis is rolled to the top
 
-    StackVector<int64_t, kMaxNdim> out_size_value;
-    if (out_size.has_value()) {
-        out_size_value = *out_size;
-    } else {
-        for (size_t i = 0; i < stride.size(); ++i) {
-            out_size_value.emplace_back(internal::GetConvTransposeOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i]));
-        }
-    }
-
-    Array y = Col2Im(col, stride, pad, out_size_value);  // shape: batch_size, out_channel, out_size...
+    Array y = Col2Im(col, stride, pad, out_size);  // shape: batch_size, out_channel, out_size...
 
     // Add bias, if given.
     if (b.has_value()) {
         std::vector<ArrayIndex> slice{NewAxis{}, Slice{}};
-        for (size_t i = 0; i < out_size_value.size(); ++i) {
+        for (size_t i = 0; i < out_size.size(); ++i) {
             slice.emplace_back(NewAxis{});
         }
-        y += b->At(slice);
+        y += b->AsConstant().At(slice);
     }
 
     return y;
