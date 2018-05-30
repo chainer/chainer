@@ -10,7 +10,6 @@
 #include "xchainer/strides.h"
 
 namespace xchainer {
-
 namespace internal {
 
 bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size) {
@@ -30,6 +29,15 @@ bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size)
         item_size *= *shape_it;
     }
     return true;
+}
+
+bool IsValidReductionShape(const Shape& in_shape, const Axes& axes, const Shape& out_shape, bool allow_keepdims) {
+    return out_shape.ndim() == in_shape.ndim() - static_cast<int64_t>(axes.size()) ||
+           (allow_keepdims && out_shape.ndim() == in_shape.ndim());
+}
+
+int64_t CountItemsAlongAxes(const Shape& shape, const Axes& axes) {
+    return std::accumulate(axes.begin(), axes.end(), int64_t{1}, [&shape](int64_t count, int8_t i) { return count * shape[i]; });
 }
 
 Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
@@ -59,9 +67,44 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
     return new_shape;
 }
 
-bool IsValidReductionShape(const Shape& in_shape, const Axes& axis, const Shape& out_shape, bool allow_keepdims) {
-    return out_shape.ndim() == in_shape.ndim() - static_cast<int64_t>(axis.size()) ||
-           (allow_keepdims && out_shape.ndim() == in_shape.ndim());
+Shape ReduceShape(const Shape& shape, const Axes& axes, bool keepdims) {
+    assert(shape.ndim() >= axes.ndim());
+    Shape reduced;
+    int8_t i_axis = 0;
+    for (int8_t i = 0; i < shape.ndim(); ++i) {
+        if (i_axis < axes.ndim() && i == axes[i_axis]) {
+            ++i_axis;
+            if (keepdims) {
+                reduced.emplace_back(int64_t{1});
+            }
+        } else {
+            reduced.emplace_back(shape[i]);
+        }
+    }
+    assert(i_axis == axes.ndim());
+    assert(reduced.ndim() == shape.ndim() - static_cast<int8_t>(!keepdims) * axes.ndim());
+    return reduced;
+}
+
+Shape ExpandShape(const Shape& shape, const Axes& axes) {
+    assert(shape.ndim() >= axes.ndim());
+    Shape expanded;
+    int8_t i_axis = 0;
+    int8_t i_shape = 0;
+    int8_t reduced_ndim = shape.ndim() + axes.ndim();
+    for (int8_t i = 0; i < reduced_ndim; ++i) {
+        if (i_axis < axes.ndim() && i == axes[i_axis]) {
+            expanded.emplace_back(int64_t{1});
+            ++i_axis;
+        } else {
+            expanded.emplace_back(shape[i_shape]);
+            ++i_shape;
+        }
+    }
+    assert(i_axis == axes.ndim());
+    assert(i_shape == shape.ndim());
+    assert(expanded.ndim() == shape.ndim() + axes.ndim());
+    return expanded;
 }
 
 Shape TransposeShape(const Shape& shape, const Axes& axes) {

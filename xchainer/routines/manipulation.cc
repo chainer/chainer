@@ -259,6 +259,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
         throw DimensionError{"Cannot broadcast to smaller dimensions"};
     }
 
+    // Compute the new set of strides after broadcastining.
     Strides strides;
     strides.resize(shape.ndim());
     int8_t i_in = in_shape.ndim() - 1;
@@ -269,15 +270,14 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
         nonstd::optional<int64_t> nonbroadcast_stride{};
         if (i_in >= 0) {
             int64_t in_dim = in_shape[i_in];
-            int64_t in_stride = in_strides[i_in];
-            --i_in;
             if (in_dim == 1) {
                 // do nothing; broadcast
             } else if (in_dim == out_dim) {
-                nonbroadcast_stride = in_stride;
+                nonbroadcast_stride = in_strides[i_in];
             } else {
                 throw DimensionError{"Invalid broadcast from ", in_shape, " to ", shape};
             }
+            --i_in;
         } else {
             // do nothing; broadcast
         }
@@ -290,7 +290,9 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
             strides[i_out] = int64_t{0};
         }
     }
-    assert(strides.size() == shape.size());
+    assert(i_in == -1);
+    assert(strides.ndim() == shape.ndim());
+
     Array out = internal::MakeArray(shape, strides, array.dtype(), array.device(), array.data(), array.offset());
 
     auto backward_function = [in_shape](const Array& gout, const std::vector<GraphId>&) {

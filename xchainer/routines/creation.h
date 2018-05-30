@@ -8,6 +8,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"
+#include "xchainer/axes.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
@@ -29,6 +30,9 @@ Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_
 
 // Creates an empty array with specified strides.
 Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device = GetDefaultDevice());
+
+// Creates an empty array with reduced shape.
+Array EmptyReduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepdims, Device& device = GetDefaultDevice());
 
 }  // namespace internal
 

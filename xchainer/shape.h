@@ -80,9 +80,22 @@ namespace internal {
 
 bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size);
 
+// Returns true if a reduction can take place under the given conditions, only considering the number of dimensions.
+// Otherwise, returns false.
+//
+// TODO(hvy): Check the dimension lengths too and reconsider the interface. E.g. return void and assert inside the function if only used for
+// assertions.
+bool IsValidReductionShape(const Shape& in_shape, const Axes& axes, const Shape& out_shape, bool allow_keepdims);
+
+int64_t CountItemsAlongAxes(const Shape& shape, const Axes& axes);
+
 Shape BroadcastShapes(const Shape& shape0, const Shape& shape1);
 
-bool IsValidReductionShape(const Shape& in_shape, const Axes& axis, const Shape& out_shape, bool allow_keepdims);
+// Returns a shape where axes are reduced.
+Shape ReduceShape(const Shape& shape, const Axes& axes, bool keepdims);
+
+// Returns a shape with additional axes, with length 1.
+Shape ExpandShape(const Shape& shape, const Axes& axes);
 
 Shape TransposeShape(const Shape& shape, const Axes& axes);
 
