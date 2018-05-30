@@ -80,6 +80,8 @@ namespace internal {
 
 bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size);
 
+// Returns true if a reduction can take place under the given conditions, only considering the number of dimensions.
+// Otherwise, returns false.
 bool IsValidReductionShape(const Shape& in_shape, const Axes& axes, const Shape& out_shape, bool allow_keepdims);
 
 int64_t CountItemsAlongAxes(const Shape& shape, const Axes& axes);
