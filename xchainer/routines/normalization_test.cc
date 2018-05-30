@@ -41,6 +41,7 @@ TEST_P(NormalizationTest, BatchNormalization) {
     Scalar eps{2e-5f};
     Scalar decay{0.9f};
 
+    // Input data were generated randomly.
     Array a = testing::BuildArray(x_shape).WithData<T>({0.6742742, 0.8028925,  0.28383577, 0.8412501,  0.8006508,  0.32548666,
                                                         0.4981232, 0.2899665,  0.8781784,  0.09848342, 0.56066823, 0.46877825,
                                                         0.5734097, 0.46068498, 0.02365979, 0.40318793, 0.61877257, 0.9073324,
@@ -86,6 +87,7 @@ TEST_P(NormalizationTest, BatchNormalizationWithAxis) {
     Scalar eps{1e-5f};
     Scalar decay{0.8f};
 
+    // Input data were generated randomly.
     Array a = testing::BuildArray(x_shape).WithData<T>({0.03225313, 0.8745096,  0.97541857, 0.73366016, 0.10335114, 0.89237994,
                                                         0.25917393, 0.7404295,  0.62782156, 0.27429798, 0.20574076, 0.72369,
                                                         0.3420079,  0.57100123, 0.8667755,  0.02320529, 0.32140592, 0.15076979,
