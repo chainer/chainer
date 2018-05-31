@@ -9,19 +9,18 @@ training loop that manually computes the loss of minibatches and
 applies an optimizer to update the model.
 """
 from __future__ import print_function
-import sys # fixme: remove after debug.
 import argparse
 import copy
 import numpy as np
 import random
 
 import chainer
-import chainer.functions as F
-import chainer.links as L
 from chainer import configuration
 from chainer.dataset import convert
+import chainer.functions as F
 from chainer.functions.loss import softmax_cross_entropy
 from chainer.graph_optimizations.static_graph import static_graph
+import chainer.links as L
 from chainer import serializers
 
 
@@ -43,7 +42,6 @@ class RNNForLMSlice(chainer.Chain):
         self.l1.reset_state()
         self.l2.reset_state()
 
-
     def __call__(self, x):
         h0 = self.embed(x)
         h1 = self.l1(F.dropout(h0))
@@ -51,26 +49,29 @@ class RNNForLMSlice(chainer.Chain):
         y = self.l3(F.dropout(h2))
         return y
 
+
 class RNNForLMUnrolled(chainer.Chain):
     def __init__(self, n_vocab, n_units):
         super(RNNForLMUnrolled, self).__init__()
         with self.init_scope():
             self.rnn = RNNForLMSlice(n_vocab, n_units)
 
-    #@static_graph(enable_double_backprop=True, verbosity_level=2)
-    @static_graph(enable_double_backprop=False, verbosity_level=1, force_test_define_by_run=True)
+    @static_graph(enable_double_backprop=False, verbosity_level=1,
+                  force_test_define_by_run=True)
     def __call__(self, words):
-        """
+        """Perform a forward pass on the supplied list of words.
 
-        words_labels (list of tuples of word-label pairs)
+        The RNN is unrolled for a number of time slices equal to the
+        length of the supplied word sequence.
 
-        fixme
-        :param xs:
-        :return:
+        Args:
+            words_labels (list of Variable): The list of input words to the
+                unrolled neural network.
+
+        Returns the corresponding lest of output variables of the same
+        length as the input sequence.
         """
-        #assert isinstance(words_labels, list) #fixme: breaks static_graph
         outputs = []
-        losses = []
         for ind in range(len(words)):
             word = words[ind]
             y = self.rnn(word)
@@ -197,20 +198,14 @@ def main():
         data_count = 0
         words = []
         labels = []
-        lossfun=softmax_cross_entropy.softmax_cross_entropy
+        lossfun = softmax_cross_entropy.softmax_cross_entropy
         with configuration.using_config('train', False):
             for batch in copy.copy(iter):
-                #x, t = convert.concat_examples(batch, args.gpu)
-                #loss = evaluator(x, t)
                 word, label = convert.concat_examples(batch, args.gpu)
                 words.append(word)
                 labels.append(label)
-
-
-                #sum_perp += loss.data
                 data_count += 1
             outputs = evaluator(words)
-
 
             for ind in range(len(outputs)):
                 y = outputs[ind]
@@ -236,10 +231,7 @@ def main():
 
     # Prepare an RNNLM model
     model = RNNForLMUnrolled(n_vocab, args.unit)
-    lossfun=softmax_cross_entropy.softmax_cross_entropy
-    #model = L.Classifier(rnn)
-    #lossfun=softmax_cross_entropy.softmax_cross_entropy
-    #model.compute_accuracy = False  # we only want the perplexity
+    lossfun = softmax_cross_entropy.softmax_cross_entropy
     if args.gpu >= 0:
         # Make the specified GPU current
         chainer.cuda.get_device_from_id(args.gpu).use()
@@ -266,12 +258,9 @@ def main():
             # Concatenate the word IDs to matrices and send them to the device
             # self.converter does this job
             # (it is chainer.dataset.concat_examples by default)
-            #x, t = convert.concat_examples(batch, args.gpu)
             word, label = convert.concat_examples(batch, args.gpu)
             words.append(word)
             labels.append(label)
-            # Compute the loss at this time step and accumulate it
-            #loss += optimizer.target(chainer.Variable(x), chainer.Variable(t))
             count += 1
 
         outputs = model(words)
@@ -281,15 +270,9 @@ def main():
             y = outputs[ind]
             label = labels[ind]
             loss += lossfun(y, label)
-        #losses = model(inputs)
-        #print('loss: ', loss.data)
-
-        #for x in losses:
-        #    loss += x
 
         sum_perp += loss.data
         optimizer.target.cleargrads()  # Clear the parameter gradients
-        #print('A: enable_backprop: ', chainer.config.enable_backprop)
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
         optimizer.update()  # Update the parameters
