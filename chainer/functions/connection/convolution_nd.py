@@ -46,10 +46,10 @@ class ConvolutionND(function_node.FunctionNode):
 
     def _use_cudnn(self, x, W):
         if cuda._cudnn_version < 6000 and any(d != 1 for d in self.dilate):
-            # cuDNN < 6.0 does not support dilated conovlutions
+            # cuDNN < 6.0 does not support dilated convolutions
             return False
         if cuda._cudnn_version < 7000 and 1 < self.groups:
-            # cuDNN < 7.0 does not support grouped conovlutions
+            # cuDNN < 7.0 does not support grouped convolutions
             return False
         return (
             chainer.should_use_cudnn('>=auto')
@@ -197,10 +197,10 @@ class ConvolutionNDGradW(function_node.FunctionNode):
 
     def _use_cudnn(self, x, gy):
         if cuda._cudnn_version < 6000 and any(d != 1 for d in self.dilate):
-            # cuDNN < 6.0 does not support dilated conovlutions
+            # cuDNN < 6.0 does not support dilated convolutions
             return False
         if cuda._cudnn_version < 7000 and 1 < self.groups:
-            # cuDNN < 7.0 does not support grouped conovlutions
+            # cuDNN < 7.0 does not support grouped convolutions
             return False
         return (
             chainer.should_use_cudnn('>=auto')
