@@ -138,8 +138,7 @@ class ParallelUpdater(standard_updater.StandardUpdater):
             model.cleargrads()
 
         for loss in losses:
-            with cuda.get_device_from_array(loss.array):
-                loss.backward(loss_scale=self.loss_scale)
+            loss.backward(loss_scale=self.loss_scale)
 
         for model in six.itervalues(models_others):
             model_main.addgrads(model)
