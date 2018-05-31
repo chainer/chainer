@@ -105,7 +105,9 @@ def test_dummy_ndarray(device_spec, shape, dtype, pattern, padding):
     (numpy, (2, 3), 'int32', (2, 3,), (56, 16)),
     (numpy, (2, 3), 'int32', 0, (12, 4)),
     (numpy, (2, 3), 'int32', 1, (28, 8)),
-    (numpy, (2, 3), 'int32', None, (28, 8)),
+    (numpy, (2, 3), 'int32', False, (12, 4)),
+    (numpy, (2, 3), 'int32', True, (28, 8)),
+    (numpy, (2, 3), 'int32', None, (12, 4)),  # TODO(niboshi): Change to (28, 8) after making padding=True the default behavior
     (numpy, (2, 3), 'int16', (2, 3), (28, 8)),
     (xchainer, (2, 3), 'int32', (2, 3), (56, 16)),
 ])
