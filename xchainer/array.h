@@ -192,6 +192,22 @@ public:
 
     bool IsGradRequired(const GraphId& graph_id = kDefaultGraphId) const { return internal::HasArrayNode(*this, graph_id); }
 
+    // Returns whether the array is constant with regard to any graph.
+    bool IsConstant() const { return body_->nodes_.empty(); }
+
+    // Returns whether the array is constant with regard to specified graph.
+    bool IsConstant(const GraphId& graph_id) const { return !IsGradRequired(graph_id); }
+
+    // Returns whether the array is constant with regard to all of the specified graphs.
+    bool IsConstant(gsl::span<const GraphId> graph_ids) const {
+        for (const GraphId& gid : graph_ids) {
+            if (!IsConstant(gid)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // Creates a new ArrayNode to store the gradient
     const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const {
         internal::CreateArrayNode(*this, graph_id);
