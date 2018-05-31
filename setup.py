@@ -135,6 +135,7 @@ setup(
               'chainer.backends',
               'chainer.dataset',
               'chainer.datasets',
+              'chainer.distributions',
               'chainer.exporters',
               'chainer.functions',
               'chainer.functions.activation',
