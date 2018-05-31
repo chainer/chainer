@@ -18,10 +18,8 @@ def test_total_size(expected, shape):
     assert expected == array_utils.total_size(shape)
 
 
-@pytest.mark.parametrize('device_spec', [
-    'numpy',  # Special value representing xp=numpy
-    None, 'native', 'native:0', 'cuda:0',
-])
+@pytest.mark.parametrize('xp', [numpy, xchainer])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('shape', [
     (),
     (0,),
@@ -33,12 +31,8 @@ def test_total_size(expected, shape):
 @pytest.mark.parametrize('dtype', xchainer.testing.all_dtypes)
 @pytest.mark.parametrize('pattern', [1, 2])
 @pytest.mark.parametrize('padding', [True, False])
-def test_dummy_ndarray(device_spec, shape, dtype, pattern, padding):
-    if device_spec == 'numpy':
-        xp = numpy
-    else:
-        xp = xchainer
-    a = array_utils.create_dummy_ndarray(xp, shape, dtype, device=device_spec, pattern=pattern, padding=padding)
+def test_dummy_ndarray(xp, device, shape, dtype, pattern, padding):
+    a = array_utils.create_dummy_ndarray(xp, shape, dtype, device=device, pattern=pattern, padding=padding)
 
     assert isinstance(a, xp.ndarray)
     assert a.dtype == xp.dtype(dtype)
@@ -67,12 +61,18 @@ def test_dummy_ndarray(device_spec, shape, dtype, pattern, padding):
 
     # Check strides
     if xp is xchainer:
-        assert a.device is xchainer.get_device(device_spec)
+        assert a.device is device
     if not padding:
         if xp is xchainer:
             assert a.is_contiguous
         else:
             assert a.flags.c_contiguous
+
+
+@pytest.mark.parametrize('device_spec', [None, 'native', 'native:0'])
+def test_dummy_ndarray_device_spec(device_spec):
+    a = array_utils.create_dummy_ndarray(xchainer, (2, 3), 'float32', device=device_spec)
+    assert a.device is xchainer.get_device(device_spec)
 
 
 @pytest.mark.parametrize('xp', [numpy, xchainer])
@@ -123,15 +123,22 @@ def test_dummy_ndarray_padding(xp, shape, dtype, padding, expected_strides):
     assert a.strides == expected_strides
 
 
-@pytest.mark.parametrize('device_spec', [
-    None, 'native', 'native:0', 'cuda:0',
-])
 @pytest.mark.parametrize('shape', [
     (),
     (0,),
     (2, 3),
 ])
-def test_check_device(shape, device_spec):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_check_device(shape, device):
+    dtype = 'float32'
+    a = xchainer.empty(shape, dtype, device=device)
+
+    array_utils.check_device(a, device.name)
+    array_utils.check_device(a, device)
+
+
+@pytest.mark.parametrize('device_spec', [None, 'native', 'native:0'])
+def test_check_device_device_spec(shape, device_spec):
     dtype = 'float32'
     a = xchainer.empty(shape, dtype, device=device_spec)
     device = xchainer.get_device(device_spec)
@@ -140,18 +147,18 @@ def test_check_device(shape, device_spec):
     array_utils.check_device(a, device)
 
 
-@pytest.mark.parametrize('device_spec1,device_spec2', [
-    ('native', 'cuda'),
-    ('native:0', 'native:1'),
-])
+
+@pytest.mark.parametrize_device(['native:0'])
+@pytest.mark.parametrize('compare_device_spec', [None, 'native:1', 'cuda:0'])
 @pytest.mark.parametrize('shape', [
     (),
     (0,),
     (2, 3),
 ])
-def test_check_device_fail(shape, device_spec1, device_spec2):
+def test_check_device_fail(shape, device, compare_device_spec):
     dtype = 'float32'
-    a = xchainer.empty(shape, dtype, device=device_spec1)
+    a = xchainer.empty(shape, dtype, device=device)
 
-    with pytest.raises(AssertionError):
-        array_utils.check_device(a, device_spec2)
+    with xchainer.device_scope('native:1'):
+        with pytest.raises(AssertionError):
+            array_utils.check_device(a, compare_device_spec)
