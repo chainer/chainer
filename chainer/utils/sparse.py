@@ -16,6 +16,13 @@ class CooMatrix(object):
         shape (tuple of int): The shape of the matrix in dense format.
         requires_grad (bool): If ``True``, gradient of this sparse matrix will
             be computed in back-propagation.
+        row_major (bool): If ``True``, the matrix is assumed to be sorted in
+            row-major format, in other words, the row indices are sorted.
+            If ``False``, the matrix is assumed to be sorted in column-major
+            format, in other words, the column indices are sorted. If ``None``,
+            the matrix is not assumed to be sorted in any format. The default
+            is ``None``. This information is used in some functions like
+            sparse_matmul as a hint to improve performance.
 
     .. seealso::
         See :func:`~chainer.utils.to_coo` for how to construct a COO matrix
@@ -23,7 +30,8 @@ class CooMatrix(object):
 
     """
 
-    def __init__(self, data, row, col, shape, requires_grad=False):
+    def __init__(self, data, row, col, shape, requires_grad=False,
+                 row_major=None,):
         if not (1 <= data.ndim <= 2):
             raise ValueError('ndim of data must be 1 or 2.')
         if not (data.ndim == row.ndim == col.ndim):
@@ -36,6 +44,7 @@ class CooMatrix(object):
         self.row = row
         self.col = col
         self.shape = shape  # (row, col)
+        self.row_major = row_major
 
     def to_dense(self):
         """Returns a dense matrix format of this sparse matrix."""
@@ -106,7 +115,7 @@ def to_coo(x, ldnz=None, requires_grad=False):
         row[:nnz] = xp.array(_row).astype(xp.int32)
         col[:nnz] = xp.array(_col).astype(xp.int32)
         shape = x.shape
-        return CooMatrix(data, row, col, shape, requires_grad)
+        return CooMatrix(data, row, col, shape, requires_grad=requires_grad)
     elif x.ndim == 3:
         # first axis is batch axis
         nb = x.shape[0]
@@ -123,6 +132,6 @@ def to_coo(x, ldnz=None, requires_grad=False):
             row[i] = coo.row
             col[i] = coo.col
         shape = x.shape[1:]
-        return CooMatrix(data, row, col, shape, requires_grad)
+        return CooMatrix(data, row, col, shape, requires_grad=requires_grad)
     else:
         raise ValueError('ndim of x must be 2 or 3.')

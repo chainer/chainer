@@ -13,8 +13,8 @@ except ImportError:
     _scipy_available = False
 
 
-def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, dn, transa, transb, transc,
-                dtype=None):
+def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, sp_row_major,
+                dn, transa, transb, transc, dtype=None):
     if dtype is None:
         dtype = numpy.result_type(sp_data.dtype, dn.dtype)
 
@@ -23,10 +23,14 @@ def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, dn, transa, transb, transc,
         A_row = sp_col
         A_col = sp_row
         A_shape = (sp_shape[1], sp_shape[0])
+        A_row_major = sp_row_major
+        if sp_row_major is not None:
+            A_row_major = not sp_row_major
     else:
         A_row = sp_row
         A_col = sp_col
         A_shape = sp_shape
+        A_row_major = sp_row_major
     if transb:
         B = dn.swapaxes(-1, -2)
     else:
@@ -36,7 +40,8 @@ def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, dn, transa, transb, transc,
     if xp is numpy:
         C = _coo_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype)
     else:
-        C = _coo_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype)
+        C = _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_row_major,
+                            B, dtype)
 
     if transc:
         C = C.swapaxes(-1, -2)
@@ -71,7 +76,7 @@ def _coo_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype):
     return C
 
 
-def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype):
+def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_row_major, B, dtype):
     cupy_dtype = dtype
     if cupy_dtype == numpy.float16:
         cupy_dtype = numpy.float32
@@ -91,25 +96,51 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype):
         C = cuda.cupy.zeros((nb, _m, _n), dtype=cupy_dtype)
 
     nthreads = nb * ldnz * _n
-    _cupy_coo_matmul()(nb, _m, _n, _k, ldnz, A_data, A_row, A_col, B, C,
+    stride = 1
+    if A_row_major:
+        # The stride is set based on average number of non-zero elements for
+        # each row, so that GPU threads are less likely to atomic-add the same
+        # place at the same time. In other words, atomic collisions are expected
+        # to decrease.
+        stride = max(ldnz // _m, 1)
+        while _qcd(ldnz, stride) > 1:
+            stride = stride - 1
+    _cupy_coo_matmul()(nb, _m, _n, _k, ldnz, stride,
+                       A_data, A_row, A_col, B, C,
                        size=nthreads)
 
     return C.astype(dtype, copy=False)
 
 
+def _qcd(a, b):
+    if a < b:
+        a, b = b, a
+    if b <= 0:
+        return 1
+    while True:
+        a, b = b, a % b
+        if b == 0:
+            return a
+
+
 def _cupy_coo_matmul():
     return cuda.cupy.ElementwiseKernel(
-        'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, \
+        'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, int32 stride, \
          raw A A_data, raw T A_row, raw T A_col, \
          raw B _B, raw C _C',
         '',
         '''
         int i_n = (i % _n);
-        int i_A = (i / _n);
-        int i_b = (i / _n) / nnz;
-        if (i_b >= nb) {
+        int ii = i / _n;
+        if (ii >= nb * nnz) {
             continue;
         }
+        int i_A = ii % nnz;
+        int i_b = ii / nnz;
+        if (stride > 1) {
+            i_A = (i_A * stride) % nnz;
+        }
+        i_A += i_b * nnz;
         int i_k = A_col[i_A];
         if (i_k < 0) {
             continue;
@@ -132,7 +163,7 @@ def _cupy_coo_matmul():
 
 class CooMatMul(function_node.FunctionNode):
 
-    def __init__(self, sp_row, sp_col, sp_shape,
+    def __init__(self, sp_row, sp_col, sp_shape, sp_row_major=None,
                  transa=False, transb=False, transc=False, dtype=None):
         if sp_row.ndim != sp_col.ndim:
             raise ValueError('ndim of sp_row and sp_col must be the same.')
@@ -147,6 +178,7 @@ class CooMatMul(function_node.FunctionNode):
         self.sp_row = sp_row  # ((nb,) ldnz)
         self.sp_col = sp_col  # ((nb,) ldnz)
         self.sp_shape = sp_shape  # (_m, _k) when transa is False
+        self.sp_row_major = sp_row_major
         self.transa = transa
         self.transb = transb
         self.transc = transc
@@ -182,7 +214,8 @@ class CooMatMul(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         sp, dn = inputs
-        c = _coo_matmul(sp, self.sp_row, self.sp_col, self.sp_shape, dn,
+        c = _coo_matmul(sp, self.sp_row, self.sp_col, self.sp_shape,
+                        self.sp_row_major, dn,
                         self.transa, self.transb, self.transc, self.dtype)
         return utils.force_array(c, self.dtype),
 
@@ -192,11 +225,13 @@ class CooMatMul(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             g_sp = CooMatMulGradSP(self.sp_row, self.sp_col, self.sp_shape,
+                                   self.sp_row_major,
                                    self.transc, not self.transb, self.transa,
                                    dtype=sp.dtype).apply((g_c, dn))[0]
             ret.append(g_sp)
         if 1 in indexes:
             g_dn = CooMatMul(self.sp_row, self.sp_col, self.sp_shape,
+                             self.sp_row_major,
                              not self.transa, self.transc, self.transb,
                              dtype=dn.dtype).apply((sp, g_c))[0]
             ret.append(g_dn)
@@ -316,7 +351,7 @@ def _cupy_coo_matmul_gradsp():
 
 class CooMatMulGradSP(function_node.FunctionNode):
 
-    def __init__(self, sp_row, sp_col, sp_shape,
+    def __init__(self, sp_row, sp_col, sp_shape, sp_row_major=None,
                  transa=False, transb=False, transc=False,
                  dtype=None):
         if sp_row.ndim != sp_col.ndim:
@@ -332,6 +367,7 @@ class CooMatMulGradSP(function_node.FunctionNode):
         self.sp_row = sp_row  # ((nb,) ldnz)
         self.sp_col = sp_col  # ((nb,) ldnz)
         self.sp_shape = sp_shape  # (_m, _n) when transc is False
+        self.sp_row_major = sp_row_major
         self.transa = transa
         self.transb = transb
         self.transc = transc
@@ -382,11 +418,13 @@ class CooMatMulGradSP(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             g_a = CooMatMul(self.sp_row, self.sp_col, self.sp_shape,
+                            self.sp_row_major,
                             self.transc, not self.transb, self.transa,
                             dtype=a.dtype).apply((g_sp, b))[0]
             ret.append(g_a)
         if 1 in indexes:
             g_b = CooMatMul(self.sp_row, self.sp_col, self.sp_shape,
+                            self.sp_row_major,
                             not self.transc, self.transa, not self.transb,
                             dtype=b.dtype).apply((g_sp, a))[0]
             ret.append(g_b)
@@ -419,13 +457,13 @@ def sparse_matmul(a, b, transa=False, transb=False):
     """
     if (isinstance(a, utils.CooMatrix) and
             isinstance(b, (chainer.Variable, numpy.ndarray, cuda.ndarray))):
-        return CooMatMul(a.row, a.col, a.shape,
+        return CooMatMul(a.row, a.col, a.shape, a.row_major,
                          transa=transa,
                          transb=transb,
                          transc=False).apply((a.data, b))[0]
     elif (isinstance(a, (chainer.Variable, numpy.ndarray, cuda.ndarray)) and
           isinstance(b, utils.CooMatrix)):
-        return CooMatMul(b.row, b.col, b.shape,
+        return CooMatMul(b.row, b.col, b.shape, b.row_major,
                          transa=not transb,
                          transb=not transa,
                          transc=True).apply((b.data, a))[0]
