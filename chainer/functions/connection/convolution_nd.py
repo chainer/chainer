@@ -45,9 +45,17 @@ class ConvolutionND(function_node.FunctionNode):
             )
 
     def _use_cudnn(self, x, W):
-        return (not self.cover_all and
-                chainer.should_use_cudnn('>=auto') and
-                self.ndim > 1 and x.dtype == W.dtype)
+        if cuda._cudnn_version < 6000 and any(d != 1 for d in self.dilate):
+            # cuDNN < 6.0 does not support dilated conovlutions
+            return False
+        if cuda._cudnn_version < 7000 and 1 < self.groups:
+            # cuDNN < 7.0 does not support grouped conovlutions
+            return False
+        return (
+            chainer.should_use_cudnn('>=auto')
+            and not self.cover_all
+            and x.dtype == W.dtype
+            and self.ndim > 1)
 
     def _forward_xp(self, x, W, b, xp):
         if 1 < self.groups:
@@ -188,6 +196,12 @@ class ConvolutionNDGradW(function_node.FunctionNode):
         self.W_dtype = W_node.dtype
 
     def _use_cudnn(self, x, gy):
+        if cuda._cudnn_version < 6000 and any(d != 1 for d in self.dilate):
+            # cuDNN < 6.0 does not support dilated conovlutions
+            return False
+        if cuda._cudnn_version < 7000 and 1 < self.groups:
+            # cuDNN < 7.0 does not support grouped conovlutions
+            return False
         return (
             chainer.should_use_cudnn('>=auto')
             and not self.cover_all
