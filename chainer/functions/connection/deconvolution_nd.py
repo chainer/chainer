@@ -60,6 +60,12 @@ class DeconvolutionND(function_node.FunctionNode):
             )
 
     def _use_cudnn(self, x, W):
+        if cuda._cudnn_version < 6000 and any(d != 1 for d in self.dilate):
+            # cuDNN < 6.0 does not support dilated conovlutions
+            return False
+        if cuda._cudnn_version < 7000 and 1 < self.groups:
+            # cuDNN < 7.0 does not support grouped conovlutions
+            return False
         return (
             chainer.should_use_cudnn('>=auto')
             and not self.cover_all
