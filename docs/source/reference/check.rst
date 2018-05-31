@@ -49,18 +49,39 @@ and :class:`cupy.ndarray`.
 
 Function testing utilities
 --------------------------
-Chainer provides some utilities for testing its functions.
+
+Utilities for testing functions.
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
    chainer.testing.unary_math_function_unittest
+
+Serialization testing utilities
+-------------------------------
+
+Utilities for testing serializable objects.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
    chainer.testing.save_and_load
    chainer.testing.save_and_load_hdf5
    chainer.testing.save_and_load_npz
    chainer.testing.get_trainer_with_mock_updater
 
+Trainer Extension Testing Utilities
+-----------------------------------
+
+Utilities for testing Trainer extensions.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.testing.get_trainer_with_mock_updater
 
 Repeat decorators
 -----------------
