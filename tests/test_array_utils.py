@@ -147,7 +147,6 @@ def test_check_device_device_spec(shape, device_spec):
     array_utils.check_device(a, device)
 
 
-
 @pytest.mark.parametrize_device(['native:0'])
 @pytest.mark.parametrize('compare_device_spec', [None, 'native:1', 'cuda:0'])
 @pytest.mark.parametrize('shape', [
