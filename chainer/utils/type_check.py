@@ -608,29 +608,20 @@ def prod(xs):
         return _prod(xs)
 
 
-def expect_broadcast_shapes(*shape_types, **kwargs):
-    """Checks if two shapes are broadcastable at first some axes.
+def expect_broadcast_shapes(*shape_types):
+    """Checks if shapes can be broadcasted together.
 
     Args:
         shapes_types: Type-checked shapes of the arrays to broadcast.
-        ignore_tail (int): Number of axes at the tail to ignore.
 
     """
-    ignore_tail, = argument.parse_kwargs(kwargs, ('ignore_tail', 0))
     shapes = [eval(s) for s in shape_types]
     error = None
     try:
         # simulate the shape calculation using zero-sized arrays
-        numpy.broadcast(*[
-            numpy.empty(s[:len(s) - ignore_tail] + (0,)) for s in shapes
-        ])
+        numpy.broadcast(*[numpy.empty(s + (0,)) for s in shapes])
     except ValueError:
-        if ignore_tail > 0:
-            msg = ('cannot broadcast inputs of the following shapes '
-                   'along all axes but the last {}:'.format(ignore_tail))
-        else:
-            msg = 'cannot broadcast inputs of the following shapes:'
-        msgs = [msg]
+        msgs = ['cannot broadcast inputs of the following shapes:']
         for shape_type, shape in six.moves.zip(shape_types, shapes):
             msgs.append('{} = {}'.format(shape_type, shape))
         error = InvalidType('', '', msg='\n'.join(msgs))

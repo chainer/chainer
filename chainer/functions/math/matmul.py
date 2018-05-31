@@ -105,7 +105,7 @@ class MatMul(function_node.FunctionNode):
                 a_type.shape[a_idx] == b_type.shape[b_idx],
             )
             type_check.expect_broadcast_shapes(
-                a_type.shape, b_type.shape, ignore_tail=2)
+                a_type.shape[:-2], b_type.shape[:-2])
 
     def forward(self, x):
         self.retain_inputs((0, 1))
