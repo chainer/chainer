@@ -121,7 +121,9 @@ class ParallelUpdater(standard_updater.StandardUpdater):
             loss_func = self.loss_func or model
 
             with function.force_backprop_mode():
-                with cuda.get_device_from_id(self._devices[model_key]):
+                dev_id = self._devices[model_key]
+                dev_id = dev_id if 0 <= dev_id else None
+                with cuda.get_device_from_id(dev_id):
                     if isinstance(in_arrays, tuple):
                         loss = loss_func(*in_arrays)
                     elif isinstance(in_arrays, dict):
