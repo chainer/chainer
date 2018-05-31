@@ -1,5 +1,6 @@
 import collections
 import os
+import sys
 
 import numpy
 try:
@@ -744,13 +745,14 @@ def _transfer_resnet152(src, dst):
 
 
 def _make_npz(path_npz, path_caffemodel, model, n_layers):
-    print('Now loading caffemodel (usually it may take few minutes)')
+    sys.stderr.write(
+        'Now loading caffemodel (usually it may take few minutes)\n')
+    sys.stderr.flush()
     if not os.path.exists(path_caffemodel):
         raise IOError(
             'The pre-trained caffemodel does not exist. Please download it '
             'from \'https://github.com/KaimingHe/deep-residual-networks\', '
             'and place it on {}'.format(path_caffemodel))
-
     ResNetLayers.convert_caffemodel_to_npz(path_caffemodel, path_npz, n_layers)
     npz.load_npz(path_npz, model)
     return model
