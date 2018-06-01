@@ -108,7 +108,7 @@ def test_dummy_ndarray_device_spec(device_spec):
     ((2, 3), 'int32', 1, (28, 8)),
     ((2, 3), 'int32', False, (12, 4)),
     ((2, 3), 'int32', True, (28, 8)),
-    ((2, 3), 'int32', None, (12, 4)),  # TODO(niboshi): Change to (28, 8) after making padding=True the default behavior
+    ((2, 3), 'int32', None, (28, 8)),
     ((2, 3), 'int16', (2, 3), (28, 8)),
     ((2, 3, 4), 'int32', (7, 3, 5), (352, 108, 24)),
 ])
