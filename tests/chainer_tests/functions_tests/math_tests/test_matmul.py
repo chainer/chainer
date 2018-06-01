@@ -29,6 +29,20 @@ from chainer.utils import type_check
         {'x1_shape': (5,), 'x2_shape': (5,), 'gy_shape': (),
          'transa': False, 'transb': True},
 
+        # matrix-vector
+        {'x1_shape': (5,), 'x2_shape': (5, 2), 'gy_shape': (2,),
+         'transa': False, 'transb': False},
+        {'x1_shape': (5,), 'x2_shape': (5, 2), 'gy_shape': (2,),
+         'transa': True, 'transb': False},
+        {'x1_shape': (5,), 'x2_shape': (2, 5), 'gy_shape': (2,),
+         'transa': False, 'transb': True},
+        {'x1_shape': (2, 5), 'x2_shape': (5,), 'gy_shape': (2,),
+         'transa': False, 'transb': False},
+        {'x1_shape': (5, 2), 'x2_shape': (5,), 'gy_shape': (2,),
+         'transa': True, 'transb': False},
+        {'x1_shape': (2, 5), 'x2_shape': (5,), 'gy_shape': (2,),
+         'transa': False, 'transb': True},
+
         # batched matmul
         {'x1_shape': (6, 2, 5), 'x2_shape': (6, 5, 10), 'gy_shape': (6, 2, 10),
          'transa': False, 'transb': False},

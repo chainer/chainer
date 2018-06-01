@@ -90,9 +90,11 @@ class MatMul(function_node.FunctionNode):
         if a_ndim == 0 or b_ndim == 0:
             pass
         elif b_ndim == 1:
-            type_check.expect(a_type.shape[-1] == b_type.shape[0])
+            a_idx = -2 if self.transa and a_ndim > 1 else -1
+            type_check.expect(a_type.shape[a_idx] == b_type.shape[0])
         elif a_ndim == 1:
-            type_check.expect(a_type.shape[0] == b_type.shape[-2])
+            b_idx = -1 if self.transb and b_ndim > 1 else -2
+            type_check.expect(a_type.shape[0] == b_type.shape[b_idx])
         else:
             a_idx = _get_check_index(self.transa, False,
                                      row_idx=-2, col_idx=-1)
@@ -126,11 +128,15 @@ class MatMul(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             if is_b_vector:
-                gy_ex = gy if is_a_vector else functions.expand_dims(gy, -1)
-                ga = functions.cast(functions.cast(gy_ex, b.dtype) * b,
-                                    a.dtype)
+                u, v = functions.cast(gy, b.dtype), b
+                if not is_a_vector:
+                    if self.transa:
+                        u, v = v, u
+                    u = functions.expand_dims(u, -1)
+                    v = functions.expand_dims(v, -2) if v.ndim > 1 else v
+                ga = functions.cast(u * v, a.dtype)
             elif is_a_vector:
-                bt = functions.rollaxis(b, -2)
+                bt = functions.rollaxis(b, -1 if self.transb else -2)
                 ga = functions.tensordot(bt, gy, axes=gy.ndim)
                 ga = functions.cast(ga, a.dtype)
             else:
@@ -141,12 +147,16 @@ class MatMul(function_node.FunctionNode):
 
         if 1 in indexes:
             if is_a_vector:
-                gy_ex = gy if is_b_vector else functions.expand_dims(gy, -2)
-                a_ex = a if is_b_vector else functions.expand_dims(a, -1)
-                gb = functions.cast(functions.cast(gy_ex, a.dtype) * a_ex,
-                                    b.dtype)
+                u, v = a, functions.cast(gy, a.dtype)
+                if not is_b_vector:
+                    if self.transb:
+                        u, v = v, u
+                    u = functions.expand_dims(u, -1)
+                    v = functions.expand_dims(v, -2) if v.ndim > 1 else v
+                gb = functions.cast(u * v, b.dtype)
             elif is_b_vector:
-                gb = functions.tensordot(gy, a, axes=gy.ndim)
+                at = functions.rollaxis(a, -2 if self.transa else -1)
+                gb = functions.tensordot(at, gy, axes=gy.ndim)
                 gb = functions.cast(gb, b.dtype)
             else:
                 gb, = MatMul(not self.transa, self.transc, self.transb,
