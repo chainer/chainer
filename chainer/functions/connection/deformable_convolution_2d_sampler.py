@@ -87,7 +87,11 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
     ph, pw = _pair(pad)
     out_c, _, kh, kw = W.shape
     n, c, h, w = x.shape
-    _, _, out_h, out_w = offset.shape
+    _, khkw2, out_h, out_w = offset.shape
+
+    if khkw2 != 2 * kh * kw:
+        raise ValueError(
+            'The shape of the offset does not match the kernel size')
 
     grid = _offset2grid(offset, kh, kw, sy, sx, ph, pw, h, w)
     grid = grid.reshape(n, 2, kh * kw, out_h * out_w)
