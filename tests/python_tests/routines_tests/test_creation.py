@@ -176,7 +176,6 @@ def test_array_from_xchainer_array(shape, dtype, copy, device):
     else:
         assert t is not a
         xchainer.testing.assert_array_equal_ex(a, t, strides_check=False)
-        assert a.dtype == t.dtype
         assert a.device is t.device
         assert a.is_contiguous
 
@@ -237,7 +236,6 @@ def test_asarray_from_python_tuple_or_list():
     a = xchainer.asarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
     xchainer.testing.assert_array_equal_ex(e, a)
-    assert e.dtype == a.dtype
     assert e.device is a.device
 
 
@@ -246,7 +244,6 @@ def test_asarray_from_numpy_array():
     a = xchainer.asarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
     xchainer.testing.assert_array_equal_ex(e, a)
-    assert e.dtype == a.dtype
     assert e.device is a.device
 
 
@@ -260,7 +257,6 @@ def test_asarray_from_xchainer_array(dtype):
         assert a is not obj
     e = xchainer.array(obj, dtype=dtype, copy=False)
     xchainer.testing.assert_array_equal_ex(e, a)
-    assert e.dtype == a.dtype
     assert e.device is a.device
 
 
@@ -350,7 +346,6 @@ def test_asanyarray_from_python_tuple_or_list():
     a = xchainer.asanyarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
     xchainer.testing.assert_array_equal_ex(e, a)
-    assert e.dtype == a.dtype
     assert e.device is a.device
 
 
@@ -359,7 +354,6 @@ def test_asanyarray_from_numpy_array():
     a = xchainer.asanyarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
     xchainer.testing.assert_array_equal_ex(e, a)
-    assert e.dtype == a.dtype
     assert e.device is a.device
 
 
@@ -370,7 +364,6 @@ def test_asanyarray_from_numpy_subclass_array():
     a = xchainer.asanyarray(obj, dtype='float32')
     e = xchainer.array(obj, dtype='float32', copy=False)
     xchainer.testing.assert_array_equal_ex(e, a)
-    assert e.dtype == a.dtype
     assert e.device is a.device
 
 
@@ -384,7 +377,6 @@ def test_asanyarray_from_xchainer_array(dtype):
         assert a is not obj
     e = xchainer.array(obj, dtype=dtype, copy=False)
     xchainer.testing.assert_array_equal_ex(e, a)
-    assert e.dtype == a.dtype
     assert e.device is a.device
 
 
