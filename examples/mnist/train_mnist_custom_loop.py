@@ -10,6 +10,7 @@ applies an optimizer to update the model.
 import argparse
 
 import chainer
+from chainer import configuration
 from chainer.dataset import convert
 from chainer.iterators import MultiprocessIterator
 import chainer.links as L
@@ -79,11 +80,16 @@ def main():
                 # evaluation
                 sum_accuracy = 0
                 sum_loss = 0
-                for batch in test_iter:
-                    x, t = convert.concat_examples(batch, args.gpu)
-                    loss = model(x, t)
-                    sum_loss += float(loss.data) * len(t)
-                    sum_accuracy += float(model.accuracy.data) * len(t)
+
+                # Enable evaluation mode.
+                with configuration.using_config('train', False):
+                    # This is optional but can reduce computational overhead.
+                    with chainer.using_config('enable_backprop', False):
+                        for batch in test_iter:
+                            x, t = convert.concat_examples(batch, args.gpu)
+                            loss = model(x, t)
+                            sum_loss += float(loss.data) * len(t.data)
+                            sum_accuracy += float(model.accuracy.data) * len(t)
 
                 test_iter.reset()
                 print('test mean  loss: {}, accuracy: {}'.format(

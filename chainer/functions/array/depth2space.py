@@ -1,3 +1,5 @@
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
@@ -23,23 +25,23 @@ class Depth2Space(function_node.FunctionNode):
         xp = cuda.get_array_module(X)
         bsize, c, a, b = X.shape
         c //= self.r ** 2
-        X = xp.transpose(X, (0, 2, 3, 1))
-        X = xp.reshape(X, (bsize, a, b, self.r, self.r, c))
-        X = xp.transpose(X, (0, 1, 3, 2, 4, 5))
-        X = xp.reshape(X, (bsize, a * self.r, b * self.r, c))
-        X = xp.transpose(X, (0, 3, 1, 2))
+
+        if xp is numpy:
+            # These codes run faster on CPU than below `else` block codes.
+            X = xp.transpose(X, (0, 2, 3, 1))
+            X = xp.reshape(X, (bsize, a, b, self.r, self.r, c))
+            X = xp.transpose(X, (0, 1, 3, 2, 4, 5))
+            X = xp.reshape(X, (bsize, a * self.r, b * self.r, c))
+            X = xp.transpose(X, (0, 3, 1, 2))
+        else:
+            X = xp.reshape(X, (bsize, self.r, self.r, c, a, b))
+            X = xp.transpose(X, (0, 3, 4, 1, 5, 2))
+            X = xp.reshape(X, (bsize, c, a * self.r, b * self.r))
         return X,
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
-        bsize, c, a, b = gy.shape
-        gy = chainer.functions.transpose(gy, (0, 2, 3, 1))
-        gy = chainer.functions.reshape(
-            gy, (bsize, a // self.r, self.r, b // self.r, self.r, c))
-        gy = chainer.functions.transpose(gy, (0, 1, 3, 2, 4, 5))
-        gy = chainer.functions.reshape(
-            gy, (bsize, a // self.r, b // self.r, self.r ** 2 * c))
-        gy = chainer.functions.transpose(gy, (0, 3, 1, 2))
+        gy = chainer.functions.space2depth(gy, self.r)
         return gy,
 
 
