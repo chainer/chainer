@@ -201,11 +201,7 @@ class TestAdam(OptimizerTestBase, unittest.TestCase):
 class TestCorrectedMomentumSGD(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
-        if self.dtype == numpy.float16:
-            kwargs = {'eps': 1e-6}
-        else:
-            kwargs = {}
-        return optimizers.CorrectedMomentumSGD(0.05, **kwargs)
+        return optimizers.CorrectedMomentumSGD(0.1)
 
 
 @testing.parameterize(*testing.product({
