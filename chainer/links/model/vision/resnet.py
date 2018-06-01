@@ -90,11 +90,12 @@ class ResNetLayers(link.Chain):
         if pretrained_model:
             # As a sampling process is time-consuming,
             # we employ a zero initializer for faster computation.
-            kwargs = {'initialW': constant.Zero()}
+            conv_kwargs = {'initialW': constant.Zero()}
         else:
             # employ default initializers used in the original paper
-            kwargs = {'initialW': normal.HeNormal(scale=1.0)}
+            conv_kwargs = {'initialW': normal.HeNormal(scale=1.0)}
 
+        kwargs = conv_kwargs.copy()
         kwargs['downsample_fb'] = downsample_fb
 
         if n_layers == 50:
@@ -108,7 +109,7 @@ class ResNetLayers(link.Chain):
                              ' or 152, but {} was given.'.format(n_layers))
 
         with self.init_scope():
-            self.conv1 = Convolution2D(3, 64, 7, 2, 3, **kwargs)
+            self.conv1 = Convolution2D(3, 64, 7, 2, 3, **conv_kwargs)
             self.bn1 = BatchNormalization(64)
             self.res2 = BuildingBlock(block[0], 64, 64, 256, 1, **kwargs)
             self.res3 = BuildingBlock(block[1], 256, 128, 512, 2, **kwargs)
