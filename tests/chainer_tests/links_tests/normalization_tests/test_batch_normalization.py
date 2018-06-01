@@ -424,4 +424,11 @@ class TestChannalSizeInference(unittest.TestCase):
         assert not hasattr(bn, 'beta')
 
 
+class TestFailChannalSizeInference(unittest.TestCase):
+
+    def test_fail_inference(self):
+        with self.assertRaises(RuntimeError):
+            links.BatchNormalization()
+
+
 testing.run_module(__name__, __file__)
