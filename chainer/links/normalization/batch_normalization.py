@@ -83,11 +83,16 @@ class BatchNormalization(link.Link):
                   [-0.71428573, -0.6714596 , -0.6401263 ],
                   [ 0.14285715,  0.19748813,  0.23583598],
                   [ 1.5714287 ,  1.5404074 ,  1.5160885 ]])
+        >>> (x - x.mean(axis=0)) / np.sqrt(x.var(axis=0) + 2e-5)
+        array([[-1.        , -1.0664359 , -1.1117983 ],
+               [-0.71428573, -0.6714596 , -0.6401263 ],
+               [ 0.14285715,  0.19748813,  0.235836  ],
+               [ 1.5714285 ,  1.5404074 ,  1.5160886 ]], dtype=float32)
 
         There are several ways to make a BatchNormalization link.
         Consider an input of batched 10 images of 32x32 with 3 channels.
 
-        >>> x = np.ones((10, 3, 32, 32), np.float32)
+        >>> x = np.random.randn(10, 3, 32, 32).astype(np.float32)
 
         1. Give the parameter size:
 
@@ -100,6 +105,12 @@ class BatchNormalization(link.Link):
             >>> y = bn(x)
             >>> y.shape
             (10, 3, 32, 32)
+            >>> np.testing.assert_allclose(
+            ...     y.array.mean(axis=(0, 2, 3)), 0, atol=1e-6)
+            >>> np.testing.assert_allclose(
+            ...     y.array.var(axis=(0, 2, 3)),
+            ...     x.var(axis=(0, 2, 3)) / (x.var(axis=(0, 2, 3)) + 2e-5),
+            ...     atol=1e-6)
 
             To normalize for each channel for each pixel, ``size`` should
             be the tuple of the dimensions.
@@ -107,6 +118,14 @@ class BatchNormalization(link.Link):
             >>> bn = chainer.links.BatchNormalization((3, 32, 32))
             >>> bn.avg_mean.shape
             (3, 32, 32)
+            >>> y = bn(x)
+            >>> y.shape
+            (10, 3, 32, 32)
+            >>> np.testing.assert_allclose(
+            ...     y.array.mean(axis=0), 0, atol=1e-6)
+            >>> np.testing.assert_allclose(
+            ...     y.array.var(axis=0),
+            ...     x.var(axis=0) / (x.var(axis=0) + 2e-5), atol=1e-6)
 
             By default, channel axis is (or starts from) the 1st axis of the
             input shape.
@@ -117,7 +136,8 @@ class BatchNormalization(link.Link):
 
             With ``axis`` option, similarly to NumPy, you may specify the
             aggregate axes, which are treated as the "batch" axes for the
-            batch statistics.
+            batch statistics. You can omit ``size`` if ``axis`` is given.
+
             The examples in 1. corresponds to the following, respectively.
 
             >>> bn = chainer.links.BatchNormalization(axis=(0, 2, 3))
@@ -129,8 +149,6 @@ class BatchNormalization(link.Link):
             >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3, 32, 32)
-
-            You can omit ``size`` if ``axis`` is given.
 
     """
 
