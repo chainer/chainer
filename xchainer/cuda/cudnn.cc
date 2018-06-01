@@ -182,6 +182,87 @@ CudnnContext::~CudnnContext() {
     cudnnDestroy(handle_);
 }
 
+void CudnnContext::BatchNormalizationForwardTraining(
+        BatchNormMode mode,
+        const Array& x,
+        const Array& y,
+        const Array& scale,  // gamma
+        const Array& bias,  // beta
+        double exponential_average_factor,
+        const Array& result_running_mean,
+        const Array& result_running_variance,
+        double eps,
+        const nonstd::optional<Array>& result_save_mean,
+        const nonstd::optional<Array>& result_save_inv_variance) {
+    if (eps < CUDNN_BN_MIN_EPSILON) {
+        throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
+    }
+
+    Device& device = x.device();
+    Dtype dtype = x.dtype();
+    assert(&device == &y.device());
+    assert(&device == &scale.device());
+    assert(&device == &bias.device());
+    assert(&device == &result_running_mean.device());
+    assert(&device == &result_running_variance.device());
+    assert(result_save_mean.has_value() ==
+           result_save_inv_variance.has_value());  // Caches can be omitted but only at the same time for the mean and inverse variance.
+
+    bool cache_mean_and_inv_variance = result_save_mean.has_value();
+
+    assert(dtype == y.dtype());
+    assert(dtype == scale.dtype());
+    assert(dtype == bias.dtype());
+    assert(dtype == result_running_mean.dtype());
+    assert(dtype == result_running_variance.dtype());
+    if (cache_mean_and_inv_variance) {
+        assert(dtype == result_save_mean->dtype());
+        assert(dtype == result_save_inv_variance->dtype());
+    }
+
+    Array x_cont = AsContiguousArray(x);
+    Array scale_cont = AsContiguousArray(scale);
+    Array bias_cont = AsContiguousArray(bias);
+    Array result_running_mean_cont = AsContiguousArray(result_running_mean);
+    Array result_running_variance_cont = AsContiguousArray(result_running_variance);
+    assert(y.IsContiguous());
+
+    TensorDescriptor x_desc{x_cont};
+    TensorDescriptor y_desc{y};
+    TensorDescriptor scale_bias_mean_var_desc{result_running_mean_cont};
+
+    void* result_save_mean_raw;
+    void* result_save_inv_variance_raw;
+    if (cache_mean_and_inv_variance) {
+        assert(result_save_mean->IsContiguous());
+        assert(result_save_inv_variance->IsContiguous());
+        result_save_mean_raw = xchainer::internal::GetRawOffsetData<void>(*result_save_mean);
+        result_save_inv_variance_raw = xchainer::internal::GetRawOffsetData<void>(*result_save_inv_variance);
+    } else {
+        result_save_mean_raw = nullptr;
+        result_save_inv_variance_raw = nullptr;
+    }
+
+    CheckCudnnError(cudnnBatchNormalizationForwardTraining(
+            handle(),
+            mode,
+            GetValuePtr<1>(x.dtype()),
+            GetValuePtr<0>(x.dtype()),
+            *x_desc,
+            xchainer::internal::GetRawOffsetData<void>(x_cont),
+            *y_desc,
+            xchainer::internal::GetRawOffsetData<void>(y),
+            *scale_bias_mean_var_desc,
+            xchainer::internal::GetRawOffsetData<void>(scale_cont),
+            xchainer::internal::GetRawOffsetData<void>(bias_cont),
+            exponential_average_factor,
+            xchainer::internal::GetRawOffsetData<void>(result_running_mean_cont),
+            xchainer::internal::GetRawOffsetData<void>(result_running_variance_cont),
+            eps,
+            result_save_mean_raw,
+            result_save_inv_variance_raw));
+}
+
 std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwardAlgorithm(
         const TensorDescriptor& x_desc,
         const Array& x,

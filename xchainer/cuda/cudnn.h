@@ -17,6 +17,8 @@ namespace cuda {
 
 class CudnnError : public XchainerError {
 public:
+    using XchainerError::XchainerError;
+
     explicit CudnnError(cudnnStatus_t status);
     cudnnStatus_t error() const noexcept { return status_; }
 
@@ -50,6 +52,7 @@ struct ConvAlgoCacheKeyHash {
     std::size_t operator()(const ConvAlgoCacheKey& key) const;
 };
 
+using BatchNormMode = cudnnBatchNormMode_t;
 using ConvFwdAlgoCacheMap = std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
 using ConvBwdDataAlgoCacheMap =
         std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionBwdDataAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
@@ -60,6 +63,19 @@ class CudnnContext {
 public:
     explicit CudnnContext(int device_index);
     ~CudnnContext();
+
+    void BatchNormalizationForwardTraining(
+            BatchNormMode mode,
+            const Array& x,
+            const Array& y,
+            const Array& scale,  // gamma
+            const Array& bias,  // beta
+            double exponential_average_factor,
+            const Array& result_running_mean,
+            const Array& result_running_variance,
+            double eps,
+            const nonstd::optional<Array>& result_save_mean = nonstd::nullopt,
+            const nonstd::optional<Array>& result_save_inv_variance = nonstd::nullopt);
 
     void ConvolutionForward(
             const Array& x,
