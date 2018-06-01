@@ -95,68 +95,63 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_row_major, B, dtype):
         nb = B.shape[0]
         C = cuda.cupy.zeros((nb, _m, _n), dtype=cupy_dtype)
 
-    nthreads = nb * ldnz * _n
-    stride = 1
+    chunk = 1
     if A_row_major:
-        # The stride is set based on average number of non-zero elements for
-        # each row, so that GPU threads are less likely to atomic-add the same
-        # place at the same time. In other words, atomic collisions are expected
-        # to decrease.
-        stride = max(ldnz // _m, 1)
-        while _qcd(ldnz, stride) > 1:
-            stride = stride - 1
-    _cupy_coo_matmul()(nb, _m, _n, _k, ldnz, stride,
+        # A chunk is the number of non-zero elements handled by a single GPU
+        # thread. If contiguous non-zero elemets are related to the same
+        # location of the output matrix and they are processed in the same
+        # thread, number of atomic-add operations can be reduced.
+        chunk = max(ldnz // _m, 1)
+    nthreads = ((nb * ldnz + chunk - 1) // chunk) * _n
+    _cupy_coo_matmul()(nb, _m, _n, _k, ldnz, chunk,
                        A_data, A_row, A_col, B, C,
                        size=nthreads)
 
     return C.astype(dtype, copy=False)
 
 
-def _qcd(a, b):
-    if a < b:
-        a, b = b, a
-    if b <= 0:
-        return 1
-    while True:
-        a, b = b, a % b
-        if b == 0:
-            return a
-
-
 def _cupy_coo_matmul():
     return cuda.cupy.ElementwiseKernel(
-        'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, int32 stride, \
+        'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, int32 chunk, \
          raw A A_data, raw T A_row, raw T A_col, \
          raw B _B, raw C _C',
         '',
         '''
         int i_n = (i % _n);
-        int ii = i / _n;
-        if (ii >= nb * nnz) {
-            continue;
+        int i0 = (i / _n) * chunk;
+        int i_C = -1;
+        C val_C = 0;
+        for (int i1 = 0; i1 < chunk; i1++) {
+            int i_A = i0 + i1;
+            int i_b = i_A / nnz;
+            if (i_b >= nb) {
+                continue;
+            }
+            int i_k = A_col[i_A];
+            if (i_k < 0) {
+                continue;
+            }
+            assert(i_k < _k);
+            int i_m = A_row[i_A];
+            if (i_m < 0) {
+                continue;
+            }
+            assert(i_m < _m);
+            int i_B = i_n + _n * (i_k + _k * i_b);
+            int i_C_now = i_n + _n * (i_m + _m * i_b);
+            A val_A = A_data[i_A];
+            B val_B = _B[i_B];
+            C val_C_now = static_cast<C>(val_A * val_B);
+            if (i_C >= 0 && i_C != i_C_now) {
+                atomicAdd(&_C[i_C], val_C);
+                val_C = 0;
+            }
+            i_C = i_C_now;
+            val_C += val_C_now;
         }
-        int i_A = ii % nnz;
-        int i_b = ii / nnz;
-        if (stride > 1) {
-            i_A = (i_A * stride) % nnz;
+        if (i_C >= 0) {
+            atomicAdd(&_C[i_C], val_C);
         }
-        i_A += i_b * nnz;
-        int i_k = A_col[i_A];
-        if (i_k < 0) {
-            continue;
-        }
-        assert(i_k < _k);
-        int i_m = A_row[i_A];
-        if (i_m < 0) {
-            continue;
-        }
-        assert(i_m < _m);
-        int i_B = i_n + _n * (i_k + _k * i_b);
-        int i_C = i_n + _n * (i_m + _m * i_b);
-        A val_A = A_data[i_A];
-        B val_B = _B[i_B];
-        C val_C = static_cast<C>(val_A * val_B);
-        atomicAdd(&_C[i_C], val_C);
         ''',
         'coo_matmul')
 
