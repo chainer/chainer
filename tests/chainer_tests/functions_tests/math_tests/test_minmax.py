@@ -29,11 +29,13 @@ class TestMax(unittest.TestCase):
 
         # Sample x with single maximum value
         while True:
-            self.x = numpy.random.uniform(
-                -1, 1, (3, 2, 4)).astype(numpy.float32)
-            if (self.x > (numpy.max(self.x) - 2 * eps)).sum() == 1:
-                self.y_expect = numpy.max(
-                    self.x, axis=self.axis, keepdims=self.keepdims)
+            x = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(numpy.float32)
+            y = x.max(axis=self.axis, keepdims=True)
+            if numpy.all((x > y - 2 * eps).sum(axis=self.axis) == 1):
+                self.x = x
+                if not self.keepdims:
+                    y = y.squeeze(axis=self.axis)
+                self.y_expect = y
                 break
 
         self.gy = numpy.full(self.y_expect.shape, 2, dtype=numpy.float32)
