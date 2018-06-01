@@ -194,8 +194,10 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwar
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride) {
     auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
-    if (conv_fwd_algo_cache_map_.count(key)) {
-        return conv_fwd_algo_cache_map_[key];
+    auto& algo_cache_map = conv_fwd_algo_cache_map_;
+    auto it = algo_cache_map.find(key);
+    if (it != algo_cache_map.end()) {
+        return it->second;
     }
 
     std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
@@ -219,7 +221,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwar
             max_workspace_size));
     assert(returned_algo_count == 1);
 
-    return conv_fwd_algo_cache_map_[key] = {perf_result.algo, perf_result.memory};
+    return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
 }
 
 std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnContext::FindConvolutionBackwardDataAlgorithm(
@@ -234,8 +236,10 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnContext::FindConvolutionBa
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride) {
     auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
-    if (conv_bwd_data_algo_cache_map_.count(key)) {
-        return conv_bwd_data_algo_cache_map_[key];
+    auto& algo_cache_map = conv_bwd_data_algo_cache_map_;
+    auto it = algo_cache_map.find(key);
+    if (it != algo_cache_map.end()) {
+        return it->second;
     }
 
     std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
@@ -259,7 +263,7 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnContext::FindConvolutionBa
             max_workspace_size));
     assert(returned_algo_count == 1);
 
-    return conv_bwd_data_algo_cache_map_[key] = {perf_result.algo, perf_result.memory};
+    return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
 }
 
 std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudnnContext::FindConvolutionBackwardFilterAlgorithm(
@@ -274,8 +278,10 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudnnContext::FindConvolution
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride) {
     auto key = internal::ConvAlgoCacheKey{x.shape(), gw.shape(), gy.shape(), pad, stride, x.dtype(), max_workspace_size};
-    if (conv_bwd_filter_algo_cache_map_.count(key)) {
-        return conv_bwd_filter_algo_cache_map_[key];
+    auto& algo_cache_map = conv_bwd_filter_algo_cache_map_;
+    auto it = algo_cache_map.find(key);
+    if (it != algo_cache_map.end()) {
+        return it->second;
     }
 
     std::shared_ptr<void> workspace = x.device().Allocate(max_workspace_size);
@@ -299,7 +305,7 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudnnContext::FindConvolution
             max_workspace_size));
     assert(returned_algo_count == 1);
 
-    return conv_bwd_filter_algo_cache_map_[key] = {perf_result.algo, perf_result.memory};
+    return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
 }
 
 // TODO(sonots): Support tensor core
