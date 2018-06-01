@@ -20,6 +20,7 @@ from chainer.utils import type_check
     {'axis': -2, 'start': -2, 'out_shape': (2, 3, 4)},
     {'axis': 0, 'start': 3, 'out_shape': (3, 4, 2)},
     {'axis': 2, 'start': -3, 'out_shape': (4, 2, 3)},
+    {'axis': 0, 'start': 0, 'out_shape': (2, 3, 4)},
 )
 class TestRollaxis(unittest.TestCase):
 
