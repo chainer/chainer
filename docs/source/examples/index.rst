@@ -12,4 +12,5 @@ Neural Net Examples
    ptb
    word2vec
    seq2seq
+   sentiment
 
