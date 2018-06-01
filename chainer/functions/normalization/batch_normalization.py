@@ -126,6 +126,7 @@ class BatchNormalization(function_node.FunctionNode):
         expander = [None for _ in range(x.ndim)]
         for i in self.key_axis:
             expander[i] = slice(None)
+        expander = tuple(expander)
         self.expander = expander
 
         self.mode = _BNMode(x, gamma, self.key_axis)
@@ -502,8 +503,9 @@ class FixedBatchNormalization(function_node.FunctionNode):
         # expander inserts singleton dimensions to gamma and beta so that they
         # can be broadcasted with x.
         expander = [None for _ in range(x.ndim)]
-        for i, j in enumerate(self.key_axis):
-            expander[j] = slice(gamma.shape[i])
+        for i in self.key_axis:
+            expander[i] = slice(None)
+        expander = tuple(expander)
         self.expander = expander
 
         mode = _BNMode(x, gamma, self.key_axis, inference=True)
