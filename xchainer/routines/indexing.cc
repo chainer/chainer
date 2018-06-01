@@ -12,6 +12,7 @@
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"
 #include "xchainer/axes.h"
+#include "xchainer/backward.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
 #include "xchainer/macro.h"
@@ -40,9 +41,15 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 
     a.device().Add(b, out_view, out_view);
 
-    auto a_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
-    auto b_backward_function = [indices](const Array& gout, const std::vector<GraphId>&) { return gout.At(indices); };
-    xchainer::internal::SetUpOpNodes("add_at", {a, b}, out, {a_backward_function, b_backward_function});
+    {
+        DefineBackwardScope bwd{"add_at", out};
+        if (!a.IsConstant()) {
+            bwd.Define({a}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+        }
+        if (!b.IsConstant()) {
+            bwd.Define({b}, [indices](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().At(indices); });
+        }
+    }
 
     return out;
 }
@@ -89,11 +96,16 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
     Array out = xchainer::internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), out_offset);
 
-    auto backward_function = [ indices, other = a ](const Array& gout, const std::vector<GraphId>&) {
-        Array gin = ZerosLike(other, other.device());
-        return AddAt(gin, indices, gout);
-    };
-    xchainer::internal::SetUpOpNodes("get_item", {a}, out, {backward_function});
+    {
+        DefineBackwardScope bwd{"get_item", out};
+        if (!a.IsConstant()) {
+            bwd.Define({a}, [ indices, a_shape = a.shape(), a_dtype = a.dtype() ](BackwardContext & bctx) {
+                const Array& gout = bctx.output_grad();
+                Array gin = Zeros(a_shape, a_dtype, gout.device());
+                bctx.input_grad() = AddAt(gin, indices, gout);
+            });
+        }
+    }
 
     return out;
 }
@@ -116,9 +128,18 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
 
     a.device().AddAt(a, indices, axis, b, out);
 
-    auto a_backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout; };
-    auto b_backward_function = [indices, axis](const Array& gout, const std::vector<GraphId>&) { return Take(gout, indices, axis); };
-    xchainer::internal::SetUpOpNodes("add_at", {a, b}, out, {a_backward_function, b_backward_function});
+    {
+        DefineBackwardScope bwd{"add_at", out};
+        if (!a.IsConstant()) {
+            bwd.Define({a}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+        }
+        if (!b.IsConstant()) {
+            bwd.Define({b}, [indices, axis](BackwardContext& bctx) {
+                assert(indices.IsConstant());
+                bctx.input_grad() = Take(bctx.output_grad(), indices, axis);
+            });
+        }
+    }
 
     return out;
 }
@@ -143,10 +164,15 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     a.device().Take(a, indices, axis_norm, out);
 
-    auto backward_function = [ indices, axis_norm, a_shape = a.shape() ](const Array& gout, const std::vector<GraphId>&) {
-        return AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
-    };
-    xchainer::internal::SetUpOpNodes("take", {a}, out, {backward_function});
+    {
+        DefineBackwardScope bwd{"take", out};
+        if (!a.IsConstant()) {
+            bwd.Define({a}, [ indices, axis_norm, a_shape = a.shape() ](BackwardContext & bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
+            });
+        }
+    }
 
     return out;
 }

@@ -11,8 +11,14 @@ namespace xchainer {
 
 class ArrayNode {
 public:
-    ArrayNode() = default;
-    explicit ArrayNode(GraphId graph_id) : graph_id_{std::move(graph_id)} {}
+    ArrayNode(const Shape& shape, Dtype dtype, Device& device, GraphId graph_id)
+        : shape_{shape}, dtype_{dtype}, device_{device}, graph_id_{std::move(graph_id)} {}
+
+    const Shape& shape() const { return shape_; }
+
+    Dtype dtype() const { return dtype_; }
+
+    Device& device() const { return device_; }
 
     const std::shared_ptr<OpNode>& next_node() { return next_node_; }
     std::shared_ptr<const OpNode> next_node() const { return next_node_; }
@@ -26,7 +32,17 @@ public:
 
     const nonstd::optional<Array>& grad() const noexcept { return grad_; }
 
-    void set_grad(Array grad) { grad_.emplace(std::move(grad)); }
+    void set_grad(const Array& grad) { grad_ = grad; }
+
+    void set_grad(Array&& grad) { grad_ = std::move(grad); }
+
+    void accumulate_grad(Array&& grad) {
+        if (grad_.has_value()) {
+            grad_ = *grad_ + grad;
+        } else {
+            grad_ = std::move(grad);
+        }
+    }
 
     GraphId graph_id() const { return graph_id_; }
 
@@ -37,6 +53,9 @@ public:
 private:
     std::shared_ptr<OpNode> next_node_;
     int64_t rank_{0};
+    Shape shape_;
+    Dtype dtype_;
+    Device& device_;
     nonstd::optional<Array> grad_;
     GraphId graph_id_;
 };

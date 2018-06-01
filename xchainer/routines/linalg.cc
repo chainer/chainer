@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "xchainer/array.h"
+#include "xchainer/backward.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
@@ -48,13 +49,21 @@ Array Dot(const Array& a, const Array& b) {
     Array out_matrix = Empty({m, n}, a.dtype(), a.device());
     a.device().Dot(a_matrix, b_matrix, out_matrix);
 
-    auto a_matrix_backward = [b_matrix](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
-        return Dot(gout, b_matrix.AsConstant(graph_ids_to_stop_gradient).Transpose());
-    };
-    auto b_matrix_backward = [a_matrix](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
-        return Dot(a_matrix.AsConstant(graph_ids_to_stop_gradient).Transpose(), gout);
-    };
-    internal::SetUpOpNodes("dot", {a_matrix, b_matrix}, out_matrix, {a_matrix_backward, b_matrix_backward});
+    {
+        DefineBackwardScope bwd{"dot", out_matrix};
+        if (!a_matrix.IsConstant()) {
+            bwd.Define({a_matrix}, [b_matrix](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = Dot(gout, bctx.Cut(b_matrix).Transpose());
+            });
+        }
+        if (!b_matrix.IsConstant()) {
+            bwd.Define({b_matrix}, [a_matrix](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = Dot(bctx.Cut(a_matrix).Transpose(), gout);
+            });
+        }
+    }
 
     return out_matrix.Reshape(out_shape);
 }

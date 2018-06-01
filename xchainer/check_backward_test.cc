@@ -12,6 +12,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/backward.h"
 #include "xchainer/check_backward.h"
 #include "xchainer/context.h"
 #include "xchainer/indexable_array.h"
@@ -32,8 +33,15 @@ Arrays ForwardWithIncorrectBackward(const Arrays& inputs) {
     const Array& in = inputs[0];
     Array out = EmptyLike(in);
 
-    auto backward_function = [](const Array& gout, const std::vector<GraphId>&) { return gout * gout; };
-    internal::SetUpOpNodes("incorrect_unary", {in}, out, {backward_function});
+    {
+        DefineBackwardScope bwd{"incorrect_unary", {out}};
+        if (!in.IsConstant()) {
+            bwd.Define({in}, [](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = gout * gout;
+            });
+        }
+    }
 
     VisitDtype(in.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
@@ -54,10 +62,16 @@ Arrays ForwardWithIncorrectDoubleBackpropOption(const Arrays& inputs) {
 
     Array out = a.AsConstant() * a.AsConstant();
 
-    auto backward_function = [a](const Array& gout, const std::vector<GraphId>&) {
-        return 2 * gout * a;  // a must be a.AsConstant(graph_ids_to_stop_gradient) correctly
-    };
-    internal::SetUpOpNodes("incorrect_square", {a}, out, {backward_function});
+    {
+        DefineBackwardScope bwd{"incorrect_square", {out}};
+        if (!a.IsConstant()) {
+            bwd.Define({a}, [a](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                // `a` would be `bctx.Cut(a)` if implemented correctly
+                bctx.input_grad() = 2 * gout * a;
+            });
+        }
+    }
 
     return {out};
 }

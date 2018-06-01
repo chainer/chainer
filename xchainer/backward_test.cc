@@ -385,13 +385,13 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
 
     auto y_nodes = z_op->next_nodes();
     ASSERT_EQ(2u, y_nodes.size());
-    EXPECT_EQ(2u, z_op->backward_functions().size());
+    EXPECT_EQ(2u, z_op->backward_entries().size());
 
     for (const std::shared_ptr<ArrayNode>& y_node : y_nodes) {
         std::shared_ptr<const OpNode> y_op = y_node->next_node();
         ASSERT_TRUE(y_op);
         ASSERT_EQ(1u, y_op->next_nodes().size());
-        EXPECT_EQ(1u, y_op->backward_functions().size());
+        EXPECT_EQ(1u, y_op->backward_entries().size());
     }
 }
 
@@ -414,7 +414,7 @@ TEST(BackpropEnableDoubleBackpropTest, Disabled) {
     EXPECT_FALSE(z_node->next_node());
 
     EXPECT_EQ(0u, z_op->next_nodes().size());
-    EXPECT_EQ(0u, z_op->backward_functions().size());
+    EXPECT_EQ(0u, z_op->backward_entries().size());
 }
 
 }  // namespace

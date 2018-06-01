@@ -8,11 +8,13 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/backward.h"
 #include "xchainer/dtype.h"
 #include "xchainer/enum.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
+#include "xchainer/routines/routines_util.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 
@@ -53,6 +55,7 @@ Array BroadcastBinary(Impl&& impl, const Array& x1, const Array& x2) {
 // Called from IAdd, ISubtract, IMultiply, IDivide, etc. to handle broadcasting.
 template <typename Impl>
 void BroadcastBinaryInPlace(Impl&& impl, const Array& x1, const Array& x2) {
+    xchainer::internal::CheckNoInplaceWithRequiredGrad(x1, {x1, x2});
     if (x1.shape() == x2.shape()) {
         impl(x1, x2, x1);
     } else {
@@ -70,6 +73,7 @@ Array Binary(Impl&& impl, const Array& x1, Scalar x2) {
 
 template <typename Impl>
 void BinaryInPlace(Impl&& impl, const Array& x1, Scalar x2) {
+    xchainer::internal::CheckNoInplaceWithRequiredGrad(x1, {x1});
     impl(x1, x2, x1);
 }
 
@@ -78,21 +82,28 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
 
-    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
-        return gout.AsConstant(graph_ids_to_stop_gradient, CopyKind::kCopy);
-    };
-    auto x2_backward_function = [](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
-        return gout.AsConstant(graph_ids_to_stop_gradient, CopyKind::kCopy);
-    };
-    internal::SetUpOpNodes("add", {x1, x2}, out, {x1_backward_function, x2_backward_function});
+    {
+        DefineBackwardScope bwd{"add", out};
+        // TODO(niboshi): Avoid copy
+        if (!x1.IsConstant()) {
+            bwd.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Copy(); });
+        }
+        if (!x2.IsConstant()) {
+            bwd.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Copy(); });
+        }
+    }
 
     x1.device().Add(x1, x2, out);
 }
 
 void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
-    internal::SetUpOpNodes("add_scalar", {x1}, out, {x1_backward_function});
+    {
+        DefineBackwardScope bwd{"add_scalar", out};
+        if (!x1.IsConstant()) {
+            bwd.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+        }
+    }
 
     x1.device().AddAS(x1, x2, out);
 }
@@ -120,17 +131,27 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
 
-    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
-    auto x2_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return -gout; };
-    internal::SetUpOpNodes("subtract", {x1, x2}, out, {x1_backward_function, x2_backward_function});
+    {
+        DefineBackwardScope bwd{"subtract", out};
+        if (!x1.IsConstant()) {
+            bwd.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+        }
+        if (!x2.IsConstant()) {
+            bwd.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = -bctx.output_grad(); });
+        }
+    }
 
     x1.device().Subtract(x1, x2, out);
 }
 
 void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    auto x1_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array { return gout; };
-    internal::SetUpOpNodes("subtract_scalar", {x1}, out, {x1_backward_function});
+    {
+        DefineBackwardScope bwd{"subtract_scalar", out};
+        if (!x1.IsConstant()) {
+            bwd.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+        }
+    }
 
     x1.device().SubtractAS(x1, x2, out);
 }
@@ -158,21 +179,27 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
 
-    auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)->Array {
-        return gout * other.AsConstant(graph_ids_to_stop_gradient);
-    };
-    auto x2_backward_function = [other = x1](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)->Array {
-        return gout * other.AsConstant(graph_ids_to_stop_gradient);
-    };
-    internal::SetUpOpNodes("multiply", {x1, x2}, out, {x1_backward_function, x2_backward_function});
+    {
+        DefineBackwardScope bwd{"multiply", out};
+        if (!x1.IsConstant()) {
+            bwd.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * bctx.Cut(other); });
+        }
+        if (!x2.IsConstant()) {
+            bwd.Define({x2}, [other = x1](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * bctx.Cut(other); });
+        }
+    }
 
     x1.device().Multiply(x1, x2, out);
 }
 
 void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&)->Array { return gout * other; };
-    internal::SetUpOpNodes("multiply_scalar", {x1}, out, {x1_backward_function});
+    {
+        DefineBackwardScope bwd{"multiply_scalar", out};
+        if (!x1.IsConstant()) {
+            bwd.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * other; });
+        }
+    }
 
     x1.device().MultiplyAS(x1, x2, out);
 }
@@ -201,23 +228,31 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
 
-    auto x1_backward_function = [x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
-        return gout / x2.AsConstant(graph_ids_to_stop_gradient);
-    };
-    auto x2_backward_function = [x1, x2](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
-        Array lhs_const = x1.AsConstant(graph_ids_to_stop_gradient);
-        Array rhs_const = x2.AsConstant(graph_ids_to_stop_gradient);
-        return -gout * lhs_const / (rhs_const * rhs_const);
-    };
-    internal::SetUpOpNodes("divide", {x1, x2}, out, {x1_backward_function, x2_backward_function});
+    {
+        DefineBackwardScope bwd{"divide", out};
+        if (!x1.IsConstant()) {
+            bwd.Define({x1}, [x2](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad() / bctx.Cut(x2); });
+        }
+        if (!x2.IsConstant()) {
+            bwd.Define({x2}, [x1, x2](BackwardContext& bctx) {
+                Array lhs_const = bctx.Cut(x1);
+                Array rhs_const = bctx.Cut(x2);
+                bctx.input_grad() = -bctx.output_grad() * lhs_const / (rhs_const * rhs_const);
+            });
+        }
+    }
 
     x1.device().Divide(x1, x2, out);
 }
 
 void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    auto x1_backward_function = [other = x2](const Array& gout, const std::vector<GraphId>&)->Array { return gout / other; };
-    internal::SetUpOpNodes("divide_scalar", {x1}, out, {x1_backward_function});
+    {
+        DefineBackwardScope bwd{"divide_scalar", out};
+        if (!x1.IsConstant()) {
+            bwd.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() / other; });
+        }
+    }
 
     x1.device().DivideAS(x1, x2, out);
 }
@@ -243,19 +278,25 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
     a.device().Sum(a, sorted_axis, out);
 
-    auto backward_function = [ sorted_axis, in_shape = a.shape(), keepdims ](const Array& gout, const std::vector<GraphId>&) {
-        assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+    {
+        DefineBackwardScope bwd{"sum", out};
+        if (!a.IsConstant()) {
+            bwd.Define({a}, [ sorted_axis, in_shape = a.shape(), keepdims ](BackwardContext & bctx) {
+                const Array& gout = bctx.output_grad();
+                assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
-        if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
-            Shape out_shape_broadcastable = gout.shape();
-            for (auto axis : sorted_axis) {
-                out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
-            }
-            return gout.Reshape(out_shape_broadcastable).BroadcastTo(in_shape);
+                if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
+                    Shape out_shape_broadcastable = gout.shape();
+                    for (auto axis : sorted_axis) {
+                        out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
+                    }
+                    bctx.input_grad() = gout.Reshape(out_shape_broadcastable).BroadcastTo(in_shape);
+                } else {
+                    bctx.input_grad() = gout.BroadcastTo(in_shape);
+                }
+            });
         }
-        return gout.BroadcastTo(in_shape);
-    };
-    internal::SetUpOpNodes("sum", {a}, out, {backward_function});
+    }
 
     return out;
 }
@@ -272,22 +313,27 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     a.device().AMax(a, sorted_axis, out);
 
-    auto backward_function = [sorted_axis, a, out](const Array& gout, const std::vector<GraphId>&) {
-        assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+    {
+        DefineBackwardScope bwd{"amax", out};
+        if (!a.IsConstant()) {
+            bwd.Define({a}, [sorted_axis, a, out](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
-        // Add broadcastable dimensions to out and gout
-        // for each one that was reduced in the forward operation
-        Shape shape = internal::ReduceShape(a.shape(), sorted_axis, true);
-        Array reshaped_gout = gout.Reshape(shape);
-        Array reshaped_out = out.AsConstant(CopyKind::kView).Reshape(shape);
+                // Add broadcastable dimensions to out and gout
+                // for each one that was reduced in the forward operation
+                Shape shape = internal::ReduceShape(a.shape(), sorted_axis, true);
+                Array reshaped_gout = gout.Reshape(shape);
+                Array reshaped_out = out.AsConstant(CopyKind::kView).Reshape(shape);
 
-        // Compute the gradient
-        Array cond = (a == reshaped_out);
-        Array broadcasted_gout = reshaped_gout.BroadcastTo(cond.shape());
-        // TODO(sonots): Use `where` if it becomes available.
-        return broadcasted_gout * cond.AsType(gout.dtype(), false);
-    };
-    internal::SetUpOpNodes("amax", {a}, out, {backward_function});
+                // Compute the gradient
+                Array cond = (bctx.Cut(a) == reshaped_out);
+                Array broadcasted_gout = reshaped_gout.BroadcastTo(cond.shape());
+                // TODO(sonots): Use `where` if it becomes available.
+                bctx.input_grad() = broadcasted_gout * cond.AsType(gout.dtype(), false);
+            });
+        }
+    }
 
     return out;
 }
@@ -300,10 +346,15 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     Array out = EmptyLike(x1, x1.device());
     x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
 
-    auto backward_function = [x1, x2](const Array& gout, const std::vector<GraphId>&) {
-        return IfLessElse(x1, x2, Scalar{0, gout.dtype()}, gout);
-    };
-    internal::SetUpOpNodes("if-less-else", {neg}, out, {backward_function});
+    {
+        DefineBackwardScope bwd{"if_less_else", out};
+        if (!neg.IsConstant()) {
+            bwd.Define({neg}, [x1, x2](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = IfLessElse(bctx.Cut(x1), x2, Scalar{0, gout.dtype()}, gout);
+            });
+        }
+    }
 
     return out;
 }
@@ -320,10 +371,15 @@ Array Exp(const Array& x) {
     Array out = EmptyLike(x, x.device());
     x.device().Exp(x, out);
 
-    auto backward_function = [x](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
-        return Exp(x.AsConstant(graph_ids_to_stop_gradient)) * gout;
-    };
-    internal::SetUpOpNodes("exp", {x}, out, {backward_function});
+    {
+        DefineBackwardScope bwd{"exp", out};
+        if (!x.IsConstant()) {
+            bwd.Define({x}, [x](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = Exp(bctx.Cut(x)) * gout;
+            });
+        }
+    }
 
     return out;
 }
@@ -332,10 +388,15 @@ Array Log(const Array& x) {
     Array out = EmptyLike(x, x.device());
     x.device().Log(x, out);
 
-    auto backward_function = [x](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
-        return gout / x.AsConstant(graph_ids_to_stop_gradient);
-    };
-    internal::SetUpOpNodes("log", {x}, out, {backward_function});
+    {
+        DefineBackwardScope bwd{"log", out};
+        if (!x.IsConstant()) {
+            bwd.Define({x}, [x](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = gout / bctx.Cut(x);
+            });
+        }
+    }
 
     return out;
 }

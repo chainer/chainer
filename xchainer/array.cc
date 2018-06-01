@@ -8,7 +8,6 @@
 #include <ostream>
 #include <string>
 #include <tuple>
-#include <unordered_map>
 #include <utility>
 
 #include <gsl/gsl>
@@ -19,6 +18,7 @@
 #include "xchainer/array_repr.h"
 #include "xchainer/axes.h"
 #include "xchainer/backend.h"
+#include "xchainer/backward.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -42,52 +42,6 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
     return Array{shape, strides, dtype, device, std::move(data), offset};
 }
 
-void SetUpOpNodes(
-        const std::string& name,
-        const std::vector<ConstArrayRef>& inputs,
-        const Array& out,
-        const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
-        const std::vector<GraphId>& graph_ids_to_stop_gradients) {
-    if (inputs.size() != backward_functions.size()) {
-        throw XchainerError{"Cannot construct a graph where numbers of input Arrays and backward functions do not match."};
-    }
-
-    std::unordered_map<GraphId, std::shared_ptr<OpNode>> graph_edges;
-
-    // Helper function to create an edge in the graph
-    auto create_edge = [&name, &graph_edges](const std::shared_ptr<ArrayNode>& next_node, auto& backward_function) {
-        std::shared_ptr<OpNode>& op_node = graph_edges[next_node->graph_id()];  // Create if not exists
-        if (!op_node) {
-            op_node = std::make_shared<OpNode>(name);
-        }
-        op_node->set_rank(std::max(op_node->rank(), next_node->rank()));
-        op_node->RegisterNextNode(next_node, backward_function);
-    };
-
-    for (size_t i = 0; i < inputs.size(); ++i) {  // For each input
-        for (const std::shared_ptr<ArrayNode>& node : inputs[i].get().nodes()) {  // For each graph, create an edge
-            if (std::find(graph_ids_to_stop_gradients.begin(), graph_ids_to_stop_gradients.end(), node->graph_id()) ==
-                graph_ids_to_stop_gradients.end()) {
-                create_edge(node, backward_functions[i]);
-            }
-        }
-    }
-
-    if (!graph_edges.empty() && std::any_of(inputs.begin(), inputs.end(), [&out](const Array& input) { return &out == &input; })) {
-        throw XchainerError{"In-place operation (", name, ") is not supported for an array that require gradients."};
-    }
-
-    // Bind edges to output
-    for (const auto& edge : graph_edges) {
-        const GraphId& graph_id = edge.first;
-        const std::shared_ptr<OpNode>& op_node = edge.second;
-
-        const std::shared_ptr<ArrayNode>& out_node = CreateArrayNode(out, graph_id);
-        out_node->set_next_node(op_node);
-        out_node->set_rank(op_node->rank() + 1);
-    }
-}
-
 bool HasArrayNode(const Array& array, const GraphId& graph_id) {
     return std::find_if(array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& node) {
                return graph_id == node->graph_id();
@@ -98,7 +52,7 @@ const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const Grap
     if (HasArrayNode(array, graph_id)) {
         throw XchainerError{"Duplicate graph registration: '", graph_id, "'."};
     }
-    array.nodes().emplace_back(std::make_shared<ArrayNode>(graph_id));
+    array.nodes().emplace_back(std::make_shared<ArrayNode>(array.shape(), array.dtype(), array.device(), graph_id));
     return array.nodes().back();
 }
 
@@ -272,14 +226,13 @@ Array Array::ToDevice(Device& dst_device) const {
 
     assert(out.body() != nullptr);
 
-    // Connect the graph.
     // Backward operation is implemented as backward-transfer.
-    internal::SetUpOpNodes(
-            "transfer",
-            {*this},
-            out,
-            {[&src_device](const Array& gout, const std::vector<GraphId>&) -> Array { return gout.ToDevice(src_device); }},
-            {});
+    {
+        DefineBackwardScope bwd{"transfer", out};
+        if (!IsConstant()) {
+            bwd.Define({*this}, [&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
+        }
+    }
     return out;
 }
 
@@ -305,12 +258,18 @@ Array Array::AsConstant(CopyKind kind) const {
     }
 }
 
-Array Array::AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind) const {
+Array Array::AsConstant(gsl::span<const GraphId> graph_ids, CopyKind kind) const {
     switch (kind) {
         case CopyKind::kCopy: {
             Array out = EmptyLike(*this, device());
-            internal::SetUpOpNodes("copy", {*this}, out, {[](const Array& gout, const std::vector<GraphId>&) { return gout; }}, graph_ids);
             device().Copy(*this, out);
+
+            {
+                DefineBackwardScope bwd{"copy", out, graph_ids};
+                if (!IsConstant()) {
+                    bwd.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+                }
+            }
 
             assert(out.IsContiguous());
             return std::move(out);
@@ -342,8 +301,10 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     device().AsType(*this, out);
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
-        internal::SetUpOpNodes(
-                "astype", {*this}, out, {[src_dtype](const Array& gout, const std::vector<GraphId>&) { return gout.AsType(src_dtype); }});
+        DefineBackwardScope bwd{"astype", out};
+        if (!IsConstant()) {
+            bwd.Define({*this}, [src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
+        }
     }
 
     assert(out.IsContiguous());

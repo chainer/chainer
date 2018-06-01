@@ -5,6 +5,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -35,13 +36,6 @@ using ConstArrayRef = std::reference_wrapper<const Array>;
 namespace internal {
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
-
-void SetUpOpNodes(
-        const std::string& name,
-        const std::vector<ConstArrayRef>& inputs,
-        const Array& out,
-        const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
-        const std::vector<GraphId>& graph_ids_to_stop_gradients = {});
 
 bool HasArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
@@ -174,7 +168,10 @@ public:
 
     // Creates a copy or a view. It will be disconnected from the specified graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-    Array AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind = CopyKind::kView) const;
+    Array AsConstant(gsl::span<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const;
+    Array AsConstant(std::initializer_list<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const {
+        return AsConstant(gsl::span<const GraphId>{graph_ids.begin(), graph_ids.end()}, kind);
+    }
 
     // Casts to a specified type.
     // By default, always returns a newly allocated array. If `copy` is false,
