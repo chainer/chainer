@@ -75,7 +75,7 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
 
         >>> x = np.random.uniform(0, 1, (2, 3, 4, 7)).astype(np.float32)
         >>> offset = np.random.uniform(
-        ...     0, 1, (2, 2 * 1 * 1, 2, 5)).astype(np.float32)
+        ...     0, 1, (2, 2 * 3 * 3, 2, 5)).astype(np.float32)
         >>> W = np.random.uniform(0, 1, (4, 3, 3, 3)).astype(np.float32)
         >>> b = np.random.uniform(0, 1, (4,)).astype(np.float32)
         >>> y = F.deformable_convolution_2d_sampler(x, offset, W, b)
