@@ -44,7 +44,7 @@ class BatchRenormalization(BatchNormalization):
         self.d = None
         self.freeze_running_statistics = freeze_running_statistics
 
-    def __call__(self, x, finetune=False):
+    def forward(self, x, finetune=False):
         if self.gamma is not None:
             gamma = self.gamma
         else:

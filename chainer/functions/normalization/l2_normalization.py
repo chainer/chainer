@@ -12,6 +12,10 @@ class NormalizeL2(function_node.FunctionNode):
 
     def __init__(self, eps=1e-5, axis=1):
         self.eps = eps
+        if isinstance(axis, int):
+            axis = axis,
+        if len(axis) not in (1, 2):
+            raise ValueError("Improper number of dimensions to norm.")
         self.axis = axis
 
     def check_type_forward(self, in_types):
@@ -26,8 +30,9 @@ class NormalizeL2(function_node.FunctionNode):
         self.retain_inputs((0,))
         x, = inputs
         xp = cuda.get_array_module(x)
-        norm = xp.linalg.norm(x, axis=self.axis) + self.eps
-        norm = xp.expand_dims(norm, self.axis)
+        # keep x.ndim >= 1 to avoid casting to self.eps' type
+        norm = xp.sqrt(xp.sum(
+            xp.square(x), axis=self.axis, keepdims=True)) + self.eps
         return x / norm,
 
     def backward(self, indexes, grad_outputs):
@@ -35,14 +40,13 @@ class NormalizeL2(function_node.FunctionNode):
         gy, = grad_outputs
         F = chainer.functions
 
-        norm_noeps = F.sqrt(F.sum(F.square(x), axis=self.axis))
+        norm_noeps = F.sqrt(F.sum(F.square(x), axis=self.axis, keepdims=True))
         norm = norm_noeps + self.eps
-        norm = F.broadcast_to(F.expand_dims(norm, self.axis), gy.shape)
+        norm = F.broadcast_to(norm, gy.shape)
 
-        x_gy_reduced = F.sum((x * gy), axis=self.axis)
+        x_gy_reduced = F.sum((x * gy), axis=self.axis, keepdims=True)
         x_gy_reduced /= norm_noeps
-        x_gy_reduced = F.broadcast_to(
-            F.expand_dims(x_gy_reduced, self.axis), gy.shape)
+        x_gy_reduced = F.broadcast_to(x_gy_reduced, gy.shape)
         gx = gy * norm - x_gy_reduced * x
         gx = gx / norm ** 2
 
