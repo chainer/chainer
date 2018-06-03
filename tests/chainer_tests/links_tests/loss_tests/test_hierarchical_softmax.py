@@ -185,10 +185,10 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         probs = numpy.zeros((5, ), dtype='f')
         probs[0] = self.node_score(0, x, 1) * self.node_score(1, x, 1)
         probs[1] = self.node_score(0, x, 1) * self.node_score(1, x, -1)
-        probs[2] = self.node_score(0, x, -1) * self.node_score(2, x, 1) * \
-            self.node_score(3, x, 1)
-        probs[3] = self.node_score(0, x, -1) * self.node_score(2, x, 1) * \
-            self.node_score(3, x, -1)
+        probs[2] = (self.node_score(0, x, -1) * self.node_score(2, x, 1) *
+                    self.node_score(3, x, 1))
+        probs[3] = (self.node_score(0, x, -1) * self.node_score(2, x, 1) *
+                    self.node_score(3, x, -1))
         probs[4] = self.node_score(0, x, -1) * self.node_score(2, x, -1)
         return probs
 
