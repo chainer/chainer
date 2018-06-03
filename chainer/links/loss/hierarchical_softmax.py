@@ -416,6 +416,10 @@ class BinaryHierarchicalSoftmax(link.Link):
     def sample(self, x):
         """Samples an example for a given input from the tree.
 
+        Hierarchical softmax gives probability for each label as product of a
+        set of logistic functions. This method draw a label from this
+        probability.
+
         Args:
             x (~chainer.Variable): Input variable for sample word IDs.
 
