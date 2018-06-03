@@ -11,8 +11,8 @@ from chainer.utils import type_check
 from chainer import variable
 
 
-LEAF = -1
-NOT_LEAF = -1
+LEAF_NODE_ID = -1
+INTERNAL_NODE_WORD_ID = -1
 
 
 def _log_sigmoid(x):
@@ -55,6 +55,25 @@ class TreeParser(object):
         assert(len(self.paths) == len(self.codes))
 
     def _parse(self, node):
+        """Parses a given subtree.
+
+        It parses a given subtree and return ``node_id`` and ``word_id`` for a
+        root node of the given subtree.
+
+        Args:
+            node (tuple or int): A subtree to parse. If it is :class:`int`, the
+                node is a leaf, and if it is :class:`tuple`, it is an internal
+                node.
+
+        Returns:
+            tuple: It contains two ints ``node_id`` and ``word_id`` for a given
+            node in a tree.
+            ``node_id`` is a unique ID for internal nodes. If ``node`` is a
+            leaf, it is ``-1``.
+            ``word_id`` is a ID of a word which a leaf node has. If ``node`` is
+            an internal node, it is ``-1``.
+
+        """
         if isinstance(node, tuple):
             # internal node
             if len(node) != 2:
@@ -76,13 +95,13 @@ class TreeParser(object):
 
             self.path.pop()
             self.code.pop()
-            return node_id, NOT_LEAF
+            return node_id, INTERNAL_NODE_WORD_ID
 
         else:
             # leaf node
             self.paths[node] = numpy.array(self.path, dtype=numpy.int32)
             self.codes[node] = numpy.array(self.code, dtype=numpy.float32)
-            return LEAF, node
+            return LEAF_NODE_ID, node
 
 
 class BinaryHierarchicalSoftmaxFunction(function.Function):
@@ -441,7 +460,7 @@ class BinaryHierarchicalSoftmax(link.Link):
             sampled_idx = xp.argmax(xp.random.gumbel(size=prob.shape) + prob,
                                     axis=1)
             next_ids = parent2child[ids][rows, sampled_idx]
-            is_leaf = (next_ids == LEAF) & ~done
+            is_leaf = (next_ids == LEAF_NODE_ID) & ~done
             if is_leaf.any():
                 word_ids = node2word[ids, sampled_idx]
                 sampled_word_ids = xp.where(
