@@ -38,7 +38,8 @@ def _create_conv_args(xp, device, x_shape, w_shape, b_shape, stride, pad, cover_
 def test_conv(device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_dtype):
     if device.backend.name == 'cuda' and len(x_shape) <= 3:
         # cuDNN does not support 1 dimensional convolution and throws CUDNN_STATUS_NOT_SUPPORTED.
-        return
+        # TODO(hvy): Support 1 dimensional convolution with CUDA.
+        return xchainer.testing.ignore()
 
     def create_args(xp):
         return _create_conv_args(xp, device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_dtype)

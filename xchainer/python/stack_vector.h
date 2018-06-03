@@ -34,10 +34,10 @@ template <typename T, int8_t Ndim>
 StackVector<T, Ndim> ToStackVector(pybind11::handle handle, size_t size) {
     if (py::isinstance<py::int_>(handle)) {
         return ToStackVector<T, Ndim>(py::cast<py::int_>(handle), size);
-    } else if (py::tuple::check_(handle)) {
+    } else if (py::isinstance<py::tuple>(handle)) {
         return ToStackVector<T, Ndim>(py::cast<py::tuple>(handle));
     }
-    throw NotImplementedError{"Only py::int_ and py::tuple can be converted into a StackVector."};
+    throw py::type_error{"Only py::int_ and py::tuple can be converted into a StackVector."};
 }
 
 }  // namespace internal

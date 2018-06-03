@@ -73,14 +73,14 @@ Array Conv(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    int8_t ndim = x.ndim();
-    if (w.ndim() != ndim) {
+    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    if (w.ndim() != ndim + 2) {
         throw DimensionError{"Mismatched number of dimensions between input ", x.ndim(), " and weights ", w.ndim(), "."};
     }
-    if (static_cast<int8_t>(stride.size()) != ndim - 2) {
+    if (static_cast<int8_t>(stride.size()) != ndim) {
         throw DimensionError{"Wrong numbers of strides ", stride.size(), " for input with ", x.ndim(), " dimensions."};
     }
-    if (static_cast<int8_t>(pad.size()) != ndim - 2) {
+    if (static_cast<int8_t>(pad.size()) != ndim) {
         throw DimensionError{"Wrong numbers of paddings ", pad.size(), " for input with ", x.ndim(), " dimensions."};
     }
     if (w.shape()[1] != x.shape()[1]) {
