@@ -10,6 +10,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/device.h"
+#include "xchainer/dtype.h"
 #include "xchainer/error.h"
 
 namespace xchainer {

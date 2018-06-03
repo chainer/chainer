@@ -30,14 +30,10 @@ private:
 };
 
 TEST_P(NormalizationTest, BatchNorm) {
-    if (GetParam() == "cuda") {
-        // TODO(hvy): Add CUDA implementation
-        return;
-    }
     using T = float;
 
     Shape x_shape{3, 4, 2, 1};
-    Shape reduced_shape{4, 2, 1};
+    Shape reduced_shape{1, 4, 2, 1};
     Scalar eps{2e-5f};
     Scalar decay{0.9f};
 
@@ -74,19 +70,11 @@ TEST_P(NormalizationTest, BatchNorm) {
     testing::ExpectAllClose(e_running_var, running_var, 1e-6f, 1e-6f);
 }
 
-<<<<<<< HEAD
 TEST_P(NormalizationTest, BatchNormWithAxis) {
-    if (GetParam() == "cuda") {
-        // TODO(hvy): Add CUDA implementation
-        return;
-    }
-=======
-TEST_P(NormalizationTest, BatchNormalizationWithAxis) {
->>>>>>> dbbd733... CUDA BatchNormalization
     using T = float;
 
     Shape x_shape{3, 4, 2, 1};
-    Shape reduced_shape{4};
+    Shape reduced_shape{1, 4, 1, 1};
     Axes axis{0, 2, 3};
     Scalar eps{2e-5f};
     Scalar decay{0.8f};

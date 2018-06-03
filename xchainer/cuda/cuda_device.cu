@@ -1072,50 +1072,28 @@ void CudaDevice::BatchNormalization(
         Scalar decay,
         const Axes& axis,
         const Array& out) {
-    if (GetKind(decay.dtype()) != DtypeKind::kFloat) {
-        throw DtypeError{"BatchNormalization uses cuDNN and expects decay of floating point kind but found ", decay.dtype(), "."};
-    }
-    if (GetKind(eps.dtype()) != DtypeKind::kFloat) {
-        throw DtypeError{"BatchNormalization uses cuDNN and expects eps of floating point kind but found ", eps.dtype(), "."};
-    }
+    assert(gamma.ndim() == x.ndim());
+    assert(gamma.shape() == beta.shape());
+    assert(gamma.shape() == running_mean.shape());
+    assert(gamma.shape() == running_var.shape());
+    assert(GetKind(eps.dtype()) == DtypeKind::kFloat);
+    assert(GetKind(decay.dtype()) == DtypeKind::kFloat);
+    assert(x.shape() == out.shape());
 
     internal::BatchNormMode mode;
-    if (axis.ndim() == 1 && axis[0] == 0) {
+    if (axis.ndim() == 1 && axis[0] == 0) {  // (1, channels, (depth, )height, width)
         mode = CUDNN_BATCHNORM_PER_ACTIVATION;
-    } else if (  // Assume sorted axes.
+    } else if (  // (1, channels, (1, )1, 1)
             (axis.ndim() == 3 && axis[0] == 0 && axis[1] == 2 && axis[2] == 3) ||
             (axis.ndim() == 4 && axis[0] == 0 && axis[1] == 2 && axis[2] == 3 && axis[3] == 4)) {
+        // TODO(hvy): Consider CUDNN_BATCHNORM_SPATIAL_PERSISTENT if we can afford to check for overflow, with or without blocking.
         mode = CUDNN_BATCHNORM_SPATIAL;
     } else {
-        throw DimensionError{"Invalid number of dimensions for BatchNormalization using cuDNN ", axis, ". Expected 0, 3 or 4."};
-    }
-    // TODO(hvy): Support CUDNN_BATCHNORM_SPATIAL_PERSISTENT.
-
-    Shape reduced_shape;
-    bool requires_reshape = false;
-    if (gamma.ndim() != x.ndim()) {  // Assume that gamma, beta, running_mean and running_var all have the same shape.
-        requires_reshape = true;
-        if (mode == CUDNN_BATCHNORM_PER_ACTIVATION) {
-            // reduced_shape = (1, channels, (depth, )height, width)
-            reduced_shape = x.shape();
-            reduced_shape[0] = 1;
-        } else if (mode == CUDNN_BATCHNORM_SPATIAL) {
-            // reduced_shape = (1, channels, (depth, )1, 1)
-            std::fill_n(std::back_inserter(reduced_shape), x.ndim(), 1);
-            reduced_shape[1] = x.shape()[1];
-        }
+        throw DimensionError{"Invalid axis for BatchNormalization using cuDNN ", axis, ". Expected 0, 3 or 4 dimensions."};
     }
 
     cudnn_context_.BatchNormalizationForwardTraining(
-            CUDNN_BATCHNORM_SPATIAL,
-            x,
-            out,
-            requires_reshape ? gamma.Reshape(reduced_shape) : gamma,
-            requires_reshape ? beta.Reshape(reduced_shape) : beta,
-            1.0 - static_cast<double>(decay),
-            requires_reshape ? running_mean.Reshape(reduced_shape) : running_mean,
-            requires_reshape ? running_var.Reshape(reduced_shape) : running_var,
-            static_cast<double>(eps));
+            mode, x, out, gamma, beta, 1.0 - static_cast<double>(decay), running_mean, running_var, static_cast<double>(eps));
 }
 
 void CudaDevice::Synchronize() {
