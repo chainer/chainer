@@ -124,9 +124,9 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         self.begins = begins
 
         self.parent2child = numpy.array(
-            [parent2child[i] for i in six.moves.range(n_node)], 'i')
+            [parent2child[i] for i in six.moves.range(n_node)], numpy.int32)
         self.node2word = numpy.array(
-            [node2word[i] for i in six.moves.range(n_node)], 'i')
+            [node2word[i] for i in six.moves.range(n_node)], numpy.int32)
 
         self.parser_size = parser.size()
 
@@ -424,11 +424,11 @@ class BinaryHierarchicalSoftmax(link.Link):
         parent2child = self._func.parent2child
         node2word = self._func.node2word
         batchsize = len(x)
-        ids = xp.zeros(batchsize, 'i')
+        ids = xp.zeros(batchsize, numpy.int32)
 
         rows = xp.arange(batchsize, dtype=xp.int32)
-        sampled_word_ids = xp.empty(batchsize, 'i')
-        done = xp.zeros(batchsize, '?')
+        sampled_word_ids = xp.empty(batchsize, numpy.int32)
+        done = xp.zeros(batchsize, numpy.bool_)
         while not done.all():
             w = self.W.data[ids]
             score = xp.einsum('ij,ij->i', w, x.data)
