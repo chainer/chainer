@@ -332,7 +332,7 @@ class BinaryHierarchicalSoftmax(link.Link):
 
     .. admonition:: Example
 
-        Let an a dictionary containing word counts ``word_counts`` be:
+        Let ``word_counts`` an a dictionary containing word counts:
 
         >>> word_counts = {0: 8, 1: 5, 2: 6, 3: 4, 4: 10, 5: 1, 6: 32, 7: 21}
         >>> tree = BinaryHierarchicalSoftmax.create_huffman_tree(word_counts)
@@ -398,7 +398,7 @@ class BinaryHierarchicalSoftmax(link.Link):
         """Samples an example for a given input from the tree.
 
         Args:
-            x (~chainer.Variable): Input variable for sample word ids.
+            x (~chainer.Variable): Input variable for sample word IDs.
 
         Returns:
             numpy.ndarray or cupy.ndarray:
@@ -406,7 +406,7 @@ class BinaryHierarchicalSoftmax(link.Link):
 
         .. admonition:: Example
 
-            Let an input vector ``x`` be:
+            Let ``x`` be an input vector:
 
             >>> word_cnts = {0: 8, 1: 5, 2: 6, 3: 4, 4: 10, 5: 1, 6: 32}
             >>> tree = BinaryHierarchicalSoftmax.create_huffman_tree(word_cnts)
