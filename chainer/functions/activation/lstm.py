@@ -229,7 +229,7 @@ def _cupy_sigmoid(x):
     return cuda.fusion.tanh(x * half) * half + half
 
 
-@cuda.fuse
+@cuda.fuse()
 def lstm_grad_grad(
         c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo,
         gc_prev, ga, gi, gf, go, gc_next, ggc, ggh):
