@@ -25,7 +25,7 @@ from chainer.testing import attr
 class TestMax(unittest.TestCase):
 
     def setUp(self):
-        eps = 1e-5
+        eps = 1e-6
 
         # Sample x with single maximum value
         while True:
@@ -129,7 +129,7 @@ class TestMaxInvalid(unittest.TestCase):
 class TestMin(unittest.TestCase):
 
     def setUp(self):
-        eps = 1e-5
+        eps = 1e-6
 
         # Sample x with single minimum value
         while True:
