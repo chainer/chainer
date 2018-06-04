@@ -35,11 +35,12 @@ template <typename T>
 StackVector<T, kMaxNdim> ToStackVector(pybind11::handle handle, size_t size) {
     if (py::isinstance<py::int_>(handle)) {
         return ToStackVector<T>(py::cast<py::int_>(handle), size);
-    } else if (py::isinstance<py::tuple>(handle)) {
+    }
+    if (py::isinstance<py::tuple>(handle)) {
         return ToStackVector<T>(py::cast<py::tuple>(handle));
     }
     // TODO(hvy): Extend with additional types as necessary.
-    throw py::type_error{"Only py::int_ and py::tuple can be converted into a StackVector."};
+    throw py::type_error{"Only int and tuple can be converted into a StackVector."};
 }
 
 }  // namespace internal
