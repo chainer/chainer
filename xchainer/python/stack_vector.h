@@ -40,7 +40,7 @@ StackVector<T, kMaxNdim> ToStackVector(pybind11::handle handle, size_t size) {
         return ToStackVector<T>(py::cast<py::tuple>(handle));
     }
     // TODO(hvy): Extend with additional types as necessary.
-    throw py::type_error{"Only int and tuple can be converted into a StackVector."};
+    throw py::type_error{"Only int and tuple is allowed."};
 }
 
 }  // namespace internal
