@@ -1080,7 +1080,7 @@ void CudaDevice::BatchNormalization(
     assert(GetKind(decay.dtype()) == DtypeKind::kFloat);
     assert(x.shape() == out.shape());
 
-    internal::BatchNormMode mode;
+    cudnnBatchNormMode_t mode{};
     if (axis.ndim() == 1 && axis[0] == 0) {  // (1, channels, (depth, )height, width)
         mode = CUDNN_BATCHNORM_PER_ACTIVATION;
     } else if (  // (1, channels, (1, )1, 1)

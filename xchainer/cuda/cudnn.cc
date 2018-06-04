@@ -186,8 +186,8 @@ void CudnnContext::BatchNormalizationForwardTraining(
         BatchNormMode mode,
         const Array& x,
         const Array& y,
-        const Array& scale,  // gamma
-        const Array& bias,  // beta
+        const Array& scale,
+        const Array& bias,
         double exponential_average_factor,
         const Array& result_running_mean,
         const Array& result_running_variance,
@@ -199,26 +199,28 @@ void CudnnContext::BatchNormalizationForwardTraining(
     }
 
 #ifndef NDEBUG
-    Device& device = x.device();
-    assert(&device == &y.device());
-    assert(&device == &scale.device());
-    assert(&device == &bias.device());
-    assert(&device == &result_running_mean.device());
-    assert(&device == &result_running_variance.device());
+    {
+        Device& device = x.device();
+        assert(&device == &y.device());
+        assert(&device == &scale.device());
+        assert(&device == &bias.device());
+        assert(&device == &result_running_mean.device());
+        assert(&device == &result_running_variance.device());
 
-    Dtype dtype = x.dtype();
-    assert(dtype == y.dtype());
-    assert(dtype == scale.dtype());
-    assert(dtype == bias.dtype());
-    assert(dtype == result_running_mean.dtype());
-    assert(dtype == result_running_variance.dtype());
+        Dtype dtype = x.dtype();
+        assert(dtype == y.dtype());
+        assert(dtype == scale.dtype());
+        assert(dtype == bias.dtype());
+        assert(dtype == result_running_mean.dtype());
+        assert(dtype == result_running_variance.dtype());
 
-    assert(result_save_mean.has_value() == result_save_inv_variance.has_value());
-    if (result_save_mean.has_value()) {
-        assert(dtype == result_save_mean->dtype());
-        assert(dtype == result_save_inv_variance->dtype());
-        assert(&device == &result_save_mean->device());
-        assert(&device == &result_save_inv_variance->device());
+        assert(result_save_mean.has_value() == result_save_inv_variance.has_value());
+        if (result_save_mean.has_value()) {
+            assert(dtype == result_save_mean->dtype());
+            assert(dtype == result_save_inv_variance->dtype());
+            assert(&device == &result_save_mean->device());
+            assert(&device == &result_save_inv_variance->device());
+        }
     }
 #endif
 
@@ -235,16 +237,13 @@ void CudnnContext::BatchNormalizationForwardTraining(
 
     bool cache_mean_and_inv_variance =
             result_save_mean.has_value();  // Caches can be omitted but only at the same time for the mean and inverse variance.
-    void* result_save_mean_raw;
-    void* result_save_inv_variance_raw;
+    void* result_save_mean_raw = nullptr;
+    void* result_save_inv_variance_raw = nullptr;
     if (cache_mean_and_inv_variance) {
         assert(result_save_mean->IsContiguous());
         assert(result_save_inv_variance->IsContiguous());
         result_save_mean_raw = xchainer::internal::GetRawOffsetData<void>(*result_save_mean);
         result_save_inv_variance_raw = xchainer::internal::GetRawOffsetData<void>(*result_save_inv_variance);
-    } else {
-        result_save_mean_raw = nullptr;
-        result_save_inv_variance_raw = nullptr;
     }
 
     CheckCudnnError(cudnnBatchNormalizationForwardTraining(

@@ -53,7 +53,6 @@ struct ConvAlgoCacheKeyHash {
     std::size_t operator()(const ConvAlgoCacheKey& key) const;
 };
 
-using BatchNormMode = cudnnBatchNormMode_t;
 using ConvFwdAlgoCacheMap = std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
 using ConvBwdDataAlgoCacheMap =
         std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionBwdDataAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
@@ -65,12 +64,14 @@ public:
     explicit CudnnContext(int device_index);
     ~CudnnContext();
 
+    // Wraps cudnnBatchNormalizationForwardTraining.
+    // scale and bias correspond to gamma and beta respectively.
     void BatchNormalizationForwardTraining(
-            BatchNormMode mode,
+            cudnnBatchNormMode_t mode,
             const Array& x,
             const Array& y,
-            const Array& scale,  // gamma
-            const Array& bias,  // beta
+            const Array& scale,
+            const Array& bias,
             double exponential_average_factor,
             const Array& result_running_mean,
             const Array& result_running_variance,
