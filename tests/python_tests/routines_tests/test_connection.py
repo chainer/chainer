@@ -47,9 +47,9 @@ def test_conv(device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_d
 
 
 @pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad', [
-    ((1, 3, 4, 3), (5, 4, 2, 2), (5,), 3, 2),  # Mistmatched x and w input channels.
-    ((2, 3, 4, 3), (5, 3, 2, 2, 1), (5,), 3, 2),  # Mistmatched x and w dimensions.
-    ((1, 3, 4, 3), (5, 3, 2, 2), (6,), 1, 0),  # Mistmatched w and b.
+    ((1, 3, 4, 3), (5, 4, 2, 2), (5,), 3, 2),  # Mismatched x and w input channels.
+    ((2, 3, 4, 3), (5, 3, 2, 2, 1), (5,), 3, 2),  # Mismatched x and w dimensions.
+    ((1, 3, 4, 3), (5, 3, 2, 2), (6,), 1, 0),  # Mismatched w and b.
     ((2, 3, 4, 3), (5, 3, 2, 2), None, (1,), 0),  # Wrong number of strides.
     ((1, 3, 4, 3), (5, 3, 2, 2), None, 3, (2,)),  # Wrong number of paddings.
 ])
