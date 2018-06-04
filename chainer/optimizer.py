@@ -766,16 +766,6 @@ class GradientNoise(optimizer_hooks.GradientNoise):
                       DeprecationWarning)
         return super(GradientNoise, self).__init__(*args, **kwargs)
 
-    with :math:`\\eta` selected from {0.01, 0.3, 1.0} and
-    :math:`\\gamma = 0.55`.
-
-    Args:
-        eta (float): Parameter that defines the scale of the noise, which for
-            the default noise function is recommended to be either 0.01, 0.3
-            or 1.0.
-        noise_func (callable): Noise generating function which by default
-            is given by `Adding Gradient Noise Improves Learning for Very Deep\
-            Networks <https://arxiv.org/pdf/1511.06807>`_.
 
 class GradientHardClipping(optimizer_hooks.GradientHardClipping):
 
