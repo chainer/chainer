@@ -30,6 +30,7 @@ def save_parameters_as_hdf5(model, filename):
     chainer.serializers.save_hdf5(filename, model)
     print('model.h5 saved!\n')
 
+
 # Save the model parameters into a HDF5 archive
 save_parameters_as_hdf5(model, 'model.h5')
 
