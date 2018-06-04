@@ -57,17 +57,17 @@ def normalize(x, eps=1e-5, axis=1):
     This function implements L2 normalization on a vector along the given axis.
     No reduction is done along the normalization axis.
 
-    This function computes an output vector :math:`y` by the following
-    equation:
+    In the case when :obj:`axis=1` and :math:`\\mathbf{x}` is a matrix of
+    dimension :math:`(N, K)`, where :math:`N` and :math:`K` denote mini-batch
+    size and the dimension of the input vectors, this function computes an
+    output matrix :math:`\\mathbf{y}` of dimension :math:`(N, K)` by the
+    following equation:
 
     .. math::
-       y_{i,j} = {x_{i,j} \\over \\| x_{i,*} \\|_2 + \\epsilon}
+       \\mathbf{y}_i = {\\mathbf{x}_i \\over \\| \\mathbf{x}_i \\|_2 + \\epsilon}
 
-    where :math:`j` is an index over the normalization axis and :math:`i` is an
-    index over the remaining axis.
-
-    :obj:`eps` is used to avoid division by zero when norm of :math:`x` along
-    the given axis is zero.
+    :obj:`eps` is used to avoid division by zero when norm of
+    :math:`\\mathbf{x}` along the given axis is zero.
 
     The default value of :obj:`axis` is determined for backward compatibility.
 
