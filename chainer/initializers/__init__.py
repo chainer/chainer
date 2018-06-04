@@ -1,5 +1,7 @@
 import numpy
 
+import chainer
+
 # import classes and functions
 from chainer.initializers.constant import Constant
 from chainer.initializers.constant import Identity  # NOQA
@@ -21,8 +23,9 @@ def generate_array(initializer, shape, xp):
     """Return initialized array.
 
     The algorithms used to make the new values depend on the
-    concrete derived classes. The dtype of a generated array depends on
-    ``initializer.dtype``.
+    concrete derived classes. If the initializer has the ``dtype`` attribute,
+    it is used to construct the array. Otherwise, ``chainer.config.dtype`` is
+    used instead. See :ref:`configuration` for the dtype config.
 
     Args:
         initializer: A callable object that takes :class:`numpy.ndarray`
@@ -34,9 +37,7 @@ def generate_array(initializer, shape, xp):
         numpy.ndarray or cupy.ndarray: An initialized array.
 
     """
-    dtype = numpy.float32
-    if hasattr(initializer, 'dtype') and initializer.dtype is not None:
-        dtype = initializer.dtype
+    dtype = chainer.get_dtype(getattr(initializer, 'dtype', None))
     array = xp.empty(shape, dtype=dtype)
     initializer(array)
     return array

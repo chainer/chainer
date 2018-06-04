@@ -143,6 +143,12 @@ global_config.use_ideep = os.environ.get('CHAINER_USE_IDEEP', 'never')
 global_config.lazy_grad_sum = bool(int(
     os.environ.get('CHAINER_LAZY_GRAD_SUM', '0')))
 
+_chainer_dtype = os.environ.get('CHAINER_DTYPE', 'float32')
+if _chainer_dtype not in ('float16', 'float32', 'float64'):
+    raise TypeError('incorrect dtype name in CHAINER_DTYPE: "{}". '
+                    'Only float16/32/64 are allowed.'.format(_chainer_dtype))
+global_config.dtype = numpy.dtype(_chainer_dtype)
+
 
 def is_debug():
     """Returns if the debug mode is enabled or not in the current thread.
@@ -194,6 +200,19 @@ class DebugMode(object):
 
     def __exit__(self, *args):
         self._using.__exit__(*args)
+
+
+def get_dtype(dtype=None):
+    """Resolves Chainer's default dtype.
+
+    Returns:
+        If ``dtype`` is not ``None``, it returns the dtype as is. Otherwise, it
+        returns ``chainer.config.dtype`` (see :ref:`configuration`).
+
+    """
+    if dtype is None:
+        return config.dtype
+    return dtype
 
 
 basic_math.install_variable_arithmetics()

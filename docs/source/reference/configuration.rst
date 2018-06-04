@@ -35,6 +35,10 @@ Note that the default values are set in the global config.
    If it is ``True``, Chainer runs in the debug mode.
    See :ref:`debug` for more information of the debug mode.
    The default value is given by ``CHAINER_DEBUG`` environment variable (set to 0 or 1) if available, otherwise uses ``False``.
+``chainer.config.dtype``
+   Default floating point data type.
+   Chainer uses this dtype to construct arrays when the dtype is not specified (e.g. initializers).
+   The default valus is given by ``CHAINER_DTYPE`` environment variable if available, otherwise uses ``numpy.float32``.
 ``chainer.config.enable_backprop``
    Flag to enable backpropagation support.
    If it is ``True``, computational graphs are created during forward passes by :class:`FunctionNode`\\ s, allowing backpropagation to start from any :class:`Variable` in the graph.
@@ -163,6 +167,17 @@ There are two ways:
    chainer.using_config
    chainer.configuration.GlobalConfig
    chainer.configuration.LocalConfig
+
+
+Related functions
+~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.get_dtype
+
 
 Environment variables
 ~~~~~~~~~~~~~~~~~~~~~
