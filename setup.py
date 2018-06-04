@@ -124,7 +124,7 @@ exec(open(os.path.join(here, 'chainer', '_version.py')).read())
 
 setup(
     name='chainer',
-    version=__version__, # NOQA
+    version=__version__,  # NOQA
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
