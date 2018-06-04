@@ -237,9 +237,5 @@ class TestInvalidGetItem(unittest.TestCase):
         with self.assertRaises(ValueError):
             functions.get_item(self.x_data, (Ellipsis, Ellipsis))
 
-    def test_too_many_indices(self):
-        with self.assertRaises(type_check.InvalidType):
-            functions.get_item(self.x_data, (0, 0, 0, 0))
-
 
 testing.run_module(__name__, __file__)
