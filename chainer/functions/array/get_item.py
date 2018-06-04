@@ -32,9 +32,6 @@ class GetItem(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
-        n_nones = len([item for item in self.slices if item is None])
-        valid_slice = len(self.slices) - n_nones
-        type_check.expect(in_types[0].ndim >= valid_slice)
 
     def forward(self, xs):
         return utils.force_array(xs[0][self.slices]),
