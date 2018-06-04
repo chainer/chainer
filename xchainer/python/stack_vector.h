@@ -37,6 +37,7 @@ StackVector<T, Ndim> ToStackVector(pybind11::handle handle, size_t size) {
     } else if (py::isinstance<py::tuple>(handle)) {
         return ToStackVector<T, Ndim>(py::cast<py::tuple>(handle));
     }
+    // TODO(hvy): Extend with additional types as necessary.
     throw py::type_error{"Only py::int_ and py::tuple can be converted into a StackVector."};
 }
 
