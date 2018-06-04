@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import chainer
 import h5py
 import numpy as np
