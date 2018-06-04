@@ -330,7 +330,7 @@ class DictSummary(object):
             d (dict): Dictionary of scalars to accumulate. Only elements of
                scalars, zero-dimensional arrays, and variables of
                zero-dimensional arrays are accumulated. When the value
-               is a tuple, the second is interpreted as a weight.
+               is a tuple, the second element is interpreted as a weight.
 
         """
         summaries = self._summaries
@@ -342,7 +342,8 @@ class DictSummary(object):
                 if isinstance(w, variable.Variable):
                     w = w.data
                 if not numpy.isscalar(w) and not getattr(w, 'ndim', -1) == 0:
-                    w = 1
+                    raise ValueError(
+                        'Given weight to {} was not scalar.'.format(k))
             if isinstance(v, variable.Variable):
                 v = v.array
             if numpy.isscalar(v) or getattr(v, 'ndim', -1) == 0:
