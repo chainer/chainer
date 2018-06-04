@@ -422,8 +422,8 @@ void InitXchainerRoutines(pybind11::module& m) {
               return Conv(x_array,
                           Array{w},
                           b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
-                          ToStackVector<int64_t, kMaxNdim>(stride, ndim),
-                          ToStackVector<int64_t, kMaxNdim>(pad, ndim),
+                          ToStackVector<int64_t>(stride, ndim),
+                          ToStackVector<int64_t>(pad, ndim),
                           cover_all)
                       .move_body();
           },
