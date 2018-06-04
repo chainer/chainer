@@ -8,6 +8,7 @@
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
+#include "xchainer/error.h"
 #include "xchainer/routines/math.h"
 #include "xchainer/stack_vector.h"
 
@@ -72,6 +73,23 @@ Array Conv(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
+    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    if (w.ndim() != ndim + 2) {
+        throw DimensionError{"Mismatched number of dimensions between input ", x.ndim(), " and weights ", w.ndim(), "."};
+    }
+    if (static_cast<int8_t>(stride.size()) != ndim) {
+        throw DimensionError{"Wrong numbers of strides ", stride.size(), " for input with ", x.ndim(), " dimensions."};
+    }
+    if (static_cast<int8_t>(pad.size()) != ndim) {
+        throw DimensionError{"Wrong numbers of paddings ", pad.size(), " for input with ", x.ndim(), " dimensions."};
+    }
+    if (w.shape()[1] != x.shape()[1]) {
+        throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
+    }
+    if (b.has_value() && (b->ndim() != 1 || b->shape()[0] != w.shape()[0])) {
+        throw DimensionError{"Mismatched bias shape ", b->shape(), " for weights ", w.shape(), "."};
+    }
+
     Array out = x.device().Conv(x, w, b, stride, pad, cover_all);
     auto x_backward_function =
             [ x_shape = x.shape(), w, stride, pad ](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)->Array {
