@@ -1,5 +1,6 @@
 import collections
 import os
+import sys
 
 import numpy
 try:
@@ -336,7 +337,9 @@ def _max_pooling_2d(x):
 
 def _make_npz(path_npz, url, model):
     path_caffemodel = download.cached_download(url)
-    print('Now loading caffemodel (usually it may take few minutes)')
+    sys.stderr.write(
+        'Now loading caffemodel (usually it may take few minutes)\n')
+    sys.stderr.flush()
     VGG16Layers.convert_caffemodel_to_npz(path_caffemodel, path_npz)
     npz.load_npz(path_npz, model)
     return model

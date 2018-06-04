@@ -5,11 +5,12 @@ import tarfile
 import numpy
 import six.moves.cPickle as pickle
 
+import chainer
 from chainer.dataset import download
 from chainer.datasets import tuple_dataset
 
 
-def get_cifar10(withlabel=True, ndim=3, scale=1.):
+def get_cifar10(withlabel=True, ndim=3, scale=1., dtype=None):
     """Gets the CIFAR-10 dataset.
 
     `CIFAR-10 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ is a set of small
@@ -34,6 +35,8 @@ def get_cifar10(withlabel=True, ndim=3, scale=1.):
 
         scale (float): Pixel value scale. If it is 1 (default), pixels are
             scaled to the interval ``[0, 1]``.
+        dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
+            used by default (see :ref:`configuration`).
 
     Returns:
         A tuple of two datasets. If ``withlabel`` is ``True``, both datasets
@@ -41,10 +44,10 @@ def get_cifar10(withlabel=True, ndim=3, scale=1.):
         datasets are arrays of images.
 
     """
-    return _get_cifar('cifar-10', withlabel, ndim, scale)
+    return _get_cifar('cifar-10', withlabel, ndim, scale, dtype)
 
 
-def get_cifar100(withlabel=True, ndim=3, scale=1.):
+def get_cifar100(withlabel=True, ndim=3, scale=1., dtype=None):
     """Gets the CIFAR-100 dataset.
 
     `CIFAR-100 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ is a set of
@@ -69,6 +72,8 @@ def get_cifar100(withlabel=True, ndim=3, scale=1.):
 
         scale (float): Pixel value scale. If it is 1 (default), pixels are
             scaled to the interval ``[0, 1]``.
+        dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
+            used by default (see :ref:`configuration`).
 
     Returns:
         A tuple of two datasets. If ``withlabel`` is ``True``, both
@@ -76,10 +81,10 @@ def get_cifar100(withlabel=True, ndim=3, scale=1.):
         datasets are arrays of images.
 
     """
-    return _get_cifar('cifar-100', withlabel, ndim, scale)
+    return _get_cifar('cifar-100', withlabel, ndim, scale, dtype)
 
 
-def _get_cifar(name, withlabel, ndim, scale):
+def _get_cifar(name, withlabel, ndim, scale, dtype):
     root = download.get_dataset_directory(os.path.join('pfnet', 'chainer',
                                                        'cifar'))
     npz_path = os.path.join(root, '{}.npz'.format(name))
@@ -130,20 +135,21 @@ def _get_cifar(name, withlabel, ndim, scale):
 
     raw = download.cache_or_load_file(npz_path, creator, numpy.load)
     train = _preprocess_cifar(raw['train_x'], raw['train_y'], withlabel,
-                              ndim, scale)
+                              ndim, scale, dtype)
     test = _preprocess_cifar(raw['test_x'], raw['test_y'], withlabel, ndim,
-                             scale)
+                             scale, dtype)
     return train, test
 
 
-def _preprocess_cifar(images, labels, withlabel, ndim, scale):
+def _preprocess_cifar(images, labels, withlabel, ndim, scale, dtype):
     if ndim == 1:
         images = images.reshape(-1, 3072)
     elif ndim == 3:
         images = images.reshape(-1, 3, 32, 32)
     else:
         raise ValueError('invalid ndim for CIFAR dataset')
-    images = images.astype(numpy.float32)
+    dtype = chainer.get_dtype(dtype)
+    images = images.astype(dtype)
     images *= scale / 255.
 
     if withlabel:

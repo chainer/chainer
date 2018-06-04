@@ -72,7 +72,7 @@ class LayerNormalization(function_node.FunctionNode):
         g_inv_std = F.sum(g_x_hat * x_mu, axis=1, keepdims=True)
         g_x_mu_1 = g_x_hat * F.broadcast_to(inv_std, g_x_hat.shape)
 
-        g_std = g_inv_std * (- 1. / var)
+        g_std = g_inv_std * (- 1. / (var + self.eps))
         g_var = g_std * 0.5 * inv_std
 
         n_units = x.shape[1]

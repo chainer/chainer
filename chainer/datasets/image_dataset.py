@@ -13,6 +13,7 @@ import six
 import threading
 import zipfile
 
+import chainer
 from chainer.dataset import dataset_mixin
 
 
@@ -69,18 +70,19 @@ class ImageDataset(dataset_mixin.DatasetMixin):
             ``i``-th image. In both cases, each path is a relative one from the
             root path given by another argument.
         root (str): Root directory to retrieve images from.
-        dtype: Data type of resulting image arrays.
+        dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
+            used by default (see :ref:`configuration`).
 
     """
 
-    def __init__(self, paths, root='.', dtype=numpy.float32):
+    def __init__(self, paths, root='.', dtype=None):
         _check_pillow_availability()
         if isinstance(paths, six.string_types):
             with open(paths) as paths_file:
                 paths = [path.strip() for path in paths_file]
         self._paths = paths
         self._root = root
-        self._dtype = dtype
+        self._dtype = chainer.get_dtype(dtype)
 
     def __len__(self):
         return len(self._paths)
@@ -125,13 +127,13 @@ class LabeledImageDataset(dataset_mixin.DatasetMixin):
             each path is a relative one from the root path given by another
             argument.
         root (str): Root directory to retrieve images from.
-        dtype: Data type of resulting image arrays.
+        dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
+            used by default (see :ref:`configuration`).
         label_dtype: Data type of the labels.
 
     """
 
-    def __init__(self, pairs, root='.', dtype=numpy.float32,
-                 label_dtype=numpy.int32):
+    def __init__(self, pairs, root='.', dtype=None, label_dtype=numpy.int32):
         _check_pillow_availability()
         if isinstance(pairs, six.string_types):
             pairs_path = pairs
@@ -146,7 +148,7 @@ class LabeledImageDataset(dataset_mixin.DatasetMixin):
                     pairs.append((pair[0], int(pair[1])))
         self._pairs = pairs
         self._root = root
-        self._dtype = dtype
+        self._dtype = chainer.get_dtype(dtype)
         self._label_dtype = label_dtype
 
     def __len__(self):
@@ -172,10 +174,11 @@ class MultiZippedImageDataset(dataset_mixin.DatasetMixin):
 
     Args:
         zipfilenames (list of strings): List of zipped archive filename.
-        dtype: Data type of resulting image arrays.
+        dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
+            used by default (see :ref:`configuration`).
     """
 
-    def __init__(self, zipfilenames, dtype=numpy.float32):
+    def __init__(self, zipfilenames, dtype=None):
         self._zfs = [ZippedImageDataset(fn, dtype) for fn in zipfilenames]
         self._zpaths_accumlens = [0]
         zplen = 0
@@ -208,15 +211,16 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
 
     Args:
         zipfilename (str): a string to point zipfile path
-        dtype: Data type of resulting image arrays
+        dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
+            used by default (see :ref:`configuration`).
 
     """
 
-    def __init__(self, zipfilename, dtype=numpy.float32):
+    def __init__(self, zipfilename, dtype=None):
         self._zipfilename = zipfilename
         self._zf = zipfile.ZipFile(zipfilename)
         self._zf_pid = os.getpid()
-        self._dtype = dtype
+        self._dtype = chainer.get_dtype(dtype)
         self._paths = [x for x in self._zf.namelist() if not x.endswith('/')]
         self._lock = threading.Lock()
 

@@ -43,6 +43,13 @@ Configuration Keys
 
    You can change the default value to ``True`` by setting ``CHAINER_DEBUG`` environment variable to ``1``.
 
+* ``dtype`` (default: ``numpy.float32``)
+   Default floating point data type.
+
+   Chainer uses this dtype to construct arrays when the dtype is not specified (e.g. initializers).
+
+   You can change the default value by setting ``CHAINER_DEBUG`` environment variable to ``float16``, ``float32`` or ``float64``.
+
 * ``enable_backprop`` (default: ``True``)
    Flag to enable backpropagation support.
 
@@ -228,6 +235,16 @@ You can also make your own code behave differently in training and test modes as
    chainer.using_config
    chainer.configuration.GlobalConfig
    chainer.configuration.LocalConfig
+
+Related functions
+~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.get_dtype
+
 
 Environment Variables
 ---------------------
