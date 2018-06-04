@@ -127,7 +127,10 @@ See :doc:`reference/configuration` for detailed descriptions.
 
     Auto-tuner tries to find the best algorithm for every first observation of the input shape combination.
     Therefore, the first batch will become slower when auto-tuner is enabled.
-    The result of auto-tuner is cached so that it can be reused for data with the same input shape combination.
+    The result of auto-tuner is cached on memory so that it can be reused for data with the same input shape combination.
+    In other words, algorithm selected in the first batch will be reused for the second and later batches, as long as the input shape combination is the same.
+
+    If you set ``autotune`` configuration to ``False``, the default convolution algorithm will always be selected, regardless of the previous auto-tuner results.
 
 .. note::
 
