@@ -25,7 +25,9 @@ def _raise_timeout_error():
     raise multiprocessing.TimeoutError(
         'Stalled dataset is detected. '
         'See the documentation of MultiprocessIterator for common causes and '
-        'workarounds.')
+        'workarounds:\n'
+        'https://docs.chainer.org/en/stable/reference/generated/'
+        'chainer.iterators.MultiprocessIterator.html')
 
 
 class MultiprocessIterator(iterator.Iterator):
