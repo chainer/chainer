@@ -4,28 +4,36 @@ import numpy as np
 
 import model
 
-n_in = 784
-n_units = 100
-n_out = 10
 
-model = model.MLP(n_in, n_units, n_out)
+def save_parameters_as_npz(model, filename):
+    # Save the model as a NPZ file
+    chainer.serializers.save_npz(filename, model)
+    print('{} saved!\n'.format(filename))
 
-# Save the model as a NPZ file
-chainer.serializers.save_npz('model.npz', model)
 
-print('model.npz saved!\n')
+# Create a model object first
+model = model.MLP()
 
+# Save the model parameters into a NPZ file
+save_parameters_as_npz(model, 'model.npz')
+
+# Load the saved npz from NumPy and show the parameter shapes
 print('--- The list of saved params in model.npz ---')
 saved_params = np.load('model.npz')
 for param_key, param in saved_params.items():
     print(param_key, '\t:', param.shape)
 print('---------------------------------------------\n')
 
-# Save the model as a HDF5 archive
-chainer.serializers.save_hdf5('model.h5', model)
 
-print('model.h5 saved!')
+def save_parameters_as_hdf5(model, filename):
+    # Save the model as a HDF5 archive
+    chainer.serializers.save_hdf5(filename, model)
+    print('model.h5 saved!\n')
 
+# Save the model parameters into a HDF5 archive
+save_parameters_as_hdf5(model, 'model.h5')
+
+# Load the saved HDF5 using h5py
 print('--- The list of saved params in model.h5 ---')
 f = h5py.File('model.h5', 'r')
 for param_key, param in f.items():

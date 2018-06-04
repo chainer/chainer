@@ -6,7 +6,7 @@ import numpy as np
 
 class MLP(chainer.Chain):
 
-    def __init__(self, n_in, n_units, n_out):
+    def __init__(self, n_in=784, n_units=100, n_out=10):
         super(MLP, self).__init__()
         with self.init_scope():
             # the size of the inputs to each layer will be inferred
