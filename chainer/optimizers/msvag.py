@@ -126,9 +126,9 @@ class MSVAGRule(optimizer.UpdateRule):
                param -= eta * (lr * mt * factor +
                                weight_decay_rate * param);''',
             'msvag')(grad, hp.lr, 1 - hp.beta,
-                    hp.eta, hp.weight_decay_rate,
-                    self.beta_power, rho,
-                    param.data, self.state['m'], self.state['v'])
+                     hp.eta, hp.weight_decay_rate,
+                     self.beta_power, rho,
+                     param.data, self.state['m'], self.state['v'])
 
         self.beta_power *= hp.beta
 
