@@ -9,7 +9,6 @@ import six
 
 import chainer
 from chainer.backends import cuda
-from chainer.utils import argument
 
 
 _thread_local = threading.local()
