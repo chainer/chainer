@@ -32,12 +32,12 @@ Configuration Keys
    Flag to configure deterministic computations in cuDNN APIs.
 
    If it is ``True``, convolution functions that use cuDNN use the deterministic mode (i.e, the computation is reproducible).
-   Otherwise, the results of convolution functions using cuDNN may be non-deterministic in exchange for the performance.
+   Otherwise, the results of convolution functions using cuDNN may be non-deterministic in exchange for better performance.
 
 * ``debug`` (default: ``False``)
    Debug mode flag.
 
-   If it is ``True``, Chainer runs in the debug mode.
+   If it is ``True``, Chainer runs in debug mode.
    Enabling debug mode may introduce some performance overhead.
    See :ref:`debug` for more information of the debug mode.
 
@@ -197,7 +197,7 @@ For example, if you only want to enable debug mode in a fragment of code, write 
 .. doctest::
 
   >>> with chainer.using_config('debug', True):
-  ...     pass  # code running in the debug mode
+  ...     pass  # code running in debug mode
 
 If you want to switch to the test mode for an evaluation, you can do that in the same way.
 
