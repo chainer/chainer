@@ -58,15 +58,16 @@ class TestL2Normalization(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         if self.nonzeros is not None:
-            indices = numpy.array(self.x.nonzero()).T
-            numpy.random.shuffle(indices)
-            indices = tuple(indices[self.nonzeros:].T)
+            if self.nonzeros >= self.x.size:
+                raise unittest.SkipTest('')
+            rand = numpy.random.uniform(0, 1, self.shape)
+            mask = rand < numpy.sort(rand.ravel())[self.nonzeros]
             if self.truezero:
-                self.x[indices] = 0
+                self.x[mask] = 0
             else:
-                n_indices, = indices[0].shape
+                n_indices, = self.x[mask].shape
                 zero_scale = 10. ** numpy.random.randint(-40, -3)
-                self.x[indices] = numpy.random.uniform(
+                self.x[mask] = numpy.random.uniform(
                     -zero_scale, zero_scale, n_indices)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         self.ggx = numpy.random.uniform(

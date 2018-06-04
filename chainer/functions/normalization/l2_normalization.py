@@ -9,20 +9,20 @@ from chainer.utils import type_check
 
 class _WhereIndices(function_node.FunctionNode):
 
-    def __init__(self, shape, indices):
+    def __init__(self, shape, mask):
         self.shape = shape
-        self.indices = indices
+        self.mask = mask
 
     def forward(self, inputs):
         x, = inputs
         xp = cuda.get_array_module(x)
         y = xp.zeros(self.shape, x.dtype)
-        y[self.indices] = x
+        y[self.mask] = x
         return y,
 
     def backward(self, indices, grad_outputs):
         g, = grad_outputs
-        return g[self.indices],
+        return g[self.mask],
 
 
 def _where_indices(shape_and_indices, values):
@@ -67,10 +67,10 @@ class NormalizeL2(function_node.FunctionNode):
         norm = F.broadcast_to(norm, gy.shape)
 
         x_gy_reduced = F.sum((x * gy), axis=self.axis, keepdims=True)
-        nonzero_indices = norm_noeps.array.nonzero()
+        mask = norm_noeps.array != 0
         x_gy_reduced = _where_indices(
-            (norm_noeps.shape, nonzero_indices),
-            x_gy_reduced[nonzero_indices] / norm_noeps[nonzero_indices],
+            (norm_noeps.shape, mask),
+            x_gy_reduced[mask] / norm_noeps[mask],
         )
         x_gy_reduced = F.broadcast_to(x_gy_reduced, gy.shape)
         gx = gy * norm - x_gy_reduced * x
