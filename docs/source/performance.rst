@@ -1,17 +1,17 @@
 Performance Best Practices
 ==========================
 
-This is a guide to maximize the performance of Chainer.
+This guide explains some tips and advice for maximizing the performance of Chainer.
 
 
 Use the Latest Version
 ----------------------
 
 It is generally recommended to use the latest version of Chainer and its dependent libraries (CUDA, cuDNN, iDeep, etc.).
-Part of new features and performance optimizations introduced in newer versions of dependent libraries may not be available in older versions of Chainer.
+Some of the new features and performance optimizations introduced in newer versions of dependent libraries may not be available in older versions of Chainer.
 Also, Chainer itself is incrementally being improved to provide better performance.
 
-If you are using Chainer v4 or later, you can check version configuration by:
+If you are using Chainer v4 or later, you can check the version configuration by:
 
 .. testcode::
 
@@ -36,7 +36,7 @@ If you are using Chainer v4 or later, you can check version configuration by:
       cuDNN Version         : 7100
       NCCL Build Version    : 2102
 
-Generally, Chainer team is maintaining the API between minor updates (e.g., v4.0 to v4.1) so that users can upgrade Chainer without modifying the code (see :doc:`compatibility` for our policy).
+Generally, the Chainer team is maintaining the API between minor updates (e.g., v4.0 to v4.1) so that users can upgrade Chainer without modifying their code (see :doc:`compatibility` for our policy).
 As for major updates, please refer to the :doc:`upgrade` to understand what should be done for migration.
 
 Enable Hardware Accelerations
@@ -118,7 +118,7 @@ Maximum required workspace size may vary depending on various conditions such as
 Auto-Tuner
 ~~~~~~~~~~
 
-Some convolution algorithms in cuDNN support auto-tuner feature that finds the fastest convolution algorithm for given inputs.
+Some convolution algorithms in cuDNN support the auto-tuner feature that finds the fastest convolution algorithm for given inputs.
 You can turn on this feature by setting ``autotune`` configuration to ``True``.
 
 See :doc:`reference/configuration` for detailed descriptions.
