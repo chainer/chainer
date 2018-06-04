@@ -183,7 +183,7 @@ CudnnContext::~CudnnContext() {
 }
 
 void CudnnContext::BatchNormalizationForwardTraining(
-        BatchNormMode mode,
+        cudnnBatchNormMode_t mode,
         const Array& x,
         const Array& y,
         const Array& scale,
