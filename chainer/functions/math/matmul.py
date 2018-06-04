@@ -116,7 +116,7 @@ class MatMul(function_node.FunctionNode):
         if self.dtype is not None:
             dtype = self.dtype
         else:
-            dtype = a.dtype
+            dtype = y.dtype
         return utils.force_array(y, dtype),
 
     def backward(self, indexes, grad_outputs):
