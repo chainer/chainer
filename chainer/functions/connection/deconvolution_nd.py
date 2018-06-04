@@ -159,16 +159,6 @@ class DeconvolutionND(function_node.FunctionNode):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        if not type_check.same_types(*inputs):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
-
         if self.outs is None:
             dims = x.shape[2:]
             ksize = W.shape[2:]
@@ -395,13 +385,15 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         >>> d1, d2, d3 = 5, 10, 15
         >>> k1, k2, k3 = 10, 10, 10
         >>> p1, p2, p3 = 5, 5, 5
-        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).astype('f')
+        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).\
+astype(np.float32)
         >>> x.shape
         (10, 3, 5, 10, 15)
-        >>> W = np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).astype('f')
+        >>> W = np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).\
+astype(np.float32)
         >>> W.shape
         (3, 1, 10, 10, 10)
-        >>> b = np.random.uniform(0, 1, (c_o)).astype('f')
+        >>> b = np.random.uniform(0, 1, (c_o)).astype(np.float32)
         >>> b.shape
         (1,)
         >>> s1, s2, s3 = 2, 4, 6
@@ -422,13 +414,15 @@ pad=(p1, p2, p3))
         >>> d1, d2, d3 = 5, 10, 15
         >>> k1, k2, k3 = 10, 10, 10
         >>> p1, p2, p3 = 5, 5, 5
-        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).astype('f')
+        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).\
+astype(np.float32)
         >>> x.shape
         (10, 3, 5, 10, 15)
-        >>> W = np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).astype('f')
+        >>> W = np.random.uniform(0, 1, (c_i, c_o, k1, k2, k3)).\
+astype(np.float32)
         >>> W.shape
         (3, 1, 10, 10, 10)
-        >>> b = np.random.uniform(0, 1, (c_o)).astype('f')
+        >>> b = np.random.uniform(0, 1, (c_o)).astype(np.float32)
         >>> b.shape
         (1,)
         >>> s1, s2, s3 = 2, 4, 6

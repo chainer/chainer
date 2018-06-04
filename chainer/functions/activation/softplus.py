@@ -1,9 +1,8 @@
 import numpy
 
-import chainer.functions
-
 from chainer.backends import cuda
 from chainer import function_node
+import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
 
@@ -80,11 +79,11 @@ class SoftplusGrad(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x, gy = self.get_retained_inputs()
-        g, = grad_outputs
+        ggx, = grad_outputs
         e = chainer.functions.exp(self.beta * x)
-        ggx = g * gy * self.beta * e / (1 + e) ** 2
-        ggy = SoftplusGrad((self.beta,)).apply((x, g))[0]
-        return ggx, ggy
+        gx = ggx * gy * self.beta * e / (1 + e) ** 2
+        ggy = SoftplusGrad((self.beta,)).apply((x, ggx))[0]
+        return gx, ggy
 
 
 def softplus(x, beta=1.0):
@@ -109,7 +108,7 @@ def softplus(x, beta=1.0):
 
     .. admonition:: Example
 
-        >>> x = np.arange(-2, 3, 2).astype('f')
+        >>> x = np.arange(-2, 3, 2).astype(np.float32)
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
         >>> F.softplus(x, beta=1.0).data

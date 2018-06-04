@@ -1,5 +1,4 @@
 import numpy
-
 from six import moves
 
 import chainer
@@ -155,16 +154,6 @@ class ConvolutionND(function_node.FunctionNode):
         self.retain_inputs((0, 1))  # retain only x and W
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
-
-        if not type_check.same_types(*inputs):
-            if b is not None:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}, type(b): {2}'
-                                 .format(type(W), type(x), type(b)))
-            else:
-                raise ValueError('numpy and cupy must not be used together\n'
-                                 'type(W): {0}, type(x): {1}'
-                                 .format(type(W), type(x)))
 
         xp = cuda.get_array_module(*inputs)
         if xp is numpy:
@@ -420,13 +409,15 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False):
         >>> d1, d2, d3 = 30, 40, 50
         >>> k1, k2, k3 = 10, 10, 10
         >>> p1, p2, p3 = 5, 5, 5
-        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).astype('f')
+        >>> x = np.random.uniform(0, 1, (n, c_i, d1, d2, d3)).\
+astype(np.float32)
         >>> x.shape
         (10, 3, 30, 40, 50)
-        >>> W = np.random.uniform(0, 1, (c_o, c_i, k1, k2, k3)).astype('f')
+        >>> W = np.random.uniform(0, 1, (c_o, c_i, k1, k2, k3)).\
+astype(np.float32)
         >>> W.shape
         (1, 3, 10, 10, 10)
-        >>> b = np.random.uniform(0, 1, (c_o)).astype('f')
+        >>> b = np.random.uniform(0, 1, (c_o)).astype(np.float32)
         >>> b.shape
         (1,)
         >>> s1, s2, s3 = 2, 4, 6

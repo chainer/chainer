@@ -8,4 +8,4 @@ RUN apt-get update -y && \
     python-setuptools && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-RUN pip install cupy==4.0.0b3 chainer==4.0.0b3
+RUN pip install cupy-cuda80==4.0.0b4 chainer==4.0.0b4

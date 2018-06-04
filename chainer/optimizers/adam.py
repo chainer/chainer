@@ -1,7 +1,7 @@
 from __future__ import division
 import math
 
-import numpy as np
+import numpy
 
 from chainer.backends import cuda
 from chainer import optimizer
@@ -14,6 +14,7 @@ _default_hyperparam.beta2 = 0.999
 _default_hyperparam.eps = 1e-8
 _default_hyperparam.eta = 1.0
 _default_hyperparam.weight_decay_rate = 0
+_default_hyperparam.amsgrad = False
 
 
 def _learning_rate(hp, t):
@@ -31,12 +32,17 @@ class AdamRule(optimizer.UpdateRule):
     """Update rule of Adam optimization algorithm.
 
     See: `Adam: A Method for Stochastic Optimization \
-          <http://arxiv.org/abs/1412.6980v8>`_
+          <https://arxiv.org/abs/1412.6980v8>`_
 
     Modified for proper weight decay.
 
     See: `Fixing Weight Decay Regularization in Adam \
           <https://openreview.net/forum?id=rk6qdGgCZ>`_
+
+    With option to use AMSGrad variant of Adam.
+
+    See: `On the Convergence of Adam and Beyond \
+          <https://openreview.net/forum?id=ryQu7f-RZ>`_
 
     See :class:`~chainer.optimizers.Adam` for the default values
     of the hyperparameters.
@@ -50,12 +56,13 @@ class AdamRule(optimizer.UpdateRule):
         eps (float): Small value for the numerical stability.
         eta (float): Schedule multiplier, can be used for warm restarts.
         weight_decay_rate (float): Weight decay rate.
+        amsgrad (bool): Whether to use the AMSGrad variant of Adam.
 
     """
 
     def __init__(self, parent_hyperparam=None,
                  alpha=None, beta1=None, beta2=None, eps=None,
-                 eta=None, weight_decay_rate=None):
+                 eta=None, weight_decay_rate=None, amsgrad=None):
         super(AdamRule, self).__init__(
             parent_hyperparam or _default_hyperparam)
         if alpha is not None:
@@ -70,12 +77,16 @@ class AdamRule(optimizer.UpdateRule):
             self.hyperparam.eta = eta
         if weight_decay_rate is not None:
             self.hyperparam.weight_decay_rate = weight_decay_rate
+        if amsgrad is not None:
+            self.hyperparam.amsgrad = amsgrad
 
     def init_state(self, param):
         xp = cuda.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['m'] = xp.zeros_like(param.data)
             self.state['v'] = xp.zeros_like(param.data)
+            if self.hyperparam.amsgrad:
+                self.state['vhat'] = xp.zeros_like(param.data)
 
     def update_core_cpu(self, param):
         grad = param.grad
@@ -91,7 +102,13 @@ class AdamRule(optimizer.UpdateRule):
 
         m += (1 - hp.beta1) * (grad - m)
         v += (1 - hp.beta2) * (grad * grad - v)
-        param.data -= hp.eta * (self.lr * m / (np.sqrt(v) + hp.eps) +
+
+        if hp.amsgrad:
+            vhat = self.state['vhat']
+            numpy.maximum(vhat, v, out=vhat)
+        else:
+            vhat = v
+        param.data -= hp.eta * (self.lr * m / (numpy.sqrt(vhat) + hp.eps) +
                                 hp.weight_decay_rate * param.data)
 
     def update_core_gpu(self, param):
@@ -105,18 +122,34 @@ class AdamRule(optimizer.UpdateRule):
             raise ValueError(
                 'eps of Adam optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
-        cuda.elementwise(
-            'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, T eta, \
-             T weight_decay_rate',
-            'T param, T m, T v',
-            '''m += one_minus_beta1 * (grad - m);
-               v += one_minus_beta2 * (grad * grad - v);
-               param -= eta * (lr * m / (sqrt(v) + eps) +
-                               weight_decay_rate * param);''',
-            'adam')(grad, self.lr, 1 - hp.beta1,
-                    1 - hp.beta2, hp.eps,
-                    hp.eta, hp.weight_decay_rate,
-                    param.data, self.state['m'], self.state['v'])
+        if hp.amsgrad:
+            cuda.elementwise(
+                'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, \
+                 T eta, T weight_decay_rate',
+                'T param, T m, T v, T vhat',
+                '''m += one_minus_beta1 * (grad - m);
+                   v += one_minus_beta2 * (grad * grad - v);
+                   vhat = max(vhat, v);
+                   param -= eta * (lr * m / (sqrt(vhat) + eps) +
+                                   weight_decay_rate * param);''',
+                'adam')(grad, self.lr, 1 - hp.beta1,
+                        1 - hp.beta2, hp.eps,
+                        hp.eta, hp.weight_decay_rate,
+                        param.data, self.state['m'], self.state['v'],
+                        self.state['vhat'])
+        else:
+            cuda.elementwise(
+                'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, \
+                 T eta, T weight_decay_rate',
+                'T param, T m, T v',
+                '''m += one_minus_beta1 * (grad - m);
+                   v += one_minus_beta2 * (grad * grad - v);
+                   param -= eta * (lr * m / (sqrt(v) + eps) +
+                                   weight_decay_rate * param);''',
+                'adam')(grad, self.lr, 1 - hp.beta1,
+                        1 - hp.beta2, hp.eps,
+                        hp.eta, hp.weight_decay_rate,
+                        param.data, self.state['m'], self.state['v'])
 
     @property
     def lr(self):
@@ -128,7 +161,7 @@ class Adam(optimizer.GradientMethod):
     """Adam optimizer.
 
     See: `Adam: A Method for Stochastic Optimization \
-          <http://arxiv.org/abs/1412.6980v8>`_
+          <https://arxiv.org/abs/1412.6980v8>`_
 
     Modified for proper weight decay (also called AdamW).
     AdamW introduces the additional parameters ``eta``
@@ -143,6 +176,10 @@ class Adam(optimizer.GradientMethod):
     See: `Fixing Weight Decay Regularization in Adam \
           <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
+    A flag ``amsgrad`` to use the AMSGrad variant of Adam from
+    the paper: `On the Convergence of Adam and Beyond \
+               <https://openreview.net/forum?id=ryQu7f-RZ>`_
+
     Args:
         alpha (float): Step size.
         beta1 (float): Exponential decay rate of the first order moment.
@@ -150,6 +187,7 @@ class Adam(optimizer.GradientMethod):
         eps (float): Small value for the numerical stability.
         eta (float): Schedule multiplier, can be used for warm restarts.
         weight_decay_rate (float): Weight decay rate.
+        amsgrad (bool): Whether to use AMSGrad variant of Adam.
 
     """
 
@@ -159,7 +197,8 @@ class Adam(optimizer.GradientMethod):
                  beta2=_default_hyperparam.beta2,
                  eps=_default_hyperparam.eps,
                  eta=_default_hyperparam.eta,
-                 weight_decay_rate=_default_hyperparam.weight_decay_rate):
+                 weight_decay_rate=_default_hyperparam.weight_decay_rate,
+                 amsgrad=_default_hyperparam.amsgrad):
         super(Adam, self).__init__()
         self.hyperparam.alpha = alpha
         self.hyperparam.beta1 = beta1
@@ -167,6 +206,7 @@ class Adam(optimizer.GradientMethod):
         self.hyperparam.eps = eps
         self.hyperparam.eta = eta
         self.hyperparam.weight_decay_rate = weight_decay_rate
+        self.hyperparam.amsgrad = amsgrad
 
     alpha = optimizer.HyperparameterProxy('alpha')
     beta1 = optimizer.HyperparameterProxy('beta1')
@@ -174,6 +214,7 @@ class Adam(optimizer.GradientMethod):
     eps = optimizer.HyperparameterProxy('eps')
     eta = optimizer.HyperparameterProxy('eta')
     weight_decay_rate = optimizer.HyperparameterProxy('weight_decay_rate')
+    amsgrad = optimizer.HyperparameterProxy('amsgrad')
 
     def create_update_rule(self):
         return AdamRule(self.hyperparam)

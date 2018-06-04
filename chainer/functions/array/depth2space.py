@@ -67,7 +67,7 @@ def depth2space(X, r):
 
     .. admonition:: Example
 
-        >>> X = np.arange(24).reshape(1, 4, 2, 3).astype('f')
+        >>> X = np.arange(24).reshape(1, 4, 2, 3).astype(np.float32)
         >>> X.shape
         (1, 4, 2, 3)
         >>> X

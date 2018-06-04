@@ -60,9 +60,9 @@ class BatchL2NormSquaredGrad(function_node.FunctionNode):
         x, gy0 = self.get_retained_inputs()
         gy0 = gy0.reshape(-1, *((1,) * (x.ndim - 1)))
         gy0 = chainer.functions.broadcast_to(gy0, x.shape)
-        gg2 = 2 * grad_outputs[0]
-        gx = gg2 * gy0
-        ggy0 = gg2 * x
+        ggx2 = 2 * grad_outputs[0]
+        gx = ggx2 * gy0
+        ggy0 = ggx2 * x
         return gx, _sum.sum(ggy0, axis=tuple(six.moves.range(1, ggy0.ndim)))
 
 

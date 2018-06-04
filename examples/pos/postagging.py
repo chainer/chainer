@@ -25,7 +25,7 @@ class CRF(chainer.Chain):
     def __call__(self, xs, ys):
         # Before making a transpose, you need to sort two lists in descending
         # order of length.
-        inds = numpy.argsort([-len(x) for x in xs]).astype('i')
+        inds = numpy.argsort([-len(x) for x in xs]).astype(numpy.int32)
         xs = [xs[i] for i in inds]
         ys = [ys[i] for i in inds]
 
@@ -85,8 +85,8 @@ def main():
     nltk.download('brown')
     data = []
     for sentence in nltk.corpus.brown.tagged_sents():
-        xs = numpy.array([vocab[lex] for lex, _ in sentence], 'i')
-        ys = numpy.array([pos_vocab[pos] for _, pos in sentence], 'i')
+        xs = numpy.array([vocab[lex] for lex, _ in sentence], numpy.int32)
+        ys = numpy.array([pos_vocab[pos] for _, pos in sentence], numpy.int32)
         data.append((xs, ys))
 
     print('# of sentences: {}'.format(len(data)))
@@ -95,7 +95,7 @@ def main():
 
     model = CRF(len(vocab), len(pos_vocab))
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
+        chainer.backends.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
