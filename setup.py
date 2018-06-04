@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import imp
 import os
 import pkg_resources
 import sys
@@ -125,7 +124,7 @@ exec(open(os.path.join(here, 'chainer', '_version.py')).read())
 
 setup(
     name='chainer',
-    version=__version__,
+    version=__version__, # NOQA
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
