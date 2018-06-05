@@ -234,8 +234,9 @@ class TestEvaluatorRepeat(unittest.TestCase):
     def test_user_warning(self):
         dataset = numpy.ones((4, 6))
         iterator = self.iterator_class(dataset, 2, repeat=self.repeat)
-        with testing.assert_warns(UserWarning):
-            extensions.Evaluator(iterator, {})
+        if self.repeat:
+            with testing.assert_warns(UserWarning):
+                extensions.Evaluator(iterator, {})
 
 
 testing.run_module(__name__, __file__)
