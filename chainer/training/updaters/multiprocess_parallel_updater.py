@@ -169,6 +169,12 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             main = devices.pop('main')
             devices = list(six.itervalues(devices))
             devices = [main] + devices
+        elif isinstance(devices, (list, tuple)):
+            devices = list(devices)
+        else:
+            raise ValueError(
+                'devices argument should be either dict, list or tuple,'
+                ' but {} was given.'.format(type(devices)))
         if devices is None or any(device is None for device in devices):
             raise ValueError('must specify GPU devices')
 
