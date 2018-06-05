@@ -124,8 +124,6 @@ class TestGetItem(unittest.TestCase):
         'sliced_shape': (4, 2, 2)},
     {'slices': numpy.array([False, False, False, False]),
         'sliced_shape': (0, 3, 2)},
-    {'slices': (numpy.array(True), 3, slice(None), 1),
-     'sliced_shape': (1, 3)},
     {'slices': (3, 2, Ellipsis, 1),
      'sliced_shape': ()},
 )
