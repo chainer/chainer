@@ -10,7 +10,8 @@ import numpy as np
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+from chainer.backends import intel64
 import chainer.functions as F
 from chainer import initializers
 from chainer import testing
@@ -63,9 +64,16 @@ class TestVariable(unittest.TestCase):
         a = self.x
         if gpu:
             a = cuda.to_gpu(a)
+            xp = cuda.cupy
+        else:
+            xp = np
         x = chainer.Variable(a)
-        self.assertIs(x.data, a)
-        self.assertIs(x.array, a)
+        if isinstance(self.x, np.ndarray):
+            self.assertIs(x.data, a)
+            self.assertIs(x.array, a)
+        self.assertIsInstance(x.data, xp.ndarray)
+        self.assertIsInstance(x.array, xp.ndarray)
+        self.assertIs(x.data, x.array)
         self.assertEqual(x.shape, self.x.shape)
         self.assertEqual(x.ndim, self.x.ndim)
         self.assertEqual(x.size, self.x.size)
@@ -79,6 +87,10 @@ class TestVariable(unittest.TestCase):
     @attr.gpu
     def test_attributes_gpu(self):
         self.check_attributes(True)
+
+    def test_uninitialized(self):
+        a = chainer.Variable(None)
+        assert a.xp is np
 
     def check_grad(self, x, xp):
         g = xp.array(x)
@@ -321,7 +333,7 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(np.empty((3,), dtype=np.float32))
         a.grad = np.ndarray((3,), dtype=np.float32)
 
-    def test_grad_type_check_type(self):
+    def test_grad_type_check_pass_type(self):
         a = chainer.Variable(np.empty((), dtype=np.float32))
         with self.assertRaises(TypeError):
             a.grad = np.float32()
@@ -358,8 +370,10 @@ class TestVariable(unittest.TestCase):
     @attr.gpu
     def test_to_cpu(self):
         a = chainer.Variable(cuda.cupy.zeros(3, dtype=np.float32))
+        assert a.xp is cuda.cupy
         a.grad = cuda.cupy.ones_like(a.data)
         a.to_cpu()
+        assert a.xp is np
         np.testing.assert_array_equal(a.data, np.zeros(3, dtype=np.float32))
         np.testing.assert_array_equal(a.grad, np.ones(3, dtype=np.float32))
 
@@ -382,8 +396,10 @@ class TestVariable(unittest.TestCase):
     def test_to_gpu(self):
         cp = cuda.cupy
         a = chainer.Variable(np.zeros(3, dtype=np.float32))
+        assert a.xp is np
         a.grad = np.ones(3, dtype=np.float32)
         a.to_gpu()
+        assert a.xp is cuda.cupy
         cp.testing.assert_array_equal(a.data, cp.zeros(3, dtype=np.float32))
         cp.testing.assert_array_equal(a.grad, cp.ones(3, dtype=np.float32))
 
@@ -737,6 +753,24 @@ class TestVariableDataAssign(unittest.TestCase):
         assert x.node.data.shape == (2, 4)
         assert x.node.data.dtype == np.float64
 
+    @attr.gpu
+    def test_to_gpu(self):
+        x = chainer.Variable(np.ones((3, 2), np.float32))
+        chainer.functions.sin(x)
+        x.to_gpu()
+        assert x.data is x.node.data
+        x.to_cpu()
+        assert x.data is x.node.data
+
+    @attr.ideep
+    def test_to_intel64(self):
+        x = chainer.Variable(np.ones((3, 2), np.float32))
+        chainer.functions.sin(x)
+        x.to_intel64()
+        assert x.data is x.node.data
+        x.to_cpu()
+        assert x.data is x.node.data
+
 
 class TestParameter(unittest.TestCase):
 
@@ -745,7 +779,7 @@ class TestParameter(unittest.TestCase):
 
     def test_initializer(self):
         x = chainer.Parameter(shape=(1,))
-        self.assertIsNone(x.initializer)
+        self.assertIsNotNone(x.initializer)
 
     def test_initialize_by_scalar(self):
         x = chainer.Parameter(2., (3,))
@@ -846,6 +880,16 @@ class TestUninitializedParameter(unittest.TestCase):
         x.to_gpu()
         x.to_cpu()
         self.check_constant_initialization(x, self.a, np)
+
+    @attr.ideep
+    def test_initialize_to_intel64(self):
+        x = chainer.Parameter(initializer=initializers.Constant(self.a))
+        assert x.data is None
+        x.to_intel64()
+        x.initialize(self.a.shape)
+        assert isinstance(x.data, intel64.mdarray)
+        np.testing.assert_array_equal(x.data, self.a)
+        np.testing.assert_array_equal(x.grad, np.float32('nan'))
 
     def test_copy_to_initialize(self):
         # This test intends the use case of link.copy() method.
@@ -1323,22 +1367,7 @@ class TestTranspose(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x))
 
 
-@testing.parameterize(
-    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
-     'str': 'variable(None)'},
-    {'x_shape': (2, 2,), 'dtype': np.float16,
-     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
-     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (2, 2,), 'dtype': np.float32,
-     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
-     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (2, 2,), 'dtype': np.float64,
-     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
-     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (3,),  'dtype': np.float32,
-     'repr': 'variable([ 0.,  1.,  2.])', 'str': 'variable([ 0.  1.  2.])'},
-)
-class TestUnnamedVariableToString(unittest.TestCase):
+class UnnamedVariableToStringTestBase(object):
 
     def setUp(self):
         if self.x_shape is None:
@@ -1364,6 +1393,50 @@ class TestUnnamedVariableToString(unittest.TestCase):
     def test_str_gpu(self):
         self.x.to_gpu()
         self.assertEqual(str(self.x), self.str)
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
+     'str': 'variable(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float16,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float64,
+     'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
+     'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
+    {'x_shape': (3,),  'dtype': np.float32,
+     'repr': 'variable([ 0.,  1.,  2.])', 'str': 'variable([ 0.  1.  2.])'},
+)
+@testing.with_requires('numpy<1.14')
+class TestUnnamedVariableToStringLegacy(
+        UnnamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.13 or earlier.
+    pass
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
+     'str': 'variable(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float16,
+     'repr': 'variable([[0., 1.],\n          [2., 3.]])',
+     'str': 'variable([[0. 1.]\n          [2. 3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable([[0., 1.],\n          [2., 3.]])',
+     'str': 'variable([[0. 1.]\n          [2. 3.]])'},
+    {'x_shape': (2, 2,), 'dtype': np.float64,
+     'repr': 'variable([[0., 1.],\n          [2., 3.]])',
+     'str': 'variable([[0. 1.]\n          [2. 3.]])'},
+    {'x_shape': (3,),  'dtype': np.float32,
+     'repr': 'variable([0., 1., 2.])', 'str': 'variable([0. 1. 2.])'},
+)
+@testing.with_requires('numpy>=1.14')
+class TestUnnamedVariableToStringModern(
+        UnnamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.14 or later.
+    pass
 
 
 class TestUnnamedVariableDim2Size0ToString(unittest.TestCase):
@@ -1396,16 +1469,7 @@ class TestUnnamedVariableDim2Size0ToString(unittest.TestCase):
         self.assertEqual(str(self.x), self.str)
 
 
-@testing.parameterize(
-    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
-     'str': 'variable x(None)'},
-    {'x_shape': (2, 2,), 'dtype': np.float32,
-     'repr': 'variable x([[ 0.,  1.],\n            [ 2.,  3.]])',
-     'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
-    {'x_shape': (), 'dtype': np.float32,
-     'repr': 'variable x(0.0)', 'str': 'variable x(0.0)'},
-)
-class TestNamedVariableToString(unittest.TestCase):
+class NamedVariableToStringTestBase(object):
 
     def setUp(self):
         if self.x_shape is None:
@@ -1431,6 +1495,38 @@ class TestNamedVariableToString(unittest.TestCase):
     def test_str_gpu(self):
         self.x.to_gpu()
         self.assertEqual(str(self.x), self.str)
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
+     'str': 'variable x(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable x([[ 0.,  1.],\n            [ 2.,  3.]])',
+     'str': 'variable x([[ 0.  1.]\n            [ 2.  3.]])'},
+    {'x_shape': (), 'dtype': np.float32,
+     'repr': 'variable x(0.0)', 'str': 'variable x(0.0)'},
+)
+@testing.with_requires('numpy<1.14')
+class TestNamedVariableToStringLegacy(
+        NamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.13 or earlier.
+    pass
+
+
+@testing.parameterize(
+    {'x_shape': None, 'dtype': None, 'repr': 'variable x(None)',
+     'str': 'variable x(None)'},
+    {'x_shape': (2, 2,), 'dtype': np.float32,
+     'repr': 'variable x([[0., 1.],\n            [2., 3.]])',
+     'str': 'variable x([[0. 1.]\n            [2. 3.]])'},
+    {'x_shape': (), 'dtype': np.float32,
+     'repr': 'variable x(0.)', 'str': 'variable x(0.)'},
+)
+@testing.with_requires('numpy>=1.14')
+class TestNamedVariableToStringModern(
+        NamedVariableToStringTestBase, unittest.TestCase):
+    # Textual representation of arrays in NumPy 1.14 or later.
+    pass
 
 
 class TestNamedVariableDim2Size0ToString(unittest.TestCase):
@@ -1475,7 +1571,7 @@ class IdentityFunction(chainer.Function):
 class TestVariableDoubleBackward(unittest.TestCase):
 
     def test_default_backward(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.empty((), np.float32))
         y = F.identity(x)
         y.backward()
         self.assertIsNone(x.grad_var.creator)
@@ -1483,9 +1579,54 @@ class TestVariableDoubleBackward(unittest.TestCase):
         self.assertIsNone(y.grad_var.grad_var)
 
     def test_raise_double_backprop(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.empty((), np.float32))
         y = IdentityFunction()(x)
         y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            x.grad_var.backward()
+
+    def test_raise_double_backprop_2(self):
+        x = chainer.Variable(np.empty((), np.float32))
+        z = F.identity(x)  # new style
+        y = IdentityFunction()(z)  # old style
+        y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            x.grad_var.backward()
+
+    def test_grad_raise_double_backprop(self):
+        x = chainer.Variable(np.empty((), np.float32))
+        y = IdentityFunction()(x)
+        y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            chainer.grad([x.grad_var], [y.grad_var])
+
+    def test_grad_raise_double_backprop_2(self):
+        x = chainer.Variable(np.empty((), np.float32))
+        z = F.identity(x)  # new style
+        y = IdentityFunction()(z)  # old style
+        y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            chainer.grad([x.grad_var], [y.grad_var])
+
+
+class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
+    # Tests for old-styled (1-element array) scalar.
+    # See: https://github.com/chainer/chainer/pull/4199
+
+    def test_default_backward(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        y = F.identity(x)
+        with testing.assert_warns(DeprecationWarning):
+            y.backward()
+        self.assertIsNone(x.grad_var.creator)
+        x.grad_var.backward()
+        self.assertIsNone(y.grad_var.grad_var)
+
+    def test_raise_double_backprop(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        y = IdentityFunction()(x)
+        with testing.assert_warns(DeprecationWarning):
+            y.backward(enable_double_backprop=True)
         with self.assertRaises(RuntimeError):
             x.grad_var.backward()
 
@@ -1493,9 +1634,27 @@ class TestVariableDoubleBackward(unittest.TestCase):
         x = chainer.Variable(np.empty(1, np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
-        y.backward(enable_double_backprop=True)
+        with testing.assert_warns(DeprecationWarning):
+            y.backward(enable_double_backprop=True)
         with self.assertRaises(RuntimeError):
             x.grad_var.backward()
+
+    def test_grad_raise_double_backprop(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        y = IdentityFunction()(x)
+        with testing.assert_warns(DeprecationWarning):
+            y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            chainer.grad([x.grad_var], [y.grad_var])
+
+    def test_grad_raise_double_backprop_2(self):
+        x = chainer.Variable(np.empty(1, np.float32))
+        z = F.identity(x)  # new style
+        y = IdentityFunction()(z)  # old style
+        with testing.assert_warns(DeprecationWarning):
+            y.backward(enable_double_backprop=True)
+        with self.assertRaises(RuntimeError):
+            chainer.grad([x.grad_var], [y.grad_var])
 
 
 class TestAsVariable(unittest.TestCase):
@@ -1518,6 +1677,236 @@ class TestAsVariable(unittest.TestCase):
         y = chainer.as_variable(x)
         self.assertIs(x, y)
         self.assertTrue(y.requires_grad)
+
+
+@testing.parameterize(*testing.product({
+    'in_shape': [(4, 3, 2)],
+    'dtype': [np.float16, np.float32, np.float64],
+    'loss_scale': [None, 1, 10],
+}))
+class TestLossScale(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+        self.y = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
+
+    def check_loss_scale(self, x_data, y_data):
+        x = chainer.Variable(x_data)
+        y = chainer.Variable(y_data)
+        z = x * y
+        loss = F.sum(z)
+        loss.backward(loss_scale=self.loss_scale)
+        if self.loss_scale is not None:
+            x.grad /= self.loss_scale
+            y.grad /= self.loss_scale
+        rtol, atol = 1e-4, 1e-5
+        if self.dtype is np.float16:
+            rtol, atol = 1e-1, 1e-2
+        testing.assert_allclose(x.data, y.grad, rtol=rtol, atol=atol)
+        testing.assert_allclose(y.data, x.grad, rtol=rtol, atol=atol)
+
+    def test_loss_scale_cpu(self):
+        self.check_loss_scale(self.x, self.y)
+
+    @attr.gpu
+    def test_loss_scale_gpu(self):
+        self.check_loss_scale(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
+
+
+@testing.parameterize(*testing.product({
+    'shape': [(0,), (1,), (3, 2), (2, 3, 4, 3)],
+    'dtype': [
+        np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32,
+        np.uint64, np.float16, np.float32, np.float64],
+}))
+@attr.ideep
+class TestIntel64(unittest.TestCase):
+    def setUp(self):
+        self.x_data = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+
+    def _check_variable_shape_and_dtype(self, var):
+        assert var.data.shape == self.shape
+        assert var.data.dtype == self.dtype
+        assert var.shape == self.shape
+        assert var.dtype == self.dtype
+
+    def test_cpu_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        assert x.xp is np
+        prev_x_data = x.data
+        x.to_intel64()
+        assert x.xp is np
+
+        # Converted to mdarray only if dtype == float32.
+        # Otherwise, data should be left untouched.
+        if self.dtype == np.float32:
+            assert isinstance(x.data, intel64.ideep.mdarray)
+        else:
+            assert x.data is prev_x_data
+
+        self._check_variable_shape_and_dtype(x)
+
+    def test_intel64_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        x.to_intel64()
+        prev_x_data = x.data
+        x.to_intel64()
+
+        # Data should be left untouched
+        assert x.data is prev_x_data
+
+    @attr.gpu
+    def test_gpu_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        x.to_gpu()
+        x.to_intel64()
+
+        # Converted to mdarray only if dtype == float32.
+        # Otherwise, data should be converted to numpy.ndarray.
+        if self.dtype == np.float32:
+            assert isinstance(x.data, intel64.ideep.mdarray)
+        else:
+            assert isinstance(x.data, np.ndarray)
+
+        self._check_variable_shape_and_dtype(x)
+
+    @attr.gpu
+    def test_intel64_to_gpu(self):
+        x = chainer.Variable(self.x_data)
+        x.to_intel64()
+        x.to_gpu()
+
+        # Data should be converted to cuda.ndarray
+        assert isinstance(x.data, cuda.cupy.ndarray)
+        self._check_variable_shape_and_dtype(x)
+
+    def test_intel64_to_cpu(self):
+        x = chainer.Variable(self.x_data)
+        x.to_intel64()
+        x.to_cpu()
+
+        # Data should be converted to numpy.ndarray
+        assert isinstance(x.data, np.ndarray)
+        self._check_variable_shape_and_dtype(x)
+
+
+@testing.parameterize(*testing.product({
+    'shape': [(), (3, 2, 3), (4, 4, 3, 2, 3)],
+    'dtype': [
+        np.int8, np.int16, np.int32, np.int64,
+        np.uint8, np.uint16, np.uint32, np.uint64,
+        np.float16, np.float32, np.float64,
+    ],
+}))
+@attr.ideep
+class TestIntel64Unsupported(unittest.TestCase):
+
+    """Tests for arrays that should not be converted to iDeep array."""
+
+    def setUp(self):
+        self.x_data = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+
+    def test_cpu_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        x.to_intel64()
+        assert isinstance(x.data, np.ndarray)
+
+    @attr.gpu
+    def test_gpu_to_intel64(self):
+        x = chainer.Variable(self.x_data)
+        x.to_gpu()
+        x.to_intel64()
+        assert isinstance(x.data, np.ndarray)
+
+
+@testing.parameterize(*testing.product({
+    'shape': [(3,), (3, 2), (3, 2, 2), (3, 2, 2, 3)],
+    'dtype': [
+        np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32,
+        np.uint64, np.float16, np.float32, np.float64],
+}))
+class TestLazyGradSum(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+
+        y10 = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy00 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        f10 = chainer.FunctionNode()
+        f10.check_type_forward = mock.MagicMock()
+        f10.forward_cpu = mock.MagicMock(return_value=(y10,))
+        f10.retain_outputs((0,))
+        f10.backward = mock.MagicMock(return_value=(gy00,))
+        self.y10 = y10
+        self.f10 = f10
+        self.gy00 = gy00
+
+        y11 = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy01 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        f11 = chainer.FunctionNode()
+        f11.check_type_forward = mock.MagicMock()
+        f11.forward_cpu = mock.MagicMock(return_value=(y11,))
+        f11.retain_outputs((0,))
+        f11.backward = mock.MagicMock(return_value=(gy01,))
+        self.y11 = y11
+        self.f11 = f11
+        self.gy01 = gy01
+
+        y12 = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy02 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        f12 = chainer.FunctionNode()
+        f12.check_type_forward = mock.MagicMock()
+        f12.forward_cpu = mock.MagicMock(return_value=(y12,))
+        f12.retain_outputs((0,))
+        f12.backward = mock.MagicMock(return_value=(gy02,))
+        self.y12 = y12
+        self.f12 = f12
+        self.gy02 = gy02
+
+        y = np.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        gy10 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        gy11 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        gy12 = chainer.Variable(
+            np.random.uniform(-1, 1, self.shape).astype(self.dtype))
+        f2 = chainer.FunctionNode()
+        f2.check_type_forward = mock.MagicMock()
+        f2.forward_cpu = mock.MagicMock(return_value=(y,))
+        f12.retain_outputs((0,))
+        f2.backward = mock.MagicMock(return_value=(gy10, gy11, gy12))
+        self.y = y
+        self.f2 = f2
+        self.gy10 = gy10
+        self.gy11 = gy11
+        self.gy12 = gy12
+        self.gx = gy00 + gy01 + gy02
+
+    def forward(self, x):
+        y0 = F.identity(x)
+        y10 = self.f10.apply((y0,))
+        y11 = self.f11.apply((y0,))
+        y12 = self.f12.apply((y0,))
+        y = self.f2.apply((y10[0], y11[0], y12[0]))
+        return y
+
+    def check_backward(self):
+        x = chainer.Variable(self.x)
+        y = self.forward(x)
+        y[0].grad = np.ones(y[0].shape, y[0].dtype)
+        y[0].backward()
+        testing.assert_allclose(self.gx.data, x.grad, atol=1e-3, rtol=1e-2)
+
+    def test_backward_cpu(self):
+        with chainer.using_config('lazy_grad_sum', False):
+            self.check_backward()
+
+    def test_backward_cpu_lazy_grad_sum(self):
+        with chainer.using_config('lazy_grad_sum', True):
+            self.check_backward()
 
 
 testing.run_module(__name__, __file__)

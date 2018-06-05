@@ -27,7 +27,8 @@ class Evaluator(extension.Extension):
     :class:`~chainer.Reporter` for details in naming rules of the reports.
 
     Evaluator has a structure to customize similar to that of
-    :class:`~chainer.training.StandardUpdater`. The main differences are:
+    :class:`~chainer.training.updaters.StandardUpdater`.
+    The main differences are:
 
     - There are no optimizers in an evaluator. Instead, it holds links
       to evaluate.
@@ -55,7 +56,7 @@ class Evaluator(extension.Extension):
             just a link object, the link is registered by the name ``'main'``.
         converter: Converter function to build input arrays.
             :func:`~chainer.dataset.concat_examples` is used by default.
-        device: Device to which the training data is sent. Negative value
+        device: Device to which the validation data is sent. Negative value
             indicates the host memory (CPU).
         eval_hook: Function to prepare for each evaluation process. It is
             called at the beginning of the evaluation. The evaluator extension
@@ -65,7 +66,7 @@ class Evaluator(extension.Extension):
 
     Attributes:
         converter: Converter function.
-        device: Device to which the training data is sent.
+        device: Device to which the validation data is sent.
         eval_hook: Function to prepare for each evaluation process.
         eval_func: Evaluation function called at each iteration.
 
@@ -217,3 +218,14 @@ class Evaluator(extension.Extension):
             summary.add(observation)
 
         return summary.compute_mean()
+
+    def finalize(self):
+        """Finalizes the evaluator object.
+
+        This method calls the `finalize` method of each iterator that
+        this evaluator has.
+        It is called at the end of training loops.
+
+        """
+        for iterator in six.itervalues(self._iterators):
+            iterator.finalize()

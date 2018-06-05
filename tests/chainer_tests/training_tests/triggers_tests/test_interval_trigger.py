@@ -7,6 +7,7 @@ import unittest
 
 from chainer import serializers
 from chainer import testing
+from chainer.testing import condition
 from chainer import training
 
 
@@ -59,7 +60,7 @@ class TestIntervalTrigger(unittest.TestCase):
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
 
-    @testing.condition.repeat(10)
+    @condition.repeat(10)
     def test_trigger_sparse_call(self):
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
@@ -73,7 +74,7 @@ class TestIntervalTrigger(unittest.TestCase):
                 accumulated = False
             trainer.updater.update()
 
-    @testing.condition.repeat(10)
+    @condition.repeat(10)
     def test_resumed_trigger_sparse_call(self):
         trainer = testing.get_trainer_with_mock_updater(
             stop_trigger=None, iter_per_epoch=self.iter_per_epoch)
@@ -109,7 +110,8 @@ class TestIntervalTrigger(unittest.TestCase):
             np.savez(f, dummy=0)
 
             trigger = training.triggers.IntervalTrigger(*self.interval)
-            serializers.load_npz(f.name, trigger)
+            with testing.assert_warns(UserWarning):
+                serializers.load_npz(f.name, trigger)
             for expected in self.expected[self.resume:]:
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)

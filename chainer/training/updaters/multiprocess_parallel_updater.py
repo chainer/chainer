@@ -6,7 +6,8 @@ import six
 from chainer.backends import cuda
 from chainer.dataset import convert
 from chainer import reporter
-from chainer.training import updater
+from chainer.training.updaters import standard_updater
+
 
 try:
     from cupy.cuda import nccl
@@ -37,6 +38,8 @@ class _Worker(multiprocessing.Process):
         self.model.to_gpu(self.device)
         self.reporter = reporter.Reporter()
         self.reporter.add_observer('main', self.model)
+        self.reporter.add_observers('main',
+                                    self.model.namedlinks(skipself=True))
 
     def run(self):
         dev = cuda.Device(self.device)
@@ -78,7 +81,7 @@ class _Worker(multiprocessing.Process):
                 gp = None
 
 
-class MultiprocessParallelUpdater(updater.StandardUpdater):
+class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
 
     """Implementation of a multiprocess parallel GPU Updater.
 
@@ -86,9 +89,11 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
     with multi-process data parallelism. It uses Nvidia NCCL for communication
     between multiple GPUs.
 
-    It behaves similarly to :class:`~chainer.training.StandardUpdater`. The
-    update routine is modified to support data-parallel computation on multiple
-    GPUs in one machine. It is based on synchronous parallel SGD: it
+    It behaves similarly to
+    :class:`~chainer.training.updaters.StandardUpdater`.
+    The update routine is modified to support data-parallel
+    computation on multiple GPUs in one machine.
+    It is based on synchronous parallel SGD: it
     parallelizes the gradient computation over a mini-batch, and updates the
     parameters only in the main device.
 
@@ -119,6 +124,18 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
                 'requires NCCL.\n'
                 'Please reinstall chainer after you install NCCL.\n'
                 '(see https://github.com/chainer/chainer#installation).')
+        try:
+            cuda.cupy.cuda.driver.ctxGetCurrent()
+            _cuda_initialized = True
+        except cuda.cupy.cuda.driver.CUDADriverError:
+            # The context is not initialized, it will be fine.
+            _cuda_initialized = False
+        if _cuda_initialized:
+            raise ValueError(
+                'The CUDA context has been already initialized. '
+                'MultiprocessParallelUpdater assumes the context is '
+                'uninitialized. Please do not call CUDA API before '
+                'MultiprocessParallelUpdater creates processes.')
 
         assert len(iterators) == len(devices)
         for iterator in iterators[1:]:
@@ -152,6 +169,12 @@ class MultiprocessParallelUpdater(updater.StandardUpdater):
             main = devices.pop('main')
             devices = list(six.itervalues(devices))
             devices = [main] + devices
+        elif isinstance(devices, (list, tuple)):
+            devices = list(devices)
+        else:
+            raise ValueError(
+                'devices argument should be either dict, list or tuple,'
+                ' but {} was given.'.format(type(devices)))
         if devices is None or any(device is None for device in devices):
             raise ValueError('must specify GPU devices')
 

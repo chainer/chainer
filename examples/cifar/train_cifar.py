@@ -1,4 +1,3 @@
-from __future__ import print_function
 import argparse
 
 import chainer
@@ -54,12 +53,12 @@ def main():
     model = L.Classifier(models.VGG.VGG(class_labels))
     if args.gpu >= 0:
         # Make a specified GPU current
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
 
     optimizer = chainer.optimizers.MomentumSGD(args.learnrate)
     optimizer.setup(model)
-    optimizer.add_hook(chainer.optimizer.WeightDecay(5e-4))
+    optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(5e-4))
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
@@ -73,7 +72,8 @@ def main():
             max_trigger=(args.epoch, 'epoch'))
 
     # Set up a trainer
-    updater = training.StandardUpdater(train_iter, optimizer, device=args.gpu)
+    updater = training.updaters.StandardUpdater(
+        train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, stop_trigger, out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
@@ -103,11 +103,7 @@ def main():
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
 
     # Print a progress bar to stdout
-    # NOTE: If you use the EarlyStoppingTrigger,
-    #       training_length is needed to set
-    #       because trainer.stop_trigger is not normal interval trigger.
-    trainer.extend(extensions.ProgressBar(
-        training_length=(args.epoch, 'epoch')))
+    trainer.extend(extensions.ProgressBar())
 
     if args.resume:
         # Resume from a snapshot

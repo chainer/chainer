@@ -48,7 +48,7 @@ class Rollaxis(function_node.FunctionNode):
 
         if axis > start:
             axis += 1
-        else:
+        elif axis < start:
             start -= 1
 
         return Rollaxis(start, axis).apply(gy)

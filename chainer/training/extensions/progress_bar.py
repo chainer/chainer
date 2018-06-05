@@ -6,7 +6,6 @@ import time
 
 from chainer.training import extension
 from chainer.training.extensions import util
-from chainer.training import triggers
 
 
 class ProgressBar(extension.Extension):
@@ -44,10 +43,7 @@ class ProgressBar(extension.Extension):
         # initialize some attributes at the first call
         if training_length is None:
             t = trainer.stop_trigger
-            if not isinstance(t, triggers.IntervalTrigger):
-                raise TypeError(
-                    'cannot retrieve the training length from %s' % type(t))
-            training_length = self._training_length = t.period, t.unit
+            training_length = t.get_training_length()
 
         stat_template = self._status_template
         if stat_template is None:
@@ -77,6 +73,7 @@ class ProgressBar(extension.Extension):
                 rate = iteration / length
             else:
                 rate = epoch / length
+            rate = min(rate, 1.0)
 
             bar_length = self._bar_length
             marks = '#' * int(rate * bar_length)
@@ -104,6 +101,7 @@ class ProgressBar(extension.Extension):
                 estimated_time = (length - iteration) / speed_t
             else:
                 estimated_time = (length - epoch) / speed_e
+            estimated_time = max(estimated_time, 0.0)
             out.write('{:10.5g} iters/sec. Estimated time to finish: {}.\n'
                       .format(speed_t,
                               datetime.timedelta(seconds=estimated_time)))

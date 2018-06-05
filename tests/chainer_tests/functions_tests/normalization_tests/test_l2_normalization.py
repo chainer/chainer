@@ -5,20 +5,31 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(
-    {'shape': (4, 15), 'axis': 1},
-    {'shape': (4, 3, 2, 5), 'axis': 0},
-    {'shape': (4, 3, 2, 5), 'axis': 1},
-    {'shape': (4, 3, 2, 5), 'axis': 2},
-    {'shape': (4, 3, 2, 5), 'axis': 3},
-)
+@testing.parameterize(*testing.product([
+    [
+        {'shape': (4, 15), 'axis': 1},
+        {'shape': (4,), 'axis': 0},
+        {'shape': (4, 3, 2, 5), 'axis': 0},
+        {'shape': (4, 3, 2, 5), 'axis': 1},
+        {'shape': (4, 3, 2, 5), 'axis': 2},
+        {'shape': (4, 3, 2, 5), 'axis': 3},
+        {'shape': (4, 3, 2), 'axis': (0, 1)},
+        {'shape': (4, 3, 2, 4, 3, 2, 2), 'axis': (1, 4, 3, 6)},
+        {'shape': (0, 2), 'axis': 1},
+        {'shape': (), 'axis': ()},
+    ],
+    [
+        {'eps': 1e-5},
+        {'eps': 1e-1},
+    ],
+]))
 class TestL2Normalization(unittest.TestCase):
 
     def setUp(self):
@@ -28,7 +39,7 @@ class TestL2Normalization(unittest.TestCase):
             -1, 1, self.shape).astype(numpy.float32)
 
     def check_forward(self, x_data, axis):
-        eps = 1e-5
+        eps = self.eps
         x = chainer.Variable(x_data)
 
         y = functions.normalize(x, eps=eps, axis=axis)
@@ -38,8 +49,9 @@ class TestL2Normalization(unittest.TestCase):
         y_expect = numpy.empty_like(self.x)
         shape = self.x.shape
         indices = []
+        axis_tuple = axis if isinstance(axis, tuple) else (axis,)
         for i in six.moves.range(len(shape)):
-            if i != axis:
+            if i not in axis_tuple:
                 indices.append(six.moves.range(shape[i]))
             else:
                 indices.append([slice(None)])
@@ -58,7 +70,7 @@ class TestL2Normalization(unittest.TestCase):
 
     def check_backward(self, x_data, axis, y_grad):
         def f(x):
-            return functions.normalize(x, eps=1e-6, axis=axis)
+            return functions.normalize(x, eps=self.eps, axis=axis)
 
         gradient_check.check_backward(
             f, x_data, y_grad, dtype='d', atol=1e-2, rtol=3e-2)
@@ -73,7 +85,7 @@ class TestL2Normalization(unittest.TestCase):
 
     def check_double_backward(self, x_data, axis, y_grad, x_grad_grad):
         def f(x):
-            return functions.normalize(x, eps=1e-6, axis=axis)
+            return functions.normalize(x, eps=self.eps, axis=axis)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad, dtype='d', atol=1e-2, rtol=3e-2)
