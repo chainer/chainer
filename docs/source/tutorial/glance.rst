@@ -28,8 +28,6 @@ Here's the whole picture of the code:
 
 .. testcode::
     
-   #!/usr/bin/env python
-   
    import matplotlib
    matplotlib.use('Agg')
 
@@ -278,7 +276,6 @@ If using a GPU instead of the CPU, set ``device`` to the ID of the GPU, usually 
    trainer.extend(extensions.Evaluator(test_iter, model, device=-1))
    
 Save a computational graph from ``loss`` variable at the first iteration. ``main`` refers to the target link of the ``main`` :class:`~chainer.optimizer`. The graph is saved in the `Graphviz's <http://www.graphviz.org/>`_ dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out` argument of :class:`~chainer.training.Trainer`.
-   # Create the updater, using the optimizer
 
 .. code-block:: python
 
