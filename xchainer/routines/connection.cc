@@ -65,12 +65,12 @@ Array ConvGradW(
 
 void ConvCheckNdim(
         const Array& x, const Array& w, const StackVector<int64_t, kMaxNdim>& stride, const StackVector<int64_t, kMaxNdim>& pad) {
-    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
-    if (ndim <= 0) {
-        throw DimensionError{"Number of spacial dimensions must be greater than 0"};
-    }
-    if (w.ndim() != ndim + 2) {
+    if (w.ndim() != x.ndim()) {
         throw DimensionError{"Mismatched number of dimensions between input ", x.ndim(), " and weights ", w.ndim(), "."};
+    }
+    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    if (ndim < 0) {
+        throw DimensionError{"Number of spacial dimensions must be greater than or equal to 0"};
     }
     if (static_cast<int8_t>(stride.size()) != ndim) {
         throw DimensionError{"Wrong numbers of strides ", stride.size(), " for input with ", x.ndim(), " dimensions."};

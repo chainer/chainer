@@ -954,11 +954,6 @@ Array CudaDevice::Conv(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    assert(x.ndim() > 2);
-    assert(w.ndim() == x.ndim());
-    assert(stride.size() == static_cast<size_t>(x.ndim() - 2));
-    assert(pad.size() == static_cast<size_t>(x.ndim() - 2));
-
     if (cover_all) {
         throw XchainerError{"CUDA convolution does not support cover_all"};
     }
@@ -969,7 +964,13 @@ Array CudaDevice::Conv(
     }
     ConvCheckDtype(x, w, b);
 
-    int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
+    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    if (ndim < 2) {
+        throw DimensionError{"CUDA convolution requires number of spacial dimensions to be greater than or equal to 2"};
+    }
+    assert(w.ndim() == x.ndim());
+    assert(stride.size() == static_cast<size_t>(ndim));
+    assert(pad.size() == static_cast<size_t>(ndim));
 
     // w.shape = (out_channels, _, k_1, k_2, ..., k_N)
     int64_t out_channels = w.shape()[0];
@@ -997,17 +998,20 @@ Array CudaDevice::ConvGradWeight(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    assert(w_shape.ndim() > 2);
-    assert(x.ndim() == w_shape.ndim());
-    assert(gy.ndim() == w_shape.ndim());
-    assert(stride.size() == static_cast<size_t>(w_shape.ndim() - 2));
-    assert(pad.size() == static_cast<size_t>(w_shape.ndim() - 2));
-
     if (cover_all) {
         throw XchainerError{"CUDA convolution does not support cover_all"};
     }
 
     CheckDevicesCompatible(x, gy);
+
+    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    if (ndim < 2) {
+        throw DimensionError{"CUDA convolution requires number of spacial dimensions to be greater than or equal to 2"};
+    }
+    assert(x.ndim() == w_shape.ndim());
+    assert(stride.size() == static_cast<size_t>(ndim));
+    assert(pad.size() == static_cast<size_t>(ndim));
+    assert(gy.ndim() == w_shape.ndim());
 
     Array gw = Empty(w_shape, w_dtype, *this);
     cudnn_context_.ConvolutionBackwardFilter(x, gy, gw, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/);
@@ -1022,18 +1026,21 @@ Array CudaDevice::ConvTranspose(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& out_size) {
-    assert(x.ndim() > 2);
-    assert(w.ndim() == x.ndim());
-    assert(stride.size() == static_cast<size_t>(x.ndim() - 2));
-    assert(pad.size() == static_cast<size_t>(x.ndim() - 2));
-    assert(out_size.size() == static_cast<size_t>(x.ndim() - 2));
-
     if (b) {
         CheckDevicesCompatible(x, w, *b);
     } else {
         CheckDevicesCompatible(x, w);
     }
     ConvCheckDtype(x, w, b);
+
+    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    if (ndim < 2) {
+        throw DimensionError{"CUDA convolution requires number of spacial dimensions to be greater than or equal to 2"};
+    }
+    assert(w.ndim() == x.ndim());
+    assert(stride.size() == static_cast<size_t>(ndim));
+    assert(pad.size() == static_cast<size_t>(ndim));
+    assert(out_size.size() == static_cast<size_t>(ndim));
 
     // w.shape = (in_channels, out_channels, k_1, k_2, ..., k_N)
     int64_t out_channels = w.shape()[1];
