@@ -9,7 +9,6 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import parameterize
-from chainer.utils import type_check
 
 
 @parameterize(
