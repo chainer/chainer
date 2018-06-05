@@ -63,6 +63,7 @@ from chainer.functions.array.get_item import GetItem  # NOQA
 from chainer.functions.array.hstack import hstack  # NOQA
 from chainer.functions.array.im2col import im2col  # NOQA
 from chainer.functions.array.im2col import Im2Col  # NOQA
+from chainer.functions.array.moveaxis import moveaxis  # NOQA
 from chainer.functions.array.pad import pad  # NOQA
 from chainer.functions.array.pad import Pad  # NOQA
 from chainer.functions.array.pad_sequence import pad_sequence  # NOQA
@@ -241,6 +242,7 @@ from chainer.functions.math.prod import prod  # NOQA
 from chainer.functions.math.prod import Prod  # NOQA
 from chainer.functions.math.scale import scale  # NOQA
 from chainer.functions.math.sign import sign  # NOQA
+from chainer.functions.math.sparse_matmul import sparse_matmul  # NOQA
 from chainer.functions.math.sqrt import rsqrt  # NOQA
 from chainer.functions.math.sqrt import sqrt  # NOQA
 from chainer.functions.math.sqrt import Sqrt  # NOQA
