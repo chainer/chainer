@@ -224,21 +224,19 @@ class TestEvaluatorWithEvalFunc(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'debug': [True, False],
     'repeat': [True, False],
-    'iterator': [iterators.SerialIterator,
-                 iterators.MultiprocessIterator,
-                 iterators.MultithreadIterator]
+    'iterator_class': [iterators.SerialIterator,
+                       iterators.MultiprocessIterator,
+                       iterators.MultithreadIterator]
 }))
 class TestEvaluatorRepeat(unittest.TestCase):
 
     def test_user_warning(self):
         dataset = numpy.ones((4, 6))
-        iterator = self.iterator(dataset, 2, repeat=self.repeat)
-        with chainer.using_config('debug', self.debug):
-            if self.debug and self.repeat:
-                with testing.assert_warns(UserWarning):
-                    extensions.Evaluator(iterator, {})
+        iterator = self.iterator_class(dataset, 2, repeat=self.repeat)
+        if self.repeat:
+            with testing.assert_warns(UserWarning):
+                extensions.Evaluator(iterator, {})
 
 
 testing.run_module(__name__, __file__)
