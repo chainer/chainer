@@ -141,8 +141,7 @@ public:
     // TODO(hvy): implement me
     std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override { return nullptr; }
 
-    // TODO(sonots): implement me
-    std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override { return nullptr; }
+    std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
 
 protected:
     CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_context_{index} {}

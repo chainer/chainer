@@ -1,5 +1,9 @@
 #include "xchainer/routines/normalization.h"
 
+<<<<<<< HEAD
+=======
+#include <cstdint>
+>>>>>>> 561fd66... CUDA BatchNorm to save intermediate results
 #include <memory>
 
 #include "xchainer/array.h"
@@ -23,14 +27,6 @@ Array BatchNorm(
         Scalar eps,
         Scalar decay,
         const OptionalAxes& axis) {
-    // TODO(hvy): Check that running_mean, running_var is contiguous.
-    if (GetKind(eps.dtype()) != DtypeKind::kFloat) {
-        throw DtypeError{"BatchNormalization expects eps of floating point kind but found ", eps.dtype(), "."};
-    }
-    if (GetKind(decay.dtype()) != DtypeKind::kFloat) {
-        throw DtypeError{"BatchNormalization expects decay of floating point kind but found ", decay.dtype(), "."};
-    }
-
     Dtype dtype = x.dtype();
     CheckEqual(dtype, gamma.dtype());
     CheckEqual(dtype, beta.dtype());
@@ -39,18 +35,40 @@ Array BatchNorm(
     CheckEqual(dtype, eps.dtype());
     CheckEqual(dtype, decay.dtype());
 
-    Shape reduced = gamma.shape();
-    CheckEqual(reduced, beta.shape());
-    CheckEqual(reduced, running_mean.shape());
-    CheckEqual(reduced, running_var.shape());
-
     Axes sorted_axis = axis.has_value() ? internal::GetSortedAxes(*axis, x.ndim()) : Axes{0};
-    CheckEqual(reduced, internal::ReduceShape(x.shape(), sorted_axis, true));
 
-    // TODO(hvy): Implement backward.
-    std::unique_ptr<BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward();
-    return fb->Forward(
-            x, gamma, beta, running_mean, running_var, eps, decay, axis.has_value() ? internal::GetSortedAxes(*axis, x.ndim()) : Axes{0});
+    Shape reduced_shape = internal::ReduceShape(x.shape(), sorted_axis, true);
+    int64_t reduced_size = reduced_shape.GetTotalSize();
+
+    if (gamma.GetTotalSize() != reduced_size) {
+        throw DimensionError{
+                "Gamma must have the same size as the reduced input. Actual: ", gamma.GetTotalSize(), ". Expected: ", reduced_size, "."};
+    }
+    if (beta.GetTotalSize() != reduced_size) {
+        throw DimensionError{
+                "Beta must have the same size as the reduced input. Actual: ", beta.GetTotalSize(), ". Expected: ", reduced_size, "."};
+    }
+    if (running_mean.GetTotalSize() != reduced_size) {
+        throw DimensionError{"Running mean must have the same size as the reduced input. Actual: ",
+                             running_mean.GetTotalSize(),
+                             ". Expected: ",
+                             reduced_size,
+                             "."};
+    }
+    if (running_var.GetTotalSize() != reduced_size) {
+        throw DimensionError{"Running variance must have the same size as the reduced input. Actual: ",
+                             running_var.GetTotalSize(),
+                             ". Expected: ",
+                             reduced_size,
+                             "."};
+    }
+
+    Array gamma_keepdims = gamma.shape() == reduced_shape ? gamma : gamma.Reshape(reduced_shape);
+    Array beta_keepdims = beta.shape() == reduced_shape ? beta : beta.Reshape(reduced_shape);
+
+    std::shared_ptr<BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward();
+    // TODO(hvy): Connect graph.
+    return fb->Forward(x, gamma_keepdims, beta_keepdims, running_mean, running_var, eps, decay, sorted_axis);
 }
 
 }  // namespace xchainer

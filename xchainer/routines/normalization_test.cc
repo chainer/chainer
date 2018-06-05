@@ -74,7 +74,7 @@ TEST_P(NormalizationTest, BatchNormWithAxis) {
     using T = float;
 
     Shape x_shape{3, 4, 2, 1};
-    Shape reduced_shape{1, 4, 1, 1};
+    Shape reduced_shape{4};
     Axes axis{0, 2, 3};
     Scalar eps{2e-5f};
     Scalar decay{0.8f};

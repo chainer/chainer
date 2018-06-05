@@ -1062,38 +1062,95 @@ Array CudaDevice::ConvTranspose(
     return y;
 }
 
-void CudaDevice::BatchNorm(
-        const Array& x,
-        const Array& gamma,
-        const Array& beta,
-        const Array& running_mean,
-        const Array& running_var,
-        Scalar eps,
-        Scalar decay,
-        const Axes& axis,
-        const Array& out) {
-    assert(gamma.ndim() == x.ndim());
-    assert(gamma.shape() == beta.shape());
-    assert(gamma.shape() == running_mean.shape());
-    assert(gamma.shape() == running_var.shape());
-    assert(GetKind(eps.dtype()) == DtypeKind::kFloat);
-    assert(GetKind(decay.dtype()) == DtypeKind::kFloat);
-    assert(x.shape() == out.shape());
+namespace {
 
-    cudnnBatchNormMode_t mode{};
-    if (axis.ndim() == 1 && axis[0] == 0) {  // (1, channels, (depth, )height, width)
-        mode = CUDNN_BATCHNORM_PER_ACTIVATION;
-    } else if (  // (1, channels, (1, )1, 1)
-            (axis.ndim() == 3 && axis[0] == 0 && axis[1] == 2 && axis[2] == 3) ||
-            (axis.ndim() == 4 && axis[0] == 0 && axis[1] == 2 && axis[2] == 3 && axis[3] == 4)) {
-        // TODO(hvy): Consider CUDNN_BATCHNORM_SPATIAL_PERSISTENT if we can afford to check for overflow, with or without blocking.
-        mode = CUDNN_BATCHNORM_SPATIAL;
-    } else {
+class CudaBatchNormForwardBackward : public xchainer::BatchNormForwardBackward {
+public:
+    explict CudaBatchNormForwardBackward(internal::CudnnContext& cudnn_context) : cudnn_context_{cudnn_context} {}
+
+    Array Forward(
+            const Array& x,
+            const Array& gamma,
+            const Array& beta,
+            const Array& running_mean,
+            const Array& running_var,
+            Scalar eps,
+            Scalar decay,
+            const Axes& axis) override {
+#ifndef NDEBUG
+        {
+            Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), axis, true);
+            assert(gamma.shape() == reduced_shape);
+            assert(beta.shape() == reduced_shape);
+
+            int64_t reduced_total_size = reduced_shape.GetTotalSize();
+            assert(running_mean.GetTotalSize() == reduced_total_size);
+            assert(running_var.GetTotalSize() == reduced_total_size);
+
+            assert(GetKind(eps.dtype()) == DtypeKind::kFloat);
+            assert(GetKind(decay.dtype()) == DtypeKind::kFloat);
+        }
+#endif  // NDEBUG
+        if (!running_mean.IsContiguous()) {
+            throw DeviceError{"Running mean must to be contiguous for cuDNN to update it in-place."};
+        }
+        if (!running_var.IsContiguous()) {
+            throw DeviceError{"Running variance must to be contiguous for cuDNN to update it in-place."};
+        }
+
+        Device& device = x.device();
+
+        // Initialize cache.
+        result_mean_ = EmptyLike(gamma, device);
+        result_inv_var_ = EmptyLike(gamma, device);
+
+        Array out = EmptyLike(x, device);
+        cudnn_context_.BatchNormalizationForwardTraining(
+                GetBatchNormMode(axis),
+                x,
+                out,
+                gamma,
+                beta,
+                1.0 - static_cast<double>(decay),
+                running_mean,
+                running_var,
+                static_cast<double>(eps),
+                result_mean_,
+                result_inv_var_);
+        return out;
+    }
+
+    std::array<Array, 3> Backward(
+            const Array& /*x*/, const Array& /*gamma*/, const Array& /*gout*/, Scalar /*eps*/, Scalar /*decay*/, const Axes& /*axis*/)
+            override {
+        // TODO(hvy): Implement me.
+        return {Array{}, Array{}, Array{}};
+    }
+
+private:
+    cudnnBatchNormMode_t GetBatchNormMode(const Axes& axis) {
+        if (axis.ndim() == 1 && axis[0] == 0) {  // (1, channels, (depth, )height, width)
+            return CUDNN_BATCHNORM_PER_ACTIVATION;
+        }
+        if ((axis.ndim() == 3 && axis[0] == 0 && axis[1] == 2 && axis[2] == 3) ||
+            (axis.ndim() == 4 && axis[0] == 0 && axis[1] == 2 && axis[2] == 3 && axis[3] == 4)) {  // (1, channels, (1, )1, 1)
+            // TODO(hvy): Consider CUDNN_BATCHNORM_SPATIAL_PERSISTENT if we can afford to check for overflow, with or without blocking.
+            return CUDNN_BATCHNORM_SPATIAL;
+        }
         throw DimensionError{"Invalid axis for BatchNorm using cuDNN ", axis, ". Expected 0, 3 or 4 dimensions."};
     }
 
-    cudnn_context_.BatchNormalizationForwardTraining(
-            mode, x, out, gamma, beta, 1.0 - static_cast<double>(decay), running_mean, running_var, static_cast<double>(eps));
+    internal::CudnnContext& cudnn_context_;
+
+    // Cache intermediate results during Forward for reuse in Backward.
+    Array result_mean_{};
+    Array result_inv_var_{};
+};
+
+}  // namespace
+
+std::shared_ptr<BatchNormForwardBackward> CudaDevice::GetBatchNormForwardBackward() {
+    return std::make_shared<CudaBatchNormForwardBackward>(cudnn_context_);
 }
 
 void CudaDevice::Synchronize() {
