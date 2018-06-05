@@ -110,10 +110,10 @@ class Convolution1D(ConvolutionND):
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
                  nobias=False, initialW=None, initial_bias=None,
-                 cover_all=False):
+                 cover_all=False, dilate=1, groups=1):
         super(Convolution1D, self).__init__(
             1, in_channels, out_channels, ksize, stride, pad, nobias, initialW,
-            initial_bias, cover_all)
+            initial_bias, cover_all, dilate, groups)
 
 
 class Convolution3D(ConvolutionND):
@@ -129,7 +129,7 @@ class Convolution3D(ConvolutionND):
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
                  nobias=False, initialW=None, initial_bias=None,
-                 cover_all=False):
+                 cover_all=False, dilate=1, groups=1):
         super(Convolution3D, self).__init__(
             3, in_channels, out_channels, ksize, stride, pad, nobias, initialW,
-            initial_bias, cover_all)
+            initial_bias, cover_all, dilate, groups)

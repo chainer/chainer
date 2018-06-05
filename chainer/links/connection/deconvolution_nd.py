@@ -97,11 +97,11 @@ class Deconvolution1D(DeconvolutionND):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None,
-                 cover_all=False):
+                 nobias=False, outsize=None, initialW=None, initial_bias=None,
+                 dilate=1, groups=1):
         super(Deconvolution1D, self).__init__(
-            1, in_channels, out_channels, ksize, stride, pad, nobias, initialW,
-            initial_bias, cover_all)
+            1, in_channels, out_channels, ksize, stride, pad, nobias, outsize,
+            initialW, initial_bias, dilate, groups)
 
 
 class Deconvolution3D(DeconvolutionND):
@@ -116,8 +116,8 @@ class Deconvolution3D(DeconvolutionND):
     """
 
     def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None,
-                 cover_all=False):
-        super(Deconvolution1D, self).__init__(
-            3, in_channels, out_channels, ksize, stride, pad, nobias, initialW,
-            initial_bias, cover_all)
+                 nobias=False, outsize=None, initialW=None, initial_bias=None,
+                 dilate=1, groups=1):
+        super(Deconvolution3D, self).__init__(
+            3, in_channels, out_channels, ksize, stride, pad, nobias, outsize,
+            initialW, initial_bias, dilate, groups)
