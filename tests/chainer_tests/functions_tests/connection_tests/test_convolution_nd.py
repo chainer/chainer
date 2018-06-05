@@ -410,4 +410,40 @@ class TestConvolutionNDBackwardNoncontiguousGradOutputs(unittest.TestCase):
         z.backward()
 
 
+class TestConvolutionNDWrappers(unittest.TestCase):
+
+    def _get_data(self, ndim):
+        in_channels = 3
+        out_channels = 2
+        dtype = numpy.float32
+
+        x_shape = (2, in_channels) + (3,) * ndim
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+        W_shape = (out_channels, in_channels) + (1,) * ndim
+        W = numpy.random.uniform(-1, 1, W_shape).astype(dtype)
+        b = numpy.random.uniform(-1, 1, out_channels).astype(dtype)
+
+        return x, W, b
+
+    def test_conv1d(self):
+        (x, W, b) = self._get_data(1)
+        testing.assert_allclose(
+            F.convolution_nd(x, W, b).data, F.convolution_1d(x, W, b).data)
+
+    def test_conv1d_invalid(self):
+        (x, W, b) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            F.convolution_1d(x, W, b)
+
+    def test_conv3d(self):
+        (x, W, b) = self._get_data(3)
+        testing.assert_allclose(
+            F.convolution_nd(x, W, b).data, F.convolution_3d(x, W, b).data)
+
+    def test_conv3d_invalid(self):
+        (x, W, b) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            F.convolution_3d(x, W, b)
+
+
 testing.run_module(__name__, __file__)
