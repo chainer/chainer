@@ -9,13 +9,12 @@ from chainer import variable
 
 class DecorrelatedBatchNormalization(link.Link):
 
-    """Decorrelated batch normalization layer on outputs of linear or
-    convolution functions.
+    """Decorrelated batch normalization layer.
 
     This link wraps the
     :func:`~chainer.functions.decorrelated_batch_normalization` and
     :func:`~chainer.functions.fixed_decorrelated_batch_normalization`
-    functions.
+    functions. It works on outputs of linear or convolution functions.
 
     It runs in three modes: training mode, fine-tuning mode, and testing mode.
 
