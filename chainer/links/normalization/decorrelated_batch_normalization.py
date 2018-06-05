@@ -9,6 +9,56 @@ from chainer import variable
 
 class DecorrelatedBatchNormalization(link.Link):
 
+    """Decorrelated batch normalization layer on outputs of linear or
+    convolution functions.
+
+    This link wraps the
+    :func:`~chainer.functions.decorrelated_batch_normalization` and
+    :func:`~chainer.functions.fixed_decorrelated_batch_normalization`
+    functions.
+
+    It runs in three modes: training mode, fine-tuning mode, and testing mode.
+
+    In training mode, it normalizes the input by *batch statistics*. It also
+    maintains approximated population statistics by moving averages, which can
+    be used for instant evaluation in testing mode.
+
+    In fine-tuning mode, it accumulates the input to compute *population
+    statistics*. In order to correctly compute the population statistics, a
+    user must use this mode to feed mini-batches running through whole training
+    dataset.
+
+    In testing mode, it uses pre-computed population statistics to normalize
+    the input variable. The population statistics is approximated if it is
+    computed by training mode, or accurate if it is correctly computed by
+    fine-tuning mode.
+
+    Args:
+        size (int or tuple of ints): Size (or shape) of channel
+            dimensions.
+        groups (int): Number of groups to use for group whitening.
+        decay (float): Decay rate of moving average. It is used on training.
+        eps (float): Epsilon value for numerical stability.
+        dtype (numpy.dtype): Type to use in computing.
+
+    See: `Decorrelated Batch Normalization <https://arxiv.org/abs/1804.08450>`_
+
+    .. seealso::
+       :func:`~chainer.functions.decorrelated_batch_normalization`,
+       :func:`~chainer.functions.fixed_decorrelated_batch_normalization`
+
+    Attributes:
+        expected_mean (numpy.ndarray or cupy.ndarray): Population mean.
+        expected_projection (numpy.ndarray or cupy.ndarray): Population
+            projection.
+        groups (int): Number of groups to use for group whitening.
+        N (int): Count of batches given for fine-tuning.
+        decay (float): Decay rate of moving average. It is used on training.
+        ~DecorrelatedBatchNormalization.eps (float): Epsilon value for
+            numerical stability. This value is added to the batch variances.
+
+    """
+
     def __init__(self, size, groups=16, decay=0.9, eps=2e-5,
                  dtype=numpy.float32):
         super(DecorrelatedBatchNormalization, self).__init__()
@@ -23,6 +73,21 @@ class DecorrelatedBatchNormalization(link.Link):
         self.groups = groups
 
     def __call__(self, x, **kwargs):
+        """Invokes the forward propagation of DecorrelatedBatchNormalization.
+
+        In training mode, the DecorrelatedBatchNormalization computes moving
+        averages of the mean and projection for evaluation during training,
+        and normalizes the input using batch statistics.
+
+        Args:
+            x (Variable): Input variable.
+            finetune (bool): If it is in the training mode and ``finetune`` is
+                ``True``, DecorrelatedBatchNormalization runs in fine-tuning
+                mode; it accumulates the input array to compute population
+                statistics for normalization, and normalizes the input using
+                batch statistics.
+
+        """
         finetune, = argument.parse_kwargs(kwargs, ('finetune', False))
 
         if configuration.config.train:
