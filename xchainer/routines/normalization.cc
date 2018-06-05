@@ -35,7 +35,8 @@ Array BatchNorm(
     CheckEqual(reduced, running_var.shape());
 
     // TODO(hvy): Implement backward.
-    return x.device().BatchNorm(
+    std::shared_ptr<BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward();
+    return fb->Forward(
             x, gamma, beta, running_mean, running_var, eps, decay, axis.has_value() ? internal::GetSortedAxes(*axis, x.ndim()) : Axes{0});
 }
 

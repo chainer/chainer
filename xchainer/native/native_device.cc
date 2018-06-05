@@ -884,65 +884,79 @@ void Var(const Array& a, const Array& mean, const Axes& axis, const Array& out) 
     Mean(out_pre_reduction, axis, out);
 }
 
+class NativeBatchNormForwardBackward : public xchainer::BatchNormForwardBackward {
+public:
+    Array Forward(
+            const Array& x,
+            const Array& gamma,
+            const Array& beta,
+            const Array& running_mean,
+            const Array& running_var,
+            Scalar eps,
+            Scalar decay,
+            const Axes& axis) override {
+        Dtype dtype = x.dtype();
+
+        Array x_mean = xchainer::internal::EmptyReduced(x.shape(), dtype, axis, true, x.device());
+        Mean(x, axis, x_mean);
+
+        Array x_var = xchainer::internal::EmptyReduced(x.shape(), dtype, axis, true, x.device());
+        Var(x, x_mean, axis, x_var);
+
+        Array out = EmptyLike(x, x.device());
+        int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
+        VisitFloatingPointDtype(
+                dtype, [&x, &x_mean, &x_var, &running_mean, &running_var, &gamma, &beta, eps, decay, &axis, &out, n](auto pt) {
+                    using T = typename decltype(pt)::type;
+
+                    // Compute the batch normalization.
+                    struct BatchNormImpl {
+                        void operator()(int64_t /*i*/, T x, T x_mean, T x_var, T gamma, T beta, T& out) {
+                            out = (x - x_mean) / std::sqrt(x_var + eps) * gamma + beta;
+                        }
+                        T eps;
+                    };
+                    Elementwise<const T, const T, const T, const T, const T, T>(
+                            BatchNormImpl{static_cast<T>(eps)},
+                            x,
+                            x_mean.BroadcastTo(out.shape()),
+                            x_var.BroadcastTo(out.shape()),
+                            ExpandDims(gamma, axis).BroadcastTo(out.shape()),
+                            ExpandDims(beta, axis).BroadcastTo(out.shape()),
+                            out);
+
+                    // Update the running mean and variance in-place using an unbiased estimate.
+                    struct UpdateStatsImpl {
+                        void operator()(int64_t /*i*/, T mean, T var, T& running_mean, T& running_var) {
+                            running_mean *= decay;
+                            running_mean += (T{1} - decay) * mean;
+                            running_var *= decay;
+                            running_var += (T{1} - decay) * adjust * var;
+                        }
+                        T decay;
+                        T adjust;
+                    };
+                    Elementwise<const T, const T, T, T>(
+                            UpdateStatsImpl{static_cast<T>(decay), static_cast<T>(n) / std::max(n - 1, int64_t{1})},
+                            x_mean,
+                            x_var,
+                            ExpandDims(running_mean, axis),
+                            ExpandDims(running_var, axis));
+                });
+        return out;
+    }
+
+    std::array<Array, 3> Backward(
+            const Array& /*x*/, const Array& /*gamma*/, const Array& /*gout*/, Scalar /*eps*/, Scalar /*decay*/, const Axes& /*axis*/)
+            override {
+        return {Array{}, Array{}, Array{}};
+    }
+};
+
 }  // namespace
 
-Array NativeDevice::BatchNorm(
-        const Array& x,
-        const Array& gamma,
-        const Array& beta,
-        const Array& running_mean,
-        const Array& running_var,
-        Scalar eps,
-        Scalar decay,
-        const Axes& axis) {
-    Dtype dtype = x.dtype();
-
-    Array x_mean = xchainer::internal::EmptyReduced(x.shape(), dtype, axis, true, *this);
-    Mean(x, axis, x_mean);
-
-    Array x_var = xchainer::internal::EmptyReduced(x.shape(), dtype, axis, true, *this);
-    Var(x, x_mean, axis, x_var);
-
-    Array out = EmptyLike(x, *this);
-    int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
-    VisitFloatingPointDtype(dtype, [&x, &x_mean, &x_var, &running_mean, &running_var, &gamma, &beta, eps, decay, &axis, &out, n](auto pt) {
-        using T = typename decltype(pt)::type;
-
-        // Compute the batch normalization.
-        struct BatchNormImpl {
-            void operator()(int64_t /*i*/, T x, T x_mean, T x_var, T gamma, T beta, T& out) {
-                out = (x - x_mean) / std::sqrt(x_var + eps) * gamma + beta;
-            }
-            T eps;
-        };
-        Elementwise<const T, const T, const T, const T, const T, T>(
-                BatchNormImpl{static_cast<T>(eps)},
-                x,
-                x_mean.BroadcastTo(out.shape()),
-                x_var.BroadcastTo(out.shape()),
-                ExpandDims(gamma, axis).BroadcastTo(out.shape()),
-                ExpandDims(beta, axis).BroadcastTo(out.shape()),
-                out);
-
-        // Update the running mean and variance in-place using an unbiased estimate.
-        struct UpdateStatsImpl {
-            void operator()(int64_t /*i*/, T mean, T var, T& running_mean, T& running_var) {
-                running_mean *= decay;
-                running_mean += (T{1} - decay) * mean;
-                running_var *= decay;
-                running_var += (T{1} - decay) * adjust * var;
-            }
-            T decay;
-            T adjust;
-        };
-        Elementwise<const T, const T, T, T>(
-                UpdateStatsImpl{static_cast<T>(decay), static_cast<T>(n) / std::max(n - 1, int64_t{1})},
-                x_mean,
-                x_var,
-                ExpandDims(running_mean, axis),
-                ExpandDims(running_var, axis));
-    });
-    return out;
+std::shared_ptr<BatchNormForwardBackward> NativeDevice::GetBatchNormForwardBackward() {
+    return std::make_shared<NativeBatchNormForwardBackward>();
 }
 
 void NativeDevice::Synchronize() {}
