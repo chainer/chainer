@@ -3,7 +3,6 @@ import warnings
 
 import six
 
-import chainer
 from chainer import configuration
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
@@ -92,21 +91,20 @@ class Evaluator(extension.Extension):
         self.eval_hook = eval_hook
         self.eval_func = eval_func
 
-        if chainer.is_debug():
-            for key, iter in six.iteritems(iterator):
-                if (isinstance(iter, (iterators.SerialIterator,
-                                      iterators.MultiprocessIterator,
-                                      iterators.MultithreadIterator)) and
+        for key, iter in six.iteritems(iterator):
+            if (isinstance(iter, (iterators.SerialIterator,
+                                  iterators.MultiprocessIterator,
+                                  iterators.MultithreadIterator)) and
                     getattr(iter, 'repeat', False)):
-                    msg = 'The repeat property of the iterator {} '
-                    'is set to True. Typically, evaluator sweeps '
-                    'over iterators until it raises StopIteration. '
-                    'But this iterator might not raise the exception, '
-                    'which means the evaluation could'
-                    'go into an infinite loop in evaluation. '
-                    'We recommend to check the configuration '
-                    'of iterators'.format(key)
-                    warnings.warn(msg)
+                msg = 'The `repeat` property of the iterator {} '
+                'is set to `True`. Typically, the evaluator sweeps '
+                'over iterators until they stop, '
+                'but as the property being `True`, this iterator '
+                'might not stop and evaluation could go into '
+                'an infinite loop.'
+                'We recommend to check the configuration '
+                'of iterators'.format(key)
+                warnings.warn(msg)
 
     def get_iterator(self, name):
         """Returns the iterator of the given name."""
@@ -169,9 +167,8 @@ class Evaluator(extension.Extension):
         returns a dictionary whose values are means computed by the summary.
 
         Note that this function assumes that the main iterator raises
-        ``StopIteration`` or some error is raised during the evaluation loop.
-        So, if the iterator does not raise ``StopIteratiron`` and
-        the loop does not raise no exceptions. It could be caught in the
+        ``StopIteration`` or code in the evaluation loop raises an exception.
+        So, if this assumption is not held, the function could be caught in
         an infinite loop.
 
         Users can override this method to customize the evaluation routine.
