@@ -111,7 +111,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
-    void BatchNormalization(
+    Array BatchNormalization(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -119,8 +119,7 @@ public:
             const Array& running_var,
             Scalar eps,
             Scalar decay,
-            const Axes& axis,
-            const Array& out) override;
+            const Axes& axis) override;
 
     void Synchronize() override;
 

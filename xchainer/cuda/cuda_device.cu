@@ -1062,7 +1062,7 @@ Array CudaDevice::ConvTranspose(
     return y;
 }
 
-void CudaDevice::BatchNormalization(
+Array CudaDevice::BatchNormalization(
         const Array& /*x*/,
         const Array& /*gamma*/,
         const Array& /*beta*/,
@@ -1070,8 +1070,7 @@ void CudaDevice::BatchNormalization(
         const Array& /*running_var*/,
         Scalar /*eps*/,
         Scalar /*decay*/,
-        const Axes& /*axis*/,
-        const Array& /*out*/) {
+        const Axes& /*axis*/) {
     // TODO(hvy): Implement it
     throw NotImplementedError{""};
 }

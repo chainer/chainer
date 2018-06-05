@@ -886,7 +886,7 @@ void Var(const Array& a, const Array& mean, const Axes& axis, const Array& out) 
 
 }  // namespace
 
-void NativeDevice::BatchNormalization(
+Array NativeDevice::BatchNormalization(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -894,9 +894,8 @@ void NativeDevice::BatchNormalization(
         const Array& running_var,
         Scalar eps,
         Scalar decay,
-        const Axes& axis,
-        const Array& out) {
-    Dtype dtype = out.dtype();
+        const Axes& axis) {
+    Dtype dtype = x.dtype();
 
     Array x_mean = xchainer::internal::EmptyReduced(x.shape(), dtype, axis, true, *this);
     Mean(x, axis, x_mean);
@@ -904,6 +903,7 @@ void NativeDevice::BatchNormalization(
     Array x_var = xchainer::internal::EmptyReduced(x.shape(), dtype, axis, true, *this);
     Var(x, x_mean, axis, x_var);
 
+    Array out = EmptyLike(x, *this);
     int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
     VisitFloatingPointDtype(dtype, [&x, &x_mean, &x_var, &running_mean, &running_var, &gamma, &beta, eps, decay, &axis, &out, n](auto pt) {
         using T = typename decltype(pt)::type;
@@ -942,6 +942,7 @@ void NativeDevice::BatchNormalization(
                 ExpandDims(running_mean, axis),
                 ExpandDims(running_var, axis));
     });
+    return out;
 }
 
 void NativeDevice::Synchronize() {}

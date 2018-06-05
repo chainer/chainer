@@ -188,7 +188,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) = 0;
 
-    virtual void BatchNormalization(
+    virtual Array BatchNormalization(
             const Array& x,
             const Array& gamma,
             const Array& beta,
@@ -196,8 +196,7 @@ public:
             const Array& running_var,
             Scalar eps,
             Scalar decay,
-            const Axes& axis,
-            const Array& out) = 0;
+            const Axes& axis) = 0;
 
     virtual void Synchronize() = 0;
 
