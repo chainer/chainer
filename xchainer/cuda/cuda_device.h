@@ -111,6 +111,9 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
+    // TODO(hvy): implement me
+    std::shared_ptr<MaxPoolingForwardBackward> GetMaxPoolingForwardBackward() override { return nullptr; }
+
     // TODO(sonots): implement me
     std::shared_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override { return nullptr; }
 

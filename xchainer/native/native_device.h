@@ -104,6 +104,8 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
+    std::shared_ptr<MaxPoolingForwardBackward> GetMaxPoolingForwardBackward() override;
+
     std::shared_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
 
     void Synchronize() override;

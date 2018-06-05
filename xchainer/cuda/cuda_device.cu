@@ -11,6 +11,7 @@
 #include <numeric>
 
 #include <cuda_runtime.h>
+#include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"

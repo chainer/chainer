@@ -542,7 +542,8 @@ Array Im2Col(
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
+        bool cover_all,
+        Scalar pad_value = 0) {
     auto ndim = static_cast<int8_t>(kernel_size.size());  // Number of input image dimensions.
     assert(ndim == static_cast<int8_t>(stride.size()));
     assert(ndim == static_cast<int8_t>(pad.size()));
@@ -559,7 +560,8 @@ Array Im2Col(
         unpadded_slice.emplace_back(Slice{pad[i], pad[i] + x.shape()[i]});
     }
     // TODO(hvy): Allow non-zero padding.
-    Array padded_x = Zeros(padded_shape, x.dtype(), device);
+    Array padded_x = static_cast<int64_t>(pad_value) == int64_t{0} ? Zeros(padded_shape, x.dtype(), device)
+                                                                   : Full(padded_shape, pad_value, x.dtype(), device);
     device.Copy(x, padded_x.At(unpadded_slice));
 
     // Create the output array.
@@ -835,6 +837,51 @@ Array NativeDevice::ConvTranspose(
     }
 
     return y;
+}
+
+namespace {
+
+class NativeMaxPoolingForwardBackward : public xchainer::MaxPoolingForwardBackward {
+public:
+    Array Forward(
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            bool cover_all) override {
+        Scalar min = VisitDtype(x.dtype(), [](auto pt) {
+            using T = typename decltype(pt)::type;
+            return Scalar{NumericLimits<T>::LowestOrInf()};
+        });
+
+        // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
+        col_ = Im2Col(x.AsConstant(), kernel_size, stride, pad, cover_all, min);
+        axes_.resize(kernel_size.size());
+        std::iota(axes_.begin(), axes_.end(), 2);
+        return col_.Max(axes_);
+    }
+
+    Array Backward(
+            const Array& /*x*/,
+            const StackVector<int64_t, kMaxNdim>& /*kernel_size*/,
+            const StackVector<int64_t, kMaxNdim>& /*stride*/,
+            const StackVector<int64_t, kMaxNdim>& /*pad*/,
+            bool /*cover_all*/,
+            const Array& /*gout*/) override {
+        // TODO(hvy): Implement me.
+        return Array{};
+    }
+
+private:
+    // Cached in Forward and reused in Backward to compute indices.
+    Array col_{};
+    Axes axes_{};
+};
+
+}  // namespace
+
+std::shared_ptr<MaxPoolingForwardBackward> NativeDevice::GetMaxPoolingForwardBackward() {
+    return std::make_shared<NativeMaxPoolingForwardBackward>();
 }
 
 namespace {
