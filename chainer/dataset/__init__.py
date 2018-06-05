@@ -1,11 +1,6 @@
-from chainer.dataset import convert  # NOQA
-from chainer.dataset import dataset_mixin  # NOQA
-from chainer.dataset import download  # NOQA
-from chainer.dataset import iterator  # NOQA
-
-
-# import class and function
+# import classes and functions
 from chainer.dataset.convert import concat_examples  # NOQA
+from chainer.dataset.convert import ConcatWithAsyncTransfer  # NOQA
 from chainer.dataset.convert import to_device  # NOQA
 from chainer.dataset.dataset_mixin import DatasetMixin  # NOQA
 from chainer.dataset.download import cache_or_load_file  # NOQA

@@ -1,7 +1,7 @@
 import unittest
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
 
@@ -47,7 +47,7 @@ class TestUseCuDNN(unittest.TestCase):
     def test_higher_version_required(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.assertFalse(chainer.should_use_cudnn(
-                '>=auto', cuda.cudnn.cudnn.getVersion() + 1))
+                '>=auto', cuda.cuda.cudnn.getVersion() + 1))
 
 
 testing.run_module(__name__, __file__)

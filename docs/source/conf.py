@@ -15,14 +15,27 @@
 import inspect
 import os
 import pkg_resources
-import six
 import sys
+
+
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+import _docstring_check
+import _autosummary_check
 
 
 __version__ = pkg_resources.get_distribution('chainer').version
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
+rtd_version = os.environ.get('READTHEDOCS_VERSION')
+if rtd_version == 'latest':
+    tag = 'master'
+else:
+    tag = 'v{}'.format(__version__)
+extlinks = {
+    'blob': ('https://github.com/chainer/chainer/blob/{}/%s'.format(tag), ''),
+    'tree': ('https://github.com/chainer/chainer/tree/{}/%s'.format(tag), ''),
+}
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -40,6 +53,7 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx.ext.doctest',
+              'sphinx.ext.extlinks',
               'sphinx.ext.intersphinx',
               'sphinx.ext.mathjax',
               'sphinx.ext.napoleon',
@@ -204,7 +218,7 @@ if on_rtd:
 #html_split_index = False
 
 # If true, links to the reST sources are added to the pages.
-#html_show_sourcelink = True
+html_show_sourcelink = False
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 #html_show_sphinx = True
@@ -322,7 +336,7 @@ autosummary_generate = True
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'cupy': ('https://docs-cupy.chainer.org/en/latest/', None),
 }
 
@@ -330,7 +344,8 @@ doctest_global_setup = '''
 import numpy as np
 import cupy
 import chainer
-from chainer import cuda, Function, gradient_check, training, utils, Variable
+from chainer.backends import cuda
+from chainer import Function, gradient_check, training, utils, Variable
 from chainer import datasets, iterators, optimizers, serializers
 from chainer import Link, Chain, ChainList
 import chainer.functions as F
@@ -341,6 +356,20 @@ np.random.seed(0)
 
 spelling_lang = 'en_US'
 spelling_word_list_filename = 'spelling_wordlist.txt'
+
+
+def setup(app):
+    app.connect('autodoc-process-docstring', _autodoc_process_docstring)
+    app.connect('build-finished', _build_finished)
+
+
+def _autodoc_process_docstring(app, what, name, obj, options, lines):
+    _docstring_check.check(app, what, name, obj, options, lines)
+
+
+def _build_finished(app, exception):
+    if exception is None:
+        _autosummary_check.check(app, exception)
 
 
 def _import_object_from_name(module_name, fullname):
@@ -388,15 +417,33 @@ def _get_source_relative_path(source_abs_path):
     return os.path.relpath(source_abs_path, _find_source_root(source_abs_path))
 
 
+def _get_sourcefile_and_linenumber(obj):
+    # Retrieve the original function wrapped by contextlib.contextmanager
+    if callable(obj):
+        closure = getattr(obj, '__closure__', None)
+        if closure is not None:
+            obj = closure[0].cell_contents
+
+    # Get the source file name and line number at which obj is defined.
+    try:
+        filename = inspect.getsourcefile(obj)
+    except TypeError:
+        # obj is not a module, class, function, ..etc.
+        return None, None
+
+    # inspect can return None for cython objects
+    if filename is None:
+        return None, None
+
+    # Get the source line number
+    _, linenum = inspect.getsourcelines(obj)
+
+    return filename, linenum
+
+
 def linkcode_resolve(domain, info):
     if domain != 'py' or not info['module']:
         return None
-
-    rtd_version = os.environ.get('READTHEDOCS_VERSION')
-    if rtd_version == 'latest':
-        tag = 'master'
-    else:
-        tag = 'v{}'.format(__version__)
 
     # Import the object from module path
     obj = _import_object_from_name(info['module'], info['fullname'])
@@ -408,20 +455,10 @@ def linkcode_resolve(domain, info):
     if not (mod.__name__ == 'chainer' or mod.__name__.startswith('chainer.')):
         return None
 
-    # Get the source file name and line number at which obj is defined.
-    try:
-        filename = inspect.getsourcefile(obj)
-    except TypeError:
-        # obj is not a module, class, function, ..etc.
+    # Retrieve source file name and line number
+    filename, linenum = _get_sourcefile_and_linenumber(obj)
+    if filename is None or linenum is None:
         return None
-
-    # inspect can return None for cython objects
-    if filename is None:
-        return None
-
-    # Get the source line number
-    _, linenum = inspect.getsourcelines(obj)
-    assert isinstance(linenum, six.integer_types)
 
     filename = os.path.realpath(filename)
     relpath = _get_source_relative_path(filename)

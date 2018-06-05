@@ -1,4 +1,3 @@
-from __future__ import print_function
 import contextlib
 import sys
 import threading
@@ -79,7 +78,7 @@ def _print_attrs(obj, keys, file):
     max_len = max(len(key) for key in keys)
     for key in keys:
         spacer = ' ' * (max_len - len(key))
-        print(u'{} {}{}'.format(key, spacer, getattr(obj, key)), file=file)
+        file.write(u'{} {}{}\n'.format(key, spacer, getattr(obj, key)))
 
 
 global_config = GlobalConfig()
@@ -110,6 +109,9 @@ def using_config(name, value, config=config):
         value: Temporary value of the configuration entry.
         config (~chainer.configuration.LocalConfig): Configuration object.
             Chainer's thread-local configuration is used by default.
+
+    .. seealso::
+        :ref:`configuration`
 
     """
     if hasattr(config._local, name):

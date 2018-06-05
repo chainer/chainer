@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 import argparse
 
 import chainer
@@ -37,7 +36,7 @@ def main():
     print('# epoch: {}'.format(args.epoch))
     print('')
 
-    chainer.cuda.get_device_from_id(args.gpu0).use()
+    chainer.backends.cuda.get_device_from_id(args.gpu0).use()
 
     model = L.Classifier(train_mnist.MLP(args.unit, 10))
     optimizer = chainer.optimizers.Adam()
@@ -51,7 +50,7 @@ def main():
     # ParallelUpdater implements the data-parallel gradient computation on
     # multiple GPUs. It accepts "devices" argument that specifies which GPU to
     # use.
-    updater = training.ParallelUpdater(
+    updater = training.updaters.ParallelUpdater(
         train_iter,
         optimizer,
         # The device of the name 'main' is used as a "master", while others are

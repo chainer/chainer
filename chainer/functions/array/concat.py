@@ -1,12 +1,14 @@
 import numpy
 import six
 
-from chainer import cuda
-from chainer import function
+import chainer
+from chainer.backends import cuda
+from chainer.backends import intel64
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class Concat(function.Function):
+class Concat(function_node.FunctionNode):
 
     """Concatenate multiple tensors towards specified axis."""
 
@@ -39,19 +41,32 @@ class Concat(function.Function):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        self.retain_inputs(())
-        self._xp = cuda.get_array_module(*xs)
-        self._x_shapes = [x.shape for x in xs]
-        return self._xp.concatenate(xs, axis=self.axis),
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(xs, (4,))):
+            # iDeep implementation
+            return self._forward_ideep(xs)
 
-    def backward(self, xs, gy):
-        if len(xs) == 1:
-            return gy
+        # Generic implementation
+        xp = cuda.get_array_module(*xs)
+        return xp.concatenate(xs, self.axis),
+
+    def _forward_ideep(self, xs):
+        xs_mdarray = intel64.ideep.mdarrayVector()
+        for x in xs:
+            xs_mdarray.push_back(intel64.ideep.array(x))
+        ndim = xs[0].ndim
+        axis = self.axis % ndim
+        return intel64.ideep.concat.Forward(xs_mdarray, axis),
+
+    def backward(self, indexes, grad_outputs):
+        if len(self.inputs) == 1:
+            return grad_outputs
 
         sizes = numpy.array(
-            [shape[self.axis] for shape in self._x_shapes[:-1]]
+            [v.shape[self.axis] for v in self.inputs[:-1]]
         ).cumsum()
-        return self._xp.split(gy[0], sizes, axis=self.axis)
+        gx, = grad_outputs
+        return chainer.functions.split_axis(gx, sizes, self.axis)
 
 
 def concat(xs, axis=1):
@@ -87,4 +102,5 @@ def concat(xs, axis=1):
                [ 8,  9, 10, 11,  2]])
 
     """
-    return Concat(axis=axis)(*xs)
+    y, = Concat(axis).apply(xs)
+    return y

@@ -1,7 +1,9 @@
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+from chainer.backends import intel64
+from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 
@@ -12,7 +14,10 @@ class AveragePooling2D(pooling_2d.Pooling2D):
     # TODO(beam2d): Support cover_all mode.
 
     def forward_cpu(self, x):
-        self.retain_inputs(())
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(x)):
+            return self._forward_ideep(x)
+
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
 
@@ -21,11 +26,35 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         y = col.mean(axis=(2, 3))
         return y,
 
+    def _forward_ideep(self, x):
+        self._in_shape = x[0].shape
+        self._in_dtype = x[0].dtype
+
+        n, c, h, w = x[0].shape
+        y_h = conv.get_conv_outsize(
+            h, self.kh, self.sy, self.ph, self.cover_all)
+        assert y_h > 0, 'Height in the output should be positive.'
+        y_w = conv.get_conv_outsize(
+            w, self.kw, self.sx, self.pw, self.cover_all)
+        assert y_w > 0, 'Width in the output should be positive.'
+        pd = self.sy * (y_h - 1) + self.kh - h - self.ph
+        pr = self.sx * (y_w - 1) + self.kw - w - self.pw
+
+        pp = intel64.ideep.pooling2DParam(
+            (n, c, y_h, y_w),
+            self.kh, self.kw,
+            self.sy, self.sx,
+            self.ph, self.pw,
+            pd, pr,
+            intel64.ideep.pooling2DParam.pooling_avg_include_padding)
+        y, = intel64.ideep.pooling2D.Forward(intel64.ideep.array(x[0]), pp)
+        return y,
+
     def forward_gpu(self, x):
         if chainer.should_use_cudnn('>=auto'):
+            self.retain_inputs((0,))
             return super(AveragePooling2D, self).forward_gpu(x)
 
-        self.retain_inputs(())
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
 
@@ -60,7 +89,35 @@ class AveragePooling2D(pooling_2d.Pooling2D):
              self.sy, self.sx, self.ph, self.pw, coeff, y)
         return y,
 
-    def backward_cpu(self, x, gy):
+    def backward(self, indexes, gy):
+        return AveragePooling2DGrad(self).apply(gy)
+
+    def create_pool_desc(self):
+        return cuda.cudnn.create_pooling_descriptor(
+            (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
+            cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
+
+
+class AveragePooling2DGrad(function_node.FunctionNode):
+
+    def __init__(self, apool2d):
+        self.kh = apool2d.kh
+        self.kw = apool2d.kw
+        self.sy = apool2d.sy
+        self.sx = apool2d.sx
+        self.ph = apool2d.ph
+        self.pw = apool2d.pw
+        self._used_cudnn = apool2d._used_cudnn
+        if not self._used_cudnn:
+            self._in_shape = apool2d._in_shape
+            self._in_dtype = apool2d._in_dtype
+        self.apool2d = apool2d
+
+    def forward_cpu(self, gy):
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(gy)):
+            return self._forward_ideep(gy)
+
         h, w = self._in_shape[2:]
         gcol = numpy.tile(gy[0][:, :, None, None],
                           (1, 1, self.kh, self.kw, 1, 1))
@@ -68,10 +125,28 @@ class AveragePooling2D(pooling_2d.Pooling2D):
         gx /= self.kh * self.kw
         return gx,
 
-    def backward_gpu(self, x, gy):
-        if self._used_cudnn:
-            return super(AveragePooling2D, self).backward_gpu(x, gy)
+    def _forward_ideep(self, gy):
+        n, c, h, w = self._in_shape
+        y_h, y_w = gy[0].shape[2:]
 
+        pd = self.sy * (y_h - 1) + self.kh - h - self.ph
+        pr = self.sx * (y_w - 1) + self.kw - w - self.pw
+
+        pp = intel64.ideep.pooling2DParam(
+            self._in_shape,
+            self.kh, self.kw,
+            self.sy, self.sx,
+            self.ph, self.pw,
+            pd, pr,
+            intel64.ideep.pooling2DParam.pooling_avg_include_padding)
+        gx = intel64.ideep.pooling2D.Backward(
+            intel64.ideep.array(gy[0]), None, pp)
+        return gx,
+
+    def forward_gpu(self, gy):
+        if self._used_cudnn:
+            x, = self.apool2d.get_retained_inputs()
+            return self.apool2d.backward_gpu((x.data,), gy)
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
         gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
@@ -104,10 +179,10 @@ class AveragePooling2D(pooling_2d.Pooling2D):
                                  gx)
         return gx,
 
-    def create_pool_desc(self):
-        return cuda.cudnn.create_pooling_descriptor(
+    def backward(self, indexes, grad_outputs):
+        return AveragePooling2D(
             (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
-            cuda.cudnn.cudnn.CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING)
+            False).apply(grad_outputs)
 
 
 def average_pooling_2d(x, ksize, stride=None, pad=0):
@@ -136,4 +211,4 @@ def average_pooling_2d(x, ksize, stride=None, pad=0):
        :func:`max_pooling_2d`. Average pooling runs in non-cover-all mode.
 
     """
-    return AveragePooling2D(ksize, stride, pad, False)(x)
+    return AveragePooling2D(ksize, stride, pad, False).apply((x,))[0]

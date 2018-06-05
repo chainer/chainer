@@ -1,5 +1,5 @@
-Standard Link implementations
-=============================
+Link and Chains
+===============
 
 .. module:: chainer.links
 
@@ -22,6 +22,7 @@ Learnable connections
 
    chainer.links.Bias
    chainer.links.Bilinear
+   chainer.links.ChildSumTreeLSTM
    chainer.links.Convolution2D
    chainer.links.ConvolutionND
    chainer.links.Deconvolution2D
@@ -34,8 +35,10 @@ Learnable connections
    chainer.links.Inception
    chainer.links.InceptionBN
    chainer.links.Linear
+   chainer.links.LocalConvolution2D
    chainer.links.LSTM
    chainer.links.MLPConvolution2D
+   chainer.links.NaryTreeLSTM
    chainer.links.NStepBiGRU
    chainer.links.NStepBiLSTM
    chainer.links.NStepBiRNNReLU
@@ -44,20 +47,15 @@ Learnable connections
    chainer.links.NStepLSTM
    chainer.links.NStepRNNReLU
    chainer.links.NStepRNNTanh
+   chainer.links.Parameter
    chainer.links.Scale
    chainer.links.StatefulGRU
+   chainer.links.StatelessGRU
+   chainer.links.StatefulMGU
+   chainer.links.StatelessMGU
    chainer.links.StatefulPeepholeLSTM
+   chainer.links.StatefulZoneoutLSTM
    chainer.links.StatelessLSTM
-
-ChildSumTreeLSTM
-~~~~~~~~~~~~~~~~
-.. autoclass:: ChildSumTreeLSTM
-   :members:
-
-NaryTreeLSTM
-~~~~~~~~~~~~
-.. autoclass:: NaryTreeLSTM
-   :members:
 
 Activation/loss/normalization functions with parameters
 -------------------------------------------------------
@@ -67,12 +65,14 @@ Activation/loss/normalization functions with parameters
    :nosignatures:
 
    chainer.links.BatchNormalization
+   chainer.links.BatchRenormalization
    chainer.links.LayerNormalization
    chainer.links.BinaryHierarchicalSoftmax
    chainer.links.BlackOut
    chainer.links.CRF1d
    chainer.links.SimplifiedDropconnect
    chainer.links.PReLU
+   chainer.links.Swish
    chainer.links.Maxout
    chainer.links.NegativeSampling
 
@@ -140,3 +140,27 @@ Residual Networks
    chainer.links.ResNet101Layers
    chainer.links.ResNet152Layers
    chainer.links.model.vision.resnet.prepare
+
+Compatibility with other frameworks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.links.TheanoFunction
+   chainer.links.caffe.CaffeFunction
+
+Link and Chain base classes
+---------------------------
+
+.. module:: chainer
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.Link
+   chainer.Chain
+   chainer.ChainList
+   chainer.Sequential

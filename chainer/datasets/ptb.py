@@ -39,7 +39,7 @@ def get_ptb_words_vocabulary():
 
     Returns:
         dict: Dictionary that maps words to corresponding word IDs. The IDs are
-            used in the Penn Tree Bank long sequence datasets.
+        used in the Penn Tree Bank long sequence datasets.
 
     .. seealso::
        See :func:`get_ptb_words` for the actual datasets.

@@ -1,6 +1,6 @@
-from __future__ import print_function
 import collections
 import os
+import sys
 
 import numpy
 try:
@@ -10,6 +10,7 @@ except ImportError as e:
     available = False
     _import_error = e
 
+import chainer
 from chainer.dataset.convert import concat_examples
 from chainer.dataset import download
 from chainer import function
@@ -89,6 +90,8 @@ class GoogLeNet(link.Chain):
     """
 
     def __init__(self, pretrained_model='auto'):
+        super(GoogLeNet, self).__init__()
+
         if pretrained_model:
             # As a sampling process is time-consuming,
             # we employ a zero initializer for faster computation.
@@ -97,29 +100,30 @@ class GoogLeNet(link.Chain):
             # employ default initializers used in BVLC. For more detail, see
             # https://github.com/chainer/chainer/pull/2424#discussion_r109642209
             kwargs = {'initialW': uniform.LeCunUniform(scale=1.0)}
-        super(GoogLeNet, self).__init__(
-            conv1=Convolution2D(3, 64, 7, stride=2, pad=3, **kwargs),
-            conv2_reduce=Convolution2D(64, 64, 1, **kwargs),
-            conv2=Convolution2D(64, 192, 3, stride=1, pad=1, **kwargs),
-            inc3a=Inception(192, 64, 96, 128, 16, 32, 32),
-            inc3b=Inception(256, 128, 128, 192, 32, 96, 64),
-            inc4a=Inception(480, 192, 96, 208, 16, 48, 64),
-            inc4b=Inception(512, 160, 112, 224, 24, 64, 64),
-            inc4c=Inception(512, 128, 128, 256, 24, 64, 64),
-            inc4d=Inception(512, 112, 144, 288, 32, 64, 64),
-            inc4e=Inception(528, 256, 160, 320, 32, 128, 128),
-            inc5a=Inception(832, 256, 160, 320, 32, 128, 128),
-            inc5b=Inception(832, 384, 192, 384, 48, 128, 128),
-            loss3_fc=Linear(1024, 1000, **kwargs),
 
-            loss1_conv=Convolution2D(512, 128, 1, **kwargs),
-            loss1_fc1=Linear(2048, 1024, **kwargs),
-            loss1_fc2=Linear(1024, 1000, **kwargs),
+        with self.init_scope():
+            self.conv1 = Convolution2D(3, 64, 7, stride=2, pad=3, **kwargs)
+            self.conv2_reduce = Convolution2D(64, 64, 1, **kwargs)
+            self.conv2 = Convolution2D(64, 192, 3, stride=1, pad=1, **kwargs)
+            self.inc3a = Inception(192, 64, 96, 128, 16, 32, 32)
+            self.inc3b = Inception(256, 128, 128, 192, 32, 96, 64)
+            self.inc4a = Inception(480, 192, 96, 208, 16, 48, 64)
+            self.inc4b = Inception(512, 160, 112, 224, 24, 64, 64)
+            self.inc4c = Inception(512, 128, 128, 256, 24, 64, 64)
+            self.inc4d = Inception(512, 112, 144, 288, 32, 64, 64)
+            self.inc4e = Inception(528, 256, 160, 320, 32, 128, 128)
+            self.inc5a = Inception(832, 256, 160, 320, 32, 128, 128)
+            self.inc5b = Inception(832, 384, 192, 384, 48, 128, 128)
+            self.loss3_fc = Linear(1024, 1000, **kwargs)
 
-            loss2_conv=Convolution2D(528, 128, 1, **kwargs),
-            loss2_fc1=Linear(2048, 1024, **kwargs),
-            loss2_fc2=Linear(1024, 1000, **kwargs)
-        )
+            self.loss1_conv = Convolution2D(512, 128, 1, **kwargs)
+            self.loss1_fc1 = Linear(2048, 1024, **kwargs)
+            self.loss1_fc2 = Linear(1024, 1000, **kwargs)
+
+            self.loss2_conv = Convolution2D(528, 128, 1, **kwargs)
+            self.loss2_fc1 = Linear(2048, 1024, **kwargs)
+            self.loss2_fc2 = Linear(1024, 1000, **kwargs)
+
         if pretrained_model == 'auto':
             _retrieve(
                 'bvlc_googlenet.npz',
@@ -179,7 +183,7 @@ class GoogLeNet(link.Chain):
         _transfer_googlenet(caffemodel, chainermodel)
         npz.save_npz(path_npz, chainermodel, compression=False)
 
-    def __call__(self, x, layers=['prob'], **kwargs):
+    def __call__(self, x, layers=None, **kwargs):
         """__call__(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
@@ -201,6 +205,9 @@ class GoogLeNet(link.Chain):
             the corresponding feature map variable.
 
         """
+
+        if layers is None:
+            layers = ['prob']
 
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '
@@ -234,7 +241,7 @@ class GoogLeNet(link.Chain):
 
         return activations
 
-    def extract(self, images, layers=['pool5'], size=(224, 224), **kwargs):
+    def extract(self, images, layers=None, size=(224, 224), **kwargs):
         """extract(self, images, layers=['pool5'], size=(224, 224))
 
         Extracts all the feature maps of given images.
@@ -269,6 +276,9 @@ class GoogLeNet(link.Chain):
 
         """
 
+        if layers is None:
+            layers = ['pool5']
+
         argument.check_unexpected_kwargs(
             kwargs, train='train argument is not supported anymore. '
             'Use chainer.using_config',
@@ -285,6 +295,8 @@ class GoogLeNet(link.Chain):
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
+                When you specify a color image as a :class:`numpy.ndarray`,
+                make sure that color order is RGB.
             oversample (bool): If ``True``, it averages results across
                 center, corners, and mirrors. Otherwise, it uses only the
                 center.
@@ -301,7 +313,7 @@ class GoogLeNet(link.Chain):
         else:
             x = x[:, :, 16:240, 16:240]
         # Use no_backprop_mode to reduce memory consumption
-        with function.no_backprop_mode():
+        with function.no_backprop_mode(), chainer.using_config('train', False):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:
@@ -430,7 +442,9 @@ def _dropout(x):
 
 def _make_npz(path_npz, url, model):
     path_caffemodel = download.cached_download(url)
-    print('Now loading caffemodel (usually it may take few minutes)')
+    sys.stderr.write(
+        'Now loading caffemodel (usually it may take few minutes)\n')
+    sys.stderr.flush()
     GoogLeNet.convert_caffemodel_to_npz(path_caffemodel, path_npz)
     npz.load_npz(path_npz, model)
     return model

@@ -1,30 +1,25 @@
 import six
 
-from chainer import cuda
-from chainer import function
+import chainer
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import type_check
 
 
-def _backward_one(xp, shape, dtype, g):
-    if g is None:
-        return xp.zeros(shape, dtype)
-
-    ndim = len(shape)
-    if g.ndim != ndim:
-        g = g.sum(axis=tuple(range(g.ndim - ndim)))
-        # An input variable is always an array, not a scalar.
-        # We need to convert a scalar value to a zero-dim array.
-        if xp.isscalar(g):
-            g = xp.array(g)
-
-    axis = tuple(i for i, sx in enumerate(shape) if sx == 1)
-    if len(axis) > 0:
-        return g.sum(keepdims=True, axis=axis)
-    else:
+def _backward_one(g, shape):
+    if g.shape == shape:
         return g
+    ndim = len(shape)
+    lead = g.ndim - ndim
+    lead_axis = tuple(six.moves.range(lead))
+    axis = [i + lead for i, sx in enumerate(shape) if sx == 1]
+    g = chainer.functions.sum(g, lead_axis + tuple(axis), True)
+    if lead > 0:
+        return chainer.functions.squeeze(g, lead_axis)
+    return g
 
 
-class Broadcast(function.Function):
+class Broadcast(function_node.FunctionNode):
 
     """Function that broadcasts given arrays."""
 
@@ -41,18 +36,16 @@ class Broadcast(function.Function):
                 actual = 'shapes: ' + ', '.join(map(str, shapes))
                 raise type_check.InvalidType(expect, actual)
 
-    def forward(self, xs):
-        self.retain_inputs(())
-        self._xp = cuda.get_array_module(*xs)
-        self._in_shapes = [x.shape for x in xs]
-        self._in_dtypes = [x.dtype for x in xs]
-        return tuple(self._xp.broadcast_arrays(*xs))
+    def forward(self, inputs):
+        self._xp = cuda.get_array_module(*inputs)
+        self._in_shapes = [x.shape for x in inputs]
+        self._in_dtypes = [x.dtype for x in inputs]
+        return tuple(self._xp.broadcast_arrays(*inputs))
 
-    def backward(self, xs, grads):
-        return tuple(
-            _backward_one(self._xp, shape, dtype, g)
-            for shape, dtype, g in six.moves.zip(
-                self._in_shapes, self._in_dtypes, grads))
+    def backward(self, indexes, grad_outputs):
+        return tuple([None if grad_outputs[i] is None else
+                      _backward_one(grad_outputs[i], self.inputs[i].shape)
+                      for i in indexes])
 
 
 def broadcast(*args):
@@ -71,20 +64,22 @@ def broadcast(*args):
 
     .. admonition:: Example
 
-        >>> x = np.random.uniform(0, 1, (3, 2)).astype('f')
+        >>> x = np.random.uniform(0, 1, (3, 2)).astype(np.float32)
         >>> y = F.broadcast(x)
         >>> np.all(x == y.data)
         True
-        >>> z = np.random.uniform(0, 1, (3, 2)).astype('f')
+        >>> z = np.random.uniform(0, 1, (3, 2)).astype(np.float32)
         >>> y, w = F.broadcast(x, z)
         >>> np.all(x == y.data) & np.all(z == w.data)
         True
 
     """
-    return Broadcast()(*args)
+    if len(args) == 1:
+        return chainer.as_variable(args[0])
+    return Broadcast().apply(args)
 
 
-class BroadcastTo(function.Function):
+class BroadcastTo(function_node.FunctionNode):
 
     """Function that broadcasts an array to a new shape."""
 
@@ -108,13 +103,9 @@ class BroadcastTo(function.Function):
             actual = 'in_type[0].shape: %s' % str(shape)
             raise type_check.InvalidType(expect, actual)
 
-    def forward(self, xs):
-        self.retain_inputs(())
-        xp = cuda.get_array_module(*xs)
-        x = xs[0]
-        self._xp = xp
-        self._in_shape = x.shape
-        self._in_dtype = x.dtype
+    def forward(self, inputs):
+        x, = inputs
+        xp = cuda.get_array_module(x)
         if hasattr(xp, 'broadcast_to'):
             return xp.broadcast_to(x, self._shape),
         else:
@@ -123,9 +114,9 @@ class BroadcastTo(function.Function):
             bx, _ = xp.broadcast_arrays(x, dummy)
             return bx,
 
-    def backward(self, xs, grads):
-        return _backward_one(
-            self._xp, self._in_shape, self._in_dtype, grads[0]),
+    def backward(self, indexes, grad_outputs):
+        gx, = grad_outputs
+        return _backward_one(gx, self.inputs[0].shape),
 
 
 def broadcast_to(x, shape):
@@ -154,4 +145,7 @@ def broadcast_to(x, shape):
                [0, 1, 2]])
 
     """
-    return BroadcastTo(shape)(x)
+    if x.shape == shape:
+        return chainer.as_variable(x)
+    y, = BroadcastTo(shape).apply((x,))
+    return y

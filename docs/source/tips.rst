@@ -17,24 +17,25 @@ The compiled binaries are cached to the ``$(HOME)/.cupy/kernel_cache`` directory
 If you see that compilations run every time you run the same script, then the caching is failed.
 Please check that the directory is kept as is between multiple executions of the script.
 If your home directory is not suited to caching the kernels (e.g. in case that it uses NFS), change the kernel caching directory by setting the ``CUPY_CACHE_DIR`` environment variable to an appropriate path.
-See `CuPy Overview <https://docs-cupy.chainer.org/en/stable/overview.html>` for more details.
+See `CuPy Overview <https://docs-cupy.chainer.org/en/stable/overview.html>`_ for more details.
 
 
-mnist example does not converge in CPU mode on Mac OS X
+MNIST example does not converge in CPU mode on Mac OS X
 -------------------------------------------------------
-
-Many users reported that mnist example does not work correctly on Mac OS X.
-We are suspecting it is caused by vecLib, that is a default BLAS library installed on Mac OS X.
 
 .. note::
 
    Mac OS X is not officially supported.
-   I mean it is not tested continuously on our test server.
+   Please use it at your own risk.
 
-We recommend to use other BLAS libraries such as `OpenBLAS <http://www.openblas.net/>`_.
-We empirically found that it fixes this problem.
-It is necessary to reinstall NumPy to use replaced BLAS library.
-Here is an instruction to install NumPy with OpenBLAS using `Homebrew <http://brew.sh/>`_.
+Many users have reported that MNIST example does not work correctly
+when using vecLib as NumPy backend on Mac OS X.
+vecLib is the default BLAS library installed on Mac OS X.
+
+We recommend using other BLAS libraries such as `OpenBLAS <http://www.openblas.net/>`_.
+
+To use an alternative BLAS library, it is necessary to reinstall NumPy.
+Here is an instruction to install NumPy with OpenBLAS using `Homebrew <https://brew.sh/>`_.
 
 ::
 
@@ -44,34 +45,77 @@ Here is an instruction to install NumPy with OpenBLAS using `Homebrew <http://br
 
 If you want to install NumPy with pip, use `site.cfg <https://github.com/numpy/numpy/blob/master/site.cfg.example>`_ file.
 
-You can check if NumPy uses OpenBLAS with ``numpy.show_config`` method.
-Check if `blas_opt_info` refers to `openblas`.
+For details of this problem, see `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
 
-::
 
-   >>> import numpy
-   >>> numpy.show_config()
-   lapack_opt_info:
-       libraries = ['openblas', 'openblas']
-       library_dirs = ['/usr/local/opt/openblas/lib']
-       define_macros = [('HAVE_CBLAS', None)]
-       language = c
-   blas_opt_info:
-       libraries = ['openblas', 'openblas']
-       library_dirs = ['/usr/local/opt/openblas/lib']
-       define_macros = [('HAVE_CBLAS', None)]
-       language = c
-   openblas_info:
-       libraries = ['openblas', 'openblas']
-       library_dirs = ['/usr/local/opt/openblas/lib']
-       define_macros = [('HAVE_CBLAS', None)]
-       language = c
-   openblas_lapack_info:
-       libraries = ['openblas', 'openblas']
-       library_dirs = ['/usr/local/opt/openblas/lib']
-       define_macros = [('HAVE_CBLAS', None)]
-       language = c
-   blas_mkl_info:
-       NOT AVAILABLE
+How do I accelerate my model using iDeep on Intel CPU?
+------------------------------------------------------
 
-See detail about this problem in `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
+Follow these steps to utilize iDeep in your model.
+
+Install iDeep
+~~~~~~~~~~~~~
+
+The following environments are recommended by `iDeep <https://github.com/intel/ideep>`_.
+
+* Ubuntu 14.04 / 16.04 LTS (64-bit) and CentOS 7 (64-bit)
+* Python 2.7.5+, 3.5.2+, and 3.6.0+
+
+On recommended systems, you can install iDeep wheel (binary distribution) by:
+
+.. code-block:: console
+
+    $ pip install ideep4py
+
+Enable iDeep Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Currently iDeep is disabled by default because it is an experimental feature.
+You need to manually enable iDeep by changing ``chainer.config.use_ideep`` configuration to ``'auto'``.
+See :ref:`configuration` for details.
+
+The easiest way to change the configuration is to set environment variable as follows:
+
+.. code-block:: console
+
+    export CHAINER_USE_IDEEP="auto"
+
+You can also use :func:`chainer.using_config` to change the configuration.
+
+.. testcode::
+
+    x = np.ones((3, 3), dtype='f')
+    with chainer.using_config('use_ideep', 'auto'):
+        y = chainer.functions.relu(x)
+    print(type(y.data))
+
+.. testoutput::
+
+    <class 'ideep4py.mdarray'>
+
+Convert Your Model to iDeep
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You need to call ``model.to_intel64()`` (in the same way you call ``model.to_gpu()`` to transfer your link to GPU) to convert the link to iDeep.
+
+Run Your Model
+~~~~~~~~~~~~~~
+
+Now your model is accelerated by iDeep!
+
+Please note that not all functions and optimizers support iDeep acceleration.
+Also note that iDeep will not be used depending on the shape and data type of the input data.
+
+My training process gets stuck when using MultiprocessIterator
+--------------------------------------------------------------
+
+When you are using OpenCV somewhere in your code and the :class:`~chainer.iterators.MultiprocessIterator` is used in the
+training code, the training loop may get stuck at some point. In such situation, there are several workarounds to
+prevent the process got stuck.
+
+1. Set the environment variable as follows: ``OMP_NUM_THREADS=1``
+2. Add ``cv2.setNumThreads(0)`` right after ``import cv2`` in your training script.
+3. Use :class:`~chainer.iterators.MultithreadIterator` instead of :class:`~chainer.iterators.MultiprocessIterator`.
+
+This problem is originally reported here: `A training loop got stuck in a certain condition with multi-processing updater and opencv <https://github.com/chainer/chainer/issues/2903>`_
+for Chainer and the discussion on related problems is still going here: `OpenCV + Python multiprocessing breaks on OSX <https://github.com/opencv/opencv/issues/5150>`_.

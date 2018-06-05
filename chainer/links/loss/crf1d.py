@@ -35,7 +35,7 @@ class CRF1d(link.Link):
 
         Returns:
             tuple: A tuple of :class:`~chainer.Variable` representing each
-                log-likelihood and a list representing the argmax path.
+            log-likelihood and a list representing the argmax path.
 
         .. seealso:: See :func:`~chainer.frunctions.crf1d_argmax` for more
            detail.

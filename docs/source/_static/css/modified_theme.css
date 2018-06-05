@@ -18,6 +18,30 @@
 }
 
 
+/* deprecation box */
+.rst-content .deprecated {
+    background-color: #ffedcc !important;
+    padding: 0 1em 0.1em 1em !important;
+}
+
+.rst-content .deprecated .versionmodified {
+    /* title text */
+    display: block !important;
+    background-color: #f0b37e !important;
+    color: #ffffff !important;
+    font-weight: bold !important;
+
+    padding: 0.1em 1em 0.1em 1em !important;
+    margin: 0 -1em 0.5em -1em !important;
+}
+
+
+/* Avoid horizontal scroll of tables */
+.rst-content table.docutils td {
+    white-space: normal;
+}
+
+
 /* code style */
 .rst-content table.longtable.docutils code {
     font-size: 100% !important;
@@ -41,4 +65,20 @@
     background-color: #aaeeaa;
     padding: 0.2em 0 0.2em 1em;
     border-top: solid 0.3em #66cc66;
+}
+
+/* External links in menus */
+.wy-menu a.external:after {
+    font-family: "FontAwesome";
+    font-size: 0.7em;
+    vertical-align: top;
+    content: " \f0a9";
+}
+
+/* External links in content */
+.rst-content a.external:after {
+    font-family: "FontAwesome";
+    font-size: 0.7em;
+    vertical-align: top;
+    content: " \f0a9";
 }

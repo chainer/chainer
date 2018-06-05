@@ -32,12 +32,11 @@ class InceptionBN(link.Chain):
         proj_pool (int or None): Projection size in the pooling path. If
             ``None``, no projection is done.
         stride (int): Stride parameter of the last convolution of each path.
-        conv_init: A callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
-            It is used for initialization of the convolution matrix weights.
-            Maybe be ``None`` to use default initialization.
+        conv_init (:ref:`initializer <initializer>`): Initializer to
+            initialize the convolution matrix weights.
+            When it is :class:`numpy.ndarray`, its ``ndim`` should be 4.
         dtype (numpy.dtype): Type to use in
-            ``~batch_normalization.BatchNormalization``.
+            :class:`BatchNormalization`.
 
     .. seealso:: :class:`Inception`
 

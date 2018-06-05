@@ -2,7 +2,7 @@ import unittest
 
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -53,7 +53,7 @@ class TestSqueeze(unittest.TestCase):
 
     def check_backward(self, x_data, g_data):
         gradient_check.check_backward(
-            functions.Squeeze(self.axis),
+            lambda x: functions.squeeze(x, self.axis),
             x_data, g_data, **self.check_backward_options)
 
     def test_backward_cpu(self):

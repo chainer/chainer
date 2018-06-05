@@ -1,7 +1,8 @@
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import function
 from chainer.utils import type_check
 
@@ -36,6 +37,8 @@ class LocalResponseNormalization(function.Function):
 
     """Cross-channel normalization function used in AlexNet."""
 
+    _use_ideep = False
+
     def __init__(self, n=5, k=2, alpha=1e-4, beta=.75):
         self.n = n
         self.k = k
@@ -52,6 +55,11 @@ class LocalResponseNormalization(function.Function):
         )
 
     def forward_cpu(self, x):
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(x, (4,))):
+            self._use_ideep = True
+            return self._forward_ideep(x)
+
         half_n = self.n // 2
         x2 = numpy.square(x[0])
         sum_part = x2.copy()
@@ -63,7 +71,20 @@ class LocalResponseNormalization(function.Function):
         self.y = x[0] * self.scale
         return self.y,
 
+    def _forward_ideep(self, x):
+        param = intel64.ideep.localResponseNormalizationParam(
+            self.n, self.k, self.n * self.alpha, self.beta,
+            intel64.ideep.localResponseNormalizationParam.lrn_across_channels)
+        y, indexes = intel64.ideep.localResponseNormalization.Forward(
+            intel64.ideep.array(x[0]), param)
+        self.y = y
+        self.indexes = indexes
+        return self.y,
+
     def backward_cpu(self, x, gy):
+        if self._use_ideep:
+            return self._backward_ideep(x, gy)
+
         half_n = self.n // 2
         summand = self.y * gy[0] / self.unit_scale
         sum_part = summand.copy()
@@ -72,6 +93,18 @@ class LocalResponseNormalization(function.Function):
             sum_part[:, :-i] += summand[:, i:]
 
         gx = gy[0] * self.scale - 2 * self.alpha * self.beta * x[0] * sum_part
+        return gx,
+
+    def _backward_ideep(self, x, gy):
+        param = intel64.ideep.localResponseNormalizationParam(
+            self.n, self.k, self.n * self.alpha, self.beta,
+            intel64.ideep.localResponseNormalizationParam.lrn_across_channels
+        )
+        gx = intel64.ideep.localResponseNormalization.Backward(
+            intel64.ideep.array(x[0]),
+            intel64.ideep.array(gy[0]),
+            self.indexes,
+            param)
         return gx,
 
     def forward_gpu(self, x):
@@ -125,7 +158,7 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
         Variable: Output variable.
 
     See: Section 3.3 of `ImageNet Classification with Deep Convolutional \\
-    Neural Networks <http://www.cs.toronto.edu/~fritz/absps/imagenet.pdf>`_
+    Neural Networks <https://www.cs.toronto.edu/~fritz/absps/imagenet.pdf>`_
 
     """
     return LocalResponseNormalization(n, k, alpha, beta)(x)

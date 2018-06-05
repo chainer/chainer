@@ -1,6 +1,6 @@
-from __future__ import print_function
 import collections
 import os
+import sys
 
 import numpy
 try:
@@ -10,6 +10,7 @@ except ImportError as e:
     available = False
     _import_error = e
 
+import chainer
 from chainer.dataset.convert import concat_examples
 from chainer.dataset import download
 from chainer import function
@@ -107,7 +108,7 @@ class VGG16Layers(link.Chain):
         if pretrained_model == 'auto':
             _retrieve(
                 'VGG_ILSVRC_16_layers.npz',
-                'http://www.robots.ox.ac.uk/%7Evgg/software/very_deep/'
+                'https://www.robots.ox.ac.uk/%7Evgg/software/very_deep/'
                 'caffe/VGG_ILSVRC_16_layers.caffemodel',
                 self)
         elif pretrained_model:
@@ -159,7 +160,7 @@ class VGG16Layers(link.Chain):
         caffemodel = CaffeFunction(path_caffemodel)
         npz.save_npz(path_npz, caffemodel, compression=False)
 
-    def __call__(self, x, layers=['prob'], **kwargs):
+    def __call__(self, x, layers=None, **kwargs):
         """__call__(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
@@ -171,7 +172,8 @@ class VGG16Layers(link.Chain):
            See :func:`chainer.using_config`.
 
         Args:
-            x (~chainer.Variable): Input variable.
+            x (~chainer.Variable): Input variable. It should be prepared by
+                ``prepare`` function.
             layers (list of str): The list of layer names you want to extract.
 
         Returns:
@@ -180,6 +182,9 @@ class VGG16Layers(link.Chain):
             the corresponding feature map variable.
 
         """
+
+        if layers is None:
+            layers = ['prob']
 
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '
@@ -199,7 +204,7 @@ class VGG16Layers(link.Chain):
                 target_layers.remove(key)
         return activations
 
-    def extract(self, images, layers=['fc7'], size=(224, 224), **kwargs):
+    def extract(self, images, layers=None, size=(224, 224), **kwargs):
         """extract(self, images, layers=['fc7'], size=(224, 224))
 
         Extracts all the feature maps of given images.
@@ -234,6 +239,9 @@ class VGG16Layers(link.Chain):
 
         """
 
+        if layers is None:
+            layers = ['fc7']
+
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '
             'Use chainer.using_config',
@@ -250,6 +258,8 @@ class VGG16Layers(link.Chain):
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
+                When you specify a color image as a :class:`numpy.ndarray`,
+                make sure that color order is RGB.
             oversample (bool): If ``True``, it averages results across
                 center, corners, and mirrors. Otherwise, it uses only the
                 center.
@@ -266,7 +276,7 @@ class VGG16Layers(link.Chain):
         else:
             x = x[:, :, 16:240, 16:240]
         # Use no_backprop_mode to reduce memory consumption
-        with function.no_backprop_mode():
+        with function.no_backprop_mode(), chainer.using_config('train', False):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:
@@ -327,7 +337,9 @@ def _max_pooling_2d(x):
 
 def _make_npz(path_npz, url, model):
     path_caffemodel = download.cached_download(url)
-    print('Now loading caffemodel (usually it may take few minutes)')
+    sys.stderr.write(
+        'Now loading caffemodel (usually it may take few minutes)\n')
+    sys.stderr.flush()
     VGG16Layers.convert_caffemodel_to_npz(path_caffemodel, path_npz)
     npz.load_npz(path_npz, model)
     return model

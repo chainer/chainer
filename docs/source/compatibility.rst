@@ -23,10 +23,10 @@ For older versions of Chainer, see `the old version of API Compatiblity Policy <
 Versioning and Backward Compatibility
 -------------------------------------
 
-The versioning of Chainer follows the `PEP 440 <https://www.python.org/dev/peps/pep-0440/>`_ and a part of `Semantic versioning <http://semver.org/>`_.
+The versioning of Chainer follows the `PEP 440 <https://www.python.org/dev/peps/pep-0440/>`_ and a part of `Semantic versioning <https://semver.org/>`_.
 See :ref:`contrib` for details of versioning.
 
-The backward compatibility is kept for **revision updates**, which are applied to the stable version.
+The backward compatibility is kept for **revision updates** and **minor updates**, which are applied to the stable version.
 A **major update** from the latest release candidate basically keeps the backward compatibility, although it is not guaranteed.
 Any **pre-releases** may break the backward compatibility.
 
@@ -52,7 +52,7 @@ The following list shows an example of what we can do to reduce the cost (*Note:
 .. note::
 
    Since Chainer v2, we have stopped adopting any solid processes to break backward compatibilities (e.g. a solid schedule for deprecating and removing a feature) in order to keep the development fast enough to support the cutting-edge research.
-   **It does not mean we stop taking care of maintenability of user codes.**
+   **It does not mean we stop taking care of maintainability of user codes.**
    We are still paying much attention to not breaking user codes.
 
 

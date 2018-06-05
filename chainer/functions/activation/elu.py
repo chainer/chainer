@@ -1,11 +1,11 @@
 import numpy
 
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class ELU(function.Function):
+class ELU(function_node.FunctionNode):
 
     """Exponential Linear Unit."""
 
@@ -19,32 +19,63 @@ class ELU(function.Function):
         type_check.expect(x_type.dtype.kind == 'f')
 
     def forward_cpu(self, x):
+        self.retain_inputs((0,))
         y = x[0].copy()
         neg_indices = x[0] < 0
-        y[neg_indices] = self.alpha * (numpy.exp(y[neg_indices]) - 1)
+        y[neg_indices] = self.alpha * (numpy.expm1(y[neg_indices]))
         return y,
 
     def forward_gpu(self, x):
+        self.retain_inputs((0,))
         y = cuda.elementwise(
             'T x, T alpha', 'T y',
-            'y = x >= 0 ? x : (T)(alpha * (exp(x) - 1))',
+            'y = x >= 0 ? x : (T)(alpha * expm1(x))',
             'elu_fwd')(
                 x[0], self.alpha)
         return y,
 
-    def backward_cpu(self, x, gy):
-        gx = gy[0].copy()
-        neg_indices = x[0] < 0
-        gx[neg_indices] *= self.alpha * numpy.exp(x[0][neg_indices])
+    def backward(self, indexes, grad_outputs):
+        x, = self.get_retained_inputs()
+        gy, = grad_outputs
+        return ELUGrad(self.alpha).apply((x,))[0] * gy,
+
+
+class ELUGrad(function_node.FunctionNode):
+
+    """Exponential Linear Unit gradient function."""
+
+    def __init__(self, alpha):
+        self.alpha = alpha
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 1)
+        type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_cpu(self, inputs):
+        x, = inputs
+        gx = numpy.ones_like(x)
+        neg_indices = x < 0
+        gx[neg_indices] *= self.alpha * numpy.exp(x[neg_indices])
+        self.retain_inputs((0,))
+        self.retain_outputs((0,))
         return gx,
 
-    def backward_gpu(self, x, gy):
+    def forward_gpu(self, inputs):
+        x, = inputs
         gx = cuda.elementwise(
-            'T x, T gy, T alpha', 'T gx',
-            'gx = x >= 0 ? gy : (T)(gy * alpha * exp(x))',
+            'T x, T alpha', 'T gx',
+            'gx = x >= 0 ? (T)1 : (T)(alpha * exp(x))',
             'elu_bwd')(
-                x[0], gy[0], self.alpha)
+                x, self.alpha)
+        self.retain_inputs((0,))
+        self.retain_outputs((0,))
         return gx,
+
+    def backward(self, indexes, grad_outputs):
+        x, = self.get_retained_inputs()
+        gx, = self.get_retained_outputs()
+        ggx, = grad_outputs
+        return ggx * gx * (x.data < 0),
 
 
 def elu(x, alpha=1.0):
@@ -72,7 +103,7 @@ def elu(x, alpha=1.0):
 
     .. admonition:: Example
 
-        >>> x = np.array([[-1, 0], [2, -3]], 'f')
+        >>> x = np.array([[-1, 0], [2, -3]], np.float32)
         >>> x
         array([[-1.,  0.],
                [ 2., -3.]], dtype=float32)
@@ -82,4 +113,4 @@ def elu(x, alpha=1.0):
                [ 2.        , -0.95021296]], dtype=float32)
 
     """
-    return ELU(alpha=alpha)(x)
+    return ELU(alpha=alpha).apply((x,))[0]

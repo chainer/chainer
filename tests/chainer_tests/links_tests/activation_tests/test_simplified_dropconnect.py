@@ -5,13 +5,12 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer.serializers import npz
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import type_check
 
 
@@ -65,7 +64,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
                                          W, x[:, :, None]).reshape(4, -1) + b
 
         self.check_forward_options = {}
-        self.check_backward_options = {}
+        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
         if self.x_dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_backward_options = {'atol': 1e-2, 'rtol': 5e-2}
@@ -95,15 +94,13 @@ class TestSimplifiedDropconnect(unittest.TestCase):
     def check_backward(self, x_data, y_grad, mask):
         gradient_check.check_backward(
             self.link_wrapper, (x_data, mask), y_grad,
-            (self.link.W, self.link.b), eps=2 ** -3,
-            no_grads=(False, True), **self.check_backward_options)
+            (self.link.W, self.link.b),
+            no_grads=(False, True), dtype='d', **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy, self.mask)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
@@ -164,14 +161,13 @@ class TestSimplifiedDropconnectParameterShapePlaceholder(unittest.TestCase):
     def check_backward(self, x_data, y_grad, mask):
         gradient_check.check_backward(
             self.link_wrapper, (x_data, mask), y_grad,
-            (self.link.W, self.link.b), eps=1e-2, no_grads=(False, True))
+            (self.link.W, self.link.b), dtype='d', no_grads=(False, True),
+            atol=1e-4, rtol=1e-3)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy, self.mask)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy),

@@ -1,10 +1,12 @@
-from chainer import cuda
-from chainer import function
+import numpy
+
+from chainer.backends import cuda
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class Sqrt(function.Function):
+class Sqrt(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -17,18 +19,38 @@ class Sqrt(function.Function):
         )
 
     def forward(self, x):
-        self.retain_inputs(())
         self.retain_outputs((0,))
         xp = cuda.get_array_module(*x)
         return utils.force_array(xp.sqrt(x[0], dtype=x[0].dtype)),
 
-    def backward(self, x, gy):
-        xp = cuda.get_array_module(*gy)
-        gx = self.output_data[0].copy()
-        gx *= 2.0
-        xp.reciprocal(gx, out=gx)
-        gx *= gy[0]
-        return gx,
+    def backward(self, indexes, grad_outputs):
+        gx = self.get_retained_outputs()[0]
+        gy = grad_outputs[0]
+        return gy / (gx * 2.0),
+
+
+class RsqrtGPU(function_node.FunctionNode):
+
+    @property
+    def label(self):
+        return 'rsqrt'
+
+    def check_type_forward(self, in_types):
+        type_check.expect(
+            in_types.size() == 1,
+            in_types[0].dtype.kind == 'f',
+        )
+
+    def forward_gpu(self, inputs):
+        self.retain_outputs((0,))
+        x, = inputs
+        out = cuda.cupyx.rsqrt(x, dtype=x.dtype)
+        return utils.force_array(out),
+
+    def backward(self, indexes, grad_outputs):
+        y, = self.get_retained_outputs()
+        gy, = grad_outputs
+        return gy * (y ** 3) * -0.5,
 
 
 def sqrt(x):
@@ -46,7 +68,7 @@ def sqrt(x):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Sqrt()(x)
+    return Sqrt().apply((x,))[0]
 
 
 def rsqrt(x):
@@ -63,4 +85,9 @@ def rsqrt(x):
 
     .. seealso:: :func:`~chainer.functions.sqrt`
     """
-    return 1.0 / sqrt(x)
+    xp = cuda.get_array_module(x)
+    if xp is numpy:
+        return 1.0 / sqrt(x)
+
+    # CuPy provides `rsqrt` which is faster than `1.0 / sqrt(x)`.
+    return RsqrtGPU().apply((x,))[0]

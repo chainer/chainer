@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -35,7 +35,7 @@ class Hinge(function.Function):
         x_type, t_type = in_types
         type_check.expect(
             x_type.dtype == numpy.float32,
-            t_type.dtype == numpy.int32,
+            t_type.dtype.kind == 'i',
             x_type.ndim == 2,
             t_type.ndim == 1,
             x_type.shape[0] == t_type.shape[0],
@@ -123,7 +123,7 @@ def hinge(x, t, norm='L1', reduce='mean'):
 
         .. math::
             \\delta \\{ {\\rm condition} \\} = \\left \\{ \\begin{array}{cc}
-            1 & {\\rm if~condition\ is\ true} \\\\
+            1 & {\\rm if~condition\\ is\\ true} \\\\
             -1 & {\\rm otherwise,}
             \\end{array} \\right.
 
@@ -135,21 +135,32 @@ def hinge(x, t, norm='L1', reduce='mean'):
             2 & {\\rm if~norm} = {\\rm L2.}
             \\end{array} \\right.
 
+        Let the hinge loss function :math:`l(x, \\delta)` be
+        :math:`\\left[\\max(0, 1 - \\delta x) \\right]^p`.
+        When :math:`x` and :math:`\\delta` have the same sign (meaning
+        :math:`x` predicts the proper score for classification) and
+        :math:`|x| \\geq 1`, the hinge loss :math:`l(x, \\delta) = 0`, but when
+        they have opposite sign, :math:`l(x, \\delta)` increases linearly
+        with :math:`x`.
+
         The output is a variable whose value depends on the value of
         the option ``reduce``. If it is ``'no'``, it holds the elementwise
         loss values. If it is ``'mean'``, it takes the mean of loss values.
 
     Args:
-        x (~chainer.Variable): Input variable. The shape of ``x`` should be
-            (:math:`N`, :math:`K`).
-        t (~chainer.Variable): The :math:`N`-dimensional label vector
-            with values :math:`t_n \in \{0, 1, 2, \dots, K-1\}`.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray` of :class:`numpy.float`):
+            Input variable. The shape of ``x`` should be (:math:`N`, :math:`K`)
+            .
+        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray` of signed integer):
+            The :math:`N`-dimensional label vector with values
+            :math:`t_n \\in \\{0, 1, 2, \\dots, K-1\\}`.
             The shape of ``t`` should be (:math:`N`,).
         norm (string): Specifies norm type. Either ``'L1'`` or ``'L2'`` is
             acceptable.
         reduce (str): Reduction option. Its value must be either
             ``'mean'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
-
 
     Returns:
         ~chainer.Variable:
@@ -158,6 +169,27 @@ def hinge(x, t, norm='L1', reduce='mean'):
             If ``reduce`` is ``'no'``, the output variable holds array
             whose shape is same as one of (hence both of) input variables.
             If it is ``'mean'``, the output variable holds a scalar value.
+
+    .. admonition:: Example
+
+        In this case, the batch size ``N`` is 2 and the number of classes ``K``
+        is 3.
+
+        >>> x = np.array([[-2.0, 3.0, 0.5],
+        ...               [5.0, 2.0, -0.5]]).astype(np.float32)
+        >>> x
+        array([[-2. ,  3. ,  0.5],
+               [ 5. ,  2. , -0.5]], dtype=float32)
+        >>> t = np.array([1, 0]).astype(np.int32)
+        >>> t
+        array([1, 0], dtype=int32)
+        >>> F.hinge(x, t)
+        variable(2.5)
+        >>> F.hinge(x, t, reduce='no')
+        variable([[0. , 0. , 1.5],
+                  [0. , 3. , 0.5]])
+        >>> F.hinge(x, t, norm='L2')
+        variable(5.75)
 
     """
     return Hinge(norm, reduce)(x, t)

@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
@@ -23,18 +23,47 @@ def _batch_normalization(expander, gamma, beta, x, mean, var, eps, test):
     return y_expect
 
 
-@testing.parameterize(*(testing.product({
-    'test': [True, False],
-    'ndim': [0, 1, 2, 3],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-})))
+@testing.parameterize(*(testing.product_dict(
+    testing.product({
+        'test': [True, False],
+        'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    }),
+    testing.product({
+        'ndim': [0, 1, 2, 3],
+    }) + [
+        {'input_shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
+        {'input_shape': (5, 4), 'axis': 0},
+        {'input_shape': (5, 4, 3), 'axis': (0, 1)},
+    ]
+)))
 class BatchNormalizationTest(unittest.TestCase):
 
     def setUp(self):
-        self.expander = (None, Ellipsis) + (None,) * self.ndim
-        self.aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
+        if not hasattr(self, 'axis'):
+            aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
+            shape = (5, 3) + (2,) * self.ndim
+            param_shape = shape[1]
+            self.expander = (None, Ellipsis) + (None,) * self.ndim
+        else:
+            aggr_axes = self.axis
+            if isinstance(self.axis, int):
+                aggr_axes = self.axis,
+            shape = self.input_shape
+            param_shape = tuple(
+                s
+                for i, s in enumerate(shape)
+                if i not in aggr_axes
+            )
+            self.expander = tuple(
+                None if i in aggr_axes else slice(None)
+                for i in range(len(shape))
+            )
 
-        self.link = links.BatchNormalization(3, dtype=self.dtype)
+        options = {}
+        if hasattr(self, 'axis'):
+            options['axis'] = self.axis
+        self.link = links.BatchNormalization(
+            param_shape, dtype=self.dtype, **options)
         gamma = self.link.gamma.data
         gamma[...] = numpy.random.uniform(.5, 1, gamma.shape)
         beta = self.link.beta.data
@@ -44,18 +73,19 @@ class BatchNormalizationTest(unittest.TestCase):
         self.gamma = gamma.copy()[self.expander]  # fixed on CPU
         self.beta = beta.copy()[self.expander]   # fixed on CPU
 
-        shape = (5, 3) + (2,) * self.ndim
         self.x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
 
         if self.test:
-            self.mean = numpy.random.uniform(-1, 1, (3,)).astype(self.dtype)
-            self.var = numpy.random.uniform(0.5, 1, (3,)).astype(self.dtype)
+            self.mean = numpy.random.uniform(
+                -1, 1, param_shape).astype(self.dtype)
+            self.var = numpy.random.uniform(
+                0.5, 1, param_shape).astype(self.dtype)
             self.link.avg_mean[...] = self.mean
             self.link.avg_var[...] = self.var
         else:
-            self.mean = self.x.mean(axis=self.aggr_axes)
-            self.var = self.x.var(axis=self.aggr_axes)
+            self.mean = self.x.mean(axis=aggr_axes)
+            self.var = self.x.var(axis=aggr_axes)
         self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
         if self.dtype == numpy.float16:
@@ -121,7 +151,8 @@ class BatchNormalizationTest(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'nx': 10, 'ny': 10},
+    {'nx': 10, 'ny': 10, 'eps': 2e-5},
+    {'nx': 10, 'ny': 10, 'eps': 1e-1},
     # TODO(Kenta Oono)
     # Pass the case below (this test does not pass when nx != ny).
     # {'nx': 10, 'ny': 15}
@@ -131,7 +162,7 @@ class TestPopulationStatistics(unittest.TestCase):
     def setUp(self):
         self.decay = 0.9
         self.size = 3
-        self.link = links.BatchNormalization(self.size, self.decay)
+        self.link = links.BatchNormalization(self.size, self.decay, self.eps)
         self.x = numpy.random.uniform(
             -1, 1, (self.nx, self.size)).astype(numpy.float32)
         self.y = numpy.random.uniform(
@@ -151,12 +182,10 @@ class TestPopulationStatistics(unittest.TestCase):
         testing.assert_allclose(mean, self.link.avg_mean)
         testing.assert_allclose(unbiased_var, self.link.avg_var)
 
-    @condition.retry(3)
     def test_statistics_cpu(self):
         self.check_statistics(self.x, self.y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_statistics_gpu(self):
         self.link.to_gpu()
         self.check_statistics(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
@@ -185,12 +214,10 @@ class TestPopulationStatistics(unittest.TestCase):
         testing.assert_allclose(mean, self.link.avg_mean)
         testing.assert_allclose(unbiased_var, self.link.avg_var)
 
-    @condition.retry(3)
     def test_statistics2_cpu(self):
         self.check_statistics2(self.x, self.y)
 
     @attr.gpu
-    @condition.retry(3)
     def test_statistics2_gpu(self):
         self.link.to_gpu()
         self.check_statistics2(

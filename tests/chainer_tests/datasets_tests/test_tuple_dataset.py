@@ -2,7 +2,7 @@ import unittest
 
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import datasets
 from chainer import testing
 from chainer.testing import attr
@@ -21,6 +21,16 @@ class TestTupleDataset(unittest.TestCase):
 
         for i in range(len(x0)):
             example = td[i]
+            self.assertEqual(len(example), 2)
+
+            numpy.testing.assert_array_equal(
+                cuda.to_cpu(example[0]), cuda.to_cpu(x0[i]))
+            numpy.testing.assert_array_equal(
+                cuda.to_cpu(example[1]), cuda.to_cpu(x1[i]))
+
+        example_range = td[0: len(x0)]
+        for i in range(len(x0)):
+            example = example_range[i]
             self.assertEqual(len(example), 2)
 
             numpy.testing.assert_array_equal(

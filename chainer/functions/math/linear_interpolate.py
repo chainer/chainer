@@ -1,10 +1,10 @@
-from chainer import cuda
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
 
-class LinearInterpolate(function.Function):
+class LinearInterpolate(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 3)
@@ -19,11 +19,13 @@ class LinearInterpolate(function.Function):
         )
 
     def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
         p, x, y = inputs
         one = p.dtype.type(1)
         return utils.force_array(p * x + (one - p) * y),
 
     def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1, 2))
         p, x, y = inputs
         return cuda.elementwise(
             'T p, T x, T y', 'T z',
@@ -31,26 +33,43 @@ class LinearInterpolate(function.Function):
             'linear_interpolate_fwd',
         )(p, x, y),
 
-    def backward_cpu(self, inputs, grads):
-        p, x, y = inputs
-        g = grads[0]
-        pg = p * g
-        return (utils.force_array((x - y) * g),
-                utils.force_array(pg),
-                utils.force_array(g - pg))
+    def backward(self, indexes, grad_outputs):
+        p, x, y = self.get_retained_inputs()
+        gz, = grad_outputs
+        return LinearInterpolateGrad().apply((p, x, y, gz))
 
-    def backward_gpu(self, inputs, grads):
-        p, x, y = inputs
-        g = grads[0]
+
+class LinearInterpolateGrad(function_node.FunctionNode):
+
+    def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1, 2, 3))
+        p, x, y, gz = inputs
+        pg = p * gz
+        return (utils.force_array((x - y) * gz),
+                utils.force_array(pg),
+                utils.force_array(gz - pg))
+
+    def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1, 2, 3))
+        p, x, y, gz = inputs
         return cuda.elementwise(
-            'T p, T x, T y, T g', 'T gp, T gx, T gy',
+            'T p, T x, T y, T gz', 'T gp, T gx, T gy',
             '''
-            gp = (x - y) * g;
-            gx = g * p;
-            gy = g * (1 - p);
+            gp = (x - y) * gz;
+            gx = gz * p;
+            gy = gz * (1 - p);
             ''',
             'linear_interpolate_bwd'
-        )(p, x, y, g)
+        )(p, x, y, gz)
+
+    def backward(self, indexes, grad_outputs):
+        p, x, y, gz = self.get_retained_inputs()
+        ggp, ggx, ggy = grad_outputs
+        gp = gz * (ggx - ggy)
+        gx = gz * ggp
+        gy = - gx
+        ggz = (x - y) * ggp + p * ggx + (1 - p) * ggy
+        return gp, gx, gy, ggz
 
 
 def linear_interpolate(p, x, y):
@@ -72,4 +91,4 @@ def linear_interpolate(p, x, y):
 
     """
 
-    return LinearInterpolate()(p, x, y)
+    return LinearInterpolate().apply((p, x, y))[0]
