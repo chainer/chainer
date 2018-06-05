@@ -7,7 +7,7 @@ Welcome to Chainer!
 
 Chainer is a rapidly growing neural network platform. The strengths of Chainer are:
 
-* 100% pure Python -- Chainer is developed from the entirely in Python, allowing for inspection and customization of all code in python and understandable python messages at run time
+* Python-based -- Chainer is developed in Python, allowing for inspection and customization of all code in python and understandable python messages at run time
 * Define by Run -- neural networks definitions are defined on-the-fly at run time, allowing for dynamic network changes
 * NumPy based syntax for working with arrays, thanks to CuPy implementation
 * Fully customizable -- since Chainer is pure python, all classes and methods can be adapted to allow for the latest cutting edge or specialized approaches
