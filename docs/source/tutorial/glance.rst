@@ -85,7 +85,14 @@ Here's the whole picture of the code:
 
    # Set up a trainer
    trainer = training.Trainer(updater, (50, 'epoch'), out='result')
-   
+
+.. testcode::
+    :hide:
+
+    # Shortcut for doctests.
+    trainer = training.Trainer(updater, (1, 'epoch'), out='result')
+
+.. testcode::
    # Evaluate the model with the test dataset for each epoch
    trainer.extend(extensions.Evaluator(test_iter, model, device=-1))
    
