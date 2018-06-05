@@ -1,5 +1,4 @@
 import unittest
-import warnings
 
 import numpy
 
@@ -225,37 +224,21 @@ class TestEvaluatorWithEvalFunc(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
+    'debug': [True, False],
     'repeat': [True, False],
-    'iterator_class': ['serial_iterator',
-                       'multiprocess_iterator',
-                       'multithread_iterator']
+    'iterator': [iterators.SerialIterator,
+                 iterators.MultiprocessIterator,
+                 iterators.MultithreadIterator]
 }))
 class TestEvaluatorRepeat(unittest.TestCase):
 
-    def setUp(self):
-        self.context = warnings.catch_warnings(record=True)
-        self.warnings = self.context.__enter__()
-        self.dataset = numpy.ones((4, 6))
-        if self.iterator_class == 'serial_iterator':
-            self.iterator = iterators.SerialIterator(
-                self.dataset, 2, repeat=self.repeat)
-        elif self.iterator_class == 'multiprocess_iterator':
-            self.iterator = iterators.MultiprocessIterator(
-                self.dataset, 2, repeat=self.repeat)
-        elif self.iterator_class == 'multithread_iterator':
-            self.iterator = iterators.MultithreadIterator(
-                self.dataset, 2, repeat=self.repeat)
-        warnings.filterwarnings(action='always', category=DeprecationWarning)
-
-    def tearDown(self):
-        self.context.__exit__()
-
-    def test_serial_iterator(self):
-        with warnings.catch_warnings(record=True) as w:
-            extensions.Evaluator(self.iterator, {})
-
-        expect = 1 if self.repeat else 0
-        assert len(w) == expect
+    def test_user_warning(self):
+        dataset = numpy.ones((4, 6))
+        iterator = self.iterator(dataset, 2, repeat=self.repeat)
+        with chainer.using_config('debug', self.debug):
+            if self.debug and self.repeat:
+                with testing.assert_warns(UserWarning):
+                    extensions.Evaluator(iterator, {})
 
 
 testing.run_module(__name__, __file__)
