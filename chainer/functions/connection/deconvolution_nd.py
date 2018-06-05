@@ -372,7 +372,8 @@ pad=(p1, p2, p3), outsize=(l1, l2, l3))
     return y
 
 
-def deconvolution_1d(x, W, b=None, stride=1, pad=0, outsize=None):
+def deconvolution_1d(x, W, b=None, stride=1, pad=0, outsize=None,
+                     dilate=1, groups=1):
     """1-dimensional deconvolution function.
 
     .. note::
@@ -387,15 +388,11 @@ def deconvolution_1d(x, W, b=None, stride=1, pad=0, outsize=None):
             'The number of dimensions under channel dimension of the input '
             '\'x\' should be 1. But the actual ndim was {}.'.fromat(
                 len(x.shape[2:])))
-
-    func = DeconvolutionND(1, stride, pad, outsize)
-    if b is None:
-        return func(x, W)
-    else:
-        return func(x, W, b)
+    return deconvolution_nd(x, W, b, stride, pad, outsize, dilate, groups)
 
 
-def deconvolution_3d(x, W, b=None, stride=1, pad=0, outsize=None):
+def deconvolution_3d(x, W, b=None, stride=1, pad=0, outsize=None,
+                     dilate=1, groups=1):
     """3-dimensional deconvolution function.
 
     .. note::
@@ -410,9 +407,4 @@ def deconvolution_3d(x, W, b=None, stride=1, pad=0, outsize=None):
             'The number of dimensions under channel dimension of the input '
             '\'x\' should be 3. But the actual ndim was {}.'.fromat(
                 len(x.shape[2:])))
-
-    func = DeconvolutionND(3, stride, pad, outsize)
-    if b is None:
-        return func(x, W)
-    else:
-        return func(x, W, b)
+    return deconvolution_nd(x, W, b, stride, pad, outsize, dilate, groups)

@@ -463,7 +463,8 @@ astype(np.float32)
     return y
 
 
-def convolution_1d(x, W, b=None, stride=1, pad=0, cover_all=False):
+def convolution_1d(x, W, b=None, stride=1, pad=0, cover_all=False,
+                   dilate=1, groups=1):
     """1-dimensional convolution function.
 
     .. note::
@@ -478,15 +479,11 @@ def convolution_1d(x, W, b=None, stride=1, pad=0, cover_all=False):
             'The number of dimensions under channel dimension of the input '
             '\'x\' should be 1. But the actual ndim was {}.'.fromat(
                 len(x.shape[2:])))
-
-    func = ConvolutionND(1, stride, pad, cover_all)
-    if b is None:
-        return func(x, W)
-    else:
-        return func(x, W, b)
+    return convolution_nd(x, W, b, stride, pad, cover_all, dilate, groups)
 
 
-def convolution_3d(x, W, b=None, stride=1, pad=0, cover_all=False):
+def convolution_3d(x, W, b=None, stride=1, pad=0, cover_all=False,
+                   dilate=1, groups=1):
     """3-dimensional convolution function.
 
     .. note::
@@ -501,9 +498,4 @@ def convolution_3d(x, W, b=None, stride=1, pad=0, cover_all=False):
             'The number of dimensions under channel dimension of the input '
             '\'x\' should be 3. But the actual ndim was {}.'.fromat(
                 len(x.shape[2:])))
-
-    func = ConvolutionND(3, stride, pad, cover_all)
-    if b is None:
-        return func(x, W)
-    else:
-        return func(x, W, b)
+    return convolution_nd(x, W, b, stride, pad, cover_all, dilate, groups)

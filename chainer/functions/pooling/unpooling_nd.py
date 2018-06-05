@@ -142,7 +142,7 @@ def unpooling_nd(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
         ndim, ksize, stride, pad, outsize, cover_all).apply((x,))[0]
 
 
-def unpooling_1d(x, ksize, stride=None, pad=0):
+def unpooling_1d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
     """Inverse operation of 1-dimensional spatial pooling.
 
     .. warning::
@@ -161,10 +161,10 @@ def unpooling_1d(x, ksize, stride=None, pad=0):
             'The number of dimensions under channel dimension of the input '
             '\'x\' should be 1. But the actual ndim was {}.'.fromat(
                 len(x.shape[2:])))
-    return UnpoolingND(1, ksize, stride=stride, pad=pad)(x)
+    return unpooling_nd(x, ksize, stride, pad, outsize, cover_all)
 
 
-def unpooling_3d(x, ksize, stride=None, pad=0):
+def unpooling_3d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
     """Inverse operation of 3-dimensional spatial pooling.
 
     .. warning::
@@ -183,4 +183,4 @@ def unpooling_3d(x, ksize, stride=None, pad=0):
             'The number of dimensions under channel dimension of the input '
             '\'x\' should be 3. But the actual ndim was {}.'.fromat(
                 len(x.shape[2:])))
-    return UnpoolingND(3, ksize, stride=stride, pad=pad)(x)
+    return unpooling_nd(x, ksize, stride, pad, outsize, cover_all)

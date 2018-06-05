@@ -255,7 +255,7 @@ def average_pooling_nd(x, ksize, stride=None, pad=0, pad_value=0):
     ).apply((x,))[0]
 
 
-def average_pooling_1d(x, ksize, stride=None, pad=0):
+def average_pooling_1d(x, ksize, stride=None, pad=0, pad_value=0):
     """1-dimensional spatial average pooling function.
 
     .. warning::
@@ -274,10 +274,10 @@ def average_pooling_1d(x, ksize, stride=None, pad=0):
             'The number of dimensions under channel dimension of the input '
             '\'x\' should be 1. But the actual ndim was {}.'.fromat(
                 len(x.shape[2:])))
-    return AveragePoolingND(1, ksize, stride=stride, pad=pad)(x)
+    return average_pooling_nd(x, ksize, stride, pad, pad_value)
 
 
-def average_pooling_3d(x, ksize, stride=None, pad=0):
+def average_pooling_3d(x, ksize, stride=None, pad=0, pad_value=0):
     """3-dimensional spatial average pooling function.
 
     .. warning::
@@ -296,4 +296,4 @@ def average_pooling_3d(x, ksize, stride=None, pad=0):
             'The number of dimensions under channel dimension of the input '
             '\'x\' should be 3. But the actual ndim was {}.'.fromat(
                 len(x.shape[2:])))
-    return AveragePoolingND(3, ksize, stride=stride, pad=pad)(x)
+    return average_pooling_nd(x, ksize, stride, pad, pad_value)

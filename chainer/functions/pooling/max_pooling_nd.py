@@ -266,7 +266,7 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):
     return MaxPoolingND(ndim, ksize, stride, pad, cover_all).apply((x,))[0]
 
 
-def max_pooling_1d(x, ksize, stride=None, pad=0):
+def max_pooling_1d(x, ksize, stride=None, pad=0, cover_all=True):
     """1-dimensional spatial max pooling function.
 
     .. warning::
@@ -285,10 +285,10 @@ def max_pooling_1d(x, ksize, stride=None, pad=0):
             'The number of dimensions under channel dimension of the input '
             '\'x\' should be 1. But the actual ndim was {}.'.fromat(
                 len(x.shape[2:])))
-    return MaxPoolingND(1, ksize, stride=stride, pad=pad)(x)
+    return max_pooling_nd(x, ksize, stride, pad, cover_all)
 
 
-def max_pooling_3d(x, ksize, stride=None, pad=0):
+def max_pooling_3d(x, ksize, stride=None, pad=0, cover_all=True):
     """3-dimensional spatial max pooling function.
 
     .. warning::
@@ -307,4 +307,4 @@ def max_pooling_3d(x, ksize, stride=None, pad=0):
             'The number of dimensions under channel dimension of the input '
             '\'x\' should be 3. But the actual ndim was {}.'.fromat(
                 len(x.shape[2:])))
-    return MaxPoolingND(3, ksize, stride=stride, pad=pad)(x)
+    return max_pooling_nd(x, ksize, stride, pad, cover_all)
