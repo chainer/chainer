@@ -41,12 +41,11 @@ Array ConvGradW(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    int8_t ndim = w_shape.ndim() - 2;  // Number of spacial dimensions
-    assert(ndim > 0);
-    assert(x.ndim() == ndim + 2);
-    assert(gy.ndim() == ndim + 2);
-    assert(stride.size() == static_cast<size_t>(ndim));
-    assert(pad.size() == static_cast<size_t>(ndim));
+    assert(w_shape.ndim() > 2);
+    assert(x.ndim() == w_shape.ndim());
+    assert(gy.ndim() == w_shape.ndim());
+    assert(stride.size() == static_cast<size_t>(w_shape.ndim() - 2));
+    assert(pad.size() == static_cast<size_t>(w_shape.ndim() - 2));
     Array out = x.device().ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
 
     auto x_backward_function =
