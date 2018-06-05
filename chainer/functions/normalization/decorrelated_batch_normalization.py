@@ -188,6 +188,33 @@ def _sym(x):
 
 
 def decorrelated_batch_normalization(x, **kwargs):
+    """Decorrelated batch normalization function.
+
+    It takes the input variable ``x`` and normalizes it using
+    batch statistics to make the output zero-mean and decorrelated.
+
+    Args:
+        x (Variable): Input variable.
+        groups (int): Number of groups to use for group whitening.
+        eps (float): Epsilon value for numerical stability.
+        expected_mean (numpy.ndarray or cupy.ndarray):
+            Expected value of the mean. This is a
+            running average of the mean over several mini-batches using
+            the decay parameter. If ``None``, the expected mean is initialized
+            to zero.
+        expected_projection (numpy.ndarray or cupy.ndarray):
+            Expected value of the project matrix. This is a
+            running average of the projection over several mini-batches using
+            the decay parameter. If ``None``, the expected projected is
+            initialized to the identity matrix.
+        decay (float): Decay rate of moving average. It is used during
+            training.
+
+    See: `Decorrelated Batch Normalization <https://arxiv.org/abs/1804.08450>`_
+
+    .. seealso:: :class:`links.DecorrelatedBatchNormalization`
+
+    """  # NOQA
     groups, eps, expected_mean, expected_projection, decay = \
         argument.parse_kwargs(
             kwargs, ('groups', 16), ('eps', 2e-5), ('expected_mean', None),
@@ -200,6 +227,25 @@ def decorrelated_batch_normalization(x, **kwargs):
 
 
 def fixed_decorrelated_batch_normalization(x, mean, projection, **kwargs):
+    """Decorrelated batch normalization function with fixed statistics.
+
+    This is a variant of decorrelated batch normalization, where the mean and
+    projection statistics are given by the caller as fixed variables. This is
+    used in testing mode of the decorrelated batch normalization layer, where
+    batch statistics cannot be used for prediction consistency.
+
+    Args:
+        x (Variable): Input variable.
+        mean (Variable): Shifting parameter of input.
+        projection (Variable): Projection matrix for decorrelation of input.
+        groups (int): Number of groups to use for group whitening.
+
+
+    .. seealso::
+       :func:`functions.decorrelated_batch_normalization`,
+       :class:`links.DecorrelatedBatchNormalization`
+
+    """
     groups, = argument.parse_kwargs(
         kwargs, ('groups', 16))
 
