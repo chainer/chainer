@@ -70,7 +70,7 @@ class MSVAGRule(optimizer.UpdateRule):
 
         rho = (((1.0 - hp.beta) ** 2) * (1.0 - self.beta_power ** 2) /
                (((1.0 - self.beta_power) ** 2) * (1.0 - hp.beta ** 2)))
-        rho = min(rho, 0.99)
+        rho = min(rho, 0.9999)
 
         m += (1 - hp.beta) * (grad - m)
         v += (1 - hp.beta) * (grad * grad - v)
@@ -102,7 +102,7 @@ class MSVAGRule(optimizer.UpdateRule):
 
         rho = (((1.0 - hp.beta) ** 2) * (1.0 - self.beta_power ** 2) /
                (((1.0 - self.beta_power) ** 2) * (1.0 - hp.beta ** 2)))
-        rho = min(rho, 0.99)
+        rho = min(rho, 0.9999)
 
         cuda.elementwise(
             'T grad, T lr, T one_minus_beta, T eta, \
