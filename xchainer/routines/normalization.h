@@ -13,7 +13,7 @@ namespace xchainer {
 // Computes the batch normalization along the given axis.
 // If axis is omitted, the first axis is treated as the batch axis and will be reduced during normalization.
 // Running mean and running variance that are passed as arguments will be updated in-place.
-Array BatchNormalization(
+Array BatchNorm(
         const Array& x,
         const Array& gamma,
         const Array& beta,

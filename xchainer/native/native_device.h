@@ -104,7 +104,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
-    Array BatchNormalization(
+    Array BatchNorm(
             const Array& x,
             const Array& gamma,
             const Array& beta,

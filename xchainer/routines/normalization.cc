@@ -11,7 +11,7 @@
 
 namespace xchainer {
 
-Array BatchNormalization(
+Array BatchNorm(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -35,7 +35,7 @@ Array BatchNormalization(
     CheckEqual(reduced, running_var.shape());
 
     // TODO(hvy): Implement backward.
-    return x.device().BatchNormalization(
+    return x.device().BatchNorm(
             x, gamma, beta, running_mean, running_var, eps, decay, axis.has_value() ? internal::GetSortedAxes(*axis, x.ndim()) : Axes{0});
 }
 

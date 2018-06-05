@@ -886,7 +886,7 @@ void Var(const Array& a, const Array& mean, const Axes& axis, const Array& out) 
 
 }  // namespace
 
-Array NativeDevice::BatchNormalization(
+Array NativeDevice::BatchNorm(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -909,14 +909,14 @@ Array NativeDevice::BatchNormalization(
         using T = typename decltype(pt)::type;
 
         // Compute the batch normalization.
-        struct BatchNormalizationImpl {
+        struct BatchNormImpl {
             void operator()(int64_t /*i*/, T x, T x_mean, T x_var, T gamma, T beta, T& out) {
                 out = (x - x_mean) / std::sqrt(x_var + eps) * gamma + beta;
             }
             T eps;
         };
         Elementwise<const T, const T, const T, const T, const T, T>(
-                BatchNormalizationImpl{static_cast<T>(eps)},
+                BatchNormImpl{static_cast<T>(eps)},
                 x,
                 x_mean.BroadcastTo(out.shape()),
                 x_var.BroadcastTo(out.shape()),

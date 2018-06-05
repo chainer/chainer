@@ -1062,7 +1062,7 @@ Array CudaDevice::ConvTranspose(
     return y;
 }
 
-Array CudaDevice::BatchNormalization(
+Array CudaDevice::BatchNorm(
         const Array& /*x*/,
         const Array& /*gamma*/,
         const Array& /*beta*/,
