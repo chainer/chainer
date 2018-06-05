@@ -252,14 +252,37 @@ class GoogLeNet(link.Chain):
         it is also interpreted as a shortcut method that implicitly calls
         ``prepare`` and ``__call__`` functions.
 
+        Unlike ``predict`` method, this method does not override
+        ``chainer.config.train`` and ``chainer.config.enable_backprop``
+        configuration. If you want to extract features without updating
+        model parameters, you need to manually set configuration when
+        calling this method as follows:
+
+         .. code-block:: python
+
+             # model is an instance of `GoogLeNet`
+             with chainer.using_config('train', False):
+                 with chainer.using_config('enable_backprop', False):
+                     feature = model.extract([image])
+
         .. warning::
 
-           ``train`` and ``volatile`` arguments are not supported anymore since
-           v2.
-           Instead, use ``chainer.using_config('train', train)`` and
-           ``chainer.using_config('enable_backprop', not volatile)``
-           respectively.
-           See :func:`chainer.using_config`.
+           ``train`` and ``volatile`` arguments are not supported
+           anymore since v2. Instead, users should configure
+           training and volatile modes with ``train`` and
+           ``enable_backprop``, respectively.
+
+           Note that default behavior of this method is different
+           between v1 and later versions. Specifically,
+           the default values of ``train`` arguments in v1 were
+           ``False`` and ``OFF``, while that of
+           ``chainer.config.train`` are ``True``.
+           Therefore, users need to explicitly switch ``train``
+           to ``False`` to run the code in test mode to turn off
+           coputational graph construction.
+
+           See the `upgrade guide <https://docs.chainer.org/en/stable\
+           /upgrade_v2.html#training-mode-is-configured-by-a-thread-local-flag>`_.
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
