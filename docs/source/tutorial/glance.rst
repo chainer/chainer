@@ -161,31 +161,31 @@ Trainer Structure
 
 A :class:`chainer.trainer` is used to set up our neural network and data for training. The components of the :class:`chainer.trainer` are generally hierarchical, and are organized as follows:
 
-.. image:: ../../image/glance/trainer.png
+.. image:: ../image/glance/trainer.png
 
 Each of the components is fed information from the components within it. Setting up the trainer starts at the inner components, and moves outward, with the exception of :class:`~chainer.training.extensions`, which are added after the :class:`chainer.trainer` is defined.
 
 Dataset
 ~~~~~~~
-.. image:: ../../image/glance/trainer-dataset.png
+.. image:: ../image/glance/trainer-dataset.png
 
 Our first step is to format the :mod:`~chainer.datasets`. From the raw mushroom.csv, we format the data into a Chainer :class:`~chainer.datasets.TupleDataset`.
 
 .. code-block:: python
 
-data_array = np.genfromtxt(
-    'mushrooms.csv', delimiter=',', dtype=str, skip_header=1)
-for col in range(data_array.shape[1]):
-    data_array[:, col] = np.unique(data_array[:, col], return_inverse=True)[1]
-
-X = data_array[:, 1:].astype(np.float32)
-Y = data_array[:, 0].astype(np.int32)[:, None]
-train, test = datasets.split_dataset_random(
-    datasets.TupleDataset(X, Y), int(data_array.shape[0] * .7))
+   data_array = np.genfromtxt(
+       'mushrooms.csv', delimiter=',', dtype=str, skip_header=1)
+   for col in range(data_array.shape[1]):
+       data_array[:, col] = np.unique(data_array[:, col], return_inverse=True)[1]
+   
+   X = data_array[:, 1:].astype(np.float32)
+   Y = data_array[:, 0].astype(np.int32)[:, None]
+   train, test = datasets.split_dataset_random(
+       datasets.TupleDataset(X, Y), int(data_array.shape[0] * .7))
 
 Iterator
 ~~~~~~~~
-.. image:: ../../image/glance/trainer-iterator.png
+.. image:: ../image/glance/trainer-iterator.png
 
 Configure :class:`~chainer.iterators` to step through batches of the data for training and for testing validation. In this case, we'll use a batch size of 100, no repeating, and shuffling not required since we already shuffled the dataset on reading it in.
 
@@ -197,7 +197,7 @@ Configure :class:`~chainer.iterators` to step through batches of the data for tr
 
 Model
 ~~~~~~~~~~
-.. image:: ../../image/glance/trainer-model.png
+.. image:: ../image/glance/trainer-model.png
 
 Next, we need to define the neural network for inclusion in our model. For our mushrooms, we'll chain together two fully-connected, :class:`~chainer.links.Linear`, hidden layers between the input and output layers.
 
@@ -230,7 +230,7 @@ Since mushrooms are either edible or poisonous (no information on psychedelic ef
 
 Optimizer
 ~~~~~~~~~~~~
-.. image:: ../../image/glance/trainer-optimizer.png
+.. image:: ../image/glance/trainer-optimizer.png
 
 Pick an :class:`~chainer.optimizer`, and set up the :class:`~chainer.model` to use it.
 
@@ -242,7 +242,7 @@ Pick an :class:`~chainer.optimizer`, and set up the :class:`~chainer.model` to u
    
 Updater
 ~~~~~~~~~
-.. image:: ../../image/glance/trainer-updater.png
+.. image:: ../image/glance/trainer-updater.png
 
 Now that we have the training :class:`~chainer.iterator` and :class:`~chainer.optimizer` set up, we link them both together into the :class:`~chainer.updater`. The :class:`~chainer.updater` uses the minibatches from the :class:`~chainer.iterator`, and then does the forward and backward processing of the model, and updates the parameters of the model according to the :class:`~chainer.optimizer`. Setting the ``device=-1`` sets the device as the CPU. To use a GPU, set ``device`` equal to the number of the GPU, usually ``device=0``.
 
@@ -260,7 +260,7 @@ Set up the :class:`~chainer.updater` to be called after the training batches and
    
 Extensions
 ~~~~~~~~~~
-.. image:: ../../image/glance/trainer-extensions.png
+.. image:: ../image/glance/trainer-extensions.png
 
 Use the testing :class:`~chainer.iterator` defined above for an :class:`~chainer.training.extensions.Evaluator` extension to the trainer to provide test scores.
 
@@ -397,9 +397,9 @@ Our prediction was correct. Success!
 
 The loss function:
 
-.. image:: ../../image/glance/loss.png
+.. image:: ../image/glance/loss.png
 
 And the accuracy
 
-.. image:: ../../image/glance/accuracy.png
+.. image:: ../image/glance/accuracy.png
 
