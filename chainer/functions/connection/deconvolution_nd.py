@@ -288,7 +288,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
             pad.
         dilate (:class:`int` or :class:`tuple` of :class:`int` s):
             Dilation factor of filter applications.
-            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+            ``dilate=d`` and ``dilate=(d, d, ..., d)`` are equivalent.
         groups (:class:`int`):
             The number of groups to use grouped convolution.
             The default is one, where grouped convolution is not used.
