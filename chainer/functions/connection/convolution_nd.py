@@ -470,8 +470,8 @@ def convolution_1d(x, W, b=None, stride=1, pad=0, cover_all=False,
     .. note::
 
         This function calls :func:`~chainer.functions.convolution_nd`
-        internally, so see the detail in the documentation of
-        :func:`~chainer.functions.convolution_nd`.
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.convolution_nd`.
 
     """
     if len(x.shape[2:]) != 1:
@@ -489,8 +489,8 @@ def convolution_3d(x, W, b=None, stride=1, pad=0, cover_all=False,
     .. note::
 
         This function calls :func:`~chainer.functions.convolution_nd`
-        internally, so see the detail in the documentation of
-        :func:`~chainer.functions.convolution_nd`.
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.convolution_nd`.
 
     """
     if len(x.shape[2:]) != 3:

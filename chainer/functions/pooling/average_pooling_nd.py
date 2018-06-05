@@ -264,9 +264,9 @@ def average_pooling_1d(x, ksize, stride=None, pad=0, pad_value=0):
 
     .. note::
 
-        This function calls :func:`~functions.average_pooling_nd` with
-        ``ndim = 1``, so see the details of the behavior in
-        the documentation of :func:`~functions.average_pooling_nd`.
+        This function calls :func:`~chainer.functions.average_pooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.average_pooling_nd`.
 
     """
     if len(x.shape[2:]) != 1:
@@ -286,9 +286,9 @@ def average_pooling_3d(x, ksize, stride=None, pad=0, pad_value=0):
 
     .. note::
 
-        This function calls :func:`~functions.average_pooling_nd` with
-        ``ndim = 3``, so see the details of the behavior in
-        the documentation of :func:`~functions.average_pooling_nd`.
+        This function calls :func:`~chainer.functions.average_pooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.average_pooling_nd`.
 
     """
     if len(x.shape[2:]) != 3:

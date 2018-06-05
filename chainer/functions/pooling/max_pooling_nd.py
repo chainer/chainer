@@ -275,9 +275,9 @@ def max_pooling_1d(x, ksize, stride=None, pad=0, cover_all=True):
 
     .. note::
 
-        This function calls :func:`~functions.max_pooling_nd` with
-        ``ndim = 1``, so see the details of the behavior in
-        the documentation of :func:`~functions.max_pooling_nd`.
+        This function calls :func:`~chainer.functions.max_pooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.max_pooling_nd`.
 
     """
     if len(x.shape[2:]) != 1:
@@ -297,9 +297,9 @@ def max_pooling_3d(x, ksize, stride=None, pad=0, cover_all=True):
 
     .. note::
 
-        This function calls :func:`~functions.max_pooling_nd` with
-        ``ndim = 3``, so see the details of the behavior in
-        the documentation of :func:`~functions.max_pooling_nd`.
+        This function calls :func:`~chainer.functions.max_pooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.max_pooling_nd`.
 
     """
     if len(x.shape[2:]) != 3:

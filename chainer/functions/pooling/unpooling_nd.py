@@ -151,9 +151,9 @@ def unpooling_1d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
 
     .. note::
 
-        This function calls :func:`~functions.unpooling_nd` with
-        ``ndim = 1``, so see the details of the behavior in
-        the documentation of :func:`~functions.unpooling_nd`.
+        This function calls :func:`~chainer.functions.unpooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.unpooling_nd`.
 
     """
     if len(x.shape[2:]) != 1:
@@ -173,9 +173,9 @@ def unpooling_3d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
 
     .. note::
 
-        This function calls :func:`~functions.unpooling_nd` with
-        ``ndim = 3``, so see the details of the behavior in
-        the documentation of :func:`~functions.unpooling_nd`.
+        This function calls :func:`~chainer.functions.unpooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.unpooling_nd`.
 
     """
     if len(x.shape[2:]) != 3:

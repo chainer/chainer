@@ -378,8 +378,8 @@ def deconvolution_1d(x, W, b=None, stride=1, pad=0, outsize=None,
 
     .. note::
 
-        This function calls :func:`~chainer.functions.deconvolution_nd` with
-        ``ndim = 1``, so see the details of the behavior in
+        This function calls :func:`~chainer.functions.deconvolution_nd`
+        internally, so see the details of the behavior in
         the documentation of :func:`~chainer.functions.deconvolution_nd`.
 
     """
@@ -397,8 +397,8 @@ def deconvolution_3d(x, W, b=None, stride=1, pad=0, outsize=None,
 
     .. note::
 
-        This function calls :func:`~chainer.functions.deconvolution_nd` with
-        ``ndim = 3``, so see the details of the behavior in
+        This function calls :func:`~chainer.functions.deconvolution_nd`
+        internally, so see the details of the behavior in
         the documentation of :func:`~chainer.functions.deconvolution_nd`.
 
     """
