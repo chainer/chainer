@@ -91,7 +91,7 @@ void NativeDevice::Arange(Scalar start, Scalar step, const Array& out) {
 
 void NativeDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
     assert(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
-    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
+    assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
     CheckDevicesCompatible(a, out);
 
     VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
@@ -116,7 +116,7 @@ void NativeDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
 }
 
 void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
-    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
 
     VisitDtype(out.dtype(), [&a, &axis, &out](auto pt) {
@@ -132,7 +132,7 @@ void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
 }
 
 void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
-    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
 
     VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
@@ -565,7 +565,7 @@ Array Im2Col(
     // Create the output array.
     StackVector<int64_t, kMaxNdim> out_dims;  // Number of patches along each axis
     for (int8_t i = 0; i < ndim; ++i) {
-        out_dims.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
+        out_dims.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
         assert(out_dims.back() > 0);
     }
 
@@ -860,13 +860,13 @@ Array ExpandDims(const Array& a, const Axes& axes) {
     assert(expanded_strides.ndim() == a.ndim() + axes.ndim());
 
     return xchainer::internal::MakeArray(
-            internal::ExpandShape(a.shape(), axes), expanded_strides, a.dtype(), a.device(), a.data(), a.offset());
+            xchainer::internal::ExpandShape(a.shape(), axes), expanded_strides, a.dtype(), a.device(), a.data(), a.offset());
 }
 
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
     device.Sum(a, axis, out);
-    device.DivideAS(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
+    device.DivideAS(out, xchainer::internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
 void Var(const Array& a, const Array& mean, const Axes& axis, const Array& out) {
@@ -898,10 +898,10 @@ void NativeDevice::BatchNormalization(
         const Array& out) {
     Dtype dtype = out.dtype();
 
-    Array x_mean = internal::EmptyReduced(x.shape(), dtype, axis, true, *this);
+    Array x_mean = xchainer::internal::EmptyReduced(x.shape(), dtype, axis, true, *this);
     Mean(x, axis, x_mean);
 
-    Array x_var = internal::EmptyReduced(x.shape(), dtype, axis, true, *this);
+    Array x_var = xchainer::internal::EmptyReduced(x.shape(), dtype, axis, true, *this);
     Var(x, x_mean, axis, x_var);
 
     int64_t n = x.GetTotalSize() / gamma.GetTotalSize();

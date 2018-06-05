@@ -1,5 +1,6 @@
 #include "xchainer/native/native_backend.h"
 
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -9,6 +10,12 @@ namespace xchainer {
 namespace native {
 
 constexpr const char* NativeBackend::kDefaultName;
+
+namespace internal {
+
+NativeDevice* CreateDevice(NativeBackend& backend, int index) { return new NativeDevice{backend, index}; }
+
+}  // namespace internal
 
 std::string NativeBackend::GetName() const { return kDefaultName; }
 
@@ -21,7 +28,7 @@ std::unique_ptr<Device> NativeBackend::CreateDevice(int index) {
         throw std::out_of_range{"The index number (= " + std::to_string(index) +
                                 ") is not less than the device count (= " + std::to_string(device_count) + ')'};
     }
-    return std::make_unique<NativeDevice>(*this, index);
+    return std::unique_ptr<NativeDevice>(internal::CreateDevice(*this, index));
 }
 
 bool NativeBackend::SupportsTransfer(Device& src_device, Device& dst_device) {

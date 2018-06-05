@@ -9,6 +9,19 @@
 namespace xchainer {
 namespace native {
 
+class NativeDevice;
+class NativeBackend;
+
+namespace internal {
+
+// Creates a device instance.
+// This function is meant to be used from the backend class. Never use it for other purpose.
+// This is defined in internal namespace in order to make it a friend of NativeDevice
+// class.
+NativeDevice* CreateDevice(NativeBackend& backend, int index);
+
+}  // namespace internal
+
 class NativeBackend : public Backend {
 public:
     static constexpr const char* kDefaultName = "native";

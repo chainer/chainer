@@ -16,6 +16,11 @@ public:
     explicit Backend(Context& context);
     virtual ~Backend();
 
+    Backend(const Backend&) = delete;
+    Backend(Backend&&) = delete;
+    Backend& operator=(const Backend&) = delete;
+    Backend& operator=(Backend&&) = delete;
+
     // Returns the name of this backend. This name should be unique within the context.
     virtual std::string GetName() const = 0;
 

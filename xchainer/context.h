@@ -17,7 +17,13 @@ class NativeBackend;
 
 class Context {
 public:
+    Context() = default;
     ~Context();
+
+    Context(const Context&) = delete;
+    Context(Context&&) = delete;
+    Context& operator=(const Context&) = delete;
+    Context& operator=(Context&&) = delete;
 
     // Gets the backend specified by the name.
     // If the backend does not exist, this function automatically creates it.

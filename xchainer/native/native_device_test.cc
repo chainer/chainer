@@ -18,25 +18,14 @@ void ExpectDataEqual(const std::shared_ptr<void>& expected, const std::shared_pt
     }
 }
 
-TEST(NativeDeviceTest, Ctor) {
-    Context ctx;
-    NativeBackend backend{ctx};
-    {
-        NativeDevice device{backend, 0};
-        EXPECT_EQ(&backend, &device.backend());
-        EXPECT_EQ(0, device.index());
-    }
-    {
-        NativeDevice device{backend, 1};
-        EXPECT_EQ(&backend, &device.backend());
-        EXPECT_EQ(1, device.index());
-    }
+NativeDevice& GetNativeDevice(Context& ctx, int device_index) {
+    // Using dynamic_cast to ensure it's actually NativeDevice
+    return dynamic_cast<NativeDevice&>(ctx.GetDevice({"native", device_index}));
 }
 
 TEST(NativeDeviceTest, Allocate) {
     Context ctx;
-    NativeBackend backend{ctx};
-    NativeDevice device{backend, 0};
+    NativeDevice& device = GetNativeDevice(ctx, 0);
 
     size_t bytesize = 3;
     std::shared_ptr<void> ptr = device.Allocate(bytesize);
@@ -45,8 +34,7 @@ TEST(NativeDeviceTest, Allocate) {
 
 TEST(NativeDeviceTest, MakeDataFromForeignPointer) {
     Context ctx;
-    NativeBackend backend{ctx};
-    NativeDevice device{backend, 0};
+    NativeDevice& device = GetNativeDevice(ctx, 0);
 
     size_t bytesize = 3;
     std::shared_ptr<void> data = device.Allocate(bytesize);
@@ -62,8 +50,7 @@ TEST(NativeDeviceTest, FromHostMemory) {
     });
 
     Context ctx;
-    NativeBackend backend{ctx};
-    NativeDevice device{backend, 0};
+    NativeDevice& device = GetNativeDevice(ctx, 0);
 
     std::shared_ptr<void> dst = device.FromHostMemory(src, bytesize);
     EXPECT_EQ(src.get(), dst.get());
@@ -71,8 +58,7 @@ TEST(NativeDeviceTest, FromHostMemory) {
 
 TEST(NativeDeviceTest, Synchronize) {
     Context ctx;
-    NativeBackend backend{ctx};
-    NativeDevice device{backend, 0};
+    NativeDevice& device = GetNativeDevice(ctx, 0);
     EXPECT_NO_THROW(device.Synchronize());
 }
 
