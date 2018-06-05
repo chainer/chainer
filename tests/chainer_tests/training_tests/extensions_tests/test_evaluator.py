@@ -1,5 +1,4 @@
 import unittest
-import warnings
 
 import numpy
 
@@ -233,19 +232,13 @@ class TestEvaluatorWithEvalFunc(unittest.TestCase):
 }))
 class TestEvaluatorRepeat(unittest.TestCase):
 
-    def test_serial_iterator(self):
+    def test_user_warning(self):
         dataset = numpy.ones((4, 6))
-        iterator = iterators.SerialIterator(dataset, 2, repeat=self.repeat)
+        iterator = self.iterator(dataset, 2, repeat=self.repeat)
         with chainer.using_config('debug', self.debug):
-            with warnings.catch_warnings(record=True) as w:
-                extensions.Evaluator(iterator, {})
-
-        if self.debug and self.repeat:
-            expect = 1
-        else:
-            expect = 0
-
-        self.assertEqual(len(w), expect)
+            if self.debug and self.repeat:
+                with testing.assert_warns(UserWarning):
+                    extensions.Evaluator(iterator, {})
 
 
 testing.run_module(__name__, __file__)
