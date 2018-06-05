@@ -63,16 +63,12 @@ Array ConvGradW(
     return out;
 }
 
-}  // namespace
-
-Array Conv(
-        const Array& x,
-        const Array& w,
-        const nonstd::optional<Array>& b,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
+void ConvCheckNdim(
+        const Array& x, const Array& w, const StackVector<int64_t, kMaxNdim>& stride, const StackVector<int64_t, kMaxNdim>& pad) {
     int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    if (ndim <= 0) {
+        throw DimensionError{"Number of spacial dimensions must be greater than 0"};
+    }
     if (w.ndim() != ndim + 2) {
         throw DimensionError{"Mismatched number of dimensions between input ", x.ndim(), " and weights ", w.ndim(), "."};
     }
@@ -82,6 +78,18 @@ Array Conv(
     if (static_cast<int8_t>(pad.size()) != ndim) {
         throw DimensionError{"Wrong numbers of paddings ", pad.size(), " for input with ", x.ndim(), " dimensions."};
     }
+}
+
+}  // namespace
+
+Array Conv(
+        const Array& x,
+        const Array& w,
+        const nonstd::optional<Array>& b,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    ConvCheckNdim(x, w, stride, pad);
     if (w.shape()[1] != x.shape()[1]) {
         throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
     }
@@ -122,6 +130,7 @@ Array ConvTranspose(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) {
+    ConvCheckNdim(x, w, stride, pad);
     int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
     Shape in_dims{x.shape().begin() + 2, x.shape().end()};
     Shape kernel_size{w.shape().begin() + 2, w.shape().end()};
