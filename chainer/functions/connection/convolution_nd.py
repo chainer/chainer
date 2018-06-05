@@ -477,7 +477,7 @@ def convolution_1d(x, W, b=None, stride=1, pad=0, cover_all=False,
     if len(x.shape[2:]) != 1:
         raise ValueError(
             'The number of dimensions under channel dimension of the input '
-            '\'x\' should be 1. But the actual ndim was {}.'.fromat(
+            '\'x\' should be 1. But the actual ndim was {}.'.format(
                 len(x.shape[2:])))
     return convolution_nd(x, W, b, stride, pad, cover_all, dilate, groups)
 
@@ -496,6 +496,6 @@ def convolution_3d(x, W, b=None, stride=1, pad=0, cover_all=False,
     if len(x.shape[2:]) != 3:
         raise ValueError(
             'The number of dimensions under channel dimension of the input '
-            '\'x\' should be 3. But the actual ndim was {}.'.fromat(
+            '\'x\' should be 3. But the actual ndim was {}.'.format(
                 len(x.shape[2:])))
     return convolution_nd(x, W, b, stride, pad, cover_all, dilate, groups)

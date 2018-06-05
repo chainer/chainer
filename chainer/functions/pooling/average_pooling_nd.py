@@ -272,7 +272,7 @@ def average_pooling_1d(x, ksize, stride=None, pad=0, pad_value=0):
     if len(x.shape[2:]) != 1:
         raise ValueError(
             'The number of dimensions under channel dimension of the input '
-            '\'x\' should be 1. But the actual ndim was {}.'.fromat(
+            '\'x\' should be 1. But the actual ndim was {}.'.format(
                 len(x.shape[2:])))
     return average_pooling_nd(x, ksize, stride, pad, pad_value)
 
@@ -294,6 +294,6 @@ def average_pooling_3d(x, ksize, stride=None, pad=0, pad_value=0):
     if len(x.shape[2:]) != 3:
         raise ValueError(
             'The number of dimensions under channel dimension of the input '
-            '\'x\' should be 3. But the actual ndim was {}.'.fromat(
+            '\'x\' should be 3. But the actual ndim was {}.'.format(
                 len(x.shape[2:])))
     return average_pooling_nd(x, ksize, stride, pad, pad_value)
