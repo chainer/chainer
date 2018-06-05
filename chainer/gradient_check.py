@@ -358,8 +358,8 @@ def check_backward(
     If the function is non-differentiable with respect to some input objects,
     we can check its backprop to such objects by ``no_grads`` argument.
     ``gradient_check`` computes numerical backward to inputs that correspond to
-    ``False`` in ``no_grads``. It also asserts the backprop lefts gradient
-    ``None`` for inputs that correspond to ``True`` in ``no_grads``.
+    ``False`` in ``no_grads``. It also asserts that the backprop leaves
+    gradients ``None`` for inputs that correspond to ``True`` in ``no_grads``.
     The default of ``no_grads`` argument is the tuple of truth values whether
     input objects (``x1_data`` or/and ``x2_data`` in this example) represent
     integer variables.
