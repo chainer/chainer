@@ -267,20 +267,19 @@ class GoogLeNet(link.Chain):
 
         .. warning::
 
-           ``test`` and ``volatile`` arguments are not supported
+           ``train`` and ``volatile`` arguments are not supported
            anymore since v2. Instead, users should configure
            training and volatile modes with ``train`` and
            ``enable_backprop``, respectively.
 
            Note that default behavior of this method is different
            between v1 and later versions. Specifically,
-           the default values of ``test`` and ``volatile``
-           arguments in v1 were ``False`` and ``OFF``, respectively,
-           while those of ``train`` and ``enable_backprop``
-           are ``True``, and ``True``. Therefore, users need to
-           explicitly switch ``train`` to ``False`` to run the code
-           in test mode and ``enable_backprop`` to ``False`` to turn off
-           construction of coputational graphs.
+           the default values of ``train`` arguments in v1 were
+           ``False`` and ``OFF``, while that of
+           ``chainer.config.train`` are ``True``.
+           Therefore, users need to explicitly switch ``train``
+           to ``False`` to run the code in test mode to turn off
+           coputational graph construction.
 
            See the `upgrade guide <https://docs.chainer.org/en/stable\
            /upgrade_v2.html#training-mode-is-configured-by-a-thread-local-flag>`_.
