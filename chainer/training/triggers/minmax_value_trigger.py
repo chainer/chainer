@@ -8,7 +8,7 @@ class BestValueTrigger(object):
 
     Args:
         key (str): Key of value.
-        compare (function): Compare function which takes current best value and
+        compare (callable): Compare function which takes current best value and
             new value and returns whether new value is better than current
             best.
         trigger: Trigger that decides the comparison interval between current
