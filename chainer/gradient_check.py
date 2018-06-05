@@ -481,10 +481,9 @@ def check_backward(
                 'Actual: {0} != {1}'.format(len(no_grads), len(xs)))
 
     for skip, x in six.moves.zip(no_grads, xs):
-        if skip:
-            if x.grad is not None:
-                raise RuntimeError(
-                    'gradient of int variable must be None')
+        if skip and x.grad is not None:
+            raise RuntimeError(
+                'gradient of int variable must be None')
 
     if len(xs) - no_grads.count(True) + len(params) == 0:
         # When there is no float variables, we need not to check gradient
