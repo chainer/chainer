@@ -461,3 +461,49 @@ astype(np.float32)
     args = (x, W) if b is None else (x, W, b)
     y, = fnode.apply(args)
     return y
+
+
+def convolution_1d(x, W, b=None, stride=1, pad=0, cover_all=False):
+    """1-dimensional convolution function.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.convolution_nd`
+        internally, so see the detail in the documentation of
+        :func:`~chainer.functions.convolution_nd`.
+
+    """
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
+
+    func = ConvolutionND(1, stride, pad, cover_all)
+    if b is None:
+        return func(x, W)
+    else:
+        return func(x, W, b)
+
+
+def convolution_3d(x, W, b=None, stride=1, pad=0, cover_all=False):
+    """3-dimensional convolution function.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.convolution_nd`
+        internally, so see the detail in the documentation of
+        :func:`~chainer.functions.convolution_nd`.
+
+    """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
+
+    func = ConvolutionND(3, stride, pad, cover_all)
+    if b is None:
+        return func(x, W)
+    else:
+        return func(x, W, b)

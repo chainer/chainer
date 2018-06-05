@@ -253,3 +253,47 @@ def average_pooling_nd(x, ksize, stride=None, pad=0, pad_value=0):
     return AveragePoolingND(
         ndim, ksize, stride=stride, pad=pad, pad_value=pad_value
     ).apply((x,))[0]
+
+
+def average_pooling_1d(x, ksize, stride=None, pad=0):
+    """1-dimensional spatial average pooling function.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    .. note::
+
+        This function calls :func:`~functions.average_pooling_nd` with
+        ``ndim = 1``, so see the details of the behavior in
+        the documentation of :func:`~functions.average_pooling_nd`.
+
+    """
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
+    return AveragePoolingND(1, ksize, stride=stride, pad=pad)(x)
+
+
+def average_pooling_3d(x, ksize, stride=None, pad=0):
+    """3-dimensional spatial average pooling function.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    .. note::
+
+        This function calls :func:`~functions.average_pooling_nd` with
+        ``ndim = 3``, so see the details of the behavior in
+        the documentation of :func:`~functions.average_pooling_nd`.
+
+    """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.fromat(
+                len(x.shape[2:])))
+    return AveragePoolingND(3, ksize, stride=stride, pad=pad)(x)

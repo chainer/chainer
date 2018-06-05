@@ -115,9 +115,13 @@ Neural network connections
    :nosignatures:
 
    chainer.functions.bilinear
+   chainer.functions.convolution_1d
    chainer.functions.convolution_2d
+   chainer.functions.convolution_3d
    chainer.functions.convolution_nd
+   chainer.functions.deconvolution_1d
    chainer.functions.deconvolution_2d
+   chainer.functions.deconvolution_3d
    chainer.functions.deconvolution_nd
    chainer.functions.depthwise_convolution_2d
    chainer.functions.dilated_convolution_2d
@@ -278,13 +282,19 @@ Spatial pooling
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.average_pooling_1d
    chainer.functions.average_pooling_2d
+   chainer.functions.average_pooling_3d
    chainer.functions.average_pooling_nd
+   chainer.functions.max_pooling_1d
    chainer.functions.max_pooling_2d
+   chainer.functions.max_pooling_3d
    chainer.functions.max_pooling_nd
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
+   chainer.functions.unpooling_1d
    chainer.functions.unpooling_2d
+   chainer.functions.unpooling_3d
    chainer.functions.unpooling_nd
    chainer.functions.upsampling_2d
 
