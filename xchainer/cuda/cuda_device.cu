@@ -1062,7 +1062,7 @@ Array CudaDevice::ConvTranspose(
     return y;
 }
 
-void CudaDevice::BatchNormalization(
+void CudaDevice::BatchNorm(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -1089,7 +1089,7 @@ void CudaDevice::BatchNormalization(
         // TODO(hvy): Consider CUDNN_BATCHNORM_SPATIAL_PERSISTENT if we can afford to check for overflow, with or without blocking.
         mode = CUDNN_BATCHNORM_SPATIAL;
     } else {
-        throw DimensionError{"Invalid axis for BatchNormalization using cuDNN ", axis, ". Expected 0, 3 or 4 dimensions."};
+        throw DimensionError{"Invalid axis for BatchNorm using cuDNN ", axis, ". Expected 0, 3 or 4 dimensions."};
     }
 
     cudnn_context_.BatchNormalizationForwardTraining(
