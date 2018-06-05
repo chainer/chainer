@@ -17,6 +17,21 @@ namespace xchainer {
 
 class Array;
 
+class BatchNormForwardBackward {
+public:
+    virtual Array Forward(
+            const Array& x,
+            const Array& gamma,
+            const Array& beta,
+            const Array& running_mean,
+            const Array& running_var,
+            Scalar eps,
+            Scalar decay,
+            const Axes& axis) = 0;
+    virtual std::array<Array, 3> Backward(
+            const Array& x, const Array& gamma, const Array& gout, Scalar eps, Scalar decay, const Axes& axis) = 0;
+};
+
 // Device base class.
 // Note that these member functions may be called from the framework or user code.
 class Device {
@@ -188,16 +203,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) = 0;
 
-    virtual void BatchNormalization(
-            const Array& x,
-            const Array& gamma,
-            const Array& beta,
-            const Array& running_mean,
-            const Array& running_var,
-            Scalar eps,
-            Scalar decay,
-            const Axes& axis,
-            const Array& out) = 0;
+    virtual std::shared_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() = 0;
 
     virtual void Synchronize() = 0;
 

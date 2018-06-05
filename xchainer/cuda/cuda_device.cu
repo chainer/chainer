@@ -1062,20 +1062,6 @@ Array CudaDevice::ConvTranspose(
     return y;
 }
 
-void CudaDevice::BatchNormalization(
-        const Array& /*x*/,
-        const Array& /*gamma*/,
-        const Array& /*beta*/,
-        const Array& /*running_mean*/,
-        const Array& /*running_var*/,
-        Scalar /*eps*/,
-        Scalar /*decay*/,
-        const Axes& /*axis*/,
-        const Array& /*out*/) {
-    // TODO(hvy): Implement it
-    throw NotImplementedError{""};
-}
-
 void CudaDevice::Synchronize() {
     CheckCudaError(cudaSetDevice(index()));
     CheckCudaError(cudaDeviceSynchronize());

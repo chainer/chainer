@@ -29,7 +29,7 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(NormalizationTest, BatchNormalization) {
+TEST_P(NormalizationTest, BatchNorm) {
     if (GetParam() == "cuda") {
         // TODO(hvy): Add CUDA implementation
         return;
@@ -55,7 +55,7 @@ TEST_P(NormalizationTest, BatchNormalization) {
                     .WithData<T>({0.27891612, 0.83984816, 0.20299992, 0.3024816, 0.59901035, 0.9280579, 0.07075989, 0.31253654});
     Array running_var = testing::BuildArray(reduced_shape)
                                 .WithData<T>({0.8258983, 0.35525382, 0.01103283, 0.843107, 0.09379472, 0., 0.6574457, 0.6707562});
-    Array out = BatchNormalization(a, gamma, beta, running_mean, running_var, eps, decay);
+    Array out = BatchNorm(a, gamma, beta, running_mean, running_var, eps, decay);
 
     // Expectations were computed using Chainer.
     Array e_out = testing::BuildArray(x_shape).WithData<float>({0.43345568, 0.9024843,   -0.27429962, 0.6594735,  0.6550931,  0.18604966,
@@ -74,7 +74,7 @@ TEST_P(NormalizationTest, BatchNormalization) {
     testing::ExpectAllClose(e_running_var, running_var, 1e-6f, 1e-6f);
 }
 
-TEST_P(NormalizationTest, BatchNormalizationWithAxis) {
+TEST_P(NormalizationTest, BatchNormWithAxis) {
     if (GetParam() == "cuda") {
         // TODO(hvy): Add CUDA implementation
         return;
@@ -96,7 +96,7 @@ TEST_P(NormalizationTest, BatchNormalizationWithAxis) {
     Array beta = testing::BuildArray(reduced_shape).WithData<T>({0.07768852, 0.21956936, 0.6850719, 0.15088539});
     Array running_mean = testing::BuildArray(reduced_shape).WithData<T>({0.34721586, 0.2698823, 0.8581124, 0.74137366});
     Array running_var = testing::BuildArray(reduced_shape).WithData<T>({0., 0.8622455, 0.18700261, 0.20017703});
-    Array out = BatchNormalization(a, gamma, beta, running_mean, running_var, eps, decay, axis);
+    Array out = BatchNorm(a, gamma, beta, running_mean, running_var, eps, decay, axis);
 
     // Expectations were computed using Chainer.
     Array e_out = testing::BuildArray(x_shape).WithData<float>(

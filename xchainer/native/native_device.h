@@ -104,16 +104,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
-    void BatchNormalization(
-            const Array& x,
-            const Array& gamma,
-            const Array& beta,
-            const Array& running_mean,
-            const Array& running_var,
-            Scalar eps,
-            Scalar decay,
-            const Axes& axis,
-            const Array& out) override;
+    std::shared_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
 
     void Synchronize() override;
 
