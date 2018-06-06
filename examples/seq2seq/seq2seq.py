@@ -226,6 +226,8 @@ def main():
                         'with validation dataset')
     parser.add_argument('--out', '-o', default='result',
                         help='directory to output the result')
+    parser.add_argument('--test', dest='test', action='store_true')
+    parser.set_defaults(test=False)
     args = parser.parse_args()
 
     # Load pre-processed dataset
@@ -234,6 +236,10 @@ def main():
     train_source = load_data(source_ids, args.SOURCE)
     train_target = load_data(target_ids, args.TARGET)
     assert len(train_source) == len(train_target)
+
+    if args.test:
+        train_source = train_source[:100000]
+        train_target = train_target[:100000]
 
     train_data = [
         (s, t)
