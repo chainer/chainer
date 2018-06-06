@@ -65,7 +65,7 @@ public:
     void Divide(const Array& x1, const Array& x2, const Array& out) override;
     void DivideAS(const Array& x1, Scalar x2, const Array& out) override;
 
-    // arithmetic.cc
+    // reduction.cc
 
     void ArgMax(const Array& a, const Axes& axis, const Array& out) override;
 
