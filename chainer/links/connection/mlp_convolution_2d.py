@@ -33,7 +33,12 @@ class MLPConvolution2D(link.ChainList):
         pad (int or pair of ints): Spatial padding width for input arrays at
             the first convolution layer. ``pad=p`` and ``pad=(p, p)`` are
             equivalent.
-        activation (:doc:`wrapper function </reference/functions>`): Activation function for internal hidden units.
+        activation (callable):
+            Activation function for internal hidden units.
+            You can pass
+            :doc:`built-in activation functions </reference/functions>` or
+            your own function, which takes one argument, which is the output
+            from each child link.
             Note that this function is not applied to the output of this link.
         conv_init: An initializer of weight matrices
             passed to the convolution layers. This option must be specified as
@@ -51,7 +56,9 @@ class MLPConvolution2D(link.ChainList):
     See: `Network in Network <https://arxiv.org/abs/1312.4400v3>`_.
 
     Attributes:
-        activation (:doc:`wrapper function </reference/functions>`): Activation function.
+        activation (callable):
+            Activation function.
+            See the description in the arguments for details.
 
     """  # NOQA
 
