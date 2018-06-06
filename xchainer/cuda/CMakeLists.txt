@@ -14,6 +14,7 @@ CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     cublas.cc
     cuda_device.cu
     cuda_device/arithmetic.cu
+    cuda_device/fill.cu
     cuda_backend.cc
     cuda_runtime.cc
     cudnn.cc

@@ -1,12 +1,6 @@
 #include "xchainer/cuda/cuda_device.h"
 
-#include <algorithm>
-#include <cassert>
-#include <cmath>
-#include <cstddef>
 #include <cstdint>
-#include <memory>
-#include <numeric>
 
 #include <cuda_runtime.h>
 
